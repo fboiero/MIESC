@@ -1,0 +1,51 @@
+# Echidna Configuration for Xaudit
+# Property-based fuzzing configuration
+
+# Test mode
+testMode: property
+
+# Fuzzing parameters
+testLimit: 100000      # Number of test sequences
+shrinkLimit: 5000      # Simplification attempts for failures
+seqLen: 100            # Max length of transaction sequence
+timeout: 300           # Timeout in seconds (5 minutes)
+
+# Coverage
+coverage: true
+corpusDir: analysis/echidna/corpus
+
+# Transaction parameters
+deployer: "0x00a329c0648769A73afAc7F9381E08FB43dBEA72"
+sender: ["0x10000", "0x20000", "0x30000"]  # Multiple senders
+
+# Gas settings
+maxGasprice: 0
+maxTimeDelay: 100000
+maxBlockDelay: 100
+
+# Property testing
+checkAsserts: true
+propMaxGas: 12000000
+
+# Output
+format: text
+quiet: false
+
+# Filtering
+filterBlacklist: true
+filterFunctions: []
+
+# Corpus
+seed: null
+
+# Shrinking
+shrinkTest: true
+
+# Workers (parallelization)
+workers: 4
+
+# Example property functions to test:
+# - echidna_no_reentrancy()
+# - echidna_balance_preserved()
+# - echidna_owner_valid()
+# - echidna_total_supply_invariant()
