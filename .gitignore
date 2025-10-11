@@ -28,17 +28,36 @@ Thumbs.db
 *.key
 *.pem
 
-# Analysis outputs
-analysis/slither/results/*.json
+# Analysis outputs - Exclude all generated results
+analysis/slither/results/
+analysis/slither/*.json
+analysis/slither/*.txt
 analysis/echidna/results/
+analysis/echidna/*.txt
+analysis/echidna/corpus/
 analysis/medusa/results/
+analysis/medusa/*.json
+analysis/medusa/*.txt
 analysis/certora/results/
+analysis/certora/*.json
+analysis/certora/*.log
+analysis/output/
+analysis/results/
+analysis/dashboard/
 analysis/*.csv
 analysis/*.json
+analysis/*.txt
 analysis/*.md
+
+# Keep configuration files and specs
 !analysis/**/config.*
 !analysis/**/*.yaml
 !analysis/**/*.spec
+!analysis/**/*.conf
+!analysis/README.md
+
+# Keep scripts
+!analysis/scripts/
 
 # Foundry
 cache/
