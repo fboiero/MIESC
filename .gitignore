@@ -1,0 +1,81 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+*.key
+*.pem
+
+# Analysis outputs
+analysis/slither/results/*.json
+analysis/echidna/results/
+analysis/medusa/results/
+analysis/certora/results/
+analysis/*.csv
+analysis/*.json
+analysis/*.md
+!analysis/**/config.*
+!analysis/**/*.yaml
+!analysis/**/*.spec
+
+# Foundry
+cache/
+out/
+broadcast/
+lcov.info
+.gas-snapshot
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage
+coverage/
+coverage.json
+*.lcov
+
+# Node modules (if any JS tooling)
+node_modules/
+
+# Certora
+.certora_config
+.certora_sources/
+certora_output/
+
+# Generated reports
+output/*.pdf
+output/**/*.txt
+!output/.gitkeep
+
+# Experimental data
+thesis/data/
+thesis/figures/*.png
+thesis/figures/*.pdf
+!thesis/figures/.gitkeep

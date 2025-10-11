@@ -1,170 +1,233 @@
-# 🔍 Xaudit: Smart Contract Audit Tool with LLMs
+# 🔍 Xaudit: Hybrid Smart Contract Auditing Framework
 
-**Xaudit** represents a novel approach to Ethereum smart contract security auditing that synthesizes traditional static analysis methodologies with state-of-the-art artificial intelligence techniques. This framework addresses the growing complexity of decentralized application security by leveraging the complementary strengths of established vulnerability detection tools (Slither, Mythril) and advanced Large Language Models (GPT-4, Llama 2).
+**Xaudit** is a hybrid smart contract auditing framework integrating static, fuzzing, and formal methods with AI-assisted analysis (2025 edition).
 
-The primary objective of this research tool is to generate comprehensive, AI-augmented security audit reports that combine the precision of automated static analysis with the contextual reasoning capabilities of large-scale language models. By bridging the gap between rule-based security checking and AI-driven code comprehension, Xaudit facilitates a more thorough examination of smart contract vulnerabilities, particularly those requiring semantic understanding of business logic and contract interactions within the Ethereum ecosystem.
+This framework addresses the growing complexity of decentralized application security by combining traditional security tools (Slither, Echidna, Medusa, Certora) with AI-powered triage and analysis capabilities.
+
+---
+
+## 🎓 Academic Research
+
+This repository supports the Master's thesis:
+
+**"Development of a Framework for Security Evaluation of Smart Contracts on the Ethereum Virtual Machine Using Artificial Intelligence"**
+
+- **Author**: Fernando Boiero
+- **Institution**: Universidad Tecnológica Nacional - FRVM
+- **Contact**: fboiero@frvm.utn.edu.ar
+- **Year**: 2025
+
+📚 **Thesis Documentation**: See [`/thesis`](/thesis) directory for methodology, experiments, and results.
 
 ---
 
 ## ✨ Key Features
 
-- **Multi-Tool Integration**  
-  Combines results from industry-recognized security tools (e.g., **Slither**, **Mythril**).
+- **Multi-Layer Analysis**
+  - Static analysis (Slither)
+  - Property-based fuzzing (Echidna)
+  - Coverage-guided fuzzing (Medusa)
+  - Formal verification (Certora, Scribble)
+  - Differential testing (Foundry)
 
-- **AI-Powered Analysis**  
-  Uses LLMs such as **GPT-4**, **Llama 2**, and **GPTLens** to detect vulnerabilities and provide deeper insights.
+- **AI-Powered Triage**
+  - Automated vulnerability classification
+  - False positive reduction
+  - PoC exploit generation
+  - Natural language explanations
 
-- **Flexible Configuration**  
-  Choose which tools and models to enable through a simple config file.
+- **CI/CD Integration**
+  - Automated GitHub Actions workflows
+  - Continuous security monitoring
+  - Report generation
 
-- **Customizable Reports**  
-  Generate detailed **PDF** and **TXT reports**, including raw tool outputs, summaries, and conclusions.
-
-- **Unit Test Suggestions** *(optional)*  
-  Automatically generate suggested unit tests to validate contracts.
-
-- **Report Sections Control**  
-  Decide whether to include introduction, tools output, summaries, unit test suggestions, or conclusions.
-
----
-
-## ⚙️ How It Works
-
-1. The main script `main.py` orchestrates the audit.  
-2. Reads the **Solidity contract** and its version.  
-3. Sends it to the enabled tools and LLMs defined in `config.py`.  
-4. Collects and merges outputs.  
-5. Generates:
-   - Raw outputs (`.txt`)
-   - A consolidated **summary**
-   - An optional **PDF report**
+- **Comprehensive Dataset**
+  - 100+ vulnerable contracts (SWC categorized)
+  - Real-world case studies
+  - Ground truth annotations
 
 ---
 
-## 📦 Requirements
+## 🏗️ Architecture
 
-- Python **3.x**
-- Project dependencies (`requirements.txt`)
-- *(Optional)* GPU with enough VRAM for running LLMs locally
+```
+xaudit/
+├── src/
+│   ├── contracts/          # Test contracts & vulnerable examples
+│   ├── tests/              # Foundry test suites
+│   └── utils/              # Analysis scripts
+├── analysis/
+│   ├── slither/            # Static analysis configs
+│   ├── echidna/            # Fuzzing configurations
+│   ├── medusa/             # Fuzzer configs
+│   ├── scribble/           # Runtime verification specs
+│   └── certora/            # Formal verification specs (CVL)
+├── thesis/
+│   ├── methods.md          # Research methodology
+│   ├── experiments.md      # Experimental design
+│   └── results.md          # Results & analysis
+└── .github/workflows/      # CI/CD pipelines
+```
 
 ---
 
 ## 🚀 Quick Start
 
-### Automated Setup
+### Prerequisites
+
+- **Foundry** (`forge`, `anvil`, `cast`)
+- **Slither** (`pip install slither-analyzer`)
+- **Echidna** (Haskell-based fuzzer)
+- **Medusa** (Go-based fuzzer)
+- **Certora** (optional, requires license)
+- **Python 3.9+** with dependencies
+
+### Installation
 
 ```bash
-# Clone repo
+# Clone repository
 git clone https://github.com/fboiero/xaudit.git
 cd xaudit
 
-# Run automated setup
+# Setup environment
 ./setup.sh
-```
 
-The setup script will:
-- Create virtual environment
-- Install dependencies
-- Generate configuration files
-- Create `.env` template
+# Install Foundry
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
 
-### Manual Installation
-
-```bash
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate   # On Windows: venv\Scripts\activate
-
-# Install core dependencies (recommended)
-pip install -r requirements_minimal.txt
-
-# Or install all dependencies (includes AI/ML tools)
+# Install Python tools
 pip install -r requirements.txt
 ```
 
-### Configuration
-
-1. **Edit `.env` file** and add your OpenAI API key:
-```bash
-OPENAI_API_KEY=sk-your-key-here
-```
-
-2. **Configure tools** in `config.py`:
-```python
-class ModelConfig:
-    use_slither = True    # Fast static analysis
-    use_mythril = False   # Symbolic execution (slow)
-    use_GPTLens = True    # AI-powered analysis
-```
-
-### Run Your First Audit
+### Run Analysis
 
 ```bash
-# Using the convenience script
-./run_audit.sh examples/voting.sol 0.8.0 my_first_audit
+# Full pipeline on a contract
+./run_audit.sh src/contracts/examples/voting.sol 0.8.0 my_audit
 
-# Or directly with Python
-python main.py examples/voting.sol my_first_audit
+# Individual tools
+slither src/contracts/examples/voting.sol
+echidna src/contracts/examples/voting.sol --config analysis/echidna/config.yaml
+forge test --fuzz-runs 10000
 ```
-
-Results will be in:
-- `output.pdf` - Consolidated PDF report
-- `output/my_first_audit/` - Individual tool outputs
 
 ---
 
-## 📚 Documentation
+## 📊 Experimental Pipeline
 
-- **[Usage Guide](docs/USAGE.md)** - Detailed usage examples and workflows
-- **[Architecture](docs/ARCHITECTURE.md)** - System design and extension points
-- **Examples** - See `examples/` directory for sample contracts
+### 1. Static Analysis
+```bash
+slither src/contracts/vulnerable/reentrancy/*.sol --json analysis/slither/results.json
+```
+
+### 2. Fuzzing
+```bash
+# Echidna (property-based)
+echidna src/contracts/vulnerable/reentrancy/BasicReentrancy.sol \
+  --config analysis/echidna/config.yaml
+
+# Medusa (coverage-guided)
+medusa fuzz --config analysis/medusa/medusa.json
+```
+
+### 3. Formal Verification
+```bash
+# Certora
+certoraRun src/contracts/examples/ERC20.sol \
+  --verify ERC20:analysis/certora/ERC20.spec
+```
+
+### 4. AI Triage
+```bash
+python src/utils/ai_assistant.py \
+  --findings analysis/slither/results.json \
+  --output analysis/consolidated_report.md
+```
 
 ---
 
-## 🔬 Research & Academic Use
+## 🔬 Research Contributions
 
-This tool is designed for academic research and professional security auditing. If you use Xaudit in your research, please cite:
+1. **Novel Framework**: First open-source integration of static + fuzzing + formal + AI
+2. **Benchmark Dataset**: 100+ vulnerable contracts with ground truth
+3. **Reproducible Methodology**: Standardized metrics (precision/recall/F1)
+4. **Empirical Evaluation**: Quantitative analysis of tool effectiveness
+
+---
+
+## 📈 Preliminary Results
+
+*Results will be updated as experiments complete (see `/thesis/results.md`)*
+
+| Tool/Framework | Precision | Recall | F1-Score | Time (avg) |
+|----------------|-----------|--------|----------|------------|
+| Slither | TBD | TBD | TBD | TBD |
+| Echidna | TBD | TBD | TBD | TBD |
+| **Xaudit (hybrid)** | **TBD** | **TBD** | **TBD** | **TBD** |
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Areas:
+- Additional vulnerable contract examples
+- Improved fuzzing properties
+- Formal verification specs
+- AI prompt optimization
+- Documentation enhancements
+
+---
+
+## 📄 License
+
+GPL-3.0 License - See [LICENSE](LICENSE)
+
+---
+
+## ⚠️ Disclaimer
+
+Xaudit is a research tool. It does not guarantee complete vulnerability detection. Always:
+- Manually review findings
+- Conduct comprehensive testing
+- Engage professional auditors for production contracts
+
+---
+
+## 📚 References
+
+- Thesis documentation: [`/thesis`](/thesis)
+- Methodology: [`/thesis/methods.md`](/thesis/methods.md)
+- Experiments: [`/thesis/experiments.md`](/thesis/experiments.md)
+- Results: [`/thesis/results.md`](/thesis/results.md)
+
+---
+
+## 📞 Contact
+
+- **Author**: Fernando Boiero
+- **Email**: fboiero@frvm.utn.edu.ar
+- **Institution**: Universidad Tecnológica Nacional - FRVM
+- **GitHub**: [@fboiero](https://github.com/fboiero)
+
+---
+
+## 🌟 Citation
+
+If you use Xaudit in your research, please cite:
 
 ```bibtex
-@software{xaudit2024,
+@mastersthesis{boiero2025xaudit,
   author = {Boiero, Fernando},
-  title = {Xaudit: AI-Augmented Smart Contract Security Auditing},
-  year = {2024},
+  title = {Development of a Framework for Security Evaluation of Smart Contracts on the Ethereum Virtual Machine Using Artificial Intelligence},
+  school = {Universidad Tecnológica Nacional - FRVM},
+  year = {2025},
+  type = {Master's Thesis},
   url = {https://github.com/fboiero/xaudit}
 }
 ```
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! Areas for contribution:
-- New analysis tools integration
-- Improved AI prompts
-- Additional report formats
-- Performance optimizations
-- Documentation improvements
-
----
-
-## 📄 License
-
-GPL-3.0 License - See [LICENSE](LICENSE) for details.
-
----
-
-## ⚠️ Disclaimer
-
-Xaudit is a research tool to assist in security auditing. It does not guarantee the absence of vulnerabilities. Always:
-- Manually review all findings
-- Conduct comprehensive testing
-- Engage professional auditors for production contracts
-- Never rely solely on automated tools
-
----
-
-## 📞 Contact & Support
-
-- **Issues**: [GitHub Issues](https://github.com/fboiero/xaudit/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/fboiero/xaudit/discussions)
-- **Author**: Fernando Boiero (fboiero@frvm.utn.edu.ar)
+**Last Updated**: October 2025
+**Status**: 🚧 Active Research
