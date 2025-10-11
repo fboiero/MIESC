@@ -1,7 +1,8 @@
 # 🔍 Xaudit: Smart Contract Audit Tool with LLMs
 
-**Xaudit** is a security audit tool for blockchain smart contracts that integrates the results of **traditional static analysis tools** with the capabilities of **Large Language Models (LLMs)**.  
-The goal is to provide a **comprehensive and consolidated audit report**, combining the strengths of tools like Slither and Mythril with advanced models such as GPT-4 and Llama 2.
+**Xaudit** represents a novel approach to Ethereum smart contract security auditing that synthesizes traditional static analysis methodologies with state-of-the-art artificial intelligence techniques. This framework addresses the growing complexity of decentralized application security by leveraging the complementary strengths of established vulnerability detection tools (Slither, Mythril) and advanced Large Language Models (GPT-4, Llama 2).
+
+The primary objective of this research tool is to generate comprehensive, AI-augmented security audit reports that combine the precision of automated static analysis with the contextual reasoning capabilities of large-scale language models. By bridging the gap between rule-based security checking and AI-driven code comprehension, Xaudit facilitates a more thorough examination of smart contract vulnerabilities, particularly those requiring semantic understanding of business logic and contract interactions within the Ethereum ecosystem.
 
 ---
 
