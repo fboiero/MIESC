@@ -1,39 +1,102 @@
+"""
+GPTLens AI-Powered Smart Contract Auditing Tool
+Combines GPT models with specialized prompts for vulnerability detection.
+"""
 import openai
-import os   
+import os
 import json
+import time
+import logging
 from dotenv import load_dotenv
 from src.GPTLens_prompts import (auditor_prompt, auditor_format_constrain, topk_prompt1, topk_prompt2,
                              critic_zero_shot_prompt, critic_few_shot_prompt, critic_format_constrain)
 from src.utils import remove_spaces
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 load_dotenv()
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
-def call_gpt(prompt, model='gpt-4o-mini', temperature=0.0, max_tokens=4000, n=1, stop=None) -> list:
+
+def call_gpt(prompt, model='gpt-4o-mini', temperature=0.0, max_tokens=4000, n=1, stop=None) -> str:
+    """
+    Call GPT API with given prompt and parameters.
+
+    Args:
+        prompt (str): The prompt to send to GPT
+        model (str): GPT model to use (default: gpt-4o-mini)
+        temperature (float): Sampling temperature (default: 0.0)
+        max_tokens (int): Maximum tokens in response (default: 4000)
+        n (int): Number of completions to generate (default: 1)
+        stop (str): Stop sequence (optional)
+
+    Returns:
+        str: GPT response content
+    """
     messages = [{"role": "user", "content": prompt}]
     if model == "gpt-4":
-        pass
-        time.sleep(30) # to prevent speed limitation exception
+        logger.info("Using GPT-4, applying rate limit delay")
+        time.sleep(30)  # to prevent speed limitation exception
     return chatgpt(messages, model=model, temperature=temperature, max_tokens=max_tokens, n=n, stop=stop)
 
 
-def chatgpt(messages, model, temperature, max_tokens, n, stop) -> list:
+def chatgpt(messages, model, temperature, max_tokens, n, stop) -> str:
+    """
+    Execute ChatGPT API call with batch processing for multiple completions.
+
+    Args:
+        messages (list): Conversation messages
+        model (str): GPT model identifier
+        temperature (float): Sampling temperature
+        max_tokens (int): Maximum response tokens
+        n (int): Number of completions
+        stop (str): Stop sequence
+
+    Returns:
+        str: First completion from GPT response
+    """
     outputs = []
-    while n > 0:
-        cnt = min(n, 20)
-        n -= cnt
-        res = openai.ChatCompletion.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens,
-                                           n=cnt, stop=stop)
-        outputs.extend([choice["message"]["content"] for choice in res["choices"]])
-    return outputs[0]
+    try:
+        while n > 0:
+            cnt = min(n, 20)
+            n -= cnt
+            logger.info(f"Calling GPT API with model {model}")
+            res = openai.ChatCompletion.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                n=cnt,
+                stop=stop
+            )
+            outputs.extend([choice["message"]["content"] for choice in res["choices"]])
+        logger.info("GPT API call successful")
+        return outputs[0]
+    except Exception as e:
+        logger.error(f"Error calling GPT API: {str(e)}")
+        raise
+
 
 def get_response_auditor(contract, solidity_version):
-    template = (auditor_prompt 
+    """
+    Get auditor response from GPT for vulnerability detection.
+
+    Args:
+        contract (str): Solidity contract source code
+        solidity_version (str): Solidity compiler version
+
+    Returns:
+        str: JSON-formatted audit findings
+    """
+    logger.info("Generating auditor response")
+    template = (auditor_prompt
         + contract
-        + auditor_format_constrain 
+        + auditor_format_constrain
         + topk_prompt1.format(topk=5)
-        + topk_prompt2)#.replace('{', '{{').replace('}', '}}')
-    return call_gpt(template).replace('```json','').replace('```','')
+        + topk_prompt2)
+    response = call_gpt(template).replace('```json','').replace('```','')
+    return response
     
 def get_response_critic(audit):
     auditor_outputs = json.loads(audit)

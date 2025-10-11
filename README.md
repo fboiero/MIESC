@@ -49,16 +49,122 @@ The primary objective of this research tool is to generate comprehensive, AI-aug
 
 ---
 
-## 🚀 Installation
+## 🚀 Quick Start
+
+### Automated Setup
 
 ```bash
 # Clone repo
 git clone https://github.com/fboiero/xaudit.git
 cd xaudit
 
+# Run automated setup
+./setup.sh
+```
+
+The setup script will:
+- Create virtual environment
+- Install dependencies
+- Generate configuration files
+- Create `.env` template
+
+### Manual Installation
+
+```bash
 # Create and activate virtual environment
 python -m venv venv
 source venv/bin/activate   # On Windows: venv\Scripts\activate
 
-# Install dependencies
+# Install core dependencies (recommended)
+pip install -r requirements_minimal.txt
+
+# Or install all dependencies (includes AI/ML tools)
 pip install -r requirements.txt
+```
+
+### Configuration
+
+1. **Edit `.env` file** and add your OpenAI API key:
+```bash
+OPENAI_API_KEY=sk-your-key-here
+```
+
+2. **Configure tools** in `config.py`:
+```python
+class ModelConfig:
+    use_slither = True    # Fast static analysis
+    use_mythril = False   # Symbolic execution (slow)
+    use_GPTLens = True    # AI-powered analysis
+```
+
+### Run Your First Audit
+
+```bash
+# Using the convenience script
+./run_audit.sh examples/voting.sol 0.8.0 my_first_audit
+
+# Or directly with Python
+python main.py examples/voting.sol my_first_audit
+```
+
+Results will be in:
+- `output.pdf` - Consolidated PDF report
+- `output/my_first_audit/` - Individual tool outputs
+
+---
+
+## 📚 Documentation
+
+- **[Usage Guide](docs/USAGE.md)** - Detailed usage examples and workflows
+- **[Architecture](docs/ARCHITECTURE.md)** - System design and extension points
+- **Examples** - See `examples/` directory for sample contracts
+
+---
+
+## 🔬 Research & Academic Use
+
+This tool is designed for academic research and professional security auditing. If you use Xaudit in your research, please cite:
+
+```bibtex
+@software{xaudit2024,
+  author = {Boiero, Fernando},
+  title = {Xaudit: AI-Augmented Smart Contract Security Auditing},
+  year = {2024},
+  url = {https://github.com/fboiero/xaudit}
+}
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Areas for contribution:
+- New analysis tools integration
+- Improved AI prompts
+- Additional report formats
+- Performance optimizations
+- Documentation improvements
+
+---
+
+## 📄 License
+
+GPL-3.0 License - See [LICENSE](LICENSE) for details.
+
+---
+
+## ⚠️ Disclaimer
+
+Xaudit is a research tool to assist in security auditing. It does not guarantee the absence of vulnerabilities. Always:
+- Manually review all findings
+- Conduct comprehensive testing
+- Engage professional auditors for production contracts
+- Never rely solely on automated tools
+
+---
+
+## 📞 Contact & Support
+
+- **Issues**: [GitHub Issues](https://github.com/fboiero/xaudit/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/fboiero/xaudit/discussions)
+- **Author**: Fernando Boiero (fboiero@frvm.utn.edu.ar)
