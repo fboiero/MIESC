@@ -16,6 +16,7 @@ Su objetivo principal es **estandarizar, sistematizar y homogeneizar** los proce
 
 - [Justificación](#-justificación)
 - [Arquitectura del Framework](#-arquitectura-del-framework)
+- [Evolución MCP: Arquitectura Multiagente](#-evolución-mcp-arquitectura-multiagente)
 - [Alineación con Estándares Internacionales](#-alineación-con-estándares-internacionales)
 - [Capas de Defensa](#-capas-de-defensa-defense-in-depth)
 - [Instalación](#-instalación)
@@ -95,6 +96,143 @@ Layer 6: Cognitive Intelligence (AI-Assisted)
 
 Output: Unified JSON → Compliance Mapping → Dashboard
 ```
+
+---
+
+## 🔄 Evolución MCP: Arquitectura Multiagente
+
+### Del Pipeline Secuencial al Modelo de Comunicación Multiagente
+
+MIESC ha evolucionado desde un **pipeline secuencial** hacia una **arquitectura multiagente basada en el Model Context Protocol (MCP)**, desarrollado por Anthropic. Esta evolución representa un cambio fundamental en cómo los agentes de seguridad colaboran e intercambian contexto.
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│              MCP Multi-Agent Architecture                      │
+│           (Model Context Protocol v1.0)                        │
+└────────────────────────────────────────────────────────────────┘
+
+                    ┌─────────────────────┐
+                    │  CoordinatorAgent   │
+                    │   (LLM Orchestrator)│
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────┴──────────┐
+                    │    Context Bus      │
+                    │   (Pub/Sub MCP)     │
+                    └──────────┬──────────┘
+                               │
+        ┌──────────────────────┼──────────────────────┐
+        │                      │                      │
+   ┌────┴────┐          ┌─────┴──────┐        ┌─────┴──────┐
+   │ Static  │          │  Dynamic   │        │     AI     │
+   │ Agent   │          │   Agent    │        │   Agent    │
+   └─────────┘          └────────────┘        └────────────┘
+   │                    │                     │
+   ├─ Slither           ├─ Echidna            ├─ GPTLens
+   ├─ Solhint           ├─ Medusa             ├─ Triage
+   └─ Surya             └─ Foundry            └─ RCA
+
+   Symbolic Agent       Formal Agent          Runtime Agent
+   ├─ Mythril           ├─ Certora            └─ Scribble
+   └─ Manticore         └─ Z3
+
+   Policy Agent (Compliance)
+   ├─ ISO/IEC 27001 checker
+   ├─ NIST SSDF validator
+   └─ OWASP mapper
+```
+
+### Características del Modelo MCP
+
+#### 1. **Comunicación Asíncrona Pub/Sub**
+Los agentes se comunican mediante mensajes MCP estandarizados:
+
+```json
+{
+  "protocol": "mcp/1.0",
+  "agent": "StaticAgent",
+  "context_type": "static_findings",
+  "contract": "Voting.sol",
+  "timestamp": "2025-10-12T18:00:00Z",
+  "data": {
+    "findings": [...]
+  },
+  "metadata": {
+    "tool_version": "slither-0.9.6",
+    "execution_time": 2.3
+  }
+}
+```
+
+#### 2. **Context Bus Centralizado**
+- **Pub/Sub Messaging**: Agentes publican hallazgos sin acoplamiento directo
+- **Context Storage**: Almacena histórico completo para correlación cross-layer
+- **Audit Trail**: Exporta logs para cumplimiento ISO/IEC 27001:2022 (A.8.15)
+
+#### 3. **Agentes Especializados**
+
+| Agente | Responsabilidad | Context Types Publicados |
+|--------|-----------------|--------------------------|
+| **StaticAgent** | Análisis estático (Layer 1) | `static_findings`, `slither_results`, `solhint_results` |
+| **DynamicAgent** | Fuzzing (Layer 2) | `dynamic_findings`, `echidna_results`, `foundry_results` |
+| **SymbolicAgent** | Ejecución simbólica (Layer 4) | `symbolic_findings`, `mythril_results` |
+| **FormalAgent** | Verificación formal (Layer 5) | `formal_findings`, `certora_results` |
+| **AIAgent** | Triage con IA (Layer 6) | `ai_triage`, `false_positives`, `root_cause_analysis` |
+| **PolicyAgent** | Compliance checking | `compliance_report`, `iso27001_status`, `owasp_coverage` |
+| **CoordinatorAgent** | Orquestación LLM | `audit_plan`, `audit_progress`, `audit_summary` |
+
+#### 4. **Orquestación Inteligente**
+El `CoordinatorAgent` utiliza LLM para:
+- Analizar complejidad del contrato
+- Generar plan de auditoría adaptativo
+- Priorizar capas según patrones detectados
+- Optimizar tiempos de ejecución
+
+### Proof of Concept (POC)
+
+Ejecutar demo de arquitectura MCP:
+
+```bash
+# Demo con 3 agentes: StaticAgent, AIAgent, CoordinatorAgent
+python demo_mcp_poc.py examples/voting.sol
+
+# Salida:
+# ✓ Context Bus initialized
+# ✓ StaticAgent: 3 findings published
+# ✓ AIAgent: Triage complete (2 real, 1 false positive)
+# ✓ CoordinatorAgent: Audit plan generated
+# ✓ Audit trail exported to outputs/evidence/mcp_audit_trail.json
+```
+
+### Ventajas del Modelo MCP
+
+| Característica | Pipeline Secuencial | MCP Multiagente |
+|----------------|---------------------|-----------------|
+| **Acoplamiento** | Alto (dependencias rígidas) | Bajo (pub/sub) |
+| **Escalabilidad** | Lineal | Paralela |
+| **Extensibilidad** | Difícil (modificar pipeline) | Fácil (agregar agente) |
+| **Resiliencia** | Fallo bloquea pipeline | Fallo aislado por agente |
+| **Trazabilidad** | Logs secuenciales | Audit trail completo |
+| **Compliance** | Manual | Automática (PolicyAgent) |
+
+### Integración con Claude Desktop
+
+MIESC puede desplegarse como **MCP Server** para Claude Desktop:
+
+```bash
+# Iniciar MCP server
+python mcp_server.py --host localhost --port 3000
+
+# Claude Desktop puede conectarse y usar agentes como herramientas
+# Ver: docs/MCP_evolution.md para configuración completa
+```
+
+### Documentación Completa
+
+Para detalles sobre la arquitectura MCP:
+- [`docs/MCP_evolution.md`](docs/MCP_evolution.md) - Evolución completa del framework
+- [`mcp/context_bus.py`](mcp/context_bus.py) - Implementación del bus de contexto
+- [`agents/`](agents/) - Código fuente de agentes especializados
 
 ---
 
