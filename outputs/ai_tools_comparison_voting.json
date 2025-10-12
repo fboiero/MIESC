@@ -1,0 +1,195 @@
+{
+  "contract": "voting.sol",
+  "contract_path": "examples/voting.sol",
+  "timestamp": "2025-10-12T11:17:56Z",
+  "results": {
+    "static": {
+      "tool": "MIESC StaticAgent",
+      "findings": [
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "solc-version",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Version constraint >=0.7.0<0.9.0 is too complex.\nIt is used by:\n\t- >=0.7.0<0.9.0 (examples/voting.sol#2)\n",
+          "location": {
+            "file": "examples/voting.sol",
+            "line": 2,
+            "function": ">=0.7.0<0.9.0"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "cache-array-length",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "Loop condition p < proposals.length (examples/voting.sol#151) should use cached array length instead of referencing `length` member of the storage array.\n ",
+          "location": {
+            "file": "examples/voting.sol",
+            "line": 151,
+            "function": "p < proposals.length"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "immutable-states",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "Ballot.chairperson (examples/voting.sol#25) should be immutable \n",
+          "location": {
+            "file": "examples/voting.sol",
+            "line": 25,
+            "function": "chairperson"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        }
+      ],
+      "count": 3,
+      "severity_count": {
+        "High": 0,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 1
+      },
+      "execution_time": 0.7534182071685791,
+      "success": true
+    },
+    "gptscan": {
+      "tool": "GPTScan",
+      "findings": [],
+      "count": 0,
+      "severity_count": {
+        "High": 0,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 0
+      },
+      "execution_time": 0.4427487850189209,
+      "gpt_analyzed": 0,
+      "success": true
+    },
+    "ai_triage": {
+      "tool": "MIESC AIAgent",
+      "findings": [
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "solc-version",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Version constraint >=0.7.0<0.9.0 is too complex.\nIt is used by:\n\t- >=0.7.0<0.9.0 (examples/voting.sol#2)\n",
+          "location": {
+            "file": "examples/voting.sol",
+            "line": 2,
+            "function": ">=0.7.0<0.9.0"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "cache-array-length",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "Loop condition p < proposals.length (examples/voting.sol#151) should use cached array length instead of referencing `length` member of the storage array.\n ",
+          "location": {
+            "file": "examples/voting.sol",
+            "line": 151,
+            "function": "p < proposals.length"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "immutable-states",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "Ballot.chairperson (examples/voting.sol#25) should be immutable \n",
+          "location": {
+            "file": "examples/voting.sol",
+            "line": 25,
+            "function": "chairperson"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "solc-version",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Version constraint >=0.7.0<0.9.0 is too complex.\nIt is used by:\n\t- >=0.7.0<0.9.0 (examples/voting.sol#2)\n",
+          "location": {
+            "file": "examples/voting.sol",
+            "line": 2,
+            "function": ">=0.7.0<0.9.0"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "cache-array-length",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "Loop condition p < proposals.length (examples/voting.sol#151) should use cached array length instead of referencing `length` member of the storage array.\n ",
+          "location": {
+            "file": "examples/voting.sol",
+            "line": 151,
+            "function": "p < proposals.length"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "immutable-states",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "Ballot.chairperson (examples/voting.sol#25) should be immutable \n",
+          "location": {
+            "file": "examples/voting.sol",
+            "line": 25,
+            "function": "chairperson"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        }
+      ],
+      "count": 6,
+      "severity_count": {
+        "High": 0,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 2
+      },
+      "false_positives": 0,
+      "fp_rate": 0.0,
+      "execution_time": 0.00031685829162597656,
+      "success": true
+    }
+  }
+}
