@@ -1,0 +1,639 @@
+{
+  "contract": "vulnerable_bank.sol",
+  "contract_path": "examples/vulnerable_bank.sol",
+  "timestamp": "2025-10-12T11:13:28Z",
+  "results": {
+    "static": {
+      "tool": "MIESC StaticAgent",
+      "findings": [
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "weak-prng",
+          "severity": "High",
+          "confidence": "Medium",
+          "description": "VulnerableBank.isLucky() (examples/vulnerable_bank.sol#80-83) uses a weak PRNG: \"block.timestamp % 7 == 0 (examples/vulnerable_bank.sol#82)\" \n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 80,
+            "function": "isLucky"
+          },
+          "layer": "static",
+          "swc_id": "SWC-120",
+          "owasp_category": "SC06-Bad-Randomness"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "reentrancy-eth",
+          "severity": "High",
+          "confidence": "Medium",
+          "description": "Reentrancy in VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52):\n\tExternal calls:\n\t- (success,None) = msg.sender.call{value: balance}() (examples/vulnerable_bank.sol#45)\n\tState variables written after the call(s):\n\t- balances[msg.sender] = 0 (examples/vulnerable_bank.sol#49)\n\tVulnerableBank.balances (examples/vulnerable_bank.sol#16) can be used in cross function reentrancies:\n\t- VulnerableBank.balances (examples/vulnerable_bank.sol#16)\n\t- VulnerableBank.deposit() (examples/vulnerable_bank.sol#29-33)\n\t- VulnerableBank.getBalance(address) (examples/vulnerable_bank.sol#88-90)\n\t- VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 40,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "SWC-107",
+          "owasp_category": "SC01-Reentrancy"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": "High",
+          "description": "VulnerableBank.isLucky() (examples/vulnerable_bank.sol#80-83) uses a dangerous strict equality:\n\t- block.timestamp % 7 == 0 (examples/vulnerable_bank.sol#82)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 80,
+            "function": "isLucky"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-lowlevel",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "VulnerableBank.emergencyWithdraw(address,uint256) (examples/vulnerable_bank.sol#68-73) ignores return value by recipient.call{value: amount}() (examples/vulnerable_bank.sol#72)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 68,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "missing-zero-check",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "VulnerableBank.setOwner(address).newOwner (examples/vulnerable_bank.sol#59) lacks a zero-check on :\n\t\t- owner = newOwner (examples/vulnerable_bank.sol#61)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 59,
+            "function": "newOwner"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "missing-zero-check",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "VulnerableBank.emergencyWithdraw(address,uint256).recipient (examples/vulnerable_bank.sol#68) lacks a zero-check on :\n\t\t- recipient.call{value: amount}() (examples/vulnerable_bank.sol#72)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 68,
+            "function": "recipient"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "reentrancy-events",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "Reentrancy in VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52):\n\tExternal calls:\n\t- (success,None) = msg.sender.call{value: balance}() (examples/vulnerable_bank.sol#45)\n\tEvent emitted after the call(s):\n\t- Withdrawal(msg.sender,balance) (examples/vulnerable_bank.sol#51)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 40,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "timestamp",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "VulnerableBank.isLucky() (examples/vulnerable_bank.sol#80-83) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp % 7 == 0 (examples/vulnerable_bank.sol#82)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 80,
+            "function": "isLucky"
+          },
+          "layer": "static",
+          "swc_id": "SWC-116",
+          "owasp_category": "SC08-Time-Manipulation"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "solc-version",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- ^0.8.0 (examples/vulnerable_bank.sol#2)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 2,
+            "function": "^0.8.0"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52):\n\t- (success,None) = msg.sender.call{value: balance}() (examples/vulnerable_bank.sol#45)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 40,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in VulnerableBank.emergencyWithdraw(address,uint256) (examples/vulnerable_bank.sol#68-73):\n\t- recipient.call{value: amount}() (examples/vulnerable_bank.sol#72)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 68,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "immutable-states",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "Attacker.bank (examples/vulnerable_bank.sol#109) should be immutable \n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 109,
+            "function": "bank"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        }
+      ],
+      "count": 12,
+      "severity_count": {
+        "High": 2,
+        "Medium": 2,
+        "Low": 4,
+        "Informational": 3
+      },
+      "execution_time": 1.09694504737854,
+      "success": true
+    },
+    "gptscan": {
+      "tool": "GPTScan",
+      "findings": [
+        {
+          "id": "GPTSCAN-001",
+          "source": "GPTScan (Static Only)",
+          "category": "static",
+          "swc_id": "SWC-107",
+          "owasp_category": "SC01-Reentrancy",
+          "severity": "High",
+          "confidence": 0.7,
+          "description": "Reentrancy in VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52):\n\tExternal calls:\n\t- (success,None) = msg.sender.call{value: balance}() (examples/vulnerable_bank.sol#45)\n\tState variables written after the call(s):\n\t- balances[msg.sender] = 0 (examples/vulnerable_bank.sol#49)\n\tVulnerableBank.balances (examples/vulnerable_bank.sol#16) can be used in cross function reentrancies:\n\t- VulnerableBank.balances (examples/vulnerable_bank.sol#16)\n\t- VulnerableBank.deposit() (examples/vulnerable_bank.sol#29-33)\n\t- VulnerableBank.getBalance(address) (examples/vulnerable_bank.sol#88-90)\n\t- VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52)\n",
+          "recommendation": "Manual review recommended (GPT analysis not available)"
+        }
+      ],
+      "count": 1,
+      "severity_count": {
+        "High": 1,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 0
+      },
+      "execution_time": 0.4039177894592285,
+      "gpt_analyzed": 0,
+      "success": true
+    },
+    "ai_triage": {
+      "tool": "MIESC AIAgent",
+      "findings": [
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "weak-prng",
+          "severity": "High",
+          "confidence": "Medium",
+          "description": "VulnerableBank.isLucky() (examples/vulnerable_bank.sol#80-83) uses a weak PRNG: \"block.timestamp % 7 == 0 (examples/vulnerable_bank.sol#82)\" \n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 80,
+            "function": "isLucky"
+          },
+          "layer": "static",
+          "swc_id": "SWC-120",
+          "owasp_category": "SC06-Bad-Randomness"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "reentrancy-eth",
+          "severity": "High",
+          "confidence": "Medium",
+          "description": "Reentrancy in VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52):\n\tExternal calls:\n\t- (success,None) = msg.sender.call{value: balance}() (examples/vulnerable_bank.sol#45)\n\tState variables written after the call(s):\n\t- balances[msg.sender] = 0 (examples/vulnerable_bank.sol#49)\n\tVulnerableBank.balances (examples/vulnerable_bank.sol#16) can be used in cross function reentrancies:\n\t- VulnerableBank.balances (examples/vulnerable_bank.sol#16)\n\t- VulnerableBank.deposit() (examples/vulnerable_bank.sol#29-33)\n\t- VulnerableBank.getBalance(address) (examples/vulnerable_bank.sol#88-90)\n\t- VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 40,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "SWC-107",
+          "owasp_category": "SC01-Reentrancy"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": "High",
+          "description": "VulnerableBank.isLucky() (examples/vulnerable_bank.sol#80-83) uses a dangerous strict equality:\n\t- block.timestamp % 7 == 0 (examples/vulnerable_bank.sol#82)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 80,
+            "function": "isLucky"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-lowlevel",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "VulnerableBank.emergencyWithdraw(address,uint256) (examples/vulnerable_bank.sol#68-73) ignores return value by recipient.call{value: amount}() (examples/vulnerable_bank.sol#72)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 68,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "missing-zero-check",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "VulnerableBank.setOwner(address).newOwner (examples/vulnerable_bank.sol#59) lacks a zero-check on :\n\t\t- owner = newOwner (examples/vulnerable_bank.sol#61)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 59,
+            "function": "newOwner"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "missing-zero-check",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "VulnerableBank.emergencyWithdraw(address,uint256).recipient (examples/vulnerable_bank.sol#68) lacks a zero-check on :\n\t\t- recipient.call{value: amount}() (examples/vulnerable_bank.sol#72)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 68,
+            "function": "recipient"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "reentrancy-events",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "Reentrancy in VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52):\n\tExternal calls:\n\t- (success,None) = msg.sender.call{value: balance}() (examples/vulnerable_bank.sol#45)\n\tEvent emitted after the call(s):\n\t- Withdrawal(msg.sender,balance) (examples/vulnerable_bank.sol#51)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 40,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "timestamp",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "VulnerableBank.isLucky() (examples/vulnerable_bank.sol#80-83) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp % 7 == 0 (examples/vulnerable_bank.sol#82)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 80,
+            "function": "isLucky"
+          },
+          "layer": "static",
+          "swc_id": "SWC-116",
+          "owasp_category": "SC08-Time-Manipulation"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "solc-version",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- ^0.8.0 (examples/vulnerable_bank.sol#2)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 2,
+            "function": "^0.8.0"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52):\n\t- (success,None) = msg.sender.call{value: balance}() (examples/vulnerable_bank.sol#45)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 40,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in VulnerableBank.emergencyWithdraw(address,uint256) (examples/vulnerable_bank.sol#68-73):\n\t- recipient.call{value: amount}() (examples/vulnerable_bank.sol#72)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 68,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "immutable-states",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "Attacker.bank (examples/vulnerable_bank.sol#109) should be immutable \n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 109,
+            "function": "bank"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "weak-prng",
+          "severity": "High",
+          "confidence": "Medium",
+          "description": "VulnerableBank.isLucky() (examples/vulnerable_bank.sol#80-83) uses a weak PRNG: \"block.timestamp % 7 == 0 (examples/vulnerable_bank.sol#82)\" \n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 80,
+            "function": "isLucky"
+          },
+          "layer": "static",
+          "swc_id": "SWC-120",
+          "owasp_category": "SC06-Bad-Randomness"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "reentrancy-eth",
+          "severity": "High",
+          "confidence": "Medium",
+          "description": "Reentrancy in VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52):\n\tExternal calls:\n\t- (success,None) = msg.sender.call{value: balance}() (examples/vulnerable_bank.sol#45)\n\tState variables written after the call(s):\n\t- balances[msg.sender] = 0 (examples/vulnerable_bank.sol#49)\n\tVulnerableBank.balances (examples/vulnerable_bank.sol#16) can be used in cross function reentrancies:\n\t- VulnerableBank.balances (examples/vulnerable_bank.sol#16)\n\t- VulnerableBank.deposit() (examples/vulnerable_bank.sol#29-33)\n\t- VulnerableBank.getBalance(address) (examples/vulnerable_bank.sol#88-90)\n\t- VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 40,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "SWC-107",
+          "owasp_category": "SC01-Reentrancy"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": "High",
+          "description": "VulnerableBank.isLucky() (examples/vulnerable_bank.sol#80-83) uses a dangerous strict equality:\n\t- block.timestamp % 7 == 0 (examples/vulnerable_bank.sol#82)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 80,
+            "function": "isLucky"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-lowlevel",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "VulnerableBank.emergencyWithdraw(address,uint256) (examples/vulnerable_bank.sol#68-73) ignores return value by recipient.call{value: amount}() (examples/vulnerable_bank.sol#72)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 68,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "missing-zero-check",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "VulnerableBank.setOwner(address).newOwner (examples/vulnerable_bank.sol#59) lacks a zero-check on :\n\t\t- owner = newOwner (examples/vulnerable_bank.sol#61)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 59,
+            "function": "newOwner"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "missing-zero-check",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "VulnerableBank.emergencyWithdraw(address,uint256).recipient (examples/vulnerable_bank.sol#68) lacks a zero-check on :\n\t\t- recipient.call{value: amount}() (examples/vulnerable_bank.sol#72)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 68,
+            "function": "recipient"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "reentrancy-events",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "Reentrancy in VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52):\n\tExternal calls:\n\t- (success,None) = msg.sender.call{value: balance}() (examples/vulnerable_bank.sol#45)\n\tEvent emitted after the call(s):\n\t- Withdrawal(msg.sender,balance) (examples/vulnerable_bank.sol#51)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 40,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "timestamp",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "VulnerableBank.isLucky() (examples/vulnerable_bank.sol#80-83) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp % 7 == 0 (examples/vulnerable_bank.sol#82)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 80,
+            "function": "isLucky"
+          },
+          "layer": "static",
+          "swc_id": "SWC-116",
+          "owasp_category": "SC08-Time-Manipulation"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "solc-version",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- ^0.8.0 (examples/vulnerable_bank.sol#2)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 2,
+            "function": "^0.8.0"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in VulnerableBank.withdraw() (examples/vulnerable_bank.sol#40-52):\n\t- (success,None) = msg.sender.call{value: balance}() (examples/vulnerable_bank.sol#45)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 40,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in VulnerableBank.emergencyWithdraw(address,uint256) (examples/vulnerable_bank.sol#68-73):\n\t- recipient.call{value: amount}() (examples/vulnerable_bank.sol#72)\n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 68,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "immutable-states",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "Attacker.bank (examples/vulnerable_bank.sol#109) should be immutable \n",
+          "location": {
+            "file": "examples/vulnerable_bank.sol",
+            "line": 109,
+            "function": "bank"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        }
+      ],
+      "count": 24,
+      "severity_count": {
+        "High": 4,
+        "Medium": 4,
+        "Low": 8,
+        "Informational": 6
+      },
+      "false_positives": 0,
+      "fp_rate": 0.0,
+      "execution_time": 0.00025272369384765625,
+      "success": true
+    }
+  }
+}

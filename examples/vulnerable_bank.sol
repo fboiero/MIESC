@@ -109,7 +109,7 @@ contract Attacker {
     VulnerableBank public bank;
     uint256 public attackCount;
 
-    constructor(address _bankAddress) {
+    constructor(address payable _bankAddress) {
         bank = VulnerableBank(_bankAddress);
     }
 
