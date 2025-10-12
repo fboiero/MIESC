@@ -14,16 +14,18 @@ Marco Integrado de Evaluación de Seguridad en Smart Contracts con Arquitectura 
 ### 🏗️ Arquitectura
 4. [**MIESC Framework**](MIESC_framework.md) - Especificación completa del framework
 5. [**MCP Evolution**](MCP_evolution.md) - Evolución hacia arquitectura multiagente
-6. [**Agents Usage**](agents_usage.md) - Guía de uso de cada agente
+6. [**Framework Evolution**](framework_evolution.md) - **NUEVO** Evolución histórica y justificación MCP
+7. [**Tool Integration Standard**](tool_integration_standard.md) - **NUEVO** Estándar para integrar herramientas
+8. [**Agents Usage**](agents_usage.md) - Guía de uso de cada agente
 
 ### 📋 Standards & Compliance
-7. [**ISO/IEC 27001 Controls**](../standards/iso27001_controls.md) - Mapeo de controles
-8. [**NIST SSDF Mapping**](../standards/nist_ssdf_mapping.md) - Prácticas NIST
-9. [**OWASP SC Top 10**](../standards/owasp_sc_top10_mapping.md) - Cobertura OWASP
+9. [**ISO/IEC 27001 Controls**](../standards/iso27001_controls.md) - Mapeo de controles
+10. [**NIST SSDF Mapping**](../standards/nist_ssdf_mapping.md) - Prácticas NIST
+11. [**OWASP SC Top 10**](../standards/owasp_sc_top10_mapping.md) - Cobertura OWASP
 
 ### 💻 Desarrollo
-10. [**Examples README**](../examples/README.md) - Contratos de prueba
-11. [**Testing Guide**](../test_mcp_e2e.py) - Tests end-to-end
+12. [**Examples README**](../examples/README.md) - Contratos de prueba
+13. [**Testing Guide**](../test_mcp_e2e.py) - Tests end-to-end
 
 ---
 
@@ -151,7 +153,48 @@ python demo_mcp_poc.py examples/voting.sol
 
 ---
 
-### 6. Agents Usage Guide
+### 6. Framework Evolution **NUEVO**
+**Ubicación**: `framework_evolution.md`
+**Contenido**:
+- Evolución histórica (Fase 0 → v1.0 → v1.5 → v2.0 MCP)
+- Justificación científica de cada fase
+- Limitaciones identificadas y soluciones
+- Comparativa de arquitecturas (secuencial vs multiagente)
+- Métricas comparativas de rendimiento
+- Aportaciones científicas
+
+**Cuándo leer**: Para defensa de tesis, justificar decisiones arquitectónicas
+
+**Contenido clave**:
+- Benchmarks empíricos (v1.0: 132 min → v2.0: 20 min)
+- Speedup 5x con arquitectura MCP paralela
+- Comparación con estado del arte (LLM-SmartAudit, GPTScan)
+- Validación con 800+ contratos
+
+---
+
+### 7. Tool Integration Standard **NUEVO**
+**Ubicación**: `tool_integration_standard.md`
+**Contenido**:
+- Estándar para integrar nuevas herramientas
+- Template paso a paso (BaseAgent + Tests)
+- Ejemplos completos: GPTScan, LLM-SmartAudit, SmartLLM
+- Schema unificado de findings
+- Mapeo SWC → OWASP → CWE
+- Validación y testing
+
+**Cuándo leer**: Para integrar herramientas AI open source
+
+**Herramientas documentadas**:
+- GPTScan (ICSE 2024): Logic vulnerabilities con GPT + Falcon
+- LLM-SmartAudit (ArXiv 2410.09381): Multi-agent conversational
+- SmartLLM (ArXiv 2502.13167): LLaMA + RAG local
+
+**Valor agregado**: Código completo funcional para 3 integraciones
+
+---
+
+### 8. Agents Usage Guide
 **Ubicación**: `agents_usage.md`
 **Contenido**:
 - Documentación de 8 agentes
@@ -175,7 +218,7 @@ python demo_mcp_poc.py examples/voting.sol
 
 ---
 
-### 7. ISO/IEC 27001 Controls
+### 9. ISO/IEC 27001 Controls
 **Ubicación**: `../standards/iso27001_controls.md`
 **Contenido**:
 - Mapeo de 5 controles ISO 27001:2022
@@ -370,19 +413,35 @@ python demo_mcp_poc.py examples/voting.sol
 
 ### Documentos Clave para Defensa
 
-1. **Arquitectura**: MIESC Framework + MCP Evolution
-2. **Implementación**: Agents Usage Guide
-3. **Validación**: test_mcp_e2e.py + Examples README
-4. **Compliance**: ISO 27001 + NIST SSDF + OWASP
-5. **Deploy**: Deployment Guide
+1. **Justificación**: Framework Evolution (evolución histórica y científica)
+2. **Arquitectura**: MIESC Framework + MCP Evolution
+3. **Extensibilidad**: Tool Integration Standard (integrar herramientas AI)
+4. **Implementación**: Agents Usage Guide
+5. **Validación**: test_mcp_e2e.py + Examples README
+6. **Compliance**: ISO 27001 + NIST SSDF + OWASP
+7. **Deploy**: Deployment Guide
 
-### Orden de Lectura Recomendado
+### Orden de Lectura Recomendado para Defensa
 
-1. README Principal (contexto)
-2. MIESC Framework (arquitectura técnica)
-3. MCP Evolution (innovación)
-4. Standards (3 documentos) - compliance
-5. Deployment Guide (implementación práctica)
+1. README Principal (contexto general)
+2. **Framework Evolution** (justificación científica - **CLAVE PARA TESIS**)
+3. MIESC Framework (arquitectura técnica)
+4. MCP Evolution (innovación arquitectónica)
+5. **Tool Integration Standard** (extensibilidad y futuro)
+6. Standards (3 documentos) - compliance
+7. Deployment Guide (implementación práctica)
+
+### Documentos Nuevos para Tesis
+
+**Framework Evolution** (`framework_evolution.md`):
+- **Por qué**: Justifica científicamente la evolución v0 → v1 → v2
+- **Qué aporta**: Benchmarks empíricos, comparación con estado del arte
+- **Defensa**: Responde "¿Por qué MCP y no otra arquitectura?"
+
+**Tool Integration Standard** (`tool_integration_standard.md`):
+- **Por qué**: Demuestra extensibilidad del framework
+- **Qué aporta**: 3 integraciones completas (GPTScan, LLM-SmartAudit, SmartLLM)
+- **Defensa**: Responde "¿Cómo se integran herramientas AI del estado del arte?"
 
 ---
 
@@ -430,5 +489,6 @@ GPL-3.0 License - Ver [LICENSE](../LICENSE)
 ---
 
 **Última Actualización**: Octubre 2025
-**Versión**: 2.0 (MCP Architecture)
+**Versión**: 2.1 (Con documentación para tesis)
 **Status**: Production-Ready ✅
+**Documentos**: 13 (11 originales + 2 nuevos para tesis)
