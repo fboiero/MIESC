@@ -10,7 +10,7 @@
 
 ### 1. Core Requirements ✅
 
-- [x] **Repository is public**: https://github.com/fboiero/xaudit
+- [x] **Repository is public**: https://github.com/fboiero/MIESC
 - [x] **OSI-approved license**: GPL-3.0 (`LICENSE` file exists)
 - [x] **Comprehensive README**: 670 lines with all sections
 - [x] **Documentation complete**: 10+ technical guides
@@ -60,33 +60,33 @@ Create file: `dpg-application.json`
   "name": "MIESC - Marco Integrado de Evaluación de Seguridad en Smart Contracts",
   "aliases": ["MIESC", "xaudit"],
   "description": "Defense-in-depth framework for smart contract security auditing with multi-agent architecture (MCP), integrating 10+ heterogeneous tools compliant with ISO 27001, NIST SSDF, and OWASP standards",
-  "website": "https://github.com/fboiero/xaudit",
+  "website": "https://fboiero.github.io/MIESC/",
   "license": [
     {
       "spdx": "GPL-3.0-or-later",
-      "licenseURL": "https://github.com/fboiero/xaudit/blob/main/LICENSE"
+      "licenseURL": "https://github.com/fboiero/MIESC/blob/main/LICENSE"
     }
   ],
   "SDGs": [
     {
       "SDGNumber": 9,
       "evidenceText": "MIESC strengthens technological innovation by providing accessible, open-source security auditing tools for blockchain ecosystems, democratizing access to enterprise-grade security analysis",
-      "evidenceURL": "https://github.com/fboiero/xaudit/blob/main/README.md#digital-public-good"
+      "evidenceURL": "https://github.com/fboiero/MIESC/blob/main/README.md#digital-public-good"
     },
     {
       "SDGNumber": 16,
       "evidenceText": "MIESC promotes secure and transparent digital governance by reducing vulnerabilities exploitable for financial crime in decentralized infrastructure, contributing to institutional security",
-      "evidenceURL": "https://github.com/fboiero/xaudit/blob/main/README.md#digital-public-good"
+      "evidenceURL": "https://github.com/fboiero/MIESC/blob/main/README.md#digital-public-good"
     },
     {
       "SDGNumber": 17,
       "evidenceText": "MIESC fosters global collaboration by aligning with international cybersecurity standards (ISO, NIST, OWASP) and providing an open platform for academic-industry partnerships",
-      "evidenceURL": "https://github.com/fboiero/xaudit/blob/main/README.md#digital-public-good"
+      "evidenceURL": "https://github.com/fboiero/MIESC/blob/main/README.md#digital-public-good"
     }
   ],
   "sectors": ["Digital/Data/Tech", "Cybersecurity", "Blockchain"],
   "type": ["software"],
-  "repositoryURL": "https://github.com/fboiero/xaudit",
+  "repositoryURL": "https://github.com/fboiero/MIESC",
   "organizations": [
     {
       "name": "Universidad Tecnológica Nacional - Facultad Regional Villa María",
@@ -100,7 +100,7 @@ Create file: `dpg-application.json`
   "stage": "DPG",
   "clearOwnership": {
     "isOwnershipExplicit": "Yes",
-    "copyrightURL": "https://github.com/fboiero/xaudit/blob/main/LICENSE"
+    "copyrightURL": "https://github.com/fboiero/MIESC/blob/main/LICENSE"
   },
   "platformIndependence": {
     "mandatoryDepsCreateMoreRestrictions": "No",
@@ -110,8 +110,8 @@ Create file: `dpg-application.json`
   "documentation": {
     "isDocumentationAvailable": "Yes",
     "documentationURL": [
-      "https://github.com/fboiero/xaudit/blob/main/README.md",
-      "https://github.com/fboiero/xaudit/tree/main/docs"
+      "https://github.com/fboiero/MIESC/blob/main/README.md",
+      "https://github.com/fboiero/MIESC/tree/main/docs"
     ]
   },
   "NonPII": {
@@ -142,9 +142,9 @@ Create file: `dpg-application.json`
       "JSON-RPC 2.0"
     ],
     "evidenceStandardSupport": [
-      "https://github.com/fboiero/xaudit/blob/main/standards/iso27001_controls.md",
-      "https://github.com/fboiero/xaudit/blob/main/standards/nist_ssdf_mapping.md",
-      "https://github.com/fboiero/xaudit/blob/main/standards/owasp_sc_top10_mapping.md"
+      "https://github.com/fboiero/MIESC/blob/main/standards/iso27001_controls.md",
+      "https://github.com/fboiero/MIESC/blob/main/standards/nist_ssdf_mapping.md",
+      "https://github.com/fboiero/MIESC/blob/main/standards/owasp_sc_top10_mapping.md"
     ],
     "implementBestPractices": "Yes",
     "bestPracticesList": [
@@ -205,7 +205,7 @@ Smart contract security auditing framework with:
 - SDG alignment: 9 (Innovation), 16 (Justice), 17 (Partnerships)
 - GPL-3.0 license with 100% DPG compliance
 
-Project URL: https://github.com/fboiero/xaudit"
+Project URL: https://github.com/fboiero/MIESC"
 
 # Push
 git push origin add-miesc-framework
@@ -247,11 +247,11 @@ MIESC is an integrated security evaluation framework for smart contracts deploye
 ### Contact
 - Maintainer: Fernando Boiero (fboiero@frvm.utn.edu.ar)
 - Institution: Universidad Tecnológica Nacional - FRVM, Argentina
-- Repository: https://github.com/fboiero/xaudit
+- Repository: https://github.com/fboiero/MIESC
 
 ### DPG Compliance
 100% compliant with DPG Standard v1.1.6 (all 9 indicators)
-See: https://github.com/fboiero/xaudit/blob/main/DPG_COMPLIANCE.md
+See: https://github.com/fboiero/MIESC/blob/main/thesis/compliance/DPG_COMPLIANCE.md
 ```
 
 6. Submit PR
