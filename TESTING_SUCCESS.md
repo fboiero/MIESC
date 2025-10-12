@@ -52,7 +52,7 @@ The MIESC framework has successfully passed comprehensive regression testing aft
 #### Phase 3: External Tool Availability Tests (2/3)
 - ✅ **Slither 0.10.3** - Static analysis framework
 - ✅ **Echidna 2.2.4** - Property-based fuzzer
-- ❌ **Mythril** - Not installed (optional tool)
+- ❌ **Mythril** - Installed but not responding (Apple Silicon compatibility issue)
 
 #### Phase 4: Integration Tests (2/2)
 - ✅ **MCP Server tools schema** - 6 tools exposed
@@ -62,42 +62,60 @@ The MIESC framework has successfully passed comprehensive regression testing aft
 
 | Test | Reason | Criticality |
 |------|--------|-------------|
-| Mythril availability | Not installed | 🟡 Low (optional tool) |
+| Mythril availability | Timeout (Apple Silicon compatibility issue) | 🟡 Low (optional tool) |
 
-**Note**: Mythril is an optional symbolic execution tool. The framework includes alternative tools (Manticore) for symbolic execution capabilities.
+**Note**: Mythril package is installed but the CLI command times out on Apple Silicon (ARM64). This is a known compatibility issue. The framework includes alternative tools (Manticore) for symbolic execution capabilities.
 
 ---
 
-## 🔧 How The Issue Was Fixed
+## 🔧 How Issues Were Fixed
 
-### Problem
-After repository reorganization, AI-dependent agents failed with:
+### Issue 1: Missing OpenAI Dependency
+
+**Problem**: After repository reorganization, AI-dependent agents failed with:
 ```
 ModuleNotFoundError: No module named 'openai'
 ```
 
-### Root Cause
-`requirements_core.txt` installation failed due to Mythril dependency requiring outdated Rust toolchain:
+**Root Cause**: `requirements_core.txt` installation failed due to Mythril dependency requiring updated Rust toolchain:
 ```
-blake2b-py → requires Rust Cargo v4
+blake2b-py → requires Rust Cargo lock file v4
 Current Cargo → v3 (incompatible)
 ```
 
-### Solution Applied
-
+**Solution Applied**:
 ```bash
 # Install openai separately (bypassing Mythril dependency)
 pip install openai==0.28
 ```
 
-### Result
-✅ All AI agents now functional:
+**Result**: ✅ All AI agents now functional:
 - AIAgent
 - PolicyAgent
 - CoordinatorAgent
 - GPTScanAgent
 - LLMSmartAuditAgent
 - SmartLLMAgent
+
+### Issue 2: Mythril Installation on Apple Silicon
+
+**Problem**: Mythril required updated Rust toolchain and x86_64 target for cross-compilation.
+
+**Solution Applied**:
+```bash
+# Update Rust toolchain
+rustup update
+
+# Add x86_64 target for cross-compilation
+rustup target add x86_64-apple-darwin
+
+# Install Mythril
+pip install mythril==0.24.3
+```
+
+**Result**: ✅ Mythril package installed successfully
+
+**Current Status**: ⚠️ Mythril CLI times out on execution (known Apple Silicon compatibility issue). Alternative tools (Manticore) available for symbolic execution.
 
 ---
 
@@ -169,9 +187,11 @@ pip install openai==0.28
 
 ### Known Limitations
 
-1. **Mythril not installed** (symbolic execution tool)
+1. **Mythril CLI timeout on Apple Silicon** (symbolic execution tool)
+   - **Status**: Package installed, but CLI command times out on ARM64
    - **Impact**: Low - Alternative tools available (Manticore)
-   - **Fix**: Optional - `rustup update && pip install mythril==0.24.3`
+   - **Root Cause**: Known Apple Silicon compatibility issue with Mythril
+   - **Workaround**: Use Manticore or run Mythril via Docker (x86_64 emulation)
 
 2. **OpenAI API key required** for AI features
    - **Impact**: Medium - AI agents need API access for runtime
