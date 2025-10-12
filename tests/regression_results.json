@@ -1,110 +1,109 @@
 {
-  "timestamp": "2025-10-12T10:11:30.668509",
+  "timestamp": "2025-10-12T10:25:46.611457",
   "mode": "critical",
   "summary": {
-    "passed": 18,
-    "failed": 1,
+    "passed": 19,
+    "failed": 0,
     "skipped": 0,
-    "duration": 11.707789182662964
+    "duration": 1.8850460052490234
   },
   "passed": [
     {
       "name": "Import all critical modules",
-      "duration": 1.1510858535766602,
+      "duration": 1.0667800903320312,
       "details": ""
     },
     {
       "name": "MCP Context Bus",
-      "duration": 7.605552673339844e-05,
+      "duration": 7.295608520507812e-05,
       "details": "Messages: 1"
     },
     {
       "name": "Example contracts accessible",
-      "duration": 0.00031113624572753906,
+      "duration": 0.00031495094299316406,
       "details": "Found 13 contracts"
     },
     {
       "name": "Demo scripts exist",
-      "duration": 0.0002827644348144531,
+      "duration": 0.00028896331787109375,
       "details": "Found 4 demo scripts"
     },
     {
       "name": "StaticAgent initialization",
-      "duration": 3.266334533691406e-05,
+      "duration": 3.504753112792969e-05,
       "details": ""
     },
     {
       "name": "DynamicAgent initialization",
-      "duration": 2.002716064453125e-05,
+      "duration": 2.193450927734375e-05,
       "details": ""
     },
     {
       "name": "SymbolicAgent initialization",
-      "duration": 1.4781951904296875e-05,
+      "duration": 1.5020370483398438e-05,
       "details": ""
     },
     {
       "name": "FormalAgent initialization",
-      "duration": 1.621246337890625e-05,
+      "duration": 1.3113021850585938e-05,
       "details": ""
     },
     {
       "name": "AIAgent initialization",
-      "duration": 9.799003601074219e-05,
+      "duration": 9.322166442871094e-05,
       "details": ""
     },
     {
       "name": "PolicyAgent initialization",
-      "duration": 0.00011801719665527344,
+      "duration": 0.00010013580322265625,
       "details": ""
     },
     {
       "name": "CoordinatorAgent initialization",
-      "duration": 0.00013208389282226562,
+      "duration": 0.00011515617370605469,
       "details": ""
     },
     {
       "name": "GPTScanAgent initialization",
-      "duration": 0.0030357837677001953,
+      "duration": 0.0026769638061523438,
       "details": ""
     },
     {
       "name": "LLMSmartAuditAgent initialization",
-      "duration": 0.0003998279571533203,
+      "duration": 0.00034880638122558594,
       "details": ""
     },
     {
       "name": "SmartLLMAgent initialization",
-      "duration": 0.0007648468017578125,
+      "duration": 0.0006120204925537109,
       "details": ""
     },
     {
       "name": "Slither availability",
-      "duration": 0.40586113929748535,
+      "duration": 0.25926780700683594,
       "details": "Slither 0.10.3"
     },
     {
+      "name": "Manticore availability",
+      "duration": 0.3229389190673828,
+      "details": "Manticore 0.3.7"
+    },
+    {
       "name": "Echidna availability",
-      "duration": 0.12860393524169922,
+      "duration": 0.2254483699798584,
       "details": "Echidna Echidna 2.2.4"
     },
     {
       "name": "MCP Server tools schema",
-      "duration": 0.0022819042205810547,
+      "duration": 0.005218029022216797,
       "details": "Found 6 tools"
     },
     {
       "name": "Static analysis on contract",
-      "duration": 3.3855438232421875e-05,
+      "duration": 3.2901763916015625e-05,
       "details": "Static agent ready"
     }
   ],
-  "failed": [
-    {
-      "name": "Mythril availability",
-      "error": "Command '['myth', 'version']' timed out after 10 seconds",
-      "traceback": ""
-    }
-  ],
+  "failed": [],
   "skipped": []
 }

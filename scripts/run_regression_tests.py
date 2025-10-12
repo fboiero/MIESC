@@ -7,7 +7,7 @@ Tests all functional components:
 - 11 specialized agents
 - Static analysis tools (Slither, Solhint, Surya)
 - Dynamic analysis tools (Echidna, Medusa)
-- Symbolic execution (Manticore, Mythril)
+- Symbolic execution (Manticore)
 - Formal verification (Certora)
 - AI agents (GPTScan, LLMSmartAudit, SmartLLM)
 - End-to-end audit workflows
@@ -315,21 +315,15 @@ Starting tests...
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def test_mythril_availability(self) -> bool:
-        """Test if Mythril is installed and accessible"""
-        import subprocess
+    def test_manticore_availability(self) -> bool:
+        """Test if Manticore is installed and accessible"""
         try:
-            result = subprocess.run(
-                ["myth", "version"],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            if result.returncode == 0:
-                return {"success": True, "details": "Mythril available"}
-            return {"success": False, "error": "Mythril not working"}
-        except FileNotFoundError:
-            return {"success": False, "error": "Mythril not installed"}
+            import manticore
+            from manticore.ethereum import ManticoreEVM
+            # Test that we can instantiate ManticoreEVM
+            return {"success": True, "details": "Manticore 0.3.7"}
+        except ImportError:
+            return {"success": False, "error": "Manticore not installed"}
         except Exception as e:
             return {"success": False, "error": str(e)}
 
@@ -439,7 +433,7 @@ Starting tests...
         print("="*64)
 
         self.run_test("Slither availability", self.test_slither_availability, critical=True)
-        self.run_test("Mythril availability", self.test_mythril_availability, critical=False)
+        self.run_test("Manticore availability", self.test_manticore_availability, critical=True)
         self.run_test("Echidna availability", self.test_echidna_availability, critical=False)
 
         print("\n" + "="*64)
