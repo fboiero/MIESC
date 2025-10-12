@@ -23,7 +23,10 @@
 | Herramienta | Versión | Fecha Release |
 |-------------|---------|---------------|
 | Slither | 0.10.0 | 2024-01-15 |
-| Mythril | 0.24.3 | 2024-02-01 |
+| Mythril | 0.24.8 | 2024-03-15 |
+| Manticore | 0.3.7 | 2024-02-28 |
+| Surya | 0.4.7 | 2023-12-10 |
+| Solhint | 4.1.1 | 2024-01-25 |
 | Echidna | 2.2.3 | 2024-01-20 |
 | Medusa | 0.1.3 | 2024-02-15 |
 | Foundry | nightly-2024-03-01 | 2024-03-01 |
@@ -502,6 +505,84 @@ FP Rate = FP / (FP + TN)
 - False positives vs audit reports
 - Time to analysis vs manual audit (weeks vs hours)
 
+**Experimento 7: Análisis Simbólico - Mythril vs Manticore**
+
+**Objetivo:** Comparar efectividad de SMT solving (Mythril) vs ejecución simbólica dinámica (Manticore).
+
+**Hipótesis:** Manticore detectará más vulnerabilidades profundas pero con mayor tiempo de análisis. Mythril será más rápido pero con menor cobertura de paths.
+
+**Metodología:**
+1. Ejecutar Mythril sobre 35 contratos vulnerables
+   - Configuración: max-depth=128, timeout=600s, parallel-solving
+   - Medir: vulnerabilidades detectadas, paths explorados, tiempo
+2. Ejecutar Manticore sobre mismos contratos
+   - Configuración: max-depth=128, timeout=1200s, exploit-generation
+   - Medir: estados explorados, exploits generados, tiempo
+3. Comparar detección por categoría de vulnerabilidad
+4. Analizar false positives vs Slither
+
+**Métricas:**
+- Vulnerabilidades detectadas (TP, FP, FN)
+- Paths/estados explorados
+- Tiempo de análisis (promedio, max, timeout rate)
+- Exploits ejecutables generados (solo Manticore)
+- Cobertura de código alcanzada
+- Comparativa vs análisis estático (Slither)
+
+**Categorías Esperadas:**
+| Categoría | Mythril | Manticore | Slither |
+|-----------|---------|-----------|---------|
+| Reentrancy | Alto | Muy Alto | Alto |
+| Access Control | Medio | Alto | Alto |
+| Arithmetic | Alto | Alto | Medio |
+| Uninitialized | Alto | Muy Alto | Alto |
+| Delegatecall | Medio | Alto | Alto |
+
+**Experimento 8: Invariant Testing con Foundry**
+
+**Objetivo:** Evaluar efectividad de invariant-based fuzzing vs property-based fuzzing tradicional.
+
+**Hipótesis:** Invariant tests detectarán violaciones de propiedades complejas que Echidna/Medusa no encuentran, especialmente en reentrancy y state consistency.
+
+**Metodología:**
+1. Implementar 5 invariants para reentrancy:
+   - `invariant_balanceConsistency()`: Contract balance = sum(user balances)
+   - `invariant_noOverWithdrawal()`: Withdrawn ≤ Deposited
+   - `invariant_noNegativeBalance()`: All balances ≥ 0
+   - `invariant_totalWithdrawalLimit()`: Total withdrawn ≤ Total deposited
+   - `invariant_solvency()`: Contract balance ≥ Sum(user balances)
+2. Implementar 4 invariants para access control:
+   - `invariant_onlyOwnerCanGrantRoles()`
+   - `invariant_adminActionsRestricted()`
+   - `invariant_noPrivilegeEscalation()`
+   - `invariant_protectedFunctionsSecure()`
+3. Ejecutar con handler contracts y ghost variables
+4. Comparar con Echidna property tests sobre mismos contratos
+
+**Configuración:**
+```toml
+[profile.ci]
+invariant = { runs = 1000, depth = 100, fail_on_revert = false }
+
+[profile.intense]
+invariant = { runs = 10000, depth = 500 }
+```
+
+**Métricas:**
+- Invariants violados (count, tipos)
+- Secuencias de llamadas hasta violación (length)
+- Tiempo hasta primera violación
+- Cobertura de estados explorados
+- Comparativa Foundry vs Echidna:
+  - Bugs únicos encontrados por cada herramienta
+  - Overlapping bugs
+  - False negatives
+
+**Análisis Esperado:**
+- Foundry debería detectar violaciones de consistency más fácilmente
+- Handler contracts permiten exploración más dirigida
+- Ghost variables facilitan tracking de state global
+
 ### 6.2.2 Variables Controladas
 
 **Variables Independientes:**
@@ -726,7 +807,181 @@ mainnet = { key = "${ETHERSCAN_API_KEY}" }
 }
 ```
 
-### 6.3.6 AI Assistant
+### 6.3.6 Mythril
+
+```bash
+# analysis/mythril/run_mythril.sh
+
+# Configuración básica
+myth analyze "$CONTRACT_PATH" \
+    --solv 0.8.20 \
+    --max-depth 128 \
+    --execution-timeout 600 \
+    --parallel-solving \
+    --solver-timeout 100000 \
+    --max-transaction-count 3 \
+    --call-depth-limit 10 \
+    --create-timeout 30 \
+    --output json \
+    --output-file "results/mythril_${CONTRACT_NAME}.json"
+
+# Quick mode (para CI/CD)
+myth analyze "$CONTRACT_PATH" \
+    --solv 0.8.20 \
+    --max-depth 64 \
+    --execution-timeout 300 \
+    --quick
+```
+
+### 6.3.7 Manticore
+
+```python
+# src/manticore_tool.py - Configuración API
+
+from manticore.ethereum import ManticoreEVM
+
+m = ManticoreEVM()
+
+# Configuración de workspace
+m.verbosity(1)  # 0=silent, 1=info, 2=debug, 3=verbose
+
+# Configuración de detección
+m.register_detector(ReentrancyDetector())
+m.register_detector(UninitializedStorageDetector())
+m.register_detector(IntegerOverflowDetector())
+
+# Límites de exploración
+m.context['max_depth'] = 128
+m.context['timeout'] = 1200
+
+# Generación de exploits
+EXPLOIT_MODE = True
+EXPLOIT_TYPE = 'reentrancy'  # 'reentrancy', 'overflow', 'uninitialized'
+```
+
+**Script de Ejecución:**
+```bash
+# analysis/scripts/run_manticore.sh
+
+python src/manticore_tool.py \
+    --contract "$CONTRACT_PATH" \
+    --max-depth 128 \
+    --timeout 1200 \
+    --generate-exploit \
+    --output-dir "analysis/manticore/results" \
+    --verbose
+```
+
+### 6.3.8 Surya
+
+```bash
+# analysis/surya/run_surya.sh
+
+# Call graph visualization
+surya graph "$CONTRACT_PATH" | dot -Tpng > outputs/callgraph.png
+
+# Inheritance tree
+surya inheritance "$CONTRACT_PATH" | dot -Tpng > outputs/inheritance.png
+
+# Describe contract
+surya describe "$CONTRACT_PATH" > outputs/description.txt
+
+# Function dependencies
+surya dependencies "$CONTRACT_PATH" "$FUNCTION_NAME" > outputs/dependencies.txt
+
+# Complexity analysis
+surya metrics "$CONTRACT_PATH" > outputs/metrics.txt
+```
+
+**Integración en Python:**
+```python
+# src/surya_tool.py
+
+SURYA_CONFIG = {
+    "graph_format": "png",  # png, svg, dot
+    "include_external": True,
+    "include_internal": True,
+    "include_modifiers": True,
+    "complexity_threshold": 8,
+    "max_depth": 10
+}
+```
+
+### 6.3.9 Solhint
+
+```json
+// analysis/solhint/.solhintrc
+{
+  "extends": "solhint:recommended",
+  "plugins": ["security"],
+  "rules": {
+    "avoid-suicide": "error",
+    "avoid-sha3": "warn",
+    "reentrancy": "error",
+    "avoid-tx-origin": "error",
+    "check-send-result": "error",
+    "func-visibility": ["error", {"ignoreConstructors": true}],
+    "state-visibility": "error",
+    "not-rely-on-time": "warn",
+    "avoid-call-value": "warn",
+    "avoid-low-level-calls": "warn",
+    "avoid-throw": "error",
+    "code-complexity": ["warn", 8],
+    "function-max-lines": ["warn", 50],
+    "max-line-length": ["warn", 120],
+    "payable-fallback": "warn",
+    "no-empty-blocks": "error",
+    "no-unused-vars": "error",
+    "quotes": ["error", "double"],
+    "bracket-align": "error",
+    "indent": ["error", 4],
+    "no-mix-tabs-and-spaces": "error",
+    "compiler-version": ["error", "^0.8.0"]
+  }
+}
+```
+
+**Script de Ejecución:**
+```bash
+# analysis/solhint/run_solhint.sh
+
+solhint --config analysis/solhint/.solhintrc \
+    --formatter json \
+    'src/contracts/**/*.sol' \
+    > analysis/solhint/results/report.json
+
+# Con fixing automático (donde sea posible)
+solhint --config analysis/solhint/.solhintrc \
+    --fix \
+    'src/contracts/**/*.sol'
+```
+
+### 6.3.10 Pipeline de Análisis Simbólico Integrado
+
+```bash
+# analysis/scripts/run_symbolic.sh
+
+# FASE 1: Mythril (SMT Solving)
+echo "[1/3] Running Mythril..."
+./analysis/mythril/run_mythril.sh "$CONTRACT" "full" > mythril.log
+
+# FASE 2: Manticore (Symbolic Execution)
+echo "[2/3] Running Manticore..."
+python src/manticore_tool.py \
+    --contract "$CONTRACT" \
+    --max-depth 128 \
+    --generate-exploit \
+    > manticore.log
+
+# FASE 3: Consolidación
+echo "[3/3] Consolidating results..."
+python analysis/scripts/consolidate_symbolic.py \
+    --mythril mythril.log \
+    --manticore manticore.log \
+    --output symbolic_analysis.json
+```
+
+### 6.3.11 AI Assistant
 
 ```python
 # analysis/scripts/config.py
@@ -829,15 +1084,20 @@ Branch_Coverage = {
 
 **Tiempo de Análisis:**
 
-| Fase | Tiempo Objetivo | Timeout |
-|------|-----------------|---------|
-| Slither | <1 min | 5 min |
-| Echidna | 15-30 min | 60 min |
-| Medusa | 5-10 min | 30 min |
-| Foundry | 5-10 min | 30 min |
-| Certora | 20-40 min | 120 min |
-| AI Triage | 2-5 min | 15 min |
-| **Total Pipeline** | **1-2 hours** | **4 hours** |
+| Fase | Herramienta | Tiempo Objetivo | Timeout | Modo Rápido |
+|------|-------------|-----------------|---------|-------------|
+| 1 | Solhint | <10 sec | 1 min | <5 sec |
+| 2 | Slither | 30-60 sec | 5 min | 15 sec |
+| 3 | Surya | <5 sec | 30 sec | <5 sec |
+| 4 | Mythril | 5-10 min | 15 min | 2-3 min |
+| 5 | Manticore | 15-20 min | 30 min | 5-8 min |
+| 6 | Echidna | 15-30 min | 60 min | 5 min |
+| 7 | Medusa | 5-10 min | 30 min | 2 min |
+| 8 | Foundry Fuzz | 5-10 min | 30 min | 2 min |
+| 9 | Foundry Invariants | 10-15 min | 45 min | 3 min |
+| 10 | Certora | 20-40 min | 120 min | N/A |
+| 11 | AI Triage | 2-5 min | 15 min | 1 min |
+| **Total Pipeline (Full)** | **10 herramientas** | **1.5-3 hours** | **6 hours** | **30-45 min** |
 
 **Throughput:**
 
@@ -974,11 +1234,30 @@ python thesis/experiments/exp5_certora_eval.py \
     --output "$RESULTS_DIR/exp5_$TIMESTAMP"
 
 # Experimento 6: Real-World Evaluation
-echo "[6/6] Evaluating on real-world contracts..."
+echo "[6/8] Evaluating on real-world contracts..."
 python thesis/experiments/exp6_real_world.py \
     --contracts data/real_world_contracts \
     --audit-reports data/audit_reports \
     --output "$RESULTS_DIR/exp6_$TIMESTAMP"
+
+# Experimento 7: Symbolic Analysis Comparison
+echo "[7/8] Running Mythril vs Manticore comparison..."
+python thesis/experiments/exp7_symbolic_comparison.py \
+    --contracts src/contracts/vulnerable \
+    --mythril-timeout 600 \
+    --manticore-timeout 1200 \
+    --categories "reentrancy,access_control,arithmetic,uninitialized" \
+    --output "$RESULTS_DIR/exp7_$TIMESTAMP"
+
+# Experimento 8: Invariant Testing Evaluation
+echo "[8/8] Running Foundry invariant tests evaluation..."
+python thesis/experiments/exp8_invariant_testing.py \
+    --invariant-tests "analysis/foundry/invariants" \
+    --target-contracts "src/contracts/vulnerable/reentrancy,src/contracts/vulnerable/access_control" \
+    --runs 1000 \
+    --depth 100 \
+    --compare-with-echidna \
+    --output "$RESULTS_DIR/exp8_$TIMESTAMP"
 
 echo "All experiments completed!"
 echo "Results saved to: $RESULTS_DIR"
@@ -1017,18 +1296,109 @@ python thesis/experiments/generate_report.py \
 - [ ] Reproducibilidad verificada (re-run subset)
 ```
 
-## 6.6 Síntesis del Capítulo
+## 6.6 Arquitectura del Pipeline Xaudit v2.0
+
+El pipeline completo integra **10 herramientas** en **12 fases** de análisis:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    XAUDIT PIPELINE v2.0                      │
+│            Análisis Multi-Técnica de Smart Contracts         │
+└─────────────────────────────────────────────────────────────┘
+
+ FASE 1: Linting                    [Solhint]
+    ↓     • Security rules (30+)
+    ↓     • Style enforcement
+    ↓     • Best practices
+
+ FASE 2: Análisis Estático          [Slither]
+    ↓     • 90+ detectores
+    ↓     • SlithIR analysis
+    ↓     • Data flow
+
+ FASE 3: Visualización              [Surya]
+    ↓     • Call graphs
+    ↓     • Complexity metrics
+    ↓     • Dependencies
+
+ FASE 4: Análisis Simbólico SMT     [Mythril]
+    ↓     • Z3 solver
+    ↓     • Path exploration
+    ↓     • Constraint solving
+
+ FASE 5: Ejecución Simbólica        [Manticore]
+    ↓     • Dynamic exploration
+    ↓     • Exploit generation
+    ↓     • Concrete inputs
+
+ FASE 6: Property Fuzzing           [Echidna]
+    ↓     • Property-based
+    ↓     • Shrinking
+    ↓     • Corpus generation
+
+ FASE 7: Coverage Fuzzing           [Medusa]
+    ↓     • Coverage-guided
+    ↓     • Instrumentation
+    ↓     • Parallel workers
+
+ FASE 8: Stateless Fuzzing          [Foundry - Fuzz]
+    ↓     • Unit test fuzzing
+    ↓     • Fast execution
+    ↓     • Integrated tests
+
+ FASE 9: Invariant Testing          [Foundry - Invariants]
+    ↓     • State consistency
+    ↓     • Handler contracts
+    ↓     • Ghost variables
+
+ FASE 10: Formal Verification       [Certora Prover]
+    ↓     • CVL specifications
+    ↓     • Mathematical proofs
+    ↓     • Counterexamples
+
+ FASE 11: AI Triage                 [GPT-4o-mini]
+    ↓     • False positive filtering
+    ↓     • Severity classification
+    ↓     • Priority ranking
+
+ FASE 12: Reporting
+    └──→  • Consolidated JSON
+          • HTML dashboard
+          • Executive summary
+```
+
+**Innovación Clave:** Combinación de técnicas complementarias que se refuerzan mutuamente, reduciendo falsos positivos y aumentando cobertura de detección.
+
+## 6.7 Síntesis del Capítulo
 
 Este capítulo detalla la implementación experimental completa:
 
-1. **Entorno:** Hardware, software, versiones de herramientas
+1. **Entorno:** Hardware, software, versiones de 10 herramientas
 2. **Dataset:** 35 contratos vulnerables en 7 categorías, 5,700 SLOC
-3. **Diseño Experimental:** 6 experimentos con hipótesis y metodología
-4. **Configuración:** Settings detallados para cada herramienta
+3. **Diseño Experimental:** 8 experimentos con hipótesis y metodología detallada
+4. **Configuración:** Settings específicos para cada herramienta del pipeline
 5. **Métricas:** Detección, cobertura, performance, calidad de IA
-6. **Procedimiento:** Scripts de automatización y validación
+6. **Procedimiento:** Scripts de automatización completos y validación rigurosa
+7. **Pipeline:** Arquitectura de 12 fases integrando análisis estático, simbólico, fuzzing, invariants y verificación formal
 
-**Próximo Capítulo:** Resultados experimentales y análisis de datos.
+**Experimentos Implementados:**
+1. Slither baseline individual
+2. Echidna vs Medusa (fuzzing comparison)
+3. Pipeline híbrido vs herramientas individuales
+4. Impacto del módulo de IA en triage
+5. Verificación formal con Certora
+6. Evaluación en contratos reales auditados
+7. **Nuevo:** Mythril vs Manticore (análisis simbólico)
+8. **Nuevo:** Foundry invariant testing vs property testing
+
+**Contribuciones del Capítulo:**
+- Primera integración completa de 10 herramientas en pipeline único
+- Metodología experimental reproducible con dataset público
+- Configuraciones optimizadas para cada herramienta
+- Scripts de automatización para 8 experimentos independientes
+- Métricas cuantitativas para evaluación objetiva
+
+**Próximo Capítulo:** Resultados experimentales y análisis estadístico de datos.
 
 ---
 
