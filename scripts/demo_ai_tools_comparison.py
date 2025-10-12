@@ -19,12 +19,12 @@ from typing import Dict, List, Any
 import json
 
 # Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agents.static_agent import StaticAgent
-from agents.gptscan_agent import GPTScanAgent
-from agents.ai_agent import AIAgent
-from mcp.context_bus import get_context_bus
+from src.agents.static_agent import StaticAgent
+from src.agents.gptscan_agent import GPTScanAgent
+from src.agents.ai_agent import AIAgent
+from src.mcp.context_bus import get_context_bus
 
 class AIToolsComparison:
     """Compare different AI-assisted security analysis tools"""

@@ -19,12 +19,12 @@ import logging
 from pathlib import Path
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from mcp.context_bus import get_context_bus
-from agents.static_agent import StaticAgent
-from agents.ai_agent import AIAgent
-from agents.coordinator_agent import CoordinatorAgent
+from src.mcp.context_bus import get_context_bus
+from src.agents.static_agent import StaticAgent
+from src.agents.ai_agent import AIAgent
+from src.agents.coordinator_agent import CoordinatorAgent
 
 # Configure logging
 logging.basicConfig(
