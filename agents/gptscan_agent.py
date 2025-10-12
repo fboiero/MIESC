@@ -16,6 +16,10 @@ import subprocess
 import json
 import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 class GPTScanAgent(BaseAgent):
     """

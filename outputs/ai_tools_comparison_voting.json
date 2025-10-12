@@ -1,7 +1,7 @@
 {
   "contract": "voting.sol",
   "contract_path": "examples/voting.sol",
-  "timestamp": "2025-10-12T11:17:56Z",
+  "timestamp": "2025-10-12T11:23:17Z",
   "results": {
     "static": {
       "tool": "MIESC StaticAgent",
@@ -62,7 +62,7 @@
         "Low": 0,
         "Informational": 1
       },
-      "execution_time": 0.7534182071685791,
+      "execution_time": 0.5425851345062256,
       "success": true
     },
     "gptscan": {
@@ -75,7 +75,7 @@
         "Low": 0,
         "Informational": 0
       },
-      "execution_time": 0.4427487850189209,
+      "execution_time": 0.3848140239715576,
       "gpt_analyzed": 0,
       "success": true
     },
@@ -188,7 +188,7 @@
       },
       "false_positives": 0,
       "fp_rate": 0.0,
-      "execution_time": 0.00031685829162597656,
+      "execution_time": 0.0002627372741699219,
       "success": true
     }
   }

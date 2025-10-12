@@ -1,7 +1,7 @@
 {
   "contract": "vulnerable_bank.sol",
   "contract_path": "examples/vulnerable_bank.sol",
-  "timestamp": "2025-10-12T11:13:28Z",
+  "timestamp": "2025-10-12T11:23:15Z",
   "results": {
     "static": {
       "tool": "MIESC StaticAgent",
@@ -206,7 +206,7 @@
         "Low": 4,
         "Informational": 3
       },
-      "execution_time": 1.09694504737854,
+      "execution_time": 0.8255491256713867,
       "success": true
     },
     "gptscan": {
@@ -231,7 +231,7 @@
         "Low": 0,
         "Informational": 0
       },
-      "execution_time": 0.4039177894592285,
+      "execution_time": 0.4390530586242676,
       "gpt_analyzed": 0,
       "success": true
     },
@@ -632,7 +632,7 @@
       },
       "false_positives": 0,
       "fp_rate": 0.0,
-      "execution_time": 0.00025272369384765625,
+      "execution_time": 0.0002758502960205078,
       "success": true
     }
   }

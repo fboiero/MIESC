@@ -1,0 +1,41 @@
+{
+  "contract": "Whitelist.sol",
+  "contract_path": "examples/Whitelist.sol",
+  "timestamp": "2025-10-12T11:23:21Z",
+  "results": {
+    "static": {
+      "tool": "MIESC StaticAgent",
+      "findings": [],
+      "count": 0,
+      "severity_count": {
+        "High": 0,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 0
+      },
+      "execution_time": 0.41970300674438477,
+      "success": true
+    },
+    "gptscan": {
+      "tool": "GPTScan",
+      "findings": [],
+      "count": 0,
+      "severity_count": {
+        "High": 0,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 0
+      },
+      "execution_time": 0.27868199348449707,
+      "gpt_analyzed": 0,
+      "success": true
+    },
+    "ai_triage": {
+      "tool": "MIESC AIAgent",
+      "findings": [],
+      "count": 0,
+      "success": true,
+      "message": "No findings to triage"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "contract": "ManualOracle.sol",
+  "contract_path": "examples/ManualOracle.sol",
+  "timestamp": "2025-10-12T11:23:20Z",
+  "results": {
+    "static": {
+      "tool": "MIESC StaticAgent",
+      "findings": [],
+      "count": 0,
+      "severity_count": {
+        "High": 0,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 0
+      },
+      "execution_time": 0.4266958236694336,
+      "success": true
+    },
+    "gptscan": {
+      "tool": "GPTScan",
+      "findings": [],
+      "count": 0,
+      "severity_count": {
+        "High": 0,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 0
+      },
+      "execution_time": 0.28737616539001465,
+      "gpt_analyzed": 0,
+      "success": true
+    },
+    "ai_triage": {
+      "tool": "MIESC AIAgent",
+      "findings": [],
+      "count": 0,
+      "success": true,
+      "message": "No findings to triage"
+    }
+  }
+}
