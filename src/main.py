@@ -1,6 +1,11 @@
 import sys
 import os
-from config import ModelConfig
+from pathlib import Path
+
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from config.config import ModelConfig
 from src.Llama2_tool import audit_contract as llama2_audit_contract
 from src.rawchatGPT_tool import audit_contract as rawchatGPT_audit_contract
 from src.GPTLens_tool import audit_contract as GPTLens_audit_contract

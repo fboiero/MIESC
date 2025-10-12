@@ -27,16 +27,16 @@ from typing import Dict, Any, List
 from pathlib import Path
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from mcp.context_bus import get_context_bus
-from agents.static_agent import StaticAgent
-from agents.dynamic_agent import DynamicAgent
-from agents.symbolic_agent import SymbolicAgent
-from agents.formal_agent import FormalAgent
-from agents.ai_agent import AIAgent
-from agents.policy_agent import PolicyAgent
-from agents.coordinator_agent import CoordinatorAgent
+from src.mcp.context_bus import get_context_bus
+from src.agents.static_agent import StaticAgent
+from src.agents.dynamic_agent import DynamicAgent
+from src.agents.symbolic_agent import SymbolicAgent
+from src.agents.formal_agent import FormalAgent
+from src.agents.ai_agent import AIAgent
+from src.agents.policy_agent import PolicyAgent
+from src.agents.coordinator_agent import CoordinatorAgent
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

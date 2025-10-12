@@ -28,36 +28,41 @@ Thumbs.db
 *.key
 *.pem
 
-# Analysis outputs - Exclude all generated results
-analysis/slither/results/
-analysis/slither/*.json
-analysis/slither/*.txt
-analysis/echidna/results/
-analysis/echidna/*.txt
-analysis/echidna/corpus/
-analysis/medusa/results/
-analysis/medusa/*.json
-analysis/medusa/*.txt
-analysis/certora/results/
-analysis/certora/*.json
-analysis/certora/*.log
-analysis/output/
-analysis/results/
-analysis/dashboard/
-analysis/*.csv
-analysis/*.json
-analysis/*.txt
-analysis/*.md
+# Output directories (moved to data/)
+output/
+outputs/
+output.pdf
+
+# Analysis outputs - Exclude all generated results (now in data/)
+data/analysis/slither/results/
+data/analysis/slither/*.json
+data/analysis/slither/*.txt
+data/analysis/echidna/results/
+data/analysis/echidna/*.txt
+data/analysis/echidna/corpus/
+data/analysis/medusa/results/
+data/analysis/medusa/*.json
+data/analysis/medusa/*.txt
+data/analysis/certora/results/
+data/analysis/certora/*.json
+data/analysis/certora/*.log
+data/analysis/output/
+data/analysis/results/
+data/analysis/dashboard/
+data/analysis/*.csv
+data/analysis/*.json
+data/analysis/*.txt
+data/analysis/*.md
 
 # Keep configuration files and specs
-!analysis/**/config.*
-!analysis/**/*.yaml
-!analysis/**/*.spec
-!analysis/**/*.conf
-!analysis/README.md
+!data/analysis/**/config.*
+!data/analysis/**/*.yaml
+!data/analysis/**/*.spec
+!data/analysis/**/*.conf
+!data/analysis/README.md
 
 # Keep scripts
-!analysis/scripts/
+!data/analysis/scripts/
 
 # Foundry
 cache/
