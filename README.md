@@ -357,7 +357,7 @@ Para detalles sobre la arquitectura MCP:
 
 ```bash
 # Clonar repositorio
-git clone https://github.com/fboiero/xaudit.git
+git clone https://github.com/fboiero/MIESC.git
 cd xaudit
 
 # Crear entorno virtual de Python
@@ -647,7 +647,7 @@ Si utiliza MIESC en su investigación, por favor cite:
   year = {2025},
   type = {Master's Thesis},
   note = {Framework integrado alineado con ISO/IEC 27001:2022, ISO/IEC 42001:2023, NIST SSDF y OWASP SC Top 10},
-  url = {https://github.com/fboiero/xaudit}
+  url = {https://github.com/fboiero/MIESC}
 }
 ```
 

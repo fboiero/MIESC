@@ -45,7 +45,7 @@ Análisis de cumplimiento y preparación para postulación a Digital Public Good
 
 **Evidence**:
 - License file: [`LICENSE`](LICENSE)
-- Public repository: https://github.com/fboiero/xaudit
+- Public repository: https://github.com/fboiero/MIESC
 - All code under GPL-3.0
 
 **License Compatibility**:
@@ -533,7 +533,7 @@ MIESC is a **command-line/API tool** with:
 
 ### Pre-Submission Verification
 
-- [x] Repository is public: https://github.com/fboiero/xaudit
+- [x] Repository is public: https://github.com/fboiero/MIESC
 - [x] LICENSE file exists and is GPL-3.0
 - [x] README.md is comprehensive
 - [x] Documentation is complete (11 docs)
@@ -547,7 +547,7 @@ MIESC is a **command-line/API tool** with:
 
 **Project Information**:
 - **Name**: MIESC (Marco Integrado de Evaluación de Seguridad en Smart Contracts)
-- **Website**: https://github.com/fboiero/xaudit
+- **Website**: https://github.com/fboiero/MIESC
 - **License**: GPL-3.0
 - **Type**: Open Source Software
 - **SDGs**: 9 (Innovation), 16 (Justice), 17 (Partnerships)

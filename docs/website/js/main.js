@@ -205,11 +205,11 @@ console.log(`
 ║   Defense-in-Depth Smart Contract    ║
 ║   Security Auditing                  ║
 ╠═══════════════════════════════════════╣
-║   GitHub: fboiero/xaudit             ║
+║   GitHub: fboiero/MIESC             ║
 ║   License: GPL-3.0                   ║
 ║   Author: Fernando Boiero            ║
 ╚═══════════════════════════════════════╝
 
 Interested in contributing? Check out:
-https://github.com/fboiero/xaudit/blob/main/CONTRIBUTING.md
+https://github.com/fboiero/MIESC/blob/main/CONTRIBUTING.md
 `);
