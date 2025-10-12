@@ -9,7 +9,7 @@ import logging
 import subprocess
 from typing import Dict, Any, List
 from pathlib import Path
-from agents.base_agent import BaseAgent
+from src.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 

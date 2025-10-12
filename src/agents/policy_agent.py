@@ -7,8 +7,8 @@ Publishes compliance reports and standards mapping to Context Bus
 import logging
 from typing import Dict, Any, List
 from datetime import datetime
-from agents.base_agent import BaseAgent
-from mcp.context_bus import MCPMessage
+from src.agents.base_agent import BaseAgent
+from src.mcp.context_bus import MCPMessage
 
 logger = logging.getLogger(__name__)
 

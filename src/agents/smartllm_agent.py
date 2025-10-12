@@ -11,7 +11,7 @@ Paper: https://arxiv.org/abs/2502.13167 (hypothetical - based on standard)
 Note: This is a reference implementation showing how to integrate local LLMs
 """
 
-from agents.base_agent import BaseAgent
+from src.agents.base_agent import BaseAgent
 from typing import List, Dict, Any
 import os
 import time

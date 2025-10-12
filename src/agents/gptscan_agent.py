@@ -10,7 +10,7 @@ Repository: https://github.com/MetaTrustLabs/GPTScan
 Paper: https://gptscan.github.io/
 """
 
-from agents.base_agent import BaseAgent
+from src.agents.base_agent import BaseAgent
 from typing import List, Dict, Any
 import subprocess
 import json

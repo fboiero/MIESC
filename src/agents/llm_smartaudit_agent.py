@@ -10,7 +10,7 @@ Paper: https://arxiv.org/abs/2410.09381
 Repository: https://github.com/Marvinmw/LLM-SmartAudit (Not public yet as of Oct 2024)
 """
 
-from agents.base_agent import BaseAgent
+from src.agents.base_agent import BaseAgent
 from typing import List, Dict, Any
 import os
 import time

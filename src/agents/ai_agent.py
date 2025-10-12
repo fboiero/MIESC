@@ -9,8 +9,8 @@ import logging
 import openai
 from typing import Dict, Any, List, Optional
 from pathlib import Path
-from agents.base_agent import BaseAgent
-from mcp.context_bus import MCPMessage
+from src.agents.base_agent import BaseAgent
+from src.mcp.context_bus import MCPMessage
 
 logger = logging.getLogger(__name__)
 
