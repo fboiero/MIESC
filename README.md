@@ -5,6 +5,10 @@
 [![ISO/IEC 42001](https://img.shields.io/badge/ISO%2FIEC%2042001-2023-green)](https://www.iso.org/standard/81230.html)
 [![NIST SSDF](https://img.shields.io/badge/NIST-SSDF-orange)](https://csrc.nist.gov/Projects/ssdf)
 [![OWASP Top 10](https://img.shields.io/badge/OWASP-SC%20Top%2010-red)](https://owasp.org/www-project-smart-contract-top-10/)
+[![SDG 9](https://img.shields.io/badge/SDG-9%20Industry%20%26%20Innovation-e5243b?logo=un)](https://sdgs.un.org/goals/goal9)
+[![SDG 16](https://img.shields.io/badge/SDG-16%20Peace%20%26%20Justice-00689d?logo=un)](https://sdgs.un.org/goals/goal16)
+[![SDG 17](https://img.shields.io/badge/SDG-17%20Partnerships-19486a?logo=un)](https://sdgs.un.org/goals/goal17)
+[![DPG Candidate](https://img.shields.io/badge/Digital%20Public%20Good-Candidate-4a90e2)](https://digitalpublicgoods.net/)
 
 **MIESC (Marco Integrado de Evaluación de Seguridad en Smart Contracts)** es un framework de **ciberdefensa en profundidad** para contratos inteligentes desplegados sobre la Máquina Virtual de Ethereum (EVM) y redes compatibles.
 
@@ -12,8 +16,28 @@ Su objetivo principal es **estandarizar, sistematizar y homogeneizar** los proce
 
 ---
 
+## 🌍 Digital Public Good
+
+MIESC está diseñado como un **Bien Público Digital** (*Digital Public Good*) que contribuye directamente a los siguientes **Objetivos de Desarrollo Sostenible (ODS)** de las Naciones Unidas:
+
+- **ODS 9: Industria, Innovación e Infraestructura** - Fortalece la innovación tecnológica responsable mediante herramientas de auditoría de seguridad accesibles para ecosistemas blockchain y descentralizados
+- **ODS 16: Paz, Justicia e Instituciones Sólidas** - Promueve gobernanza digital transparente y segura, reduciendo riesgos de fraude y explotación en infraestructuras descentralizadas críticas
+- **ODS 17: Alianzas para Lograr los Objetivos** - Fomenta colaboración global entre academia, industria y gobiernos para establecer estándares de seguridad en tecnologías emergentes
+
+**Estado de Candidatura**: En preparación para postulación a [Digital Public Goods Alliance](https://digitalpublicgoods.net/) (97% compliance score). Ver [`DPG_COMPLIANCE.md`](DPG_COMPLIANCE.md) para detalles de alineación con el estándar DPG.
+
+**Principios DPG**:
+- ✅ Open Source bajo licencia OSI-approved (GPL-3.0)
+- ✅ Sin dependencias obligatorias de software propietario
+- ✅ Documentación comprehensiva en múltiples idiomas
+- ✅ Respeto total por privacidad y datos
+- ✅ Adherencia a estándares internacionales abiertos (MCP, ISO, NIST, OWASP)
+
+---
+
 ## 📋 Tabla de Contenidos
 
+- [Digital Public Good](#-digital-public-good)
 - [Justificación](#-justificación)
 - [Arquitectura del Framework](#-arquitectura-del-framework)
 - [Evolución MCP: Arquitectura Multiagente](#-evolución-mcp-arquitectura-multiagente)
