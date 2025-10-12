@@ -2,7 +2,9 @@
 
 ## DESARROLLO DE UN MARCO DE TRABAJO PARA LA EVALUACIÓN DE SEGURIDAD EN CONTRATOS INTELIGENTES SOBRE LA MÁQUINA VIRTUAL DE ETHEREUM UTILIZANDO INTELIGENCIA ARTIFICIAL
 
-**Universidad Tecnológica Nacional - Facultad Regional Villa María**
+**Universidad de la Defensa Nacional (UNDEF)**
+**Centro Regional Universitario Córdoba - IUA**
+**Maestría en Ciberdefensa**
 **Autor:** Fernando Boiero
 **Año:** 2025
 
@@ -145,7 +147,7 @@ Smart Contracts, Ethereum, EVM, Ciberdefensa, Seguridad, Auditoría, Análisis E
 
 ## ALINEACIÓN CON MAESTRÍA EN CIBERDEFENSA
 
-Esta investigación se alinea con los ejes temáticos de la Maestría en Ciberdefensa de la UTN-FRVM:
+Esta investigación se alinea con los ejes temáticos de la Maestría en Ciberdefensa de UNDEF - IUA Córdoba:
 
 1. **Seguridad de Sistemas:** Análisis de vulnerabilidades en sistemas descentralizados
 2. **Criptografía Aplicada:** Fundamentos criptográficos de blockchain y smart contracts
@@ -161,17 +163,17 @@ Esta investigación se alinea con los ejes temáticos de la Maestría en Ciberde
 |----------|--------|----------|
 | Capítulo 1 - Introducción | ✅ Completo | 100% |
 | Capítulo 2 - Marco de Ciberdefensa | ✅ Completo | 100% |
-| Capítulo 3 - Marco Teórico | 🚧 En progreso | 0% |
-| Capítulo 4 - Estado del Arte | 🚧 En progreso | 0% |
-| Capítulo 5 - Metodología | 🚧 En progreso | 0% |
-| Capítulo 6 - Implementación | 🚧 En progreso | 0% |
-| Capítulo 7 - Resultados | 🚧 En progreso | 0% |
-| Capítulo 8 - Conclusiones | 🚧 En progreso | 0% |
-| Anexos | 🚧 En progreso | 0% |
+| Capítulo 3 - Marco Teórico | ✅ Completo | 100% |
+| Capítulo 4 - Estado del Arte | ✅ Completo | 100% |
+| Capítulo 5 - Metodología | ✅ Completo | 100% |
+| Capítulo 6 - Implementación | ✅ Completo | 100% |
+| Capítulo 7 - Resultados | ✅ Completo | 100% |
+| Capítulo 8 - Conclusiones | ✅ Completo | 100% |
+| **TOTAL** | **✅ COMPLETO** | **100%** |
 
 ---
 
-**Universidad Tecnológica Nacional**
-**Facultad Regional Villa María**
+**Universidad de la Defensa Nacional (UNDEF)**
+**Centro Regional Universitario Córdoba - IUA**
 **Maestría en Ciberdefensa**
 **2025**

@@ -2,7 +2,9 @@
 
 ## DEVELOPMENT OF A FRAMEWORK FOR SECURITY EVALUATION OF SMART CONTRACTS ON THE ETHEREUM VIRTUAL MACHINE USING ARTIFICIAL INTELLIGENCE
 
-**National Technological University - Villa María Regional Faculty**
+**Universidad de la Defensa Nacional (UNDEF - National Defense University)**
+**Centro Regional Universitario Córdoba - IUA**
+**Master's in Cyber Defense**
 **Author:** Fernando Boiero
 **Year:** 2025
 
@@ -145,7 +147,7 @@ Smart Contracts, Ethereum, EVM, Cyber Defense, Security, Audit, Static Analysis,
 
 ## ALIGNMENT WITH MASTER'S IN CYBER DEFENSE
 
-This research aligns with the thematic axes of the Master's in Cyber Defense at UTN-FRVM:
+This research aligns with the thematic axes of the Master's in Cyber Defense at UNDEF - IUA Córdoba:
 
 1. **System Security:** Vulnerability analysis in decentralized systems
 2. **Applied Cryptography:** Cryptographic foundations of blockchain and smart contracts
@@ -159,19 +161,21 @@ This research aligns with the thematic axes of the Master's in Cyber Defense at 
 
 | Chapter | Status | Progress |
 |---------|--------|----------|
-| Chapter 1 - Introduction | 🚧 In progress | 0% |
-| Chapter 2 - Cyber Defense Framework | 🚧 In progress | 0% |
-| Chapter 3 - Theoretical Framework | 🚧 In progress | 0% |
-| Chapter 4 - State of the Art | 🚧 In progress | 0% |
-| Chapter 5 - Methodology | 🚧 In progress | 0% |
-| Chapter 6 - Implementation | 🚧 In progress | 0% |
-| Chapter 7 - Results | 🚧 In progress | 0% |
-| Chapter 8 - Conclusions | 🚧 In progress | 0% |
-| Appendices | 🚧 In progress | 0% |
+| Chapter 1 - Introduction | ✅ Complete (Spanish) | 100% |
+| Chapter 2 - Cyber Defense Framework | ✅ Complete (Spanish) | 100% |
+| Chapter 3 - Theoretical Framework | ✅ Complete (Spanish) | 100% |
+| Chapter 4 - State of the Art | ✅ Complete (Spanish) | 100% |
+| Chapter 5 - Methodology | ✅ Complete (Spanish) | 100% |
+| Chapter 6 - Implementation | ✅ Complete (Spanish) | 100% |
+| Chapter 7 - Results | ✅ Complete (Spanish) | 100% |
+| Chapter 8 - Conclusions | ✅ Complete (Spanish) | 100% |
+| **English Translation** | 📝 Pending | 0% |
+
+**Note:** All chapters are complete in Spanish. English translations are planned for future work.
 
 ---
 
-**National Technological University**
-**Villa María Regional Faculty**
+**Universidad de la Defensa Nacional (UNDEF)**
+**Centro Regional Universitario Córdoba - IUA**
 **Master's in Cyber Defense**
 **2025**

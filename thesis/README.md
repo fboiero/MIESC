@@ -10,7 +10,8 @@
 **DESARROLLO DE UN MARCO DE TRABAJO PARA LA EVALUACIÓN DE SEGURIDAD EN CONTRATOS INTELIGENTES SOBRE LA MÁQUINA VIRTUAL DE ETHEREUM UTILIZANDO INTELIGENCIA ARTIFICIAL**
 
 **Tesis de Maestría en Ciberdefensa**
-- **Universidad:** Universidad Tecnológica Nacional - Facultad Regional Villa María (UTN-FRVM)
+- **Universidad:** Universidad de la Defensa Nacional (UNDEF)
+- **Centro Regional:** Centro Regional Universitario Córdoba - IUA
 - **Autor:** Fernando Boiero
 - **Año:** 2025
 - **Director:** [Pendiente]
@@ -44,7 +45,8 @@ La documentación completa en español se encuentra en el directorio [`es/`](./e
 **DEVELOPMENT OF A FRAMEWORK FOR SECURITY EVALUATION OF SMART CONTRACTS ON THE ETHEREUM VIRTUAL MACHINE USING ARTIFICIAL INTELLIGENCE**
 
 **Master's Thesis in Cyber Defense**
-- **University:** National Technological University - Villa María Regional Faculty (UTN-FRVM)
+- **University:** Universidad de la Defensa Nacional (UNDEF - National Defense University)
+- **Regional Center:** Centro Regional Universitario Córdoba - IUA
 - **Author:** Fernando Boiero
 - **Year:** 2025
 - **Advisor:** [Pending]
@@ -133,7 +135,8 @@ Develop an automated framework for smart contract security evaluation that integ
   title   = {Desarrollo de un Marco de Trabajo para la Evaluación de Seguridad
              en Contratos Inteligentes sobre la Máquina Virtual de Ethereum
              Utilizando Inteligencia Artificial},
-  school  = {Universidad Tecnológica Nacional - FRVM},
+  school  = {Universidad de la Defensa Nacional (UNDEF),
+             Centro Regional Universitario Córdoba - IUA},
   year    = {2025},
   type    = {Tesis de Maestría en Ciberdefensa},
   url     = {https://github.com/fboiero/xaudit}
@@ -146,7 +149,8 @@ Develop an automated framework for smart contract security evaluation that integ
   author  = {Fernando Boiero},
   title   = {Development of a Framework for Security Evaluation of Smart Contracts
              on the Ethereum Virtual Machine Using Artificial Intelligence},
-  school  = {National Technological University - FRVM},
+  school  = {Universidad de la Defensa Nacional (UNDEF),
+             Centro Regional Universitario Córdoba - IUA},
   year    = {2025},
   type    = {Master's Thesis in Cyber Defense},
   url     = {https://github.com/fboiero/xaudit}
@@ -186,7 +190,9 @@ Ver [README principal del proyecto](../README.md) / See [main project README](..
 ## 📧 Contacto / Contact
 
 **Fernando Boiero**
-- Universidad Tecnológica Nacional - FRVM
+- Universidad de la Defensa Nacional (UNDEF)
+- Centro Regional Universitario Córdoba - IUA
+- Maestría en Ciberdefensa
 - Email: [Pendiente]
 - GitHub: [@fboiero](https://github.com/fboiero)
 
@@ -200,6 +206,7 @@ This academic work is protected by copyright. The Xaudit framework source code i
 
 ---
 
-**Universidad Tecnológica Nacional - Facultad Regional Villa María**
+**Universidad de la Defensa Nacional (UNDEF)**
+**Centro Regional Universitario Córdoba - IUA**
 **Maestría en Ciberdefensa / Master's in Cyber Defense**
 **2025**

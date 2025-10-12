@@ -605,7 +605,7 @@ Correcto: ReentrancyGuard (sin "V2")
 
 **Programas de Formación:**
 
-- **Maestría en Ciberdefensa (UTN-FRVM):** Material didáctico completo
+- **Maestría en Ciberdefensa (UNDEF - IUA Córdoba):** Material didáctico completo
 - **Cursos de Posgrado:** Módulos sobre seguridad blockchain
 - **Talleres Prácticos:** Hands-on labs con dataset de vulnerabilidades
 - **Certificaciones:** Especialista en Auditoría de Smart Contracts
@@ -629,7 +629,7 @@ Correcto: ReentrancyGuard (sin "V2")
 2. **Fomento de Investigación:**
    - Financiamiento para proyectos de seguridad blockchain
    - Becas para maestrías/doctorados en ciberdefensa aplicada a Web3
-   - Colaboración academia-industria (UTN + empresas blockchain argentinas)
+   - Colaboración academia-industria (UNDEF + empresas blockchain argentinas)
 
 3. **Regulación Proporcional:**
    - Requerir auditorías para proyectos de >$1M TVL
@@ -736,7 +736,7 @@ Xaudit no reemplaza auditores humanos, los **potencia**:
 
 **Para Reguladores:**
 
-> "Auditoría automatizada no es optional luxury, es necesidad básica. Hagan de Xaudit (o equivalente) un requisito para protocolos de infraestructura crítica."
+> "Auditoría automatizada no es optional luxury, es necesidad básica. Hagen de Xaudit (o equivalente) un requisito para protocolos de infraestructura crítica."
 
 ---
 
@@ -772,7 +772,8 @@ Esta tesis presentó **Xaudit**, un framework híbrido de auditoría de smart co
 
 ---
 
-**Universidad Tecnológica Nacional - Facultad Regional Villa María**
+**Universidad de la Defensa Nacional (UNDEF)**
+**Centro Regional Universitario Córdoba - IUA**
 **Maestría en Ciberdefensa**
 **Fernando Boiero**
 **2025**
