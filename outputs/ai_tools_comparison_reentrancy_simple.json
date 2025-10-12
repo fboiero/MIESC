@@ -1,0 +1,255 @@
+{
+  "contract": "reentrancy_simple.sol",
+  "contract_path": "examples/reentrancy_simple.sol",
+  "timestamp": "2025-10-12T11:33:58Z",
+  "results": {
+    "static": {
+      "tool": "MIESC StaticAgent",
+      "findings": [
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "reentrancy-eth",
+          "severity": "High",
+          "confidence": "Medium",
+          "description": "Reentrancy in ReentrancySimple.withdraw() (examples/reentrancy_simple.sol#16-26):\n\tExternal calls:\n\t- (success,None) = msg.sender.call{value: amount}() (examples/reentrancy_simple.sol#21)\n\tState variables written after the call(s):\n\t- balances[msg.sender] = 0 (examples/reentrancy_simple.sol#25)\n\tReentrancySimple.balances (examples/reentrancy_simple.sol#10) can be used in cross function reentrancies:\n\t- ReentrancySimple.balances (examples/reentrancy_simple.sol#10)\n\t- ReentrancySimple.deposit() (examples/reentrancy_simple.sol#12-14)\n\t- ReentrancySimple.getBalance() (examples/reentrancy_simple.sol#28-30)\n\t- ReentrancySimple.withdraw() (examples/reentrancy_simple.sol#16-26)\n",
+          "location": {
+            "file": "examples/reentrancy_simple.sol",
+            "line": 16,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "SWC-107",
+          "owasp_category": "SC01-Reentrancy"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "solc-version",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- ^0.8.0 (examples/reentrancy_simple.sol#2)\n",
+          "location": {
+            "file": "examples/reentrancy_simple.sol",
+            "line": 2,
+            "function": "^0.8.0"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in ReentrancySimple.withdraw() (examples/reentrancy_simple.sol#16-26):\n\t- (success,None) = msg.sender.call{value: amount}() (examples/reentrancy_simple.sol#21)\n",
+          "location": {
+            "file": "examples/reentrancy_simple.sol",
+            "line": 16,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "immutable-states",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "Attacker.victim (examples/reentrancy_simple.sol#37) should be immutable \n",
+          "location": {
+            "file": "examples/reentrancy_simple.sol",
+            "line": 37,
+            "function": "victim"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        }
+      ],
+      "count": 4,
+      "severity_count": {
+        "High": 1,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 2
+      },
+      "execution_time": 0.8348109722137451,
+      "success": true
+    },
+    "gptscan": {
+      "tool": "GPTScan",
+      "findings": [
+        {
+          "id": "GPTSCAN-001",
+          "source": "GPTScan (Static Only)",
+          "category": "static",
+          "swc_id": "SWC-107",
+          "owasp_category": "SC01-Reentrancy",
+          "severity": "High",
+          "confidence": 0.7,
+          "description": "Reentrancy in ReentrancySimple.withdraw() (examples/reentrancy_simple.sol#16-26):\n\tExternal calls:\n\t- (success,None) = msg.sender.call{value: amount}() (examples/reentrancy_simple.sol#21)\n\tState variables written after the call(s):\n\t- balances[msg.sender] = 0 (examples/reentrancy_simple.sol#25)\n\tReentrancySimple.balances (examples/reentrancy_simple.sol#10) can be used in cross function reentrancies:\n\t- ReentrancySimple.balances (examples/reentrancy_simple.sol#10)\n\t- ReentrancySimple.deposit() (examples/reentrancy_simple.sol#12-14)\n\t- ReentrancySimple.getBalance() (examples/reentrancy_simple.sol#28-30)\n\t- ReentrancySimple.withdraw() (examples/reentrancy_simple.sol#16-26)\n",
+          "recommendation": "Manual review recommended (GPT analysis not available)"
+        }
+      ],
+      "count": 1,
+      "severity_count": {
+        "High": 1,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 0
+      },
+      "execution_time": 0.34581470489501953,
+      "gpt_analyzed": 0,
+      "success": true
+    },
+    "ai_triage": {
+      "tool": "MIESC AIAgent",
+      "findings": [
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "reentrancy-eth",
+          "severity": "High",
+          "confidence": "Medium",
+          "description": "Reentrancy in ReentrancySimple.withdraw() (examples/reentrancy_simple.sol#16-26):\n\tExternal calls:\n\t- (success,None) = msg.sender.call{value: amount}() (examples/reentrancy_simple.sol#21)\n\tState variables written after the call(s):\n\t- balances[msg.sender] = 0 (examples/reentrancy_simple.sol#25)\n\tReentrancySimple.balances (examples/reentrancy_simple.sol#10) can be used in cross function reentrancies:\n\t- ReentrancySimple.balances (examples/reentrancy_simple.sol#10)\n\t- ReentrancySimple.deposit() (examples/reentrancy_simple.sol#12-14)\n\t- ReentrancySimple.getBalance() (examples/reentrancy_simple.sol#28-30)\n\t- ReentrancySimple.withdraw() (examples/reentrancy_simple.sol#16-26)\n",
+          "location": {
+            "file": "examples/reentrancy_simple.sol",
+            "line": 16,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "SWC-107",
+          "owasp_category": "SC01-Reentrancy"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "solc-version",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- ^0.8.0 (examples/reentrancy_simple.sol#2)\n",
+          "location": {
+            "file": "examples/reentrancy_simple.sol",
+            "line": 2,
+            "function": "^0.8.0"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in ReentrancySimple.withdraw() (examples/reentrancy_simple.sol#16-26):\n\t- (success,None) = msg.sender.call{value: amount}() (examples/reentrancy_simple.sol#21)\n",
+          "location": {
+            "file": "examples/reentrancy_simple.sol",
+            "line": 16,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "immutable-states",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "Attacker.victim (examples/reentrancy_simple.sol#37) should be immutable \n",
+          "location": {
+            "file": "examples/reentrancy_simple.sol",
+            "line": 37,
+            "function": "victim"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "reentrancy-eth",
+          "severity": "High",
+          "confidence": "Medium",
+          "description": "Reentrancy in ReentrancySimple.withdraw() (examples/reentrancy_simple.sol#16-26):\n\tExternal calls:\n\t- (success,None) = msg.sender.call{value: amount}() (examples/reentrancy_simple.sol#21)\n\tState variables written after the call(s):\n\t- balances[msg.sender] = 0 (examples/reentrancy_simple.sol#25)\n\tReentrancySimple.balances (examples/reentrancy_simple.sol#10) can be used in cross function reentrancies:\n\t- ReentrancySimple.balances (examples/reentrancy_simple.sol#10)\n\t- ReentrancySimple.deposit() (examples/reentrancy_simple.sol#12-14)\n\t- ReentrancySimple.getBalance() (examples/reentrancy_simple.sol#28-30)\n\t- ReentrancySimple.withdraw() (examples/reentrancy_simple.sol#16-26)\n",
+          "location": {
+            "file": "examples/reentrancy_simple.sol",
+            "line": 16,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "SWC-107",
+          "owasp_category": "SC01-Reentrancy"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "solc-version",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- ^0.8.0 (examples/reentrancy_simple.sol#2)\n",
+          "location": {
+            "file": "examples/reentrancy_simple.sol",
+            "line": 2,
+            "function": "^0.8.0"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in ReentrancySimple.withdraw() (examples/reentrancy_simple.sol#16-26):\n\t- (success,None) = msg.sender.call{value: amount}() (examples/reentrancy_simple.sol#21)\n",
+          "location": {
+            "file": "examples/reentrancy_simple.sol",
+            "line": 16,
+            "function": "withdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "immutable-states",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "Attacker.victim (examples/reentrancy_simple.sol#37) should be immutable \n",
+          "location": {
+            "file": "examples/reentrancy_simple.sol",
+            "line": 37,
+            "function": "victim"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        }
+      ],
+      "count": 8,
+      "severity_count": {
+        "High": 2,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 4
+      },
+      "false_positives": 0,
+      "fp_rate": 0.0,
+      "execution_time": 0.0002760887145996094,
+      "success": true
+    }
+  }
+}

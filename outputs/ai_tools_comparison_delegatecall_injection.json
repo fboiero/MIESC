@@ -1,0 +1,41 @@
+{
+  "contract": "delegatecall_injection.sol",
+  "contract_path": "examples/delegatecall_injection.sol",
+  "timestamp": "2025-10-12T11:34:05Z",
+  "results": {
+    "static": {
+      "tool": "MIESC StaticAgent",
+      "findings": [],
+      "count": 0,
+      "severity_count": {
+        "High": 0,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 0
+      },
+      "execution_time": 0.4251840114593506,
+      "success": true
+    },
+    "gptscan": {
+      "tool": "GPTScan",
+      "findings": [],
+      "count": 0,
+      "severity_count": {
+        "High": 0,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 0
+      },
+      "execution_time": 0.281757116317749,
+      "gpt_analyzed": 0,
+      "success": true
+    },
+    "ai_triage": {
+      "tool": "MIESC AIAgent",
+      "findings": [],
+      "count": 0,
+      "success": true,
+      "message": "No findings to triage"
+    }
+  }
+}

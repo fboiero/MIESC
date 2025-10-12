@@ -1,0 +1,591 @@
+{
+  "contract": "unchecked_send.sol",
+  "contract_path": "examples/unchecked_send.sol",
+  "timestamp": "2025-10-12T11:34:02Z",
+  "results": {
+    "static": {
+      "tool": "MIESC StaticAgent",
+      "findings": [
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "controlled-delegatecall",
+          "severity": "High",
+          "confidence": "Medium",
+          "description": "UncheckedSend.emergencyWithdraw(address,bytes) (examples/unchecked_send.sol#64-69) uses delegatecall to a input-controlled function id\n\t- target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 64,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-lowlevel",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "UncheckedSend.withdrawWithCall(uint256) (examples/unchecked_send.sol#38-45) ignores return value by address(msg.sender).call{value: amount}() (examples/unchecked_send.sol#44)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 38,
+            "function": "withdrawWithCall"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-lowlevel",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "UncheckedSend.emergencyWithdraw(address,bytes) (examples/unchecked_send.sol#64-69) ignores return value by target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 64,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-send",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "UncheckedSend.batchPayout(address[],uint256) (examples/unchecked_send.sol#51-58) ignores return value by recipients[i].send(amount) (examples/unchecked_send.sol#56)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 51,
+            "function": "batchPayout"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-send",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "UncheckedSend.withdrawWithSend(uint256) (examples/unchecked_send.sol#25-32) ignores return value by address(msg.sender).send(amount) (examples/unchecked_send.sol#31)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 25,
+            "function": "withdrawWithSend"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "missing-zero-check",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "UncheckedSend.emergencyWithdraw(address,bytes).target (examples/unchecked_send.sol#64) lacks a zero-check on :\n\t\t- target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 64,
+            "function": "target"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "calls-loop",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "UncheckedSend.batchPayout(address[],uint256) (examples/unchecked_send.sol#51-58) has external calls inside a loop: recipients[i].send(amount) (examples/unchecked_send.sol#56)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 51,
+            "function": "batchPayout"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "solc-version",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- ^0.8.0 (examples/unchecked_send.sol#2)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 2,
+            "function": "^0.8.0"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in UncheckedSend.emergencyWithdraw(address,bytes) (examples/unchecked_send.sol#64-69):\n\t- target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 64,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in UncheckedSend.withdrawWithCall(uint256) (examples/unchecked_send.sol#38-45):\n\t- address(msg.sender).call{value: amount}() (examples/unchecked_send.sol#44)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 38,
+            "function": "withdrawWithCall"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "immutable-states",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "UncheckedSend.owner (examples/unchecked_send.sol#10) should be immutable \n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 10,
+            "function": "owner"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        }
+      ],
+      "count": 11,
+      "severity_count": {
+        "High": 1,
+        "Medium": 4,
+        "Low": 2,
+        "Informational": 3
+      },
+      "execution_time": 0.6269881725311279,
+      "success": true
+    },
+    "gptscan": {
+      "tool": "GPTScan",
+      "findings": [
+        {
+          "id": "GPTSCAN-001",
+          "source": "GPTScan (Static Only)",
+          "category": "static",
+          "swc_id": "SWC-112",
+          "owasp_category": "SC02-Access-Control",
+          "severity": "High",
+          "confidence": 0.7,
+          "description": "UncheckedSend.emergencyWithdraw(address,bytes) (examples/unchecked_send.sol#64-69) uses delegatecall to a input-controlled function id\n\t- target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "recommendation": "Manual review recommended (GPT analysis not available)"
+        }
+      ],
+      "count": 1,
+      "severity_count": {
+        "High": 1,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 0
+      },
+      "execution_time": 0.48801684379577637,
+      "gpt_analyzed": 0,
+      "success": true
+    },
+    "ai_triage": {
+      "tool": "MIESC AIAgent",
+      "findings": [
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "controlled-delegatecall",
+          "severity": "High",
+          "confidence": "Medium",
+          "description": "UncheckedSend.emergencyWithdraw(address,bytes) (examples/unchecked_send.sol#64-69) uses delegatecall to a input-controlled function id\n\t- target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 64,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-lowlevel",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "UncheckedSend.withdrawWithCall(uint256) (examples/unchecked_send.sol#38-45) ignores return value by address(msg.sender).call{value: amount}() (examples/unchecked_send.sol#44)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 38,
+            "function": "withdrawWithCall"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-lowlevel",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "UncheckedSend.emergencyWithdraw(address,bytes) (examples/unchecked_send.sol#64-69) ignores return value by target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 64,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-send",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "UncheckedSend.batchPayout(address[],uint256) (examples/unchecked_send.sol#51-58) ignores return value by recipients[i].send(amount) (examples/unchecked_send.sol#56)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 51,
+            "function": "batchPayout"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-send",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "UncheckedSend.withdrawWithSend(uint256) (examples/unchecked_send.sol#25-32) ignores return value by address(msg.sender).send(amount) (examples/unchecked_send.sol#31)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 25,
+            "function": "withdrawWithSend"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "missing-zero-check",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "UncheckedSend.emergencyWithdraw(address,bytes).target (examples/unchecked_send.sol#64) lacks a zero-check on :\n\t\t- target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 64,
+            "function": "target"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "calls-loop",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "UncheckedSend.batchPayout(address[],uint256) (examples/unchecked_send.sol#51-58) has external calls inside a loop: recipients[i].send(amount) (examples/unchecked_send.sol#56)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 51,
+            "function": "batchPayout"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "solc-version",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- ^0.8.0 (examples/unchecked_send.sol#2)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 2,
+            "function": "^0.8.0"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in UncheckedSend.emergencyWithdraw(address,bytes) (examples/unchecked_send.sol#64-69):\n\t- target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 64,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in UncheckedSend.withdrawWithCall(uint256) (examples/unchecked_send.sol#38-45):\n\t- address(msg.sender).call{value: amount}() (examples/unchecked_send.sol#44)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 38,
+            "function": "withdrawWithCall"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "immutable-states",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "UncheckedSend.owner (examples/unchecked_send.sol#10) should be immutable \n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 10,
+            "function": "owner"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "controlled-delegatecall",
+          "severity": "High",
+          "confidence": "Medium",
+          "description": "UncheckedSend.emergencyWithdraw(address,bytes) (examples/unchecked_send.sol#64-69) uses delegatecall to a input-controlled function id\n\t- target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 64,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-lowlevel",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "UncheckedSend.withdrawWithCall(uint256) (examples/unchecked_send.sol#38-45) ignores return value by address(msg.sender).call{value: amount}() (examples/unchecked_send.sol#44)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 38,
+            "function": "withdrawWithCall"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-lowlevel",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "UncheckedSend.emergencyWithdraw(address,bytes) (examples/unchecked_send.sol#64-69) ignores return value by target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 64,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-send",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "UncheckedSend.batchPayout(address[],uint256) (examples/unchecked_send.sol#51-58) ignores return value by recipients[i].send(amount) (examples/unchecked_send.sol#56)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 51,
+            "function": "batchPayout"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "unchecked-send",
+          "severity": "Medium",
+          "confidence": "Medium",
+          "description": "UncheckedSend.withdrawWithSend(uint256) (examples/unchecked_send.sol#25-32) ignores return value by address(msg.sender).send(amount) (examples/unchecked_send.sol#31)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 25,
+            "function": "withdrawWithSend"
+          },
+          "layer": "static",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC04-Unchecked-Calls"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "missing-zero-check",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "UncheckedSend.emergencyWithdraw(address,bytes).target (examples/unchecked_send.sol#64) lacks a zero-check on :\n\t\t- target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 64,
+            "function": "target"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "calls-loop",
+          "severity": "Low",
+          "confidence": "Medium",
+          "description": "UncheckedSend.batchPayout(address[],uint256) (examples/unchecked_send.sol#51-58) has external calls inside a loop: recipients[i].send(amount) (examples/unchecked_send.sol#56)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 51,
+            "function": "batchPayout"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "solc-version",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- ^0.8.0 (examples/unchecked_send.sol#2)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 2,
+            "function": "^0.8.0"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in UncheckedSend.emergencyWithdraw(address,bytes) (examples/unchecked_send.sol#64-69):\n\t- target.delegatecall(data) (examples/unchecked_send.sol#68)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 64,
+            "function": "emergencyWithdraw"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "low-level-calls",
+          "severity": "Informational",
+          "confidence": "High",
+          "description": "Low level call in UncheckedSend.withdrawWithCall(uint256) (examples/unchecked_send.sol#38-45):\n\t- address(msg.sender).call{value: amount}() (examples/unchecked_send.sol#44)\n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 38,
+            "function": "withdrawWithCall"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        },
+        {
+          "source": "Slither",
+          "type": "vulnerability",
+          "id": "immutable-states",
+          "severity": "Optimization",
+          "confidence": "High",
+          "description": "UncheckedSend.owner (examples/unchecked_send.sol#10) should be immutable \n",
+          "location": {
+            "file": "examples/unchecked_send.sol",
+            "line": 10,
+            "function": "owner"
+          },
+          "layer": "static",
+          "swc_id": "UNKNOWN",
+          "owasp_category": "SC10-Unknown-Unknowns"
+        }
+      ],
+      "count": 22,
+      "severity_count": {
+        "High": 2,
+        "Medium": 8,
+        "Low": 4,
+        "Informational": 6
+      },
+      "false_positives": 0,
+      "fp_rate": 0.0,
+      "execution_time": 0.0002722740173339844,
+      "success": true
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "contract": "tx_origin.sol",
+  "contract_path": "examples/tx_origin.sol",
+  "timestamp": "2025-10-12T11:34:03Z",
+  "results": {
+    "static": {
+      "tool": "MIESC StaticAgent",
+      "findings": [],
+      "count": 0,
+      "severity_count": {
+        "High": 0,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 0
+      },
+      "execution_time": 0.45092010498046875,
+      "success": true
+    },
+    "gptscan": {
+      "tool": "GPTScan",
+      "findings": [],
+      "count": 0,
+      "severity_count": {
+        "High": 0,
+        "Medium": 0,
+        "Low": 0,
+        "Informational": 0
+      },
+      "execution_time": 0.3036022186279297,
+      "gpt_analyzed": 0,
+      "success": true
+    },
+    "ai_triage": {
+      "tool": "MIESC AIAgent",
+      "findings": [],
+      "count": 0,
+      "success": true,
+      "message": "No findings to triage"
+    }
+  }
+}
