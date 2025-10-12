@@ -15,19 +15,22 @@ set -e
 # CONFIGURACIÓN
 # =============================================================================
 
-DEMO_MODE="${1:-normal}"  # normal | fast | auto
+DEMO_MODE="${1:-normal}"  # normal | fast | auto | --fast | --auto
+
+# Normalizar argumentos (quitar -- si existe)
+DEMO_MODE="${DEMO_MODE#--}"
 
 if [ "$DEMO_MODE" = "fast" ]; then
-    DELAY_SHORT=0.3
-    DELAY_MEDIUM=0.8
-    DELAY_LONG=1.2
-    PROGRESS_SPEED=0.05
+    DELAY_SHORT=0.1
+    DELAY_MEDIUM=0.2
+    DELAY_LONG=0.3
+    PROGRESS_SPEED=0.02
     AUTO_CONTINUE=true
 elif [ "$DEMO_MODE" = "auto" ]; then
-    DELAY_SHORT=0.5
-    DELAY_MEDIUM=1.0
-    DELAY_LONG=1.5
-    PROGRESS_SPEED=0.08
+    DELAY_SHORT=0.3
+    DELAY_MEDIUM=0.5
+    DELAY_LONG=0.8
+    PROGRESS_SPEED=0.05
     AUTO_CONTINUE=true
 else
     DELAY_SHORT=1
