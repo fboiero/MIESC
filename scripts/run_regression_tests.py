@@ -258,6 +258,52 @@ Starting tests...
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    def test_policy_agent_enhanced_standards(self) -> bool:
+        """Test PolicyAgent v2.2 enhanced compliance standards"""
+        try:
+            from src.agents.policy_agent import PolicyAgent
+            agent = PolicyAgent()
+
+            # Check for new context types
+            context_types = agent.get_context_types()
+            expected_new_types = [
+                "swc_classification",
+                "dasp_coverage",
+                "scsvs_status",
+                "ccss_status",
+                "defi_risk_assessment",
+                "mica_compliance",
+                "dora_resilience",
+                "audit_checklist"
+            ]
+
+            # Verify all new standards are present
+            for expected in expected_new_types:
+                if expected not in context_types:
+                    return {"success": False, "error": f"Missing context type: {expected}"}
+
+            # Test that agent has the new methods
+            methods = dir(agent)
+            expected_methods = [
+                "_map_to_swc_registry",
+                "_check_dasp_top10",
+                "_check_scsvs_compliance",
+                "_check_ccss_compliance",
+                "_assess_defi_risks",
+                "_check_mica_compliance",
+                "_check_dora_resilience",
+                "_audit_checklist_score"
+            ]
+
+            for method in expected_methods:
+                if method not in methods:
+                    return {"success": False, "error": f"Missing method: {method}"}
+
+            standards_count = len(expected_new_types)
+            return {"success": True, "details": f"PolicyAgent v2.2 with {standards_count} new standards"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     def test_coordinator_agent_init(self) -> bool:
         """Test CoordinatorAgent initialization"""
         try:
@@ -581,6 +627,7 @@ Starting tests...
         self.run_test("FormalAgent initialization", self.test_formal_agent_init, critical=False)
         self.run_test("AIAgent initialization", self.test_ai_agent_init, critical=True)
         self.run_test("PolicyAgent initialization", self.test_policy_agent_init, critical=True)
+        self.run_test("PolicyAgent v2.2 enhanced standards", self.test_policy_agent_enhanced_standards, critical=True)
         self.run_test("CoordinatorAgent initialization", self.test_coordinator_agent_init, critical=True)
         self.run_test("GPTScanAgent initialization", self.test_gptscan_agent_init, critical=False)
         self.run_test("LLMSmartAuditAgent initialization", self.test_llm_smartaudit_agent_init, critical=False)
