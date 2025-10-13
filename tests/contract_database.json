@@ -1,0 +1,418 @@
+{
+  "version": "2.2.0",
+  "last_updated": "2025-10-13",
+  "total_contracts": 13,
+  "contracts": [
+    {
+      "id": 1,
+      "name": "reentrancy_simple",
+      "filename": "reentrancy_simple.sol",
+      "path": "examples/reentrancy_simple.sol",
+      "description": "Classic reentrancy vulnerability with attacker contract PoC",
+      "vulnerabilities": [
+        {
+          "type": "reentrancy",
+          "swc_id": "SWC-107",
+          "owasp_category": "SC-01",
+          "cwe_id": "CWE-841",
+          "severity": "CRITICAL",
+          "location": "withdraw() function",
+          "description": "External call before state update allows reentrancy"
+        }
+      ],
+      "solidity_version": "^0.8.0",
+      "lines_of_code": 56,
+      "complexity": "simple",
+      "has_poc": true,
+      "testing_priority": "HIGH",
+      "expected_tool_detections": {
+        "slither": {
+          "should_detect": true,
+          "detector": "reentrancy-eth",
+          "confidence": "high"
+        },
+        "mythril": {
+          "should_detect": true,
+          "detector": "Reentrancy",
+          "confidence": "high"
+        },
+        "manticore": {
+          "should_detect": true,
+          "detector": "Reentrancy pattern",
+          "confidence": "medium"
+        },
+        "aderyn": {
+          "should_detect": false,
+          "reason": "Limited reentrancy detection"
+        },
+        "echidna": {
+          "should_detect": true,
+          "method": "property_violation",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "vulnerable_bank",
+      "filename": "vulnerable_bank.sol",
+      "path": "examples/vulnerable_bank.sol",
+      "description": "Bank contract with reentrancy and missing access control",
+      "vulnerabilities": [
+        {
+          "type": "reentrancy",
+          "swc_id": "SWC-107",
+          "owasp_category": "SC-01",
+          "cwe_id": "CWE-841",
+          "severity": "CRITICAL",
+          "location": "withdraw() function",
+          "description": "External call before balance update"
+        },
+        {
+          "type": "missing_access_control",
+          "swc_id": "SWC-105",
+          "owasp_category": "SC-02",
+          "cwe_id": "CWE-284",
+          "severity": "CRITICAL",
+          "location": "emergencyWithdraw() function",
+          "description": "No access control allows anyone to drain funds"
+        }
+      ],
+      "solidity_version": "^0.8.0",
+      "lines_of_code": 100,
+      "complexity": "medium",
+      "has_poc": true,
+      "testing_priority": "HIGH",
+      "expected_tool_detections": {
+        "slither": {
+          "should_detect": true,
+          "detectors": ["reentrancy-eth", "missing-zero-check"],
+          "confidence": "high"
+        },
+        "mythril": {
+          "should_detect": true,
+          "detector": "Reentrancy",
+          "confidence": "high"
+        },
+        "aderyn": {
+          "should_detect": true,
+          "detector": "missing-access-control",
+          "confidence": "medium"
+        },
+        "wake": {
+          "should_detect": true,
+          "detector": "access-control-patterns",
+          "confidence": "medium"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "integer_overflow",
+      "filename": "integer_overflow.sol",
+      "path": "examples/integer_overflow.sol",
+      "description": "Integer overflow vulnerabilities in Solidity 0.7.0 (pre-0.8.0)",
+      "vulnerabilities": [
+        {
+          "type": "integer_overflow",
+          "swc_id": "SWC-101",
+          "owasp_category": "SC-03",
+          "cwe_id": "CWE-190",
+          "severity": "HIGH",
+          "location": "transfer(), batchTransfer(), addBalance()",
+          "description": "Arithmetic operations without SafeMath"
+        }
+      ],
+      "solidity_version": "^0.7.0",
+      "lines_of_code": 58,
+      "complexity": "medium",
+      "has_poc": false,
+      "testing_priority": "MEDIUM",
+      "notes": "Version-specific: Only vulnerable in Solidity < 0.8.0",
+      "expected_tool_detections": {
+        "slither": {
+          "should_detect": true,
+          "detector": "integer-overflow",
+          "confidence": "medium"
+        },
+        "mythril": {
+          "should_detect": true,
+          "detector": "Integer Overflow",
+          "confidence": "high"
+        },
+        "smtchecker": {
+          "should_detect": true,
+          "detector": "overflow-check",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "tx_origin",
+      "filename": "tx_origin.sol",
+      "path": "examples/tx_origin.sol",
+      "description": "tx.origin authentication bypass via phishing attack",
+      "vulnerabilities": [
+        {
+          "type": "tx_origin_auth",
+          "swc_id": "SWC-115",
+          "owasp_category": "SC-06",
+          "cwe_id": "CWE-477",
+          "severity": "MEDIUM",
+          "location": "transferOwnership(), withdraw(), executeCall()",
+          "description": "Uses tx.origin for authentication instead of msg.sender"
+        }
+      ],
+      "solidity_version": "^0.8.0",
+      "lines_of_code": 81,
+      "complexity": "medium",
+      "has_poc": true,
+      "testing_priority": "MEDIUM",
+      "expected_tool_detections": {
+        "slither": {
+          "should_detect": true,
+          "detector": "tx-origin",
+          "confidence": "medium"
+        },
+        "solhint": {
+          "should_detect": true,
+          "rule": "avoid-tx-origin",
+          "confidence": "high"
+        },
+        "aderyn": {
+          "should_detect": true,
+          "detector": "tx-origin-usage",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "unchecked_send",
+      "filename": "unchecked_send.sol",
+      "path": "examples/unchecked_send.sol",
+      "description": "Multiple patterns of unchecked external calls",
+      "vulnerabilities": [
+        {
+          "type": "unchecked_external_call",
+          "swc_id": "SWC-104",
+          "owasp_category": "SC-04",
+          "cwe_id": "CWE-252",
+          "severity": "HIGH",
+          "location": "withdrawWithSend(), withdrawWithCall(), batchPayout(), emergencyWithdraw()",
+          "description": "Return values of send(), call(), and delegatecall() not checked"
+        }
+      ],
+      "solidity_version": "^0.8.0",
+      "lines_of_code": 75,
+      "complexity": "medium",
+      "has_poc": false,
+      "testing_priority": "HIGH",
+      "expected_tool_detections": {
+        "slither": {
+          "should_detect": true,
+          "detector": "unchecked-send",
+          "confidence": "medium"
+        },
+        "aderyn": {
+          "should_detect": true,
+          "detector": "unchecked-return",
+          "confidence": "high"
+        },
+        "wake": {
+          "should_detect": true,
+          "detector": "return-value-check",
+          "confidence": "medium"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "delegatecall_injection",
+      "filename": "delegatecall_injection.sol",
+      "path": "examples/delegatecall_injection.sol",
+      "description": "Delegatecall to user-controlled address with storage collision",
+      "vulnerabilities": [
+        {
+          "type": "controlled_delegatecall",
+          "swc_id": "SWC-112",
+          "owasp_category": "SC-05",
+          "cwe_id": "CWE-829",
+          "severity": "CRITICAL",
+          "location": "execute() function",
+          "description": "Delegatecall to user-controlled target can overwrite storage"
+        },
+        {
+          "type": "storage_collision",
+          "swc_id": "SWC-112",
+          "owasp_category": "SC-05",
+          "cwe_id": "CWE-691",
+          "severity": "HIGH",
+          "location": "updateValue() function",
+          "description": "Storage layout mismatch in delegatecall context"
+        }
+      ],
+      "solidity_version": "^0.8.0",
+      "lines_of_code": 84,
+      "complexity": "complex",
+      "has_poc": true,
+      "testing_priority": "HIGH",
+      "expected_tool_detections": {
+        "slither": {
+          "should_detect": true,
+          "detector": "controlled-delegatecall",
+          "confidence": "high"
+        },
+        "mythril": {
+          "should_detect": true,
+          "detector": "Delegatecall to user-supplied address",
+          "confidence": "high"
+        },
+        "manticore": {
+          "should_detect": true,
+          "method": "symbolic_execution",
+          "confidence": "medium"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "voting",
+      "filename": "voting.sol",
+      "path": "examples/voting.sol",
+      "description": "Voting contract (needs detailed analysis)",
+      "vulnerabilities": [],
+      "solidity_version": "unknown",
+      "lines_of_code": 0,
+      "complexity": "unknown",
+      "has_poc": false,
+      "testing_priority": "MEDIUM",
+      "notes": "Used in e2e tests, requires full vulnerability audit"
+    },
+    {
+      "id": 8,
+      "name": "secure_bank",
+      "filename": "secure_bank.sol",
+      "path": "examples/secure_bank.sol",
+      "description": "Secure baseline implementation for comparison",
+      "vulnerabilities": [],
+      "solidity_version": "^0.8.0",
+      "lines_of_code": 0,
+      "complexity": "medium",
+      "has_poc": false,
+      "testing_priority": "LOW",
+      "notes": "Negative test case - should have minimal/no findings"
+    },
+    {
+      "id": 9,
+      "name": "ManualOracle",
+      "filename": "ManualOracle.sol",
+      "path": "examples/ManualOracle.sol",
+      "description": "Oracle manipulation vulnerability",
+      "vulnerabilities": [
+        {
+          "type": "oracle_manipulation",
+          "swc_id": "SWC-136",
+          "owasp_category": "SC-09",
+          "cwe_id": "CWE-345",
+          "severity": "HIGH",
+          "location": "unknown",
+          "description": "Oracle can be manipulated"
+        }
+      ],
+      "solidity_version": "unknown",
+      "lines_of_code": 0,
+      "complexity": "medium",
+      "has_poc": false,
+      "testing_priority": "MEDIUM"
+    },
+    {
+      "id": 10,
+      "name": "Whitelist",
+      "filename": "Whitelist.sol",
+      "path": "examples/Whitelist.sol",
+      "description": "Whitelist access control implementation",
+      "vulnerabilities": [],
+      "solidity_version": "unknown",
+      "lines_of_code": 0,
+      "complexity": "simple",
+      "has_poc": false,
+      "testing_priority": "LOW"
+    },
+    {
+      "id": 11,
+      "name": "Xscrow",
+      "filename": "Xscrow.sol",
+      "path": "examples/Xscrow.sol",
+      "description": "Escrow contract v1",
+      "vulnerabilities": [],
+      "solidity_version": "unknown",
+      "lines_of_code": 0,
+      "complexity": "medium",
+      "has_poc": false,
+      "testing_priority": "MEDIUM"
+    },
+    {
+      "id": 12,
+      "name": "Xscrow_v2",
+      "filename": "Xscrow_v2.sol",
+      "path": "examples/Xscrow_v2.sol",
+      "description": "Escrow contract v2 (improved)",
+      "vulnerabilities": [],
+      "solidity_version": "unknown",
+      "lines_of_code": 0,
+      "complexity": "medium",
+      "has_poc": false,
+      "testing_priority": "MEDIUM"
+    },
+    {
+      "id": 13,
+      "name": "testXscrow_v2",
+      "filename": "testXscrow_v2.sol",
+      "path": "examples/testXscrow_v2.sol",
+      "description": "Test contract for Xscrow v2",
+      "vulnerabilities": [],
+      "solidity_version": "unknown",
+      "lines_of_code": 0,
+      "complexity": "simple",
+      "has_poc": false,
+      "testing_priority": "LOW"
+    }
+  ],
+  "vulnerability_type_summary": {
+    "reentrancy": 2,
+    "access_control": 1,
+    "integer_overflow": 1,
+    "tx_origin_auth": 1,
+    "unchecked_external_call": 1,
+    "controlled_delegatecall": 1,
+    "storage_collision": 1,
+    "oracle_manipulation": 1,
+    "unknown": 5
+  },
+  "severity_distribution": {
+    "CRITICAL": 4,
+    "HIGH": 3,
+    "MEDIUM": 2,
+    "LOW": 0,
+    "INFO": 0
+  },
+  "recommendations": {
+    "add_contracts": [
+      "front_running.sol",
+      "timestamp_dependence.sol",
+      "dos_block_limit.sol",
+      "selfdestruct_unprotected.sol",
+      "signature_replay.sol",
+      "flash_loan_attack.sol",
+      "price_oracle_manipulation.sol"
+    ],
+    "analyze_existing": [
+      "voting.sol",
+      "ManualOracle.sol",
+      "Xscrow.sol",
+      "Xscrow_v2.sol"
+    ]
+  }
+}
