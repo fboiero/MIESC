@@ -656,11 +656,12 @@ If you use MIESC in your research, please cite:
 
 ### 🌐 v3.5 (Q3 2025) - Multi-Chain Support
 
+- [ ] **Stellar (Soroban)** - Rust-based smart contracts (Priority #1)
 - [ ] Solana (Anchor framework)
 - [ ] Cardano (Plutus)
 - [ ] StarkNet (Cairo)
 - [ ] Move (Aptos/Sui)
-- [ ] Rust smart contracts (NEAR, Polkadot)
+- [ ] NEAR Protocol (Rust contracts)
 
 ### 🤖 v4.0 (Q4 2025) - Advanced AI Features
 
