@@ -58,8 +58,9 @@ RUN pip3 install solc-select && \
 # Install global Node.js tools
 RUN npm install -g solhint
 
-# Install Rust-based tools
-RUN cargo install aderyn
+# Install Rust-based tools (Aderyn for ultra-fast static analysis)
+# Note: This step takes ~5-10 minutes on first build
+RUN cargo install aderyn --version 0.6.4
 
 # Copy requirements files first (for layer caching)
 COPY requirements_core.txt requirements.txt ./

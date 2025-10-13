@@ -165,8 +165,8 @@ This script:
 
 **Layer 1 (Static)**:
 - Slither v0.10.3
-- Aderyn v0.6.4
-- Solhint (via npm)
+- Aderyn v0.6.4 (Rust-based, ultra-fast)
+- Solhint v4.1.1 (via npm)
 
 **Layer 2 (Dynamic)**:
 - Echidna v2.2.4
