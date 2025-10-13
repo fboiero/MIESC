@@ -396,6 +396,63 @@ Starting tests...
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    def test_medusa_availability(self) -> bool:
+        """Test if Medusa is installed and accessible"""
+        import subprocess
+        import os
+        try:
+            medusa_path = os.path.expanduser("~/go/bin/medusa")
+            result = subprocess.run(
+                [medusa_path, "--help"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0 and "solidity smart contract fuzzing" in result.stdout:
+                return {"success": True, "details": "Medusa 1.3.1"}
+            return {"success": False, "error": "Medusa not working"}
+        except FileNotFoundError:
+            return {"success": False, "error": "Medusa not installed"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def test_medusa_agent_init(self) -> bool:
+        """Test MedusaAgent initialization"""
+        try:
+            from src.agents.medusa_agent import MedusaAgent
+            agent = MedusaAgent()
+            return {"success": True, "details": f"Medusa available: {agent.is_available()}"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def test_wake_availability(self) -> bool:
+        """Test if Wake is installed and accessible"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["wake", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                version = result.stdout.strip()
+                return {"success": True, "details": f"Wake {version}"}
+            return {"success": False, "error": "Wake not working"}
+        except FileNotFoundError:
+            return {"success": False, "error": "Wake not installed"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def test_wake_agent_init(self) -> bool:
+        """Test WakeAgent initialization"""
+        try:
+            from src.agents.wake_agent import WakeAgent
+            agent = WakeAgent()
+            return {"success": True, "details": f"Wake available: {agent.is_available()}"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     def test_echidna_availability(self) -> bool:
         """Test if Echidna is installed and accessible"""
         import subprocess
@@ -507,6 +564,10 @@ Starting tests...
         self.run_test("AderynAgent initialization", self.test_aderyn_agent_init, critical=True)
         self.run_test("Halmos availability", self.test_halmos_availability, critical=True)
         self.run_test("HalmosAgent initialization", self.test_halmos_agent_init, critical=True)
+        self.run_test("Medusa availability", self.test_medusa_availability, critical=True)
+        self.run_test("MedusaAgent initialization", self.test_medusa_agent_init, critical=True)
+        self.run_test("Wake availability", self.test_wake_availability, critical=True)
+        self.run_test("WakeAgent initialization", self.test_wake_agent_init, critical=True)
         self.run_test("Echidna availability", self.test_echidna_availability, critical=False)
 
         print("\n" + "="*64)
