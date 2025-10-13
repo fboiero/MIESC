@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="MIESC - Multi-Agent Integrated Security Assessment Framework for Smart Contracts. Defense-in-depth automated pre-audit with 15 security tools and AI-assisted triage.">
-    <meta name="keywords" content="smart contracts, security, audit, blockchain, ethereum, solidity, static analysis, symbolic execution">
+    <meta name="description" content="MIESC - MCP Server for AI-Assisted Smart Contract Security. Model Context Protocol server providing 15 security tools to Claude and other AI assistants.">
+    <meta name="keywords" content="MCP server, Model Context Protocol, smart contracts, security, AI assistant, Claude Desktop, blockchain, ethereum, solidity, static analysis">
     <meta name="author" content="Fernando Boiero">
     <meta name="robots" content="index, follow">
-    <title>MIESC - Multi-Agent Security Framework for Smart Contracts</title>
+    <title>MIESC - MCP Server for Smart Contract Security</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,11 +32,12 @@
             <ul class="nav-links">
                 <li><a href="#features">Features</a></li>
                 <li><a href="#architecture">Architecture</a></li>
+                <li><a href="#mcp">MCP Integration</a></li>
                 <li><a href="#tools">Tools</a></li>
                 <li><a href="#metrics">Metrics</a></li>
                 <li><a href="#docs">Docs</a></li>
                 <li><a href="#research">Research</a></li>
-                <li><a href="https://github.com/fboiero/xaudit" target="_blank" class="btn-secondary">GitHub</a></li>
+                <li><a href="https://github.com/fboiero/MIESC" target="_blank" class="btn-secondary">GitHub</a></li>
                 <li><a href="#quickstart" class="btn-primary">Get Started</a></li>
             </ul>
             <button class="mobile-menu-btn" id="mobileMenuBtn">
@@ -52,12 +53,12 @@
         <div class="container">
             <div class="hero-content">
                 <h1 class="hero-title">
-                    Multi-Agent Security Framework<br>
-                    <span class="gradient-text">for Smart Contracts</span>
+                    MCP Server for AI-Assisted<br>
+                    <span class="gradient-text">Smart Contract Security</span>
                 </h1>
                 <p class="hero-subtitle">
-                    Automated pre-audit combining <strong>15 specialized security tools</strong> with AI-assisted triage.<br>
-                    Reduce false positives by <strong>43%</strong>. Save <strong>90%</strong> of audit time.
+                    <strong>Model Context Protocol</strong> server that provides <strong>15 security tools</strong> to AI assistants like Claude.<br>
+                    Use as MCP server for Claude Desktop OR standalone CLI tool. Reduce false positives by <strong>43%</strong>.
                 </p>
 
                 <!-- Badges -->
@@ -78,7 +79,7 @@
                     <a href="pages/demo.html" class="btn btn-large btn-secondary">
                         🎮 Try Demo
                     </a>
-                    <a href="https://github.com/fboiero/xaudit" target="_blank" class="btn btn-large btn-outline">
+                    <a href="https://github.com/fboiero/MIESC" target="_blank" class="btn btn-large btn-outline">
                         <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
                             <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
                         </svg>
@@ -93,14 +94,17 @@
                         <button class="copy-btn" data-clipboard-target="#install-code">Copy</button>
                     </div>
                     <pre><code id="install-code"># Clone repository
-git clone https://github.com/fboiero/xaudit.git
-cd xaudit
+git clone https://github.com/fboiero/MIESC.git
+cd MIESC
 
 # Install dependencies
 pip install slither-analyzer mythril
 
-# Run first audit
-python xaudit.py --target examples/reentrancy_simple.sol</code></pre>
+# Run first audit (CLI mode)
+python xaudit.py --target examples/reentrancy_simple.sol
+
+# OR start MCP server (for Claude Desktop)
+python src/mcp/server.py</code></pre>
                 </div>
             </div>
 
@@ -180,11 +184,13 @@ python xaudit.py --target examples/reentrancy_simple.sol</code></pre>
             <h2 class="section-title">Why Developers Choose MIESC</h2>
             <div class="features-grid">
                 <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3>One Command, All Tools</h3>
-                    <p>Instead of running 15+ commands manually, run one:</p>
+                    <div class="feature-icon">🔌</div>
+                    <h3>MCP Server + CLI Tool</h3>
+                    <p><strong>Mode 1:</strong> MCP server for Claude Desktop (AI-assisted auditing)</p>
+                    <code class="inline-code">python src/mcp/server.py</code>
+                    <p><strong>Mode 2:</strong> Standalone CLI tool (automated pipeline)</p>
                     <code class="inline-code">python xaudit.py --target mycontract.sol</code>
-                    <p class="feature-benefit">Automatic tool orchestration and result correlation</p>
+                    <p class="feature-benefit">Flexible usage: human-in-the-loop OR fully automated</p>
                 </div>
 
                 <div class="feature-card">
@@ -192,7 +198,7 @@ python xaudit.py --target examples/reentrancy_simple.sol</code></pre>
                     <h3>AI Filters the Noise</h3>
                     <p><strong>Before:</strong> 147 findings (89 informational, 37 low, 16 medium, 5 high)</p>
                     <p><strong>After:</strong> 8 findings (3 critical, 2 high, 3 medium)</p>
-                    <p class="feature-benefit">139 false positives filtered automatically</p>
+                    <p class="feature-benefit">139 false positives filtered automatically via MCP protocol</p>
                 </div>
 
                 <div class="feature-card">
@@ -252,16 +258,16 @@ python xaudit.py --target examples/reentrancy_simple.sol</code></pre>
     <!-- Architecture Section -->
     <section class="architecture-section" id="architecture">
         <div class="container">
-            <h2 class="section-title">Defense-in-Depth Architecture</h2>
-            <p class="section-subtitle">6-layer security approach inspired by Saltzer & Schroeder (1975)</p>
+            <h2 class="section-title">MCP-Based Defense-in-Depth Architecture</h2>
+            <p class="section-subtitle">Anthropic's Model Context Protocol enables AI assistants to orchestrate 15 security tools</p>
 
             <div class="architecture-diagram">
                 <div class="arch-layer">
                     <div class="layer-title">Smart Contract</div>
                 </div>
                 <div class="arch-layer coordinator">
-                    <div class="layer-title">CoordinatorAgent</div>
-                    <div class="layer-subtitle">AI Orchestration via MCP Protocol</div>
+                    <div class="layer-title">CoordinatorAgent (MCP Server)</div>
+                    <div class="layer-subtitle">Exposes security tools via Model Context Protocol → Claude Desktop / API</div>
                 </div>
                 <div class="arch-layers-row">
                     <div class="arch-layer-card">
@@ -353,8 +359,8 @@ python xaudit.py --target examples/reentrancy_simple.sol</code></pre>
     <!-- Tools Integration -->
     <section class="tools-section" id="tools">
         <div class="container">
-            <h2 class="section-title">15 Security Tools Integrated</h2>
-            <p class="section-subtitle">Best-in-class open-source tools orchestrated through AI-powered MCP protocol</p>
+            <h2 class="section-title">15 Security Tools Exposed via MCP</h2>
+            <p class="section-subtitle">AI assistants like Claude can invoke these tools through the Model Context Protocol</p>
 
             <div class="tools-grid">
                 <div class="tool-card">
@@ -559,17 +565,71 @@ python xaudit.py --target examples/reentrancy_simple.sol</code></pre>
     <section class="quickstart-section" id="quickstart">
         <div class="container">
             <h2 class="section-title">Quick Start (5 Minutes)</h2>
+            <p class="section-subtitle">Choose your mode: MCP Server (for Claude Desktop) OR Standalone CLI</p>
 
             <div class="quickstart-tabs">
-                <button class="tab-btn active" data-tab="docker">🐳 Docker</button>
-                <button class="tab-btn" data-tab="pip">🐍 pip</button>
-                <button class="tab-btn" data-tab="source">📦 From Source</button>
+                <button class="tab-btn active" data-tab="mcp">🔌 MCP Server</button>
+                <button class="tab-btn" data-tab="cli">⚡ CLI Tool</button>
+                <button class="tab-btn" data-tab="docker">🐳 Docker</button>
             </div>
 
-            <div class="tab-content active" id="docker-tab">
+            <div class="tab-content active" id="mcp-tab">
                 <div class="code-block">
                     <div class="code-header">
-                        <span>Docker (Recommended)</span>
+                        <span>MCP Server (for Claude Desktop)</span>
+                        <button class="copy-btn" data-clipboard-target="#mcp-code">Copy</button>
+                    </div>
+                    <pre><code id="mcp-code"># 1. Clone and install
+git clone https://github.com/fboiero/MIESC.git
+cd MIESC
+pip install slither-analyzer mythril
+
+# 2. Start MCP server
+python src/mcp/server.py
+
+# 3. Configure Claude Desktop
+# Add to ~/Library/Application Support/Claude/claude_desktop_config.json:
+{
+  "mcpServers": {
+    "miesc": {
+      "command": "python",
+      "args": ["/path/to/MIESC/src/mcp/server.py"],
+      "env": {}
+    }
+  }
+}
+
+# 4. Restart Claude Desktop
+# Now Claude can analyze contracts via MCP!</code></pre>
+                </div>
+                <p class="feature-benefit">
+                    ✅ <strong>MCP Tools Exposed:</strong> audit_contract(), explain_vulnerability(), suggest_fix(), compare_tools()
+                </p>
+            </div>
+
+            <div class="tab-content" id="cli-tab">
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>CLI Tool (Standalone)</span>
+                        <button class="copy-btn" data-clipboard-target="#cli-code">Copy</button>
+                    </div>
+                    <pre><code id="cli-code"># 1. Clone and install
+git clone https://github.com/fboiero/MIESC.git
+cd MIESC
+pip install slither-analyzer mythril
+
+# 2. Run analysis
+python xaudit.py --target examples/reentrancy_simple.sol
+
+# 3. View results
+open outputs/reentrancy_simple_report.html</code></pre>
+                </div>
+            </div>
+
+            <div class="tab-content" id="docker-tab">
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>Docker</span>
                         <button class="copy-btn" data-clipboard-target="#docker-code">Copy</button>
                     </div>
                     <pre><code id="docker-code"># Pull and run
@@ -579,51 +639,6 @@ docker run --rm -v $(pwd)/contracts:/contracts miesc:latest \
 
 # Or use docker-compose
 docker-compose up miesc</code></pre>
-                </div>
-            </div>
-
-            <div class="tab-content" id="pip-tab">
-                <div class="code-block">
-                    <div class="code-header">
-                        <span>pip Installation</span>
-                        <button class="copy-btn" data-clipboard-target="#pip-code">Copy</button>
-                    </div>
-                    <pre><code id="pip-code"># Install core tools
-pip install slither-analyzer mythril manticore eth-wake
-
-# Clone MIESC
-git clone https://github.com/fboiero/xaudit.git
-cd xaudit
-
-# Verify installation
-python scripts/verify_installation.py
-
-# Run analysis
-python xaudit.py --target examples/reentrancy_simple.sol</code></pre>
-                </div>
-            </div>
-
-            <div class="tab-content" id="source-tab">
-                <div class="code-block">
-                    <div class="code-header">
-                        <span>From Source</span>
-                        <button class="copy-btn" data-clipboard-target="#source-code">Copy</button>
-                    </div>
-                    <pre><code id="source-code"># Clone repository
-git clone https://github.com/fboiero/xaudit.git
-cd xaudit
-
-# Install Python dependencies
-pip install -r requirements_core.txt
-
-# Install Rust tools (optional, for Aderyn)
-cargo install aderyn
-
-# Install Node.js tools (optional, for Solhint)
-npm install -g solhint
-
-# Run verification
-python scripts/verify_installation.py</code></pre>
                 </div>
             </div>
 
@@ -663,6 +678,119 @@ contract VulnerableBank {
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MCP Integration Section -->
+    <section class="mcp-section" id="mcp">
+        <div class="container">
+            <h2 class="section-title">What is MCP (Model Context Protocol)?</h2>
+            <p class="section-subtitle">Anthropic's open protocol for connecting AI assistants to external tools and data sources</p>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔌</div>
+                    <h3>MCP Protocol Overview</h3>
+                    <p><strong>Model Context Protocol (MCP)</strong> is an open standard by Anthropic that enables AI assistants like Claude to:</p>
+                    <ul>
+                        <li>Access external tools and data sources securely</li>
+                        <li>Maintain context across multi-step workflows</li>
+                        <li>Orchestrate complex operations (e.g., running 15 security tools)</li>
+                        <li>Provide structured responses (JSON schemas)</li>
+                    </ul>
+                    <p class="feature-benefit">Think of it as "REST API for AI assistants"</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>How MIESC Uses MCP</h3>
+                    <p>MIESC acts as an <strong>MCP server</strong> that exposes security analysis capabilities:</p>
+                    <ul>
+                        <li><code>audit_contract(path)</code> - Run full security analysis</li>
+                        <li><code>explain_vulnerability(id)</code> - Get AI explanation</li>
+                        <li><code>suggest_fix(id)</code> - Generate patch suggestions</li>
+                        <li><code>compare_tools()</code> - Benchmark tool performance</li>
+                    </ul>
+                    <p class="feature-benefit">Claude can invoke these tools conversationally</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚙️</div>
+                    <h3>Configure Claude Desktop</h3>
+                    <p>Add MIESC to your Claude Desktop configuration:</p>
+                    <div class="code-block">
+                        <pre><code># ~/Library/Application Support/Claude/claude_desktop_config.json
+{
+  "mcpServers": {
+    "miesc": {
+      "command": "python",
+      "args": ["/absolute/path/to/MIESC/src/mcp/server.py"],
+      "env": {
+        "OPENAI_API_KEY": "your-key-here"
+      }
+    }
+  }
+}</code></pre>
+                    </div>
+                    <p class="feature-benefit">Restart Claude Desktop to activate</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">💬</div>
+                    <h3>Example: AI-Assisted Audit</h3>
+                    <p><strong>You:</strong> "Analyze this contract for reentrancy vulnerabilities"</p>
+                    <p><strong>Claude:</strong> <em>(invokes audit_contract via MCP)</em></p>
+                    <p><strong>Claude:</strong> "Found 1 critical reentrancy issue in withdraw(). The external call on line 7 happens before state update on line 9..."</p>
+                    <p><strong>You:</strong> "Show me a fix"</p>
+                    <p><strong>Claude:</strong> <em>(invokes suggest_fix via MCP)</em></p>
+                    <p><strong>Claude:</strong> "Here's a patched version using Checks-Effects-Interactions pattern..."</p>
+                    <p class="feature-benefit">Natural language interface to 15 security tools</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>MCP vs. Traditional Frameworks</h3>
+                    <table class="benchmark-table">
+                        <tr>
+                            <th>Aspect</th>
+                            <th>Traditional Framework</th>
+                            <th>MIESC (MCP Server)</th>
+                        </tr>
+                        <tr>
+                            <td>Interface</td>
+                            <td>CLI commands only</td>
+                            <td>CLI + AI assistant</td>
+                        </tr>
+                        <tr>
+                            <td>Workflow</td>
+                            <td>Fixed pipeline</td>
+                            <td>Adaptive (AI-driven)</td>
+                        </tr>
+                        <tr>
+                            <td>Human-in-loop</td>
+                            <td>Manual review after</td>
+                            <td>Interactive during</td>
+                        </tr>
+                        <tr>
+                            <td>Learning curve</td>
+                            <td>Steep (15 tools)</td>
+                            <td>Gentle (natural language)</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎓</div>
+                    <h3>MCP Resources</h3>
+                    <ul>
+                        <li><a href="https://modelcontextprotocol.io/introduction" target="_blank">Official MCP Specification</a> (Anthropic)</li>
+                        <li><a href="https://github.com/anthropics/anthropic-mcp-spec" target="_blank">MCP GitHub Repository</a></li>
+                        <li><a href="https://docs.anthropic.com/claude/docs/mcp" target="_blank">Claude MCP Documentation</a></li>
+                        <li><a href="https://github.com/fboiero/MIESC/tree/main/src/mcp" target="_blank">MIESC MCP Implementation</a></li>
+                    </ul>
+                    <p class="feature-benefit">Learn more about the protocol powering MIESC</p>
                 </div>
             </div>
         </div>
@@ -780,7 +908,7 @@ contract VulnerableBank {
            Assessment Framework for Smart Contracts},
   year = {2025},
   publisher = {GitHub},
-  url = {https://github.com/fboiero/xaudit},
+  url = {https://github.com/fboiero/MIESC},
   version = {2.2.0}
 }</code></pre>
                     </div>
@@ -795,7 +923,7 @@ contract VulnerableBank {
         <div class="container">
             <h2 class="section-title">Documentation</h2>
             <div class="docs-grid">
-                <a href="https://github.com/fboiero/xaudit/blob/main/README.md" class="doc-card">
+                <a href="https://github.com/fboiero/MIESC/blob/main/README.md" class="doc-card">
                     <div class="doc-icon">📖</div>
                     <h3>Getting Started</h3>
                     <p>Installation, quick start, and basic usage</p>
@@ -803,24 +931,24 @@ contract VulnerableBank {
                 <a href="pages/architecture.html" class="doc-card">
                     <div class="doc-icon">🏗️</div>
                     <h3>Architecture</h3>
-                    <p>Deep dive into the 6-layer defense system</p>
+                    <p>Deep dive into the MCP-based 6-layer system</p>
                 </a>
-                <a href="https://github.com/fboiero/xaudit/blob/main/docs/DOCKER.md" class="doc-card">
+                <a href="https://github.com/fboiero/MIESC/blob/main/docs/DOCKER.md" class="doc-card">
                     <div class="doc-icon">🐳</div>
                     <h3>Docker Guide</h3>
                     <p>Container deployment and CI/CD integration</p>
                 </a>
                 <a href="pages/api.html" class="doc-card">
                     <div class="doc-icon">🔌</div>
-                    <h3>API Reference</h3>
-                    <p>Python API and integration examples</p>
+                    <h3>MCP API Reference</h3>
+                    <p>MCP tools and Python API integration</p>
                 </a>
-                <a href="https://github.com/fboiero/xaudit/blob/main/COMPLIANCE.md" class="doc-card">
+                <a href="https://github.com/fboiero/MIESC/blob/main/COMPLIANCE.md" class="doc-card">
                     <div class="doc-icon">📋</div>
                     <h3>Compliance</h3>
                     <p>12 standards: ISO, NIST, OWASP, EU MiCA/DORA</p>
                 </a>
-                <a href="https://github.com/fboiero/xaudit/blob/main/CONTRIBUTING.md" class="doc-card">
+                <a href="https://github.com/fboiero/MIESC/blob/main/CONTRIBUTING.md" class="doc-card">
                     <div class="doc-icon">🤝</div>
                     <h3>Contributing</h3>
                     <p>How to contribute tools, tests, and research</p>
@@ -835,16 +963,16 @@ contract VulnerableBank {
             <div class="footer-grid">
                 <div class="footer-section">
                     <h3>MIESC</h3>
-                    <p>Multi-Agent Integrated Security Assessment Framework for Smart Contracts</p>
+                    <p>MCP Server for AI-Assisted Smart Contract Security</p>
                     <p class="footer-version">Version 2.2.0</p>
                     <p class="footer-license">Licensed under GPL-3.0</p>
                 </div>
                 <div class="footer-section">
                     <h4>Resources</h4>
                     <ul>
-                        <li><a href="https://github.com/fboiero/xaudit">GitHub Repository</a></li>
-                        <li><a href="https://github.com/fboiero/xaudit/issues">Issue Tracker</a></li>
-                        <li><a href="https://github.com/fboiero/xaudit/discussions">Discussions</a></li>
+                        <li><a href="https://github.com/fboiero/MIESC">GitHub Repository</a></li>
+                        <li><a href="https://github.com/fboiero/MIESC/issues">Issue Tracker</a></li>
+                        <li><a href="https://github.com/fboiero/MIESC/discussions">Discussions</a></li>
                         <li><a href="pages/changelog.html">Changelog</a></li>
                     </ul>
                 </div>
@@ -852,8 +980,8 @@ contract VulnerableBank {
                     <h4>Documentation</h4>
                     <ul>
                         <li><a href="#quickstart">Quick Start</a></li>
-                        <li><a href="https://github.com/fboiero/xaudit/tree/main/docs">Docs</a></li>
-                        <li><a href="https://github.com/fboiero/xaudit/tree/main/examples">Examples</a></li>
+                        <li><a href="https://github.com/fboiero/MIESC/tree/main/docs">Docs</a></li>
+                        <li><a href="https://github.com/fboiero/MIESC/tree/main/examples">Examples</a></li>
                         <li><a href="pages/faq.html">FAQ</a></li>
                     </ul>
                 </div>
