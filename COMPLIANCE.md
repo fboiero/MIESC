@@ -35,7 +35,7 @@ This document provides detailed mappings between MIESC framework capabilities an
 
 | Control | Title | MIESC Implementation | Evidence |
 |---------|-------|----------------------|----------|
-| **A.8.8** | Management of Technical Vulnerabilities | Automated vulnerability detection across 13 tools | `outputs/findings.json` |
+| **A.8.8** | Management of Technical Vulnerabilities | Automated vulnerability detection across 15 tools | `outputs/findings.json` |
 | **A.8.15** | Logging | Complete MCP audit trail of all agent activities | `outputs/mcp_audit_trail.json` |
 | **A.8.16** | Monitoring Activities | Real-time monitoring of analysis execution | `outputs/execution_log.json` |
 | **A.8.30** | Security Testing | Multi-layer security testing (static, dynamic, formal) | Full pipeline execution |
@@ -48,7 +48,7 @@ This document provides detailed mappings between MIESC framework capabilities an
 **Requirement**: Information about technical vulnerabilities of information systems in use shall be obtained, the organization's exposure to such vulnerabilities shall be evaluated and appropriate measures shall be taken.
 
 **MIESC Implementation**:
-- **Detection**: 13 specialized tools across 6 analysis layers
+- **Detection**: 15 specialized tools across 6 analysis layers
 - **Classification**: SWC, CWE, OWASP mappings for all findings
 - **Prioritization**: AI-powered severity assessment with confidence scores
 - **Reporting**: Unified JSON output with actionable remediation guidance

@@ -11,7 +11,7 @@
 
 **MIESC** is an open-source, automated pre-audit framework for Ethereum Virtual Machine (EVM) smart contracts that integrates multiple static, dynamic, symbolic, and formal verification tools through a unified multi-agent architecture based on the Model Context Protocol (MCP).
 
-> **Key Innovation**: First defense-in-depth framework that combines 13 specialized security tools with AI-assisted triage, achieving ~90% reduction in manual audit effort while maintaining high precision (89.47%) and recall (86.2%).
+> **Key Innovation**: Novel defense-in-depth framework that combines 15 specialized security tools with AI-assisted triage, achieving ~90% reduction in manual audit effort while maintaining high precision (89.47%) and recall (86.2%).
 
 [📖 Full Documentation](./docs/) | [🚀 Quick Start](#quick-start) | [🎓 Research Paper](./thesis/) | [🤝 Contributing](./CONTRIBUTING.md) | [📚 References](./REFERENCES.md)
 
@@ -53,7 +53,7 @@ Smart contracts securing billions of dollars in value face critical security cha
 
 MIESC addresses these challenges through:
 
-✅ **Multi-Tool Integration**: Combines 13 specialized tools across 6 security layers
+✅ **Multi-Tool Integration**: Combines 15 specialized tools across 6 security layers
 ✅ **Automated Triage**: AI-powered false positive reduction (89.47% precision)
 ✅ **Standardized Output**: Unified JSON schema with SWC/OWASP/CWE mappings
 ✅ **Compliance Automation**: Built-in checks for ISO 27001, NIST SSDF, OWASP, EU MiCA/DORA
@@ -630,10 +630,10 @@ Full thesis documentation: [thesis/README.md](./thesis/README.md)
 
 ### Research Contributions
 
-1. **Novel Architecture**: First multi-agent framework using MCP for smart contract security
-2. **Empirical Validation**: Largest-scale tool comparison study (5,127 contracts)
+1. **Novel Architecture**: Multi-agent framework using MCP for smart contract security
+2. **Empirical Validation**: Large-scale tool comparison study (5,127 contracts)
 3. **AI Governance**: Practical implementation of ISO 42001 for code analysis
-4. **Compliance Automation**: First framework mapping to 12 standards simultaneously
+4. **Compliance Automation**: Framework mapping to 12 standards simultaneously
 5. **Open Datasets**: Curated vulnerability dataset (5K+ labeled contracts)
 
 ### Reproducibility
@@ -680,7 +680,7 @@ All experimental data will be published upon thesis defense:
 ### ✅ Completed (v2.2)
 
 - [x] Core multi-agent architecture (MCP-based)
-- [x] Integration of 13 security tools
+- [x] Integration of 15 security tools
 - [x] AI-assisted triage (GPT-4, Llama 2/3)
 - [x] PolicyAgent v2.2 (12 compliance standards)
 - [x] Unified JSON output schema
@@ -754,7 +754,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
 - [ ] Echidna property templates for DeFi protocols
 - [ ] GPT-4 fine-tuning dataset (vulnerability explanations)
 - [ ] Rust implementation of critical path (performance)
-- [ ] Integration tests for all 13 tools
+- [ ] Integration tests for all 15 tools
 
 **Research Opportunities**:
 - [ ] Cross-chain vulnerability transferability study

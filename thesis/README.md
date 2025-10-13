@@ -95,7 +95,7 @@ Complete thesis document in Spanish (original language).
 
 This thesis makes the following key contributions to smart contract security research:
 
-1. **First MCP-based Multi-Agent Architecture** for blockchain security analysis [Anthropic, 2024; Wooldridge & Jennings, 1995]
+1. **Novel MCP-based Multi-Agent Architecture** for blockchain security analysis [Anthropic, 2024; Wooldridge & Jennings, 1995]
 2. **Empirical Validation** with Cohen's Kappa 0.847 demonstrating strong expert-AI agreement [Durieux et al., 2020]
 3. **Simultaneous Alignment with 12 International Standards**:
    - ISO/IEC 27001:2022 (Information Security Management)
@@ -204,7 +204,7 @@ MIESC/
 ## 🎯 Research Questions Addressed
 
 **RQ1**: Can a multi-agent architecture improve vulnerability detection over individual tools?
-- **Answer**: Yes. 34% improvement in detection rate with 13 integrated tools across 6 analysis layers.
+- **Answer**: Yes. 34% improvement in detection rate with 15 integrated tools across 6 analysis layers.
 
 **RQ2**: Can AI-powered triage reduce false positive rates?
 - **Answer**: Yes. 43% reduction in false positives through GPT-4/LLaMA classification.
