@@ -28,20 +28,20 @@ class AderynAgent(BaseAgent):
 
     def __init__(self):
         super().__init__(
-            name="AderynAgent",
+            agent_name="AderynAgent",
             capabilities=[
                 "ultra_fast_static_analysis",
                 "ast_traversal",
                 "vulnerability_detection",
                 "markdown_reporting",
                 "87_detectors"
-            ]
+            ],
+            agent_type="static"
         )
         self.aderyn_path = self._find_aderyn()
-        self.context_bus = get_context_bus()
 
         # Subscribe to relevant channels
-        self.context_bus.subscribe("audit_request", self)
+        self.bus.subscribe("audit_request", self.handle_message)
 
     def _find_aderyn(self) -> Optional[str]:
         """Find Aderyn binary in system"""
@@ -70,6 +70,10 @@ class AderynAgent(BaseAgent):
     def is_available(self) -> bool:
         """Check if Aderyn is available"""
         return self.aderyn_path is not None
+
+    def get_context_types(self) -> List[str]:
+        """Return list of context types this agent publishes"""
+        return ["static_findings", "aderyn_results"]
 
     def analyze(self, contract_path: str, output_dir: Optional[str] = None) -> Dict:
         """
@@ -208,17 +212,16 @@ class AderynAgent(BaseAgent):
     def _publish_findings(self, contract: str, findings: Dict):
         """Publish findings to MCP context bus"""
         try:
-            message = MCPMessage(
-                agent=self.name,
+            self.contract_path = contract
+            self.publish_findings(
                 context_type="static_findings",
-                contract=contract,
-                data={
+                findings={
                     "tool": "Aderyn",
                     "findings": findings,
                     "timestamp": str(Path(contract).stat().st_mtime)
-                }
+                },
+                metadata={"tool_version": self._get_version()}
             )
-            self.context_bus.publish(message)
         except Exception as e:
             # Non-critical, just log
             print(f"Warning: Failed to publish to MCP bus: {e}")
@@ -269,10 +272,9 @@ class AderynAgent(BaseAgent):
             if contract:
                 result = self.quick_scan(contract)
                 # Publish result
-                response = MCPMessage(
-                    agent=self.name,
+                self.contract_path = contract
+                self.publish_findings(
                     context_type="audit_response",
-                    contract=contract,
-                    data=result
+                    findings=result,
+                    metadata={"request_source": message.agent}
                 )
-                self.context_bus.publish(response)

@@ -1,16 +1,16 @@
 {
-  "timestamp": "2025-10-12T10:25:46.611457",
+  "timestamp": "2025-10-13T04:14:27.583901",
   "mode": "critical",
   "summary": {
-    "passed": 19,
+    "passed": 21,
     "failed": 0,
     "skipped": 0,
-    "duration": 1.8850460052490234
+    "duration": 3.664689064025879
   },
   "passed": [
     {
       "name": "Import all critical modules",
-      "duration": 1.0667800903320312,
+      "duration": 0.36136507987976074,
       "details": ""
     },
     {
@@ -20,87 +20,97 @@
     },
     {
       "name": "Example contracts accessible",
-      "duration": 0.00031495094299316406,
+      "duration": 0.0001678466796875,
       "details": "Found 13 contracts"
     },
     {
       "name": "Demo scripts exist",
-      "duration": 0.00028896331787109375,
+      "duration": 0.00017690658569335938,
       "details": "Found 4 demo scripts"
     },
     {
       "name": "StaticAgent initialization",
-      "duration": 3.504753112792969e-05,
+      "duration": 3.1948089599609375e-05,
       "details": ""
     },
     {
       "name": "DynamicAgent initialization",
-      "duration": 2.193450927734375e-05,
+      "duration": 1.9311904907226562e-05,
       "details": ""
     },
     {
       "name": "SymbolicAgent initialization",
-      "duration": 1.5020370483398438e-05,
+      "duration": 1.9311904907226562e-05,
       "details": ""
     },
     {
       "name": "FormalAgent initialization",
-      "duration": 1.3113021850585938e-05,
+      "duration": 1.5020370483398438e-05,
       "details": ""
     },
     {
       "name": "AIAgent initialization",
-      "duration": 9.322166442871094e-05,
+      "duration": 9.179115295410156e-05,
       "details": ""
     },
     {
       "name": "PolicyAgent initialization",
-      "duration": 0.00010013580322265625,
+      "duration": 0.00010395050048828125,
       "details": ""
     },
     {
       "name": "CoordinatorAgent initialization",
-      "duration": 0.00011515617370605469,
+      "duration": 0.0001239776611328125,
       "details": ""
     },
     {
       "name": "GPTScanAgent initialization",
-      "duration": 0.0026769638061523438,
+      "duration": 0.0023598670959472656,
       "details": ""
     },
     {
       "name": "LLMSmartAuditAgent initialization",
-      "duration": 0.00034880638122558594,
+      "duration": 0.0004470348358154297,
       "details": ""
     },
     {
       "name": "SmartLLMAgent initialization",
-      "duration": 0.0006120204925537109,
+      "duration": 0.00063323974609375,
       "details": ""
     },
     {
       "name": "Slither availability",
-      "duration": 0.25926780700683594,
-      "details": "Slither 0.10.3"
+      "duration": 0.29734134674072266,
+      "details": "Slither 0.11.3"
     },
     {
       "name": "Manticore availability",
-      "duration": 0.3229389190673828,
+      "duration": 2.693646192550659,
       "details": "Manticore 0.3.7"
     },
     {
+      "name": "Aderyn availability",
+      "duration": 0.013758420944213867,
+      "details": "Aderyn aderyn 0.6.4"
+    },
+    {
+      "name": "AderynAgent initialization",
+      "duration": 0.0072901248931884766,
+      "details": "Aderyn available: True"
+    },
+    {
       "name": "Echidna availability",
-      "duration": 0.2254483699798584,
+      "duration": 0.2839531898498535,
       "details": "Echidna Echidna 2.2.4"
     },
     {
       "name": "MCP Server tools schema",
-      "duration": 0.005218029022216797,
+      "duration": 0.001699209213256836,
       "details": "Found 6 tools"
     },
     {
       "name": "Static analysis on contract",
-      "duration": 3.2901763916015625e-05,
+      "duration": 5.602836608886719e-05,
       "details": "Static agent ready"
     }
   ],

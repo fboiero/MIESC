@@ -327,6 +327,47 @@ Starting tests...
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    def test_aderyn_availability(self) -> bool:
+        """Test if Aderyn is installed and accessible"""
+        import subprocess
+        import os
+        try:
+            # Check common locations
+            aderyn_paths = [
+                os.path.expanduser("~/.cargo/bin/aderyn"),
+                "/usr/local/bin/aderyn",
+                "aderyn"
+            ]
+
+            aderyn_path = None
+            for path in aderyn_paths:
+                try:
+                    result = subprocess.run(
+                        [path, "--version"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    if result.returncode == 0:
+                        aderyn_path = path
+                        version = result.stdout.strip()
+                        return {"success": True, "details": f"Aderyn {version}"}
+                except (FileNotFoundError, subprocess.TimeoutExpired):
+                    continue
+
+            return {"success": False, "error": "Aderyn not installed"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def test_aderyn_agent_init(self) -> bool:
+        """Test AderynAgent initialization"""
+        try:
+            from src.agents.aderyn_agent import AderynAgent
+            agent = AderynAgent()
+            return {"success": True, "details": f"Aderyn available: {agent.is_available()}"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     def test_echidna_availability(self) -> bool:
         """Test if Echidna is installed and accessible"""
         import subprocess
@@ -434,6 +475,8 @@ Starting tests...
 
         self.run_test("Slither availability", self.test_slither_availability, critical=True)
         self.run_test("Manticore availability", self.test_manticore_availability, critical=True)
+        self.run_test("Aderyn availability", self.test_aderyn_availability, critical=True)
+        self.run_test("AderynAgent initialization", self.test_aderyn_agent_init, critical=True)
         self.run_test("Echidna availability", self.test_echidna_availability, critical=False)
 
         print("\n" + "="*64)
