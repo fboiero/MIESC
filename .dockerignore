@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation (not needed in container)
+thesis/es/
+docs/*.pdf
+
+# Outputs (generated at runtime)
+outputs/*
+output/*
+*.log
+
+# Environment files
+.env
+.env.local
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large datasets (download at runtime if needed)
+data/datasets/
+data/contracts/
+
+# Node modules (installed via npm in Dockerfile)
+node_modules/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Compiled Solidity
+artifacts/
+cache/

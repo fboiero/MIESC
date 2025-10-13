@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  miesc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: miesc:latest
+    container_name: miesc-framework
+    volumes:
+      # Mount contracts directory for analysis
+      - ./examples:/app/examples:ro
+      # Mount outputs directory to persist results
+      - ./outputs:/app/outputs
+      # Mount config if needed
+      - ./config:/app/config:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Add OpenAI API key if needed for AI triage
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    command: python3 scripts/verify_installation.py
+    restart: no
+
+  # Development container with shell access
+  miesc-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: miesc:latest
+    container_name: miesc-dev
+    volumes:
+      # Mount entire project for development
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    restart: no
+
+  # Testing container
+  miesc-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: miesc:latest
+    container_name: miesc-test
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./examples:/app/examples:ro
+    command: python3 scripts/run_regression_tests.py
+    restart: no
+
+networks:
+  default:
+    name: miesc-network
+
+# Usage:
+# docker-compose up miesc              # Run verification
+# docker-compose up miesc-test         # Run tests
+# docker-compose run miesc-dev         # Development shell
+# docker-compose run miesc python3 xaudit.py --target examples/reentrancy.sol
