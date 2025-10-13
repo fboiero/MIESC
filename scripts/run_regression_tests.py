@@ -368,6 +368,34 @@ Starting tests...
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    def test_halmos_availability(self) -> bool:
+        """Test if Halmos is installed and accessible"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["halmos", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                version = result.stdout.strip()
+                return {"success": True, "details": f"Halmos {version}"}
+            return {"success": False, "error": "Halmos not working"}
+        except FileNotFoundError:
+            return {"success": False, "error": "Halmos not installed"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def test_halmos_agent_init(self) -> bool:
+        """Test HalmosAgent initialization"""
+        try:
+            from src.agents.halmos_agent import HalmosAgent
+            agent = HalmosAgent()
+            return {"success": True, "details": f"Halmos available: {agent.is_available()}"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     def test_echidna_availability(self) -> bool:
         """Test if Echidna is installed and accessible"""
         import subprocess
@@ -477,6 +505,8 @@ Starting tests...
         self.run_test("Manticore availability", self.test_manticore_availability, critical=True)
         self.run_test("Aderyn availability", self.test_aderyn_availability, critical=True)
         self.run_test("AderynAgent initialization", self.test_aderyn_agent_init, critical=True)
+        self.run_test("Halmos availability", self.test_halmos_availability, critical=True)
+        self.run_test("HalmosAgent initialization", self.test_halmos_agent_init, critical=True)
         self.run_test("Echidna availability", self.test_echidna_availability, critical=False)
 
         print("\n" + "="*64)

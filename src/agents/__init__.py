@@ -8,6 +8,7 @@ from src.agents.static_agent import StaticAgent
 from src.agents.aderyn_agent import AderynAgent
 from src.agents.dynamic_agent import DynamicAgent
 from src.agents.symbolic_agent import SymbolicAgent
+from src.agents.halmos_agent import HalmosAgent
 from src.agents.formal_agent import FormalAgent
 from src.agents.ai_agent import AIAgent
 from src.agents.policy_agent import PolicyAgent
@@ -19,6 +20,7 @@ __all__ = [
     "AderynAgent",
     "DynamicAgent",
     "SymbolicAgent",
+    "HalmosAgent",
     "FormalAgent",
     "AIAgent",
     "PolicyAgent",
