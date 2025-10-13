@@ -453,6 +453,38 @@ Starting tests...
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    def test_smtchecker_availability(self) -> bool:
+        """Test if Solidity compiler (solc) is available for SMTChecker"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["solc", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                # Extract version
+                for line in result.stdout.split('\n'):
+                    if 'Version:' in line:
+                        version = line.split('Version:')[1].strip()
+                        return {"success": True, "details": f"Solc {version}"}
+                return {"success": True, "details": "Solc available"}
+            return {"success": False, "error": "Solc not working"}
+        except FileNotFoundError:
+            return {"success": False, "error": "Solc not installed"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def test_smtchecker_agent_init(self) -> bool:
+        """Test SMTCheckerAgent initialization"""
+        try:
+            from src.agents.smtchecker_agent import SMTCheckerAgent
+            agent = SMTCheckerAgent()
+            return {"success": True, "details": f"SMTChecker available: {agent.is_available()}"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     def test_echidna_availability(self) -> bool:
         """Test if Echidna is installed and accessible"""
         import subprocess
@@ -568,6 +600,8 @@ Starting tests...
         self.run_test("MedusaAgent initialization", self.test_medusa_agent_init, critical=True)
         self.run_test("Wake availability", self.test_wake_availability, critical=True)
         self.run_test("WakeAgent initialization", self.test_wake_agent_init, critical=True)
+        self.run_test("SMTChecker (solc) availability", self.test_smtchecker_availability, critical=True)
+        self.run_test("SMTCheckerAgent initialization", self.test_smtchecker_agent_init, critical=True)
         self.run_test("Echidna availability", self.test_echidna_availability, critical=False)
 
         print("\n" + "="*64)

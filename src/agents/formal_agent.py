@@ -1,8 +1,14 @@
 """
 Formal Verification Agent for MCP Architecture
 
-Wraps Layer 5 tools: Certora Prover, Z3
+Wraps Layer 5 tools: Certora Prover (Open Source), Z3
 Publishes formal verification results and correctness proofs to Context Bus
+
+Certora Prover Update (2025):
+- Certora went open source in 2025!
+- Install: npm install -g @certora/prover
+- GitHub: https://github.com/Certora/CertoraProver
+- No license required, community-driven
 """
 import json
 import logging
@@ -156,8 +162,12 @@ class FormalAgent(BaseAgent):
             logger.error(f"Certora timeout after {timeout} seconds")
             return {"error": "timeout", "violations": []}
         except FileNotFoundError:
-            logger.warning("Certora not installed or license required")
-            return {"error": "not_installed", "violations": []}
+            logger.warning("Certora not installed. Install with: npm install -g @certora/prover")
+            return {
+                "error": "not_installed",
+                "violations": [],
+                "suggestion": "Install Certora open source: npm install -g @certora/prover"
+            }
         except Exception as e:
             logger.error(f"Certora execution error: {e}")
             return {"error": str(e), "violations": []}

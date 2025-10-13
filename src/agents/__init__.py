@@ -12,6 +12,7 @@ from src.agents.halmos_agent import HalmosAgent
 from src.agents.medusa_agent import MedusaAgent
 from src.agents.wake_agent import WakeAgent
 from src.agents.formal_agent import FormalAgent
+from src.agents.smtchecker_agent import SMTCheckerAgent
 from src.agents.ai_agent import AIAgent
 from src.agents.policy_agent import PolicyAgent
 from src.agents.coordinator_agent import CoordinatorAgent
@@ -26,6 +27,7 @@ __all__ = [
     "MedusaAgent",
     "WakeAgent",
     "FormalAgent",
+    "SMTCheckerAgent",
     "AIAgent",
     "PolicyAgent",
     "CoordinatorAgent"
