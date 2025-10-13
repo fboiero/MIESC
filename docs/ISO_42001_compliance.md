@@ -831,7 +831,7 @@ Proteger privacidad y datos personales.
 
 | Trimestre | Actividad | Responsable |
 |-----------|-----------|-------------|
-| **Q1 2025** | Auditoría interna completa | Fernando Boiero |
+| **Q4 2025** | Auditoría interna completa | Fernando Boiero |
 | **Q2 2025** | Certificación ISO 42001 por tercero | Organismo acreditado |
 | **Q3 2025** | Actualización a GPT-4 si benchmarks mejoran | Equipo de desarrollo |
 | **Q4 2025** | Revisión anual del AIMS | Director Tesis |

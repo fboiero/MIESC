@@ -553,7 +553,7 @@ This repository supports the thesis:
 - **Author**: Fernando Boiero
 - **Institution**: Universidad de la Defensa Nacional (UNDEF) - Centro Regional Universitario Córdoba IUA
 - **Program**: Master's Degree in Cyberdefense
-- **Defense**: Q1 2025 (expected)
+- **Defense**: Q4 2025 (expected)
 - **Supervisors**: [TBD]
 
 Full thesis materials: [thesis/README.md](./thesis/README.md)
@@ -646,7 +646,7 @@ If you use MIESC in your research, please cite:
 - [ ] Video tutorials (YouTube channel)
 - [ ] Community Discord server
 
-### 🔮 v3.0 (Q1 2025)
+### 🔮 v3.0 (Q2 2025)
 
 - [ ] VSCode extension (real-time analysis)
 - [ ] GitHub App (automated PR comments)
@@ -654,7 +654,7 @@ If you use MIESC in your research, please cite:
 - [ ] REST API + WebSocket streaming
 - [ ] Web UI (no installation required)
 
-### 🌐 v3.5 (Q2 2025) - Multi-Chain Support
+### 🌐 v3.5 (Q3 2025) - Multi-Chain Support
 
 - [ ] Solana (Anchor framework)
 - [ ] Cardano (Plutus)
@@ -662,14 +662,14 @@ If you use MIESC in your research, please cite:
 - [ ] Move (Aptos/Sui)
 - [ ] Rust smart contracts (NEAR, Polkadot)
 
-### 🤖 v4.0 (Q3 2025) - Advanced AI Features
+### 🤖 v4.0 (Q4 2025) - Advanced AI Features
 
 - [ ] Automated exploit generation
 - [ ] AI-powered patch suggestions
 - [ ] Gas optimization recommendations
 - [ ] Multi-contract protocol analysis
 
-### 🏆 v5.0 (Q4 2025) - Certification & Recognition
+### 🏆 v5.0 (Q1 2026) - Certification & Recognition
 
 - [ ] ISO 27001 external audit
 - [ ] ISO 42001 certification
