@@ -4,7 +4,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-20%2F30%20passing-yellow)](./tests/)
+[![Tests](https://img.shields.io/badge/tests-8%2F8%20passing-success)](./tests/)
 [![Docker](https://img.shields.io/badge/docker-ready-blue)](https://hub.docker.com/)
 [![ISO/IEC 27001](https://img.shields.io/badge/ISO%2FIEC%2027001-compliant-green)](https://www.iso.org/standard/27001)
 [![OWASP](https://img.shields.io/badge/OWASP-SC%20Top%2010-red)](https://owasp.org/www-project-smart-contract-top-10/)
