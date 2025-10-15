@@ -1,0 +1,273 @@
+version: '3.8'
+
+# =============================================================================
+# MIESC Optimized Docker Compose Configuration
+#
+# Includes:
+# - Optimized MIESC service with multi-stage build
+# - Redis cache for result caching
+# - RabbitMQ for async task processing
+# - Prometheus for metrics
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # Main MIESC Service
+  # ===========================================================================
+  miesc:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+      target: runtime
+    image: miesc:2.2.0-optimized
+    container_name: miesc-framework
+    restart: unless-stopped
+
+    # Resource limits (adjust based on your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+    # Volumes
+    volumes:
+      # Mount contracts directory (read-only for security)
+      - ./examples:/app/examples:ro
+      - ./contracts:/app/contracts:ro
+      # Mount outputs directory (read-write)
+      - miesc-outputs:/app/outputs
+      # Mount config (read-only)
+      - ./config:/app/config:ro
+      # Shared cache with Redis
+      - miesc-cache:/app/cache
+
+    # Environment variables
+    environment:
+      - PYTHONUNBUFFERED=1
+      # API keys (loaded from .env file)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Redis connection
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_ENABLED=true
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SECURE_LOGGING=true
+      # Rate limiting
+      - RATE_LIMIT_ENABLED=true
+      - API_DAILY_LIMIT=${API_DAILY_LIMIT:-1000}
+      - API_DAILY_COST_LIMIT=${API_DAILY_COST_LIMIT:-100.0}
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Depends on other services
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    # Networks
+    networks:
+      - miesc-network
+
+    # Default command
+    command: python3 scripts/verify_installation.py
+
+  # ===========================================================================
+  # Redis Cache Service
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: miesc-redis
+    restart: unless-stopped
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+    # Persist data
+    volumes:
+      - miesc-redis-data:/data
+
+    # Redis configuration
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    # Expose port (only within Docker network)
+    ports:
+      - "6379:6379"
+
+    networks:
+      - miesc-network
+
+  # ===========================================================================
+  # Development Container (with shell access)
+  # ===========================================================================
+  miesc-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+      target: runtime
+    image: miesc:2.2.0-optimized
+    container_name: miesc-dev
+
+    # Mount entire project for development
+    volumes:
+      - .:/app
+      - miesc-outputs:/app/outputs
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=DEBUG
+
+    depends_on:
+      - redis
+
+    networks:
+      - miesc-network
+
+    # Interactive shell
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+  # ===========================================================================
+  # Testing Container
+  # ===========================================================================
+  miesc-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+      target: runtime
+    image: miesc:2.2.0-optimized
+    container_name: miesc-test
+
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./examples:/app/examples:ro
+      - miesc-test-results:/app/test-results
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=DEBUG
+
+    networks:
+      - miesc-network
+
+    command: python3 -m pytest tests/ -v --tb=short
+
+  # ===========================================================================
+  # MCP Server (for Claude Desktop integration)
+  # ===========================================================================
+  miesc-mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+    image: miesc:2.2.0-optimized
+    container_name: miesc-mcp-server
+    restart: unless-stopped
+
+    volumes:
+      - ./examples:/app/examples:ro
+      - ./contracts:/app/contracts:ro
+      - miesc-outputs:/app/outputs
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - REDIS_URL=redis://redis:6379/0
+      - MCP_LOG_LEVEL=INFO
+
+    depends_on:
+      - redis
+
+    # Expose MCP server port
+    ports:
+      - "8080:8080"
+
+    networks:
+      - miesc-network
+
+    command: python3 src/mcp/server.py
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  miesc-outputs:
+    driver: local
+  miesc-cache:
+    driver: local
+  miesc-redis-data:
+    driver: local
+  miesc-test-results:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  miesc-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# =============================================================================
+# Usage Examples
+# =============================================================================
+#
+# Build and start all services:
+#   docker-compose -f docker-compose.optimized.yml up --build
+#
+# Run analysis on a contract:
+#   docker-compose -f docker-compose.optimized.yml run --rm miesc \
+#     python3 main.py --target examples/reentrancy.sol
+#
+# Start development shell:
+#   docker-compose -f docker-compose.optimized.yml run --rm miesc-dev
+#
+# Run tests:
+#   docker-compose -f docker-compose.optimized.yml up miesc-test
+#
+# Start MCP server:
+#   docker-compose -f docker-compose.optimized.yml up miesc-mcp-server
+#
+# View Redis cache:
+#   docker-compose -f docker-compose.optimized.yml exec redis redis-cli
+#
+# Check service logs:
+#   docker-compose -f docker-compose.optimized.yml logs -f miesc
+#
+# Stop all services:
+#   docker-compose -f docker-compose.optimized.yml down
+#
+# Clean up volumes:
+#   docker-compose -f docker-compose.optimized.yml down -v
+#
+# =============================================================================

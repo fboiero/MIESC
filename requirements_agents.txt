@@ -1,0 +1,20 @@
+# Additional Agent Dependencies for MIESC
+
+# Ollama (Local LLM) - No Python package needed, just install Ollama CLI
+# Installation: curl https://ollama.ai/install.sh | sh
+
+# CrewAI Framework
+crewai>=0.22.0
+crewai-tools>=0.2.6
+
+# LangChain for LLM integration
+langchain>=0.1.0
+langchain-community>=0.0.20
+langchain-openai>=0.0.5
+
+# Console UI enhancements
+rich>=13.0.0     # Rich console output with progress bars and tables
+
+# Additional tools
+pydantic>=2.0.0  # For data validation
+pyyaml>=6.0      # For config files

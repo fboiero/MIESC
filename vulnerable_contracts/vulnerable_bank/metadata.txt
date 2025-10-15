@@ -1,0 +1,6 @@
+Contract: Vulnerable Bank
+Description: Multiple vulnerabilities in bank contract
+Vulnerability: SWC-101 / CWE-682
+Source: MIESC Examples
+File: vulnerable_bank.sol
+Original: vulnerable_bank.sol
