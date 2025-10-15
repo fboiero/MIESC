@@ -203,7 +203,7 @@
         </div>
 
         <!-- Form -->
-        <form id="demoForm" class="form-section">
+        <form id="demoForm" class="form-section" action="https://formspree.io/f/mrbyrkye" method="POST">
             <!-- Personal Information -->
             <h2 style="margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 10px;">
                 📋 Your Information
@@ -474,23 +474,38 @@ Submitted: ${new Date().toISOString()}
                 encodeURIComponent('Demo Request from ' + data.name) +
                 '&body=' + encodeURIComponent(emailBody);
 
-            // Option 1: Open email client (fallback)
-            // window.location.href = mailtoLink;
-
-            // Option 2: In production, send to backend API
-            /*
-            fetch('/api/demo-request', {
+            // Send to FormSpree
+            fetch('https://formspree.io/f/mrbyrkye', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
-            .then(result => {
-                // Show success message
-                document.getElementById('demoForm').style.display = 'none';
-                document.getElementById('successMessage').style.display = 'block';
+            .then(response => {
+                if (response.ok) {
+                    // Show success message
+                    document.getElementById('demoForm').style.display = 'none';
+                    document.getElementById('successMessage').style.display = 'block';
+
+                    // Scroll to top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                    // Store in localStorage as backup
+                    try {
+                        const requests = JSON.parse(localStorage.getItem('demoRequests') || '[]');
+                        requests.push({
+                            ...data,
+                            timestamp: new Date().toISOString()
+                        });
+                        localStorage.setItem('demoRequests', JSON.stringify(requests));
+                    } catch (e) {
+                        console.error('Could not save to localStorage:', e);
+                    }
+                } else {
+                    throw new Error('Form submission failed');
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -498,33 +513,6 @@ Submitted: ${new Date().toISOString()}
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Request Demo';
             });
-            */
-
-            // For GitHub Pages (static site), simulate success after short delay
-            setTimeout(() => {
-                // Hide form, show success message
-                document.getElementById('demoForm').style.display = 'none';
-                document.getElementById('successMessage').style.display = 'block';
-
-                // Scroll to top
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-
-                // Store in localStorage as backup
-                try {
-                    const requests = JSON.parse(localStorage.getItem('demoRequests') || '[]');
-                    requests.push({
-                        ...data,
-                        timestamp: new Date().toISOString()
-                    });
-                    localStorage.setItem('demoRequests', JSON.stringify(requests));
-                } catch (e) {
-                    console.error('Could not save to localStorage:', e);
-                }
-
-                // Send email using mailto (user's email client)
-                // Opens the user's email client with pre-filled data
-                window.open(mailtoLink);
-            }, 1500);
         });
 
         // Form validation helpers
