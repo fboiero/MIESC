@@ -34,6 +34,7 @@
                 <li><a href="#architecture">Architecture</a></li>
                 <li><a href="#mcp">MCP Integration</a></li>
                 <li><a href="#tools">Tools</a></li>
+                <li><a href="#roadmap">Roadmap</a></li>
                 <li><a href="#metrics">Metrics</a></li>
                 <li><a href="#docs">Docs</a></li>
                 <li><a href="#research">Research</a></li>
@@ -58,7 +59,8 @@
                 </h1>
                 <p class="hero-subtitle">
                     AI-powered security analysis for <strong>Solidity, Vyper, Rust & Cairo</strong> smart contracts.<br>
-                    Scan in <strong>5 minutes</strong>, not 6 weeks. Find real issues, not 147 false alarms. <strong>Save $10K-$250K in audit costs</strong>.
+                    Scan in <strong>5 minutes</strong>, not 6 weeks. Find real issues, not 147 false alarms. <strong>Save $10K-$250K in audit costs</strong>.<br>
+                    <span style="color: #10b981; font-weight: 600;">🚀 Coming Q4 2024: Stellar Soroban (Rust) Support</span>
                 </p>
 
                 <!-- Badges -->
@@ -82,6 +84,7 @@
                     <span class="chain-badge">⬛ zkSync</span>
                     <span class="chain-badge">🟧 Avalanche</span>
                     <span class="chain-badge">⚪ Starknet</span>
+                    <span class="chain-badge" style="border: 2px solid #10b981; background: rgba(16, 185, 129, 0.1);">⭐ Stellar (Soon)</span>
                 </div>
 
                 <div class="hero-buttons">
@@ -578,6 +581,200 @@ python src/mcp/server.py</code></pre>
                         <span>GPL-3.0</span>
                     </div>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roadmap Section -->
+    <section class="roadmap-section" id="roadmap">
+        <div class="container">
+            <h2 class="section-title">Multi-Chain Roadmap: Beyond Ethereum</h2>
+            <p class="section-subtitle">Expanding from EVM to Stellar Soroban (Rust), Solana, and cross-chain security</p>
+
+            <div class="roadmap-timeline">
+                <div class="timeline-item current">
+                    <div class="timeline-marker">✓</div>
+                    <div class="timeline-content">
+                        <div class="timeline-version">v2.2 (Current)</div>
+                        <div class="timeline-title">Ethereum & EVM Chains</div>
+                        <ul class="timeline-features">
+                            <li>15 tools (Slither, Mythril, Echidna, Foundry, etc.)</li>
+                            <li>Solidity, Vyper, Cairo support</li>
+                            <li>6-layer defense-in-depth architecture</li>
+                            <li>MCP server for Claude Desktop</li>
+                            <li>89.47% precision on 5,127 contracts</li>
+                        </ul>
+                        <div class="timeline-status success">PRODUCTION READY</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item upcoming">
+                    <div class="timeline-marker">🚀</div>
+                    <div class="timeline-content">
+                        <div class="timeline-version">v2.3 (Q4 2024)</div>
+                        <div class="timeline-title">Stellar Soroban Integration</div>
+                        <ul class="timeline-features">
+                            <li><strong>SorobanAgent:</strong> Rust-specific static analysis</li>
+                            <li><strong>cargo-audit:</strong> Dependency vulnerability scanner</li>
+                            <li><strong>cargo-clippy:</strong> 600+ security lints</li>
+                            <li><strong>cargo-geiger:</strong> Unsafe code detection</li>
+                            <li><strong>First Mover:</strong> No comprehensive Soroban auditing framework exists</li>
+                            <li>Target: 50 Soroban contracts for validation</li>
+                        </ul>
+                        <div class="timeline-status warning">IN PROGRESS</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item future">
+                    <div class="timeline-marker">⚡</div>
+                    <div class="timeline-content">
+                        <div class="timeline-version">v2.4 (Q1 2025)</div>
+                        <div class="timeline-title">Advanced Rust Verification</div>
+                        <ul class="timeline-features">
+                            <li><strong>MIRI:</strong> Runtime undefined behavior detection</li>
+                            <li><strong>Prusti:</strong> Formal verification with specifications</li>
+                            <li><strong>Kani:</strong> Bounded model checking for Rust</li>
+                            <li>Cross-language vulnerability comparison (Solidity vs Rust)</li>
+                            <li>Academic paper: "Security Analysis of Soroban Smart Contracts"</li>
+                        </ul>
+                        <div class="timeline-status">PLANNED</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item future">
+                    <div class="timeline-marker">🌐</div>
+                    <div class="timeline-content">
+                        <div class="timeline-version">v3.0 (Q2 2025)</div>
+                        <div class="timeline-title">Full Multi-Chain Support</div>
+                        <ul class="timeline-features">
+                            <li><strong>Solana:</strong> Rust programs (Anchor framework)</li>
+                            <li><strong>Chain Abstraction Layer:</strong> Unified interface</li>
+                            <li><strong>Cross-Chain Vulnerabilities:</strong> Bridge security, composability risks</li>
+                            <li><strong>Unified Reports:</strong> Compare security across chains</li>
+                            <li><strong>Target:</strong> 3 major ecosystems (EVM + Stellar + Solana)</li>
+                        </ul>
+                        <div class="timeline-status">VISION</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="roadmap-highlights">
+                <h3>Why Stellar Soroban First?</h3>
+                <div class="highlights-grid">
+                    <div class="highlight-card">
+                        <div class="highlight-icon">🥇</div>
+                        <h4>First-Mover Advantage</h4>
+                        <p>NO comprehensive Soroban auditing framework exists. MIESC will be the <strong>first academic security framework</strong> for Stellar smart contracts.</p>
+                    </div>
+                    <div class="highlight-card">
+                        <div class="highlight-icon">⏰</div>
+                        <h4>Perfect Timing</h4>
+                        <p>Soroban launched October 2023. Ecosystem is early-stage (1,500+ contracts). MoneyGram partnership Q4 2024 brings institutional attention.</p>
+                    </div>
+                    <div class="highlight-card">
+                        <div class="highlight-icon">🦀</div>
+                        <h4>Rust Superiority</h4>
+                        <p>Rust's memory safety prevents 70% of vulnerabilities common in Solidity. Our research will quantify Solidity vs Rust security differences.</p>
+                    </div>
+                    <div class="highlight-card">
+                        <div class="highlight-icon">📚</div>
+                        <h4>Academic Impact</h4>
+                        <p>Cross-language vulnerability comparison is <strong>publishable at top-tier conferences</strong> (IEEE S&P, USENIX Security).</p>
+                    </div>
+                    <div class="highlight-card">
+                        <div class="highlight-icon">🔧</div>
+                        <h4>Mature Rust Tooling</h4>
+                        <p>Leverage existing Rust security tools: cargo-audit, clippy, MIRI, Prusti, Kani. No need to build from scratch.</p>
+                    </div>
+                    <div class="highlight-card">
+                        <div class="highlight-icon">💼</div>
+                        <h4>Industry Demand</h4>
+                        <p>Stellar Foundation actively seeking security partners. Early positioning = potential partnerships and funding.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="roadmap-tools">
+                <h3>Rust Security Tools Being Integrated</h3>
+                <div class="rust-tools-grid">
+                    <div class="rust-tool-card">
+                        <div class="tool-header">
+                            <div class="tool-name">cargo-audit</div>
+                            <div class="tool-badge layer-1">Static</div>
+                        </div>
+                        <p>Scans Cargo.lock for dependencies with known CVEs from RustSec database</p>
+                        <div class="tool-meta">
+                            <span>RustSec</span>
+                            <span>Apache-2.0</span>
+                        </div>
+                    </div>
+
+                    <div class="rust-tool-card">
+                        <div class="tool-name">cargo-clippy</div>
+                        <div class="tool-badge layer-1">Static</div>
+                        <p>600+ lints including security rules (e.g., unsafe code, integer overflows)</p>
+                        <div class="tool-meta">
+                            <span>Rust Project</span>
+                            <span>Built-in</span>
+                        </div>
+                    </div>
+
+                    <div class="rust-tool-card">
+                        <div class="tool-name">cargo-geiger</div>
+                        <div class="tool-badge layer-1">Static</div>
+                        <p>Detects usage of unsafe code (should be 0 in smart contracts)</p>
+                        <div class="tool-meta">
+                            <span>Community</span>
+                            <span>Apache-2.0</span>
+                        </div>
+                    </div>
+
+                    <div class="rust-tool-card">
+                        <div class="tool-name">MIRI</div>
+                        <div class="tool-badge layer-2">Dynamic</div>
+                        <p>Runtime undefined behavior detector (dangling pointers, data races)</p>
+                        <div class="tool-meta">
+                            <span>Rust Project</span>
+                            <span>Built-in</span>
+                        </div>
+                    </div>
+
+                    <div class="rust-tool-card">
+                        <div class="tool-name">Prusti</div>
+                        <div class="tool-badge layer-4">Formal</div>
+                        <p>Formal verification using Viper (ETH Zurich). Write specifications, prove correctness.</p>
+                        <div class="tool-meta">
+                            <span>ETH Zurich</span>
+                            <span>MPL-2.0</span>
+                        </div>
+                    </div>
+
+                    <div class="rust-tool-card">
+                        <div class="tool-name">Kani</div>
+                        <div class="tool-badge layer-4">Formal</div>
+                        <p>Bounded model checking (CBMC backend). Exhaustive testing within bounds.</p>
+                        <div class="tool-meta">
+                            <span>AWS</span>
+                            <span>Apache-2.0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="roadmap-cta">
+                <h3>Detailed 6-Month Plan</h3>
+                <p>For the complete strategic roadmap including:</p>
+                <ul style="text-align: left; max-width: 600px; margin: 1rem auto 2rem;">
+                    <li>Month-by-month implementation schedule</li>
+                    <li>Effort estimates (580 hours total)</li>
+                    <li>Technical integration guides with code examples</li>
+                    <li>Resource requirements and budgets</li>
+                    <li>Risk analysis and mitigation strategies</li>
+                    <li>Success metrics and validation methodology</li>
+                </ul>
+                <a href="https://github.com/fboiero/MIESC/blob/main/docs/ROADMAP_6_MONTHS.md" target="_blank" class="btn btn-large btn-primary">
+                    📘 Read Full Strategic Roadmap
+                </a>
             </div>
         </div>
     </section>
