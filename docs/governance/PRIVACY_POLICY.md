@@ -214,7 +214,7 @@ We may update this privacy policy to reflect:
 
 **Questions or Concerns**:
 - Email: fboiero@frvm.utn.edu.ar
-- GitHub Issues: https://github.com/fboiero/xaudit/issues
+- GitHub Issues: https://github.com/fboiero/MIESC/issues
 - Security Reports: See `SECURITY.md`
 
 **Data Controller**:

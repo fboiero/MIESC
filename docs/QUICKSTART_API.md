@@ -439,7 +439,7 @@ cat outputs/ai_tools_comparison_vulnerable_bank.json | jq '.results | keys'
 
 **Contacto**:
 - Email: fboiero@frvm.utn.edu.ar
-- GitHub Issues: https://github.com/fboiero/xaudit/issues
+- GitHub Issues: https://github.com/fboiero/MIESC/issues
 
 ---
 

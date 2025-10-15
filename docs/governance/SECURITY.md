@@ -198,7 +198,7 @@ python -m venv venv
 source venv/bin/activate
 
 # Instalar desde repositorio oficial
-git clone https://github.com/fboiero/xaudit.git
+git clone https://github.com/fboiero/MIESC.git
 cd xaudit
 
 # Verificar integridad (próximamente con GPG signatures)
@@ -288,8 +288,8 @@ Si su organización está interesada en realizar una auditoría pro-bono de MIES
 
 Las actualizaciones de seguridad se publican a través de:
 
-1. **GitHub Releases**: https://github.com/fboiero/xaudit/releases
-2. **Security Advisories**: https://github.com/fboiero/xaudit/security/advisories
+1. **GitHub Releases**: https://github.com/fboiero/MIESC/releases
+2. **Security Advisories**: https://github.com/fboiero/MIESC/security/advisories
 3. **CHANGELOG.md**: Con tag `[SECURITY]`
 
 **Suscribirse a notificaciones**:

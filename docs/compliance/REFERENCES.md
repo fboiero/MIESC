@@ -426,7 +426,7 @@ When citing this framework in academic work, please use:
   type = {Master's Thesis},
   note = {Open-source framework aligned with ISO/IEC 27001:2022,
           ISO/IEC 42001:2023, NIST SSDF, and OWASP SC Top 10},
-  url = {https://github.com/fboiero/xaudit}
+  url = {https://github.com/fboiero/MIESC}
 }
 ```
 

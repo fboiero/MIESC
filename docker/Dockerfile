@@ -96,4 +96,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
 LABEL version="2.2.0"
 LABEL description="MIESC - Multi-Agent Integrated Security Assessment Framework for Smart Contracts"
-LABEL org.opencontainers.image.source="https://github.com/fboiero/xaudit"
+LABEL org.opencontainers.image.source="https://github.com/fboiero/MIESC"

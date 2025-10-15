@@ -428,7 +428,7 @@ python demo_ai_tools_comparison.py examples/vulnerable_bank.sol
 ### Trabajo Publicado/En Preparación
 
 **Repositorio GitHub** ⭐
-- https://github.com/fboiero/xaudit
+- https://github.com/fboiero/MIESC
 - 🌟 Open Source (GPL-3.0)
 - 📦 Digital Public Good Candidate
 
@@ -578,7 +578,7 @@ python demo_ai_tools_comparison.py examples/vulnerable_bank.sol
 ║     Fernando Boiero                    ║
 ║     fboiero@frvm.utn.edu.ar           ║
 ║                                        ║
-║     https://github.com/fboiero/xaudit  ║
+║     https://github.com/fboiero/MIESC  ║
 ║                                        ║
 ╚════════════════════════════════════════╝
 ```
@@ -678,7 +678,7 @@ class NewToolAgent(BaseAgent):
 
 **Reproducir tesis**:
 ```bash
-git clone https://github.com/fboiero/xaudit
+git clone https://github.com/fboiero/MIESC
 cd xaudit
 ./run_benchmark_batch.sh
 python visualize_comparison.py
@@ -731,9 +731,9 @@ cat outputs/ai_tools_comparison_vulnerable_bank.json | jq '.results.static.sever
 ## Apéndice C: Recursos Adicionales
 
 **URLs Útiles**:
-- Repository: https://github.com/fboiero/xaudit
-- Docs: https://github.com/fboiero/xaudit/tree/main/docs
-- Issues: https://github.com/fboiero/xaudit/issues
+- Repository: https://github.com/fboiero/MIESC
+- Docs: https://github.com/fboiero/MIESC/tree/main/docs
+- Issues: https://github.com/fboiero/MIESC/issues
 
 **Papers Citados**:
 - GPTScan: https://gptscan.github.io/

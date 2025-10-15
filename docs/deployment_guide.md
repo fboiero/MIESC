@@ -37,7 +37,7 @@ Documentación completa para desplegar MIESC en diferentes entornos.
 #### 1. Clonar Repositorio
 
 ```bash
-git clone https://github.com/fboiero/xaudit.git
+git clone https://github.com/fboiero/MIESC.git
 cd xaudit
 ```
 
@@ -176,7 +176,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```bash
 # Como usuario no-root
 cd /opt
-sudo git clone https://github.com/fboiero/xaudit.git
+sudo git clone https://github.com/fboiero/MIESC.git
 sudo chown -R $USER:$USER xaudit
 cd xaudit
 

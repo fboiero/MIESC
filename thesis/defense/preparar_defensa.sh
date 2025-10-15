@@ -464,7 +464,7 @@ If you use this dataset, please cite:
 - **Author**: Fernando Boiero
 - **Institution**: Universidad Tecnológica Nacional - FRVM
 - **Email**: fboiero@frvm.utn.edu.ar
-- **Repository**: https://github.com/fboiero/xaudit
+- **Repository**: https://github.com/fboiero/MIESC
 
 ## License
 
@@ -505,7 +505,7 @@ cat > "$DEFENSA_DIR/zenodo_dataset/metadata.json" << 'EOF'
   "version": "1.0",
   "related_identifiers": [
     {
-      "identifier": "https://github.com/fboiero/xaudit",
+      "identifier": "https://github.com/fboiero/MIESC",
       "relation": "isSupplementTo",
       "scheme": "url"
     }
@@ -879,7 +879,7 @@ Reducción FP:  73.60% ███████████████████
 **Fernando Boiero**
 fboiero@frvm.utn.edu.ar
 
-GitHub: github.com/fboiero/xaudit
+GitHub: github.com/fboiero/MIESC
 Zenodo: [DOI pendiente]
 
 ---

@@ -120,7 +120,7 @@ FROM ubuntu:22.04 AS runtime
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>" \
       version="2.2.0-optimized" \
       description="MIESC - Multi-Agent Security Framework (Optimized Build)" \
-      org.opencontainers.image.source="https://github.com/fboiero/xaudit" \
+      org.opencontainers.image.source="https://github.com/fboiero/MIESC" \
       org.opencontainers.image.licenses="GPL-3.0"
 
 ENV DEBIAN_FRONTEND=noninteractive \

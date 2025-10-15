@@ -93,7 +93,7 @@ git push origin main
 ```
 
 **Verificar:**
-- Ir a: https://github.com/fboiero/xaudit
+- Ir a: https://github.com/fboiero/MIESC
 - Confirmar que aparecen los 4 nuevos commits
 - Verificar que defensa_20251011/ está disponible
 
@@ -201,7 +201,7 @@ git push origin main
 - **Demo interactivo:** `./demo_tesis_completo.sh`
 - **Materiales generados:** `defensa_20251011/`
 - **Script automático:** `./preparar_defensa.sh` (si re-ejecutar)
-- **GitHub:** https://github.com/fboiero/xaudit
+- **GitHub:** https://github.com/fboiero/MIESC
 - **Zenodo:** https://zenodo.org/ (para publicar dataset)
 
 ---

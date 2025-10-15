@@ -666,7 +666,7 @@ ggsave("experiments/plots/correlation_sloc_time.png", width = 10, height = 6, dp
 
 ```bash
 # Clonar repositorio
-git clone https://github.com/fboiero/xaudit.git
+git clone https://github.com/fboiero/MIESC.git
 cd xaudit
 
 # Configurar entorno

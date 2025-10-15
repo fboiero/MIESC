@@ -59,8 +59,8 @@ function withdraw() public {
 
 ```bash
 # 1. Clone and setup
-git clone https://github.com/fboiero/xaudit.git
-cd xaudit
+git clone https://github.com/fboiero/MIESC.git
+cd MIESC
 
 # 2. Install core dependencies (Python only)
 pip install slither-analyzer mythril
@@ -609,7 +609,7 @@ If you use MIESC in your research, please cite:
   title = {{MIESC}: Multi-Agent Integrated Security Assessment Framework for Smart Contracts},
   year = {2025},
   publisher = {GitHub},
-  url = {https://github.com/fboiero/xaudit},
+  url = {https://github.com/fboiero/MIESC},
   version = {2.2.0},
   note = {Defense-in-depth framework with 15 tools, AI-assisted triage, and
           12 compliance standards (ISO/IEC 27001:2022, ISO/IEC 42001:2023, NIST, OWASP)}
@@ -694,8 +694,8 @@ We welcome contributions from:
 
 ```bash
 # 1. Fork and clone
-git clone https://github.com/YOUR_USERNAME/xaudit.git
-cd xaudit
+git clone https://github.com/YOUR_USERNAME/MIESC.git
+cd MIESC
 
 # 2. Create development branch
 git checkout -b feature/my-awesome-feature
@@ -737,8 +737,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
 
 - 📖 **Documentation**: [docs/](./docs/)
 - 💬 **Discord**: [Join our community](#) (coming soon)
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/fboiero/xaudit/issues)
-- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/fboiero/xaudit/discussions)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/fboiero/MIESC/issues)
+- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/fboiero/MIESC/discussions)
 - 📧 **Email**: fboiero@frvm.utn.edu.ar
 
 ### Follow the Project
@@ -817,7 +817,7 @@ MIESC integrates world-class open-source tools from:
 
 **Made with ❤️ for the smart contract security community**
 
-[⭐ Star on GitHub](https://github.com/fboiero/xaudit) · [🐛 Report Bug](https://github.com/fboiero/xaudit/issues) · [💡 Request Feature](https://github.com/fboiero/xaudit/discussions) · [🤝 Contribute](./CONTRIBUTING.md)
+[⭐ Star on GitHub](https://github.com/fboiero/MIESC) · [🐛 Report Bug](https://github.com/fboiero/MIESC/issues) · [💡 Request Feature](https://github.com/fboiero/MIESC/discussions) · [🤝 Contribute](./CONTRIBUTING.md)
 
 ---
 

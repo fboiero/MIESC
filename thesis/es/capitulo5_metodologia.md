@@ -1154,7 +1154,7 @@ exit 0
 
 ```bash
 # Clone repository
-git clone https://github.com/fboiero/xaudit.git
+git clone https://github.com/fboiero/MIESC.git
 cd xaudit
 
 # Install Python dependencies

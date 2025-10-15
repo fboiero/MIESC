@@ -38,7 +38,7 @@ Marco Integrado de Evaluación de Seguridad en Smart Contracts con Arquitectura 
 
 **¿Quieres probar rápido?**
 ```bash
-git clone https://github.com/fboiero/xaudit
+git clone https://github.com/fboiero/MIESC
 cd xaudit
 python demo_mcp_poc.py examples/voting.sol
 ```

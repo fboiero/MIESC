@@ -1005,7 +1005,7 @@ main_loop() {
                 echo ""
                 print_info "Para más información:"
                 echo "  📧 Email: fboiero@frvm.utn.edu.ar"
-                echo "  🌐 GitHub: https://github.com/fboiero/xaudit"
+                echo "  🌐 GitHub: https://github.com/fboiero/MIESC"
                 echo "  📚 Documentación: thesis/es/"
                 echo ""
                 print_success "¡Éxitos con tu tesis! 🎓"

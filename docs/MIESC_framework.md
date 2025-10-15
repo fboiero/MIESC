@@ -516,7 +516,7 @@ outputs/evidence/
 - **Maintainer**: Fernando Boiero (fboiero@frvm.utn.edu.ar)
 - **Institution**: Universidad Tecnológica Nacional - FRVM
 - **License**: GPL-3.0
-- **Repository**: https://github.com/fboiero/xaudit
+- **Repository**: https://github.com/fboiero/MIESC
 
 ### 10.2 Change Management
 - **Versioning**: Semantic Versioning (MAJOR.MINOR.PATCH)

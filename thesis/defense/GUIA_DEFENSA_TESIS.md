@@ -800,7 +800,7 @@ EOF
 
 Si necesitas ayuda de último momento:
 
-- **Repositorio:** https://github.com/fboiero/xaudit
+- **Repositorio:** https://github.com/fboiero/MIESC
 - **Email:** fboiero@frvm.utn.edu.ar
 - **Documentación completa:** `thesis/es/`
 

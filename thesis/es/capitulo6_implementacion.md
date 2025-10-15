@@ -1152,7 +1152,7 @@ IDCG@k = DCG of ideal ranking
 
 ```bash
 # 1. Clone del repositorio
-git clone https://github.com/fboiero/xaudit.git
+git clone https://github.com/fboiero/MIESC.git
 cd xaudit
 
 # 2. Setup de entorno Python

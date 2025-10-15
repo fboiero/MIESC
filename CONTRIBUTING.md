@@ -70,11 +70,11 @@ We are committed to providing a welcoming and inclusive environment for research
 ```bash
 # Fork the repository on GitHub
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/xaudit.git
-cd xaudit
+git clone https://github.com/YOUR_USERNAME/MIESC.git
+cd MIESC
 
 # Add upstream remote
-git remote add upstream https://github.com/fboiero/xaudit.git
+git remote add upstream https://github.com/fboiero/MIESC.git
 
 # Create virtual environment
 python -m venv venv

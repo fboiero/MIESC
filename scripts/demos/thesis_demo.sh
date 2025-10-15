@@ -788,7 +788,7 @@ bullet "✅" "${GREEN}${BOLD}100%${NC} CRITICAL detectados"
 bullet "✅" "${GREEN}${BOLD}κ=0.87${NC} IA-experto"
 echo ""
 
-echo -e "${BOLD}🌐 GitHub:${NC} ${CYAN}https://github.com/fboiero/xaudit${NC}"
+echo -e "${BOLD}🌐 GitHub:${NC} ${CYAN}https://github.com/fboiero/MIESC${NC}"
 echo -e "${BOLD}📚 Tesis:${NC} thesis/es/ (8 capítulos)"
 echo ""
 

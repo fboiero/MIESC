@@ -91,7 +91,7 @@ _____________________
 
 Este trabajo académico está protegido por derechos de autor conforme a la legislación argentina. El código fuente del framework Xaudit está disponible bajo licencia MIT en el repositorio público:
 
-**Repositorio:** https://github.com/fboiero/xaudit
+**Repositorio:** https://github.com/fboiero/MIESC
 
 Se autoriza la reproducción parcial con fines académicos citando la fuente.
 

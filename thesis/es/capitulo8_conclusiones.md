@@ -173,7 +173,7 @@
 
 ✅ **COMPLETADO**
 
-- Repositorio público: https://github.com/fboiero/xaudit ✅
+- Repositorio público: https://github.com/fboiero/MIESC ✅
 - README completo con guía de instalación ✅
 - Tesis completa en español e inglés ✅
 - Licencia MIT ✅
@@ -211,7 +211,7 @@
   - Exploit contracts funcionales
   - Propiedades Echidna + Specs Certora + Invariants Foundry
   - 47 exploits ejecutables auto-generados por Manticore
-- **Disponibilidad:** https://github.com/fboiero/xaudit
+- **Disponibilidad:** https://github.com/fboiero/MIESC
 - **Impacto:** Reutilizable para investigación académica, benchmarking de herramientas.
 
 **4. Evaluación Comparativa de Fuzzers (Echidna, Medusa, Foundry)**

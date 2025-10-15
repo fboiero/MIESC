@@ -304,7 +304,7 @@ Mantener información documentada del AIMS.
 | **Tesis Académica** | `thesis/es/` | Defensa final |
 
 **Evidencia:**
-- Repositorio Git: https://github.com/fboiero/xaudit
+- Repositorio Git: https://github.com/fboiero/MIESC
 - Sistema de versionado semántico (v2.0.0)
 
 ---
@@ -879,7 +879,7 @@ Proteger privacidad y datos personales.
 Fernando Boiero
 Universidad Tecnológica Nacional - FRVM
 Email: fboiero@frvm.utn.edu.ar
-GitHub: https://github.com/fboiero/xaudit
+GitHub: https://github.com/fboiero/MIESC
 
 **Última Actualización:** Octubre 2025
 **Versión del Documento:** 1.0
