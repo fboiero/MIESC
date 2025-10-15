@@ -299,7 +299,7 @@ See [thesis/results/](./thesis/results/) for detailed experimental data.
 
 ### 47 Scientific References
 
-All design decisions are backed by peer-reviewed publications. See [REFERENCES.md](./REFERENCES.md) for full bibliography, including:
+All design decisions are backed by peer-reviewed publications. See [REFERENCES.md](./docs/compliance/REFERENCES.md) for full bibliography, including:
 
 - **Saltzer & Schroeder (1975)** - Defense-in-depth principles
 - **Durieux et al. (2020)** - Empirical study on 47,587 contracts proving multi-tool necessity
@@ -492,7 +492,7 @@ python xaudit.py --target contracts/ --evidence-for iso27001
 # - evidence/iso27001_A.14.2.5_secure_engineering.json
 ```
 
-See [COMPLIANCE.md](./COMPLIANCE.md) for detailed standard mappings (1,200+ lines of documentation).
+See [COMPLIANCE.md](./docs/compliance/COMPLIANCE.md) for detailed standard mappings (1,200+ lines of documentation).
 
 ---
 
@@ -803,8 +803,8 @@ MIESC integrates world-class open-source tools from:
 ## 📚 Additional Resources
 
 - 📖 [Full Documentation](./docs/)
-- 🔬 [Scientific References](./REFERENCES.md) (47 peer-reviewed sources)
-- 📋 [Compliance Mappings](./COMPLIANCE.md) (12 standards, 1,200+ lines)
+- 🔬 [Scientific References](./docs/compliance/REFERENCES.md) (47 peer-reviewed sources)
+- 📋 [Compliance Mappings](./docs/compliance/COMPLIANCE.md) (12 standards, 1,200+ lines)
 - 🤝 [Contributing Guide](./CONTRIBUTING.md)
 - 🎓 [Thesis Materials](./thesis/)
 - 🏗️ [Architecture Deep Dive](./docs/ARCHITECTURE.md)

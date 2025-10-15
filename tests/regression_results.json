@@ -1,164 +1,165 @@
 {
-  "timestamp": "2025-10-13T04:42:59.895630",
+  "timestamp": "2025-10-15T14:29:02.774869",
   "mode": "critical",
   "summary": {
-    "passed": 30,
-    "failed": 0,
+    "passed": 28,
+    "failed": 2,
     "skipped": 0,
-    "duration": 1.985863208770752
+    "duration": 4.319725036621094
   },
   "passed": [
     {
       "name": "Import all critical modules",
-      "duration": 0.32430601119995117,
+      "duration": 0.6069869995117188,
       "details": ""
     },
     {
       "name": "MCP Context Bus",
-      "duration": 6.699562072753906e-05,
+      "duration": 0.00020813941955566406,
       "details": "Messages: 1"
     },
     {
       "name": "Example contracts accessible",
-      "duration": 0.0003497600555419922,
-      "details": "Found 13 contracts"
+      "duration": 0.00019288063049316406,
+      "details": "Found 14 contracts"
     },
     {
       "name": "Demo scripts exist",
-      "duration": 0.0005118846893310547,
-      "details": "Found 4 demo scripts"
+      "duration": 0.00034689903259277344,
+      "details": "Found 9 demo scripts"
     },
     {
       "name": "StaticAgent initialization",
-      "duration": 3.933906555175781e-05,
+      "duration": 3.4809112548828125e-05,
       "details": ""
     },
     {
       "name": "DynamicAgent initialization",
-      "duration": 1.9311904907226562e-05,
+      "duration": 1.7881393432617188e-05,
       "details": ""
     },
     {
       "name": "SymbolicAgent initialization",
-      "duration": 1.430511474609375e-05,
+      "duration": 1.5974044799804688e-05,
       "details": ""
     },
     {
       "name": "FormalAgent initialization",
-      "duration": 1.2874603271484375e-05,
+      "duration": 1.430511474609375e-05,
       "details": ""
     },
     {
       "name": "AIAgent initialization",
-      "duration": 8.487701416015625e-05,
+      "duration": 9.703636169433594e-05,
       "details": ""
     },
     {
       "name": "PolicyAgent initialization",
-      "duration": 9.512901306152344e-05,
+      "duration": 0.0001049041748046875,
       "details": ""
     },
     {
       "name": "PolicyAgent v2.2 enhanced standards",
-      "duration": 0.00011491775512695312,
+      "duration": 0.0001220703125,
       "details": "PolicyAgent v2.2 with 8 new standards"
     },
     {
       "name": "CoordinatorAgent initialization",
-      "duration": 0.00010395050048828125,
+      "duration": 0.00012302398681640625,
       "details": ""
     },
     {
       "name": "GPTScanAgent initialization",
-      "duration": 0.002886056900024414,
+      "duration": 0.02562093734741211,
       "details": ""
     },
     {
       "name": "LLMSmartAuditAgent initialization",
-      "duration": 0.0004000663757324219,
+      "duration": 0.022684335708618164,
       "details": ""
     },
     {
       "name": "SmartLLMAgent initialization",
-      "duration": 0.0009109973907470703,
+      "duration": 0.004205226898193359,
       "details": ""
     },
     {
       "name": "Slither availability",
-      "duration": 0.3308260440826416,
-      "details": "Slither 0.11.3"
+      "duration": 0.4042801856994629,
+      "details": "Slither 0.10.3"
     },
     {
       "name": "Manticore availability",
-      "duration": 0.1906599998474121,
+      "duration": 0.8114988803863525,
       "details": "Manticore 0.3.7"
     },
     {
       "name": "Aderyn availability",
-      "duration": 0.015856266021728516,
+      "duration": 0.01749706268310547,
       "details": "Aderyn aderyn 0.6.4"
     },
     {
       "name": "AderynAgent initialization",
-      "duration": 0.00859379768371582,
+      "duration": 0.008402824401855469,
       "details": "Aderyn available: True"
     },
     {
-      "name": "Halmos availability",
-      "duration": 0.12540173530578613,
-      "details": "Halmos Halmos 0.1.13"
-    },
-    {
       "name": "HalmosAgent initialization",
-      "duration": 0.1134641170501709,
-      "details": "Halmos available: True"
+      "duration": 0.012706995010375977,
+      "details": "Halmos available: False"
     },
     {
       "name": "Medusa availability",
-      "duration": 0.04732394218444824,
+      "duration": 0.05201983451843262,
       "details": "Medusa 1.3.1"
     },
     {
       "name": "MedusaAgent initialization",
-      "duration": 0.014307022094726562,
+      "duration": 0.014889001846313477,
       "details": "Medusa available: True"
     },
     {
-      "name": "Wake availability",
-      "duration": 0.17400097846984863,
-      "details": "Wake 4.20.1"
-    },
-    {
       "name": "WakeAgent initialization",
-      "duration": 0.14481806755065918,
-      "details": "Wake available: True"
+      "duration": 0.014872074127197266,
+      "details": "Wake available: False"
     },
     {
       "name": "SMTChecker (solc) availability",
-      "duration": 0.17948508262634277,
+      "duration": 2.121230125427246,
       "details": "Solc 0.8.0+commit.c7dfd78e.Darwin.appleclang"
     },
     {
       "name": "SMTCheckerAgent initialization",
-      "duration": 0.1120760440826416,
+      "duration": 0.08883190155029297,
       "details": "SMTChecker available: True"
     },
     {
       "name": "Echidna availability",
-      "duration": 0.19440889358520508,
+      "duration": 0.09157085418701172,
       "details": "Echidna Echidna 2.2.4"
     },
     {
       "name": "MCP Server tools schema",
-      "duration": 0.0027408599853515625,
+      "duration": 0.0037298202514648438,
       "details": "Found 6 tools"
     },
     {
       "name": "Static analysis on contract",
-      "duration": 0.00037980079650878906,
+      "duration": 0.0003693103790283203,
       "details": "Static agent ready"
     }
   ],
-  "failed": [],
+  "failed": [
+    {
+      "name": "Halmos availability",
+      "error": "Halmos not installed",
+      "traceback": ""
+    },
+    {
+      "name": "Wake availability",
+      "error": "Wake not installed",
+      "traceback": ""
+    }
+  ],
   "skipped": []
 }
