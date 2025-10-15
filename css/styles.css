@@ -744,11 +744,18 @@ section {
 }
 
 .metric-highlight .metric-value {
-  font-size: 3rem;
+  font-size: 2.75rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Adjust for longer values */
+@media (max-width: 480px) {
+  .metric-highlight .metric-value {
+    font-size: 2rem;
+  }
 }
 
 .metric-label {
