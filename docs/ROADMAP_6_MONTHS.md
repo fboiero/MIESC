@@ -1,9 +1,9 @@
-# MIESC - 6-Month Strategic Roadmap (Nov 2024 - Apr 2025)
+# MIESC - 6-Month Strategic Roadmap (Nov 2025 - Apr 2026)
 
 > **Executive Plan for Multi-Chain Expansion & Soroban/Rust Integration**
 >
 > **Author**: Fernando Boiero
-> **Period**: November 2024 - April 2025
+> **Period**: November 2025 - April 2026
 > **Goal**: Transform MIESC into the leading multi-chain security framework
 > **Focus**: Stellar Soroban + Rust ecosystem + Advanced analysis layers
 
@@ -33,7 +33,7 @@
 - ✅ **12 compliance standards** automated
 - ✅ **5,127 contracts** validated (Ethereum)
 
-### Target State (v3.0 - April 2025)
+### Target State (v3.0 - April 2026)
 - 🎯 **25+ tools** (10 new Rust/Soroban tools)
 - 🎯 **15 agents** (4 new chain-specific agents)
 - 🎯 **Multi-chain support**: Ethereum + Stellar + Solana
@@ -78,7 +78,7 @@
    - Launched **Oct 2023** (early adopter advantage)
    - **Growing ecosystem** but **limited security tools**
    - **Stellar Foundation** actively looking for security partners
-   - **MoneyGram partnership** (Q4 2024) = high-profile use cases
+   - **MoneyGram partnership** (Q4 2025) = high-profile use cases
 
 3. **Competitive Advantage**:
    - **No existing comprehensive Soroban auditing framework**
@@ -119,7 +119,7 @@ Pillar 4: Academic Research Output
 
 ## 📅 Month-by-Month Plan
 
-### Month 1 (November 2024): Foundation & Rust Tooling
+### Month 1 (November 2025): Foundation & Rust Tooling
 
 **Goals:**
 - ✅ Integrate basic Rust static analysis tools
@@ -197,7 +197,7 @@ Pillar 4: Academic Research Output
 
 ---
 
-### Month 2 (December 2024): Soroban Testing & Refinement
+### Month 2 (December 2025): Soroban Testing & Refinement
 
 **Goals:**
 - ✅ Add Soroban-specific pattern detection
@@ -287,7 +287,7 @@ Pillar 4: Academic Research Output
 
 ---
 
-### Month 3 (January 2025): Rust Formal Verification
+### Month 3 (January 2026): Rust Formal Verification
 
 **Goals:**
 - ✅ Add formal verification tools for Rust
@@ -404,7 +404,7 @@ Pillar 4: Academic Research Output
 
 ---
 
-### Month 4 (February 2025): Solana Exploration & Layer 7
+### Month 4 (February 2026): Solana Exploration & Layer 7
 
 **Goals:**
 - ✅ Begin Solana (Anchor) integration research
@@ -508,7 +508,7 @@ Pillar 4: Academic Research Output
 
 ---
 
-### Month 5 (March 2025): Full Multi-Chain Support
+### Month 5 (March 2026): Full Multi-Chain Support
 
 **Goals:**
 - ✅ Solana (Anchor) basic support
@@ -607,7 +607,7 @@ Pillar 4: Academic Research Output
 
 ---
 
-### Month 6 (April 2025): Validation, Thesis, & Release
+### Month 6 (April 2026): Validation, Thesis, & Release
 
 **Goals:**
 - ✅ Large-scale validation (2,000+ contracts)
@@ -1189,7 +1189,7 @@ As an AI expert in software security and smart contracts, here's **my honest rec
 
 ❌ **Layer 8 (Economic Modeling)** - Academically cool but very time-consuming. PhD-level work.
 
-❌ **Layer 9 (Cross-Contract)** - Important but complex. Save for v4.0 (Q4 2025).
+❌ **Layer 9 (Cross-Contract)** - Important but complex. Save for v4.0 (Q4 2026).
 
 ❌ **GUI/Web Interface** - Not a priority for academic tool. CLI is fine.
 
@@ -1504,20 +1504,20 @@ If I were building this, I'd use:
 
 ### Publications Plan
 
-1. **Conference paper** (IEEE S&P 2026):
+1. **Conference paper** (IEEE S&P 2027):
    - Title: "MIESC: A Multi-Chain Security Framework for Smart Contracts"
    - Focus: Architecture + multi-chain validation
-   - Timeline: Submit Jan 2025, decision May 2025
+   - Timeline: Submit Jan 2026, decision May 2026
 
 2. **Journal paper** (IEEE TSE or ACM TOSEM):
    - Title: "Solidity vs Rust: An Empirical Study of Smart Contract Security"
    - Focus: Cross-language vulnerability comparison
-   - Timeline: Submit Jun 2025, decision Dec 2025
+   - Timeline: Submit Jun 2026, decision Dec 2026
 
 3. **Workshop paper** (WETSEB @ ICSE):
    - Title: "Formal Verification of Rust Smart Contracts in Practice"
    - Focus: Prusti/MIRI/Kani case studies
-   - Timeline: Submit Feb 2025, decision Apr 2025
+   - Timeline: Submit Feb 2026, decision Apr 2026
 
 ---
 
@@ -1539,7 +1539,7 @@ This 6-month roadmap transforms MIESC from an Ethereum-focused tool into a **pio
 
 ### The Bottom Line
 
-**If you execute this plan, by April 2025 you will have:**
+**If you execute this plan, by April 2026 you will have:**
 
 1. ✅ The **only** comprehensive Soroban security framework
 2. ✅ A **thesis contribution** that spans multiple blockchains
@@ -1553,6 +1553,6 @@ This 6-month roadmap transforms MIESC from an Ethereum-focused tool into a **pio
 ---
 
 **Document Version**: 1.0
-**Last Updated**: October 2024
-**Author**: Claude (Anthropic) with guidance from Fernando Boiero
+**Last Updated**: October 2025
+**Author**: Fernando Boiero (fboiero@frvm.utn.edu.ar)
 **License**: CC BY 4.0 (document), GPL-3.0 (code)
