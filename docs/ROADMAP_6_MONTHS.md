@@ -33,12 +33,12 @@
 - ✅ **12 compliance standards** automated
 - ✅ **5,127 contracts** validated (Ethereum)
 
-### Target State (v3.0 - April 2026)
-- 🎯 **25+ tools** (10 new Rust/Soroban tools)
-- 🎯 **15 agents** (4 new chain-specific agents)
-- 🎯 **Multi-chain support**: Ethereum + Stellar + Solana
-- 🎯 **15 compliance standards** (add Stellar/SEC guidelines)
-- 🎯 **2,000+ Soroban contracts** tested (new dataset)
+### Target State (v2.5 - April 2026)
+- 🎯 **21 tools** (6 new Rust/Soroban tools)
+- 🎯 **13 agents** (2 new Soroban-specific agents)
+- 🎯 **Dual-chain support**: Ethereum + Stellar Soroban
+- 🎯 **13 compliance standards** (add Stellar/SEC guidelines)
+- 🎯 **1,000+ Soroban contracts** tested (new dataset)
 
 ### Why This Matters
 
@@ -64,7 +64,7 @@
 
 ### The Big Idea
 
-**Transform MIESC from an Ethereum-focused tool into the industry-standard multi-chain security framework, with priority focus on Stellar Soroban (Rust) contracts.**
+**Transform MIESC from an Ethereum-only tool into a dual-chain security framework with deep Stellar Soroban (Rust) integration. Focus exclusively on mastering Soroban before expanding to other chains.**
 
 ### Why Soroban First?
 
@@ -94,25 +94,25 @@
 ### Strategic Pillars
 
 ```
-Pillar 1: Soroban Integration (Priority #1)
+Pillar 1: Soroban Deep Integration (Months 1-6)
 ├── Month 1-2: Basic static analysis for Rust contracts
-├── Month 3-4: Dynamic + symbolic for Soroban
+├── Month 3-4: Dynamic + formal verification for Soroban
 └── Month 5-6: Full 6-layer support + validation
 
-Pillar 2: Enhanced Rust Tooling
+Pillar 2: Rust Security Tooling
 ├── cargo-audit, cargo-clippy, cargo-geiger (static)
-├── MIRI, Kani (symbolic/formal for Rust)
-└── Soroban-specific property testing
+├── MIRI, Prusti, Kani (formal verification)
+└── Soroban-specific pattern detection
 
-Pillar 3: New Analysis Layers (Optional)
-├── Layer 7: Network-level analysis (MEV, front-running)
-├── Layer 8: Economic attack modeling
-└── Layer 9: Cross-contract dependency analysis
+Pillar 3: Academic Research Output
+├── Dataset: 1,000+ Soroban contracts analyzed
+├── Paper: "First Comprehensive Security Framework for Stellar Soroban"
+└── Thesis: Dual-chain security analysis (Ethereum + Soroban)
 
-Pillar 4: Academic Research Output
-├── Dataset: 2,000+ Soroban contracts
-├── Paper: Multi-chain security framework comparison
-└── Thesis: Extended to multi-chain scope
+Pillar 4: Production Readiness
+├── Documentation and tutorials
+├── CI/CD integration examples
+└── Partnership with Stellar Foundation
 ```
 
 ---
@@ -404,33 +404,26 @@ Pillar 4: Academic Research Output
 
 ---
 
-### Month 4 (February 2026): Solana Exploration & Layer 7
+### Month 4 (February 2026): Advanced Rust Verification & Kani
 
 **Goals:**
-- ✅ Begin Solana (Anchor) integration research
-- ✅ Add Layer 7: Network-level analysis
-- ✅ Implement Kani model checker
+- ✅ Implement Kani model checker for Soroban
+- ✅ Deep dive into Soroban-specific vulnerabilities
+- ✅ Expand Soroban pattern detection library
 
 **Tasks:**
 
-**Week 1-2: Solana Research**
-- [ ] Study Solana architecture:
-  - Anchor framework (Rust)
-  - Program Derived Addresses (PDAs)
-  - Cross-Program Invocations (CPIs)
-  - Sysvar access patterns
+**Week 1-2: Soroban Vulnerability Research**
+- [ ] Study real Soroban exploits and incidents
+- [ ] Analyze Soroban-specific vulnerability patterns:
+  - Authorization bypass patterns
+  - Storage type misuse (Persistent vs Temporary vs Instance)
+  - Token standard violations (SEP-41)
+  - Cross-contract invocation issues
+  - Stellar-specific economic attacks
 
-- [ ] Collect Solana vulnerability patterns:
-  - Missing signer checks
-  - Account validation bypasses
-  - PDA seed collision
-  - Arithmetic overflow (Solana doesn't have checked math by default!)
-  - Reentrancy (yes, Solana has this too via CPIs)
-
-- [ ] Evaluate tools:
-  - **Anchor's built-in analyzer**
-  - **Soteria** (Solana security scanner)
-  - **cargo-fuzz** (works for Solana)
+- [ ] Build comprehensive Soroban vulnerability taxonomy
+- [ ] Document case studies from existing Soroban projects
 
 **Week 3: Kani Integration**
 - [ ] **Kani** (Rust model checker from AWS):
@@ -454,154 +447,73 @@ Pillar 4: Academic Research Output
   }
   ```
 
-**Week 4: Layer 7 Design - Network-Level Analysis**
-- [ ] **New Layer**: Network/MEV Analysis
-  - **Purpose**: Detect network-level attack vectors
-  - **Techniques**:
-    - MEV (Maximal Extractable Value) detection
-    - Front-running vulnerability analysis
-    - Sandwich attack susceptibility
-    - Flash loan attack patterns
-
-- [ ] Tools to integrate:
-  - **Flashbots MEV-Inspect** (Ethereum)
-  - **Jito MEV Dashboard** (Solana)
-  - Custom pattern matching for vulnerable TX sequences
-
-- [ ] Create `NetworkAgent`:
-  ```python
-  class NetworkAgent(BaseAgent):
-      """
-      Layer 7: Network-level attack detection
-
-      Detects:
-      - MEV opportunities (front-running, back-running, sandwich)
-      - Flash loan exploitability
-      - Price oracle manipulation
-      - Cross-contract attack chains
-      """
-
-      def analyze(self, contract_path: str):
-          # Analyze transaction ordering dependencies
-          mev_vulns = self.detect_mev_vulnerabilities(contract_path)
-
-          # Check flash loan attack surface
-          flash_loan_vulns = self.detect_flash_loan_risks(contract_path)
-
-          # Analyze oracle dependencies
-          oracle_vulns = self.check_oracle_manipulation(contract_path)
-
-          return {
-              "mev": mev_vulns,
-              "flash_loans": flash_loan_vulns,
-              "oracles": oracle_vulns
-          }
-  ```
+**Week 4: Soroban Property Testing**
+- [ ] Implement property-based testing for Soroban contracts
+- [ ] Create Soroban-specific test harnesses
+- [ ] Integration with soroban-cli test framework
+- [ ] Fuzzing integration for Soroban (cargo-fuzz)
 
 **Deliverables:**
-- ✅ Solana integration plan documented
-- ✅ Kani model checker integrated
-- ✅ Layer 7 (NetworkAgent) implemented
-- ✅ Technical report: "Network-Level Smart Contract Attacks"
+- ✅ Kani model checker integrated for Soroban
+- ✅ Soroban vulnerability taxonomy published
+- ✅ Advanced pattern detection library
+- ✅ Technical report: "Security Patterns in Stellar Soroban Contracts"
 
 **Effort:** 70-90 hours
 
 ---
 
-### Month 5 (March 2026): Full Multi-Chain Support
+### Month 5 (March 2026): Dual-Chain Optimization & Comparison
 
 **Goals:**
-- ✅ Solana (Anchor) basic support
-- ✅ Chain abstraction layer
-- ✅ Cross-chain vulnerability comparison
+- ✅ Optimize Ethereum + Soroban integration
+- ✅ Cross-language vulnerability comparison (Solidity vs Rust)
+- ✅ Performance optimization for dual-chain analysis
 
 **Tasks:**
 
-**Week 1-2: Chain Abstraction**
-- [ ] Design chain-agnostic interface:
-  ```python
-  class ChainAdapter(ABC):
-      """
-      Abstract base class for blockchain-specific adapters
+**Week 1-2: Performance Optimization**
+- [ ] Optimize Soroban analysis pipeline:
+  - Parallel tool execution
+  - Caching of intermediate results
+  - Incremental analysis for CI/CD
 
-      Each chain (Ethereum, Soroban, Solana) implements this
-      """
+- [ ] Benchmark Ethereum vs Soroban analysis:
+  - Execution time comparison
+  - Memory usage profiling
+  - Tool effectiveness per chain
 
-      @abstractmethod
-      def compile_contract(self, source_path: str) -> bytes:
-          """Compile contract to bytecode/WASM"""
-          pass
-
-      @abstractmethod
-      def deploy_to_testnet(self, bytecode: bytes) -> str:
-          """Deploy for testing, return address"""
-          pass
-
-      @abstractmethod
-      def get_vulnerabilities_taxonomy(self) -> dict:
-          """Chain-specific vulnerability patterns"""
-          pass
-
-      @abstractmethod
-      def run_native_tests(self, contract_path: str) -> dict:
-          """Run chain's native test framework"""
-          pass
-  ```
-
-- [ ] Implement adapters:
-  ```python
-  class EthereumAdapter(ChainAdapter):
-      def compile_contract(self, source_path: str):
-          # Use solc
-          pass
-
-  class SorobanAdapter(ChainAdapter):
-      def compile_contract(self, source_path: str):
-          # Use cargo build --target wasm32-unknown-unknown
-          pass
-
-  class SolanaAdapter(ChainAdapter):
-      def compile_contract(self, source_path: str):
-          # Use anchor build
-          pass
-  ```
-
-**Week 3: Solana Basic Integration**
-- [ ] **SolanaAgent** (Layer 1):
-  - cargo-audit (dependencies)
-  - cargo-clippy (linting)
-  - **Soteria** (Solana-specific patterns)
-
-- [ ] Install Soteria:
-  ```bash
-  cargo install soteria
-  ```
-
-- [ ] Test on Anchor programs from:
-  - Anchor examples repo
-  - Solana Program Library (SPL)
-  - DeFi projects (Mango, Jet, etc.)
-
-**Week 4: Cross-Chain Analysis**
-- [ ] Research question: **"Are Rust contracts (Soroban/Solana) more secure than Solidity?"**
+**Week 3: Cross-Language Comparison Study**
+- [ ] Research question: **"Are Rust Soroban contracts more secure than Solidity?"**
 
 - [ ] Methodology:
-  1. Analyze 200 Soroban + 200 Solana + 200 matched Ethereum contracts
+  1. Analyze 300 Soroban + 300 matched Ethereum contracts
   2. Compare vulnerability types found
   3. Measure false positive rates per chain
   4. Statistical analysis (Mann-Whitney U test)
 
-- [ ] Create comparison dashboard:
+- [ ] Create comparison report:
   - Vulnerability frequency by chain
-  - Severity distribution
-  - Tool effectiveness per chain
-  - Time to analyze
+  - Severity distribution by language
+  - Memory safety differences
+  - Common patterns in each ecosystem
+
+**Week 4: Integration Polish**
+- [ ] Unified CLI for both chains:
+  ```bash
+  miesc audit --chain ethereum contract.sol
+  miesc audit --chain soroban contract/
+  miesc compare contract.sol soroban-contract/
+  ```
+
+- [ ] Cross-chain report generation
+- [ ] Documentation for dual-chain usage
 
 **Deliverables:**
-- ✅ Chain abstraction layer
-- ✅ Solana basic support
-- ✅ Cross-chain comparison report
-- ✅ GitHub release: v3.0-rc1 (Multi-Chain Beta)
+- ✅ Optimized dual-chain analysis
+- ✅ Solidity vs Rust comparison study
+- ✅ Unified CLI interface
+- ✅ GitHub release: v2.5-beta (Soroban Integration)
 
 **Effort:** 80-100 hours
 
@@ -617,21 +529,17 @@ Pillar 4: Academic Research Output
 **Tasks:**
 
 **Week 1: Dataset Collection**
-- [ ] **Ethereum**: 1,000 contracts (existing)
-- [ ] **Soroban**: 500 contracts (new)
+- [ ] **Ethereum**: 1,000 contracts (existing dataset)
+- [ ] **Soroban**: 1,000 contracts (new)
   - SorobanHub registry
   - Stellar Quest submissions
   - SCF-funded projects
-  - Manual collection from GitHub
-
-- [ ] **Solana**: 500 contracts (new)
-  - Solana Program Library
-  - Top DeFi protocols
-  - NFT marketplaces
-  - Hackathon submissions
+  - GitHub projects using soroban-sdk
+  - Official Soroban examples
+  - Community DeFi protocols
 
 **Week 2-3: Validation Experiments**
-- [ ] Run MIESC on all 2,000 contracts
+- [ ] Run MIESC on all 2,000 contracts (1,000 Eth + 1,000 Soroban)
 - [ ] Measure:
   - **Precision** (% of reported issues that are real)
   - **Recall** (% of real vulnerabilities found)
@@ -641,16 +549,15 @@ Pillar 4: Academic Research Output
   - **Tool agreement** (Cohen's Kappa)
 
 - [ ] Expert validation:
-  - Manually audit 100 contracts (20 Eth + 40 Soroban + 40 Solana)
+  - Manually audit 100 contracts (50 Ethereum + 50 Soroban)
   - Compare with MIESC findings
-  - Document disagreements
+  - Document disagreements and edge cases
 
 - [ ] Statistical analysis:
   ```python
-  # Compare Solidity vs Rust security
+  # Compare Solidity vs Rust (Soroban) security
   solidity_vulns = vulnerabilities_by_chain('ethereum')
   soroban_vulns = vulnerabilities_by_chain('soroban')
-  solana_vulns = vulnerabilities_by_chain('solana')
 
   # Mann-Whitney U test
   statistic, p_value = mannwhitneyu(solidity_vulns, soroban_vulns)
@@ -661,16 +568,16 @@ Pillar 4: Academic Research Output
 
 **Week 4: Thesis Writing**
 - [ ] Add new chapter to thesis:
-  - **Chapter: Multi-Chain Security Analysis**
+  - **Chapter: Dual-Chain Security Analysis - Ethereum & Stellar Soroban**
   - Sections:
-    1. Motivation (why multi-chain matters)
-    2. Soroban/Stellar architecture
-    3. Solana/Anchor architecture
-    4. Tool adaptations for Rust
-    5. Empirical evaluation (2,000 contracts)
-    6. Cross-chain vulnerability taxonomy
-    7. Findings: Is Rust safer than Solidity?
-    8. Implications for future blockchain security
+    1. Motivation (why Soroban matters)
+    2. Stellar Soroban architecture deep dive
+    3. Rust vs Solidity: Language-level security differences
+    4. Tool adaptations for Rust smart contracts
+    5. Empirical evaluation (2,000 contracts: 1,000 Eth + 1,000 Soroban)
+    6. Vulnerability taxonomy: Solidity vs Rust patterns
+    7. Findings: Is Rust Soroban safer than Solidity?
+    8. Implications and future work (Solana, Move, etc.)
 
 - [ ] Update existing chapters:
   - Expand "Architecture" chapter with ChainAdapter
@@ -679,27 +586,29 @@ Pillar 4: Academic Research Output
 
 **Week 5: Release Preparation**
 - [ ] Documentation:
-  - Update README with Soroban/Solana examples
-  - Write migration guide (v2.2 → v3.0)
-  - Create video tutorials (YouTube)
+  - Update README with Soroban examples
+  - Write migration guide (v2.2 → v2.5)
+  - Create video tutorials for Soroban analysis
+  - Soroban quick start guide
 
 - [ ] Marketing:
-  - Blog post: "MIESC v3.0: The First Multi-Chain Security Framework"
-  - Reddit: r/stellar, r/solana, r/ethereum
-  - Twitter announcement
-  - Hacker News post
+  - Blog post: "MIESC v2.5: First Comprehensive Security Framework for Stellar Soroban"
+  - Reddit: r/stellar, r/Stellar, r/ethereum
+  - Twitter/X announcement with demos
+  - Hacker News "Show HN" post
+  - Stellar Community Forum announcement
 
 - [ ] Partnerships:
-  - Reach out to Stellar Foundation
-  - Contact Solana Foundation
-  - Submit to Stellar Community Fund
-  - Apply for Solana Grants
+  - **Stellar Foundation**: Present findings, request grant
+  - Submit to **Stellar Community Fund (SCF)**
+  - Reach out to major Soroban projects (Soroswap, etc.)
+  - Academic collaboration: ETH Zurich (Viper/Prusti team)
 
 **Deliverables:**
-- ✅ 2,000-contract validation complete
+- ✅ 2,000-contract validation complete (1,000 Eth + 1,000 Soroban)
 - ✅ Thesis chapter finished
-- ✅ v3.0 public release
-- ✅ Academic paper submitted (IEEE S&P or USENIX Security)
+- ✅ v2.5 public release (Ethereum + Soroban)
+- ✅ Academic paper submitted: "First Security Framework for Stellar Soroban"
 
 **Effort:** 100-120 hours
 
@@ -1151,19 +1060,19 @@ As an AI expert in software security and smart contracts, here's **my honest rec
 
 **ROI:** Medium-high. Useful for production contracts.
 
-#### Priority 4: Solana Basic Support (Month 5)
+#### Priority 4: Performance & Optimization (Month 5)
 
 **Why:**
-- **Largest Rust smart contract ecosystem** (after Ethereum).
-- **Completes the "Rust ecosystem" story**.
-- **Expands addressable market** significantly.
+- **Production readiness** requires optimization.
+- **Fast analysis** = better CI/CD integration.
+- **Benchmarking** proves value proposition.
 
 **How:**
-- Chain abstraction layer - 40 hours
-- Solana adapter + Soteria integration - 40 hours
-- Test on 200 Anchor programs - 20 hours
+- Parallel execution optimization - 30 hours
+- Caching and incremental analysis - 30 hours
+- Benchmarking and profiling - 20 hours
 
-**ROI:** Medium. Broadens reach but less urgent than Soroban.
+**ROI:** High. Makes tool practical for real-world use.
 
 #### Priority 5: Full Validation & Thesis (Month 6)
 
@@ -1248,15 +1157,15 @@ If I were building this, I'd use:
 
 ### Metrics to Track (For Success)
 
-| Metric | Current (v2.2) | Target (v3.0) |
+| Metric | Current (v2.2) | Target (v2.5) |
 |--------|---------------|---------------|
-| **Stars on GitHub** | ~50 | 500+ |
-| **Contracts analyzed (total)** | 5,127 | 10,000+ |
-| **Tool integrations** | 15 | 25+ |
-| **Chains supported** | 1 (Ethereum) | 3 (Eth + Soroban + Solana) |
-| **Paper citations** | 0 (not published) | 5+ |
-| **Community contributors** | 1 (you) | 5+ |
-| **Production usage** | Unknown | 10+ protocols |
+| **Stars on GitHub** | ~50 | 300+ |
+| **Contracts analyzed (total)** | 5,127 | 7,000+ |
+| **Tool integrations** | 15 | 21+ |
+| **Chains supported** | 1 (Ethereum) | 2 (Ethereum + Soroban) |
+| **Paper citations** | 0 (not published) | 3+ |
+| **Community contributors** | 1 | 3-5 |
+| **Soroban projects using MIESC** | 0 | 5+ |
 
 ---
 
@@ -1366,16 +1275,17 @@ If I were building this, I'd use:
 
 ### Quantitative Metrics
 
-| Metric | Baseline (v2.2) | Target (v3.0) | Stretch Goal |
+| Metric | Baseline (v2.2) | Target (v2.5) | Stretch Goal |
 |--------|-----------------|---------------|--------------|
-| **Contracts analyzed** | 5,127 | 7,000 | 10,000 |
-| **Chains supported** | 1 | 2 (Eth + Soroban) | 3 (+ Solana) |
-| **Tools integrated** | 15 | 20 | 25 |
-| **Agents implemented** | 11 | 13 | 15 |
-| **Test coverage** | 85% | 90% | 95% |
-| **GitHub stars** | 50 | 200 | 500 |
-| **Academic citations** | 0 | 3 | 10 |
-| **Production users** | 0 | 3 | 10 |
+| **Contracts analyzed** | 5,127 | 6,500 | 7,500 |
+| **Chains supported** | 1 (Ethereum) | 2 (Eth + Soroban) | 2 (deep integration) |
+| **Tools integrated** | 15 | 21 | 23 |
+| **Agents implemented** | 11 | 13 | 14 |
+| **Soroban tools** | 0 | 6 | 8 |
+| **Test coverage** | 85% | 90% | 93% |
+| **GitHub stars** | 50 | 200 | 400 |
+| **Academic citations** | 0 | 2 | 5 |
+| **Soroban projects** | 0 | 5 | 10 |
 
 ### Qualitative Metrics
 
@@ -1389,12 +1299,12 @@ If I were building this, I'd use:
 
 ### Milestone Checklist
 
-- [ ] Month 1: ✅ 50 Soroban contracts analyzed
+- [ ] Month 1: ✅ 50 Soroban contracts analyzed successfully
 - [ ] Month 2: ✅ 200 Soroban contracts validated
-- [ ] Month 3: ✅ arXiv pre-print published
-- [ ] Month 4: ✅ Layer 7 (MEV) demonstrated on real exploit
-- [ ] Month 5: ✅ Multi-chain comparison report
-- [ ] Month 6: ✅ v3.0 public release + thesis chapter complete
+- [ ] Month 3: ✅ arXiv pre-print published (Soroban security)
+- [ ] Month 4: ✅ Kani model checker integrated + Soroban taxonomy
+- [ ] Month 5: ✅ Solidity vs Rust comparison study complete
+- [ ] Month 6: ✅ v2.5 public release + 1,000 Soroban contracts tested
 
 ---
 
@@ -1479,51 +1389,52 @@ If I were building this, I'd use:
 
 ### Enhanced Thesis Scope
 
-**After** (v3.0):
-- Title: "Multi-Chain Security Assessment Framework: A Comparative Analysis of Solidity and Rust Smart Contracts"
-- Scope: Ethereum + Stellar + Solana
+**After** (v2.5):
+- Title: "Dual-Chain Security Assessment Framework: A Comparative Analysis of Solidity and Rust (Soroban) Smart Contracts"
+- Scope: Ethereum + Stellar Soroban (focused depth)
 - Contribution:
   1. MCP architecture (same)
   2. 6-layer defense-in-depth (same)
-  3. **NEW**: Chain-agnostic abstraction layer
-  4. **NEW**: Cross-chain vulnerability taxonomy
+  3. **NEW**: Rust smart contract security tooling
+  4. **NEW**: Soroban-specific vulnerability taxonomy
   5. **NEW**: Empirical comparison: Solidity vs Rust security
+  6. **NEW**: First academic framework for Stellar Soroban
 
-- Validation: 7,000+ contracts across 2-3 chains
+- Validation: 6,500+ contracts across 2 chains (deep analysis)
 
 ### Research Questions (Expanded)
 
 **RQ6** (New): *Can the same defense-in-depth architecture work across different blockchain platforms?*
 - ✅ **Yes**. Chain abstraction layer enables tool reuse.
 
-**RQ7** (New): *Are Rust-based smart contracts more secure than Solidity?*
-- 🔬 **To be determined**. Will compare vulnerability rates.
+**RQ7** (New): *Are Rust Soroban contracts more secure than Solidity contracts?*
+- 🔬 **To be determined**. Will compare vulnerability rates on 1,000 Soroban vs 1,000 Solidity contracts.
 
 **RQ8** (New): *Do Rust's formal verification tools (Prusti, MIRI, Kani) reduce vulnerabilities in practice?*
 - 🔬 **To be determined**. Measure contracts with specs vs without.
 
 ### Publications Plan
 
-1. **Conference paper** (IEEE S&P 2027):
-   - Title: "MIESC: A Multi-Chain Security Framework for Smart Contracts"
-   - Focus: Architecture + multi-chain validation
+1. **Conference paper** (IEEE S&P 2027 or USENIX Security 2027):
+   - Title: "MIESC: First Comprehensive Security Framework for Stellar Soroban"
+   - Focus: Soroban architecture + Rust tooling + 1,000 contracts validation
    - Timeline: Submit Jan 2026, decision May 2026
 
 2. **Journal paper** (IEEE TSE or ACM TOSEM):
-   - Title: "Solidity vs Rust: An Empirical Study of Smart Contract Security"
-   - Focus: Cross-language vulnerability comparison
+   - Title: "Solidity vs Rust Soroban: An Empirical Security Comparison"
+   - Focus: Language-level differences + empirical study
    - Timeline: Submit Jun 2026, decision Dec 2026
 
-3. **Workshop paper** (WETSEB @ ICSE):
-   - Title: "Formal Verification of Rust Smart Contracts in Practice"
-   - Focus: Prusti/MIRI/Kani case studies
+3. **Workshop paper** (Financial Cryptography 2026):
+   - Title: "Security Tooling for Stellar Soroban Smart Contracts"
+   - Focus: Practical tool integration (Prusti/MIRI/Kani)
    - Timeline: Submit Feb 2026, decision Apr 2026
 
 ---
 
 ## 🏁 Conclusion
 
-This 6-month roadmap transforms MIESC from an Ethereum-focused tool into a **pioneering multi-chain security framework** with first-class Rust support.
+This 6-month roadmap transforms MIESC from an Ethereum-only tool into the **first comprehensive dual-chain security framework** with deep Stellar Soroban integration.
 
 ### Key Takeaways
 
@@ -1533,7 +1444,7 @@ This 6-month roadmap transforms MIESC from an Ethereum-focused tool into a **pio
 
 ✅ **First-mover advantage** in Soroban/Rust security
 
-✅ **Modular plan** (can cut Solana if needed)
+✅ **Focused scope** (Soroban mastery before expanding)
 
 ✅ **Clear milestones** every month
 
@@ -1541,14 +1452,15 @@ This 6-month roadmap transforms MIESC from an Ethereum-focused tool into a **pio
 
 **If you execute this plan, by April 2026 you will have:**
 
-1. ✅ The **only** comprehensive Soroban security framework
-2. ✅ A **thesis contribution** that spans multiple blockchains
-3. ✅ **Published research** (at minimum arXiv, possibly IEEE)
-4. ✅ A tool used by **real protocols** in production
-5. ✅ **Partnerships** with Stellar and/or Solana foundations
-6. ✅ A **strong resume** for academic or industry positions
+1. ✅ The **only** comprehensive academic Soroban security framework
+2. ✅ A **thesis contribution** comparing Ethereum and Soroban security
+3. ✅ **Published research** on Rust smart contract security
+4. ✅ **1,000 Soroban contracts** validated empirically
+5. ✅ **Partnership** with Stellar Foundation (likely SCF grant)
+6. ✅ A tool used by **real Soroban projects** in production
+7. ✅ **Strong positioning** for Solana/Move expansion (v3.0)
 
-**My recommendation**: **Do it.** The Soroban opportunity alone is worth it.
+**Recommendation**: Focus deeply on Soroban. Master one Rust ecosystem before spreading thin across multiple chains.
 
 ---
 
