@@ -711,6 +711,28 @@ section {
   background: var(--glass-hover);
 }
 
+.metric-card.metric-highlight {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+  border: 2px solid var(--color-primary-light);
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
+}
+
+.metric-card.metric-highlight:hover {
+  box-shadow: 0 0 30px rgba(102, 126, 234, 0.4);
+  transform: translateY(-8px) scale(1.05);
+}
+
+.metric-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--spacing-md);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
 .metric-value {
   font-size: 2.5rem;
   font-weight: 800;
@@ -719,6 +741,14 @@ section {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: var(--spacing-sm);
+}
+
+.metric-highlight .metric-value {
+  font-size: 3rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .metric-label {
@@ -1534,3 +1564,58 @@ section {
 
 .hidden { display: none; }
 .visible { display: block; }
+
+/* ============================================
+   BLOCKCHAIN BADGES
+   ============================================ */
+.blockchain-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  justify-content: center;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .blockchain-badges {
+    justify-content: flex-start;
+  }
+}
+
+.chain-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 0.5rem 1rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  transition: all var(--transition-base);
+  backdrop-filter: blur(10px);
+}
+
+.chain-badge:hover {
+  transform: translateY(-2px);
+  background: var(--glass-hover);
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-md);
+}
+
+/* Enhanced gradient for text */
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(10deg); }
+}
