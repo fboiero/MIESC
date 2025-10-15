@@ -1520,28 +1520,207 @@ section {
    ============================================ */
 @media (max-width: 768px) {
   .hero-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
+    line-height: 1.2;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
   }
 
   .section-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
+  }
+
+  .section-subtitle {
+    font-size: 1rem;
   }
 
   .hero-buttons {
     flex-direction: column;
+    width: 100%;
   }
 
   .btn-large {
     width: 100%;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.25rem;
   }
 
+  /* Blockchain badges - stack on mobile */
+  .blockchain-badges {
+    justify-content: center;
+  }
+
+  .chain-badge {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  /* Metrics - 1 column on mobile for better readability */
   .metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
   }
 
+  .metric-card {
+    padding: var(--spacing-lg);
+  }
+
+  .metric-value {
+    font-size: 2rem;
+  }
+
+  .metric-highlight .metric-value {
+    font-size: 2.5rem;
+  }
+
+  .metric-icon {
+    font-size: 2rem;
+  }
+
+  /* Features and tools - 1 column */
   .features-grid,
   .tools-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* Terminal - better mobile display */
+  .terminal-body {
+    padding: var(--spacing-md);
+    font-size: 0.75rem;
+    min-height: 250px;
+  }
+
+  .terminal-window {
+    margin-top: var(--spacing-xl);
+  }
+
+  /* Code snippets - allow horizontal scroll */
+  .code-snippet pre code,
+  .code-block pre code {
+    font-size: 0.75rem;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  /* Example grid - stack on mobile */
+  .example-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .example-code,
+  .example-result {
+    font-size: 0.85rem;
+  }
+
+  /* Architecture diagram - better mobile spacing */
+  .architecture-diagram {
+    padding: var(--spacing-lg);
+  }
+
+  .arch-layers-row {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+
+  /* Workflow steps - stack on mobile */
+  .workflow-steps {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+
+  /* Research grid - 1 column */
+  .research-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Docs grid - 1 column */
+  .docs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Reduce section padding on mobile */
+  section {
+    padding: var(--spacing-2xl) 0;
+  }
+
+  /* Hero section - reduce padding */
+  .hero {
+    padding: var(--spacing-2xl) 0;
+  }
+
+  .hero .container {
+    gap: var(--spacing-xl);
+  }
+
+  /* Badges - smaller on mobile */
+  .badges {
+    justify-content: center;
+  }
+
+  .badges img {
+    height: 18px;
+  }
+
+  /* Footer - better mobile layout */
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xl);
+  }
+}
+
+/* Extra small devices (phones in portrait) */
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 1.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .chain-badge {
+    font-size: 0.7rem;
+    padding: 0.35rem 0.6rem;
+  }
+
+  .metric-value {
+    font-size: 1.75rem;
+  }
+
+  .metric-highlight .metric-value {
+    font-size: 2.25rem;
+  }
+
+  .btn-large {
+    font-size: 0.9rem;
+    padding: 0.65rem 1rem;
+  }
+
+  /* Container padding adjustment */
+  .container {
+    padding: 0 var(--spacing-md);
+  }
+
+  /* Terminal adjustments */
+  .terminal-body {
+    font-size: 0.7rem;
+    padding: var(--spacing-sm);
+  }
+
+  /* Code blocks */
+  .code-snippet pre code,
+  .code-block pre code {
+    font-size: 0.7rem;
   }
 }
 
@@ -1618,4 +1797,292 @@ section {
 @keyframes gradient-shift {
   0%, 100% { filter: hue-rotate(0deg); }
   50% { filter: hue-rotate(10deg); }
+}
+
+/* ============================================
+   SMOOTH ANIMATIONS & TRANSITIONS
+   ============================================ */
+
+/* Fade in on scroll animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Slide in from left */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Glow pulse for important elements */
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(102, 126, 234, 0.6);
+  }
+}
+
+/* Scale in animation */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Apply animations to elements */
+.hero-content {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.hero-visual {
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.metric-card {
+  animation: scaleIn 0.5s ease-out both;
+}
+
+.metric-card:nth-child(1) { animation-delay: 0.1s; }
+.metric-card:nth-child(2) { animation-delay: 0.2s; }
+.metric-card:nth-child(3) { animation-delay: 0.3s; }
+.metric-card:nth-child(4) { animation-delay: 0.4s; }
+.metric-card:nth-child(5) { animation-delay: 0.5s; }
+.metric-card:nth-child(6) { animation-delay: 0.6s; }
+
+.feature-card {
+  transition: all var(--transition-base);
+}
+
+.feature-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
+}
+
+.tool-card {
+  transition: all var(--transition-base);
+}
+
+.tool-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: var(--shadow-xl);
+}
+
+.doc-card {
+  transition: all var(--transition-base);
+}
+
+.doc-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Button hover effects */
+.btn {
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-base);
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-primary:hover,
+.btn-secondary:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Navigation link active indicator animation */
+.nav-links a::after {
+  transition: width var(--transition-base) ease;
+}
+
+/* Chain badge hover animation */
+.chain-badge {
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.chain-badge:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Terminal typing effect for scan lines */
+.scan-line {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Code block smooth reveal */
+.code-snippet,
+.code-block {
+  transition: all var(--transition-base);
+}
+
+.code-snippet:hover,
+.code-block:hover {
+  box-shadow: var(--shadow-xl);
+}
+
+/* Metric icon pulse */
+.metric-icon {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Architecture layer hover effects */
+.arch-layer {
+  transition: all var(--transition-base);
+}
+
+.arch-layer:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.arch-layer-card {
+  transition: all var(--transition-base);
+}
+
+.arch-layer-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Research card hover */
+.research-card {
+  transition: all var(--transition-base);
+}
+
+.research-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Smooth color transitions for severity badges */
+.severity-badge {
+  transition: all var(--transition-fast);
+}
+
+.severity-badge.critical {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* Tab button smooth transition */
+.tab-btn {
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--color-primary);
+  transition: width var(--transition-base);
+}
+
+.tab-btn.active::after {
+  width: 100%;
+}
+
+/* Copy button feedback animation */
+.copy-btn {
+  transition: all var(--transition-fast);
+}
+
+.copy-btn.copied {
+  animation: scaleIn 0.3s ease-out;
+}
+
+/* Link hover underline animation */
+a {
+  position: relative;
+  transition: color var(--transition-fast);
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .metric-icon,
+  .severity-badge.critical,
+  .gradient-text {
+    animation: none !important;
+  }
 }
