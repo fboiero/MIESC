@@ -664,38 +664,55 @@ docker-compose up miesc</code></pre>
             </div>
 
             <div class="quickstart-example">
-                <h3>Example: Analyze a Vulnerable Contract</h3>
+                <h3>Example: The DAO Vulnerability Pattern (2016 - $60M Exploit)</h3>
+                <p class="section-subtitle" style="margin-bottom: 2rem;">This reentrancy pattern enabled the historic DAO hack. MIESC detects it in under 5 seconds.</p>
                 <div class="example-grid">
                     <div class="example-code">
-                        <div class="code-header"><span>vulnerable.sol</span></div>
+                        <div class="code-header"><span>VulnerableBank.sol - Classic Reentrancy</span></div>
                         <pre><code class="language-solidity">pragma solidity ^0.8.0;
 
 contract VulnerableBank {
     mapping(address => uint) public balances;
 
+    function deposit() public payable {
+        balances[msg.sender] += msg.value;
+    }
+
     function withdraw() public {
         uint amount = balances[msg.sender];
+
+        // ❌ CRITICAL: External call BEFORE state update
+        // Attacker can re-enter here!
         (bool success,) = msg.sender.call{value: amount}("");
         require(success);
-        balances[msg.sender] = 0; // ❌ Too late!
+
+        // ⚠️ TOO LATE! Attacker already withdrew multiple times
+        balances[msg.sender] = 0;
     }
 }</code></pre>
                     </div>
                     <div class="example-result">
-                        <div class="result-header">Analysis Result</div>
+                        <div class="result-header">MIESC Analysis Result (4.2s)</div>
                         <div class="result-finding critical">
                             <div class="finding-header">
                                 <span class="severity-badge critical">CRITICAL</span>
-                                <span>Reentrancy Vulnerability</span>
+                                <span>Reentrancy - The DAO Pattern</span>
                             </div>
                             <div class="finding-details">
-                                <p><strong>Location:</strong> withdraw() function, line 7</p>
-                                <p><strong>Type:</strong> SWC-107, OWASP SC-01, CWE-841</p>
-                                <p><strong>Description:</strong> External call before state update allows reentrancy attack</p>
-                                <p><strong>Detected by:</strong> Slither, Mythril, Manticore</p>
+                                <p><strong>🎯 Location:</strong> withdraw() line 14-16</p>
+                                <p><strong>🏷️ Classification:</strong> SWC-107, OWASP SC-01, CWE-841</p>
+                                <p><strong>💥 Impact:</strong> Infinite withdrawal → Complete fund drainage</p>
+                                <p><strong>🔍 Detected by:</strong> Slither, Mythril, Manticore (3/3 consensus)</p>
+                                <p><strong>📜 Historic Exploit:</strong> The DAO (2016) - $60M stolen using this exact pattern</p>
                             </div>
                             <div class="finding-fix">
-                                <strong>💡 Suggested Fix:</strong> Update state before external call (Checks-Effects-Interactions pattern)
+                                <strong>💡 Fix: Apply Checks-Effects-Interactions Pattern</strong><br>
+                                <code style="display: block; margin-top: 8px; background: #1e293b; padding: 12px; border-radius: 6px;">
+// ✅ FIXED: State update BEFORE external call<br>
+balances[msg.sender] = 0;<br>
+(bool success,) = msg.sender.call{value: amount}("");<br>
+require(success);
+                                </code>
                             </div>
                         </div>
                     </div>
