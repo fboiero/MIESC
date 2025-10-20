@@ -240,9 +240,14 @@ if __name__ == "__main__":
     logger.info("API Documentation: http://localhost:8000/docs")
     logger.info("MCP Capabilities: http://localhost:8000/mcp/capabilities")
 
+    # Secure default: bind to localhost only (use MIESC_HOST env var to override)
+    # For Docker/production: set MIESC_HOST=0.0.0.0 explicitly
+    host = os.getenv("MIESC_HOST", "127.0.0.1")
+    port = int(os.getenv("MIESC_PORT", "8000"))
+
     uvicorn.run(
         app,
-        host="0.0.0.0",
-        port=8000,
+        host=host,
+        port=port,
         log_level="info"
     )

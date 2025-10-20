@@ -262,54 +262,79 @@ def analyze_contract(
     Returns:
         Dictionary containing analysis results with findings
     """
-    # Determine if code is a file path or actual code
-    if os.path.isfile(contract_code):
-        contract_path = contract_code
-    else:
-        # Write code to temporary file
-        import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.sol', delete=False) as f:
-            f.write(contract_code)
-            contract_path = f.name
+    try:
+        # Determine if code is a file path or actual code
+        if os.path.isfile(contract_code):
+            contract_path = contract_code
+        else:
+            # Write code to temporary file
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.sol', delete=False) as f:
+                f.write(contract_code)
+                contract_path = f.name
 
-    executor = ToolExecutor(timeout=timeout)
+        executor = ToolExecutor(timeout=timeout)
 
-    # Execute requested analysis
-    all_results = []
+        # Execute requested analysis
+        all_results = []
 
-    if analysis_type == "all":
-        tools = list(executor.supported_tools.keys())
-    else:
-        tools = [analysis_type]
+        if analysis_type == "all":
+            tools = list(executor.supported_tools.keys())
+        else:
+            tools = [analysis_type]
 
-    for tool in tools:
-        results = executor.execute_tool(tool, contract_path)
-        all_results.extend(results)
+        for tool in tools:
+            results = executor.execute_tool(tool, contract_path)
+            all_results.extend(results)
 
-    # Aggregate results
-    analysis_output = {
-        "timestamp": datetime.now().isoformat(),
-        "contract": contract_path,
-        "tools_executed": tools,
-        "total_findings": len(all_results),
-        "findings_by_severity": {
-            "critical": len([r for r in all_results if r.severity == "Critical"]),
-            "high": len([r for r in all_results if r.severity == "High"]),
-            "medium": len([r for r in all_results if r.severity == "Medium"]),
-            "low": len([r for r in all_results if r.severity == "Low"]),
-        },
-        "findings": [r.to_dict() for r in all_results],
-        "context": "MIESC static/dynamic analysis"
-    }
+        # Aggregate results
+        analysis_output = {
+            "timestamp": datetime.now().isoformat(),
+            "contract": contract_path,
+            "tools_executed": tools,
+            "total_findings": len(all_results),
+            "findings_by_severity": {
+                "critical": len([r for r in all_results if r.severity == "Critical"]),
+                "high": len([r for r in all_results if r.severity == "High"]),
+                "medium": len([r for r in all_results if r.severity == "Medium"]),
+                "low": len([r for r in all_results if r.severity == "Low"]),
+            },
+            "findings": [r.to_dict() for r in all_results],
+            "context": "MIESC static/dynamic analysis"
+        }
 
-    # Clean up temporary file if created
-    if not os.path.isfile(contract_code):
-        try:
-            os.unlink(contract_path)
-        except:
-            pass
+        # Clean up temporary file if created
+        if not os.path.isfile(contract_code):
+            try:
+                os.unlink(contract_path)
+            except (OSError, PermissionError) as e:
+                # Cleanup failure is non-critical - file may already be deleted
+                logger.debug(f"Unable to clean up temp file {contract_path}: {e}")
 
-    if output_format == "json":
-        return json.dumps(analysis_output, indent=2)
+        if output_format == "json":
+            return json.dumps(analysis_output, indent=2)
 
-    return analysis_output
+        return analysis_output
+
+    except Exception as e:
+        # Return error result in case of exceptions
+        error_output = {
+            "timestamp": datetime.now().isoformat(),
+            "contract": contract_code,
+            "tools_executed": [],
+            "total_findings": 0,
+            "findings_by_severity": {
+                "critical": 0,
+                "high": 0,
+                "medium": 0,
+                "low": 0,
+            },
+            "findings": [],
+            "context": "MIESC static/dynamic analysis",
+            "error": str(e)
+        }
+
+        if output_format == "json":
+            return json.dumps(error_output, indent=2)
+
+        return error_output

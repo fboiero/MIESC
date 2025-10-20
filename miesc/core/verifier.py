@@ -107,8 +107,9 @@ class FormalVerifier:
             # Clean up
             try:
                 os.unlink(temp_path)
-            except:
-                pass
+            except (OSError, PermissionError) as e:
+                # Cleanup failure is non-critical - file may already be deleted
+                logger.debug(f"Unable to clean up temp file {temp_path}: {e}")
 
             # Parse results
             verification_result = {

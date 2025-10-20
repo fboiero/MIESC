@@ -279,8 +279,8 @@ def classify(report_path, ai, api_key, output):
 @cli.command()
 @click.option(
     '--host',
-    default='0.0.0.0',
-    help='Server host address'
+    default='127.0.0.1',
+    help='Server host address (default: 127.0.0.1 for security, use 0.0.0.0 for Docker)'
 )
 @click.option(
     '--port',
