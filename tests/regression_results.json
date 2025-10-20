@@ -1,0 +1,165 @@
+{
+  "timestamp": "2025-10-15T14:29:02.774869",
+  "mode": "critical",
+  "summary": {
+    "passed": 28,
+    "failed": 2,
+    "skipped": 0,
+    "duration": 4.319725036621094
+  },
+  "passed": [
+    {
+      "name": "Import all critical modules",
+      "duration": 0.6069869995117188,
+      "details": ""
+    },
+    {
+      "name": "MCP Context Bus",
+      "duration": 0.00020813941955566406,
+      "details": "Messages: 1"
+    },
+    {
+      "name": "Example contracts accessible",
+      "duration": 0.00019288063049316406,
+      "details": "Found 14 contracts"
+    },
+    {
+      "name": "Demo scripts exist",
+      "duration": 0.00034689903259277344,
+      "details": "Found 9 demo scripts"
+    },
+    {
+      "name": "StaticAgent initialization",
+      "duration": 3.4809112548828125e-05,
+      "details": ""
+    },
+    {
+      "name": "DynamicAgent initialization",
+      "duration": 1.7881393432617188e-05,
+      "details": ""
+    },
+    {
+      "name": "SymbolicAgent initialization",
+      "duration": 1.5974044799804688e-05,
+      "details": ""
+    },
+    {
+      "name": "FormalAgent initialization",
+      "duration": 1.430511474609375e-05,
+      "details": ""
+    },
+    {
+      "name": "AIAgent initialization",
+      "duration": 9.703636169433594e-05,
+      "details": ""
+    },
+    {
+      "name": "PolicyAgent initialization",
+      "duration": 0.0001049041748046875,
+      "details": ""
+    },
+    {
+      "name": "PolicyAgent v2.2 enhanced standards",
+      "duration": 0.0001220703125,
+      "details": "PolicyAgent v2.2 with 8 new standards"
+    },
+    {
+      "name": "CoordinatorAgent initialization",
+      "duration": 0.00012302398681640625,
+      "details": ""
+    },
+    {
+      "name": "GPTScanAgent initialization",
+      "duration": 0.02562093734741211,
+      "details": ""
+    },
+    {
+      "name": "LLMSmartAuditAgent initialization",
+      "duration": 0.022684335708618164,
+      "details": ""
+    },
+    {
+      "name": "SmartLLMAgent initialization",
+      "duration": 0.004205226898193359,
+      "details": ""
+    },
+    {
+      "name": "Slither availability",
+      "duration": 0.4042801856994629,
+      "details": "Slither 0.10.3"
+    },
+    {
+      "name": "Manticore availability",
+      "duration": 0.8114988803863525,
+      "details": "Manticore 0.3.7"
+    },
+    {
+      "name": "Aderyn availability",
+      "duration": 0.01749706268310547,
+      "details": "Aderyn aderyn 0.6.4"
+    },
+    {
+      "name": "AderynAgent initialization",
+      "duration": 0.008402824401855469,
+      "details": "Aderyn available: True"
+    },
+    {
+      "name": "HalmosAgent initialization",
+      "duration": 0.012706995010375977,
+      "details": "Halmos available: False"
+    },
+    {
+      "name": "Medusa availability",
+      "duration": 0.05201983451843262,
+      "details": "Medusa 1.3.1"
+    },
+    {
+      "name": "MedusaAgent initialization",
+      "duration": 0.014889001846313477,
+      "details": "Medusa available: True"
+    },
+    {
+      "name": "WakeAgent initialization",
+      "duration": 0.014872074127197266,
+      "details": "Wake available: False"
+    },
+    {
+      "name": "SMTChecker (solc) availability",
+      "duration": 2.121230125427246,
+      "details": "Solc 0.8.0+commit.c7dfd78e.Darwin.appleclang"
+    },
+    {
+      "name": "SMTCheckerAgent initialization",
+      "duration": 0.08883190155029297,
+      "details": "SMTChecker available: True"
+    },
+    {
+      "name": "Echidna availability",
+      "duration": 0.09157085418701172,
+      "details": "Echidna Echidna 2.2.4"
+    },
+    {
+      "name": "MCP Server tools schema",
+      "duration": 0.0037298202514648438,
+      "details": "Found 6 tools"
+    },
+    {
+      "name": "Static analysis on contract",
+      "duration": 0.0003693103790283203,
+      "details": "Static agent ready"
+    }
+  ],
+  "failed": [
+    {
+      "name": "Halmos availability",
+      "error": "Halmos not installed",
+      "traceback": ""
+    },
+    {
+      "name": "Wake availability",
+      "error": "Wake not installed",
+      "traceback": ""
+    }
+  ],
+  "skipped": []
+}
