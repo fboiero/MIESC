@@ -107,6 +107,19 @@ def typing_effect(text, delay=0.03, color=Colors.GREEN):
         time.sleep(delay)
     print()
 
+def show_command(command, color=Colors.YELLOW):
+    """Mostrar comando como si se estuviera ejecutando"""
+    print(f"\n{Colors.DIM}┌────────────────────────────────────────────────────────────┐{Colors.ENDC}")
+    typing_effect(f"│ $ {command}", 0.02, color)
+    print(f"{Colors.DIM}└────────────────────────────────────────────────────────────┘{Colors.ENDC}\n")
+    time.sleep(0.3)
+
+def stream_output(lines, delay=0.05, color=Colors.WHITE):
+    """Simular salida de proceso en streaming"""
+    for line in lines:
+        typing_effect(line, delay, color)
+        time.sleep(0.1)
+
 def matrix_effect(duration=2):
     """Efecto Matrix breve"""
     chars = "01"
@@ -236,23 +249,49 @@ class HackerDemo:
         clear_screen()
         typing_effect("\n[*] Initializing MIESC Security Framework...", 0.02, Colors.CYAN)
 
-        loading_bar("[1/6] Loading agent orchestrator", 1.5, Colors.CYAN)
-        typing_effect("    ✓ CoordinatorAgent loaded", 0.01, Colors.GREEN)
+        # PIDs simulados para los procesos
+        import random
+        base_pid = random.randint(40000, 50000)
 
-        loading_bar("[2/6] Loading static analysis agents", 1.5, Colors.CYAN)
-        typing_effect("    ✓ SlitherAgent, AderynAgent, WakeAgent ready", 0.01, Colors.GREEN)
+        print(f"\n{Colors.DIM}[2025-10-30 14:23:30] System starting...{Colors.ENDC}")
+        print(f"{Colors.DIM}[2025-10-30 14:23:30] Allocating resources...{Colors.ENDC}")
+        time.sleep(0.3)
 
-        loading_bar("[3/6] Loading dynamic analysis agents", 1.5, Colors.CYAN)
-        typing_effect("    ✓ Echidna, Manticore, Medusa ready", 0.01, Colors.GREEN)
+        # Capa 1
+        loading_bar("[1/6] Loading agent orchestrator", 1, Colors.CYAN)
+        print(f"{Colors.GREEN}    ✓ CoordinatorAgent [PID:{base_pid}] - 24MB RAM{Colors.ENDC}")
 
-        loading_bar("[4/6] Loading formal verification agents", 1.5, Colors.CYAN)
-        typing_effect("    ✓ SMTChecker, Halmos ready", 0.01, Colors.GREEN)
+        # Capa 2
+        loading_bar("[2/6] Loading static analysis agents", 1, Colors.CYAN)
+        print(f"{Colors.GREEN}    ✓ SlitherAgent [PID:{base_pid+1}] - 156MB RAM{Colors.ENDC}")
+        print(f"{Colors.GREEN}    ✓ AderynAgent [PID:{base_pid+2}] - 89MB RAM{Colors.ENDC}")
+        print(f"{Colors.GREEN}    ✓ WakeAgent [PID:{base_pid+3}] - 72MB RAM{Colors.ENDC}")
 
-        loading_bar("[5/6] Loading AI-powered agents", 1.5, Colors.CYAN)
-        typing_effect("    ✓ GPT-4, Ollama, Correlation Engine ready", 0.01, Colors.GREEN)
+        # Capa 3
+        loading_bar("[3/6] Loading dynamic analysis agents", 1, Colors.CYAN)
+        print(f"{Colors.GREEN}    ✓ EchidnaAgent [PID:{base_pid+4}] - 245MB RAM{Colors.ENDC}")
+        print(f"{Colors.GREEN}    ✓ ManticoreAgent [PID:{base_pid+5}] - 512MB RAM{Colors.ENDC}")
+        print(f"{Colors.GREEN}    ✓ MedusaAgent [PID:{base_pid+6}] - 189MB RAM{Colors.ENDC}")
 
-        loading_bar("[6/6] Loading policy & compliance agent", 1.5, Colors.CYAN)
-        typing_effect("    ✓ PolicyAgent ready", 0.01, Colors.GREEN)
+        # Capa 4
+        loading_bar("[4/6] Loading formal verification agents", 1, Colors.CYAN)
+        print(f"{Colors.GREEN}    ✓ SMTCheckerAgent [PID:{base_pid+7}] - 128MB RAM{Colors.ENDC}")
+        print(f"{Colors.GREEN}    ✓ HalmosAgent [PID:{base_pid+8}] - 96MB RAM{Colors.ENDC}")
+
+        # Capa 5
+        loading_bar("[5/6] Loading AI-powered agents", 1, Colors.CYAN)
+        print(f"{Colors.GREEN}    ✓ GPT4Agent [PID:{base_pid+9}] - 2.1GB RAM{Colors.ENDC}")
+        print(f"{Colors.GREEN}    ✓ OllamaAgent [PID:{base_pid+10}] - 1.8GB RAM{Colors.ENDC}")
+        print(f"{Colors.GREEN}    ✓ CorrelationAgent [PID:{base_pid+11}] - 345MB RAM{Colors.ENDC}")
+        print(f"{Colors.GREEN}    ✓ InterpretationAgent [PID:{base_pid+12}] - 128MB RAM{Colors.ENDC}")
+
+        # Capa 6
+        loading_bar("[6/6] Loading policy & compliance agent", 1, Colors.CYAN)
+        print(f"{Colors.GREEN}    ✓ PolicyAgent [PID:{base_pid+13}] - 48MB RAM{Colors.ENDC}")
+
+        time.sleep(0.3)
+        print(f"\n{Colors.DIM}[2025-10-30 14:23:45] Total memory: 6.2GB{Colors.ENDC}")
+        print(f"{Colors.DIM}[2025-10-30 14:23:45] All agents initialized{Colors.ENDC}")
 
         time.sleep(0.5)
         pulse_text("\n[✓] ALL 17 AGENTS OPERATIONAL", 2, Colors.BRIGHT_GREEN)
@@ -296,17 +335,39 @@ class HackerDemo:
 
         time.sleep(1)
 
+        # Mostrar compilación de Solidity
+        typing_effect("[*] Compiling Solidity contract...", 0.02, Colors.CYAN)
+        show_command(f"solc --version && solc {self.contract_path}")
+
+        compile_output = [
+            f"{Colors.DIM}[2025-10-30 14:23:41] INFO: Solidity compiler version 0.8.0+commit.c7dfd78e{Colors.ENDC}",
+            f"{Colors.DIM}[2025-10-30 14:23:41] INFO: Compiling test_contracts/VulnerableBank.sol{Colors.ENDC}",
+            f"{Colors.GREEN}[2025-10-30 14:23:42] SUCCESS: Compilation successful{Colors.ENDC}",
+            f"{Colors.DIM}[2025-10-30 14:23:42] INFO: Generated bytecode: 0x608060...{Colors.ENDC}"
+        ]
+        stream_output(compile_output, 0.03, Colors.WHITE)
+        time.sleep(0.5)
+
         # Slither
-        typing_effect("[*] Launching SlitherAgent...", 0.02, Colors.CYAN)
-        loading_bar("    Analyzing code patterns", 2, Colors.CYAN)
+        typing_effect("\n[*] Launching SlitherAgent...", 0.02, Colors.CYAN)
+        show_command(f"slither {self.contract_path} --json - --disable-color")
+
+        slither_logs = [
+            f"{Colors.DIM}[PID:45821] Slither v0.9.6 starting...{Colors.ENDC}",
+            f"{Colors.DIM}[PID:45821] Loading 88 detectors{Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Analyzing contract structure...{Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Running pattern matching...{Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Checking for vulnerabilities...{Colors.ENDC}",
+        ]
+        stream_output(slither_logs, 0.04, Colors.WHITE)
+
+        loading_bar("    Deep analysis in progress", 1.5, Colors.CYAN)
         pulse_text("    [✓] SlitherAgent: 88 detectors executed", 1, Colors.GREEN)
 
         time.sleep(0.5)
 
         # Ejecutar análisis real
-        typing_effect("\n[*] Running real-time analysis...", 0.02, Colors.YELLOW)
-        time.sleep(1)
-
+        typing_effect("\n[*] Processing results...", 0.02, Colors.YELLOW)
         print(f"\n{Colors.GREEN}{SCANNING_ART}{Colors.ENDC}")
 
         slither_result = run_slither_analysis(self.contract_path)
