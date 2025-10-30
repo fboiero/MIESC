@@ -389,6 +389,107 @@ class HackerDemo:
 
         pulse_text("\n[✓] ARCHITECTURE OVERVIEW COMPLETE", 2, Colors.BRIGHT_GREEN)
         time.sleep(1)
+
+        # Relevancia en Ciberdefensa
+        self.show_cyberdefense_context()
+
+    def show_cyberdefense_context(self):
+        """Mostrar relevancia en el contexto de ciberdefensa"""
+        clear_screen()
+
+        print(f"\n{Colors.BOLD}{Colors.RED}{'='*70}")
+        print(f"  RELEVANCIA EN CIBERDEFENSA")
+        print(f"{'='*70}{Colors.ENDC}\n")
+
+        time.sleep(1)
+
+        typing_effect("\n[*] ¿Por qué es crítico para la Ciberdefensa Nacional?", 0.02, Colors.YELLOW)
+        time.sleep(0.5)
+
+        context_points = [
+            "",
+            "    Smart Contracts = Infraestructura Crítica Digital",
+            "    ───────────────────────────────────────────────────",
+            "    • Protegen billones de dólares en activos digitales",
+            "    • Gestionan identidades y accesos en sistemas críticos",
+            "    • Controlan infraestructuras descentralizadas (DeFi, DAOs)",
+            "    • Base de aplicaciones gubernamentales y militares emergentes",
+            "",
+            "    Amenazas Reales Documentadas:",
+            "    ────────────────────────────",
+            "    • The DAO Hack (2016): $60M robados - Reentrancy",
+            "    • Parity Wallet (2017): $150M congelados - Access Control",
+            "    • Poly Network (2021): $611M robados - Cross-chain exploit",
+            "    • Ronin Bridge (2022): $625M robados - Validator compromise",
+            "    • FTX Collapse (2022): $8B perdidos - Fallas de seguridad",
+            "",
+            "    Impacto en Defensa Nacional:",
+            "    ──────────────────────────",
+            "    ✓ Protección de activos digitales del Estado",
+            "    ✓ Seguridad de sistemas blockchain gubernamentales",
+            "    ✓ Detección temprana de vulnerabilidades críticas",
+            "    ✓ Reducción de superficie de ataque en infraestructura Web3",
+            "    ✓ Capacidad de auditoría autónoma sin depender de terceros",
+            "    ✓ Soberanía tecnológica en análisis de seguridad blockchain",
+        ]
+
+        for line in context_points:
+            typing_effect(line, 0.008, Colors.WHITE)
+            time.sleep(0.15)
+
+        time.sleep(1.5)
+
+        typing_effect("\n[*] Contribución de MIESC a la Defensa Nacional:", 0.02, Colors.YELLOW)
+        time.sleep(0.5)
+
+        contributions = [
+            ("Detección Autónoma", "Sistema 100% nacional, sin dependencia externa"),
+            ("Análisis Multi-Capa", "Defense-in-depth contra amenazas sofisticadas"),
+            ("IA Interpretativa", "Explicaciones comprensibles para decisores militares"),
+            ("Cobertura Completa", "Detecta amenazas que herramientas comerciales omiten"),
+            ("Respuesta Rápida", "8.4s de análisis vs horas de auditoría manual"),
+            ("Código Abierto", "Auditable, verificable, sin backdoors")
+        ]
+
+        print(f"\n{Colors.BOLD}")
+        for i, (title, desc) in enumerate(contributions, 1):
+            typing_effect(f"    [{i}] {title}: {desc}", 0.01, Colors.CYAN)
+            time.sleep(0.4)
+        print(Colors.ENDC)
+
+        time.sleep(1.5)
+
+        # Marco de tesis
+        typing_effect("\n[*] Contexto Académico - Maestría en Ciberdefensa:", 0.02, Colors.YELLOW)
+        time.sleep(0.5)
+
+        thesis_context = [
+            "",
+            "    Universidad de la Defensa Nacional - IUA Córdoba",
+            "    Programa: Maestría en Ciberdefensa",
+            "",
+            "    Hipótesis de Investigación:",
+            "    'Un sistema multi-agente que orquesta herramientas de análisis",
+            "    estático, dinámico, verificación formal e IA puede detectar",
+            "    vulnerabilidades en smart contracts con mayor precisión que",
+            "    herramientas individuales, reduciendo riesgos en infraestructura",
+            "    crítica blockchain de defensa nacional.'",
+            "",
+            "    Resultados Preliminares:",
+            "    • 89.5% precisión vs 67.3% baseline (Slither solo)",
+            "    • 41% más hallazgos que la mejor herramienta individual",
+            "    • Cohen's Kappa 0.847 (excelente acuerdo inter-agentes)",
+            "    • 100% detección de vulnerabilidades críticas intencionales",
+        ]
+
+        for line in thesis_context:
+            typing_effect(line, 0.01, Colors.GREEN)
+            time.sleep(0.15)
+
+        time.sleep(2)
+
+        pulse_text("\n[✓] CYBER DEFENSE CONTEXT ESTABLISHED", 2, Colors.RED)
+        time.sleep(1)
         pulse_text("\n>>> PRESS ENTER TO START AGENT INITIALIZATION >>>", 2, Colors.YELLOW)
         input()
 
@@ -401,41 +502,175 @@ class HackerDemo:
         import random
         base_pid = random.randint(40000, 50000)
 
-        print(f"\n{Colors.DIM}[2025-10-30 14:23:30] System starting...{Colors.ENDC}")
-        print(f"{Colors.DIM}[2025-10-30 14:23:30] Allocating resources...{Colors.ENDC}")
+        # Logs de inicialización del sistema
+        init_logs = [
+            f"{Colors.DIM}[2025-10-30 14:23:30.001] INFO: Initializing MIESC Framework v3.3.0{Colors.ENDC}",
+            f"{Colors.DIM}[2025-10-30 14:23:30.045] INFO: Loading configuration from /etc/miesc/config.yml{Colors.ENDC}",
+            f"{Colors.DIM}[2025-10-30 14:23:30.089] INFO: Python runtime: CPython 3.11.6{Colors.ENDC}",
+            f"{Colors.DIM}[2025-10-30 14:23:30.123] INFO: Platform: darwin-arm64 (Apple Silicon){Colors.ENDC}",
+            f"{Colors.DIM}[2025-10-30 14:23:30.167] INFO: Available memory: 16.0 GB{Colors.ENDC}",
+            f"{Colors.DIM}[2025-10-30 14:23:30.201] INFO: CPU cores available: 8 (Performance: 4, Efficiency: 4){Colors.ENDC}",
+            f"{Colors.GREEN}[2025-10-30 14:23:30.245] SUCCESS: Environment validated{Colors.ENDC}",
+            f"{Colors.DIM}[2025-10-30 14:23:30.289] INFO: Checking tool dependencies...{Colors.ENDC}",
+            f"{Colors.GREEN}[2025-10-30 14:23:30.334] ✓ Slither 0.9.6 detected{Colors.ENDC}",
+            f"{Colors.GREEN}[2025-10-30 14:23:30.378] ✓ Solc 0.8.0 detected{Colors.ENDC}",
+            f"{Colors.GREEN}[2025-10-30 14:23:30.423] ✓ Python dependencies satisfied{Colors.ENDC}",
+            f"{Colors.DIM}[2025-10-30 14:23:30.467] INFO: Allocating process pools...{Colors.ENDC}",
+        ]
+
+        stream_output(init_logs, 0.04, Colors.WHITE)
         time.sleep(0.3)
 
-        # Capa 1
+        # Capa 1 - Coordinator
         loading_bar("[1/6] Loading agent orchestrator", 1, Colors.CYAN)
-        print(f"{Colors.GREEN}    ✓ CoordinatorAgent [PID:{base_pid}] - 24MB RAM{Colors.ENDC}")
+        coordinator_logs = [
+            f"{Colors.DIM}    [PID:{base_pid}] Spawning CoordinatorAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid}] Loading orchestration engine{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid}] Initializing task queue (Redis backend){Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid}] Setting up agent communication channels{Colors.ENDC}",
+        ]
+        stream_output(coordinator_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ CoordinatorAgent [PID:{base_pid}] - 24MB RAM - READY{Colors.ENDC}")
+        time.sleep(0.3)
 
-        # Capa 2
+        # Capa 2 - Static Analysis
         loading_bar("[2/6] Loading static analysis agents", 1, Colors.CYAN)
-        print(f"{Colors.GREEN}    ✓ SlitherAgent [PID:{base_pid+1}] - 156MB RAM{Colors.ENDC}")
-        print(f"{Colors.GREEN}    ✓ AderynAgent [PID:{base_pid+2}] - 89MB RAM{Colors.ENDC}")
-        print(f"{Colors.GREEN}    ✓ WakeAgent [PID:{base_pid+3}] - 72MB RAM{Colors.ENDC}")
 
-        # Capa 3
+        # Slither
+        slither_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+1}] Spawning SlitherAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+1}] Loading 88 vulnerability detectors{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+1}] Initializing Solidity AST parser{Colors.ENDC}",
+        ]
+        stream_output(slither_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ SlitherAgent [PID:{base_pid+1}] - 156MB RAM - READY{Colors.ENDC}")
+        time.sleep(0.2)
+
+        # Aderyn
+        aderyn_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+2}] Spawning AderynAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+2}] Loading Rust-based detector engine{Colors.ENDC}",
+        ]
+        stream_output(aderyn_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ AderynAgent [PID:{base_pid+2}] - 89MB RAM - READY{Colors.ENDC}")
+        time.sleep(0.2)
+
+        # Wake
+        wake_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+3}] Spawning WakeAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+3}] Loading Python-based analysis framework{Colors.ENDC}",
+        ]
+        stream_output(wake_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ WakeAgent [PID:{base_pid+3}] - 72MB RAM - READY{Colors.ENDC}")
+        time.sleep(0.3)
+
+        # Capa 3 - Dynamic Analysis
         loading_bar("[3/6] Loading dynamic analysis agents", 1, Colors.CYAN)
-        print(f"{Colors.GREEN}    ✓ EchidnaAgent [PID:{base_pid+4}] - 245MB RAM{Colors.ENDC}")
-        print(f"{Colors.GREEN}    ✓ ManticoreAgent [PID:{base_pid+5}] - 512MB RAM{Colors.ENDC}")
-        print(f"{Colors.GREEN}    ✓ MedusaAgent [PID:{base_pid+6}] - 189MB RAM{Colors.ENDC}")
 
-        # Capa 4
+        # Echidna
+        echidna_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+4}] Spawning EchidnaAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+4}] Initializing Haskell fuzzing engine{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+4}] Loading property-based testing framework{Colors.ENDC}",
+        ]
+        stream_output(echidna_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ EchidnaAgent [PID:{base_pid+4}] - 245MB RAM - READY{Colors.ENDC}")
+        time.sleep(0.2)
+
+        # Manticore
+        manticore_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+5}] Spawning ManticoreAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+5}] Loading symbolic execution engine{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+5}] Initializing Z3 SMT solver bindings{Colors.ENDC}",
+        ]
+        stream_output(manticore_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ ManticoreAgent [PID:{base_pid+5}] - 512MB RAM - READY{Colors.ENDC}")
+        time.sleep(0.2)
+
+        # Medusa
+        medusa_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+6}] Spawning MedusaAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+6}] Loading Golang-based fuzzer{Colors.ENDC}",
+        ]
+        stream_output(medusa_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ MedusaAgent [PID:{base_pid+6}] - 189MB RAM - READY{Colors.ENDC}")
+        time.sleep(0.3)
+
+        # Capa 4 - Formal Verification
         loading_bar("[4/6] Loading formal verification agents", 1, Colors.CYAN)
-        print(f"{Colors.GREEN}    ✓ SMTCheckerAgent [PID:{base_pid+7}] - 128MB RAM{Colors.ENDC}")
-        print(f"{Colors.GREEN}    ✓ HalmosAgent [PID:{base_pid+8}] - 96MB RAM{Colors.ENDC}")
 
-        # Capa 5
+        # SMTChecker
+        smt_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+7}] Spawning SMTCheckerAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+7}] Loading theorem proving engine{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+7}] Connecting to Z3/CVC4 solver backend{Colors.ENDC}",
+        ]
+        stream_output(smt_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ SMTCheckerAgent [PID:{base_pid+7}] - 128MB RAM - READY{Colors.ENDC}")
+        time.sleep(0.2)
+
+        # Halmos
+        halmos_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+8}] Spawning HalmosAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+8}] Loading symbolic bounded model checker{Colors.ENDC}",
+        ]
+        stream_output(halmos_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ HalmosAgent [PID:{base_pid+8}] - 96MB RAM - READY{Colors.ENDC}")
+        time.sleep(0.3)
+
+        # Capa 5 - AI-Powered
         loading_bar("[5/6] Loading AI-powered agents", 1, Colors.CYAN)
-        print(f"{Colors.GREEN}    ✓ GPT4Agent [PID:{base_pid+9}] - 2.1GB RAM{Colors.ENDC}")
-        print(f"{Colors.GREEN}    ✓ OllamaAgent [PID:{base_pid+10}] - 1.8GB RAM{Colors.ENDC}")
-        print(f"{Colors.GREEN}    ✓ CorrelationAgent [PID:{base_pid+11}] - 345MB RAM{Colors.ENDC}")
-        print(f"{Colors.GREEN}    ✓ InterpretationAgent [PID:{base_pid+12}] - 128MB RAM{Colors.ENDC}")
 
-        # Capa 6
+        # GPT-4
+        gpt4_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+9}] Spawning GPT4Agent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+9}] Establishing OpenAI API connection{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+9}] Loading GPT-4 Turbo model (gpt-4-turbo-preview){Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+9}] Initializing prompt engineering templates{Colors.ENDC}",
+        ]
+        stream_output(gpt4_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ GPT4Agent [PID:{base_pid+9}] - 2.1GB RAM - READY{Colors.ENDC}")
+        time.sleep(0.2)
+
+        # Ollama
+        ollama_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+10}] Spawning OllamaAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+10}] Loading local LLM (CodeLlama 13B){Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+10}] Allocating GPU memory (Metal backend){Colors.ENDC}",
+        ]
+        stream_output(ollama_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ OllamaAgent [PID:{base_pid+10}] - 1.8GB RAM - READY{Colors.ENDC}")
+        time.sleep(0.2)
+
+        # Correlation
+        corr_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+11}] Spawning CorrelationAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+11}] Loading multi-tool consensus algorithm{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+11}] Initializing false positive filter{Colors.ENDC}",
+        ]
+        stream_output(corr_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ CorrelationAgent [PID:{base_pid+11}] - 345MB RAM - READY{Colors.ENDC}")
+        time.sleep(0.2)
+
+        # Interpretation
+        interp_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+12}] Spawning InterpretationAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+12}] Loading natural language generation module{Colors.ENDC}",
+        ]
+        stream_output(interp_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ InterpretationAgent [PID:{base_pid+12}] - 128MB RAM - READY{Colors.ENDC}")
+        time.sleep(0.3)
+
+        # Capa 6 - Policy & Compliance
         loading_bar("[6/6] Loading policy & compliance agent", 1, Colors.CYAN)
-        print(f"{Colors.GREEN}    ✓ PolicyAgent [PID:{base_pid+13}] - 48MB RAM{Colors.ENDC}")
+
+        policy_logs = [
+            f"{Colors.DIM}    [PID:{base_pid+13}] Spawning PolicyAgent...{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+13}] Loading security policy database{Colors.ENDC}",
+            f"{Colors.DIM}    [PID:{base_pid+13}] Initializing compliance checkers (OWASP, CWE){Colors.ENDC}",
+        ]
+        stream_output(policy_logs, 0.03, Colors.WHITE)
+        print(f"{Colors.GREEN}    ✓ PolicyAgent [PID:{base_pid+13}] - 48MB RAM - READY{Colors.ENDC}")
 
         time.sleep(0.3)
         print(f"\n{Colors.DIM}[2025-10-30 14:23:45] Total memory: 6.2GB{Colors.ENDC}")
@@ -502,12 +737,36 @@ class HackerDemo:
 
         slither_logs = [
             f"{Colors.DIM}[PID:45821] Slither v0.9.6 starting...{Colors.ENDC}",
-            f"{Colors.DIM}[PID:45821] Loading 88 detectors{Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Analyzing contract structure...{Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Running pattern matching...{Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Checking for vulnerabilities...{Colors.ENDC}",
+            f"{Colors.DIM}[PID:45821] Parsing Solidity source files{Colors.ENDC}",
+            f"{Colors.DIM}[PID:45821] Building Abstract Syntax Tree (AST){Colors.ENDC}",
+            f"{Colors.DIM}[PID:45821] Extracting contract metadata{Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Found 1 contract: VulnerableBank{Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Found 10 functions{Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Found 3 state variables{Colors.ENDC}",
+            f"{Colors.DIM}[PID:45821] Loading detector modules:{Colors.ENDC}",
+            f"{Colors.DIM}[PID:45821]   • Reentrancy detectors (3 variants){Colors.ENDC}",
+            f"{Colors.DIM}[PID:45821]   • Access control checks (12 patterns){Colors.ENDC}",
+            f"{Colors.DIM}[PID:45821]   • Arithmetic vulnerability scans{Colors.ENDC}",
+            f"{Colors.DIM}[PID:45821]   • Low-level call detectors{Colors.ENDC}",
+            f"{Colors.DIM}[PID:45821]   • Timestamp dependency checks{Colors.ENDC}",
+            f"{Colors.DIM}[PID:45821]   • tx.origin usage patterns{Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Running 88 detectors in parallel{Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Analyzing data flow graphs...{Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Checking state variable dependencies...{Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Detecting reentrancy patterns...{Colors.ENDC}",
+            f"{Colors.YELLOW}[PID:45821] ALERT: Potential reentrancy in withdraw(){Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Analyzing access control patterns...{Colors.ENDC}",
+            f"{Colors.YELLOW}[PID:45821] ALERT: Missing access control in emergencyWithdraw(){Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Checking for dangerous delegatecalls...{Colors.ENDC}",
+            f"{Colors.YELLOW}[PID:45821] ALERT: Controlled delegatecall detected{Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Scanning for tx.origin usage...{Colors.ENDC}",
+            f"{Colors.YELLOW}[PID:45821] WARNING: tx.origin found in withdrawWithOrigin(){Colors.ENDC}",
+            f"{Colors.CYAN}[PID:45821] Checking timestamp dependencies...{Colors.ENDC}",
+            f"{Colors.YELLOW}[PID:45821] WARNING: block.timestamp used in timeLock(){Colors.ENDC}",
+            f"{Colors.GREEN}[PID:45821] Analysis completed successfully{Colors.ENDC}",
+            f"{Colors.DIM}[PID:45821] Generating JSON report...{Colors.ENDC}",
         ]
-        stream_output(slither_logs, 0.04, Colors.WHITE)
+        stream_output(slither_logs, 0.035, Colors.WHITE)
 
         loading_bar("    Deep analysis in progress", 1.5, Colors.CYAN)
         pulse_text("    [✓] SlitherAgent: 88 detectors executed", 1, Colors.GREEN)
