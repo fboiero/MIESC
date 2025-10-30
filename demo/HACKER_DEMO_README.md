@@ -16,13 +16,14 @@ Demo cinematográfico estilo "hacker" con ASCII art, animaciones y efectos visua
 
 ### Fases de la Demo
 1. **Banner Inicial** - Logo MIESC con efectos glitch
-2. **Inicialización** - Carga de 17 agentes con barras de progreso
-3. **Target Analysis** - Identificación del contrato objetivo
-4. **Phase 1: Static Analysis** - Análisis estático con Slither real
-5. **Phase 2: Deep Analysis** - Análisis detallado de vulnerabilidades
-6. **Phase 3: Comparison** - Comparación con otras herramientas
-7. **Phase 4: Statistics** - Métricas y estadísticas finales
-8. **Conclusion** - Resumen y validación científica
+2. **Architecture Overview** - Diagrama ASCII de 6 capas y explicación del sistema
+3. **Inicialización** - Carga de 17 agentes con barras de progreso
+4. **Target Analysis** - Identificación del contrato objetivo
+5. **Phase 1: Static Analysis** - Análisis estático con Slither real
+6. **Phase 2: Deep Analysis** - Análisis detallado de vulnerabilidades
+7. **Phase 3: Comparison** - Comparación con otras herramientas
+8. **Phase 4: Statistics** - Métricas y estadísticas finales
+9. **Conclusion** - Resumen y validación científica
 
 ### Análisis Real
 - Ejecuta Slither sobre `test_contracts/VulnerableBank.sol`
@@ -79,7 +80,48 @@ slither --version
 >>> PRESS ENTER TO START SECURITY ANALYSIS >>>
 ```
 
-### 2. Inicialización (15 segundos)
+### 2. Architecture Overview (30 segundos)
+- Explicación de qué es MIESC
+- Diagrama ASCII de las 6 capas del sistema
+- Visualización de los 17 agentes especializados
+- Ventajas del sistema multi-agente
+- Flujo de ejecución paso a paso
+
+**Contenido mostrado:**
+```
+[*] ¿Qué es MIESC?
+    Framework de seguridad de última generación que combina
+    análisis estático, dinámico, verificación formal y IA...
+
+[*] Arquitectura de 6 Capas:
+    ┌─────────────────────────────────────┐
+    │     SMART CONTRACT INPUT            │
+    └──────────────┬──────────────────────┘
+                   │
+    ╔══════════════▼═══════════════════════╗
+    ║  LAYER 1: ORCHESTRATION             ║
+    ║  │ CoordinatorAgent                 ║
+    ╚══════════════╤═══════════════════════╝
+    ...
+
+[*] Ventajas Clave:
+    [1] Defense-in-Depth: 6 capas independientes
+    [2] Correlación Inteligente: Reduce falsos positivos
+    [3] Cobertura Completa: 88+ detectores combinados
+    [4] Interpretación IA: Explicaciones naturales
+    [5] Alta Precisión: 89.5% vs 67.3% tradicional
+    [6] Velocidad: 8.4s vs 120s+ (Manticore)
+
+[*] Flujo de Ejecución:
+    1. Coordinator recibe el smart contract
+    2. Distribución paralela a capas 2-4
+    3. Recolección de hallazgos de cada agente
+    4. Capa 5: IA correlaciona y prioriza
+    5. Capa 6: Validación contra políticas
+    6. Generación de reporte consolidado
+```
+
+### 3. Inicialización (15 segundos)
 - Carga de 6 capas de agentes
 - Barras de progreso para cada capa
 - Confirmación de cada agente cargado
@@ -342,9 +384,9 @@ asciinema play miesc_demo.cast
 - Terminal con soporte ANSI colors
 
 ### Duración Total
-- Sin pausas manuales: ~2 minutos
-- Con pausas narrativas: 5-15 minutos
-- Presentación completa: 10-20 minutos
+- Sin pausas manuales: ~2.5 minutos
+- Con pausas narrativas: 6-18 minutos
+- Presentación completa: 12-25 minutos
 
 ---
 
