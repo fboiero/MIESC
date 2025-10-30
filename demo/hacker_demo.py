@@ -337,11 +337,17 @@ class HackerDemo:
     └──────────────────────────────────────────────────────────────────┘
         """
 
-        # Mostrar diagrama con efecto de construcción
+        # Mostrar diagrama con efecto de construcción (más lento para que se pueda leer)
         lines = architecture.split('\n')
-        for line in lines:
+        for i, line in enumerate(lines):
             print(line)
-            time.sleep(0.08)
+            # Pausas más largas después de cada capa para que se pueda leer
+            if 'LAYER' in line:
+                time.sleep(0.8)  # Pausa después del título de cada capa
+            elif '╚═══' in line:
+                time.sleep(0.6)  # Pausa al final de cada capa
+            else:
+                time.sleep(0.12)  # Pausa normal entre líneas
 
         print(Colors.ENDC)
 
@@ -398,22 +404,22 @@ class HackerDemo:
         clear_screen()
 
         print(f"\n{Colors.BOLD}{Colors.RED}{'='*70}")
-        print(f"  RELEVANCIA EN CIBERDEFENSA")
+        print(f"  CIBERSEGURIDAD Y CIBERDEFENSA")
         print(f"{'='*70}{Colors.ENDC}\n")
 
         time.sleep(1)
 
-        typing_effect("\n[*] ¿Por qué es crítico para la Ciberdefensa Nacional?", 0.02, Colors.YELLOW)
+        typing_effect("\n[*] ¿Por qué es crítico para la Ciberseguridad y Ciberdefensa?", 0.02, Colors.YELLOW)
         time.sleep(0.5)
 
         context_points = [
             "",
             "    Smart Contracts = Infraestructura Crítica Digital",
             "    ───────────────────────────────────────────────────",
-            "    • Protegen billones de dólares en activos digitales",
+            "    • Protegen billones de dólares en activos digitales globales",
             "    • Gestionan identidades y accesos en sistemas críticos",
-            "    • Controlan infraestructuras descentralizadas (DeFi, DAOs)",
-            "    • Base de aplicaciones gubernamentales y militares emergentes",
+            "    • Controlan infraestructuras descentralizadas (DeFi, DAOs, NFTs)",
+            "    • Base de aplicaciones gubernamentales, empresariales y militares",
             "",
             "    Amenazas Reales Documentadas:",
             "    ────────────────────────────",
@@ -423,14 +429,21 @@ class HackerDemo:
             "    • Ronin Bridge (2022): $625M robados - Validator compromise",
             "    • FTX Collapse (2022): $8B perdidos - Fallas de seguridad",
             "",
-            "    Impacto en Defensa Nacional:",
-            "    ──────────────────────────",
-            "    ✓ Protección de activos digitales del Estado",
-            "    ✓ Seguridad de sistemas blockchain gubernamentales",
+            "    Impacto en Ciberseguridad Global:",
+            "    ───────────────────────────────",
+            "    ✓ Protección de activos digitales corporativos y estatales",
+            "    ✓ Seguridad de cadenas de suministro blockchain",
             "    ✓ Detección temprana de vulnerabilidades críticas",
             "    ✓ Reducción de superficie de ataque en infraestructura Web3",
-            "    ✓ Capacidad de auditoría autónoma sin depender de terceros",
+            "    ✓ Prevención de ataques a DeFi y finanzas descentralizadas",
+            "    ✓ Seguridad en contratos de identidad digital y autenticación",
+            "",
+            "    Relevancia para Ciberdefensa:",
+            "    ────────────────────────────",
+            "    ✓ Análisis autónomo sin dependencias externas",
+            "    ✓ Capacidad de respuesta rápida ante amenazas emergentes",
             "    ✓ Soberanía tecnológica en análisis de seguridad blockchain",
+            "    ✓ Protección de infraestructuras críticas nacionales",
         ]
 
         for line in context_points:
@@ -439,16 +452,18 @@ class HackerDemo:
 
         time.sleep(1.5)
 
-        typing_effect("\n[*] Contribución de MIESC a la Defensa Nacional:", 0.02, Colors.YELLOW)
+        typing_effect("\n[*] Contribución de MIESC a la Ciberseguridad y Defensa:", 0.02, Colors.YELLOW)
         time.sleep(0.5)
 
         contributions = [
-            ("Detección Autónoma", "Sistema 100% nacional, sin dependencia externa"),
+            ("Detección Autónoma", "Análisis independiente sin dependencias externas"),
             ("Análisis Multi-Capa", "Defense-in-depth contra amenazas sofisticadas"),
-            ("IA Interpretativa", "Explicaciones comprensibles para decisores militares"),
+            ("IA Interpretativa", "Explicaciones comprensibles para todos los usuarios"),
             ("Cobertura Completa", "Detecta amenazas que herramientas comerciales omiten"),
             ("Respuesta Rápida", "8.4s de análisis vs horas de auditoría manual"),
-            ("Código Abierto", "Auditable, verificable, sin backdoors")
+            ("Código Abierto", "Auditable, verificable, sin backdoors"),
+            ("Escalabilidad", "Desde startups hasta infraestructuras estatales"),
+            ("Democratización", "Seguridad blockchain accesible para todos")
         ]
 
         print(f"\n{Colors.BOLD}")
@@ -502,34 +517,34 @@ class HackerDemo:
         import random
         base_pid = random.randint(40000, 50000)
 
-        # Logs de inicialización del sistema
+        # Logs de inicialización del sistema (sin Colors.ENDC, stream_output lo maneja)
         init_logs = [
-            f"{Colors.DIM}[2025-10-30 14:23:30.001] INFO: Initializing MIESC Framework v3.3.0{Colors.ENDC}",
-            f"{Colors.DIM}[2025-10-30 14:23:30.045] INFO: Loading configuration from /etc/miesc/config.yml{Colors.ENDC}",
-            f"{Colors.DIM}[2025-10-30 14:23:30.089] INFO: Python runtime: CPython 3.11.6{Colors.ENDC}",
-            f"{Colors.DIM}[2025-10-30 14:23:30.123] INFO: Platform: darwin-arm64 (Apple Silicon){Colors.ENDC}",
-            f"{Colors.DIM}[2025-10-30 14:23:30.167] INFO: Available memory: 16.0 GB{Colors.ENDC}",
-            f"{Colors.DIM}[2025-10-30 14:23:30.201] INFO: CPU cores available: 8 (Performance: 4, Efficiency: 4){Colors.ENDC}",
-            f"{Colors.GREEN}[2025-10-30 14:23:30.245] SUCCESS: Environment validated{Colors.ENDC}",
-            f"{Colors.DIM}[2025-10-30 14:23:30.289] INFO: Checking tool dependencies...{Colors.ENDC}",
-            f"{Colors.GREEN}[2025-10-30 14:23:30.334] ✓ Slither 0.9.6 detected{Colors.ENDC}",
-            f"{Colors.GREEN}[2025-10-30 14:23:30.378] ✓ Solc 0.8.0 detected{Colors.ENDC}",
-            f"{Colors.GREEN}[2025-10-30 14:23:30.423] ✓ Python dependencies satisfied{Colors.ENDC}",
-            f"{Colors.DIM}[2025-10-30 14:23:30.467] INFO: Allocating process pools...{Colors.ENDC}",
+            "[2025-10-30 14:23:30.001] INFO: Initializing MIESC Framework v3.3.0",
+            "[2025-10-30 14:23:30.045] INFO: Loading configuration from /etc/miesc/config.yml",
+            "[2025-10-30 14:23:30.089] INFO: Python runtime: CPython 3.11.6",
+            "[2025-10-30 14:23:30.123] INFO: Platform: darwin-arm64 (Apple Silicon)",
+            "[2025-10-30 14:23:30.167] INFO: Available memory: 16.0 GB",
+            "[2025-10-30 14:23:30.201] INFO: CPU cores available: 8 (Performance: 4, Efficiency: 4)",
+            "[2025-10-30 14:23:30.245] SUCCESS: Environment validated",
+            "[2025-10-30 14:23:30.289] INFO: Checking tool dependencies...",
+            "[2025-10-30 14:23:30.334] ✓ Slither 0.9.6 detected",
+            "[2025-10-30 14:23:30.378] ✓ Solc 0.8.0 detected",
+            "[2025-10-30 14:23:30.423] ✓ Python dependencies satisfied",
+            "[2025-10-30 14:23:30.467] INFO: Allocating process pools...",
         ]
 
-        stream_output(init_logs, 0.04, Colors.WHITE)
+        stream_output(init_logs, 0.04, Colors.DIM)
         time.sleep(0.3)
 
         # Capa 1 - Coordinator
         loading_bar("[1/6] Loading agent orchestrator", 1, Colors.CYAN)
         coordinator_logs = [
-            f"{Colors.DIM}    [PID:{base_pid}] Spawning CoordinatorAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid}] Loading orchestration engine{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid}] Initializing task queue (Redis backend){Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid}] Setting up agent communication channels{Colors.ENDC}",
+            f"    [PID:{base_pid}] Spawning CoordinatorAgent...",
+            f"    [PID:{base_pid}] Loading orchestration engine",
+            f"    [PID:{base_pid}] Initializing task queue (Redis backend)",
+            f"    [PID:{base_pid}] Setting up agent communication channels",
         ]
-        stream_output(coordinator_logs, 0.03, Colors.WHITE)
+        stream_output(coordinator_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ CoordinatorAgent [PID:{base_pid}] - 24MB RAM - READY{Colors.ENDC}")
         time.sleep(0.3)
 
@@ -538,29 +553,29 @@ class HackerDemo:
 
         # Slither
         slither_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+1}] Spawning SlitherAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+1}] Loading 88 vulnerability detectors{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+1}] Initializing Solidity AST parser{Colors.ENDC}",
+            f"    [PID:{base_pid+1}] Spawning SlitherAgent...",
+            f"    [PID:{base_pid+1}] Loading 88 vulnerability detectors",
+            f"    [PID:{base_pid+1}] Initializing Solidity AST parser",
         ]
-        stream_output(slither_logs, 0.03, Colors.WHITE)
+        stream_output(slither_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ SlitherAgent [PID:{base_pid+1}] - 156MB RAM - READY{Colors.ENDC}")
         time.sleep(0.2)
 
         # Aderyn
         aderyn_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+2}] Spawning AderynAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+2}] Loading Rust-based detector engine{Colors.ENDC}",
+            f"    [PID:{base_pid+2}] Spawning AderynAgent...",
+            f"    [PID:{base_pid+2}] Loading Rust-based detector engine",
         ]
-        stream_output(aderyn_logs, 0.03, Colors.WHITE)
+        stream_output(aderyn_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ AderynAgent [PID:{base_pid+2}] - 89MB RAM - READY{Colors.ENDC}")
         time.sleep(0.2)
 
         # Wake
         wake_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+3}] Spawning WakeAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+3}] Loading Python-based analysis framework{Colors.ENDC}",
+            f"    [PID:{base_pid+3}] Spawning WakeAgent...",
+            f"    [PID:{base_pid+3}] Loading Python-based analysis framework",
         ]
-        stream_output(wake_logs, 0.03, Colors.WHITE)
+        stream_output(wake_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ WakeAgent [PID:{base_pid+3}] - 72MB RAM - READY{Colors.ENDC}")
         time.sleep(0.3)
 
@@ -569,30 +584,30 @@ class HackerDemo:
 
         # Echidna
         echidna_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+4}] Spawning EchidnaAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+4}] Initializing Haskell fuzzing engine{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+4}] Loading property-based testing framework{Colors.ENDC}",
+            f"    [PID:{base_pid+4}] Spawning EchidnaAgent...",
+            f"    [PID:{base_pid+4}] Initializing Haskell fuzzing engine",
+            f"    [PID:{base_pid+4}] Loading property-based testing framework",
         ]
-        stream_output(echidna_logs, 0.03, Colors.WHITE)
+        stream_output(echidna_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ EchidnaAgent [PID:{base_pid+4}] - 245MB RAM - READY{Colors.ENDC}")
         time.sleep(0.2)
 
         # Manticore
         manticore_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+5}] Spawning ManticoreAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+5}] Loading symbolic execution engine{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+5}] Initializing Z3 SMT solver bindings{Colors.ENDC}",
+            f"    [PID:{base_pid+5}] Spawning ManticoreAgent...",
+            f"    [PID:{base_pid+5}] Loading symbolic execution engine",
+            f"    [PID:{base_pid+5}] Initializing Z3 SMT solver bindings",
         ]
-        stream_output(manticore_logs, 0.03, Colors.WHITE)
+        stream_output(manticore_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ ManticoreAgent [PID:{base_pid+5}] - 512MB RAM - READY{Colors.ENDC}")
         time.sleep(0.2)
 
         # Medusa
         medusa_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+6}] Spawning MedusaAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+6}] Loading Golang-based fuzzer{Colors.ENDC}",
+            f"    [PID:{base_pid+6}] Spawning MedusaAgent...",
+            f"    [PID:{base_pid+6}] Loading Golang-based fuzzer",
         ]
-        stream_output(medusa_logs, 0.03, Colors.WHITE)
+        stream_output(medusa_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ MedusaAgent [PID:{base_pid+6}] - 189MB RAM - READY{Colors.ENDC}")
         time.sleep(0.3)
 
@@ -601,20 +616,20 @@ class HackerDemo:
 
         # SMTChecker
         smt_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+7}] Spawning SMTCheckerAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+7}] Loading theorem proving engine{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+7}] Connecting to Z3/CVC4 solver backend{Colors.ENDC}",
+            f"    [PID:{base_pid+7}] Spawning SMTCheckerAgent...",
+            f"    [PID:{base_pid+7}] Loading theorem proving engine",
+            f"    [PID:{base_pid+7}] Connecting to Z3/CVC4 solver backend",
         ]
-        stream_output(smt_logs, 0.03, Colors.WHITE)
+        stream_output(smt_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ SMTCheckerAgent [PID:{base_pid+7}] - 128MB RAM - READY{Colors.ENDC}")
         time.sleep(0.2)
 
         # Halmos
         halmos_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+8}] Spawning HalmosAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+8}] Loading symbolic bounded model checker{Colors.ENDC}",
+            f"    [PID:{base_pid+8}] Spawning HalmosAgent...",
+            f"    [PID:{base_pid+8}] Loading symbolic bounded model checker",
         ]
-        stream_output(halmos_logs, 0.03, Colors.WHITE)
+        stream_output(halmos_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ HalmosAgent [PID:{base_pid+8}] - 96MB RAM - READY{Colors.ENDC}")
         time.sleep(0.3)
 
@@ -623,41 +638,41 @@ class HackerDemo:
 
         # GPT-4
         gpt4_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+9}] Spawning GPT4Agent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+9}] Establishing OpenAI API connection{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+9}] Loading GPT-4 Turbo model (gpt-4-turbo-preview){Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+9}] Initializing prompt engineering templates{Colors.ENDC}",
+            f"    [PID:{base_pid+9}] Spawning GPT4Agent...",
+            f"    [PID:{base_pid+9}] Establishing OpenAI API connection",
+            f"    [PID:{base_pid+9}] Loading GPT-4 Turbo model (gpt-4-turbo-preview)",
+            f"    [PID:{base_pid+9}] Initializing prompt engineering templates",
         ]
-        stream_output(gpt4_logs, 0.03, Colors.WHITE)
+        stream_output(gpt4_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ GPT4Agent [PID:{base_pid+9}] - 2.1GB RAM - READY{Colors.ENDC}")
         time.sleep(0.2)
 
         # Ollama
         ollama_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+10}] Spawning OllamaAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+10}] Loading local LLM (CodeLlama 13B){Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+10}] Allocating GPU memory (Metal backend){Colors.ENDC}",
+            f"    [PID:{base_pid+10}] Spawning OllamaAgent...",
+            f"    [PID:{base_pid+10}] Loading local LLM (CodeLlama 13B)",
+            f"    [PID:{base_pid+10}] Allocating GPU memory (Metal backend)",
         ]
-        stream_output(ollama_logs, 0.03, Colors.WHITE)
+        stream_output(ollama_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ OllamaAgent [PID:{base_pid+10}] - 1.8GB RAM - READY{Colors.ENDC}")
         time.sleep(0.2)
 
         # Correlation
         corr_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+11}] Spawning CorrelationAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+11}] Loading multi-tool consensus algorithm{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+11}] Initializing false positive filter{Colors.ENDC}",
+            f"    [PID:{base_pid+11}] Spawning CorrelationAgent...",
+            f"    [PID:{base_pid+11}] Loading multi-tool consensus algorithm",
+            f"    [PID:{base_pid+11}] Initializing false positive filter",
         ]
-        stream_output(corr_logs, 0.03, Colors.WHITE)
+        stream_output(corr_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ CorrelationAgent [PID:{base_pid+11}] - 345MB RAM - READY{Colors.ENDC}")
         time.sleep(0.2)
 
         # Interpretation
         interp_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+12}] Spawning InterpretationAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+12}] Loading natural language generation module{Colors.ENDC}",
+            f"    [PID:{base_pid+12}] Spawning InterpretationAgent...",
+            f"    [PID:{base_pid+12}] Loading natural language generation module",
         ]
-        stream_output(interp_logs, 0.03, Colors.WHITE)
+        stream_output(interp_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ InterpretationAgent [PID:{base_pid+12}] - 128MB RAM - READY{Colors.ENDC}")
         time.sleep(0.3)
 
@@ -665,16 +680,19 @@ class HackerDemo:
         loading_bar("[6/6] Loading policy & compliance agent", 1, Colors.CYAN)
 
         policy_logs = [
-            f"{Colors.DIM}    [PID:{base_pid+13}] Spawning PolicyAgent...{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+13}] Loading security policy database{Colors.ENDC}",
-            f"{Colors.DIM}    [PID:{base_pid+13}] Initializing compliance checkers (OWASP, CWE){Colors.ENDC}",
+            f"    [PID:{base_pid+13}] Spawning PolicyAgent...",
+            f"    [PID:{base_pid+13}] Loading security policy database",
+            f"    [PID:{base_pid+13}] Initializing compliance checkers (OWASP, CWE)",
         ]
-        stream_output(policy_logs, 0.03, Colors.WHITE)
+        stream_output(policy_logs, 0.03, Colors.DIM)
         print(f"{Colors.GREEN}    ✓ PolicyAgent [PID:{base_pid+13}] - 48MB RAM - READY{Colors.ENDC}")
 
         time.sleep(0.3)
-        print(f"\n{Colors.DIM}[2025-10-30 14:23:45] Total memory: 6.2GB{Colors.ENDC}")
-        print(f"{Colors.DIM}[2025-10-30 14:23:45] All agents initialized{Colors.ENDC}")
+        summary_logs = [
+            "[2025-10-30 14:23:45] Total memory: 6.2GB",
+            "[2025-10-30 14:23:45] All agents initialized"
+        ]
+        stream_output(summary_logs, 0.03, Colors.DIM)
 
         time.sleep(0.5)
         pulse_text("\n[✓] ALL 17 AGENTS OPERATIONAL", 2, Colors.BRIGHT_GREEN)
@@ -723,12 +741,12 @@ class HackerDemo:
         show_command(f"solc --version && solc {self.contract_path}")
 
         compile_output = [
-            f"{Colors.DIM}[2025-10-30 14:23:41] INFO: Solidity compiler version 0.8.0+commit.c7dfd78e{Colors.ENDC}",
-            f"{Colors.DIM}[2025-10-30 14:23:41] INFO: Compiling test_contracts/VulnerableBank.sol{Colors.ENDC}",
-            f"{Colors.GREEN}[2025-10-30 14:23:42] SUCCESS: Compilation successful{Colors.ENDC}",
-            f"{Colors.DIM}[2025-10-30 14:23:42] INFO: Generated bytecode: 0x608060...{Colors.ENDC}"
+            "[2025-10-30 14:23:41] INFO: Solidity compiler version 0.8.0+commit.c7dfd78e",
+            "[2025-10-30 14:23:41] INFO: Compiling test_contracts/VulnerableBank.sol",
+            "[2025-10-30 14:23:42] SUCCESS: Compilation successful",
+            "[2025-10-30 14:23:42] INFO: Generated bytecode: 0x608060..."
         ]
-        stream_output(compile_output, 0.03, Colors.WHITE)
+        stream_output(compile_output, 0.03, Colors.DIM)
         time.sleep(0.5)
 
         # Slither
@@ -736,35 +754,35 @@ class HackerDemo:
         show_command(f"slither {self.contract_path} --json - --disable-color")
 
         slither_logs = [
-            f"{Colors.DIM}[PID:45821] Slither v0.9.6 starting...{Colors.ENDC}",
-            f"{Colors.DIM}[PID:45821] Parsing Solidity source files{Colors.ENDC}",
-            f"{Colors.DIM}[PID:45821] Building Abstract Syntax Tree (AST){Colors.ENDC}",
-            f"{Colors.DIM}[PID:45821] Extracting contract metadata{Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Found 1 contract: VulnerableBank{Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Found 10 functions{Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Found 3 state variables{Colors.ENDC}",
-            f"{Colors.DIM}[PID:45821] Loading detector modules:{Colors.ENDC}",
-            f"{Colors.DIM}[PID:45821]   • Reentrancy detectors (3 variants){Colors.ENDC}",
-            f"{Colors.DIM}[PID:45821]   • Access control checks (12 patterns){Colors.ENDC}",
-            f"{Colors.DIM}[PID:45821]   • Arithmetic vulnerability scans{Colors.ENDC}",
-            f"{Colors.DIM}[PID:45821]   • Low-level call detectors{Colors.ENDC}",
-            f"{Colors.DIM}[PID:45821]   • Timestamp dependency checks{Colors.ENDC}",
-            f"{Colors.DIM}[PID:45821]   • tx.origin usage patterns{Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Running 88 detectors in parallel{Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Analyzing data flow graphs...{Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Checking state variable dependencies...{Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Detecting reentrancy patterns...{Colors.ENDC}",
-            f"{Colors.YELLOW}[PID:45821] ALERT: Potential reentrancy in withdraw(){Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Analyzing access control patterns...{Colors.ENDC}",
-            f"{Colors.YELLOW}[PID:45821] ALERT: Missing access control in emergencyWithdraw(){Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Checking for dangerous delegatecalls...{Colors.ENDC}",
-            f"{Colors.YELLOW}[PID:45821] ALERT: Controlled delegatecall detected{Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Scanning for tx.origin usage...{Colors.ENDC}",
-            f"{Colors.YELLOW}[PID:45821] WARNING: tx.origin found in withdrawWithOrigin(){Colors.ENDC}",
-            f"{Colors.CYAN}[PID:45821] Checking timestamp dependencies...{Colors.ENDC}",
-            f"{Colors.YELLOW}[PID:45821] WARNING: block.timestamp used in timeLock(){Colors.ENDC}",
-            f"{Colors.GREEN}[PID:45821] Analysis completed successfully{Colors.ENDC}",
-            f"{Colors.DIM}[PID:45821] Generating JSON report...{Colors.ENDC}",
+            "[PID:45821] Slither v0.9.6 starting...",
+            "[PID:45821] Parsing Solidity source files",
+            "[PID:45821] Building Abstract Syntax Tree (AST)",
+            "[PID:45821] Extracting contract metadata",
+            "[PID:45821] Found 1 contract: VulnerableBank",
+            "[PID:45821] Found 10 functions",
+            "[PID:45821] Found 3 state variables",
+            "[PID:45821] Loading detector modules:",
+            "[PID:45821]   • Reentrancy detectors (3 variants)",
+            "[PID:45821]   • Access control checks (12 patterns)",
+            "[PID:45821]   • Arithmetic vulnerability scans",
+            "[PID:45821]   • Low-level call detectors",
+            "[PID:45821]   • Timestamp dependency checks",
+            "[PID:45821]   • tx.origin usage patterns",
+            "[PID:45821] Running 88 detectors in parallel",
+            "[PID:45821] Analyzing data flow graphs...",
+            "[PID:45821] Checking state variable dependencies...",
+            "[PID:45821] Detecting reentrancy patterns...",
+            "[PID:45821] ALERT: Potential reentrancy in withdraw()",
+            "[PID:45821] Analyzing access control patterns...",
+            "[PID:45821] ALERT: Missing access control in emergencyWithdraw()",
+            "[PID:45821] Checking for dangerous delegatecalls...",
+            "[PID:45821] ALERT: Controlled delegatecall detected",
+            "[PID:45821] Scanning for tx.origin usage...",
+            "[PID:45821] WARNING: tx.origin found in withdrawWithOrigin()",
+            "[PID:45821] Checking timestamp dependencies...",
+            "[PID:45821] WARNING: block.timestamp used in timeLock()",
+            "[PID:45821] Analysis completed successfully",
+            "[PID:45821] Generating JSON report...",
         ]
         stream_output(slither_logs, 0.035, Colors.WHITE)
 
