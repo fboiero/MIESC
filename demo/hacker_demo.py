@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 MIESC Hacker-Style Demo
-Demostración visual tipo hacker con ASCII art y efectos animados
+Visual hacker-style demonstration with ASCII art and animated effects
 """
 
 import sys
@@ -13,11 +13,11 @@ import json
 from datetime import datetime
 
 # ============================================================================
-# COLORES ANSI
+# ANSI COLORS
 # ============================================================================
 
 class Colors:
-    """Códigos de color ANSI"""
+    """ANSI color codes"""
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
@@ -92,15 +92,15 @@ VULNERABILITY_ICON = """
 """
 
 # ============================================================================
-# EFECTOS VISUALES
+# VISUAL EFFECTS
 # ============================================================================
 
 def clear_screen():
-    """Limpiar pantalla"""
+    """Clear screen"""
     os.system('clear' if os.name != 'nt' else 'cls')
 
 def typing_effect(text, delay=0.03, color=Colors.GREEN):
-    """Efecto de escritura tipo hacker"""
+    """Hacker-style typing effect"""
     for char in text:
         sys.stdout.write(color + char + Colors.ENDC)
         sys.stdout.flush()
@@ -108,20 +108,20 @@ def typing_effect(text, delay=0.03, color=Colors.GREEN):
     print()
 
 def show_command(command, color=Colors.YELLOW):
-    """Mostrar comando como si se estuviera ejecutando"""
+    """Show command as if executing"""
     print(f"\n{Colors.DIM}┌────────────────────────────────────────────────────────────┐{Colors.ENDC}")
     typing_effect(f"│ $ {command}", 0.02, color)
     print(f"{Colors.DIM}└────────────────────────────────────────────────────────────┘{Colors.ENDC}\n")
     time.sleep(0.3)
 
 def stream_output(lines, delay=0.05, color=Colors.WHITE):
-    """Simular salida de proceso en streaming"""
+    """Simulate streaming process output"""
     for line in lines:
         typing_effect(line, delay, color)
         time.sleep(0.1)
 
 def matrix_effect(duration=2):
-    """Efecto Matrix breve"""
+    """Brief Matrix effect"""
     chars = "01"
     width = 80
     for _ in range(int(duration * 10)):
@@ -130,7 +130,7 @@ def matrix_effect(duration=2):
         time.sleep(0.1)
 
 def loading_bar(title, duration=2, color=Colors.CYAN):
-    """Barra de progreso animada"""
+    """Animated progress bar"""
     width = 50
     print(f"\n{color}{title}{Colors.ENDC}")
     for i in range(width + 1):
@@ -142,7 +142,7 @@ def loading_bar(title, duration=2, color=Colors.CYAN):
     print()
 
 def pulse_text(text, times=3, color=Colors.BRIGHT_GREEN):
-    """Texto pulsante"""
+    """Pulsing text"""
     for _ in range(times):
         sys.stdout.write(f"\r{color}{Colors.BOLD}{text}{Colors.ENDC}")
         sys.stdout.flush()
@@ -153,7 +153,7 @@ def pulse_text(text, times=3, color=Colors.BRIGHT_GREEN):
     sys.stdout.write(f"\r{color}{Colors.BOLD}{text}{Colors.ENDC}\n")
 
 def glitch_effect(text, times=2):
-    """Efecto glitch"""
+    """Glitch effect"""
     for _ in range(times):
         for color in [Colors.RED, Colors.CYAN, Colors.YELLOW, Colors.GREEN]:
             sys.stdout.write(f"\r{color}{text}{Colors.ENDC}")
@@ -162,7 +162,7 @@ def glitch_effect(text, times=2):
     print(f"\r{Colors.WHITE}{text}{Colors.ENDC}")
 
 def countdown(seconds=3):
-    """Cuenta regresiva"""
+    """Countdown"""
     for i in range(seconds, 0, -1):
         sys.stdout.write(f"\r{Colors.YELLOW}[{Colors.BOLD}{i}{Colors.ENDC}{Colors.YELLOW}]{Colors.ENDC}")
         sys.stdout.flush()
@@ -170,11 +170,11 @@ def countdown(seconds=3):
     print(f"\r{Colors.GREEN}[GO!]{Colors.ENDC}")
 
 # ============================================================================
-# FUNCIONES DE ANÁLISIS
+# ANALYSIS FUNCTIONS
 # ============================================================================
 
 def run_slither_analysis(contract_path):
-    """Ejecutar análisis con Slither"""
+    """Run Slither analysis"""
     try:
         result = subprocess.run(
             ['slither', contract_path, '--json', '-'],
@@ -193,7 +193,7 @@ def run_slither_analysis(contract_path):
         return None
 
 def count_vulnerabilities_by_severity(slither_output):
-    """Contar vulnerabilidades por severidad"""
+    """Count vulnerabilities by severity"""
     if not slither_output or 'results' not in slither_output:
         return {'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'info': 0}
 
@@ -216,18 +216,18 @@ def count_vulnerabilities_by_severity(slither_output):
     return counts
 
 # ============================================================================
-# DEMOSTRACIÓN PRINCIPAL
+# MAIN DEMONSTRATION
 # ============================================================================
 
 class HackerDemo:
-    """Demostración estilo hacker"""
+    """Hacker-style demonstration"""
 
     def __init__(self):
         self.contract_path = "test_contracts/VulnerableBank.sol"
         self.start_time = datetime.now()
 
     def show_banner(self):
-        """Mostrar banner inicial"""
+        """Show initial banner"""
         clear_screen()
         glitch_effect("INITIALIZING...", times=3)
         time.sleep(0.5)
@@ -236,7 +236,7 @@ class HackerDemo:
         print(Colors.CYAN + MIESC_BANNER + Colors.ENDC)
         print(Colors.GREEN + HACKER_LOGO + Colors.ENDC)
 
-        typing_effect("\n[+] Marco Integrado de Evaluación de Seguridad", 0.02, Colors.BRIGHT_GREEN)
+        typing_effect("\n[+] Integrated Security Evaluation Framework", 0.02, Colors.BRIGHT_GREEN)
         typing_effect("[+] Smart Contract Security Framework", 0.02, Colors.BRIGHT_GREEN)
         typing_effect("[+] Multi-Agent Architecture - 17 Specialized Agents", 0.02, Colors.CYAN)
 
@@ -245,7 +245,7 @@ class HackerDemo:
         input()
 
     def show_architecture(self):
-        """Mostrar arquitectura del sistema con diagrama ASCII"""
+        """Show system architecture with ASCII diagram"""
         clear_screen()
 
         print(f"\n{Colors.BOLD}{Colors.CYAN}{'='*70}")
@@ -254,19 +254,19 @@ class HackerDemo:
 
         time.sleep(1)
 
-        # Explicación del sistema
-        typing_effect("\n[*] ¿Qué es MIESC?", 0.02, Colors.YELLOW)
+        # System explanation
+        typing_effect("\n[*] What is MIESC?", 0.02, Colors.YELLOW)
         time.sleep(0.5)
 
         explanations = [
-            "    MIESC es un framework de seguridad de última generación que combina",
-            "    análisis estático, dinámico, verificación formal y IA para detectar",
-            "    vulnerabilidades en smart contracts con precisión superior al 89%.",
+            "    MIESC is a state-of-the-art security framework that combines",
+            "    static analysis, dynamic analysis, formal verification and AI to detect",
+            "    vulnerabilities in smart contracts with over 89% precision.",
             "",
-            "    A diferencia de herramientas tradicionales que ejecutan un solo tipo",
-            "    de análisis, MIESC orquesta 17 agentes especializados en 6 capas de",
-            "    defensa en profundidad, correlacionando resultados para minimizar",
-            "    falsos positivos y maximizar la cobertura de detección."
+            "    Unlike traditional tools that run a single type of analysis,",
+            "    MIESC orchestrates 17 specialized agents across 6 defense-in-depth layers,",
+            "    correlating results to minimize false positives and maximize",
+            "    detection coverage."
         ]
 
         for line in explanations:
@@ -275,8 +275,8 @@ class HackerDemo:
 
         time.sleep(1.5)
 
-        # Diagrama de arquitectura
-        typing_effect("\n[*] Arquitectura de 6 Capas:", 0.02, Colors.YELLOW)
+        # Architecture diagram
+        typing_effect("\n[*] 6-Layer Architecture:", 0.02, Colors.YELLOW)
         time.sleep(0.5)
 
         print(f"\n{Colors.CYAN}")
@@ -353,17 +353,17 @@ class HackerDemo:
 
         time.sleep(1)
 
-        # Ventajas clave
-        typing_effect("\n[*] Ventajas Clave del Sistema Multi-Agente:", 0.02, Colors.YELLOW)
+        # Key advantages
+        typing_effect("\n[*] Key Advantages of Multi-Agent System:", 0.02, Colors.YELLOW)
         time.sleep(0.5)
 
         advantages = [
-            ("Defense-in-Depth", "6 capas de análisis independientes"),
-            ("Correlación Inteligente", "Reduce falsos positivos mediante consenso"),
-            ("Cobertura Completa", "88+ detectores combinados"),
-            ("Interpretación IA", "Explicaciones en lenguaje natural"),
-            ("Alta Precisión", "89.5% accuracy vs 67.3% herramientas tradicionales"),
-            ("Velocidad", "8.4 segundos vs 120+ segundos (Manticore solo)")
+            ("Defense-in-Depth", "6 independent analysis layers"),
+            ("Intelligent Correlation", "Reduces false positives through consensus"),
+            ("Complete Coverage", "88+ combined detectors"),
+            ("AI Interpretation", "Explanations in natural language"),
+            ("High Precision", "89.5% accuracy vs 67.3% traditional tools"),
+            ("Speed", "8.4 seconds vs 120+ seconds (Manticore alone)")
         ]
 
         print(f"\n{Colors.BOLD}")
@@ -374,17 +374,17 @@ class HackerDemo:
 
         time.sleep(1.5)
 
-        # Flujo de ejecución
-        typing_effect("\n[*] Flujo de Ejecución:", 0.02, Colors.YELLOW)
+        # Execution flow
+        typing_effect("\n[*] Execution Flow:", 0.02, Colors.YELLOW)
         time.sleep(0.5)
 
         flow = [
-            "    1. Coordinator recibe el smart contract",
-            "    2. Distribución paralela a capas 2-4 (análisis independiente)",
-            "    3. Recolección de hallazgos de cada agente",
-            "    4. Capa 5: IA correlaciona y prioriza vulnerabilidades",
-            "    5. Capa 6: Validación contra políticas de seguridad",
-            "    6. Generación de reporte consolidado con recomendaciones"
+            "    1. Coordinator receives the smart contract",
+            "    2. Parallel distribution to layers 2-4 (independent analysis)",
+            "    3. Collection of findings from each agent",
+            "    4. Layer 5: AI correlates and prioritizes vulnerabilities",
+            "    5. Layer 6: Validation against security policies",
+            "    6. Generation of consolidated report with recommendations"
         ]
 
         for step in flow:
@@ -396,20 +396,20 @@ class HackerDemo:
         pulse_text("\n[✓] ARCHITECTURE OVERVIEW COMPLETE", 2, Colors.BRIGHT_GREEN)
         time.sleep(1)
 
-        # Relevancia en Ciberdefensa
+        # Cyberdefense relevance
         self.show_cyberdefense_context()
 
     def show_cyberdefense_context(self):
-        """Mostrar relevancia en el contexto de ciberdefensa"""
+        """Show relevance in cyberdefense context"""
         clear_screen()
 
         print(f"\n{Colors.BOLD}{Colors.RED}{'='*70}")
-        print(f"  CIBERSEGURIDAD Y CIBERDEFENSA")
+        print(f"  CYBERSECURITY AND CYBERDEFENSE")
         print(f"{'='*70}{Colors.ENDC}\n")
 
         time.sleep(1)
 
-        typing_effect("\n[*] ¿Por qué es crítico para la Ciberseguridad y Ciberdefensa?", 0.02, Colors.YELLOW)
+        typing_effect("\n[*] Why is it critical for Cybersecurity and Cyberdefense?", 0.02, Colors.YELLOW)
         time.sleep(0.5)
 
         context_points = [
@@ -509,7 +509,7 @@ class HackerDemo:
         input()
 
     def initialize_system(self):
-        """Inicializar sistema"""
+        """Initialize system"""
         clear_screen()
         typing_effect("\n[*] Initializing MIESC Security Framework...", 0.02, Colors.CYAN)
 
