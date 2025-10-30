@@ -1,75 +1,75 @@
 # 🎮 MIESC Hacker-Style Demo
 
-Demo cinematográfico estilo "hacker" con ASCII art, animaciones y efectos visuales para presentaciones y defensa de tesis.
+Cinematic "hacker"-style demo with ASCII art, animations and visual effects for presentations and thesis defense.
 
 ---
 
-## 🎯 Características
+## 🎯 Features
 
-### Efectos Visuales
-- ✅ **ASCII Art** - Banner MIESC y logos animados
-- ✅ **Typing Effect** - Texto que se escribe en tiempo real
-- ✅ **Loading Bars** - Barras de progreso animadas
-- ✅ **Glitch Effect** - Efectos de distorsión tipo matrix
-- ✅ **Pulse Text** - Texto pulsante para enfatizar
-- ✅ **Color Gradients** - Colores ANSI para cada fase
+### Visual Effects
+- ✅ **ASCII Art** - MIESC banner and animated logos
+- ✅ **Typing Effect** - Text that writes in real-time
+- ✅ **Loading Bars** - Animated progress bars
+- ✅ **Glitch Effect** - Matrix-style distortion effects
+- ✅ **Pulse Text** - Pulsing text for emphasis
+- ✅ **Color Gradients** - ANSI colors for each phase
 
-### Fases de la Demo
-1. **Banner Inicial** - Logo MIESC con efectos glitch
-2. **Architecture Overview** - Diagrama ASCII de 6 capas y explicación del sistema
-3. **Inicialización** - Carga de 17 agentes con barras de progreso
-4. **Target Analysis** - Identificación del contrato objetivo
-5. **Phase 1: Static Analysis** - Análisis estático con Slither real
-6. **Phase 2: Deep Analysis** - Análisis detallado de vulnerabilidades
-7. **Phase 3: Comparison** - Comparación con otras herramientas
-8. **Phase 4: Statistics** - Métricas y estadísticas finales
-9. **Phase 5: Security Posture** - Seguridad del framework MIESC (Security-by-Design)
-10. **Conclusion** - Resumen y validación científica
+### Demo Phases
+1. **Initial Banner** - MIESC logo with glitch effects
+2. **Architecture Overview** - 6-layer ASCII diagram and system explanation
+3. **Initialization** - Loading 17 agents with progress bars
+4. **Target Analysis** - Target contract identification
+5. **Phase 1: Static Analysis** - Static analysis with real Slither
+6. **Phase 2: Deep Analysis** - Detailed vulnerability analysis
+7. **Phase 3: Comparison** - Comparison with other tools
+8. **Phase 4: Statistics** - Final metrics and statistics
+9. **Phase 5: Security Posture** - MIESC framework security (Security-by-Design)
+10. **Conclusion** - Summary and scientific validation
 
-### Análisis Real
-- Ejecuta Slither sobre `test_contracts/VulnerableBank.sol`
-- Procesa resultados JSON reales
-- Cuenta vulnerabilidades por severidad
-- Muestra estadísticas en tiempo real
+### Real Analysis
+- Runs Slither on `test_contracts/VulnerableBank.sol`
+- Processes real JSON results
+- Counts vulnerabilities by severity
+- Shows real-time statistics
 
 ---
 
-## 🚀 Uso
+## 🚀 Usage
 
-### Ejecución Básica
+### Basic Execution
 
 ```bash
-# Opción 1: Ejecutar directamente
+# Option 1: Run directly
 ./demo/hacker_demo.py
 
-# Opción 2: Con Python
+# Option 2: With Python
 python3 demo/hacker_demo.py
 ```
 
-### Requisitos
+### Requirements
 
 **Software:**
 - Python 3.9+
-- Slither analyzer instalado
-- Terminal con soporte ANSI colors
+- Slither analyzer installed
+- Terminal with ANSI colors support
 
-**Archivos necesarios:**
-- `test_contracts/VulnerableBank.sol` (contrato de prueba)
+**Required files:**
+- `test_contracts/VulnerableBank.sol` (test contract)
 
-**Instalación de dependencias:**
+**Dependency installation:**
 ```bash
-# Instalar Slither si no está instalado
+# Install Slither if not installed
 pip install slither-analyzer
 
-# Verificar instalación
+# Verify installation
 slither --version
 ```
 
 ---
 
-## 🎬 Flujo de la Demo
+## 🎬 Demo Flow
 
-### 1. Banner Inicial (10 segundos)
+### 1. Initial Banner (10 seconds)
 ```
 ███╗   ███╗██╗███████╗███████╗ ██████╗
 ████╗ ████║██║██╔════╝██╔════╝██╔════╝
@@ -81,20 +81,20 @@ slither --version
 >>> PRESS ENTER TO START SECURITY ANALYSIS >>>
 ```
 
-### 2. Architecture Overview (30 segundos)
-- Explicación de qué es MIESC
-- Diagrama ASCII de las 6 capas del sistema
-- Visualización de los 17 agentes especializados
-- Ventajas del sistema multi-agente
-- Flujo de ejecución paso a paso
+### 2. Architecture Overview (30 seconds)
+- Explanation of what MIESC is
+- ASCII diagram of the 6-layer system
+- Visualization of the 17 specialized agents
+- Multi-agent system advantages
+- Step-by-step execution flow
 
-**Contenido mostrado:**
+**Content shown:**
 ```
-[*] ¿Qué es MIESC?
-    Framework de seguridad de última generación que combina
-    análisis estático, dinámico, verificación formal y IA...
+[*] What is MIESC?
+    State-of-the-art security framework that combines
+    static analysis, dynamic analysis, formal verification and AI...
 
-[*] Arquitectura de 6 Capas:
+[*] 6-Layer Architecture:
     ┌─────────────────────────────────────┐
     │     SMART CONTRACT INPUT            │
     └──────────────┬──────────────────────┘
@@ -105,42 +105,42 @@ slither --version
     ╚══════════════╤═══════════════════════╝
     ...
 
-[*] Ventajas Clave:
-    [1] Defense-in-Depth: 6 capas independientes
-    [2] Correlación Inteligente: Reduce falsos positivos
-    [3] Cobertura Completa: 88+ detectores combinados
-    [4] Interpretación IA: Explicaciones naturales
-    [5] Alta Precisión: 89.5% vs 67.3% tradicional
-    [6] Velocidad: 8.4s vs 120s+ (Manticore)
+[*] Key Advantages:
+    [1] Defense-in-Depth: 6 independent layers
+    [2] Intelligent Correlation: Reduces false positives
+    [3] Complete Coverage: 88+ combined detectors
+    [4] AI Interpretation: Natural explanations
+    [5] High Precision: 89.5% vs 67.3% traditional
+    [6] Speed: 8.4s vs 120s+ (Manticore)
 
-[*] Flujo de Ejecución:
-    1. Coordinator recibe el smart contract
-    2. Distribución paralela a capas 2-4
-    3. Recolección de hallazgos de cada agente
-    4. Capa 5: IA correlaciona y prioriza
-    5. Capa 6: Validación contra políticas
-    6. Generación de reporte consolidado
+[*] Execution Flow:
+    1. Coordinator receives the smart contract
+    2. Parallel distribution to layers 2-4
+    3. Collection of findings from each agent
+    4. Layer 5: AI correlates and prioritizes
+    5. Layer 6: Validation against policies
+    6. Generation of consolidated report
 ```
 
-### 3. Inicialización (15 segundos)
-- Carga de 6 capas de agentes
-- Barras de progreso para cada capa
-- Confirmación de cada agente cargado
-- Total: 17 agentes especializados
+### 3. Initialization (15 seconds)
+- Loading 6 agent layers
+- Progress bars for each layer
+- Confirmation of each loaded agent
+- Total: 17 specialized agents
 
-### 3. Target Analysis (10 segundos)
-- Identificación del contrato
-- Estructura del contrato
-- Funciones detectadas
-- Preparación para análisis
+### 3. Target Analysis (10 seconds)
+- Contract identification
+- Contract structure
+- Detected functions
+- Preparation for analysis
 
-### 4. Phase 1: Static Analysis (15 segundos)
-- Ejecución de SlitherAgent
-- **Análisis REAL con Slither**
-- Detección de vulnerabilidades
-- Gráfico de barras por severidad
+### 4. Phase 1: Static Analysis (15 seconds)
+- SlitherAgent execution
+- **REAL Analysis with Slither**
+- Vulnerability detection
+- Bar chart by severity
 
-**Output ejemplo:**
+**Example output:**
 ```
 CRITICAL: [▓▓▓░░░░░░░] 1
 HIGH    : [▓▓▓▓▓▓░░░░] 3
@@ -151,18 +151,18 @@ INFO    : [▓▓▓▓▓▓░░░░] 6
 [!] TOTAL: 17 ISSUES FOUND
 ```
 
-### 5. Phase 2: Deep Analysis (20 segundos)
-- Análisis detallado de 4 vulnerabilidades críticas
+### 5. Phase 2: Deep Analysis (20 seconds)
+- Detailed analysis of 4 critical vulnerabilities
 - Reentrancy, Delegatecall, Access Control, tx.origin
-- Ubicación exacta (líneas de código)
-- Evaluación de impacto
-- Confirmación de explotabilidad
+- Exact location (code lines)
+- Impact assessment
+- Exploitability confirmation
 
-### 6. Phase 3: Comparison (15 segundos)
-- Comparación con herramientas tradicionales
-- Tabla comparativa de rendimiento
+### 6. Phase 3: Comparison (15 seconds)
+- Comparison with traditional tools
+- Performance comparison table
 
-**Métricas mostradas:**
+**Metrics shown:**
 ```
 Tool                     Findings     Time(s)      Accuracy(%)
 ----------------------------------------------------------
@@ -172,19 +172,19 @@ Manticore (Solo)         6            120.3        58.9
 MIESC (Multi-Agent)      17           8.4          89.5
 ```
 
-**Ventajas de MIESC:**
-- 41% más hallazgos que la mejor herramienta individual
-- 89.5% precisión vs 67.3% baseline
-- Correlación multi-agente reduce falsos positivos
-- 6 capas de defensa en profundidad
-- Interpretación impulsada por IA
+**MIESC Advantages:**
+- 41% more findings than best individual tool
+- 89.5% precision vs 67.3% baseline
+- Multi-agent correlation reduces false positives
+- 6 layers of defense-in-depth
+- AI-powered interpretation
 
-### 7. Phase 4: Statistics (15 segundos)
-- Tiempo de ejecución total
-- Métricas de análisis
-- Validación científica
+### 7. Phase 4: Statistics (15 seconds)
+- Total execution time
+- Analysis metrics
+- Scientific validation
 
-**Estadísticas mostradas:**
+**Statistics shown:**
 ```
 Execution Time          : X.X seconds
 Contract Lines          : 108 LOC
@@ -197,7 +197,7 @@ False Positive Rate     : < 5%
 Detection Accuracy      : 100%
 ```
 
-**Validación científica:**
+**Scientific validation:**
 ```
 Cohen's Kappa           : 0.847       (Excellent agreement)
 Precision               : 89.47%      (vs 67.3% baseline)
@@ -205,19 +205,19 @@ F1-Score                : 0.85        (High reliability)
 Coverage                : 100%        (All intentional vulns detected)
 ```
 
-### 8. Phase 5: Security Posture (30 segundos)
-- **Seguridad del Framework MIESC (Security-by-Design)**
-- Validación de controles de seguridad implementados
-- Threat model coverage completo
+### 8. Phase 5: Security Posture (30 seconds)
+- **MIESC Framework Security (Security-by-Design)**
+- Validation of implemented security controls
+- Complete threat model coverage
 
-**Contenido mostrado:**
+**Content shown:**
 
 **Security Score:**
 ```
 Overall Security Score: 92/100 (EXCELLENT)
 ```
 
-**Threat Model Coverage (10 amenazas):**
+**Threat Model Coverage (10 threats):**
 ```
 T-01  Code Injection                  [MITIGATED]
 T-02  Command Injection               [MITIGATED]
@@ -291,112 +291,112 @@ TOTAL DOCUMENTATION        : 3,269+ lines
 ╚════════════════════════════════════════════════════════════╝
 ```
 
-**Relevancia para la tesis:**
-- Demuestra que el framework mismo es seguro (Security-by-Design)
-- Muestra rigor académico en documentación de seguridad
-- Valida que MIESC cumple con estándares de la industria
-- Evidencia que puede ser usado en entornos de producción
-- Diferenciador clave vs. competencia (transparencia en seguridad)
+**Relevance for thesis:**
+- Demonstrates that the framework itself is secure (Security-by-Design)
+- Shows academic rigor in security documentation
+- Validates that MIESC complies with industry standards
+- Provides evidence that it can be used in production environments
+- Key differentiator vs. competition (security transparency)
 
-### 9. Conclusion (10 segundos)
-- Confirmación de éxito
-- Créditos académicos
-- Mensaje final
+### 9. Conclusion (10 seconds)
+- Success confirmation
+- Academic credits
+- Final message
 
 ---
 
-## ⚙️ Configuración
+## ⚙️ Configuration
 
-### Personalización de Tiempos
+### Timing Customization
 
-Editar en `hacker_demo.py`:
+Edit in `hacker_demo.py`:
 
 ```python
-# Tiempos de animación
-typing_effect(text, delay=0.03)      # Velocidad de escritura
-loading_bar(title, duration=2)       # Duración de barras
-pulse_text(text, times=3)            # Repeticiones de pulso
-time.sleep(1)                        # Pausas entre secciones
+# Animation timings
+typing_effect(text, delay=0.03)      # Writing speed
+loading_bar(title, duration=2)       # Bar duration
+pulse_text(text, times=3)            # Pulse repetitions
+time.sleep(1)                        # Pauses between sections
 ```
 
-### Personalización de Colores
+### Color Customization
 
 ```python
-# Definir en class Colors
-CUSTOM_COLOR = '\033[38;5;XXXm'  # XXX = código de color 0-255
+# Define in class Colors
+CUSTOM_COLOR = '\033[38;5;XXXm'  # XXX = color code 0-255
 ```
 
-### Cambiar Contrato de Prueba
+### Change Test Contract
 
 ```python
-# En __init__
+# In __init__
 self.contract_path = "path/to/your/contract.sol"
 ```
 
 ---
 
-## 🎓 Uso para Presentaciones
+## 🎓 Usage for Presentations
 
-### Defensa de Tesis (10 minutos)
+### Thesis Defense (10 minutes)
 ```bash
-# Terminal en pantalla grande (proyector)
-# Fuente: 18-20pt
-# Tema: Oscuro con colores brillantes
+# Terminal on large screen (projector)
+# Font: 18-20pt
+# Theme: Dark with bright colors
 
 ./demo/hacker_demo.py
 
-# Dejar correr automáticamente
-# Narrar mientras se ejecuta
-# Pausar con Ctrl+Z si necesario (fg para continuar)
+# Let it run automatically
+# Narrate while executing
+# Pause with Ctrl+Z if needed (fg to continue)
 ```
 
-### Demo Rápido (5 minutos)
-- Mostrar solo hasta Phase 3
-- Presionar Ctrl+C después de comparación
+### Quick Demo (5 minutes)
+- Show only up to Phase 3
+- Press Ctrl+C after comparison
 
-### Demo Completo (15 minutos)
-- Ejecutar hasta el final
-- Expandir verbalmente cada fase
-- Responder preguntas entre fases
+### Complete Demo (15 minutes)
+- Run to the end
+- Verbally expand each phase
+- Answer questions between phases
 
 ---
 
-## 🎨 Efectos Implementados
+## 🎨 Implemented Effects
 
 ### 1. Typing Effect
-Texto que aparece letra por letra, simulando escritura en tiempo real.
+Text that appears letter by letter, simulating real-time writing.
 
 ### 2. Loading Bars
-Barras de progreso animadas con porcentaje.
+Animated progress bars with percentage.
 
 ### 3. Matrix Effect
-Lluvia de 0s y 1s estilo Matrix (breve).
+Rain of 0s and 1s Matrix-style (brief).
 
 ### 4. Pulse Text
-Texto que pulsa entre brillante y oscuro.
+Text that pulses between bright and dark.
 
 ### 5. Glitch Effect
-Cambio rápido de colores para efecto de distorsión.
+Rapid color changes for distortion effect.
 
 ### 6. Vulnerability Bars
-Barras horizontales mostrando cantidad de vulnerabilidades por severidad.
+Horizontal bars showing vulnerability count by severity.
 
 ### 7. Countdown
-Cuenta regresiva antes de iniciar.
+Countdown before starting.
 
 ---
 
-## 📊 Datos Mostrados
+## 📊 Data Shown
 
-### Métricas Reales
-- ✅ Tiempo de ejecución calculado dinámicamente
-- ✅ Vulnerabilidades contadas desde Slither JSON
-- ✅ Estadísticas basadas en análisis real
+### Real Metrics
+- ✅ Dynamically calculated execution time
+- ✅ Vulnerabilities counted from Slither JSON
+- ✅ Statistics based on real analysis
 
-### Métricas de Comparación
-- ✅ Basadas en estudios académicos
-- ✅ Cohen's Kappa de experimentos reales
-- ✅ Precisión medida en dataset de prueba
+### Comparison Metrics
+- ✅ Based on academic studies
+- ✅ Cohen's Kappa from real experiments
+- ✅ Precision measured on test dataset
 
 ---
 
@@ -409,165 +409,165 @@ pip install slither-analyzer
 
 ### Error: "Contract not found"
 ```bash
-# Verificar que existe test_contracts/VulnerableBank.sol
+# Verify that test_contracts/VulnerableBank.sol exists
 ls -la test_contracts/VulnerableBank.sol
 ```
 
-### Colores no se muestran
+### Colors not showing
 ```bash
-# Verificar soporte ANSI en terminal
+# Verify ANSI support in terminal
 echo -e "\033[32mGreen\033[0m"
 
-# Si no funciona, usar terminal moderna:
+# If it doesn't work, use a modern terminal:
 # - iTerm2 (macOS)
 # - Windows Terminal (Windows)
 # - GNOME Terminal (Linux)
 ```
 
-### Demo muy lenta/rápida
-Editar delays en el código:
+### Demo too slow/fast
+Edit delays in the code:
 ```python
-# Hacer más rápido
+# Make faster
 typing_effect(text, delay=0.01)  # default: 0.03
 loading_bar(title, duration=1)   # default: 2
 
-# Hacer más lento
+# Make slower
 typing_effect(text, delay=0.05)
 loading_bar(title, duration=3)
 ```
 
 ---
 
-## 🎥 Grabación de Video
+## 🎥 Video Recording
 
-### Opción 1: asciinema
+### Option 1: asciinema
 ```bash
-# Instalar
+# Install
 pip install asciinema
 
-# Grabar
+# Record
 asciinema rec miesc_demo.cast
 
-# Ejecutar demo
+# Run demo
 ./demo/hacker_demo.py
 
-# Terminar: Ctrl+D
+# Finish: Ctrl+D
 
-# Reproducir
+# Play
 asciinema play miesc_demo.cast
 ```
 
-### Opción 2: Screen Recording
+### Option 2: Screen Recording
 - macOS: QuickTime Screen Recording
 - Windows: OBS Studio
 - Linux: SimpleScreenRecorder
 
 ---
 
-## 📝 Notas Técnicas
+## 📝 Technical Notes
 
-### Compatibilidad
+### Compatibility
 - ✅ Python 3.9+
-- ✅ macOS (probado en Darwin 24.6.0)
-- ✅ Linux (requiere terminal con ANSI)
-- ⚠️  Windows (requiere Windows Terminal o ConEmu)
+- ✅ macOS (tested on Darwin 24.6.0)
+- ✅ Linux (requires ANSI terminal)
+- ⚠️  Windows (requires Windows Terminal or ConEmu)
 
-### Dependencias
-- Solo librería estándar de Python
-- Slither (para análisis real)
-- Terminal con soporte ANSI colors
+### Dependencies
+- Python standard library only
+- Slither (for real analysis)
+- Terminal with ANSI colors support
 
-### Duración Total
-- Sin pausas manuales: ~2.5 minutos
-- Con pausas narrativas: 6-18 minutos
-- Presentación completa: 12-25 minutos
-
----
-
-## 🎯 Mejores Prácticas
-
-### Para Presentaciones
-1. **Practicar antes** - Ejecutar 2-3 veces para familiarizarse
-2. **Narrar en vivo** - No dejar que corra en silencio
-3. **Pausar estratégicamente** - Usar pausas para explicar
-4. **Terminal grande** - Fuente 18-20pt mínimo
-5. **Fondo oscuro** - Mejor contraste para proyector
-
-### Para Demos
-1. **Verificar Slither** - Probar análisis antes del demo
-2. **Backup plan** - Tener screenshots si falla
-3. **Red backup** - No depender de internet
-4. **Timing** - Conocer duración de cada fase
-
-### Para Grabaciones
-1. **Limpiar pantalla** - `clear` antes de empezar
-2. **Silenciar notificaciones** - No mostrar popups
-3. **Full screen** - Maximizar terminal
-4. **Audio claro** - Narración sincronizada
+### Total Duration
+- Without manual pauses: ~2.5 minutes
+- With narrative pauses: 6-18 minutes
+- Complete presentation: 12-25 minutes
 
 ---
 
-## 🔗 Archivos Relacionados
+## 🎯 Best Practices
 
-- `test_contracts/VulnerableBank.sol` - Contrato de prueba
-- `test_contracts/DEMO_RESULTS.md` - Resultados detallados
-- `demo/thesis_defense_demo.py` - Demo académico estructurado
-- `demo/orchestration_demo.py` - Demo de orquestación
+### For Presentations
+1. **Practice beforehand** - Run 2-3 times to familiarize
+2. **Narrate live** - Don't let it run silently
+3. **Pause strategically** - Use pauses to explain
+4. **Large terminal** - 18-20pt font minimum
+5. **Dark background** - Better contrast for projector
+
+### For Demos
+1. **Verify Slither** - Test analysis before demo
+2. **Backup plan** - Have screenshots if it fails
+3. **Network backup** - Don't depend on internet
+4. **Timing** - Know duration of each phase
+
+### For Recordings
+1. **Clean screen** - `clear` before starting
+2. **Mute notifications** - Don't show popups
+3. **Full screen** - Maximize terminal
+4. **Clear audio** - Synchronized narration
 
 ---
 
-## 📚 Referencias
+## 🔗 Related Files
+
+- `test_contracts/VulnerableBank.sol` - Test contract
+- `test_contracts/DEMO_RESULTS.md` - Detailed results
+- `demo/thesis_defense_demo.py` - Structured academic demo
+- `demo/orchestration_demo.py` - Orchestration demo
+
+---
+
+## 📚 References
 
 ### ASCII Art
-- Generador: https://patorjk.com/software/taag/
-- Font usado: "ANSI Shadow"
+- Generator: https://patorjk.com/software/taag/
+- Font used: "ANSI Shadow"
 
 ### ANSI Colors
-- Códigos: https://en.wikipedia.org/wiki/ANSI_escape_code
-- 256 colores: https://www.ditig.com/256-colors-cheat-sheet
+- Codes: https://en.wikipedia.org/wiki/ANSI_escape_code
+- 256 colors: https://www.ditig.com/256-colors-cheat-sheet
 
-### Inspiración
+### Inspiration
 - Matrix Digital Rain
 - Hacker typer animations
 - Terminal-based presentations
 
 ---
 
-## 🎓 Contexto Académico
+## 🎓 Academic Context
 
-**Proyecto:** MIESC v3.3.0
-**Institución:** Universidad de la Defensa Nacional - IUA Córdoba
-**Programa:** Maestría en Ciberdefensa
-**Autor:** Fernando Boiero
+**Project:** MIESC v3.3.0
+**Institution:** National Defense University - IUA Córdoba
+**Program:** Master in Cyberdefense
+**Author:** Fernando Boiero
 **Email:** fboiero@frvm.utn.edu.ar
 
 ---
 
-## ⚠️ Advertencias
+## ⚠️ Warnings
 
-- **NO usar en producción** - Solo para demos educativas
-- **Requiere Slither** - Instalar antes de ejecutar
-- **Terminal moderna** - Requiere soporte ANSI
-- **Tiempo de ejecución** - Puede variar según sistema
-
----
-
-## ✅ Checklist Pre-Demo
-
-Antes de una presentación importante:
-
-- [ ] Slither instalado y funcionando
-- [ ] VulnerableBank.sol existe y compila
-- [ ] Terminal configurada (fuente grande, tema oscuro)
-- [ ] Demo ejecutado y funciona correctamente
-- [ ] Timing practicado (5-15 min)
-- [ ] Backup screenshots preparados
-- [ ] Proyector/pantalla probados
-- [ ] Audio/micrófono funcionando
-- [ ] Notificaciones desactivadas
+- **DO NOT use in production** - For educational demos only
+- **Requires Slither** - Install before running
+- **Modern terminal** - Requires ANSI support
+- **Execution time** - May vary by system
 
 ---
 
-**Última actualización:** 30 de Octubre, 2025
-**Versión:** 1.0.0
-**Estado:** ✅ Listo para uso
+## ✅ Pre-Demo Checklist
+
+Before an important presentation:
+
+- [ ] Slither installed and working
+- [ ] VulnerableBank.sol exists and compiles
+- [ ] Terminal configured (large font, dark theme)
+- [ ] Demo executed and working correctly
+- [ ] Timing practiced (5-15 min)
+- [ ] Backup screenshots prepared
+- [ ] Projector/screen tested
+- [ ] Audio/microphone working
+- [ ] Notifications disabled
+
+---
+
+**Last updated:** October 30, 2025
+**Version:** 1.0.0
+**Status:** ✅ Ready for use
