@@ -1,0 +1,17 @@
+{
+  "detectors_to_run": "all",
+  "detectors_to_exclude": "naming-convention,solc-version",
+  "exclude_informational": false,
+  "exclude_low": false,
+  "exclude_medium": false,
+  "exclude_high": false,
+  "solc": "solc",
+  "solc_args": "",
+  "disable_color": false,
+  "filter_paths": "node_modules|test",
+  "generate_patches": false,
+  "markdown_root": "",
+  "checklist": true,
+  "json": "analysis/slither/results/report.json",
+  "sarif": "analysis/slither/results/report.sarif"
+}
