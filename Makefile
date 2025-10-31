@@ -26,14 +26,14 @@ help:  ## Show this help message
 
 install:  ## Install dependencies
 	@echo "$(BLUE)Installing MIESC dependencies...$(NC)"
-	pip install -r requirements.txt
-	pip install -r requirements_core.txt
-	pip install -r requirements_agents.txt
+	pip install -r requirements/requirements.txt
+	pip install -r requirements/requirements_core.txt
+	pip install -r requirements/requirements_agents.txt
 	@echo "$(GREEN)✓ Dependencies installed$(NC)"
 
 install-dev:  ## Install development dependencies
 	@echo "$(BLUE)Installing development dependencies...$(NC)"
-	pip install -r requirements.txt
+	pip install -r requirements/requirements.txt
 	pip install pytest pytest-cov black flake8 mypy
 	@echo "$(GREEN)✓ Development dependencies installed$(NC)"
 
@@ -123,7 +123,7 @@ webapp:  ## Launch web demo (Streamlit)
 
 install-webapp:  ## Install webapp dependencies
 	@echo "$(BLUE)Installing webapp dependencies...$(NC)"
-	@pip install -r requirements-webapp.txt
+	@pip install -r requirements/requirements-webapp.txt
 	@echo "$(GREEN)✓ Webapp dependencies installed$(NC)"
 
 install-docs:  ## Install documentation dependencies
