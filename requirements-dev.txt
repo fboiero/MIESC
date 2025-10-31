@@ -1,0 +1,187 @@
+# ============================================================================
+# MIESC Development Dependencies
+# ============================================================================
+# These dependencies are required for development, testing, and documentation.
+# Install with: pip install -r requirements-dev.txt
+#
+# Version: 3.3.0
+# Last Updated: 2025-01-18
+# ============================================================================
+
+# Include core dependencies
+-r requirements.txt
+
+# ============================================================================
+# Code Quality & Formatting
+# ============================================================================
+
+# Code formatting
+black==24.1.1
+isort==5.13.2
+
+# Linting
+ruff==0.1.14
+flake8==7.0.0
+flake8-docstrings==1.7.0
+flake8-bugbear==24.1.17
+pylint==3.0.3
+
+# Type checking
+mypy==1.8.0
+types-PyYAML==6.0.12.12
+types-requests==2.31.0.20240125
+
+# ============================================================================
+# Security & Compliance
+# ============================================================================
+
+# Security scanning
+bandit==1.7.6
+semgrep==1.55.2
+safety==3.0.1
+pip-audit==2.6.3
+
+# Secret scanning
+detect-secrets==1.4.0
+
+# ============================================================================
+# Testing
+# ============================================================================
+
+# Test framework
+pytest==7.4.4
+pytest-cov==4.1.0
+pytest-xdist==3.5.0  # Parallel test execution
+pytest-timeout==2.2.0
+pytest-mock==3.12.0
+pytest-asyncio==0.23.3
+
+# Test helpers
+faker==22.2.0  # Generate test data
+freezegun==1.4.0  # Mock datetime
+responses==0.24.1  # Mock HTTP requests
+pytest-benchmark==4.0.0  # Performance benchmarks
+
+# ============================================================================
+# Documentation
+# ============================================================================
+
+# Documentation generation
+mkdocs==1.5.3
+mkdocs-material==9.5.6
+mkdocstrings[python]==0.24.0
+pymdown-extensions==10.7
+
+# API documentation
+sphinx==7.2.6
+sphinx-rtd-theme==2.0.0
+sphinx-autodoc-typehints==1.25.2
+
+# Diagram generation
+diagrams==0.23.4  # Architecture diagrams
+
+# ============================================================================
+# Development Tools
+# ============================================================================
+
+# Pre-commit hooks
+pre-commit==3.6.0
+
+# Jupyter for interactive development
+jupyter==1.0.0
+jupyterlab==4.0.11
+ipython==8.20.0
+ipykernel==6.29.0
+
+# Visualization (for analysis notebooks)
+matplotlib==3.8.2
+seaborn==0.13.1
+plotly==5.18.0
+
+# Data analysis
+pandas==2.1.4
+numpy==1.26.3
+
+# ============================================================================
+# Build & Distribution
+# ============================================================================
+
+# Package building
+build==1.0.3
+twine==4.0.2
+wheel==0.42.0
+setuptools>=69.0.3
+
+# Version management
+bump2version==1.0.1
+
+# ============================================================================
+# DevOps & CI/CD
+# ============================================================================
+
+# Task automation
+invoke==2.2.0
+
+# Coverage reporting
+coverage[toml]==7.4.0
+
+# Performance profiling
+py-spy==0.3.14
+memory-profiler==0.61.0
+line-profiler==4.1.1
+
+# ============================================================================
+# Debugging
+# ============================================================================
+
+# Enhanced debugging
+ipdb==0.13.13
+pdbpp==0.10.3
+
+# ============================================================================
+# Optional: AI/ML Development
+# ============================================================================
+
+# LLM experimentation (optional, comment out if not needed)
+# langchain==0.1.4
+# transformers==4.37.1
+# torch==2.1.2
+# sentence-transformers==2.3.1
+
+# ============================================================================
+# Optional: Docker Development
+# ============================================================================
+
+# Docker SDK (for containerized testing)
+docker==7.0.0
+
+# ============================================================================
+# Notes
+# ============================================================================
+#
+# Installation:
+#   pip install -r requirements-dev.txt
+#
+# Update dependencies:
+#   pip list --outdated
+#   pip install --upgrade -r requirements-dev.txt
+#
+# Security audit:
+#   pip-audit
+#   safety check
+#
+# Type checking:
+#   mypy src/
+#
+# Linting:
+#   ruff check src/
+#   black --check src/
+#
+# Testing:
+#   pytest --cov=src --cov-report=html
+#
+# Documentation:
+#   mkdocs serve  # Local preview
+#   mkdocs build  # Build static site
+#
+# ============================================================================
