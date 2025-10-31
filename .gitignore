@@ -114,6 +114,8 @@ demo/expected_outputs/*.log
 # MkDocs site
 site/
 .cache/
+index.html
+push.log
 
 # Testing
 .pytest_cache/
