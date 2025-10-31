@@ -159,3 +159,18 @@ mcp/temp/
 local.env
 config.local.yml
 venv/
+
+# Pip install errors
+=*
+
+# Egg info
+*.egg-info/
+
+# Output directories
+output/
+outputs/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo

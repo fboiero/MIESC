@@ -1,0 +1,6 @@
+Contract: Reentrancy (DAO Hack)
+Description: Classic reentrancy vulnerability similar to The DAO hack
+Vulnerability: SWC-107 / CWE-841
+Source: MIESC Examples
+File: reentrancy.sol
+Original: reentrancy_simple.sol

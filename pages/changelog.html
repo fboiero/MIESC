@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Changelog - MIESC Agent Protocol</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 40px 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            font-size: 32px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+        .version {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 30px;
+            margin: 30px 0;
+            border-left: 5px solid #ffd700;
+        }
+        .version-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .version-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        .version-date {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .version-type {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-left: 15px;
+        }
+        .major {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+        }
+        .minor {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        .patch {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+        }
+        .change-category {
+            margin: 25px 0;
+        }
+        .change-category h3 {
+            font-size: 20px;
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+        .change-list {
+            list-style: none;
+            padding: 0;
+        }
+        .change-list li {
+            padding: 10px 0 10px 30px;
+            position: relative;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+        .change-list li:before {
+            content: "•";
+            position: absolute;
+            left: 10px;
+            color: #ffd700;
+            font-size: 20px;
+        }
+        .change-list.added li:before {
+            content: "✓";
+            color: #4ecdc4;
+        }
+        .change-list.fixed li:before {
+            content: "🔧";
+        }
+        .change-list.changed li:before {
+            content: "↻";
+            color: #667eea;
+        }
+        .change-list.removed li:before {
+            content: "✗";
+            color: #ff6b6b;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .highlight {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .breaking-change {
+            background: rgba(255, 107, 107, 0.2);
+            border: 2px solid #ff6b6b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .breaking-change strong {
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Home</a>
+
+        <h1>📋 Changelog</h1>
+        <p style="text-align: center; font-size: 20px; margin-bottom: 40px;">
+            Complete version history and release notes
+        </p>
+
+        <!-- Version 2.0.0 -->
+        <div class="version">
+            <div class="version-header">
+                <div>
+                    <span class="version-number">v2.0.0</span>
+                    <span class="version-type major">MAJOR</span>
+                </div>
+                <span class="version-date">October 15, 2025</span>
+            </div>
+
+            <p style="font-size: 18px; margin-bottom: 25px;">
+                <strong>🎉 Major Release: MIESC Agent Protocol Launch</strong>
+            </p>
+
+            <p style="font-size: 16px; line-height: 1.8; margin-bottom: 25px;">
+                This release introduces the MIESC Agent Protocol - an open standard for security tool integration.
+                This is a transformative update that enables any security tool to integrate with MIESC in a standardized way.
+            </p>
+
+            <div class="change-category">
+                <h3>✨ New Features</h3>
+                <ul class="change-list added">
+                    <li><strong>Agent Protocol:</strong> Introduced <span class="highlight">SecurityAgent</span> abstract base class defining standard interface</li>
+                    <li><strong>Agent Registry:</strong> Dynamic discovery system for agents from multiple sources</li>
+                    <li><strong>Agent Orchestrator:</strong> Intelligent multi-agent coordination with parallel execution</li>
+                    <li><strong>Selection Criteria:</strong> Flexible agent selection based on capabilities, language, cost, and speed</li>
+                    <li><strong>Unified Result Format:</strong> Standardized <span class="highlight">AnalysisResult</span> and <span class="highlight">Finding</span> structures</li>
+                    <li><strong>Marketplace Ready:</strong> Infrastructure for agent marketplace and discovery</li>
+                    <li><strong>MCP Integration:</strong> Full support for Model Context Protocol (Anthropic standard)</li>
+                    <li><strong>Comprehensive Documentation:</strong> Whitepaper, developer guide, and API docs</li>
+                </ul>
+            </div>
+
+            <div class="change-category">
+                <h3>🔧 Changed</h3>
+                <ul class="change-list changed">
+                    <li>Migrated Slither integration to new protocol (<span class="highlight">SlitherAgent</span>)</li>
+                    <li>Refactored orchestration system for extensibility</li>
+                    <li>Updated dashboard to support multi-agent results</li>
+                    <li>Enhanced report generation with agent-specific sections</li>
+                </ul>
+            </div>
+
+            <div class="breaking-change">
+                <strong>⚠️ BREAKING CHANGES:</strong>
+                <ul style="margin-top: 10px; margin-bottom: 0;">
+                    <li>Old single-agent analysis API has been replaced with orchestrator-based API</li>
+                    <li>Configuration format changed to support agent selection criteria</li>
+                    <li>Report output structure updated to include multi-agent data</li>
+                </ul>
+            </div>
+
+            <div class="change-category">
+                <h3>📚 Documentation</h3>
+                <ul class="change-list added">
+                    <li>Added comprehensive whitepaper (12,000+ words)</li>
+                    <li>Created developer guide for building agents (8,000+ words)</li>
+                    <li>Published quick start guide</li>
+                    <li>Added architecture documentation</li>
+                    <li>Created API reference documentation</li>
+                </ul>
+            </div>
+
+            <div class="change-category">
+                <h3>🎯 Examples</h3>
+                <ul class="change-list added">
+                    <li>Added Semgrep agent example showing external tool integration</li>
+                    <li>Created agent template for quick starts</li>
+                    <li>Added multi-agent orchestration examples</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Version 1.5.0 -->
+        <div class="version">
+            <div class="version-header">
+                <div>
+                    <span class="version-number">v1.5.0</span>
+                    <span class="version-type minor">MINOR</span>
+                </div>
+                <span class="version-date">October 10, 2025</span>
+            </div>
+
+            <div class="change-category">
+                <h3>✨ New Features</h3>
+                <ul class="change-list added">
+                    <li><strong>Multi-Contract Analysis:</strong> Analyze entire project directories</li>
+                    <li><strong>Contract Relationship Graph:</strong> Visualize dependencies between contracts</li>
+                    <li><strong>Automated Scan Planning:</strong> Generate optimal scan order based on dependencies</li>
+                    <li><strong>Enhanced Dashboard:</strong> Improved HTML reports with interactive elements</li>
+                    <li><strong>AI Agent Explanations:</strong> LLM-powered interpretation of findings</li>
+                </ul>
+            </div>
+
+            <div class="change-category">
+                <h3>🔧 Improvements</h3>
+                <ul class="change-list changed">
+                    <li>Optimized Slither analysis performance (30% faster)</li>
+                    <li>Improved error handling and recovery</li>
+                    <li>Enhanced report formatting and readability</li>
+                    <li>Better progress indicators during analysis</li>
+                </ul>
+            </div>
+
+            <div class="change-category">
+                <h3>🐛 Bug Fixes</h3>
+                <ul class="change-list fixed">
+                    <li>Fixed memory leak in long-running analyses</li>
+                    <li>Corrected severity classification for certain vulnerability types</li>
+                    <li>Fixed dashboard rendering issues on Safari</li>
+                    <li>Resolved path handling issues on Windows</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Version 1.4.0 -->
+        <div class="version">
+            <div class="version-header">
+                <div>
+                    <span class="version-number">v1.4.0</span>
+                    <span class="version-type minor">MINOR</span>
+                </div>
+                <span class="version-date">September 25, 2025</span>
+            </div>
+
+            <div class="change-category">
+                <h3>✨ New Features</h3>
+                <ul class="change-list added">
+                    <li><strong>Presentation Mode:</strong> Auto-generated slide deck from analysis results</li>
+                    <li><strong>Executive Summary:</strong> High-level overview for non-technical stakeholders</li>
+                    <li><strong>Risk Scoring:</strong> Automated risk assessment based on findings</li>
+                    <li><strong>Comparison Reports:</strong> Compare analysis results across versions</li>
+                </ul>
+            </div>
+
+            <div class="change-category">
+                <h3>🔧 Improvements</h3>
+                <ul class="change-list changed">
+                    <li>Added confidence scores to findings</li>
+                    <li>Improved deduplication of similar findings</li>
+                    <li>Enhanced code snippet extraction</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Version 1.3.0 -->
+        <div class="version">
+            <div class="version-header">
+                <div>
+                    <span class="version-number">v1.3.0</span>
+                    <span class="version-type minor">MINOR</span>
+                </div>
+                <span class="version-date">September 10, 2025</span>
+            </div>
+
+            <div class="change-category">
+                <h3>✨ New Features</h3>
+                <ul class="change-list added">
+                    <li><strong>MCP Server:</strong> Initial implementation of Model Context Protocol</li>
+                    <li><strong>Claude Integration:</strong> Enable Claude AI assistant to perform security analysis</li>
+                    <li><strong>Custom Detectors:</strong> Support for user-defined Slither detectors</li>
+                    <li><strong>Export Formats:</strong> Added JSON, CSV, and Markdown export options</li>
+                </ul>
+            </div>
+
+            <div class="change-category">
+                <h3>🐛 Bug Fixes</h3>
+                <ul class="change-list fixed">
+                    <li>Fixed Unicode handling in contract source code</li>
+                    <li>Corrected line number mapping for findings</li>
+                    <li>Resolved Docker image build issues</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Version 1.2.0 -->
+        <div class="version">
+            <div class="version-header">
+                <div>
+                    <span class="version-number">v1.2.0</span>
+                    <span class="version-type minor">MINOR</span>
+                </div>
+                <span class="version-date">August 28, 2025</span>
+            </div>
+
+            <div class="change-category">
+                <h3>✨ New Features</h3>
+                <ul class="change-list added">
+                    <li><strong>Vulnerability Database:</strong> Integration with known vulnerability patterns</li>
+                    <li><strong>Remediation Suggestions:</strong> Automated fix recommendations</li>
+                    <li><strong>CI/CD Integration:</strong> GitHub Actions workflow templates</li>
+                    <li><strong>Configurable Severity:</strong> Customize severity thresholds</li>
+                </ul>
+            </div>
+
+            <div class="change-category">
+                <h3>🔧 Improvements</h3>
+                <ul class="change-list changed">
+                    <li>Reduced false positive rate by 25%</li>
+                    <li>Improved analysis speed for large contracts</li>
+                    <li>Better handling of Solidity compiler versions</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Version 1.1.0 -->
+        <div class="version">
+            <div class="version-header">
+                <div>
+                    <span class="version-number">v1.1.0</span>
+                    <span class="version-type minor">MINOR</span>
+                </div>
+                <span class="version-date">August 15, 2025</span>
+            </div>
+
+            <div class="change-category">
+                <h3>✨ New Features</h3>
+                <ul class="change-list added">
+                    <li><strong>HTML Dashboard:</strong> Interactive web-based report viewer</li>
+                    <li><strong>Filtering:</strong> Filter findings by severity, contract, detector</li>
+                    <li><strong>Code Highlighting:</strong> Syntax-highlighted code snippets in reports</li>
+                </ul>
+            </div>
+
+            <div class="change-category">
+                <h3>🐛 Bug Fixes</h3>
+                <ul class="change-list fixed">
+                    <li>Fixed crash on empty contracts</li>
+                    <li>Corrected detector naming inconsistencies</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Version 1.0.0 -->
+        <div class="version">
+            <div class="version-header">
+                <div>
+                    <span class="version-number">v1.0.0</span>
+                    <span class="version-type major">MAJOR</span>
+                </div>
+                <span class="version-date">August 1, 2025</span>
+            </div>
+
+            <p style="font-size: 18px; margin-bottom: 25px;">
+                <strong>🎉 Initial Release</strong>
+            </p>
+
+            <div class="change-category">
+                <h3>✨ Features</h3>
+                <ul class="change-list added">
+                    <li><strong>Slither Integration:</strong> Comprehensive static analysis for Solidity</li>
+                    <li><strong>CLI Interface:</strong> Command-line tool for security analysis</li>
+                    <li><strong>Report Generation:</strong> Text and JSON output formats</li>
+                    <li><strong>Vulnerability Detection:</strong> 70+ detector patterns</li>
+                    <li><strong>Foundry Support:</strong> Integration with Foundry development framework</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Future Roadmap -->
+        <div class="version" style="border-left-color: #667eea;">
+            <div class="version-header">
+                <div>
+                    <span class="version-number">🔮 Roadmap</span>
+                </div>
+            </div>
+
+            <p style="font-size: 16px; line-height: 1.8; margin-bottom: 25px;">
+                Planned features for upcoming releases:
+            </p>
+
+            <div class="change-category">
+                <h3>v2.1.0 (Q4 2025)</h3>
+                <ul class="change-list">
+                    <li>Public agent marketplace launch</li>
+                    <li>Agent monetization platform</li>
+                    <li>VS Code extension</li>
+                    <li>Real-time collaboration features</li>
+                    <li>Support for Mythril and other symbolic execution tools</li>
+                </ul>
+            </div>
+
+            <div class="change-category">
+                <h3>v2.2.0 (Q1 2026)</h3>
+                <ul class="change-list">
+                    <li>Formal verification agent integration</li>
+                    <li>Fuzzing agent support (Echidna, Foundry Fuzz)</li>
+                    <li>Advanced deduplication algorithms</li>
+                    <li>Machine learning-based prioritization</li>
+                    <li>Multi-language support (Vyper, Rust/CosmWasm)</li>
+                </ul>
+            </div>
+
+            <div class="change-category">
+                <h3>v3.0.0 (Q2 2026)</h3>
+                <ul class="change-list">
+                    <li>Distributed agent execution</li>
+                    <li>Agent composition and pipelines</li>
+                    <li>Real-time monitoring agents</li>
+                    <li>Blockchain-native deployment</li>
+                    <li>On-chain verification registry</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Contributing -->
+        <div style="background: rgba(0, 0, 0, 0.2); border-radius: 10px; padding: 30px; margin: 30px 0;">
+            <h2>🤝 Contributing to MIESC</h2>
+            <p style="font-size: 16px; line-height: 1.8;">
+                Want to see a feature in the next release? We welcome contributions!
+            </p>
+            <ul style="font-size: 16px; line-height: 1.8;">
+                <li>Submit feature requests via GitHub Issues</li>
+                <li>Contribute code via Pull Requests</li>
+                <li>Build and publish agents to the ecosystem</li>
+                <li>Improve documentation</li>
+            </ul>
+            <p style="font-size: 16px; line-height: 1.8; margin-top: 20px;">
+                <strong>GitHub:</strong> <a href="https://github.com/miesc-io/miesc" style="color: #ffd700;">https://github.com/miesc-io/miesc</a>
+            </p>
+        </div>
+
+        <!-- Back to Home -->
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="../index.html" class="back-link">← Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>

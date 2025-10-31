@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIESC Real-Time Audit Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .badges {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge.iso { background: #e3f2fd; color: #1976d2; }
+        .badge.nist { background: #fff3e0; color: #f57c00; }
+        .badge.owasp { background: #fce4ec; color: #c2185b; }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-card h3 {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .metric-change {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .metric-card.critical { border-left: 5px solid #f44336; }
+        .metric-card.high { border-left: 5px solid #ff9800; }
+        .metric-card.medium { border-left: 5px solid #ffc107; }
+        .metric-card.low { border-left: 5px solid #4caf50; }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .panel h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .agent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .agent-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            transition: background 0.3s;
+        }
+
+        .agent-item:hover {
+            background: #f0f0f0;
+        }
+
+        .agent-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .agent-status.active { background: #4caf50; }
+        .agent-status.idle { background: #9e9e9e; }
+        .agent-status.analyzing { background: #2196f3; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .agent-info {
+            flex: 1;
+        }
+
+        .agent-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .agent-layer {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .findings-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .finding-item {
+            padding: 15px;
+            border-left: 4px solid #ddd;
+            margin-bottom: 12px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .finding-item.critical { border-left-color: #f44336; background: #ffebee; }
+        .finding-item.high { border-left-color: #ff9800; background: #fff3e0; }
+        .finding-item.medium { border-left-color: #ffc107; background: #fffde7; }
+        .finding-item.low { border-left-color: #4caf50; background: #e8f5e9; }
+
+        .finding-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .finding-severity {
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .finding-severity.critical { background: #f44336; color: white; }
+        .finding-severity.high { background: #ff9800; color: white; }
+        .finding-severity.medium { background: #ffc107; color: #333; }
+        .finding-severity.low { background: #4caf50; color: white; }
+
+        .finding-description {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+
+        .compliance-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .compliance-card {
+            text-align: center;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+
+        .compliance-score {
+            font-size: 2em;
+            font-weight: 700;
+            color: #4caf50;
+        }
+
+        .compliance-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            font-size: 24px;
+            transition: transform 0.3s;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .refresh-btn.spinning {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🛡️ MIESC Real-Time Audit Dashboard</h1>
+            <p>Marco Integrado de Evaluación de Seguridad en Smart Contracts</p>
+            <div class="badges">
+                <span class="badge iso">ISO/IEC 27001:2022</span>
+                <span class="badge nist">NIST SSDF</span>
+                <span class="badge owasp">OWASP SC Top 10</span>
+                <span class="badge iso">ISO/IEC 42001:2023</span>
+            </div>
+        </div>
+
+        <!-- Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card critical">
+                <h3>Critical</h3>
+                <div class="metric-value" id="critical-count">0</div>
+                <div class="metric-change">Must fix immediately</div>
+            </div>
+            <div class="metric-card high">
+                <h3>High</h3>
+                <div class="metric-value" id="high-count">0</div>
+                <div class="metric-change">Fix before production</div>
+            </div>
+            <div class="metric-card medium">
+                <h3>Medium</h3>
+                <div class="metric-value" id="medium-count">0</div>
+                <div class="metric-change">Address soon</div>
+            </div>
+            <div class="metric-card low">
+                <h3>Low/Info</h3>
+                <div class="metric-value" id="low-count">0</div>
+                <div class="metric-change">Optional improvements</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel: Agents Status -->
+            <div class="panel">
+                <h2>🤖 Multi-Agent Status</h2>
+                <div class="agent-list" id="agent-list">
+                    <!-- Populated by JavaScript -->
+                </div>
+
+                <h2 style="margin-top: 30px;">📊 Recent Findings</h2>
+                <div class="findings-list" id="findings-list">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Right Panel: Compliance & Stats -->
+            <div class="panel">
+                <h2>✅ Compliance Status</h2>
+                <div class="compliance-grid">
+                    <div class="compliance-card">
+                        <div class="compliance-score" id="iso-score">98%</div>
+                        <div class="compliance-label">ISO 27001</div>
+                    </div>
+                    <div class="compliance-card">
+                        <div class="compliance-score" id="nist-score">95%</div>
+                        <div class="compliance-label">NIST SSDF</div>
+                    </div>
+                    <div class="compliance-card">
+                        <div class="compliance-score" id="owasp-score">100%</div>
+                        <div class="compliance-label">OWASP</div>
+                    </div>
+                </div>
+
+                <h2 style="margin-top: 30px;">📈 Audit Progress</h2>
+                <div style="margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Static Analysis</span>
+                        <span id="progress-text">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <h2 style="margin-top: 30px;">📋 Audit Summary</h2>
+                <div style="margin-top: 15px; font-size: 0.9em; color: #666;">
+                    <p><strong>Contract:</strong> <span id="contract-name">voting.sol</span></p>
+                    <p><strong>Layers Active:</strong> <span id="layers-active">7/7</span></p>
+                    <p><strong>Total Messages:</strong> <span id="total-messages">0</span></p>
+                    <p><strong>Audit Status:</strong> <span id="audit-status">Idle</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refresh Button -->
+    <button class="refresh-btn" id="refresh-btn" onclick="refreshDashboard()">🔄</button>
+
+    <script>
+        // Sample data - in production, fetch from Context Bus API
+        const agents = [
+            { name: 'StaticAgent', layer: 'Layer 1', status: 'idle', capabilities: 4 },
+            { name: 'DynamicAgent', layer: 'Layer 2', status: 'idle', capabilities: 4 },
+            { name: 'SymbolicAgent', layer: 'Layer 4', status: 'idle', capabilities: 4 },
+            { name: 'FormalAgent', layer: 'Layer 5', status: 'idle', capabilities: 4 },
+            { name: 'AIAgent', layer: 'Layer 6', status: 'analyzing', capabilities: 5 },
+            { name: 'PolicyAgent', layer: 'Compliance', status: 'active', capabilities: 4 },
+            { name: 'CoordinatorAgent', layer: 'Orchestrator', status: 'active', capabilities: 5 }
+        ];
+
+        const sampleFindings = [
+            {
+                severity: 'critical',
+                title: 'SWC-107: Reentrancy',
+                description: 'External call before state change in withdraw() function',
+                source: 'StaticAgent'
+            },
+            {
+                severity: 'high',
+                title: 'SWC-105: Missing Access Control',
+                description: 'Function setOwner() lacks authorization check',
+                source: 'StaticAgent'
+            },
+            {
+                severity: 'medium',
+                title: 'SWC-104: Unchecked Return Value',
+                description: 'Return value of call() not checked in emergencyWithdraw()',
+                source: 'StaticAgent'
+            },
+            {
+                severity: 'low',
+                title: 'Code Quality',
+                description: 'Missing NatSpec documentation for public functions',
+                source: 'StaticAgent'
+            }
+        ];
+
+        function renderAgents() {
+            const agentList = document.getElementById('agent-list');
+            agentList.innerHTML = agents.map(agent => `
+                <div class="agent-item">
+                    <div class="agent-status ${agent.status}"></div>
+                    <div class="agent-info">
+                        <div class="agent-name">${agent.name}</div>
+                        <div class="agent-layer">${agent.layer} • ${agent.capabilities} capabilities</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderFindings() {
+            const findingsList = document.getElementById('findings-list');
+            findingsList.innerHTML = sampleFindings.map(finding => `
+                <div class="finding-item ${finding.severity}">
+                    <div class="finding-header">
+                        <strong>${finding.title}</strong>
+                        <span class="finding-severity ${finding.severity}">${finding.severity}</span>
+                    </div>
+                    <div class="finding-description">${finding.description}</div>
+                    <div style="margin-top: 8px; font-size: 0.8em; color: #999;">
+                        Source: ${finding.source}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateMetrics() {
+            const counts = {
+                critical: sampleFindings.filter(f => f.severity === 'critical').length,
+                high: sampleFindings.filter(f => f.severity === 'high').length,
+                medium: sampleFindings.filter(f => f.severity === 'medium').length,
+                low: sampleFindings.filter(f => f.severity === 'low').length
+            };
+
+            document.getElementById('critical-count').textContent = counts.critical;
+            document.getElementById('high-count').textContent = counts.high;
+            document.getElementById('medium-count').textContent = counts.medium;
+            document.getElementById('low-count').textContent = counts.low;
+        }
+
+        function simulateProgress() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 5;
+                if (progress > 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                }
+                document.getElementById('progress-fill').style.width = progress + '%';
+                document.getElementById('progress-text').textContent = progress + '%';
+            }, 200);
+        }
+
+        function refreshDashboard() {
+            const btn = document.getElementById('refresh-btn');
+            btn.classList.add('spinning');
+
+            // Simulate data refresh
+            setTimeout(() => {
+                btn.classList.remove('spinning');
+                updateMetrics();
+                document.getElementById('total-messages').textContent = Math.floor(Math.random() * 100);
+            }, 1000);
+        }
+
+        // Initialize dashboard
+        renderAgents();
+        renderFindings();
+        updateMetrics();
+        simulateProgress();
+
+        // Auto-refresh every 30 seconds
+        setInterval(refreshDashboard, 30000);
+    </script>
+</body>
+</html>

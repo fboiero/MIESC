@@ -1,0 +1,291 @@
+name: MIESC CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+  workflow_dispatch:
+
+jobs:
+  # ============================================
+  # JOB 1: Unit and Integration Tests
+  # ============================================
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: 📦 Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        pip install pytest pytest-cov pytest-mock
+
+    - name: 🧪 Run unit tests
+      run: |
+        python -m pytest miesc/tests/unit/ -v \
+          --cov=miesc/core \
+          --cov-report=xml \
+          --cov-report=term-missing \
+          --junitxml=junit-unit.xml
+
+    - name: 🔗 Run integration tests
+      run: |
+        python -m pytest miesc/tests/integration/ -v \
+          --cov=miesc/api \
+          --cov=miesc/cli \
+          --cov-append \
+          --cov-report=xml \
+          --cov-report=term-missing \
+          --junitxml=junit-integration.xml
+
+    - name: 📊 Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.xml
+        flags: unittests,integration
+        name: codecov-${{ matrix.python-version }}
+        fail_ci_if_error: false
+
+    - name: 📈 Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: |
+          junit-unit.xml
+          junit-integration.xml
+          coverage.xml
+
+  # ============================================
+  # JOB 2: Security Scanning (Bandit SAST)
+  # ============================================
+  security-bandit:
+    name: Security Scan (Bandit)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: 📦 Install Bandit
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit[toml]
+
+    - name: 🔒 Run Bandit SAST
+      run: |
+        bandit -r miesc/ \
+          -f json \
+          -o bandit-report.json \
+          -ll \
+          --exclude miesc/tests/
+      continue-on-error: true
+
+    - name: 📊 Generate Bandit report
+      run: |
+        bandit -r miesc/ \
+          -f txt \
+          --exclude miesc/tests/ \
+          || true
+
+    - name: 📈 Upload Bandit results
+      uses: actions/upload-artifact@v3
+      with:
+        name: bandit-security-report
+        path: bandit-report.json
+
+  # ============================================
+  # JOB 3: Dependency Scanning (pip-audit)
+  # ============================================
+  security-dependencies:
+    name: Dependency Scan (pip-audit)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: 📦 Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pip-audit
+        pip install -r requirements.txt
+
+    - name: 🔍 Run pip-audit check
+      run: |
+        pip-audit \
+          --format json \
+          --output pip-audit-report.json \
+          || true
+
+    - name: 📊 Display pip-audit summary
+      run: |
+        pip-audit --desc || true
+
+    - name: 📈 Upload pip-audit results
+      uses: actions/upload-artifact@v3
+      with:
+        name: pip-audit-dependency-report
+        path: pip-audit-report.json
+
+  # ============================================
+  # JOB 4: Code Quality & Linting
+  # ============================================
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: 📦 Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pylint black isort mypy
+
+    - name: 🎨 Check code formatting (Black)
+      run: |
+        black --check miesc/ || true
+
+    - name: 📐 Check import sorting (isort)
+      run: |
+        isort --check-only miesc/ || true
+
+    - name: 🔍 Run Flake8
+      run: |
+        flake8 miesc/ \
+          --count \
+          --select=E9,F63,F7,F82 \
+          --show-source \
+          --statistics \
+          || true
+
+    - name: 📊 Run Pylint
+      run: |
+        pylint miesc/ \
+          --exit-zero \
+          --output-format=text \
+          || true
+
+  # ============================================
+  # JOB 5: Build & Package
+  # ============================================
+  build:
+    name: Build Package
+    needs: [test, security-bandit, security-dependencies]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: 📦 Install build tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+
+    - name: 🔨 Build package
+      run: |
+        python -m build
+
+    - name: ✅ Check package
+      run: |
+        twine check dist/*
+
+    - name: 📈 Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-package-distributions
+        path: dist/
+
+  # ============================================
+  # JOB 6: Documentation Build
+  # ============================================
+  docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: 📦 Install MkDocs
+      run: |
+        python -m pip install --upgrade pip
+        pip install mkdocs mkdocs-material
+
+    - name: 📚 Build documentation
+      run: |
+        mkdocs build --strict
+
+    - name: 📈 Upload docs artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: site/
+
+  # ============================================
+  # JOB 7: Summary Report
+  # ============================================
+  summary:
+    name: Generate Summary
+    needs: [test, security-bandit, security-dependencies, code-quality]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: 📊 Create summary
+      run: |
+        echo "# MIESC CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## ✅ Jobs Status" >> $GITHUB_STEP_SUMMARY
+        echo "- Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Security (Bandit): ${{ needs.security-bandit.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Security (pip-audit): ${{ needs.security-dependencies.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Code Quality: ${{ needs.code-quality.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📈 Metrics" >> $GITHUB_STEP_SUMMARY
+        echo "- Python Versions Tested: 3.9, 3.10, 3.11" >> $GITHUB_STEP_SUMMARY
+        echo "- Total Test Suites: Unit + Integration + CLI" >> $GITHUB_STEP_SUMMARY
+        echo "- Security Scans: Bandit (SAST) + pip-audit (Dependencies)" >> $GITHUB_STEP_SUMMARY
