@@ -74,6 +74,31 @@ bash demo/run_demo.sh
 
 ---
 
+## 🎥 Video Demonstration
+
+**Watch MIESC in Action!** See the complete hacker-style demo with real-time vulnerability analysis, multi-agent orchestration, and MCP integration.
+
+<div align="center">
+
+[![MIESC Demo Video](https://img.youtube.com/vi/MOX3xXDKtAY/maxresdefault.jpg)](https://youtu.be/MOX3xXDKtAY)
+
+**[▶️ Watch Full Demo on YouTube](https://youtu.be/MOX3xXDKtAY)**
+
+</div>
+
+**What You'll See:**
+- 🎨 **Cinematic Interface** - ASCII art animations and visual effects
+- 🔍 **Live Analysis** - Real Slither execution on vulnerable contracts
+- 🤖 **17 AI Agents** - Multi-layer orchestration across 6 defense layers
+- 🔗 **MCP Integration** - Industry-first Model Context Protocol demonstration
+- 📊 **Performance Metrics** - 89.5% precision, Cohen's Kappa 0.847
+- 🛡️ **Security Posture** - Production-ready compliance and threat mitigation
+- 🧠 **11 LLM-Powered Phases** - Attack surface mapping, auto-remediation, compliance reports
+
+**Duration:** ~5 minutes | **Script:** `demo/hacker_demo.py` (2,785 lines) | **Academic Context:** Master's thesis in Cyberdefense
+
+---
+
 ## 🎯 What is MIESC?
 
 **MIESC** (Multi-layer Intelligent Evaluation for Smart Contracts) is an **autonomous cyberdefense agent** that automates smart contract security analysis by orchestrating 15 specialized tools through a unified AI-powered pipeline.
@@ -439,6 +464,35 @@ MIESC uses a **6-layer security approach** inspired by military cyberdefense pri
 1. **Development**: Run Layer 1 (static) on every commit (CI/CD)
 2. **Pre-audit**: Run Layers 1+2+5 (fast + AI triage)
 3. **Final audit**: Run all 6 layers before mainnet deployment
+
+---
+
+## 🧠 11 LLM-Powered Demo Phases (NEW!)
+
+The **hacker demo** (`demo/hacker_demo.py`) showcases advanced LLM integration with **11 intelligent analysis phases**:
+
+| Phase | Feature | LLM Model | Key Capability |
+|-------|---------|-----------|----------------|
+| **1** | Intelligent Interpretation | CodeLlama 13B | Root cause analysis, pattern correlation |
+| **2** | Exploit PoC Generator | CodeLlama 13B | Automated exploit generation |
+| **2.5** | **Attack Surface Mapping** | CodeLlama 13B | Entry points, trust boundaries, attack vectors |
+| **3** | **Tool Comparison** | CodeLlama 13B | Strength/weakness matrix, coverage analysis |
+| **3.5** | Intelligent Prioritization | CodeLlama 13B | Multi-factor risk scoring |
+| **4** | Predictive Analytics | CodeLlama 13B | Time-to-exploit, breach probability |
+| **5** | **Security Framework Analysis** | CodeLlama 13B | Defense-in-depth effectiveness rating |
+| **5.5** | **Automated Remediation** | CodeLlama 13B | Secure code patches with tests |
+| **6** | Tool Recommendations | CodeLlama 13B | Optimal tool selection for contract type |
+| **7** | Executive Summary | CodeLlama 13B | C-level reporting, ROI analysis |
+| **8** | **Compliance Reports** | CodeLlama 13B | ISO 27001/42001, SOC 2, PCI DSS, GDPR |
+
+**New Phases** (bold) include:
+- **Phase 2.5**: Maps attack surface with data flow tracking
+- **Phase 3**: Compares tool effectiveness with overlap visualization
+- **Phase 5**: Analyzes MIESC's own security posture
+- **Phase 5.5**: Generates OpenZeppelin-based patches with gas optimization
+- **Phase 8**: Produces compliance reports for 5 regulatory frameworks
+
+**Total Demo**: 2,785 lines | ~5 minutes runtime | [Full Documentation](./demo/HACKER_DEMO_README.md) | [LLM Prompts Catalog](./docs/LLM_PROMPTS_CATALOG.md)
 
 ---
 
