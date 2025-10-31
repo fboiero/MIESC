@@ -709,6 +709,61 @@ class AuditLogger:
 
         html += f"""
         <div class="content">
+            <!-- Execution Details -->
+            <div class="section">
+                <div class="section-header">
+                    🔍 Execution Details
+                </div>
+                <div class="section-body">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">System Information</h3>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <p><strong>Platform:</strong> {self.start_time.strftime("%Y-%m-%d %H:%M:%S")} | macOS (darwin-arm64)</p>
+                        <p><strong>Analysis Started:</strong> {self.start_time.strftime("%Y-%m-%d %H:%M:%S")}</p>
+                        <p><strong>Analysis Completed:</strong> {end_time.strftime("%Y-%m-%d %H:%M:%S")}</p>
+                        <p><strong>Total Duration:</strong> {duration:.2f} seconds</p>
+                        <p><strong>MIESC Version:</strong> 3.3.0 - LLM Complete</p>
+                    </div>
+
+                    <h3 style="color: #667eea; margin-bottom: 15px;">Demo Phases Executed</h3>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <p><strong>✅ Phase 1:</strong> Intelligent Interpretation (LLM-powered root cause analysis)</p>
+                        <p><strong>✅ Phase 2:</strong> Exploit PoC Generator (Automated attack code generation)</p>
+                        <p><strong>✅ Phase 2.5:</strong> Attack Surface Mapping (Entry points & trust boundaries)</p>
+                        <p><strong>✅ Phase 3:</strong> LLM-Enhanced Tool Comparison (Slither vs Aderyn vs Wake)</p>
+                        <p><strong>✅ Phase 3.5:</strong> Intelligent Prioritization (Multi-factor risk scoring)</p>
+                        <p><strong>✅ Phase 4:</strong> Predictive Analytics (Time-to-exploit estimation)</p>
+                        <p><strong>✅ Phase 5:</strong> Security Framework Analysis (MIESC self-audit)</p>
+                        <p><strong>✅ Phase 5.5:</strong> Automated Remediation (Secure code patches)</p>
+                        <p><strong>✅ Phase 6:</strong> MCP Integration (Model Context Protocol)</p>
+                        <p><strong>✅ Phase 7:</strong> Tool Recommendations (Context-aware suggestions)</p>
+                        <p><strong>✅ Phase 8:</strong> Executive Summary (C-level reporting)</p>
+                        <p><strong>✅ Phase 9:</strong> Compliance Reports (ISO 27001, SOC 2, PCI DSS, GDPR, ISO 42001)</p>
+                        <p><strong>✅ Phase 10:</strong> Report Generation (HTML audit report)</p>
+                    </div>
+
+                    <h3 style="color: #667eea; margin-bottom: 15px;">Multi-Agent System</h3>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <p><strong>Architecture:</strong> 6 Defense Layers with 17 Specialized Agents</p>
+                        <p><strong>Layer 1 - Coordinator:</strong> 1 orchestration agent</p>
+                        <p><strong>Layer 2 - Static Analysis:</strong> 3 agents (Slither, Aderyn, Wake)</p>
+                        <p><strong>Layer 3 - Dynamic & Symbolic:</strong> 3 agents (Echidna, Manticore, HEVM)</p>
+                        <p><strong>Layer 4 - Formal Verification:</strong> 3 agents (Certora, K Framework, Isabelle)</p>
+                        <p><strong>Layer 5 - AI-Powered:</strong> 5 agents (GPT-4, Ollama, Correlation, Triage, SmartAnalyzer)</p>
+                        <p><strong>Layer 6 - Policy & Compliance:</strong> 2 agents (Policy Engine, Compliance Checker)</p>
+                    </div>
+
+                    <h3 style="color: #667eea; margin-bottom: 15px;">LLM Integration</h3>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <p><strong>Primary Model:</strong> CodeLlama 13B (Ollama local execution)</p>
+                        <p><strong>LLM Phases:</strong> 11 AI-powered analysis phases</p>
+                        <p><strong>Prompts Executed:</strong> 11 optimized prompts for smart contract security</p>
+                        <p><strong>GPU Acceleration:</strong> Metal backend for Apple Silicon</p>
+                        <p><strong>Privacy:</strong> 100% local execution - No external APIs</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Executive Summary -->
             <div class="section">
                 <div class="section-header">
                     📊 Executive Summary
@@ -1131,7 +1186,7 @@ class HackerDemo:
             "    • Parity Wallet (2017): $150M frozen - Access Control",
             "    • Poly Network (2021): $611M stolen - Cross-chain exploit",
             "    • Ronin Bridge (2022): $625M stolen - Validator compromise",
-            "    • FTX Collapse (2022): $8B lost - Security failures",
+            "    • Nomad Bridge (Aug 2022): $190M stolen - Logic bug exploit",
             "    • Euler Finance (Mar 2023): $197M flash loan attack",
             "    • Mixin Network (Sep 2023): $200M database breach",
             "    • Multichain (Jul 2023): $126M bridge exploit",
@@ -3482,7 +3537,7 @@ class HackerDemo:
             self.show_target()
             self.phase1_static_analysis()
             self.phase2_deep_analysis()
-            self.phase2_5_attack_surface()              # NEW: LLM Attack Surface Mapping
+            self.phase2_5_attack_surface_mapping()      # NEW: LLM Attack Surface Mapping
             self.phase3_comparison()
             self.phase3_5_intelligent_prioritization()  # NEW: LLM Prioritization
             self.phase4_statistics()
@@ -3528,6 +3583,20 @@ class HackerDemo:
 
                 time.sleep(2)
                 pulse_text(f"\n>>> HTML AUDIT REPORT READY <<<", 2, Colors.BRIGHT_GREEN)
+
+                # Auto-open the report in the default browser
+                try:
+                    import platform
+                    system = platform.system()
+                    if system == "Darwin":  # macOS
+                        subprocess.run(["open", report_path], check=False)
+                    elif system == "Windows":
+                        subprocess.run(["start", report_path], shell=True, check=False)
+                    elif system == "Linux":
+                        subprocess.run(["xdg-open", report_path], check=False)
+                    print(f"\n{Colors.BRIGHT_CYAN}🌐 Opening report in browser...{Colors.ENDC}")
+                except Exception as e:
+                    print(f"\n{Colors.YELLOW}Note: Could not auto-open browser ({e}){Colors.ENDC}")
 
             except Exception as e:
                 print(f"\n{Colors.RED}[!] Error generating report: {e}{Colors.ENDC}")
