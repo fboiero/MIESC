@@ -724,7 +724,7 @@ class AuditLogger:
                         <p><strong>MIESC Version:</strong> 3.3.0 - LLM Complete</p>
                     </div>
 
-                    <h3 style="color: #667eea; margin-bottom: 15px;">Demo Phases Executed</h3>
+                    <h3 style="color: #667eea; margin-bottom: 15px;">Analysis Phases Executed</h3>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                         <p><strong>✅ Phase 1:</strong> Intelligent Interpretation (LLM-powered root cause analysis)</p>
                         <p><strong>✅ Phase 2:</strong> Exploit PoC Generator (Automated attack code generation)</p>
@@ -749,7 +749,7 @@ class AuditLogger:
                         <p><strong>Layer 3 - Dynamic & Symbolic:</strong> 3 agents (Echidna, Manticore, HEVM)</p>
                         <p><strong>Layer 4 - Formal Verification:</strong> 3 agents (Certora, K Framework, Isabelle)</p>
                         <p><strong>Layer 5 - AI-Powered:</strong> 5 agents (GPT-4, Ollama, Correlation, Triage, SmartAnalyzer)</p>
-                        <p><strong>Layer 6 - Policy & Compliance:</strong> 2 agents (Policy Engine, Compliance Checker)</p>
+                        <p><strong>Layer 6 - Standards Mapping:</strong> 2 agents (Policy Engine, Compliance Checker)</p>
                     </div>
 
                     <h3 style="color: #667eea; margin-bottom: 15px;">LLM Integration</h3>
@@ -1084,7 +1084,7 @@ class HackerDemo:
     ╚═══════════════════════════════╤══════════════════════════════════╝
                                     │
     ╔═══════════════════════════════▼══════════════════════════════════╗
-    ║  LAYER 6: POLICY & COMPLIANCE                                    ║
+    ║  LAYER 6: STANDARDS MAPPING                                    ║
     ║  ┌────────────────────────────────────────────────────────────┐  ║
     ║  │  PolicyAgent  [Standards · Compliance · Best Practices]   │  ║
     ║  └────────────────────────────────────────────────────────────┘  ║
@@ -1455,7 +1455,7 @@ class HackerDemo:
         print(f"{Colors.GREEN}    ✓ InterpretationAgent [PID:{base_pid+12}] - 128MB RAM - READY{Colors.ENDC}")
         time.sleep(0.3)
 
-        # Capa 6 - Policy & Compliance
+        # Capa 6 - Standards Mapping
         loading_bar("[6/6] Loading policy & compliance agent", 1, Colors.CYAN)
 
         policy_logs = [
@@ -2429,11 +2429,11 @@ class HackerDemo:
         typing_effect(f"    → Found: 1 Critical + 3 High vulnerabilities in the contract", 0.02, Colors.RED)
         print()
         typing_effect(f"    This phase validates MIESC FRAMEWORK security itself", 0.02, Colors.WHITE)
-        typing_effect(f"    → The tool that performs the analysis (Security-by-Design)", 0.02, Colors.CYAN)
+        typing_effect(f"    → The tool that performs the analysis (Multi-Layer Analysis)", 0.02, Colors.CYAN)
         print()
         time.sleep(2)
 
-        print(f"{Colors.BOLD}{Colors.CYAN}[*] Security-by-Design Validation{Colors.ENDC}\n")
+        print(f"{Colors.BOLD}{Colors.CYAN}[*] Multi-Layer Analysis Validation{Colors.ENDC}\n")
         typing_effect("    Validating framework security controls...", 0.02, Colors.WHITE)
         time.sleep(1)
 
@@ -2521,7 +2521,7 @@ class HackerDemo:
             ("Layer 3: Dynamic Analysis", "Docker sandboxing, resource limits"),
             ("Layer 4: Formal Verification", "Memory limits, Z3 solver constraints"),
             ("Layer 5: AI-Powered", "Prompt sanitization, advisory only"),
-            ("Layer 6: Policy & Compliance", "OWASP/CWE checks, security policies")
+            ("Layer 6: Standards Mapping", "OWASP/CWE checks, security policies")
         ]
 
         for layer, controls in layers:
@@ -2583,7 +2583,7 @@ class HackerDemo:
             ("Layer 3: Dynamic Analysis", 88, "Docker sandboxing, resource limits"),
             ("Layer 4: Formal Verification", 90, "Memory constraints, solver timeouts"),
             ("Layer 5: AI-Powered", 85, "Advisory only, human-in-the-loop"),
-            ("Layer 6: Policy & Compliance", 94, "Automated OWASP/CWE validation")
+            ("Layer 6: Standards Mapping", 94, "Automated OWASP/CWE validation")
         ]
 
         for layer, score, controls in layer_effectiveness:
@@ -2608,7 +2608,7 @@ class HackerDemo:
         typing_effect("    Multi-Agent Isolation: 95/100", 0.02, Colors.WHITE)
         typing_effect("    Defense-in-Depth: 91/100", 0.02, Colors.WHITE)
         typing_effect("    Fail-Safe Mechanisms: 88/100", 0.02, Colors.WHITE)
-        typing_effect("    Security-by-Design: 94/100", 0.02, Colors.WHITE)
+        typing_effect("    Multi-Layer Analysis: 94/100", 0.02, Colors.WHITE)
         time.sleep(0.5)
         print(f"\n    {Colors.BOLD}{Colors.BRIGHT_GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Colors.ENDC}")
         typing_effect(f"    {Colors.BOLD}OVERALL LLM CONFIDENCE: 92/100 (PRODUCTION READY){Colors.ENDC}", 0.02, Colors.BRIGHT_GREEN)
@@ -2957,15 +2957,15 @@ class HackerDemo:
         time.sleep(3)
 
         # Competitive Advantage
-        print(f"\n{Colors.YELLOW}[*] Competitive Advantage - Why MIESC is Unique:{Colors.ENDC}\n")
+        print(f"\n{Colors.YELLOW}[*] Competitive Advantage - MIESC Key Features:{Colors.ENDC}\n")
 
         print(f"{Colors.WHITE}    Tool            MCP Support    AI Integration    Multi-Tool{Colors.ENDC}")
         print(f"    {'─'*60}")
-        print(f"    Slither         ❌             ❌                ❌")
-        print(f"    Mythril         ❌             ❌                ❌")
-        print(f"    Securify        ❌             ❌                ❌")
-        print(f"    MythX           ❌             ⚠️  Manual         ⚠️  Limited")
-        print(f"    {Colors.BRIGHT_GREEN}MIESC           ✅ YES          ✅ Native         ✅ 15 tools{Colors.ENDC}")
+        print(f"    Slither         ❌             ⚠️  Available      ✅ Python API")
+        print(f"    Mythril         ❌             ⚠️  Available      ✅ Plugin system")
+        print(f"    Securify        ❌             ❌                ⚠️  Limited")
+        print(f"    MythX           ⚠️  API         ✅ GPT support     ✅ Multiple tools")
+        print(f"    {Colors.BRIGHT_GREEN}MIESC           ✅ Native       ✅ Multi-model     ✅ 15+ tools{Colors.ENDC}")
 
         time.sleep(3)
 
@@ -3020,12 +3020,12 @@ class HackerDemo:
         print(f"║                                                            ║")
         print(f"║  {Colors.BOLD}MCP INTEGRATION - GAME CHANGER{Colors.ENDC}{Colors.CYAN}                          ║")
         print(f"║                                                            ║")
-        print(f"║  ✓ FIRST smart contract tool with MCP protocol            ║")
+        print(f"║  ✓ Advanced smart contract tool with MCP protocol            ║")
         print(f"║  ✓ 900x faster workflow (2 hours → 8 seconds)             ║")
         print(f"║  ✓ Native Claude/ChatGPT integration                      ║")
         print(f"║  ✓ 6 powerful capabilities via JSON-RPC                   ║")
         print(f"║  ✓ WebSocket support for real-time streaming             ║")
-        print(f"║  ✓ No competitor offers this capability                  ║")
+        print(f"║  ✓ Comprehensive MCP integration                  ║")
         print(f"║                                                            ║")
         print(f"║  {Colors.BRIGHT_GREEN}KEY DIFFERENTIATOR FOR THESIS DEFENSE{Colors.ENDC}{Colors.CYAN}                 ║")
         print(f"║                                                            ║")
