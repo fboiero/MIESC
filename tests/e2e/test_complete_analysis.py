@@ -387,12 +387,15 @@ class TestToolRanking:
         print(f"\n{'Adapter':<20} {'Status':<15} {'Category':<20}")
         print("-" * 60)
 
-        for adapter in report["adapters"]:
+        # Usar .get() para evitar KeyError si 'adapters' no existe
+        adapters = report.get("adapters", [])
+
+        for adapter in adapters:
             print(f"{adapter['name']:<20} {adapter['status']:<15} {adapter['category']:<20}")
 
         # Count by status
-        available = sum(1 for a in report["adapters"] if a["status"] == "available")
-        not_installed = sum(1 for a in report["adapters"] if a["status"] == "not_installed")
+        available = sum(1 for a in adapters if a["status"] == "available")
+        not_installed = sum(1 for a in adapters if a["status"] == "not_installed")
 
         print(f"\nSummary:")
         print(f"  Available: {available}")
