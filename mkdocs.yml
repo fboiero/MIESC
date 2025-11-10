@@ -1,0 +1,312 @@
+# ============================================================================
+# MkDocs Configuration for MIESC Documentation
+# ============================================================================
+# Generate static documentation site with: mkdocs build
+# Serve locally with: mkdocs serve
+# Deploy to GitHub Pages with: mkdocs gh-deploy
+#
+# Version: 3.3.0
+# Last Updated: 2025-01-18
+# ============================================================================
+
+site_name: MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
+site_description: Autonomous cyberdefense agent for Ethereum smart contract security analysis
+site_author: Fernando Boiero - UNDEF
+site_url: https://fboiero.github.io/MIESC
+
+# Repository information
+repo_name: fboiero/MIESC
+repo_url: https://github.com/fboiero/MIESC
+edit_uri: edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2025 Fernando Boiero - Universidad de la Defensa Nacional (UNDEF)
+
+# ============================================================================
+# Theme Configuration
+# ============================================================================
+
+theme:
+  name: material
+  language: en
+
+  # Color scheme
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  # Fonts
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+  # Features
+  features:
+    - navigation.instant      # Instant loading
+    - navigation.tracking     # URL tracking
+    - navigation.tabs         # Top-level tabs
+    - navigation.tabs.sticky  # Sticky tabs
+    - navigation.sections     # Navigation sections
+    - navigation.expand       # Expand navigation by default
+    - navigation.indexes      # Section index pages
+    - navigation.top          # Back to top button
+    - search.suggest          # Search suggestions
+    - search.highlight        # Highlight search results
+    - search.share            # Share search results
+    - toc.follow              # Follow TOC
+    - toc.integrate           # Integrate TOC into navigation
+    - content.code.copy       # Copy code button
+    - content.code.annotate   # Code annotations
+
+  # Logo and icons
+  logo: assets/logo.png
+  favicon: assets/favicon.ico
+
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+
+# ============================================================================
+# Plugins
+# ============================================================================
+
+plugins:
+  - search:
+      lang: en
+      separator: '[\s\-\.]+'
+  - minify:
+      minify_html: true
+  # Temporarily disabled for faster builds
+  # - git-revision-date-localized:
+  #     enable_creation_date: true
+  #     type: timeago
+  #     fallback_to_build_date: true
+  #     enable_parallel_processing: false
+  - autorefs
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            heading_level: 2
+
+# ============================================================================
+# Markdown Extensions
+# ============================================================================
+
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - meta
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# ============================================================================
+# Navigation Structure
+# ============================================================================
+
+nav:
+  - Home:
+    - Welcome: index.md
+    - Quick Start: README.md
+    - Web Demo: webapp/README.md
+
+  - Getting Started:
+    - Installation: docs/02_SETUP_AND_USAGE.md
+    - Demo Guide: docs/03_DEMO_GUIDE.md
+    - Docker Setup: docs/DOCKER.md
+    - macOS Setup: docs/INSTALL_MACOS.md
+
+  - Core Documentation:
+    - Overview: docs/00_OVERVIEW.md
+    - Architecture: docs/01_ARCHITECTURE.md
+    - AI Correlation: docs/04_AI_CORRELATION.md
+    - Policy Agent: docs/05_POLICY_AGENT.md
+    - MCP Protocol: docs/07_MCP_INTEROPERABILITY.md
+    - Metrics & Results: docs/08_METRICS_AND_RESULTS.md
+    - Theoretical Foundation: docs/09_THEORETICAL_FOUNDATION.md
+
+  - Intelligent Agents:
+    - Agents Explained: docs/AGENTS_EXPLAINED.md
+    - Agent Development: docs/AGENT_DEVELOPMENT_GUIDE.md
+    - AI Architecture: docs/AI_ARCHITECTURE.md
+    - Intelligent Agents Upgrade: docs/INTELLIGENT_AGENTS_UPGRADE.md
+
+  - Developer Guide:
+    - Contributing: CONTRIBUTING.md
+    - Developer Guide: docs/DEVELOPER_GUIDE.md
+    - API Setup: docs/API_SETUP.md
+    - Code of Conduct: policies/CODE_OF_CONDUCT.md
+
+  - Tools & Integration:
+    - GPTLens: docs/GPTLens.md
+    - Llama2: docs/Llama2.md
+    - Llama Setup: docs/LLAMA_SETUP.md
+    - Integration Roadmap: docs/INTEGRATION_ROADMAP.md
+    - Manticore Migration: docs/MANTICORE_MIGRATION.md
+
+  - DevSecOps & Security:
+    - DevSecOps Overview: docs/DEVSECOPS.md
+    - Security Policy: SECURITY.md
+    - Framework Alignment: docs/FRAMEWORK_ALIGNMENT.md
+    - ISO 42001 (AI): docs/ISO_42001_compliance.md
+    - DPG Compliance: docs/DPG_COMPLIANCE.md
+
+  - Advanced Features:
+    - Enhanced Reports: docs/ENHANCED_REPORTS.md
+    - Multi-Agent Systems: docs/MCP_AGENTS.md
+    - Symbolic Execution: docs/SYMBOLIC_EXECUTION.md
+    - Formal Verification: docs/FORMAL_VERIFICATION.md
+
+  - Technical Documentation:
+    - Tool Adapter Protocol: docs/architecture/MCP_ARCHITECTURE.md
+    - Integration Guide: docs/TOOL_INTEGRATION_GUIDE.md
+
+  - Research & Thesis:
+    - Thesis Overview: thesis/README.md
+    - Reproducibility: docs/REPRODUCIBILITY.md
+    - Publications: thesis/publications.md
+    - Experiments: thesis/experiments.md
+
+  - Reference:
+    - Documentation Index: docs/INDEX.md
+    - CLI Reference: docs/CLI_REFERENCE.md
+    - Glossary: docs/GLOSSARY.md
+    - FAQ: docs/FAQ.md
+    - Changelog: CHANGELOG.md
+
+  - Community:
+    - GitHub: https://github.com/fboiero/MIESC
+    - Issues: https://github.com/fboiero/MIESC/issues
+    - Discussions: https://github.com/fboiero/MIESC/discussions
+    - Citation: CITATION.cff
+
+# ============================================================================
+# Extra Configuration
+# ============================================================================
+
+extra:
+  version:
+    provider: mike
+    default: latest
+
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/fboiero/MIESC
+      name: MIESC on GitHub
+    - icon: fontawesome/brands/linkedin
+      link: https://linkedin.com/in/fboiero
+      name: Fernando Boiero on LinkedIn
+    - icon: fontawesome/solid/envelope
+      link: mailto:fboiero@frvm.utn.edu.ar
+      name: Email
+
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX  # Replace with actual GA4 ID
+
+  consent:
+    title: Cookie consent
+    description: >-
+      We use cookies to recognize your repeated visits and preferences, as well
+      as to measure the effectiveness of our documentation and whether users
+      find what they're searching for. With your consent, you're helping us to
+      make our documentation better.
+
+# ============================================================================
+# Extra CSS and JavaScript
+# ============================================================================
+
+extra_css:
+  - stylesheets/extra.css
+  - stylesheets/custom.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+# ============================================================================
+# Validation and Strict Mode
+# ============================================================================
+
+strict: false  # Set to true for production to catch all warnings
+validation:
+  nav:
+    omitted_files: info
+    not_found: warn
+    absolute_links: info
+  links:
+    not_found: warn
+    absolute_links: info
+    unrecognized_links: info
+
+# ============================================================================
+# Build Configuration
+# ============================================================================
+
+site_dir: site
+docs_dir: docs
+use_directory_urls: true
+
+# Watch for changes
+watch:
+  - src/
+  - docs/
+  - README.md
