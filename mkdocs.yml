@@ -138,8 +138,7 @@ markdown_extensions:
 
 nav:
   - Home:
-    - Tool Adapter Protocol: docs/architecture/MCP_ARCHITECTURE.md
-    - Integration Guide: docs/TOOL_INTEGRATION_GUIDE.md
+    - Welcome: INDEX.md
 
   - Developer Guide:
     - Contributing: CONTRIBUTING.md
