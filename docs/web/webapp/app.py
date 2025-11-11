@@ -5,12 +5,12 @@ MIESC Web Demo - Interactive Smart Contract Auditor
 A Streamlit-based web interface for the MIESC framework that allows users to:
 - Upload or paste Solidity smart contracts
 - Run multi-tool security analysis
-- View AI-correlated findings with risk scores
+- View AI-correlated findings with risk scores (OpenLLaMA-enhanced)
 - Export analysis reports
 
 Author: Fernando Boiero - UNDEF
 License: GPL-3.0
-Version: 3.3.0
+Version: 3.5.0
 """
 
 import streamlit as st
