@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Demo - MIESC Agent Protocol</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 40px 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            font-size: 32px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+        .demo-section {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 15px 0;
+        }
+        .code-block .comment {
+            color: #6a9955;
+        }
+        .code-block .keyword {
+            color: #569cd6;
+        }
+        .code-block .string {
+            color: #ce9178;
+        }
+        .code-block .function {
+            color: #dcdcaa;
+        }
+        .terminal {
+            background: #0c0c0c;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 15px 0;
+        }
+        .terminal-prompt {
+            color: #00ff00;
+        }
+        .terminal-output {
+            color: #cccccc;
+            margin-left: 20px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            margin: 10px 5px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+        .interactive-demo {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .agent-card {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .agent-card h3 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        .agent-card .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            background: #667eea;
+            color: white;
+            border-radius: 5px;
+            font-size: 12px;
+            margin: 5px 5px 5px 0;
+        }
+        .step {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .step h3 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Home</a>
+
+        <h1>🚀 Interactive Demo</h1>
+        <p style="text-align: center; font-size: 20px; margin-bottom: 40px;">
+            Experience the MIESC Agent Protocol in action
+        </p>
+
+        <!-- What is MIESC Agent Protocol -->
+        <div class="demo-section">
+            <h2>📌 What is MIESC Agent Protocol?</h2>
+            <p style="font-size: 18px; line-height: 1.8;">
+                MIESC Agent Protocol is an <strong>open standard</strong> that enables any security tool to integrate
+                with any platform instantly. Think of it as <strong>"USB for security tools"</strong> - just as USB
+                created a universal interface for hardware, MIESC creates a universal interface for security analysis.
+            </p>
+
+            <div style="margin: 30px 0; padding: 20px; background: rgba(255, 255, 255, 0.1); border-radius: 10px;">
+                <h3>Before MIESC: Fragmentation 😩</h3>
+                <pre style="color: #fff; font-size: 16px; line-height: 1.6;">
+Tool A → Platform X  ❌ Custom integration
+Tool A → Platform Y  ❌ Another custom integration
+Tool B → Platform X  ❌ Yet another integration
+Tool B → Platform Y  ❌ And another...
+= N tools × M platforms = CHAOS
+                </pre>
+
+                <h3 style="margin-top: 30px;">After MIESC: Universal Standard ✅</h3>
+                <pre style="color: #fff; font-size: 16px; line-height: 1.6;">
+Tool A → MIESC Protocol ✅
+Tool B → MIESC Protocol ✅
+Tool C → MIESC Protocol ✅
+= Each tool implements ONCE, works EVERYWHERE
+                </pre>
+            </div>
+        </div>
+
+        <!-- Live Example: Creating an Agent -->
+        <div class="demo-section">
+            <h2>🔧 Demo 1: Create Your First Agent (15 minutes)</h2>
+
+            <div class="step">
+                <h3>Step 1: Implement the SecurityAgent Interface</h3>
+                <p>Copy this template and add your analysis logic:</p>
+
+                <div class="code-block">
+<span class="comment"># my_custom_agent.py</span>
+<span class="keyword">from</span> src.core.agent_protocol <span class="keyword">import</span> (
+    SecurityAgent, AgentCapability, AgentSpeed,
+    AnalysisResult, AnalysisStatus, Finding, FindingSeverity
+)
+<span class="keyword">from</span> typing <span class="keyword">import</span> List
+<span class="keyword">from</span> datetime <span class="keyword">import</span> datetime
+<span class="keyword">import</span> time
+
+<span class="keyword">class</span> <span class="function">MyAgent</span>(SecurityAgent):
+    <span class="comment"># Define agent metadata</span>
+    @property
+    <span class="keyword">def</span> <span class="function">name</span>(self) -> str:
+        <span class="keyword">return</span> <span class="string">"my-custom-agent"</span>
+
+    @property
+    <span class="keyword">def</span> <span class="function">version</span>(self) -> str:
+        <span class="keyword">return</span> <span class="string">"1.0.0"</span>
+
+    @property
+    <span class="keyword">def</span> <span class="function">description</span>(self) -> str:
+        <span class="keyword">return</span> <span class="string">"My custom security analysis tool"</span>
+
+    @property
+    <span class="keyword">def</span> <span class="function">capabilities</span>(self) -> List[AgentCapability]:
+        <span class="keyword">return</span> [AgentCapability.STATIC_ANALYSIS]
+
+    @property
+    <span class="keyword">def</span> <span class="function">supported_languages</span>(self) -> List[str]:
+        <span class="keyword">return</span> [<span class="string">"solidity"</span>]
+
+    <span class="keyword">def</span> <span class="function">analyze</span>(self, contract: str, **kwargs) -> AnalysisResult:
+        <span class="comment"># Your analysis logic here</span>
+        start_time = time.time()
+
+        <span class="comment"># Example: Find potential issues</span>
+        findings = []
+        <span class="comment"># ... your analysis code ...</span>
+
+        <span class="keyword">return</span> AnalysisResult(
+            agent=self.name,
+            version=self.version,
+            status=AnalysisStatus.SUCCESS,
+            timestamp=datetime.now(),
+            execution_time=time.time() - start_time,
+            findings=findings,
+            summary={<span class="string">'total'</span>: len(findings)}
+        )
+                </div>
+            </div>
+
+            <div class="step">
+                <h3>Step 2: Install Your Agent</h3>
+                <p>Simply copy it to the agents directory:</p>
+
+                <div class="terminal">
+                    <div><span class="terminal-prompt">$</span> cp my_custom_agent.py ~/.miesc/agents/</div>
+                    <div class="terminal-output">Agent installed successfully!</div>
+                </div>
+            </div>
+
+            <div class="step">
+                <h3>Step 3: Test Discovery</h3>
+                <p>MIESC automatically discovers your agent:</p>
+
+                <div class="terminal">
+                    <div><span class="terminal-prompt">$</span> python -c "from src.core.agent_registry import AgentRegistry; registry = AgentRegistry(); registry.discover_all(); print(list(registry.agents.keys()))"</div>
+                    <div class="terminal-output">['slither', 'mythril', 'semgrep', 'my-custom-agent']</div>
+                    <div class="terminal-output">✓ Found 4 agents</div>
+                </div>
+            </div>
+
+            <div class="step">
+                <h3>Step 4: Run Analysis</h3>
+                <p>Your agent is now available to all users:</p>
+
+                <div class="terminal">
+                    <div><span class="terminal-prompt">$</span> python -c "from src.orchestrator import AgentOrchestrator, SelectionCriteria; orch = AgentOrchestrator(); orch.initialize(); result = orch.analyze('contract.sol', orch.select_agents('contract.sol', SelectionCriteria(specific_agents=['my-custom-agent'])))"</div>
+                    <div class="terminal-output">Running analysis with my-custom-agent...</div>
+                    <div class="terminal-output">✓ Analysis complete in 2.3s</div>
+                    <div class="terminal-output">Found 5 potential issues</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Agents -->
+        <div class="demo-section">
+            <h2>🤖 Demo 2: Available Agents</h2>
+            <p style="font-size: 18px; margin-bottom: 30px;">
+                Here are some agents already integrated with MIESC Agent Protocol:
+            </p>
+
+            <div class="interactive-demo">
+                <div class="agent-card">
+                    <h3>🔍 Slither Agent</h3>
+                    <p>Static analysis framework for Solidity by Trail of Bits</p>
+                    <div>
+                        <span class="badge">Static Analysis</span>
+                        <span class="badge">Solidity</span>
+                        <span class="badge">Fast</span>
+                        <span class="badge">Free</span>
+                    </div>
+                    <p style="margin-top: 15px;"><strong>Detects:</strong> 70+ vulnerability patterns including reentrancy, integer overflow, access control issues</p>
+                </div>
+
+                <div class="agent-card">
+                    <h3>⚡ Mythril Agent</h3>
+                    <p>Symbolic execution tool for EVM bytecode analysis</p>
+                    <div>
+                        <span class="badge">Symbolic Execution</span>
+                        <span class="badge">Solidity</span>
+                        <span class="badge">Slow</span>
+                        <span class="badge">Free</span>
+                    </div>
+                    <p style="margin-top: 15px;"><strong>Detects:</strong> Deep vulnerabilities through symbolic analysis</p>
+                </div>
+
+                <div class="agent-card">
+                    <h3>🔎 Semgrep Agent</h3>
+                    <p>Pattern-based security scanner</p>
+                    <div>
+                        <span class="badge">Pattern Matching</span>
+                        <span class="badge">Multi-language</span>
+                        <span class="badge">Fast</span>
+                        <span class="badge">Free</span>
+                    </div>
+                    <p style="margin-top: 15px;"><strong>Detects:</strong> Custom patterns, best practice violations, security anti-patterns</p>
+                </div>
+
+                <div class="agent-card">
+                    <h3>🎯 Your Agent Here!</h3>
+                    <p>Have a security tool? Integrate it in 2 hours and reach millions!</p>
+                    <div>
+                        <span class="badge">Your Capability</span>
+                        <span class="badge">Your Language</span>
+                        <span class="badge">Your Speed</span>
+                        <span class="badge">Your Price</span>
+                    </div>
+                    <p style="margin-top: 15px;">
+                        <a href="../README_AGENT_PROTOCOL.md" class="btn">Learn How →</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multi-Agent Orchestration -->
+        <div class="demo-section">
+            <h2>🎭 Demo 3: Multi-Agent Orchestration</h2>
+            <p style="font-size: 18px; margin-bottom: 20px;">
+                Run multiple agents in parallel for comprehensive security analysis:
+            </p>
+
+            <div class="step">
+                <h3>Automatic Agent Selection</h3>
+                <p>Let the orchestrator choose the best agents for your contract:</p>
+
+                <div class="code-block">
+<span class="keyword">from</span> src.orchestrator <span class="keyword">import</span> AgentOrchestrator, SelectionCriteria
+
+<span class="comment"># Initialize orchestrator</span>
+orchestrator = AgentOrchestrator()
+orchestrator.initialize()
+
+<span class="comment"># Define selection criteria</span>
+criteria = SelectionCriteria(
+    language=<span class="string">'solidity'</span>,
+    capabilities=[AgentCapability.STATIC_ANALYSIS],
+    free_only=<span class="keyword">True</span>,
+    max_speed=AgentSpeed.MEDIUM
+)
+
+<span class="comment"># Select agents automatically</span>
+agents = orchestrator.select_agents(<span class="string">'MyContract.sol'</span>, criteria)
+<span class="keyword">print</span>(<span class="string">f'Selected </span>{len(agents)}<span class="string"> agents'</span>)
+
+<span class="comment"># Run analysis in parallel</span>
+result = orchestrator.analyze(<span class="string">'MyContract.sol'</span>, agents, parallel=<span class="keyword">True</span>)
+
+<span class="comment"># Get consolidated results</span>
+<span class="keyword">print</span>(<span class="string">f'Total findings: </span>{result.get_summary()["total_findings"]}<span class="string">'</span>)
+<span class="keyword">print</span>(<span class="string">f'Critical: </span>{result.get_summary()["by_severity"]["CRITICAL"]}<span class="string">'</span>)
+                </div>
+
+                <p style="margin-top: 20px; font-size: 16px;">This runs all matching agents in parallel and consolidates results automatically!</p>
+            </div>
+
+            <div class="step">
+                <h3>Example Output</h3>
+                <div class="terminal">
+                    <div class="terminal-output">🚀 Starting multi-agent analysis...</div>
+                    <div class="terminal-output">📋 Selected 3 agents: slither, semgrep, my-custom-agent</div>
+                    <div class="terminal-output"></div>
+                    <div class="terminal-output">⚡ Running agents in parallel...</div>
+                    <div class="terminal-output">  ✓ slither completed in 1.2s (8 findings)</div>
+                    <div class="terminal-output">  ✓ semgrep completed in 0.8s (3 findings)</div>
+                    <div class="terminal-output">  ✓ my-custom-agent completed in 2.1s (5 findings)</div>
+                    <div class="terminal-output"></div>
+                    <div class="terminal-output">📊 Analysis Results:</div>
+                    <div class="terminal-output">  Total findings: 16</div>
+                    <div class="terminal-output">  Critical: 2</div>
+                    <div class="terminal-output">  High: 5</div>
+                    <div class="terminal-output">  Medium: 7</div>
+                    <div class="terminal-output">  Low: 2</div>
+                    <div class="terminal-output"></div>
+                    <div class="terminal-output">✅ Analysis complete! Results saved to output/</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Why This Matters -->
+        <div class="demo-section">
+            <h2>💡 Why This Matters</h2>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px;">
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 25px; border-radius: 10px;">
+                    <h3 style="margin-top: 0;">🔧 For Tool Developers</h3>
+                    <p><strong>Before:</strong> Build tool (6 months) + Custom integrations (weeks each)</p>
+                    <p><strong>After:</strong> Build tool (6 months) + Implement protocol (2 hours)</p>
+                    <p style="color: #00ff00; font-weight: bold;">→ Instant distribution to all MIESC users!</p>
+                </div>
+
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 25px; border-radius: 10px;">
+                    <h3 style="margin-top: 0;">🔍 For Security Auditors</h3>
+                    <p><strong>Before:</strong> Install 5 tools (2.5 hours) + Run separately + Manually consolidate</p>
+                    <p><strong>After:</strong> One command → Automatic consolidation</p>
+                    <p style="color: #00ff00; font-weight: bold;">→ 90%+ time savings!</p>
+                </div>
+
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 25px; border-radius: 10px;">
+                    <h3 style="margin-top: 0;">🏗️ For Protocols</h3>
+                    <p><strong>Before:</strong> 100+ lines of CI/CD YAML, complex setup, maintenance burden</p>
+                    <p><strong>After:</strong> 4 lines of YAML, zero maintenance</p>
+                    <p style="color: #00ff00; font-weight: bold;">→ Best-in-class security automatically!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Get Started -->
+        <div class="demo-section">
+            <h2>🚀 Ready to Get Started?</h2>
+            <p style="font-size: 18px; text-align: center; margin: 30px 0;">
+                Choose your path:
+            </p>
+
+            <div style="text-align: center;">
+                <a href="../README_AGENT_PROTOCOL.md" class="btn">📖 Read the Overview</a>
+                <a href="../AGENT_PROTOCOL_QUICKSTART.md" class="btn">⚡ Quick Start (15 min)</a>
+                <a href="../docs/AGENT_DEVELOPMENT_GUIDE.md" class="btn">🔧 Developer Guide</a>
+                <a href="../AGENT_PROTOCOL_WHITEPAPER.md" class="btn">📄 Full Whitepaper</a>
+            </div>
+
+            <p style="text-align: center; margin-top: 40px; font-size: 18px; opacity: 0.9;">
+                <strong>Open Source • Community-Driven • Free Forever</strong>
+            </p>
+        </div>
+
+        <!-- Back to Home -->
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="../index.html" class="btn">← Back to Home</a>
+        </div>
+    </div>
+
+    <script>
+        // Add smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

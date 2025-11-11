@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: miesc-config
+  namespace: miesc
+  labels:
+    app: miesc
+data:
+  # Logging configuration
+  LOG_LEVEL: "INFO"
+  SECURE_LOGGING: "true"
+
+  # Cache configuration
+  REDIS_ENABLED: "true"
+  CACHE_TTL: "604800"  # 7 days
+
+  # Rate limiting
+  RATE_LIMIT_ENABLED: "true"
+  API_DAILY_LIMIT: "1000"
+  API_DAILY_COST_LIMIT: "100.0"
+
+  # MCP configuration
+  MCP_LOG_LEVEL: "INFO"
+  MCP_MESSAGE_HISTORY_LIMIT: "1000"
+
+  # Analysis defaults
+  DEFAULT_SOLC_VERSION: "0.8.20"
+  ANALYSIS_TIMEOUT: "3600"
+
+  # Python configuration
+  PYTHONUNBUFFERED: "1"

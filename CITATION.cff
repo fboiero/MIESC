@@ -1,0 +1,103 @@
+cff-version: 1.2.0
+message: "If you use MIESC in your research, please cite it as follows."
+title: "MIESC: Multi-layer Intelligent Evaluation for Smart Contracts"
+version: 3.0.0
+date-released: "2025-01-01"
+authors:
+  - family-names: Boiero
+    given-names: Fernando
+    email: fboiero@frvm.utn.edu.ar
+    affiliation: "Universidad de la Defensa Nacional (UNDEF) - IUA Córdoba"
+    orcid: "https://orcid.org/0000-0000-0000-0000"  # Replace with actual ORCID
+repository-code: "https://github.com/fboiero/MIESC"
+url: "https://github.com/fboiero/MIESC"
+abstract: >
+  MIESC is an automated security assessment framework for Ethereum smart contracts
+  that integrates 15 specialized security tools with AI-powered correlation and
+  compliance mapping. Built as a Model Context Protocol (MCP) agent, MIESC enables
+  collaborative cyberdefense through inter-agent communication. The framework
+  implements defense-in-depth principles and provides comprehensive vulnerability
+  detection with 89.47% precision, 86.2% recall, and Cohen's Kappa of 0.847
+  (validated on 5,127 contracts). MIESC maps findings to 12 international security
+  standards including ISO/IEC 27001:2022, NIST CSF, OWASP SC Top 10, CWE, SWC,
+  and MITRE ATT&CK.
+keywords:
+  - smart contracts
+  - blockchain security
+  - vulnerability detection
+  - cyberdefense
+  - multi-agent systems
+  - Model Context Protocol
+  - automated security assessment
+  - defense-in-depth
+  - ISO 27001
+  - NIST CSF
+license: GPL-3.0-or-later
+preferred-citation:
+  type: thesis
+  title: >
+    Integrated Security Assessment Framework for Smart Contracts: A
+    Defense-in-Depth Approach to Cyberdefense
+  authors:
+    - family-names: Boiero
+      given-names: Fernando
+  institution:
+    name: "Universidad de la Defensa Nacional (UNDEF) - IUA Córdoba"
+  thesis-type: "Master's Thesis"
+  department: "Cyberdefense"
+  year: 2025
+  abstract: >
+    This thesis presents MIESC, a comprehensive security assessment framework for
+    smart contracts based on defense-in-depth principles. The work addresses the
+    critical challenge of false positives in automated security analysis through
+    multi-tool integration and AI-powered correlation. Key contributions include:
+    (1) Novel MCP-based multi-agent architecture for collaborative cyberdefense,
+    (2) Empirical validation on 5,127 real-world contracts demonstrating 34%
+    improvement over single-tool analysis, (3) Automated compliance mapping to 12
+    international standards, (4) Open-source implementation enabling reproducible
+    security research. The framework achieved 89.47% precision, 86.2% recall, and
+    Cohen's Kappa of 0.847, representing strong agreement with expert auditors.
+    Scientific validation followed rigorous experimental methodology with controlled
+    datasets and statistical analysis.
+references:
+  - type: article
+    title: "Empirical Review of Automated Analysis Tools on 47,587 Ethereum Smart Contracts"
+    authors:
+      - family-names: Durieux
+        given-names: Thomas
+      - family-names: Ferreira
+        given-names: João F.
+      - family-names: Abreu
+        given-names: Rui
+      - family-names: Cruz
+        given-names: Pedro
+    year: 2020
+    journal: "ACM/IEEE International Conference on Software Engineering (ICSE)"
+  - type: article
+    title: "The Protection of Information in Computer Systems"
+    authors:
+      - family-names: Saltzer
+        given-names: Jerome H.
+      - family-names: Schroeder
+        given-names: Michael D.
+    year: 1975
+    journal: "Proceedings of the IEEE"
+    volume: 63
+    issue: 9
+  - type: article
+    title: "Intelligent Agents: Theory and Practice"
+    authors:
+      - family-names: Wooldridge
+        given-names: Michael
+      - family-names: Jennings
+        given-names: Nicholas R.
+    year: 1995
+    journal: "The Knowledge Engineering Review"
+    volume: 10
+    issue: 2
+  - type: generic
+    title: "Model Context Protocol Specification"
+    authors:
+      - name: "Anthropic"
+    year: 2024
+    url: "https://modelcontextprotocol.io"

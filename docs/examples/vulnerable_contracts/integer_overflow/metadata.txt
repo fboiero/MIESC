@@ -1,0 +1,6 @@
+Contract: Integer Overflow
+Description: Integer overflow vulnerability in arithmetic operations
+Vulnerability: SWC-101 / CWE-190
+Source: MIESC Examples
+File: integer_overflow.sol
+Original: integer_overflow.sol

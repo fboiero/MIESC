@@ -1,0 +1,109 @@
+# Core dependencies for Xaudit Framework
+# Master's Thesis: Smart Contract Security Evaluation with AI
+# Universidad Tecnológica Nacional - FRVM
+
+# ============================================
+# STATIC ANALYSIS TOOLS
+# ============================================
+slither-analyzer==0.10.0        # Primary static analyzer with 90+ detectors
+mythril==0.24.3                  # Symbolic execution and taint analysis
+solc-select==1.0.4               # Solidity compiler version manager
+crytic-compile==0.3.7            # Multi-platform compilation library
+
+# ============================================
+# FUZZING & PROPERTY-BASED TESTING
+# ============================================
+# Note: Echidna and Medusa are installed via system package managers
+# Echidna: https://github.com/crytic/echidna (Haskell binary)
+# Medusa: https://github.com/crytic/medusa (Go binary)
+# See installation instructions in README.md
+
+# ============================================
+# FORMAL VERIFICATION
+# ============================================
+# Certora Prover is installed separately via certora-cli
+# Installation: pip install certora-cli
+# Requires Java 11+ and Solidity compiler
+certora-cli>=4.13.1              # Certora Verification Language toolchain
+
+# ============================================
+# RUNTIME VERIFICATION
+# ============================================
+# Scribble for annotation-based verification
+# Installation: npm install -g eth-scribble
+# Python bindings for analysis integration
+
+# ============================================
+# AI/ML INTEGRATION
+# ============================================
+openai==1.12.0                   # OpenAI API for GPT-4 analysis
+ollama>=0.1.0                    # Local LLM support (Llama, Mistral)
+anthropic>=0.18.0                # Claude API (optional alternative)
+python-dotenv==1.0.0             # Environment variable management
+tiktoken==0.6.0                  # Token counting for LLMs
+
+# ============================================
+# FOUNDRY INTEGRATION
+# ============================================
+# Foundry (forge, anvil, cast) installed via foundryup
+# https://book.getfoundry.sh/getting-started/installation
+# Python bindings for test execution and result parsing
+web3==6.15.1                     # Ethereum interaction library
+eth-abi==5.0.0                   # ABI encoding/decoding
+eth-account==0.11.0              # Account management
+eth-typing==4.0.0                # Type hints for Ethereum
+
+# ============================================
+# DATA PROCESSING & ANALYSIS
+# ============================================
+pandas==2.2.0                    # Data manipulation and analysis
+numpy==1.26.4                    # Numerical computing
+scipy==1.12.0                    # Scientific computing for statistics
+
+# ============================================
+# VISUALIZATION & REPORTING
+# ============================================
+matplotlib==3.8.3                # Chart generation for metrics
+seaborn==0.13.2                  # Statistical data visualization
+plotly==5.19.0                   # Interactive charts for dashboard
+fpdf2==2.7.9                     # PDF report generation
+markdown==3.5.2                  # Markdown processing
+jinja2==3.1.3                    # Template engine for reports
+
+# ============================================
+# TESTING & QUALITY ASSURANCE
+# ============================================
+pytest==8.0.0                    # Testing framework
+pytest-cov==4.1.0                # Coverage reporting
+pytest-xdist==3.5.0              # Parallel test execution
+hypothesis==6.98.0               # Property-based testing library
+
+# ============================================
+# UTILITIES
+# ============================================
+tqdm==4.66.1                     # Progress bars
+pyyaml==6.0.1                    # YAML configuration parsing
+requests==2.31.0                 # HTTP library
+click==8.1.7                     # CLI framework
+rich==13.7.0                     # Terminal formatting
+colorama==0.4.6                  # Cross-platform colored output
+python-json-logger==2.0.7        # JSON logging for CI/CD
+
+# ============================================
+# CI/CD & AUTOMATION
+# ============================================
+github3.py==4.0.1                # GitHub API integration
+gitpython==3.1.41                # Git repository interaction
+
+# ============================================
+# SECURITY & CRYPTOGRAPHY
+# ============================================
+cryptography==42.0.5             # Cryptographic recipes
+pysha3==1.0.2                    # Keccak-256 hashing for Ethereum
+
+# ============================================
+# OPTIONAL: ADVANCED ANALYSIS
+# ============================================
+# networkx==3.2.1                # Graph analysis for control flow
+# z3-solver==4.12.6.0            # SMT solver for constraint solving
+# pyevmasm==0.2.3                # EVM assembler/disassembler

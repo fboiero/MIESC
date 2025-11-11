@@ -1,0 +1,178 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+*.key
+*.pem
+
+# Output directories (moved to data/)
+output/
+outputs/
+output.pdf
+
+# Analysis outputs - Exclude all generated results (now in data/)
+data/analysis/slither/results/
+data/analysis/slither/*.json
+data/analysis/slither/*.txt
+data/analysis/echidna/results/
+data/analysis/echidna/*.txt
+data/analysis/echidna/corpus/
+data/analysis/medusa/results/
+data/analysis/medusa/*.json
+data/analysis/medusa/*.txt
+data/analysis/certora/results/
+data/analysis/certora/*.json
+data/analysis/certora/*.log
+data/analysis/output/
+data/analysis/results/
+data/analysis/dashboard/
+data/analysis/*.csv
+data/analysis/*.json
+data/analysis/*.txt
+data/analysis/*.md
+
+# Keep configuration files and specs
+!data/analysis/**/config.*
+!data/analysis/**/*.yaml
+!data/analysis/**/*.spec
+!data/analysis/**/*.conf
+!data/analysis/README.md
+
+# Keep scripts
+!data/analysis/scripts/
+
+# Foundry
+cache/
+out/
+broadcast/
+lcov.info
+.gas-snapshot
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage
+coverage/
+coverage.json
+*.lcov
+
+# Node modules (if any JS tooling)
+node_modules/
+
+# Certora
+.certora_config
+.certora_sources/
+certora_output/
+
+# Generated reports
+output/*.pdf
+output/**/*.txt
+!output/.gitkeep
+
+# Experimental data
+thesis/data/
+thesis/figures/*.png
+thesis/figures/*.pdf
+!thesis/figures/.gitkeep
+
+# Demo outputs (generated during demo runs)
+demo/expected_outputs/*.json
+demo/expected_outputs/*.md
+demo/expected_outputs/*.log
+!demo/expected_outputs/.gitkeep
+!demo/expected_outputs/README.md
+
+# MkDocs site
+site/
+.cache/
+site/index.html
+push.log
+
+# Testing
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+.hypothesis/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# Development
+*.code-workspace
+.python-version
+
+# Analysis results (keep structure, exclude generated data)
+analysis/results/*.json
+analysis/results/*.html
+analysis/results/*.txt
+analysis/policy/*.json
+analysis/policy/*.md
+!analysis/policy/README.md
+!analysis/results/README.md
+
+# MCP server data
+mcp/*.log
+mcp/temp/
+
+# Docker volumes
+.docker/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# Local configuration overrides
+local.env
+config.local.yml
+venv/
+
+# Pip install errors
+=*
+
+# Egg info
+*.egg-info/
+
+# Output directories
+output/
+outputs/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
