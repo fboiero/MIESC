@@ -91,18 +91,36 @@ streamlit run webapp/app.py
 
 ## 🚀 CLI Quick Demo
 
+### ⭐ NEW: MIESC v3.5.0 Interactive Demo (with OpenLLaMA)
+
 ```bash
-# Clone and run interactive demo (5 minutes)
+# Clone and run v3.5.0 demo (2 minutes)
 git clone https://github.com/fboiero/MIESC.git
 cd MIESC
-bash demo/run_demo.sh
+python3 demo_v3.5.py
 ```
 
 **What it does:**
-- ✅ Analyzes 3 vulnerable contracts (Reentrancy, Overflow, Delegatecall)
-- ✅ Runs PolicyAgent security compliance checks
-- ✅ Launches MCP REST API
-- ✅ Generates compliance reports
+- ✅ **System initialization** - Registers 20 adapters, shows DPGA compliance
+- ✅ **Creates vulnerable contract** - VulnerableBank.sol with 3 intentional vulnerabilities
+- ✅ **Layer 1 static analysis** - Runs Slither with severity categorization
+- ✅ **OpenLLaMA AI enhancement** - Shows sovereign LLM integration (deepseek-coder)
+- ✅ **Complete summary** - Demonstrates 7-layer architecture capabilities
+
+**Features highlighted:**
+- 🤖 **OpenLLaMA intelligence** (100% sovereign, no API keys)
+- 🔬 **7-layer architecture** (Static → Dynamic → Symbolic → Formal → AI → ML → Audit)
+- 🛡️ **20 security tools** (Slither, Mythril, Aderyn, Medusa, etc.)
+- ✅ **100% DPGA compliance** (all tools optional)
+
+**Output:** Real-time analysis of 3 vulnerabilities (reentrancy, access control, tx.origin)
+
+### Classic Demo (Legacy)
+
+```bash
+# Full analysis demo with multiple contracts
+bash demo/run_demo.sh
+```
 
 **Outputs:** `demo/expected_outputs/` - Vulnerability reports, metrics, compliance scores
 
