@@ -184,12 +184,12 @@ citation:  ## Show citation information
 
 version:  ## Show version information
 	@echo "$(BLUE)MIESC Version Information:$(NC)"
-	@echo "Version: 3.2.0"
+	@echo "Version: 3.5.0"
 	@echo "Author: Fernando Boiero"
 	@echo "Institution: UNDEF - IUA Córdoba"
 	@echo "License: GPL-3.0"
 	@echo "MCP Protocol: mcp/1.0"
-	@echo "DevSecOps: Shift-Left + PolicyAgent"
+	@echo "AI Enhancement: OpenLLaMA (Sovereign LLM)"
 
 # Security targets (v3.1.0 - DevSecOps)
 security:  ## Run all security checks

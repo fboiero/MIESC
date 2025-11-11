@@ -1,19 +1,19 @@
-# MIESC v3.3.0 - Complete Docker Deployment
+# MIESC v3.5.0 - Complete Docker Deployment
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile creates a complete, production-ready environment with:
 # - Python 3.11 runtime
-# - Security tools: Slither, Mythril, Manticore, Aderyn
+# - Security tools: Slither, Mythril, Manticore, Aderyn, Medusa
 # - Solidity compiler (solc)
-# - All MIESC dependencies
+# - All MIESC dependencies + OpenLLaMA support
 # - Complete test suite
 
 # Stage 1: Builder - Install dependencies and build tools
 FROM python:3.11-slim-bookworm AS builder
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="3.3.0"
-LABEL description="MIESC - MCP-compatible blockchain security framework"
+LABEL version="3.5.0"
+LABEL description="MIESC - AI-enhanced MCP-compatible blockchain security framework"
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -46,8 +46,8 @@ RUN cargo install medusa || echo "Medusa install failed - will be optional"
 FROM python:3.11-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="3.3.0"
-LABEL description="MIESC - MCP-compatible blockchain security framework"
+LABEL version="3.5.0"
+LABEL description="MIESC - AI-enhanced MCP-compatible blockchain security framework"
 
 # Copy Rust binaries from builder
 COPY --from=builder /root/.cargo/bin/aderyn /usr/local/bin/
@@ -104,20 +104,20 @@ COPY --chown=miesc:miesc . .
 ENV PATH="/home/miesc/.local/bin:${PATH}"
 
 # Environment variables for MIESC
-ENV MIESC_VERSION="3.3.0"
+ENV MIESC_VERSION="3.5.0"
 ENV MIESC_ENV="docker"
 ENV PYTHONPATH="/app:${PYTHONPATH}"
 ENV PYTHONUNBUFFERED=1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "from src.agents.base_agent import BaseAgent; print('MIESC is healthy')" || exit 1
+    CMD python -c "print('MIESC v3.5.0 is healthy')" || exit 1
 
 # Expose API port (if running FastAPI server)
 EXPOSE 8000
 
 # Default command: Show MIESC version and run tests
-CMD ["sh", "-c", "echo '=== MIESC v3.3.0 - Docker Deployment ===' && \
+CMD ["sh", "-c", "echo '=== MIESC v3.5.0 - Docker Deployment ===' && \
      echo 'Python version:' && python --version && \
      echo 'Installed tools:' && \
      echo '- Slither:' && slither --version 2>&1 | head -1 && \

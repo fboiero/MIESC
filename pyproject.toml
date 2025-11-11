@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "miesc"
-version = "3.3.0"
-description = "Multi-layer Intelligent Evaluation for Smart Contracts - MCP-compatible blockchain security framework"
+version = "3.5.0"
+description = "Multi-layer Intelligent Evaluation for Smart Contracts - AI-enhanced MCP-compatible blockchain security framework"
 readme = "README.md"
 authors = [
     {name = "Fernando Boiero", email = "fboiero@frvm.utn.edu.ar"}
