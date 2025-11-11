@@ -4,7 +4,7 @@
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-v3.4.0-success)](https://github.com/fboiero/MIESC/releases)
+[![Version](https://img.shields.io/badge/version-v3.5.0-success)](https://github.com/fboiero/MIESC/releases)
 [![Adapters](https://img.shields.io/badge/adapters-20%2F20-success)](./docs/PHASE_3_4_5_COMPLETION_SUMMARY.md)
 [![7-Layer Defense](https://img.shields.io/badge/7--layer%20defense-100%25-success)](./docs/PHASE_3_4_5_COMPLETION_SUMMARY.md)
 [![DPGA Compliance](https://img.shields.io/badge/DPGA%20compliance-100%25-green)](./docs/DPGA_COMPLIANCE_REPORT.md)
@@ -163,7 +163,7 @@ function withdraw() public {
 | **Recall** | 86.2% | Catches 86% of all vulnerabilities (vs. 68-74% for individual tools) |
 | **Time Saved** | ~90% | 32-50 hours → 3-5 hours per contract |
 | **False Positive Reduction** | 43% | AI triage filters out nearly half of false alarms |
-| **Tools Integrated** | 17 | Static, dynamic, symbolic, formal, and AI-assisted (2025: +Aderyn +Medusa) |
+| **Tools Integrated** | 20 | Static, dynamic, symbolic, formal, and AI-assisted (2025: +Aderyn +Medusa +OpenLLaMA) |
 | **Compliance Standards** | 12 | ISO 27001/42001, NIST, OWASP, SWC, EU MiCA/DORA |
 
 > **Validated on 5,127 contracts** from SmartBugs, Etherscan, and real DeFi protocols. Cohen's Kappa 0.847 (strong agreement with expert auditors).
@@ -400,7 +400,7 @@ print(f"Found {findings['total_findings']} issues")
 | Mythril | ❌ | ❌ | ❌ |
 | Securify | ❌ | ❌ | ❌ |
 | MythX | ❌ | ⚠️ Manual | ⚠️ Limited |
-| **MIESC v3.4.0** | ✅ **Yes** | ✅ **Native** | ✅ **20 adapters** |
+| **MIESC v3.5.0** | ✅ **Yes** | ✅ **Native** | ✅ **20 adapters** |
 
 #### Get Started with MCP
 
@@ -504,13 +504,13 @@ MIESC uses a **7-layer security approach** inspired by military cyberdefense pri
 - **Echidna** - Property-based testing
 - **Foundry 1.0** - Test suite execution
 
-**Layer 3: Symbolic Execution (3 adapters)** ⭐ NEW
-- **Mythril** - 88+ detectors, SMT solving
-- **Manticore** - Trail of Bits' symbolic engine
-- **Halmos** - a16z's symbolic testing framework
+**Layer 3: Symbolic Execution (3 adapters)** ⭐ NEW + 🤖 OpenLLaMA
+- **Mythril** - 88+ detectors, SMT solving (AI-enhanced)
+- **Manticore** - Trail of Bits' symbolic engine (AI-enhanced)
+- **Halmos** - a16z's symbolic testing framework (AI-enhanced)
 
-**Layer 4: Formal Verification (3 adapters)** ⭐ NEW
-- **SMTChecker** - Built-in Solidity compiler verification
+**Layer 4: Formal Verification (3 adapters)** ⭐ NEW + 🤖 OpenLLaMA
+- **SMTChecker** - Built-in Solidity compiler verification (AI-enhanced)
 - **Wake** - Python testing framework by Ackee
 - **Certora** - Commercial formal verification (optional)
 
@@ -1002,11 +1002,13 @@ If you use MIESC in your research, please cite:
 
 ## 🗺️ Roadmap
 
-### ✅ v3.4 (Current - November 2025) - 2025 Security Improvements
+### ✅ v3.5 (Current - November 2025) - OpenLLaMA Intelligence + Security Improvements
 
+- [x] **OpenLLaMA helper module** (Sovereign LLM for cross-layer intelligence)
+- [x] **Layers 3 & 4 AI enhancement** (Mythril, Manticore, Halmos, SMTChecker)
 - [x] **Aderyn adapter** (Rust-based static analysis, 64% fewer false positives)
 - [x] **Medusa adapter** (Coverage-guided fuzzing, 3x faster than Echidna)
-- [x] 17 security tools integrated (was 15)
+- [x] 20 security tools integrated (was 17)
 - [x] 117 tests passing (109 new tests for 2025 adapters)
 - [x] CI/CD workflow with automated tool installation
 - [x] Deployment verification system
@@ -1014,7 +1016,14 @@ If you use MIESC in your research, please cite:
 - [x] Complete documentation (ADERYN_ADAPTER.md, MEDUSA_ADAPTER.md)
 - [x] DPGA compliance maintained (100%)
 
-**Expected Improvements**: +28% Layer 1 detection, -90% Layer 2 speed, -64% false positives, +11% coverage
+**Expected Improvements**: +28% Layer 1 detection, -90% Layer 2 speed, -64% false positives, +11% coverage, AI-enhanced context for findings
+
+### ✅ v3.4 (November 2025) - 2025 Security Improvements
+
+- [x] Aderyn & Medusa adapters
+- [x] 17 security tools integrated
+- [x] 117 tests passing
+- [x] DPGA compliance maintained (100%)
 
 ### ✅ v2.2 (October 2024)
 
@@ -1325,6 +1334,6 @@ MIESC integrates world-class open-source tools from:
 
 ---
 
-**Version 3.4.0** | Last Updated: November 2025 | **Status**: 🚀 Production Ready · 🎓 Thesis Defense Q4 2025 · 🔐 ISO/NIST/OWASP Compliant · ⚡ 2025 Security Improvements Live
+**Version 3.5.0** | Last Updated: November 2025 | **Status**: 🚀 Production Ready · 🎓 Thesis Defense Q4 2025 · 🔐 ISO/NIST/OWASP Compliant · ⚡ 2025 Security Improvements + 🤖 OpenLLaMA Intelligence
 
 </div>
