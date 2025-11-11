@@ -28,6 +28,25 @@ from src.adapters.oyente_adapter import OyenteAdapter
 from src.adapters.threat_model_adapter import ThreatModelAdapter
 from src.adapters.aderyn_adapter import AderynAdapter
 from src.adapters.medusa_adapter import MedusaAdapter
+from src.adapters.slither_adapter import SlitherAdapter
+from src.adapters.solhint_adapter import SolhintAdapter
+from src.adapters.echidna_adapter import EchidnaAdapter
+from src.adapters.foundry_adapter import FoundryAdapter
+# Layer 3 - Symbolic Execution (Fase 3 - 2025)
+from src.adapters.mythril_adapter import MythrilAdapter
+from src.adapters.manticore_adapter import ManticoreAdapter
+from src.adapters.halmos_adapter import HalmosAdapter
+# Layer 4 - Formal Verification (Fase 4 - 2025)
+from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+from src.adapters.wake_adapter import WakeAdapter
+from src.adapters.certora_adapter import CertoraAdapter
+# Layer 5 - AI-Powered Analysis (Fase 5 - 2025)
+from src.adapters.smartllm_adapter import SmartLLMAdapter
+from src.adapters.gptscan_adapter import GPTScanAdapter
+from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
+# Layer 6 - ML-Based Detection (Fase 6 - 2025)
+from src.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter
+from src.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -46,15 +65,37 @@ def register_all_adapters():
     registered = []
     failed = []
 
-    # Lista de adaptadores a registrar
+    # Lista de adaptadores a registrar (22 adapters - 7 layers)
     adapters_to_register = [
+        # Layer 0 - Built-in analyzers
         ("gas_analyzer", GasAnalyzerAdapter),
         ("mev_detector", MEVDetectorAdapter),
         ("vertigo", VertigoAdapter),
         ("oyente", OyenteAdapter),
         ("threat_model", ThreatModelAdapter),
+        # Layer 1 - Static Analysis
         ("aderyn", AderynAdapter),
+        ("slither", SlitherAdapter),
+        ("solhint", SolhintAdapter),
+        # Layer 2 - Dynamic Testing
         ("medusa", MedusaAdapter),
+        ("echidna", EchidnaAdapter),
+        ("foundry", FoundryAdapter),
+        # Layer 3 - Symbolic Execution (Fase 3 - 2025)
+        ("mythril", MythrilAdapter),
+        ("manticore", ManticoreAdapter),
+        ("halmos", HalmosAdapter),
+        # Layer 4 - Formal Verification (Fase 4 - 2025)
+        ("smtchecker", SMTCheckerAdapter),
+        ("wake", WakeAdapter),
+        ("certora", CertoraAdapter),
+        # Layer 5 - AI-Powered Analysis (Fase 5 - 2025)
+        ("smartllm", SmartLLMAdapter),
+        ("gptscan", GPTScanAdapter),
+        ("llmsmartaudit", LLMSmartAuditAdapter),
+        # Layer 6 - ML-Based Detection (Fase 6 - 2025)
+        ("smartbugs_ml", SmartBugsMLAdapter),
+        ("contract_clone_detector", ContractCloneDetectorAdapter),
     ]
 
     logger.info("Iniciando registro de adaptadores de herramientas...")
@@ -171,4 +212,8 @@ __all__ = [
     "ThreatModelAdapter",
     "AderynAdapter",
     "MedusaAdapter",
+    "SlitherAdapter",
+    "SolhintAdapter",
+    "EchidnaAdapter",
+    "FoundryAdapter",
 ]
