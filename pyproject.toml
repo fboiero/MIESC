@@ -1,0 +1,123 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "miesc"
+version = "3.3.0"
+description = "Multi-layer Intelligent Evaluation for Smart Contracts - MCP-compatible blockchain security framework"
+readme = "README.md"
+authors = [
+    {name = "Fernando Boiero", email = "fboiero@frvm.utn.edu.ar"}
+]
+license = {text = "GPL-3.0"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent",
+]
+keywords = [
+    "blockchain",
+    "ethereum",
+    "smart-contracts",
+    "security",
+    "static-analysis",
+    "formal-verification",
+    "vulnerability-detection",
+    "mcp",
+    "model-context-protocol"
+]
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "click>=8.1.0",
+    "pydantic>=2.0.0",
+    "slither-analyzer>=0.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+all-tools = [
+    "mythril>=0.24.0",
+    "web3>=6.0.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/fboiero/MIESC"
+Documentation = "https://fboiero.github.io/MIESC"
+Repository = "https://github.com/fboiero/MIESC.git"
+"Bug Tracker" = "https://github.com/fboiero/MIESC/issues"
+
+[project.scripts]
+miesc = "miesc.cli.miesc_cli:cli"
+
+[tool.setuptools]
+packages = ["miesc", "miesc.core", "miesc.api", "miesc.cli"]
+
+[tool.setuptools.package-data]
+miesc = ["py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.git
+  | \.venv
+  | venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["miesc/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=miesc --cov-report=term-missing"
