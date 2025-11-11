@@ -26,6 +26,8 @@ from src.adapters.mev_detector_adapter import MEVDetectorAdapter
 from src.adapters.vertigo_adapter import VertigoAdapter
 from src.adapters.oyente_adapter import OyenteAdapter
 from src.adapters.threat_model_adapter import ThreatModelAdapter
+from src.adapters.aderyn_adapter import AderynAdapter
+from src.adapters.medusa_adapter import MedusaAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +53,8 @@ def register_all_adapters():
         ("vertigo", VertigoAdapter),
         ("oyente", OyenteAdapter),
         ("threat_model", ThreatModelAdapter),
+        ("aderyn", AderynAdapter),
+        ("medusa", MedusaAdapter),
     ]
 
     logger.info("Iniciando registro de adaptadores de herramientas...")
@@ -165,4 +169,6 @@ __all__ = [
     "VertigoAdapter",
     "OyenteAdapter",
     "ThreatModelAdapter",
+    "AderynAdapter",
+    "MedusaAdapter",
 ]
