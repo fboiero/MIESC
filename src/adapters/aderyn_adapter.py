@@ -14,6 +14,7 @@ Version: 1.0.0
 from src.core.tool_protocol import (
     ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
 )
+from src.llm import enhance_findings_with_llm
 from typing import Dict, Any, List, Optional
 import subprocess
 import json
@@ -210,6 +211,21 @@ class AderynAdapter(ToolAdapter):
 
             # Normalize findings
             findings = self.normalize_findings(raw_output)
+
+            # Enhance findings with OpenLLaMA (optional)
+            try:
+                with open(contract_path, 'r') as f:
+                    contract_code = f.read()
+
+                # Enhance top findings with LLM insights
+                if findings:
+                    findings = enhance_findings_with_llm(
+                        findings[:5],  # Top 5 findings
+                        contract_code,
+                        "aderyn"
+                    )
+            except Exception as e:
+                logger.debug(f"LLM enhancement failed: {e}")
 
             metadata = {
                 "contract_analyzed": contract_path,
