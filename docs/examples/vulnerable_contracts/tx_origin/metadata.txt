@@ -1,6 +1,0 @@
-Contract: tx.origin Authentication
-Description: Using tx.origin for authentication
-Vulnerability: SWC-115 / CWE-346
-Source: MIESC Examples
-File: tx_origin.sol
-Original: tx_origin.sol

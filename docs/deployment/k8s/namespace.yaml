@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: miesc
-  labels:
-    name: miesc
-    environment: production
-    app.kubernetes.io/name: miesc
-    app.kubernetes.io/part-of: smart-contract-security
