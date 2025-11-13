@@ -1,5 +1,0 @@
-Experimento,Precision,Recall,F1_Score,Cohen_Kappa,Reduccion_FP,P_Value,Hipotesis
-Baseline,0.673,0.941,0.785,N/A,0.0,N/A,N/A
-Xaudit,0.8947,0.862,0.8781,N/A,N/A,0.012,H1_VALIDADA
-IA_Impact,0.8947,0.862,0.8781,N/A,73.6,0.001,H2_VALIDADA
-Kappa,N/A,N/A,N/A,0.847,N/A,0.001,H3_VALIDADA

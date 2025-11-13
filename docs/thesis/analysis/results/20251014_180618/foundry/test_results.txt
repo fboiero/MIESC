@@ -1,8 +1,0 @@
-Error: failed to extract foundry config:
-foundry.toml error: TOML parse error at line 24, column 1
-   |
-24 | [profile.default.fuzz]
-   | ^
-invalid table header
-duplicate key `fuzz` in table `profile.default`
- in foundry.toml TOML file

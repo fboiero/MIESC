@@ -1,6 +1,0 @@
-Contract: Unchecked Low-Level Call
-Description: Unchecked return value from send()
-Vulnerability: SWC-104 / CWE-252
-Source: MIESC Examples
-File: unchecked_send.sol
-Original: unchecked_send.sol

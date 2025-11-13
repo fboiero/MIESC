@@ -1,6 +1,0 @@
-Contract: Delegatecall Injection
-Description: Unsafe use of delegatecall
-Vulnerability: SWC-112 / CWE-829
-Source: MIESC Examples
-File: delegatecall_injection.sol
-Original: delegatecall_injection.sol
