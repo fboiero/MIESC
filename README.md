@@ -69,7 +69,7 @@ cd MIESC
 pip install slither-analyzer mythril
 
 # Run demo (v3.5.0 - includes OpenLLaMA local LLM)
-python3 demo_v3.5.py
+python3 examples/demo_v3.5.py
 ```
 
 The demo performs:
