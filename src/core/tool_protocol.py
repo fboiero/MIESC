@@ -1,19 +1,10 @@
 """
-MIESC Tool Adapter Protocol
-============================
+Tool adapter protocol for heterogeneous security tool integration.
 
-Protocolo estandarizado para integración de herramientas de análisis.
-Permite desacoplar herramientas específicas y evitar vendor lock-in.
+Defines abstract interface that all tool adapters must implement.
+Enables loose coupling and avoids vendor lock-in (DPGA requirement).
 
-Diseñado para cumplir con requisitos DPGA (Digital Public Goods Alliance):
-- Open Source
-- Modular y extensible
-- Sin dependencias propietarias obligatorias
-- Documentación clara de integración
-
-Autor: Fernando Boiero <fboiero@frvm.utn.edu.ar>
-Versión: 1.0.0
-Fecha: 2025-01-09
+Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 """
 
 from abc import ABC, abstractmethod
@@ -26,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class ToolCategory(Enum):
-    """Categorías de herramientas según arquitectura MIESC"""
+    """Tool categories per MIESC 7-layer architecture"""
     STATIC_ANALYSIS = "static_analysis"
     DYNAMIC_TESTING = "dynamic_testing"
     SYMBOLIC_EXECUTION = "symbolic_execution"

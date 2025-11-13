@@ -1,14 +1,10 @@
 """
-Slither Static Analyzer Adapter - 2025 Security Enhancement
-============================================================
+Slither adapter for MIESC Layer 1 (static analysis).
 
-Integrates Slither (Trail of Bits' Python-based Solidity analyzer) to MIESC Layer 1.
-Industry-standard tool with 88 built-in detectors, high detection rate.
+Wraps Trail of Bits' Slither analyzer (github.com/crytic/slither).
+Implements ToolAdapter protocol for standardized integration.
 
-Tool: Slither by Trail of Bits (https://github.com/crytic/slither)
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
-Date: November 11, 2025
-Version: 1.0.0
 """
 
 from src.core.tool_protocol import (
