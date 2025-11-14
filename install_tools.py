@@ -2,7 +2,7 @@
 """
 install_tools.py - Security tool installation for MIESC
 
-Installs all 23 security analysis tools across 7 defense layers.
+Installs all 24 security analysis tools across 7 defense layers.
 Handles both local (DPGA-compliant) and API-based tooling.
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
@@ -298,6 +298,17 @@ TOOLS = {
     },
 
     # Layer 6: ML-Based Detection
+    "dagnn": {
+        "name": "DA-GNN",
+        "description": "Deep Attention Graph Neural Network (95.7% accuracy, Computer Networks 2024)",
+        "install_cmd": "pip3 install torch torch-geometric scikit-learn networkx",
+        "check_cmd": "python3",
+        "dpga_compliant": True,
+        "layer": 6,
+        "dependencies": ["python3", "pip3", "slither"],
+        "optional": True,
+        "note": "GNN-based vulnerability detection with CFG+DFG analysis"
+    },
     "lightgbm": {
         "name": "LightGBM",
         "description": "Microsoft gradient boosting for anomaly detection",
