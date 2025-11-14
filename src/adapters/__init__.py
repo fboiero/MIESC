@@ -30,6 +30,7 @@ from src.adapters.slither_adapter import SlitherAdapter
 from src.adapters.solhint_adapter import SolhintAdapter
 from src.adapters.echidna_adapter import EchidnaAdapter
 from src.adapters.foundry_adapter import FoundryAdapter
+from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
 # Layer 3 - Symbolic Execution (Fase 3 - 2025)
 from src.adapters.mythril_adapter import MythrilAdapter
 from src.adapters.manticore_adapter import ManticoreAdapter
@@ -65,7 +66,7 @@ def register_all_adapters():
     registered = []
     failed = []
 
-    # Lista de adaptadores a registrar (24 adapters - 7 layers)
+    # Lista de adaptadores a registrar (25 adapters - 7 layers)
     adapters_to_register = [
         # Layer 0 - Built-in analyzers
         ("gas_analyzer", GasAnalyzerAdapter),
@@ -81,6 +82,7 @@ def register_all_adapters():
         ("medusa", MedusaAdapter),
         ("echidna", EchidnaAdapter),
         ("foundry", FoundryAdapter),
+        ("dogefuzz", DogeFuzzAdapter),
         # Layer 3 - Symbolic Execution (Fase 3 - 2025)
         ("mythril", MythrilAdapter),
         ("manticore", ManticoreAdapter),
