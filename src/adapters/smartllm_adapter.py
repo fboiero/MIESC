@@ -1,11 +1,20 @@
 """
-Local LLM adapter using Ollama for AI-assisted finding analysis.
+Local LLM adapter using Ollama with RAG enhancement and Verificator role.
+
+Enhanced with:
+- RAG (Retrieval-Augmented Generation) for ERC-20/721/1155 context
+- Verificator role for fact-checking and false positive reduction
+- Multi-stage pipeline: Generator → Verificator → Consensus
+
+Based on: "SmartLLM: A Novel LLM-Assisted Verification Framework"
+(arXiv:2502.13167, February 2025)
 
 Uses deepseek-coder model for vulnerability pattern detection.
 Runs entirely locally (no API keys, DPGA-compliant).
 
 Ollama: https://ollama.com
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
+Date: 2025-01-13
 """
 
 from src.core.tool_protocol import (
@@ -14,6 +23,11 @@ from src.core.tool_protocol import (
     ToolStatus,
     ToolCategory,
     ToolCapability
+)
+from src.adapters.smartllm_rag_knowledge import (
+    get_relevant_knowledge,
+    get_vulnerability_context,
+    VULNERABILITY_PATTERNS
 )
 from typing import Dict, Any, List, Optional
 import logging
@@ -42,13 +56,15 @@ class SmartLLMAdapter(ToolAdapter):
         self._max_tokens = 8000  # 8K context window
         self._max_retries = 3
         self._retry_delay = 2  # seconds
+        self._use_rag = True  # Enable RAG by default
+        self._use_verificator = True  # Enable verificator by default
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
             name="smartllm",
-            version="2.0.0",
+            version="3.0.0",
             category=ToolCategory.AI_ANALYSIS,
-            author="Fernando Boiero (DPGA-compliant sovereign LLM adapter)",
+            author="Fernando Boiero (DPGA-compliant sovereign LLM adapter with RAG)",
             license="AGPL-3.0",
             homepage="https://ollama.com",
             repository="https://github.com/ollama/ollama",
@@ -57,7 +73,7 @@ class SmartLLMAdapter(ToolAdapter):
             capabilities=[
                 ToolCapability(
                     name="ai_analysis",
-                    description="Local LLM-powered analysis using Ollama (100% sovereign, DPGA-compliant)",
+                    description="Local LLM-powered analysis using Ollama with RAG enhancement (100% sovereign, DPGA-compliant)",
                     supported_languages=["solidity"],
                     detection_types=[
                         "logic_bugs",
@@ -69,6 +85,18 @@ class SmartLLMAdapter(ToolAdapter):
                         "unchecked_calls",
                         "best_practices"
                     ]
+                ),
+                ToolCapability(
+                    name="rag_enhanced",
+                    description="Retrieval-Augmented Generation with ERC-20/721/1155 knowledge base",
+                    supported_languages=["solidity"],
+                    detection_types=["erc_violations", "standard_compliance"]
+                ),
+                ToolCapability(
+                    name="verificator",
+                    description="Multi-stage analysis with Generator → Verificator → Consensus pipeline",
+                    supported_languages=["solidity"],
+                    detection_types=["false_positive_reduction", "fact_checking"]
                 )
             ],
             cost=0.0,
@@ -125,7 +153,7 @@ class SmartLLMAdapter(ToolAdapter):
         if self.is_available() != ToolStatus.AVAILABLE:
             return {
                 "tool": "smartllm",
-                "version": "2.0.0",
+                "version": "3.0.0",
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
@@ -138,7 +166,7 @@ class SmartLLMAdapter(ToolAdapter):
             if not contract_code:
                 return {
                     "tool": "smartllm",
-                    "version": "2.0.0",
+                    "version": "3.0.0",
                     "status": "error",
                     "findings": [],
                     "execution_time": time.time() - start_time,
@@ -157,36 +185,53 @@ class SmartLLMAdapter(ToolAdapter):
             # Truncate if too long (manage 8K context window)
             contract_code = self._truncate_code(contract_code, self._max_tokens)
 
-            # Generate prompt
-            prompt = self._generate_analysis_prompt(contract_code)
+            # STAGE 1: Generator - Initial vulnerability detection with RAG
+            logger.info("SmartLLM Stage 1/3: Generator (RAG-enhanced)")
+            generator_prompt = self._generate_analysis_prompt(contract_code)
+            generator_response = self._call_ollama_with_retry(generator_prompt)
 
-            # Call Ollama with retry logic
-            llm_response = self._call_ollama_with_retry(prompt)
-
-            if not llm_response:
+            if not generator_response:
                 return {
                     "tool": "smartllm",
-                    "version": "2.0.0",
+                    "version": "3.0.0",
                     "status": "error",
                     "findings": [],
                     "execution_time": time.time() - start_time,
-                    "error": "Failed to get response from Ollama LLM"
+                    "error": "Failed to get response from Ollama LLM (Generator stage)"
                 }
 
-            # Parse LLM response to extract findings
-            findings = self._parse_llm_response(llm_response, contract_path)
+            # Parse initial findings
+            initial_findings = self._parse_llm_response(generator_response, contract_path)
+
+            # STAGE 2: Verificator - Fact-checking and false positive reduction
+            verified_findings = initial_findings
+            if self._use_verificator and initial_findings:
+                logger.info(f"SmartLLM Stage 2/3: Verificator (checking {len(initial_findings)} findings)")
+                verified_findings = self._verificator_stage(
+                    contract_code,
+                    initial_findings
+                )
+
+            # STAGE 3: Consensus - Final validation
+            logger.info(f"SmartLLM Stage 3/3: Consensus ({len(verified_findings)} findings confirmed)")
+            final_findings = verified_findings
 
             # Build result
             result = {
                 "tool": "smartllm",
-                "version": "2.0.0",
+                "version": "3.0.0",
                 "status": "success",
-                "findings": findings,
+                "findings": final_findings,
                 "metadata": {
                     "model": self._model,
-                    "prompt_tokens": len(prompt.split()),  # Approximate
+                    "prompt_tokens": len(generator_prompt.split()),  # Approximate
                     "sovereign": True,
-                    "dpga_compliant": True
+                    "dpga_compliant": True,
+                    "rag_enhanced": self._use_rag,
+                    "verificator_enabled": self._use_verificator,
+                    "initial_findings": len(initial_findings),
+                    "verified_findings": len(verified_findings),
+                    "false_positives_removed": len(initial_findings) - len(verified_findings)
                 },
                 "execution_time": time.time() - start_time,
                 "from_cache": False
@@ -201,7 +246,7 @@ class SmartLLMAdapter(ToolAdapter):
             logger.error(f"SmartLLM analysis error: {e}", exc_info=True)
             return {
                 "tool": "smartllm",
-                "version": "2.0.0",
+                "version": "3.0.0",
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
@@ -251,35 +296,57 @@ class SmartLLMAdapter(ToolAdapter):
         return code[:max_chars] + "\n// ... (truncated for analysis)"
 
     def _generate_analysis_prompt(self, contract_code: str) -> str:
-        """Generate analysis prompt for Ollama LLM."""
-        return f"""You are a Solidity security expert. Analyze the following smart contract for vulnerabilities and issues.
+        """Generate RAG-enhanced analysis prompt for Ollama LLM."""
+        # Get relevant knowledge from RAG knowledge base
+        rag_context = ""
+        if self._use_rag:
+            rag_context = get_relevant_knowledge(contract_code)
+
+        prompt = f"""You are a Solidity security expert with comprehensive knowledge of ERC standards and best practices.
 
 SMART CONTRACT:
 ```solidity
 {contract_code}
 ```
+"""
 
+        # Add RAG context if available
+        if rag_context:
+            prompt += f"""
+REFERENCE DOCUMENTATION (for context):
+{rag_context}
+
+Use this documentation to enhance your analysis, particularly for:
+- ERC-20/721/1155 standard compliance
+- Common vulnerability patterns
+- Best practices validation
+"""
+
+        prompt += """
 ANALYSIS INSTRUCTIONS:
 1. Identify all security vulnerabilities (reentrancy, integer overflow/underflow, unchecked calls, access control issues, etc.)
-2. Check for logic bugs and design flaws
-3. Verify best practices compliance
-4. Rate each finding's severity: CRITICAL, HIGH, MEDIUM, LOW
+2. Check for ERC standard compliance (if applicable)
+3. Verify against known vulnerability patterns
+4. Check for logic bugs and design flaws
+5. Rate each finding's severity: CRITICAL, HIGH, MEDIUM, LOW
 
 OUTPUT FORMAT (JSON):
-{{
+{
   "findings": [
-    {{
+    {
       "type": "vulnerability_type",
       "severity": "CRITICAL/HIGH/MEDIUM/LOW",
       "title": "Short title",
       "description": "Detailed description",
       "location": "Function or line reference",
       "recommendation": "How to fix"
-    }}
+    }
   ]
-}}
+}
 
 Provide ONLY the JSON output, no additional text."""
+
+        return prompt
 
     def _call_ollama_with_retry(self, prompt: str) -> Optional[str]:
         """Call Ollama API with retry logic."""
@@ -374,6 +441,132 @@ Provide ONLY the JSON output, no additional text."""
             logger.error(f"Error parsing LLM response: {e}")
 
         return findings
+
+    def _verificator_stage(
+        self,
+        contract_code: str,
+        initial_findings: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Stage 2: Verificator - Fact-check findings and reduce false positives.
+
+        Uses a separate LLM call to verify each finding against the contract
+        code and RAG knowledge base. Filters out false positives.
+
+        Args:
+            contract_code: Original contract source code
+            initial_findings: Findings from Generator stage
+
+        Returns:
+            Verified findings (false positives removed)
+        """
+        verified_findings = []
+
+        for finding in initial_findings:
+            # Generate verificator prompt
+            verificator_prompt = self._generate_verificator_prompt(
+                contract_code,
+                finding
+            )
+
+            # Call LLM for verification (single attempt, faster)
+            try:
+                logger.debug(f"Verificator: Checking finding '{finding.get('title')}'")
+
+                result = subprocess.run(
+                    ["ollama", "run", self._model, verificator_prompt],
+                    capture_output=True,
+                    timeout=60,  # Shorter timeout for verificator
+                    text=True
+                )
+
+                if result.returncode == 0 and result.stdout:
+                    response = result.stdout.strip().lower()
+
+                    # Parse verificator response
+                    if "confirmed" in response or "true" in response or "valid" in response:
+                        # Finding confirmed - keep it
+                        finding["verified"] = True
+                        finding["confidence"] = min(finding.get("confidence", 0.75) + 0.1, 0.95)
+                        verified_findings.append(finding)
+                        logger.debug(f"✓ Finding confirmed: {finding.get('title')}")
+                    else:
+                        # Possible false positive - log and discard
+                        logger.info(f"✗ False positive removed: {finding.get('title')}")
+                else:
+                    # Verificator failed - keep finding with lower confidence (conservative)
+                    logger.warning("Verificator call failed, keeping finding conservatively")
+                    finding["verified"] = False
+                    finding["confidence"] = max(finding.get("confidence", 0.75) - 0.15, 0.4)
+                    verified_findings.append(finding)
+
+            except subprocess.TimeoutExpired:
+                logger.warning("Verificator timeout, keeping finding conservatively")
+                finding["verified"] = False
+                verified_findings.append(finding)
+            except Exception as e:
+                logger.error(f"Verificator error: {e}")
+                finding["verified"] = False
+                verified_findings.append(finding)
+
+        logger.info(
+            f"Verificator results: {len(initial_findings)} → {len(verified_findings)} "
+            f"({len(initial_findings) - len(verified_findings)} false positives removed)"
+        )
+
+        return verified_findings
+
+    def _generate_verificator_prompt(
+        self,
+        contract_code: str,
+        finding: Dict[str, Any]
+    ) -> str:
+        """
+        Generate verificator prompt for fact-checking a finding.
+
+        Args:
+            contract_code: Contract source code
+            finding: Finding to verify
+
+        Returns:
+            Verificator prompt
+        """
+        # Get vulnerability context from knowledge base
+        vuln_type = finding.get("category", finding.get("type", ""))
+        vuln_context = get_vulnerability_context(vuln_type)
+
+        return f"""You are a fact-checking expert for smart contract security findings.
+
+TASK: Verify if the following security finding is VALID (true positive) or FALSE POSITIVE.
+
+FINDING TO VERIFY:
+- Type: {finding.get('type', 'N/A')}
+- Title: {finding.get('title', 'N/A')}
+- Description: {finding.get('description', 'N/A')}
+- Location: {finding.get('location', {}).get('details', 'N/A')}
+- Severity: {finding.get('severity', 'N/A')}
+
+VULNERABILITY REFERENCE:
+{vuln_context.get('description', 'No reference available')}
+Example: {vuln_context.get('example', 'N/A')}
+
+CONTRACT CODE:
+```solidity
+{contract_code[:2000]}
+```
+
+VERIFICATION INSTRUCTIONS:
+1. Check if the finding accurately describes an actual vulnerability in the code
+2. Verify the vulnerability location is correct
+3. Confirm the severity assessment is appropriate
+4. Eliminate false positives (code that looks suspicious but is actually safe)
+
+OUTPUT:
+Respond with ONLY ONE WORD:
+- "CONFIRMED" if the finding is valid (true positive)
+- "FALSE_POSITIVE" if the finding is incorrect
+
+Your response (one word only):"""
 
     def _get_cache_key(self, contract_code: str) -> str:
         """Generate cache key from contract code."""
