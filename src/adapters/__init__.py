@@ -38,6 +38,7 @@ from src.adapters.halmos_adapter import HalmosAdapter
 from src.adapters.smtchecker_adapter import SMTCheckerAdapter
 from src.adapters.wake_adapter import WakeAdapter
 from src.adapters.certora_adapter import CertoraAdapter
+from src.adapters.propertygpt_adapter import PropertyGPTAdapter
 # Layer 5 - AI-Powered Analysis (Fase 5 - 2025)
 from src.adapters.smartllm_adapter import SmartLLMAdapter
 from src.adapters.gptscan_adapter import GPTScanAdapter
@@ -63,7 +64,7 @@ def register_all_adapters():
     registered = []
     failed = []
 
-    # Lista de adaptadores a registrar (22 adapters - 7 layers)
+    # Lista de adaptadores a registrar (23 adapters - 7 layers)
     adapters_to_register = [
         # Layer 0 - Built-in analyzers
         ("gas_analyzer", GasAnalyzerAdapter),
@@ -87,6 +88,7 @@ def register_all_adapters():
         ("smtchecker", SMTCheckerAdapter),
         ("wake", WakeAdapter),
         ("certora", CertoraAdapter),
+        ("propertygpt", PropertyGPTAdapter),
         # Layer 5 - AI-Powered Analysis (Fase 5 - 2025)
         ("smartllm", SmartLLMAdapter),
         ("gptscan", GPTScanAdapter),

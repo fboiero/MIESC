@@ -2,7 +2,7 @@
 """
 install_tools.py - Security tool installation for MIESC
 
-Installs all 22 security analysis tools across 7 defense layers.
+Installs all 23 security analysis tools across 7 defense layers.
 Handles both local (DPGA-compliant) and API-based tooling.
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
@@ -243,6 +243,20 @@ TOOLS = {
         "layer": 4,
         "dependencies": ["python3", "pip3"],
         "optional": True
+    },
+    "propertygpt": {
+        "name": "PropertyGPT",
+        "description": "LLM-driven formal property generation (NDSS 2025)",
+        "install_cmd": {
+            "Darwin": "brew install ollama && ollama pull openhermes",
+            "Linux": "curl https://ollama.ai/install.sh | sh && ollama pull openhermes"
+        },
+        "check_cmd": "ollama",
+        "dpga_compliant": True,
+        "layer": 4,
+        "dependencies": [],
+        "optional": True,
+        "note": "Uses local Ollama for property generation (80% recall on CVL specs)"
     },
 
     # Layer 5: AI-Powered Analysis
