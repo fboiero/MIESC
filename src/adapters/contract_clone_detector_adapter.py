@@ -14,6 +14,9 @@ import re
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 import logging
+from src.core.tool_protocol import (
+    ToolMetadata, ToolStatus, ToolCategory, ToolCapability
+)
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +82,41 @@ class ContractCloneDetectorAdapter:
         self.methods = self.config.get("methods", ["token_based", "metric_based"])
 
         logger.debug(f"Contract Clone Detector initialized (threshold={self.similarity_threshold})")
+
+    def get_metadata(self) -> ToolMetadata:
+        """Return tool metadata following MIESC protocol"""
+        return ToolMetadata(
+            name="contract_clone_detector",
+            version="1.0.0",
+            category=ToolCategory.ML_DETECTION,
+            author="Fernando Boiero",
+            license="GPL-3.0",
+            homepage="https://github.com/fboiero/MIESC",
+            repository="https://github.com/fboiero/MIESC",
+            documentation="https://github.com/fboiero/MIESC/blob/main/docs/TOOL_INTEGRATION_GUIDE.md",
+            installation_cmd="# Built-in, no installation required",
+            capabilities=[
+                ToolCapability(
+                    name="clone_detection",
+                    description="Detects cloned/similar contracts using code similarity analysis",
+                    supported_languages=["solidity"],
+                    detection_types=[
+                        "exact_clone",
+                        "renamed_clone",
+                        "near_miss_clone",
+                        "semantic_clone",
+                        "malicious_contract"
+                    ]
+                )
+            ],
+            cost=0.0,
+            requires_api_key=False,
+            is_optional=True
+        )
+
+    def is_available(self) -> ToolStatus:
+        """Contract Clone Detector is built-in, always available"""
+        return ToolStatus.AVAILABLE
 
     def check_availability(self) -> Dict[str, Any]:
         """

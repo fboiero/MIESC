@@ -18,6 +18,9 @@ import time
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 import logging
+from src.core.tool_protocol import (
+    ToolMetadata, ToolStatus, ToolCategory, ToolCapability
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +87,43 @@ class SmartBugsMLAdapter:
             self.cache_dir.mkdir(exist_ok=True)
 
         logger.debug(f"SmartBugs-ML adapter initialized (model={self.model})")
+
+    def get_metadata(self) -> ToolMetadata:
+        """Return tool metadata following MIESC protocol"""
+        return ToolMetadata(
+            name="smartbugs_ml",
+            version="1.0.0",
+            category=ToolCategory.ML_DETECTION,
+            author="Fernando Boiero",
+            license="GPL-3.0",
+            homepage="https://github.com/fboiero/MIESC",
+            repository="https://github.com/fboiero/MIESC",
+            documentation="https://github.com/fboiero/MIESC/blob/main/docs/TOOL_INTEGRATION_GUIDE.md",
+            installation_cmd="pip install scikit-learn numpy",
+            capabilities=[
+                ToolCapability(
+                    name="ml_vulnerability_detection",
+                    description="ML-based vulnerability detection using pattern recognition",
+                    supported_languages=["solidity"],
+                    detection_types=[
+                        "reentrancy",
+                        "integer_overflow",
+                        "delegatecall",
+                        "unchecked_call",
+                        "bad_randomness",
+                        "time_manipulation"
+                    ]
+                )
+            ],
+            cost=0.0,
+            requires_api_key=False,
+            is_optional=True
+        )
+
+    def is_available(self) -> ToolStatus:
+        """Check if SmartBugs-ML dependencies are available"""
+        availability = self.check_availability()
+        return ToolStatus.AVAILABLE if availability.get("available") else ToolStatus.NOT_INSTALLED
 
     def check_availability(self) -> Dict[str, Any]:
         """
