@@ -88,7 +88,7 @@ class ContractCloneDetectorAdapter:
         return ToolMetadata(
             name="contract_clone_detector",
             version="1.0.0",
-            category=ToolCategory.ML_DETECTION,
+            category=ToolCategory.AI_ANALYSIS,
             author="Fernando Boiero",
             license="GPL-3.0",
             homepage="https://github.com/fboiero/MIESC",
