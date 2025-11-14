@@ -1,0 +1,51 @@
+# GitHub Linguist Configuration
+# This file tells GitHub how to detect languages in the repository
+
+# Mark documentation directories - exclude from language stats
+docs/** linguist-documentation
+thesis/** linguist-documentation
+*.md linguist-documentation
+
+# Mark vendored/generated code - exclude from language stats
+venv/** linguist-vendored
+node_modules/** linguist-vendored
+*.min.js linguist-vendored
+*.min.css linguist-vendored
+
+# Website assets - mark as documentation (GitHub Pages site)
+css/** linguist-documentation=false
+js/** linguist-documentation=false
+pages/** linguist-documentation=false
+index.html linguist-documentation=false
+
+# Explicitly mark smart contract languages
+*.sol linguist-language=Solidity
+*.vy linguist-language=Vyper
+*.rs linguist-language=Rust
+*.cairo linguist-language=Cairo
+*.move linguist-language=Move
+
+# Mark Python as primary language
+*.py linguist-language=Python
+
+# Mark shell scripts
+*.sh linguist-language=Shell
+
+# Mark configuration files appropriately
+*.toml linguist-language=TOML
+*.yml linguist-language=YAML
+*.yaml linguist-language=YAML
+*.json linguist-language=JSON
+
+# Exclude analysis outputs and data files from stats
+output/** linguist-generated
+outputs/** linguist-generated
+analysis/** linguist-generated
+data/** linguist-generated
+
+# Exclude test contracts that are intentionally vulnerable
+vulnerable_contracts/** linguist-documentation
+examples/** linguist-documentation=false
+
+# Video assets - exclude from stats
+video_assets/** linguist-documentation

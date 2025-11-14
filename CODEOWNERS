@@ -1,0 +1,154 @@
+# ============================================================================
+# MIESC Code Owners
+# ============================================================================
+# This file defines who is responsible for code review and maintenance
+# of different parts of the MIESC repository.
+#
+# Format: path/pattern @github-username @github-username
+#
+# Documentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# ============================================================================
+
+# Default owner for everything in the repo
+# This will be requested for review unless a later match takes precedence
+* @fboiero
+
+# ============================================================================
+# Core Framework
+# ============================================================================
+
+# Main source code
+/src/ @fboiero
+/src/agents/ @fboiero
+/src/ai_agent.py @fboiero
+/src/coordinator_agent.py @fboiero
+
+# Configuration files
+/config/ @fboiero
+/*.yml @fboiero
+/*.yaml @fboiero
+/pyproject.toml @fboiero
+
+# ============================================================================
+# Documentation
+# ============================================================================
+
+# Primary documentation
+/README.md @fboiero
+/CONTRIBUTING.md @fboiero
+/CHANGELOG.md @fboiero
+/LICENSE @fboiero
+
+# Structured documentation
+/docs/ @fboiero
+/docs/*.md @fboiero
+
+# Academic materials
+/thesis/ @fboiero
+/docs/THESIS_PRESENTATION.md @fboiero
+
+# ============================================================================
+# Testing & Quality Assurance
+# ============================================================================
+
+# Test suite
+/tests/ @fboiero
+/tests/**/*.py @fboiero
+
+# CI/CD pipelines
+/.github/ @fboiero
+/.github/workflows/ @fboiero
+
+# Pre-commit configuration
+/.pre-commit-config.yaml @fboiero
+
+# ============================================================================
+# Security & Compliance
+# ============================================================================
+
+# Security policies
+/SECURITY.md @fboiero
+/policies/ @fboiero
+/policies/**/*.md @fboiero
+
+# PolicyAgent (internal compliance)
+/src/miesc_policy_agent.py @fboiero
+/src/miesc_security_checks.py @fboiero
+
+# ============================================================================
+# Demo & Examples
+# ============================================================================
+
+# Interactive demo
+/demo/ @fboiero
+/demo/sample_contracts/ @fboiero
+/demo/run_demo.sh @fboiero
+
+# Example contracts
+/examples/ @fboiero
+/examples/**/*.sol @fboiero
+
+# ============================================================================
+# Infrastructure
+# ============================================================================
+
+# Docker configuration
+/docker/ @fboiero
+/Dockerfile @fboiero
+/.dockerignore @fboiero
+
+# Kubernetes
+/k8s/ @fboiero
+/k8s/**/*.yaml @fboiero
+
+# MCP Protocol
+/mcp/ @fboiero
+/src/miesc_mcp_adapter.py @fboiero
+/src/miesc_mcp_rest.py @fboiero
+
+# ============================================================================
+# Data & Analysis
+# ============================================================================
+
+# Datasets (if curated/maintained)
+/data/ @fboiero
+/datasets/ @fboiero
+
+# Analysis scripts
+/analysis/ @fboiero
+/scripts/ @fboiero
+/scripts/**/*.py @fboiero
+
+# ============================================================================
+# Dependencies
+# ============================================================================
+
+# Python dependencies
+/requirements.txt @fboiero
+/requirements-dev.txt @fboiero
+/requirements*.txt @fboiero
+
+# ============================================================================
+# Build & Release
+# ============================================================================
+
+# Build configuration
+/Makefile @fboiero
+/setup.py @fboiero
+/setup.cfg @fboiero
+
+# Version control
+/CITATION.cff @fboiero
+/.gitignore @fboiero
+
+# ============================================================================
+# Notes for Contributors
+# ============================================================================
+#
+# - Pull requests require approval from code owners listed here
+# - If you want to become a code owner for a specific area, discuss with @fboiero
+# - For security-sensitive changes (e.g., authentication, MCP adapter),
+#   additional review from security experts may be required
+# - Changes to this file (CODEOWNERS) require approval from @fboiero
+#
+# ============================================================================
