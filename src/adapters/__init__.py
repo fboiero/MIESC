@@ -46,6 +46,7 @@ from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
 # Layer 6 - ML-Based Detection (Fase 6 - 2025)
 from src.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter
 from src.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
+from src.adapters.dagnn_adapter import DAGNNAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ def register_all_adapters():
     registered = []
     failed = []
 
-    # Lista de adaptadores a registrar (23 adapters - 7 layers)
+    # Lista de adaptadores a registrar (24 adapters - 7 layers)
     adapters_to_register = [
         # Layer 0 - Built-in analyzers
         ("gas_analyzer", GasAnalyzerAdapter),
@@ -96,6 +97,7 @@ def register_all_adapters():
         # Layer 6 - ML-Based Detection (Fase 6 - 2025)
         ("smartbugs_ml", SmartBugsMLAdapter),
         ("contract_clone_detector", ContractCloneDetectorAdapter),
+        ("dagnn", DAGNNAdapter),
     ]
 
     logger.info("Initializing tool adapter registration...")
