@@ -97,7 +97,7 @@ class MedusaAdapter(ToolAdapter):
         """
         try:
             result = subprocess.run(
-                ["medusa", "version"],
+                ["medusa", "--version"],
                 capture_output=True,
                 text=True,
                 timeout=5

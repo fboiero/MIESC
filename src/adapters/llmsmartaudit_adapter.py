@@ -1,13 +1,13 @@
 """
-LLM-SmartAudit AI Auditor Adapter - MIESC Phase 5 (Matured Implementation)
-============================================================================
+LLM-SmartAudit AI Auditor Adapter - MIESC Phase 5 (Ollama Backend)
+===================================================================
 
 LLM-based semantic analysis framework for smart contract auditing.
-Provides AI-powered vulnerability detection using language models.
+Uses Ollama for local AI-powered vulnerability detection.
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
-Date: November 11, 2025
-Version: 2.0.0 (Matured)
+Date: November 2025
+Version: 3.0.0 (Ollama Backend)
 """
 
 from src.core.tool_protocol import (
@@ -26,37 +26,70 @@ logger = logging.getLogger(__name__)
 
 class LLMSmartAuditAdapter(ToolAdapter):
     """
-    LLM-SmartAudit AI Auditor Adapter for MIESC Layer 5.
+    LLM-SmartAudit AI Auditor using Ollama backend.
 
     Key Features:
-    - LLM-powered semantic analysis
-    - Pattern recognition using language models
+    - LLM-powered semantic analysis using local models
     - Best practice compliance checking
-    - Context-aware vulnerability detection
+    - Code smell detection
     - Result caching for efficiency
+    - No API key required
     """
+
+    # Audit-focused prompt for code quality and best practices
+    AUDIT_PROMPT = """You are a smart contract security auditor. Analyze the following Solidity code for:
+
+1. Code quality issues and code smells
+2. Best practice violations (naming, structure, patterns)
+3. Design pattern problems
+4. Gas optimization opportunities
+5. Maintainability concerns
+6. Documentation gaps
+
+Respond in JSON format:
+{
+    "issues": [
+        {
+            "title": "Issue title",
+            "severity": "HIGH|MEDIUM|LOW",
+            "confidence": 0.8,
+            "category": "code_smell|best_practice|design_pattern|gas_optimization|maintainability",
+            "line": 10,
+            "function": "functionName",
+            "description": "What's wrong",
+            "recommendation": "How to fix"
+        }
+    ]
+}
+
+CONTRACT:
+```solidity
+%CONTRACT_CODE%
+```
+
+Respond ONLY with valid JSON."""
 
     def __init__(self):
         super().__init__()
-        self._default_timeout = 300  # 5 minutes
+        self._default_timeout = 120
         self._cache_dir = Path.home() / ".miesc" / "llmsmartaudit_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
             name="llmsmartaudit",
-            version="2.0.0",
+            version="3.0.0",
             category=ToolCategory.AI_ANALYSIS,
-            author="LLM-SmartAudit Community (Adapter by Fernando Boiero)",
+            author="Ollama Backend by Fernando Boiero",
             license="MIT",
             homepage="https://github.com/Smart-Audit/LLM-SmartAudit",
             repository="https://github.com/Smart-Audit/LLM-SmartAudit",
             documentation="https://github.com/Smart-Audit/LLM-SmartAudit#readme",
-            installation_cmd="pip install llm-smartaudit",
+            installation_cmd="ollama pull codellama:7b",
             capabilities=[
                 ToolCapability(
                     name="llm_auditing",
-                    description="LLM-based smart contract auditing with semantic analysis",
+                    description="LLM-based smart contract auditing using Ollama",
                     supported_languages=["solidity"],
                     detection_types=[
                         "semantic_issues",
@@ -64,7 +97,7 @@ class LLMSmartAuditAdapter(ToolAdapter):
                         "design_patterns",
                         "code_smells",
                         "maintainability_issues",
-                        "readability_issues"
+                        "gas_optimization"
                     ]
                 )
             ],
@@ -74,34 +107,40 @@ class LLMSmartAuditAdapter(ToolAdapter):
         )
 
     def is_available(self) -> ToolStatus:
-        """Check if LLM-SmartAudit is installed and functional."""
+        """Check if Ollama is running with a suitable model."""
         try:
             result = subprocess.run(
-                ["llm-smartaudit", "--version"],
+                ["ollama", "list"],
                 capture_output=True,
-                timeout=5,
+                timeout=10,
                 text=True
             )
 
-            if result.returncode == 0:
-                return ToolStatus.AVAILABLE
-            else:
-                logger.warning(f"LLM-SmartAudit version check failed: {result.stderr}")
+            if result.returncode != 0:
+                logger.warning("Ollama not running")
                 return ToolStatus.CONFIGURATION_ERROR
 
+            # Check for any LLM model
+            models = result.stdout.lower()
+            if any(m in models for m in ["codellama", "llama3", "deepseek", "qwen"]):
+                return ToolStatus.AVAILABLE
+
+            logger.warning("No suitable LLM model found for LLMSmartAudit")
+            return ToolStatus.CONFIGURATION_ERROR
+
         except FileNotFoundError:
-            logger.info("LLM-SmartAudit not installed. Install: pip install llm-smartaudit")
+            logger.info("Ollama not installed")
             return ToolStatus.NOT_INSTALLED
         except subprocess.TimeoutExpired:
-            logger.warning("LLM-SmartAudit version check timeout")
+            logger.warning("Ollama check timeout")
             return ToolStatus.CONFIGURATION_ERROR
         except Exception as e:
-            logger.error(f"Error checking LLM-SmartAudit: {e}")
+            logger.error(f"Error checking Ollama: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
-        Analyze contract using LLM-SmartAudit.
+        Analyze contract using Ollama for LLM-SmartAudit style analysis.
 
         Args:
             contract_path: Path to Solidity contract
@@ -116,11 +155,11 @@ class LLMSmartAuditAdapter(ToolAdapter):
         if self.is_available() != ToolStatus.AVAILABLE:
             return {
                 "tool": "llmsmartaudit",
-                "version": "2.0.0",
+                "version": "3.0.0",
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "LLM-SmartAudit not available. Install: pip install llm-smartaudit"
+                "error": "Ollama not available. Install from https://ollama.ai"
             }
 
         try:
@@ -129,7 +168,7 @@ class LLMSmartAuditAdapter(ToolAdapter):
             if not contract_code:
                 return {
                     "tool": "llmsmartaudit",
-                    "version": "2.0.0",
+                    "version": "3.0.0",
                     "status": "error",
                     "findings": [],
                     "execution_time": time.time() - start_time,
@@ -147,13 +186,13 @@ class LLMSmartAuditAdapter(ToolAdapter):
 
             # Get configuration
             timeout = kwargs.get("timeout", self._default_timeout)
-            model = kwargs.get("model", "default")
+            model = kwargs.get("model", self._detect_best_model())
 
-            # Run LLM-SmartAudit analysis
-            raw_output = self._run_llmsmartaudit(
-                contract_path,
-                timeout=timeout,
-                model=model
+            # Run Ollama analysis
+            raw_output = self._run_ollama_audit(
+                contract_code,
+                model=model,
+                timeout=timeout
             )
 
             # Parse findings
@@ -161,12 +200,12 @@ class LLMSmartAuditAdapter(ToolAdapter):
 
             result = {
                 "tool": "llmsmartaudit",
-                "version": "2.0.0",
+                "version": "3.0.0",
                 "status": "success",
                 "findings": findings,
                 "metadata": {
-                    "timeout": timeout,
-                    "model": model
+                    "model": model,
+                    "backend": "ollama"
                 },
                 "execution_time": time.time() - start_time,
                 "from_cache": False
@@ -180,17 +219,17 @@ class LLMSmartAuditAdapter(ToolAdapter):
         except subprocess.TimeoutExpired:
             return {
                 "tool": "llmsmartaudit",
-                "version": "2.0.0",
+                "version": "3.0.0",
                 "status": "timeout",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": f"LLM-SmartAudit analysis exceeded {timeout}s timeout"
+                "error": f"Analysis exceeded {timeout}s timeout"
             }
         except Exception as e:
             logger.error(f"LLM-SmartAudit analysis error: {e}", exc_info=True)
             return {
                 "tool": "llmsmartaudit",
-                "version": "2.0.0",
+                "version": "3.0.0",
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
@@ -226,36 +265,55 @@ class LLMSmartAuditAdapter(ToolAdapter):
             logger.error(f"Error reading contract: {e}")
             return None
 
-    def _run_llmsmartaudit(
+    def _detect_best_model(self) -> str:
+        """Detect the best available Ollama model."""
+        try:
+            result = subprocess.run(
+                ["ollama", "list"],
+                capture_output=True,
+                timeout=5,
+                text=True
+            )
+            models = result.stdout.lower()
+
+            # Priority order
+            model_priority = [
+                ("qwen2.5-coder", "qwen2.5-coder:7b"),
+                ("codellama", "codellama:7b"),
+                ("llama3", "llama3:8b"),
+            ]
+
+            for keyword, full_name in model_priority:
+                if keyword in models:
+                    return full_name
+
+            return "codellama:7b"
+        except Exception:
+            return "codellama:7b"
+
+    def _run_ollama_audit(
         self,
-        contract_path: str,
-        timeout: int = 300,
-        model: str = "default"
+        contract_code: str,
+        model: str = "codellama:7b",
+        timeout: int = 120
     ) -> str:
-        """Execute LLM-SmartAudit analysis."""
+        """Execute audit using Ollama."""
 
-        cmd = [
-            "llm-smartaudit",
-            "analyze",
-            contract_path,
-            "--format", "json",
-            "--model", model
-        ]
+        prompt = self.AUDIT_PROMPT.replace("%CONTRACT_CODE%", contract_code)
 
-        logger.info(f"LLM-SmartAudit: Running AI audit (timeout={timeout}s, model={model})")
+        logger.info(f"LLM-SmartAudit: Running Ollama audit with {model}")
 
         result = subprocess.run(
-            cmd,
+            ["ollama", "run", model, prompt],
             capture_output=True,
             timeout=timeout,
-            text=True,
-            cwd=Path(contract_path).parent
+            text=True
         )
 
         if result.returncode != 0:
-            logger.warning(f"LLM-SmartAudit completed with code {result.returncode}")
+            logger.warning(f"Ollama completed with code {result.returncode}")
 
-        return result.stdout + "\n" + result.stderr
+        return result.stdout
 
     def _parse_llmsmartaudit_output(
         self,

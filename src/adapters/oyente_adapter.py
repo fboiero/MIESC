@@ -93,7 +93,7 @@ class OyenteAdapter(ToolAdapter):
             homepage="https://github.com/enzymefinance/oyente",
             repository="https://github.com/enzymefinance/oyente",
             documentation="https://github.com/enzymefinance/oyente#readme",
-            installation_cmd="docker pull enzymefinance/oyente",
+            installation_cmd="docker pull luongnguyen/oyente",
             capabilities=[
                 ToolCapability(
                     name="symbolic_execution",
@@ -129,7 +129,7 @@ class OyenteAdapter(ToolAdapter):
 
             # Verificar si la imagen de Oyente existe
             result = subprocess.run(
-                ["docker", "images", "-q", "enzymefinance/oyente"],
+                ["docker", "images", "-q", "luongnguyen/oyente"],
                 capture_output=True,
                 timeout=5,
                 text=True
@@ -179,7 +179,7 @@ class OyenteAdapter(ToolAdapter):
             cmd = [
                 "docker", "run", "--rm",
                 "-v", f"{contract_dir}:/data",
-                "enzymefinance/oyente",
+                "luongnguyen/oyente",
                 "-s", f"/data/{contract_file}",
                 "-j",  # JSON output
                 "--timeout", str(timeout)
