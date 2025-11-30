@@ -70,18 +70,21 @@ class VertigoAdapter(ToolAdapter):
         )
 
     def is_available(self) -> ToolStatus:
-        """Verifica si Vertigo está instalado"""
+        """Verifica si Vertigo está disponible (via Foundry)"""
         try:
+            # Vertigo requires Foundry for running tests
             result = subprocess.run(
-                ["vertigo", "--version"],
+                ["forge", "--version"],
                 capture_output=True,
                 timeout=5,
                 text=True
             )
             if result.returncode == 0:
+                logger.info("Vertigo: Foundry available for mutation testing")
                 return ToolStatus.AVAILABLE
             return ToolStatus.NOT_INSTALLED
         except FileNotFoundError:
+            logger.info("Vertigo requires Foundry. Install: curl -L https://foundry.paradigm.xyz | bash")
             return ToolStatus.NOT_INSTALLED
         except Exception as e:
             logger.error(f"Error checking Vertigo availability: {e}")

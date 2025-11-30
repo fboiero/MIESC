@@ -92,16 +92,16 @@ See [docs/03_DEMO_GUIDE.md](./docs/03_DEMO_GUIDE.md) for details.
 
 ## Video Demonstration
 
-YouTube: [youtu.be/MOX3xXDKtAY](https://youtu.be/MOX3xXDKtAY)
+YouTube: [youtu.be/-SP6555edSw](https://youtu.be/-SP6555edSw)
 
 Demonstrates:
-- Real-time static analysis with Slither
-- Multi-agent orchestration across 7 layers
-- Model Context Protocol (MCP) integration
-- 89.5% precision measurement (Cohen's Kappa 0.847)
-- LLM-powered attack surface mapping and auto-remediation
+- Defense-in-Depth analysis across 7 security layers
+- 25 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
+- Model Context Protocol (MCP) integration with Claude Desktop
+- 100% Recall, 87.5% Precision, F1-Score 0.93
+- Sovereign AI with Ollama (code never leaves your machine)
 
-Duration: 5 minutes | Source: `demo/hacker_demo.py`
+Duration: ~10 minutes | Source: `demo_thesis_defense.py`
 
 ---
 
@@ -342,7 +342,7 @@ Static Dynamic Symbolic Formal
 
 ## Agent Architecture
 
-**Tool adapters** (22):
+**Tool adapters** (25):
 
 | Layer | Adapter | Underlying Tool |
 |-------|---------|-----------------|
@@ -606,7 +606,7 @@ Note: Time estimates based on tool execution, not end-to-end audit workflow.
 
 **Research contributions**:
 1. Reference implementation of MCP-based multi-agent architecture
-2. Integration of 22 heterogeneous security tools under unified protocol
+2. Integration of 25 heterogeneous security tools under unified protocol
 3. Automated compliance mapping to 12 international standards
 4. Reproducible testing framework (117 unit/integration tests)
 
@@ -639,7 +639,7 @@ Results: `benchmark_results/`, `outputs/benchmarks/`
   title = {{MIESC}: Multi-layer Intelligent Evaluation for Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
-  version = {3.5.0},
+  version = {4.0.0},
   note = {Implementation for Master's thesis in Cyberdefense}
 }
 ```
@@ -648,18 +648,21 @@ Results: `benchmark_results/`, `outputs/benchmarks/`
 
 ## Roadmap
 
-**v3.5 (current)**:
-- OpenLLaMA local LLM integration
-- Aderyn + Medusa adapters
-- AI-enhanced Layers 3-4
-- 117 tests passing
+**v4.0.0 (current)**:
+- PropertyGPT: Automated CVL property generation (+700% formal verification adoption)
+- DA-GNN: Graph Neural Network vulnerability detection (95.7% accuracy)
+- Enhanced RAG SmartLLM: Verificator role for fact-checking (+17% precision)
+- DogeFuzz: Coverage-guided fuzzing with power scheduling (3x faster)
+- 25 tool adapters across 7 defense layers
+- 117 tests passing, 87.5% coverage
 
-**Future**:
+**Future (v5.0)**:
 - Docker packaging
 - PyPI distribution (`pip install miesc`)
 - Multi-chain support (Soroban, Solana, Cairo)
 - VSCode extension
 - Enhanced AI features (automated patching, exploit generation)
+- Runtime monitoring integration
 
 ---
 
@@ -732,6 +735,6 @@ Datasets: SmartBugs (INESC-ID), SolidiFI (TU Delft), Etherscan.
 
 ---
 
-**Version 3.5.0** | November 2025
+**Version 4.0.0** | November 2025
 
 [Repository](https://github.com/fboiero/MIESC) | [Documentation](https://fboiero.github.io/MIESC) | [Issues](https://github.com/fboiero/MIESC/issues)

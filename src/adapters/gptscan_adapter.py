@@ -1,10 +1,12 @@
 """
-GPTScan adapter for GPT-4 powered vulnerability scanning.
+GPTScan adapter for LLM-powered vulnerability scanning.
 
-Requires OpenAI API key. Performs semantic analysis and pattern detection.
-github.com/GPTScan/GPTScan
+Uses Ollama for local AI analysis. Based on GPTScan (ICSE 2024) methodology.
+Performs semantic analysis and pattern detection using local LLMs.
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
+Date: November 2025
+Version: 3.0.0 (Ollama Backend)
 """
 
 from src.core.tool_protocol import (
@@ -16,6 +18,7 @@ import logging
 import json
 import time
 import os
+import re
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -23,33 +26,67 @@ logger = logging.getLogger(__name__)
 
 class GPTScanAdapter(ToolAdapter):
     """
-    GPTScan integration for GPT-4 analysis.
+    GPTScan-style LLM integration using Ollama.
 
-    Requires OPENAI_API_KEY environment variable.
-    Tracks token usage and API costs. Retries on failure.
+    Uses local Ollama models (codellama, llama3, etc.) for security analysis.
+    No API key required - runs entirely locally.
     """
+
+    # Vulnerability detection prompts based on GPTScan paper (ICSE 2024)
+    SECURITY_PROMPT = """Analyze this Solidity smart contract for security vulnerabilities.
+
+Focus on detecting:
+1. Reentrancy vulnerabilities (calls before state updates)
+2. Integer overflow/underflow
+3. Access control issues (missing modifiers, tx.origin usage)
+4. Unchecked external calls
+5. Logic errors in business logic
+6. Flash loan attack vectors
+7. Price manipulation risks
+
+For each vulnerability found, respond in this JSON format:
+{
+    "vulnerabilities": [
+        {
+            "title": "Vulnerability Name",
+            "severity": "CRITICAL|HIGH|MEDIUM|LOW",
+            "confidence": 0.9,
+            "line": 42,
+            "function": "withdraw",
+            "description": "Detailed description",
+            "recommendation": "How to fix"
+        }
+    ]
+}
+
+CONTRACT CODE:
+```solidity
+%CONTRACT_CODE%
+```
+
+Respond ONLY with valid JSON. No explanations outside JSON."""
 
     def __init__(self):
         super().__init__()
-        self._default_timeout = 600  # 10 minutes
-        self._max_retries = 3
-        self._retry_delay = 2
+        self._default_timeout = 120
+        self._ollama_model = "codellama:7b"  # Default model
+        self._ollama_url = "http://localhost:11434"
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
             name="gptscan",
-            version="2.0.0",
+            version="3.0.0",
             category=ToolCategory.AI_ANALYSIS,
-            author="OpenAI Community (Adapter by Fernando Boiero)",
+            author="Based on GPTScan (ICSE 2024), Ollama Backend by Fernando Boiero",
             license="MIT",
             homepage="https://github.com/GPTScan/GPTScan",
             repository="https://github.com/GPTScan/GPTScan",
             documentation="https://github.com/GPTScan/GPTScan#readme",
-            installation_cmd="pip install gptscan && export OPENAI_API_KEY=your_key",
+            installation_cmd="ollama pull codellama:7b",
             capabilities=[
                 ToolCapability(
                     name="ai_scanning",
-                    description="GPT-4 powered vulnerability scanning",
+                    description="LLM-powered vulnerability scanning using Ollama",
                     supported_languages=["solidity"],
                     detection_types=[
                         "complex_vulnerabilities",
@@ -61,51 +98,56 @@ class GPTScanAdapter(ToolAdapter):
                     ]
                 )
             ],
-            cost=0.03,  # $0.03 per 1K tokens (GPT-4)
-            requires_api_key=True,
+            cost=0.0,  # Free - local execution
+            requires_api_key=False,
             is_optional=True
         )
 
     def is_available(self) -> ToolStatus:
-        """Check if GPTScan is installed and API key is configured."""
+        """Check if Ollama is running and model is available."""
         try:
-            # Check if gptscan command exists
+            # Check if ollama is running
             result = subprocess.run(
-                ["gptscan", "--version"],
+                ["ollama", "list"],
                 capture_output=True,
-                timeout=5,
+                timeout=10,
                 text=True
             )
 
             if result.returncode != 0:
-                logger.warning("GPTScan command failed")
+                logger.warning("Ollama not running or not responding")
                 return ToolStatus.CONFIGURATION_ERROR
 
-            # Check for OpenAI API key
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                logger.warning("OPENAI_API_KEY environment variable not set")
-                return ToolStatus.CONFIGURATION_ERROR
+            # Check if we have a suitable model
+            models = result.stdout.lower()
+            suitable_models = ["codellama", "llama3", "deepseek-coder", "qwen2.5-coder"]
 
-            return ToolStatus.AVAILABLE
+            for model in suitable_models:
+                if model in models:
+                    logger.info(f"GPTScan: Found Ollama model with {model}")
+                    return ToolStatus.AVAILABLE
+
+            # No model found, but ollama is running
+            logger.warning("GPTScan: No suitable LLM model found. Run: ollama pull codellama:7b")
+            return ToolStatus.CONFIGURATION_ERROR
 
         except FileNotFoundError:
-            logger.info("GPTScan not installed. Install: pip install gptscan")
+            logger.info("Ollama not installed. Install from https://ollama.ai")
             return ToolStatus.NOT_INSTALLED
         except subprocess.TimeoutExpired:
-            logger.warning("GPTScan version check timeout")
+            logger.warning("Ollama check timeout")
             return ToolStatus.CONFIGURATION_ERROR
         except Exception as e:
-            logger.error(f"Error checking GPTScan: {e}")
+            logger.error(f"Error checking Ollama: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
-        Analyze contract using GPTScan AI scanner.
+        Analyze contract using Ollama LLM for GPTScan-style analysis.
 
         Args:
             contract_path: Path to Solidity contract
-            **kwargs: Optional configuration (timeout, model, temperature)
+            **kwargs: Optional configuration (timeout, model)
 
         Returns:
             Analysis results with AI-detected findings
@@ -116,43 +158,49 @@ class GPTScanAdapter(ToolAdapter):
         if self.is_available() != ToolStatus.AVAILABLE:
             return {
                 "tool": "gptscan",
-                "version": "2.0.0",
+                "version": "3.0.0",
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "GPTScan not available or API key missing. Set OPENAI_API_KEY environment variable."
+                "error": "Ollama not available. Install from https://ollama.ai and run: ollama pull codellama:7b"
             }
 
         try:
+            # Read contract code
+            contract_code = self._read_contract(contract_path)
+            if not contract_code:
+                return {
+                    "tool": "gptscan",
+                    "version": "3.0.0",
+                    "status": "error",
+                    "findings": [],
+                    "execution_time": time.time() - start_time,
+                    "error": f"Could not read contract: {contract_path}"
+                }
+
             # Get configuration
             timeout = kwargs.get("timeout", self._default_timeout)
-            model = kwargs.get("model", "gpt-4")  # gpt-4 or gpt-3.5-turbo
-            temperature = kwargs.get("temperature", 0.1)  # Low temp for precise analysis
+            model = kwargs.get("model", self._detect_best_model())
 
-            # Run GPTScan analysis
-            raw_output, tokens_used = self._run_gptscan(
-                contract_path,
-                timeout=timeout,
+            # Run Ollama analysis
+            raw_output = self._run_ollama_analysis(
+                contract_code,
                 model=model,
-                temperature=temperature
+                timeout=timeout
             )
 
             # Parse findings
             findings = self._parse_gptscan_output(raw_output, contract_path)
 
-            # Calculate cost
-            cost = self._calculate_cost(tokens_used, model)
-
             return {
                 "tool": "gptscan",
-                "version": "2.0.0",
+                "version": "3.0.0",
                 "status": "success",
                 "findings": findings,
                 "metadata": {
                     "model": model,
-                    "tokens_used": tokens_used,
-                    "cost_usd": cost,
-                    "temperature": temperature
+                    "backend": "ollama",
+                    "cost_usd": 0.0
                 },
                 "execution_time": time.time() - start_time
             }
@@ -160,7 +208,7 @@ class GPTScanAdapter(ToolAdapter):
         except subprocess.TimeoutExpired:
             return {
                 "tool": "gptscan",
-                "version": "2.0.0",
+                "version": "3.0.0",
                 "status": "timeout",
                 "findings": [],
                 "execution_time": time.time() - start_time,
@@ -170,7 +218,7 @@ class GPTScanAdapter(ToolAdapter):
             logger.error(f"GPTScan analysis error: {e}", exc_info=True)
             return {
                 "tool": "gptscan",
-                "version": "2.0.0",
+                "version": "3.0.0",
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
@@ -198,63 +246,67 @@ class GPTScanAdapter(ToolAdapter):
     # PRIVATE HELPER METHODS
     # ============================================================================
 
-    def _run_gptscan(
+    def _read_contract(self, contract_path: str) -> Optional[str]:
+        """Read contract file content."""
+        try:
+            with open(contract_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"Error reading contract: {e}")
+            return None
+
+    def _detect_best_model(self) -> str:
+        """Detect the best available Ollama model for security analysis."""
+        try:
+            result = subprocess.run(
+                ["ollama", "list"],
+                capture_output=True,
+                timeout=5,
+                text=True
+            )
+            models = result.stdout.lower()
+
+            # Priority order for security analysis
+            model_priority = [
+                ("qwen2.5-coder", "qwen2.5-coder:7b"),
+                ("deepseek-coder", "deepseek-coder:6.7b"),
+                ("codellama", "codellama:7b"),
+                ("llama3", "llama3:8b"),
+            ]
+
+            for keyword, full_name in model_priority:
+                if keyword in models:
+                    return full_name
+
+            return "codellama:7b"  # Default fallback
+        except Exception:
+            return "codellama:7b"
+
+    def _run_ollama_analysis(
         self,
-        contract_path: str,
-        timeout: int = 600,
-        model: str = "gpt-4",
-        temperature: float = 0.1
-    ) -> tuple:
-        """Execute GPTScan analysis and return output + token count."""
+        contract_code: str,
+        model: str = "codellama:7b",
+        timeout: int = 120
+    ) -> str:
+        """Execute security analysis using Ollama."""
 
-        cmd = [
-            "gptscan",
-            "--file", contract_path,
-            "--model", model,
-            "--temperature", str(temperature),
-            "--output-format", "json"
-        ]
+        # Build prompt with contract code
+        prompt = self.SECURITY_PROMPT.replace("%CONTRACT_CODE%", contract_code)
 
-        logger.info(f"GPTScan: Running AI analysis with {model} (timeout={timeout}s)")
+        logger.info(f"GPTScan: Running Ollama analysis with {model}")
 
+        # Use ollama run command
         result = subprocess.run(
-            cmd,
+            ["ollama", "run", model, prompt],
             capture_output=True,
             timeout=timeout,
-            text=True,
-            cwd=Path(contract_path).parent
+            text=True
         )
 
         if result.returncode != 0:
-            logger.warning(f"GPTScan completed with code {result.returncode}")
+            logger.warning(f"Ollama completed with code {result.returncode}: {result.stderr}")
 
-        output = result.stdout + "\n" + result.stderr
-
-        # Extract token count from output (if provided by GPTScan)
-        tokens_used = self._extract_token_count(output)
-
-        return output, tokens_used
-
-    def _extract_token_count(self, output: str) -> int:
-        """Extract token count from GPTScan output."""
-        # GPTScan typically reports token usage in output
-        # Format: "Tokens used: 1234" or similar
-        import re
-        match = re.search(r'[Tt]okens?\s+used:\s*(\d+)', output)
-        if match:
-            return int(match.group(1))
-        # Default estimate if not found: ~1 token per 4 characters
-        return len(output) // 4
-
-    def _calculate_cost(self, tokens: int, model: str) -> float:
-        """Calculate cost based on tokens and model."""
-        # GPT-4 pricing (as of 2024)
-        rates = {
-            "gpt-4": 0.03 / 1000,  # $0.03 per 1K tokens
-            "gpt-3.5-turbo": 0.002 / 1000  # $0.002 per 1K tokens
-        }
-        rate = rates.get(model, 0.03 / 1000)
-        return tokens * rate
+        return result.stdout
 
     def _parse_gptscan_output(
         self,

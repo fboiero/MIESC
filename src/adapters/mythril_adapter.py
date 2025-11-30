@@ -184,7 +184,7 @@ class MythrilAdapter(ToolAdapter):
             cmd = [
                 "myth", "analyze",
                 contract_path,
-                "--output", "json",
+                "-o", "json",
                 "--execution-timeout", str(execution_timeout),
                 "--max-depth", str(max_depth),
                 "--solver-timeout", str(solver_timeout)

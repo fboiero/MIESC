@@ -19,7 +19,7 @@ import json
 import click
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, List, Any
 from datetime import datetime
 
 # Add src to path
