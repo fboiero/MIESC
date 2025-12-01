@@ -5,36 +5,40 @@ title: MIESC - Smart Contract Security Framework
 
 # MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
-<div align="center">
+<p align="center">
+  <img src="https://img.shields.io/badge/MIESC-v4.0.0-blue?style=for-the-badge" alt="MIESC v4.0.0">
+  <img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge" alt="License">
+  <img src="https://img.shields.io/badge/Python-3.9+-yellow?style=for-the-badge" alt="Python">
+  <img src="https://img.shields.io/badge/AI-Powered-purple?style=for-the-badge" alt="AI Powered">
+</p>
 
-![MIESC Banner](https://img.shields.io/badge/MIESC-v4.0.0-blue?style=for-the-badge)
-![License](https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge)
-![Python](https://img.shields.io/badge/Python-3.9+-yellow?style=for-the-badge)
-![AI Powered](https://img.shields.io/badge/AI-Powered-purple?style=for-the-badge)
+<p align="center">
+  <strong>Defense-in-Depth Security Framework for Ethereum Smart Contracts</strong><br>
+  <em>Master's Thesis in Cyberdefense | Universidad de la Defensa Nacional (UNDEF)</em>
+</p>
 
-**Defense-in-Depth Security Framework for Ethereum Smart Contracts**
+<p align="center">
+  <a href="webapp/README.md">Try Web Demo</a> •
+  <a href="thesis.html">Thesis</a> •
+  <a href="docs/INDEX.html">Documentation</a> •
+  <a href="https://github.com/fboiero/MIESC">GitHub</a>
+</p>
 
-*Master's Thesis in Cyberdefense | Universidad de la Defensa Nacional (UNDEF)*
-
-[Try Web Demo](webapp/README.md) | [Thesis](thesis.md) | [Documentation](docs/INDEX.md) | [GitHub](https://github.com/fboiero/MIESC)
-
-**English** | [Espanol](index_es.md)
-
-</div>
+<p align="center">
+  <strong>English</strong> | <a href="index_es.html">Español</a>
+</p>
 
 ---
 
 ## Video Demonstration
 
-<div align="center">
-
-**Watch MIESC in Action**
-
-[![YouTube Demo](https://img.shields.io/badge/YouTube-Demo-red?style=for-the-badge&logo=youtube)](https://youtu.be/-SP6555edSw)
-
-[Watch on YouTube](https://youtu.be/-SP6555edSw) (~10 minutes)
-
-</div>
+<p align="center">
+  <strong>Watch MIESC in Action</strong><br><br>
+  <a href="https://youtu.be/-SP6555edSw">
+    <img src="https://img.shields.io/badge/YouTube-Demo-red?style=for-the-badge&logo=youtube" alt="YouTube Demo">
+  </a><br><br>
+  <a href="https://youtu.be/-SP6555edSw">Watch on YouTube</a> (~10 minutes)
+</p>
 
 **Demonstrates:**
 - Defense-in-Depth analysis across 7 security layers
