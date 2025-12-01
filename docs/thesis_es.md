@@ -1,3 +1,9 @@
+---
+layout: default
+title: Tesis de Maestria - MIESC
+lang: es
+---
+
 # Tesis de Maestria
 
 <div align="center">
