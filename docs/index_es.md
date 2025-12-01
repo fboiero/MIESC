@@ -435,15 +435,21 @@ Asegura que el framework permanezca open-source. Permite uso comercial con atrib
 
 ---
 
-<div align="center">
+<p align="center">
+  <strong>Construido para la Comunidad de Seguridad de Smart Contracts</strong>
+</p>
 
-**Construido para la Comunidad de Seguridad de Smart Contracts**
+<p align="center">
+  <a href="docs/02_SETUP_AND_USAGE.md">Comenzar</a> |
+  <a href="https://github.com/fboiero/MIESC">Ver en GitHub</a>
+</p>
 
-[Comenzar](docs/02_SETUP_AND_USAGE.md)[Ver en GitHub](https://github.com/fboiero/MIESC)
 ---
 
-**MIESC v4.0.0** | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
+<p align="center">
+  <strong>MIESC v4.0.0</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
+</p>
 
-2025 Fernando Boiero - Universidad de la Defensa Nacional (UNDEF)
-
-</div>
+<p align="center">
+  2025 Fernando Boiero - Universidad de la Defensa Nacional (UNDEF)
+</p>
