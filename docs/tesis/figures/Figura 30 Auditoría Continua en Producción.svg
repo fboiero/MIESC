@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 420" font-family="Arial, Helvetica, sans-serif">
+  <!-- Background -->
+  <rect width="750" height="420" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="375" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#2c3e50">
+    MIESC Runtime Monitor
+  </text>
+  
+  <!-- Main container -->
+  <rect x="50" y="50" width="650" height="350" fill="#f8f9fa" rx="10" stroke="#e74c3c" stroke-width="2"/>
+  
+  <!-- Header -->
+  <rect x="50" y="50" width="650" height="45" fill="#e74c3c" rx="10"/>
+  <rect x="50" y="85" width="650" height="10" fill="#e74c3c"/>
+  <text x="375" y="80" text-anchor="middle" font-size="16" font-weight="bold" fill="white">
+    Monitoreo en Tiempo Real
+  </text>
+  
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0 0, 10 4, 0 8" fill="#555"/>
+    </marker>
+  </defs>
+  
+  <!-- Row 1: Sources -->
+  <rect x="80" y="115" width="150" height="50" fill="#3498db" rx="6" stroke="#2980b9" stroke-width="2"/>
+  <text x="155" y="145" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Ethereum Mempool</text>
+  
+  <!-- Arrow -->
+  <line x1="230" y1="140" x2="280" y2="140" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <rect x="295" y="115" width="150" height="50" fill="#9b59b6" rx="6" stroke="#8e44ad" stroke-width="2"/>
+  <text x="370" y="145" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Forta Agent</text>
+  
+  <!-- Arrow -->
+  <line x1="445" y1="140" x2="495" y2="140" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <rect x="510" y="115" width="160" height="50" fill="#27ae60" rx="6" stroke="#1e8449" stroke-width="2"/>
+  <text x="590" y="145" text-anchor="middle" font-size="12" font-weight="bold" fill="white">MIESC Analyzer</text>
+  
+  <!-- Row 2: Analysis types -->
+  <!-- Arrows down -->
+  <line x1="155" y1="165" x2="155" y2="200" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="590" y1="165" x2="590" y2="200" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <rect x="80" y="210" width="150" height="45" fill="#f39c12" rx="6" stroke="#d68910" stroke-width="2"/>
+  <text x="155" y="238" text-anchor="middle" font-size="11" font-weight="bold" fill="white">Transaction Analysis</text>
+  
+  <rect x="510" y="210" width="160" height="45" fill="#f39c12" rx="6" stroke="#d68910" stroke-width="2"/>
+  <text x="590" y="238" text-anchor="middle" font-size="11" font-weight="bold" fill="white">Anomaly Detection</text>
+  
+  <!-- Arrows converging -->
+  <line x1="155" y1="255" x2="155" y2="285" stroke="#555" stroke-width="2"/>
+  <line x1="590" y1="255" x2="590" y2="285" stroke="#555" stroke-width="2"/>
+  <line x1="155" y1="285" x2="375" y2="285" stroke="#555" stroke-width="2"/>
+  <line x1="590" y1="285" x2="375" y2="285" stroke="#555" stroke-width="2"/>
+  <line x1="375" y1="285" x2="375" y2="305" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Alert & Response System -->
+  <rect x="100" y="315" width="550" height="70" fill="#2c3e50" rx="8"/>
+  <text x="375" y="340" text-anchor="middle" font-size="13" font-weight="bold" fill="white">
+    Alert &amp; Response System
+  </text>
+  
+  <!-- Response options -->
+  <rect x="120" y="350" width="150" height="25" fill="#1abc9c" rx="4"/>
+  <text x="195" y="367" text-anchor="middle" font-size="10" fill="white">📢 Notify: Slack/Discord</text>
+  
+  <rect x="285" y="350" width="150" height="25" fill="#e74c3c" rx="4"/>
+  <text x="360" y="367" text-anchor="middle" font-size="10" fill="white">⏸️ Pause: Contracts</text>
+  
+  <rect x="450" y="350" width="180" height="25" fill="#3498db" rx="4"/>
+  <text x="540" y="367" text-anchor="middle" font-size="10" fill="white">📄 Report: Incident Report</text>
+</svg>

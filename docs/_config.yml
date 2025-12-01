@@ -4,7 +4,7 @@
 theme: null
 
 # Base URL (for GitHub Pages)
-baseurl: "/xaudit"
+baseurl: "/MIESC"
 url: "https://fboiero.github.io"
 
 # Site settings
@@ -45,7 +45,7 @@ social:
     - https://github.com/fboiero
 
 # Repository
-repository: fboiero/xaudit
+repository: fboiero/MIESC
 
 # Google Analytics (optional - replace with your ID)
 # google_analytics: G-XXXXXXXXXX

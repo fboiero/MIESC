@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 420" font-family="Consolas, Monaco, monospace">
+  <!-- Background -->
+  <rect width="850" height="420" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="425" y="40" text-anchor="middle" font-size="22" font-weight="bold" fill="#2c3e50">
+    Figura 2.5. Arquitectura RAG en SmartLLM
+  </text>
+  
+  <!-- Row 1: Input -> Embedding -> Vector DB -->
+  
+  <!-- Contrato (input) -->
+  <rect x="50" y="80" width="180" height="80" fill="#3498db" rx="8" stroke="#2980b9" stroke-width="2"/>
+  <text x="140" y="115" text-anchor="middle" font-size="16" font-weight="bold" fill="white">Contrato</text>
+  <text x="140" y="140" text-anchor="middle" font-size="13" fill="#d6eaf8">(input)</text>
+  
+  <!-- Arrow 1 -->
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="10" refX="10" refY="5" orient="auto">
+      <polygon points="0 0, 12 5, 0 10" fill="#555"/>
+    </marker>
+  </defs>
+  <line x1="230" y1="120" x2="295" y2="120" stroke="#555" stroke-width="3" marker-end="url(#arrow)"/>
+  
+  <!-- Embedding Generation -->
+  <rect x="310" y="80" width="200" height="80" fill="#9b59b6" rx="8" stroke="#8e44ad" stroke-width="2"/>
+  <text x="410" y="115" text-anchor="middle" font-size="16" font-weight="bold" fill="white">Embedding</text>
+  <text x="410" y="140" text-anchor="middle" font-size="13" fill="#f5eef8">Generation</text>
+  
+  <!-- Arrow 2 -->
+  <line x1="510" y1="120" x2="575" y2="120" stroke="#555" stroke-width="3" marker-end="url(#arrow)"/>
+  
+  <!-- Vector DB -->
+  <rect x="590" y="80" width="200" height="80" fill="#1abc9c" rx="8" stroke="#16a085" stroke-width="2"/>
+  <text x="690" y="115" text-anchor="middle" font-size="16" font-weight="bold" fill="white">Vector DB</text>
+  <text x="690" y="140" text-anchor="middle" font-size="13" fill="#e8f8f5">(SWC KB)</text>
+  
+  <!-- Vertical Arrow down -->
+  <line x1="690" y1="160" x2="690" y2="225" stroke="#555" stroke-width="3" marker-end="url(#arrow)"/>
+  
+  <!-- Row 2: Response <- LLM <- Relevant Chunks -->
+  
+  <!-- Relevant Chunks -->
+  <rect x="590" y="240" width="200" height="80" fill="#f39c12" rx="8" stroke="#d68910" stroke-width="2"/>
+  <text x="690" y="275" text-anchor="middle" font-size="16" font-weight="bold" fill="white">Relevant</text>
+  <text x="690" y="300" text-anchor="middle" font-size="13" fill="#fef9e7">Chunks</text>
+  
+  <!-- Arrow left to LLM -->
+  <line x1="590" y1="280" x2="525" y2="280" stroke="#555" stroke-width="3" marker-end="url(#arrow)"/>
+  
+  <!-- LLM -->
+  <rect x="310" y="240" width="200" height="80" fill="#e74c3c" rx="8" stroke="#c0392b" stroke-width="2"/>
+  <text x="410" y="275" text-anchor="middle" font-size="16" font-weight="bold" fill="white">LLM</text>
+  <text x="410" y="300" text-anchor="middle" font-size="13" fill="#fdedec">(Llama 3.2)</text>
+  
+  <!-- Arrow left to Response -->
+  <line x1="310" y1="280" x2="245" y2="280" stroke="#555" stroke-width="3" marker-end="url(#arrow)"/>
+  
+  <!-- Respuesta (hallazgos) -->
+  <rect x="50" y="240" width="180" height="80" fill="#27ae60" rx="8" stroke="#1e8449" stroke-width="2"/>
+  <text x="140" y="275" text-anchor="middle" font-size="16" font-weight="bold" fill="white">Respuesta</text>
+  <text x="140" y="300" text-anchor="middle" font-size="13" fill="#eafaf1">(hallazgos)</text>
+  
+  <!-- Flow labels -->
+  <text x="262" y="105" text-anchor="middle" font-size="11" fill="#777">1</text>
+  <text x="542" y="105" text-anchor="middle" font-size="11" fill="#777">2</text>
+  <text x="710" y="195" text-anchor="middle" font-size="11" fill="#777">3</text>
+  <text x="557" y="265" text-anchor="middle" font-size="11" fill="#777">4</text>
+  <text x="277" y="265" text-anchor="middle" font-size="11" fill="#777">5</text>
+  
+  <!-- Bottom legend -->
+  <rect x="50" y="350" width="750" height="55" fill="#f8f9fa" rx="6" stroke="#d5d8dc" stroke-width="1"/>
+  <text x="425" y="375" text-anchor="middle" font-size="13" fill="#2c3e50" font-weight="bold">Flujo RAG (Retrieval-Augmented Generation)</text>
+  <text x="425" y="395" text-anchor="middle" font-size="12" fill="#555">1. Tokenizar contrato → 2. Generar embeddings → 3. Buscar en KB → 4. Recuperar contexto → 5. Generar respuesta</text>
+</svg>

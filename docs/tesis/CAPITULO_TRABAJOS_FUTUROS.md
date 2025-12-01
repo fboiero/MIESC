@@ -148,20 +148,10 @@ class SoliditySecurityFineTuner:
 **Fundamentación:** El ecosistema multi-chain representa >40% del TVL en 2024 (DeFiLlama, 2024). Las vulnerabilidades en estos ecosistemas carecen de herramientas automatizadas maduras.
 
 **Arquitectura propuesta:**
-```
-┌─────────────────────────────────────────────────────┐
-│                   MIESC Multi-Chain                  │
-├─────────────────────────────────────────────────────┤
-│                  Capa de Abstracción                 │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────┐│
-│  │ Solidity │ │   Rust   │ │   Move   │ │  Cairo  ││
-│  │ Adapter  │ │ Adapter  │ │ Adapter  │ │ Adapter ││
-│  └──────────┘ └──────────┘ └──────────┘ └─────────┘│
-├─────────────────────────────────────────────────────┤
-│              Taxonomía Unificada                     │
-│         SWC → Cross-Chain Weakness Enum              │
-└─────────────────────────────────────────────────────┘
-```
+
+**Figura 28.** Arquitectura Multi-Chain propuesta para MIESC
+
+![Figura 28 - Arquitectura Multi-Chain propuesta para MIESC](figures/Figura%2028%20Multichain%20arquitectura%20propuesta..svg)
 
 ---
 
@@ -182,19 +172,10 @@ class SoliditySecurityFineTuner:
 **Fundamentación:** Lahav et al. (2022) demuestran que la verificación formal detecta 100% de vulnerabilidades de estado, pero requiere especificaciones manuales costosas.
 
 **Propuesta de síntesis de invariantes:**
-```
-Entrada: Contrato Solidity
-    ↓
-Paso 1: Análisis estático → Variables de estado, funciones
-    ↓
-Paso 2: LLM genera candidatos de invariantes
-    ↓
-Paso 3: Halmos/SMTChecker valida invariantes
-    ↓
-Paso 4: Certora verifica propiedades válidas
-    ↓
-Salida: Especificación CVL verificada
-```
+
+**Figura 29.** Propuesta de síntesis de invariantes con IA
+
+![Figura 29 - Propuesta de síntesis de invariantes con IA](figures/Figura%2029%20Propuesta%20de%20síntesis%20de%20invariantes.svg)
 
 ---
 
@@ -247,22 +228,10 @@ jobs:
 | TF-6.5 | Dashboard de monitoreo de contratos | Media | Medio |
 
 **Arquitectura propuesta:**
-```
-┌────────────────────────────────────────────────────────┐
-│                 MIESC Runtime Monitor                   │
-├────────────────────────────────────────────────────────┤
-│  Ethereum Mempool → Forta Agent → MIESC Analyzer       │
-│         ↓                              ↓               │
-│  Transaction Analysis          Anomaly Detection       │
-│         ↓                              ↓               │
-│  ┌──────────────────────────────────────────────┐     │
-│  │           Alert & Response System            │     │
-│  │  - Notify: Slack/Discord/Email               │     │
-│  │  - Pause: Pausable contracts                 │     │
-│  │  - Report: Generate incident report          │     │
-│  └──────────────────────────────────────────────┘     │
-└────────────────────────────────────────────────────────┘
-```
+
+**Figura 30.** Arquitectura de Auditoría Continua en Producción
+
+![Figura 30 - Arquitectura de Auditoría Continua en Producción](figures/Figura%2030%20Auditoría%20Continua%20en%20Producción.svg)
 
 ---
 

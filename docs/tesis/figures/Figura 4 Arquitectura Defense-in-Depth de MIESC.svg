@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1000" font-family="Arial, Helvetica, sans-serif">
+  <!-- Background -->
+  <rect width="1100" height="1000" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="550" y="50" text-anchor="middle" font-size="32" font-weight="bold" fill="#2c3e50">
+    Pirámide de Herramientas de Análisis de Seguridad
+  </text>
+  
+  <!-- CAPA 7 - IA Analysis -->
+  <rect x="60" y="80" width="980" height="115" fill="#9b59b6" rx="8" stroke="#8e44ad" stroke-width="3"/>
+  <text x="550" y="115" text-anchor="middle" font-size="24" font-weight="bold" fill="white">CAPA 7: ANÁLISIS CON IA</text>
+  <text x="550" y="150" text-anchor="middle" font-size="18" fill="#f5eef8">GPTScan │ SmartLLM │ LLMSmartAudit │ ThreatModel │ GasGauge</text>
+  <text x="550" y="180" text-anchor="middle" font-size="15" fill="#e8daef" font-style="italic">Fundamento: Sun et al. (2024), David et al. (2023)</text>
+  
+  <!-- CAPA 6 - Property Testing -->
+  <rect x="60" y="200" width="980" height="115" fill="#3498db" rx="8" stroke="#2980b9" stroke-width="3"/>
+  <text x="550" y="235" text-anchor="middle" font-size="24" font-weight="bold" fill="white">CAPA 6: PROPERTY TESTING</text>
+  <text x="550" y="270" text-anchor="middle" font-size="18" fill="#ebf5fb">PropertyGPT │ Aderyn │ Wake</text>
+  <text x="550" y="300" text-anchor="middle" font-size="15" fill="#d6eaf8" font-style="italic">Fundamento: Claessen &amp; Hughes (2000), generación automática</text>
+  
+  <!-- CAPA 5 - Verificacion Formal -->
+  <rect x="60" y="320" width="980" height="115" fill="#1abc9c" rx="8" stroke="#16a085" stroke-width="3"/>
+  <text x="550" y="355" text-anchor="middle" font-size="24" font-weight="bold" fill="white">CAPA 5: VERIFICACIÓN FORMAL</text>
+  <text x="550" y="390" text-anchor="middle" font-size="18" fill="#e8f8f5">SMTChecker │ Certora Prover</text>
+  <text x="550" y="420" text-anchor="middle" font-size="15" fill="#d1f2eb" font-style="italic">Fundamento: Clarke et al. (2018), Lahav et al. (2022)</text>
+  
+  <!-- CAPA 4 - Invariant Testing -->
+  <rect x="60" y="440" width="980" height="115" fill="#2ecc71" rx="8" stroke="#27ae60" stroke-width="3"/>
+  <text x="550" y="475" text-anchor="middle" font-size="24" font-weight="bold" fill="white">CAPA 4: INVARIANT TESTING</text>
+  <text x="550" y="510" text-anchor="middle" font-size="18" fill="#eafaf1">Scribble │ Halmos</text>
+  <text x="550" y="540" text-anchor="middle" font-size="15" fill="#d5f5e3" font-style="italic">Fundamento: Hatcliff et al. (2012), especificación ejecutable</text>
+  
+  <!-- CAPA 3 - Ejecucion Simbolica -->
+  <rect x="60" y="560" width="980" height="115" fill="#f39c12" rx="8" stroke="#d68910" stroke-width="3"/>
+  <text x="550" y="595" text-anchor="middle" font-size="24" font-weight="bold" fill="white">CAPA 3: EJECUCIÓN SIMBÓLICA</text>
+  <text x="550" y="630" text-anchor="middle" font-size="18" fill="#fef9e7">Mythril │ Manticore │ Oyente</text>
+  <text x="550" y="660" text-anchor="middle" font-size="15" fill="#fdebd0" font-style="italic">Fundamento: King (1976), Baldoni et al. (2018)</text>
+  
+  <!-- CAPA 2 - Fuzzing -->
+  <rect x="60" y="680" width="980" height="115" fill="#e74c3c" rx="8" stroke="#c0392b" stroke-width="3"/>
+  <text x="550" y="715" text-anchor="middle" font-size="24" font-weight="bold" fill="white">CAPA 2: TESTING DINÁMICO / FUZZING</text>
+  <text x="550" y="750" text-anchor="middle" font-size="18" fill="#fdedec">Echidna │ Foundry Fuzz │ Medusa │ Vertigo</text>
+  <text x="550" y="780" text-anchor="middle" font-size="15" fill="#f5b7b1" font-style="italic">Fundamento: Miller et al. (1990), Grieco et al. (2020)</text>
+  
+  <!-- CAPA 1 - Analisis Estatico -->
+  <rect x="60" y="800" width="980" height="115" fill="#34495e" rx="8" stroke="#2c3e50" stroke-width="3"/>
+  <text x="550" y="835" text-anchor="middle" font-size="24" font-weight="bold" fill="white">CAPA 1: ANÁLISIS ESTÁTICO</text>
+  <text x="550" y="870" text-anchor="middle" font-size="18" fill="#eaecee">Slither │ Solhint │ Securify2 │ Semgrep</text>
+  <text x="550" y="900" text-anchor="middle" font-size="15" fill="#d5d8dc" font-style="italic">Fundamento: Feist et al. (2019), Grech et al. (2018)</text>
+  
+  <!-- Side annotations -->
+  <defs>
+    <marker id="arrowUp" markerWidth="14" markerHeight="10" refX="7" refY="10" orient="auto">
+      <polygon points="0 10, 7 0, 14 10" fill="#444"/>
+    </marker>
+    <marker id="arrowDown" markerWidth="14" markerHeight="10" refX="7" refY="0" orient="auto">
+      <polygon points="0 0, 7 10, 14 0" fill="#444"/>
+    </marker>
+  </defs>
+  
+  <!-- Left arrow - Complejidad -->
+  <line x1="30" y1="880" x2="30" y2="120" stroke="#444" stroke-width="4" marker-end="url(#arrowUp)"/>
+  <text x="22" y="500" text-anchor="middle" font-size="18" font-weight="bold" fill="#444" transform="rotate(-90, 22, 500)">Complejidad / Profundidad</text>
+  
+  <!-- Right arrow - Velocidad -->
+  <line x1="1070" y1="120" x2="1070" y2="880" stroke="#444" stroke-width="4" marker-end="url(#arrowDown)"/>
+  <text x="1078" y="500" text-anchor="middle" font-size="18" font-weight="bold" fill="#444" transform="rotate(90, 1078, 500)">Velocidad / Cobertura</text>
+  
+  <!-- Bottom legend -->
+  <rect x="250" y="940" width="600" height="40" fill="#f4f6f7" rx="6" stroke="#d5d8dc" stroke-width="2"/>
+  <text x="550" y="968" text-anchor="middle" font-size="18" fill="#2c3e50">
+    Base: rápido y amplio  ●  Cima: profundo y específico
+  </text>
+</svg>
