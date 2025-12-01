@@ -143,9 +143,11 @@ El servidor MCP de MIESC actúa como puente entre el mundo conversacional de Cla
 
 3. **Mantener estado de sesión:** El servidor preserva el contexto de análisis previos, permitiendo refinamiento iterativo.
 
-![Figura 7.1 - Arquitectura de integración MCP](figures/fig_04_mcp_architecture.png)
+**Figura 23.** Arquitectura de integración MCP
 
-*Figura 7.1: Arquitectura de integración MCP - Flujo de interacción entre Usuario, Claude Desktop y MIESC MCP Server*
+![Figura 23 - Arquitectura de integración MCP](figures/Figura%2023.%20Arquitectura%20de%20integración%20MCP.svg)
+
+*Flujo de interacción entre Usuario, Claude Desktop y MIESC MCP Server*
 
 ### 7.3.2 Componentes del Servidor
 
@@ -268,7 +270,9 @@ class MIESCResourceHandler:
 
 El siguiente diagrama de secuencia ilustra el flujo completo de una interacción típica:
 
-**Figura 7.2.** Secuencia de interacción MCP
+**Figura 24.** Secuencia de interacción MCP
+
+![Figura 24 - Secuencia de interacción MCP](figures/Figura%2024.%20Secuencia%20de%20interacción%20MCP.svg)
 
 ```
 Usuario             Claude              MCP Client           MIESC Server          Slither

@@ -144,7 +144,9 @@ La Tabla 5.4 documenta los problemas encontrados durante la integración y sus s
 
 A continuación se presentan las salidas reales de ejecución de las herramientas principales integradas en MIESC, demostrando la operatividad del framework.
 
-### Figura 5.1: Salida de Slither (Capa 1 - Análisis Estático)
+**Figura 13.** Salida de Slither (Capa 1 - Análisis Estático)
+
+![Figura 13 - Salida de Slither Capa 1 - Análisis Estático](figures/Figura%2013%20Salida%20de%20Slither%20Capa%201%20-%20Análisis%20Estático.svg)
 
 ```
 $ slither contracts/audit/VulnerableBank.sol
@@ -198,7 +200,9 @@ INFO:Slither:contracts/audit/VulnerableBank.sol analyzed (2 contracts with 100 d
 
 ---
 
-### Figura 5.2: Salida de Mythril (Capa 3 - Ejecución Simbólica)
+**Figura 14.** Salida de Mythril (Capa 3 - Ejecución Simbólica)
+
+![Figura 14 - Salida de Mythril Capa 3 - Ejecución Simbólica](figures/Figura%2014%20Salida%20de%20Mythril%20Capa%203%20-%20Ejecución%20Simbólica.svg)
 
 ```
 $ myth analyze contracts/audit/VulnerableBank.sol --execution-timeout 90
@@ -254,7 +258,9 @@ Caller: [SOMEGUY], function: attack(), txdata: 0x9e5faafc, value: 0xde0b6b3a7640
 
 ---
 
-### Figura 5.3: Salida de SMTChecker (Capa 5 - Verificación Formal)
+**Figura 15.** Salida de SMTChecker (Capa 5 - Verificación Formal)
+
+![Figura 15 - Salida de SMTChecker Capa 5 - Verificación Formal](figures/Figura%2015%20Salida%20de%20SMTChecker%20Capa%205%20-%20Verificación%20Formal.svg)
 
 ```
 $ solc --model-checker-engine chc --model-checker-targets all contracts/audit/VulnerableBank.sol
@@ -269,7 +275,9 @@ increasing the timeout per query.
 
 ---
 
-### Figura 5.4: Salida del Pipeline Completo de MIESC
+**Figura 16.** Salida del Pipeline Completo de MIESC
+
+![Figura 16 - Salida del Pipeline Completo de MIESC](figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
 
 ```
 $ python -m src.miesc_cli analyze contracts/audit/VulnerableBank.sol --layers all
@@ -335,7 +343,9 @@ Estado: COMPLETADO
 
 ---
 
-### Figura 5.5: Estructura de Hallazgo Normalizado (JSON)
+**Figura 17.** Estructura de Hallazgo Normalizado (JSON)
+
+![Figura 17 - Estructura de Hallazgo Normalizado JSON](figures/Figura%2017%20Estructura%20de%20Hallazgo%20Normalizado%20JSON.svg)
 
 El siguiente fragmento muestra la estructura de un hallazgo individual normalizado por MIESC, demostrando la integración de clasificaciones SWC, CWE y OWASP:
 
@@ -377,7 +387,9 @@ El siguiente fragmento muestra la estructura de un hallazgo individual normaliza
 
 ---
 
-### Figura 5.6: Respuesta de API REST
+**Figura 18.** Respuesta de API REST
+
+![Figura 18 - Respuesta de API REST](figures/Figura%2018%20Respuesta%20de%20API%20REST.svg)
 
 La siguiente captura muestra la respuesta de la API REST de MIESC tras analizar un contrato:
 
@@ -459,9 +471,7 @@ Se ejecutó MIESC sobre el corpus de 4 contratos con 14 vulnerabilidades conocid
 | Low | 3 | 18.7% | CVSS < 4.0 |
 | **Total** | **16** | **100%** | |
 
-![Figura 5.7 - Distribución de hallazgos por severidad](figures/fig_05_severity_distribution.png)
-
-*Figura 5.7: Distribución de hallazgos por severidad en el corpus de prueba*
+**Figura 19.** Distribución de hallazgos por severidad en el corpus de prueba
 
 ### 5.3.3 Detección por Capa
 
@@ -501,9 +511,7 @@ $$\Delta_{recall} = \frac{1.00 - 0.71}{0.71} \times 100 = 40.8\%$$
 
 Este resultado es consistente con los hallazgos de Ghaleb y Pattabiraman (2020), quienes reportan un incremento del 34% al combinar análisis estático y simbólico.
 
-![Figura 5.8 - Comparativa de rendimiento MIESC vs herramientas individuales](figures/fig_07_comparison.png)
-
-*Figura 5.8: Comparativa de rendimiento MIESC (7 capas) vs herramientas individuales (Slither, Mythril, Echidna)*
+**Figura 20.** Comparativa de rendimiento MIESC (7 capas) vs herramientas individuales (Slither, Mythril, Echidna)
 
 ---
 
@@ -564,9 +572,7 @@ El único error de mapeo en GPTScan correspondió a una clasificación ambigua d
 
 **Observación:** La ejecución paralela intra-capa reduce el tiempo total en un **67.5%** (de 161.1s a 52.4s), fundamentado en la ley de Amdahl (1967) para paralelización.
 
-![Figura 5.9 - Ejecución paralela de herramientas por capa](figures/fig_09_execution_timeline.png)
-
-*Figura 5.9: Timeline de ejecución paralela de herramientas por capa*
+*Timeline de ejecución paralela de herramientas por capa*
 
 ### 5.5.2 Consumo de Recursos
 

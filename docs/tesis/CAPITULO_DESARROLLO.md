@@ -105,9 +105,9 @@ La Tabla 4.2 presenta el análisis de complementariedad que fundamentó la selec
 
 ### 4.2.3 Modelo de Capas Definitivo
 
-**Figura 4.1.** Arquitectura de defensa en profundidad de MIESC
+**Figura 7.** Arquitectura de defensa en profundidad de MIESC
 
-![Figura 4.1 - Arquitectura de defensa en profundidad de MIESC](figures/fig_01_defense_in_depth.png)
+![Figura 7 - Arquitectura de defensa en profundidad de MIESC](figures/Figura%207%20Arquitectura%20de%20defensa%20en%20profundidad%20de%20MIESC.svg)
 
 La numeración de capas refleja el orden típico de ejecución durante una auditoría: las técnicas más rápidas y con menor costo computacional (análisis estático) se ejecutan primero, permitiendo identificar problemas evidentes antes de invertir recursos en técnicas más costosas (ejecución simbólica, verificación formal).
 
@@ -171,9 +171,9 @@ La solución adoptada combina el patrón Adapter, documentado por Gamma et al. (
 
 **Principio de Inversión de Dependencias (DIP):** El núcleo de MIESC depende de la abstracción `ToolAdapter`, no de implementaciones concretas como `SlitherAdapter` o `MythrilAdapter`.
 
-![Figura 4.2 - Diagrama de clases del patrón Adapter en MIESC](figures/fig_02_adapter_pattern.png)
+**Figura 8.** Diagrama de clases del patrón Adapter en MIESC
 
-*Figura 4.2: Diagrama de clases del patrón Adapter en MIESC*
+![Figura 8 - Diagrama de clases del patrón Adapter en MIESC](figures/Figura%208%20Diagrama%20de%20clases%20del%20patrón%20Adapter%20en%20MIESC.svg)
 
 ### 4.3.3 Implementación de la Interfaz Base
 
