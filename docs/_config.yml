@@ -1,15 +1,15 @@
 # GitHub Pages Configuration for MIESC Website
 
-# Theme
-remote_theme: pages-themes/minimal@v0.2.0
+# Theme - Hacker theme for cypherpunk aesthetic
+remote_theme: pages-themes/hacker@v0.2.0
 
 # Base URL (for GitHub Pages)
 baseurl: "/MIESC"
 url: "https://fboiero.github.io"
 
 # Site settings
-title: "MIESC - Smart Contract Security Framework"
-description: "Defense-in-Depth framework for smart contract security auditing with multi-agent architecture"
+title: "MIESC"
+description: "Multi-layer Intelligent Evaluation for Smart Contracts | Defense-in-Depth Security Framework"
 author: "Fernando Boiero"
 email: "fboiero@frvm.utn.edu.ar"
 
