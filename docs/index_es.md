@@ -17,10 +17,7 @@ lang: es
 
 *Tesis de Maestría en Ciberdefensa | Universidad de la Defensa Nacional (UNDEF)*
 
-[Probar Demo Web](webapp/README.md){ .md-button .md-button--primary }
-[Tesis](thesis_es.md){ .md-button .md-button--primary }
-[Documentacion](docs/INDEX.md){ .md-button }
-[GitHub](https://github.com/fboiero/MIESC){ .md-button }
+[Probar Demo Web](webapp/README.md) | [Tesis](thesis_es.md) | [Documentacion](docs/INDEX.md) | [GitHub](https://github.com/fboiero/MIESC)
 
 [English](index.md) | **Espanol**
 
@@ -195,8 +192,7 @@ make webapp
 # Abrir navegador en http://localhost:8501
 ```
 
-[Guía de Instalación Completa](docs/02_SETUP_AND_USAGE.md){ .md-button }
-
+[Guía de Instalación Completa](docs/02_SETUP_AND_USAGE.md)
 ---
 
 ## Arquitectura
@@ -231,8 +227,7 @@ Static Dynamic Symbolic Formal
 | **L6** | Agente ML + Política | Detección + Cumplimiento | Puntuaciones de riesgo + mapeos de frameworks |
 | **L7** | Agente de Auditoría | Evaluación de preparación | Reporte final de auditoría |
 
-[Detalles de Arquitectura](docs/01_ARCHITECTURE.md){ .md-button }
-
+[Detalles de Arquitectura](docs/01_ARCHITECTURE.md)
 ---
 
 ## Métricas de Rendimiento
@@ -293,8 +288,7 @@ Static Dynamic Symbolic Formal
 }
 ```
 
-[Documentación de Tesis](tesis/){ .md-button }
-
+[Documentación de Tesis](tesis/)
 ---
 
 ## Documentación
@@ -326,8 +320,7 @@ Static Dynamic Symbolic Formal
 - [Mapeo de Cumplimiento](docs/compliance/COMPLIANCE.md)
 - [Características v4.0](docs/PHASE_3_4_5_COMPLETION_SUMMARY.md)
 
-[Índice Completo de Documentación](docs/INDEX.md){ .md-button .md-button--primary }
-
+[Índice Completo de Documentación](docs/INDEX.md)
 ---
 
 ## Contribuir
@@ -350,8 +343,7 @@ Damos la bienvenida a contribuciones de las comunidades de investigación en seg
 - Análisis de vulnerabilidades cross-chain
 - Traducciones de documentación
 
-[Guía de Contribución](CONTRIBUTING.md){ .md-button }
-
+[Guía de Contribución](CONTRIBUTING.md)
 ---
 
 ## Soporte y Comunidad
@@ -443,9 +435,7 @@ Asegura que el framework permanezca open-source. Permite uso comercial con atrib
 
 **Construido para la Comunidad de Seguridad de Smart Contracts**
 
-[Comenzar](docs/02_SETUP_AND_USAGE.md){ .md-button .md-button--primary }
-[Ver en GitHub](https://github.com/fboiero/MIESC){ .md-button }
-
+[Comenzar](docs/02_SETUP_AND_USAGE.md)[Ver en GitHub](https://github.com/fboiero/MIESC)
 ---
 
 **MIESC v4.0.0** | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
