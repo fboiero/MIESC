@@ -27,6 +27,46 @@ title: MIESC - Smart Contract Security Framework
 
 ---
 
+## Video Demonstration
+
+<div align="center">
+
+**Watch MIESC in Action**
+
+[![YouTube Demo](https://img.shields.io/badge/YouTube-Demo-red?style=for-the-badge&logo=youtube)](https://youtu.be/-SP6555edSw)
+
+[Watch on YouTube](https://youtu.be/-SP6555edSw) (~10 minutes)
+
+</div>
+
+**Demonstrates:**
+- Defense-in-Depth analysis across 7 security layers
+- 25 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
+- Model Context Protocol (MCP) integration with Claude Desktop
+- 100% Recall, 87.5% Precision, F1-Score 0.93
+- Sovereign AI with Ollama (code never leaves your machine)
+
+---
+
+## Scope and Limitations
+
+**Purpose:**
+- Automated orchestration of 25 security analysis tools
+- AI-assisted finding correlation to reduce duplicate reports
+- ML-based vulnerability detection with 95.7% accuracy
+- Compliance mapping to ISO/NIST/OWASP standards
+- Standardized reporting format (JSON/HTML/PDF)
+
+**Limitations:**
+- Cannot detect all vulnerability classes (especially complex business logic)
+- Effectiveness metrics pending large-scale empirical validation
+- Requires manual review of all findings by qualified professionals
+- Not suitable as sole security assessment for production contracts
+
+> **Important**: Professional security audits mandatory for contracts handling real value.
+
+---
+
 ## Overview
 
 **MIESC** is a production-grade smart contract security framework that implements a **7-layer Defense-in-Depth architecture**, integrating **25 specialized security tools** with **AI-powered correlation** and **ML-based detection** to deliver comprehensive vulnerability detection with industry-leading accuracy.
@@ -321,9 +361,47 @@ We welcome contributions from the security research and blockchain communities!
 - **GitHub Issues**: [Bug reports and feature requests](https://github.com/fboiero/MIESC/issues)
 - **Email**: fboiero@frvm.utn.edu.ar
 
-### Video Demo
+---
 
-YouTube: [youtu.be/-SP6555edSw](https://youtu.be/-SP6555edSw) (~10 minutes)
+## Usage Examples
+
+**CI/CD Integration:**
+```bash
+python xaudit.py --target contracts/MyToken.sol --mode fast --output ci_report.json
+# Exit code 0 if no critical issues, 1 otherwise
+```
+
+**Full Pre-Audit:**
+```bash
+python xaudit.py \
+  --target contracts/ \
+  --mode full \
+  --enable-ai-triage \
+  --output-format html,json,pdf
+```
+
+**Compliance Reporting:**
+```bash
+python xaudit.py \
+  --target contracts/DeFiProtocol.sol \
+  --compliance-only \
+  --standards iso27001,nist,owasp
+```
+
+**Selective Layer Execution:**
+```bash
+python xaudit.py \
+  --target contracts/Treasury.sol \
+  --layers symbolic \
+  --functions withdraw,emergencyWithdraw \
+  --timeout 3600
+```
+
+**MCP Server Mode:**
+```bash
+python src/mcp/server.py
+# Enables: audit_contract(), explain_vulnerability(), suggest_fix()
+```
 
 ---
 

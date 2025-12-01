@@ -28,6 +28,46 @@ lang: es
 
 ---
 
+## Video Demostrativo
+
+<div align="center">
+
+**Mira MIESC en Accion**
+
+[![YouTube Demo](https://img.shields.io/badge/YouTube-Demo-red?style=for-the-badge&logo=youtube)](https://youtu.be/-SP6555edSw)
+
+[Ver en YouTube](https://youtu.be/-SP6555edSw) (~10 minutos)
+
+</div>
+
+**Demuestra:**
+- Analisis Defense-in-Depth a traves de 7 capas de seguridad
+- 25 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
+- Integracion del Model Context Protocol (MCP) con Claude Desktop
+- 100% Recall, 87.5% Precision, F1-Score 0.93
+- IA Soberana con Ollama (el codigo nunca sale de tu maquina)
+
+---
+
+## Alcance y Limitaciones
+
+**Proposito:**
+- Orquestacion automatizada de 25 herramientas de analisis de seguridad
+- Correlacion asistida por IA para reducir reportes duplicados
+- Deteccion de vulnerabilidades basada en ML con 95.7% de precision
+- Mapeo de cumplimiento a estandares ISO/NIST/OWASP
+- Formato de reportes estandarizado (JSON/HTML/PDF)
+
+**Limitaciones:**
+- No puede detectar todas las clases de vulnerabilidades (especialmente logica de negocio compleja)
+- Metricas de efectividad pendientes de validacion empirica a gran escala
+- Requiere revision manual de todos los hallazgos por profesionales calificados
+- No adecuado como unica evaluacion de seguridad para contratos en produccion
+
+> **Importante**: Auditorias de seguridad profesionales obligatorias para contratos que manejen valor real.
+
+---
+
 ## Descripción General
 
 **MIESC** es un framework de seguridad de smart contracts de grado de producción que implementa una **arquitectura Defense-in-Depth de 7 capas**, integrando **25 herramientas de seguridad especializadas** con **correlación potenciada por IA** y **detección basada en ML** para ofrecer detección integral de vulnerabilidades con precisión líder en la industria.
@@ -322,9 +362,47 @@ Damos la bienvenida a contribuciones de las comunidades de investigación en seg
 - **Issues de GitHub**: [Reportes de bugs y solicitudes de features](https://github.com/fboiero/MIESC/issues)
 - **Email**: fboiero@frvm.utn.edu.ar
 
-### Demo en Video
+---
 
-YouTube: [youtu.be/-SP6555edSw](https://youtu.be/-SP6555edSw) (~10 minutos)
+## Ejemplos de Uso
+
+**Integracion CI/CD:**
+```bash
+python xaudit.py --target contracts/MyToken.sol --mode fast --output ci_report.json
+# Codigo de salida 0 si no hay issues criticos, 1 de lo contrario
+```
+
+**Pre-Auditoria Completa:**
+```bash
+python xaudit.py \
+  --target contracts/ \
+  --mode full \
+  --enable-ai-triage \
+  --output-format html,json,pdf
+```
+
+**Reporte de Cumplimiento:**
+```bash
+python xaudit.py \
+  --target contracts/DeFiProtocol.sol \
+  --compliance-only \
+  --standards iso27001,nist,owasp
+```
+
+**Ejecucion Selectiva de Capas:**
+```bash
+python xaudit.py \
+  --target contracts/Treasury.sol \
+  --layers symbolic \
+  --functions withdraw,emergencyWithdraw \
+  --timeout 3600
+```
+
+**Modo Servidor MCP:**
+```bash
+python src/mcp/server.py
+# Habilita: audit_contract(), explain_vulnerability(), suggest_fix()
+```
 
 ---
 
