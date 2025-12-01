@@ -130,7 +130,7 @@ Innovaciones clave incluyen:
 ```bibtex
 @mastersthesis{boiero2025miesc,
   author = {Boiero, Fernando},
-  title = {{MIESC}: Evaluacion Inteligente Multicapa para Contratos Inteligentes},
+  title = {MIESC: Evaluacion Inteligente Multicapa para Contratos Inteligentes},
   school = {Universidad de la Defensa Nacional (UNDEF)},
   year = {2025},
   type = {Tesis de Maestria},

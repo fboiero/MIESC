@@ -129,7 +129,7 @@ Key innovations include:
 ```bibtex
 @mastersthesis{boiero2025miesc,
   author = {Boiero, Fernando},
-  title = {{MIESC}: Multi-layer Intelligent Evaluation for Smart Contracts},
+  title = {MIESC: Multi-layer Intelligent Evaluation for Smart Contracts},
   school = {Universidad de la Defensa Nacional (UNDEF)},
   year = {2025},
   type = {Master's Thesis},

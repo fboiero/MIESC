@@ -244,7 +244,7 @@ Static Dynamic Symbolic Formal
 ```bibtex
 @software{boiero2025miesc,
   author = {Boiero, Fernando},
-  title = {{MIESC}: Multi-layer Intelligent Evaluation for Smart Contracts},
+  title = {MIESC: Multi-layer Intelligent Evaluation for Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
   version = {4.0.0},
