@@ -1,3 +1,8 @@
+---
+layout: default
+title: Master's Thesis - MIESC
+---
+
 # Master's Thesis
 
 <div align="center">

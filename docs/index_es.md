@@ -1,3 +1,9 @@
+---
+layout: default
+title: MIESC - Framework de Seguridad para Smart Contracts
+lang: es
+---
+
 # MIESC - Evaluación Inteligente Multicapa para Smart Contracts
 
 <div align="center">
