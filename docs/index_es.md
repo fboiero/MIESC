@@ -245,7 +245,7 @@ Static Dynamic Symbolic Formal
 ```bibtex
 @software{boiero2025miesc,
   author = {Boiero, Fernando},
-  title = {{MIESC}: Evaluación Inteligente Multicapa para Smart Contracts},
+  title = {MIESC: Evaluacion Inteligente Multicapa para Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
   version = {4.0.0},
