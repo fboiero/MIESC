@@ -16,10 +16,7 @@ title: MIESC - Smart Contract Security Framework
 
 *Master's Thesis in Cyberdefense | Universidad de la Defensa Nacional (UNDEF)*
 
-[Try Web Demo](webapp/README.md){ .md-button .md-button--primary }
-[Thesis](thesis.md){ .md-button .md-button--primary }
-[Documentation](docs/INDEX.md){ .md-button }
-[GitHub](https://github.com/fboiero/MIESC){ .md-button }
+[Try Web Demo](webapp/README.md) | [Thesis](thesis.md) | [Documentation](docs/INDEX.md) | [GitHub](https://github.com/fboiero/MIESC)
 
 **English** | [Espanol](index_es.md)
 
@@ -194,8 +191,7 @@ make webapp
 # Open browser to http://localhost:8501
 ```
 
-[Full Installation Guide](docs/02_SETUP_AND_USAGE.md){ .md-button }
-
+[Full Installation Guide](docs/02_SETUP_AND_USAGE.md)
 ---
 
 ## Architecture
@@ -230,8 +226,7 @@ Static Dynamic Symbolic Formal
 | **L6** | ML + Policy Agent | Detection + Compliance | Risk scores + framework mappings |
 | **L7** | Audit Agent | Readiness assessment | Final audit report |
 
-[Architecture Details](docs/01_ARCHITECTURE.md){ .md-button }
-
+[Architecture Details](docs/01_ARCHITECTURE.md)
 ---
 
 ## Performance Metrics
@@ -292,8 +287,7 @@ Static Dynamic Symbolic Formal
 }
 ```
 
-[Thesis Documentation](thesis.md){ .md-button }
-
+[Thesis Documentation](thesis.md)
 ---
 
 ## Documentation
@@ -325,8 +319,7 @@ Static Dynamic Symbolic Formal
 - [Compliance Mapping](docs/compliance/COMPLIANCE.md)
 - [v4.0 Features](docs/PHASE_3_4_5_COMPLETION_SUMMARY.md)
 
-[Complete Documentation Index](docs/INDEX.md){ .md-button .md-button--primary }
-
+[Complete Documentation Index](docs/INDEX.md)
 ---
 
 ## Contributing
@@ -349,8 +342,7 @@ We welcome contributions from the security research and blockchain communities!
 - Cross-chain vulnerability analysis
 - Documentation translations
 
-[Contributing Guide](CONTRIBUTING.md){ .md-button }
-
+[Contributing Guide](CONTRIBUTING.md)
 ---
 
 ## Support & Community
@@ -442,9 +434,7 @@ Ensures framework remains open-source. Allows commercial use with attribution. D
 
 **Built for the Smart Contract Security Community**
 
-[Get Started](docs/02_SETUP_AND_USAGE.md){ .md-button .md-button--primary }
-[View on GitHub](https://github.com/fboiero/MIESC){ .md-button }
-
+[Get Started](docs/02_SETUP_AND_USAGE.md)[View on GitHub](https://github.com/fboiero/MIESC)
 ---
 
 **MIESC v4.0.0** | Master's Thesis in Cyberdefense | AGPL-3.0 License
