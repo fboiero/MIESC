@@ -7,6 +7,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **DPGA Application Submitted** (December 5, 2025)
+  - Application ID: GID0092948
+  - Status: Under Review
+  - Contact: Bolaji Ayodeji (DPG Evangelist)
+  - Expected review period: 4-8 weeks
+- Complete DPG compliance documentation package
+- DPGA Application Responses CSV for reference
+
 ## [4.0.0] - 2025-01-14
 
 ### Added
