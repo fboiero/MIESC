@@ -3,9 +3,22 @@
 **MIESC - Multi-layer Intelligent Evaluation for Smart Contracts**
 
 [![DPG Standard](https://img.shields.io/badge/DPG%20Standard-v1.1.6-blue)](https://digitalpublicgoods.net/standard/)
+[![DPGA Application](https://img.shields.io/badge/DPGA-Under%20Review-yellow)](https://app.digitalpublicgoods.net/a/13478)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 This document demonstrates MIESC's compliance with the [Digital Public Goods Standard](https://github.com/DPGAlliance/DPG-Standard) (v1.1.6) established by the [Digital Public Goods Alliance (DPGA)](https://digitalpublicgoods.net/).
+
+---
+
+## Application Status
+
+| Field | Value |
+|-------|-------|
+| **Application ID** | GID0092948 |
+| **Submission Date** | December 5, 2025 |
+| **Status** | Under Review |
+| **Expected Review** | 4-8 weeks |
+| **Contact** | Bolaji Ayodeji (DPG Evangelist) |
 
 ---
 

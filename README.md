@@ -1,10 +1,15 @@
 # MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
+**English** | [Español](./README_ES.md)
+
+[![DPG Standard](https://img.shields.io/badge/DPG%20Standard-Under%20Review-yellow)](./DPG-COMPLIANCE.md)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Version](https://img.shields.io/badge/version-v4.0.0-success)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions/workflows/secure-dev-pipeline.yml)
 [![Coverage](https://img.shields.io/badge/coverage-87.5%25-green)](./htmlcov/index.html)
+[![SDG 9](https://img.shields.io/badge/SDG-9%20Industry%20%26%20Innovation-orange)](https://sdgs.un.org/goals/goal9)
+[![SDG 16](https://img.shields.io/badge/SDG-16%20Strong%20Institutions-blue)](https://sdgs.un.org/goals/goal16)
 
 Multi-layer security analysis framework for Ethereum smart contracts. Orchestrates 25 specialized tools across 7 defense layers with AI-assisted correlation and ML-based detection.
 
@@ -714,6 +719,27 @@ Details: [docs/SHIFT_LEFT_SECURITY.md](./docs/SHIFT_LEFT_SECURITY.md) | [policie
 
 Author: Fernando Boiero  
 Master's Candidate in Cyberdefense, UNDEF-IUA | Professor, UTN-FRVM
+
+---
+
+## Digital Public Good
+
+MIESC is a candidate for recognition as a [Digital Public Good](https://digitalpublicgoods.net/) by the Digital Public Goods Alliance (DPGA).
+
+**SDG Alignment**:
+- **SDG 9**: Industry, Innovation and Infrastructure - Democratizing access to security tools
+- **SDG 16**: Peace, Justice and Strong Institutions - Enabling transparent blockchain systems
+
+**DPG Compliance**: [DPG-COMPLIANCE.md](./DPG-COMPLIANCE.md)
+
+| Document | Description |
+|----------|-------------|
+| [DPG-COMPLIANCE.md](./DPG-COMPLIANCE.md) | Full DPG Standard compliance documentation |
+| [PRIVACY.md](./PRIVACY.md) | Privacy policy (local processing, no data collection) |
+| [SECURITY.md](./SECURITY.md) | Security policy and vulnerability disclosure |
+| [GOVERNANCE.md](./GOVERNANCE.md) | Project governance structure |
+| [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) | Contributor Covenant Code of Conduct |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Contribution guidelines |
 
 ---
 
