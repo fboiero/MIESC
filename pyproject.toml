@@ -42,6 +42,11 @@ dependencies = [
     "click>=8.1.0",
     "pydantic>=2.0.0",
     "slither-analyzer>=0.10.0",
+    "streamlit>=1.28.0",
+    "plotly>=5.18.0",
+    "flask>=3.0.0",
+    "flask-socketio>=5.3.0",
+    "flask-cors>=4.0.0",
 ]
 
 [project.optional-dependencies]
@@ -68,10 +73,20 @@ Repository = "https://github.com/fboiero/MIESC.git"
 "Bug Tracker" = "https://github.com/fboiero/MIESC/issues"
 
 [project.scripts]
-miesc = "miesc.cli.miesc_cli:cli"
+miesc = "miesc.cli.main:cli"
 
 [tool.setuptools]
-packages = ["miesc", "miesc.core", "miesc.api", "miesc.cli"]
+packages = [
+    "miesc",
+    "miesc.core",
+    "miesc.api",
+    "miesc.cli",
+    "miesc.adapters",
+    "miesc.agents",
+    "miesc.security",
+    "miesc.ml",
+    "miesc.mcp"
+]
 
 [tool.setuptools.package-data]
 miesc = ["py.typed"]
@@ -116,8 +131,8 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-testpaths = ["miesc/tests"]
+testpaths = ["tests", "miesc/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=miesc --cov-report=term-missing"
+addopts = "-v --cov=miesc --cov=src --cov-report=term-missing"

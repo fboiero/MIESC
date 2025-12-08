@@ -13,7 +13,7 @@ Scientific Foundation:
 
 Author: Fernando Boiero
 Thesis: Master's in Cyberdefense - UNDEF
-Version: 3.2.0
+Version: 4.0.0
 """
 
 import os
@@ -21,7 +21,7 @@ import sys
 import json
 import logging
 from typing import Dict, List, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Flask, request, jsonify, Response
@@ -31,7 +31,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)  # Enable CORS for cross-origin requests
 
-MIESC_VERSION = "3.2.0"
+MIESC_VERSION = "4.0.0"
 
 # Configure logging
 logging.basicConfig(
@@ -157,7 +157,7 @@ def get_status():
         "status": "operational",
         "agent_id": f"miesc-agent-v{MIESC_VERSION}",
         "version": MIESC_VERSION,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "uptime": "active",
         "health": {
             "core_module": True,
@@ -189,7 +189,7 @@ def get_metrics():
                 "confidence_interval": "95%"
             }
         },
-        "timestamp": datetime.utcnow().isoformat() + "Z"
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     })
 
 
@@ -245,7 +245,7 @@ def run_audit():
                 "tools_executed": ["slither", "mythril"],
                 "compliance_mapped": True
             },
-            "timestamp": datetime.utcnow().isoformat() + "Z"
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         })
 
     except Exception as e:
@@ -295,7 +295,7 @@ def run_policy_audit():
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         audit_data = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "miesc_version": MIESC_VERSION,
             "compliance_score": round(compliance_score, 2),
             "checks": results,
@@ -317,7 +317,7 @@ def run_policy_audit():
             "total": total,
             "checks": results,
             "report_path": str(output_path),
-            "timestamp": datetime.utcnow().isoformat() + "Z"
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         })
 
     except Exception as e:

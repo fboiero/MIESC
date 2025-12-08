@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="900" height="550" viewBox="0 0 900 550" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="miescBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1B5E20"/>
+      <stop offset="100%" style="stop-color:#4CAF50"/>
+    </linearGradient>
+    <linearGradient id="slitherBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1565C0"/>
+      <stop offset="100%" style="stop-color:#42A5F5"/>
+    </linearGradient>
+    <linearGradient id="mythrilBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#E65100"/>
+      <stop offset="100%" style="stop-color:#FF9800"/>
+    </linearGradient>
+    <linearGradient id="echidnaBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#880E4F"/>
+      <stop offset="100%" style="stop-color:#E91E63"/>
+    </linearGradient>
+    <linearGradient id="unionBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#455A64"/>
+      <stop offset="100%" style="stop-color:#78909C"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="1" dy="1" stdDeviation="1" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="450" y="35" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1a237e" text-anchor="middle">
+    Experimental Results Comparison / Comparación de Resultados Experimentales
+  </text>
+  <text x="450" y="55" font-family="Arial, sans-serif" font-size="12" fill="#5c6bc0" text-anchor="middle">
+    MIESC v4.0.0 vs Individual Tools - 500+ Contracts Benchmark
+  </text>
+
+  <!-- Precision Chart -->
+  <rect x="50" y="70" width="250" height="200" rx="8" fill="#FAFAFA" stroke="#E0E0E0" stroke-width="1"/>
+  <text x="175" y="95" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333" text-anchor="middle">Precision / Precisión</text>
+
+  <!-- Y-axis labels -->
+  <text x="65" y="115" font-family="Arial, sans-serif" font-size="9" fill="#666">100%</text>
+  <text x="65" y="155" font-family="Arial, sans-serif" font-size="9" fill="#666">80%</text>
+  <text x="65" y="195" font-family="Arial, sans-serif" font-size="9" fill="#666">60%</text>
+  <text x="65" y="235" font-family="Arial, sans-serif" font-size="9" fill="#666">40%</text>
+
+  <!-- Grid lines -->
+  <line x1="85" y1="110" x2="290" y2="110" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="85" y1="150" x2="290" y2="150" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="85" y1="190" x2="290" y2="190" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="85" y1="230" x2="290" y2="230" stroke="#E0E0E0" stroke-width="1"/>
+
+  <!-- Precision Bars -->
+  <!-- MIESC: 94.5% -->
+  <rect x="95" y="116" width="30" height="119" rx="2" fill="url(#miescBar)" filter="url(#shadow)"/>
+  <text x="110" y="112" font-family="Arial, sans-serif" font-size="8" fill="#1B5E20" text-anchor="middle" font-weight="bold">94.5%</text>
+
+  <!-- Slither: 82.3% -->
+  <rect x="135" y="135" width="30" height="100" rx="2" fill="url(#slitherBar)" filter="url(#shadow)"/>
+  <text x="150" y="131" font-family="Arial, sans-serif" font-size="8" fill="#1565C0" text-anchor="middle">82.3%</text>
+
+  <!-- Mythril: 79.8% -->
+  <rect x="175" y="140" width="30" height="95" rx="2" fill="url(#mythrilBar)" filter="url(#shadow)"/>
+  <text x="190" y="136" font-family="Arial, sans-serif" font-size="8" fill="#E65100" text-anchor="middle">79.8%</text>
+
+  <!-- Echidna: 91.2% -->
+  <rect x="215" y="121" width="30" height="114" rx="2" fill="url(#echidnaBar)" filter="url(#shadow)"/>
+  <text x="230" y="117" font-family="Arial, sans-serif" font-size="8" fill="#880E4F" text-anchor="middle">91.2%</text>
+
+  <!-- Union: 68.4% -->
+  <rect x="255" y="158" width="30" height="77" rx="2" fill="url(#unionBar)" filter="url(#shadow)"/>
+  <text x="270" y="154" font-family="Arial, sans-serif" font-size="8" fill="#455A64" text-anchor="middle">68.4%</text>
+
+  <!-- X-axis labels -->
+  <text x="110" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">MIESC</text>
+  <text x="150" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">Slither</text>
+  <text x="190" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">Mythril</text>
+  <text x="230" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">Echidna</text>
+  <text x="270" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">Unión</text>
+
+  <!-- Recall Chart -->
+  <rect x="325" y="70" width="250" height="200" rx="8" fill="#FAFAFA" stroke="#E0E0E0" stroke-width="1"/>
+  <text x="450" y="95" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333" text-anchor="middle">Recall</text>
+
+  <!-- Y-axis labels -->
+  <text x="340" y="115" font-family="Arial, sans-serif" font-size="9" fill="#666">100%</text>
+  <text x="340" y="155" font-family="Arial, sans-serif" font-size="9" fill="#666">80%</text>
+  <text x="340" y="195" font-family="Arial, sans-serif" font-size="9" fill="#666">60%</text>
+  <text x="340" y="235" font-family="Arial, sans-serif" font-size="9" fill="#666">40%</text>
+
+  <!-- Grid lines -->
+  <line x1="360" y1="110" x2="565" y2="110" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="360" y1="150" x2="565" y2="150" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="360" y1="190" x2="565" y2="190" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="360" y1="230" x2="565" y2="230" stroke="#E0E0E0" stroke-width="1"/>
+
+  <!-- Recall Bars -->
+  <!-- MIESC: 92.8% -->
+  <rect x="370" y="118" width="30" height="117" rx="2" fill="url(#miescBar)" filter="url(#shadow)"/>
+  <text x="385" y="114" font-family="Arial, sans-serif" font-size="8" fill="#1B5E20" text-anchor="middle" font-weight="bold">92.8%</text>
+
+  <!-- Slither: 78.9% -->
+  <rect x="410" y="137" width="30" height="98" rx="2" fill="url(#slitherBar)" filter="url(#shadow)"/>
+  <text x="425" y="133" font-family="Arial, sans-serif" font-size="8" fill="#1565C0" text-anchor="middle">78.9%</text>
+
+  <!-- Mythril: 71.2% -->
+  <rect x="450" y="147" width="30" height="88" rx="2" fill="url(#mythrilBar)" filter="url(#shadow)"/>
+  <text x="465" y="143" font-family="Arial, sans-serif" font-size="8" fill="#E65100" text-anchor="middle">71.2%</text>
+
+  <!-- Echidna: 45.3% -->
+  <rect x="490" y="180" width="30" height="55" rx="2" fill="url(#echidnaBar)" filter="url(#shadow)"/>
+  <text x="505" y="176" font-family="Arial, sans-serif" font-size="8" fill="#880E4F" text-anchor="middle">45.3%</text>
+
+  <!-- Union: 94.2% -->
+  <rect x="530" y="117" width="30" height="118" rx="2" fill="url(#unionBar)" filter="url(#shadow)"/>
+  <text x="545" y="113" font-family="Arial, sans-serif" font-size="8" fill="#455A64" text-anchor="middle">94.2%</text>
+
+  <!-- X-axis labels -->
+  <text x="385" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">MIESC</text>
+  <text x="425" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">Slither</text>
+  <text x="465" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">Mythril</text>
+  <text x="505" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">Echidna</text>
+  <text x="545" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">Unión</text>
+
+  <!-- F1 Score Chart -->
+  <rect x="600" y="70" width="250" height="200" rx="8" fill="#FAFAFA" stroke="#E0E0E0" stroke-width="1"/>
+  <text x="725" y="95" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333" text-anchor="middle">F1 Score</text>
+
+  <!-- Y-axis labels -->
+  <text x="615" y="115" font-family="Arial, sans-serif" font-size="9" fill="#666">100%</text>
+  <text x="615" y="155" font-family="Arial, sans-serif" font-size="9" fill="#666">80%</text>
+  <text x="615" y="195" font-family="Arial, sans-serif" font-size="9" fill="#666">60%</text>
+  <text x="615" y="235" font-family="Arial, sans-serif" font-size="9" fill="#666">40%</text>
+
+  <!-- Grid lines -->
+  <line x1="635" y1="110" x2="840" y2="110" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="635" y1="150" x2="840" y2="150" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="635" y1="190" x2="840" y2="190" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="635" y1="230" x2="840" y2="230" stroke="#E0E0E0" stroke-width="1"/>
+
+  <!-- F1 Bars -->
+  <!-- MIESC: 93.6% -->
+  <rect x="645" y="117" width="30" height="118" rx="2" fill="url(#miescBar)" filter="url(#shadow)"/>
+  <text x="660" y="113" font-family="Arial, sans-serif" font-size="8" fill="#1B5E20" text-anchor="middle" font-weight="bold">93.6%</text>
+
+  <!-- Slither: 80.5% -->
+  <rect x="685" y="134" width="30" height="101" rx="2" fill="url(#slitherBar)" filter="url(#shadow)"/>
+  <text x="700" y="130" font-family="Arial, sans-serif" font-size="8" fill="#1565C0" text-anchor="middle">80.5%</text>
+
+  <!-- Mythril: 75.3% -->
+  <rect x="725" y="141" width="30" height="94" rx="2" fill="url(#mythrilBar)" filter="url(#shadow)"/>
+  <text x="740" y="137" font-family="Arial, sans-serif" font-size="8" fill="#E65100" text-anchor="middle">75.3%</text>
+
+  <!-- Echidna: 60.5% -->
+  <rect x="765" y="160" width="30" height="75" rx="2" fill="url(#echidnaBar)" filter="url(#shadow)"/>
+  <text x="780" y="156" font-family="Arial, sans-serif" font-size="8" fill="#880E4F" text-anchor="middle">60.5%</text>
+
+  <!-- Union: 79.2% -->
+  <rect x="805" y="136" width="30" height="99" rx="2" fill="url(#unionBar)" filter="url(#shadow)"/>
+  <text x="820" y="132" font-family="Arial, sans-serif" font-size="8" fill="#455A64" text-anchor="middle">79.2%</text>
+
+  <!-- X-axis labels -->
+  <text x="660" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">MIESC</text>
+  <text x="700" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">Slither</text>
+  <text x="740" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">Mythril</text>
+  <text x="780" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">Echidna</text>
+  <text x="820" y="252" font-family="Arial, sans-serif" font-size="7" fill="#333" text-anchor="middle">Unión</text>
+
+  <!-- Legend -->
+  <rect x="50" y="285" width="800" height="45" rx="8" fill="#F5F5F5" stroke="#E0E0E0" stroke-width="1"/>
+  <text x="70" y="310" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Legend / Leyenda:</text>
+  <rect x="180" y="300" width="15" height="12" fill="url(#miescBar)"/>
+  <text x="200" y="310" font-family="Arial, sans-serif" font-size="9" fill="#333">MIESC v4.0.0</text>
+  <rect x="300" y="300" width="15" height="12" fill="url(#slitherBar)"/>
+  <text x="320" y="310" font-family="Arial, sans-serif" font-size="9" fill="#333">Slither</text>
+  <rect x="390" y="300" width="15" height="12" fill="url(#mythrilBar)"/>
+  <text x="410" y="310" font-family="Arial, sans-serif" font-size="9" fill="#333">Mythril</text>
+  <rect x="480" y="300" width="15" height="12" fill="url(#echidnaBar)"/>
+  <text x="500" y="310" font-family="Arial, sans-serif" font-size="9" fill="#333">Echidna</text>
+  <rect x="580" y="300" width="15" height="12" fill="url(#unionBar)"/>
+  <text x="600" y="310" font-family="Arial, sans-serif" font-size="9" fill="#333">Unión Simple (sin filtrado)</text>
+
+  <!-- Summary Statistics Table -->
+  <rect x="50" y="345" width="800" height="190" rx="8" fill="#FAFAFA" stroke="#E0E0E0" stroke-width="1"/>
+  <text x="450" y="370" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333" text-anchor="middle">
+    Detailed Results Summary / Resumen Detallado de Resultados
+  </text>
+
+  <!-- Table Headers -->
+  <rect x="70" y="385" width="120" height="25" fill="#1565C0"/>
+  <text x="130" y="402" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">Tool</text>
+  <rect x="190" y="385" width="100" height="25" fill="#1565C0"/>
+  <text x="240" y="402" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">Precision</text>
+  <rect x="290" y="385" width="100" height="25" fill="#1565C0"/>
+  <text x="340" y="402" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">Recall</text>
+  <rect x="390" y="385" width="100" height="25" fill="#1565C0"/>
+  <text x="440" y="402" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">F1 Score</text>
+  <rect x="490" y="385" width="100" height="25" fill="#1565C0"/>
+  <text x="540" y="402" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">FP Rate</text>
+  <rect x="590" y="385" width="130" height="25" fill="#1565C0"/>
+  <text x="655" y="402" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">Improvement</text>
+  <rect x="720" y="385" width="110" height="25" fill="#1565C0"/>
+  <text x="775" y="402" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">Avg Time</text>
+
+  <!-- MIESC Row (highlighted) -->
+  <rect x="70" y="410" width="760" height="25" fill="#E8F5E9"/>
+  <text x="130" y="427" font-family="Arial, sans-serif" font-size="10" fill="#1B5E20" text-anchor="middle" font-weight="bold">MIESC v4.0.0</text>
+  <text x="240" y="427" font-family="Arial, sans-serif" font-size="10" fill="#1B5E20" text-anchor="middle" font-weight="bold">94.5%</text>
+  <text x="340" y="427" font-family="Arial, sans-serif" font-size="10" fill="#1B5E20" text-anchor="middle" font-weight="bold">92.8%</text>
+  <text x="440" y="427" font-family="Arial, sans-serif" font-size="10" fill="#1B5E20" text-anchor="middle" font-weight="bold">93.6%</text>
+  <text x="540" y="427" font-family="Arial, sans-serif" font-size="10" fill="#1B5E20" text-anchor="middle" font-weight="bold">5.5%</text>
+  <text x="655" y="427" font-family="Arial, sans-serif" font-size="10" fill="#1B5E20" text-anchor="middle" font-weight="bold">Baseline</text>
+  <text x="775" y="427" font-family="Arial, sans-serif" font-size="10" fill="#1B5E20" text-anchor="middle" font-weight="bold">42.1s</text>
+
+  <!-- Slither Row -->
+  <rect x="70" y="435" width="760" height="25" fill="#FFFFFF"/>
+  <text x="130" y="452" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">Slither</text>
+  <text x="240" y="452" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">82.3%</text>
+  <text x="340" y="452" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">78.9%</text>
+  <text x="440" y="452" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">80.5%</text>
+  <text x="540" y="452" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">17.7%</text>
+  <text x="655" y="452" font-family="Arial, sans-serif" font-size="10" fill="#D32F2F" text-anchor="middle">-13.1%</text>
+  <text x="775" y="452" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">8.2s</text>
+
+  <!-- Mythril Row -->
+  <rect x="70" y="460" width="760" height="25" fill="#F5F5F5"/>
+  <text x="130" y="477" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">Mythril</text>
+  <text x="240" y="477" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">79.8%</text>
+  <text x="340" y="477" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">71.2%</text>
+  <text x="440" y="477" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">75.3%</text>
+  <text x="540" y="477" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">20.2%</text>
+  <text x="655" y="477" font-family="Arial, sans-serif" font-size="10" fill="#D32F2F" text-anchor="middle">-18.3%</text>
+  <text x="775" y="477" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">67.4s</text>
+
+  <!-- Echidna Row -->
+  <rect x="70" y="485" width="760" height="25" fill="#FFFFFF"/>
+  <text x="130" y="502" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">Echidna</text>
+  <text x="240" y="502" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">91.2%</text>
+  <text x="340" y="502" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">45.3%</text>
+  <text x="440" y="502" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">60.5%</text>
+  <text x="540" y="502" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">8.8%</text>
+  <text x="655" y="502" font-family="Arial, sans-serif" font-size="10" fill="#D32F2F" text-anchor="middle">-33.1%</text>
+  <text x="775" y="502" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">95.2s</text>
+
+  <!-- Union Row -->
+  <rect x="70" y="510" width="760" height="25" fill="#FFF3E0"/>
+  <text x="130" y="527" font-family="Arial, sans-serif" font-size="10" fill="#E65100" text-anchor="middle">Unión Simple*</text>
+  <text x="240" y="527" font-family="Arial, sans-serif" font-size="10" fill="#E65100" text-anchor="middle">68.4%</text>
+  <text x="340" y="527" font-family="Arial, sans-serif" font-size="10" fill="#E65100" text-anchor="middle">94.2%</text>
+  <text x="440" y="527" font-family="Arial, sans-serif" font-size="10" fill="#E65100" text-anchor="middle">79.2%</text>
+  <text x="540" y="527" font-family="Arial, sans-serif" font-size="10" fill="#E65100" text-anchor="middle">31.6%</text>
+  <text x="655" y="527" font-family="Arial, sans-serif" font-size="10" fill="#D32F2F" text-anchor="middle">-14.4%</text>
+  <text x="775" y="527" font-family="Arial, sans-serif" font-size="10" fill="#E65100" text-anchor="middle">287.4s</text>
+</svg>

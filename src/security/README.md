@@ -1,5 +1,7 @@
 # MIESC Security Module
 
+**English** | [Español](README_ES.md)
+
 ## Overview
 
 Comprehensive security module for the MIESC framework providing:
@@ -274,4 +276,4 @@ This security module helps achieve compliance with:
 
 ## License
 
-GPL-3.0 (same as MIESC framework)
+AGPL-3.0 (same as MIESC framework)

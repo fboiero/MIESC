@@ -1,10 +1,12 @@
-# MIESC v3.3.0 - Docker Compose Configuration
+# MIESC v4.0.0 - Docker Compose Configuration
 # Multi-layer Intelligent Evaluation for Smart Contracts
+# Now with ML Pipeline: FP filtering, severity prediction, clustering
 #
 # Usage:
 #   Build and run:     docker-compose up --build
 #   Run tests:         docker-compose run miesc-test
 #   Run API server:    docker-compose up miesc-api
+#   Run ML CLI:        docker-compose run miesc-ml
 #   Interactive shell: docker-compose run miesc-shell
 
 version: '3.8'
@@ -17,10 +19,10 @@ services:
       dockerfile: Dockerfile
       args:
         - BUILDKIT_INLINE_CACHE=1
-    image: miesc:3.3.0
+    image: miesc:4.0.0
     container_name: miesc-main
     environment:
-      - MIESC_VERSION=3.3.0
+      - MIESC_VERSION=4.0.0
       - MIESC_ENV=docker
       - PYTHONUNBUFFERED=1
     volumes:
@@ -40,20 +42,40 @@ services:
       retries: 3
       start_period: 10s
 
+  # MIESC ML CLI (ML-enhanced analysis)
+  miesc-ml:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: miesc:4.0.0
+    container_name: miesc-ml
+    environment:
+      - MIESC_VERSION=4.0.0
+      - MIESC_ENV=docker-ml
+      - PYTHONUNBUFFERED=1
+    command: python -m src.miesc_ml_cli --help
+    volumes:
+      - miesc-data:/data
+      - ./contracts:/app/contracts:ro
+    networks:
+      - miesc-network
+    profiles:
+      - ml
+
   # MIESC Test Runner (explicitly runs test suite)
   miesc-test:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:3.3.0
+    image: miesc:4.0.0
     container_name: miesc-test
     environment:
-      - MIESC_VERSION=3.3.0
+      - MIESC_VERSION=4.0.0
       - MIESC_ENV=docker-test
       - PYTHONUNBUFFERED=1
     command: >
-      sh -c "echo '=== MIESC v3.3.0 - Test Suite ===' &&
-             echo 'Running comprehensive tests...' &&
+      sh -c "echo '=== MIESC v4.0.0 - Test Suite ===' &&
+             echo 'Running comprehensive tests including ML pipeline...' &&
              python -m pytest tests/ -v --tb=short --maxfail=5 --cov=src --cov-report=term-missing"
     volumes:
       - miesc-data:/data
@@ -67,10 +89,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:3.3.0
+    image: miesc:4.0.0
     container_name: miesc-api
     environment:
-      - MIESC_VERSION=3.3.0
+      - MIESC_VERSION=4.0.0
       - MIESC_ENV=docker-api
       - PYTHONUNBUFFERED=1
     command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
@@ -95,10 +117,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:3.3.0
+    image: miesc:4.0.0
     container_name: miesc-shell
     environment:
-      - MIESC_VERSION=3.3.0
+      - MIESC_VERSION=4.0.0
       - MIESC_ENV=docker-shell
       - PYTHONUNBUFFERED=1
     command: /bin/bash
@@ -117,15 +139,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:3.3.0
+    image: miesc:4.0.0
     container_name: miesc-analyzer
     environment:
-      - MIESC_VERSION=3.3.0
+      - MIESC_VERSION=4.0.0
       - MIESC_ENV=docker-analyzer
       - PYTHONUNBUFFERED=1
       - CONTRACT_PATH=${CONTRACT_PATH:-/app/contracts/example.sol}
     command: >
-      sh -c "echo '=== MIESC v3.3.0 - Contract Analyzer ===' &&
+      sh -c "echo '=== MIESC v4.0.0 - Contract Analyzer ===' &&
              echo 'Analyzing: ${CONTRACT_PATH}' &&
              python -m src.cli.miesc_cli analyze ${CONTRACT_PATH} --output /data/report.json"
     volumes:
@@ -166,4 +188,4 @@ volumes:
 #
 # 6. Clean up:
 #    docker-compose down -v
-#    docker rmi miesc:3.3.0
+#    docker rmi miesc:4.0.0

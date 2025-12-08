@@ -1,0 +1,36 @@
+Section,Question,Response
+General Information,Name of Digital Solution,MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
+General Information,Description,"MIESC is an open-source multi-agent framework for comprehensive smart contract security analysis. It integrates 25+ security tools across 7 defense layers (static analysis, linting, symbolic execution, fuzzing, formal verification, property testing, AI analysis) with local LLM support via Ollama for data sovereignty."
+General Information,Website,https://fboiero.github.io/MIESC/
+General Information,GitHub Repository,https://github.com/fboiero/MIESC
+General Information,Type of Digital Solution,Software
+1. SDG Relevance,Which SDGs,"SDG 9: Industry, Innovation and Infrastructure; SDG 16: Peace, Justice and Strong Institutions"
+1. SDG Relevance,How is it relevant,"SDG 9: MIESC directly supports Target 9.5 by providing open-source blockchain security technology, democratizing access to advanced tools previously available only to well-funded organizations. SDG 16: Contributes to Target 16.5 (reduce corruption) and Target 16.6 (effective institutions) by providing transparent, verifiable security auditing for blockchain-based financial systems."
+2. Open Licensing,License,AGPL-3.0
+2. Open Licensing,Evidence,https://github.com/fboiero/MIESC/blob/main/LICENSE
+3. Clear Ownership,Owner Name,Fernando Boiero
+3. Clear Ownership,Evidence,"https://github.com/fboiero/MIESC, https://github.com/fboiero/MIESC/blob/main/CONTRIBUTORS.md"
+3. Clear Ownership,Organization Type,Individual / Academic Researcher
+3. Clear Ownership,Country,Argentina
+3. Clear Ownership,Own all code,Yes
+3. Clear Ownership,Right to redistribute,"Yes. Original work by Fernando Boiero under AGPL-3.0. Third-party dependencies use compatible open-source licenses."
+4. Platform Independence,Core Technologies,"Python 3.9+, Solidity Compiler, Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, SMTChecker, Ollama, Flask, Streamlit, JSON, SARIF"
+4. Platform Independence,Closed Components,No
+5. Documentation,Documentation Links,"https://github.com/fboiero/MIESC/blob/main/README.md, https://fboiero.github.io/MIESC/, https://github.com/fboiero/MIESC/blob/main/CONTRIBUTING.md, https://github.com/fboiero/MIESC/blob/main/docs/openapi.yaml"
+6. Data Extraction,Collects non-PII data,Yes
+6. Data Extraction,Formats,"JSON, API, CSV, HTML, Markdown, YAML, PDF"
+6. Data Extraction,Evidence,"REST API with OpenAPI 3.0 spec, SARIF export, CLI with multiple output formats. See: https://github.com/fboiero/MIESC/blob/main/docs/openapi.yaml"
+7. Privacy & Laws,Laws Compliance,"GDPR, CCPA, Ley de Proteccion de Datos Personales N 25.326 (Argentina), LGPD (Brazil)"
+7. Privacy & Laws,Evidence,"https://github.com/fboiero/MIESC/blob/main/PRIVACY.md - All processing is local, no data collection, no telemetry, AI uses local Ollama."
+8. Standards,Open Standards,"OpenAPI 3.0, SARIF v2.1, JSON Schema, MCP (Model Context Protocol), SWC Registry, CWE, Semantic Versioning 2.0"
+8. Standards,Best Practices,"Principles for Digital Development, OWASP Secure Coding Practices, Defense in Depth (NIST), Contributor Covenant v2.1, Conventional Commits, PEP 8"
+8. Standards,Evidence,"https://github.com/fboiero/MIESC/blob/main/DPG-COMPLIANCE.md, https://github.com/fboiero/MIESC/blob/main/CODE_OF_CONDUCT.md"
+9A. Data Privacy,Collects PII,No
+9B. Content,Collects Content,No
+9C. Harassment,Enables Interactions,Yes
+9C. Harassment,Protection Mechanisms,"Code of Conduct (Contributor Covenant v2.1), GitHub reporting tools, enforcement procedures. See: https://github.com/fboiero/MIESC/blob/main/CODE_OF_CONDUCT.md"
+Scale,Deployed Countries,Argentina
+Scale,Users,"Universidad de la Defensa Nacional (UNDEF), Universidad Tecnologica Nacional - FRVM, open-source community"
+Scale,Multilingual,Yes
+Scale,Languages,"English, Spanish"
+Scale,Highlights,"https://fboiero.github.io/MIESC/, https://github.com/fboiero/MIESC, 7-layer defense architecture, 25+ tools, 94.5% precision, local LLM support"

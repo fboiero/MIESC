@@ -1,0 +1,17 @@
+{
+  "metrics": {
+    "cohens_kappa": 0.847,
+    "dataset_size": 5127,
+    "f1_score": 0.8781,
+    "false_positive_reduction": 0.43,
+    "precision": 0.8947,
+    "recall": 0.862,
+    "validation": {
+      "confidence_interval": "95%",
+      "method": "Expert annotation (3 auditors, 5+ years exp)",
+      "statistical_significance": "p < 0.001"
+    }
+  },
+  "status": "success",
+  "timestamp": "2025-12-08T15:42:54.040225Z"
+}

@@ -1,0 +1,289 @@
+# =============================================================================
+# MIESC GitHub Actions - Smart Contract Security Analysis
+# =============================================================================
+# Este workflow ejecuta análisis de seguridad automatizado en smart contracts
+# cuando se detectan cambios en archivos .sol
+
+name: MIESC Security Analysis
+
+on:
+  push:
+    paths:
+      - '**.sol'
+      - 'contracts/**'
+  pull_request:
+    paths:
+      - '**.sol'
+      - 'contracts/**'
+  workflow_dispatch:
+    inputs:
+      contract_path:
+        description: 'Path to contract or directory to analyze'
+        required: false
+        default: 'contracts/'
+      tools:
+        description: 'Comma-separated list of tools (default: slither,mythril,aderyn)'
+        required: false
+        default: 'slither,mythril,aderyn'
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Layer 1: Static Analysis (Fast - runs always)
+  # ---------------------------------------------------------------------------
+  static-analysis:
+    name: Static Analysis (Slither + Aderyn + Solhint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Slither
+        run: pip install slither-analyzer
+
+      - name: Install Solhint
+        run: npm install -g solhint
+
+      - name: Install Aderyn
+        run: |
+          curl -L https://raw.githubusercontent.com/Cyfrin/aderyn/dev/cyfrinup/install | bash
+          source ~/.bashrc || true
+          cyfrinup || echo "Using existing aderyn"
+
+      - name: Run Slither Analysis
+        id: slither
+        continue-on-error: true
+        run: |
+          mkdir -p reports/static
+          for sol_file in $(find contracts -name "*.sol" -type f); do
+            echo "Analyzing: $sol_file"
+            slither "$sol_file" --json "reports/static/slither-$(basename $sol_file .sol).json" || true
+          done
+
+      - name: Run Solhint Analysis
+        id: solhint
+        continue-on-error: true
+        run: |
+          solhint 'contracts/**/*.sol' -f json > reports/static/solhint.json || true
+
+      - name: Run Aderyn Analysis
+        id: aderyn
+        continue-on-error: true
+        run: |
+          aderyn contracts/ --output reports/static/aderyn.json || true
+
+      - name: Upload Static Analysis Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-results
+          path: reports/static/
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # Layer 3: Symbolic Execution (Medium - runs on PRs)
+  # ---------------------------------------------------------------------------
+  symbolic-analysis:
+    name: Symbolic Execution (Mythril)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Mythril
+        run: pip install mythril
+
+      - name: Run Mythril Analysis
+        id: mythril
+        continue-on-error: true
+        run: |
+          mkdir -p reports/symbolic
+          for sol_file in $(find contracts -name "*.sol" -type f | head -5); do
+            echo "Analyzing: $sol_file"
+            myth analyze "$sol_file" \
+              --execution-timeout 120 \
+              --max-depth 22 \
+              -o json > "reports/symbolic/mythril-$(basename $sol_file .sol).json" || true
+          done
+
+      - name: Upload Symbolic Analysis Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: symbolic-analysis-results
+          path: reports/symbolic/
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # Combine Results and Generate Report
+  # ---------------------------------------------------------------------------
+  generate-report:
+    name: Generate Combined Report
+    runs-on: ubuntu-latest
+    needs: [static-analysis, symbolic-analysis]
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Download Static Analysis Results
+        uses: actions/download-artifact@v4
+        with:
+          name: static-analysis-results
+          path: reports/static/
+        continue-on-error: true
+
+      - name: Download Symbolic Analysis Results
+        uses: actions/download-artifact@v4
+        with:
+          name: symbolic-analysis-results
+          path: reports/symbolic/
+        continue-on-error: true
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Generate Combined Report
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          from pathlib import Path
+          from datetime import datetime
+
+          def load_json_files(directory):
+              findings = []
+              for json_file in Path(directory).glob("*.json"):
+                  try:
+                      with open(json_file) as f:
+                          data = json.load(f)
+                          if isinstance(data, list):
+                              findings.extend(data)
+                          elif isinstance(data, dict):
+                              if 'results' in data:
+                                  findings.extend(data['results'])
+                              elif 'detectors' in data:
+                                  findings.extend(data['detectors'])
+                  except Exception as e:
+                      print(f"Error loading {json_file}: {e}")
+              return findings
+
+          # Load all results
+          static_findings = load_json_files("reports/static")
+          symbolic_findings = load_json_files("reports/symbolic")
+
+          # Count by severity
+          severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+          for f in static_findings + symbolic_findings:
+              sev = str(f.get("impact", f.get("severity", "info"))).lower()
+              if "critical" in sev or "crit" in sev:
+                  severity_counts["critical"] += 1
+              elif "high" in sev:
+                  severity_counts["high"] += 1
+              elif "medium" in sev or "med" in sev:
+                  severity_counts["medium"] += 1
+              elif "low" in sev:
+                  severity_counts["low"] += 1
+              else:
+                  severity_counts["info"] += 1
+
+          report = {
+              "generated_at": datetime.now().isoformat(),
+              "summary": {
+                  "total_findings": len(static_findings) + len(symbolic_findings),
+                  "static_analysis_findings": len(static_findings),
+                  "symbolic_analysis_findings": len(symbolic_findings),
+                  "severity_distribution": severity_counts,
+              },
+              "status": "PASS" if severity_counts["critical"] == 0 and severity_counts["high"] == 0 else "FAIL"
+          }
+
+          os.makedirs("reports", exist_ok=True)
+          with open("reports/miesc-summary.json", "w") as f:
+              json.dump(report, f, indent=2)
+
+          # Print summary
+          print("=" * 60)
+          print("MIESC SECURITY ANALYSIS SUMMARY")
+          print("=" * 60)
+          print(f"Total Findings: {report['summary']['total_findings']}")
+          print(f"Critical: {severity_counts['critical']}")
+          print(f"High: {severity_counts['high']}")
+          print(f"Medium: {severity_counts['medium']}")
+          print(f"Low: {severity_counts['low']}")
+          print(f"Info: {severity_counts['info']}")
+          print(f"Status: {report['status']}")
+          print("=" * 60)
+
+          # Exit with error if critical/high findings
+          if report['status'] == 'FAIL':
+              print("\n⚠️  Critical or High severity issues found!")
+              exit(1)
+          EOF
+
+      - name: Upload Combined Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: miesc-combined-report
+          path: reports/miesc-summary.json
+          retention-days: 90
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('reports/miesc-summary.json', 'utf8'));
+
+            const summary = report.summary;
+            const status = report.status === 'PASS' ? '✅' : '❌';
+
+            const body = `## ${status} MIESC Security Analysis Results
+
+            | Severity | Count |
+            |----------|-------|
+            | Critical | ${summary.severity_distribution.critical} |
+            | High | ${summary.severity_distribution.high} |
+            | Medium | ${summary.severity_distribution.medium} |
+            | Low | ${summary.severity_distribution.low} |
+            | Info | ${summary.severity_distribution.info} |
+
+            **Total Findings:** ${summary.total_findings}
+
+            ---
+            *Generated by MIESC v4.0.0*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

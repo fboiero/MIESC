@@ -1,0 +1,364 @@
+MIESC Test Suite Evidence
+=========================
+
+Command: pytest tests/ -v --tb=short --cov=src --cov=miesc
+
+============================= test session starts ==============================
+platform darwin -- Python 3.14.0, pytest-9.0.2, pluggy-1.6.0 -- /opt/homebrew/opt/python@3.14/bin/python3.14
+cachedir: .pytest_cache
+rootdir: /Users/fboiero/Documents/GitHub/MIESC
+configfile: pyproject.toml
+plugins: anyio-4.12.0, cov-7.0.0
+collecting ... collected 204 items
+
+tests/test_adapters.py::TestSlitherAdapter::test_import PASSED           [  0%]
+tests/test_adapters.py::TestSlitherAdapter::test_instantiation PASSED    [  0%]
+tests/test_adapters.py::TestSlitherAdapter::test_metadata PASSED         [  1%]
+tests/test_adapters.py::TestSlitherAdapter::test_is_available PASSED     [  1%]
+tests/test_adapters.py::TestSlitherAdapter::test_analyze_nonexistent_file PASSED [  2%]
+tests/test_adapters.py::TestSlitherAdapter::test_severity_mapping PASSED [  2%]
+tests/test_adapters.py::TestMythrilAdapter::test_import PASSED           [  3%]
+tests/test_adapters.py::TestMythrilAdapter::test_instantiation PASSED    [  3%]
+tests/test_adapters.py::TestMythrilAdapter::test_metadata PASSED         [  4%]
+tests/test_adapters.py::TestMythrilAdapter::test_is_available PASSED     [  4%]
+tests/test_adapters.py::TestSolhintAdapter::test_import PASSED           [  5%]
+tests/test_adapters.py::TestSolhintAdapter::test_instantiation PASSED    [  5%]
+tests/test_adapters.py::TestSolhintAdapter::test_metadata PASSED         [  6%]
+tests/test_adapters.py::TestSMTCheckerAdapter::test_import PASSED        [  6%]
+tests/test_adapters.py::TestSMTCheckerAdapter::test_instantiation PASSED [  7%]
+tests/test_adapters.py::TestSMTCheckerAdapter::test_metadata PASSED      [  7%]
+tests/test_adapters.py::TestEchidnaAdapter::test_import PASSED           [  8%]
+tests/test_adapters.py::TestEchidnaAdapter::test_instantiation PASSED    [  8%]
+tests/test_adapters.py::TestFoundryAdapter::test_import PASSED           [  9%]
+tests/test_adapters.py::TestFoundryAdapter::test_instantiation PASSED    [  9%]
+tests/test_adapters.py::TestAderynAdapter::test_import PASSED            [ 10%]
+tests/test_adapters.py::TestAderynAdapter::test_instantiation PASSED     [ 10%]
+tests/test_adapters.py::TestHalmosAdapter::test_import PASSED            [ 11%]
+tests/test_adapters.py::TestHalmosAdapter::test_instantiation PASSED     [ 11%]
+tests/test_adapters.py::TestManticoreAdapter::test_import PASSED         [ 12%]
+tests/test_adapters.py::TestManticoreAdapter::test_instantiation PASSED  [ 12%]
+tests/test_adapters.py::TestCertoraAdapter::test_import PASSED           [ 13%]
+tests/test_adapters.py::TestCertoraAdapter::test_instantiation PASSED    [ 13%]
+tests/test_adapters.py::TestPropertyGPTAdapter::test_import PASSED       [ 14%]
+tests/test_adapters.py::TestPropertyGPTAdapter::test_instantiation PASSED [ 14%]
+tests/test_adapters.py::TestSmartLLMAdapter::test_import PASSED          [ 15%]
+tests/test_adapters.py::TestSmartLLMAdapter::test_instantiation PASSED   [ 15%]
+tests/test_adapters.py::TestThreatModelAdapter::test_import PASSED       [ 16%]
+tests/test_adapters.py::TestThreatModelAdapter::test_instantiation PASSED [ 16%]
+tests/test_adapters.py::TestGasAnalyzerAdapter::test_import PASSED       [ 17%]
+tests/test_adapters.py::TestGasAnalyzerAdapter::test_instantiation PASSED [ 17%]
+tests/test_adapters.py::TestMEVDetectorAdapter::test_import PASSED       [ 18%]
+tests/test_adapters.py::TestMEVDetectorAdapter::test_instantiation PASSED [ 18%]
+tests/test_adapters.py::TestMedusaAdapter::test_import PASSED            [ 19%]
+tests/test_adapters.py::TestMedusaAdapter::test_instantiation PASSED     [ 19%]
+tests/test_adapters.py::TestWakeAdapter::test_import PASSED              [ 20%]
+tests/test_adapters.py::TestWakeAdapter::test_instantiation PASSED       [ 20%]
+tests/test_adapters.py::TestSmartGuardAdapter::test_import PASSED        [ 21%]
+tests/test_adapters.py::TestSmartGuardAdapter::test_instantiation PASSED [ 21%]
+tests/test_adapters.py::TestSmartGuardAdapter::test_metadata PASSED      [ 22%]
+tests/test_adapters.py::TestSmartGuardAdapter::test_knowledge_base PASSED [ 22%]
+tests/test_adapters.py::TestAdapterRegistry::test_all_adapters_importable PASSED [ 23%]
+tests/test_adapters.py::TestAdapterRegistry::test_adapters_have_required_methods PASSED [ 23%]
+tests/test_agents.py::TestBaseAgent::test_import_base_agent PASSED       [ 24%]
+tests/test_agents.py::TestBaseAgent::test_base_agent_is_abstract PASSED  [ 24%]
+tests/test_agents.py::TestBaseAgent::test_base_agent_concrete_implementation PASSED [ 25%]
+tests/test_agents.py::TestStaticAgent::test_import_static_agent PASSED   [ 25%]
+tests/test_agents.py::TestStaticAgent::test_static_agent_initialization PASSED [ 25%]
+tests/test_agents.py::TestStaticAgent::test_static_agent_has_analyze_method PASSED [ 26%]
+tests/test_agents.py::TestStaticAgent::test_static_agent_context_types PASSED [ 26%]
+tests/test_agents.py::TestCoordinatorAgent::test_import_coordinator_agent PASSED [ 27%]
+tests/test_agents.py::TestCoordinatorAgent::test_coordinator_agent_initialization PASSED [ 27%]
+tests/test_agents.py::TestCoordinatorAgent::test_coordinator_has_orchestrate_method PASSED [ 28%]
+tests/test_agents.py::TestPolicyAgent::test_import_policy_agent PASSED   [ 28%]
+tests/test_agents.py::TestPolicyAgent::test_policy_agent_initialization PASSED [ 29%]
+tests/test_agents.py::TestPolicyAgent::test_policy_agent_has_compliance_standards PASSED [ 29%]
+tests/test_agents.py::TestAIAgent::test_import_ai_agent PASSED           [ 30%]
+tests/test_agents.py::TestAIAgent::test_ai_agent_initialization PASSED   [ 30%]
+tests/test_agents.py::TestDynamicAgent::test_import_dynamic_agent PASSED [ 31%]
+tests/test_agents.py::TestDynamicAgent::test_dynamic_agent_initialization PASSED [ 31%]
+tests/test_agents.py::TestSymbolicAgent::test_import_symbolic_agent PASSED [ 32%]
+tests/test_agents.py::TestSymbolicAgent::test_symbolic_agent_initialization PASSED [ 32%]
+tests/test_agents.py::TestFormalAgent::test_import_formal_agent PASSED   [ 33%]
+tests/test_agents.py::TestFormalAgent::test_formal_agent_initialization PASSED [ 33%]
+tests/test_agents.py::TestOllamaAgent::test_import_ollama_agent PASSED   [ 34%]
+tests/test_agents.py::TestOllamaAgent::test_ollama_agent_initialization PASSED [ 34%]
+tests/test_agents.py::TestInterpretationAgent::test_import_interpretation_agent PASSED [ 35%]
+tests/test_agents.py::TestRecommendationAgent::test_import_recommendation_agent PASSED [ 35%]
+tests/test_agents.py::TestAgentIntegration::test_all_agents_importable PASSED [ 36%]
+tests/test_agents.py::TestAgentIntegration::test_agent_init_file_exports PASSED [ 36%]
+tests/test_api.py::TestMCPRestAPI::test_root_endpoint PASSED             [ 37%]
+tests/test_api.py::TestMCPRestAPI::test_capabilities_endpoint PASSED     [ 37%]
+tests/test_api.py::TestMCPRestAPI::test_status_endpoint PASSED           [ 38%]
+tests/test_api.py::TestMCPRestAPI::test_metrics_endpoint PASSED          [ 38%]
+tests/test_api.py::TestMCPRestAPI::test_audit_endpoint_no_data PASSED    [ 39%]
+tests/test_api.py::TestMCPRestAPI::test_audit_endpoint_missing_contract PASSED [ 39%]
+tests/test_api.py::TestMCPRestAPI::test_audit_endpoint_nonexistent_contract PASSED [ 40%]
+tests/test_api.py::TestMCPRestAPI::test_policy_audit_endpoint PASSED     [ 40%]
+tests/test_api.py::TestMCPRestAPI::test_404_handler PASSED               [ 41%]
+tests/test_api.py::TestAPIVersion::test_version_in_response PASSED       [ 41%]
+tests/test_api.py::TestAPISchema::test_capabilities_schema PASSED        [ 42%]
+tests/test_api.py::TestAPISchema::test_metrics_schema PASSED             [ 42%]
+tests/test_api.py::TestAPISchema::test_status_schema PASSED              [ 43%]
+tests/test_api.py::TestAPICORS::test_cors_headers_present PASSED         [ 43%]
+tests/test_api.py::TestAPIErrorHandling::test_invalid_json PASSED        [ 44%]
+tests/test_api.py::TestAPIErrorHandling::test_wrong_content_type PASSED  [ 44%]
+tests/test_cli.py::TestMLCLI::test_import PASSED                         [ 45%]
+tests/test_cli.py::TestMLCLI::test_main_function_exists PASSED           [ 45%]
+tests/test_cli.py::TestMLCLI::test_print_banner PASSED                   [ 46%]
+tests/test_cli.py::TestMLCLI::test_print_progress PASSED                 [ 46%]
+tests/test_cli.py::TestMLCLI::test_cmd_tools PASSED                      [ 47%]
+tests/test_cli.py::TestMLCLI::test_cmd_tools_by_layer PASSED             [ 47%]
+tests/test_cli.py::TestMLCLI::test_cmd_health PASSED                     [ 48%]
+tests/test_cli.py::TestMLCLI::test_cmd_health_json PASSED                [ 48%]
+tests/test_cli.py::TestMLCLI::test_cmd_ml_report PASSED                  [ 49%]
+tests/test_cli.py::TestMLCLI::test_cmd_ml_feedback PASSED                [ 49%]
+tests/test_cli.py::TestMLCLI::test_cmd_ml_feedback_invalid_type PASSED   [ 50%]
+tests/test_cli.py::TestMLCLI::test_cmd_ml_analyze_nonexistent PASSED     [ 50%]
+tests/test_cli.py::TestMLCLI::test_cmd_ml_scan_nonexistent_dir PASSED    [ 50%]
+tests/test_cli.py::TestCLIArgumentParser::test_parser_creation PASSED    [ 51%]
+tests/test_cli.py::TestCLIArgumentParser::test_subcommands_available PASSED [ 51%]
+tests/test_cli.py::TestCLIOutput::test_json_output_valid PASSED          [ 52%]
+tests/test_cli.py::TestCLIErrorHandling::test_missing_contract_argument PASSED [ 52%]
+tests/test_cli.py::TestCLIErrorHandling::test_invalid_subcommand PASSED  [ 53%]
+tests/test_cli.py::TestCLIIntegration::test_full_analysis_workflow PASSED [ 53%]
+tests/test_cli.py::TestCLIIntegration::test_scan_directory PASSED        [ 54%]
+tests/test_core.py::TestToolProtocol::test_tool_metadata_import PASSED   [ 54%]
+tests/test_core.py::TestToolProtocol::test_tool_adapter_import PASSED    [ 55%]
+tests/test_core.py::TestToolProtocol::test_tool_status_import PASSED     [ 55%]
+tests/test_core.py::TestToolProtocol::test_tool_category_import PASSED   [ 56%]
+tests/test_core.py::TestToolProtocol::test_tool_capability_import PASSED [ 56%]
+tests/test_core.py::TestToolProtocol::test_create_tool_metadata PASSED   [ 57%]
+tests/test_core.py::TestToolDiscovery::test_import PASSED                [ 57%]
+tests/test_core.py::TestToolDiscovery::test_get_tool_discovery PASSED    [ 58%]
+tests/test_core.py::TestToolDiscovery::test_get_available_tools PASSED   [ 58%]
+tests/test_core.py::TestToolDiscovery::test_get_tools_by_layer PASSED    [ 59%]
+tests/test_core.py::TestHealthChecker::test_import PASSED                [ 59%]
+tests/test_core.py::TestHealthChecker::test_health_status_import PASSED  [ 60%]
+tests/test_core.py::TestHealthChecker::test_instantiation PASSED         [ 60%]
+tests/test_core.py::TestHealthChecker::test_check_all PASSED             [ 61%]
+tests/test_core.py::TestResultAggregator::test_import PASSED             [ 61%]
+tests/test_core.py::TestResultAggregator::test_instantiation PASSED      [ 62%]
+tests/test_core.py::TestResultAggregator::test_add_tool_results PASSED   [ 62%]
+tests/test_core.py::TestResultAggregator::test_aggregator_has_add_method PASSED [ 63%]
+tests/test_core.py::TestResultAggregator::test_aggregator_has_normalize_method PASSED [ 63%]
+tests/test_core.py::TestAgentProtocol::test_agent_capability_import PASSED [ 64%]
+tests/test_core.py::TestAgentProtocol::test_agent_metadata_import PASSED [ 64%]
+tests/test_core.py::TestAgentProtocol::test_finding_import PASSED        [ 65%]
+tests/test_core.py::TestAgentRegistry::test_import PASSED                [ 65%]
+tests/test_core.py::TestAgentRegistry::test_instantiation PASSED         [ 66%]
+tests/test_core.py::TestOptimizedOrchestrator::test_import PASSED        [ 66%]
+tests/test_core.py::TestOptimizedOrchestrator::test_instantiation PASSED [ 67%]
+tests/test_core.py::TestMLOrchestrator::test_import PASSED               [ 67%]
+tests/test_core.py::TestMLOrchestrator::test_get_ml_orchestrator PASSED  [ 68%]
+tests/test_core.py::TestMLOrchestrator::test_ml_orchestrator_methods PASSED [ 68%]
+tests/test_core.py::TestConfigLoader::test_import PASSED                 [ 69%]
+tests/test_core.py::TestConfigLoader::test_instantiation PASSED          [ 69%]
+tests/test_core.py::TestCoreInit::test_all_exports_available PASSED      [ 70%]
+tests/test_integration.py::TestMLOrchestrator::test_orchestrator_initialization PASSED [ 70%]
+tests/test_integration.py::TestMLOrchestrator::test_orchestrator_singleton PASSED [ 71%]
+tests/test_integration.py::TestMLOrchestrator::test_orchestrator_ml_report PASSED [ 71%]
+tests/test_integration.py::TestMLOrchestrator::test_orchestrator_with_temp_contract PASSED [ 72%]
+tests/test_integration.py::TestToolDiscovery::test_discovery_initialization PASSED [ 72%]
+tests/test_integration.py::TestToolDiscovery::test_get_available_tools PASSED [ 73%]
+tests/test_integration.py::TestToolDiscovery::test_get_tools_by_layer PASSED [ 73%]
+tests/test_integration.py::TestHealthChecker::test_checker_initialization PASSED [ 74%]
+tests/test_integration.py::TestHealthChecker::test_check_all PASSED      [ 74%]
+tests/test_integration.py::TestAdapterIntegration::test_slither_adapter_available PASSED [ 75%]
+tests/test_integration.py::TestAdapterIntegration::test_mythril_adapter_available PASSED [ 75%]
+tests/test_integration.py::TestAdapterIntegration::test_solhint_adapter_available PASSED [ 75%]
+tests/test_integration.py::TestEndToEndPipeline::test_full_pipeline_flow PASSED [ 76%]
+tests/test_integration.py::TestEndToEndPipeline::test_quick_scan_performance PASSED [ 76%]
+tests/test_integration.py::TestEndToEndPipeline::test_result_serialization PASSED [ 77%]
+tests/test_integration.py::TestEndToEndPipeline::test_feedback_submission PASSED [ 77%]
+tests/test_integration.py::TestMLPipelineIntegration::test_process_realistic_findings PASSED [ 78%]
+tests/test_integration.py::TestMLPipelineIntegration::test_pipeline_clusters_similar_findings PASSED [ 78%]
+tests/test_integration.py::TestConfigurationIntegration::test_environment_variables PASSED [ 79%]
+tests/test_integration.py::TestConfigurationIntegration::test_ml_pipeline_threshold_config PASSED [ 79%]
+tests/test_ml_pipeline.py::TestFalsePositiveFilter::test_filter_initialization PASSED [ 80%]
+tests/test_ml_pipeline.py::TestFalsePositiveFilter::test_filter_empty_findings PASSED [ 80%]
+tests/test_ml_pipeline.py::TestFalsePositiveFilter::test_filter_high_severity_retained PASSED [ 81%]
+tests/test_ml_pipeline.py::TestFalsePositiveFilter::test_filter_statistics PASSED [ 81%]
+tests/test_ml_pipeline.py::TestSeverityPredictor::test_predictor_initialization PASSED [ 82%]
+tests/test_ml_pipeline.py::TestSeverityPredictor::test_predict_reentrancy PASSED [ 82%]
+tests/test_ml_pipeline.py::TestSeverityPredictor::test_predict_with_context PASSED [ 83%]
+tests/test_ml_pipeline.py::TestVulnerabilityClusterer::test_clusterer_initialization PASSED [ 83%]
+tests/test_ml_pipeline.py::TestVulnerabilityClusterer::test_cluster_empty_findings PASSED [ 84%]
+tests/test_ml_pipeline.py::TestVulnerabilityClusterer::test_cluster_single_finding PASSED [ 84%]
+tests/test_ml_pipeline.py::TestVulnerabilityClusterer::test_cluster_similar_findings PASSED [ 85%]
+tests/test_ml_pipeline.py::TestVulnerabilityClusterer::test_remediation_plan PASSED [ 85%]
+tests/test_ml_pipeline.py::TestMLPipeline::test_pipeline_initialization PASSED [ 86%]
+tests/test_ml_pipeline.py::TestMLPipeline::test_pipeline_process_empty PASSED [ 86%]
+tests/test_ml_pipeline.py::TestMLPipeline::test_pipeline_process_findings PASSED [ 87%]
+tests/test_ml_pipeline.py::TestMLPipeline::test_pipeline_process_with_context PASSED [ 87%]
+tests/test_ml_pipeline.py::TestMLPipeline::test_pipeline_to_dict PASSED  [ 88%]
+tests/test_ml_pipeline.py::TestMLPipeline::test_ml_report PASSED         [ 88%]
+tests/test_ml_pipeline.py::TestFeedbackIntegration::test_submit_feedback_tp PASSED [ 89%]
+tests/test_ml_pipeline.py::TestFeedbackIntegration::test_submit_feedback_fp PASSED [ 89%]
+tests/test_security.py::TestInputValidator::test_import_module PASSED    [ 90%]
+tests/test_security.py::TestInputValidator::test_validate_existing_sol_file PASSED [ 90%]
+tests/test_security.py::TestInputValidator::test_validate_nonexistent_file PASSED [ 91%]
+tests/test_security.py::TestInputValidator::test_validate_wrong_extension PASSED [ 91%]
+tests/test_security.py::TestInputValidator::test_path_traversal_detection PASSED [ 92%]
+tests/test_security.py::TestInputValidator::test_custom_allowed_extensions PASSED [ 92%]
+tests/test_security.py::TestRateLimiter::test_import_module PASSED       [ 93%]
+tests/test_security.py::TestRateLimiter::test_rate_limiter_initialization PASSED [ 93%]
+tests/test_security.py::TestRateLimiter::test_rate_limiter_allows_calls_under_limit PASSED [ 94%]
+tests/test_security.py::TestRateLimiter::test_rate_limiter_blocks_excess_calls PASSED [ 94%]
+tests/test_security.py::TestRateLimiter::test_rate_limiter_with_burst PASSED [ 95%]
+tests/test_security.py::TestSecureLogging::test_import_module PASSED     [ 95%]
+tests/test_security.py::TestSecureLogging::test_secure_formatter_initialization PASSED [ 96%]
+tests/test_security.py::TestSecureLogging::test_redacts_openai_api_key PASSED [ 96%]
+tests/test_security.py::TestSecureLogging::test_redacts_password PASSED  [ 97%]
+tests/test_security.py::TestSecureLogging::test_redacts_jwt_token PASSED [ 97%]
+tests/test_security.py::TestSecureLogging::test_safe_message_unchanged PASSED [ 98%]
+tests/test_security.py::TestSecurityError::test_security_error_is_exception PASSED [ 98%]
+tests/test_security.py::TestSecurityError::test_security_error_can_be_raised PASSED [ 99%]
+tests/test_security.py::TestSecurityIntegration::test_all_security_modules_importable PASSED [ 99%]
+tests/test_security.py::TestSecurityIntegration::test_validate_real_contract_path PASSED [100%]
+
+================================ tests coverage ================================
+_______________ coverage: platform darwin, python 3.14.0-final-0 _______________
+
+Name                                                        Stmts   Miss  Cover   Missing
+-----------------------------------------------------------------------------------------
+miesc/__init__.py                                              12     12     0%   12-62
+miesc/adapters/__init__.py                                      0      0   100%
+miesc/agents/__init__.py                                        0      0   100%
+miesc/api/__init__.py                                           0      0   100%
+miesc/cli/__init__.py                                           2      2     0%   7-9
+miesc/cli/main.py                                             167    167     0%   13-327
+miesc/core/__init__.py                                          3      3     0%   7-10
+miesc/core/orchestrator.py                                    111    111     0%   7-255
+miesc/core/quick_scanner.py                                   121    121     0%   8-245
+miesc/mcp/__init__.py                                           0      0   100%
+miesc/ml/__init__.py                                            0      0   100%
+miesc/security/__init__.py                                      0      0   100%
+src/GPTLens_prompts.py                                          7      7     0%   3-69
+src/GPTLens_tool.py                                            65     65     0%   5-133
+src/Llama2_tool.py                                             28     28     0%   1-51
+src/__init__.py                                                 0      0   100%
+src/adapters/__init__.py                                       68     35    49%   65-163, 173-174, 184-185, 198-199
+src/adapters/aderyn_adapter.py                                126     83    34%   116-127, 157, 177, 209-294, 314-367, 375-384, 393-408, 412-421, 425
+src/adapters/certora_adapter.py                               110     80    27%   87-97, 102-107, 120-185, 196, 200, 204, 217-245, 255-279, 288-390
+src/adapters/contract_clone_detector_adapter.py               143    112    22%   128, 152-211, 220-221, 234-248, 261-292, 310-331, 340-349, 361-384, 395-402, 406-445, 451
+src/adapters/dagnn_adapter.py                                 231    177    23%   165-180, 185-187, 207-269, 291-294, 298-324, 328-369, 380-382, 386-391, 403-445, 449, 462-466, 470-491, 499-529, 534-548, 553-560, 564-572, 577-588, 593-603, 607, 622-648, 652-661, 665-670, 674-676, 680, 684, 695
+src/adapters/dogefuzz_adapter.py                              230    167    27%   66, 81-83, 182-188, 206-285, 296, 300, 304, 320-325, 329-371, 375-379, 392-469, 473-476, 487-519, 531-585, 607-632, 638-646, 660-687, 696-698
+src/adapters/echidna_adapter.py                               123     86    30%   123-131, 154-258, 276-324, 329-333, 339, 354-359, 363-364, 368, 380
+src/adapters/foundry_adapter.py                               195    154    21%   140-148, 174-289, 307-325, 344-365, 369-397, 401-445, 454-490, 502-507, 511-521, 525, 538
+src/adapters/gas_analyzer_adapter.py                           55     36    35%   150-185, 201-203, 207-239, 243-244, 248-252, 256, 260
+src/adapters/gptscan_adapter.py                               122     83    32%   118-119, 131-142, 155-219, 230, 234, 238, 251-256, 260-283, 294-309, 317-364, 368-396
+src/adapters/halmos_adapter.py                                117     83    29%   87-91, 96-101, 127-204, 215, 219, 223, 235-263, 268-289, 298-388
+src/adapters/llmsmartaudit_adapter.py                         152    114    25%   120-121, 128-139, 152-230, 241, 245, 249, 261-266, 270-292, 302-316, 324-371, 375-403, 407, 411-428, 432-439
+src/adapters/manticore_adapter.py                              98     68    31%   92-103, 116-200, 211, 215, 219, 238-259, 268-348
+src/adapters/medusa_adapter.py                                150    118    21%   111-122, 150-263, 283-319, 323-338, 343-355, 359-386, 390-399, 403-411, 415-423, 427-434, 438-445, 449-457, 461
+src/adapters/mev_detector_adapter.py                           86     63    27%   189-238, 254-256, 260-294, 298-303, 310-320, 324-332, 336-337, 341-345, 349-354, 358, 362
+src/adapters/mythril_adapter.py                               122     91    25%   117-123, 128-133, 175-286, 306-360, 364-371, 375-386, 390-401, 405-411, 415
+src/adapters/oyente_adapter.py                                110     83    25%   128, 140-146, 163-249, 262-309, 315-343, 347-356, 360-364, 368, 372, 381-389
+src/adapters/propertygpt_adapter.py                           177    133    25%   145-177, 197-264, 280-328, 337-349, 357-389, 393-428, 433-434, 439-440, 448-471, 475-499, 507-526, 534-554, 558, 562, 574
+src/adapters/slither_adapter.py                               133    101    24%   116-118, 123-131, 172-304, 324-379, 383-388, 392-401, 405-422, 426-441, 445-454, 458
+src/adapters/smartbugs_ml_adapter.py                          146    105    28%   138-140, 169-215, 237-271, 279-287, 294-304, 320-387, 391-402, 406-413, 417-422, 428
+src/adapters/smartguard_adapter.py                            183    138    25%   267, 272-281, 293-366, 370-387, 399-434, 446-506, 510-527, 536-580, 587-600, 604-609, 613, 624-638, 642-648, 652, 656, 660
+src/adapters/smartllm_adapter.py                              199    155    22%   119-120, 126-137, 150-247, 258, 262, 266, 281-286, 291-296, 301-349, 353-383, 387-443, 463-517, 535-538, 573, 577-594, 598-605
+src/adapters/smartllm_rag_knowledge.py                         16      9    44%   230-242, 255
+src/adapters/smtchecker_adapter.py                            134     98    27%   98-109, 122-196, 207, 211, 215, 235-258, 266-329, 333-352, 357-366, 370-381
+src/adapters/solhint_adapter.py                               130     90    31%   161-169, 192-296, 320-336, 340-364, 368-389, 393-410, 425-430, 434-444, 448, 470
+src/adapters/threat_model_adapter.py                           71     52    27%   211-248, 261-263, 267-313, 317-325, 329-359, 368, 372
+src/adapters/vertigo_adapter.py                               115     90    22%   85-91, 109-208, 223-265, 274-280, 284-292, 300-317, 325-337, 341, 351-364
+src/adapters/wake_adapter.py                                  103     71    31%   83-87, 92-97, 123-171, 182, 186, 190, 202-219, 224-246, 255-356
+src/agents/__init__.py                                         15      0   100%
+src/agents/aderyn_agent.py                                    108     89    18%   30-44, 49-68, 72, 76, 89-145, 149-158, 162-210, 214-227, 239-248, 258, 270-276
+src/agents/ai_agent.py                                        113     89    21%   59, 76, 95-138, 147, 157-174, 188-228, 243-321, 335-391, 408-447
+src/agents/audit_readiness/__init__.py                          5      0   100%
+src/agents/audit_readiness/documentation_analyzer.py          237    221     7%   69-128, 157-294, 325-374, 402-455, 483-539, 564-598, 624-679, 712-748
+src/agents/audit_readiness/maturity_analyzer.py               109     96    12%   53-67, 89-204, 224-287, 307-320
+src/agents/audit_readiness/security_practices_analyzer.py     139    129     7%   128-315, 343-392, 412-425
+src/agents/audit_readiness/testing_analyzer.py                 92     79    14%   56-124, 148-208, 227-260, 281-301
+src/agents/base_agent.py                                       62     29    53%   60, 70, 82-93, 117, 129, 138-139, 149-153, 174-200, 209, 219
+src/agents/coordinator_agent.py                               194    161    17%   58, 89, 110-133, 146-196, 211-277, 289-346, 360-458, 467-483, 501-540, 553-604, 616-623, 635-648, 660-690, 699-711, 724-725, 734
+src/agents/crewai_coordinator.py                              149    149     0%   16-474
+src/agents/dynamic_agent.py                                   120    102    15%   49, 71-138, 147-202, 211-255, 264-313, 326-330, 340-384
+src/agents/formal_agent.py                                     74     58    22%   52, 71-105, 115-173, 186-190, 200-228, 240-267
+src/agents/gptscan_agent.py                                   162    162     0%   13-428
+src/agents/halmos_agent.py                                    112     94    16%   29-43, 48-67, 71, 75, 89-161, 165-174, 178-226, 230-243, 255-269, 279, 290-296
+src/agents/interpretation_agent.py                            183    160    13%   41-64, 76, 96-153, 157, 164-185, 199-218, 225-297, 309-359, 371-399, 405-420, 434-456, 470-514, 518-522, 526
+src/agents/llm_smartaudit_agent.py                            174    174     0%   13-466
+src/agents/medusa_agent.py                                    111     94    15%   30-44, 49-68, 72, 76, 90-166, 170-221, 225-238, 250-265, 275, 286-292
+src/agents/ollama_agent.py                                    196    162    17%   126-130, 134-148, 151, 170-216, 231-249, 253-274, 283-354, 358-390, 394-410, 414-427, 432-450, 455-521
+src/agents/policy_agent.py                                    523    482     8%   121-127, 130, 156-239, 248, 257-275, 284-324, 339-374, 389-416, 436-495, 515-613, 632-705, 729-788, 799-805, 819-917, 956-1045, 1065-1156, 1167-1173, 1188-1274, 1299-1388, 1408-1420, 1518-1540, 1550-1643, 1681-1853, 1867-1877
+src/agents/recommendation_agent.py                            191    166    13%   44-63, 73, 98-173, 177, 184-195, 199-205, 223-298, 302-341, 357-433, 449-493, 516-572, 576, 607-623, 636-654, 668-677, 682-689
+src/agents/slither_protocol_agent.py                          114    114     0%   8-244
+src/agents/smartllm_agent.py                                  174    174     0%   14-494
+src/agents/smtchecker_agent.py                                110     91    17%   30-44, 48-67, 71, 75, 91-152, 156-169, 173-219, 223-235, 239-252, 264-279, 289, 301-307
+src/agents/static_agent.py                                    116     95    18%   71-143, 152-206, 215-257, 266-297, 309-324, 334-368, 381-392, 404-415
+src/agents/symbolic_agent 2.py                                135    135     0%   7-584
+src/agents/symbolic_agent.py                                  149    128    14%   48, 69-130, 140-198, 208-325, 339-389, 401-438, 453-460, 472, 552, 609-623
+src/agents/wake_agent.py                                      130    108    17%   29-43, 48-67, 71, 75, 89-128, 132-153, 163-184, 194-204, 215-224, 228-256, 260-287, 291-306, 318-328, 338, 349-355
+src/audit_generator.py                                         69     69     0%   1-82
+src/core/__init__.py                                            7      0   100%
+src/core/agent_protocol.py                                    133     37    72%   136, 146, 156, 166, 176, 186, 196, 206, 216, 235, 248, 265, 278, 302-320, 329, 338, 341, 344, 363-366, 371
+src/core/agent_registry.py                                    152    115    24%   48, 70-83, 95-99, 111, 123-128, 137-147, 159-181, 193-225, 246-282, 291-309, 325-332, 336, 340, 344, 347
+src/core/config_loader.py                                      94     29    69%   57, 64, 74, 78, 92, 97, 102, 107, 112, 117, 134-137, 154-155, 162-173, 177, 185, 192-195, 199-200, 204
+src/core/health_checker.py                                    138     59    57%   38, 63, 123, 131-133, 141-145, 153, 176-177, 183, 199-210, 234-236, 252-255, 272-273, 277-287, 291, 297-329
+src/core/ml_orchestrator.py                                   191     28    85%   130, 132, 134, 185-187, 236, 278, 281, 314-319, 329, 360, 376, 420-423, 433-434, 456, 491, 497, 509, 516-517
+src/core/optimized_orchestrator.py                            171     98    43%   57, 86-87, 104, 124-126, 132-154, 158-163, 198-222, 250-320, 341-360, 381-395, 401, 411, 418-419
+src/core/result_aggregator.py                                 155     87    44%   31, 64, 171, 190-191, 202-213, 225-241, 245-251, 257-293, 298-323, 341-361, 375-377, 381-383, 387-390, 399-400
+src/core/tool_discovery.py                                    119     26    78%   30, 126, 133, 140, 146-148, 176, 195-203, 218-220, 233, 245, 257-259, 265, 273-276
+src/core/tool_protocol.py                                      93     38    59%   109, 121, 146, 178, 186-187, 225, 233, 241, 262-269, 273, 277, 281, 288-293, 301-331, 340
+src/graph_visualizer.py                                       124    124     0%   7-448
+src/integration/__init__.py                                     2      0   100%
+src/integration/adapter_integration.py                        123    105    15%   54-58, 67-78, 90-102, 116-126, 145-167, 176, 196-218, 236-253, 269-287, 304-329, 347-402
+src/licensing/__init__.py                                       6      6     0%   6-12
+src/licensing/admin_api.py                                    143    143     0%   6-431
+src/licensing/cli.py                                          167    167     0%   6-268
+src/licensing/key_generator.py                                 26     26     0%   6-89
+src/licensing/license_manager.py                              162    162     0%   6-378
+src/licensing/models.py                                        78     78     0%   6-161
+src/licensing/plans.py                                         33     33     0%   5-119
+src/licensing/quota_checker.py                                107    107     0%   6-285
+src/llm/__init__.py                                             2      0   100%
+src/llm/openllama_helper.py                                   131     99    24%   53-54, 58-80, 99-120, 137-154, 171-212, 229-253, 261-283, 292-307, 311-318, 322-326, 330-354, 373-374, 388-389, 403-404, 418-419
+src/main.py                                                    50     50     0%   1-54
+src/manticore_tool.py                                         101    101     0%   5-309
+src/mcp/__init__.py                                             3      0   100%
+src/mcp/context_bus.py                                         66     43    35%   52-56, 93-101, 110-127, 140-142, 154-156, 168-169, 181-185, 189-192, 201-202, 226-229, 239-240
+src/miesc_ai_layer.py                                         160    160     0%   16-524
+src/miesc_cli.py                                              232    232     0%   16-430
+src/miesc_core.py                                             169    169     0%   17-495
+src/miesc_mcp_adapter.py                                      120    120     0%   17-533
+src/miesc_mcp_rest.py                                          98     25    74%   58, 64, 217, 231-233, 323-325, 344, 356-377
+src/miesc_ml_cli.py                                           173     22    87%   49, 69-74, 116-122, 126-128, 145-146, 204, 297-306, 310
+src/miesc_policy_agent.py                                     279    279     0%   18-827
+src/miesc_policy_mapper.py                                    142    142     0%   21-534
+src/miesc_risk_engine.py                                      174    174     0%   16-531
+src/miesc_security_checks.py                                   51     51     0%   11-108
+src/miesc_tests/__init__.py                                     1      1     0%   18
+src/miesc_tests/test_policy_agent.py                          164    164     0%   16-421
+src/miesc_websocket_api.py                                    144    144     0%   15-377
+src/ml/__init__.py                                             64      4    94%   179, 202-204
+src/ml/code_embeddings.py                                     228     33    86%   50, 57, 143, 358-379, 388-400, 497-500
+src/ml/false_positive_filter.py                               151     55    64%   43, 61-69, 143-159, 163-190, 240-246, 267-269, 277-278, 287-288, 302-303, 307-309, 374, 387-401, 405-420, 427-438
+src/ml/feedback_loop.py                                       263     45    83%   83, 89, 162, 183, 224-229, 233-240, 244-245, 282, 331-334, 366, 375-386, 457, 486-488, 513, 523, 534-536, 548-562
+src/ml/severity_predictor.py                                  112     26    77%   167-173, 254-257, 269-272, 301-322
+src/ml/vulnerability_clusterer.py                             147      9    94%   233, 305, 325-332, 371
+src/mythril_tool.py                                            24     24     0%   5-59
+src/orchestrator.py                                           182    182     0%   9-411
+src/project_analyzer.py                                       233    233     0%   7-523
+src/rawchatGPT_tool.py                                         12     12     0%   1-25
+src/report_formatter.py                                       354    354     0%   6-836
+src/security/__init__.py                                        5      0   100%
+src/security/api_limiter.py                                   124     67    46%   93, 124-141, 152-154, 225-258, 269-290, 302-310, 335-344, 380-397
+src/security/input_validator.py                                91     49    46%   108, 112, 116, 123-127, 154-164, 190-204, 224-235, 252-277, 302-317
+src/security/remediations.py                                   21     21     0%   6-700
+src/security/secure_logging.py                                 55     34    38%   120, 126-130, 136, 180-183, 215-245, 251-273
+src/slither_tool.py                                            40     40     0%   5-89
+src/summarize_information.py                                   20     20     0%   1-30
+src/surya_tool.py                                             127    127     0%   5-318
+src/test_generator.py                                          16     16     0%   1-32
+src/text_generator.py                                          24     24     0%   1-51
+src/utils.py                                                   11     11     0%   1-14
+-----------------------------------------------------------------------------------------
+TOTAL                                                       15015  11631    23%
+============================= 204 passed in 4.41s ==============================
+
+
+

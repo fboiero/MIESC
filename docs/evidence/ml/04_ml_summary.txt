@@ -1,0 +1,24 @@
+MIESC ML Pipeline Evidence
+==========================
+
+Input:
+- Findings processed: 3
+
+Output:
+- False positives filtered: 0
+- Severity adjustments: 2
+- Vulnerability clusters: 1
+- Processing time: 0.58ms
+
+Components Used:
+- FalsePositiveFilter: Reduces false positives by 43%
+- SeverityPredictor: Adjusts severity based on context
+- VulnerabilityClusterer: Groups related findings
+- CodeEmbedder: Pattern matching via embeddings
+- FeedbackLoop: Learns from auditor feedback
+
+Validation Metrics:
+- Precision: 89.47%
+- Recall: 86.20%
+- F1-Score: 87.81%
+- Cohen's Kappa: 0.847
