@@ -1,0 +1,432 @@
+# =============================================================================
+# MIESC v4.0 - Configuración Centralizada
+# Multi-layer Intelligent Evaluation for Smart Contracts
+# =============================================================================
+
+version: "4.0.0"
+
+# =============================================================================
+# Configuración Global
+# =============================================================================
+global:
+  log_level: INFO
+  max_workers: 4
+  cache_enabled: true
+  cache_ttl_seconds: 3600
+  temp_dir: /tmp/miesc
+  reports_dir: ./reports
+
+# =============================================================================
+# Capas de Análisis - 7 Layers Defense
+# =============================================================================
+layers:
+  # Layer 1: Static Analysis
+  static_analysis:
+    enabled: true
+    priority: 1
+    tools:
+      - slither
+      - aderyn
+      - solhint
+
+  # Layer 2: Dynamic Testing (Fuzzing)
+  dynamic_testing:
+    enabled: true
+    priority: 2
+    tools:
+      - echidna
+      - foundry
+      - medusa
+      - dogefuzz
+
+  # Layer 3: Symbolic Execution
+  symbolic_execution:
+    enabled: true
+    priority: 3
+    tools:
+      - mythril
+      - manticore
+      - halmos
+
+  # Layer 4: Formal Verification
+  formal_verification:
+    enabled: true
+    priority: 4
+    tools:
+      - smtchecker
+      - certora
+      - wake
+
+  # Layer 5: Property Testing
+  property_testing:
+    enabled: true
+    priority: 5
+    tools:
+      - propertygpt
+
+  # Layer 6: AI/LLM Analysis
+  ai_analysis:
+    enabled: true
+    priority: 6
+    tools:
+      - smartllm
+      - gptscan
+      - llmsmartaudit
+
+  # Layer 7: Specialized Analysis
+  specialized:
+    enabled: true
+    priority: 7
+    tools:
+      - gas_analyzer
+      - mev_detector
+      - threat_model
+      - smartbugs_ml
+      - dagnn
+      - contract_clone_detector
+
+# =============================================================================
+# Configuración de Adaptadores
+# =============================================================================
+adapters:
+  # ---------------------------------------------------------------------------
+  # CAPA 1: Static Analysis
+  # ---------------------------------------------------------------------------
+  slither:
+    enabled: true
+    layer: static_analysis
+    timeout: 60
+    detectors: all
+    exclude_detectors: []
+    solc_remaps: []
+    fail_on_error: false
+    options:
+      json_output: true
+      disable_color: true
+
+  aderyn:
+    enabled: true
+    layer: static_analysis
+    timeout: 30
+    options:
+      output_format: json
+
+  solhint:
+    enabled: true
+    layer: static_analysis
+    timeout: 30
+    config_file: .solhint.json
+    rules:
+      max-line-length: 120
+      no-unused-vars: warn
+
+  # ---------------------------------------------------------------------------
+  # CAPA 2: Dynamic Testing (Fuzzing)
+  # ---------------------------------------------------------------------------
+  echidna:
+    enabled: true
+    layer: dynamic_testing
+    timeout: 300
+    test_limit: 50000
+    seq_len: 100
+    corpus_dir: ~/.miesc/echidna_corpus
+    options:
+      format: json
+      shrink_limit: 5000
+
+  foundry:
+    enabled: true
+    layer: dynamic_testing
+    timeout: 300
+    fuzz_runs: 256
+    fuzz_seed: null
+    options:
+      verbosity: 3
+      gas_report: true
+
+  medusa:
+    enabled: true
+    layer: dynamic_testing
+    timeout: 300
+    docker_image: "ghcr.io/chainsecurity/medusa:latest"
+    options:
+      workers: 4
+
+  dogefuzz:
+    enabled: true
+    layer: dynamic_testing
+    timeout: 300
+    seed_limit: 5000
+    coverage_target: 0.85
+
+  # ---------------------------------------------------------------------------
+  # CAPA 3: Symbolic Execution
+  # ---------------------------------------------------------------------------
+  mythril:
+    enabled: true
+    layer: symbolic_execution
+    timeout: 120
+    execution_timeout: 90
+    max_depth: 22
+    solver_timeout: 30000
+    options:
+      output_format: json
+      enable_physics: false
+
+  manticore:
+    enabled: true
+    layer: symbolic_execution
+    timeout: 600
+    workspace: /tmp/manticore
+    options:
+      thorough_mode: false
+
+  halmos:
+    enabled: true
+    layer: symbolic_execution
+    timeout: 300
+    options:
+      solver: z3
+
+  # ---------------------------------------------------------------------------
+  # CAPA 4: Formal Verification
+  # ---------------------------------------------------------------------------
+  smtchecker:
+    enabled: true
+    layer: formal_verification
+    timeout: 120
+    engine: chc  # chc, bmc, all
+    targets:
+      - underflow
+      - overflow
+      - divByZero
+      - constantCondition
+      - popEmptyArray
+      - outOfBounds
+      - assert
+
+  certora:
+    enabled: false  # Requiere API key
+    layer: formal_verification
+    timeout: 900
+    api_key_env: CERTORAKEY
+    options:
+      rule: null  # Ejecutar todas las reglas
+      msg: "MIESC Automated Verification"
+
+  wake:
+    enabled: true
+    layer: formal_verification
+    timeout: 300
+
+  # ---------------------------------------------------------------------------
+  # CAPA 5: Property Testing
+  # ---------------------------------------------------------------------------
+  propertygpt:
+    enabled: true
+    layer: property_testing
+    timeout: 60
+    llm_model: deepseek-coder
+    options:
+      generate_invariants: true
+      verify_properties: true
+
+  # ---------------------------------------------------------------------------
+  # CAPA 6: AI/LLM Analysis
+  # ---------------------------------------------------------------------------
+  smartllm:
+    enabled: true
+    layer: ai_analysis
+    timeout: 120
+    model: deepseek-coder
+    ollama_host: http://localhost:11434
+    roles:
+      - auditor
+      - verificator
+    options:
+      temperature: 0.1
+      max_tokens: 4096
+
+  gptscan:
+    enabled: true
+    layer: ai_analysis
+    timeout: 90
+    model: codellama
+
+  llmsmartaudit:
+    enabled: true
+    layer: ai_analysis
+    timeout: 90
+    model: deepseek-coder
+
+  # ---------------------------------------------------------------------------
+  # CAPA 7: Specialized Analysis
+  # ---------------------------------------------------------------------------
+  gas_analyzer:
+    enabled: true
+    layer: specialized
+    timeout: 30
+    patterns:
+      - storage_optimization
+      - loop_optimization
+      - memory_vs_calldata
+      - packed_structs
+
+  mev_detector:
+    enabled: true
+    layer: specialized
+    timeout: 30
+    detection_types:
+      - front_running
+      - sandwich_attack
+      - flashloan_attack
+      - oracle_manipulation
+
+  threat_model:
+    enabled: true
+    layer: specialized
+    timeout: 30
+    frameworks:
+      - STRIDE
+      - DREAD
+    output_format: json
+
+  smartbugs_ml:
+    enabled: true
+    layer: specialized
+    timeout: 60
+    model_path: ~/.miesc/models/smartbugs
+
+  dagnn:
+    enabled: true
+    layer: specialized
+    timeout: 90
+    model_path: ~/.miesc/models/dagnn
+    options:
+      attention_heads: 8
+      hidden_dim: 256
+
+  contract_clone_detector:
+    enabled: true
+    layer: specialized
+    timeout: 30
+    detection_types:
+      - type1  # Exact clones
+      - type2  # Renamed identifiers
+      - type3  # Modified statements
+      - type4  # Semantic clones
+
+# =============================================================================
+# Configuración de LLM Local (Ollama)
+# =============================================================================
+llm:
+  provider: ollama
+  host: http://localhost:11434
+  default_model: deepseek-coder
+  fallback_models:
+    - codellama
+    - llama3
+  retry_attempts: 3
+  retry_delay: 5
+  options:
+    temperature: 0.1
+    top_p: 0.95
+    num_ctx: 8192
+
+# =============================================================================
+# Configuración de Resultados
+# =============================================================================
+results:
+  # Deduplicación de hallazgos
+  deduplication:
+    enabled: true
+    similarity_threshold: 0.85
+
+  # Agregación de severidades
+  severity_mapping:
+    critical: 10
+    high: 8
+    medium: 5
+    low: 2
+    informational: 1
+
+  # Correlación cruzada entre herramientas
+  cross_validation:
+    enabled: true
+    min_confirmations: 2  # Mínimo de herramientas que deben confirmar
+    confidence_boost: 0.15  # Boost de confianza por confirmación adicional
+
+  # Formatos de exportación
+  export_formats:
+    - json
+    - markdown
+    - html
+    - pdf
+    - sarif
+
+# =============================================================================
+# Compliance Mapping
+# =============================================================================
+compliance:
+  enabled: true
+  frameworks:
+    - ISO27001
+    - NIST
+    - OWASP
+    - CWE
+    - SWC
+
+# =============================================================================
+# Métricas y Observabilidad
+# =============================================================================
+observability:
+  metrics:
+    enabled: true
+    export_format: prometheus
+    port: 9090
+
+  health_checks:
+    enabled: true
+    interval: 60
+    endpoint: /health
+
+  logging:
+    level: INFO
+    format: json
+    output: stdout
+    file: ~/.miesc/logs/miesc.log
+
+# =============================================================================
+# Planes de Licencia (referencia)
+# =============================================================================
+license_plans:
+  FREE:
+    max_audits_month: 5
+    allowed_tools:
+      - slither
+      - solhint
+    ai_enabled: false
+    max_contract_size_kb: 100
+
+  STARTER:
+    max_audits_month: 50
+    allowed_tools:
+      - slither
+      - solhint
+      - mythril
+      - aderyn
+    ai_enabled: false
+    max_contract_size_kb: 500
+
+  PRO:
+    max_audits_month: 500
+    allowed_tools: all
+    ai_enabled: true
+    max_contract_size_kb: 2048
+
+  ENTERPRISE:
+    max_audits_month: -1  # Unlimited
+    allowed_tools: all
+    ai_enabled: true
+    max_contract_size_kb: -1  # Unlimited
+    priority_support: true

@@ -1,0 +1,589 @@
+openapi: 3.0.3
+info:
+  title: MIESC API
+  description: |
+    # MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
+
+    ML-enhanced MCP-compatible blockchain security framework API.
+
+    ## Features
+    - Smart contract security analysis
+    - ML-powered false positive filtering
+    - Severity prediction with code context
+    - Vulnerability clustering and remediation plans
+    - MCP (Model Context Protocol) compatibility
+
+    ## Scientific Validation
+    - Precision: 89.47%
+    - Recall: 86.2%
+    - F1-Score: 87.81%
+    - Cohen's Kappa: 0.847
+    - Dataset: 5,127 contracts
+
+    ## Frameworks Compliance
+    - ISO/IEC 27001:2022
+    - ISO/IEC 42001:2023
+    - NIST SP 800-218 (SSDF)
+    - OWASP SAMM v2.0
+    - OWASP Smart Contract Top 10
+
+  version: 4.0.0
+  contact:
+    name: Fernando Boiero
+    email: fboiero@frvm.utn.edu.ar
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5001
+    description: Local development server
+  - url: http://localhost:8000
+    description: Docker API server
+
+tags:
+  - name: MCP
+    description: Model Context Protocol endpoints
+  - name: Analysis
+    description: Smart contract analysis endpoints
+  - name: ML
+    description: Machine Learning pipeline endpoints
+  - name: Health
+    description: System health and status
+
+paths:
+  /:
+    get:
+      tags:
+        - Health
+      summary: Root endpoint
+      description: Returns basic API information and available endpoints
+      operationId: getRoot
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RootResponse'
+
+  /mcp/capabilities:
+    get:
+      tags:
+        - MCP
+      summary: Get MCP capabilities
+      description: Lists all available MCP capabilities and metadata
+      operationId: getCapabilities
+      responses:
+        '200':
+          description: MCP capabilities
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapabilitiesResponse'
+
+  /mcp/status:
+    get:
+      tags:
+        - Health
+      summary: Get agent status
+      description: Returns current health status of the MIESC agent
+      operationId: getStatus
+      responses:
+        '200':
+          description: Agent status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+
+  /mcp/get_metrics:
+    get:
+      tags:
+        - MCP
+      summary: Get scientific metrics
+      description: Returns scientific validation metrics from thesis experiments
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Scientific metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+
+  /mcp/run_audit:
+    post:
+      tags:
+        - Analysis
+      summary: Run contract audit
+      description: Execute comprehensive smart contract security audit
+      operationId: runAudit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditRequest'
+      responses:
+        '200':
+          description: Audit results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Contract not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /mcp/policy_audit:
+    post:
+      tags:
+        - Analysis
+      summary: Run policy audit
+      description: Execute internal policy compliance validation
+      operationId: runPolicyAudit
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyAuditRequest'
+      responses:
+        '200':
+          description: Policy audit results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyAuditResponse'
+
+  /ml/analyze:
+    post:
+      tags:
+        - ML
+      summary: ML-enhanced analysis
+      description: Run ML-enhanced contract analysis with FP filtering
+      operationId: mlAnalyze
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MLAnalyzeRequest'
+      responses:
+        '200':
+          description: ML analysis results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MLAnalyzeResponse'
+
+  /ml/feedback:
+    post:
+      tags:
+        - ML
+      summary: Submit feedback
+      description: Submit feedback for ML model improvement
+      operationId: submitFeedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackRequest'
+      responses:
+        '200':
+          description: Feedback submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+
+  /ml/report:
+    get:
+      tags:
+        - ML
+      summary: Get ML report
+      description: Get ML pipeline statistics and recommendations
+      operationId: getMLReport
+      responses:
+        '200':
+          description: ML report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MLReportResponse'
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Comprehensive system health check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /tools:
+    get:
+      tags:
+        - Analysis
+      summary: List available tools
+      description: Get list of available analysis tools by layer
+      operationId: listTools
+      parameters:
+        - name: layer
+          in: query
+          description: Filter by layer number
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 7
+      responses:
+        '200':
+          description: Tools list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolsResponse'
+
+components:
+  schemas:
+    RootResponse:
+      type: object
+      properties:
+        agent:
+          type: string
+          example: MIESC MCP REST Adapter
+        version:
+          type: string
+          example: "4.0.0"
+        status:
+          type: string
+          example: operational
+        documentation:
+          type: string
+          example: /mcp/capabilities
+        endpoints:
+          type: object
+
+    CapabilitiesResponse:
+      type: object
+      properties:
+        agent_id:
+          type: string
+          example: miesc-agent-v4.0.0
+        protocol:
+          type: string
+          example: mcp/1.0
+        version:
+          type: string
+        capabilities:
+          type: object
+        metadata:
+          type: object
+          properties:
+            scientific_validation:
+              $ref: '#/components/schemas/ScientificValidation'
+
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [operational, degraded, offline]
+        agent_id:
+          type: string
+        version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        health:
+          type: object
+
+    MetricsResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        metrics:
+          $ref: '#/components/schemas/ScientificValidation'
+        timestamp:
+          type: string
+          format: date-time
+
+    ScientificValidation:
+      type: object
+      properties:
+        precision:
+          type: number
+          example: 0.8947
+        recall:
+          type: number
+          example: 0.862
+        f1_score:
+          type: number
+          example: 0.8781
+        cohens_kappa:
+          type: number
+          example: 0.847
+        false_positive_reduction:
+          type: number
+          example: 0.43
+        dataset_size:
+          type: integer
+          example: 5127
+
+    AuditRequest:
+      type: object
+      required:
+        - contract
+      properties:
+        contract:
+          type: string
+          description: Path to Solidity contract file
+          example: contracts/MyToken.sol
+        timeout:
+          type: integer
+          description: Analysis timeout in seconds
+          default: 120
+        layers:
+          type: array
+          items:
+            type: integer
+          description: Specific layers to run (1-7)
+
+    AuditResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        contract:
+          type: string
+        audit_results:
+          type: object
+          properties:
+            findings_count:
+              type: integer
+            severity_distribution:
+              type: object
+              properties:
+                critical:
+                  type: integer
+                high:
+                  type: integer
+                medium:
+                  type: integer
+                low:
+                  type: integer
+            tools_executed:
+              type: array
+              items:
+                type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    PolicyAuditRequest:
+      type: object
+      properties:
+        repo_path:
+          type: string
+          default: "."
+
+    PolicyAuditResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        compliance_score:
+          type: number
+        passed:
+          type: integer
+        failed:
+          type: integer
+        total:
+          type: integer
+        checks:
+          type: object
+        report_path:
+          type: string
+
+    MLAnalyzeRequest:
+      type: object
+      required:
+        - contract
+      properties:
+        contract:
+          type: string
+        mode:
+          type: string
+          enum: [quick, standard, deep]
+          default: standard
+        fp_threshold:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.6
+
+    MLAnalyzeResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        risk_level:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, LOW]
+        total_findings:
+          type: integer
+        fp_removed:
+          type: integer
+        reduction_rate:
+          type: number
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/VulnerabilityCluster'
+        remediation_plan:
+          type: array
+          items:
+            type: object
+        execution_time_ms:
+          type: number
+        ml_processing_time_ms:
+          type: number
+
+    VulnerabilityCluster:
+      type: object
+      properties:
+        category:
+          type: string
+        severity:
+          type: string
+        finding_count:
+          type: integer
+        remediation:
+          type: string
+
+    FeedbackRequest:
+      type: object
+      required:
+        - finding_id
+        - feedback_type
+      properties:
+        finding_id:
+          type: string
+        feedback_type:
+          type: string
+          enum: [TRUE_POSITIVE, FALSE_POSITIVE, SEVERITY_CORRECT, SEVERITY_TOO_HIGH, SEVERITY_TOO_LOW]
+        notes:
+          type: string
+        user_id:
+          type: string
+
+    FeedbackResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+
+    MLReportResponse:
+      type: object
+      properties:
+        fp_filter:
+          type: object
+        clusterer:
+          type: object
+        feedback:
+          type: object
+        recommendations:
+          type: array
+          items:
+            type: object
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        healthy_tools:
+          type: integer
+        unhealthy_tools:
+          type: integer
+        tools:
+          type: array
+          items:
+            type: object
+
+    ToolsResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        available:
+          type: integer
+        tools:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              layer:
+                type: integer
+              available:
+                type: boolean
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+
+    Finding:
+      type: object
+      properties:
+        _id:
+          type: string
+        type:
+          type: string
+        severity:
+          type: string
+          enum: [critical, high, medium, low, informational]
+        message:
+          type: string
+        location:
+          type: object
+          properties:
+            file:
+              type: string
+            line:
+              type: integer
+            function:
+              type: string
+        tool:
+          type: string
+        swc_id:
+          type: string
+        cwe_id:
+          type: string

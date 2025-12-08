@@ -95,6 +95,70 @@ See [docs/03_DEMO_GUIDE.md](./docs/03_DEMO_GUIDE.md) for details.
 
 ---
 
+## Usage Modes
+
+MIESC offers multiple interfaces depending on your needs:
+
+### 1. Full 7-Layer Audit (Recommended for Production)
+
+Complete defense-in-depth analysis with all 25+ tools:
+
+```bash
+python run_complete_multilayer_audit.py contracts/MyContract.sol
+```
+
+Includes:
+- Layer 1: Static Analysis (Slither, Aderyn, Solhint)
+- Layer 2: Dynamic Testing (Echidna, Medusa, DogeFuzz)
+- Layer 3: Symbolic Execution (Mythril, Halmos)
+- Layer 4: Formal Verification (Certora, SMTChecker, PropertyGPT)
+- Layer 5: AI Analysis (SmartLLM with RAG, Verificator)
+- Layer 6: ML Detection (DA-GNN, Graph Neural Networks)
+- Layer 7: Threat Modeling & Risk Scoring
+
+### 2. MCP Server (For AI Agent Integration)
+
+JSON-RPC interface for Claude Desktop or other MCP clients:
+
+```bash
+python src/miesc_mcp_rest.py --port 5001
+```
+
+Exposes capabilities: `run_audit`, `correlate_findings`, `map_compliance`, `generate_report`
+
+### 3. Quick Pre-Scan (For Development)
+
+Lightweight CLI for fast feedback during development (~30 seconds):
+
+```bash
+./miesc-quick scan Contract.sol       # Quick scan with Slither/Aderyn/Solhint
+./miesc-quick checklist               # Pre-audit security checklist
+./miesc-quick doctor                  # Check tool availability
+```
+
+**Note**: `miesc-quick` uses only 3-4 tools for speed. For production contracts, always use the full 7-layer audit.
+
+### 4. Web Interface
+
+Interactive browser-based analysis:
+
+```bash
+make webapp  # or: streamlit run webapp/app.py
+```
+
+Access: http://localhost:8501
+
+### Comparison
+
+| Interface | Tools | Time | Use Case |
+|-----------|-------|------|----------|
+| Full Audit | 25+ | 5-15 min | Production contracts, pre-deployment |
+| MCP Server | 25+ | 5-15 min | AI agent integration, automation |
+| miesc-quick | 3-4 | ~30s | Development feedback, quick checks |
+| Web UI | 5-8 | 1-3 min | Interactive exploration, demos |
+
+---
+
 ## Video Demonstration
 
 YouTube: [youtu.be/-SP6555edSw](https://youtu.be/-SP6555edSw)

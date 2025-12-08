@@ -1,0 +1,281 @@
+name: MIESC CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "18"
+
+jobs:
+  # =============================================================================
+  # Lint and Format Check
+  # =============================================================================
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install linting tools
+        run: |
+          pip install ruff black isort mypy
+
+      - name: Run Ruff (linter)
+        run: ruff check src/ tests/ --output-format=github
+        continue-on-error: true
+
+      - name: Check Black formatting
+        run: black --check src/ tests/
+        continue-on-error: true
+
+      - name: Check import sorting
+        run: isort --check-only src/ tests/
+        continue-on-error: true
+
+  # =============================================================================
+  # Unit Tests
+  # =============================================================================
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-mock
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/ \
+            --ignore=tests/test_integration.py \
+            -v \
+            --tb=short \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term-missing
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+          verbose: true
+
+  # =============================================================================
+  # Integration Tests
+  # =============================================================================
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-mock
+
+      - name: Install Slither (for integration tests)
+        run: |
+          pip install slither-analyzer
+        continue-on-error: true
+
+      - name: Install solc
+        run: |
+          pip install solc-select
+          solc-select install 0.8.19
+          solc-select use 0.8.19
+        continue-on-error: true
+
+      - name: Run integration tests
+        run: |
+          python -m pytest tests/test_integration.py \
+            tests/test_ml_pipeline.py \
+            -v \
+            --tb=short \
+            -x
+        continue-on-error: true
+
+  # =============================================================================
+  # Security Scan
+  # =============================================================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install security tools
+        run: pip install bandit safety
+
+      - name: Run Bandit (Python security linter)
+        run: bandit -r src/ -ll -ii
+        continue-on-error: true
+
+      - name: Check dependencies for vulnerabilities
+        run: safety check -r requirements.txt
+        continue-on-error: true
+
+  # =============================================================================
+  # Build Docker Image
+  # =============================================================================
+  docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [test, integration]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t miesc:${{ github.sha }} .
+          docker build -t miesc:latest .
+
+      - name: Test Docker image
+        run: |
+          docker run --rm miesc:latest python -c "from src.core import get_ml_orchestrator; print('MIESC OK')"
+
+  # =============================================================================
+  # Documentation
+  # =============================================================================
+  docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install documentation tools
+        run: pip install mkdocs mkdocs-material mkdocstrings[python]
+        continue-on-error: true
+
+      - name: Build documentation
+        run: |
+          if [ -f mkdocs.yml ]; then
+            mkdocs build
+          else
+            echo "No mkdocs.yml found, skipping docs build"
+          fi
+        continue-on-error: true
+
+  # =============================================================================
+  # Benchmark (on main branch only)
+  # =============================================================================
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    needs: [test, integration]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run benchmarks
+        run: |
+          if [ -f benchmarks/run_benchmarks.py ]; then
+            python benchmarks/run_benchmarks.py --output results.json
+          else
+            echo "No benchmarks found"
+          fi
+        continue-on-error: true
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: results.json
+          retention-days: 30
+        if: always()
+        continue-on-error: true
+
+  # =============================================================================
+  # Notify on Success/Failure
+  # =============================================================================
+  notify:
+    name: Notify Status
+    runs-on: ubuntu-latest
+    needs: [lint, test, integration, security]
+    if: always()
+
+    steps:
+      - name: Check job statuses
+        run: |
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Test: ${{ needs.test.result }}"
+          echo "Integration: ${{ needs.integration.result }}"
+          echo "Security: ${{ needs.security.result }}"
+
+      - name: Create summary
+        run: |
+          echo "## MIESC CI/CD Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration | ${{ needs.integration.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY

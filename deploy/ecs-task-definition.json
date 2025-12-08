@@ -1,0 +1,132 @@
+{
+  "family": "miesc-webapp",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "miesc-webapp",
+      "image": "YOUR_ECR_REPO_URI:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8501,
+          "hostPort": 8501,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "MIESC_ENV",
+          "value": "production"
+        },
+        {
+          "name": "DATABASE_URL",
+          "value": "sqlite:///data/licenses.db"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "MIESC_ADMIN_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:miesc/admin-api-key"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "miesc-data",
+          "containerPath": "/app/data",
+          "readOnly": false
+        }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8501/_stcore/health || exit 1"],
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/miesc",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "webapp"
+        }
+      }
+    },
+    {
+      "name": "miesc-admin-api",
+      "image": "YOUR_ECR_REPO_URI:latest",
+      "essential": false,
+      "command": ["uvicorn", "src.licensing.admin_api:app", "--host", "0.0.0.0", "--port", "5002"],
+      "portMappings": [
+        {
+          "containerPort": 5002,
+          "hostPort": 5002,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "MIESC_ENV",
+          "value": "production"
+        },
+        {
+          "name": "DATABASE_URL",
+          "value": "sqlite:///data/licenses.db"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "MIESC_ADMIN_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:miesc/admin-api-key"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "miesc-data",
+          "containerPath": "/app/data",
+          "readOnly": false
+        }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:5002/health || exit 1"],
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3,
+        "startPeriod": 30
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/miesc",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "admin-api"
+        }
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "name": "miesc-data",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-YOUR_EFS_ID",
+        "rootDirectory": "/miesc",
+        "transitEncryption": "ENABLED"
+      }
+    }
+  ],
+  "tags": [
+    {
+      "key": "Project",
+      "value": "MIESC"
+    },
+    {
+      "key": "Environment",
+      "value": "Production"
+    }
+  ]
+}

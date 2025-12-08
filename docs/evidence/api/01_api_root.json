@@ -1,0 +1,14 @@
+{
+  "agent": "MIESC MCP REST Adapter",
+  "documentation": "/mcp/capabilities",
+  "endpoints": {
+    "audit": "/mcp/run_audit",
+    "capabilities": "/mcp/capabilities",
+    "metrics": "/mcp/get_metrics",
+    "policy_audit": "/mcp/policy_audit",
+    "status": "/mcp/status"
+  },
+  "health": "/mcp/status",
+  "status": "operational",
+  "version": "4.0.0"
+}

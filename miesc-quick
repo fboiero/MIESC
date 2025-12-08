@@ -1,0 +1,950 @@
+#!/usr/bin/env python3
+"""
+MIESC-Quick - Lightweight Pre-Audit Scanner for Solidity Developers
+====================================================================
+
+This is a QUICK SCAN companion tool, NOT the complete MIESC framework.
+For full 7-layer audits with 25+ tools, use the main orchestrator.
+
+What this tool does:
+  - Fast pre-audit scans using Slither, Aderyn, and Solhint
+  - Instant feedback during development
+  - Basic remediation suggestions
+
+What this tool does NOT do:
+  - Full 7-layer defense-in-depth analysis
+  - Fuzzing (Echidna, Medusa, DogeFuzz)
+  - Symbolic execution (Mythril, Halmos)
+  - Formal verification (Certora, SMTChecker)
+  - AI-assisted analysis (SmartLLM, DA-GNN, PropertyGPT)
+
+For complete audits, use:
+  - python run_complete_multilayer_audit.py <contract>  # Full 7-layer audit
+  - python src/miesc_mcp_rest.py                        # MCP JSON-RPC server
+
+Usage:
+    miesc-quick scan <contract.sol>       Quick security scan (~30s)
+    miesc-quick check <contract.sol>      Instant lint check (~5s)
+    miesc-quick watch <directory>         Watch mode for development
+    miesc-quick doctor                    Check tool availability
+    miesc-quick checklist                 Pre-audit security checklist
+    miesc-quick report <contract.sol>     Generate basic report
+"""
+
+import sys
+import os
+import argparse
+import time
+import json
+import hashlib
+from pathlib import Path
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Dict, List, Optional, Any, Tuple
+from dataclasses import dataclass, field
+
+# Add src to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
+# ANSI Colors
+class Colors:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    RESET = '\033[0m'
+
+    # Severity colors
+    CRITICAL = '\033[91m\033[1m'  # Bold Red
+    HIGH = '\033[91m'              # Red
+    MEDIUM = '\033[93m'            # Yellow
+    LOW = '\033[94m'               # Blue
+    INFO = '\033[90m'              # Gray
+
+def color(text: str, color_code: str) -> str:
+    """Apply color to text if terminal supports it."""
+    if sys.stdout.isatty():
+        return f"{color_code}{text}{Colors.RESET}"
+    return text
+
+def severity_color(severity: str) -> str:
+    """Get color code for severity level."""
+    severity_map = {
+        'CRITICAL': Colors.CRITICAL,
+        'HIGH': Colors.HIGH,
+        'MEDIUM': Colors.MEDIUM,
+        'LOW': Colors.LOW,
+        'INFO': Colors.INFO,
+        'INFORMATIONAL': Colors.INFO,
+    }
+    return severity_map.get(severity.upper(), Colors.RESET)
+
+# Progress spinner
+class Spinner:
+    def __init__(self, message: str):
+        self.message = message
+        self.frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+        self.idx = 0
+        self.running = False
+
+    def spin(self):
+        if sys.stdout.isatty():
+            frame = self.frames[self.idx % len(self.frames)]
+            print(f"\r{color(frame, Colors.CYAN)} {self.message}", end='', flush=True)
+            self.idx += 1
+
+    def done(self, success: bool = True, message: str = None):
+        icon = color('✓', Colors.GREEN) if success else color('✗', Colors.RED)
+        msg = message or self.message
+        print(f"\r{icon} {msg}" + ' ' * 20)
+
+# Try to import remediations from the new database
+try:
+    from security.remediations import get_remediation_by_type, get_security_checklist, REMEDIATIONS as FULL_REMEDIATIONS
+    USE_FULL_REMEDIATIONS = True
+except ImportError:
+    USE_FULL_REMEDIATIONS = False
+
+# Fallback remediation database
+REMEDIATIONS = {
+    'reentrancy': {
+        'title': 'Reentrancy Vulnerability',
+        'fix': 'Use the Checks-Effects-Interactions pattern. Update state before external calls.',
+        'example': '''// BEFORE (vulnerable)
+function withdraw() external {
+    uint amount = balances[msg.sender];
+    (bool success,) = msg.sender.call{value: amount}("");
+    balances[msg.sender] = 0;  // State update AFTER call
+}
+
+// AFTER (fixed)
+function withdraw() external {
+    uint amount = balances[msg.sender];
+    balances[msg.sender] = 0;  // State update BEFORE call
+    (bool success,) = msg.sender.call{value: amount}("");
+    require(success, "Transfer failed");
+}''',
+        'references': ['SWC-107', 'https://swcregistry.io/docs/SWC-107']
+    },
+    'unchecked-call': {
+        'title': 'Unchecked External Call',
+        'fix': 'Always check the return value of low-level calls.',
+        'example': '''// BEFORE (vulnerable)
+msg.sender.call{value: amount}("");
+
+// AFTER (fixed)
+(bool success,) = msg.sender.call{value: amount}("");
+require(success, "Transfer failed");''',
+        'references': ['SWC-104']
+    },
+    'access-control': {
+        'title': 'Missing Access Control',
+        'fix': 'Add access modifiers (onlyOwner, onlyRole) to sensitive functions.',
+        'example': '''// Add OpenZeppelin Ownable
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+function sensitiveFunction() external onlyOwner {
+    // ...
+}''',
+        'references': ['SWC-105']
+    },
+    'integer-overflow': {
+        'title': 'Integer Overflow/Underflow',
+        'fix': 'Use Solidity 0.8+ (built-in checks) or SafeMath library.',
+        'example': '''// Solidity 0.8+ has built-in overflow checks
+// For 0.7.x and below, use SafeMath:
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+using SafeMath for uint256;
+
+uint256 result = a.add(b);  // Safe addition''',
+        'references': ['SWC-101']
+    },
+    'tx-origin': {
+        'title': 'tx.origin Authentication',
+        'fix': 'Use msg.sender instead of tx.origin for authentication.',
+        'example': '''// BEFORE (vulnerable)
+require(tx.origin == owner);
+
+// AFTER (fixed)
+require(msg.sender == owner);''',
+        'references': ['SWC-115']
+    },
+    'delegatecall': {
+        'title': 'Dangerous delegatecall',
+        'fix': 'Ensure delegatecall target is trusted. Use OpenZeppelin Proxy patterns.',
+        'references': ['SWC-112']
+    },
+    'floating-pragma': {
+        'title': 'Floating Pragma',
+        'fix': 'Lock the pragma to a specific compiler version.',
+        'example': '''// BEFORE
+pragma solidity ^0.8.0;
+
+// AFTER
+pragma solidity 0.8.19;''',
+        'references': ['SWC-103']
+    },
+    'uninitialized-storage': {
+        'title': 'Uninitialized Storage Pointer',
+        'fix': 'Always initialize storage variables or use memory keyword.',
+        'references': ['SWC-109']
+    },
+    'timestamp-dependence': {
+        'title': 'Block Timestamp Dependence',
+        'fix': 'Avoid using block.timestamp for critical logic. Use commit-reveal schemes.',
+        'references': ['SWC-116']
+    },
+    'front-running': {
+        'title': 'Front-running Vulnerability',
+        'fix': 'Use commit-reveal schemes, submarine sends, or private mempools.',
+        'references': ['SWC-114']
+    },
+}
+
+def get_remediation(vuln_type: str) -> Optional[Dict]:
+    """Get remediation advice for a vulnerability type."""
+    vuln_lower = vuln_type.lower().replace('_', '-').replace(' ', '-')
+
+    for key, value in REMEDIATIONS.items():
+        if key in vuln_lower or vuln_lower in key:
+            return value
+
+    # Fuzzy match
+    for key, value in REMEDIATIONS.items():
+        if any(word in vuln_lower for word in key.split('-')):
+            return value
+
+    return None
+
+@dataclass
+class Finding:
+    """Normalized security finding."""
+    tool: str
+    type: str
+    severity: str
+    message: str
+    file: str = ""
+    line: int = 0
+    function: str = ""
+    swc_id: str = ""
+    confidence: float = 1.0
+
+    def to_dict(self) -> Dict:
+        return {
+            'tool': self.tool,
+            'type': self.type,
+            'severity': self.severity,
+            'message': self.message,
+            'location': {
+                'file': self.file,
+                'line': self.line,
+                'function': self.function
+            },
+            'swc_id': self.swc_id,
+            'confidence': self.confidence
+        }
+
+@dataclass
+class ScanResult:
+    """Result of a security scan."""
+    contract: str
+    findings: List[Finding] = field(default_factory=list)
+    tools_run: List[str] = field(default_factory=list)
+    tools_failed: List[str] = field(default_factory=list)
+    duration: float = 0.0
+    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    @property
+    def critical_count(self) -> int:
+        return sum(1 for f in self.findings if f.severity.upper() == 'CRITICAL')
+
+    @property
+    def high_count(self) -> int:
+        return sum(1 for f in self.findings if f.severity.upper() == 'HIGH')
+
+    @property
+    def medium_count(self) -> int:
+        return sum(1 for f in self.findings if f.severity.upper() == 'MEDIUM')
+
+    @property
+    def low_count(self) -> int:
+        return sum(1 for f in self.findings if f.severity.upper() == 'LOW')
+
+    @property
+    def info_count(self) -> int:
+        return sum(1 for f in self.findings if f.severity.upper() in ('INFO', 'INFORMATIONAL'))
+
+class MIESCScanner:
+    """MIESC Security Scanner for Solidity contracts."""
+
+    # Tool configurations by scan mode
+    SCAN_MODES = {
+        'check': {
+            'tools': ['solhint'],
+            'description': 'Quick lint check',
+            'timeout': 30
+        },
+        'scan': {
+            'tools': ['slither', 'aderyn', 'solhint'],
+            'description': 'Fast security scan',
+            'timeout': 60
+        },
+        'audit': {
+            'tools': ['slither', 'aderyn', 'solhint', 'mythril', 'smtchecker'],
+            'description': 'Full security audit',
+            'timeout': 300
+        },
+        'deep': {
+            'tools': ['slither', 'aderyn', 'solhint', 'mythril', 'smtchecker',
+                     'echidna', 'halmos', 'smartllm'],
+            'description': 'Deep analysis with fuzzing and AI',
+            'timeout': 600
+        }
+    }
+
+    def __init__(self, verbose: bool = False):
+        self.verbose = verbose
+        self.adapters = {}
+        self._load_adapters()
+
+    def _load_adapters(self):
+        """Load available tool adapters."""
+        adapter_map = {
+            'slither': 'slither_adapter.SlitherAdapter',
+            'aderyn': 'aderyn_adapter.AderynAdapter',
+            'solhint': 'solhint_adapter.SolhintAdapter',
+            'mythril': 'mythril_adapter.MythrilAdapter',
+            'smtchecker': 'smtchecker_adapter.SMTCheckerAdapter',
+            'echidna': 'echidna_adapter.EchidnaAdapter',
+            'halmos': 'halmos_adapter.HalmosAdapter',
+            'smartllm': 'smartllm_adapter.SmartLLMAdapter',
+        }
+
+        for name, module_class in adapter_map.items():
+            try:
+                module_name, class_name = module_class.rsplit('.', 1)
+                module = __import__(f'adapters.{module_name}', fromlist=[class_name])
+                adapter_class = getattr(module, class_name)
+                self.adapters[name] = adapter_class()
+            except Exception as e:
+                if self.verbose:
+                    print(f"  {color('⚠', Colors.YELLOW)} Could not load {name}: {e}")
+
+    def check_tools(self) -> Dict[str, bool]:
+        """Check which tools are available."""
+        status = {}
+        for name, adapter in self.adapters.items():
+            try:
+                available = adapter.is_available() if hasattr(adapter, 'is_available') else True
+                status[name] = available
+            except:
+                status[name] = False
+        return status
+
+    def _run_tool(self, name: str, contract_path: str, timeout: int) -> Tuple[str, List[Finding], bool]:
+        """Run a single tool and return findings."""
+        findings = []
+        success = False
+
+        try:
+            adapter = self.adapters.get(name)
+            if not adapter:
+                return name, [], False
+
+            result = adapter.analyze(contract_path, timeout=timeout)
+
+            if result.get('status') == 'success':
+                success = True
+                for f in result.get('findings', []):
+                    finding = Finding(
+                        tool=name,
+                        type=f.get('type', 'unknown'),
+                        severity=f.get('severity', 'INFO'),
+                        message=f.get('message', ''),
+                        file=f.get('location', {}).get('file', contract_path),
+                        line=f.get('location', {}).get('line', 0),
+                        function=f.get('location', {}).get('function', ''),
+                        swc_id=f.get('swc_id', ''),
+                        confidence=f.get('confidence', 1.0)
+                    )
+                    findings.append(finding)
+        except Exception as e:
+            if self.verbose:
+                print(f"    {color('Error', Colors.RED)} in {name}: {str(e)[:50]}")
+
+        return name, findings, success
+
+    def scan(self, contract_path: str, mode: str = 'scan') -> ScanResult:
+        """Run security scan on a contract."""
+        if not os.path.exists(contract_path):
+            raise FileNotFoundError(f"Contract not found: {contract_path}")
+
+        config = self.SCAN_MODES.get(mode, self.SCAN_MODES['scan'])
+        tools = config['tools']
+        timeout = config['timeout']
+
+        start_time = time.time()
+        result = ScanResult(contract=contract_path)
+
+        # Filter to available tools
+        available = self.check_tools()
+        tools_to_run = [t for t in tools if available.get(t, False)]
+
+        if not tools_to_run:
+            print(color("No security tools available! Run 'miesc doctor' to check.", Colors.RED))
+            return result
+
+        # Run tools in parallel
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = {
+                executor.submit(self._run_tool, tool, contract_path, timeout): tool
+                for tool in tools_to_run
+            }
+
+            for future in as_completed(futures):
+                tool_name, findings, success = future.result()
+
+                if success:
+                    result.tools_run.append(tool_name)
+                    result.findings.extend(findings)
+                else:
+                    result.tools_failed.append(tool_name)
+
+        result.duration = time.time() - start_time
+
+        # Deduplicate findings
+        result.findings = self._deduplicate_findings(result.findings)
+
+        return result
+
+    def _deduplicate_findings(self, findings: List[Finding]) -> List[Finding]:
+        """Remove duplicate findings based on type and location."""
+        seen = set()
+        unique = []
+
+        for f in findings:
+            key = (f.type.lower(), f.file, f.line, f.function)
+            if key not in seen:
+                seen.add(key)
+                # Boost confidence if found by multiple tools
+                unique.append(f)
+            else:
+                # Find existing and boost confidence
+                for existing in unique:
+                    if (existing.type.lower(), existing.file, existing.line, existing.function) == key:
+                        existing.confidence = min(1.0, existing.confidence + 0.15)
+                        break
+
+        return unique
+
+def print_banner():
+    """Print MIESC-Quick banner."""
+    banner = f"""
+{color('╔════════════════════════════════════════════════════════════════════╗', Colors.CYAN)}
+{color('║', Colors.CYAN)}  {color('MIESC-Quick', Colors.BOLD)} - Lightweight Pre-Audit Scanner                       {color('║', Colors.CYAN)}
+{color('║', Colors.CYAN)}  {color('v4.0.0', Colors.DIM)}         For full 7-layer audit: run_complete_multilayer_audit.py  {color('║', Colors.CYAN)}
+{color('╚════════════════════════════════════════════════════════════════════╝', Colors.CYAN)}
+"""
+    print(banner)
+
+def print_summary(result: ScanResult):
+    """Print scan summary with severity breakdown."""
+    print(f"\n{color('═══ SCAN SUMMARY ═══', Colors.BOLD)}")
+    print(f"Contract: {color(result.contract, Colors.CYAN)}")
+    print(f"Duration: {result.duration:.1f}s")
+    print(f"Tools:    {', '.join(result.tools_run)}")
+
+    if result.tools_failed:
+        print(f"Failed:   {color(', '.join(result.tools_failed), Colors.YELLOW)}")
+
+    print(f"\n{color('Findings by Severity:', Colors.BOLD)}")
+
+    # Severity breakdown with colors
+    if result.critical_count:
+        print(f"  {color('●', Colors.CRITICAL)} CRITICAL: {color(str(result.critical_count), Colors.CRITICAL)}")
+    if result.high_count:
+        print(f"  {color('●', Colors.HIGH)} HIGH:     {color(str(result.high_count), Colors.HIGH)}")
+    if result.medium_count:
+        print(f"  {color('●', Colors.MEDIUM)} MEDIUM:   {color(str(result.medium_count), Colors.MEDIUM)}")
+    if result.low_count:
+        print(f"  {color('●', Colors.LOW)} LOW:      {color(str(result.low_count), Colors.LOW)}")
+    if result.info_count:
+        print(f"  {color('●', Colors.INFO)} INFO:     {color(str(result.info_count), Colors.INFO)}")
+
+    total = len(result.findings)
+    print(f"\n  {color('Total:', Colors.BOLD)} {total} finding{'s' if total != 1 else ''}")
+
+    # Risk score
+    risk_score = (result.critical_count * 10 + result.high_count * 5 +
+                  result.medium_count * 2 + result.low_count * 0.5)
+
+    if risk_score == 0:
+        risk_label = color('LOW RISK', Colors.GREEN)
+    elif risk_score < 5:
+        risk_label = color('MODERATE RISK', Colors.YELLOW)
+    elif risk_score < 15:
+        risk_label = color('HIGH RISK', Colors.RED)
+    else:
+        risk_label = color('CRITICAL RISK', Colors.CRITICAL)
+
+    print(f"\n  Risk Assessment: {risk_label}")
+
+def print_findings(findings: List[Finding], show_remediation: bool = True):
+    """Print detailed findings."""
+    if not findings:
+        print(f"\n{color('✓ No security issues found!', Colors.GREEN)}")
+        return
+
+    # Sort by severity
+    severity_order = {'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3, 'INFO': 4, 'INFORMATIONAL': 4}
+    sorted_findings = sorted(findings, key=lambda f: severity_order.get(f.severity.upper(), 5))
+
+    print(f"\n{color('═══ DETAILED FINDINGS ═══', Colors.BOLD)}\n")
+
+    for i, f in enumerate(sorted_findings, 1):
+        sev_color = severity_color(f.severity)
+
+        # Finding header
+        print(f"{color(f'[{i}]', Colors.BOLD)} {color(f.severity.upper(), sev_color)} - {f.type}")
+        print(f"    {color('Tool:', Colors.DIM)} {f.tool}")
+
+        if f.file or f.line:
+            location = f"{f.file}:{f.line}" if f.line else f.file
+            print(f"    {color('Location:', Colors.DIM)} {location}")
+
+        if f.function:
+            print(f"    {color('Function:', Colors.DIM)} {f.function}()")
+
+        if f.swc_id:
+            print(f"    {color('SWC:', Colors.DIM)} {f.swc_id}")
+
+        if f.confidence < 1.0:
+            print(f"    {color('Confidence:', Colors.DIM)} {f.confidence:.0%}")
+
+        print(f"    {color('Message:', Colors.DIM)} {f.message[:200]}")
+
+        # Remediation
+        if show_remediation:
+            remediation = get_remediation(f.type)
+            if remediation:
+                print(f"\n    {color('💡 Fix:', Colors.GREEN)} {remediation['fix']}")
+                if 'example' in remediation:
+                    print(f"    {color('Example:', Colors.DIM)}")
+                    for line in remediation['example'].split('\n')[:6]:
+                        print(f"      {color(line, Colors.DIM)}")
+
+        print()
+
+def cmd_scan(args):
+    """Run security scan."""
+    print_banner()
+
+    contract = args.contract
+    mode = 'audit' if args.full else ('check' if args.lint else 'scan')
+
+    print(f"Scanning {color(contract, Colors.CYAN)} ({mode} mode)...\n")
+
+    scanner = MIESCScanner(verbose=args.verbose)
+
+    # Show progress
+    spinner = Spinner(f"Running {mode} analysis...")
+    spinner.spin()
+
+    result = scanner.scan(contract, mode=mode)
+
+    spinner.done(len(result.tools_run) > 0)
+
+    # Print results
+    print_summary(result)
+    print_findings(result.findings, show_remediation=not args.no_fix)
+
+    # Export if requested
+    if args.output:
+        output_path = args.output
+        with open(output_path, 'w') as f:
+            json.dump({
+                'contract': result.contract,
+                'timestamp': result.timestamp,
+                'duration': result.duration,
+                'tools_run': result.tools_run,
+                'findings': [finding.to_dict() for finding in result.findings]
+            }, f, indent=2)
+        print(f"\n{color('✓', Colors.GREEN)} Report saved to {output_path}")
+
+    # Exit code based on severity
+    if result.critical_count > 0:
+        sys.exit(2)
+    elif result.high_count > 0:
+        sys.exit(1)
+    sys.exit(0)
+
+def cmd_doctor(args):
+    """Check tool availability."""
+    print_banner()
+    print(f"{color('Checking security tool installation...', Colors.BOLD)}\n")
+
+    scanner = MIESCScanner(verbose=True)
+    status = scanner.check_tools()
+
+    available = 0
+    for tool, is_available in sorted(status.items()):
+        if is_available:
+            print(f"  {color('✓', Colors.GREEN)} {tool}")
+            available += 1
+        else:
+            print(f"  {color('✗', Colors.RED)} {tool} - not installed")
+
+    print(f"\n{available}/{len(status)} tools available")
+
+    if available < len(status):
+        print(f"\n{color('To install missing tools:', Colors.YELLOW)}")
+        print("  pip install slither-analyzer mythril")
+        print("  brew install echidna halmos")
+        print("  npm install -g solhint")
+
+def cmd_init(args):
+    """Initialize MIESC configuration in project."""
+    print_banner()
+
+    config_path = Path('.miesc.yaml')
+
+    if config_path.exists() and not args.force:
+        print(f"{color('Config already exists:', Colors.YELLOW)} {config_path}")
+        print("Use --force to overwrite")
+        return
+
+    config = """# MIESC Configuration
+version: "4.0.0"
+
+# Scan settings
+scan:
+  mode: scan  # check, scan, audit, deep
+  timeout: 120
+  parallel: true
+
+# Tool selection
+tools:
+  enabled:
+    - slither
+    - aderyn
+    - solhint
+  disabled: []
+
+# Output settings
+output:
+  format: terminal  # terminal, json, markdown
+  show_remediation: true
+  color: auto
+
+# Severity thresholds
+thresholds:
+  fail_on: high  # critical, high, medium, low
+
+# Ignore patterns
+ignore:
+  files:
+    - "**/test/**"
+    - "**/mock/**"
+  detectors:
+    - solc-version
+"""
+
+    config_path.write_text(config)
+    print(f"{color('✓', Colors.GREEN)} Created {config_path}")
+    print("\nEdit this file to customize MIESC for your project.")
+
+def cmd_checklist(args):
+    """Show security checklist for pre-audit review."""
+    print_banner()
+    print(f"{color('═══ SECURITY PRE-AUDIT CHECKLIST ═══', Colors.BOLD)}\n")
+
+    # Try to use the full checklist from remediations module
+    if USE_FULL_REMEDIATIONS:
+        checklist = get_security_checklist()
+    else:
+        # Fallback checklist
+        checklist = [
+            {"category": "Access Control", "items": [
+                "All admin functions have proper access modifiers",
+                "No use of tx.origin for authentication",
+            ]},
+            {"category": "Reentrancy", "items": [
+                "Checks-Effects-Interactions pattern followed",
+                "State updated before external calls",
+            ]},
+            {"category": "External Calls", "items": [
+                "All low-level call return values checked",
+                "Pull-over-push pattern for ETH transfers",
+            ]},
+        ]
+
+    total_items = 0
+    for cat in checklist:
+        print(f"{color('▸ ' + cat['category'], Colors.CYAN + Colors.BOLD)}")
+        for item in cat['items']:
+            print(f"  {color('☐', Colors.DIM)} {item}")
+            total_items += 1
+        print()
+
+    print(f"{color('─' * 50, Colors.DIM)}")
+    print(f"Total: {total_items} items to review before audit")
+    print(f"\n{color('Tip:', Colors.YELLOW)} Run {color('miesc scan <contract.sol>', Colors.CYAN)} to automate checks")
+
+def cmd_report(args):
+    """Generate executive security report."""
+    print_banner()
+
+    contract = args.contract
+    print(f"Generating executive report for {color(contract, Colors.CYAN)}...\n")
+
+    scanner = MIESCScanner(verbose=args.verbose if hasattr(args, 'verbose') else False)
+
+    # Run full audit
+    spinner = Spinner("Running comprehensive analysis...")
+    spinner.spin()
+    result = scanner.scan(contract, mode='audit')
+    spinner.done(len(result.tools_run) > 0)
+
+    # Generate report sections
+    print(f"\n{color('╔═══════════════════════════════════════════════════════════╗', Colors.CYAN)}")
+    print(f"{color('║', Colors.CYAN)}        {color('EXECUTIVE SECURITY REPORT', Colors.BOLD)}                         {color('║', Colors.CYAN)}")
+    print(f"{color('╚═══════════════════════════════════════════════════════════╝', Colors.CYAN)}")
+
+    # Contract info
+    print(f"\n{color('CONTRACT INFORMATION', Colors.BOLD)}")
+    print(f"  File: {result.contract}")
+    print(f"  Scan Date: {result.timestamp[:10]}")
+    print(f"  Analysis Duration: {result.duration:.1f}s")
+    print(f"  Tools Used: {', '.join(result.tools_run)}")
+
+    # Risk assessment
+    risk_score = (result.critical_count * 10 + result.high_count * 5 +
+                  result.medium_count * 2 + result.low_count * 0.5)
+
+    print(f"\n{color('RISK ASSESSMENT', Colors.BOLD)}")
+
+    if risk_score == 0:
+        risk_level = "LOW"
+        risk_color = Colors.GREEN
+        recommendation = "Contract appears secure. Proceed with caution and manual review."
+    elif risk_score < 5:
+        risk_level = "MODERATE"
+        risk_color = Colors.YELLOW
+        recommendation = "Minor issues detected. Address before production deployment."
+    elif risk_score < 15:
+        risk_level = "HIGH"
+        risk_color = Colors.RED
+        recommendation = "Significant vulnerabilities found. DO NOT deploy without fixes."
+    else:
+        risk_level = "CRITICAL"
+        risk_color = Colors.CRITICAL
+        recommendation = "SEVERE vulnerabilities. Immediate remediation required."
+
+    print(f"  Risk Level: {color(risk_level, risk_color)}")
+    print(f"  Risk Score: {risk_score:.1f}/100")
+    print(f"  Recommendation: {recommendation}")
+
+    # Findings summary
+    print(f"\n{color('FINDINGS SUMMARY', Colors.BOLD)}")
+    print(f"  {color('●', Colors.CRITICAL)} Critical: {result.critical_count}")
+    print(f"  {color('●', Colors.HIGH)} High: {result.high_count}")
+    print(f"  {color('●', Colors.MEDIUM)} Medium: {result.medium_count}")
+    print(f"  {color('●', Colors.LOW)} Low: {result.low_count}")
+    print(f"  {color('●', Colors.INFO)} Informational: {result.info_count}")
+    print(f"  {color('─' * 30, Colors.DIM)}")
+    print(f"  Total: {len(result.findings)} issues")
+
+    # Priority fixes (top 5)
+    if result.findings:
+        severity_order = {'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3, 'INFO': 4}
+        sorted_findings = sorted(result.findings,
+                                 key=lambda f: severity_order.get(f.severity.upper(), 5))
+
+        print(f"\n{color('PRIORITY FIXES', Colors.BOLD)} (Top issues to address first)")
+
+        for i, f in enumerate(sorted_findings[:5], 1):
+            sev_col = severity_color(f.severity)
+            print(f"\n  {color(f'#{i}', Colors.BOLD)} {color(f.severity.upper(), sev_col)} - {f.type}")
+
+            if f.file and f.line:
+                print(f"      Location: {f.file}:{f.line}")
+
+            # Get remediation
+            if USE_FULL_REMEDIATIONS:
+                rem = get_remediation_by_type(f.type)
+                if rem:
+                    print(f"      {color('Fix:', Colors.GREEN)} {rem.fix}")
+            else:
+                rem = get_remediation(f.type)
+                if rem:
+                    print(f"      {color('Fix:', Colors.GREEN)} {rem.get('fix', 'See documentation')}")
+
+    # Next steps
+    print(f"\n{color('RECOMMENDED NEXT STEPS', Colors.BOLD)}")
+    steps = []
+    if result.critical_count > 0:
+        steps.append("1. IMMEDIATELY fix critical vulnerabilities before any deployment")
+    if result.high_count > 0:
+        steps.append("2. Address high-severity issues as priority")
+    if result.medium_count > 0:
+        steps.append("3. Review and fix medium-severity issues")
+    steps.append(f"4. Run 'miesc scan {contract} --full' for deep analysis")
+    steps.append("5. Consider professional audit for production deployment")
+
+    for step in steps:
+        print(f"  {step}")
+
+    # Export
+    if args.output:
+        report_data = {
+            'contract': result.contract,
+            'timestamp': result.timestamp,
+            'duration': result.duration,
+            'tools_run': result.tools_run,
+            'risk_level': risk_level,
+            'risk_score': risk_score,
+            'summary': {
+                'critical': result.critical_count,
+                'high': result.high_count,
+                'medium': result.medium_count,
+                'low': result.low_count,
+                'info': result.info_count,
+                'total': len(result.findings)
+            },
+            'findings': [f.to_dict() for f in result.findings],
+            'recommendation': recommendation
+        }
+
+        with open(args.output, 'w') as f:
+            json.dump(report_data, f, indent=2)
+        print(f"\n{color('✓', Colors.GREEN)} Report saved to {args.output}")
+
+def cmd_watch(args):
+    """Watch mode for continuous scanning."""
+    print_banner()
+    print(f"{color('Watch mode', Colors.BOLD)} - scanning {args.directory} for changes...\n")
+    print("Press Ctrl+C to stop\n")
+
+    try:
+        import watchdog
+        from watchdog.observers import Observer
+        from watchdog.events import FileSystemEventHandler
+
+        class SolHandler(FileSystemEventHandler):
+            def __init__(self):
+                self.scanner = MIESCScanner()
+                self.last_scan = {}
+
+            def on_modified(self, event):
+                if event.src_path.endswith('.sol'):
+                    # Debounce
+                    now = time.time()
+                    if now - self.last_scan.get(event.src_path, 0) < 2:
+                        return
+                    self.last_scan[event.src_path] = now
+
+                    print(f"\n{color('File changed:', Colors.CYAN)} {event.src_path}")
+                    result = self.scanner.scan(event.src_path, mode='check')
+
+                    if result.findings:
+                        for f in result.findings[:3]:
+                            sev = color(f.severity, severity_color(f.severity))
+                            print(f"  {sev}: {f.type} at line {f.line}")
+                        if len(result.findings) > 3:
+                            print(f"  ... and {len(result.findings) - 3} more")
+                    else:
+                        print(f"  {color('✓ No issues', Colors.GREEN)}")
+
+        handler = SolHandler()
+        observer = Observer()
+        observer.schedule(handler, args.directory, recursive=True)
+        observer.start()
+
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            observer.stop()
+        observer.join()
+
+    except ImportError:
+        print(f"{color('Error:', Colors.RED)} watchdog not installed")
+        print("Install with: pip install watchdog")
+        sys.exit(1)
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog='miesc-quick',
+        description='MIESC-Quick - Lightweight Pre-Audit Scanner (NOT the full 7-layer framework)',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  miesc-quick scan Contract.sol              Quick security scan (~30s)
+  miesc-quick scan Contract.sol -o report.json  Export results
+  miesc-quick check Contract.sol             Lint check only (~5s)
+  miesc-quick doctor                         Check tool installation
+  miesc-quick checklist                      Pre-audit security checklist
+  miesc-quick watch ./contracts              Watch for changes
+
+For FULL 7-layer audits with 25+ tools, use:
+  python run_complete_multilayer_audit.py <contract.sol>
+
+For MCP JSON-RPC server:
+  python src/miesc_mcp_rest.py
+"""
+    )
+
+    subparsers = parser.add_subparsers(dest='command', help='Commands')
+
+    # scan command
+    scan_parser = subparsers.add_parser('scan', help='Scan a contract for vulnerabilities')
+    scan_parser.add_argument('contract', help='Path to Solidity contract')
+    scan_parser.add_argument('--full', '-f', action='store_true', help='Run full audit (slower)')
+    scan_parser.add_argument('--lint', '-l', action='store_true', help='Quick lint check only')
+    scan_parser.add_argument('--output', '-o', help='Output file for JSON report')
+    scan_parser.add_argument('--no-fix', action='store_true', help='Hide remediation suggestions')
+    scan_parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
+    scan_parser.set_defaults(func=cmd_scan)
+
+    # doctor command
+    doctor_parser = subparsers.add_parser('doctor', help='Check tool installation')
+    doctor_parser.set_defaults(func=cmd_doctor)
+
+    # init command
+    init_parser = subparsers.add_parser('init', help='Initialize project configuration')
+    init_parser.add_argument('--force', action='store_true', help='Overwrite existing config')
+    init_parser.set_defaults(func=cmd_init)
+
+    # watch command
+    watch_parser = subparsers.add_parser('watch', help='Watch directory for changes')
+    watch_parser.add_argument('directory', nargs='?', default='.', help='Directory to watch')
+    watch_parser.set_defaults(func=cmd_watch)
+
+    # checklist command
+    checklist_parser = subparsers.add_parser('checklist', help='Show pre-audit security checklist')
+    checklist_parser.set_defaults(func=cmd_checklist)
+
+    # report command
+    report_parser = subparsers.add_parser('report', help='Generate executive security report')
+    report_parser.add_argument('contract', help='Path to Solidity contract')
+    report_parser.add_argument('--output', '-o', help='Output file for JSON report')
+    report_parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
+    report_parser.set_defaults(func=cmd_report)
+
+    # Shortcut: if first arg is a .sol file, treat as scan
+    if len(sys.argv) > 1 and sys.argv[1].endswith('.sol'):
+        sys.argv.insert(1, 'scan')
+
+    args = parser.parse_args()
+
+    if hasattr(args, 'func'):
+        args.func(args)
+    else:
+        parser.print_help()
+
+if __name__ == '__main__':
+    main()

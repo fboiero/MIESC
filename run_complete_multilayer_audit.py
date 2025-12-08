@@ -27,6 +27,16 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
 import hashlib
 
+# Add src to path for remediations module
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+# Try to import remediations database
+try:
+    from security.remediations import get_remediation_by_swc, get_remediation_by_type, get_security_checklist
+    REMEDIATIONS_AVAILABLE = True
+except ImportError:
+    REMEDIATIONS_AVAILABLE = False
+
 # Configuration
 CONTRACTS_DIR = Path(__file__).parent / "contracts" / "audit"
 OUTPUT_DIR = Path(__file__).parent / "audit_results"
@@ -773,7 +783,7 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
             print(f"      ✗ Error: {str(e)[:50]}")
 
     def _generate_report(self) -> Dict[str, Any]:
-        """Generate final audit report"""
+        """Generate final audit report with remediations"""
 
         # Count findings by layer
         findings_by_layer = {}
@@ -796,13 +806,39 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
                 findings_by_tool[finding.tool] = 0
             findings_by_tool[finding.tool] += 1
 
+        # Generate findings with remediations
+        findings_with_remediations = []
+        for f in self.findings:
+            finding_dict = f.to_dict()
+
+            # Try to add remediation
+            if REMEDIATIONS_AVAILABLE:
+                remediation = None
+                # Try by SWC ID first
+                if f.swc_id:
+                    remediation = get_remediation_by_swc(f.swc_id)
+                # Fallback to type matching
+                if not remediation:
+                    remediation = get_remediation_by_type(f.title)
+
+                if remediation:
+                    finding_dict["remediation"] = {
+                        "title": remediation.title,
+                        "fix": remediation.fix,
+                        "example": remediation.example if remediation.example else None,
+                        "references": remediation.references
+                    }
+
+            findings_with_remediations.append(finding_dict)
+
         report = {
             "audit_info": {
                 "contract": self.contract_name,
                 "contract_path": str(self.contract_path),
                 "timestamp": datetime.now().isoformat(),
                 "miesc_version": "4.0.0",
-                "total_layers_executed": 7
+                "total_layers_executed": 7,
+                "remediations_enabled": REMEDIATIONS_AVAILABLE
             },
             "summary": {
                 "total_findings": len(self.findings),
@@ -813,9 +849,13 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
                 "risk_score": self.layer_results.get("risk_correlation", {}).get("risk_score", 0)
             },
             "layer_results": self.layer_results,
-            "findings": [f.to_dict() for f in self.findings],
+            "findings": findings_with_remediations,
             "errors": self.errors
         }
+
+        # Add security checklist if available
+        if REMEDIATIONS_AVAILABLE:
+            report["security_checklist"] = get_security_checklist()
 
         return report
 
