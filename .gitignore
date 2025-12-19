@@ -185,3 +185,4 @@ node_modules/
 # -----------------------------------------------------------------------------
 =*
 .python-version
+benchmarks/datasets/smartbugs-curated

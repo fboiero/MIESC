@@ -1,0 +1,289 @@
+# MIESC v4.1 - GitHub Action for Smart Contract Security Audit
+# Integrates MIESC multi-layer security analysis into CI/CD pipelines
+#
+# Author: Fernando Boiero
+# Institution: UNDEF - IUA
+# License: GPL-3.0
+
+name: MIESC Security Audit
+
+on:
+  push:
+    paths:
+      - '**.sol'
+      - 'contracts/**'
+  pull_request:
+    paths:
+      - '**.sol'
+      - 'contracts/**'
+  workflow_dispatch:
+    inputs:
+      contract_path:
+        description: 'Path to contract or directory to audit'
+        required: false
+        default: 'contracts/'
+      layers:
+        description: 'Layers to run (comma-separated: 1,2,3,7)'
+        required: false
+        default: '1,3,7'
+      severity_threshold:
+        description: 'Minimum severity to fail (critical, high, medium, low)'
+        required: false
+        default: 'high'
+
+env:
+  PYTHON_VERSION: '3.11'
+  SOLC_VERSION: '0.8.19'
+
+jobs:
+  security-audit:
+    name: MIESC Multi-Layer Audit
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install solc
+        run: |
+          pip install solc-select
+          solc-select install ${{ env.SOLC_VERSION }}
+          solc-select use ${{ env.SOLC_VERSION }}
+
+      - name: Install MIESC and dependencies
+        run: |
+          pip install slither-analyzer
+          pip install -e .
+          echo "MIESC installed successfully"
+
+      - name: Verify installation
+        run: |
+          python -c "from src.miesc_core import MIESCCore; print('MIESC Core: OK')"
+          slither --version || echo "Slither available"
+
+      - name: Find Solidity contracts
+        id: find-contracts
+        run: |
+          CONTRACT_PATH="${{ github.event.inputs.contract_path || 'contracts/' }}"
+          if [ -d "$CONTRACT_PATH" ]; then
+            CONTRACTS=$(find "$CONTRACT_PATH" -name "*.sol" -type f | head -20)
+          else
+            CONTRACTS="$CONTRACT_PATH"
+          fi
+          echo "contracts<<EOF" >> $GITHUB_OUTPUT
+          echo "$CONTRACTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "Found contracts: $CONTRACTS"
+
+      - name: Run MIESC Security Audit
+        id: audit
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          import sys
+          import json
+          from pathlib import Path
+          from datetime import datetime
+
+          sys.path.insert(0, str(Path.cwd() / "src"))
+
+          from miesc_core import MIESCCore
+          from detectors.smartbugs_detectors import SmartBugsDetectorEngine
+
+          # Configuration
+          contract_path = os.environ.get('CONTRACT_PATH', 'contracts/')
+          layers = os.environ.get('LAYERS', '1,3,7')
+          severity_threshold = os.environ.get('SEVERITY_THRESHOLD', 'high')
+
+          print(f"\n{'='*60}")
+          print(f"MIESC v4.1 Security Audit - GitHub Actions")
+          print(f"{'='*60}")
+          print(f"Contract Path: {contract_path}")
+          print(f"Layers: {layers}")
+          print(f"Severity Threshold: {severity_threshold}")
+          print(f"{'='*60}\n")
+
+          # Initialize detector
+          detector = SmartBugsDetectorEngine()
+          all_findings = []
+          sarif_results = []
+
+          # Find contracts
+          if os.path.isdir(contract_path):
+              contracts = list(Path(contract_path).rglob("*.sol"))
+          else:
+              contracts = [Path(contract_path)] if Path(contract_path).exists() else []
+
+          print(f"Found {len(contracts)} contracts to analyze\n")
+
+          # Analyze each contract
+          for contract in contracts[:20]:  # Limit to 20 for CI
+              print(f"Analyzing: {contract}")
+              try:
+                  result = detector.analyze(str(contract))
+                  findings = result.get('findings', [])
+                  all_findings.extend(findings)
+
+                  # Convert to SARIF format
+                  for f in findings:
+                      sarif_results.append({
+                          "ruleId": f.get("swc_id", "MIESC-001"),
+                          "level": "error" if f.get("severity") in ["critical", "high"] else "warning",
+                          "message": {"text": f.get("title", "Unknown vulnerability")},
+                          "locations": [{
+                              "physicalLocation": {
+                                  "artifactLocation": {"uri": str(contract)},
+                                  "region": {"startLine": f.get("line", 1)}
+                              }
+                          }]
+                      })
+
+                  print(f"  Found {len(findings)} findings")
+              except Exception as e:
+                  print(f"  Error: {e}")
+
+          # Summary
+          print(f"\n{'='*60}")
+          print(f"AUDIT SUMMARY")
+          print(f"{'='*60}")
+          print(f"Total Contracts: {len(contracts)}")
+          print(f"Total Findings: {len(all_findings)}")
+
+          # Count by severity
+          severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+          for f in all_findings:
+              sev = f.get("severity", "low").lower()
+              if sev in severity_counts:
+                  severity_counts[sev] += 1
+
+          print(f"  Critical: {severity_counts['critical']}")
+          print(f"  High: {severity_counts['high']}")
+          print(f"  Medium: {severity_counts['medium']}")
+          print(f"  Low: {severity_counts['low']}")
+
+          # Generate SARIF report
+          sarif_report = {
+              "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+              "version": "2.1.0",
+              "runs": [{
+                  "tool": {
+                      "driver": {
+                          "name": "MIESC",
+                          "version": "4.1.0",
+                          "informationUri": "https://github.com/fboiero/MIESC",
+                          "rules": []
+                      }
+                  },
+                  "results": sarif_results
+              }]
+          }
+
+          with open("miesc-results.sarif", "w") as f:
+              json.dump(sarif_report, f, indent=2)
+
+          # JSON report
+          with open("miesc-results.json", "w") as f:
+              json.dump({
+                  "timestamp": datetime.now().isoformat(),
+                  "version": "4.1.0",
+                  "contracts_analyzed": len(contracts),
+                  "total_findings": len(all_findings),
+                  "severity_counts": severity_counts,
+                  "findings": all_findings
+              }, f, indent=2)
+
+          # Determine exit code
+          threshold_map = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+          threshold_value = threshold_map.get(severity_threshold.lower(), 3)
+
+          should_fail = False
+          for sev, count in severity_counts.items():
+              if threshold_map.get(sev, 0) >= threshold_value and count > 0:
+                  should_fail = True
+                  break
+
+          if should_fail:
+              print(f"\n[FAIL] Found {severity_threshold}+ severity vulnerabilities")
+              with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
+                  f.write(f"status=failure\n")
+                  f.write(f"findings={len(all_findings)}\n")
+          else:
+              print(f"\n[PASS] No {severity_threshold}+ severity vulnerabilities found")
+              with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
+                  f.write(f"status=success\n")
+                  f.write(f"findings={len(all_findings)}\n")
+          PYTHON_SCRIPT
+        env:
+          CONTRACT_PATH: ${{ github.event.inputs.contract_path || 'contracts/' }}
+          LAYERS: ${{ github.event.inputs.layers || '1,3,7' }}
+          SEVERITY_THRESHOLD: ${{ github.event.inputs.severity_threshold || 'high' }}
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: miesc-results.sarif
+        continue-on-error: true
+
+      - name: Upload JSON Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: miesc-security-report
+          path: |
+            miesc-results.json
+            miesc-results.sarif
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let report = {};
+            try {
+              report = JSON.parse(fs.readFileSync('miesc-results.json', 'utf8'));
+            } catch (e) {
+              report = { total_findings: 0, severity_counts: {} };
+            }
+
+            const body = `## MIESC Security Audit Results
+
+            | Metric | Value |
+            |--------|-------|
+            | Contracts Analyzed | ${report.contracts_analyzed || 0} |
+            | Total Findings | ${report.total_findings || 0} |
+            | Critical | ${report.severity_counts?.critical || 0} |
+            | High | ${report.severity_counts?.high || 0} |
+            | Medium | ${report.severity_counts?.medium || 0} |
+            | Low | ${report.severity_counts?.low || 0} |
+
+            [View full report in Actions artifacts](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})
+
+            ---
+            *Powered by [MIESC v4.1](https://github.com/fboiero/MIESC) - Multi-layer Intelligent Evaluation for Smart Contracts*
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Check threshold
+        if: steps.audit.outputs.status == 'failure'
+        run: |
+          echo "Security audit found vulnerabilities above threshold"
+          exit 1

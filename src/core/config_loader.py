@@ -76,12 +76,16 @@ class MIESCConfig:
     def _get_default_config(self) -> Dict[str, Any]:
         """Retorna configuración por defecto."""
         return {
-            'version': '4.0.0',
+            'version': '4.2.0',
             'global': {
                 'log_level': 'INFO',
                 'max_workers': 4,
                 'cache_enabled': True,
                 'cache_ttl_seconds': 3600,
+            },
+            'chains': {
+                'default': 'ethereum',
+                'ethereum': {'name': 'Ethereum', 'chain_id': 1, 'enabled': True},
             },
             'adapters': {},
             'layers': {},
@@ -193,6 +197,26 @@ class MIESCConfig:
         if compliance.get('enabled', True):
             return compliance.get('frameworks', ['ISO27001', 'NIST', 'OWASP', 'CWE', 'SWC'])
         return []
+
+    def get_chain_config(self, chain_name: Optional[str] = None) -> Dict[str, Any]:
+        """Obtiene configuración de una blockchain específica."""
+        chains = self._config.get('chains', {})
+        target_chain = chain_name or chains.get('default', 'ethereum')
+        return chains.get(target_chain, {
+            'name': 'Ethereum',
+            'evm_version': 'shanghai',
+            'solc_version': '0.8.19',
+            'chain_id': 1,
+            'enabled': True,
+        })
+
+    def get_enabled_chains(self) -> List[str]:
+        """Obtiene lista de blockchains habilitadas."""
+        chains = self._config.get('chains', {})
+        return [
+            name for name, config in chains.items()
+            if isinstance(config, dict) and config.get('enabled', True)
+        ]
 
     def get_license_plan_config(self, plan_name: str) -> Dict[str, Any]:
         """Obtiene configuración de un plan de licencia."""

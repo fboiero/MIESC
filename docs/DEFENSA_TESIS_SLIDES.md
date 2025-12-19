@@ -55,8 +55,8 @@ style: |
 **Institucion:** Universidad de la Defensa Nacional (UNDEF)
 Instituto Universitario Aeronautico (IUA) - Cordoba
 
-**Director:** [Nombre del Director]
-**Fecha:** Diciembre 2025
+**Director:** Mg. Eduardo Casanovas
+**Fecha de Defensa:** 18 de Diciembre 2025
 
 ---
 

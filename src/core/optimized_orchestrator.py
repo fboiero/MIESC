@@ -365,32 +365,63 @@ class OptimizedOrchestrator:
         tools: Optional[List[str]] = None,
         timeout: int = 120,
         progress_callback: Optional[Callable[[str, str, str], None]] = None,
+        parallel_contracts: int = 2,
     ) -> Dict[str, AnalysisResult]:
         """
-        Analiza múltiples contratos.
+        Analiza múltiples contratos en paralelo.
 
         Args:
             contract_paths: Lista de rutas a contratos
             tools: Herramientas a usar
             timeout: Timeout por herramienta
             progress_callback: Callback(contract, tool, status)
+            parallel_contracts: Número de contratos a analizar en paralelo
 
         Returns:
             Dict de contract_path -> AnalysisResult
         """
-        results = {}
+        results: Dict[str, AnalysisResult] = {}
 
-        for contract_path in contract_paths:
+        def analyze_contract(contract_path: str) -> tuple:
+            """Wrapper para análisis de contrato individual."""
             def wrapped_callback(tool: str, status: str) -> None:
                 if progress_callback:
                     progress_callback(contract_path, tool, status)
 
-            results[contract_path] = self.analyze(
+            result = self.analyze(
                 contract_path=contract_path,
                 tools=tools,
                 timeout=timeout,
                 progress_callback=wrapped_callback,
             )
+            return contract_path, result
+
+        # Procesar contratos en paralelo
+        with ThreadPoolExecutor(max_workers=parallel_contracts) as executor:
+            futures = [
+                executor.submit(analyze_contract, path)
+                for path in contract_paths
+            ]
+
+            for future in as_completed(futures):
+                try:
+                    contract_path, result = future.result(timeout=timeout * len(tools or []) + 60)
+                    results[contract_path] = result
+                except Exception as e:
+                    # Si falla, crear resultado de error
+                    contract_path = contract_paths[futures.index(future)]
+                    results[contract_path] = AnalysisResult(
+                        contract_path=contract_path,
+                        tools_run=[],
+                        tools_success=[],
+                        tools_failed=['batch_error'],
+                        total_findings=0,
+                        aggregated_findings=0,
+                        cross_validated=0,
+                        severity_counts={},
+                        execution_time_ms=0,
+                        timestamp=datetime.now(),
+                    )
 
         return results
 
@@ -417,3 +448,53 @@ class OptimizedOrchestrator:
         """Limpia el caché de resultados."""
         if self.cache:
             self.cache.clear()
+
+    def get_performance_metrics(self) -> Dict[str, Any]:
+        """
+        Obtiene métricas de rendimiento del orquestador.
+
+        Returns:
+            Dict con métricas de caché y ejecución
+        """
+        metrics = {
+            'max_workers': self.max_workers,
+            'cache_enabled': self.cache is not None,
+            'available_tools': len(self.discovery.get_available_tools()),
+        }
+
+        if self.cache:
+            metrics['cache'] = {
+                'memory_entries': len(self.cache._memory_cache),
+                'cache_dir': str(self.cache.cache_dir),
+                'ttl_seconds': self.cache.ttl_seconds,
+            }
+
+        return metrics
+
+    def warmup_cache(self, contract_path: str, tools: Optional[List[str]] = None) -> int:
+        """
+        Pre-calienta el caché ejecutando herramientas rápidas.
+
+        Args:
+            contract_path: Ruta al contrato
+            tools: Herramientas específicas (default: static_analysis)
+
+        Returns:
+            Número de entradas de caché creadas
+        """
+        if not self.cache:
+            return 0
+
+        # Por defecto, solo calentar con análisis estático (rápido)
+        target_tools = tools or ['slither', 'aderyn', 'solhint']
+        available = {t.name for t in self.discovery.get_available_tools()}
+        tools_to_run = [t for t in target_tools if t in available]
+
+        cached = 0
+        for tool in tools_to_run:
+            if self.cache.get(tool, contract_path) is None:
+                result = self._run_tool(tool, contract_path, timeout=30)
+                if result.get('status') != 'error':
+                    cached += 1
+
+        return cached

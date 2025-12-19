@@ -1,0 +1,253 @@
+{
+  "name": "miesc-security-auditor",
+  "displayName": "MIESC Security Auditor",
+  "description": "Multi-layer Intelligent Evaluation for Smart Contracts - Security audit tool for Solidity smart contracts",
+  "version": "0.1.0",
+  "publisher": "miesc",
+  "author": {
+    "name": "Fernando Boiero",
+    "email": "fboiero@undef.edu.ar"
+  },
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fboiero/MIESC"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart contracts",
+    "security",
+    "audit",
+    "vulnerability",
+    "blockchain",
+    "defi"
+  ],
+  "activationEvents": [
+    "onLanguage:solidity",
+    "workspaceContains:**/*.sol"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "miesc.auditCurrentFile",
+        "title": "MIESC: Audit Current File",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "miesc.auditWorkspace",
+        "title": "MIESC: Audit Workspace",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "miesc.auditSelection",
+        "title": "MIESC: Audit Selected Code"
+      },
+      {
+        "command": "miesc.quickScan",
+        "title": "MIESC: Quick Scan (Layer 1 Only)",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "miesc.deepAudit",
+        "title": "MIESC: Deep Audit (All 7 Layers)",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "miesc.showReport",
+        "title": "MIESC: Show Last Audit Report"
+      },
+      {
+        "command": "miesc.configureLayers",
+        "title": "MIESC: Configure Analysis Layers"
+      },
+      {
+        "command": "miesc.startServer",
+        "title": "MIESC: Start Analysis Server"
+      },
+      {
+        "command": "miesc.stopServer",
+        "title": "MIESC: Stop Analysis Server"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "editorLangId == solidity",
+          "command": "miesc.auditCurrentFile",
+          "group": "miesc@1"
+        },
+        {
+          "when": "editorLangId == solidity && editorHasSelection",
+          "command": "miesc.auditSelection",
+          "group": "miesc@2"
+        }
+      ],
+      "editor/title": [
+        {
+          "when": "editorLangId == solidity",
+          "command": "miesc.quickScan",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "resourceExtname == .sol",
+          "command": "miesc.auditCurrentFile",
+          "group": "miesc"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "miesc.auditCurrentFile",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m",
+        "when": "editorLangId == solidity"
+      },
+      {
+        "command": "miesc.quickScan",
+        "key": "ctrl+shift+q",
+        "mac": "cmd+shift+q",
+        "when": "editorLangId == solidity"
+      }
+    ],
+    "configuration": {
+      "title": "MIESC Security Auditor",
+      "properties": {
+        "miesc.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "URL of the MIESC REST API server"
+        },
+        "miesc.pythonPath": {
+          "type": "string",
+          "default": "python3",
+          "description": "Path to Python interpreter"
+        },
+        "miesc.miescPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to MIESC installation directory"
+        },
+        "miesc.defaultLayers": {
+          "type": "array",
+          "default": [1, 2, 3, 7],
+          "description": "Default layers to run during audit (1-7)"
+        },
+        "miesc.autoAuditOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run quick scan when saving Solidity files"
+        },
+        "miesc.showInlineWarnings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show vulnerability warnings inline in the editor"
+        },
+        "miesc.severityThreshold": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low", "info"],
+          "default": "medium",
+          "description": "Minimum severity level to display"
+        },
+        "miesc.timeout": {
+          "type": "number",
+          "default": 300,
+          "description": "Audit timeout in seconds"
+        },
+        "miesc.useLocalLLM": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use local LLM (Ollama) for Layer 7 analysis"
+        },
+        "miesc.ollamaModel": {
+          "type": "string",
+          "default": "deepseek-coder:6.7b",
+          "description": "Ollama model to use for AI analysis"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "miesc-sidebar",
+          "title": "MIESC Security",
+          "icon": "media/shield.svg"
+        }
+      ]
+    },
+    "views": {
+      "miesc-sidebar": [
+        {
+          "id": "miesc.findings",
+          "name": "Security Findings"
+        },
+        {
+          "id": "miesc.layers",
+          "name": "Analysis Layers"
+        },
+        {
+          "id": "miesc.history",
+          "name": "Audit History"
+        }
+      ]
+    },
+    "colors": [
+      {
+        "id": "miesc.criticalBackground",
+        "description": "Background color for critical severity findings",
+        "defaults": {
+          "dark": "#ff000033",
+          "light": "#ff000022"
+        }
+      },
+      {
+        "id": "miesc.highBackground",
+        "description": "Background color for high severity findings",
+        "defaults": {
+          "dark": "#ff660033",
+          "light": "#ff660022"
+        }
+      },
+      {
+        "id": "miesc.mediumBackground",
+        "description": "Background color for medium severity findings",
+        "defaults": {
+          "dark": "#ffcc0033",
+          "light": "#ffcc0022"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.2"
+  }
+}

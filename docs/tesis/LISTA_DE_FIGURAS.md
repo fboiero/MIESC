@@ -164,6 +164,7 @@
 | A.3 | Captura de pantalla: reporte de auditoría en formato web | Vista de hallazgos con filtros y ordenamiento | 322 |
 | A.4 | Captura de pantalla: gráficos interactivos de severidad | Visualización Plotly con tooltips detallados | 324 |
 | A.5 | Ejemplo de reporte PDF generado por MIESC | Primera página del reporte ejecutivo | 326 |
+| A.6 | Flujo de trabajo del desarrollador con MIESC | Diagrama completo mostrando 4 interfaces (CLI, Web UI, REST API, MCP), 7 capas de análisis, normalización y métricas de rendimiento | 328 |
 
 ---
 
@@ -225,12 +226,12 @@
 | Capítulo 6: Justificación IA/LLMs | 8 |
 | Capítulo 7: Justificación MCP | 8 |
 | Capítulo 8: Conclusiones | 8 |
-| Apéndice A: Interfaz Web | 5 |
+| Apéndice A: Interfaz Web | 6 |
 | Apéndice B: Evolución | 3 |
 | Apéndice C: MCP | 3 |
 | Apéndice G: Salidas | 6 |
 | Apéndice H: Fundamentos | 6 |
-| **Total** | **120** |
+| **Total** | **121** |
 
 ---
 

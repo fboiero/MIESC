@@ -333,7 +333,7 @@ class StaticAgent(BaseAgent):
         """
         unified = []
 
-        # Add Slither vulnerabilities
+        # Add Slither vulnerabilities with SWC/CWE/OWASP compliance mapping
         for vuln in slither_data.get("vulnerabilities", []):
             unified.append({
                 "source": "Slither",
@@ -344,8 +344,8 @@ class StaticAgent(BaseAgent):
                 "description": vuln["description"],
                 "location": vuln["location"],
                 "layer": "static",
-                # TODO: Add SWC/CWE/OWASP mapping
                 "swc_id": self._map_to_swc(vuln["id"]),
+                "cwe_id": self._map_to_cwe(vuln["id"]),
                 "owasp_category": self._map_to_owasp(vuln["id"])
             })
 
@@ -367,33 +367,191 @@ class StaticAgent(BaseAgent):
 
         return unified
 
+    # Comprehensive SWC mapping for all major Slither detectors
+    SWC_MAPPING = {
+        # Reentrancy family
+        "reentrancy-eth": "SWC-107",
+        "reentrancy-no-eth": "SWC-107",
+        "reentrancy-benign": "SWC-107",
+        "reentrancy-events": "SWC-107",
+        "reentrancy-unlimited-gas": "SWC-107",
+        # Access control
+        "arbitrary-send-eth": "SWC-105",
+        "arbitrary-send-erc20": "SWC-105",
+        "arbitrary-send-erc20-permit": "SWC-105",
+        "suicidal": "SWC-106",
+        "protected-vars": "SWC-105",
+        "unprotected-upgrade": "SWC-105",
+        "tx-origin": "SWC-115",
+        # Unchecked calls
+        "unchecked-send": "SWC-104",
+        "unchecked-lowlevel": "SWC-104",
+        "unchecked-transfer": "SWC-104",
+        "low-level-calls": "SWC-104",
+        # Arithmetic
+        "divide-before-multiply": "SWC-101",
+        "incorrect-equality": "SWC-101",
+        "tautology": "SWC-101",
+        # Randomness
+        "weak-prng": "SWC-120",
+        "block-timestamp": "SWC-116",
+        "timestamp": "SWC-116",
+        # DoS
+        "locked-ether": "SWC-132",
+        "calls-loop": "SWC-113",
+        "msg-value-loop": "SWC-113",
+        # Delegatecall
+        "delegatecall-loop": "SWC-112",
+        "controlled-delegatecall": "SWC-112",
+        # State manipulation
+        "uninitialized-state": "SWC-109",
+        "uninitialized-storage": "SWC-109",
+        "uninitialized-local": "SWC-109",
+        # External calls
+        "external-function": "SWC-100",
+        "encode-packed-collision": "SWC-133",
+        # Deprecated
+        "deprecated-standards": "SWC-111",
+        "solc-version": "SWC-103",
+        # Shadowing
+        "shadowing-state": "SWC-119",
+        "shadowing-local": "SWC-119",
+        "shadowing-builtin": "SWC-119",
+        "shadowing-abstract": "SWC-119",
+        # Assembly
+        "assembly": "SWC-127",
+        "rtlo": "SWC-130",
+        # Compiler issues
+        "incorrect-shift": "SWC-129",
+        "storage-array": "SWC-128",
+        "array-by-reference": "SWC-128",
+        # Missing protections
+        "missing-zero-check": "SWC-105",
+        "missing-inheritance": "SWC-125",
+        # Events
+        "events-maths": "SWC-100",
+        "events-access": "SWC-100",
+        # Default
+    }
+
+    # CWE mapping for Slither detectors
+    CWE_MAPPING = {
+        # Reentrancy
+        "reentrancy-eth": "CWE-841",
+        "reentrancy-no-eth": "CWE-841",
+        "reentrancy-benign": "CWE-841",
+        "reentrancy-events": "CWE-841",
+        # Access control
+        "arbitrary-send-eth": "CWE-284",
+        "arbitrary-send-erc20": "CWE-284",
+        "suicidal": "CWE-284",
+        "tx-origin": "CWE-287",
+        "unprotected-upgrade": "CWE-284",
+        "protected-vars": "CWE-284",
+        # Unchecked
+        "unchecked-send": "CWE-252",
+        "unchecked-lowlevel": "CWE-252",
+        "unchecked-transfer": "CWE-252",
+        # Arithmetic
+        "divide-before-multiply": "CWE-682",
+        "incorrect-equality": "CWE-697",
+        "tautology": "CWE-570",
+        # Randomness
+        "weak-prng": "CWE-330",
+        "timestamp": "CWE-829",
+        "block-timestamp": "CWE-829",
+        # DoS
+        "locked-ether": "CWE-400",
+        "calls-loop": "CWE-400",
+        "msg-value-loop": "CWE-400",
+        # Delegatecall
+        "delegatecall-loop": "CWE-829",
+        "controlled-delegatecall": "CWE-829",
+        # State
+        "uninitialized-state": "CWE-665",
+        "uninitialized-storage": "CWE-665",
+        "uninitialized-local": "CWE-665",
+        # Deprecated
+        "deprecated-standards": "CWE-477",
+        "solc-version": "CWE-1104",
+        # Shadowing
+        "shadowing-state": "CWE-710",
+        "shadowing-local": "CWE-710",
+        # Assembly
+        "assembly": "CWE-676",
+        "rtlo": "CWE-451",
+    }
+
+    # OWASP Smart Contract Top 10 mapping
+    OWASP_MAPPING = {
+        # SC01: Reentrancy
+        "reentrancy-eth": "SC01-Reentrancy",
+        "reentrancy-no-eth": "SC01-Reentrancy",
+        "reentrancy-benign": "SC01-Reentrancy",
+        "reentrancy-events": "SC01-Reentrancy",
+        "reentrancy-unlimited-gas": "SC01-Reentrancy",
+        # SC02: Access Control
+        "arbitrary-send-eth": "SC02-Access-Control",
+        "arbitrary-send-erc20": "SC02-Access-Control",
+        "suicidal": "SC02-Access-Control",
+        "tx-origin": "SC02-Access-Control",
+        "unprotected-upgrade": "SC02-Access-Control",
+        "protected-vars": "SC02-Access-Control",
+        "missing-zero-check": "SC02-Access-Control",
+        # SC03: Arithmetic Issues
+        "divide-before-multiply": "SC03-Arithmetic",
+        "incorrect-equality": "SC03-Arithmetic",
+        "tautology": "SC03-Arithmetic",
+        # SC04: Unchecked Calls
+        "unchecked-send": "SC04-Unchecked-Calls",
+        "unchecked-lowlevel": "SC04-Unchecked-Calls",
+        "unchecked-transfer": "SC04-Unchecked-Calls",
+        "low-level-calls": "SC04-Unchecked-Calls",
+        # SC05: Denial of Service
+        "locked-ether": "SC05-DoS",
+        "calls-loop": "SC05-DoS",
+        "msg-value-loop": "SC05-DoS",
+        # SC06: Bad Randomness
+        "weak-prng": "SC06-Bad-Randomness",
+        # SC07: Front-Running
+        "front-running": "SC07-Front-Running",
+        # SC08: Time Manipulation
+        "timestamp": "SC08-Time-Manipulation",
+        "block-timestamp": "SC08-Time-Manipulation",
+        # SC09: Short Addresses (N/A for most detectors)
+        # SC10: Unknown
+        "delegatecall-loop": "SC10-Unknown-Unknowns",
+        "controlled-delegatecall": "SC10-Unknown-Unknowns",
+        "assembly": "SC10-Unknown-Unknowns",
+    }
+
     def _map_to_swc(self, slither_id: str) -> str:
         """
-        Map Slither detector ID to SWC ID
+        Map Slither detector ID to SWC ID.
 
         Args:
             slither_id: Slither detector name
 
         Returns:
-            SWC ID or "UNKNOWN"
+            SWC ID or "SWC-000" for unknown
         """
-        # Mapping based on standards/owasp_sc_top10_mapping.md
-        mapping = {
-            "reentrancy-eth": "SWC-107",
-            "reentrancy-no-eth": "SWC-107",
-            "arbitrary-send-eth": "SWC-105",
-            "suicidal": "SWC-106",
-            "unchecked-send": "SWC-104",
-            "unchecked-lowlevel": "SWC-104",
-            "weak-prng": "SWC-120",
-            "timestamp": "SWC-116",
-            "tx-origin": "SWC-115"
-        }
-        return mapping.get(slither_id, "UNKNOWN")
+        return self.SWC_MAPPING.get(slither_id, "SWC-000")
+
+    def _map_to_cwe(self, slither_id: str) -> str:
+        """
+        Map Slither detector ID to CWE ID.
+
+        Args:
+            slither_id: Slither detector name
+
+        Returns:
+            CWE ID or "CWE-000" for unknown
+        """
+        return self.CWE_MAPPING.get(slither_id, "CWE-000")
 
     def _map_to_owasp(self, slither_id: str) -> str:
         """
-        Map Slither detector ID to OWASP SC Top 10 category
+        Map Slither detector ID to OWASP SC Top 10 category.
 
         Args:
             slither_id: Slither detector name
@@ -401,15 +559,4 @@ class StaticAgent(BaseAgent):
         Returns:
             OWASP category or "SC10-Unknown-Unknowns"
         """
-        mapping = {
-            "reentrancy-eth": "SC01-Reentrancy",
-            "reentrancy-no-eth": "SC01-Reentrancy",
-            "arbitrary-send-eth": "SC02-Access-Control",
-            "suicidal": "SC02-Access-Control",
-            "unchecked-send": "SC04-Unchecked-Calls",
-            "unchecked-lowlevel": "SC04-Unchecked-Calls",
-            "weak-prng": "SC06-Bad-Randomness",
-            "timestamp": "SC08-Time-Manipulation",
-            "tx-origin": "SC02-Access-Control"
-        }
-        return mapping.get(slither_id, "SC10-Unknown-Unknowns")
+        return self.OWASP_MAPPING.get(slither_id, "SC10-Unknown-Unknowns")

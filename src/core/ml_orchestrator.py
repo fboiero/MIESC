@@ -198,7 +198,14 @@ class MLOrchestrator:
         for finding in findings:
             loc = finding.get('location', {})
             file_path = loc.get('file', '')
-            line_num = loc.get('line', 0)
+            line_num = loc.get('line') or 0  # Handle None values
+
+            # Ensure line_num is an integer
+            if not isinstance(line_num, int):
+                try:
+                    line_num = int(line_num)
+                except (TypeError, ValueError):
+                    line_num = 0
 
             if line_num > 0 and lines:
                 # Extraer contexto (5 líneas antes y después)
@@ -402,9 +409,11 @@ class MLOrchestrator:
         """Verifica si dos hallazgos están en la misma ubicación."""
         loc1 = f1.get('location', {})
         loc2 = f2.get('location', {})
+        line1 = loc1.get('line') or 0
+        line2 = loc2.get('line') or 0
         return (
             loc1.get('file') == loc2.get('file') and
-            abs(loc1.get('line', 0) - loc2.get('line', 0)) <= 3
+            abs(line1 - line2) <= 3
         )
 
     def _calculate_severity_distribution(

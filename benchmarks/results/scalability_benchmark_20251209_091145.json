@@ -1,0 +1,38 @@
+[
+  {
+    "benchmark_name": "sequential_small",
+    "contracts_analyzed": 20,
+    "total_time_seconds": 12.2,
+    "avg_time_per_contract": 0.61,
+    "throughput_contracts_per_minute": 98.4,
+    "memory_peak_mb": 2.7,
+    "cpu_percent": 21.3,
+    "parallel_workers": 1,
+    "errors": 0,
+    "timestamp": "2025-12-09T09:11:35.969635"
+  },
+  {
+    "benchmark_name": "parallel_2",
+    "contracts_analyzed": 20,
+    "total_time_seconds": 6.06,
+    "avg_time_per_contract": 0.303,
+    "throughput_contracts_per_minute": 198.1,
+    "memory_peak_mb": 4.5,
+    "cpu_percent": 28.4,
+    "parallel_workers": 2,
+    "errors": 0,
+    "timestamp": "2025-12-09T09:11:42.027815"
+  },
+  {
+    "benchmark_name": "parallel_4",
+    "contracts_analyzed": 20,
+    "total_time_seconds": 3.46,
+    "avg_time_per_contract": 0.173,
+    "throughput_contracts_per_minute": 346.5,
+    "memory_peak_mb": 4.2,
+    "cpu_percent": 43.9,
+    "parallel_workers": 4,
+    "errors": 0,
+    "timestamp": "2025-12-09T09:11:45.491546"
+  }
+]

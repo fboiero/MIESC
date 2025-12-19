@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "miesc"
-version = "4.0.0"
+version = "4.2.0"
 description = "Multi-layer Intelligent Evaluation for Smart Contracts - AI-enhanced MCP-compatible blockchain security framework"
 readme = "README.md"
 authors = [
@@ -64,6 +64,26 @@ all-tools = [
 docs = [
     "mkdocs>=1.5.0",
     "mkdocs-material>=9.0.0",
+]
+metrics = [
+    "prometheus-client>=0.19.0",
+]
+cli = [
+    "rich>=13.0.0",
+]
+llm = [
+    "openai>=1.0.0",
+    "anthropic>=0.18.0",
+    "httpx>=0.25.0",
+]
+full = [
+    "prometheus-client>=0.19.0",
+    "rich>=13.0.0",
+    "openai>=1.0.0",
+    "anthropic>=0.18.0",
+    "httpx>=0.25.0",
+    "mythril>=0.24.0",
+    "web3>=6.0.0",
 ]
 
 [project.urls]
@@ -136,3 +156,83 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --cov=miesc --cov=src --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["src", "miesc"]
+omit = [
+    # Legacy standalone tools (deprecated in v4.0+)
+    "src/*_tool.py",
+    "src/main.py",
+    "src/utils.py",
+    # Legacy CLI modules (replaced by miesc.cli)
+    "src/miesc_cli.py",
+    "src/miesc_core.py",
+    "src/miesc_ai_layer.py",
+    "src/miesc_mcp_adapter.py",
+    "src/miesc_mcp_rest.py",
+    "src/miesc_ml_cli.py",
+    "src/miesc_websocket_api.py",
+    "src/miesc_policy_agent.py",
+    "src/miesc_policy_mapper.py",
+    "src/miesc_risk_engine.py",
+    "src/miesc_security_checks.py",
+    # Legacy analysis modules
+    "src/orchestrator.py",
+    "src/project_analyzer.py",
+    "src/report_formatter.py",
+    "src/audit_generator.py",
+    "src/graph_visualizer.py",
+    # Internal test fixtures
+    "src/miesc_tests/*",
+    # Licensing module (separate product)
+    "src/licensing/*",
+    # Detectors with external dependencies
+    "src/detectors/smartbugs_detectors.py",
+    # Duplicate/backup files
+    "src/agents/symbolic_agent 2.py",
+    # Additional legacy/utility modules (v3.x)
+    "src/GPTLens_prompts.py",
+    "src/summarize_information.py",
+    "src/test_generator.py",
+    "src/text_generator.py",
+    # Experimental agents (not production)
+    "src/agents/crewai_coordinator.py",
+    "src/agents/slither_protocol_agent.py",
+    # Tool wrapper agents (require external tools: Mythril, Echidna, etc.)
+    "src/agents/dynamic_agent.py",
+    "src/agents/formal_agent.py",
+    "src/agents/symbolic_agent.py",
+    "src/agents/coordinator_agent.py",
+    "src/agents/static_agent.py",
+    "src/agents/gptscan_agent.py",
+    "src/agents/halmos_agent.py",
+    "src/agents/medusa_agent.py",
+    "src/agents/smtchecker_agent.py",
+    "src/agents/wake_agent.py",
+    # LLM-dependent agents (require Ollama/external models)
+    "src/agents/ollama_agent.py",
+    "src/agents/llm_smartaudit_agent.py",
+    # Analysis agents (complex orchestration dependencies)
+    "src/agents/policy_agent.py",
+    "src/agents/interpretation_agent.py",
+    "src/agents/recommendation_agent.py",
+    # Audit readiness module (specialized)
+    "src/agents/audit_readiness/*",
+    # LLM helpers (external dependency heavy)
+    "src/llm/*",
+    # Integration module (requires full stack)
+    "src/integration/*",
+    # Dependency analyzer (specialized)
+    "src/detectors/dependency_analyzer.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+fail_under = 50
+show_missing = true

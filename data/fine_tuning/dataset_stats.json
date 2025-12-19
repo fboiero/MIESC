@@ -1,0 +1,16 @@
+{
+  "total_examples": 40,
+  "vulnerability_types": 10,
+  "tasks": [
+    "vulnerability_detection",
+    "code_fix",
+    "explanation",
+    "verification"
+  ],
+  "formats": [
+    "alpaca",
+    "chatml",
+    "sharegpt"
+  ],
+  "generated_at": "2025-12-13T11:16:50.223269"
+}

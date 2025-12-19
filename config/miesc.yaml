@@ -1,9 +1,9 @@
 # =============================================================================
-# MIESC v4.0 - Configuración Centralizada
+# MIESC v4.1 - Configuración Centralizada
 # Multi-layer Intelligent Evaluation for Smart Contracts
 # =============================================================================
 
-version: "4.0.0"
+version: "4.1.0"
 
 # =============================================================================
 # Configuración Global
@@ -15,6 +15,63 @@ global:
   cache_ttl_seconds: 3600
   temp_dir: /tmp/miesc
   reports_dir: ./reports
+
+# =============================================================================
+# Multi-Chain Support (v4.1.0+)
+# =============================================================================
+chains:
+  # Default chain for analysis
+  default: ethereum
+
+  # Supported EVM-compatible chains
+  ethereum:
+    name: Ethereum
+    evm_version: shanghai
+    solc_version: "0.8.19"
+    chain_id: 1
+    enabled: true
+
+  polygon:
+    name: Polygon
+    evm_version: shanghai
+    solc_version: "0.8.19"
+    chain_id: 137
+    enabled: true
+
+  arbitrum:
+    name: Arbitrum One
+    evm_version: shanghai
+    solc_version: "0.8.19"
+    chain_id: 42161
+    enabled: true
+
+  optimism:
+    name: Optimism
+    evm_version: shanghai
+    solc_version: "0.8.19"
+    chain_id: 10
+    enabled: true
+
+  bsc:
+    name: BNB Smart Chain
+    evm_version: shanghai
+    solc_version: "0.8.19"
+    chain_id: 56
+    enabled: true
+
+  avalanche:
+    name: Avalanche C-Chain
+    evm_version: shanghai
+    solc_version: "0.8.19"
+    chain_id: 43114
+    enabled: true
+
+  base:
+    name: Base
+    evm_version: shanghai
+    solc_version: "0.8.19"
+    chain_id: 8453
+    enabled: true
 
 # =============================================================================
 # Capas de Análisis - 7 Layers Defense
@@ -355,6 +412,14 @@ results:
     enabled: true
     min_confirmations: 2  # Mínimo de herramientas que deben confirmar
     confidence_boost: 0.15  # Boost de confianza por confirmación adicional
+
+  # Filtro de falsos positivos ML
+  false_positive_filter:
+    enabled: true
+    fp_threshold: 0.50  # Probabilidad FP >= este valor se filtra (ajustar para precision)
+    require_cross_validation_for_critical: true  # Reentrancy, delegatecall, etc.
+    filter_informational: true  # Filtrar severidad informational
+    filter_test_files: true  # Filtrar hallazgos en archivos de test
 
   # Formatos de exportación
   export_formats:

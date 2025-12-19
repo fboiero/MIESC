@@ -5,13 +5,14 @@
 [![DPG Standard](https://img.shields.io/badge/DPG%20Standard-Under%20Review-yellow)](./DPG-COMPLIANCE.md)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-v4.0.0-success)](https://github.com/fboiero/MIESC/releases)
+[![Version](https://img.shields.io/badge/version-v4.2.0-success)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions/workflows/secure-dev-pipeline.yml)
-[![Coverage](https://img.shields.io/badge/coverage-87.5%25-green)](./htmlcov/index.html)
+[![Coverage](https://img.shields.io/badge/coverage-68.6%25-green)](./htmlcov/index.html)
+[![Tests](https://img.shields.io/badge/tests-1292%20passing-success)](./tests/)
 [![SDG 9](https://img.shields.io/badge/SDG-9%20Industry%20%26%20Innovation-orange)](https://sdgs.un.org/goals/goal9)
 [![SDG 16](https://img.shields.io/badge/SDG-16%20Strong%20Institutions-blue)](https://sdgs.un.org/goals/goal16)
 
-Multi-layer security analysis framework for Ethereum smart contracts. Orchestrates 25 specialized tools across 7 defense layers with AI-assisted correlation and ML-based detection.
+Multi-layer security analysis framework for Ethereum smart contracts. Orchestrates 29 specialized tools across 7 defense layers with AI-assisted correlation and ML-based detection.
 
 Architecture based on multi-tool analysis research (Durieux et al., 2020; Atzei et al., 2017). Developed as part of a Master's thesis in Cyberdefense at Universidad de la Defensa Nacional (UNDEF), Argentina.
 
@@ -26,7 +27,7 @@ Documentation: [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC) | Issu
 ## Scope and Limitations
 
 **Purpose**:
-- Automated orchestration of 25 security analysis tools
+- Automated orchestration of 29 security analysis tools
 - AI-assisted finding correlation to reduce duplicate reports
 - ML-based vulnerability detection with 95.7% accuracy
 - Compliance mapping to ISO/NIST/OWASP standards
@@ -79,7 +80,7 @@ python3 examples/demo_v4.0.py
 ```
 
 The demo performs:
-1. Adapter registration (25 tools across 7 layers)
+1. Adapter registration (29 tools across 7 layers)
 2. Static analysis of intentionally vulnerable contract (VulnerableBank.sol)
 3. AI-assisted finding correlation using local LLM (deepseek-coder via Ollama)
 4. Report generation with compliance mappings
@@ -101,7 +102,7 @@ MIESC offers multiple interfaces depending on your needs:
 
 ### 1. Full 7-Layer Audit (Recommended for Production)
 
-Complete defense-in-depth analysis with all 25+ tools:
+Complete defense-in-depth analysis with all 29 tools:
 
 ```bash
 python run_complete_multilayer_audit.py contracts/MyContract.sol
@@ -152,8 +153,8 @@ Access: http://localhost:8501
 
 | Interface | Tools | Time | Use Case |
 |-----------|-------|------|----------|
-| Full Audit | 25+ | 5-15 min | Production contracts, pre-deployment |
-| MCP Server | 25+ | 5-15 min | AI agent integration, automation |
+| Full Audit | 29 | 5-15 min | Production contracts, pre-deployment |
+| MCP Server | 29 | 5-15 min | AI agent integration, automation |
 | miesc-quick | 3-4 | ~30s | Development feedback, quick checks |
 | Web UI | 5-8 | 1-3 min | Interactive exploration, demos |
 
@@ -165,7 +166,7 @@ YouTube: [youtu.be/-SP6555edSw](https://youtu.be/-SP6555edSw)
 
 Demonstrates:
 - Defense-in-Depth analysis across 7 security layers
-- 25 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
+- 29 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
 - Model Context Protocol (MCP) integration with Claude Desktop
 - 100% Recall, 87.5% Precision, F1-Score 0.93
 - Sovereign AI with Ollama (code never leaves your machine)
@@ -203,7 +204,7 @@ Duration: ~10 minutes | Source: `demo_thesis_defense.py`
 - Based on arXiv:2409.01788 (Sep 2024)
 
 **Metrics** (v3.5 → v4.0):
-- Total Adapters: 22 → 25 (+13.6%)
+- Total Adapters: 22 → 29 (+31.8%)
 - Precision: 89.47% → 94.5% (+5.03pp)
 - Recall: 86.2% → 92.8% (+6.6pp)
 - FP Rate: 10.53% → 5.5% (-48%)
@@ -215,7 +216,7 @@ See [docs/PHASE_3_4_5_COMPLETION_SUMMARY.md](./docs/PHASE_3_4_5_COMPLETION_SUMMA
 
 ## Overview
 
-MIESC (Multi-layer Intelligent Evaluation for Smart Contracts) orchestrates 25 security analysis tools through a unified interface with AI-assisted correlation and ML-based detection.
+MIESC (Multi-layer Intelligent Evaluation for Smart Contracts) orchestrates 29 security analysis tools through a unified interface with AI-assisted correlation and ML-based detection.
 
 **Problem**: Running multiple security tools individually produces hundreds of warnings with high false positive rates, requiring significant manual triage.
 
@@ -227,11 +228,11 @@ MIESC (Multi-layer Intelligent Evaluation for Smart Contracts) orchestrates 25 s
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| Tools Integrated | ✅ Complete | 25 tools across 7 layers |
+| Tools Integrated | ✅ Complete | 29 tools across 7 layers |
 | MCP Protocol | ✅ Complete | JSON-RPC interface functional |
 | AI Correlation | ✅ Complete | Local LLM via Ollama |
 | Compliance Mapping | ✅ Complete | 12 standards (ISO/NIST/OWASP) |
-| Unit Tests | ✅ Passing | 117 tests, 87.5% coverage |
+| Unit Tests | ✅ Passing | 1292 tests, 68.6% coverage |
 | Empirical Validation | 🚧 In Progress | Large-scale study planned Q4 2025 |
 
 **Validated**: Tool integration, protocol implementation, basic functionality
@@ -384,7 +385,7 @@ Static Dynamic Symbolic Formal
    Report (JSON/HTML/PDF)
 ```
 
-**Layer assignments** (25 tools):
+**Layer assignments** (29 tools):
 
 - **Layer 1 (Static)**: Slither, Aderyn, Solhint
 - **Layer 2 (Dynamic)**: Echidna, Medusa, Foundry
@@ -411,7 +412,7 @@ Static Dynamic Symbolic Formal
 
 ## Agent Architecture
 
-**Tool adapters** (25):
+**Tool adapters** (29):
 
 | Layer | Adapter | Underlying Tool |
 |-------|---------|-----------------|
@@ -484,7 +485,7 @@ Architecture based on peer-reviewed research in smart contract security and mult
 
 **Thesis research questions** (empirical validation in progress):
 
-1. Multi-tool effectiveness: Does combining 25 tools improve detection vs. individual tools?
+1. Multi-tool effectiveness: Does combining 29 tools improve detection vs. individual tools?
    - Hypothesis based on Durieux et al. (2020): 34% improvement expected
 
 2. AI correlation: Can local LLMs reduce duplicate findings across tools?
@@ -497,11 +498,11 @@ Architecture based on peer-reviewed research in smart contract security and mult
    - Implementation complete: 12 standards (ISO/NIST/OWASP/EU)
 
 5. Reproducibility: Are results repeatable?
-   - Framework: 117 tests passing, 87.5% coverage
+   - Framework: 1292 tests passing, 68.6% coverage
    - Large-scale study: planned Q4 2025
 
 **Current validation status**:
-- ✅ Tool integration functional (25 adapters)
+- ✅ Tool integration functional (29 adapters)
 - ✅ Test suite passing (unit + integration)
 - ✅ Reference implementation complete
 - 🚧 Large-scale precision/recall study (pending)
@@ -675,9 +676,9 @@ Note: Time estimates based on tool execution, not end-to-end audit workflow.
 
 **Research contributions**:
 1. Reference implementation of MCP-based multi-agent architecture
-2. Integration of 25 heterogeneous security tools under unified protocol
+2. Integration of 29 heterogeneous security tools under unified protocol
 3. Automated compliance mapping to 12 international standards
-4. Reproducible testing framework (117 unit/integration tests)
+4. Reproducible testing framework (716 unit/integration tests)
 
 **Current status**:
 - ✅ Framework implementation complete
@@ -708,7 +709,7 @@ Results: `benchmark_results/`, `outputs/benchmarks/`
   title = {{MIESC}: Multi-layer Intelligent Evaluation for Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
-  version = {4.0.0},
+  version = {4.2.0},
   note = {Implementation for Master's thesis in Cyberdefense}
 }
 ```
@@ -717,13 +718,21 @@ Results: `benchmark_results/`, `outputs/benchmarks/`
 
 ## Roadmap
 
-**v4.0.0 (current)**:
+**v4.2.0 (current)** - December 2025:
+- MCP REST API server for AI agent integration
+- Demo recording script for thesis defense
+- WebSocket server for real-time audit streaming
+- Enhanced ML orchestrator with feedback loop
+- 29 tool adapters across 7 defense layers
+- 1292 tests passing, 68.6% coverage
+
+**v4.1.0** (November 2025):
 - PropertyGPT: Automated CVL property generation (+700% formal verification adoption)
 - DA-GNN: Graph Neural Network vulnerability detection (95.7% accuracy)
 - Enhanced RAG SmartLLM: Verificator role for fact-checking (+17% precision)
 - DogeFuzz: Coverage-guided fuzzing with power scheduling (3x faster)
-- 25 tool adapters across 7 defense layers
-- 117 tests passing, 87.5% coverage
+- Smart Correlation Engine with exploit chain analysis
+- Enhanced remediation engine with fix plans
 
 **Future (v5.0)**:
 - Docker packaging
@@ -753,7 +762,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for style guide and testing requirement
 **Priority areas**:
 - Certora CVL specs for common patterns (ERC-20/721)
 - Echidna property templates for DeFi
-- Integration tests for all 25 tools
+- Integration tests for all 29 tools
 - Cross-chain vulnerability analysis
 
 
@@ -765,7 +774,8 @@ Development practices: Shift-left security with pre-commit hooks (Ruff, Bandit, 
 
 Current metrics:
 - Policy compliance: 94.2%
-- Test coverage: 87.5%
+- Test coverage: 68.6%
+- Tests passing: 1292
 - Critical vulnerabilities: 0
 - SAST findings: 0 high/critical
 
@@ -825,6 +835,6 @@ Datasets: SmartBugs (INESC-ID), SolidiFI (TU Delft), Etherscan.
 
 ---
 
-**Version 4.0.0** | November 2025
+**Version 4.2.0** | December 2025
 
 [Repository](https://github.com/fboiero/MIESC) | [Documentation](https://fboiero.github.io/MIESC) | [Issues](https://github.com/fboiero/MIESC/issues)

@@ -90,22 +90,86 @@ class FalsePositiveFilter:
     4. Correlación entre herramientas
     """
 
-    # Patrones conocidos de falsos positivos
+    # Patrones conocidos de falsos positivos con probabilidades FP
+    # Valores más altos = mayor probabilidad de ser falso positivo
     FALSE_POSITIVE_PATTERNS = {
-        # Slither
-        'naming-convention': 0.3,  # Muy bajo riesgo real
-        'solc-version': 0.2,
-        'low-level-calls': 0.4,  # Depende del contexto
-        'assembly': 0.3,
+        # === Slither - Informativos/Bajo Riesgo ===
+        'naming-convention': 0.85,
+        'solc-version': 0.75,
+        'pragma': 0.70,
+        'low-level-calls': 0.50,
+        'assembly': 0.45,
+        'external-function': 0.60,
+        'constable-states': 0.70,
+        'immutable-states': 0.65,
+        'dead-code': 0.55,
+        'unused-state': 0.50,
+        'similar-names': 0.80,
+        'too-many-digits': 0.85,
 
-        # Mythril
-        'Integer Underflow': 0.5,  # Post Solidity 0.8 son raros
-        'Dependence on predictable environment variable': 0.4,
+        # === Reentrancy - Alto FP en código moderno ===
+        'reentrancy-benign': 0.75,
+        'reentrancy-events': 0.70,
+        'reentrancy-unlimited-gas': 0.60,
+        'reentrancy-no-eth': 0.55,  # Menos crítico que reentrancy-eth
 
-        # Generales
-        'unused-return': 0.4,
-        'uninitialized-local': 0.3,
-        'too-many-digits': 0.1,
+        # === Timestamp - Muchos FP ===
+        'timestamp': 0.65,
+        'block-timestamp': 0.65,
+        'weak-prng': 0.55,
+        'Dependence on predictable environment variable': 0.60,
+
+        # === Mythril - Post Solidity 0.8 ===
+        'Integer Underflow': 0.70,  # Solidity 0.8+ tiene checks
+        'Integer Overflow': 0.70,
+        'integer-overflow': 0.70,
+        'integer-underflow': 0.70,
+
+        # === Retornos no verificados ===
+        'unused-return': 0.55,
+        'unchecked-transfer': 0.50,
+        'unchecked-lowlevel': 0.45,
+
+        # === Variables no inicializadas ===
+        'uninitialized-local': 0.60,
+        'uninitialized-state': 0.50,
+        'uninitialized-storage': 0.45,
+
+        # === Shadowing (generalmente no crítico) ===
+        'shadowing-state': 0.55,
+        'shadowing-local': 0.65,
+        'shadowing-builtin': 0.60,
+        'shadowing-abstract': 0.70,
+
+        # === Loops y gas ===
+        'calls-loop': 0.50,
+        'costly-loop': 0.65,
+        'multiple-sends': 0.50,
+
+        # === Otros informativos ===
+        'missing-zero-check': 0.45,
+        'boolean-equal': 0.80,
+        'divide-before-multiply': 0.50,
+        'reentrancy-events': 0.70,
+        'events-maths': 0.75,
+        'events-access': 0.70,
+
+        # === Deprecated (muy bajo riesgo) ===
+        'deprecated-standards': 0.80,
+        'controlled-array-length': 0.55,
+    }
+
+    # Patrones que REQUIEREN validación cruzada (2+ herramientas)
+    REQUIRE_CROSS_VALIDATION = {
+        'reentrancy',
+        'reentrancy-eth',
+        'reentrancy-no-eth',
+        'arbitrary-send',
+        'arbitrary-send-eth',
+        'suicidal',
+        'selfdestruct',
+        'delegatecall',
+        'controlled-delegatecall',
     }
 
     # Contextos que reducen probabilidad de TP
@@ -225,7 +289,7 @@ class FalsePositiveFilter:
             has_cwe=bool(finding.get('cwe_id')),
             message_length=len(message),
             code_context_length=len(code_context),
-            line_number=int(location.get('line', 0)),
+            line_number=int(location.get('line') or 0),
             confirmations=confirmations,
             confidence_original=float(finding.get('confidence', 0.7)),
             is_common_pattern=is_common,
@@ -302,7 +366,15 @@ class FalsePositiveFilter:
             fp_score += 0.3
             reasons.append("Overflow (likely Solidity 0.8+): +0.30")
 
-        # 8. Aprendizaje de feedback
+        # 8. Validación cruzada OBLIGATORIA para patrones críticos
+        requires_cv = any(
+            p in vuln_type for p in self.REQUIRE_CROSS_VALIDATION
+        )
+        if requires_cv and confirmations < 2:
+            fp_score += 0.35
+            reasons.append(f"Critical pattern '{vuln_type}' without cross-validation: +0.35")
+
+        # 9. Aprendizaje de feedback
         if features.vuln_type in self._learned_weights:
             learned_adj = self._learned_weights[features.vuln_type]
             fp_score += learned_adj

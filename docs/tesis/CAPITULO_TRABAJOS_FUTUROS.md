@@ -183,33 +183,84 @@ class SoliditySecurityFineTuner:
 
 **Objetivo:** Integrar MIESC en el ciclo de vida de desarrollo de smart contracts.
 
-**Tareas propuestas:**
+**Estado de Implementación (v4.1.0):**
 
-| Tarea | Descripción | Complejidad | Impacto |
-|-------|-------------|-------------|---------|
-| TF-5.1 | Plugin para VS Code / Remix IDE | Media | Muy Alto |
-| TF-5.2 | GitHub App para PRs automáticos | Media | Alto |
-| TF-5.3 | Integración con Tenderly (simulación) | Media | Alto |
-| TF-5.4 | Dashboard de métricas de seguridad | Media | Medio |
-| TF-5.5 | Notificaciones de vulnerabilidades en dependencias | Baja | Alto |
+| Tarea | Descripción | Complejidad | Estado |
+|-------|-------------|-------------|--------|
+| TF-5.1 | Plugin para VS Code / Remix IDE | Media | Pendiente |
+| TF-5.2 | GitHub Action para CI/CD | Media | **IMPLEMENTADO** |
+| TF-5.3 | WebSocket Streaming en tiempo real | Media | **IMPLEMENTADO** |
+| TF-5.4 | Dashboard de métricas de seguridad | Media | **IMPLEMENTADO** (Streamlit) |
+| TF-5.5 | Notificaciones de vulnerabilidades en dependencias | Baja | Pendiente |
 
-**Propuesta de GitHub App:**
+#### TF-5.2 GitHub Action (IMPLEMENTADO)
+
+La GitHub Action de MIESC (`miesc-security-audit.yml`) permite integración completa con CI/CD:
+
 ```yaml
-# .github/workflows/miesc-pr-review.yml
-name: MIESC Security Review
-on: [pull_request]
+# .github/workflows/miesc-security-audit.yml
+name: MIESC Security Audit
+on:
+  push:
+    paths: ['**.sol', 'contracts/**']
+  pull_request:
+    paths: ['**.sol', 'contracts/**']
+  workflow_dispatch:
+    inputs:
+      severity_threshold:
+        description: 'Minimum severity to fail (critical, high, medium, low)'
+        default: 'high'
 
 jobs:
   security-audit:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
     steps:
-      - uses: miesc/action@v1
-        with:
-          layers: [1, 2, 3, 7]
-          fail_on: high
-          comment_on_pr: true
-          suggest_fixes: true
+      - uses: actions/checkout@v4
+      - name: Run MIESC Security Audit
+        # Genera SARIF para GitHub Security y comenta en PRs
 ```
+
+**Características implementadas:**
+- Detección automática de cambios en archivos `.sol`
+- Generación de reportes SARIF integrados con GitHub Security
+- Comentarios automáticos en Pull Requests con resumen de hallazgos
+- Umbral de severidad configurable para bloqueo de merge
+- Soporte para `workflow_dispatch` manual
+
+#### TF-5.3 WebSocket Streaming (IMPLEMENTADO)
+
+El servidor WebSocket (`src/mcp/websocket_server.py`) proporciona streaming en tiempo real:
+
+```python
+# Conexión: ws://localhost:8765
+# Eventos disponibles:
+# - audit_started, audit_completed, audit_failed
+# - layer_started, layer_completed, layer_failed
+# - finding_discovered, findings_batch
+# - progress_update, heartbeat
+
+# Ejemplo de uso:
+async with websockets.connect("ws://localhost:8765") as ws:
+    await ws.send(json.dumps({
+        "command": "start_audit",
+        "contract_path": "contracts/Token.sol",
+        "layers": [1, 2, 3, 7]
+    }))
+    async for message in ws:
+        event = json.loads(message)
+        print(f"[{event['event']}] {event['data']}")
+```
+
+**Características implementadas:**
+- Progreso capa por capa en tiempo real
+- Hallazgos notificados a medida que se descubren
+- Soporte para múltiples sesiones de auditoría concurrentes
+- Heartbeat para verificación de conectividad
+- Suscripción/desuscripción a sesiones específicas
 
 ---
 
