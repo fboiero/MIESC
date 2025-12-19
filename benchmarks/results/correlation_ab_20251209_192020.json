@@ -1,0 +1,158 @@
+{
+  "timestamp": "2025-12-09T19:20:20.220777",
+  "dataset": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset",
+  "total_contracts": 143,
+  "baseline": {
+    "metrics": {
+      "recall": 14.69,
+      "precision": 18.78,
+      "detected": 21,
+      "total": 143,
+      "tp": 83,
+      "fp": 359
+    },
+    "total_findings": 442,
+    "by_category": {
+      "access_control": {
+        "detected": 0,
+        "tp": 0,
+        "fp": 25,
+        "total": 18
+      },
+      "arithmetic": {
+        "detected": 10,
+        "tp": 18,
+        "fp": 5,
+        "total": 15
+      },
+      "bad_randomness": {
+        "detected": 8,
+        "tp": 61,
+        "fp": 20,
+        "total": 8
+      },
+      "denial_of_service": {
+        "detected": 2,
+        "tp": 3,
+        "fp": 14,
+        "total": 6
+      },
+      "front_running": {
+        "detected": 1,
+        "tp": 1,
+        "fp": 1,
+        "total": 4
+      },
+      "other": {
+        "detected": 0,
+        "tp": 0,
+        "fp": 9,
+        "total": 3
+      },
+      "reentrancy": {
+        "detected": 0,
+        "tp": 0,
+        "fp": 140,
+        "total": 31
+      },
+      "short_addresses": {
+        "detected": 0,
+        "tp": 0,
+        "fp": 2,
+        "total": 1
+      },
+      "time_manipulation": {
+        "detected": 0,
+        "tp": 0,
+        "fp": 11,
+        "total": 5
+      },
+      "unchecked_low_level_calls": {
+        "detected": 0,
+        "tp": 0,
+        "fp": 132,
+        "total": 52
+      }
+    }
+  },
+  "correlated": {
+    "metrics": {
+      "recall": 13.99,
+      "precision": 15.09,
+      "detected": 20,
+      "total": 143,
+      "tp": 24,
+      "fp": 135
+    },
+    "total_findings": 159,
+    "filtered_as_fp": 0,
+    "by_category": {
+      "access_control": {
+        "detected": 0,
+        "tp": 0,
+        "fp": 13,
+        "total": 18
+      },
+      "arithmetic": {
+        "detected": 10,
+        "tp": 10,
+        "fp": 4,
+        "total": 15
+      },
+      "bad_randomness": {
+        "detected": 8,
+        "tp": 12,
+        "fp": 5,
+        "total": 8
+      },
+      "denial_of_service": {
+        "detected": 1,
+        "tp": 1,
+        "fp": 4,
+        "total": 6
+      },
+      "front_running": {
+        "detected": 1,
+        "tp": 1,
+        "fp": 1,
+        "total": 4
+      },
+      "other": {
+        "detected": 0,
+        "tp": 0,
+        "fp": 4,
+        "total": 3
+      },
+      "reentrancy": {
+        "detected": 0,
+        "tp": 0,
+        "fp": 53,
+        "total": 31
+      },
+      "short_addresses": {
+        "detected": 0,
+        "tp": 0,
+        "fp": 1,
+        "total": 1
+      },
+      "time_manipulation": {
+        "detected": 0,
+        "tp": 0,
+        "fp": 8,
+        "total": 5
+      },
+      "unchecked_low_level_calls": {
+        "detected": 0,
+        "tp": 0,
+        "fp": 42,
+        "total": 52
+      }
+    }
+  },
+  "improvement": {
+    "recall_delta": -0.6999999999999993,
+    "precision_delta": -3.6900000000000013,
+    "fp_reduction": 0.6239554317548747,
+    "deduplication_rate": 0.6402714932126696
+  }
+}

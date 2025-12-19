@@ -1,0 +1,35 @@
+{
+  "timestamp": "20251209_183329",
+  "dataset": "SmartBugs Curated",
+  "total_contracts": 30,
+  "execution_time_seconds": 8.12,
+  "metrics": {
+    "precision": 0.1856,
+    "recall": 0.36,
+    "f1_score": 0.2449,
+    "true_positives": 18,
+    "false_positives": 79,
+    "false_negatives": 32
+  },
+  "by_category": {
+    "access_control": {
+      "contracts": 18,
+      "true_positives": 6,
+      "false_positives": 18,
+      "false_negatives": 18,
+      "precision": 0.25,
+      "recall": 0.25,
+      "f1_score": 0.25
+    },
+    "arithmetic": {
+      "contracts": 12,
+      "true_positives": 12,
+      "false_positives": 61,
+      "false_negatives": 14,
+      "precision": 0.1644,
+      "recall": 0.4615,
+      "f1_score": 0.2424
+    }
+  },
+  "errors_count": 0
+}

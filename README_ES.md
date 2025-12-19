@@ -8,7 +8,7 @@
 
 [English](./README.md) | **Español**
 
-Framework de análisis de seguridad multicapa para smart contracts de Ethereum. Orquesta 25 herramientas especializadas a través de 7 capas de defensa con correlación asistida por IA y detección basada en ML.
+Framework de análisis de seguridad multicapa para smart contracts de Ethereum. Orquesta 29 herramientas especializadas a través de 7 capas de defensa con correlación asistida por IA y detección basada en ML.
 
 Arquitectura basada en investigación de análisis multi-herramienta (Durieux et al., 2020; Atzei et al., 2017). Desarrollado como parte de una Tesis de Maestría en Ciberdefensa en la Universidad de la Defensa Nacional (UNDEF), Argentina.
 
@@ -23,7 +23,7 @@ Documentación: [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC) | Iss
 ## Alcance y Limitaciones
 
 **Propósito**:
-- Orquestación automatizada de 25 herramientas de análisis de seguridad
+- Orquestación automatizada de 29 herramientas de análisis de seguridad
 - Correlación de hallazgos asistida por IA para reducir reportes duplicados
 - Detección de vulnerabilidades basada en ML con 95.7% de precisión
 - Mapeo de cumplimiento a estándares ISO/NIST/OWASP
@@ -76,7 +76,7 @@ python3 examples/demo_v4.0.py
 ```
 
 El demo realiza:
-1. Registro de adaptadores (25 herramientas en 7 capas)
+1. Registro de adaptadores (29 herramientas en 7 capas)
 2. Análisis estático de contrato intencionalmente vulnerable (VulnerableBank.sol)
 3. Correlación de hallazgos asistida por IA usando LLM local (deepseek-coder via Ollama)
 4. Generación de reporte con mapeos de cumplimiento
@@ -98,7 +98,7 @@ YouTube: [youtu.be/-SP6555edSw](https://youtu.be/-SP6555edSw)
 
 Demuestra:
 - Análisis Defense-in-Depth a través de 7 capas de seguridad
-- 25 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
+- 29 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
 - Integración Model Context Protocol (MCP) con Claude Desktop
 - 100% Recall, 87.5% Precisión, F1-Score 0.93
 - IA Soberana con Ollama (el código nunca sale de tu máquina)
@@ -136,7 +136,7 @@ Duración: ~10 minutos | Fuente: `demo_thesis_defense.py`
 - Basado en arXiv:2409.01788 (Sep 2024)
 
 **Métricas** (v3.5 → v4.0):
-- Total Adaptadores: 22 → 25 (+13.6%)
+- Total Adaptadores: 22 → 29 (+31.8%)
 - Precisión: 89.47% → 94.5% (+5.03pp)
 - Recall: 86.2% → 92.8% (+6.6pp)
 - Tasa FP: 10.53% → 5.5% (-48%)
@@ -148,7 +148,7 @@ Ver [docs/PHASE_3_4_5_COMPLETION_SUMMARY.md](./docs/PHASE_3_4_5_COMPLETION_SUMMA
 
 ## Descripción General
 
-MIESC (Evaluación Inteligente Multicapa para Smart Contracts) orquesta 25 herramientas de análisis de seguridad a través de una interfaz unificada con correlación asistida por IA y detección basada en ML.
+MIESC (Evaluación Inteligente Multicapa para Smart Contracts) orquesta 29 herramientas de análisis de seguridad a través de una interfaz unificada con correlación asistida por IA y detección basada en ML.
 
 **Problema**: Ejecutar múltiples herramientas de seguridad individualmente produce cientos de advertencias con altas tasas de falsos positivos, requiriendo triaje manual significativo.
 
@@ -160,11 +160,11 @@ MIESC (Evaluación Inteligente Multicapa para Smart Contracts) orquesta 25 herra
 
 | Componente | Estado | Detalles |
 |------------|--------|----------|
-| Herramientas Integradas | ✅ Completo | 25 herramientas en 7 capas |
+| Herramientas Integradas | ✅ Completo | 29 herramientas en 7 capas |
 | Protocolo MCP | ✅ Completo | Interfaz JSON-RPC funcional |
 | Correlación IA | ✅ Completo | LLM local via Ollama |
 | Mapeo de Cumplimiento | ✅ Completo | 12 estándares (ISO/NIST/OWASP) |
-| Tests Unitarios | ✅ Pasando | 117 tests, 87.5% cobertura |
+| Tests Unitarios | ✅ Pasando | 716 tests, 87.5% cobertura |
 | Validación Empírica | 🚧 En Progreso | Estudio a gran escala planificado Q4 2025 |
 
 **Validado**: Integración de herramientas, implementación de protocolo, funcionalidad básica
@@ -317,7 +317,7 @@ Static Dynamic Symbolic Formal
    Reporte (JSON/HTML/PDF)
 ```
 
-**Asignación de capas** (25 herramientas):
+**Asignación de capas** (29 herramientas):
 
 - **Capa 1 (Estático)**: Slither, Aderyn, Solhint
 - **Capa 2 (Dinámico)**: Echidna, Medusa, Foundry
@@ -344,7 +344,7 @@ Static Dynamic Symbolic Formal
 
 ## Arquitectura de Agentes
 
-**Adaptadores de herramientas** (25):
+**Adaptadores de herramientas** (29):
 
 | Capa | Adaptador | Herramienta Subyacente |
 |------|-----------|------------------------|
@@ -417,7 +417,7 @@ Arquitectura basada en investigación revisada por pares en seguridad de smart c
 
 **Preguntas de investigación de tesis** (validación empírica en progreso):
 
-1. Efectividad multi-herramienta: ¿Combinar 25 herramientas mejora la detección vs. herramientas individuales?
+1. Efectividad multi-herramienta: ¿Combinar 29 herramientas mejora la detección vs. herramientas individuales?
    - Hipótesis basada en Durieux et al. (2020): 34% de mejora esperada
 
 2. Correlación IA: ¿Pueden los LLMs locales reducir hallazgos duplicados entre herramientas?
@@ -430,11 +430,11 @@ Arquitectura basada en investigación revisada por pares en seguridad de smart c
    - Implementación completa: 12 estándares (ISO/NIST/OWASP/EU)
 
 5. Reproducibilidad: ¿Son los resultados repetibles?
-   - Framework: 117 tests pasando, 87.5% cobertura
+   - Framework: 716 tests pasando, 87.5% cobertura
    - Estudio a gran escala: planificado Q4 2025
 
 **Estado actual de validación**:
-- ✅ Integración de herramientas funcional (25 adaptadores)
+- ✅ Integración de herramientas funcional (29 adaptadores)
 - ✅ Suite de tests pasando (unitarios + integración)
 - ✅ Implementación de referencia completa
 - 🚧 Estudio de precisión/recall a gran escala (pendiente)
@@ -608,9 +608,9 @@ Nota: Estimaciones de tiempo basadas en ejecución de herramientas, no en flujo 
 
 **Contribuciones de investigación**:
 1. Implementación de referencia de arquitectura multi-agente basada en MCP
-2. Integración de 25 herramientas de seguridad heterogéneas bajo protocolo unificado
+2. Integración de 29 herramientas de seguridad heterogéneas bajo protocolo unificado
 3. Mapeo automatizado de cumplimiento a 12 estándares internacionales
-4. Framework de testing reproducible (117 tests unitarios/integración)
+4. Framework de testing reproducible (716 tests unitarios/integración)
 
 **Estado actual**:
 - ✅ Implementación del framework completa
@@ -655,8 +655,8 @@ Resultados: `benchmark_results/`, `outputs/benchmarks/`
 - DA-GNN: Detección de vulnerabilidades con Redes Neuronales de Grafos (95.7% precisión)
 - SmartLLM RAG Mejorado: Rol verificador para comprobación de hechos (+17% precisión)
 - DogeFuzz: Fuzzing guiado por cobertura con programación de potencia (3x más rápido)
-- 25 adaptadores de herramientas en 7 capas de defensa
-- 117 tests pasando, 87.5% cobertura
+- 29 adaptadores de herramientas en 7 capas de defensa
+- 716 tests pasando, 87.5% cobertura
 
 **Futuro (v5.0)**:
 - Empaquetado Docker
@@ -686,7 +686,7 @@ Ver [CONTRIBUTING.md](./CONTRIBUTING.md) para guía de estilo y requisitos de te
 **Áreas prioritarias**:
 - Specs CVL Certora para patrones comunes (ERC-20/721)
 - Templates de propiedades Echidna para DeFi
-- Tests de integración para las 25 herramientas
+- Tests de integración para las 29 herramientas
 - Análisis de vulnerabilidades cross-chain
 
 ---

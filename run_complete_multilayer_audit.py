@@ -37,6 +37,13 @@ try:
 except ImportError:
     REMEDIATIONS_AVAILABLE = False
 
+# Try to import Smart Correlation Engine
+try:
+    from ml.correlation_engine import SmartCorrelationEngine
+    CORRELATION_ENGINE_AVAILABLE = True
+except ImportError:
+    CORRELATION_ENGINE_AVAILABLE = False
+
 # Configuration
 CONTRACTS_DIR = Path(__file__).parent / "contracts" / "audit"
 OUTPUT_DIR = Path(__file__).parent / "audit_results"
@@ -66,6 +73,7 @@ class MultiLayerAuditor:
         self.contract_path = Path(contract_path)
         self.contract_name = self.contract_path.stem
         self.findings: List[Finding] = []
+        self.correlated_findings: List = []  # Smart Correlation Engine results
         self.layer_results: Dict[str, Any] = {}
         self.errors: List[str] = []
 
@@ -733,54 +741,131 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
             print(f"      ✗ Error: {str(e)[:50]}")
 
     def _run_risk_correlation(self):
-        """Correlate findings and calculate risk score"""
+        """Correlate findings using Smart Correlation Engine and calculate risk score"""
         try:
-            print("   → Risk Correlation...")
+            print("   → Smart Correlation Engine...")
 
-            # Calculate severity weights
-            severity_weights = {
-                "Critical": 10,
-                "High": 7,
-                "Medium": 4,
-                "Low": 1,
-                "Info": 0.5
-            }
-
-            # Calculate risk score
-            total_risk = 0
-            severity_counts = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Info": 0}
-
-            for finding in self.findings:
-                sev = finding.severity
-                if sev in severity_counts:
-                    severity_counts[sev] += 1
-                    total_risk += severity_weights.get(sev, 1)
-
-            # Normalize to 0-100 scale
-            max_possible = len(self.findings) * 10 if self.findings else 1
-            risk_score = min(100, (total_risk / max_possible) * 100)
-
-            # Determine risk level
-            if severity_counts["Critical"] > 0:
-                risk_level = "CRITICAL"
-            elif severity_counts["High"] > 2:
-                risk_level = "HIGH"
-            elif severity_counts["High"] > 0 or severity_counts["Medium"] > 3:
-                risk_level = "MEDIUM"
+            # Use Smart Correlation Engine if available
+            if CORRELATION_ENGINE_AVAILABLE and self.findings:
+                self._run_smart_correlation()
             else:
-                risk_level = "LOW"
-
-            self.layer_results["risk_correlation"] = {
-                "status": "success",
-                "risk_score": round(risk_score, 1),
-                "risk_level": risk_level,
-                "severity_breakdown": severity_counts
-            }
-            print(f"      ✓ Risk Score: {risk_score:.1f}/100 ({risk_level})")
+                self._run_basic_correlation()
 
         except Exception as e:
             self.layer_results["risk_correlation"] = {"status": "error", "error": str(e)}
             print(f"      ✗ Error: {str(e)[:50]}")
+
+    def _run_smart_correlation(self):
+        """Run Smart Correlation Engine for advanced deduplication and confidence scoring"""
+        engine = SmartCorrelationEngine(
+            min_tools_for_validation=2,
+            similarity_threshold=0.75,
+        )
+
+        # Group findings by tool
+        findings_by_tool: Dict[str, List[Dict]] = {}
+        for finding in self.findings:
+            tool = finding.tool
+            if tool not in findings_by_tool:
+                findings_by_tool[tool] = []
+            findings_by_tool[tool].append({
+                'type': finding.title,
+                'severity': finding.severity,
+                'message': finding.description,
+                'location': finding.location,
+                'swc_id': finding.swc_id,
+                'confidence': 0.7 if finding.confidence == "Medium" else (0.9 if finding.confidence == "High" else 0.5),
+            })
+
+        # Add findings to correlation engine
+        for tool, tool_findings in findings_by_tool.items():
+            engine.add_findings(tool, tool_findings)
+
+        # Run correlation
+        correlated = engine.correlate()
+        stats = engine.get_statistics()
+
+        # Store correlated findings for report
+        self.correlated_findings = correlated
+
+        # Calculate risk score from correlated findings
+        severity_weights = {"critical": 10, "high": 7, "medium": 4, "low": 1, "informational": 0.5}
+        total_risk = 0
+        severity_counts = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Info": 0}
+
+        for cf in correlated:
+            sev = cf.severity.capitalize()
+            if sev in severity_counts:
+                severity_counts[sev] += 1
+            # Weight by confidence
+            total_risk += severity_weights.get(cf.severity, 1) * cf.final_confidence
+
+        max_possible = len(correlated) * 10 if correlated else 1
+        risk_score = min(100, (total_risk / max_possible) * 100)
+
+        # Determine risk level
+        if severity_counts["Critical"] > 0:
+            risk_level = "CRITICAL"
+        elif severity_counts["High"] > 2:
+            risk_level = "HIGH"
+        elif severity_counts["High"] > 0 or severity_counts["Medium"] > 3:
+            risk_level = "MEDIUM"
+        else:
+            risk_level = "LOW"
+
+        self.layer_results["risk_correlation"] = {
+            "status": "success",
+            "engine": "SmartCorrelationEngine",
+            "risk_score": round(risk_score, 1),
+            "risk_level": risk_level,
+            "severity_breakdown": severity_counts,
+            "correlation_stats": {
+                "original_findings": stats.get("original_findings", len(self.findings)),
+                "correlated_findings": stats.get("total_correlated", len(correlated)),
+                "deduplication_rate": stats.get("deduplication_rate", 0),
+                "cross_validated": stats.get("cross_validated", 0),
+                "avg_confidence": stats.get("average_confidence", 0),
+            }
+        }
+
+        dedup_rate = stats.get("deduplication_rate", 0) * 100
+        print(f"      ✓ Risk Score: {risk_score:.1f}/100 ({risk_level})")
+        print(f"      ✓ Correlated: {len(correlated)}/{len(self.findings)} findings ({dedup_rate:.1f}% dedup)")
+        print(f"      ✓ Cross-validated: {stats.get('cross_validated', 0)}")
+
+    def _run_basic_correlation(self):
+        """Fallback basic correlation without ML engine"""
+        severity_weights = {"Critical": 10, "High": 7, "Medium": 4, "Low": 1, "Info": 0.5}
+
+        total_risk = 0
+        severity_counts = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Info": 0}
+
+        for finding in self.findings:
+            sev = finding.severity
+            if sev in severity_counts:
+                severity_counts[sev] += 1
+                total_risk += severity_weights.get(sev, 1)
+
+        max_possible = len(self.findings) * 10 if self.findings else 1
+        risk_score = min(100, (total_risk / max_possible) * 100)
+
+        if severity_counts["Critical"] > 0:
+            risk_level = "CRITICAL"
+        elif severity_counts["High"] > 2:
+            risk_level = "HIGH"
+        elif severity_counts["High"] > 0 or severity_counts["Medium"] > 3:
+            risk_level = "MEDIUM"
+        else:
+            risk_level = "LOW"
+
+        self.layer_results["risk_correlation"] = {
+            "status": "success",
+            "engine": "basic",
+            "risk_score": round(risk_score, 1),
+            "risk_level": risk_level,
+            "severity_breakdown": severity_counts
+        }
+        print(f"      ✓ Risk Score: {risk_score:.1f}/100 ({risk_level})")
 
     def _generate_report(self) -> Dict[str, Any]:
         """Generate final audit report with remediations"""
@@ -831,17 +916,24 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
 
             findings_with_remediations.append(finding_dict)
 
+        # Get correlation stats
+        correlation_stats = self.layer_results.get("risk_correlation", {}).get("correlation_stats", {})
+
         report = {
             "audit_info": {
                 "contract": self.contract_name,
                 "contract_path": str(self.contract_path),
                 "timestamp": datetime.now().isoformat(),
-                "miesc_version": "4.0.0",
+                "miesc_version": "4.2.0",
                 "total_layers_executed": 7,
-                "remediations_enabled": REMEDIATIONS_AVAILABLE
+                "remediations_enabled": REMEDIATIONS_AVAILABLE,
+                "correlation_engine_enabled": CORRELATION_ENGINE_AVAILABLE
             },
             "summary": {
                 "total_findings": len(self.findings),
+                "correlated_findings": correlation_stats.get("correlated_findings", len(self.findings)),
+                "deduplication_rate": correlation_stats.get("deduplication_rate", 0),
+                "cross_validated": correlation_stats.get("cross_validated", 0),
                 "by_severity": severity_counts,
                 "by_layer": findings_by_layer,
                 "by_tool": findings_by_tool,
@@ -850,6 +942,7 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
             },
             "layer_results": self.layer_results,
             "findings": findings_with_remediations,
+            "correlated_findings": [f.to_dict() for f in self.correlated_findings] if self.correlated_findings else [],
             "errors": self.errors
         }
 

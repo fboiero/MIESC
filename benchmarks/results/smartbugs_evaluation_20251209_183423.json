@@ -1,0 +1,107 @@
+{
+  "timestamp": "20251209_183423",
+  "dataset": "SmartBugs Curated",
+  "total_contracts": 143,
+  "execution_time_seconds": 47.26,
+  "metrics": {
+    "precision": 0.0387,
+    "recall": 0.738,
+    "f1_score": 0.0735,
+    "true_positives": 169,
+    "false_positives": 4199,
+    "false_negatives": 60
+  },
+  "by_category": {
+    "access_control": {
+      "contracts": 18,
+      "true_positives": 6,
+      "false_positives": 18,
+      "false_negatives": 18,
+      "precision": 0.25,
+      "recall": 0.25,
+      "f1_score": 0.25
+    },
+    "arithmetic": {
+      "contracts": 15,
+      "true_positives": 19,
+      "false_positives": 82,
+      "false_negatives": 8,
+      "precision": 0.1881,
+      "recall": 0.7037,
+      "f1_score": 0.2969
+    },
+    "bad_randomness": {
+      "contracts": 8,
+      "true_positives": 34,
+      "false_positives": 1308,
+      "false_negatives": 0,
+      "precision": 0.0253,
+      "recall": 1.0,
+      "f1_score": 0.0494
+    },
+    "denial_of_service": {
+      "contracts": 6,
+      "true_positives": 2,
+      "false_positives": 5,
+      "false_negatives": 13,
+      "precision": 0.2857,
+      "recall": 0.1333,
+      "f1_score": 0.1818
+    },
+    "front_running": {
+      "contracts": 4,
+      "true_positives": 1,
+      "false_positives": 1,
+      "false_negatives": 7,
+      "precision": 0.5,
+      "recall": 0.125,
+      "f1_score": 0.2
+    },
+    "other": {
+      "contracts": 3,
+      "true_positives": 5,
+      "false_positives": 68,
+      "false_negatives": 0,
+      "precision": 0.0685,
+      "recall": 1.0,
+      "f1_score": 0.1282
+    },
+    "reentrancy": {
+      "contracts": 31,
+      "true_positives": 29,
+      "false_positives": 2050,
+      "false_negatives": 3,
+      "precision": 0.0139,
+      "recall": 0.9062,
+      "f1_score": 0.0275
+    },
+    "short_addresses": {
+      "contracts": 1,
+      "true_positives": 0,
+      "false_positives": 0,
+      "false_negatives": 1,
+      "precision": 0,
+      "recall": 0.0,
+      "f1_score": 0
+    },
+    "time_manipulation": {
+      "contracts": 5,
+      "true_positives": 6,
+      "false_positives": 59,
+      "false_negatives": 2,
+      "precision": 0.0923,
+      "recall": 0.75,
+      "f1_score": 0.1644
+    },
+    "unchecked_low_level_calls": {
+      "contracts": 52,
+      "true_positives": 67,
+      "false_positives": 608,
+      "false_negatives": 8,
+      "precision": 0.0993,
+      "recall": 0.8933,
+      "f1_score": 0.1787
+    }
+  },
+  "errors_count": 0
+}

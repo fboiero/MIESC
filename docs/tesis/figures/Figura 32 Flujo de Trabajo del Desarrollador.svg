@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700">
+  <defs>
+    <style>
+      .title { font: bold 18px 'Segoe UI', Arial, sans-serif; fill: #1a1a2e; }
+      .subtitle { font: 14px 'Segoe UI', Arial, sans-serif; fill: #4a4a6a; }
+      .label { font: bold 12px 'Segoe UI', Arial, sans-serif; fill: #ffffff; }
+      .label-dark { font: bold 12px 'Segoe UI', Arial, sans-serif; fill: #1a1a2e; }
+      .small { font: 10px 'Segoe UI', Arial, sans-serif; fill: #6a6a8a; }
+      .layer-text { font: bold 11px 'Segoe UI', Arial, sans-serif; fill: #ffffff; }
+      .arrow { stroke: #4a4a6a; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .connector { stroke: #a0a0c0; stroke-width: 1.5; stroke-dasharray: 5,3; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4a4a6a"/>
+    </marker>
+    <linearGradient id="devGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#667eea"/>
+      <stop offset="100%" style="stop-color:#764ba2"/>
+    </linearGradient>
+    <linearGradient id="coreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#11998e"/>
+      <stop offset="100%" style="stop-color:#38ef7d"/>
+    </linearGradient>
+    <linearGradient id="layerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#fc4a1a"/>
+      <stop offset="100%" style="stop-color:#f7b733"/>
+    </linearGradient>
+    <linearGradient id="outputGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4facfe"/>
+      <stop offset="100%" style="stop-color:#00f2fe"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="700" fill="#f8f9fc"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" class="title">Figura 32. Flujo de Trabajo del Desarrollador con MIESC</text>
+  <text x="450" y="55" text-anchor="middle" class="subtitle">Multi-layer Intelligent Evaluation for Smart Contracts v4.1</text>
+
+  <!-- Developer Section -->
+  <rect x="50" y="80" width="800" height="90" rx="10" fill="url(#devGrad)" opacity="0.9"/>
+  <text x="450" y="105" text-anchor="middle" class="label">DESARROLLADOR DE SMART CONTRACTS</text>
+
+  <!-- Interface boxes -->
+  <g transform="translate(80, 120)">
+    <rect width="150" height="40" rx="5" fill="#ffffff" opacity="0.95"/>
+    <text x="75" y="25" text-anchor="middle" class="label-dark">CLI</text>
+    <text x="75" y="15" text-anchor="middle" class="small">miesc scan Token.sol</text>
+  </g>
+  <g transform="translate(250, 120)">
+    <rect width="150" height="40" rx="5" fill="#ffffff" opacity="0.95"/>
+    <text x="75" y="25" text-anchor="middle" class="label-dark">Web UI</text>
+    <text x="75" y="15" text-anchor="middle" class="small">localhost:8501</text>
+  </g>
+  <g transform="translate(420, 120)">
+    <rect width="150" height="40" rx="5" fill="#ffffff" opacity="0.95"/>
+    <text x="75" y="25" text-anchor="middle" class="label-dark">REST API</text>
+    <text x="75" y="15" text-anchor="middle" class="small">POST /mcp/run_audit</text>
+  </g>
+  <g transform="translate(590, 120)">
+    <rect width="180" height="40" rx="5" fill="#ffffff" opacity="0.95"/>
+    <text x="90" y="25" text-anchor="middle" class="label-dark">Claude Desktop</text>
+    <text x="90" y="15" text-anchor="middle" class="small">MCP Protocol</text>
+  </g>
+
+  <!-- Arrow to core -->
+  <path d="M 450 170 L 450 200" class="arrow"/>
+
+  <!-- MIESC Core -->
+  <rect x="150" y="210" width="600" height="60" rx="10" fill="url(#coreGrad)" opacity="0.9"/>
+  <text x="450" y="235" text-anchor="middle" class="label">MIESC CORE</text>
+  <text x="450" y="255" text-anchor="middle" class="label" style="font-size: 11px;">Arquitectura Defense-in-Depth - 7 Capas de Defensa</text>
+
+  <!-- Arrow to layers -->
+  <path d="M 450 270 L 450 300" class="arrow"/>
+
+  <!-- 7 Layers -->
+  <g transform="translate(50, 310)">
+    <!-- Layer boxes -->
+    <rect x="0" y="0" width="110" height="80" rx="8" fill="url(#layerGrad)" opacity="0.85"/>
+    <text x="55" y="20" text-anchor="middle" class="layer-text">Capa 1</text>
+    <text x="55" y="35" text-anchor="middle" class="layer-text">Static</text>
+    <text x="55" y="55" text-anchor="middle" style="font: 9px Arial; fill: #fff;">Slither</text>
+    <text x="55" y="68" text-anchor="middle" style="font: 9px Arial; fill: #fff;">Solhint</text>
+
+    <rect x="120" y="0" width="110" height="80" rx="8" fill="url(#layerGrad)" opacity="0.85"/>
+    <text x="175" y="20" text-anchor="middle" class="layer-text">Capa 2</text>
+    <text x="175" y="35" text-anchor="middle" class="layer-text">Fuzzing</text>
+    <text x="175" y="55" text-anchor="middle" style="font: 9px Arial; fill: #fff;">Echidna</text>
+    <text x="175" y="68" text-anchor="middle" style="font: 9px Arial; fill: #fff;">Medusa</text>
+
+    <rect x="240" y="0" width="110" height="80" rx="8" fill="url(#layerGrad)" opacity="0.85"/>
+    <text x="295" y="20" text-anchor="middle" class="layer-text">Capa 3</text>
+    <text x="295" y="35" text-anchor="middle" class="layer-text">Symbolic</text>
+    <text x="295" y="55" text-anchor="middle" style="font: 9px Arial; fill: #fff;">Mythril</text>
+    <text x="295" y="68" text-anchor="middle" style="font: 9px Arial; fill: #fff;">Manticore</text>
+
+    <rect x="360" y="0" width="110" height="80" rx="8" fill="url(#layerGrad)" opacity="0.85"/>
+    <text x="415" y="20" text-anchor="middle" class="layer-text">Capa 4</text>
+    <text x="415" y="35" text-anchor="middle" class="layer-text">Invariant</text>
+    <text x="415" y="55" text-anchor="middle" style="font: 9px Arial; fill: #fff;">Halmos</text>
+    <text x="415" y="68" text-anchor="middle" style="font: 9px Arial; fill: #fff;">Scribble</text>
+
+    <rect x="480" y="0" width="110" height="80" rx="8" fill="url(#layerGrad)" opacity="0.85"/>
+    <text x="535" y="20" text-anchor="middle" class="layer-text">Capa 5</text>
+    <text x="535" y="35" text-anchor="middle" class="layer-text">Formal</text>
+    <text x="535" y="55" text-anchor="middle" style="font: 9px Arial; fill: #fff;">SMTChecker</text>
+    <text x="535" y="68" text-anchor="middle" style="font: 9px Arial; fill: #fff;">Certora</text>
+
+    <rect x="600" y="0" width="95" height="80" rx="8" fill="url(#layerGrad)" opacity="0.85"/>
+    <text x="647" y="20" text-anchor="middle" class="layer-text">Capa 6</text>
+    <text x="647" y="35" text-anchor="middle" class="layer-text">Property</text>
+    <text x="647" y="55" text-anchor="middle" style="font: 9px Arial; fill: #fff;">PropertyGPT</text>
+    <text x="647" y="68" text-anchor="middle" style="font: 9px Arial; fill: #fff;">Aderyn</text>
+
+    <rect x="705" y="0" width="95" height="80" rx="8" fill="#764ba2" opacity="0.9"/>
+    <text x="752" y="20" text-anchor="middle" class="layer-text">Capa 7</text>
+    <text x="752" y="35" text-anchor="middle" class="layer-text">IA</text>
+    <text x="752" y="55" text-anchor="middle" style="font: 9px Arial; fill: #fff;">SmartLLM</text>
+    <text x="752" y="68" text-anchor="middle" style="font: 9px Arial; fill: #fff;">Ollama</text>
+  </g>
+
+  <!-- Arrow to normalizer -->
+  <path d="M 450 400 L 450 430" class="arrow"/>
+
+  <!-- Normalizer -->
+  <rect x="200" y="440" width="500" height="50" rx="10" fill="url(#outputGrad)" opacity="0.9"/>
+  <text x="450" y="460" text-anchor="middle" class="label">NORMALIZADOR DE HALLAZGOS</text>
+  <text x="450" y="478" text-anchor="middle" style="font: 10px Arial; fill: #fff;">SWC → CWE → ISO 27001 → NIST CSF → OWASP SC Top 10</text>
+
+  <!-- Arrow to output -->
+  <path d="M 450 490 L 450 520" class="arrow"/>
+
+  <!-- Output Report -->
+  <rect x="250" y="530" width="400" height="50" rx="10" fill="#1a1a2e"/>
+  <text x="450" y="555" text-anchor="middle" class="label">REPORTE UNIFICADO</text>
+  <text x="450" y="572" text-anchor="middle" style="font: 10px Arial; fill: #a0a0c0;">JSON / Markdown / SARIF</text>
+
+  <!-- Metrics boxes -->
+  <g transform="translate(80, 600)">
+    <rect width="140" height="50" rx="8" fill="#11998e" opacity="0.8"/>
+    <text x="70" y="25" text-anchor="middle" style="font: bold 11px Arial; fill: #fff;">Recall</text>
+    <text x="70" y="42" text-anchor="middle" style="font: bold 14px Arial; fill: #fff;">87.5%</text>
+  </g>
+  <g transform="translate(240, 600)">
+    <rect width="140" height="50" rx="8" fill="#38ef7d" opacity="0.8"/>
+    <text x="70" y="25" text-anchor="middle" style="font: bold 11px Arial; fill: #1a1a2e;">Precision</text>
+    <text x="70" y="42" text-anchor="middle" style="font: bold 14px Arial; fill: #1a1a2e;">89.47%</text>
+  </g>
+  <g transform="translate(400, 600)">
+    <rect width="140" height="50" rx="8" fill="#fc4a1a" opacity="0.8"/>
+    <text x="70" y="25" text-anchor="middle" style="font: bold 11px Arial; fill: #fff;">FP Reduction</text>
+    <text x="70" y="42" text-anchor="middle" style="font: bold 14px Arial; fill: #fff;">43%</text>
+  </g>
+  <g transform="translate(560, 600)">
+    <rect width="140" height="50" rx="8" fill="#4facfe" opacity="0.8"/>
+    <text x="70" y="25" text-anchor="middle" style="font: bold 11px Arial; fill: #fff;">Throughput</text>
+    <text x="70" y="42" text-anchor="middle" style="font: bold 14px Arial; fill: #fff;">346/min</text>
+  </g>
+  <g transform="translate(720, 600)">
+    <rect width="130" height="50" rx="8" fill="#764ba2" opacity="0.8"/>
+    <text x="65" y="25" text-anchor="middle" style="font: bold 11px Arial; fill: #fff;">Costo</text>
+    <text x="65" y="42" text-anchor="middle" style="font: bold 14px Arial; fill: #fff;">$0</text>
+  </g>
+
+  <!-- Footer -->
+  <text x="450" y="680" text-anchor="middle" class="small">MIESC v4.1 - Master's Thesis in Cyberdefense - UNDEF/IUA - Fernando Boiero - 2025</text>
+</svg>

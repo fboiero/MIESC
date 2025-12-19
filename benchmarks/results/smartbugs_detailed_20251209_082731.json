@@ -1,0 +1,62 @@
+[
+  {
+    "name": "FibonacciBalance.sol",
+    "path": "dataset/access_control/FibonacciBalance.sol",
+    "category": "access_control",
+    "ground_truth": 2,
+    "detected": 15,
+    "tp": 1,
+    "fp": 7,
+    "fn": 1,
+    "time": 2.59,
+    "error": null
+  },
+  {
+    "name": "arbitrary_location_write_simple.sol",
+    "path": "dataset/access_control/arbitrary_location_write_simple.sol",
+    "category": "access_control",
+    "ground_truth": 1,
+    "detected": 8,
+    "tp": 0,
+    "fp": 0,
+    "fn": 1,
+    "time": 0.54,
+    "error": null
+  },
+  {
+    "name": "incorrect_constructor_name1.sol",
+    "path": "dataset/access_control/incorrect_constructor_name1.sol",
+    "category": "access_control",
+    "ground_truth": 1,
+    "detected": 3,
+    "tp": 0,
+    "fp": 0,
+    "fn": 1,
+    "time": 2.05,
+    "error": null
+  },
+  {
+    "name": "incorrect_constructor_name2.sol",
+    "path": "dataset/access_control/incorrect_constructor_name2.sol",
+    "category": "access_control",
+    "ground_truth": 1,
+    "detected": 2,
+    "tp": 0,
+    "fp": 0,
+    "fn": 1,
+    "time": 0.52,
+    "error": null
+  },
+  {
+    "name": "incorrect_constructor_name3.sol",
+    "path": "dataset/access_control/incorrect_constructor_name3.sol",
+    "category": "access_control",
+    "ground_truth": 1,
+    "detected": 3,
+    "tp": 0,
+    "fp": 0,
+    "fn": 1,
+    "time": 0.54,
+    "error": null
+  }
+]

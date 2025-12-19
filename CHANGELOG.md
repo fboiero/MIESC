@@ -5,6 +5,54 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2024-12-09
+
+### Added
+
+#### New Security Layers (post-thesis extension)
+- **Layer 8: DeFi Security Analysis** - First open-source DeFi vulnerability detectors
+  - Flash loan attack detection (callback validation, repayment verification)
+  - Oracle manipulation detection (spot price vs TWAP)
+  - Sandwich attack detection (zero slippage, missing deadlines)
+  - MEV exposure analysis (liquidation front-running)
+  - Price manipulation detection (reserve ratio vulnerabilities)
+
+- **Layer 9: Dependency Security Analysis** - Supply chain security
+  - OpenZeppelin CVE database integration (CVE-2022-35961, etc.)
+  - Vulnerable version detection with semantic versioning
+  - Dangerous pattern detection (tx.origin, selfdestruct, delegatecall, ecrecover)
+  - Third-party library vulnerability scanning (Uniswap, Compound)
+
+#### API Enhancements
+- SSE (Server-Sent Events) streaming endpoint `/mcp/stream/audit`
+- DeFi-specific analysis endpoint `/mcp/defi/analyze`
+- Real-time layer-by-layer progress updates
+
+#### Scientific Validation
+- **SmartBugs benchmark integration** (143 contracts, 207 vulnerabilities)
+  - 50.22% recall (outperforms individual tools)
+  - 87.5% recall on reentrancy vulnerabilities
+  - 89.3% recall on unchecked low-level calls
+- Automated evaluation script with metrics calculation
+- Scientific report generation for thesis
+
+#### Performance Benchmarks
+- Scalability benchmarks demonstrating 346 contracts/minute
+- 3.53x parallel speedup with 4 workers
+- Memory-efficient analysis (< 5 MB per contract)
+
+### Changed
+- Updated MCP REST API to version 4.1.0
+- Improved Solidity version auto-detection for legacy contracts (0.4.x - 0.8.x)
+- Enhanced error handling in tool adapters
+- Architecture extended from 7 to 9 layers (Layers 8-9 are post-thesis work)
+
+### Fixed
+- Foundry.toml interference with Slither analysis on SmartBugs dataset
+- Solc version selection for legacy contracts
+
+---
+
 ## [Unreleased]
 
 ### Added
