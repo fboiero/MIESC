@@ -28,7 +28,7 @@ This project adheres to the [Contributor Covenant Code of Conduct](./CODE_OF_CON
 
 ### Prerequisites
 
-- Python 3.9 or higher
+- Python 3.12 or higher
 - Git
 - Virtual environment (recommended)
 - Solidity compiler (solc) for testing

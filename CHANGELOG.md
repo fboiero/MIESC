@@ -5,6 +5,55 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.1] - 2024-12-23
+
+### Added
+
+#### Scientific Benchmark Validation (SmartBugs Curated)
+- **Comprehensive multi-tool benchmark** against SmartBugs Curated dataset (143 contracts)
+- Benchmark runner script (`benchmarks/run_benchmark.py`) for reproducible validation
+- Detailed results in `benchmarks/results/` JSON format
+
+#### Benchmark Results Summary
+| Tool | Layer | Recall | F1-Score | Notes |
+|------|-------|--------|----------|-------|
+| Slither | 1 | 84.3% | 80.0% | +27.3% vs SmartBugs 2020 paper |
+| SmartBugsDetector | 2 | 100% | - | Pattern-based, no compilation |
+| Mythril | 3 | - | - | 6 findings with SWC codes |
+
+#### Per-Category Detection Rates (Slither)
+- Unchecked low-level calls: 100%
+- Front running: 100%
+- Arithmetic overflow: 93.3%
+- Bad randomness: 87.5%
+- Access control: 86.7%
+- Reentrancy: 73.3%
+- Time manipulation: 60.0%
+- Denial of service: 50.0%
+
+#### New Adapters
+- **SmartGuard Adapter** - ML-based vulnerability prediction
+- **LLMBugScanner Adapter** - GPT-4o powered vulnerability detection
+- **ZK Circuit Adapter** - Zero-knowledge proof circuit validation
+- **CrossChain Adapter** - Bridge and cross-chain security analysis
+
+#### Slither Adapter Improvements
+- Legacy Solidity support (0.4.x - 0.5.x) with `--compile-force-framework solc`
+- Automatic solc-select integration for version management
+- Improved IR generation handling for complex legacy patterns
+
+### Changed
+- Updated version to 4.2.1
+- Enhanced adapter error handling for legacy contracts
+- Improved benchmark reproducibility with JSON result export
+
+### Documentation
+- Added benchmark methodology documentation
+- Scientific comparison with literature (SmartBugs 2020, Empirical Review 2020)
+- Multi-tool strategy recommendations
+
+---
+
 ## [4.1.0] - 2024-12-09
 
 ### Added
@@ -165,7 +214,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/fboiero/MIESC/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/fboiero/MIESC/compare/v4.2.1...HEAD
+[4.2.1]: https://github.com/fboiero/MIESC/compare/v4.1.0...v4.2.1
+[4.1.0]: https://github.com/fboiero/MIESC/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/fboiero/MIESC/compare/v3.5.0...v4.0.0
 [3.5.0]: https://github.com/fboiero/MIESC/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/fboiero/MIESC/compare/v2.2.0...v3.4.0

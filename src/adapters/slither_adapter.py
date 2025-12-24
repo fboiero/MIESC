@@ -179,6 +179,16 @@ class SlitherAdapter(ToolAdapter):
             # Build command
             cmd = ["slither", contract_path, "--json", output_path]
 
+            # Support for legacy Solidity versions (0.4.x, 0.5.x)
+            # Forces direct solc compilation instead of Foundry/Hardhat detection
+            legacy_solc = kwargs.get("legacy_solc", False)
+            solc_version = kwargs.get("solc_version")
+
+            if legacy_solc or solc_version:
+                cmd.extend(["--compile-force-framework", "solc"])
+                if solc_version:
+                    cmd.extend(["--solc-solcs-select", solc_version])
+
             if exclude_detectors:
                 cmd.extend(["--exclude", ",".join(exclude_detectors)])
 

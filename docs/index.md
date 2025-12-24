@@ -6,9 +6,9 @@ title: MIESC - Smart Contract Security Framework
 # MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MIESC-v4.0.0-blue?style=for-the-badge" alt="MIESC v4.0.0">
+  <img src="https://img.shields.io/badge/MIESC-v4.2.0-blue?style=for-the-badge" alt="MIESC v4.2.0">
   <img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge" alt="License">
-  <img src="https://img.shields.io/badge/Python-3.9+-yellow?style=for-the-badge" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.12+-yellow?style=for-the-badge" alt="Python">
   <img src="https://img.shields.io/badge/AI-Powered-purple?style=for-the-badge" alt="AI Powered">
 </p>
 
@@ -42,7 +42,7 @@ title: MIESC - Smart Contract Security Framework
 
 **Demonstrates:**
 - Defense-in-Depth analysis across 7 security layers
-- 25 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
+- 29 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
 - Model Context Protocol (MCP) integration with Claude Desktop
 - 100% Recall, 87.5% Precision, F1-Score 0.93
 - Sovereign AI with Ollama (code never leaves your machine)
@@ -446,7 +446,7 @@ Ensures framework remains open-source. Allows commercial use with attribution. D
 ---
 
 <p align="center">
-  <strong>MIESC v4.0.0</strong> | Master's Thesis in Cyberdefense | AGPL-3.0 License
+  <strong>MIESC v4.2.0</strong> | Master's Thesis in Cyberdefense | AGPL-3.0 License
 </p>
 
 <p align="center">

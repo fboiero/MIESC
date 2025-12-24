@@ -4,7 +4,7 @@
 
 [![DPG Standard](https://img.shields.io/badge/DPG%20Standard-Under%20Review-yellow)](./DPG-COMPLIANCE.md)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Version](https://img.shields.io/badge/version-v4.2.0-success)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions/workflows/secure-dev-pipeline.yml)
 [![Coverage](https://img.shields.io/badge/coverage-68.6%25-green)](./htmlcov/index.html)
@@ -72,24 +72,48 @@ Documentation: [webapp/README.md](./webapp/README.md)
 git clone https://github.com/fboiero/MIESC.git
 cd MIESC
 
-# Install core dependencies
-pip install slither-analyzer mythril
+# Install MIESC and dependencies
+pip install -e .
 
-# Run demo (v4.0 - includes advanced ML detection + RAG)
-python3 examples/demo_v4.0.py
+# Quick scan (fast 4-tool analysis)
+miesc audit quick contracts/audit/VulnerableBank.sol
+
+# Check tool availability
+miesc doctor
 ```
 
-The demo performs:
-1. Adapter registration (29 tools across 7 layers)
-2. Static analysis of intentionally vulnerable contract (VulnerableBank.sol)
-3. AI-assisted finding correlation using local LLM (deepseek-coder via Ollama)
-4. Report generation with compliance mappings
+### CLI Commands
 
-Expected findings: reentrancy, access control bypass, tx.origin authentication
-
-Alternative:
 ```bash
-bash demo/run_demo.sh  # Full multi-contract analysis suite
+# Audit Commands
+miesc audit quick contract.sol      # Fast 4-tool scan (~30s)
+miesc audit full contract.sol       # Complete 7-layer audit
+miesc audit layer 1 contract.sol    # Run specific layer
+miesc audit single slither file.sol # Run single tool
+
+# Server Commands
+miesc server rest --port 5001       # Start REST API
+miesc server websocket              # Start WebSocket server
+miesc server mcp                    # Start MCP server
+
+# Configuration
+miesc config show                   # Display configuration
+miesc config validate               # Validate config file
+miesc doctor                        # Check tool availability
+
+# Export
+miesc export results.json --format sarif -o report.sarif
+miesc export results.json --format markdown -o report.md
+```
+
+### Alternative: Python Scripts
+
+```bash
+# Run demo (v4.0 - includes advanced ML detection + RAG)
+python3 examples/demo_v4.0.py
+
+# Full multi-contract analysis suite
+bash demo/run_demo.sh
 ```
 
 See [docs/03_DEMO_GUIDE.md](./docs/03_DEMO_GUIDE.md) for details.
@@ -100,7 +124,28 @@ See [docs/03_DEMO_GUIDE.md](./docs/03_DEMO_GUIDE.md) for details.
 
 MIESC offers multiple interfaces depending on your needs:
 
-### 1. Full 7-Layer Audit (Recommended for Production)
+### 1. CLI (Recommended)
+
+The `miesc` command provides a unified interface for all operations:
+
+```bash
+# Install once
+pip install -e .
+
+# Quick scan for development
+miesc audit quick contracts/MyContract.sol
+
+# Full 7-layer audit for production
+miesc audit full contracts/MyContract.sol --output report.json
+
+# Run specific layer
+miesc audit layer 3 contracts/MyContract.sol  # Symbolic execution only
+
+# Export to SARIF for GitHub Code Scanning
+miesc export report.json --format sarif -o report.sarif
+```
+
+### 2. Full 7-Layer Audit (Python Script)
 
 Complete defense-in-depth analysis with all 29 tools:
 
@@ -151,12 +196,14 @@ Access: http://localhost:8501
 
 ### Comparison
 
-| Interface | Tools | Time | Use Case |
-|-----------|-------|------|----------|
-| Full Audit | 29 | 5-15 min | Production contracts, pre-deployment |
-| MCP Server | 29 | 5-15 min | AI agent integration, automation |
-| miesc-quick | 3-4 | ~30s | Development feedback, quick checks |
-| Web UI | 5-8 | 1-3 min | Interactive exploration, demos |
+| Interface | Command | Tools | Time | Use Case |
+|-----------|---------|-------|------|----------|
+| CLI Quick | `miesc audit quick` | 4 | ~30s | Development, CI/CD |
+| CLI Full | `miesc audit full` | 29 | 5-15 min | Production, pre-deployment |
+| CLI Layer | `miesc audit layer N` | 2-3 | 1-5 min | Targeted analysis |
+| MCP Server | `miesc server mcp` | 29 | 5-15 min | AI agent integration |
+| Web UI | `make webapp` | 5-8 | 1-3 min | Interactive exploration |
+| Python Script | `python xaudit.py` | 29 | 5-15 min | Legacy, scripting |
 
 ---
 

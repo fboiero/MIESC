@@ -7,9 +7,9 @@ lang: es
 # MIESC - Evaluación Inteligente Multicapa para Smart Contracts
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MIESC-v4.0.0-blue?style=for-the-badge" alt="MIESC v4.0.0">
+  <img src="https://img.shields.io/badge/MIESC-v4.2.0-blue?style=for-the-badge" alt="MIESC v4.2.0">
   <img src="https://img.shields.io/badge/Licencia-AGPL--3.0-green?style=for-the-badge" alt="Licencia">
-  <img src="https://img.shields.io/badge/Python-3.9+-yellow?style=for-the-badge" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.12+-yellow?style=for-the-badge" alt="Python">
   <img src="https://img.shields.io/badge/IA-Potenciado-purple?style=for-the-badge" alt="IA Potenciado">
 </p>
 
@@ -43,7 +43,7 @@ lang: es
 
 **Demuestra:**
 - Analisis Defense-in-Depth a traves de 7 capas de seguridad
-- 25 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
+- 29 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
 - Integracion del Model Context Protocol (MCP) con Claude Desktop
 - 100% Recall, 87.5% Precision, F1-Score 0.93
 - IA Soberana con Ollama (el codigo nunca sale de tu maquina)
@@ -447,7 +447,7 @@ Asegura que el framework permanezca open-source. Permite uso comercial con atrib
 ---
 
 <p align="center">
-  <strong>MIESC v4.0.0</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
+  <strong>MIESC v4.2.0</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
 </p>
 
 <p align="center">

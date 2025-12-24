@@ -1,79 +1,66 @@
 """
 MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
-A defense-in-depth security analysis framework for Ethereum smart contracts.
-Orchestrates 35 specialized tools across 7 defense layers with AI-assisted
-correlation and ML-based detection.
+A comprehensive blockchain security framework with 7 defense layers,
+29 security tools, and AI-powered correlation.
 
-Author: Fernando Boiero <fboiero@undef.edu.ar>
-License: GPL-3.0
+Author: Fernando Boiero
+Institution: UNDEF - IUA Cordoba
+License: AGPL-3.0
 """
 
 __version__ = "4.2.0"
 __author__ = "Fernando Boiero"
-__email__ = "fboiero@undef.edu.ar"
+__email__ = "fboiero@frvm.utn.edu.ar"
 
+# Re-export from src packages
+import sys
+from pathlib import Path
 
-def get_version():
-    """Return the current version of MIESC."""
-    return __version__
+# Add src to path for re-exports
+_src_path = Path(__file__).parent.parent / "src"
+if str(_src_path) not in sys.path:
+    sys.path.insert(0, str(_src_path))
 
+# Import core modules from src/
+try:
+    from src.core.tool_protocol import ToolAdapter, ToolStatus
+    from src.core.correlation_api import SmartCorrelationEngine as CorrelationEngine
+    from src.core.result_aggregator import ResultAggregator
+    from src.ml import (
+        FalsePositiveFilter,
+        SeverityPredictor,
+        VulnerabilityClusterer,
+        CodeEmbeddings,
+    )
+    from src.security import (
+        validate_contract_path as InputValidator,
+        RateLimiter as APIRateLimiter,
+        SecureFormatter as SecureLogger,
+        RemediationEngine,
+    )
+    from src.security.compliance_mapper import ComplianceMapper
+except ImportError:
+    pass  # Optional - may not be available in all environments
 
-def analyze(contract_path: str, layers: list = None, tools: list = None):
-    """
-    Analyze a smart contract using MIESC framework.
-
-    Args:
-        contract_path: Path to the Solidity contract file
-        layers: List of layers to run (1-7, default: all)
-        tools: List of specific tools to run (default: all available)
-
-    Returns:
-        dict: Analysis results with findings, metrics, and recommendations
-
-    Example:
-        >>> import miesc
-        >>> results = miesc.analyze("MyToken.sol", layers=[1, 3, 7])
-        >>> print(f"Found {len(results['findings'])} issues")
-    """
-    from src.core.optimized_orchestrator import OptimizedOrchestrator
-    orchestrator = OptimizedOrchestrator()
-    return orchestrator.run_audit(contract_path, layers=layers)
-
-
-def quick_scan(contract_path: str):
-    """
-    Perform a quick scan using only Layer 1 (static analysis).
-
-    Args:
-        contract_path: Path to the Solidity contract file
-
-    Returns:
-        dict: Quick scan results with static analysis findings
-    """
-    return analyze(contract_path, layers=[1])
-
-
-def deep_audit(contract_path: str):
-    """
-    Perform a comprehensive audit using all 7 layers.
-
-    Args:
-        contract_path: Path to the Solidity contract file
-
-    Returns:
-        dict: Full audit results with all findings
-    """
-    return analyze(contract_path, layers=[1, 2, 3, 4, 5, 6, 7])
-
-
-# Define public API
 __all__ = [
     "__version__",
     "__author__",
     "__email__",
-    "get_version",
-    "analyze",
-    "quick_scan",
-    "deep_audit",
+    # Core
+    "ToolAdapter",
+    "ToolStatus",
+    "CorrelationEngine",
+    "ResultAggregator",
+    # ML
+    "FalsePositiveFilter",
+    "SeverityPredictor",
+    "VulnerabilityClusterer",
+    "CodeEmbeddings",
+    # Security
+    "InputValidator",
+    "APIRateLimiter",
+    "SecureLogger",
+    "ComplianceMapper",
+    "RemediationEngine",
 ]

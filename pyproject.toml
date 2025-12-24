@@ -4,24 +4,24 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "miesc"
-version = "4.2.0"
+version = "4.2.1"
 description = "Multi-layer Intelligent Evaluation for Smart Contracts - AI-enhanced MCP-compatible blockchain security framework"
 readme = "README.md"
 authors = [
     {name = "Fernando Boiero", email = "fboiero@frvm.utn.edu.ar"}
 ]
-license = {text = "GPL-3.0"}
+license = {text = "AGPL-3.0"}
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Topic :: Security",
     "Topic :: Software Development :: Quality Assurance",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
 ]
 keywords = [
@@ -35,7 +35,7 @@ keywords = [
     "mcp",
     "model-context-protocol"
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.104.0",
     "uvicorn>=0.24.0",
@@ -47,6 +47,10 @@ dependencies = [
     "flask>=3.0.0",
     "flask-socketio>=5.3.0",
     "flask-cors>=4.0.0",
+    "pyyaml>=6.0.0",
+    "django>=5.0.0",
+    "djangorestframework>=3.14.0",
+    "django-cors-headers>=4.3.0",
 ]
 
 [project.optional-dependencies]
@@ -57,8 +61,13 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.0.0",
 ]
-all-tools = [
+# Note: mythril has conflicting dependencies with slither-analyzer
+# Install separately in isolated environment: pip install mythril
+# Or use Docker: docker run -it mythril/myth analyze <contract.sol>
+symbolic = [
     "mythril>=0.24.0",
+]
+web3 = [
     "web3>=6.0.0",
 ]
 docs = [
@@ -82,8 +91,8 @@ full = [
     "openai>=1.0.0",
     "anthropic>=0.18.0",
     "httpx>=0.25.0",
-    "mythril>=0.24.0",
-    "web3>=6.0.0",
+    # Note: mythril excluded due to dependency conflicts with slither
+    # Use Docker for Mythril: docker run -it mythril/myth analyze <contract.sol>
 ]
 
 [project.urls]
@@ -113,7 +122,7 @@ miesc = ["py.typed"]
 
 [tool.black]
 line-length = 100
-target-version = ['py39', 'py310', 'py311']
+target-version = ['py312', 'py313', 'py314']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -128,7 +137,7 @@ extend-exclude = '''
 
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py312"
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
@@ -143,7 +152,7 @@ ignore = [
 ]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
@@ -155,11 +164,14 @@ testpaths = ["tests", "miesc/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=miesc --cov=src --cov-report=term-missing"
+addopts = "-v --cov=src --cov-report=term-missing"
+asyncio_mode = "auto"
 
 [tool.coverage.run]
-source = ["src", "miesc"]
+source = ["src"]
 omit = [
+    # Wrapper package (re-exports from src/)
+    "miesc/*",
     # Legacy standalone tools (deprecated in v4.0+)
     "src/*_tool.py",
     "src/main.py",
@@ -224,6 +236,61 @@ omit = [
     "src/integration/*",
     # Dependency analyzer (specialized)
     "src/detectors/dependency_analyzer.py",
+    # Tool adapters (require external CLI tools)
+    "src/adapters/certora_adapter.py",
+    "src/adapters/echidna_adapter.py",
+    "src/adapters/foundry_adapter.py",
+    "src/adapters/halmos_adapter.py",
+    "src/adapters/manticore_adapter.py",
+    "src/adapters/medusa_adapter.py",
+    "src/adapters/mythril_adapter.py",
+    "src/adapters/oyente_adapter.py",
+    "src/adapters/slither_adapter.py",
+    "src/adapters/smtchecker_adapter.py",
+    "src/adapters/vertigo_adapter.py",
+    "src/adapters/wake_adapter.py",
+    "src/adapters/mev_detector_adapter.py",
+    "src/adapters/gas_analyzer_adapter.py",
+    # ML/LLM adapters (require external models)
+    "src/adapters/dagnn_adapter.py",
+    "src/adapters/dogefuzz_adapter.py",
+    "src/adapters/smartguard_adapter.py",
+    "src/adapters/smartllm_adapter.py",
+    "src/adapters/llmsmartaudit_adapter.py",
+    "src/adapters/gptscan_adapter.py",
+    "src/adapters/propertygpt_adapter.py",
+    "src/adapters/smartbugs_ml_adapter.py",
+    "src/adapters/smartbugs_detector_adapter.py",
+    "src/adapters/contract_clone_detector_adapter.py",
+    "src/adapters/defi_adapter.py",
+    "src/adapters/advanced_detector_adapter.py",
+    "src/adapters/threat_model_adapter.py",
+    "src/adapters/aderyn_adapter.py",
+    # Core modules with external dependencies
+    "src/core/ml_orchestrator.py",
+    "src/core/optimized_orchestrator.py",
+    "src/core/config_loader.py",
+    "src/core/agent_protocol.py",
+    "src/core/agent_registry.py",
+    "src/core/exporters.py",
+    "src/core/tool_protocol.py",
+    "src/core/rich_cli.py",
+    # MCP modules (require full stack)
+    "src/mcp/context_bus.py",
+    # ML modules with external dependencies
+    "src/ml/correlation_engine.py",
+    # Agent modules
+    "src/agents/base_agent.py",
+    "src/agents/ai_agent.py",
+    "src/agents/aderyn_agent.py",
+    "src/agents/smartllm_agent.py",
+    # Detector modules
+    "src/detectors/advanced_detectors.py",
+    "src/detectors/defi_detectors.py",
+    # Knowledge base
+    "src/knowledge_base/*",
+    # Dashboard (requires full UI stack)
+    "src/dashboard/*",
 ]
 
 [tool.coverage.report]

@@ -1,6 +1,6 @@
 # Installation Guide
 
-MIESC requires Python 3.9+ and external security analysis tools.
+MIESC requires Python 3.12+ and external security analysis tools.
 
 ## Quick Start
 
@@ -79,7 +79,7 @@ export OPENAI_API_KEY=your_key_here
 
 ## System Requirements
 
-- Python: 3.9+
+- Python: 3.12+
 - Node.js: 14+ (for Solhint)
 - Rust: 1.70+ (for Aderyn)
 - Go: 1.19+ (for Medusa)
