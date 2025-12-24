@@ -29,14 +29,17 @@ info:
     - OWASP Smart Contract Top 10
     - Digital Public Good (DPG) Standards
 
-  version: "4.1.0"
+  version: "4.2.0"
   contact:
     name: Fernando Boiero
     email: fboiero@frvm.utn.edu.ar
   license:
-    name: GPL-3.0
-    url: https://www.gnu.org/licenses/gpl-3.0.html
-    identifier: GPL-3.0-only
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+    identifier: AGPL-3.0-only
+  x-tools-count: 29
+  x-layers-count: 7
+  x-python-version: "3.12+"
 
 servers:
   - url: http://localhost:5001

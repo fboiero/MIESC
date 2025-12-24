@@ -1,327 +1,1529 @@
+#!/usr/bin/env python3
 """
-MIESC CLI - Command Line Interface
+MIESC CLI - Unified Command Line Interface
 
-Provides unified CLI for MIESC security analysis framework.
+A professional CLI for smart contract security audits targeting:
+- Developers: Quick scans, CI/CD integration
+- Security Researchers: Deep analysis, custom configurations
+- Auditors: Full reports, compliance mapping
 
-Usage:
-    miesc scan <contract.sol>       # Quick scan with static tools
-    miesc audit <contract.sol>      # Full 7-layer audit
-    miesc doctor                    # Check tool availability
-    miesc version                   # Show version info
+Integrates 29 security tools across 7 defense layers.
+
+Author: Fernando Boiero
+Institution: UNDEF - IUA Cordoba
+License: AGPL-3.0
 """
 
-import sys
 import os
+import sys
 import json
-import click
+import importlib
+import logging
 from pathlib import Path
 from datetime import datetime
+from typing import Optional, List, Dict, Any, Type
 
-# Add parent to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+import click
 
-from miesc import __version__
+# Add src to path for imports
+ROOT_DIR = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(ROOT_DIR / "src"))
+sys.path.insert(0, str(ROOT_DIR))
+
+# Try to import Rich for beautiful output
+try:
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
+    from rich.tree import Tree
+    from rich.text import Text
+    from rich import box
+    RICH_AVAILABLE = True
+    console = Console()
+except ImportError:
+    RICH_AVAILABLE = False
+    console = None
+
+# Try to import YAML for config
+try:
+    import yaml
+    YAML_AVAILABLE = True
+except ImportError:
+    YAML_AVAILABLE = False
+
+# Try to import centralized logging
+try:
+    from src.core.logging_config import setup_logging, get_logger, log_context
+    LOGGING_AVAILABLE = True
+except ImportError:
+    LOGGING_AVAILABLE = False
+
+# Configure logging (will be reconfigured by setup_logging if available)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
-# ANSI Colors
-class Colors:
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    CYAN = '\033[96m'
-    RESET = '\033[0m'
-    BOLD = '\033[1m'
+def configure_logging(debug: bool = False, quiet: bool = False):
+    """Configure logging based on flags and environment variables."""
+    # Check environment variable
+    env_debug = os.environ.get("MIESC_DEBUG", "").lower() in ("1", "true", "yes")
+    env_level = os.environ.get("MIESC_LOG_LEVEL", "").upper()
 
+    # Determine log level
+    if debug or env_debug:
+        level = "DEBUG"
+    elif env_level:
+        level = env_level
+    else:
+        level = "INFO"
+
+    if LOGGING_AVAILABLE:
+        setup_logging(level=level, quiet=quiet)
+        logger.debug(f"Logging configured with level={level}")
+    else:
+        logging.basicConfig(level=getattr(logging, level, logging.INFO))
+        logger.debug(f"Basic logging configured with level={level}")
+
+
+# Version and banner
+VERSION = "4.2.0"
+BANNER = r"""
+  __  __ ___ _____ ____   ____
+ |  \/  |_ _| ____/ ___| / ___|
+ | |\/| || ||  _| \___ \| |
+ | |  | || || |___ ___) | |___
+ |_|  |_|___|_____|____/ \____|
+"""
+
+
+# ============================================================================
+# Layer and Tool Definitions
+# ============================================================================
+
+# Complete 7-layer architecture with 29 tools
+LAYERS = {
+    1: {
+        "name": "Static Analysis",
+        "description": "Pattern-based code analysis",
+        "tools": ["slither", "aderyn", "solhint", "wake"]
+    },
+    2: {
+        "name": "Dynamic Testing",
+        "description": "Fuzzing and property testing",
+        "tools": ["echidna", "medusa", "foundry", "dogefuzz", "vertigo"]
+    },
+    3: {
+        "name": "Symbolic Execution",
+        "description": "Path exploration and constraint solving",
+        "tools": ["mythril", "manticore", "halmos", "oyente"]
+    },
+    4: {
+        "name": "Formal Verification",
+        "description": "Mathematical proofs of correctness",
+        "tools": ["certora", "smtchecker", "propertygpt"]
+    },
+    5: {
+        "name": "AI Analysis",
+        "description": "LLM-powered vulnerability detection",
+        "tools": ["smartllm", "gptscan", "llmsmartaudit"]
+    },
+    6: {
+        "name": "ML Detection",
+        "description": "Machine learning classifiers",
+        "tools": ["dagnn", "smartbugs_ml", "smartbugs_detector", "smartguard"]
+    },
+    7: {
+        "name": "Specialized Analysis",
+        "description": "Domain-specific security checks",
+        "tools": [
+            "threat_model", "gas_analyzer", "mev_detector",
+            "contract_clone_detector", "defi", "advanced_detector"
+        ]
+    },
+}
+
+# Quick scan tools (fast, high-value)
+QUICK_TOOLS = ["slither", "aderyn", "solhint", "mythril"]
+
+# Adapter class mapping (tool name -> adapter class name)
+ADAPTER_MAP = {
+    "slither": "SlitherAdapter",
+    "aderyn": "AderynAdapter",
+    "solhint": "SolhintAdapter",
+    "wake": "WakeAdapter",
+    "echidna": "EchidnaAdapter",
+    "medusa": "MedusaAdapter",
+    "foundry": "FoundryAdapter",
+    "dogefuzz": "DogeFuzzAdapter",
+    "vertigo": "VertigoAdapter",
+    "mythril": "MythrilAdapter",
+    "manticore": "ManticoreAdapter",
+    "halmos": "HalmosAdapter",
+    "oyente": "OyenteAdapter",
+    "certora": "CertoraAdapter",
+    "smtchecker": "SMTCheckerAdapter",
+    "propertygpt": "PropertyGPTAdapter",
+    "smartllm": "SmartLLMAdapter",
+    "gptscan": "GPTScanAdapter",
+    "llmsmartaudit": "LLMSmartAuditAdapter",
+    "dagnn": "DAGNNAdapter",
+    "smartbugs_ml": "SmartBugsMLAdapter",
+    "smartbugs_detector": "SmartBugsDetectorAdapter",
+    "smartguard": "SmartGuardAdapter",
+    "threat_model": "ThreatModelAdapter",
+    "gas_analyzer": "GasAnalyzerAdapter",
+    "mev_detector": "MEVDetectorAdapter",
+    "contract_clone_detector": "ContractCloneDetectorAdapter",
+    "defi": "DeFiAdapter",
+    "advanced_detector": "AdvancedDetectorAdapter",
+}
+
+
+# ============================================================================
+# Adapter Loader
+# ============================================================================
+
+class AdapterLoader:
+    """Dynamic loader for tool adapters."""
+
+    _adapters: Dict[str, Any] = {}
+    _loaded = False
+
+    @classmethod
+    def load_all(cls) -> Dict[str, Any]:
+        """Load all available adapters from src/adapters/."""
+        if cls._loaded:
+            return cls._adapters
+
+        adapters_dir = ROOT_DIR / "src" / "adapters"
+
+        for tool_name, class_name in ADAPTER_MAP.items():
+            try:
+                # Build module name
+                module_name = f"src.adapters.{tool_name}_adapter"
+
+                # Try to import module
+                module = importlib.import_module(module_name)
+
+                # Get adapter class
+                adapter_class = getattr(module, class_name, None)
+
+                if adapter_class:
+                    # Instantiate adapter
+                    cls._adapters[tool_name] = adapter_class()
+                    logger.debug(f"Loaded adapter: {tool_name}")
+                else:
+                    logger.debug(f"Class {class_name} not found in {module_name}")
+
+            except ImportError as e:
+                logger.debug(f"Could not import {tool_name}: {e}")
+            except Exception as e:
+                logger.debug(f"Error loading {tool_name}: {e}")
+
+        cls._loaded = True
+        logger.info(f"Loaded {len(cls._adapters)} adapters")
+        return cls._adapters
+
+    @classmethod
+    def get_adapter(cls, tool_name: str):
+        """Get a specific adapter by name."""
+        if not cls._loaded:
+            cls.load_all()
+        return cls._adapters.get(tool_name)
+
+    @classmethod
+    def get_available_tools(cls) -> List[str]:
+        """Get list of tools with available adapters."""
+        if not cls._loaded:
+            cls.load_all()
+        return list(cls._adapters.keys())
+
+    @classmethod
+    def check_tool_status(cls, tool_name: str) -> Dict[str, Any]:
+        """Check if a tool is installed and available."""
+        adapter = cls.get_adapter(tool_name)
+        if not adapter:
+            return {"status": "no_adapter", "available": False}
+
+        try:
+            # Import ToolStatus enum
+            from src.core.tool_protocol import ToolStatus
+            status = adapter.is_available()
+            return {
+                "status": status.value if hasattr(status, 'value') else str(status),
+                "available": status == ToolStatus.AVAILABLE
+            }
+        except Exception as e:
+            return {"status": "error", "available": False, "error": str(e)}
+
+
+# ============================================================================
+# Output Helpers
+# ============================================================================
 
 def print_banner():
-    """Print MIESC banner."""
-    banner = f"""
-{Colors.CYAN}╔═══════════════════════════════════════════════════════════╗
-║  MIESC v{__version__} - Multi-layer Intelligent Evaluation      ║
-║  for Smart Contracts                                      ║
-║  Defense-in-Depth Security Analysis Framework             ║
-╚═══════════════════════════════════════════════════════════╝{Colors.RESET}
-"""
-    click.echo(banner)
+    """Print the MIESC banner."""
+    if RICH_AVAILABLE:
+        console.print(Text(BANNER, style="bold blue"))
+        console.print(f"[cyan]v{VERSION}[/cyan] - Multi-layer Intelligent Evaluation for Smart Contracts")
+        console.print("[dim]7 Defense Layers | 29 Security Tools | AI-Powered Analysis[/dim]\n")
+    else:
+        print(BANNER)
+        print(f"v{VERSION} - Multi-layer Intelligent Evaluation for Smart Contracts")
+        print("7 Defense Layers | 29 Security Tools | AI-Powered Analysis\n")
 
 
-def print_success(msg):
-    click.echo(f"{Colors.GREEN}✓{Colors.RESET} {msg}")
+def success(msg: str):
+    """Print success message."""
+    if RICH_AVAILABLE:
+        console.print(f"[green]OK[/green] {msg}")
+    else:
+        print(f"[OK] {msg}")
 
 
-def print_warning(msg):
-    click.echo(f"{Colors.YELLOW}⚠{Colors.RESET} {msg}")
+def error(msg: str):
+    """Print error message."""
+    if RICH_AVAILABLE:
+        console.print(f"[red]ERR[/red] {msg}")
+    else:
+        print(f"[ERR] {msg}")
 
 
-def print_error(msg):
-    click.echo(f"{Colors.RED}✗{Colors.RESET} {msg}")
+def warning(msg: str):
+    """Print warning message."""
+    if RICH_AVAILABLE:
+        console.print(f"[yellow]WARN[/yellow] {msg}")
+    else:
+        print(f"[WARN] {msg}")
 
 
-def print_info(msg):
-    click.echo(f"{Colors.CYAN}ℹ{Colors.RESET} {msg}")
+def info(msg: str):
+    """Print info message."""
+    if RICH_AVAILABLE:
+        console.print(f"[cyan]INFO[/cyan] {msg}")
+    else:
+        print(f"[INFO] {msg}")
 
 
-@click.group()
-@click.version_option(version=__version__, prog_name="miesc")
-def cli():
-    """MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
+def load_config() -> Dict[str, Any]:
+    """Load MIESC configuration from config/miesc.yaml."""
+    config_path = ROOT_DIR / "config" / "miesc.yaml"
+    if config_path.exists() and YAML_AVAILABLE:
+        with open(config_path) as f:
+            return yaml.safe_load(f) or {}
+    return {}
 
-    Defense-in-depth security analysis framework for Ethereum smart contracts.
-    Orchestrates 25 specialized tools across 7 defense layers.
 
-    Examples:
+def load_profiles() -> Dict[str, Any]:
+    """Load analysis profiles from config/profiles.yaml."""
+    profiles_path = ROOT_DIR / "config" / "profiles.yaml"
+    if profiles_path.exists() and YAML_AVAILABLE:
+        with open(profiles_path) as f:
+            data = yaml.safe_load(f) or {}
+            return data.get("profiles", {})
+    return {}
 
-        miesc scan contract.sol        Quick static analysis
 
-        miesc audit contract.sol       Full 7-layer audit
+def get_profile(name: str) -> Optional[Dict[str, Any]]:
+    """Get a specific profile by name, handling aliases."""
+    profiles = load_profiles()
+    profiles_path = ROOT_DIR / "config" / "profiles.yaml"
 
-        miesc doctor                   Check tool availability
+    if profiles_path.exists() and YAML_AVAILABLE:
+        with open(profiles_path) as f:
+            data = yaml.safe_load(f) or {}
+            aliases = data.get("aliases", {})
+            # Resolve alias
+            resolved_name = aliases.get(name, name)
+            return profiles.get(resolved_name)
+
+    return profiles.get(name)
+
+
+# Available profiles for CLI help
+AVAILABLE_PROFILES = ["fast", "balanced", "thorough", "security", "ci", "audit", "defi", "token"]
+
+
+# ============================================================================
+# Tool Execution
+# ============================================================================
+
+def _run_tool(tool: str, contract: str, timeout: int = 300, **kwargs) -> Dict[str, Any]:
     """
+    Run a security tool using its adapter.
+
+    Args:
+        tool: Tool name (e.g., 'slither', 'mythril')
+        contract: Path to Solidity contract
+        timeout: Timeout in seconds
+        **kwargs: Additional tool-specific parameters
+
+    Returns:
+        Normalized results dictionary
+    """
+    start_time = datetime.now()
+
+    # Get adapter for tool
+    adapter = AdapterLoader.get_adapter(tool)
+
+    if not adapter:
+        return {
+            "tool": tool,
+            "contract": contract,
+            "status": "no_adapter",
+            "findings": [],
+            "execution_time": 0,
+            "timestamp": datetime.now().isoformat(),
+            "error": f"No adapter found for {tool}"
+        }
+
+    try:
+        # Check if tool is available
+        from src.core.tool_protocol import ToolStatus
+        status = adapter.is_available()
+
+        if status != ToolStatus.AVAILABLE:
+            return {
+                "tool": tool,
+                "contract": contract,
+                "status": "not_available",
+                "findings": [],
+                "execution_time": (datetime.now() - start_time).total_seconds(),
+                "timestamp": datetime.now().isoformat(),
+                "error": f"Tool {tool} not available: {status.value}"
+            }
+
+        # Run analysis
+        result = adapter.analyze(contract, timeout=timeout, **kwargs)
+
+        # Ensure consistent output format
+        return {
+            "tool": tool,
+            "contract": contract,
+            "status": result.get("status", "success"),
+            "findings": result.get("findings", []),
+            "execution_time": result.get("execution_time", (datetime.now() - start_time).total_seconds()),
+            "timestamp": datetime.now().isoformat(),
+            "metadata": result.get("metadata", {}),
+            "error": result.get("error")
+        }
+
+    except Exception as e:
+        logger.error(f"Error running {tool}: {e}", exc_info=True)
+        return {
+            "tool": tool,
+            "contract": contract,
+            "status": "error",
+            "findings": [],
+            "execution_time": (datetime.now() - start_time).total_seconds(),
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e)
+        }
+
+
+def _run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
+    """Run all tools in a specific layer."""
+    if layer not in LAYERS:
+        return []
+
+    results = []
+    layer_info = LAYERS[layer]
+
+    for tool in layer_info["tools"]:
+        info(f"Running {tool}...")
+        result = _run_tool(tool, contract, timeout)
+        results.append(result)
+
+        if result["status"] == "success":
+            findings_count = len(result.get("findings", []))
+            success(f"{tool}: {findings_count} findings in {result.get('execution_time', 0):.1f}s")
+        elif result["status"] == "not_available":
+            warning(f"{tool}: not installed")
+        else:
+            warning(f"{tool}: {result.get('error', 'Unknown error')}")
+
+    return results
+
+
+def _summarize_findings(all_results: List[Dict[str, Any]]) -> Dict[str, int]:
+    """Summarize findings by severity."""
+    summary = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
+
+    for result in all_results:
+        for finding in result.get("findings", []):
+            sev = str(finding.get("severity", "INFO")).upper()
+            # Normalize severity names
+            if sev in ["CRITICAL", "CRIT"]:
+                summary["CRITICAL"] += 1
+            elif sev in ["HIGH", "HI"]:
+                summary["HIGH"] += 1
+            elif sev in ["MEDIUM", "MED"]:
+                summary["MEDIUM"] += 1
+            elif sev in ["LOW", "LO"]:
+                summary["LOW"] += 1
+            else:
+                summary["INFO"] += 1
+
+    return summary
+
+
+def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Convert results to SARIF 2.1.0 format for GitHub Code Scanning."""
+    sarif = {
+        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {
+                "driver": {
+                    "name": "MIESC",
+                    "version": VERSION,
+                    "informationUri": "https://github.com/fboiero/MIESC",
+                    "rules": []
+                }
+            },
+            "results": []
+        }]
+    }
+
+    rule_ids = set()
+
+    for result in results:
+        tool_name = result.get("tool", "unknown")
+
+        for finding in result.get("findings", []):
+            rule_id = finding.get("type", finding.get("id", finding.get("title", "unknown")))
+
+            # Add rule if not already added
+            if rule_id not in rule_ids:
+                sarif["runs"][0]["tool"]["driver"]["rules"].append({
+                    "id": rule_id,
+                    "name": finding.get("title", rule_id),
+                    "shortDescription": {"text": finding.get("message", rule_id)},
+                    "fullDescription": {"text": finding.get("description", "")},
+                    "helpUri": finding.get("references", [""])[0] if finding.get("references") else "",
+                    "properties": {"tool": tool_name}
+                })
+                rule_ids.add(rule_id)
+
+            # Map severity
+            severity = str(finding.get("severity", "INFO")).upper()
+            level = {"CRITICAL": "error", "HIGH": "error", "MEDIUM": "warning"}.get(severity, "note")
+
+            # Get location
+            location = finding.get("location", {})
+            if isinstance(location, dict):
+                file_path = location.get("file", result.get("contract", "unknown"))
+                line = location.get("line", 1)
+            else:
+                file_path = result.get("contract", "unknown")
+                line = 1
+
+            sarif["runs"][0]["results"].append({
+                "ruleId": rule_id,
+                "level": level,
+                "message": {"text": finding.get("description", finding.get("message", ""))},
+                "locations": [{
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": file_path},
+                        "region": {"startLine": max(1, int(line))}
+                    }
+                }],
+                "properties": {
+                    "tool": tool_name,
+                    "confidence": finding.get("confidence", 0.5)
+                }
+            })
+
+    return sarif
+
+
+def _to_markdown(results: List[Dict[str, Any]], contract: str) -> str:
+    """Convert results to Markdown report."""
+    summary = _summarize_findings(results)
+    total = sum(summary.values())
+
+    # Count tools
+    successful_tools = [r["tool"] for r in results if r.get("status") == "success"]
+    failed_tools = [r["tool"] for r in results if r.get("status") != "success"]
+
+    md = f"""# MIESC Security Audit Report
+
+**Contract**: `{contract}`
+**Date**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+**MIESC Version**: {VERSION}
+
+## Executive Summary
+
+| Severity | Count |
+|----------|-------|
+| Critical | {summary['CRITICAL']} |
+| High | {summary['HIGH']} |
+| Medium | {summary['MEDIUM']} |
+| Low | {summary['LOW']} |
+| Info | {summary['INFO']} |
+| **Total** | **{total}** |
+
+### Tools Executed
+
+- **Successful**: {', '.join(successful_tools) if successful_tools else 'None'}
+- **Failed/Unavailable**: {', '.join(failed_tools) if failed_tools else 'None'}
+
+## Detailed Findings
+
+"""
+
+    for result in results:
+        if result.get("findings"):
+            tool_name = result.get("tool", "unknown").upper()
+            md += f"### {tool_name}\n\n"
+
+            for finding in result["findings"]:
+                severity = finding.get("severity", "INFO")
+                title = finding.get("title", finding.get("type", finding.get("id", "Unknown")))
+                description = finding.get("description", finding.get("message", ""))
+
+                md += f"**[{severity}]** {title}\n\n"
+                md += f"{description}\n\n"
+
+                # Location
+                location = finding.get("location", {})
+                if isinstance(location, dict) and location.get("file"):
+                    md += f"- **Location**: `{location['file']}:{location.get('line', 0)}`\n"
+
+                # Recommendation
+                if finding.get("recommendation"):
+                    md += f"- **Recommendation**: {finding['recommendation']}\n"
+
+                # References
+                if finding.get("swc_id"):
+                    md += f"- **SWC**: {finding['swc_id']}\n"
+
+                md += "\n---\n\n"
+
+    md += f"""
+## Appendix
+
+### Tool Execution Details
+
+| Tool | Status | Time (s) | Findings |
+|------|--------|----------|----------|
+"""
+
+    for result in results:
+        tool = result.get("tool", "unknown")
+        status = result.get("status", "unknown")
+        exec_time = result.get("execution_time", 0)
+        findings_count = len(result.get("findings", []))
+        md += f"| {tool} | {status} | {exec_time:.1f} | {findings_count} |\n"
+
+    md += f"\n---\n\n*Generated by MIESC v{VERSION}*\n"
+
+    return md
+
+
+# ============================================================================
+# Main CLI Group
+# ============================================================================
+
+@click.group(invoke_without_command=True)
+@click.option('--version', '-v', is_flag=True, help='Show version and exit')
+@click.option('--no-banner', is_flag=True, help='Suppress banner output')
+@click.option('--debug', '-d', is_flag=True, help='Enable debug mode (verbose logging)')
+@click.option('--quiet', '-q', is_flag=True, help='Suppress non-essential output')
+@click.pass_context
+def cli(ctx, version, no_banner, debug, quiet):
+    """
+    MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
+
+    A comprehensive blockchain security framework with 29 integrated tools
+    across 7 defense layers.
+
+    Quick Start:
+      miesc audit quick contract.sol    # Fast 4-tool scan
+      miesc audit full contract.sol     # Complete 7-layer audit
+      miesc tools list                  # Show available tools
+      miesc doctor                      # Check tool availability
+
+    Environment Variables:
+      MIESC_DEBUG=1        Enable debug mode
+      MIESC_LOG_LEVEL      Set log level (DEBUG, INFO, WARNING, ERROR)
+      MIESC_LOG_FORMAT     Set format (json, console)
+      MIESC_LOG_FILE       Path to log file
+    """
+    ctx.ensure_object(dict)
+    ctx.obj['debug'] = debug
+    ctx.obj['quiet'] = quiet
+
+    # Configure logging based on flags and environment
+    configure_logging(debug=debug, quiet=quiet)
+
+    # Pre-load adapters
+    AdapterLoader.load_all()
+
+    if version:
+        click.echo(f"MIESC version {VERSION}")
+        return
+
+    if ctx.invoked_subcommand is None:
+        if not no_banner and not quiet:
+            print_banner()
+        click.echo(ctx.get_help())
+
+
+# ============================================================================
+# Audit Commands
+# ============================================================================
+
+@cli.group()
+def audit():
+    """Run security audits on smart contracts."""
     pass
 
 
-@cli.command()
-@click.argument('contract', type=click.Path(exists=True))
-@click.option('--output', '-o', type=click.Path(), help='Output file for results (JSON)')
-@click.option('--verbose', '-v', is_flag=True, help='Verbose output')
-def scan(contract, output, verbose):
-    """Quick scan using static analysis tools (Slither, Aderyn, Solhint).
-
-    Performs fast security analysis suitable for development workflow.
-    Typical execution time: ~30 seconds.
-
-    Example:
-        miesc scan contracts/MyToken.sol
-    """
+@audit.command("quick")
+@click.argument("contract", type=click.Path(exists=True))
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown"]), default="json")
+@click.option("--ci", is_flag=True, help="CI mode: exit with error if critical/high issues found")
+@click.option("--timeout", "-t", type=int, default=300, help="Timeout per tool in seconds")
+def audit_quick(contract, output, fmt, ci, timeout):
+    """Quick 4-tool scan for fast feedback (slither, aderyn, solhint, mythril)."""
     print_banner()
-    print_info(f"Scanning: {contract}")
+    info(f"Quick scan of {contract}")
+    info(f"Tools: {', '.join(QUICK_TOOLS)}")
 
-    try:
-        # Import here to avoid slow startup
-        from miesc.core.quick_scanner import QuickScanner
+    all_results = []
 
-        scanner = QuickScanner()
-        results = scanner.scan(contract, verbose=verbose)
+    if RICH_AVAILABLE:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        ) as progress:
+            task = progress.add_task("Scanning...", total=len(QUICK_TOOLS))
 
-        # Print summary
-        findings = results.get('findings', [])
-        critical = sum(1 for f in findings if f.get('severity') == 'critical')
-        high = sum(1 for f in findings if f.get('severity') == 'high')
-        medium = sum(1 for f in findings if f.get('severity') == 'medium')
-        low = sum(1 for f in findings if f.get('severity') == 'low')
+            for tool in QUICK_TOOLS:
+                progress.update(task, description=f"Running {tool}...")
+                result = _run_tool(tool, contract, timeout)
+                all_results.append(result)
 
-        click.echo(f"\n{Colors.BOLD}Results:{Colors.RESET}")
-        if critical > 0:
-            print_error(f"Critical: {critical}")
-        if high > 0:
-            print_warning(f"High: {high}")
-        print_info(f"Medium: {medium}")
-        print_info(f"Low: {low}")
+                if result["status"] == "success":
+                    success(f"{tool}: {len(result.get('findings', []))} findings")
+                elif result["status"] == "not_available":
+                    warning(f"{tool}: not installed")
+                else:
+                    warning(f"{tool}: {result.get('error', 'error')}")
 
-        if output:
-            with open(output, 'w') as f:
-                json.dump(results, f, indent=2)
-            print_success(f"Results saved to: {output}")
+                progress.advance(task)
+    else:
+        for tool in QUICK_TOOLS:
+            info(f"Running {tool}...")
+            result = _run_tool(tool, contract, timeout)
+            all_results.append(result)
 
-        # Exit code based on findings
-        if critical > 0 or high > 0:
-            sys.exit(1)
+    summary = _summarize_findings(all_results)
+    total = sum(summary.values())
 
-    except ImportError:
-        # Fallback to basic implementation
-        print_warning("Quick scanner not available, using basic scan...")
-        _basic_scan(contract, output, verbose)
-    except Exception as e:
-        print_error(f"Scan failed: {e}")
+    # Display summary
+    if RICH_AVAILABLE:
+        table = Table(title="Quick Scan Summary", box=box.ROUNDED)
+        table.add_column("Severity", style="bold")
+        table.add_column("Count", justify="right")
+
+        colors = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow", "LOW": "cyan", "INFO": "dim"}
+        for sev, count in summary.items():
+            table.add_row(sev, str(count), style=colors.get(sev, "white"))
+        table.add_row("TOTAL", str(total), style="bold")
+        console.print(table)
+    else:
+        print("\n=== Summary ===")
+        for sev, count in summary.items():
+            print(f"{sev}: {count}")
+        print(f"TOTAL: {total}")
+
+    # Save output
+    if output:
+        if fmt == "sarif":
+            data = _to_sarif(all_results)
+            with open(output, "w") as f:
+                json.dump(data, f, indent=2)
+        elif fmt == "markdown":
+            data = _to_markdown(all_results, contract)
+            with open(output, "w") as f:
+                f.write(data)
+        else:
+            data = {"results": all_results, "summary": summary, "version": VERSION}
+            with open(output, "w") as f:
+                json.dump(data, f, indent=2, default=str)
+        success(f"Report saved to {output}")
+
+    # CI mode exit
+    if ci and (summary["CRITICAL"] > 0 or summary["HIGH"] > 0):
+        error(f"Found {summary['CRITICAL']} critical and {summary['HIGH']} high issues")
         sys.exit(1)
 
 
-def _basic_scan(contract, output, verbose):
-    """Basic scan fallback using subprocess."""
-    import subprocess
+@audit.command("full")
+@click.argument("contract", type=click.Path(exists=True))
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown"]), default="json")
+@click.option("--layers", "-l", type=str, default="1,2,3,4,5,6,7", help="Layers to run (comma-separated)")
+@click.option("--timeout", "-t", type=int, default=600, help="Timeout per tool in seconds")
+@click.option("--skip-unavailable", is_flag=True, default=True, help="Skip unavailable tools")
+def audit_full(contract, output, fmt, layers, timeout, skip_unavailable):
+    """Complete 7-layer security audit with all 29 tools."""
+    print_banner()
+    info(f"Full audit of {contract}")
 
-    results = {"contract": contract, "findings": [], "tools": []}
+    layer_list = [int(x.strip()) for x in layers.split(",") if x.strip().isdigit()]
+    all_results = []
 
-    # Try Slither
-    try:
-        result = subprocess.run(
-            ['slither', contract, '--json', '-'],
-            capture_output=True,
-            text=True,
-            timeout=60
-        )
-        if result.returncode == 0 or result.stdout:
-            slither_output = json.loads(result.stdout) if result.stdout else {}
-            results['tools'].append('slither')
-            if verbose:
-                print_success("Slither completed")
-    except Exception as e:
-        if verbose:
-            print_warning(f"Slither not available: {e}")
+    for layer in layer_list:
+        if layer in LAYERS:
+            layer_info = LAYERS[layer]
+            if RICH_AVAILABLE:
+                console.print(f"\n[bold cyan]=== Layer {layer}: {layer_info['name']} ===[/bold cyan]")
+                console.print(f"[dim]{layer_info['description']}[/dim]")
+            else:
+                print(f"\n=== Layer {layer}: {layer_info['name']} ===")
 
-    print_success(f"Scan completed with {len(results['tools'])} tools")
+            results = _run_layer(layer, contract, timeout)
+            all_results.extend(results)
+
+    summary = _summarize_findings(all_results)
+    total = sum(summary.values())
+
+    # Display summary
+    if RICH_AVAILABLE:
+        console.print("\n")
+        table = Table(title="Full Audit Summary", box=box.ROUNDED)
+        table.add_column("Severity", style="bold")
+        table.add_column("Count", justify="right")
+
+        colors = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow", "LOW": "cyan", "INFO": "dim"}
+        for sev, count in summary.items():
+            table.add_row(sev, str(count), style=colors.get(sev, "white"))
+        table.add_row("TOTAL", str(total), style="bold")
+        console.print(table)
+
+        # Execution summary
+        successful = len([r for r in all_results if r.get("status") == "success"])
+        console.print(f"\n[dim]Tools executed: {successful}/{len(all_results)}[/dim]")
 
     if output:
-        with open(output, 'w') as f:
-            json.dump(results, f, indent=2)
+        if fmt == "sarif":
+            data = _to_sarif(all_results)
+        elif fmt == "markdown":
+            data = _to_markdown(all_results, contract)
+        else:
+            data = {"results": all_results, "summary": summary, "version": VERSION, "layers": layer_list}
+
+        with open(output, "w") as f:
+            if fmt == "markdown":
+                f.write(data)
+            else:
+                json.dump(data, f, indent=2, default=str)
+        success(f"Report saved to {output}")
 
 
-@cli.command()
-@click.argument('contract', type=click.Path(exists=True))
-@click.option('--layers', '-l', multiple=True, help='Specific layers to run (1-7)')
-@click.option('--tools', '-t', multiple=True, help='Specific tools to run')
-@click.option('--output', '-o', type=click.Path(), help='Output file for results')
-@click.option('--format', 'fmt', type=click.Choice(['json', 'html', 'pdf']), default='json')
-@click.option('--timeout', default=600, help='Timeout in seconds (default: 600)')
-@click.option('--verbose', '-v', is_flag=True, help='Verbose output')
-def audit(contract, layers, tools, output, fmt, timeout, verbose):
-    """Full 7-layer security audit.
-
-    Performs comprehensive defense-in-depth analysis using all 25 tools
-    across 7 security layers.
-
-    Layers:
-        1: Static Analysis (Slither, Aderyn, Solhint)
-        2: Dynamic Testing (Echidna, Medusa, Foundry)
-        3: Symbolic Execution (Mythril, Manticore, Halmos)
-        4: Invariant Testing (Scribble)
-        5: Formal Verification (SMTChecker, Certora)
-        6: Property Testing (PropertyGPT)
-        7: AI Analysis (SmartLLM, ThreatModel)
-
-    Example:
-        miesc audit contracts/MyToken.sol --output report.json
-    """
+@audit.command("layer")
+@click.argument("layer_num", type=int)
+@click.argument("contract", type=click.Path(exists=True))
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--timeout", "-t", type=int, default=300, help="Timeout per tool in seconds")
+def audit_layer(layer_num, contract, output, timeout):
+    """Run a specific layer's tools (1-7)."""
     print_banner()
-    print_info(f"Starting full audit: {contract}")
-    print_info(f"Timeout: {timeout}s")
 
-    if layers:
-        print_info(f"Layers: {', '.join(layers)}")
+    if layer_num not in LAYERS:
+        error(f"Invalid layer: {layer_num}. Valid layers: 1-7")
+        for num, layer_info in LAYERS.items():
+            info(f"  Layer {num}: {layer_info['name']}")
+        sys.exit(1)
+
+    layer_info = LAYERS[layer_num]
+    info(f"Layer {layer_num}: {layer_info['name']}")
+    info(f"Description: {layer_info['description']}")
+    info(f"Tools: {', '.join(layer_info['tools'])}")
+
+    results = _run_layer(layer_num, contract, timeout)
+    summary = _summarize_findings(results)
+
+    if RICH_AVAILABLE:
+        table = Table(title=f"Layer {layer_num} Summary", box=box.ROUNDED)
+        table.add_column("Severity", style="bold")
+        table.add_column("Count", justify="right")
+        for sev, count in summary.items():
+            table.add_row(sev, str(count))
+        console.print(table)
+
+    if output:
+        with open(output, "w") as f:
+            json.dump({"layer": layer_num, "results": results, "summary": summary}, f, indent=2, default=str)
+        success(f"Report saved to {output}")
+
+
+@audit.command("profile")
+@click.argument("profile_name", type=click.Choice(AVAILABLE_PROFILES + ["list"]))
+@click.argument("contract", type=click.Path(exists=True), required=False)
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown"]), default="json")
+@click.option("--ci", is_flag=True, help="CI mode: exit with error if critical/high issues found")
+def audit_profile(profile_name, contract, output, fmt, ci):
+    """Run audit using a predefined profile (fast, balanced, thorough, security, ci, audit, defi, token)."""
+    print_banner()
+
+    # List profiles
+    if profile_name == "list":
+        profiles = load_profiles()
+        if RICH_AVAILABLE:
+            table = Table(title="Available Profiles", box=box.ROUNDED)
+            table.add_column("Profile", style="bold cyan")
+            table.add_column("Description")
+            table.add_column("Layers")
+            table.add_column("Timeout")
+
+            for name, profile in profiles.items():
+                layers_str = ", ".join(str(l) for l in profile.get("layers", []))
+                table.add_row(
+                    name,
+                    profile.get("description", "")[:50],
+                    layers_str,
+                    f"{profile.get('timeout', 300)}s"
+                )
+            console.print(table)
+        else:
+            for name, profile in profiles.items():
+                print(f"\n{name}: {profile.get('description', '')}")
+                print(f"  Layers: {profile.get('layers', [])}")
+                print(f"  Timeout: {profile.get('timeout', 300)}s")
+        return
+
+    if not contract:
+        error("Contract path is required when running a profile")
+        sys.exit(1)
+
+    # Get profile configuration
+    profile = get_profile(profile_name)
+    if not profile:
+        error(f"Profile '{profile_name}' not found")
+        info(f"Available profiles: {', '.join(AVAILABLE_PROFILES)}")
+        sys.exit(1)
+
+    info(f"Running profile: {profile_name}")
+    info(f"Description: {profile.get('description', 'N/A')}")
+
+    # Extract profile settings
+    layers = profile.get("layers", [1])
+    timeout = profile.get("timeout", 300)
+    tools_config = profile.get("tools", [])
+
+    if tools_config == "all":
+        # Use all tools from specified layers
+        tools_to_run = []
+        for layer in layers:
+            if layer in LAYERS:
+                tools_to_run.extend(LAYERS[layer]["tools"])
+    elif isinstance(tools_config, list):
+        tools_to_run = tools_config
     else:
-        print_info("Layers: All (1-7)")
+        tools_to_run = QUICK_TOOLS
+
+    info(f"Layers: {layers}")
+    info(f"Tools: {', '.join(tools_to_run[:5])}{'...' if len(tools_to_run) > 5 else ''}")
+    info(f"Timeout: {timeout}s per tool")
+
+    all_results = []
+
+    if RICH_AVAILABLE:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        ) as progress:
+            task = progress.add_task("Analyzing...", total=len(tools_to_run))
+
+            for tool in tools_to_run:
+                progress.update(task, description=f"Running {tool}...")
+                result = _run_tool(tool, contract, timeout)
+                all_results.append(result)
+
+                if result["status"] == "success":
+                    findings_count = len(result.get("findings", []))
+                    success(f"{tool}: {findings_count} findings")
+                elif result["status"] == "not_available":
+                    warning(f"{tool}: not installed")
+                else:
+                    warning(f"{tool}: {result.get('error', 'error')[:50]}")
+
+                progress.advance(task)
+    else:
+        for tool in tools_to_run:
+            info(f"Running {tool}...")
+            result = _run_tool(tool, contract, timeout)
+            all_results.append(result)
+
+    summary = _summarize_findings(all_results)
+    total = sum(summary.values())
+
+    # Display summary
+    if RICH_AVAILABLE:
+        table = Table(title=f"{profile_name.upper()} Profile Summary", box=box.ROUNDED)
+        table.add_column("Severity", style="bold")
+        table.add_column("Count", justify="right")
+
+        colors = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow", "LOW": "cyan", "INFO": "dim"}
+        for sev, count in summary.items():
+            table.add_row(sev, str(count), style=colors.get(sev, "white"))
+        table.add_row("TOTAL", str(total), style="bold")
+        console.print(table)
+    else:
+        print(f"\n=== {profile_name.upper()} Profile Summary ===")
+        for sev, count in summary.items():
+            print(f"{sev}: {count}")
+        print(f"TOTAL: {total}")
+
+    # Save output
+    if output:
+        if fmt == "sarif":
+            data = _to_sarif(all_results)
+            with open(output, "w") as f:
+                json.dump(data, f, indent=2)
+        elif fmt == "markdown":
+            data = _to_markdown(all_results, contract)
+            with open(output, "w") as f:
+                f.write(data)
+        else:
+            data = {
+                "profile": profile_name,
+                "results": all_results,
+                "summary": summary,
+                "version": VERSION
+            }
+            with open(output, "w") as f:
+                json.dump(data, f, indent=2, default=str)
+        success(f"Report saved to {output}")
+
+    # CI mode exit
+    if ci and (summary["CRITICAL"] > 0 or summary["HIGH"] > 0):
+        error(f"Found {summary['CRITICAL']} critical and {summary['HIGH']} high issues")
+        sys.exit(1)
+
+
+@audit.command("single")
+@click.argument("tool", type=str)
+@click.argument("contract", type=click.Path(exists=True))
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--timeout", "-t", type=int, default=300, help="Timeout in seconds")
+def audit_single(tool, contract, output, timeout):
+    """Run a single security tool."""
+    print_banner()
+
+    # Validate tool exists
+    available_tools = AdapterLoader.get_available_tools()
+    all_tools = list(ADAPTER_MAP.keys())
+
+    if tool not in all_tools:
+        error(f"Unknown tool: {tool}")
+        info(f"Available tools: {', '.join(all_tools)}")
+        sys.exit(1)
+
+    info(f"Running {tool} on {contract}")
+
+    result = _run_tool(tool, contract, timeout)
+
+    if result["status"] == "success":
+        findings_count = len(result.get("findings", []))
+        success(f"{findings_count} findings in {result.get('execution_time', 0):.1f}s")
+
+        if RICH_AVAILABLE and result.get("findings"):
+            table = Table(title=f"{tool.upper()} Findings", box=box.ROUNDED)
+            table.add_column("Severity", width=10)
+            table.add_column("Title", width=40)
+            table.add_column("Location", width=30)
+
+            for finding in result["findings"][:20]:
+                location = finding.get("location", {})
+                if isinstance(location, dict):
+                    loc_str = f"{location.get('file', '')}:{location.get('line', 0)}"
+                else:
+                    loc_str = str(location)
+
+                table.add_row(
+                    str(finding.get("severity", "INFO")),
+                    str(finding.get("title", finding.get("type", finding.get("id", ""))))[:40],
+                    loc_str[:30]
+                )
+
+            if len(result["findings"]) > 20:
+                table.add_row("...", f"({len(result['findings']) - 20} more)", "")
+
+            console.print(table)
+    else:
+        error(f"Failed: {result.get('error', 'Unknown error')}")
+
+    if output:
+        with open(output, "w") as f:
+            json.dump(result, f, indent=2, default=str)
+        success(f"Report saved to {output}")
+
+
+# ============================================================================
+# Tools Command Group
+# ============================================================================
+
+@cli.group()
+def tools():
+    """Manage and explore security tools."""
+    pass
+
+
+@tools.command("list")
+@click.option("--layer", "-l", type=int, help="Filter by layer (1-7)")
+@click.option("--available-only", "-a", is_flag=True, help="Show only installed tools")
+def tools_list(layer, available_only):
+    """List all 29 security tools."""
+    print_banner()
+
+    if layer and layer in LAYERS:
+        layers_to_show = {layer: LAYERS[layer]}
+    else:
+        layers_to_show = LAYERS
+
+    if RICH_AVAILABLE:
+        for num, layer_info in layers_to_show.items():
+            table = Table(
+                title=f"Layer {num}: {layer_info['name']}",
+                box=box.ROUNDED,
+                show_header=True
+            )
+            table.add_column("Tool", style="bold cyan")
+            table.add_column("Status", width=12)
+            table.add_column("Category")
+
+            for tool in layer_info["tools"]:
+                status_info = AdapterLoader.check_tool_status(tool)
+
+                if available_only and not status_info.get("available"):
+                    continue
+
+                status = status_info.get("status", "unknown")
+                if status_info.get("available"):
+                    status_display = "[green]available[/green]"
+                elif status == "not_installed":
+                    status_display = "[yellow]not installed[/yellow]"
+                elif status == "no_adapter":
+                    status_display = "[dim]no adapter[/dim]"
+                else:
+                    status_display = f"[red]{status}[/red]"
+
+                table.add_row(tool, status_display, layer_info["description"])
+
+            console.print(table)
+            console.print("")
+    else:
+        for num, layer_info in layers_to_show.items():
+            print(f"\n=== Layer {num}: {layer_info['name']} ===")
+            for tool in layer_info["tools"]:
+                status_info = AdapterLoader.check_tool_status(tool)
+                status = "OK" if status_info.get("available") else "MISSING"
+                if available_only and status != "OK":
+                    continue
+                print(f"  [{status}] {tool}")
+
+
+@tools.command("info")
+@click.argument("tool", type=str)
+def tools_info(tool):
+    """Show detailed information about a tool."""
+    print_banner()
+
+    adapter = AdapterLoader.get_adapter(tool)
+
+    if not adapter:
+        error(f"No adapter found for: {tool}")
+        info(f"Available tools: {', '.join(ADAPTER_MAP.keys())}")
+        return
 
     try:
-        from miesc.core.orchestrator import MIESCOrchestrator
+        metadata = adapter.get_metadata()
+        status = adapter.is_available()
 
-        orchestrator = MIESCOrchestrator()
-        results = orchestrator.audit(
-            contract,
-            layers=list(layers) if layers else None,
-            tools=list(tools) if tools else None,
-            timeout=timeout,
-            verbose=verbose
-        )
+        if RICH_AVAILABLE:
+            panel_content = f"""
+[bold cyan]Name:[/bold cyan] {metadata.name}
+[bold cyan]Version:[/bold cyan] {metadata.version}
+[bold cyan]Category:[/bold cyan] {metadata.category.value if hasattr(metadata.category, 'value') else metadata.category}
+[bold cyan]Author:[/bold cyan] {metadata.author}
+[bold cyan]License:[/bold cyan] {metadata.license}
+[bold cyan]Status:[/bold cyan] {'[green]Available[/green]' if status.value == 'available' else f'[yellow]{status.value}[/yellow]'}
 
-        # Save output
-        if output:
-            if fmt == 'json':
-                with open(output, 'w') as f:
-                    json.dump(results, f, indent=2)
-            print_success(f"Report saved to: {output}")
+[bold]Links:[/bold]
+- Homepage: {metadata.homepage}
+- Repository: {metadata.repository}
+- Documentation: {metadata.documentation}
+
+[bold]Installation:[/bold]
+{metadata.installation_cmd}
+
+[bold]Capabilities:[/bold]
+"""
+            for cap in metadata.capabilities:
+                panel_content += f"- {cap.name}: {cap.description}\n"
+                panel_content += f"  Detection types: {', '.join(cap.detection_types[:5])}\n"
+
+            console.print(Panel(panel_content, title=f"Tool: {tool}", border_style="blue"))
         else:
-            click.echo(json.dumps(results, indent=2))
+            print(f"\n=== {tool} ===")
+            print(f"Version: {metadata.version}")
+            print(f"Category: {metadata.category}")
+            print(f"Status: {status.value}")
+            print(f"Installation: {metadata.installation_cmd}")
 
-    except ImportError:
-        print_warning("Full orchestrator not available")
-        print_info("Run: python run_complete_multilayer_audit.py " + contract)
+    except Exception as e:
+        error(f"Could not get info for {tool}: {e}")
+
+
+# ============================================================================
+# Server Commands
+# ============================================================================
+
+@cli.group()
+def server():
+    """Start MIESC API servers."""
+    pass
+
+
+@server.command("rest")
+@click.option("--port", "-p", type=int, default=5001, help="Port number")
+@click.option("--host", "-h", type=str, default="0.0.0.0", help="Host address")
+@click.option("--debug", is_flag=True, help="Enable debug mode")
+def server_rest(port, host, debug):
+    """Start the Django REST API server."""
+    print_banner()
+    info(f"Starting Django REST API on http://{host}:{port}")
+    info("Endpoints:")
+    info("  - POST /api/v1/analyze/quick/  - Quick 4-tool scan")
+    info("  - POST /api/v1/analyze/full/   - Complete 7-layer audit")
+    info("  - GET  /api/v1/tools/          - List available tools")
+    info("  - GET  /api/v1/layers/         - Layer information")
+    info("  - GET  /api/v1/health/         - System health check")
+
+    try:
+        from miesc.api.rest import run_server
+        run_server(host, port, debug)
+    except ImportError as e:
+        error(f"Django REST Framework not available: {e}")
+        info("Install with: pip install django djangorestframework django-cors-headers")
         sys.exit(1)
     except Exception as e:
-        print_error(f"Audit failed: {e}")
-        if verbose:
-            import traceback
-            traceback.print_exc()
+        error(f"Server error: {e}")
         sys.exit(1)
 
 
-@cli.command()
-def doctor():
-    """Check availability of security tools.
-
-    Verifies which analysis tools are installed and accessible.
-    """
+@server.command("mcp")
+@click.option("--port", "-p", type=int, default=8080, help="Port number")
+def server_mcp(port):
+    """Start the MCP server for AI integration."""
     print_banner()
-    print_info("Checking tool availability...\n")
+    info(f"Starting MCP server on port {port}")
 
-    tools = [
-        ("slither", "slither --version"),
-        ("mythril", "myth version"),
-        ("echidna", "echidna --version"),
-        ("solhint", "solhint --version"),
-        ("aderyn", "aderyn --version"),
-        ("foundry", "forge --version"),
-        ("halmos", "halmos --version"),
-        ("medusa", "medusa --version"),
-    ]
-
-    available = 0
-    for name, cmd in tools:
-        try:
-            import subprocess
-            result = subprocess.run(
-                cmd.split(),
-                capture_output=True,
-                timeout=10
-            )
-            if result.returncode == 0:
-                print_success(f"{name}: available")
-                available += 1
-            else:
-                print_warning(f"{name}: not working")
-        except FileNotFoundError:
-            print_error(f"{name}: not installed")
-        except Exception as e:
-            print_warning(f"{name}: error ({e})")
-
-    click.echo(f"\n{Colors.BOLD}Summary:{Colors.RESET} {available}/{len(tools)} tools available")
-
-    if available < 3:
-        print_warning("Install more tools for comprehensive analysis")
-        print_info("See: https://fboiero.github.io/MIESC/docs/02_SETUP_AND_USAGE/")
+    mcp_script = ROOT_DIR / "src" / "miesc_mcp_rest.py"
+    if mcp_script.exists():
+        import subprocess
+        subprocess.run([sys.executable, str(mcp_script), "--mcp", "--port", str(port)])
+    else:
+        error("MCP server script not found")
+        sys.exit(1)
 
 
-@cli.command()
-def version():
-    """Show version information."""
-    click.echo(f"MIESC v{__version__}")
-    click.echo(f"Python {sys.version.split()[0]}")
-    click.echo(f"Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>")
-    click.echo(f"License: AGPL-3.0")
-    click.echo(f"Docs: https://fboiero.github.io/MIESC")
+# ============================================================================
+# Config Commands
+# ============================================================================
+
+@cli.group()
+def config():
+    """Manage MIESC configuration."""
+    pass
 
 
-@cli.command()
-def api():
-    """Start the MCP REST API server.
-
-    Starts a Flask server providing JSON-RPC endpoints for
-    Model Context Protocol integration.
-
-    Default port: 5001
-    """
+@config.command("show")
+def config_show():
+    """Display current configuration."""
     print_banner()
-    print_info("Starting MCP REST API server...")
+
+    cfg = load_config()
+    if not cfg:
+        warning("No configuration found at config/miesc.yaml")
+        return
+
+    if RICH_AVAILABLE:
+        tree = Tree("[bold cyan]MIESC Configuration[/bold cyan]")
+
+        def add_tree(parent, data, depth=0):
+            if depth > 3:
+                return
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    if isinstance(value, (dict, list)):
+                        branch = parent.add(f"[yellow]{key}[/yellow]")
+                        add_tree(branch, value, depth + 1)
+                    else:
+                        parent.add(f"[yellow]{key}[/yellow]: {value}")
+            elif isinstance(data, list):
+                for i, item in enumerate(data[:10]):
+                    if isinstance(item, dict):
+                        branch = parent.add(f"[dim][{i}][/dim]")
+                        add_tree(branch, item, depth + 1)
+                    else:
+                        parent.add(f"[dim][{i}][/dim] {item}")
+
+        add_tree(tree, cfg)
+        console.print(tree)
+    else:
+        print(json.dumps(cfg, indent=2))
+
+
+@config.command("validate")
+def config_validate():
+    """Validate configuration file."""
+    print_banner()
+
+    config_path = ROOT_DIR / "config" / "miesc.yaml"
+    if not config_path.exists():
+        error(f"Config file not found: {config_path}")
+        sys.exit(1)
 
     try:
-        from miesc.api.mcp_rest import app, MIESC_VERSION
-        print_success(f"Server starting on http://localhost:5001")
-        print_info("Press Ctrl+C to stop")
-        app.run(host='0.0.0.0', port=5001, debug=False)
-    except ImportError:
-        # Fallback to src version
-        try:
-            from src.miesc_mcp_rest import app
-            print_success(f"Server starting on http://localhost:5001")
-            app.run(host='0.0.0.0', port=5001, debug=False)
-        except ImportError:
-            print_error("MCP REST API module not found")
-            sys.exit(1)
+        cfg = load_config()
+
+        required_sections = ["layers", "adapters"]
+        for section in required_sections:
+            if section in cfg:
+                success(f"Section '{section}' found")
+            else:
+                warning(f"Section '{section}' missing (optional)")
+
+        success("Configuration is valid YAML")
+
+    except Exception as e:
+        error(f"Config error: {e}")
+        sys.exit(1)
 
 
-def main():
-    """Main entry point."""
+# ============================================================================
+# Doctor Command
+# ============================================================================
+
+@cli.command()
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed information")
+def doctor(verbose):
+    """Check tool availability and system health."""
+    print_banner()
+    info("Checking system health and tool availability...\n")
+
+    # Check basic dependencies
+    dependencies = {
+        "python": "python3 --version",
+        "solc": "solc --version",
+        "node": "node --version",
+        "npm": "npm --version",
+    }
+
+    if RICH_AVAILABLE:
+        # Dependencies table
+        dep_table = Table(title="Core Dependencies", box=box.ROUNDED)
+        dep_table.add_column("Dependency", style="bold", width=15)
+        dep_table.add_column("Status", width=10)
+        dep_table.add_column("Version", width=40)
+
+        for dep, cmd in dependencies.items():
+            try:
+                import subprocess
+                result = subprocess.run(cmd.split(), capture_output=True, text=True, timeout=5)
+                version = result.stdout.strip().split("\n")[0][:40] or result.stderr.strip().split("\n")[0][:40]
+                dep_table.add_row(dep, "[green]OK[/green]", version)
+            except Exception:
+                dep_table.add_row(dep, "[yellow]MISSING[/yellow]", "Not installed")
+
+        console.print(dep_table)
+        console.print("")
+
+        # Security tools table
+        tools_table = Table(title="Security Tools (29 Total)", box=box.ROUNDED)
+        tools_table.add_column("Layer", style="bold", width=8)
+        tools_table.add_column("Tool", width=25)
+        tools_table.add_column("Status", width=15)
+
+        total_available = 0
+        total_tools = 0
+
+        for layer_num, layer_info in LAYERS.items():
+            for tool in layer_info["tools"]:
+                total_tools += 1
+                status_info = AdapterLoader.check_tool_status(tool)
+
+                if status_info.get("available"):
+                    status_display = "[green]available[/green]"
+                    total_available += 1
+                elif status_info.get("status") == "not_installed":
+                    status_display = "[yellow]not installed[/yellow]"
+                elif status_info.get("status") == "no_adapter":
+                    status_display = "[dim]pending[/dim]"
+                else:
+                    status_display = f"[red]{status_info.get('status', 'error')}[/red]"
+
+                tools_table.add_row(str(layer_num), tool, status_display)
+
+        console.print(tools_table)
+        console.print(f"\n[bold]{total_available}/{total_tools}[/bold] tools available")
+
+    else:
+        print("=== Core Dependencies ===")
+        for dep, cmd in dependencies.items():
+            try:
+                import subprocess
+                result = subprocess.run(cmd.split(), capture_output=True, text=True, timeout=5)
+                print(f"[OK] {dep}")
+            except Exception:
+                print(f"[MISSING] {dep}")
+
+        print("\n=== Security Tools ===")
+        total_available = 0
+        total_tools = 0
+
+        for layer_num, layer_info in LAYERS.items():
+            print(f"\nLayer {layer_num}: {layer_info['name']}")
+            for tool in layer_info["tools"]:
+                total_tools += 1
+                status_info = AdapterLoader.check_tool_status(tool)
+                if status_info.get("available"):
+                    print(f"  [OK] {tool}")
+                    total_available += 1
+                else:
+                    print(f"  [MISSING] {tool}")
+
+        print(f"\n{total_available}/{total_tools} tools available")
+
+
+# ============================================================================
+# Export Command
+# ============================================================================
+
+@cli.command()
+@click.argument("input_file", type=click.Path(exists=True))
+@click.option("--format", "-f", "fmt", type=click.Choice(["sarif", "markdown", "csv", "html"]), required=True)
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+def export(input_file, fmt, output):
+    """Export JSON results to different formats."""
+    print_banner()
+
+    with open(input_file) as f:
+        data = json.load(f)
+
+    results = data.get("results", [data])
+    contract = data.get("contract", input_file)
+
+    if fmt == "sarif":
+        output_data = _to_sarif(results)
+        output_str = json.dumps(output_data, indent=2)
+        ext = ".sarif.json"
+    elif fmt == "markdown":
+        output_str = _to_markdown(results, contract)
+        ext = ".md"
+    elif fmt == "csv":
+        import csv
+        import io
+        output_io = io.StringIO()
+        writer = csv.writer(output_io)
+        writer.writerow(["Tool", "Severity", "Title", "Description", "Location", "Line"])
+        for result in results:
+            for finding in result.get("findings", []):
+                location = finding.get("location", {})
+                if isinstance(location, dict):
+                    loc_file = location.get("file", "")
+                    loc_line = location.get("line", 0)
+                else:
+                    loc_file = str(location)
+                    loc_line = 0
+
+                writer.writerow([
+                    result.get("tool", ""),
+                    finding.get("severity", ""),
+                    finding.get("title", finding.get("type", "")),
+                    finding.get("description", finding.get("message", ""))[:100],
+                    loc_file,
+                    loc_line,
+                ])
+        output_str = output_io.getvalue()
+        ext = ".csv"
+    elif fmt == "html":
+        output_str = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>MIESC Security Report</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; }}
+        h1 {{ color: #1a73e8; }}
+        .summary {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+        .finding {{ border-left: 4px solid #ccc; padding: 10px 20px; margin: 10px 0; }}
+        .finding.critical {{ border-color: #dc3545; }}
+        .finding.high {{ border-color: #fd7e14; }}
+        .finding.medium {{ border-color: #ffc107; }}
+        .finding.low {{ border-color: #28a745; }}
+    </style>
+</head>
+<body>
+    <h1>MIESC Security Report</h1>
+    <div class="summary">
+        <strong>Generated:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}<br>
+        <strong>Contract:</strong> {contract}<br>
+        <strong>MIESC Version:</strong> {VERSION}
+    </div>
+"""
+        summary = _summarize_findings(results)
+        output_str += f"""
+    <h2>Summary</h2>
+    <ul>
+        <li>Critical: {summary['CRITICAL']}</li>
+        <li>High: {summary['HIGH']}</li>
+        <li>Medium: {summary['MEDIUM']}</li>
+        <li>Low: {summary['LOW']}</li>
+        <li>Info: {summary['INFO']}</li>
+    </ul>
+    <h2>Findings</h2>
+"""
+        for result in results:
+            for finding in result.get("findings", []):
+                severity = str(finding.get("severity", "info")).lower()
+                output_str += f"""
+    <div class="finding {severity}">
+        <strong>[{finding.get("severity", "INFO")}] {finding.get("title", finding.get("type", "Finding"))}</strong>
+        <p>{finding.get("description", finding.get("message", ""))}</p>
+    </div>
+"""
+        output_str += "</body></html>"
+        ext = ".html"
+    else:
+        error(f"Format {fmt} not supported")
+        return
+
+    # Determine output path
+    if not output:
+        output = str(Path(input_file).with_suffix(ext))
+
+    with open(output, "w") as f:
+        f.write(output_str)
+
+    success(f"Exported to {output}")
+
+
+# ============================================================================
+# Entry Point
+# ============================================================================
+
+if __name__ == "__main__":
     cli()
-
-
-if __name__ == '__main__':
-    main()

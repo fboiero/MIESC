@@ -1,0 +1,219 @@
+# MIESC Configuration Profiles
+# ============================
+# Pre-configured analysis profiles for different use cases
+#
+# Usage:
+#   miesc audit quick contract.sol --profile fast
+#   miesc audit full contract.sol --profile security
+#
+# Available profiles:
+#   - fast: Quick check with essential tools only (1-2 min)
+#   - balanced: Good coverage with reasonable time (3-5 min)
+#   - thorough: Comprehensive analysis with all layers (10-15 min)
+#   - security: Security-focused with formal verification (15-20 min)
+#   - ci: Optimized for CI/CD pipelines (2-3 min)
+#   - audit: Full audit preparation (20-30 min)
+
+profiles:
+  # Fast profile - Essential checks only
+  fast:
+    description: "Quick check with essential static analysis tools"
+    layers: [1]
+    tools:
+      - slither
+      - solhint
+    timeout: 120  # 2 minutes
+    parallel: true
+    skip_ml: true
+    skip_correlation: true
+    recommendations:
+      - "Good for quick feedback during development"
+      - "Use 'balanced' for more comprehensive results"
+
+  # Balanced profile - Good coverage
+  balanced:
+    description: "Balanced analysis with static + symbolic execution"
+    layers: [1, 3]
+    tools:
+      - slither
+      - aderyn
+      - mythril
+      - halmos
+    timeout: 300  # 5 minutes
+    parallel: true
+    skip_ml: false
+    skip_correlation: false
+    recommendations:
+      - "Good for pre-commit checks"
+      - "Covers ~80% of common vulnerabilities"
+
+  # Thorough profile - Full coverage
+  thorough:
+    description: "Comprehensive analysis across all 7 layers"
+    layers: [1, 2, 3, 4, 5, 6, 7]
+    tools: "all"
+    timeout: 900  # 15 minutes
+    parallel: true
+    skip_ml: false
+    skip_correlation: false
+    enable_ai_triage: true
+    recommendations:
+      - "Use before major releases"
+      - "Best for understanding full security posture"
+
+  # Security-focused profile
+  security:
+    description: "Security-focused with formal verification emphasis"
+    layers: [1, 3, 4, 5]
+    tools:
+      # Static Analysis
+      - slither
+      - aderyn
+      # Symbolic Execution
+      - mythril
+      - halmos
+      - manticore
+      # Formal Verification
+      - certora
+      - smtchecker
+      - wake
+      # AI Analysis
+      - smartllm
+    timeout: 1200  # 20 minutes
+    parallel: true
+    skip_ml: false
+    skip_correlation: false
+    enable_ai_triage: true
+    formal_verification:
+      enabled: true
+      generate_properties: true
+    recommendations:
+      - "Required for high-value contracts"
+      - "Includes formal proofs for critical properties"
+
+  # CI/CD profile
+  ci:
+    description: "Optimized for CI/CD pipeline integration"
+    layers: [1]
+    tools:
+      - slither
+      - aderyn
+      - solhint
+    timeout: 180  # 3 minutes
+    parallel: true
+    skip_ml: true
+    skip_correlation: true
+    fail_on:
+      - critical
+      - high
+    output_format: json
+    exit_codes:
+      clean: 0
+      warnings: 0
+      critical: 1
+    recommendations:
+      - "Add to pre-commit hooks"
+      - "Blocks critical/high severity issues"
+
+  # Full audit preparation
+  audit:
+    description: "Complete audit preparation with all tools and documentation"
+    layers: [1, 2, 3, 4, 5, 6, 7]
+    tools: "all"
+    timeout: 1800  # 30 minutes
+    parallel: true
+    skip_ml: false
+    skip_correlation: false
+    enable_ai_triage: true
+    enable_remediation: true
+    formal_verification:
+      enabled: true
+      generate_properties: true
+    compliance_mapping:
+      enabled: true
+      frameworks:
+        - owasp_sc_top10
+        - swc_registry
+        - iso27001
+        - nist_ssdf
+    reporting:
+      formats:
+        - json
+        - html
+        - pdf
+        - sarif
+      include_code_snippets: true
+      include_remediation: true
+    recommendations:
+      - "Use for pre-audit preparation"
+      - "Generates comprehensive documentation"
+
+  # DeFi-focused profile
+  defi:
+    description: "Specialized for DeFi protocols with MEV and oracle checks"
+    layers: [1, 2, 3, 5, 8]
+    tools:
+      - slither
+      - aderyn
+      - echidna
+      - medusa
+      - mythril
+      - smartllm
+      - mev_detector
+      - price_oracle_checker
+    timeout: 600  # 10 minutes
+    parallel: true
+    skip_ml: false
+    focus_areas:
+      - reentrancy
+      - flash_loans
+      - price_manipulation
+      - mev_attacks
+      - oracle_issues
+    recommendations:
+      - "Essential for DeFi protocols"
+      - "Includes MEV and oracle vulnerability detection"
+
+  # Token-focused profile
+  token:
+    description: "Specialized for ERC-20/721/1155 token contracts"
+    layers: [1, 3, 5]
+    tools:
+      - slither
+      - aderyn
+      - mythril
+      - smartllm
+    timeout: 300  # 5 minutes
+    parallel: true
+    focus_areas:
+      - approval_issues
+      - transfer_logic
+      - minting_burning
+      - access_control
+    erc_compliance:
+      check_erc20: true
+      check_erc721: true
+      check_erc1155: true
+    recommendations:
+      - "Optimized for token contracts"
+      - "Includes ERC compliance checking"
+
+# Profile aliases for convenience
+aliases:
+  q: fast
+  f: full
+  s: security
+  t: thorough
+  b: balanced
+  full: thorough
+  quick: fast
+  comprehensive: thorough
+
+# Default profile if none specified
+default: balanced
+
+# Profile metadata
+metadata:
+  version: "1.0.0"
+  last_updated: "2025-01-15"
+  description: "MIESC Analysis Profiles v4.2.0"

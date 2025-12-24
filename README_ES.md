@@ -1,8 +1,8 @@
 # MIESC - Evaluación Inteligente Multicapa para Smart Contracts
 
 [![Licencia: AGPL v3](https://img.shields.io/badge/Licencia-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Versión](https://img.shields.io/badge/versión-v4.0.0-success)](https://github.com/fboiero/MIESC/releases)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Versión](https://img.shields.io/badge/versión-v4.2.0-success)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions/workflows/secure-dev-pipeline.yml)
 [![Cobertura](https://img.shields.io/badge/cobertura-87.5%25-green)](./htmlcov/index.html)
 

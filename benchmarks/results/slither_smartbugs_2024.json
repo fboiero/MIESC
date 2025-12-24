@@ -1,0 +1,111 @@
+{
+  "benchmark": {
+    "name": "MIESC Slither Adapter - SmartBugs Curated Benchmark",
+    "date": "2024-12-23",
+    "dataset": "SmartBugs Curated (github.com/smartbugs/smartbugs-curated)",
+    "dataset_version": "v1.0",
+    "tool": "Slither v0.9.6",
+    "adapter": "MIESC SlitherAdapter v1.0.0"
+  },
+  "methodology": {
+    "description": "Automated vulnerability detection against labeled dataset",
+    "taxonomy": "OpenSCV Smart Contract Vulnerability Classification",
+    "metrics": [
+      "Recall (True Positive Rate)",
+      "Precision Proxy (Relevant/Total Findings)",
+      "F1-Score"
+    ],
+    "notes": "SmartBugs Curated contains only vulnerable contracts (no clean samples for FP calculation)"
+  },
+  "summary": {
+    "contracts_tested": 83,
+    "true_positives": 70,
+    "false_negatives": 13,
+    "total_findings": 885,
+    "relevant_findings": 674,
+    "overall_recall": 84.3,
+    "precision_proxy": 76.2,
+    "f1_score": 80.0
+  },
+  "per_category": {
+    "unchecked_low_level_calls": {
+      "contracts": 15,
+      "tp": 15,
+      "fn": 0,
+      "recall": 100.0,
+      "findings": 294,
+      "relevant": 279
+    },
+    "front_running": {
+      "contracts": 4,
+      "tp": 4,
+      "fn": 0,
+      "recall": 100.0,
+      "findings": 20,
+      "relevant": 0,
+      "note": "Findings detected but pattern matching imprecise for this category"
+    },
+    "arithmetic": {
+      "contracts": 15,
+      "tp": 14,
+      "fn": 1,
+      "recall": 93.3,
+      "findings": 63,
+      "relevant": 49
+    },
+    "bad_randomness": {
+      "contracts": 8,
+      "tp": 7,
+      "fn": 1,
+      "recall": 87.5,
+      "findings": 153,
+      "relevant": 146
+    },
+    "access_control": {
+      "contracts": 15,
+      "tp": 13,
+      "fn": 2,
+      "recall": 86.7,
+      "findings": 153,
+      "relevant": 33
+    },
+    "reentrancy": {
+      "contracts": 15,
+      "tp": 11,
+      "fn": 4,
+      "recall": 73.3,
+      "findings": 147,
+      "relevant": 136
+    },
+    "time_manipulation": {
+      "contracts": 5,
+      "tp": 3,
+      "fn": 2,
+      "recall": 60.0,
+      "findings": 29,
+      "relevant": 9
+    },
+    "denial_of_service": {
+      "contracts": 6,
+      "tp": 3,
+      "fn": 3,
+      "recall": 50.0,
+      "findings": 26,
+      "relevant": 22
+    }
+  },
+  "comparison_context": {
+    "literature_benchmarks": [
+      {
+        "paper": "SmartBugs: A Framework to Analyze Solidity Smart Contracts (2020)",
+        "slither_recall_reentrancy": 57.0,
+        "note": "MIESC shows +16.3% improvement on reentrancy"
+      },
+      {
+        "paper": "Empirical Review of Automated Analysis Tools (2020)",
+        "average_tool_recall": 52.0,
+        "note": "MIESC Slither shows +32.3% above average"
+      }
+    ]
+  }
+}
