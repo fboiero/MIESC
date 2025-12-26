@@ -11,6 +11,15 @@
 [![Tests](https://img.shields.io/badge/tests-1292%20passing-success)](./tests/)
 [![SDG 9](https://img.shields.io/badge/SDG-9%20Industry%20%26%20Innovation-orange)](https://sdgs.un.org/goals/goal9)
 [![SDG 16](https://img.shields.io/badge/SDG-16%20Strong%20Institutions-blue)](https://sdgs.un.org/goals/goal16)
+[![Demo Video](https://img.shields.io/badge/Demo-YouTube-red?logo=youtube)](https://youtu.be/pLa_McNBRRw)
+
+<p align="center">
+  <a href="https://youtu.be/pLa_McNBRRw">
+    <img src="https://img.youtube.com/vi/pLa_McNBRRw/maxresdefault.jpg" alt="MIESC Demo Video" width="600">
+  </a>
+  <br>
+  <em>Watch the demo: 9-layer security analysis in action</em>
+</p>
 
 Multi-layer security analysis framework for Ethereum smart contracts. Orchestrates 29 specialized tools across 7 defense layers with AI-assisted correlation and ML-based detection.
 
