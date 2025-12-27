@@ -18,7 +18,7 @@ README = (Path(__file__).parent / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="miesc",
-    version="4.0.0",
+    version="4.2.2",
     description="Multi-layer Intelligent Evaluation for Smart Contracts - AI-enhanced MCP-compatible security framework",
     long_description=README,
     long_description_content_type="text/markdown",

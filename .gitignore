@@ -192,3 +192,14 @@ crytic-export/
 .python-version
 benchmarks/datasets/smartbugs-curated
 analysis/
+
+# -----------------------------------------------------------------------------
+# Generated Academic Documents
+# -----------------------------------------------------------------------------
+*.docx
+*.csv
+generate_*_report.py
+miesc-quick
+
+# Virtual environments (additional patterns)
+venv*/

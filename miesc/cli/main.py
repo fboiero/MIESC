@@ -7,7 +7,7 @@ A professional CLI for smart contract security audits targeting:
 - Security Researchers: Deep analysis, custom configurations
 - Auditors: Full reports, compliance mapping
 
-Integrates 29 security tools across 7 defense layers.
+Integrates 32 security tools across 9 defense layers.
 
 Author: Fernando Boiero
 Institution: UNDEF - IUA Cordoba
@@ -87,7 +87,7 @@ def configure_logging(debug: bool = False, quiet: bool = False):
 
 
 # Version and banner
-VERSION = "4.2.0"
+VERSION = "4.2.2"
 BANNER = r"""
   __  __ ___ _____ ____   ____
  |  \/  |_ _| ____/ ___| / ___|
@@ -101,7 +101,7 @@ BANNER = r"""
 # Layer and Tool Definitions
 # ============================================================================
 
-# Complete 7-layer architecture with 29 tools
+# Complete 9-layer architecture with 32 tools
 LAYERS = {
     1: {
         "name": "Static Analysis",
@@ -141,6 +141,16 @@ LAYERS = {
             "contract_clone_detector", "defi", "advanced_detector"
         ]
     },
+    8: {
+        "name": "Cross-Chain & ZK Security",
+        "description": "Bridge security and zero-knowledge circuit analysis",
+        "tools": ["crosschain", "zk_circuit"]
+    },
+    9: {
+        "name": "Advanced AI Ensemble",
+        "description": "Multi-LLM ensemble with consensus-based detection",
+        "tools": ["llmbugscanner"]
+    },
 }
 
 # Quick scan tools (fast, high-value)
@@ -177,6 +187,11 @@ ADAPTER_MAP = {
     "contract_clone_detector": "ContractCloneDetectorAdapter",
     "defi": "DeFiAdapter",
     "advanced_detector": "AdvancedDetectorAdapter",
+    # Layer 8: Cross-Chain & ZK Security
+    "crosschain": "CrossChainAdapter",
+    "zk_circuit": "ZKCircuitAdapter",
+    # Layer 9: Advanced AI Ensemble
+    "llmbugscanner": "LLMBugScannerAdapter",
 }
 
 
