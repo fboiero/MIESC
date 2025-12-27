@@ -14,13 +14,13 @@ Features:
 Integration: Part of MIESC Framework v2.1
 """
 
-import subprocess
-import json
 import os
+import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional
+
 from src.agents.base_agent import BaseAgent
-from src.mcp.context_bus import get_context_bus, MCPMessage
+from src.mcp.context_bus import MCPMessage
 
 
 class AderynAgent(BaseAgent):
