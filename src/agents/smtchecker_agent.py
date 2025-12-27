@@ -165,7 +165,7 @@ class SMTCheckerAgent(BaseAgent):
                 if 'Version:' in line:
                     return line.split('Version:')[1].strip()
             return result.stdout.strip()
-        except:
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             return "unknown"
 
     def _parse_smtchecker_output(self, stdout: str, stderr: str) -> Dict[str, Any]:

@@ -201,7 +201,7 @@ class MedusaAgent(BaseAgent):
                     if len(parts) >= 2:
                         coverage_str = parts[-1].strip().replace("%", "")
                         findings["coverage"]["percentage"] = float(coverage_str)
-                except:
+                except (ValueError, IndexError):
                     pass
 
             # Parse statistics
@@ -209,13 +209,13 @@ class MedusaAgent(BaseAgent):
                 try:
                     count = line.split(":")[-1].strip()
                     findings["stats"]["test_cases"] = int(count)
-                except:
+                except (ValueError, IndexError):
                     pass
             elif "Sequences:" in line:
                 try:
                     count = line.split(":")[-1].strip()
                     findings["stats"]["sequences"] = int(count)
-                except:
+                except (ValueError, IndexError):
                     pass
 
         return findings

@@ -96,7 +96,10 @@ repos:
       - id: mypy
         name: MyPy Type Checker
         args: ['--ignore-missing-imports', '--show-error-codes']
-        additional_dependencies: ['types-all']
+        additional_dependencies:
+          - 'types-requests'
+          - 'types-PyYAML'
+          - 'types-click'
         exclude: ^tests/
 
   # Markdown Linting

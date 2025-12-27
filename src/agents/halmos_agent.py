@@ -170,7 +170,7 @@ class HalmosAgent(BaseAgent):
                 timeout=5
             )
             return result.stdout.strip()
-        except:
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             return "unknown"
 
     def _parse_halmos_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
@@ -211,7 +211,7 @@ class HalmosAgent(BaseAgent):
                 try:
                     count = line.split(":")[-1].strip()
                     findings["stats"]["paths_explored"] = int(count)
-                except:
+                except (ValueError, IndexError):
                     pass
             elif "tests passed" in line:
                 try:
@@ -220,7 +220,7 @@ class HalmosAgent(BaseAgent):
                     total = int(parts[3])
                     findings["stats"]["tests_passed"] = passed
                     findings["stats"]["tests_total"] = total
-                except:
+                except (ValueError, IndexError):
                     pass
 
         return findings
