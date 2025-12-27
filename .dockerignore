@@ -1,0 +1,51 @@
+# Recordings and large media files
+demo/recordings/
+*.mp4
+*.gif
+*.wav
+*.aiff
+*.cast
+
+# Development files
+.git
+.github
+.vscode
+.idea
+*.egg-info
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.nox
+dist
+build
+*.egg
+
+# Virtual environments
+venv/
+venv314/
+.venv/
+
+# Thesis and documentation builds
+thesis_generator/
+docs/
+*.docx
+*.pdf
+
+# Test artifacts
+.benchmarks/
+benchmarks/datasets/
+
+# IDE and OS files
+.DS_Store
+*.swp
+*.swo
+Thumbs.db
+
+# Misc
+*.log
+*.tmp
+node_modules/

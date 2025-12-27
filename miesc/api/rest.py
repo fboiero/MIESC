@@ -64,7 +64,7 @@ except ImportError:
 # Configuration
 # ============================================================================
 
-VERSION = "4.2.0"
+VERSION = "4.2.2"
 
 # Layer definitions (same as CLI)
 LAYERS = {
@@ -106,6 +106,16 @@ LAYERS = {
             "contract_clone_detector", "defi", "advanced_detector"
         ]
     },
+    8: {
+        "name": "Cross-Chain & ZK Security",
+        "description": "Bridge security and zero-knowledge circuit analysis",
+        "tools": ["crosschain", "zk_circuit"]
+    },
+    9: {
+        "name": "Advanced AI Ensemble",
+        "description": "Multi-LLM ensemble with consensus-based detection",
+        "tools": ["llmbugscanner"]
+    },
 }
 
 # Adapter class mapping
@@ -139,6 +149,11 @@ ADAPTER_MAP = {
     "contract_clone_detector": "ContractCloneDetectorAdapter",
     "defi": "DeFiAdapter",
     "advanced_detector": "AdvancedDetectorAdapter",
+    # Layer 8: Cross-Chain & ZK Security
+    "crosschain": "CrossChainAdapter",
+    "zk_circuit": "ZKCircuitAdapter",
+    # Layer 9: Advanced AI Ensemble
+    "llmbugscanner": "LLMBugScannerAdapter",
 }
 
 # Quick scan tools

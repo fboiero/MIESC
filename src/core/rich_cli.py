@@ -158,7 +158,7 @@ class MIESCRichCLI:
             syntax = Syntax(preview, "solidity", theme="monokai", line_numbers=True)
             self.console.print(Panel(syntax, title="[bold]Code Preview[/bold]", border_style="dim"))
 
-    def create_progress(self) -> Progress:
+    def create_progress(self) -> "Progress":
         """Create a progress bar instance."""
         return Progress(
             SpinnerColumn(),

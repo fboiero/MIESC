@@ -13,7 +13,7 @@
 FROM python:3.11-slim-bookworm AS builder
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="4.0.0"
+LABEL version="4.2.2"
 LABEL description="MIESC - ML-enhanced MCP-compatible blockchain security framework"
 
 # Install system dependencies
@@ -47,21 +47,35 @@ RUN cargo install medusa || echo "Medusa install failed - will be optional"
 FROM python:3.11-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="4.0.0"
+LABEL version="4.2.2"
 LABEL description="MIESC - ML-enhanced MCP-compatible blockchain security framework"
 
 # Copy Rust binaries from builder
 COPY --from=builder /root/.cargo/bin/aderyn /usr/local/bin/
 COPY --from=builder /root/.foundry/bin/* /usr/local/bin/
 
-# Install runtime dependencies
+# Install runtime AND build dependencies (needed for Mythril/Manticore compilation)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     wget \
     libssl3 \
     ca-certificates \
+    build-essential \
+    gcc \
+    g++ \
+    libffi-dev \
+    libgmp-dev \
+    cmake \
+    pkg-config \
+    software-properties-common \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Solc from Ethereum PPA (native binary for ARM/x86)
+RUN curl -fsSL https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.20+commit.a1b79de6 -o /usr/local/bin/solc-0.8.20 || \
+    (apt-get update && apt-get install -y solc && rm -rf /var/lib/apt/lists/*) && \
+    chmod +x /usr/local/bin/solc-0.8.20 2>/dev/null || true
 
 # Create non-root user for security
 RUN useradd -m -u 1000 -s /bin/bash miesc && \
@@ -74,20 +88,16 @@ WORKDIR /app
 # Switch to non-root user
 USER miesc
 
-# Install Python dependencies
-# Copy only requirements files first for better layer caching
-COPY --chown=miesc:miesc setup.py pyproject.toml README.md ./
+# Copy all source code first (needed for editable install)
+COPY --chown=miesc:miesc . .
 
-# Install MIESC core dependencies
+# Install MIESC core dependencies (editable mode for development)
 RUN pip install --no-cache-dir --user -e .[dev,all-tools]
 
-# Install additional security tools
-# Updated to Slither 3.0 (2025 AI-powered version)
-RUN pip install --no-cache-dir --user \
-    slither-analyzer>=3.0.0 \
-    mythril>=0.24.0 \
-    crytic-compile>=0.3.0 \
-    solc-select>=1.0.0
+# Add user's local bin to PATH (needed for tools installed above)
+ENV PATH="/home/miesc/.local/bin:${PATH}"
+
+# Note: slither-analyzer and crytic-compile are already installed via pyproject.toml
 
 # Install solc versions (common versions for smart contract analysis)
 RUN solc-select install 0.8.0 && \
@@ -95,37 +105,40 @@ RUN solc-select install 0.8.0 && \
     solc-select install 0.8.20 && \
     solc-select use 0.8.20
 
+# Install Mythril (symbolic execution) - with build dependencies available
+# Note: On ARM, this may take longer due to compilation
+RUN pip install --no-cache-dir --user mythril>=0.24.0 && \
+    echo "Mythril installed successfully" || \
+    echo "WARNING: Mythril install failed - check build dependencies"
+
 # Install Manticore (symbolic execution engine)
-RUN pip install --no-cache-dir --user manticore[native]
-
-# Copy MIESC source code
-COPY --chown=miesc:miesc . .
-
-# Add user's local bin to PATH
-ENV PATH="/home/miesc/.local/bin:${PATH}"
+# Note: Manticore may have limited ARM support
+RUN pip install --no-cache-dir --user manticore[native] && \
+    echo "Manticore installed successfully" || \
+    echo "WARNING: Manticore install failed - may not support this architecture"
 
 # Environment variables for MIESC
-ENV MIESC_VERSION="4.0.0"
+ENV MIESC_VERSION="4.2.2"
 ENV MIESC_ENV="docker"
 ENV PYTHONPATH="/app:${PYTHONPATH}"
 ENV PYTHONUNBUFFERED=1
 
 # Health check with ML pipeline verification
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "from src.core import get_ml_orchestrator; print('MIESC v4.0.0 ML OK')" || exit 1
+    CMD python -c "from src.core import get_ml_orchestrator; print('MIESC v4.2.2 ML OK')" || exit 1
 
 # Expose API port (if running FastAPI server)
 EXPOSE 8000
 
 # Default command: Show MIESC version and run tests
-CMD ["sh", "-c", "echo '=== MIESC v4.0.0 - Docker Deployment ===' && \
+CMD ["sh", "-c", "echo '=== MIESC v4.2.2 - Docker Deployment ===' && \
      echo 'Python version:' && python --version && \
      echo 'Installed tools:' && \
      echo '- Slither:' && slither --version 2>&1 | head -1 && \
-     echo '- Mythril:' && myth version 2>&1 | head -1 && \
-     echo '- Aderyn:' && aderyn --version 2>&1 | head -1 && \
+     echo '- Mythril:' && (myth version 2>&1 | head -1 || echo 'Not installed (optional)') && \
+     echo '- Aderyn:' && (aderyn --version 2>&1 | head -1 || echo 'Not installed') && \
      echo '- Solc:' && solc --version | head -1 && \
-     echo '- Manticore:' && manticore --version 2>&1 | head -1 && \
+     echo '- Manticore:' && (manticore --version 2>&1 | head -1 || echo 'Not installed (optional)') && \
      echo '' && \
      echo 'Running MIESC test suite...' && \
      python -m pytest tests/ -v --tb=short --maxfail=3"]
