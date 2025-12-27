@@ -46,7 +46,7 @@ This is the English translation of the Master's Thesis "MIESC: Framework Multi-c
 
 - [Spanish Version](../) - Original thesis in Spanish
 - [Figures Directory](../figures/) - SVG figures (30 total)
-- [Main Repository](https://github.com/your-repo/MIESC) - Source code and documentation
+- [Main Repository](https://github.com/fboiero/MIESC) - Source code and documentation
 
 ---
 

@@ -186,7 +186,7 @@ class GPTScanAgent(BaseAgent):
         try:
             with open(contract_path, 'r') as f:
                 code_lines = f.readlines()
-        except:
+        except (FileNotFoundError, IOError, PermissionError):
             return patterns
 
         for issue in static_results.get("issues", []):

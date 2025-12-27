@@ -220,7 +220,7 @@ class WakeAgent(BaseAgent):
                 timeout=5
             )
             return result.stdout.strip()
-        except:
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             return "unknown"
 
     def _parse_detect_output(self, stdout: str, stderr: str) -> Dict[str, Any]:

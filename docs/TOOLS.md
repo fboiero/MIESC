@@ -17,7 +17,7 @@ Complete list of 32 security tools integrated across 9 defense layers.
 | [Echidna](https://github.com/crytic/echidna) | 2.2.x | AGPL-3.0 | Property-based fuzzer |
 | [Medusa](https://github.com/crytic/medusa) | 0.1.x | AGPL-3.0 | Coverage-guided fuzzer |
 | [Foundry](https://github.com/foundry-rs/foundry) | nightly | MIT | Testing toolkit |
-| [DogeFuzz](https://github.com/) | - | Research | AFL-style fuzzing |
+| [DogeFuzz](https://github.com/AdrienC21/dogefuzz) | - | Research | AFL-style fuzzing |
 
 ## Layer 3: Symbolic Execution
 

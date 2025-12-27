@@ -154,7 +154,7 @@ class AderynAgent(BaseAgent):
                 timeout=5
             )
             return result.stdout.strip()
-        except:
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             return "unknown"
 
     def _parse_markdown_report(self, report_path: Path) -> Dict:
