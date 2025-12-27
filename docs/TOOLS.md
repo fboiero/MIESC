@@ -75,11 +75,13 @@ Complete list of 32 security tools integrated across 9 defense layers.
 ## Installation
 
 ### Required (minimum)
+
 ```bash
 pip install slither-analyzer
 ```
 
 ### Recommended
+
 ```bash
 pip install slither-analyzer mythril
 cargo install aderyn
@@ -87,6 +89,7 @@ npm install -g solhint
 ```
 
 ### Full suite
+
 ```bash
 # Use Docker for complete environment
 docker pull ghcr.io/fboiero/miesc:latest
@@ -118,6 +121,7 @@ class MyToolAdapter(ToolAdapter):
 ```
 
 Register in `miesc/api/rest.py`:
+
 ```python
 ADAPTER_MAP["mytool"] = "MyToolAdapter"
 LAYERS[1]["tools"].append("mytool")

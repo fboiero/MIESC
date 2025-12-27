@@ -1,0 +1,101 @@
+{
+  "metadata": {
+    "project_name": "DeFi Protocol v2.0",
+    "contract_name": "LendingPool.sol",
+    "version": "2.0.0",
+    "auditor": "Fernando Boiero",
+    "organization": "MIESC Security",
+    "audit_date": "2025-12-24",
+    "report_id": "MIESC-20251224-001",
+    "contract_hash": "c73f01f39f62aaea24f2525b84f7e16c104ed10c0f0ebea967f6c4ea2b339560",
+    "solidity_version": "0.8.20",
+    "lines_of_code": 1250
+  },
+  "summary": {
+    "risk_score": 55.00000000000001,
+    "total_findings": 4,
+    "by_severity": {
+      "Critical": 1,
+      "High": 2,
+      "Medium": 1,
+      "Low": 0,
+      "Informational": 0
+    },
+    "by_layer": {
+      "1": 2,
+      "3": 1,
+      "8": 1
+    },
+    "by_tool": {
+      "Slither": 2,
+      "Mythril": 1,
+      "DeFiDetector": 1
+    }
+  },
+  "findings": [
+    {
+      "id": "MIESC-001",
+      "title": "Reentrancy Vulnerability in withdraw()",
+      "severity": "Critical",
+      "category": "Reentrancy",
+      "description": "The withdraw function makes an external call before updating state, allowing reentrant calls.",
+      "location": "LendingPool.sol:142",
+      "line_number": 142,
+      "tool": "Slither",
+      "layer": 1,
+      "swc_id": "SWC-107",
+      "cwe_id": "CWE-841",
+      "remediation": "Apply checks-effects-interactions pattern. Update state before making external calls.",
+      "references": [
+        "https://swcregistry.io/docs/SWC-107"
+      ]
+    },
+    {
+      "id": "MIESC-002",
+      "title": "Integer Overflow in deposit calculation",
+      "severity": "High",
+      "category": "Arithmetic",
+      "description": "The deposit function does not check for overflow when calculating interest.",
+      "location": "LendingPool.sol:89",
+      "line_number": 89,
+      "tool": "Mythril",
+      "layer": 3,
+      "swc_id": "SWC-101",
+      "cwe_id": null,
+      "remediation": "Use SafeMath or Solidity 0.8+ built-in overflow checks.",
+      "references": []
+    },
+    {
+      "id": "MIESC-003",
+      "title": "Missing access control on setInterestRate()",
+      "severity": "High",
+      "category": "Access Control",
+      "description": "The setInterestRate function can be called by any address.",
+      "location": "LendingPool.sol:205",
+      "line_number": null,
+      "tool": "Slither",
+      "layer": 1,
+      "swc_id": null,
+      "cwe_id": null,
+      "remediation": "Add onlyOwner or role-based access control modifier.",
+      "references": []
+    },
+    {
+      "id": "MIESC-004",
+      "title": "Potential flash loan attack vector",
+      "severity": "Medium",
+      "category": "DeFi",
+      "description": "The liquidation function does not implement flash loan protection.",
+      "location": "LendingPool.sol:312",
+      "line_number": null,
+      "tool": "DeFiDetector",
+      "layer": 8,
+      "swc_id": null,
+      "cwe_id": null,
+      "remediation": "Add same-block transaction checks or use TWAP for price oracle.",
+      "references": []
+    }
+  ],
+  "generated_at": "2025-12-24T08:53:50.883907",
+  "generator": "MIESC v4.2.1"
+}

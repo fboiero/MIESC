@@ -2,13 +2,13 @@
 
 [![Licencia: AGPL v3](https://img.shields.io/badge/Licencia-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Versión](https://img.shields.io/badge/versión-v4.2.0-success)](https://github.com/fboiero/MIESC/releases)
+[![Versión](https://img.shields.io/badge/versión-v4.2.2-success)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions/workflows/secure-dev-pipeline.yml)
 [![Cobertura](https://img.shields.io/badge/cobertura-87.5%25-green)](./htmlcov/index.html)
 
 [English](./README.md) | **Español**
 
-Framework de análisis de seguridad multicapa para smart contracts de Ethereum. Orquesta 29 herramientas especializadas a través de 7 capas de defensa con correlación asistida por IA y detección basada en ML.
+Framework de análisis de seguridad multicapa para smart contracts de Ethereum. Orquesta 32 herramientas especializadas a través de 9 capas de defensa con correlación asistida por IA y detección basada en ML.
 
 Arquitectura basada en investigación de análisis multi-herramienta (Durieux et al., 2020; Atzei et al., 2017). Desarrollado como parte de una Tesis de Maestría en Ciberdefensa en la Universidad de la Defensa Nacional (UNDEF), Argentina.
 
@@ -23,13 +23,15 @@ Documentación: [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC) | Iss
 ## Alcance y Limitaciones
 
 **Propósito**:
-- Orquestación automatizada de 29 herramientas de análisis de seguridad
+
+- Orquestación automatizada de 32 herramientas de análisis de seguridad
 - Correlación de hallazgos asistida por IA para reducir reportes duplicados
 - Detección de vulnerabilidades basada en ML con 95.7% de precisión
 - Mapeo de cumplimiento a estándares ISO/NIST/OWASP
 - Formato de reporte estandarizado (JSON/HTML/PDF)
 
 **Limitaciones**:
+
 - No puede detectar todas las clases de vulnerabilidades (especialmente lógica de negocio compleja)
 - Métricas de efectividad pendientes de validación empírica a gran escala
 - Requiere revisión manual de todos los hallazgos por profesionales calificados
@@ -50,6 +52,7 @@ make webapp
 ```
 
 Características:
+
 - Subir o pegar archivos fuente Solidity
 - Análisis multi-herramienta (Slither, Mythril, Aderyn)
 - Correlación IA para reducción de falsos positivos
@@ -57,7 +60,7 @@ Características:
 - Exportación de reportes en JSON y Markdown
 - Ejemplos de contratos vulnerables precargados
 
-Acceso: http://localhost:8501
+Acceso: <http://localhost:8501>
 Documentación: [webapp/README.md](./webapp/README.md)
 
 ---
@@ -76,7 +79,8 @@ python3 examples/demo_v4.0.py
 ```
 
 El demo realiza:
-1. Registro de adaptadores (29 herramientas en 7 capas)
+
+1. Registro de adaptadores (32 herramientas en 9 capas)
 2. Análisis estático de contrato intencionalmente vulnerable (VulnerableBank.sol)
 3. Correlación de hallazgos asistida por IA usando LLM local (deepseek-coder via Ollama)
 4. Generación de reporte con mapeos de cumplimiento
@@ -84,6 +88,7 @@ El demo realiza:
 Hallazgos esperados: reentrancy, bypass de control de acceso, autenticación tx.origin
 
 Alternativa:
+
 ```bash
 bash demo/run_demo.sh  # Suite completa de análisis multi-contrato
 ```
@@ -97,8 +102,9 @@ Ver [docs/03_DEMO_GUIDE.md](./docs/03_DEMO_GUIDE.md) para detalles.
 YouTube: [youtu.be/-SP6555edSw](https://youtu.be/-SP6555edSw)
 
 Demuestra:
-- Análisis Defense-in-Depth a través de 7 capas de seguridad
-- 29 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
+
+- Análisis Defense-in-Depth a través de 9 capas de seguridad
+- 32 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
 - Integración Model Context Protocol (MCP) con Claude Desktop
 - 100% Recall, 87.5% Precisión, F1-Score 0.93
 - IA Soberana con Ollama (el código nunca sale de tu máquina)
@@ -112,30 +118,35 @@ Duración: ~10 minutos | Fuente: `demo_thesis_defense.py`
 **Lanzamiento Mayor** (Enero 2025) - Cuatro mejoras basadas en investigación de vanguardia:
 
 **1. PropertyGPT (Capa 4 - Verificación Formal)**
+
 - Generación automatizada de propiedades CVL para verificación formal
 - 80% recall en propiedades Certora de ground-truth
 - Aumenta la adopción de verificación formal del 5% al 40% (+700%)
 - Basado en paper NDSS 2025 (arXiv:2405.02580)
 
 **2. DA-GNN (Capa 6 - Detección ML)**
+
 - Detección de vulnerabilidades basada en Redes Neuronales de Grafos
 - 95.7% de precisión con 4.3% de tasa de falsos positivos
 - Representa contratos como grafos de flujo de control + flujo de datos
 - Basado en Computer Networks (ScienceDirect, Feb 2024)
 
 **3. SmartLLM RAG Mejorado (Capa 5 - Análisis IA)**
+
 - Generación Aumentada por Recuperación con base de conocimiento ERC-20/721/1155
 - Rol de Verificador para comprobación de hechos (Generador → Verificador → Consenso)
 - Precisión mejorada del 75% al 88% (+17%), tasa FP reducida en 52%
 - Basado en arXiv:2502.13167 (Feb 2025)
 
 **4. DogeFuzz (Capa 2 - Testing Dinámico)**
+
 - Fuzzing guiado por cobertura estilo AFL con programación de potencia
 - Fuzzing híbrido + ejecución simbólica
 - 85% cobertura de código, 3x más rápido que Echidna
 - Basado en arXiv:2409.01788 (Sep 2024)
 
 **Métricas** (v3.5 → v4.0):
+
 - Total Adaptadores: 22 → 29 (+31.8%)
 - Precisión: 89.47% → 94.5% (+5.03pp)
 - Recall: 86.2% → 92.8% (+6.6pp)
@@ -148,7 +159,7 @@ Ver [docs/PHASE_3_4_5_COMPLETION_SUMMARY.md](./docs/PHASE_3_4_5_COMPLETION_SUMMA
 
 ## Descripción General
 
-MIESC (Evaluación Inteligente Multicapa para Smart Contracts) orquesta 29 herramientas de análisis de seguridad a través de una interfaz unificada con correlación asistida por IA y detección basada en ML.
+MIESC (Evaluación Inteligente Multicapa para Smart Contracts) orquesta 32 herramientas de análisis de seguridad a través de una interfaz unificada con correlación asistida por IA y detección basada en ML.
 
 **Problema**: Ejecutar múltiples herramientas de seguridad individualmente produce cientos de advertencias con altas tasas de falsos positivos, requiriendo triaje manual significativo.
 
@@ -160,7 +171,7 @@ MIESC (Evaluación Inteligente Multicapa para Smart Contracts) orquesta 29 herra
 
 | Componente | Estado | Detalles |
 |------------|--------|----------|
-| Herramientas Integradas | ✅ Completo | 29 herramientas en 7 capas |
+| Herramientas Integradas | ✅ Completo | 32 herramientas en 9 capas |
 | Protocolo MCP | ✅ Completo | Interfaz JSON-RPC funcional |
 | Correlación IA | ✅ Completo | LLM local via Ollama |
 | Mapeo de Cumplimiento | ✅ Completo | 12 estándares (ISO/NIST/OWASP) |
@@ -184,6 +195,7 @@ python xaudit.py --target examples/reentrancy.sol
 Salida: Dashboard HTML + reporte JSON con hallazgos mapeados a OWASP/SWC/CWE
 
 Ejemplo de análisis:
+
 ```bash
 # Crear contrato de prueba
 cat << EOF > vulnerable.sol
@@ -204,6 +216,7 @@ python xaudit.py --target vulnerable.sol --mode fast
 ```
 
 Salida esperada (~30 segundos):
+
 ```
 StaticAgent (Slither): Reentrancy en withdraw() [HIGH]
 SymbolicAgent (Mythril): SWC-107 confirmado [CRITICAL]
@@ -219,6 +232,7 @@ Reporte: outputs/vulnerable_report.html
 ## Características
 
 **Orquestación multi-herramienta**: Un solo comando ejecuta todas las herramientas configuradas en lugar de ejecutar cada una individualmente:
+
 ```bash
 python xaudit.py --target mycontract.sol
 ```
@@ -228,6 +242,7 @@ python xaudit.py --target mycontract.sol
 **Reportes estandarizados**: Genera salidas JSON, HTML y PDF con hallazgos mapeados a clasificaciones SWC/CWE/OWASP para documentación de trail de auditoría.
 
 **Integración CI/CD**:
+
 ```yaml
 # Ejemplo GitHub Actions
 - name: Análisis de Seguridad
@@ -237,6 +252,7 @@ python xaudit.py --target mycontract.sol
 ```
 
 **API Python**:
+
 ```python
 from miesc import MiescFramework
 
@@ -252,6 +268,7 @@ print(f"Críticos: {len(report.critical_issues)}")
 MIESC implementa MCP (Model Context Protocol de Anthropic) para acceso programático via asistentes de IA y herramientas de automatización.
 
 **Endpoints MCP**:
+
 - `run_audit` - Ejecutar análisis multi-herramienta
 - `correlate_findings` - Aplicar filtrado IA
 - `map_compliance` - Generar mapeos de cumplimiento
@@ -260,6 +277,7 @@ MIESC implementa MCP (Model Context Protocol de Anthropic) para acceso programá
 - `get_status` - Consultar salud del sistema
 
 **Configuración** (ejemplo Claude Desktop):
+
 ```json
 // ~/.config/claude/claude_desktop_config.json
 {
@@ -272,6 +290,7 @@ MIESC implementa MCP (Model Context Protocol de Anthropic) para acceso programá
 ```
 
 **Uso** (Python):
+
 ```python
 import requests
 
@@ -285,6 +304,7 @@ findings = response.json()["result"]["scan_results"]
 ```
 
 **Inicio del servidor**:
+
 ```bash
 python -m miesc.mcp.server --port 8080
 curl http://localhost:8080/health  # Verificar
@@ -317,7 +337,7 @@ Static Dynamic Symbolic Formal
    Reporte (JSON/HTML/PDF)
 ```
 
-**Asignación de capas** (29 herramientas):
+**Asignación de capas** (32 herramientas):
 
 - **Capa 1 (Estático)**: Slither, Aderyn, Solhint
 - **Capa 2 (Dinámico)**: Echidna, Medusa, Foundry
@@ -336,9 +356,10 @@ Static Dynamic Symbolic Formal
 | 5 (IA) | 30-120s | Problemas semánticos, problemas de diseño |
 
 **Uso recomendado**:
+
 - Desarrollo: Solo Capa 1 (CI/CD)
 - Pre-auditoría: Capas 1+2+5
-- Producción: Las 7 capas
+- Producción: Las 9 capas
 
 ---
 
@@ -357,6 +378,7 @@ Static Dynamic Symbolic Formal
 | 7 | Layer7Agent (incorporado) | Evaluación de preparación para auditoría |
 
 **Agentes de orquestación**:
+
 - CoordinatorAgent: Gestiona ejecución de herramientas y agregación de resultados
 - ReportAgent: Genera salida formateada (JSON/HTML/PDF)
 
@@ -386,22 +408,26 @@ Configuración por defecto usa modelos locales (Ollama) para soberanía de datos
 Documentación completa: [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC)
 
 **Configuración**:
+
 - [Instalación](https://fboiero.github.io/MIESC/docs/02_SETUP_AND_USAGE/)
 - [Guía Demo](https://fboiero.github.io/MIESC/docs/03_DEMO_GUIDE/)
 - [Docker](https://fboiero.github.io/MIESC/docs/DOCKER/)
 
 **Arquitectura**:
+
 - [Descripción General](https://fboiero.github.io/MIESC/docs/01_ARCHITECTURE/)
 - [Correlación IA](https://fboiero.github.io/MIESC/docs/04_AI_CORRELATION/)
 - [Policy Agent](https://fboiero.github.io/MIESC/docs/05_POLICY_AGENT/)
 - [Protocolo MCP](https://fboiero.github.io/MIESC/docs/07_MCP_INTEROPERABILITY/)
 
 **Desarrollo**:
+
 - [Guía de Desarrollador](https://fboiero.github.io/MIESC/docs/DEVELOPER_GUIDE/)
 - [Contribuir](https://fboiero.github.io/MIESC/CONTRIBUTING/)
 - [Referencia API](https://fboiero.github.io/MIESC/docs/API_SETUP/)
 
 **Construir docs localmente**:
+
 ```bash
 make install-docs  # Instalar MkDocs
 make docs          # Servir en http://127.0.0.1:8000
@@ -417,7 +443,7 @@ Arquitectura basada en investigación revisada por pares en seguridad de smart c
 
 **Preguntas de investigación de tesis** (validación empírica en progreso):
 
-1. Efectividad multi-herramienta: ¿Combinar 29 herramientas mejora la detección vs. herramientas individuales?
+1. Efectividad multi-herramienta: ¿Combinar 32 herramientas mejora la detección vs. herramientas individuales?
    - Hipótesis basada en Durieux et al. (2020): 34% de mejora esperada
 
 2. Correlación IA: ¿Pueden los LLMs locales reducir hallazgos duplicados entre herramientas?
@@ -434,6 +460,7 @@ Arquitectura basada en investigación revisada por pares en seguridad de smart c
    - Estudio a gran escala: planificado Q4 2025
 
 **Estado actual de validación**:
+
 - ✅ Integración de herramientas funcional (29 adaptadores)
 - ✅ Suite de tests pasando (unitarios + integración)
 - ✅ Implementación de referencia completa
@@ -442,7 +469,8 @@ Arquitectura basada en investigación revisada por pares en seguridad de smart c
 - 🚧 Análisis de dataset de producción (pendiente)
 
 **Fundamento teórico**:
-- Saltzer & Schroeder (1975): Principios de defense-in-depth → arquitectura de 7 capas
+
+- Saltzer & Schroeder (1975): Principios de defense-in-depth → arquitectura de 9 capas
 - Durieux et al. (2020): Estudio multi-herramienta en 47,587 contratos → selección de herramientas complementarias
 - Atzei et al. (2017): Taxonomía de ataques Ethereum → clasificación de vulnerabilidades
 - Wooldridge & Jennings (1995): Sistemas multi-agente → arquitectura de adaptadores
@@ -457,12 +485,14 @@ Bibliografía completa: [docs/compliance/REFERENCES.md](./docs/compliance/REFERE
 ## Ejemplos de Uso
 
 **Integración CI/CD**:
+
 ```bash
 python xaudit.py --target contracts/MyToken.sol --mode fast --output ci_report.json
 # Código de salida 0 si no hay issues críticos, 1 en caso contrario
 ```
 
 **Pre-auditoría completa**:
+
 ```bash
 python xaudit.py \
   --target contracts/ \
@@ -472,6 +502,7 @@ python xaudit.py \
 ```
 
 **Reporte de cumplimiento**:
+
 ```bash
 python xaudit.py \
   --target contracts/DeFiProtocol.sol \
@@ -480,6 +511,7 @@ python xaudit.py \
 ```
 
 **Ejecución selectiva de capas**:
+
 ```bash
 python xaudit.py \
   --target contracts/Treasury.sol \
@@ -489,6 +521,7 @@ python xaudit.py \
 ```
 
 **Procesamiento por lotes**:
+
 ```bash
 python xaudit.py \
   --target contracts/ \
@@ -499,6 +532,7 @@ python xaudit.py \
 ```
 
 **Modo servidor MCP**:
+
 ```bash
 python src/mcp/server.py
 # Habilita: audit_contract(), explain_vulnerability(), suggest_fix()
@@ -555,6 +589,7 @@ Los hallazgos se mapean automáticamente a 12 estándares internacionales para d
 Total: 91.4% índice de cumplimiento
 
 **Generar evidencia**:
+
 ```bash
 python xaudit.py --target contracts/ --evidence-for iso27001
 # Genera archivos JSON mapeados a controles específicos
@@ -577,6 +612,7 @@ Detalles: [COMPLIANCE.md](./docs/compliance/COMPLIANCE.md)
 | IA (5) | SmartLLM, GPTScan | 30-60 seg | Inferencia LLM local |
 
 **Resultados de suite de tests**:
+
 - Contratos analizados: 5 casos de prueba vulnerables
 - Total hallazgos: 39 (6 high, 3 medium, 10 low, 18 info)
 - Tiempo promedio: ~2 min/contrato (todas las capas)
@@ -584,6 +620,7 @@ Detalles: [COMPLIANCE.md](./docs/compliance/COMPLIANCE.md)
 **Escalabilidad**: Framework diseñado para ejecución paralela. Estudio de rendimiento a gran escala pendiente.
 
 **Optimización**:
+
 ```bash
 # Modo rápido (solo estático)
 python xaudit.py --target contract.sol --mode fast
@@ -607,12 +644,14 @@ Nota: Estimaciones de tiempo basadas en ejecución de herramientas, no en flujo 
 - Defensa: Q4 2025 (esperada)
 
 **Contribuciones de investigación**:
+
 1. Implementación de referencia de arquitectura multi-agente basada en MCP
-2. Integración de 29 herramientas de seguridad heterogéneas bajo protocolo unificado
+2. Integración de 32 herramientas de seguridad heterogéneas bajo protocolo unificado
 3. Mapeo automatizado de cumplimiento a 12 estándares internacionales
 4. Framework de testing reproducible (716 tests unitarios/integración)
 
 **Estado actual**:
+
 - ✅ Implementación del framework completa
 - ✅ Tests unitarios y de integración pasando
 - 🚧 Estudio empírico a gran escala en progreso
@@ -620,6 +659,7 @@ Nota: Estimaciones de tiempo basadas en ejecución de herramientas, no en flujo 
 - 🚧 Estudio de validación por expertos planificado
 
 **Ejecutar tests**:
+
 ```bash
 pytest tests/                        # Tests unitarios y de integración
 python scripts/run_benchmark.py     # Benchmark de ejecución de herramientas
@@ -629,12 +669,14 @@ python scripts/verify_installation.py  # Verificación de dependencias
 Resultados: `benchmark_results/`, `outputs/benchmarks/`
 
 **Trabajo planificado** (Q4 2025):
+
 - Estudio de comparación de herramientas a gran escala
 - Validación inter-evaluador por expertos
 - Mediciones de precisión/recall
 - Preparación de publicación académica
 
 **Citación** (preliminar):
+
 ```bibtex
 @software{boiero2025miesc,
   author = {Boiero, Fernando},
@@ -651,14 +693,16 @@ Resultados: `benchmark_results/`, `outputs/benchmarks/`
 ## Roadmap
 
 **v4.0.0 (actual)**:
+
 - PropertyGPT: Generación automatizada de propiedades CVL (+700% adopción verificación formal)
 - DA-GNN: Detección de vulnerabilidades con Redes Neuronales de Grafos (95.7% precisión)
 - SmartLLM RAG Mejorado: Rol verificador para comprobación de hechos (+17% precisión)
 - DogeFuzz: Fuzzing guiado por cobertura con programación de potencia (3x más rápido)
-- 29 adaptadores de herramientas en 7 capas de defensa
+- 29 adaptadores de herramientas en 9 capas de defensa
 - 716 tests pasando, 87.5% cobertura
 
 **Futuro (v5.0)**:
+
 - Empaquetado Docker
 - Distribución PyPI (`pip install miesc`)
 - Soporte multi-chain (Soroban, Solana, Cairo)
@@ -684,9 +728,10 @@ python -m pytest tests/
 Ver [CONTRIBUTING.md](./CONTRIBUTING.md) para guía de estilo y requisitos de testing.
 
 **Áreas prioritarias**:
+
 - Specs CVL Certora para patrones comunes (ERC-20/721)
 - Templates de propiedades Echidna para DeFi
-- Tests de integración para las 29 herramientas
+- Tests de integración para las 32 herramientas
 - Análisis de vulnerabilidades cross-chain
 
 ---
@@ -696,12 +741,13 @@ Ver [CONTRIBUTING.md](./CONTRIBUTING.md) para guía de estilo y requisitos de te
 Prácticas de desarrollo: Seguridad Shift-left con hooks pre-commit (Ruff, Bandit, escaneo de secretos), SAST CI/CD (Semgrep), cumplimiento automatizado (PolicyAgent).
 
 Métricas actuales:
+
 - Cumplimiento de políticas: 94.2%
 - Cobertura de tests: 87.5%
 - Vulnerabilidades críticas: 0
 - Hallazgos SAST: 0 high/critical
 
-Divulgación de vulnerabilidades: fboiero@frvm.utn.edu.ar (respuesta <48h)
+Divulgación de vulnerabilidades: <fboiero@frvm.utn.edu.ar> (respuesta <48h)
 
 Detalles: [docs/SHIFT_LEFT_SECURITY.md](./docs/SHIFT_LEFT_SECURITY.md) | [policies/SECURITY_POLICY.md](./policies/SECURITY_POLICY.md)
 
@@ -711,7 +757,7 @@ Detalles: [docs/SHIFT_LEFT_SECURITY.md](./docs/SHIFT_LEFT_SECURITY.md) | [polici
 
 - Documentación: [docs/](./docs/)
 - Issues: [github.com/fboiero/MIESC/issues](https://github.com/fboiero/MIESC/issues)
-- Email: fboiero@frvm.utn.edu.ar
+- Email: <fboiero@frvm.utn.edu.ar>
 
 Autor: Fernando Boiero
 Candidato a Maestría en Ciberdefensa, UNDEF-IUA | Profesor, UTN-FRVM

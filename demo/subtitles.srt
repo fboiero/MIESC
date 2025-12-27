@@ -1,0 +1,139 @@
+1
+00:00:00,000 --> 00:00:05,000
+MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
+A Defense-in-Depth Security Framework
+
+2
+00:00:05,000 --> 00:00:12,000
+MIESC combines 25+ security analysis tools
+across 9 specialized layers
+
+3
+00:00:12,000 --> 00:00:18,000
+Designed for developers, security researchers,
+and audit firms
+
+4
+00:00:18,000 --> 00:00:25,000
+Let's explore the 9-layer architecture
+Each layer provides a different security perspective
+
+5
+00:00:25,000 --> 00:00:32,000
+Layer 1: Static Analysis with Slither, Aderyn, Solhint
+Layer 2: Pattern Detection with SmartBugsDetector
+
+6
+00:00:32,000 --> 00:00:40,000
+Layer 3: Symbolic Execution with Mythril, Manticore
+Layer 4: Fuzzing with Echidna, Medusa, DogeFuzz
+
+7
+00:00:40,000 --> 00:00:48,000
+Layer 5: Formal Verification with Certora, Halmos
+Layer 6: ML Detection with DA-GNN, SmartGuard
+
+8
+00:00:48,000 --> 00:00:55,000
+Layer 7: AI Analysis with SmartLLM, PropertyGPT
+Layer 8: DeFi Security with MEV and oracle analyzers
+
+9
+00:00:55,000 --> 00:01:02,000
+Layer 9: Dependency Scanning for CVE detection
+Now let's analyze a vulnerable smart contract
+
+10
+00:01:02,000 --> 00:01:10,000
+This contract has multiple vulnerabilities:
+Reentrancy, missing access control, timestamp dependence
+
+11
+00:01:10,000 --> 00:01:18,000
+Running the 9-layer Defense-in-Depth scan
+Each layer analyzes the contract from a different angle
+
+12
+00:01:18,000 --> 00:01:25,000
+Static analysis detects code patterns
+Symbolic execution explores all execution paths
+
+13
+00:01:25,000 --> 00:01:32,000
+Analysis complete! 5 vulnerabilities detected
+2 Critical, 1 High, 1 Medium, 1 Low
+
+14
+00:01:32,000 --> 00:01:40,000
+Critical: Reentrancy vulnerability in withdraw()
+External call before state update allows attacks
+
+15
+00:01:40,000 --> 00:01:48,000
+Critical: Unrestricted setBalance() function
+Anyone can modify user balances
+
+16
+00:01:48,000 --> 00:01:55,000
+Each finding includes detailed remediation guidance
+With code examples for the fix
+
+17
+00:01:55,000 --> 00:02:02,000
+MIESC generates professional audit reports
+In HTML, PDF, and JSON formats
+
+18
+00:02:02,000 --> 00:02:10,000
+Reports include executive summary, risk score,
+detailed findings, and tool evidence
+
+19
+00:02:10,000 --> 00:02:18,000
+Scientific validation on SmartBugs benchmark:
+84.3% recall, 80% F1-score
+
+20
+00:02:18,000 --> 00:02:25,000
+Easy CLI integration for developers
+miesc analyze MyContract.sol --deep
+
+21
+00:02:25,000 --> 00:02:32,000
+GitHub Actions integration for CI/CD
+Automatic security scanning on every PR
+
+22
+00:02:32,000 --> 00:02:40,000
+Python API for security researchers
+Integrate MIESC into your audit workflow
+
+23
+00:02:40,000 --> 00:02:48,000
+Opening the generated HTML audit report
+Professional format ready for clients
+
+24
+00:02:48,000 --> 00:02:55,000
+Risk score visualization and severity breakdown
+All findings with SWC and CWE references
+
+25
+00:02:55,000 --> 00:03:02,000
+Tool evidence preserved for audit trail
+Slither, Mythril, and other tool outputs included
+
+26
+00:03:02,000 --> 00:03:10,000
+MIESC - Making smart contract security accessible
+Open source under AGPL-3.0 license
+
+27
+00:03:10,000 --> 00:03:18,000
+Get started: pip install miesc
+GitHub: github.com/fboiero/MIESC
+
+28
+00:03:18,000 --> 00:03:25,000
+Developed by Fernando Boiero at UNDEF - IUA Córdoba
+Star us on GitHub!

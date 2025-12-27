@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit Report - VulnerableVault.sol</title>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --secondary: #475569;
+            --success: #16a34a;
+            --warning: #ca8a04;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
+            color: white;
+            padding: 3rem 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(30, 64, 175, 0.3);
+        }
+
+        .header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .header .subtitle { opacity: 0.9; font-size: 1.1rem; }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .meta-item label { opacity: 0.7; font-size: 0.85rem; display: block; }
+        .meta-item span { font-weight: 600; }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+        }
+
+        .card h2 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .card h3 { color: var(--secondary); margin: 1rem 0 0.5rem; }
+
+        /* Summary Grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-box {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .summary-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .summary-box .count {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .summary-box .label {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Risk Meter */
+        .risk-meter {
+            background: #e2e8f0;
+            height: 1.5rem;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .risk-meter-fill {
+            height: 100%;
+            border-radius: 0.75rem;
+            transition: width 0.5s ease;
+        }
+
+        /* Findings */
+        .finding {
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .finding-header {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+        }
+
+        .finding-header:hover { background: #f8fafc; }
+
+        .severity-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .finding-title { flex: 1; font-weight: 600; }
+        .finding-location { color: var(--secondary); font-size: 0.9rem; }
+
+        .finding-body {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            background: #f8fafc;
+        }
+
+        .finding-section { margin-bottom: 1rem; }
+        .finding-section:last-child { margin-bottom: 0; }
+        .finding-section h4 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code blocks */
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Fira Code', 'Monaco', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .code-block .line-num {
+            color: #64748b;
+            margin-right: 1rem;
+            user-select: none;
+        }
+
+        .code-block .highlight { background: rgba(234, 88, 12, 0.3); }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th { background: #f1f5f9; font-weight: 600; }
+        tr:hover { background: #f8fafc; }
+
+        /* Charts placeholder */
+        .chart-container {
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            border-radius: 0.5rem;
+            color: var(--secondary);
+        }
+
+        /* Bar chart */
+        .bar-chart { margin: 1rem 0; }
+        .bar-item { margin-bottom: 0.5rem; }
+        .bar-label { font-size: 0.9rem; margin-bottom: 0.25rem; }
+        .bar-track { background: #e2e8f0; height: 1.5rem; border-radius: 0.25rem; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 0.25rem; display: flex; align-items: center; padding: 0 0.5rem; color: white; font-size: 0.8rem; }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--secondary);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+            margin-top: 2rem;
+        }
+
+        /* Print styles */
+        @media print {
+            body { background: white; }
+            .container { max-width: none; padding: 0; }
+            .card { break-inside: avoid; box-shadow: none; border: 1px solid #ddd; }
+            .header { background: var(--primary) !important; -webkit-print-color-adjust: exact; }
+            .no-print { display: none; }
+        }
+
+        /* Layer colors */
+        .layer-1 { --layer-color: #3b82f6; }
+        .layer-2 { --layer-color: #8b5cf6; }
+        .layer-3 { --layer-color: #ec4899; }
+        .layer-4 { --layer-color: #f59e0b; }
+        .layer-5 { --layer-color: #10b981; }
+        .layer-6 { --layer-color: #06b6d4; }
+        .layer-7 { --layer-color: #6366f1; }
+        .layer-8 { --layer-color: #f43f5e; }
+        .layer-9 { --layer-color: #84cc16; }
+        </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Security Audit Report</h1>
+            <p class="subtitle">VulnerableVault Security Audit</p>
+
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <label>Contract</label>
+                    <span>VulnerableVault.sol</span>
+                </div>
+                <div class="meta-item">
+                    <label>Version</label>
+                    <span>1.0.0</span>
+                </div>
+                <div class="meta-item">
+                    <label>Auditor</label>
+                    <span>MIESC Automated Security Audit</span>
+                </div>
+                <div class="meta-item">
+                    <label>Organization</label>
+                    <span>MIESC Security Framework</span>
+                </div>
+                <div class="meta-item">
+                    <label>Audit Date</label>
+                    <span>2025-12-24</span>
+                </div>
+                <div class="meta-item">
+                    <label>Report ID</label>
+                    <span>MIESC-20251224-DEMO</span>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="card">
+            <h2>Executive Summary</h2>
+
+            <div class="summary-grid">
+                <div class="summary-box">
+                    <div class="count" style="color: #ca8a04">56</div>
+                    <div class="label">Risk Score</div>
+                </div>
+                <div class="summary-box">
+                    <div class="count">5</div>
+                    <div class="label">Total Findings</div>
+                </div>
+                <div class="summary-box">
+                    <div class="count" style="color: #dc2626">2</div>
+                    <div class="label">Critical</div>
+                </div>
+                <div class="summary-box">
+                    <div class="count" style="color: #ea580c">1</div>
+                    <div class="label">High</div>
+                </div>
+                <div class="summary-box">
+                    <div class="count" style="color: #ca8a04">1</div>
+                    <div class="label">Medium</div>
+                </div>
+                <div class="summary-box">
+                    <div class="count" style="color: #16a34a">1</div>
+                    <div class="label">Low</div>
+                </div>
+            </div>
+
+            <h3>Overall Risk Assessment</h3>
+            <div class="risk-meter">
+                <div class="risk-meter-fill" style="width: 56.00000000000001%; background: #ca8a04"></div>
+            </div>
+            <p style="text-align: center; font-weight: 600; color: #ca8a04">MEDIUM RISK</p>
+
+            <h3>Key Statistics</h3>
+            <table>
+                <tr><td>Contract</td><td><strong>VulnerableVault.sol</strong></td></tr>
+                <tr><td>Lines of Code</td><td>32</td></tr>
+                <tr><td>Solidity Version</td><td>0.8.0</td></tr>
+                <tr><td>Contract Hash (SHA256)</td><td><code>fd79f4d86b83fa66...</code></td></tr>
+                <tr><td>Analysis Tools Used</td><td>4</td></tr>
+                <tr><td>Security Layers Analyzed</td><td>3</td></tr>
+            </table>
+        </div>
+
+
+        <div class="card">
+            <h2>Methodology</h2>
+
+            <p>This security audit was conducted using <strong>MIESC v4.2.1</strong>
+            (Multi-layer Intelligent Evaluation for Smart Contracts), a comprehensive
+            security analysis framework implementing a Defense-in-Depth strategy across
+            9 specialized security layers.</p>
+
+            <h3>Findings by Security Layer</h3>
+            <div class="bar-chart">
+
+            <div class="bar-item">
+                <div class="bar-label">Static Analysis (Layer 1)</div>
+                <div class="bar-track">
+                    <div class="bar-fill layer-1" style="width: 30%; background: var(--layer-color, #3b82f6)">
+                        3 findings
+                    </div>
+                </div>
+            </div>
+
+            <div class="bar-item">
+                <div class="bar-label">Pattern Detection (Layer 2)</div>
+                <div class="bar-track">
+                    <div class="bar-fill layer-2" style="width: 10%; background: var(--layer-color, #3b82f6)">
+                        1 findings
+                    </div>
+                </div>
+            </div>
+
+            <div class="bar-item">
+                <div class="bar-label">Symbolic Execution (Layer 3)</div>
+                <div class="bar-track">
+                    <div class="bar-fill layer-3" style="width: 10%; background: var(--layer-color, #3b82f6)">
+                        1 findings
+                    </div>
+                </div>
+            </div>
+
+            </div>
+
+            <h3>Findings by Analysis Tool</h3>
+            <div class="bar-chart">
+
+            <div class="bar-item">
+                <div class="bar-label">Slither</div>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: 100.0%; background: var(--primary)">
+                        2
+                    </div>
+                </div>
+            </div>
+
+            <div class="bar-item">
+                <div class="bar-label">Mythril</div>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: 50.0%; background: var(--primary)">
+                        1
+                    </div>
+                </div>
+            </div>
+
+            <div class="bar-item">
+                <div class="bar-label">SmartBugsDetector</div>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: 50.0%; background: var(--primary)">
+                        1
+                    </div>
+                </div>
+            </div>
+
+            <div class="bar-item">
+                <div class="bar-label">Aderyn</div>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: 50.0%; background: var(--primary)">
+                        1
+                    </div>
+                </div>
+            </div>
+
+            </div>
+
+            <h3>Analysis Coverage</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Layer</th>
+                        <th>Analysis Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>Static Analysis</td><td>AST-based vulnerability detection (Slither, Aderyn)</td></tr>
+                    <tr><td>2</td><td>Pattern Detection</td><td>Known vulnerability pattern matching</td></tr>
+                    <tr><td>3</td><td>Symbolic Execution</td><td>Path exploration and constraint solving (Mythril)</td></tr>
+                    <tr><td>4</td><td>Fuzzing</td><td>Property-based testing (Echidna, Medusa)</td></tr>
+                    <tr><td>5</td><td>Formal Verification</td><td>Mathematical correctness proofs (Certora, Halmos)</td></tr>
+                    <tr><td>6</td><td>ML Detection</td><td>Graph neural network analysis (DA-GNN)</td></tr>
+                    <tr><td>7</td><td>AI Analysis</td><td>LLM-powered semantic analysis (SmartLLM)</td></tr>
+                    <tr><td>8</td><td>DeFi Security</td><td>Flash loans, MEV, oracle manipulation</td></tr>
+                    <tr><td>9</td><td>Dependency Security</td><td>Supply chain vulnerability scanning</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+
+        <div class="card">
+            <h2>Detailed Findings</h2>
+            <h3 style='color: #dc2626; margin-top: 1.5rem;'>Critical (2)</h3>
+        <div class="finding">
+            <div class="finding-header" onclick="this.parentElement.classList.toggle('expanded')">
+                <span class="severity-badge" style="background: #fef2f2; color: #dc2626">
+                    Critical
+                </span>
+                <span class="finding-title">Reentrancy Vulnerability in withdraw()</span>
+                <span class="finding-location">VulnerableVault.sol:10-17</span>
+            </div>
+            <div class="finding-body">
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>External call before state update allows reentrant calls. An attacker can recursively call withdraw() before the balance is updated.</p>
+                </div>
+
+                <div class="finding-section"><span style='margin-right: 0.5rem'><strong>SWC:</strong> SWC-107</span><span><strong>CWE:</strong> CWE-841</span></div>
+
+                <div class="finding-section">
+                    <h4>Category</h4>
+                    <p>SWC-107 | Detected by: <strong>Slither</strong> (Layer 1)</p>
+                </div>
+
+
+
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>Apply the Checks-Effects-Interactions pattern. Update state variables before making external calls.</p>
+                </div>
+
+
+            </div>
+        </div>
+
+        <div class="finding">
+            <div class="finding-header" onclick="this.parentElement.classList.toggle('expanded')">
+                <span class="severity-badge" style="background: #fef2f2; color: #dc2626">
+                    Critical
+                </span>
+                <span class="finding-title">Unrestricted setBalance() Function</span>
+                <span class="finding-location">VulnerableVault.sol:24-26</span>
+            </div>
+            <div class="finding-body">
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>Missing access control allows any address to modify user balances arbitrarily.</p>
+                </div>
+
+                <div class="finding-section"><span style='margin-right: 0.5rem'><strong>SWC:</strong> SWC-105</span><span><strong>CWE:</strong> CWE-284</span></div>
+
+                <div class="finding-section">
+                    <h4>Category</h4>
+                    <p>SWC-105 | Detected by: <strong>Slither</strong> (Layer 1)</p>
+                </div>
+
+
+
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>Add onlyOwner modifier or implement role-based access control (RBAC).</p>
+                </div>
+
+
+            </div>
+        </div>
+        <h3 style='color: #ea580c; margin-top: 1.5rem;'>High (1)</h3>
+        <div class="finding">
+            <div class="finding-header" onclick="this.parentElement.classList.toggle('expanded')">
+                <span class="severity-badge" style="background: #fff7ed; color: #ea580c">
+                    High
+                </span>
+                <span class="finding-title">Reentrancy Attack Path Confirmed</span>
+                <span class="finding-location">VulnerableVault.sol:12</span>
+            </div>
+            <div class="finding-body">
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>Symbolic execution confirmed exploitable reentrancy path with concrete attack transaction.</p>
+                </div>
+
+                <div class="finding-section"><span style='margin-right: 0.5rem'><strong>SWC:</strong> SWC-107</span></div>
+
+                <div class="finding-section">
+                    <h4>Category</h4>
+                    <p>SWC-107 | Detected by: <strong>Mythril</strong> (Layer 3)</p>
+                </div>
+
+
+
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>Use ReentrancyGuard from OpenZeppelin or apply CEI pattern.</p>
+                </div>
+
+
+            </div>
+        </div>
+        <h3 style='color: #ca8a04; margin-top: 1.5rem;'>Medium (1)</h3>
+        <div class="finding">
+            <div class="finding-header" onclick="this.parentElement.classList.toggle('expanded')">
+                <span class="severity-badge" style="background: #fefce8; color: #ca8a04">
+                    Medium
+                </span>
+                <span class="finding-title">Block Timestamp Dependence</span>
+                <span class="finding-location">VulnerableVault.sol:29</span>
+            </div>
+            <div class="finding-body">
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>Timestamp can be manipulated by miners within a ~15 second window.</p>
+                </div>
+
+                <div class="finding-section"><span style='margin-right: 0.5rem'><strong>SWC:</strong> SWC-116</span></div>
+
+                <div class="finding-section">
+                    <h4>Category</h4>
+                    <p>SWC-116 | Detected by: <strong>SmartBugsDetector</strong> (Layer 2)</p>
+                </div>
+
+
+
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>Avoid using block.timestamp for critical logic. Use block.number instead.</p>
+                </div>
+
+
+            </div>
+        </div>
+        <h3 style='color: #16a34a; margin-top: 1.5rem;'>Low (1)</h3>
+        <div class="finding">
+            <div class="finding-header" onclick="this.parentElement.classList.toggle('expanded')">
+                <span class="severity-badge" style="background: #f0fdf4; color: #16a34a">
+                    Low
+                </span>
+                <span class="finding-title">Missing Zero Address Validation</span>
+                <span class="finding-location">VulnerableVault.sol:24</span>
+            </div>
+            <div class="finding-body">
+                <div class="finding-section">
+                    <h4>Description</h4>
+                    <p>setBalance() does not validate that the user address is not zero.</p>
+                </div>
+
+                <div class="finding-section"><span style='margin-right: 0.5rem'><strong>SWC:</strong> SWC-123</span></div>
+
+                <div class="finding-section">
+                    <h4>Category</h4>
+                    <p>SWC-123 | Detected by: <strong>Aderyn</strong> (Layer 1)</p>
+                </div>
+
+
+
+                <div class="finding-section">
+                    <h4>Remediation</h4>
+                    <p>Add require(user != address(0), &#x27;Invalid address&#x27;) check.</p>
+                </div>
+
+
+            </div>
+        </div>
+
+        </div>
+
+
+        <div class="card">
+            <h2>Raw Tool Outputs (Evidence)</h2>
+            <p>Complete tool outputs preserved for audit trail and verification.</p>
+
+            <div class="finding-section">
+                <h4>Slither</h4>
+                <div class="code-block">{
+  &quot;version&quot;: &quot;0.10.0&quot;,
+  &quot;findings_count&quot;: 2,
+  &quot;detectors_run&quot;: 92,
+  &quot;execution_time&quot;: &quot;0.8s&quot;
+}</div>
+            </div>
+
+            <div class="finding-section">
+                <h4>Mythril</h4>
+                <div class="code-block">{
+  &quot;version&quot;: &quot;0.24.7&quot;,
+  &quot;findings_count&quot;: 1,
+  &quot;symbolic_execution_time&quot;: &quot;12.3s&quot;
+}</div>
+            </div>
+
+            <div class="finding-section">
+                <h4>SmartBugsDetector</h4>
+                <div class="code-block">{
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;patterns_matched&quot;: 1,
+  &quot;patterns_checked&quot;: 47
+}</div>
+            </div>
+
+            <div class="finding-section">
+                <h4>Aderyn</h4>
+                <div class="code-block">{
+  &quot;version&quot;: &quot;0.1.0&quot;,
+  &quot;findings_count&quot;: 1,
+  &quot;ast_analysis&quot;: true
+}</div>
+            </div>
+
+        </div>
+
+
+        <div class="card">
+            <h2>Disclaimer</h2>
+            <p>This report is provided for informational purposes only and does not constitute
+            legal, financial, or professional advice. The security analysis was performed using
+            automated tools and should be supplemented with manual code review by qualified
+            security professionals.</p>
+
+            <p style="margin-top: 1rem">Smart contract security is an evolving field.
+            This audit represents a point-in-time assessment and does not guarantee the
+            absence of all vulnerabilities. New attack vectors may emerge after this audit.</p>
+        </div>
+
+        <div class="footer">
+            <p>Generated by <strong>MIESC v4.2.1</strong> - Multi-layer Intelligent Evaluation for Smart Contracts</p>
+            <p>Report generated on 2025-12-24 15:37:18 UTC</p>
+            <p><a href="https://github.com/fboiero/MIESC" target="_blank">https://github.com/fboiero/MIESC</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Add toggle functionality for findings
+        document.querySelectorAll('.finding').forEach(el => {
+            el.querySelector('.finding-body').style.display = 'none';
+        });
+
+        document.querySelectorAll('.finding-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const body = header.nextElementSibling;
+                body.style.display = body.style.display === 'none' ? 'block' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>

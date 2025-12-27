@@ -1,0 +1,50 @@
+{
+  "metadata": {
+    "project_name": "DeFi Protocol Demo",
+    "contract_name": "VulnerableVault.sol",
+    "version": "1.0.0",
+    "auditor": "Fernando Boiero",
+    "organization": "MIESC Security",
+    "audit_date": "2025-12-24",
+    "report_id": "DEMO-001",
+    "contract_hash": "abc123",
+    "solidity_version": "0.8.20",
+    "lines_of_code": 150
+  },
+  "summary": {
+    "risk_score": 100,
+    "total_findings": 1,
+    "by_severity": {
+      "Critical": 1,
+      "High": 0,
+      "Medium": 0,
+      "Low": 0,
+      "Informational": 0
+    },
+    "by_layer": {
+      "1": 1
+    },
+    "by_tool": {
+      "Slither": 1
+    }
+  },
+  "findings": [
+    {
+      "id": "MIESC-001",
+      "title": "Reentrancy in withdraw()",
+      "severity": "Critical",
+      "category": "Reentrancy",
+      "description": "External call before state update",
+      "location": "VulnerableVault.sol:12",
+      "line_number": 12,
+      "tool": "Slither",
+      "layer": 1,
+      "swc_id": "SWC-107",
+      "cwe_id": null,
+      "remediation": "Apply CEI pattern",
+      "references": []
+    }
+  ],
+  "generated_at": "2025-12-24T09:11:45.835781",
+  "generator": "MIESC v4.2.1"
+}

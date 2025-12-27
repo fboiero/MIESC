@@ -7,9 +7,11 @@
 ## Table of Contents
 
 ### Preliminary Section
+
 - [Cover Page](COVER_PAGE.md)
 
 ### Main Chapters
+
 1. [Chapter 1: Introduction](CHAPTER_INTRODUCTION.md)
 2. [Chapter 2: Theoretical Framework](CHAPTER_THEORETICAL_FRAMEWORK.md)
 3. [Chapter 3: State of the Art](CHAPTER_STATE_OF_THE_ART.md)
@@ -20,6 +22,7 @@
 8. [Chapter 8: Conclusions and Future Work](CHAPTER_FUTURE_WORK.md)
 
 ### Appendices
+
 - Appendix A: Tool Outputs
 - Appendix B: Source Code
 - Appendix C: Analysis Techniques

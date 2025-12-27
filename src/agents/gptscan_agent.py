@@ -10,13 +10,14 @@ Repository: https://github.com/MetaTrustLabs/GPTScan
 Paper: https://gptscan.github.io/
 """
 
-from src.agents.base_agent import BaseAgent
-from typing import List, Dict, Any
-import subprocess
 import json
 import os
-from datetime import datetime
+import subprocess
+from typing import Any, Dict, List
+
 from dotenv import load_dotenv
+
+from src.agents.base_agent import BaseAgent
 
 # Load environment variables from .env
 load_dotenv()
@@ -85,7 +86,7 @@ class GPTScanAgent(BaseAgent):
         import time
         start_time = time.time()
 
-        print(f"\n🔍 GPTScan Analysis Starting...")
+        print("\n🔍 GPTScan Analysis Starting...")
         print(f"   Contract: {contract_path}")
         print(f"   GPT Enabled: {self.gpt_enabled}")
 
@@ -407,7 +408,7 @@ if __name__ == "__main__":
     findings = results.get("gptscan_findings", [])
     analysis = results.get("gptscan_analysis", {})
 
-    print(f"\n📊 Analysis Summary:")
+    print("\n📊 Analysis Summary:")
     print(f"   Static Issues Found: {analysis.get('static_issues', 0)}")
     print(f"   Patterns Extracted: {analysis.get('patterns_extracted', 0)}")
     print(f"   GPT Analyzed: {analysis.get('gpt_analyzed', 0)}")

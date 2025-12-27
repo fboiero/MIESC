@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:05,000
+MIESC - Evaluación Inteligente Multicapa para Smart Contracts
+
+2
+00:00:05,000 --> 00:00:10,000
+Framework de Seguridad en Profundidad con 25+ herramientas en 9 capas
+
+3
+00:00:10,000 --> 00:00:16,000
+Capas 1-3: Análisis Estático, Detección de Patrones, Ejecución Simbólica
+
+4
+00:00:16,000 --> 00:00:22,000
+Capas 4-6: Fuzzing, Verificación Formal, Detección ML
+
+5
+00:00:22,000 --> 00:00:28,000
+Capas 7-9: Análisis IA, Seguridad DeFi, Escaneo de Dependencias
+
+6
+00:00:28,000 --> 00:00:35,000
+Analizando VulnerableVault.sol - detectando reentrancy y control de acceso
+
+7
+00:00:35,000 --> 00:00:42,000
+5 vulnerabilidades encontradas: 2 Críticas, 1 Alta, 1 Media, 1 Baja
+
+8
+00:00:42,000 --> 00:00:50,000
+GitHub: github.com/fboiero/MIESC | pip install miesc

@@ -1,0 +1,115 @@
+{
+  "metadata": {
+    "project_name": "VulnerableVault Security Audit",
+    "contract_name": "VulnerableVault.sol",
+    "version": "1.0.0",
+    "auditor": "MIESC Automated Security Audit",
+    "organization": "MIESC Security Framework",
+    "audit_date": "2025-12-24",
+    "report_id": "MIESC-20251224-DEMO",
+    "contract_hash": "fd79f4d86b83fa669809a5ce255b76712a0160ede5e065b057a9f27e4b89c931",
+    "solidity_version": "0.8.0",
+    "lines_of_code": 32
+  },
+  "summary": {
+    "risk_score": 56.00000000000001,
+    "total_findings": 5,
+    "by_severity": {
+      "Critical": 2,
+      "High": 1,
+      "Medium": 1,
+      "Low": 1,
+      "Informational": 0
+    },
+    "by_layer": {
+      "1": 3,
+      "2": 1,
+      "3": 1
+    },
+    "by_tool": {
+      "Slither": 2,
+      "Mythril": 1,
+      "SmartBugsDetector": 1,
+      "Aderyn": 1
+    }
+  },
+  "findings": [
+    {
+      "id": "MIESC-001",
+      "title": "Reentrancy Vulnerability in withdraw()",
+      "severity": "Critical",
+      "category": "SWC-107",
+      "description": "External call before state update allows reentrant calls. An attacker can recursively call withdraw() before the balance is updated.",
+      "location": "VulnerableVault.sol:10-17",
+      "line_number": null,
+      "tool": "Slither",
+      "layer": 1,
+      "swc_id": "SWC-107",
+      "cwe_id": "CWE-841",
+      "remediation": "Apply the Checks-Effects-Interactions pattern. Update state variables before making external calls.",
+      "references": []
+    },
+    {
+      "id": "MIESC-002",
+      "title": "Unrestricted setBalance() Function",
+      "severity": "Critical",
+      "category": "SWC-105",
+      "description": "Missing access control allows any address to modify user balances arbitrarily.",
+      "location": "VulnerableVault.sol:24-26",
+      "line_number": null,
+      "tool": "Slither",
+      "layer": 1,
+      "swc_id": "SWC-105",
+      "cwe_id": "CWE-284",
+      "remediation": "Add onlyOwner modifier or implement role-based access control (RBAC).",
+      "references": []
+    },
+    {
+      "id": "MIESC-003",
+      "title": "Reentrancy Attack Path Confirmed",
+      "severity": "High",
+      "category": "SWC-107",
+      "description": "Symbolic execution confirmed exploitable reentrancy path with concrete attack transaction.",
+      "location": "VulnerableVault.sol:12",
+      "line_number": null,
+      "tool": "Mythril",
+      "layer": 3,
+      "swc_id": "SWC-107",
+      "cwe_id": null,
+      "remediation": "Use ReentrancyGuard from OpenZeppelin or apply CEI pattern.",
+      "references": []
+    },
+    {
+      "id": "MIESC-004",
+      "title": "Block Timestamp Dependence",
+      "severity": "Medium",
+      "category": "SWC-116",
+      "description": "Timestamp can be manipulated by miners within a ~15 second window.",
+      "location": "VulnerableVault.sol:29",
+      "line_number": null,
+      "tool": "SmartBugsDetector",
+      "layer": 2,
+      "swc_id": "SWC-116",
+      "cwe_id": null,
+      "remediation": "Avoid using block.timestamp for critical logic. Use block.number instead.",
+      "references": []
+    },
+    {
+      "id": "MIESC-005",
+      "title": "Missing Zero Address Validation",
+      "severity": "Low",
+      "category": "SWC-123",
+      "description": "setBalance() does not validate that the user address is not zero.",
+      "location": "VulnerableVault.sol:24",
+      "line_number": null,
+      "tool": "Aderyn",
+      "layer": 1,
+      "swc_id": "SWC-123",
+      "cwe_id": null,
+      "remediation": "Add require(user != address(0), 'Invalid address') check.",
+      "references": []
+    }
+  ],
+  "generated_at": "2025-12-24T15:37:18.741224",
+  "generator": "MIESC v4.2.1"
+}
