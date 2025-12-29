@@ -1,0 +1,201 @@
+# MIESC GitLab CI/CD Configuration
+# ================================
+# Smart contract security audit pipeline
+#
+# Features:
+# - 7-layer defense-in-depth analysis
+# - SARIF output for security dashboards
+# - Parallel layer execution
+# - Caching for faster builds
+#
+# Usage:
+#   Copy this file to your project root as .gitlab-ci.yml
+
+image: python:3.12-slim
+
+stages:
+  - setup
+  - analysis
+  - report
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  MIESC_OUTPUT: "miesc-results"
+  SOLC_VERSION: "0.8.20"
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .cache/pip
+    - venv/
+
+# =============================================================================
+# SETUP STAGE
+# =============================================================================
+
+install-miesc:
+  stage: setup
+  script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install --upgrade pip
+    - pip install miesc
+    # Install solc if needed
+    - pip install solc-select
+    - solc-select install $SOLC_VERSION
+    - solc-select use $SOLC_VERSION
+    - miesc --version
+  artifacts:
+    paths:
+      - venv/
+    expire_in: 1 hour
+
+# =============================================================================
+# ANALYSIS STAGE
+# =============================================================================
+
+# Quick analysis for merge requests
+quick-audit:
+  stage: analysis
+  needs: [install-miesc]
+  script:
+    - source venv/bin/activate
+    - mkdir -p $MIESC_OUTPUT
+    - |
+      for file in $(find contracts/ -name "*.sol" 2>/dev/null || find . -name "*.sol" | grep -v node_modules | grep -v lib); do
+        echo "Analyzing: $file"
+        miesc analyze "$file" --layers 1,2 --output-format sarif --output "$MIESC_OUTPUT/$(basename $file .sol)-quick.sarif" || true
+      done
+  artifacts:
+    paths:
+      - $MIESC_OUTPUT/
+    reports:
+      sast: $MIESC_OUTPUT/*.sarif
+    expire_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# Full 7-layer audit for main branch
+full-audit:
+  stage: analysis
+  needs: [install-miesc]
+  script:
+    - source venv/bin/activate
+    - mkdir -p $MIESC_OUTPUT
+    - |
+      for file in $(find contracts/ -name "*.sol" 2>/dev/null || find . -name "*.sol" | grep -v node_modules | grep -v lib); do
+        echo "Full audit: $file"
+        miesc analyze "$file" \
+          --layers 1,2,3,4,5,6,7 \
+          --output-format sarif \
+          --output "$MIESC_OUTPUT/$(basename $file .sol)-full.sarif" \
+          --parallel || true
+      done
+  artifacts:
+    paths:
+      - $MIESC_OUTPUT/
+    reports:
+      sast: $MIESC_OUTPUT/*.sarif
+    expire_in: 1 month
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Parallel layer execution for large projects
+.layer-template:
+  stage: analysis
+  needs: [install-miesc]
+  script:
+    - source venv/bin/activate
+    - mkdir -p $MIESC_OUTPUT
+    - |
+      for file in $(find contracts/ -name "*.sol" 2>/dev/null || find . -name "*.sol" | grep -v node_modules | grep -v lib); do
+        miesc analyze "$file" --layers $LAYER_NUM --output-format json --output "$MIESC_OUTPUT/layer${LAYER_NUM}-$(basename $file .sol).json" || true
+      done
+  artifacts:
+    paths:
+      - $MIESC_OUTPUT/
+    expire_in: 1 week
+
+layer-1-static:
+  extends: .layer-template
+  variables:
+    LAYER_NUM: "1"
+
+layer-2-semantic:
+  extends: .layer-template
+  variables:
+    LAYER_NUM: "2"
+
+layer-3-symbolic:
+  extends: .layer-template
+  variables:
+    LAYER_NUM: "3"
+
+layer-4-fuzzing:
+  extends: .layer-template
+  variables:
+    LAYER_NUM: "4"
+  timeout: 30 minutes
+
+# =============================================================================
+# REPORT STAGE
+# =============================================================================
+
+generate-report:
+  stage: report
+  needs:
+    - job: layer-1-static
+      optional: true
+    - job: layer-2-semantic
+      optional: true
+    - job: layer-3-symbolic
+      optional: true
+    - job: layer-4-fuzzing
+      optional: true
+  script:
+    - source venv/bin/activate
+    - |
+      echo "# MIESC Security Audit Report" > $MIESC_OUTPUT/REPORT.md
+      echo "" >> $MIESC_OUTPUT/REPORT.md
+      echo "Pipeline: $CI_PIPELINE_ID" >> $MIESC_OUTPUT/REPORT.md
+      echo "Commit: $CI_COMMIT_SHA" >> $MIESC_OUTPUT/REPORT.md
+      echo "Date: $(date)" >> $MIESC_OUTPUT/REPORT.md
+      echo "" >> $MIESC_OUTPUT/REPORT.md
+
+      # Aggregate findings using miesc export
+      miesc export $MIESC_OUTPUT --format markdown --output $MIESC_OUTPUT/REPORT.md || echo "No findings to aggregate"
+  artifacts:
+    paths:
+      - $MIESC_OUTPUT/
+    expire_in: 1 month
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Security gate - fail on critical findings
+security-gate:
+  stage: report
+  needs: [full-audit]
+  script:
+    - source venv/bin/activate
+    - |
+      CRITICAL=$(grep -r '"severity":\s*"critical"' $MIESC_OUTPUT/*.sarif 2>/dev/null | wc -l || echo 0)
+      HIGH=$(grep -r '"severity":\s*"high"' $MIESC_OUTPUT/*.sarif 2>/dev/null | wc -l || echo 0)
+
+      echo "Critical findings: $CRITICAL"
+      echo "High findings: $HIGH"
+
+      if [ "$CRITICAL" -gt 0 ]; then
+        echo "FAILED: Critical vulnerabilities detected!"
+        exit 1
+      fi
+
+      # Optional: fail on high severity
+      # if [ "$HIGH" -gt 5 ]; then
+      #   echo "FAILED: Too many high severity findings!"
+      #   exit 1
+      # fi
+
+      echo "PASSED: No critical vulnerabilities"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  allow_failure: false

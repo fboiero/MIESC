@@ -1,0 +1,260 @@
+# MIESC Azure DevOps Pipeline
+# ===========================
+# Smart contract security audit pipeline for Azure DevOps
+#
+# Features:
+# - Multi-stage pipeline with approval gates
+# - Parallel job execution
+# - Integration with Azure Security Dashboard
+# - Artifact publishing for audit trail
+#
+# Usage:
+#   Copy this file to your project root as azure-pipelines.yml
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    include:
+      - '**/*.sol'
+      - 'contracts/**'
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - '**/*.sol'
+      - 'contracts/**'
+
+variables:
+  pythonVersion: '3.12'
+  solcVersion: '0.8.20'
+  miescResultsDir: '$(Build.ArtifactStagingDirectory)/miesc-results'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  # =============================================================================
+  # BUILD STAGE - Install dependencies
+  # =============================================================================
+  - stage: Build
+    displayName: 'Setup Environment'
+    jobs:
+      - job: InstallMIESC
+        displayName: 'Install MIESC'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+              addToPath: true
+            displayName: 'Use Python $(pythonVersion)'
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install miesc solc-select
+              solc-select install $(solcVersion)
+              solc-select use $(solcVersion)
+              miesc --version
+            displayName: 'Install MIESC'
+
+          - script: |
+              mkdir -p $(miescResultsDir)
+            displayName: 'Create results directory'
+
+  # =============================================================================
+  # ANALYSIS STAGE - Run security analysis
+  # =============================================================================
+  - stage: Analysis
+    displayName: 'Security Analysis'
+    dependsOn: Build
+    jobs:
+      # Quick analysis for PRs
+      - job: QuickAudit
+        displayName: 'Quick Audit (Layers 1-2)'
+        condition: eq(variables['Build.Reason'], 'PullRequest')
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+
+          - script: |
+              pip install miesc solc-select
+              solc-select install $(solcVersion)
+              solc-select use $(solcVersion)
+            displayName: 'Install dependencies'
+
+          - script: |
+              mkdir -p $(miescResultsDir)
+
+              find . -name "*.sol" | grep -v node_modules | grep -v lib | while read file; do
+                echo "Quick audit: $file"
+                output_name="$(miescResultsDir)/$(basename "$file" .sol)-quick.sarif"
+                miesc analyze "$file" --layers 1,2 --output-format sarif --output "$output_name" || true
+              done
+            displayName: 'Run Quick Audit'
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: '$(miescResultsDir)'
+              artifactName: 'QuickAuditResults'
+            displayName: 'Publish Quick Audit Results'
+
+      # Parallel layer jobs for full analysis
+      - job: Layer1
+        displayName: 'Layer 1 - Static Analysis'
+        condition: ne(variables['Build.Reason'], 'PullRequest')
+        steps:
+          - template: templates/layer-analysis.yml
+            parameters:
+              layerNumber: 1
+              layerName: 'Static Analysis'
+
+      - job: Layer2
+        displayName: 'Layer 2 - Semantic Analysis'
+        condition: ne(variables['Build.Reason'], 'PullRequest')
+        steps:
+          - template: templates/layer-analysis.yml
+            parameters:
+              layerNumber: 2
+              layerName: 'Semantic Analysis'
+
+      - job: Layer3
+        displayName: 'Layer 3 - Symbolic Execution'
+        condition: ne(variables['Build.Reason'], 'PullRequest')
+        timeoutInMinutes: 60
+        steps:
+          - template: templates/layer-analysis.yml
+            parameters:
+              layerNumber: 3
+              layerName: 'Symbolic Execution'
+
+      - job: Layer4
+        displayName: 'Layer 4 - Fuzzing'
+        condition: ne(variables['Build.Reason'], 'PullRequest')
+        timeoutInMinutes: 90
+        steps:
+          - template: templates/layer-analysis.yml
+            parameters:
+              layerNumber: 4
+              layerName: 'Fuzzing'
+
+      - job: Layer5
+        displayName: 'Layer 5 - Formal Verification'
+        condition: ne(variables['Build.Reason'], 'PullRequest')
+        timeoutInMinutes: 120
+        steps:
+          - template: templates/layer-analysis.yml
+            parameters:
+              layerNumber: 5
+              layerName: 'Formal Verification'
+
+  # =============================================================================
+  # REPORT STAGE - Aggregate and report results
+  # =============================================================================
+  - stage: Report
+    displayName: 'Generate Reports'
+    dependsOn: Analysis
+    condition: ne(variables['Build.Reason'], 'PullRequest')
+    jobs:
+      - job: AggregateResults
+        displayName: 'Aggregate Results'
+        steps:
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              buildType: 'current'
+              downloadType: 'all'
+              downloadPath: '$(Build.ArtifactStagingDirectory)'
+            displayName: 'Download all artifacts'
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+
+          - script: |
+              pip install miesc
+              # Use miesc export for aggregation
+              miesc export $(Build.ArtifactStagingDirectory) --format json \
+                --output $(Build.ArtifactStagingDirectory)/summary.json || echo "{}"
+              miesc export $(Build.ArtifactStagingDirectory) --format markdown \
+                --output $(Build.ArtifactStagingDirectory)/REPORT.md || echo "No findings"
+              cat $(Build.ArtifactStagingDirectory)/summary.json 2>/dev/null || echo "{}"
+            displayName: 'Aggregate Results'
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: '$(Build.ArtifactStagingDirectory)'
+              artifactName: 'AggregatedResults'
+            displayName: 'Publish Aggregated Results'
+
+  # =============================================================================
+  # SECURITY GATE - Fail on critical findings
+  # =============================================================================
+  - stage: SecurityGate
+    displayName: 'Security Gate'
+    dependsOn: Report
+    condition: ne(variables['Build.Reason'], 'PullRequest')
+    jobs:
+      - job: CheckSecurity
+        displayName: 'Check Security Thresholds'
+        steps:
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              buildType: 'current'
+              artifactName: 'AggregatedResults'
+              downloadPath: '$(Build.ArtifactStagingDirectory)'
+
+          - script: |
+              CRITICAL=$(grep -r '"severity".*"critical"' $(Build.ArtifactStagingDirectory) 2>/dev/null | wc -l || echo 0)
+              HIGH=$(grep -r '"severity".*"high"' $(Build.ArtifactStagingDirectory) 2>/dev/null | wc -l || echo 0)
+
+              echo "##[section]Security Gate Results"
+              echo "Critical findings: $CRITICAL"
+              echo "High findings: $HIGH"
+
+              if [ "$CRITICAL" -gt 0 ]; then
+                echo "##[error]FAILED: Critical vulnerabilities detected!"
+                exit 1
+              fi
+
+              echo "##[section]PASSED: No critical vulnerabilities"
+            displayName: 'Security Gate Check'
+
+# ===========================================================================
+# TEMPLATE FILE: templates/layer-analysis.yml
+# Copy this section to templates/layer-analysis.yml for template reuse
+# ===========================================================================
+# parameters:
+#   - name: layerNumber
+#     type: number
+#   - name: layerName
+#     type: string
+#
+# steps:
+#   - task: UsePythonVersion@0
+#     inputs:
+#       versionSpec: '$(pythonVersion)'
+#     displayName: 'Use Python $(pythonVersion)'
+#
+#   - script: |
+#       pip install miesc solc-select
+#       solc-select install $(solcVersion)
+#       solc-select use $(solcVersion)
+#     displayName: 'Install dependencies'
+#
+#   - script: |
+#       mkdir -p $(miescResultsDir)
+#       find . -name "*.sol" | grep -v node_modules | while read file; do
+#         miesc analyze "$file" --layers $layerNumber --output-format json
+#       done
+#     displayName: 'Run Layer Analysis'
+#
+#   - task: PublishBuildArtifacts@1
+#     inputs:
+#       pathToPublish: '$(miescResultsDir)'
+#       artifactName: 'LayerResults'
+#     displayName: 'Publish Results'

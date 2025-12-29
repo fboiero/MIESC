@@ -1,0 +1,256 @@
+// MIESC Jenkins Pipeline
+// ======================
+// Smart contract security audit pipeline for Jenkins
+//
+// Features:
+// - Declarative pipeline with parallel stages
+// - Docker agent support
+// - Email notifications
+// - Security gate with quality thresholds
+//
+// Usage:
+//   Copy this file to your project root as Jenkinsfile
+
+pipeline {
+    agent {
+        docker {
+            image 'python:3.12-slim'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
+
+    environment {
+        MIESC_OUTPUT = 'miesc-results'
+        SOLC_VERSION = '0.8.20'
+        // Thresholds for security gate
+        MAX_CRITICAL = 0
+        MAX_HIGH = 5
+    }
+
+    options {
+        timeout(time: 2, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timestamps()
+    }
+
+    parameters {
+        choice(
+            name: 'ANALYSIS_TYPE',
+            choices: ['quick', 'full', 'custom'],
+            description: 'Type of analysis to run'
+        )
+        string(
+            name: 'LAYERS',
+            defaultValue: '1,2,3,4,5,6,7',
+            description: 'Layers to run (for custom analysis)'
+        )
+        booleanParam(
+            name: 'FAIL_ON_CRITICAL',
+            defaultValue: true,
+            description: 'Fail build on critical vulnerabilities'
+        )
+    }
+
+    stages {
+        stage('Setup') {
+            steps {
+                script {
+                    sh '''
+                        pip install --upgrade pip
+                        pip install miesc solc-select
+                        solc-select install ${SOLC_VERSION}
+                        solc-select use ${SOLC_VERSION}
+                        miesc --version
+                        mkdir -p ${MIESC_OUTPUT}
+                    '''
+                }
+            }
+        }
+
+        stage('Quick Audit') {
+            when {
+                anyOf {
+                    changeRequest()
+                    expression { params.ANALYSIS_TYPE == 'quick' }
+                }
+            }
+            steps {
+                script {
+                    runMIESC('1,2')
+                }
+            }
+        }
+
+        stage('Full Audit') {
+            when {
+                allOf {
+                    branch 'main'
+                    expression { params.ANALYSIS_TYPE != 'quick' }
+                }
+            }
+            parallel {
+                stage('Layer 1: Static') {
+                    steps {
+                        runMIESC('1')
+                    }
+                }
+                stage('Layer 2: Semantic') {
+                    steps {
+                        runMIESC('2')
+                    }
+                }
+                stage('Layer 3: Symbolic') {
+                    steps {
+                        runMIESC('3')
+                    }
+                }
+                stage('Layer 4: Fuzzing') {
+                    options {
+                        timeout(time: 30, unit: 'MINUTES')
+                    }
+                    steps {
+                        runMIESC('4')
+                    }
+                }
+                stage('Layer 5: Formal') {
+                    options {
+                        timeout(time: 60, unit: 'MINUTES')
+                    }
+                    steps {
+                        runMIESC('5')
+                    }
+                }
+            }
+        }
+
+        stage('Custom Audit') {
+            when {
+                expression { params.ANALYSIS_TYPE == 'custom' }
+            }
+            steps {
+                script {
+                    runMIESC(params.LAYERS)
+                }
+            }
+        }
+
+        stage('Aggregate Results') {
+            steps {
+                script {
+                    sh '''
+                        python3 << 'EOF'
+import json
+import os
+from collections import Counter
+
+results_dir = os.environ.get('MIESC_OUTPUT', 'miesc-results')
+severity_counts = Counter()
+all_findings = []
+
+for f in os.listdir(results_dir):
+    if f.endswith('.json'):
+        try:
+            with open(os.path.join(results_dir, f)) as fp:
+                data = json.load(fp)
+                findings = data.get('findings', [])
+                all_findings.extend(findings)
+                for finding in findings:
+                    severity_counts[finding.get('severity', 'unknown')] += 1
+        except:
+            pass
+
+# Write summary
+summary = {
+    'total': len(all_findings),
+    'critical': severity_counts.get('critical', 0),
+    'high': severity_counts.get('high', 0),
+    'medium': severity_counts.get('medium', 0),
+    'low': severity_counts.get('low', 0),
+}
+
+with open(os.path.join(results_dir, 'summary.json'), 'w') as f:
+    json.dump(summary, f, indent=2)
+
+print("=" * 50)
+print("MIESC AUDIT SUMMARY")
+print("=" * 50)
+for k, v in summary.items():
+    print(f"{k.upper()}: {v}")
+print("=" * 50)
+EOF
+                    '''
+                }
+            }
+        }
+
+        stage('Security Gate') {
+            steps {
+                script {
+                    def summary = readJSON file: "${MIESC_OUTPUT}/summary.json"
+
+                    echo "Security Gate Check"
+                    echo "==================="
+                    echo "Critical: ${summary.critical}"
+                    echo "High: ${summary.high}"
+
+                    if (params.FAIL_ON_CRITICAL && summary.critical > env.MAX_CRITICAL.toInteger()) {
+                        error "FAILED: ${summary.critical} critical vulnerabilities found (max: ${env.MAX_CRITICAL})"
+                    }
+
+                    if (summary.high > env.MAX_HIGH.toInteger()) {
+                        unstable "WARNING: ${summary.high} high severity findings (threshold: ${env.MAX_HIGH})"
+                    }
+
+                    echo "PASSED: Security gate checks completed"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: "${MIESC_OUTPUT}/**/*", fingerprint: true
+
+            // Publish SARIF to supported tools
+            recordIssues(
+                tools: [sarif(pattern: "${MIESC_OUTPUT}/*.sarif")],
+                qualityGates: [
+                    [threshold: 1, type: 'TOTAL_ERROR', criticality: 'FAILURE']
+                ]
+            )
+        }
+
+        success {
+            echo 'Security audit completed successfully!'
+        }
+
+        failure {
+            echo 'Security audit failed - critical vulnerabilities detected!'
+            // Uncomment for email notifications
+            // mail(
+            //     to: 'security@example.com',
+            //     subject: "FAILED: MIESC Audit - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            //     body: "Security vulnerabilities detected. Check: ${env.BUILD_URL}"
+            // )
+        }
+
+        unstable {
+            echo 'Security audit completed with warnings'
+        }
+
+        cleanup {
+            cleanWs()
+        }
+    }
+}
+
+// Helper function to run MIESC analysis
+def runMIESC(String layers) {
+    sh """
+        find . -name "*.sol" | grep -v node_modules | grep -v lib | while read file; do
+            echo "Analyzing: \$file (layers: ${layers})"
+            output_name="${MIESC_OUTPUT}/\$(basename "\$file" .sol)-layers${layers.replaceAll(',', '-')}.json"
+            miesc analyze "\$file" --layers ${layers} --output-format json --output "\$output_name" || true
+        done
+    """
+}

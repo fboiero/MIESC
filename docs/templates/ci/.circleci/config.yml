@@ -1,0 +1,268 @@
+# MIESC CircleCI Configuration
+# ============================
+# Smart contract security audit pipeline
+#
+# Features:
+# - Parallel layer execution with workflows
+# - Caching for dependencies
+# - SARIF output for security tools
+# - Configurable severity thresholds
+#
+# Usage:
+#   Copy .circleci/ folder to your project root
+
+version: 2.1
+
+orbs:
+  python: circleci/python@2.1.1
+
+executors:
+  miesc-executor:
+    docker:
+      - image: cimg/python:3.12
+    working_directory: ~/project
+    resource_class: medium
+
+commands:
+  install-miesc:
+    description: Install MIESC and dependencies
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-miesc-{{ checksum "requirements.txt" }}
+            - v1-miesc-
+      - run:
+          name: Install MIESC
+          command: |
+            python -m venv venv
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install miesc solc-select
+            solc-select install 0.8.20
+            solc-select use 0.8.20
+      - save_cache:
+          key: v1-miesc-{{ checksum "requirements.txt" }}
+          paths:
+            - venv
+            - ~/.solc-select
+
+  run-analysis:
+    description: Run MIESC analysis
+    parameters:
+      layers:
+        type: string
+        default: "1,2,3"
+      output_format:
+        type: string
+        default: "sarif"
+    steps:
+      - run:
+          name: Run MIESC Analysis
+          command: |
+            source venv/bin/activate
+            mkdir -p miesc-results
+
+            # Find all Solidity files
+            find . -name "*.sol" | grep -v node_modules | grep -v lib | while read file; do
+              echo "Analyzing: $file"
+              output_name="miesc-results/$(basename "$file" .sol)-layers<< parameters.layers >>.<< parameters.output_format >>"
+              miesc analyze "$file" \
+                --layers << parameters.layers >> \
+                --output-format << parameters.output_format >> \
+                --output "$output_name" || true
+            done
+
+jobs:
+  # Quick audit for PRs
+  quick-audit:
+    executor: miesc-executor
+    steps:
+      - install-miesc
+      - run-analysis:
+          layers: "1,2"
+          output_format: "sarif"
+      - store_artifacts:
+          path: miesc-results
+          destination: quick-audit
+      - persist_to_workspace:
+          root: .
+          paths:
+            - miesc-results
+
+  # Individual layer jobs for parallel execution
+  layer-1-static:
+    executor: miesc-executor
+    steps:
+      - install-miesc
+      - run-analysis:
+          layers: "1"
+          output_format: "json"
+      - persist_to_workspace:
+          root: .
+          paths:
+            - miesc-results
+
+  layer-2-semantic:
+    executor: miesc-executor
+    steps:
+      - install-miesc
+      - run-analysis:
+          layers: "2"
+          output_format: "json"
+      - persist_to_workspace:
+          root: .
+          paths:
+            - miesc-results
+
+  layer-3-symbolic:
+    executor: miesc-executor
+    resource_class: large
+    steps:
+      - install-miesc
+      - run-analysis:
+          layers: "3"
+          output_format: "json"
+      - persist_to_workspace:
+          root: .
+          paths:
+            - miesc-results
+
+  layer-4-fuzzing:
+    executor: miesc-executor
+    resource_class: large
+    steps:
+      - install-miesc
+      - run:
+          name: Run Fuzzing Layer
+          no_output_timeout: 30m
+          command: |
+            source venv/bin/activate
+            mkdir -p miesc-results
+            find . -name "*.sol" | grep -v node_modules | grep -v lib | while read file; do
+              miesc analyze "$file" --layers 4 --output-format json --output "miesc-results/$(basename "$file" .sol)-layer4.json" || true
+            done
+      - persist_to_workspace:
+          root: .
+          paths:
+            - miesc-results
+
+  # Full audit combining all layers
+  full-audit:
+    executor: miesc-executor
+    resource_class: large
+    steps:
+      - install-miesc
+      - run-analysis:
+          layers: "1,2,3,4,5,6,7"
+          output_format: "sarif"
+      - store_artifacts:
+          path: miesc-results
+          destination: full-audit
+      - persist_to_workspace:
+          root: .
+          paths:
+            - miesc-results
+
+  # Aggregate results
+  aggregate-results:
+    executor: miesc-executor
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Aggregate Results
+          command: |
+            source venv/bin/activate
+
+            echo "# MIESC Security Audit Report" > miesc-results/REPORT.md
+            echo "" >> miesc-results/REPORT.md
+            echo "Build: $CIRCLE_BUILD_NUM" >> miesc-results/REPORT.md
+            echo "Commit: $CIRCLE_SHA1" >> miesc-results/REPORT.md
+            echo "" >> miesc-results/REPORT.md
+
+            # Use miesc export for aggregation
+            miesc export miesc-results --format markdown --output miesc-results/REPORT.md || echo "No findings"
+            miesc export miesc-results --format json --output miesc-results/summary.json || echo "{}"
+            cat miesc-results/summary.json 2>/dev/null || echo "No summary available"
+      - store_artifacts:
+          path: miesc-results
+          destination: aggregated-results
+
+  # Security gate
+  security-gate:
+    executor: miesc-executor
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Check Security Gate
+          command: |
+            CRITICAL=$(grep -r '"severity".*"critical"' miesc-results/ 2>/dev/null | wc -l || echo 0)
+            HIGH=$(grep -r '"severity".*"high"' miesc-results/ 2>/dev/null | wc -l || echo 0)
+
+            echo "==================================="
+            echo "SECURITY GATE RESULTS"
+            echo "==================================="
+            echo "Critical findings: $CRITICAL"
+            echo "High findings: $HIGH"
+            echo "==================================="
+
+            if [ "$CRITICAL" -gt 0 ]; then
+              echo "FAILED: Critical vulnerabilities detected!"
+              exit 1
+            fi
+
+            echo "PASSED: No critical vulnerabilities"
+
+workflows:
+  # Quick check for pull requests
+  pr-check:
+    jobs:
+      - quick-audit:
+          filters:
+            branches:
+              ignore: main
+
+  # Full parallel analysis for main branch
+  full-analysis:
+    jobs:
+      - layer-1-static:
+          filters:
+            branches:
+              only: main
+      - layer-2-semantic:
+          filters:
+            branches:
+              only: main
+      - layer-3-symbolic:
+          filters:
+            branches:
+              only: main
+      - layer-4-fuzzing:
+          filters:
+            branches:
+              only: main
+      - aggregate-results:
+          requires:
+            - layer-1-static
+            - layer-2-semantic
+            - layer-3-symbolic
+            - layer-4-fuzzing
+      - security-gate:
+          requires:
+            - aggregate-results
+
+  # Scheduled nightly full audit
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"
+          filters:
+            branches:
+              only: main
+    jobs:
+      - full-audit
+      - security-gate:
+          requires:
+            - full-audit

@@ -1,0 +1,349 @@
+# MIESC GitHub Actions Workflow
+# =============================
+# Smart contract security audit workflow for GitHub Actions
+#
+# Features:
+# - Matrix builds for parallel layer execution
+# - SARIF integration with GitHub Security tab
+# - Caching for faster builds
+# - PR comments with audit summary
+#
+# Usage:
+#   Copy this file to .github/workflows/miesc-audit.yml
+
+name: MIESC Security Audit
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '**.sol'
+      - 'contracts/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**.sol'
+      - 'contracts/**'
+  workflow_dispatch:
+    inputs:
+      analysis_type:
+        description: 'Analysis type'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - quick
+          - full
+          - custom
+      layers:
+        description: 'Layers to run (for custom)'
+        required: false
+        default: '1,2,3,4,5,6,7'
+
+env:
+  PYTHON_VERSION: '3.12'
+  SOLC_VERSION: '0.8.20'
+  MIESC_OUTPUT: 'miesc-results'
+
+jobs:
+  # =============================================================================
+  # SETUP JOB
+  # =============================================================================
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      solidity-files: ${{ steps.find-sol.outputs.files }}
+      has-files: ${{ steps.find-sol.outputs.has-files }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find Solidity files
+        id: find-sol
+        run: |
+          FILES=$(find . -name "*.sol" | grep -v node_modules | grep -v lib | head -50 | tr '\n' ' ')
+          if [ -z "$FILES" ]; then
+            echo "has-files=false" >> $GITHUB_OUTPUT
+            echo "files=" >> $GITHUB_OUTPUT
+          else
+            echo "has-files=true" >> $GITHUB_OUTPUT
+            echo "files=$FILES" >> $GITHUB_OUTPUT
+          fi
+
+  # =============================================================================
+  # QUICK AUDIT - For PRs
+  # =============================================================================
+  quick-audit:
+    needs: setup
+    if: needs.setup.outputs.has-files == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install MIESC
+        run: |
+          pip install --upgrade pip
+          pip install miesc solc-select
+          solc-select install ${{ env.SOLC_VERSION }}
+          solc-select use ${{ env.SOLC_VERSION }}
+
+      - name: Run Quick Audit
+        run: |
+          mkdir -p ${{ env.MIESC_OUTPUT }}
+          for file in ${{ needs.setup.outputs.solidity-files }}; do
+            echo "Quick audit: $file"
+            output_name="${{ env.MIESC_OUTPUT }}/$(basename "$file" .sol)-quick.sarif"
+            miesc analyze "$file" --layers 1,2 --output-format sarif --output "$output_name" || true
+          done
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ env.MIESC_OUTPUT }}
+        continue-on-error: true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-audit-results
+          path: ${{ env.MIESC_OUTPUT }}
+          retention-days: 30
+
+  # =============================================================================
+  # FULL PARALLEL AUDIT - For main branch
+  # =============================================================================
+  layer-analysis:
+    needs: setup
+    if: needs.setup.outputs.has-files == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        layer: [1, 2, 3, 4, 5]
+        include:
+          - layer: 1
+            name: "Static Analysis"
+            timeout: 10
+          - layer: 2
+            name: "Semantic Analysis"
+            timeout: 15
+          - layer: 3
+            name: "Symbolic Execution"
+            timeout: 30
+          - layer: 4
+            name: "Fuzzing"
+            timeout: 45
+          - layer: 5
+            name: "Formal Verification"
+            timeout: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install MIESC
+        run: |
+          pip install --upgrade pip
+          pip install miesc solc-select
+          solc-select install ${{ env.SOLC_VERSION }}
+          solc-select use ${{ env.SOLC_VERSION }}
+
+      - name: Run Layer ${{ matrix.layer }} - ${{ matrix.name }}
+        timeout-minutes: ${{ matrix.timeout }}
+        run: |
+          mkdir -p ${{ env.MIESC_OUTPUT }}
+          for file in ${{ needs.setup.outputs.solidity-files }}; do
+            echo "Layer ${{ matrix.layer }}: $file"
+            output_name="${{ env.MIESC_OUTPUT }}/$(basename "$file" .sol)-layer${{ matrix.layer }}.json"
+            miesc analyze "$file" --layers ${{ matrix.layer }} --output-format json --output "$output_name" || true
+          done
+
+      - name: Upload layer results
+        uses: actions/upload-artifact@v4
+        with:
+          name: layer-${{ matrix.layer }}-results
+          path: ${{ env.MIESC_OUTPUT }}
+          retention-days: 30
+
+  # =============================================================================
+  # AGGREGATE RESULTS
+  # =============================================================================
+  aggregate:
+    needs: [setup, layer-analysis]
+    if: needs.setup.outputs.has-files == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      critical-count: ${{ steps.summary.outputs.critical }}
+      high-count: ${{ steps.summary.outputs.high }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Aggregate results
+        id: summary
+        run: |
+          pip install miesc
+
+          mkdir -p ${{ env.MIESC_OUTPUT }}
+          cp -r artifacts/*/* ${{ env.MIESC_OUTPUT }}/ 2>/dev/null || true
+
+          # Use miesc export for aggregation
+          miesc export ${{ env.MIESC_OUTPUT }} --format json \
+            --output ${{ env.MIESC_OUTPUT }}/summary.json || echo "{}"
+
+          # Extract counts for GitHub Actions outputs
+          CRITICAL=$(grep -o '"critical":[0-9]*' ${{ env.MIESC_OUTPUT }}/summary.json | cut -d: -f2 || echo 0)
+          HIGH=$(grep -o '"high":[0-9]*' ${{ env.MIESC_OUTPUT }}/summary.json | cut -d: -f2 || echo 0)
+          echo "critical=${CRITICAL:-0}" >> $GITHUB_OUTPUT
+          echo "high=${HIGH:-0}" >> $GITHUB_OUTPUT
+
+          cat ${{ env.MIESC_OUTPUT }}/summary.json 2>/dev/null || echo "{}"
+
+      - name: Generate SARIF
+        run: |
+          miesc export ${{ env.MIESC_OUTPUT }} --format sarif --output ${{ env.MIESC_OUTPUT }}/aggregated.sarif || true
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ env.MIESC_OUTPUT }}/aggregated.sarif
+        continue-on-error: true
+
+      - name: Upload aggregated results
+        uses: actions/upload-artifact@v4
+        with:
+          name: aggregated-results
+          path: ${{ env.MIESC_OUTPUT }}
+          retention-days: 90
+
+  # =============================================================================
+  # SECURITY GATE
+  # =============================================================================
+  security-gate:
+    needs: [aggregate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Security Thresholds
+        run: |
+          CRITICAL=${{ needs.aggregate.outputs.critical-count }}
+          HIGH=${{ needs.aggregate.outputs.high-count }}
+
+          echo "=================================="
+          echo "SECURITY GATE RESULTS"
+          echo "=================================="
+          echo "Critical findings: $CRITICAL"
+          echo "High findings: $HIGH"
+          echo "=================================="
+
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::error::FAILED: $CRITICAL critical vulnerabilities detected!"
+            exit 1
+          fi
+
+          # Uncomment to fail on high severity
+          # if [ "$HIGH" -gt 5 ]; then
+          #   echo "::warning::Too many high severity findings: $HIGH"
+          #   exit 1
+          # fi
+
+          echo "::notice::PASSED: No critical vulnerabilities detected"
+
+  # =============================================================================
+  # PR COMMENT (optional)
+  # =============================================================================
+  pr-comment:
+    needs: [quick-audit]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Download results
+        uses: actions/download-artifact@v4
+        with:
+          name: quick-audit-results
+          path: results
+
+      - name: Generate PR Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Count findings from SARIF files
+            let criticalCount = 0;
+            let highCount = 0;
+            let mediumCount = 0;
+            let lowCount = 0;
+
+            const resultsDir = 'results';
+            if (fs.existsSync(resultsDir)) {
+              const files = fs.readdirSync(resultsDir);
+              for (const file of files) {
+                if (file.endsWith('.sarif')) {
+                  try {
+                    const content = fs.readFileSync(path.join(resultsDir, file), 'utf8');
+                    const sarif = JSON.parse(content);
+                    for (const run of sarif.runs || []) {
+                      for (const result of run.results || []) {
+                        const level = result.level || 'warning';
+                        if (level === 'error') criticalCount++;
+                        else if (level === 'warning') highCount++;
+                        else if (level === 'note') mediumCount++;
+                        else lowCount++;
+                      }
+                    }
+                  } catch (e) {
+                    console.log(`Error parsing ${file}: ${e}`);
+                  }
+                }
+              }
+            }
+
+            const totalFindings = criticalCount + highCount + mediumCount + lowCount;
+            const status = criticalCount > 0 ? '🔴' : highCount > 0 ? '🟠' : '🟢';
+            const warning = criticalCount > 0 ? '⚠️ **Critical vulnerabilities detected!**' : '✅ No critical vulnerabilities.';
+
+            const lines = [
+              `## ${status} MIESC Security Audit Results`,
+              '',
+              'Severity | Count',
+              '---------|------',
+              `🔴 Critical | ${criticalCount}`,
+              `🟠 High | ${highCount}`,
+              `🟡 Medium | ${mediumCount}`,
+              `🟢 Low | ${lowCount}`,
+              `**Total** | **${totalFindings}**`,
+              '',
+              warning,
+              '',
+              '---',
+              '*Generated by [MIESC](https://github.com/fboiero/MIESC)*'
+            ];
+            const body = lines.join('\n');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
