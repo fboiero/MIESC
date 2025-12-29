@@ -1,0 +1,171 @@
+# =============================================================================
+# MIESC Security Scan - GitHub Action Template
+# =============================================================================
+# Copy this file to your project: .github/workflows/miesc-security.yml
+#
+# This template enables automated smart contract security scanning
+# using MIESC's multi-layer defense-in-depth approach.
+#
+# For more information: https://github.com/fboiero/MIESC
+# =============================================================================
+
+name: MIESC Security Scan
+
+on:
+  push:
+    paths:
+      - '**.sol'
+      - 'contracts/**'
+  pull_request:
+    paths:
+      - '**.sol'
+      - 'contracts/**'
+  workflow_dispatch:
+    inputs:
+      scan_mode:
+        description: 'Scan mode'
+        required: false
+        default: 'quick'
+        type: choice
+        options:
+          - quick
+          - full
+      fail_on:
+        description: 'Fail on severity (comma-separated)'
+        required: false
+        default: 'high,critical'
+
+env:
+  PYTHON_VERSION: '3.11'
+  SOLC_VERSION: '0.8.20'
+
+jobs:
+  miesc-scan:
+    name: MIESC Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install solc
+        run: |
+          pip install solc-select
+          solc-select install ${{ env.SOLC_VERSION }}
+          solc-select use ${{ env.SOLC_VERSION }}
+
+      - name: Install MIESC
+        run: |
+          pip install miesc
+          echo "MIESC installed successfully"
+
+      - name: Run MIESC Quick Scan
+        id: miesc
+        run: |
+          SCAN_MODE="${{ github.event.inputs.scan_mode || 'quick' }}"
+          FAIL_ON="${{ github.event.inputs.fail_on || 'high,critical' }}"
+
+          echo "Running MIESC $SCAN_MODE scan..."
+          echo "Fail on: $FAIL_ON"
+
+          # Find contracts directory
+          if [ -d "contracts" ]; then
+            CONTRACT_DIR="contracts"
+          elif [ -d "src" ]; then
+            CONTRACT_DIR="src"
+          else
+            CONTRACT_DIR="."
+          fi
+
+          # Run MIESC audit
+          python -m miesc audit $SCAN_MODE "$CONTRACT_DIR" \
+            --output json \
+            --fail-on "$FAIL_ON" \
+            > miesc-results.json 2>&1 || true
+
+          # Check results
+          if [ -f miesc-results.json ]; then
+            FINDINGS=$(jq -r '.total_findings // 0' miesc-results.json 2>/dev/null || echo "0")
+            CRITICAL=$(jq -r '.severity_counts.critical // 0' miesc-results.json 2>/dev/null || echo "0")
+            HIGH=$(jq -r '.severity_counts.high // 0' miesc-results.json 2>/dev/null || echo "0")
+
+            echo "findings=$FINDINGS" >> $GITHUB_OUTPUT
+            echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+            echo "high=$HIGH" >> $GITHUB_OUTPUT
+
+            echo "Total findings: $FINDINGS"
+            echo "Critical: $CRITICAL"
+            echo "High: $HIGH"
+
+            # Determine if we should fail
+            if [[ "$FAIL_ON" == *"critical"* ]] && [ "$CRITICAL" -gt 0 ]; then
+              echo "status=failure" >> $GITHUB_OUTPUT
+            elif [[ "$FAIL_ON" == *"high"* ]] && [ "$HIGH" -gt 0 ]; then
+              echo "status=failure" >> $GITHUB_OUTPUT
+            else
+              echo "status=success" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "findings=0" >> $GITHUB_OUTPUT
+            echo "status=success" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: miesc-security-report
+          path: miesc-results.json
+          retention-days: 30
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const findings = '${{ steps.miesc.outputs.findings }}' || '0';
+            const critical = '${{ steps.miesc.outputs.critical }}' || '0';
+            const high = '${{ steps.miesc.outputs.high }}' || '0';
+            const status = '${{ steps.miesc.outputs.status }}' === 'success' ? 'PASS' : 'FAIL';
+            const icon = status === 'PASS' ? '&#x2705;' : '&#x274C;';
+
+            const body = `## ${icon} MIESC Security Scan Results
+
+            | Severity | Count |
+            |----------|-------|
+            | Critical | ${critical} |
+            | High | ${high} |
+            | **Total** | **${findings}** |
+
+            **Status:** ${status}
+
+            ---
+            *Powered by [MIESC v4.2.2](https://github.com/fboiero/MIESC) - Multi-layer Smart Contract Security Framework*
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Check threshold
+        if: steps.miesc.outputs.status == 'failure'
+        run: |
+          echo "Security scan found vulnerabilities above threshold"
+          echo "Critical: ${{ steps.miesc.outputs.critical }}"
+          echo "High: ${{ steps.miesc.outputs.high }}"
+          exit 1

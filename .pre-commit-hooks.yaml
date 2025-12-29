@@ -1,0 +1,56 @@
+# MIESC Pre-commit Hooks
+# These hooks allow users to integrate MIESC security scanning into their projects
+#
+# Usage in your project's .pre-commit-config.yaml:
+#
+#   repos:
+#     - repo: https://github.com/fboiero/MIESC
+#       rev: v4.2.2
+#       hooks:
+#         - id: miesc-quick
+#           args: ['--fail-on', 'high,critical']
+#
+# For more information: https://github.com/fboiero/MIESC
+
+- id: miesc-quick
+  name: MIESC Quick Security Scan
+  description: Run quick security scan on Solidity contracts (4 tools, ~30s)
+  entry: python -m miesc audit quick
+  language: python
+  files: \.sol$
+  types: [file]
+  pass_filenames: true
+  require_serial: false
+  additional_dependencies: ['miesc>=4.2.2']
+
+- id: miesc-full
+  name: MIESC Full Security Audit
+  description: Run comprehensive 9-layer security audit (all tools)
+  entry: python -m miesc audit full
+  language: python
+  files: \.sol$
+  types: [file]
+  pass_filenames: true
+  require_serial: true
+  stages: [manual]
+  additional_dependencies: ['miesc>=4.2.2']
+
+- id: miesc-layer
+  name: MIESC Single Layer Scan
+  description: Run specific layer analysis
+  entry: python -m miesc audit layer 1
+  language: python
+  files: \.sol$
+  types: [file]
+  pass_filenames: true
+  additional_dependencies: ['miesc>=4.2.2']
+
+- id: miesc-ci
+  name: MIESC CI Mode
+  description: Security scan with CI-friendly output (exit code on issues)
+  entry: python -m miesc audit quick --ci
+  language: python
+  files: \.sol$
+  types: [file]
+  pass_filenames: true
+  additional_dependencies: ['miesc>=4.2.2']
