@@ -1086,6 +1086,316 @@ def audit_single(tool, contract, output, timeout):
         success(f"Report saved to {output}")
 
 
+@audit.command("batch")
+@click.argument("path", type=click.Path(exists=True))
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown", "csv"]), default="json")
+@click.option("--profile", "-p", type=click.Choice(["quick", "fast", "balanced", "thorough"]), default="quick",
+              help="Analysis profile")
+@click.option("--parallel", "-j", type=int, default=4, help="Number of parallel workers")
+@click.option("--recursive", "-r", is_flag=True, help="Recursively search for .sol files")
+@click.option("--pattern", type=str, default="*.sol", help="File pattern to match")
+@click.option("--fail-on", type=str, default="", help="Fail on severity (comma-separated: critical,high)")
+def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_on):
+    """Batch analysis of multiple contracts.
+
+    Analyze all .sol files in a directory with parallel execution.
+    Aggregates results into a single comprehensive report.
+
+    Examples:
+      miesc audit batch ./contracts                     # Scan all contracts
+      miesc audit batch ./src -r --profile balanced    # Recursive with balanced profile
+      miesc audit batch . -j 8 -o report.json          # 8 parallel workers
+      miesc audit batch ./contracts --fail-on critical,high  # CI mode
+    """
+    import concurrent.futures
+    import glob as glob_module
+
+    print_banner()
+
+    # Find all Solidity files
+    path_obj = Path(path)
+
+    if path_obj.is_file():
+        if path_obj.suffix == '.sol':
+            sol_files = [str(path_obj)]
+        else:
+            error(f"Not a Solidity file: {path}")
+            sys.exit(1)
+    else:
+        if recursive:
+            sol_files = list(glob_module.glob(str(path_obj / "**" / pattern), recursive=True))
+        else:
+            sol_files = list(glob_module.glob(str(path_obj / pattern)))
+
+    if not sol_files:
+        warning(f"No {pattern} files found in {path}")
+        sys.exit(0)
+
+    info(f"Found {len(sol_files)} Solidity files")
+    info(f"Profile: {profile} | Workers: {parallel}")
+
+    # Select tools based on profile
+    profile_tools = {
+        "quick": QUICK_TOOLS,
+        "fast": ["slither", "aderyn"],
+        "balanced": ["slither", "aderyn", "solhint", "mythril"],
+        "thorough": QUICK_TOOLS + ["echidna", "medusa"],
+    }
+    tools_to_run = profile_tools.get(profile, QUICK_TOOLS)
+    info(f"Tools: {', '.join(tools_to_run)}")
+
+    # Results storage
+    all_contract_results = []
+    aggregated_summary = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
+    failed_contracts = []
+    start_time = datetime.now()
+
+    def analyze_contract(contract_path: str) -> Dict[str, Any]:
+        """Analyze a single contract with all tools."""
+        contract_results = []
+        for tool in tools_to_run:
+            result = _run_tool(tool, contract_path, timeout=120)
+            contract_results.append(result)
+
+        summary = _summarize_findings(contract_results)
+        return {
+            "contract": contract_path,
+            "results": contract_results,
+            "summary": summary,
+            "total_findings": sum(summary.values()),
+        }
+
+    # Progress display
+    if RICH_AVAILABLE:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TextColumn("[cyan]{task.completed}/{task.total}[/cyan]"),
+        ) as progress:
+            task = progress.add_task("Analyzing contracts...", total=len(sol_files))
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as executor:
+                future_to_contract = {
+                    executor.submit(analyze_contract, f): f for f in sol_files
+                }
+
+                for future in concurrent.futures.as_completed(future_to_contract):
+                    contract = future_to_contract[future]
+                    try:
+                        result = future.result()
+                        all_contract_results.append(result)
+
+                        # Update aggregated summary
+                        for sev, count in result["summary"].items():
+                            aggregated_summary[sev] += count
+
+                        # Show individual result
+                        contract_name = Path(contract).name
+                        findings = result["total_findings"]
+                        crit = result["summary"]["CRITICAL"]
+                        high = result["summary"]["HIGH"]
+
+                        if crit > 0 or high > 0:
+                            console.print(
+                                f"  [red]{contract_name}[/red]: "
+                                f"{crit} critical, {high} high, {findings} total"
+                            )
+                        elif findings > 0:
+                            console.print(
+                                f"  [yellow]{contract_name}[/yellow]: {findings} findings"
+                            )
+
+                    except Exception as e:
+                        failed_contracts.append({"contract": contract, "error": str(e)})
+                        console.print(f"  [red]{Path(contract).name}[/red]: error - {e}")
+
+                    progress.advance(task)
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as executor:
+            future_to_contract = {
+                executor.submit(analyze_contract, f): f for f in sol_files
+            }
+
+            completed = 0
+            for future in concurrent.futures.as_completed(future_to_contract):
+                contract = future_to_contract[future]
+                completed += 1
+                print(f"[{completed}/{len(sol_files)}] Processing {Path(contract).name}...")
+
+                try:
+                    result = future.result()
+                    all_contract_results.append(result)
+
+                    for sev, count in result["summary"].items():
+                        aggregated_summary[sev] += count
+
+                except Exception as e:
+                    failed_contracts.append({"contract": contract, "error": str(e)})
+                    print(f"  Error: {e}")
+
+    elapsed = (datetime.now() - start_time).total_seconds()
+    total_findings = sum(aggregated_summary.values())
+
+    # Display summary
+    if RICH_AVAILABLE:
+        console.print("\n")
+        table = Table(title="Batch Analysis Summary", box=box.ROUNDED)
+        table.add_column("Metric", style="bold")
+        table.add_column("Value", justify="right")
+
+        table.add_row("Contracts Analyzed", str(len(all_contract_results)))
+        table.add_row("Failed", str(len(failed_contracts)))
+        table.add_row("Execution Time", f"{elapsed:.1f}s")
+        table.add_row("", "")
+
+        colors = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow", "LOW": "cyan", "INFO": "dim"}
+        for sev, count in aggregated_summary.items():
+            table.add_row(sev, str(count), style=colors.get(sev, "white"))
+
+        table.add_row("TOTAL FINDINGS", str(total_findings), style="bold")
+        console.print(table)
+
+        # Show most vulnerable contracts
+        sorted_contracts = sorted(
+            all_contract_results,
+            key=lambda x: (x["summary"]["CRITICAL"], x["summary"]["HIGH"], x["total_findings"]),
+            reverse=True
+        )
+
+        if sorted_contracts and total_findings > 0:
+            console.print("\n[bold]Top Vulnerable Contracts:[/bold]")
+            for result in sorted_contracts[:5]:
+                if result["total_findings"] > 0:
+                    console.print(
+                        f"  {Path(result['contract']).name}: "
+                        f"C:{result['summary']['CRITICAL']} H:{result['summary']['HIGH']} "
+                        f"M:{result['summary']['MEDIUM']} L:{result['summary']['LOW']}"
+                    )
+    else:
+        print(f"\n=== Batch Analysis Summary ===")
+        print(f"Contracts: {len(all_contract_results)}")
+        print(f"Failed: {len(failed_contracts)}")
+        print(f"Time: {elapsed:.1f}s")
+        print(f"\nFindings by severity:")
+        for sev, count in aggregated_summary.items():
+            print(f"  {sev}: {count}")
+        print(f"  TOTAL: {total_findings}")
+
+    # Build output data
+    output_data = {
+        "version": VERSION,
+        "timestamp": datetime.now().isoformat(),
+        "execution_time": elapsed,
+        "profile": profile,
+        "path": str(path),
+        "contracts_analyzed": len(all_contract_results),
+        "contracts_failed": len(failed_contracts),
+        "aggregated_summary": aggregated_summary,
+        "total_findings": total_findings,
+        "contracts": all_contract_results,
+        "failed": failed_contracts,
+    }
+
+    # Save output
+    if output:
+        if fmt == "sarif":
+            # Flatten all results for SARIF
+            all_results = []
+            for contract_data in all_contract_results:
+                for result in contract_data.get("results", []):
+                    result["contract"] = contract_data["contract"]
+                    all_results.append(result)
+            data = _to_sarif(all_results)
+            with open(output, "w") as f:
+                json.dump(data, f, indent=2)
+        elif fmt == "markdown":
+            # Generate batch markdown report
+            md = f"""# MIESC Batch Security Audit Report
+
+**Path**: `{path}`
+**Date**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+**MIESC Version**: {VERSION}
+**Profile**: {profile}
+
+## Executive Summary
+
+| Metric | Value |
+|--------|-------|
+| Contracts Analyzed | {len(all_contract_results)} |
+| Contracts Failed | {len(failed_contracts)} |
+| Execution Time | {elapsed:.1f}s |
+
+### Findings by Severity
+
+| Severity | Count |
+|----------|-------|
+| Critical | {aggregated_summary['CRITICAL']} |
+| High | {aggregated_summary['HIGH']} |
+| Medium | {aggregated_summary['MEDIUM']} |
+| Low | {aggregated_summary['LOW']} |
+| Info | {aggregated_summary['INFO']} |
+| **Total** | **{total_findings}** |
+
+## Contract Analysis
+
+"""
+            for contract_data in sorted_contracts:
+                contract_name = Path(contract_data["contract"]).name
+                summary = contract_data["summary"]
+                md += f"""### {contract_name}
+
+| Severity | Count |
+|----------|-------|
+| Critical | {summary['CRITICAL']} |
+| High | {summary['HIGH']} |
+| Medium | {summary['MEDIUM']} |
+| Low | {summary['LOW']} |
+
+"""
+            md += f"\n---\n\n*Generated by MIESC v{VERSION}*\n"
+            with open(output, "w") as f:
+                f.write(md)
+        elif fmt == "csv":
+            import csv
+            with open(output, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Contract", "Tool", "Severity", "Title", "Description", "Line"])
+                for contract_data in all_contract_results:
+                    for result in contract_data.get("results", []):
+                        for finding in result.get("findings", []):
+                            location = finding.get("location", {})
+                            if isinstance(location, dict):
+                                line = location.get("line", 0)
+                            else:
+                                line = 0
+                            writer.writerow([
+                                Path(contract_data["contract"]).name,
+                                result.get("tool", ""),
+                                finding.get("severity", ""),
+                                finding.get("title", finding.get("type", ""))[:50],
+                                finding.get("description", finding.get("message", ""))[:100],
+                                line,
+                            ])
+        else:  # json
+            with open(output, "w") as f:
+                json.dump(output_data, f, indent=2, default=str)
+
+        success(f"Report saved to {output}")
+
+    # Fail-on check for CI
+    if fail_on:
+        severities = [s.strip().upper() for s in fail_on.split(",")]
+        for sev in severities:
+            if sev in aggregated_summary and aggregated_summary[sev] > 0:
+                error(f"Found {aggregated_summary[sev]} {sev} issues (fail-on: {fail_on})")
+                sys.exit(1)
+
+    success(f"Batch analysis complete: {len(all_contract_results)} contracts, {total_findings} findings")
+
+
 # ============================================================================
 # Tools Command Group
 # ============================================================================
