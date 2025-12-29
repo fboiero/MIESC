@@ -1,0 +1,13 @@
+{
+    "recommendations": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "juanblanco.solidity",
+        "tintinweb.solidity-visual-auditor",
+        "MS-SarifVSCode.sarif-viewer",
+        "streetsidesoftware.code-spell-checker",
+        "usernamehw.errorlens",
+        "charliermarsh.ruff"
+    ],
+    "unwantedRecommendations": []
+}

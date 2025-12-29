@@ -1,0 +1,20 @@
+{
+    "editor.formatOnSave": true,
+    "python.defaultInterpreterPath": "${workspaceFolder}/venv314/bin/python",
+    "python.formatting.provider": "black",
+    "python.linting.enabled": true,
+    "python.linting.ruffEnabled": true,
+    "python.linting.mypyEnabled": true,
+    "files.associations": {
+        "*.sol": "solidity"
+    },
+    "solidity.linter": "",
+    "[solidity]": {
+        "editor.defaultFormatter": null
+    },
+    "miesc.defaultProfile": "quick",
+    "miesc.autoAnalyzeOnSave": false,
+    "miesc.showInlineWarnings": true,
+    "miesc.sarifOutputPath": "${workspaceFolder}/.miesc-results.sarif",
+    "sarif-viewer.connectToGithubCodeScanning": "off"
+}

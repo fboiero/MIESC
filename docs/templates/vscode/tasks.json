@@ -1,0 +1,108 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "MIESC: Quick Audit",
+            "type": "shell",
+            "command": "miesc audit quick ${file}",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": {
+                "owner": "miesc",
+                "fileLocation": ["absolute"],
+                "pattern": {
+                    "regexp": "^(.+):(\\d+):\\s*(warning|error|info):\\s*(.+)$",
+                    "file": 1,
+                    "line": 2,
+                    "severity": 3,
+                    "message": 4
+                }
+            }
+        },
+        {
+            "label": "MIESC: Full Audit (Current File)",
+            "type": "shell",
+            "command": "miesc audit full ${file} -o ${workspaceFolder}/.miesc-results.sarif -f sarif",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "MIESC: Batch Audit (Workspace)",
+            "type": "shell",
+            "command": "miesc audit batch ${workspaceFolder} -r -o ${workspaceFolder}/.miesc-results.sarif -f sarif",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "MIESC: Watch Mode",
+            "type": "shell",
+            "command": "miesc watch ${workspaceFolder} --profile quick",
+            "group": "build",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": {
+                "owner": "miesc-watch",
+                "fileLocation": ["absolute"],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^Watching for changes",
+                    "endsPattern": "^Analysis complete"
+                },
+                "pattern": {
+                    "regexp": "^(.+):(\\d+):\\s*(warning|error|info):\\s*(.+)$",
+                    "file": 1,
+                    "line": 2,
+                    "severity": 3,
+                    "message": 4
+                }
+            }
+        },
+        {
+            "label": "MIESC: Generate SARIF Report",
+            "type": "shell",
+            "command": "miesc audit batch ${workspaceFolder}/contracts -r -o ${workspaceFolder}/miesc-report.sarif -f sarif --profile balanced",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "MIESC: CI Check (Fail on Critical/High)",
+            "type": "shell",
+            "command": "miesc audit batch ${workspaceFolder} -r --fail-on critical,high",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "MIESC: Run Custom Detectors",
+            "type": "shell",
+            "command": "miesc detect ${file} --detectors flash-loan,mev-detector,access-control",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
