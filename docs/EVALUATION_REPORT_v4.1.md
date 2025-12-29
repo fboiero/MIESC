@@ -1,7 +1,7 @@
 # MIESC v4.1.0 - Evaluación Integral y Plan de Vanguardia
 
 **Fecha:** 2025-12-13
-**Evaluador:** Claude Opus 4.5
+**Autor:** Fernando Boiero
 **Proyecto:** Multi-layer Intelligent Evaluation for Smart Contracts
 **Estado Actual:** 85% Completado - Beta Estable
 
@@ -486,6 +486,6 @@ El proyecto está bien posicionado para convertirse en la herramienta de referen
 
 ---
 
-*Generado automáticamente por Claude Opus 4.5*
+*Documento de evaluación técnica - Fernando Boiero*
 *Proyecto: MIESC v4.1.0*
 *Fecha: 2025-12-13*

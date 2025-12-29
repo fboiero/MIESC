@@ -558,4 +558,4 @@ Semana 15-16: QA y Release v4.2.0
 
 *Plan generado: 2025-12-13*
 *Version: MIESC v4.2.0 "Fortress"*
-*Autor: Claude Opus 4.5 + Fernando Boiero*
+*Autor: Fernando Boiero*
