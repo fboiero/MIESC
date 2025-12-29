@@ -107,6 +107,16 @@ Repository = "https://github.com/fboiero/MIESC.git"
 [project.scripts]
 miesc = "miesc.cli.main:cli"
 
+[project.entry-points."miesc.detectors"]
+# Built-in detectors (for reference/documentation)
+# External packages can register their detectors here:
+# flash-loan = "my_package.detectors:FlashLoanDetector"
+# custom-check = "my_package.detectors:CustomDetector"
+unchecked-call = "src.detectors.example_detectors:UncheckedCallDetector"
+flash-loan = "src.detectors.example_detectors:FlashLoanDetector"
+mev-detector = "src.detectors.example_detectors:MEVDetector"
+access-control = "src.detectors.example_detectors:AccessControlDetector"
+
 [tool.setuptools]
 packages = [
     "miesc",
@@ -125,7 +135,7 @@ miesc = ["py.typed"]
 
 [tool.black]
 line-length = 100
-target-version = ['py312', 'py313', 'py314']
+target-version = ['py312']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
