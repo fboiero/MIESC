@@ -50,6 +50,15 @@ from .rich_cli import (
     create_cli,
     RICH_AVAILABLE,
 )
+from .framework_detector import (
+    Framework,
+    FrameworkConfig,
+    FrameworkDetector,
+    detect_framework,
+    get_framework_name,
+    is_foundry_project,
+    is_hardhat_project,
+)
 
 __all__ = [
     # Config
@@ -114,4 +123,12 @@ __all__ = [
     'SeverityStyle',
     'create_cli',
     'RICH_AVAILABLE',
+    # Framework Detection
+    'Framework',
+    'FrameworkConfig',
+    'FrameworkDetector',
+    'detect_framework',
+    'get_framework_name',
+    'is_foundry_project',
+    'is_hardhat_project',
 ]
