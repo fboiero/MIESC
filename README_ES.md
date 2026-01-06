@@ -113,7 +113,7 @@ Demuestra:
 - Análisis Defense-in-Depth a través de 9 capas de seguridad
 - 32 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
 - Integración Model Context Protocol (MCP) con Claude Desktop
-- 100% Recall, 87.5% Precisión, F1-Score 0.93
+- 100% Precisión, 70% Recall, F1-Score 0.82 (dataset SmartBugs-curated)
 - IA Soberana con Ollama (el código nunca sale de tu máquina)
 
 Duración: ~10 minutos | Fuente: `demo_thesis_defense.py`

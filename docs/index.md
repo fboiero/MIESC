@@ -6,7 +6,7 @@ title: MIESC - Smart Contract Security Framework
 # MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MIESC-v4.2.0-blue?style=for-the-badge" alt="MIESC v4.2.0">
+  <img src="https://img.shields.io/badge/MIESC-v4.2.3-blue?style=for-the-badge" alt="MIESC v4.2.3">
   <img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Python-3.12+-yellow?style=for-the-badge" alt="Python">
   <img src="https://img.shields.io/badge/AI-Powered-purple?style=for-the-badge" alt="AI Powered">
@@ -41,10 +41,10 @@ title: MIESC - Smart Contract Security Framework
 </p>
 
 **Demonstrates:**
-- Defense-in-Depth analysis across 7 security layers
-- 29 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
+- Defense-in-Depth analysis across 9 security layers
+- 32 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
 - Model Context Protocol (MCP) integration with Claude Desktop
-- 100% Recall, 87.5% Precision, F1-Score 0.93
+- 100% Precision, 70% Recall, F1-Score 0.82 (SmartBugs-curated benchmark)
 - Sovereign AI with Ollama (code never leaves your machine)
 
 ---
@@ -52,7 +52,7 @@ title: MIESC - Smart Contract Security Framework
 ## Scope and Limitations
 
 **Purpose:**
-- Automated orchestration of 25 security analysis tools
+- Automated orchestration of 32 security analysis tools
 - AI-assisted finding correlation to reduce duplicate reports
 - ML-based vulnerability detection with 95.7% accuracy
 - Compliance mapping to ISO/NIST/OWASP standards
@@ -70,13 +70,13 @@ title: MIESC - Smart Contract Security Framework
 
 ## Overview
 
-**MIESC** is a production-grade smart contract security framework that implements a **7-layer Defense-in-Depth architecture**, integrating **25 specialized security tools** with **AI-powered correlation** and **ML-based detection** to deliver comprehensive vulnerability detection with industry-leading accuracy.
+**MIESC** is a production-grade smart contract security framework that implements a **9-layer Defense-in-Depth architecture**, integrating **32 specialized security tools** with **AI-powered correlation** and **ML-based detection** to deliver comprehensive vulnerability detection with industry-leading accuracy.
 
-### Key Achievements (v4.0.0)
+### Key Achievements (v4.2.3)
 
-- **25 Integrated Tools** across 7 defense layers
+- **32 Integrated Tools** across 9 defense layers
 - **95.7% ML Detection Accuracy** with DA-GNN Graph Neural Networks
-- **94.5% Precision**, **92.8% Recall**, **F1-Score 0.93**
+- **100% Precision**, **70% Recall**, **F1-Score 0.82** (SmartBugs-curated benchmark)
 - **91.4% Compliance Index** across 12 international standards
 - **Sovereign AI** with Ollama - code never leaves your machine
 - **$0 Operational Cost** - fully local execution
@@ -115,7 +115,7 @@ title: MIESC - Smart Contract Security Framework
 
 ## Features
 
-### 7-Layer Defense Architecture
+### 9-Layer Defense Architecture
 
 | Layer | Category | Tools | Detection Focus |
 |-------|----------|-------|-----------------|
@@ -271,8 +271,8 @@ Static Dynamic Symbolic Formal
 
 ### Research Contributions
 
-1. **7-Layer Defense-in-Depth Architecture** for smart contract security
-2. **25 Tool Integration** under unified ToolAdapter protocol
+1. **9-Layer Defense-in-Depth Architecture** for smart contract security
+2. **32 Tool Integration** under unified ToolAdapter protocol
 3. **Triple Normalization System** (SWC/CWE/OWASP) with 97.1% accuracy
 4. **Sovereign AI Backend** with Ollama for data sovereignty
 5. **MCP Server** for AI assistant integration
@@ -286,7 +286,7 @@ Static Dynamic Symbolic Formal
   title = {MIESC: Multi-layer Intelligent Evaluation for Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
-  version = {4.0.0},
+  version = {4.2.3},
   note = {Implementation for Master's thesis in Cyberdefense}
 }
 ```
@@ -342,7 +342,7 @@ We welcome contributions from the security research and blockchain communities!
 
 - Certora CVL specs for common patterns (ERC-20/721)
 - Echidna property templates for DeFi
-- Integration tests for all 25 tools
+- Integration tests for all 32 tools
 - Cross-chain vulnerability analysis
 - Documentation translations
 
@@ -446,7 +446,7 @@ Ensures framework remains open-source. Allows commercial use with attribution. D
 ---
 
 <p align="center">
-  <strong>MIESC v4.2.0</strong> | Master's Thesis in Cyberdefense | AGPL-3.0 License
+  <strong>MIESC v4.2.3</strong> | Master's Thesis in Cyberdefense | AGPL-3.0 License
 </p>
 
 <p align="center">
