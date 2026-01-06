@@ -41,6 +41,7 @@ title: MIESC - Smart Contract Security Framework
 </p>
 
 **Demonstrates:**
+
 - Defense-in-Depth analysis across 9 security layers
 - 32 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
 - Model Context Protocol (MCP) integration with Claude Desktop
@@ -52,6 +53,7 @@ title: MIESC - Smart Contract Security Framework
 ## Scope and Limitations
 
 **Purpose:**
+
 - Automated orchestration of 32 security analysis tools
 - AI-assisted finding correlation to reduce duplicate reports
 - ML-based vulnerability detection with 95.7% accuracy
@@ -59,6 +61,7 @@ title: MIESC - Smart Contract Security Framework
 - Standardized reporting format (JSON/HTML/PDF)
 
 **Limitations:**
+
 - Cannot detect all vulnerability classes (especially complex business logic)
 - Effectiveness metrics pending large-scale empirical validation
 - Requires manual review of all findings by qualified professionals
@@ -88,24 +91,28 @@ title: MIESC - Smart Contract Security Framework
 **Major Release** (January 2025) - Four cutting-edge research-based enhancements:
 
 ### 1. PropertyGPT (Layer 4 - Formal Verification)
+
 - Automated CVL property generation for formal verification
 - 80% recall on ground-truth Certora properties
 - Increases formal verification adoption from 5% to 40% (+700%)
 - Based on NDSS 2025 paper (arXiv:2405.02580)
 
 ### 2. DA-GNN (Layer 6 - ML Detection)
+
 - Graph Neural Network-based vulnerability detection
 - 95.7% accuracy with 4.3% false positive rate
 - Represents contracts as control-flow + data-flow graphs
 - Based on Computer Networks (ScienceDirect, Feb 2024)
 
 ### 3. Enhanced RAG SmartLLM (Layer 5 - AI Analysis)
+
 - Retrieval-Augmented Generation with ERC-20/721/1155 knowledge base
 - Verificator role for fact-checking (Generator → Verificator → Consensus)
 - Precision improved from 75% to 88% (+17%), FP rate reduced by 52%
 - Based on arXiv:2502.13167 (Feb 2025)
 
 ### 4. DogeFuzz (Layer 2 - Dynamic Testing)
+
 - AFL-style coverage-guided fuzzing with power scheduling
 - Hybrid fuzzing + symbolic execution
 - 85% code coverage, 3x faster than Echidna
@@ -196,6 +203,7 @@ make webapp
 ```
 
 [Full Installation Guide](docs/02_SETUP_AND_USAGE.md)
+
 ---
 
 ## Architecture
@@ -231,6 +239,7 @@ Static Dynamic Symbolic Formal
 | **L7** | Audit Agent | Readiness assessment | Final audit report |
 
 [Architecture Details](docs/01_ARCHITECTURE.md)
+
 ---
 
 ## Performance Metrics
@@ -292,6 +301,7 @@ Static Dynamic Symbolic Formal
 ```
 
 [Thesis Documentation](thesis.md)
+
 ---
 
 ## Documentation
@@ -324,6 +334,7 @@ Static Dynamic Symbolic Formal
 - [v4.0 Features](docs/PHASE_3_4_5_COMPLETION_SUMMARY.md)
 
 [Complete Documentation Index](docs/INDEX.md)
+
 ---
 
 ## Contributing
@@ -347,6 +358,7 @@ We welcome contributions from the security research and blockchain communities!
 - Documentation translations
 
 [Contributing Guide](CONTRIBUTING.md)
+
 ---
 
 ## Support & Community
@@ -355,19 +367,21 @@ We welcome contributions from the security research and blockchain communities!
 
 - **Documentation**: [https://fboiero.github.io/MIESC](https://fboiero.github.io/MIESC)
 - **GitHub Issues**: [Bug reports and feature requests](https://github.com/fboiero/MIESC/issues)
-- **Email**: fboiero@frvm.utn.edu.ar
+- **Email**: <fboiero@frvm.utn.edu.ar>
 
 ---
 
 ## Usage Examples
 
 **CI/CD Integration:**
+
 ```bash
 python xaudit.py --target contracts/MyToken.sol --mode fast --output ci_report.json
 # Exit code 0 if no critical issues, 1 otherwise
 ```
 
 **Full Pre-Audit:**
+
 ```bash
 python xaudit.py \
   --target contracts/ \
@@ -377,6 +391,7 @@ python xaudit.py \
 ```
 
 **Compliance Reporting:**
+
 ```bash
 python xaudit.py \
   --target contracts/DeFiProtocol.sol \
@@ -385,6 +400,7 @@ python xaudit.py \
 ```
 
 **Selective Layer Execution:**
+
 ```bash
 python xaudit.py \
   --target contracts/Treasury.sol \
@@ -394,6 +410,7 @@ python xaudit.py \
 ```
 
 **MCP Server Mode:**
+
 ```bash
 python src/mcp/server.py
 # Enables: audit_contract(), explain_vulnerability(), suggest_fix()
