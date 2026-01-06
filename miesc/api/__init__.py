@@ -17,26 +17,27 @@ Institution: UNDEF - IUA Cordoba
 License: AGPL-3.0
 """
 
-__version__ = "4.2.2"
+__version__ = "4.2.3"
 
-# Export main components
+# Export main components - these are intentional re-exports for the public API
 try:
-    from miesc.api.rest import (
-        app,
-        get_wsgi_application,
-        create_app,
-        run_server,
-        AdapterLoader,
-        run_tool,
-        run_layer,
-        run_full_audit,
-        summarize_findings,
-        to_sarif,
-        LAYERS,
+    from miesc.api.rest import (  # noqa: F401
         ADAPTER_MAP,
+        LAYERS,
         QUICK_TOOLS,
         VERSION,
+        AdapterLoader,
+        app,
+        create_app,
+        get_wsgi_application,
+        run_full_audit,
+        run_layer,
+        run_server,
+        run_tool,
+        summarize_findings,
+        to_sarif,
     )
+
     __all__ = [
         "app",
         "get_wsgi_application",
@@ -56,5 +57,6 @@ try:
 except ImportError as e:
     # Allow package to be imported even if dependencies missing
     import logging
+
     logging.getLogger(__name__).warning(f"Could not import REST API components: {e}")
     __all__ = []

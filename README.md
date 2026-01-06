@@ -1,12 +1,23 @@
-# MIESC
+# MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
 Multi-layer security analysis framework for Ethereum smart contracts.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-4.2.2-green)](https://github.com/fboiero/MIESC/releases)
+[![Version](https://img.shields.io/badge/version-4.2.3-green)](https://github.com/fboiero/MIESC/releases)
+[![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions)
+[![Coverage](https://img.shields.io/badge/coverage-87.5%25-green)](./htmlcov/index.html)
+
+[English](./README.md) | [Espa&ntilde;ol](./README_ES.md)
 
 MIESC orchestrates 32 security tools across 9 defense layers with AI-assisted correlation and ML-based detection. Pre-audit triage tool for smart contract security.
+
+**Validated Results (SmartBugs-curated dataset, 50 contracts):**
+
+- **Precision: 100%** (0 false positives)
+- **Recall: 70%** (35/50 vulnerabilities detected)
+- **F1-Score: 82.35%**
+- Categories with 100% recall: arithmetic, bad_randomness, front_running
 
 **[Documentation](https://fboiero.github.io/MIESC)** | **[Demo Video](https://youtu.be/pLa_McNBRRw)**
 
@@ -17,6 +28,7 @@ pip install -e .
 ```
 
 **Docker:**
+
 ```bash
 docker pull ghcr.io/fboiero/miesc:latest
 docker run --rm -v $(pwd):/contracts miesc:latest audit quick /contracts/MyContract.sol

@@ -14,14 +14,14 @@ Institution: UNDEF - IUA Cordoba
 License: AGPL-3.0
 """
 
+import importlib
+import json
+import logging
 import os
 import sys
-import json
-import importlib
-import logging
-from pathlib import Path
 from datetime import datetime
-from typing import Optional, List, Dict, Any, Type
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 import click
 
@@ -32,13 +32,14 @@ sys.path.insert(0, str(ROOT_DIR))
 
 # Try to import Rich for beautiful output
 try:
-    from rich.console import Console
-    from rich.table import Table
-    from rich.panel import Panel
-    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
-    from rich.tree import Tree
-    from rich.text import Text
     from rich import box
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+    from rich.table import Table
+    from rich.text import Text
+    from rich.tree import Tree
+
     RICH_AVAILABLE = True
     console = Console()
 except ImportError:
@@ -48,13 +49,15 @@ except ImportError:
 # Try to import YAML for config
 try:
     import yaml
+
     YAML_AVAILABLE = True
 except ImportError:
     YAML_AVAILABLE = False
 
 # Try to import centralized logging
 try:
-    from src.core.logging_config import setup_logging, get_logger, log_context
+    from src.core.logging_config import get_logger, log_context, setup_logging
+
     LOGGING_AVAILABLE = True
 except ImportError:
     LOGGING_AVAILABLE = False
@@ -87,7 +90,7 @@ def configure_logging(debug: bool = False, quiet: bool = False):
 
 
 # Version and banner
-VERSION = "4.2.2"
+VERSION = "4.2.3"
 BANNER = r"""
   __  __ ___ _____ ____   ____
  |  \/  |_ _| ____/ ___| / ___|
@@ -106,50 +109,54 @@ LAYERS = {
     1: {
         "name": "Static Analysis",
         "description": "Pattern-based code analysis",
-        "tools": ["slither", "aderyn", "solhint", "wake"]
+        "tools": ["slither", "aderyn", "solhint", "wake"],
     },
     2: {
         "name": "Dynamic Testing",
         "description": "Fuzzing and property testing",
-        "tools": ["echidna", "medusa", "foundry", "dogefuzz", "vertigo"]
+        "tools": ["echidna", "medusa", "foundry", "dogefuzz", "vertigo"],
     },
     3: {
         "name": "Symbolic Execution",
         "description": "Path exploration and constraint solving",
-        "tools": ["mythril", "manticore", "halmos", "oyente"]
+        "tools": ["mythril", "manticore", "halmos", "oyente"],
     },
     4: {
         "name": "Formal Verification",
         "description": "Mathematical proofs of correctness",
-        "tools": ["certora", "smtchecker", "propertygpt"]
+        "tools": ["certora", "smtchecker", "propertygpt"],
     },
     5: {
         "name": "AI Analysis",
         "description": "LLM-powered vulnerability detection",
-        "tools": ["smartllm", "gptscan", "llmsmartaudit"]
+        "tools": ["smartllm", "gptscan", "llmsmartaudit"],
     },
     6: {
         "name": "ML Detection",
         "description": "Machine learning classifiers",
-        "tools": ["dagnn", "smartbugs_ml", "smartbugs_detector", "smartguard"]
+        "tools": ["dagnn", "smartbugs_ml", "smartbugs_detector", "smartguard"],
     },
     7: {
         "name": "Specialized Analysis",
         "description": "Domain-specific security checks",
         "tools": [
-            "threat_model", "gas_analyzer", "mev_detector",
-            "contract_clone_detector", "defi", "advanced_detector"
-        ]
+            "threat_model",
+            "gas_analyzer",
+            "mev_detector",
+            "contract_clone_detector",
+            "defi",
+            "advanced_detector",
+        ],
     },
     8: {
         "name": "Cross-Chain & ZK Security",
         "description": "Bridge security and zero-knowledge circuit analysis",
-        "tools": ["crosschain", "zk_circuit"]
+        "tools": ["crosschain", "zk_circuit"],
     },
     9: {
         "name": "Advanced AI Ensemble",
         "description": "Multi-LLM ensemble with consensus-based detection",
-        "tools": ["llmbugscanner"]
+        "tools": ["llmbugscanner"],
     },
 }
 
@@ -198,6 +205,7 @@ ADAPTER_MAP = {
 # ============================================================================
 # Adapter Loader
 # ============================================================================
+
 
 class AdapterLoader:
     """Dynamic loader for tool adapters."""
@@ -264,10 +272,11 @@ class AdapterLoader:
         try:
             # Import ToolStatus enum
             from src.core.tool_protocol import ToolStatus
+
             status = adapter.is_available()
             return {
-                "status": status.value if hasattr(status, 'value') else str(status),
-                "available": status == ToolStatus.AVAILABLE
+                "status": status.value if hasattr(status, "value") else str(status),
+                "available": status == ToolStatus.AVAILABLE,
             }
         except Exception as e:
             return {"status": "error", "available": False, "error": str(e)}
@@ -277,11 +286,14 @@ class AdapterLoader:
 # Output Helpers
 # ============================================================================
 
+
 def print_banner():
     """Print the MIESC banner."""
     if RICH_AVAILABLE:
         console.print(Text(BANNER, style="bold blue"))
-        console.print(f"[cyan]v{VERSION}[/cyan] - Multi-layer Intelligent Evaluation for Smart Contracts")
+        console.print(
+            f"[cyan]v{VERSION}[/cyan] - Multi-layer Intelligent Evaluation for Smart Contracts"
+        )
         console.print("[dim]7 Defense Layers | 29 Security Tools | AI-Powered Analysis[/dim]\n")
     else:
         print(BANNER)
@@ -364,6 +376,7 @@ AVAILABLE_PROFILES = ["fast", "balanced", "thorough", "security", "ci", "audit",
 # Tool Execution
 # ============================================================================
 
+
 def _run_tool(tool: str, contract: str, timeout: int = 300, **kwargs) -> Dict[str, Any]:
     """
     Run a security tool using its adapter.
@@ -390,12 +403,13 @@ def _run_tool(tool: str, contract: str, timeout: int = 300, **kwargs) -> Dict[st
             "findings": [],
             "execution_time": 0,
             "timestamp": datetime.now().isoformat(),
-            "error": f"No adapter found for {tool}"
+            "error": f"No adapter found for {tool}",
         }
 
     try:
         # Check if tool is available
         from src.core.tool_protocol import ToolStatus
+
         status = adapter.is_available()
 
         if status != ToolStatus.AVAILABLE:
@@ -406,7 +420,7 @@ def _run_tool(tool: str, contract: str, timeout: int = 300, **kwargs) -> Dict[st
                 "findings": [],
                 "execution_time": (datetime.now() - start_time).total_seconds(),
                 "timestamp": datetime.now().isoformat(),
-                "error": f"Tool {tool} not available: {status.value}"
+                "error": f"Tool {tool} not available: {status.value}",
             }
 
         # Run analysis
@@ -418,10 +432,12 @@ def _run_tool(tool: str, contract: str, timeout: int = 300, **kwargs) -> Dict[st
             "contract": contract,
             "status": result.get("status", "success"),
             "findings": result.get("findings", []),
-            "execution_time": result.get("execution_time", (datetime.now() - start_time).total_seconds()),
+            "execution_time": result.get(
+                "execution_time", (datetime.now() - start_time).total_seconds()
+            ),
             "timestamp": datetime.now().isoformat(),
             "metadata": result.get("metadata", {}),
-            "error": result.get("error")
+            "error": result.get("error"),
         }
 
     except Exception as e:
@@ -433,7 +449,7 @@ def _run_tool(tool: str, contract: str, timeout: int = 300, **kwargs) -> Dict[st
             "findings": [],
             "execution_time": (datetime.now() - start_time).total_seconds(),
             "timestamp": datetime.now().isoformat(),
-            "error": str(e)
+            "error": str(e),
         }
 
 
@@ -488,17 +504,19 @@ def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     sarif = {
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": "2.1.0",
-        "runs": [{
-            "tool": {
-                "driver": {
-                    "name": "MIESC",
-                    "version": VERSION,
-                    "informationUri": "https://github.com/fboiero/MIESC",
-                    "rules": []
-                }
-            },
-            "results": []
-        }]
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "MIESC",
+                        "version": VERSION,
+                        "informationUri": "https://github.com/fboiero/MIESC",
+                        "rules": [],
+                    }
+                },
+                "results": [],
+            }
+        ],
     }
 
     rule_ids = set()
@@ -511,19 +529,25 @@ def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 
             # Add rule if not already added
             if rule_id not in rule_ids:
-                sarif["runs"][0]["tool"]["driver"]["rules"].append({
-                    "id": rule_id,
-                    "name": finding.get("title", rule_id),
-                    "shortDescription": {"text": finding.get("message", rule_id)},
-                    "fullDescription": {"text": finding.get("description", "")},
-                    "helpUri": finding.get("references", [""])[0] if finding.get("references") else "",
-                    "properties": {"tool": tool_name}
-                })
+                sarif["runs"][0]["tool"]["driver"]["rules"].append(
+                    {
+                        "id": rule_id,
+                        "name": finding.get("title", rule_id),
+                        "shortDescription": {"text": finding.get("message", rule_id)},
+                        "fullDescription": {"text": finding.get("description", "")},
+                        "helpUri": (
+                            finding.get("references", [""])[0] if finding.get("references") else ""
+                        ),
+                        "properties": {"tool": tool_name},
+                    }
+                )
                 rule_ids.add(rule_id)
 
             # Map severity
             severity = str(finding.get("severity", "INFO")).upper()
-            level = {"CRITICAL": "error", "HIGH": "error", "MEDIUM": "warning"}.get(severity, "note")
+            level = {"CRITICAL": "error", "HIGH": "error", "MEDIUM": "warning"}.get(
+                severity, "note"
+            )
 
             # Get location
             location = finding.get("location", {})
@@ -534,21 +558,22 @@ def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
                 file_path = result.get("contract", "unknown")
                 line = 1
 
-            sarif["runs"][0]["results"].append({
-                "ruleId": rule_id,
-                "level": level,
-                "message": {"text": finding.get("description", finding.get("message", ""))},
-                "locations": [{
-                    "physicalLocation": {
-                        "artifactLocation": {"uri": file_path},
-                        "region": {"startLine": max(1, int(line))}
-                    }
-                }],
-                "properties": {
-                    "tool": tool_name,
-                    "confidence": finding.get("confidence", 0.5)
+            sarif["runs"][0]["results"].append(
+                {
+                    "ruleId": rule_id,
+                    "level": level,
+                    "message": {"text": finding.get("description", finding.get("message", ""))},
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {"uri": file_path},
+                                "region": {"startLine": max(1, int(line))},
+                            }
+                        }
+                    ],
+                    "properties": {"tool": tool_name, "confidence": finding.get("confidence", 0.5)},
                 }
-            })
+            )
 
     return sarif
 
@@ -616,7 +641,7 @@ def _to_markdown(results: List[Dict[str, Any]], contract: str) -> str:
 
                 md += "\n---\n\n"
 
-    md += f"""
+    md += """
 ## Appendix
 
 ### Tool Execution Details
@@ -641,11 +666,12 @@ def _to_markdown(results: List[Dict[str, Any]], contract: str) -> str:
 # Main CLI Group
 # ============================================================================
 
+
 @click.group(invoke_without_command=True)
-@click.option('--version', '-v', is_flag=True, help='Show version and exit')
-@click.option('--no-banner', is_flag=True, help='Suppress banner output')
-@click.option('--debug', '-d', is_flag=True, help='Enable debug mode (verbose logging)')
-@click.option('--quiet', '-q', is_flag=True, help='Suppress non-essential output')
+@click.option("--version", "-v", is_flag=True, help="Show version and exit")
+@click.option("--no-banner", is_flag=True, help="Suppress banner output")
+@click.option("--debug", "-d", is_flag=True, help="Enable debug mode (verbose logging)")
+@click.option("--quiet", "-q", is_flag=True, help="Suppress non-essential output")
 @click.pass_context
 def cli(ctx, version, no_banner, debug, quiet):
     """
@@ -667,8 +693,8 @@ def cli(ctx, version, no_banner, debug, quiet):
       MIESC_LOG_FILE       Path to log file
     """
     ctx.ensure_object(dict)
-    ctx.obj['debug'] = debug
-    ctx.obj['quiet'] = quiet
+    ctx.obj["debug"] = debug
+    ctx.obj["quiet"] = quiet
 
     # Configure logging based on flags and environment
     configure_logging(debug=debug, quiet=quiet)
@@ -690,6 +716,7 @@ def cli(ctx, version, no_banner, debug, quiet):
 # Audit Commands
 # ============================================================================
 
+
 @cli.group()
 def audit():
     """Run security audits on smart contracts."""
@@ -699,7 +726,9 @@ def audit():
 @audit.command("quick")
 @click.argument("contract", type=click.Path(exists=True))
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-@click.option("--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown"]), default="json")
+@click.option(
+    "--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown"]), default="json"
+)
 @click.option("--ci", is_flag=True, help="CI mode: exit with error if critical/high issues found")
 @click.option("--timeout", "-t", type=int, default=300, help="Timeout per tool in seconds")
 def audit_quick(contract, output, fmt, ci, timeout):
@@ -747,7 +776,13 @@ def audit_quick(contract, output, fmt, ci, timeout):
         table.add_column("Severity", style="bold")
         table.add_column("Count", justify="right")
 
-        colors = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow", "LOW": "cyan", "INFO": "dim"}
+        colors = {
+            "CRITICAL": "red",
+            "HIGH": "red",
+            "MEDIUM": "yellow",
+            "LOW": "cyan",
+            "INFO": "dim",
+        }
         for sev, count in summary.items():
             table.add_row(sev, str(count), style=colors.get(sev, "white"))
         table.add_row("TOTAL", str(total), style="bold")
@@ -783,8 +818,12 @@ def audit_quick(contract, output, fmt, ci, timeout):
 @audit.command("full")
 @click.argument("contract", type=click.Path(exists=True))
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-@click.option("--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown"]), default="json")
-@click.option("--layers", "-l", type=str, default="1,2,3,4,5,6,7", help="Layers to run (comma-separated)")
+@click.option(
+    "--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown"]), default="json"
+)
+@click.option(
+    "--layers", "-l", type=str, default="1,2,3,4,5,6,7", help="Layers to run (comma-separated)"
+)
 @click.option("--timeout", "-t", type=int, default=600, help="Timeout per tool in seconds")
 @click.option("--skip-unavailable", is_flag=True, default=True, help="Skip unavailable tools")
 def audit_full(contract, output, fmt, layers, timeout, skip_unavailable):
@@ -799,7 +838,9 @@ def audit_full(contract, output, fmt, layers, timeout, skip_unavailable):
         if layer in LAYERS:
             layer_info = LAYERS[layer]
             if RICH_AVAILABLE:
-                console.print(f"\n[bold cyan]=== Layer {layer}: {layer_info['name']} ===[/bold cyan]")
+                console.print(
+                    f"\n[bold cyan]=== Layer {layer}: {layer_info['name']} ===[/bold cyan]"
+                )
                 console.print(f"[dim]{layer_info['description']}[/dim]")
             else:
                 print(f"\n=== Layer {layer}: {layer_info['name']} ===")
@@ -817,7 +858,13 @@ def audit_full(contract, output, fmt, layers, timeout, skip_unavailable):
         table.add_column("Severity", style="bold")
         table.add_column("Count", justify="right")
 
-        colors = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow", "LOW": "cyan", "INFO": "dim"}
+        colors = {
+            "CRITICAL": "red",
+            "HIGH": "red",
+            "MEDIUM": "yellow",
+            "LOW": "cyan",
+            "INFO": "dim",
+        }
         for sev, count in summary.items():
             table.add_row(sev, str(count), style=colors.get(sev, "white"))
         table.add_row("TOTAL", str(total), style="bold")
@@ -833,7 +880,12 @@ def audit_full(contract, output, fmt, layers, timeout, skip_unavailable):
         elif fmt == "markdown":
             data = _to_markdown(all_results, contract)
         else:
-            data = {"results": all_results, "summary": summary, "version": VERSION, "layers": layer_list}
+            data = {
+                "results": all_results,
+                "summary": summary,
+                "version": VERSION,
+                "layers": layer_list,
+            }
 
         with open(output, "w") as f:
             if fmt == "markdown":
@@ -876,7 +928,12 @@ def audit_layer(layer_num, contract, output, timeout):
 
     if output:
         with open(output, "w") as f:
-            json.dump({"layer": layer_num, "results": results, "summary": summary}, f, indent=2, default=str)
+            json.dump(
+                {"layer": layer_num, "results": results, "summary": summary},
+                f,
+                indent=2,
+                default=str,
+            )
         success(f"Report saved to {output}")
 
 
@@ -884,7 +941,9 @@ def audit_layer(layer_num, contract, output, timeout):
 @click.argument("profile_name", type=click.Choice(AVAILABLE_PROFILES + ["list"]))
 @click.argument("contract", type=click.Path(exists=True), required=False)
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-@click.option("--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown"]), default="json")
+@click.option(
+    "--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown"]), default="json"
+)
 @click.option("--ci", is_flag=True, help="CI mode: exit with error if critical/high issues found")
 def audit_profile(profile_name, contract, output, fmt, ci):
     """Run audit using a predefined profile (fast, balanced, thorough, security, ci, audit, defi, token)."""
@@ -906,7 +965,7 @@ def audit_profile(profile_name, contract, output, fmt, ci):
                     name,
                     profile.get("description", "")[:50],
                     layers_str,
-                    f"{profile.get('timeout', 300)}s"
+                    f"{profile.get('timeout', 300)}s",
                 )
             console.print(table)
         else:
@@ -990,7 +1049,13 @@ def audit_profile(profile_name, contract, output, fmt, ci):
         table.add_column("Severity", style="bold")
         table.add_column("Count", justify="right")
 
-        colors = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow", "LOW": "cyan", "INFO": "dim"}
+        colors = {
+            "CRITICAL": "red",
+            "HIGH": "red",
+            "MEDIUM": "yellow",
+            "LOW": "cyan",
+            "INFO": "dim",
+        }
         for sev, count in summary.items():
             table.add_row(sev, str(count), style=colors.get(sev, "white"))
         table.add_row("TOTAL", str(total), style="bold")
@@ -1016,7 +1081,7 @@ def audit_profile(profile_name, contract, output, fmt, ci):
                 "profile": profile_name,
                 "results": all_results,
                 "summary": summary,
-                "version": VERSION
+                "version": VERSION,
             }
             with open(output, "w") as f:
                 json.dump(data, f, indent=2, default=str)
@@ -1070,7 +1135,7 @@ def audit_single(tool, contract, output, timeout):
                 table.add_row(
                     str(finding.get("severity", "INFO")),
                     str(finding.get("title", finding.get("type", finding.get("id", ""))))[:40],
-                    loc_str[:30]
+                    loc_str[:30],
                 )
 
             if len(result["findings"]) > 20:
@@ -1089,13 +1154,22 @@ def audit_single(tool, contract, output, timeout):
 @audit.command("batch")
 @click.argument("path", type=click.Path(exists=True))
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-@click.option("--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown", "csv"]), default="json")
-@click.option("--profile", "-p", type=click.Choice(["quick", "fast", "balanced", "thorough"]), default="quick",
-              help="Analysis profile")
+@click.option(
+    "--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown", "csv"]), default="json"
+)
+@click.option(
+    "--profile",
+    "-p",
+    type=click.Choice(["quick", "fast", "balanced", "thorough"]),
+    default="quick",
+    help="Analysis profile",
+)
 @click.option("--parallel", "-j", type=int, default=4, help="Number of parallel workers")
 @click.option("--recursive", "-r", is_flag=True, help="Recursively search for .sol files")
 @click.option("--pattern", type=str, default="*.sol", help="File pattern to match")
-@click.option("--fail-on", type=str, default="", help="Fail on severity (comma-separated: critical,high)")
+@click.option(
+    "--fail-on", type=str, default="", help="Fail on severity (comma-separated: critical,high)"
+)
 def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_on):
     """Batch analysis of multiple contracts.
 
@@ -1117,7 +1191,7 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
     path_obj = Path(path)
 
     if path_obj.is_file():
-        if path_obj.suffix == '.sol':
+        if path_obj.suffix == ".sol":
             sol_files = [str(path_obj)]
         else:
             error(f"Not a Solidity file: {path}")
@@ -1178,9 +1252,7 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
             task = progress.add_task("Analyzing contracts...", total=len(sol_files))
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as executor:
-                future_to_contract = {
-                    executor.submit(analyze_contract, f): f for f in sol_files
-                }
+                future_to_contract = {executor.submit(analyze_contract, f): f for f in sol_files}
 
                 for future in concurrent.futures.as_completed(future_to_contract):
                     contract = future_to_contract[future]
@@ -1215,9 +1287,7 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
                     progress.advance(task)
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as executor:
-            future_to_contract = {
-                executor.submit(analyze_contract, f): f for f in sol_files
-            }
+            future_to_contract = {executor.submit(analyze_contract, f): f for f in sol_files}
 
             completed = 0
             for future in concurrent.futures.as_completed(future_to_contract):
@@ -1251,7 +1321,13 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
         table.add_row("Execution Time", f"{elapsed:.1f}s")
         table.add_row("", "")
 
-        colors = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow", "LOW": "cyan", "INFO": "dim"}
+        colors = {
+            "CRITICAL": "red",
+            "HIGH": "red",
+            "MEDIUM": "yellow",
+            "LOW": "cyan",
+            "INFO": "dim",
+        }
         for sev, count in aggregated_summary.items():
             table.add_row(sev, str(count), style=colors.get(sev, "white"))
 
@@ -1262,7 +1338,7 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
         sorted_contracts = sorted(
             all_contract_results,
             key=lambda x: (x["summary"]["CRITICAL"], x["summary"]["HIGH"], x["total_findings"]),
-            reverse=True
+            reverse=True,
         )
 
         if sorted_contracts and total_findings > 0:
@@ -1275,11 +1351,11 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
                         f"M:{result['summary']['MEDIUM']} L:{result['summary']['LOW']}"
                     )
     else:
-        print(f"\n=== Batch Analysis Summary ===")
+        print("\n=== Batch Analysis Summary ===")
         print(f"Contracts: {len(all_contract_results)}")
         print(f"Failed: {len(failed_contracts)}")
         print(f"Time: {elapsed:.1f}s")
-        print(f"\nFindings by severity:")
+        print("\nFindings by severity:")
         for sev, count in aggregated_summary.items():
             print(f"  {sev}: {count}")
         print(f"  TOTAL: {total_findings}")
@@ -1360,6 +1436,7 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
                 f.write(md)
         elif fmt == "csv":
             import csv
+
             with open(output, "w", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(["Contract", "Tool", "Severity", "Title", "Description", "Line"])
@@ -1371,14 +1448,16 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
                                 line = location.get("line", 0)
                             else:
                                 line = 0
-                            writer.writerow([
-                                Path(contract_data["contract"]).name,
-                                result.get("tool", ""),
-                                finding.get("severity", ""),
-                                finding.get("title", finding.get("type", ""))[:50],
-                                finding.get("description", finding.get("message", ""))[:100],
-                                line,
-                            ])
+                            writer.writerow(
+                                [
+                                    Path(contract_data["contract"]).name,
+                                    result.get("tool", ""),
+                                    finding.get("severity", ""),
+                                    finding.get("title", finding.get("type", ""))[:50],
+                                    finding.get("description", finding.get("message", ""))[:100],
+                                    line,
+                                ]
+                            )
         else:  # json
             with open(output, "w") as f:
                 json.dump(output_data, f, indent=2, default=str)
@@ -1393,12 +1472,15 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
                 error(f"Found {aggregated_summary[sev]} {sev} issues (fail-on: {fail_on})")
                 sys.exit(1)
 
-    success(f"Batch analysis complete: {len(all_contract_results)} contracts, {total_findings} findings")
+    success(
+        f"Batch analysis complete: {len(all_contract_results)} contracts, {total_findings} findings"
+    )
 
 
 # ============================================================================
 # Tools Command Group
 # ============================================================================
+
 
 @cli.group()
 def tools():
@@ -1421,9 +1503,7 @@ def tools_list(layer, available_only):
     if RICH_AVAILABLE:
         for num, layer_info in layers_to_show.items():
             table = Table(
-                title=f"Layer {num}: {layer_info['name']}",
-                box=box.ROUNDED,
-                show_header=True
+                title=f"Layer {num}: {layer_info['name']}", box=box.ROUNDED, show_header=True
             )
             table.add_column("Tool", style="bold cyan")
             table.add_column("Status", width=12)
@@ -1516,6 +1596,7 @@ def tools_info(tool):
 # Server Commands
 # ============================================================================
 
+
 @cli.group()
 def server():
     """Start MIESC API servers."""
@@ -1539,6 +1620,7 @@ def server_rest(port, host, debug):
 
     try:
         from miesc.api.rest import run_server
+
         run_server(host, port, debug)
     except ImportError as e:
         error(f"Django REST Framework not available: {e}")
@@ -1559,6 +1641,7 @@ def server_mcp(port):
     mcp_script = ROOT_DIR / "src" / "miesc_mcp_rest.py"
     if mcp_script.exists():
         import subprocess
+
         subprocess.run([sys.executable, str(mcp_script), "--mcp", "--port", str(port)])
     else:
         error("MCP server script not found")
@@ -1568,6 +1651,7 @@ def server_mcp(port):
 # ============================================================================
 # Config Commands
 # ============================================================================
+
 
 @cli.group()
 def config():
@@ -1643,6 +1727,7 @@ def config_validate():
 # Detect Command (Framework Auto-Detection)
 # ============================================================================
 
+
 @cli.command()
 @click.argument("path", type=click.Path(exists=True), default=".")
 @click.option("--json", "-j", "as_json", is_flag=True, help="Output as JSON")
@@ -1667,7 +1752,7 @@ def detect(path, as_json):
         print_banner()
 
     try:
-        from src.core.framework_detector import detect_framework, Framework
+        from src.core.framework_detector import Framework, detect_framework
     except ImportError:
         error("Framework detector module not available")
         sys.exit(1)
@@ -1676,6 +1761,7 @@ def detect(path, as_json):
 
     if as_json:
         import json
+
         click.echo(json.dumps(config.to_dict(), indent=2))
         return
 
@@ -1718,7 +1804,7 @@ def detect(path, as_json):
                 content += f"  ... and {len(config.remappings) - 5} more\n"
 
         if config.lib_paths:
-            content += f"""
+            content += """
 [bold]Library Paths:[/bold]
 """
             for lib in config.lib_paths[:3]:
@@ -1726,15 +1812,15 @@ def detect(path, as_json):
 
         console.print(Panel(content, title="Framework Detection", border_style="green"))
     else:
-        print(f"\n=== Framework Detection ===")
+        print("\n=== Framework Detection ===")
         print(f"Framework: {config.framework.value.upper()}")
         print(f"Root Path: {config.root_path}")
         print(f"Config File: {config.config_file}")
-        print(f"\nCompiler Settings:")
+        print("\nCompiler Settings:")
         print(f"  Solc Version: {config.solc_version or 'auto'}")
         print(f"  EVM Version: {config.evm_version or 'default'}")
         print(f"  Optimizer: {'enabled' if config.optimizer_enabled else 'disabled'}")
-        print(f"\nProject Paths:")
+        print("\nProject Paths:")
         print(f"  Source: {config.src_path}")
         print(f"  Test: {config.test_path}")
         print(f"  Output: {config.out_path}")
@@ -1750,6 +1836,7 @@ def detect(path, as_json):
 # ============================================================================
 # Doctor Command
 # ============================================================================
+
 
 @cli.command()
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed information")
@@ -1776,8 +1863,12 @@ def doctor(verbose):
         for dep, cmd in dependencies.items():
             try:
                 import subprocess
+
                 result = subprocess.run(cmd.split(), capture_output=True, text=True, timeout=5)
-                version = result.stdout.strip().split("\n")[0][:40] or result.stderr.strip().split("\n")[0][:40]
+                version = (
+                    result.stdout.strip().split("\n")[0][:40]
+                    or result.stderr.strip().split("\n")[0][:40]
+                )
                 dep_table.add_row(dep, "[green]OK[/green]", version)
             except Exception:
                 dep_table.add_row(dep, "[yellow]MISSING[/yellow]", "Not installed")
@@ -1819,6 +1910,7 @@ def doctor(verbose):
         for dep, cmd in dependencies.items():
             try:
                 import subprocess
+
                 result = subprocess.run(cmd.split(), capture_output=True, text=True, timeout=5)
                 print(f"[OK] {dep}")
             except Exception:
@@ -1846,9 +1938,12 @@ def doctor(verbose):
 # Export Command
 # ============================================================================
 
+
 @cli.command()
 @click.argument("input_file", type=click.Path(exists=True))
-@click.option("--format", "-f", "fmt", type=click.Choice(["sarif", "markdown", "csv", "html"]), required=True)
+@click.option(
+    "--format", "-f", "fmt", type=click.Choice(["sarif", "markdown", "csv", "html"]), required=True
+)
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
 def export(input_file, fmt, output):
     """Export JSON results to different formats."""
@@ -1870,6 +1965,7 @@ def export(input_file, fmt, output):
     elif fmt == "csv":
         import csv
         import io
+
         output_io = io.StringIO()
         writer = csv.writer(output_io)
         writer.writerow(["Tool", "Severity", "Title", "Description", "Location", "Line"])
@@ -1883,14 +1979,16 @@ def export(input_file, fmt, output):
                     loc_file = str(location)
                     loc_line = 0
 
-                writer.writerow([
-                    result.get("tool", ""),
-                    finding.get("severity", ""),
-                    finding.get("title", finding.get("type", "")),
-                    finding.get("description", finding.get("message", ""))[:100],
-                    loc_file,
-                    loc_line,
-                ])
+                writer.writerow(
+                    [
+                        result.get("tool", ""),
+                        finding.get("severity", ""),
+                        finding.get("title", finding.get("type", "")),
+                        finding.get("description", finding.get("message", ""))[:100],
+                        loc_file,
+                        loc_line,
+                    ]
+                )
         output_str = output_io.getvalue()
         ext = ".csv"
     elif fmt == "html":
@@ -1958,10 +2056,16 @@ def export(input_file, fmt, output):
 # Watch Command
 # ============================================================================
 
+
 @cli.command()
 @click.argument("directory", type=click.Path(exists=True))
-@click.option("--profile", "-p", type=click.Choice(["quick", "fast", "balanced"]), default="quick",
-              help="Scan profile to use")
+@click.option(
+    "--profile",
+    "-p",
+    type=click.Choice(["quick", "fast", "balanced"]),
+    default="quick",
+    help="Scan profile to use",
+)
 @click.option("--debounce", "-d", type=float, default=1.0, help="Debounce time in seconds")
 @click.option("--recursive", "-r", is_flag=True, default=True, help="Watch subdirectories")
 def watch(directory, profile, debounce, recursive):
@@ -1979,15 +2083,15 @@ def watch(directory, profile, debounce, recursive):
     print_banner()
 
     try:
-        from watchdog.observers import Observer
         from watchdog.events import FileSystemEventHandler
+        from watchdog.observers import Observer
     except ImportError:
         error("watchdog not installed. Install with: pip install watchdog")
         info("Run: pip install watchdog")
         sys.exit(1)
 
-    import time
     import threading
+    import time
     from collections import defaultdict
 
     # Debounce state
@@ -2012,7 +2116,7 @@ def watch(directory, profile, debounce, recursive):
             if event.is_directory:
                 return
 
-            if not event.src_path.endswith('.sol'):
+            if not event.src_path.endswith(".sol"):
                 return
 
             current_time = time.time()
@@ -2028,7 +2132,7 @@ def watch(directory, profile, debounce, recursive):
             self.run_scan(file_path)
 
         def on_created(self, event):
-            if not event.is_directory and event.src_path.endswith('.sol'):
+            if not event.is_directory and event.src_path.endswith(".sol"):
                 self.on_modified(event)
 
         def run_scan(self, file_path):
@@ -2066,7 +2170,9 @@ def watch(directory, profile, debounce, recursive):
 
             # Display summary
             if RICH_AVAILABLE:
-                status_color = "green" if summary["CRITICAL"] == 0 and summary["HIGH"] == 0 else "red"
+                status_color = (
+                    "green" if summary["CRITICAL"] == 0 and summary["HIGH"] == 0 else "red"
+                )
                 console.print(
                     f"[{status_color}]Result:[/{status_color}] "
                     f"Critical: {summary['CRITICAL']} | "

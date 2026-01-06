@@ -1,0 +1,76 @@
+{
+  "timestamp": "2026-01-06T00:47:03.954652",
+  "version": "MIESC v4.2.2",
+  "dataset": "SmartBugs-curated",
+  "contracts_analyzed": 50,
+  "execution_time_seconds": 43.02,
+  "components": {
+    "mcp_server": false,
+    "rest_api": false,
+    "tools_available": 0,
+    "layers_configured": 0,
+    "errors": [
+      "REST API: Requested setting REST_FRAMEWORK, but settings are not configured. You must either define the environment variable DJANGO_SETTINGS_MODULE or call settings.configure() before accessing settings.",
+      "MCP Server: No module named 'src.miesc_mcp_rest'"
+    ],
+    "correlation_api": true
+  },
+  "metrics": {
+    "overall": {
+      "precision": 1.0,
+      "recall": 0.7,
+      "f1_score": 0.8235,
+      "true_positives": 35,
+      "false_positives": 0,
+      "false_negatives": 15,
+      "total_findings": 369
+    },
+    "by_category": {
+      "access_control": {
+        "precision": 1.0,
+        "recall": 0.3889,
+        "f1_score": 0.56,
+        "tp": 7,
+        "fp": 0,
+        "fn": 11
+      },
+      "arithmetic": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "tp": 15,
+        "fp": 0,
+        "fn": 0
+      },
+      "bad_randomness": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "tp": 8,
+        "fp": 0,
+        "fn": 0
+      },
+      "denial_of_service": {
+        "precision": 1.0,
+        "recall": 0.3333,
+        "f1_score": 0.5,
+        "tp": 2,
+        "fp": 0,
+        "fn": 4
+      },
+      "front_running": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0
+      }
+    }
+  },
+  "correlation_improvement": {
+    "raw_findings": 369,
+    "correlated_findings": 369,
+    "reduction_rate": 0.0
+  }
+}

@@ -47,6 +47,7 @@ MIESC es un proyecto maduro con arquitectura sólida de 7 capas de defensa en pr
 ### Código Legacy (🗑️ Para Eliminar)
 
 30 archivos deprecados en la raíz de `src/`:
+
 - `*_tool.py` (herramientas standalone)
 - `miesc_*.py` (versiones legacy)
 - `orchestrator.py`, `project_analyzer.py`
@@ -58,8 +59,10 @@ MIESC es un proyecto maduro con arquitectura sólida de 7 capas de defensa en pr
 ### P0 - CRÍTICO (Bloquean Producción)
 
 #### 1. Consolidar Estructura de Paquetes
+
 **Problema:** Estructura dual `src/` y `miesc/` causa confusión
 **Solución:**
+
 ```bash
 # Migrar completamente a miesc/
 mv src/adapters/* miesc/adapters/
@@ -71,7 +74,9 @@ mv src/agents/* miesc/agents/
 **Impacto:** Alto - Prerequisito para PyPI
 
 #### 2. Eliminar Código Legacy
+
 **Archivos a eliminar:**
+
 ```
 src/gptlens_tool.py
 src/llama2_tool.py
@@ -98,7 +103,8 @@ src/audit_generator.py
 src/agents/symbolic_agent 2.py (backup)
 ```
 
-#### 3. Completar __init__.py Faltantes
+#### 3. Completar **init**.py Faltantes
+
 ```python
 # src/dashboard/__init__.py
 """MIESC Dashboard Module."""
@@ -111,7 +117,9 @@ src/agents/symbolic_agent 2.py (backup)
 ```
 
 #### 4. Implementar Validadores Faltantes
+
 **Archivo:** `src/security/input_validator.py`
+
 ```python
 class InputValidator:
     """Validates and sanitizes all user inputs."""
@@ -129,7 +137,9 @@ class InputValidator:
 ```
 
 #### 5. Configurar CI/CD para Release
+
 **Archivo:** `.github/workflows/release.yml`
+
 ```yaml
 name: Release to PyPI
 on:
@@ -152,6 +162,7 @@ jobs:
 ### P1 - ALTO (Mejoran Significativamente)
 
 #### 6. VS Code Extension Completa
+
 **Estado actual:** Solo `extension.ts` (23KB)
 **Requerido:**
 
@@ -175,7 +186,9 @@ vscode-extension/
 ```
 
 #### 7. LLM Orchestrator Dedicado
+
 **Nuevo archivo:** `src/llm/llm_orchestrator.py`
+
 ```python
 class LLMOrchestrator:
     """Orchestrates multiple LLM backends for security analysis."""
@@ -196,7 +209,9 @@ class LLMOrchestrator:
 ```
 
 #### 8. WebSocket Real-Time Dashboard
+
 **Mejorar:** `webapp/app.py`
+
 ```python
 from flask_socketio import SocketIO, emit
 
@@ -210,6 +225,7 @@ def handle_audit(data):
 ```
 
 #### 9. Aumentar Cobertura de Tests al 80%
+
 **Módulos prioritarios:**
 | Módulo | Actual | Target |
 |--------|--------|--------|
@@ -219,7 +235,9 @@ def handle_audit(data):
 | `adapters/` | ~70% | 85% |
 
 #### 10. Documentación API con OpenAPI 3.1
+
 **Archivo:** `docs/openapi.yaml` - Expandir
+
 ```yaml
 openapi: 3.1.0
 info:
@@ -245,7 +263,9 @@ paths:
 ```
 
 #### 11. CLI Interactivo Mejorado
+
 **Mejorar:** `miesc/cli/commands.py`
+
 ```python
 @click.command()
 @click.option('--interactive', '-i', is_flag=True)
@@ -258,7 +278,9 @@ def audit(interactive):
 ```
 
 #### 12. Sistema de Plugins
+
 **Nuevo:** `src/plugins/`
+
 ```python
 class PluginManager:
     """Manages third-party analysis plugins."""
@@ -275,7 +297,9 @@ class PluginManager:
 ### P2 - MEDIO (Optimizan Experiencia)
 
 #### 13. Knowledge Base Estructurada
+
 **Expandir:** `src/knowledge_base/`
+
 ```
 knowledge_base/
 ├── vulnerabilities/
@@ -291,7 +315,9 @@ knowledge_base/
 ```
 
 #### 14. Métricas y Telemetría
+
 **Nuevo:** `src/core/metrics.py`
+
 ```python
 from prometheus_client import Counter, Histogram
 
@@ -301,7 +327,9 @@ TOOL_ERRORS = Counter('miesc_tool_errors_total', 'Tool execution errors', ['tool
 ```
 
 #### 15. Cache de Resultados
+
 **Nuevo:** `src/core/cache.py`
+
 ```python
 class AuditCache:
     """Caches audit results for unchanged contracts."""
@@ -314,7 +342,9 @@ class AuditCache:
 ```
 
 #### 16. Exportación Multi-Formato
+
 **Mejorar:** `src/core/exporters.py`
+
 ```python
 class ReportExporter:
     """Export audit reports in multiple formats."""
@@ -330,7 +360,9 @@ class ReportExporter:
 ```
 
 #### 17. Comparación de Auditorías
+
 **Nuevo:** `src/core/diff_engine.py`
+
 ```python
 class AuditDiffEngine:
     """Compare audits to track security improvements."""
@@ -343,7 +375,9 @@ class AuditDiffEngine:
 ```
 
 #### 18. Integración GitHub/GitLab
+
 **Nuevo:** `src/integrations/`
+
 ```python
 class GitHubIntegration:
     """GitHub PR comments and checks integration."""
@@ -360,7 +394,9 @@ class GitHubIntegration:
 ### P3 - FUTURO (Innovación Diferenciadora)
 
 #### 19. Análisis Multi-Chain
+
 **Arquitectura propuesta:**
+
 ```
 src/chains/
 ├── ethereum/
@@ -375,6 +411,7 @@ src/chains/
 ```
 
 #### 20. ML: Síntesis Automática de Invariantes
+
 ```python
 class InvariantSynthesizer:
     """Uses ML to automatically generate contract invariants."""
@@ -387,6 +424,7 @@ class InvariantSynthesizer:
 ```
 
 #### 21. Auditoría Continua en Producción
+
 ```python
 class ContinuousAuditor:
     """Monitor deployed contracts for anomalies."""
@@ -399,6 +437,7 @@ class ContinuousAuditor:
 ```
 
 #### 22. Generación de Tests Automáticos
+
 ```python
 class TestGenerator:
     """Generate Foundry/Hardhat tests from findings."""
@@ -411,7 +450,9 @@ class TestGenerator:
 ```
 
 #### 23. Modelo Fine-tuned Propio
+
 **Usar el módulo creado:**
+
 ```bash
 # Entrenar modelo especializado
 python -m src.ml.fine_tuning.fine_tuning_trainer \
@@ -429,29 +470,34 @@ ollama create miesc-security -f models/miesc-security-v1/Modelfile
 ## Cronograma Sugerido
 
 ### Fase 1: Limpieza (1-2 semanas)
+
 - [ ] P0.1: Consolidar estructura de paquetes
 - [ ] P0.2: Eliminar código legacy
-- [ ] P0.3: Completar __init__.py
+- [ ] P0.3: Completar **init**.py
 - [ ] P0.4: Implementar validadores
 
 ### Fase 2: Estabilización (2-3 semanas)
+
 - [ ] P0.5: CI/CD para release
 - [ ] P1.9: Aumentar cobertura tests
 - [ ] P1.10: Documentación API
 
 ### Fase 3: Features (3-4 semanas)
+
 - [ ] P1.6: VS Code Extension completa
 - [ ] P1.7: LLM Orchestrator
 - [ ] P1.8: WebSocket Dashboard
 - [ ] P1.11: CLI interactivo
 
 ### Fase 4: Optimización (2-3 semanas)
+
 - [ ] P2.13: Knowledge Base
 - [ ] P2.14: Métricas
 - [ ] P2.15: Cache
 - [ ] P2.16: Exportación multi-formato
 
 ### Fase 5: Innovación (Ongoing)
+
 - [ ] P3.19: Multi-chain
 - [ ] P3.20: ML Invariantes
 - [ ] P3.21: Auditoría continua

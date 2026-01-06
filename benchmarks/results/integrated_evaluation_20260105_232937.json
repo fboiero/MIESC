@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-01-05T23:29:37.419310",
+  "contracts_evaluated": 15,
+  "execution_time_seconds": 84.29,
+  "single_tool_analysis": {
+    "total_findings": 66,
+    "true_positives": 6,
+    "false_positives": 0,
+    "false_negatives": 9,
+    "precision": 1.0,
+    "recall": 0.4,
+    "f1": 0.5714285714285715
+  },
+  "correlated_analysis": {
+    "total_findings": 30,
+    "filtered_as_fp": 36,
+    "cross_validated": 30,
+    "true_positives": 9,
+    "false_positives": 0,
+    "false_negatives": 6,
+    "precision": 1.0,
+    "recall": 0.6,
+    "f1": 0.7499999999999999
+  },
+  "improvement": {
+    "precision_delta": 0.0,
+    "recall_delta": 0.2,
+    "findings_reduction": 0.5455
+  }
+}

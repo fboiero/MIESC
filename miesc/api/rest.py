@@ -13,19 +13,15 @@ Institution: UNDEF - IUA Cordoba
 License: AGPL-3.0
 """
 
+import importlib
+import logging
 import os
 import sys
-import json
-import uuid
-import logging
 import tempfile
-import importlib
-from pathlib import Path
+import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field, asdict
-from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List
 
 # Add src to path for imports
 ROOT_DIR = Path(__file__).parent.parent.parent
@@ -38,10 +34,11 @@ logger = logging.getLogger(__name__)
 try:
     import django
     from django.conf import settings as django_settings
-    from django.http import JsonResponse, HttpRequest, HttpResponse
+    from django.core.wsgi import get_wsgi_application as django_get_wsgi_application
+    from django.http import HttpRequest, HttpResponse, JsonResponse
     from django.views.decorators.csrf import csrf_exempt
     from django.views.decorators.http import require_http_methods
-    from django.core.wsgi import get_wsgi_application as django_get_wsgi_application
+
     DJANGO_AVAILABLE = True
 except ImportError:
     DJANGO_AVAILABLE = False
@@ -52,8 +49,9 @@ try:
     from rest_framework import status
     from rest_framework.decorators import api_view, permission_classes
     from rest_framework.permissions import AllowAny
-    from rest_framework.response import Response
     from rest_framework.request import Request
+    from rest_framework.response import Response
+
     DRF_AVAILABLE = True
 except ImportError:
     DRF_AVAILABLE = False
@@ -64,57 +62,61 @@ except ImportError:
 # Configuration
 # ============================================================================
 
-VERSION = "4.2.2"
+VERSION = "4.2.3"
 
 # Layer definitions (same as CLI)
 LAYERS = {
     1: {
         "name": "Static Analysis",
         "description": "Pattern-based code analysis",
-        "tools": ["slither", "aderyn", "solhint", "wake"]
+        "tools": ["slither", "aderyn", "solhint", "wake"],
     },
     2: {
         "name": "Dynamic Testing",
         "description": "Fuzzing and property testing",
-        "tools": ["echidna", "medusa", "foundry", "dogefuzz", "vertigo"]
+        "tools": ["echidna", "medusa", "foundry", "dogefuzz", "vertigo"],
     },
     3: {
         "name": "Symbolic Execution",
         "description": "Path exploration and constraint solving",
-        "tools": ["mythril", "manticore", "halmos", "oyente"]
+        "tools": ["mythril", "manticore", "halmos", "oyente"],
     },
     4: {
         "name": "Formal Verification",
         "description": "Mathematical proofs of correctness",
-        "tools": ["certora", "smtchecker", "propertygpt"]
+        "tools": ["certora", "smtchecker", "propertygpt"],
     },
     5: {
         "name": "AI Analysis",
         "description": "LLM-powered vulnerability detection",
-        "tools": ["smartllm", "gptscan", "llmsmartaudit"]
+        "tools": ["smartllm", "gptscan", "llmsmartaudit"],
     },
     6: {
         "name": "ML Detection",
         "description": "Machine learning classifiers",
-        "tools": ["dagnn", "smartbugs_ml", "smartbugs_detector", "smartguard"]
+        "tools": ["dagnn", "smartbugs_ml", "smartbugs_detector", "smartguard"],
     },
     7: {
         "name": "Specialized Analysis",
         "description": "Domain-specific security checks",
         "tools": [
-            "threat_model", "gas_analyzer", "mev_detector",
-            "contract_clone_detector", "defi", "advanced_detector"
-        ]
+            "threat_model",
+            "gas_analyzer",
+            "mev_detector",
+            "contract_clone_detector",
+            "defi",
+            "advanced_detector",
+        ],
     },
     8: {
         "name": "Cross-Chain & ZK Security",
         "description": "Bridge security and zero-knowledge circuit analysis",
-        "tools": ["crosschain", "zk_circuit"]
+        "tools": ["crosschain", "zk_circuit"],
     },
     9: {
         "name": "Advanced AI Ensemble",
         "description": "Multi-LLM ensemble with consensus-based detection",
-        "tools": ["llmbugscanner"]
+        "tools": ["llmbugscanner"],
     },
 }
 
@@ -164,12 +166,15 @@ QUICK_TOOLS = ["slither", "aderyn", "solhint", "mythril"]
 # Django Settings Configuration
 # ============================================================================
 
+
 def configure_django():
     """Configure Django settings if not already configured."""
     if not django_settings.configured:
         django_settings.configure(
             DEBUG=os.environ.get("MIESC_DEBUG", "false").lower() == "true",
-            SECRET_KEY=os.environ.get("MIESC_SECRET_KEY", "miesc-development-key-change-in-production"),
+            SECRET_KEY=os.environ.get(
+                "MIESC_SECRET_KEY", "miesc-development-key-change-in-production"
+            ),
             ROOT_URLCONF="miesc.api.rest",
             ALLOWED_HOSTS=["*"],
             INSTALLED_APPS=[
@@ -207,6 +212,7 @@ def configure_django():
 # ============================================================================
 # Adapter Loader
 # ============================================================================
+
 
 class AdapterLoader:
     """Dynamic loader for tool adapters."""
@@ -261,10 +267,11 @@ class AdapterLoader:
 
         try:
             from src.core.tool_protocol import ToolStatus
+
             tool_status = adapter.is_available()
             return {
-                "status": tool_status.value if hasattr(tool_status, 'value') else str(tool_status),
-                "available": tool_status == ToolStatus.AVAILABLE
+                "status": tool_status.value if hasattr(tool_status, "value") else str(tool_status),
+                "available": tool_status == ToolStatus.AVAILABLE,
             }
         except Exception as e:
             return {"status": "error", "available": False, "error": str(e)}
@@ -273,6 +280,7 @@ class AdapterLoader:
 # ============================================================================
 # Analysis Functions
 # ============================================================================
+
 
 def run_tool(tool: str, contract_path: str, timeout: int = 300, **kwargs) -> Dict[str, Any]:
     """
@@ -299,11 +307,12 @@ def run_tool(tool: str, contract_path: str, timeout: int = 300, **kwargs) -> Dic
             "findings": [],
             "execution_time": 0,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "error": f"No adapter found for {tool}"
+            "error": f"No adapter found for {tool}",
         }
 
     try:
         from src.core.tool_protocol import ToolStatus
+
         tool_status = adapter.is_available()
 
         if tool_status != ToolStatus.AVAILABLE:
@@ -314,7 +323,7 @@ def run_tool(tool: str, contract_path: str, timeout: int = 300, **kwargs) -> Dic
                 "findings": [],
                 "execution_time": (datetime.now(timezone.utc) - start_time).total_seconds(),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "error": f"Tool {tool} not available: {tool_status.value}"
+                "error": f"Tool {tool} not available: {tool_status.value}",
             }
 
         result = adapter.analyze(contract_path, timeout=timeout, **kwargs)
@@ -324,10 +333,12 @@ def run_tool(tool: str, contract_path: str, timeout: int = 300, **kwargs) -> Dic
             "contract": contract_path,
             "status": result.get("status", "success"),
             "findings": result.get("findings", []),
-            "execution_time": result.get("execution_time", (datetime.now(timezone.utc) - start_time).total_seconds()),
+            "execution_time": result.get(
+                "execution_time", (datetime.now(timezone.utc) - start_time).total_seconds()
+            ),
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "metadata": result.get("metadata", {}),
-            "error": result.get("error")
+            "error": result.get("error"),
         }
 
     except Exception as e:
@@ -339,7 +350,7 @@ def run_tool(tool: str, contract_path: str, timeout: int = 300, **kwargs) -> Dic
             "findings": [],
             "execution_time": (datetime.now(timezone.utc) - start_time).total_seconds(),
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "error": str(e)
+            "error": str(e),
         }
 
 
@@ -358,7 +369,9 @@ def run_layer(layer: int, contract_path: str, timeout: int = 300) -> List[Dict[s
     return results
 
 
-def run_full_audit(contract_path: str, layers: List[int] = None, timeout: int = 600) -> Dict[str, Any]:
+def run_full_audit(
+    contract_path: str, layers: List[int] = None, timeout: int = 600
+) -> Dict[str, Any]:
     """Run a complete multi-layer audit."""
     if layers is None:
         layers = list(LAYERS.keys())
@@ -383,7 +396,7 @@ def run_full_audit(contract_path: str, layers: List[int] = None, timeout: int = 
         "summary": summary,
         "execution_time": execution_time,
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "version": VERSION
+        "version": VERSION,
     }
 
 
@@ -413,17 +426,19 @@ def to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     sarif = {
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": "2.1.0",
-        "runs": [{
-            "tool": {
-                "driver": {
-                    "name": "MIESC",
-                    "version": VERSION,
-                    "informationUri": "https://github.com/fboiero/MIESC",
-                    "rules": []
-                }
-            },
-            "results": []
-        }]
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "MIESC",
+                        "version": VERSION,
+                        "informationUri": "https://github.com/fboiero/MIESC",
+                        "rules": [],
+                    }
+                },
+                "results": [],
+            }
+        ],
     }
 
     rule_ids = set()
@@ -435,17 +450,21 @@ def to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
             rule_id = finding.get("type", finding.get("id", finding.get("title", "unknown")))
 
             if rule_id not in rule_ids:
-                sarif["runs"][0]["tool"]["driver"]["rules"].append({
-                    "id": rule_id,
-                    "name": finding.get("title", rule_id),
-                    "shortDescription": {"text": finding.get("message", rule_id)},
-                    "fullDescription": {"text": finding.get("description", "")},
-                    "properties": {"tool": tool_name}
-                })
+                sarif["runs"][0]["tool"]["driver"]["rules"].append(
+                    {
+                        "id": rule_id,
+                        "name": finding.get("title", rule_id),
+                        "shortDescription": {"text": finding.get("message", rule_id)},
+                        "fullDescription": {"text": finding.get("description", "")},
+                        "properties": {"tool": tool_name},
+                    }
+                )
                 rule_ids.add(rule_id)
 
             severity = str(finding.get("severity", "INFO")).upper()
-            level = {"CRITICAL": "error", "HIGH": "error", "MEDIUM": "warning"}.get(severity, "note")
+            level = {"CRITICAL": "error", "HIGH": "error", "MEDIUM": "warning"}.get(
+                severity, "note"
+            )
 
             location = finding.get("location", {})
             if isinstance(location, dict):
@@ -455,21 +474,22 @@ def to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
                 file_path = result.get("contract", "unknown")
                 line = 1
 
-            sarif["runs"][0]["results"].append({
-                "ruleId": rule_id,
-                "level": level,
-                "message": {"text": finding.get("description", finding.get("message", ""))},
-                "locations": [{
-                    "physicalLocation": {
-                        "artifactLocation": {"uri": file_path},
-                        "region": {"startLine": max(1, int(line))}
-                    }
-                }],
-                "properties": {
-                    "tool": tool_name,
-                    "confidence": finding.get("confidence", 0.5)
+            sarif["runs"][0]["results"].append(
+                {
+                    "ruleId": rule_id,
+                    "level": level,
+                    "message": {"text": finding.get("description", finding.get("message", ""))},
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {"uri": file_path},
+                                "region": {"startLine": max(1, int(line))},
+                            }
+                        }
+                    ],
+                    "properties": {"tool": tool_name, "confidence": finding.get("confidence", 0.5)},
                 }
-            })
+            )
 
     return sarif
 
@@ -478,20 +498,19 @@ def to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 # Custom Exception Handler
 # ============================================================================
 
+
 def custom_exception_handler(exc, context):
     """Custom exception handler for DRF."""
     if DRF_AVAILABLE:
         from rest_framework.views import exception_handler
+
         response = exception_handler(exc, context)
 
         if response is not None:
-            response.data['status_code'] = response.status_code
+            response.data["status_code"] = response.status_code
             return response
 
-    return Response(
-        {"error": str(exc), "status_code": 500},
-        status=500
-    )
+    return Response({"error": str(exc), "status_code": 500}, status=500)
 
 
 # ============================================================================
@@ -500,34 +519,33 @@ def custom_exception_handler(exc, context):
 
 if DRF_AVAILABLE:
 
-    @api_view(['GET'])
+    @api_view(["GET"])
     @permission_classes([AllowAny])
     def api_root(request: Request) -> Response:
         """API root endpoint with available endpoints."""
-        return Response({
-            "service": "MIESC REST API",
-            "version": VERSION,
-            "description": "Multi-layer Intelligent Evaluation for Smart Contracts",
-            "endpoints": {
-                "analyze": {
-                    "quick": "/api/v1/analyze/quick/",
-                    "full": "/api/v1/analyze/full/",
-                    "layer": "/api/v1/analyze/layer/{layer_num}/",
-                    "tool": "/api/v1/analyze/tool/{tool_name}/"
+        return Response(
+            {
+                "service": "MIESC REST API",
+                "version": VERSION,
+                "description": "Multi-layer Intelligent Evaluation for Smart Contracts",
+                "endpoints": {
+                    "analyze": {
+                        "quick": "/api/v1/analyze/quick/",
+                        "full": "/api/v1/analyze/full/",
+                        "layer": "/api/v1/analyze/layer/{layer_num}/",
+                        "tool": "/api/v1/analyze/tool/{tool_name}/",
+                    },
+                    "tools": {"list": "/api/v1/tools/", "info": "/api/v1/tools/{tool_name}/"},
+                    "layers": "/api/v1/layers/",
+                    "health": "/api/v1/health/",
+                    "reports": "/api/v1/reports/",
                 },
-                "tools": {
-                    "list": "/api/v1/tools/",
-                    "info": "/api/v1/tools/{tool_name}/"
-                },
-                "layers": "/api/v1/layers/",
-                "health": "/api/v1/health/",
-                "reports": "/api/v1/reports/"
-            },
-            "documentation": "https://fboiero.github.io/MIESC/api/",
-            "repository": "https://github.com/fboiero/MIESC"
-        })
+                "documentation": "https://fboiero.github.io/MIESC/api/",
+                "repository": "https://github.com/fboiero/MIESC",
+            }
+        )
 
-    @api_view(['POST'])
+    @api_view(["POST"])
     @permission_classes([AllowAny])
     def analyze_quick(request: Request) -> Response:
         """
@@ -547,12 +565,12 @@ if DRF_AVAILABLE:
         if not contract_code and not contract_path:
             return Response(
                 {"error": "Either contract_code or contract_path is required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # If code is provided, save to temp file
         if contract_code:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.sol', delete=False) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
                 f.write(contract_code)
                 contract_path = f.name
 
@@ -571,7 +589,7 @@ if DRF_AVAILABLE:
                 "summary": summary,
                 "total_findings": sum(summary.values()),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "version": VERSION
+                "version": VERSION,
             }
 
             if output_format == "sarif":
@@ -581,16 +599,13 @@ if DRF_AVAILABLE:
 
         except Exception as e:
             logger.error(f"Quick analysis error: {e}", exc_info=True)
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         finally:
             # Cleanup temp file if created
             if contract_code and contract_path and os.path.exists(contract_path):
                 os.unlink(contract_path)
 
-    @api_view(['POST'])
+    @api_view(["POST"])
     @permission_classes([AllowAny])
     def analyze_full(request: Request) -> Response:
         """
@@ -612,20 +627,19 @@ if DRF_AVAILABLE:
         if not contract_code and not contract_path:
             return Response(
                 {"error": "Either contract_code or contract_path is required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Validate layers
         valid_layers = [l for l in layers if l in LAYERS]
         if not valid_layers:
             return Response(
-                {"error": f"Invalid layers. Valid layers: 1-7"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Invalid layers. Valid layers: 1-7"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         # If code is provided, save to temp file
         if contract_code:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.sol', delete=False) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
                 f.write(contract_code)
                 contract_path = f.name
 
@@ -639,15 +653,12 @@ if DRF_AVAILABLE:
 
         except Exception as e:
             logger.error(f"Full audit error: {e}", exc_info=True)
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         finally:
             if contract_code and contract_path and os.path.exists(contract_path):
                 os.unlink(contract_path)
 
-    @api_view(['POST'])
+    @api_view(["POST"])
     @permission_classes([AllowAny])
     def analyze_layer(request: Request, layer_num: int) -> Response:
         """
@@ -656,7 +667,7 @@ if DRF_AVAILABLE:
         if layer_num not in LAYERS:
             return Response(
                 {"error": f"Invalid layer: {layer_num}. Valid layers: 1-7"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         contract_code = request.data.get("contract_code")
@@ -666,11 +677,11 @@ if DRF_AVAILABLE:
         if not contract_code and not contract_path:
             return Response(
                 {"error": "Either contract_code or contract_path is required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if contract_code:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.sol', delete=False) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
                 f.write(contract_code)
                 contract_path = f.name
 
@@ -679,27 +690,27 @@ if DRF_AVAILABLE:
             results = run_layer(layer_num, contract_path, timeout)
             summary = summarize_findings(results)
 
-            return Response({
-                "layer": layer_num,
-                "layer_name": layer_info["name"],
-                "layer_description": layer_info["description"],
-                "tools": layer_info["tools"],
-                "results": results,
-                "summary": summary,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "layer": layer_num,
+                    "layer_name": layer_info["name"],
+                    "layer_description": layer_info["description"],
+                    "tools": layer_info["tools"],
+                    "results": results,
+                    "summary": summary,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+                status=status.HTTP_200_OK,
+            )
 
         except Exception as e:
             logger.error(f"Layer analysis error: {e}", exc_info=True)
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         finally:
             if contract_code and contract_path and os.path.exists(contract_path):
                 os.unlink(contract_path)
 
-    @api_view(['POST'])
+    @api_view(["POST"])
     @permission_classes([AllowAny])
     def analyze_tool(request: Request, tool_name: str) -> Response:
         """
@@ -707,8 +718,11 @@ if DRF_AVAILABLE:
         """
         if tool_name not in ADAPTER_MAP:
             return Response(
-                {"error": f"Unknown tool: {tool_name}", "available_tools": list(ADAPTER_MAP.keys())},
-                status=status.HTTP_400_BAD_REQUEST
+                {
+                    "error": f"Unknown tool: {tool_name}",
+                    "available_tools": list(ADAPTER_MAP.keys()),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         contract_code = request.data.get("contract_code")
@@ -718,11 +732,11 @@ if DRF_AVAILABLE:
         if not contract_code and not contract_path:
             return Response(
                 {"error": "Either contract_code or contract_path is required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if contract_code:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.sol', delete=False) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
                 f.write(contract_code)
                 contract_path = f.name
 
@@ -732,15 +746,12 @@ if DRF_AVAILABLE:
 
         except Exception as e:
             logger.error(f"Tool analysis error: {e}", exc_info=True)
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         finally:
             if contract_code and contract_path and os.path.exists(contract_path):
                 os.unlink(contract_path)
 
-    @api_view(['GET'])
+    @api_view(["GET"])
     @permission_classes([AllowAny])
     def tools_list(request: Request) -> Response:
         """
@@ -760,7 +771,7 @@ if DRF_AVAILABLE:
                     "layer": layer_num,
                     "layer_name": layer_info["name"],
                     "status": status_info.get("status", "unknown"),
-                    "available": status_info.get("available", False)
+                    "available": status_info.get("available", False),
                 }
                 layer_tools.append(tool_data)
                 all_tools.append(tool_data)
@@ -768,19 +779,22 @@ if DRF_AVAILABLE:
             tools_by_layer[layer_num] = {
                 "name": layer_info["name"],
                 "description": layer_info["description"],
-                "tools": layer_tools
+                "tools": layer_tools,
             }
 
         available_count = sum(1 for t in all_tools if t["available"])
 
-        return Response({
-            "total_tools": len(all_tools),
-            "available_tools": available_count,
-            "layers": tools_by_layer,
-            "tools": all_tools
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "total_tools": len(all_tools),
+                "available_tools": available_count,
+                "layers": tools_by_layer,
+                "tools": all_tools,
+            },
+            status=status.HTTP_200_OK,
+        )
 
-    @api_view(['GET'])
+    @api_view(["GET"])
     @permission_classes([AllowAny])
     def tools_info(request: Request, tool_name: str) -> Response:
         """
@@ -788,19 +802,21 @@ if DRF_AVAILABLE:
         """
         if tool_name not in ADAPTER_MAP:
             return Response(
-                {"error": f"Unknown tool: {tool_name}"},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": f"Unknown tool: {tool_name}"}, status=status.HTTP_404_NOT_FOUND
             )
 
         adapter = AdapterLoader.get_adapter(tool_name)
 
         if not adapter:
-            return Response({
-                "name": tool_name,
-                "status": "no_adapter",
-                "available": False,
-                "error": f"Adapter for {tool_name} not loaded"
-            }, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "name": tool_name,
+                    "status": "no_adapter",
+                    "available": False,
+                    "error": f"Adapter for {tool_name} not loaded",
+                },
+                status=status.HTTP_200_OK,
+            )
 
         try:
             metadata = adapter.get_metadata()
@@ -813,37 +829,51 @@ if DRF_AVAILABLE:
                     tool_layer = {"number": layer_num, **layer_info}
                     break
 
-            return Response({
-                "name": metadata.name,
-                "version": metadata.version,
-                "category": metadata.category.value if hasattr(metadata.category, 'value') else str(metadata.category),
-                "author": metadata.author,
-                "license": metadata.license,
-                "homepage": metadata.homepage,
-                "repository": metadata.repository,
-                "documentation": metadata.documentation,
-                "installation_cmd": metadata.installation_cmd,
-                "status": tool_status.value if hasattr(tool_status, 'value') else str(tool_status),
-                "available": tool_status.value == "available" if hasattr(tool_status, 'value') else False,
-                "layer": tool_layer,
-                "capabilities": [
-                    {
-                        "name": cap.name,
-                        "description": cap.description,
-                        "detection_types": cap.detection_types[:10]
-                    }
-                    for cap in metadata.capabilities
-                ] if hasattr(metadata, 'capabilities') else []
-            }, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "name": metadata.name,
+                    "version": metadata.version,
+                    "category": (
+                        metadata.category.value
+                        if hasattr(metadata.category, "value")
+                        else str(metadata.category)
+                    ),
+                    "author": metadata.author,
+                    "license": metadata.license,
+                    "homepage": metadata.homepage,
+                    "repository": metadata.repository,
+                    "documentation": metadata.documentation,
+                    "installation_cmd": metadata.installation_cmd,
+                    "status": (
+                        tool_status.value if hasattr(tool_status, "value") else str(tool_status)
+                    ),
+                    "available": (
+                        tool_status.value == "available" if hasattr(tool_status, "value") else False
+                    ),
+                    "layer": tool_layer,
+                    "capabilities": (
+                        [
+                            {
+                                "name": cap.name,
+                                "description": cap.description,
+                                "detection_types": cap.detection_types[:10],
+                            }
+                            for cap in metadata.capabilities
+                        ]
+                        if hasattr(metadata, "capabilities")
+                        else []
+                    ),
+                },
+                status=status.HTTP_200_OK,
+            )
 
         except Exception as e:
             logger.error(f"Error getting tool info: {e}", exc_info=True)
-            return Response({
-                "name": tool_name,
-                "error": str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"name": tool_name, "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-    @api_view(['GET'])
+    @api_view(["GET"])
     @permission_classes([AllowAny])
     def layers_list(request: Request) -> Response:
         """
@@ -861,27 +891,30 @@ if DRF_AVAILABLE:
                 is_available = status_info.get("available", False)
                 if is_available:
                     available_count += 1
-                tools_status.append({
-                    "name": tool,
-                    "available": is_available,
-                    "status": status_info.get("status", "unknown")
-                })
+                tools_status.append(
+                    {
+                        "name": tool,
+                        "available": is_available,
+                        "status": status_info.get("status", "unknown"),
+                    }
+                )
 
-            layers_data.append({
-                "number": layer_num,
-                "name": layer_info["name"],
-                "description": layer_info["description"],
-                "total_tools": len(layer_info["tools"]),
-                "available_tools": available_count,
-                "tools": tools_status
-            })
+            layers_data.append(
+                {
+                    "number": layer_num,
+                    "name": layer_info["name"],
+                    "description": layer_info["description"],
+                    "total_tools": len(layer_info["tools"]),
+                    "available_tools": available_count,
+                    "tools": tools_status,
+                }
+            )
 
-        return Response({
-            "total_layers": len(LAYERS),
-            "layers": layers_data
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {"total_layers": len(LAYERS), "layers": layers_data}, status=status.HTTP_200_OK
+        )
 
-    @api_view(['GET'])
+    @api_view(["GET"])
     @permission_classes([AllowAny])
     def health_check(request: Request) -> Response:
         """
@@ -894,12 +927,20 @@ if DRF_AVAILABLE:
         dependencies = {}
         import subprocess
 
-        for dep, cmd in [("python", "python3 --version"), ("solc", "solc --version"), ("node", "node --version")]:
+        for dep, cmd in [
+            ("python", "python3 --version"),
+            ("solc", "solc --version"),
+            ("node", "node --version"),
+        ]:
             try:
                 result = subprocess.run(cmd.split(), capture_output=True, text=True, timeout=5)
                 dependencies[dep] = {
                     "available": result.returncode == 0,
-                    "version": result.stdout.strip().split("\n")[0][:50] if result.returncode == 0 else None
+                    "version": (
+                        result.stdout.strip().split("\n")[0][:50]
+                        if result.returncode == 0
+                        else None
+                    ),
                 }
             except Exception:
                 dependencies[dep] = {"available": False, "version": None}
@@ -915,26 +956,35 @@ if DRF_AVAILABLE:
             if status_info.get("available"):
                 available_count += 1
 
-        overall_status = "healthy" if available_count >= 5 else "degraded" if available_count > 0 else "unhealthy"
+        overall_status = (
+            "healthy"
+            if available_count >= 5
+            else "degraded" if available_count > 0 else "unhealthy"
+        )
 
-        return Response({
-            "status": overall_status,
-            "version": VERSION,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "tools": {
-                "total": len(all_tools),
-                "available": available_count,
-                "percentage": round(available_count / len(all_tools) * 100, 1) if all_tools else 0
+        return Response(
+            {
+                "status": overall_status,
+                "version": VERSION,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "tools": {
+                    "total": len(all_tools),
+                    "available": available_count,
+                    "percentage": (
+                        round(available_count / len(all_tools) * 100, 1) if all_tools else 0
+                    ),
+                },
+                "dependencies": dependencies,
+                "endpoints": {
+                    "rest_api": True,
+                    "websocket": False,  # WebSocket handled separately
+                    "mcp": True,
+                },
             },
-            "dependencies": dependencies,
-            "endpoints": {
-                "rest_api": True,
-                "websocket": False,  # WebSocket handled separately
-                "mcp": True
-            }
-        }, status=status.HTTP_200_OK)
+            status=status.HTTP_200_OK,
+        )
 
-    @api_view(['GET', 'POST'])
+    @api_view(["GET", "POST"])
     @permission_classes([AllowAny])
     def reports_list(request: Request) -> Response:
         """
@@ -943,29 +993,34 @@ if DRF_AVAILABLE:
         Note: In this version, reports are not persisted to database.
         This endpoint returns sample data or processes inline reports.
         """
-        if request.method == 'GET':
-            return Response({
-                "message": "Reports endpoint",
-                "note": "Reports are returned inline with analysis results. Persistence coming in v4.3.",
-                "documentation": "https://fboiero.github.io/MIESC/api/reports/"
-            }, status=status.HTTP_200_OK)
+        if request.method == "GET":
+            return Response(
+                {
+                    "message": "Reports endpoint",
+                    "note": "Reports are returned inline with analysis results. Persistence coming in v4.3.",
+                    "documentation": "https://fboiero.github.io/MIESC/api/reports/",
+                },
+                status=status.HTTP_200_OK,
+            )
 
-        elif request.method == 'POST':
+        elif request.method == "POST":
             # Accept a report for processing/validation
             report_data = request.data
             if not report_data:
                 return Response(
-                    {"error": "Report data required"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    {"error": "Report data required"}, status=status.HTTP_400_BAD_REQUEST
                 )
 
             # Validate and return enhanced report
-            return Response({
-                "status": "accepted",
-                "report_id": str(uuid.uuid4()),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "data": report_data
-            }, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    "status": "accepted",
+                    "report_id": str(uuid.uuid4()),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "data": report_data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
 
 
 # ============================================================================
@@ -973,36 +1028,31 @@ if DRF_AVAILABLE:
 # ============================================================================
 
 if DJANGO_AVAILABLE:
-    from django.urls import path, re_path
+    from django.urls import path
 
     urlpatterns = []
 
     if DRF_AVAILABLE:
         urlpatterns = [
             # Root
-            path('', api_root, name='api-root'),
-            path('api/', api_root, name='api-root-alt'),
-            path('api/v1/', api_root, name='api-v1-root'),
-
+            path("", api_root, name="api-root"),
+            path("api/", api_root, name="api-root-alt"),
+            path("api/v1/", api_root, name="api-v1-root"),
             # Analysis endpoints
-            path('api/v1/analyze/quick/', analyze_quick, name='analyze-quick'),
-            path('api/v1/analyze/full/', analyze_full, name='analyze-full'),
-            path('api/v1/analyze/layer/<int:layer_num>/', analyze_layer, name='analyze-layer'),
-            path('api/v1/analyze/tool/<str:tool_name>/', analyze_tool, name='analyze-tool'),
-
+            path("api/v1/analyze/quick/", analyze_quick, name="analyze-quick"),
+            path("api/v1/analyze/full/", analyze_full, name="analyze-full"),
+            path("api/v1/analyze/layer/<int:layer_num>/", analyze_layer, name="analyze-layer"),
+            path("api/v1/analyze/tool/<str:tool_name>/", analyze_tool, name="analyze-tool"),
             # Tools endpoints
-            path('api/v1/tools/', tools_list, name='tools-list'),
-            path('api/v1/tools/<str:tool_name>/', tools_info, name='tools-info'),
-
+            path("api/v1/tools/", tools_list, name="tools-list"),
+            path("api/v1/tools/<str:tool_name>/", tools_info, name="tools-info"),
             # Layers endpoints
-            path('api/v1/layers/', layers_list, name='layers-list'),
-
+            path("api/v1/layers/", layers_list, name="layers-list"),
             # Health endpoint
-            path('api/v1/health/', health_check, name='health-check'),
-            path('health/', health_check, name='health-check-alt'),
-
+            path("api/v1/health/", health_check, name="health-check"),
+            path("health/", health_check, name="health-check-alt"),
             # Reports endpoints
-            path('api/v1/reports/', reports_list, name='reports-list'),
+            path("api/v1/reports/", reports_list, name="reports-list"),
         ]
 
 
@@ -1010,10 +1060,13 @@ if DJANGO_AVAILABLE:
 # Application Factory
 # ============================================================================
 
+
 def create_app():
     """Create and configure the Django application."""
     if not DJANGO_AVAILABLE:
-        raise ImportError("Django is not installed. Run: pip install django djangorestframework django-cors-headers")
+        raise ImportError(
+            "Django is not installed. Run: pip install django djangorestframework django-cors-headers"
+        )
 
     configure_django()
 
@@ -1043,13 +1096,17 @@ if DJANGO_AVAILABLE:
 # Server Runner
 # ============================================================================
 
+
 def run_server(host: str = "0.0.0.0", port: int = 5001, debug: bool = False):
     """Run the Django development server."""
     if not DJANGO_AVAILABLE:
-        print("Django is not installed. Run: pip install django djangorestframework django-cors-headers")
+        print(
+            "Django is not installed. Run: pip install django djangorestframework django-cors-headers"
+        )
         return
 
     import sys
+
     from django.core.management import execute_from_command_line
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miesc.api.rest")

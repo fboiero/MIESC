@@ -5,11 +5,9 @@ Author: Fernando Boiero
 License: AGPL-3.0
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
-import tempfile
-import os
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
 
 
 # Test imports
@@ -19,26 +17,30 @@ class TestRestApiImports:
     def test_import_rest_module(self):
         """Test importing the rest module."""
         from miesc.api import rest
-        assert hasattr(rest, 'VERSION')
-        assert rest.VERSION == "4.2.0"
+
+        assert hasattr(rest, "VERSION")
+        assert rest.VERSION == "4.2.3"
 
     def test_import_layers(self):
         """Test LAYERS dictionary is available."""
         from miesc.api.rest import LAYERS
-        assert len(LAYERS) == 7
+
+        assert len(LAYERS) == 9
         assert 1 in LAYERS
         assert 7 in LAYERS
 
     def test_import_adapter_map(self):
         """Test ADAPTER_MAP dictionary is available."""
         from miesc.api.rest import ADAPTER_MAP
-        assert len(ADAPTER_MAP) == 29
+
+        assert len(ADAPTER_MAP) == 32
         assert "slither" in ADAPTER_MAP
         assert "mythril" in ADAPTER_MAP
 
     def test_import_quick_tools(self):
         """Test QUICK_TOOLS list is available."""
         from miesc.api.rest import QUICK_TOOLS
+
         assert "slither" in QUICK_TOOLS
         assert "mythril" in QUICK_TOOLS
         assert len(QUICK_TOOLS) == 4
@@ -189,7 +191,7 @@ class TestAnalysisFunctions:
                     {"severity": "MEDIUM"},
                     {"severity": "LOW"},
                     {"severity": "INFO"},
-                ]
+                ],
             }
         ]
         summary = summarize_findings(results)
@@ -209,10 +211,10 @@ class TestAnalysisFunctions:
                 "tool": "test",
                 "findings": [
                     {"severity": "CRIT"},  # Should map to CRITICAL
-                    {"severity": "HI"},    # Should map to HIGH
-                    {"severity": "MED"},   # Should map to MEDIUM
-                    {"severity": "LO"},    # Should map to LOW
-                ]
+                    {"severity": "HI"},  # Should map to HIGH
+                    {"severity": "MED"},  # Should map to MEDIUM
+                    {"severity": "LO"},  # Should map to LOW
+                ],
             }
         ]
         summary = summarize_findings(results)
@@ -240,9 +242,9 @@ class TestSarifConversion:
                         "title": "Reentrancy vulnerability",
                         "severity": "HIGH",
                         "description": "Test description",
-                        "location": {"file": "Test.sol", "line": 10}
+                        "location": {"file": "Test.sol", "line": 10},
                     }
-                ]
+                ],
             }
         ]
 
@@ -275,7 +277,7 @@ class TestSarifConversion:
                     {"type": "test2", "severity": "HIGH"},
                     {"type": "test3", "severity": "MEDIUM"},
                     {"type": "test4", "severity": "LOW"},
-                ]
+                ],
             }
         ]
 
@@ -301,17 +303,16 @@ class TestRunToolFunction:
         assert result["findings"] == []
         assert "error" in result
 
-    @patch('miesc.api.rest.AdapterLoader.get_adapter')
+    @patch("miesc.api.rest.AdapterLoader.get_adapter")
     def test_run_tool_not_available(self, mock_get_adapter):
         """Test running tool that's not available."""
-        from miesc.api.rest import run_tool
 
         mock_adapter = Mock()
         mock_adapter.is_available.return_value = Mock(value="not_installed")
         mock_get_adapter.return_value = mock_adapter
 
         # Mock ToolStatus
-        with patch('miesc.api.rest.AdapterLoader.get_adapter', return_value=mock_adapter):
+        with patch("miesc.api.rest.AdapterLoader.get_adapter", return_value=mock_adapter):
             # Need to also mock the import inside the function
             pass
 
@@ -335,6 +336,7 @@ class TestRunLayerFunction:
         assert isinstance(results, list)
         # Should have results for each tool in layer 1
         from miesc.api.rest import LAYERS
+
         assert len(results) == len(LAYERS[1]["tools"])
 
 
@@ -358,7 +360,7 @@ class TestFullAudit:
 
     def test_run_full_audit_default_layers(self):
         """Test full audit with default layers."""
-        from miesc.api.rest import run_full_audit, LAYERS
+        from miesc.api.rest import LAYERS, run_full_audit
 
         result = run_full_audit("/nonexistent/contract.sol")
 
@@ -372,23 +374,27 @@ class TestCLIImports:
     def test_import_cli_module(self):
         """Test importing the CLI module."""
         from miesc.cli import main
-        assert hasattr(main, 'cli')
-        assert hasattr(main, 'VERSION')
+
+        assert hasattr(main, "cli")
+        assert hasattr(main, "VERSION")
 
     def test_cli_version(self):
         """Test CLI version matches."""
         from miesc.cli.main import VERSION
-        assert VERSION == "4.2.0"
+
+        assert VERSION == "4.2.3"
 
     def test_cli_layers_defined(self):
         """Test CLI has LAYERS defined."""
         from miesc.cli.main import LAYERS
-        assert len(LAYERS) == 7
+
+        assert len(LAYERS) == 9
 
     def test_cli_adapter_map_defined(self):
         """Test CLI has ADAPTER_MAP defined."""
         from miesc.cli.main import ADAPTER_MAP
-        assert len(ADAPTER_MAP) == 29
+
+        assert len(ADAPTER_MAP) == 32
 
 
 class TestCLIAdapterLoader:
@@ -437,14 +443,7 @@ class TestCLIOutputHelpers:
         """Test CLI _to_sarif function."""
         from miesc.cli.main import _to_sarif
 
-        results = [
-            {
-                "tool": "test",
-                "findings": [
-                    {"type": "test", "severity": "HIGH"}
-                ]
-            }
-        ]
+        results = [{"tool": "test", "findings": [{"type": "test", "severity": "HIGH"}]}]
 
         sarif = _to_sarif(results)
         assert sarif["version"] == "2.1.0"
@@ -459,12 +458,8 @@ class TestCLIOutputHelpers:
                 "status": "success",
                 "execution_time": 1.5,
                 "findings": [
-                    {
-                        "severity": "HIGH",
-                        "title": "Test Finding",
-                        "description": "Test description"
-                    }
-                ]
+                    {"severity": "HIGH", "title": "Test Finding", "description": "Test description"}
+                ],
             }
         ]
 
@@ -480,16 +475,28 @@ class TestApiPackageInit:
     def test_api_version(self):
         """Test API package version."""
         from miesc.api import __version__
-        assert __version__ == "4.2.0"
+
+        assert __version__ == "4.2.3"
 
 
-# Skip Django-specific tests if Django not installed
+# Skip Django-specific tests if Django not properly configured
 try:
     import django
+    from django.conf import settings
+
+    if not settings.configured:
+        settings.configure(
+            DEBUG=True,
+            DATABASES={},
+            INSTALLED_APPS=["django.contrib.contenttypes", "django.contrib.auth"],
+            REST_FRAMEWORK={},
+        )
     from rest_framework.test import APIClient
+
     DJANGO_AVAILABLE = True
-except ImportError:
+except (ImportError, Exception):
     DJANGO_AVAILABLE = False
+    APIClient = None  # Placeholder
 
 
 @pytest.mark.skipif(not DJANGO_AVAILABLE, reason="Django not installed")
@@ -500,23 +507,24 @@ class TestDjangoViews:
     def api_client(self):
         """Create API client for testing."""
         from miesc.api.rest import configure_django
+
         configure_django()
         return APIClient()
 
     def test_health_endpoint(self, api_client):
         """Test health check endpoint."""
-        response = api_client.get('/api/v1/health/')
+        response = api_client.get("/api/v1/health/")
         assert response.status_code == 200
-        assert 'status' in response.data
+        assert "status" in response.data
 
     def test_tools_list_endpoint(self, api_client):
         """Test tools list endpoint."""
-        response = api_client.get('/api/v1/tools/')
+        response = api_client.get("/api/v1/tools/")
         assert response.status_code == 200
-        assert 'tools' in response.data
+        assert "tools" in response.data
 
     def test_layers_endpoint(self, api_client):
         """Test layers endpoint."""
-        response = api_client.get('/api/v1/layers/')
+        response = api_client.get("/api/v1/layers/")
         assert response.status_code == 200
-        assert 'layers' in response.data
+        assert "layers" in response.data

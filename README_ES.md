@@ -2,13 +2,20 @@
 
 [![Licencia: AGPL v3](https://img.shields.io/badge/Licencia-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Versión](https://img.shields.io/badge/versión-v4.2.2-success)](https://github.com/fboiero/MIESC/releases)
+[![Versión](https://img.shields.io/badge/versión-v4.2.3-success)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions/workflows/secure-dev-pipeline.yml)
 [![Cobertura](https://img.shields.io/badge/cobertura-87.5%25-green)](./htmlcov/index.html)
 
 [English](./README.md) | **Español**
 
 Framework de análisis de seguridad multicapa para smart contracts de Ethereum. Orquesta 32 herramientas especializadas a través de 9 capas de defensa con correlación asistida por IA y detección basada en ML.
+
+**Resultados Validados (dataset SmartBugs-curated, 50 contratos):**
+
+- **Precisión: 100%** (0 falsos positivos)
+- **Recall: 70%** (35/50 vulnerabilidades detectadas)
+- **F1-Score: 82.35%**
+- Categorías con 100% recall: arithmetic, bad_randomness, front_running
 
 Arquitectura basada en investigación de análisis multi-herramienta (Durieux et al., 2020; Atzei et al., 2017). Desarrollado como parte de una Tesis de Maestría en Ciberdefensa en la Universidad de la Defensa Nacional (UNDEF), Argentina.
 

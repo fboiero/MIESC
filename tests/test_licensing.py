@@ -3,39 +3,66 @@ Comprehensive tests for the MIESC licensing module.
 Tests models, plans, key_generator, license_manager, and quota_checker.
 """
 
-import pytest
+import os
+import tempfile
 import uuid
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, MagicMock
-import tempfile
-import os
+from unittest.mock import Mock
 
-# Import licensing modules
-from src.licensing.models import (
-    LicenseStatus, PlanType, LicenseDB, UsageRecordDB,
-    License, UsageRecord, Base
-)
-from src.licensing.plans import (
-    PLANS, ALL_TOOLS, TOOLS_LAYER_1, TOOLS_LAYER_2, TOOLS_LAYER_3,
-    get_plan_config, get_allowed_tools, is_tool_allowed,
-    get_max_audits, get_max_contract_size, is_ai_enabled
-)
-from src.licensing.key_generator import (
-    generate_license_key, validate_key_format, normalize_key,
-    generate_checksum, generate_key_with_checksum
-)
-from src.licensing.license_manager import LicenseManager
-from src.licensing.quota_checker import QuotaChecker
+import pytest
+
+# Check for SQLAlchemy availability
+try:
+    import sqlalchemy
+
+    SQLALCHEMY_AVAILABLE = True
+except ImportError:
+    SQLALCHEMY_AVAILABLE = False
+
+# Skip entire module if SQLAlchemy not installed
+pytestmark = pytest.mark.skipif(not SQLALCHEMY_AVAILABLE, reason="SQLAlchemy not installed")
+
+if SQLALCHEMY_AVAILABLE:
+    # Import licensing modules only if SQLAlchemy is available
+    from src.licensing.key_generator import (
+        generate_checksum,
+        generate_key_with_checksum,
+        generate_license_key,
+        normalize_key,
+        validate_key_format,
+    )
+    from src.licensing.license_manager import LicenseManager
+    from src.licensing.models import (
+        License,
+        LicenseStatus,
+        PlanType,
+        UsageRecord,
+    )
+    from src.licensing.plans import (
+        ALL_TOOLS,
+        PLANS,
+        TOOLS_LAYER_1,
+        TOOLS_LAYER_2,
+        TOOLS_LAYER_3,
+        get_allowed_tools,
+        get_max_audits,
+        get_max_contract_size,
+        get_plan_config,
+        is_ai_enabled,
+        is_tool_allowed,
+    )
+    from src.licensing.quota_checker import QuotaChecker
 
 
 # =============================================================================
 # Test Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def temp_db_url():
     """Create a temporary database for testing."""
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
     url = f"sqlite:///{db_path}"
     yield url
@@ -73,7 +100,7 @@ def sample_license():
         max_audits_month=500,
         allowed_tools=ALL_TOOLS,
         ai_enabled=True,
-        max_contract_size_kb=1024
+        max_contract_size_kb=1024,
     )
 
 
@@ -91,7 +118,7 @@ def expired_license():
         max_audits_month=5,
         allowed_tools=["slither", "solhint"],
         ai_enabled=False,
-        max_contract_size_kb=50
+        max_contract_size_kb=50,
     )
 
 
@@ -109,7 +136,7 @@ def suspended_license():
         max_audits_month=50,
         allowed_tools=["slither", "solhint", "aderyn", "mythril", "echidna"],
         ai_enabled=False,
-        max_contract_size_kb=200
+        max_contract_size_kb=200,
     )
 
 
@@ -127,13 +154,14 @@ def enterprise_license():
         max_audits_month=-1,  # Unlimited
         allowed_tools=ALL_TOOLS,
         ai_enabled=True,
-        max_contract_size_kb=-1  # Unlimited
+        max_contract_size_kb=-1,  # Unlimited
     )
 
 
 # =============================================================================
 # Tests for models.py - Enums
 # =============================================================================
+
 
 class TestLicenseStatus:
     """Tests for LicenseStatus enum."""
@@ -168,6 +196,7 @@ class TestPlanType:
 # =============================================================================
 # Tests for models.py - License Dataclass
 # =============================================================================
+
 
 class TestLicenseDataclass:
     """Tests for License dataclass."""
@@ -251,7 +280,7 @@ class TestLicenseDataclass:
             "max_audits_month": 50,
             "allowed_tools": ["slither"],
             "ai_enabled": False,
-            "max_contract_size_kb": 200
+            "max_contract_size_kb": 200,
         }
 
         license = License.from_db(mock_db, plan_config)
@@ -264,6 +293,7 @@ class TestLicenseDataclass:
 # Tests for models.py - UsageRecord Dataclass
 # =============================================================================
 
+
 class TestUsageRecordDataclass:
     """Tests for UsageRecord dataclass."""
 
@@ -274,7 +304,7 @@ class TestUsageRecordDataclass:
             license_id=str(uuid.uuid4()),
             month="2024-12",
             audits_count=10,
-            last_audit_at=datetime.utcnow()
+            last_audit_at=datetime.utcnow(),
         )
         assert record.audits_count == 10
         assert record.month == "2024-12"
@@ -287,7 +317,7 @@ class TestUsageRecordDataclass:
             license_id="license-id",
             month="2024-12",
             audits_count=5,
-            last_audit_at=now
+            last_audit_at=now,
         )
         d = record.to_dict()
         assert d["id"] == "test-id"
@@ -301,7 +331,7 @@ class TestUsageRecordDataclass:
             license_id="license-id",
             month="2024-12",
             audits_count=0,
-            last_audit_at=None
+            last_audit_at=None,
         )
         d = record.to_dict()
         assert d["last_audit_at"] is None
@@ -310,6 +340,7 @@ class TestUsageRecordDataclass:
 # =============================================================================
 # Tests for plans.py
 # =============================================================================
+
 
 class TestPlans:
     """Tests for plans module."""
@@ -404,6 +435,7 @@ class TestPlans:
 # Tests for key_generator.py
 # =============================================================================
 
+
 class TestKeyGenerator:
     """Tests for key generator functions."""
 
@@ -435,7 +467,9 @@ class TestKeyGenerator:
         assert validate_key_format("MIESC-ABC-1234-EFAB-5678") is False  # Too short
         assert validate_key_format("MIESC-ABCDE-1234-EFAB-5678") is False  # Too long
         assert validate_key_format("OTHER-ABCD-1234-EFAB-5678") is False  # Wrong prefix
-        assert validate_key_format("MIESC-GHIJ-1234-EFAB-5678") is False  # Invalid hex (G-J not valid)
+        assert (
+            validate_key_format("MIESC-GHIJ-1234-EFAB-5678") is False
+        )  # Invalid hex (G-J not valid)
 
     def test_validate_key_format_case_insensitive(self):
         """Test validate_key_format is case insensitive."""
@@ -492,15 +526,13 @@ class TestKeyGenerator:
 # Tests for license_manager.py
 # =============================================================================
 
+
 class TestLicenseManager:
     """Tests for LicenseManager class."""
 
     def test_create_license_basic(self, license_manager):
         """Test basic license creation."""
-        license = license_manager.create_license(
-            email="test@example.com",
-            plan=PlanType.FREE
-        )
+        license = license_manager.create_license(email="test@example.com", plan=PlanType.FREE)
         assert license is not None
         assert license.email == "test@example.com"
         assert license.plan == PlanType.FREE
@@ -510,18 +542,14 @@ class TestLicenseManager:
     def test_create_license_with_organization(self, license_manager):
         """Test license creation with organization."""
         license = license_manager.create_license(
-            email="corp@example.com",
-            plan=PlanType.ENTERPRISE,
-            organization="Test Corp"
+            email="corp@example.com", plan=PlanType.ENTERPRISE, organization="Test Corp"
         )
         assert license.organization == "Test Corp"
 
     def test_create_license_with_expiration(self, license_manager):
         """Test license creation with expiration."""
         license = license_manager.create_license(
-            email="trial@example.com",
-            plan=PlanType.STARTER,
-            expires_days=30
+            email="trial@example.com", plan=PlanType.STARTER, expires_days=30
         )
         assert license.expires_at is not None
         assert license.days_until_expiry is not None
@@ -530,18 +558,13 @@ class TestLicenseManager:
     def test_create_license_with_notes(self, license_manager):
         """Test license creation with notes."""
         license = license_manager.create_license(
-            email="noted@example.com",
-            plan=PlanType.PRO,
-            notes="Special customer"
+            email="noted@example.com", plan=PlanType.PRO, notes="Special customer"
         )
         assert license.notes == "Special customer"
 
     def test_validate_valid_license(self, license_manager):
         """Test validating a valid license."""
-        created = license_manager.create_license(
-            email="valid@example.com",
-            plan=PlanType.PRO
-        )
+        created = license_manager.create_license(email="valid@example.com", plan=PlanType.PRO)
         validated = license_manager.validate(created.license_key)
         assert validated is not None
         assert validated.email == created.email
@@ -560,27 +583,20 @@ class TestLicenseManager:
         """Test validating expired license."""
         # Create a license that expires in 1 day
         license = license_manager.create_license(
-            email="expired@example.com",
-            plan=PlanType.FREE,
-            expires_days=1
+            email="expired@example.com", plan=PlanType.FREE, expires_days=1
         )
         # Manually expire the license by setting expires_at in the past
         from datetime import timedelta
+
         expired_date = datetime.utcnow() - timedelta(days=30)
-        updated = license_manager.update_license(
-            license.license_key,
-            expires_at=expired_date
-        )
+        updated = license_manager.update_license(license.license_key, expires_at=expired_date)
         # Should return None for expired license or have EXPIRED status
         result = license_manager.validate(license.license_key)
         assert result is None or result.status == LicenseStatus.EXPIRED
 
     def test_get_license(self, license_manager):
         """Test getting license info without validation."""
-        created = license_manager.create_license(
-            email="get@example.com",
-            plan=PlanType.STARTER
-        )
+        created = license_manager.create_license(email="get@example.com", plan=PlanType.STARTER)
         retrieved = license_manager.get_license(created.license_key)
         assert retrieved is not None
         assert retrieved.license_key == created.license_key
@@ -626,57 +642,37 @@ class TestLicenseManager:
 
     def test_update_license_status(self, license_manager):
         """Test updating license status."""
-        created = license_manager.create_license(
-            email="update@example.com",
-            plan=PlanType.FREE
-        )
+        created = license_manager.create_license(email="update@example.com", plan=PlanType.FREE)
         updated = license_manager.update_license(
-            created.license_key,
-            status=LicenseStatus.SUSPENDED
+            created.license_key, status=LicenseStatus.SUSPENDED
         )
         assert updated is not None
         assert updated.status == LicenseStatus.SUSPENDED
 
     def test_update_license_plan(self, license_manager):
         """Test upgrading license plan."""
-        created = license_manager.create_license(
-            email="upgrade@example.com",
-            plan=PlanType.FREE
-        )
-        updated = license_manager.update_license(
-            created.license_key,
-            plan=PlanType.PRO
-        )
+        created = license_manager.create_license(email="upgrade@example.com", plan=PlanType.FREE)
+        updated = license_manager.update_license(created.license_key, plan=PlanType.PRO)
         assert updated is not None
         assert updated.plan == PlanType.PRO
 
     def test_update_license_notes(self, license_manager):
         """Test updating license notes."""
-        created = license_manager.create_license(
-            email="notes@example.com",
-            plan=PlanType.FREE
-        )
-        updated = license_manager.update_license(
-            created.license_key,
-            notes="Updated notes"
-        )
+        created = license_manager.create_license(email="notes@example.com", plan=PlanType.FREE)
+        updated = license_manager.update_license(created.license_key, notes="Updated notes")
         assert updated is not None
         assert updated.notes == "Updated notes"
 
     def test_update_nonexistent_license(self, license_manager):
         """Test updating nonexistent license."""
         result = license_manager.update_license(
-            "MIESC-DEAD-BEEF-CAFE-BABE",
-            status=LicenseStatus.ACTIVE
+            "MIESC-DEAD-BEEF-CAFE-BABE", status=LicenseStatus.ACTIVE
         )
         assert result is None
 
     def test_revoke_license(self, license_manager):
         """Test revoking a license."""
-        created = license_manager.create_license(
-            email="revoke@example.com",
-            plan=PlanType.FREE
-        )
+        created = license_manager.create_license(email="revoke@example.com", plan=PlanType.FREE)
         result = license_manager.revoke_license(created.license_key)
         assert result is True
 
@@ -691,10 +687,7 @@ class TestLicenseManager:
 
     def test_suspend_license(self, license_manager):
         """Test suspending a license."""
-        created = license_manager.create_license(
-            email="suspend@example.com",
-            plan=PlanType.STARTER
-        )
+        created = license_manager.create_license(email="suspend@example.com", plan=PlanType.STARTER)
         result = license_manager.suspend_license(created.license_key)
         assert result is True
 
@@ -703,10 +696,7 @@ class TestLicenseManager:
 
     def test_reactivate_license(self, license_manager):
         """Test reactivating a suspended license."""
-        created = license_manager.create_license(
-            email="reactivate@example.com",
-            plan=PlanType.PRO
-        )
+        created = license_manager.create_license(email="reactivate@example.com", plan=PlanType.PRO)
         # First suspend
         license_manager.suspend_license(created.license_key)
 
@@ -741,6 +731,7 @@ class TestLicenseManager:
 # =============================================================================
 # Tests for quota_checker.py
 # =============================================================================
+
 
 class TestQuotaChecker:
     """Tests for QuotaChecker class."""
@@ -784,7 +775,7 @@ class TestQuotaChecker:
             max_audits_month=5,
             allowed_tools=["slither", "solhint"],
             ai_enabled=False,
-            max_contract_size_kb=50
+            max_contract_size_kb=50,
         )
         result = quota_checker.can_use_tool(free_license, "mythril")
         assert result is False
@@ -808,7 +799,7 @@ class TestQuotaChecker:
             plan=PlanType.FREE,
             status=LicenseStatus.ACTIVE,
             created_at=datetime.utcnow(),
-            ai_enabled=False
+            ai_enabled=False,
         )
         result = quota_checker.can_use_ai(free_license)
         assert result is False
@@ -833,7 +824,7 @@ class TestQuotaChecker:
             plan=PlanType.FREE,
             status=LicenseStatus.ACTIVE,
             created_at=datetime.utcnow(),
-            max_contract_size_kb=50
+            max_contract_size_kb=50,
         )
         result = quota_checker.check_contract_size(free_license, 100)
         assert result is False
@@ -886,7 +877,7 @@ class TestQuotaChecker:
             plan=PlanType.FREE,
             status=LicenseStatus.ACTIVE,
             created_at=datetime.utcnow(),
-            allowed_tools=["slither", "solhint"]
+            allowed_tools=["slither", "solhint"],
         )
         requested = ["slither", "mythril", "echidna"]
         allowed = quota_checker.filter_tools(free_license, requested)
@@ -911,6 +902,7 @@ class TestQuotaChecker:
 # Integration Tests
 # =============================================================================
 
+
 class TestLicensingIntegration:
     """Integration tests for the licensing system."""
 
@@ -922,9 +914,7 @@ class TestLicensingIntegration:
 
         # 1. Create license
         license = manager.create_license(
-            email="lifecycle@test.com",
-            plan=PlanType.STARTER,
-            expires_days=30
+            email="lifecycle@test.com", plan=PlanType.STARTER, expires_days=30
         )
         assert license.is_active is True
 
@@ -971,10 +961,7 @@ class TestLicensingIntegration:
         checker = QuotaChecker(database_url=temp_db_url)
 
         # Create FREE license with 5 audits/month limit
-        license = manager.create_license(
-            email="quota@test.com",
-            plan=PlanType.FREE
-        )
+        license = manager.create_license(email="quota@test.com", plan=PlanType.FREE)
 
         # Use up the quota
         for i in range(5):
@@ -1015,15 +1002,14 @@ class TestLicensingIntegration:
 # Edge Cases and Error Handling
 # =============================================================================
 
+
 class TestEdgeCases:
     """Tests for edge cases and error handling."""
 
     def test_license_without_expiration(self, license_manager):
         """Test creating perpetual license."""
         license = license_manager.create_license(
-            email="perpetual@test.com",
-            plan=PlanType.ENTERPRISE,
-            expires_days=None
+            email="perpetual@test.com", plan=PlanType.ENTERPRISE, expires_days=None
         )
         assert license.expires_at is None
         assert license.is_expired is False
@@ -1057,18 +1043,12 @@ class TestEdgeCases:
     def test_create_license_exception_handling(self, license_manager):
         """Test that exceptions during creation are handled."""
         # This should work normally
-        license = license_manager.create_license(
-            email="exception@test.com",
-            plan=PlanType.FREE
-        )
+        license = license_manager.create_license(email="exception@test.com", plan=PlanType.FREE)
         assert license is not None
 
     def test_update_license_invalid_key_format(self, license_manager):
         """Test updating with invalid key format."""
-        result = license_manager.update_license(
-            "not-a-valid-key",
-            status=LicenseStatus.ACTIVE
-        )
+        result = license_manager.update_license("not-a-valid-key", status=LicenseStatus.ACTIVE)
         assert result is None
 
     def test_filter_tools_empty_list(self, quota_checker, sample_license):

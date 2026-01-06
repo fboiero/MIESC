@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "miesc"
-version = "4.2.2"
+version = "4.2.3"
 description = "Multi-layer Intelligent Evaluation for Smart Contracts - AI-enhanced MCP-compatible blockchain security framework"
 readme = "README.md"
 authors = [
@@ -151,6 +151,8 @@ extend-exclude = '''
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
@@ -163,6 +165,15 @@ ignore = [
     "E501",  # line too long (handled by black)
     "B008",  # do not perform function calls in argument defaults
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# F401: Module imported but unused - needed for conditional availability checks
+# E741: Ambiguous variable name - used in list comprehensions for clarity
+# F841: Local variable assigned but never used - for future use or debugging
+"miesc/api/rest.py" = ["F401", "E741", "F841"]
+"miesc/cli/main.py" = ["F401", "E741", "F841"]
+"tests/test_rest_api.py" = ["F401"]
+"tests/test_licensing.py" = ["F401", "E722", "B007", "F841"]
 
 [tool.mypy]
 python_version = "3.12"

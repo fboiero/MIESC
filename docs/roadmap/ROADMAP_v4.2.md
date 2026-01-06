@@ -107,7 +107,7 @@ rm "src/agents/symbolic_agent 2.py"
 
 **Total:** ~35 archivos a eliminar
 
-#### 1.2 Completar __init__.py Faltantes (P0.3)
+#### 1.2 Completar **init**.py Faltantes (P0.3)
 
 ```python
 # src/dashboard/__init__.py
