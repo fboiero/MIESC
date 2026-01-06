@@ -374,21 +374,64 @@ adapters:
       - type4  # Semantic clones
 
 # =============================================================================
-# Configuración de LLM Local (Ollama)
+# Configuración de LLM Local (Ollama) - Centralizada v4.2.3
 # =============================================================================
 llm:
   provider: ollama
   host: http://localhost:11434
-  default_model: deepseek-coder
+
+  # Modelo por defecto para todas las tareas
+  default_model: deepseek-coder:6.7b
+
+  # Modelos específicos por caso de uso (para optimizar calidad/velocidad)
+  # El sistema intentará usar el modelo específico, si no está disponible usa default
+  models:
+    # Análisis de código y detección de vulnerabilidades
+    code_analysis: deepseek-coder:6.7b
+
+    # Generación de propiedades y invariantes (formal verification)
+    property_generation: deepseek-coder:6.7b
+
+    # Verificación y validación de hallazgos
+    verification: deepseek-coder:6.7b
+
+    # Correlación y síntesis de resultados
+    correlation: deepseek-coder:6.7b
+
+    # Generación de remediaciones y fixes
+    remediation: deepseek-coder:6.7b
+
+  # Modelos de fallback (en orden de preferencia)
   fallback_models:
-    - codellama
-    - llama3
+    - codellama:13b
+    - codellama:7b
+    - llama3:8b
+
+  # Configuración de reintentos
   retry_attempts: 3
   retry_delay: 5
+
+  # Parámetros de generación por defecto
   options:
     temperature: 0.1
     top_p: 0.95
     num_ctx: 8192
+    num_predict: 4096
+
+  # Configuración por rol (SmartLLM Generator/Verificator)
+  roles:
+    generator:
+      temperature: 0.2
+      system_prompt: "You are an expert smart contract security auditor."
+    verificator:
+      temperature: 0.1
+      system_prompt: "You are a critical reviewer verifying security findings."
+
+  # Cache de respuestas LLM
+  cache:
+    enabled: true
+    ttl_seconds: 3600
+    max_entries: 1000
 
 # =============================================================================
 # Configuración de Resultados

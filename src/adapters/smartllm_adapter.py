@@ -17,25 +17,33 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-01-13
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter,
-    ToolMetadata,
-    ToolStatus,
-    ToolCategory,
-    ToolCapability
-)
+import hashlib
+import json
+import logging
+import subprocess
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from src.adapters.smartllm_rag_knowledge import (
     get_relevant_knowledge,
     get_vulnerability_context,
-    VULNERABILITY_PATTERNS
 )
-from typing import Dict, Any, List, Optional
-import logging
-import subprocess
-import json
-import hashlib
-import time
-from pathlib import Path
+from src.core.llm_config import (
+    ROLE_GENERATOR,
+    USE_CASE_CODE_ANALYSIS,
+    get_generation_options,
+    get_model,
+    get_ollama_host,
+    get_retry_config,
+)
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +60,24 @@ class SmartLLMAdapter(ToolAdapter):
         super().__init__()
         self._cache_dir = Path.home() / ".miesc" / "smartllm_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
-        self._model = "deepseek-coder"
-        self._max_tokens = 8000  # 8K context window
-        self._max_retries = 3
-        self._retry_delay = 2  # seconds
+
+        # Load configuration from centralized config
+        self._model = get_model(USE_CASE_CODE_ANALYSIS)
+        self._ollama_host = get_ollama_host()
+        retry_config = get_retry_config()
+        self._max_retries = retry_config["attempts"]
+        self._retry_delay = retry_config["delay"]
+
+        # Generation options from config
+        gen_options = get_generation_options(ROLE_GENERATOR)
+        self._max_tokens = gen_options.get("num_ctx", 8192)
+
         self._use_rag = True  # Enable RAG by default
         self._use_verificator = True  # Enable verificator by default
+
+        logger.info(
+            f"SmartLLMAdapter initialized with model={self._model}, host={self._ollama_host}"
+        )
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -83,37 +103,32 @@ class SmartLLMAdapter(ToolAdapter):
                         "reentrancy",
                         "integer_overflow",
                         "unchecked_calls",
-                        "best_practices"
-                    ]
+                        "best_practices",
+                    ],
                 ),
                 ToolCapability(
                     name="rag_enhanced",
                     description="Retrieval-Augmented Generation with ERC-20/721/1155 knowledge base",
                     supported_languages=["solidity"],
-                    detection_types=["erc_violations", "standard_compliance"]
+                    detection_types=["erc_violations", "standard_compliance"],
                 ),
                 ToolCapability(
                     name="verificator",
                     description="Multi-stage analysis with Generator → Verificator → Consensus pipeline",
                     supported_languages=["solidity"],
-                    detection_types=["false_positive_reduction", "fact_checking"]
-                )
+                    detection_types=["false_positive_reduction", "fact_checking"],
+                ),
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if Ollama is installed and deepseek-coder model is available."""
         try:
             # Check if ollama command exists
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                timeout=5,
-                text=True
-            )
+            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5, text=True)
 
             if result.returncode != 0:
                 logger.warning("Ollama command failed")
@@ -157,7 +172,7 @@ class SmartLLMAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "SmartLLM (Ollama) not available. Ensure Ollama is installed and deepseek-coder model is pulled."
+                "error": "SmartLLM (Ollama) not available. Ensure Ollama is installed and deepseek-coder model is pulled.",
             }
 
         try:
@@ -170,7 +185,7 @@ class SmartLLMAdapter(ToolAdapter):
                     "status": "error",
                     "findings": [],
                     "execution_time": time.time() - start_time,
-                    "error": f"Could not read contract file: {contract_path}"
+                    "error": f"Could not read contract file: {contract_path}",
                 }
 
             # Check cache
@@ -197,7 +212,7 @@ class SmartLLMAdapter(ToolAdapter):
                     "status": "error",
                     "findings": [],
                     "execution_time": time.time() - start_time,
-                    "error": "Failed to get response from Ollama LLM (Generator stage)"
+                    "error": "Failed to get response from Ollama LLM (Generator stage)",
                 }
 
             # Parse initial findings
@@ -206,14 +221,15 @@ class SmartLLMAdapter(ToolAdapter):
             # STAGE 2: Verificator - Fact-checking and false positive reduction
             verified_findings = initial_findings
             if self._use_verificator and initial_findings:
-                logger.info(f"SmartLLM Stage 2/3: Verificator (checking {len(initial_findings)} findings)")
-                verified_findings = self._verificator_stage(
-                    contract_code,
-                    initial_findings
+                logger.info(
+                    f"SmartLLM Stage 2/3: Verificator (checking {len(initial_findings)} findings)"
                 )
+                verified_findings = self._verificator_stage(contract_code, initial_findings)
 
             # STAGE 3: Consensus - Final validation
-            logger.info(f"SmartLLM Stage 3/3: Consensus ({len(verified_findings)} findings confirmed)")
+            logger.info(
+                f"SmartLLM Stage 3/3: Consensus ({len(verified_findings)} findings confirmed)"
+            )
             final_findings = verified_findings
 
             # Build result
@@ -231,10 +247,10 @@ class SmartLLMAdapter(ToolAdapter):
                     "verificator_enabled": self._use_verificator,
                     "initial_findings": len(initial_findings),
                     "verified_findings": len(verified_findings),
-                    "false_positives_removed": len(initial_findings) - len(verified_findings)
+                    "false_positives_removed": len(initial_findings) - len(verified_findings),
                 },
                 "execution_time": time.time() - start_time,
-                "from_cache": False
+                "from_cache": False,
             }
 
             # Cache result
@@ -250,7 +266,7 @@ class SmartLLMAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -259,7 +275,7 @@ class SmartLLMAdapter(ToolAdapter):
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if this adapter can analyze the given contract."""
-        return Path(contract_path).suffix == '.sol'
+        return Path(contract_path).suffix == ".sol"
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
@@ -269,7 +285,7 @@ class SmartLLMAdapter(ToolAdapter):
             "max_tokens": 8000,
             "temperature": 0.1,  # Low temperature for precise analysis
             "max_retries": 3,
-            "retry_delay": 2
+            "retry_delay": 2,
         }
 
     # ============================================================================
@@ -279,7 +295,7 @@ class SmartLLMAdapter(ToolAdapter):
     def _read_contract(self, contract_path: str) -> Optional[str]:
         """Read contract file content."""
         try:
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Error reading contract: {e}")
@@ -355,15 +371,10 @@ Provide ONLY the JSON output, no additional text."""
                 logger.info(f"SmartLLM: Calling Ollama (attempt {attempt}/{self._max_retries})")
 
                 result = subprocess.run(
-                    [
-                        "ollama",
-                        "run",
-                        self._model,
-                        prompt
-                    ],
+                    ["ollama", "run", self._model, prompt],
                     capture_output=True,
                     timeout=300,  # 5 minutes max
-                    text=True
+                    text=True,
                 )
 
                 if result.returncode == 0 and result.stdout:
@@ -388,8 +399,8 @@ Provide ONLY the JSON output, no additional text."""
 
         try:
             # Extract JSON from response (LLM might add text around it)
-            json_start = llm_response.find('{')
-            json_end = llm_response.rfind('}') + 1
+            json_start = llm_response.find("{")
+            json_end = llm_response.rfind("}") + 1
 
             if json_start == -1 or json_end == 0:
                 logger.warning("No JSON found in LLM response")
@@ -411,12 +422,12 @@ Provide ONLY the JSON output, no additional text."""
                     "category": finding.get("type", "ai_detected_pattern"),
                     "location": {
                         "file": contract_path,
-                        "details": finding.get("location", "See full contract")
+                        "details": finding.get("location", "See full contract"),
                     },
-                    "recommendation": finding.get("recommendation", "Review and address the identified issue"),
-                    "references": [
-                        "AI-powered analysis using Ollama + deepseek-coder"
-                    ]
+                    "recommendation": finding.get(
+                        "recommendation", "Review and address the identified issue"
+                    ),
+                    "references": ["AI-powered analysis using Ollama + deepseek-coder"],
                 }
                 findings.append(normalized)
 
@@ -425,27 +436,25 @@ Provide ONLY the JSON output, no additional text."""
         except json.JSONDecodeError as e:
             logger.error(f"JSON parse error: {e}")
             # Fallback: create a single finding with the raw response
-            findings.append({
-                "id": "smartllm-raw",
-                "title": "LLM Analysis Result (raw)",
-                "description": llm_response[:500],  # First 500 chars
-                "severity": "INFO",
-                "confidence": 0.5,
-                "category": "ai_analysis",
-                "location": {
-                    "file": contract_path
-                },
-                "recommendation": "Review full LLM response for insights"
-            })
+            findings.append(
+                {
+                    "id": "smartllm-raw",
+                    "title": "LLM Analysis Result (raw)",
+                    "description": llm_response[:500],  # First 500 chars
+                    "severity": "INFO",
+                    "confidence": 0.5,
+                    "category": "ai_analysis",
+                    "location": {"file": contract_path},
+                    "recommendation": "Review full LLM response for insights",
+                }
+            )
         except Exception as e:
             logger.error(f"Error parsing LLM response: {e}")
 
         return findings
 
     def _verificator_stage(
-        self,
-        contract_code: str,
-        initial_findings: List[Dict[str, Any]]
+        self, contract_code: str, initial_findings: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """
         Stage 2: Verificator - Fact-check findings and reduce false positives.
@@ -464,10 +473,7 @@ Provide ONLY the JSON output, no additional text."""
 
         for finding in initial_findings:
             # Generate verificator prompt
-            verificator_prompt = self._generate_verificator_prompt(
-                contract_code,
-                finding
-            )
+            verificator_prompt = self._generate_verificator_prompt(contract_code, finding)
 
             # Call LLM for verification (single attempt, faster)
             try:
@@ -477,21 +483,39 @@ Provide ONLY the JSON output, no additional text."""
                     ["ollama", "run", self._model, verificator_prompt],
                     capture_output=True,
                     timeout=60,  # Shorter timeout for verificator
-                    text=True
+                    text=True,
                 )
 
                 if result.returncode == 0 and result.stdout:
-                    response = result.stdout.strip().lower()
+                    response = result.stdout.strip()
+                    response_lower = response.lower()
 
-                    # Parse verificator response
-                    if "confirmed" in response or "true" in response or "valid" in response:
-                        # Finding confirmed - keep it
+                    # Parse chain-of-thought verificator response
+                    # Look for explicit verdict markers first
+                    if (
+                        "verdict: confirmed" in response_lower
+                        or "verdict:confirmed" in response_lower
+                    ):
+                        # Finding explicitly confirmed
+                        finding["verified"] = True
+                        finding["verification_reasoning"] = response[:500]  # Store reasoning
+                        finding["confidence"] = min(finding.get("confidence", 0.75) + 0.15, 0.95)
+                        verified_findings.append(finding)
+                        logger.debug(f"✓ Finding confirmed with CoT: {finding.get('title')}")
+                    elif (
+                        "verdict: false_positive" in response_lower
+                        or "verdict:false_positive" in response_lower
+                    ):
+                        # Explicit false positive
+                        logger.info(f"✗ False positive (CoT verified): {finding.get('title')}")
+                    elif "confirmed" in response_lower and "false_positive" not in response_lower:
+                        # Legacy format: implicit confirmation
                         finding["verified"] = True
                         finding["confidence"] = min(finding.get("confidence", 0.75) + 0.1, 0.95)
                         verified_findings.append(finding)
                         logger.debug(f"✓ Finding confirmed: {finding.get('title')}")
                     else:
-                        # Possible false positive - log and discard
+                        # Default to false positive if no clear confirmation
                         logger.info(f"✗ False positive removed: {finding.get('title')}")
                 else:
                     # Verificator failed - keep finding with lower confidence (conservative)
@@ -516,28 +540,34 @@ Provide ONLY the JSON output, no additional text."""
 
         return verified_findings
 
-    def _generate_verificator_prompt(
-        self,
-        contract_code: str,
-        finding: Dict[str, Any]
-    ) -> str:
+    def _generate_verificator_prompt(self, contract_code: str, finding: Dict[str, Any]) -> str:
         """
         Generate verificator prompt for fact-checking a finding.
+
+        Uses chain-of-thought prompting to improve verification accuracy.
+        Based on: Wei et al. (2022) "Chain-of-Thought Prompting Elicits
+        Reasoning in Large Language Models" (arXiv:2201.11903)
 
         Args:
             contract_code: Contract source code
             finding: Finding to verify
 
         Returns:
-            Verificator prompt
+            Verificator prompt with chain-of-thought structure
         """
         # Get vulnerability context from knowledge base
         vuln_type = finding.get("category", finding.get("type", ""))
         vuln_context = get_vulnerability_context(vuln_type)
 
-        return f"""You are a fact-checking expert for smart contract security findings.
+        # Get role-specific system prompt from config
+        from src.core.llm_config import ROLE_VERIFICATOR, get_role_system_prompt
 
-TASK: Verify if the following security finding is VALID (true positive) or FALSE POSITIVE.
+        system_prompt = get_role_system_prompt(ROLE_VERIFICATOR)
+
+        return f"""{system_prompt}
+
+TASK: Verify if the following security finding is a TRUE POSITIVE or FALSE POSITIVE.
+Think step by step before giving your final verdict.
 
 FINDING TO VERIFY:
 - Type: {finding.get('type', 'N/A')}
@@ -546,27 +576,48 @@ FINDING TO VERIFY:
 - Location: {finding.get('location', {}).get('details', 'N/A')}
 - Severity: {finding.get('severity', 'N/A')}
 
-VULNERABILITY REFERENCE:
+VULNERABILITY REFERENCE (from SWC Registry):
 {vuln_context.get('description', 'No reference available')}
-Example: {vuln_context.get('example', 'N/A')}
+Mitigation: {vuln_context.get('mitigation', 'N/A')}
 
 CONTRACT CODE:
 ```solidity
 {contract_code[:2000]}
 ```
 
-VERIFICATION INSTRUCTIONS:
-1. Check if the finding accurately describes an actual vulnerability in the code
-2. Verify the vulnerability location is correct
-3. Confirm the severity assessment is appropriate
-4. Eliminate false positives (code that looks suspicious but is actually safe)
+CHAIN-OF-THOUGHT ANALYSIS:
+Analyze step by step:
 
-OUTPUT:
-Respond with ONLY ONE WORD:
-- "CONFIRMED" if the finding is valid (true positive)
-- "FALSE_POSITIVE" if the finding is incorrect
+STEP 1 - CODE LOCATION CHECK:
+Does the reported location exist in the code? Is it correctly identified?
 
-Your response (one word only):"""
+STEP 2 - VULNERABILITY PATTERN MATCH:
+Does the code at this location match the vulnerability pattern described?
+Compare against the SWC reference.
+
+STEP 3 - CONTEXT ANALYSIS:
+Consider the surrounding code context:
+- Are there existing mitigations (checks-effects-interactions, reentrancy guards)?
+- Does the control flow actually allow exploitation?
+- Are the preconditions for exploitation actually reachable?
+
+STEP 4 - FALSE POSITIVE INDICATORS:
+Check for common false positive patterns:
+- Safe math libraries in use
+- Access control preventing exploitation
+- State changes before external calls
+- Trusted contract interactions only
+
+STEP 5 - SEVERITY VALIDATION:
+If the finding is valid, is the severity level appropriate?
+Consider: exploitability, impact, likelihood.
+
+FINAL VERDICT:
+Based on your step-by-step analysis, conclude with exactly one of:
+- "VERDICT: CONFIRMED" - The finding is a valid true positive
+- "VERDICT: FALSE_POSITIVE" - The finding is incorrect or not exploitable
+
+Your analysis:"""
 
     def _get_cache_key(self, contract_code: str) -> str:
         """Generate cache key from contract code."""
@@ -587,7 +638,7 @@ Your response (one word only):"""
                 cache_file.unlink()
                 return None
 
-            with open(cache_file, 'r') as f:
+            with open(cache_file, "r") as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Error reading cache: {e}")
@@ -598,7 +649,7 @@ Your response (one word only):"""
         cache_file = self._cache_dir / f"{cache_key}.json"
 
         try:
-            with open(cache_file, 'w') as f:
+            with open(cache_file, "w") as f:
                 json.dump(result, f, indent=2)
             logger.info(f"Cached result for {cache_key}")
         except Exception as e:

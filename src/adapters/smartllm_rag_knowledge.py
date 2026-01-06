@@ -164,62 +164,412 @@ GAS OPTIMIZATION:
 - Use events for data storage when appropriate
 """
 
-# Vulnerability Pattern Database
+# Vulnerability Pattern Database - Extended SWC Registry Coverage
 VULNERABILITY_PATTERNS = {
+    # ========== CRITICAL SEVERITY ==========
     "reentrancy": {
-        "description": "State changes after external calls",
-        "example": "balance[msg.sender] -= amount; (bool success,) = msg.sender.call{value: amount}(\"\");",
-        "fix": "Use CEI pattern: update state before external call",
-        "severity": "CRITICAL"
-    },
-    "integer_overflow": {
-        "description": "Arithmetic operations without overflow protection",
-        "example": "uint256 total = a + b; (Solidity < 0.8.0 without SafeMath)",
-        "fix": "Use Solidity >= 0.8.0 or SafeMath library",
-        "severity": "HIGH"
-    },
-    "unchecked_call": {
-        "description": "External call return value not checked",
-        "example": "recipient.call{value: amount}(\"\");",
-        "fix": "Check return value: (bool success,) = recipient.call{value: amount}(\"\"); require(success);",
-        "severity": "MEDIUM"
-    },
-    "tx_origin": {
-        "description": "Using tx.origin for authorization",
-        "example": "require(tx.origin == owner);",
-        "fix": "Use msg.sender instead of tx.origin",
-        "severity": "HIGH"
+        "swc_id": "SWC-107",
+        "description": "State changes after external calls allow recursive callbacks",
+        "example": 'balance[msg.sender] -= amount; (bool success,) = msg.sender.call{value: amount}("");',
+        "fix": "Use CEI pattern: update state before external call. Add ReentrancyGuard.",
+        "severity": "CRITICAL",
+        "attack_vector": "Attacker contract calls back into vulnerable function during execution",
     },
     "delegatecall": {
-        "description": "Delegatecall to untrusted contract",
+        "swc_id": "SWC-112",
+        "description": "Delegatecall to untrusted contract preserves caller context",
         "example": "address(target).delegatecall(data);",
-        "fix": "Whitelist delegatecall targets and validate addresses",
-        "severity": "CRITICAL"
-    },
-    "timestamp_dependence": {
-        "description": "Logic depends on block.timestamp",
-        "example": "require(block.timestamp > deadline);",
-        "fix": "Use block.number or accept 15-second miner manipulation window",
-        "severity": "LOW"
-    },
-    "uninitialized_storage": {
-        "description": "Storage pointer not initialized",
-        "example": "struct MyStruct storage s; s.value = 10;",
-        "fix": "Initialize storage pointers properly",
-        "severity": "HIGH"
+        "fix": "Whitelist delegatecall targets and validate addresses. Use proxy patterns safely.",
+        "severity": "CRITICAL",
+        "attack_vector": "Malicious contract takes over storage via delegatecall",
     },
     "selfdestruct": {
-        "description": "Unprotected selfdestruct",
+        "swc_id": "SWC-106",
+        "description": "Unprotected selfdestruct allows contract destruction",
         "example": "function destroy() public { selfdestruct(payable(msg.sender)); }",
-        "fix": "Add access control: function destroy() public onlyOwner",
-        "severity": "CRITICAL"
-    }
+        "fix": "Add access control: function destroy() public onlyOwner. Consider removing selfdestruct.",
+        "severity": "CRITICAL",
+        "attack_vector": "Anyone can destroy contract and steal funds",
+    },
+    "unprotected_upgrade": {
+        "swc_id": "SWC-105",
+        "description": "Upgrade function without access control",
+        "example": "function upgrade(address newImpl) public { implementation = newImpl; }",
+        "fix": "Add onlyOwner or role-based access. Use OpenZeppelin upgradeable contracts.",
+        "severity": "CRITICAL",
+        "attack_vector": "Attacker upgrades to malicious implementation",
+    },
+    "arbitrary_jump": {
+        "swc_id": "SWC-127",
+        "description": "Jump to arbitrary location in bytecode",
+        "example": "assembly { jump(target) }",
+        "fix": "Avoid arbitrary jumps. Use structured control flow.",
+        "severity": "CRITICAL",
+        "attack_vector": "Execution redirected to malicious code",
+    },
+    # ========== HIGH SEVERITY ==========
+    "integer_overflow": {
+        "swc_id": "SWC-101",
+        "description": "Arithmetic operations without overflow protection (Solidity < 0.8.0)",
+        "example": "uint256 total = a + b; // Can wrap around",
+        "fix": "Use Solidity >= 0.8.0 or SafeMath library",
+        "severity": "HIGH",
+        "attack_vector": "Overflow causes unexpected large values, underflow causes near-max values",
+    },
+    "tx_origin": {
+        "swc_id": "SWC-115",
+        "description": "Using tx.origin for authorization instead of msg.sender",
+        "example": "require(tx.origin == owner);",
+        "fix": "Use msg.sender instead of tx.origin",
+        "severity": "HIGH",
+        "attack_vector": "Phishing attack: user interacts with malicious contract that calls victim",
+    },
+    "uninitialized_storage": {
+        "swc_id": "SWC-109",
+        "description": "Storage pointer not initialized properly",
+        "example": "struct MyStruct storage s; s.value = 10;",
+        "fix": "Initialize storage pointers to specific slots. Use memory for local structs.",
+        "severity": "HIGH",
+        "attack_vector": "Overwrites critical storage slots like owner",
+    },
+    "access_control": {
+        "swc_id": "SWC-105",
+        "description": "Missing or weak access control on sensitive functions",
+        "example": "function setOwner(address newOwner) public { owner = newOwner; }",
+        "fix": "Add onlyOwner modifier. Use OpenZeppelin AccessControl.",
+        "severity": "HIGH",
+        "attack_vector": "Anyone can call privileged functions",
+    },
+    "signature_replay": {
+        "swc_id": "SWC-121",
+        "description": "Signature can be replayed on same or different chain",
+        "example": "ecrecover(hash, v, r, s) without nonce",
+        "fix": "Include nonce, chainId, and contract address in signed message",
+        "severity": "HIGH",
+        "attack_vector": "Attacker replays valid signature multiple times",
+    },
+    "front_running": {
+        "swc_id": "SWC-114",
+        "description": "Transaction can be front-run by observing mempool",
+        "example": "Revealing winning lottery number in same transaction as claim",
+        "fix": "Use commit-reveal scheme. Add time delays. Use private mempools.",
+        "severity": "HIGH",
+        "attack_vector": "MEV bots extract value by inserting transactions",
+    },
+    "dos_gas_limit": {
+        "swc_id": "SWC-128",
+        "description": "Unbounded loops cause out-of-gas",
+        "example": "for (uint i = 0; i < users.length; i++) { pay(users[i]); }",
+        "fix": "Use pull-over-push pattern. Limit iterations. Paginate operations.",
+        "severity": "HIGH",
+        "attack_vector": "Attacker adds entries until function exceeds gas limit",
+    },
+    "write_to_arbitrary_storage": {
+        "swc_id": "SWC-124",
+        "description": "User input controls storage slot to write",
+        "example": "assembly { sstore(userInput, value) }",
+        "fix": "Validate storage slot indices. Use mappings safely.",
+        "severity": "HIGH",
+        "attack_vector": "Overwrite owner or other critical slots",
+    },
+    # ========== MEDIUM SEVERITY ==========
+    "unchecked_call": {
+        "swc_id": "SWC-104",
+        "description": "External call return value not checked",
+        "example": 'recipient.call{value: amount}("");',
+        "fix": 'Check return value: (bool success,) = recipient.call{value: amount}(""); require(success);',
+        "severity": "MEDIUM",
+        "attack_vector": "Silent failure leads to inconsistent state",
+    },
+    "shadowing": {
+        "swc_id": "SWC-119",
+        "description": "Local variable shadows state variable",
+        "example": "uint256 owner; function setOwner(uint256 owner) { owner = owner; }",
+        "fix": "Use different names. Enable compiler warnings.",
+        "severity": "MEDIUM",
+        "attack_vector": "Accidental use of wrong variable",
+    },
+    "locked_ether": {
+        "swc_id": "SWC-132",
+        "description": "Contract can receive ETH but has no withdrawal function",
+        "example": "receive() external payable {} // No withdraw function",
+        "fix": "Add withdrawal function or remove payable",
+        "severity": "MEDIUM",
+        "attack_vector": "ETH permanently locked in contract",
+    },
+    "default_visibility": {
+        "swc_id": "SWC-100",
+        "description": "Functions without explicit visibility default to public",
+        "example": "function sensitiveAction() { ... } // Implicitly public",
+        "fix": "Always specify visibility: public, external, internal, private",
+        "severity": "MEDIUM",
+        "attack_vector": "Internal functions exposed publicly",
+    },
+    "require_no_message": {
+        "swc_id": "SWC-123",
+        "description": "require/revert without error message",
+        "example": "require(success); // No message",
+        "fix": 'Add descriptive message: require(success, "Transfer failed")',
+        "severity": "MEDIUM",
+        "attack_vector": "Difficult to debug failures",
+    },
+    # ========== LOW SEVERITY ==========
+    "timestamp_dependence": {
+        "swc_id": "SWC-116",
+        "description": "Logic depends on block.timestamp which miners can manipulate",
+        "example": "require(block.timestamp > deadline);",
+        "fix": "Use block.number or accept 15-second manipulation window. Use oracles for critical timing.",
+        "severity": "LOW",
+        "attack_vector": "Miners manipulate timestamp by ~15 seconds",
+    },
+    "weak_randomness": {
+        "swc_id": "SWC-120",
+        "description": "Using blockhash or timestamp for randomness",
+        "example": "uint random = uint(blockhash(block.number - 1)) % 100;",
+        "fix": "Use Chainlink VRF or commit-reveal scheme",
+        "severity": "LOW",
+        "attack_vector": "Miners/validators can manipulate randomness",
+    },
+    "floating_pragma": {
+        "swc_id": "SWC-103",
+        "description": "Pragma allows floating compiler version",
+        "example": "pragma solidity ^0.8.0;",
+        "fix": "Lock pragma to specific version: pragma solidity 0.8.20;",
+        "severity": "LOW",
+        "attack_vector": "Different compiler versions may introduce bugs",
+    },
+    "deprecated_functions": {
+        "swc_id": "SWC-111",
+        "description": "Using deprecated Solidity functions",
+        "example": "sha3(), suicide(), throw",
+        "fix": "Use keccak256(), selfdestruct(), revert()",
+        "severity": "LOW",
+        "attack_vector": "Future compiler versions may break",
+    },
 }
+
+# ========== DeFi-Specific Vulnerability Patterns ==========
+DEFI_VULNERABILITY_PATTERNS = {
+    "flash_loan_attack": {
+        "description": "Flash loan enables price manipulation within single transaction",
+        "example": "Borrow large amount → manipulate price → profit → repay",
+        "fix": "Use time-weighted oracles (TWAP). Add flash loan guards. Check price deviation limits.",
+        "severity": "CRITICAL",
+        "attack_vector": "Attacker borrows millions, manipulates reserves, profits from arbitrage",
+        "historical_exploits": ["bZx ($8M)", "Harvest Finance ($34M)", "Pancake Bunny ($45M)"],
+    },
+    "oracle_manipulation": {
+        "description": "Price oracle uses spot price from AMM reserves",
+        "example": "price = reserveB / reserveA; // Manipulable",
+        "fix": "Use Chainlink oracles. Implement TWAP. Use multiple oracle sources.",
+        "severity": "CRITICAL",
+        "attack_vector": "Large swap manipulates spot price, affects lending/liquidation",
+        "historical_exploits": ["Cream Finance ($130M)", "Mango Markets ($114M)"],
+    },
+    "sandwich_attack": {
+        "description": "MEV bot front-runs and back-runs user transactions",
+        "example": "Bot sees large swap → buys before → user gets worse price → bot sells after",
+        "fix": "Use private mempools (Flashbots). Set slippage limits. Use limit orders.",
+        "severity": "HIGH",
+        "attack_vector": "MEV bots extract value from every large swap",
+    },
+    "infinite_approval": {
+        "description": "User approves max uint256 tokens to protocol",
+        "example": "token.approve(protocol, type(uint256).max);",
+        "fix": "Approve only needed amount. Revoke approvals after use.",
+        "severity": "HIGH",
+        "attack_vector": "If protocol is compromised, attacker drains all approved tokens",
+    },
+    "slippage_attack": {
+        "description": "No slippage protection on swaps/liquidity operations",
+        "example": "swap(tokenA, tokenB, 0); // minAmountOut = 0",
+        "fix": "Always set reasonable minAmountOut. Use deadline parameter.",
+        "severity": "HIGH",
+        "attack_vector": "Attacker manipulates pool, user receives nothing",
+    },
+    "rug_pull": {
+        "description": "Owner can drain pool or disable withdrawals",
+        "example": "function emergencyWithdraw() onlyOwner { token.transfer(owner, balance); }",
+        "fix": "Use timelocks. Remove owner privileges. Use multisig.",
+        "severity": "CRITICAL",
+        "attack_vector": "Team drains funds and disappears",
+    },
+    "liquidation_manipulation": {
+        "description": "Attacker triggers unjust liquidation via price manipulation",
+        "example": "Flash loan → dump collateral price → liquidate → profit",
+        "fix": "Use TWAP for liquidation prices. Add liquidation delay.",
+        "severity": "CRITICAL",
+        "attack_vector": "Profitable liquidations triggered by temporary price movements",
+    },
+    "donation_attack": {
+        "description": "Direct token transfer affects share calculations",
+        "example": "Vault shares = deposits / totalAssets; // Manipulable via donation",
+        "fix": "Use virtual assets. Track deposits separately from balance.",
+        "severity": "HIGH",
+        "attack_vector": "Attacker donates tokens to inflate share value, first depositor gets all",
+    },
+}
+
+# ========== Governance Vulnerability Patterns ==========
+GOVERNANCE_VULNERABILITY_PATTERNS = {
+    "flash_loan_governance": {
+        "description": "Governance voting power acquired via flash loan",
+        "example": "Borrow tokens → vote → return tokens in same block",
+        "fix": "Use vote checkpoints. Require tokens held for minimum time.",
+        "severity": "CRITICAL",
+        "attack_vector": "Attacker passes malicious proposals without capital",
+    },
+    "timelock_bypass": {
+        "description": "Critical actions not protected by timelock",
+        "example": "function setFee(uint fee) onlyOwner { ... } // Instant",
+        "fix": "All admin functions go through timelock. Use OpenZeppelin TimelockController.",
+        "severity": "HIGH",
+        "attack_vector": "Malicious admin makes instant changes, users can't react",
+    },
+    "proposal_griefing": {
+        "description": "Anyone can spam proposals, blocking legitimate ones",
+        "example": "function propose(...) public { ... } // No threshold",
+        "fix": "Require minimum token balance to propose. Add proposal fees.",
+        "severity": "MEDIUM",
+        "attack_vector": "Attacker fills proposal queue with spam",
+    },
+    "quorum_manipulation": {
+        "description": "Low quorum allows minority to pass proposals",
+        "example": "if (votes > totalSupply * 4 / 100) { execute(); }",
+        "fix": "Dynamic quorum based on participation. Use quadratic voting.",
+        "severity": "HIGH",
+        "attack_vector": "Attacker buys 5% tokens and controls governance",
+    },
+    "emergency_shutdown": {
+        "description": "No emergency shutdown mechanism for governance",
+        "example": "Malicious proposal passes, no way to stop execution",
+        "fix": "Add guardian role with veto power. Implement emergency pause.",
+        "severity": "HIGH",
+        "attack_vector": "Exploited proposal executes before community can react",
+    },
+}
+
+
+def detect_contract_type(contract_code: str) -> str:
+    """
+    Detect the type of smart contract for specialized RAG context.
+
+    Args:
+        contract_code: Solidity contract source code
+
+    Returns:
+        Contract type: 'defi', 'nft', 'governance', 'token', or 'general'
+    """
+    code_lower = contract_code.lower()
+
+    # DeFi patterns (lending, DEX, yield)
+    defi_keywords = [
+        "flashloan",
+        "flash_loan",
+        "flashmint",
+        "swap",
+        "liquidity",
+        "pool",
+        "amm",
+        "borrow",
+        "lend",
+        "collateral",
+        "liquidate",
+        "stake",
+        "unstake",
+        "yield",
+        "farm",
+        "vault",
+        "strategy",
+        "deposit",
+        "withdraw",
+        "oracle",
+        "pricefeed",
+        "getprice",
+        "reserves",
+        "getreserves",
+        "sync",
+    ]
+    if any(kw in code_lower for kw in defi_keywords):
+        return "defi"
+
+    # Governance patterns
+    governance_keywords = [
+        "propose",
+        "proposal",
+        "vote",
+        "voting",
+        "quorum",
+        "timelock",
+        "governor",
+        "dao",
+        "execute",
+        "cancel",
+        "queue",
+        "votingpower",
+        "delegate",
+        "checkpoint",
+    ]
+    if any(kw in code_lower for kw in governance_keywords):
+        return "governance"
+
+    # NFT patterns
+    if "ERC721" in contract_code or "ERC1155" in contract_code:
+        return "nft"
+    nft_keywords = ["tokenid", "ownerof(", "safetransferfrom", "mint(", "tokenuri"]
+    if any(kw in code_lower for kw in nft_keywords):
+        return "nft"
+
+    # Token patterns
+    if "ERC20" in contract_code:
+        return "token"
+    token_keywords = ["totalsupply", "balanceof(", "transfer(", "approve(", "allowance"]
+    if any(kw in code_lower for kw in token_keywords):
+        return "token"
+
+    return "general"
+
+
+def get_defi_knowledge() -> str:
+    """Generate DeFi-specific knowledge section."""
+    sections = ["DeFi Security Patterns", "=" * 50, ""]
+
+    for vuln_name, vuln_info in DEFI_VULNERABILITY_PATTERNS.items():
+        sections.append(f"### {vuln_name.upper()}")
+        sections.append(f"Severity: {vuln_info['severity']}")
+        sections.append(f"Description: {vuln_info['description']}")
+        sections.append(f"Attack Vector: {vuln_info['attack_vector']}")
+        sections.append(f"Example: {vuln_info['example']}")
+        sections.append(f"Fix: {vuln_info['fix']}")
+        if "historical_exploits" in vuln_info:
+            sections.append(f"Historical Exploits: {', '.join(vuln_info['historical_exploits'])}")
+        sections.append("")
+
+    return "\n".join(sections)
+
+
+def get_governance_knowledge() -> str:
+    """Generate governance-specific knowledge section."""
+    sections = ["Governance Security Patterns", "=" * 50, ""]
+
+    for vuln_name, vuln_info in GOVERNANCE_VULNERABILITY_PATTERNS.items():
+        sections.append(f"### {vuln_name.upper()}")
+        sections.append(f"Severity: {vuln_info['severity']}")
+        sections.append(f"Description: {vuln_info['description']}")
+        sections.append(f"Attack Vector: {vuln_info['attack_vector']}")
+        sections.append(f"Example: {vuln_info['example']}")
+        sections.append(f"Fix: {vuln_info['fix']}")
+        sections.append("")
+
+    return "\n".join(sections)
 
 
 def get_relevant_knowledge(contract_code: str) -> str:
     """
     Retrieve relevant knowledge based on contract code analysis.
+
+    Enhanced to detect contract type and include specialized knowledge
+    for DeFi, governance, NFT, and token contracts.
 
     Args:
         contract_code: Solidity contract source code
@@ -229,8 +579,20 @@ def get_relevant_knowledge(contract_code: str) -> str:
     """
     knowledge_sections = [SECURITY_BEST_PRACTICES]
 
+    # Detect contract type for specialized context
+    contract_type = detect_contract_type(contract_code)
+
+    # Add type-specific knowledge
+    if contract_type == "defi":
+        knowledge_sections.append(get_defi_knowledge())
+
+    if contract_type == "governance":
+        knowledge_sections.append(get_governance_knowledge())
+
     # Detect ERC standards
-    if "ERC20" in contract_code or any(func in contract_code for func in ["transfer(", "approve(", "transferFrom("]):
+    if "ERC20" in contract_code or any(
+        func in contract_code for func in ["transfer(", "approve(", "transferFrom("]
+    ):
         knowledge_sections.append(ERC20_KNOWLEDGE)
 
     if "ERC721" in contract_code or "tokenId" in contract_code or "ownerOf(" in contract_code:
@@ -242,19 +604,64 @@ def get_relevant_knowledge(contract_code: str) -> str:
     return "\n\n".join(knowledge_sections)
 
 
-def get_vulnerability_context(vuln_type: str) -> str:
+def get_vulnerability_context(vuln_type: str) -> dict:
     """
     Get detailed context about a specific vulnerability type.
 
+    Searches across all vulnerability pattern dictionaries:
+    - VULNERABILITY_PATTERNS (SWC-based)
+    - DEFI_VULNERABILITY_PATTERNS
+    - GOVERNANCE_VULNERABILITY_PATTERNS
+
     Args:
-        vuln_type: Vulnerability identifier
+        vuln_type: Vulnerability identifier (e.g., 'reentrancy', 'flash_loan_attack')
 
     Returns:
-        Detailed vulnerability information
+        Detailed vulnerability information dictionary
     """
-    return VULNERABILITY_PATTERNS.get(vuln_type, {
+    # Normalize the type for lookup
+    vuln_type_normalized = vuln_type.lower().replace("-", "_").replace(" ", "_")
+
+    # Search in SWC patterns first
+    if vuln_type_normalized in VULNERABILITY_PATTERNS:
+        return VULNERABILITY_PATTERNS[vuln_type_normalized]
+
+    # Search in DeFi patterns
+    if vuln_type_normalized in DEFI_VULNERABILITY_PATTERNS:
+        return DEFI_VULNERABILITY_PATTERNS[vuln_type_normalized]
+
+    # Search in governance patterns
+    if vuln_type_normalized in GOVERNANCE_VULNERABILITY_PATTERNS:
+        return GOVERNANCE_VULNERABILITY_PATTERNS[vuln_type_normalized]
+
+    # Fuzzy match: check if vuln_type is substring of any key
+    all_patterns = {
+        **VULNERABILITY_PATTERNS,
+        **DEFI_VULNERABILITY_PATTERNS,
+        **GOVERNANCE_VULNERABILITY_PATTERNS,
+    }
+    for key, value in all_patterns.items():
+        if vuln_type_normalized in key or key in vuln_type_normalized:
+            return value
+
+    # Default response
+    return {
         "description": "Unknown vulnerability type",
         "example": "N/A",
         "fix": "Review code for security issues",
-        "severity": "MEDIUM"
-    })
+        "severity": "MEDIUM",
+    }
+
+
+def get_all_vulnerability_patterns() -> dict:
+    """
+    Get all vulnerability patterns combined.
+
+    Returns:
+        Combined dictionary of all vulnerability patterns
+    """
+    return {
+        **VULNERABILITY_PATTERNS,
+        **DEFI_VULNERABILITY_PATTERNS,
+        **GOVERNANCE_VULNERABILITY_PATTERNS,
+    }
