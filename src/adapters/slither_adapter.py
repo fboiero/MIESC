@@ -7,18 +7,67 @@ Implements ToolAdapter protocol for standardized integration.
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from src.llm import enhance_findings_with_llm
-from typing import Dict, Any, List, Optional
-import subprocess
 import json
 import logging
+import os
+import shutil
+import subprocess
 import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
+from src.llm import enhance_findings_with_llm
 
 logger = logging.getLogger(__name__)
+
+
+def _find_slither_binary() -> str:
+    """
+    Find the correct slither binary, preferring user installations.
+
+    This handles cases where multiple slither versions are installed
+    (e.g., an old version in /usr/local/bin and a new one in user site-packages).
+    """
+    # Priority list of paths to check
+    priority_paths = [
+        # User site-packages (pip install --user)
+        os.path.expanduser("~/.local/bin/slither"),
+        os.path.expanduser("~/Library/Python/3.9/bin/slither"),
+        os.path.expanduser("~/Library/Python/3.10/bin/slither"),
+        os.path.expanduser("~/Library/Python/3.11/bin/slither"),
+        os.path.expanduser("~/Library/Python/3.12/bin/slither"),
+        # Virtual environment
+        os.path.join(os.environ.get("VIRTUAL_ENV", ""), "bin", "slither"),
+    ]
+
+    # Check priority paths first
+    for path in priority_paths:
+        if path and os.path.isfile(path) and os.access(path, os.X_OK):
+            # Verify it's a working slither by checking version
+            try:
+                result = subprocess.run(
+                    [path, "--version"], capture_output=True, text=True, timeout=5
+                )
+                if result.returncode == 0:
+                    logger.debug(f"Found slither at priority path: {path}")
+                    return path
+            except Exception:
+                continue
+
+    # Fall back to shutil.which (PATH-based lookup)
+    slither_path = shutil.which("slither")
+    if slither_path:
+        return slither_path
+
+    # Default to 'slither' and let the caller handle if not found
+    return "slither"
 
 
 class SlitherAdapter(ToolAdapter):
@@ -45,7 +94,7 @@ class SlitherAdapter(ToolAdapter):
         "Medium": "Medium",
         "Low": "Low",
         "Informational": "Info",
-        "Optimization": "Info"
+        "Optimization": "Info",
     }
 
     def get_metadata(self) -> ToolMetadata:
@@ -87,14 +136,19 @@ class SlitherAdapter(ToolAdapter):
                         "low_level_calls",
                         "naming_convention",
                         "constant_functions_asm",
-                        "external_function_not_checked"
-                    ]
+                        "external_function_not_checked",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True  # DPGA compliance - graceful degradation
+            is_optional=True,  # DPGA compliance - graceful degradation
         )
+
+    def __init__(self):
+        """Initialize SlitherAdapter with the correct binary path."""
+        self._slither_binary = _find_slither_binary()
+        logger.debug(f"SlitherAdapter using binary: {self._slither_binary}")
 
     def is_available(self) -> ToolStatus:
         """
@@ -106,10 +160,7 @@ class SlitherAdapter(ToolAdapter):
         """
         try:
             result = subprocess.run(
-                ["slither", "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5
+                [self._slither_binary, "--version"], capture_output=True, text=True, timeout=5
             )
 
             if result.returncode == 0:
@@ -166,7 +217,7 @@ class SlitherAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"tool_status": status.value},
                 "execution_time": time.time() - start_time,
-                "error": f"Slither not available: {status.value}"
+                "error": f"Slither not available: {status.value}",
             }
 
         try:
@@ -177,7 +228,7 @@ class SlitherAdapter(ToolAdapter):
             filter_paths = kwargs.get("filter_paths", [])
 
             # Build command
-            cmd = ["slither", contract_path, "--json", output_path]
+            cmd = [self._slither_binary, contract_path, "--json", output_path]
 
             # Support for legacy Solidity versions (0.4.x, 0.5.x)
             # Forces direct solc compilation instead of Foundry/Hardhat detection
@@ -198,12 +249,7 @@ class SlitherAdapter(ToolAdapter):
             logger.info(f"Running Slither analysis: {' '.join(cmd)}")
 
             # Execute Slither
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
             execution_time = time.time() - start_time
 
@@ -217,16 +263,13 @@ class SlitherAdapter(ToolAdapter):
                     "version": "1.0.0",
                     "status": "error",
                     "findings": [],
-                    "metadata": {
-                        "exit_code": result.returncode,
-                        "stderr": error_msg
-                    },
+                    "metadata": {"exit_code": result.returncode, "stderr": error_msg},
                     "execution_time": execution_time,
-                    "error": f"Slither analysis failed (exit code {result.returncode})"
+                    "error": f"Slither analysis failed (exit code {result.returncode})",
                 }
 
             # Parse JSON output
-            with open(output_path, 'r') as f:
+            with open(output_path, "r") as f:
                 raw_output = json.load(f)
 
             # Normalize findings
@@ -234,15 +277,13 @@ class SlitherAdapter(ToolAdapter):
 
             # Enhance findings with OpenLLaMA (optional)
             try:
-                with open(contract_path, 'r') as f:
+                with open(contract_path, "r") as f:
                     contract_code = f.read()
 
                 # Enhance top findings with LLM insights
                 if findings:
                     findings = enhance_findings_with_llm(
-                        findings[:5],  # Top 5 findings
-                        contract_code,
-                        "slither"
+                        findings[:5], contract_code, "slither"  # Top 5 findings
                     )
             except Exception as e:
                 logger.debug(f"LLM enhancement failed: {e}")
@@ -253,7 +294,7 @@ class SlitherAdapter(ToolAdapter):
                 "raw_findings_count": len(raw_output.get("results", {}).get("detectors", [])),
                 "normalized_findings_count": len(findings),
                 "slither_version": raw_output.get("success", False),
-                "excluded_detectors": exclude_detectors
+                "excluded_detectors": exclude_detectors,
             }
 
             logger.info(
@@ -266,7 +307,7 @@ class SlitherAdapter(ToolAdapter):
                 "status": "success",
                 "findings": findings,
                 "metadata": metadata,
-                "execution_time": execution_time
+                "execution_time": execution_time,
             }
 
         except subprocess.TimeoutExpired:
@@ -279,7 +320,7 @@ class SlitherAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"timeout": timeout},
                 "execution_time": execution_time,
-                "error": f"Analysis timed out after {timeout} seconds"
+                "error": f"Analysis timed out after {timeout} seconds",
             }
 
         except FileNotFoundError as e:
@@ -292,7 +333,7 @@ class SlitherAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"expected_output": output_path},
                 "execution_time": execution_time,
-                "error": f"Output file not found: {output_path}"
+                "error": f"Output file not found: {output_path}",
             }
 
         except json.JSONDecodeError as e:
@@ -305,7 +346,7 @@ class SlitherAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"json_error": str(e)},
                 "execution_time": execution_time,
-                "error": f"Invalid JSON output: {e}"
+                "error": f"Invalid JSON output: {e}",
             }
 
         except Exception as e:
@@ -318,7 +359,7 @@ class SlitherAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"exception": str(e)},
                 "execution_time": execution_time,
-                "error": f"Unexpected error: {e}"
+                "error": f"Unexpected error: {e}",
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -353,15 +394,15 @@ class SlitherAdapter(ToolAdapter):
                     source_mapping = first_element.get("source_mapping", {})
                     location_info = {
                         "file": source_mapping.get("filename_short", "unknown"),
-                        "line": source_mapping.get("lines", [0])[0] if source_mapping.get("lines") else 0,
-                        "function": first_element.get("name", "unknown")
+                        "line": (
+                            source_mapping.get("lines", [0])[0]
+                            if source_mapping.get("lines")
+                            else 0
+                        ),
+                        "function": first_element.get("name", "unknown"),
                     }
                 else:
-                    location_info = {
-                        "file": "unknown",
-                        "line": 0,
-                        "function": "unknown"
-                    }
+                    location_info = {"file": "unknown", "line": 0, "function": "unknown"}
 
                 # Map severity (use impact as severity)
                 mapped_severity = self.SEVERITY_MAP.get(impact, "Low")
@@ -373,12 +414,12 @@ class SlitherAdapter(ToolAdapter):
                     "severity": mapped_severity,
                     "confidence": self._map_confidence(confidence),
                     "location": location_info,
-                    "message": description.split('\n')[0] if description else check,
+                    "message": description.split("\n")[0] if description else check,
                     "description": markdown or description,
                     "recommendation": self._get_recommendation(check),
                     "swc_id": self._map_to_swc(check),
                     "cwe_id": None,  # Slither doesn't provide CWE directly
-                    "owasp_category": self._map_to_owasp(check)
+                    "owasp_category": self._map_to_owasp(check),
                 }
 
                 normalized.append(normalized_finding)
@@ -390,11 +431,7 @@ class SlitherAdapter(ToolAdapter):
 
     def _map_confidence(self, confidence: str) -> float:
         """Map Slither confidence to numeric value."""
-        confidence_map = {
-            "High": 0.90,
-            "Medium": 0.75,
-            "Low": 0.60
-        }
+        confidence_map = {"High": 0.90, "Medium": 0.75, "Low": 0.60}
         return confidence_map.get(confidence, 0.75)
 
     def _get_recommendation(self, check: str) -> str:
@@ -406,7 +443,7 @@ class SlitherAdapter(ToolAdapter):
             "uninitialized-state": "Initialize all state variables in constructor",
             "uninitialized-storage": "Initialize storage pointers explicitly",
             "tx-origin": "Use msg.sender instead of tx.origin for authentication",
-            "locked-ether": "Provide a withdrawal function or ensure contract is payable"
+            "locked-ether": "Provide a withdrawal function or ensure contract is payable",
         }
         return recommendations.get(check, "Review and fix the vulnerability")
 
@@ -422,7 +459,7 @@ class SlitherAdapter(ToolAdapter):
             "timestamp": "SWC-116",
             "locked-ether": "SWC-132",
             "controlled-delegatecall": "SWC-112",
-            "unchecked-send": "SWC-104"
+            "unchecked-send": "SWC-104",
         }
 
         for key, value in swc_mapping.items():
@@ -441,7 +478,7 @@ class SlitherAdapter(ToolAdapter):
             "tx-origin": "SC08: Bad Randomness / Front-Running",
             "delegatecall": "SC07: Unprotected Delegatecall",
             "timestamp": "SC08: Bad Randomness / Front-Running",
-            "block-number": "SC08: Bad Randomness / Front-Running"
+            "block-number": "SC08: Bad Randomness / Front-Running",
         }
 
         for key, value in owasp_mapping.items():
@@ -456,10 +493,10 @@ class SlitherAdapter(ToolAdapter):
 
         # Slither can analyze .sol files and directories
         if path.is_file():
-            return path.suffix == '.sol'
+            return path.suffix == ".sol"
         elif path.is_dir():
             # Check if directory contains .sol files
-            return any(path.glob('**/*.sol'))
+            return any(path.glob("**/*.sol"))
 
         return False
 
@@ -469,7 +506,7 @@ class SlitherAdapter(ToolAdapter):
             "timeout": 300,
             "exclude_detectors": [],
             "filter_paths": [],
-            "output_format": "json"
+            "output_format": "json",
         }
 
 

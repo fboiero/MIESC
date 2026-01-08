@@ -15,9 +15,9 @@ Institution: UNDEF - IUA
 """
 
 import sys
-from pathlib import Path
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -43,72 +43,77 @@ class SmartBugsDetectorAdapter:
     description = "SmartBugs-specific vulnerability detection"
 
     SEVERITY_MAP = {
-        'critical': 'Critical',
-        'high': 'High',
-        'medium': 'Medium',
-        'low': 'Low',
-        'informational': 'Info',
+        "critical": "Critical",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low",
+        "informational": "Info",
     }
 
     def __init__(self):
         self.engine = SmartBugsDetectorEngine()
+
+    def is_available(self):
+        """Check if SmartBugs detector engine is available."""
+        try:
+            from detectors.smartbugs_detectors import SmartBugsDetectorEngine
+
+            return type("ToolStatus", (), {"value": "available"})()
+        except ImportError:
+            return type("ToolStatus", (), {"value": "not_installed"})()
+
+    def get_metadata(self):
+        """Return tool metadata."""
+        return type(
+            "ToolMetadata", (), {"name": self.name, "version": "1.0.0", "is_optional": True}
+        )()
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """Analyze a contract for SmartBugs-category vulnerabilities."""
         path = Path(contract_path)
 
         if not path.exists():
-            return {
-                'success': False,
-                'error': f'File not found: {contract_path}',
-                'findings': []
-            }
+            return {"success": False, "error": f"File not found: {contract_path}", "findings": []}
 
         try:
             findings = self.engine.analyze_file(path)
             miesc_findings = self._convert_findings(findings, path)
 
             return {
-                'success': True,
-                'tool': self.name,
-                'layer': self.layer,
-                'file': str(path),
-                'timestamp': datetime.now().isoformat(),
-                'findings': miesc_findings,
-                'summary': self.engine.get_summary(findings)
+                "success": True,
+                "tool": self.name,
+                "layer": self.layer,
+                "file": str(path),
+                "timestamp": datetime.now().isoformat(),
+                "findings": miesc_findings,
+                "summary": self.engine.get_summary(findings),
             }
 
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e),
-                'findings': []
-            }
+            return {"success": False, "error": str(e), "findings": []}
 
     def _convert_findings(
-        self,
-        findings: List[SmartBugsFinding],
-        file_path: Path
+        self, findings: List[SmartBugsFinding], file_path: Path
     ) -> List[Dict[str, Any]]:
         """Convert SmartBugs findings to MIESC standard format."""
         miesc_findings = []
 
         for finding in findings:
             miesc_finding = {
-                'id': f"SB-{finding.category.upper()}-{len(miesc_findings)+1}",
-                'title': finding.title,
-                'description': finding.description,
-                'severity': self.SEVERITY_MAP.get(finding.severity.value, 'Medium'),
-                'confidence': finding.confidence,
-                'category': finding.category,
-                'swc_id': finding.swc_id,
-                'location': {
-                    'file': str(file_path),
-                    'line': finding.line,
-                    'snippet': finding.code_snippet
+                "id": f"SB-{finding.category.upper()}-{len(miesc_findings)+1}",
+                "title": finding.title,
+                "description": finding.description,
+                "severity": self.SEVERITY_MAP.get(finding.severity.value, "Medium"),
+                "confidence": finding.confidence,
+                "category": finding.category,
+                "swc_id": finding.swc_id,
+                "location": {
+                    "file": str(file_path),
+                    "line": finding.line,
+                    "snippet": finding.code_snippet,
                 },
-                'tool': self.name,
-                'layer': self.layer
+                "tool": self.name,
+                "layer": self.layer,
             }
 
             miesc_findings.append(miesc_finding)
@@ -123,60 +128,53 @@ class SmartBugsDetectorAdapter:
 
             for finding in findings:
                 miesc_finding = {
-                    'id': f"SB-{finding.category.upper()}-{len(miesc_findings)+1}",
-                    'title': finding.title,
-                    'description': finding.description,
-                    'severity': self.SEVERITY_MAP.get(finding.severity.value, 'Medium'),
-                    'confidence': finding.confidence,
-                    'category': finding.category,
-                    'swc_id': finding.swc_id,
-                    'location': {
-                        'line': finding.line,
-                        'snippet': finding.code_snippet
-                    },
-                    'tool': self.name,
-                    'layer': self.layer
+                    "id": f"SB-{finding.category.upper()}-{len(miesc_findings)+1}",
+                    "title": finding.title,
+                    "description": finding.description,
+                    "severity": self.SEVERITY_MAP.get(finding.severity.value, "Medium"),
+                    "confidence": finding.confidence,
+                    "category": finding.category,
+                    "swc_id": finding.swc_id,
+                    "location": {"line": finding.line, "snippet": finding.code_snippet},
+                    "tool": self.name,
+                    "layer": self.layer,
                 }
 
                 miesc_findings.append(miesc_finding)
 
             return {
-                'success': True,
-                'tool': self.name,
-                'layer': self.layer,
-                'timestamp': datetime.now().isoformat(),
-                'findings': miesc_findings,
-                'summary': self.engine.get_summary(findings)
+                "success": True,
+                "tool": self.name,
+                "layer": self.layer,
+                "timestamp": datetime.now().isoformat(),
+                "findings": miesc_findings,
+                "summary": self.engine.get_summary(findings),
             }
 
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e),
-                'findings': []
-            }
+            return {"success": False, "error": str(e), "findings": []}
 
     @staticmethod
     def get_detector_info() -> Dict[str, Any]:
         """Return detector information."""
         return {
-            'layer': 2,
-            'name': 'SmartBugs-Specific Detection',
-            'description': 'Targets SmartBugs vulnerability categories with historically low recall',
-            'detectors': [
-                'Arithmetic Overflow/Underflow (SWC-101)',
-                'Bad Randomness (SWC-120)',
-                'Denial of Service (SWC-113/128)',
-                'Front Running (SWC-114)',
-                'Short Address Attack (SWC-129)'
+            "layer": 2,
+            "name": "SmartBugs-Specific Detection",
+            "description": "Targets SmartBugs vulnerability categories with historically low recall",
+            "detectors": [
+                "Arithmetic Overflow/Underflow (SWC-101)",
+                "Bad Randomness (SWC-120)",
+                "Denial of Service (SWC-113/128)",
+                "Front Running (SWC-114)",
+                "Short Address Attack (SWC-129)",
             ],
-            'categories': [
-                'arithmetic',
-                'bad_randomness',
-                'denial_of_service',
-                'front_running',
-                'short_addresses'
-            ]
+            "categories": [
+                "arithmetic",
+                "bad_randomness",
+                "denial_of_service",
+                "front_running",
+                "short_addresses",
+            ],
         }
 
 
@@ -184,18 +182,18 @@ def main():
     """Test the adapter."""
     adapter = SmartBugsDetectorAdapter()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("  MIESC SmartBugs Detector Adapter")
-    print("="*60)
+    print("=" * 60)
 
     info = adapter.get_detector_info()
     print(f"\nLayer: {info['layer']}")
     print(f"Detectors: {len(info['detectors'])}")
-    for d in info['detectors']:
+    for d in info["detectors"]:
         print(f"  - {d}")
 
     # Test with sample vulnerable code
-    sample = '''
+    sample = """
     pragma solidity ^0.4.24;
 
     contract VulnerableContract {
@@ -234,19 +232,19 @@ def main():
             return true;
         }
     }
-    '''
+    """
 
-    print("\n" + "-"*60)
+    print("\n" + "-" * 60)
     print("  Testing with vulnerable sample contract")
-    print("-"*60)
+    print("-" * 60)
 
     result = adapter.analyze_source(sample)
 
-    if result['success']:
+    if result["success"]:
         print(f"\nFindings: {len(result['findings'])}")
-        for f in result['findings']:
+        for f in result["findings"]:
             print(f"  [{f['severity']}] {f['title']} - {f['category']}")
-            if f['location'].get('line'):
+            if f["location"].get("line"):
                 print(f"    Line {f['location']['line']}: {f['location']['snippet']}")
         print(f"\nSummary: {result['summary']}")
     else:

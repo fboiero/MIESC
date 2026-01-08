@@ -11,18 +11,51 @@ Date: November 10, 2025
 Version: 1.0.0
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from src.llm import enhance_findings_with_llm
-from typing import Dict, Any, List, Optional
-import subprocess
 import json
 import logging
+import os
+import subprocess
 import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
+from src.llm import enhance_findings_with_llm
 
 logger = logging.getLogger(__name__)
+
+
+def _get_solc_env() -> dict:
+    """
+    Get environment with correct solc PATH for ARM64 Macs.
+
+    solc-select may have multiple entry points with version conflicts.
+    This ensures Aderyn uses the correct solc binary.
+    """
+    env = os.environ.copy()
+
+    # Priority paths for solc (user site-packages first)
+    priority_paths = [
+        os.path.expanduser("~/Library/Python/3.9/bin"),
+        os.path.expanduser("~/Library/Python/3.10/bin"),
+        os.path.expanduser("~/Library/Python/3.11/bin"),
+        os.path.expanduser("~/Library/Python/3.12/bin"),
+        os.path.expanduser("~/.local/bin"),
+        "/opt/homebrew/bin",
+    ]
+
+    # Build new PATH with priority paths first
+    existing_path = env.get("PATH", "")
+    new_paths = [p for p in priority_paths if os.path.isdir(p)]
+    env["PATH"] = ":".join(new_paths) + ":" + existing_path
+
+    return env
 
 
 class AderynAdapter(ToolAdapter):
@@ -49,7 +82,7 @@ class AderynAdapter(ToolAdapter):
         "Medium": "Medium",
         "Low": "Low",
         "NC": "Info",  # Non-Critical
-        "Gas": "Info"   # Gas optimization
+        "Gas": "Info",  # Gas optimization
     }
 
     def get_metadata(self) -> ToolMetadata:
@@ -83,13 +116,13 @@ class AderynAdapter(ToolAdapter):
                         "unused_imports",
                         "function_selector_collision",
                         "multiple_constructor_schemes",
-                        "push_0_opcode_not_supported"
-                    ]
+                        "push_0_opcode_not_supported",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True  # DPGA compliance - graceful degradation
+            is_optional=True,  # DPGA compliance - graceful degradation
         )
 
     def is_available(self) -> ToolStatus:
@@ -102,10 +135,7 @@ class AderynAdapter(ToolAdapter):
         """
         try:
             result = subprocess.run(
-                ["aderyn", "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5
+                ["aderyn", "--version"], capture_output=True, text=True, timeout=5
             )
 
             if result.returncode == 0:
@@ -161,7 +191,7 @@ class AderynAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"tool_status": status.value},
                 "execution_time": time.time() - start_time,
-                "error": f"Aderyn not available: {status.value}"
+                "error": f"Aderyn not available: {status.value}",
             }
 
         try:
@@ -171,25 +201,33 @@ class AderynAdapter(ToolAdapter):
             no_snippets = kwargs.get("no_snippets", False)
 
             # Build command
-            cmd = ["aderyn", contract_path, "-o", output_path]
+            # Aderyn works better on directories than single files
+            contract_file = Path(contract_path)
+            if contract_file.is_file():
+                # Run Aderyn on parent directory with include filter
+                contract_dir = str(contract_file.parent)
+                contract_name = contract_file.name
+                cmd = ["aderyn", contract_dir, "-i", contract_name, "-o", output_path]
+            else:
+                cmd = ["aderyn", contract_path, "-o", output_path]
 
             if no_snippets:
                 cmd.append("--no-snippets")
 
             logger.info(f"Running Aderyn analysis: {' '.join(cmd)}")
 
-            # Execute Aderyn
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout
-            )
+            # Execute Aderyn with corrected PATH for solc
+            env = _get_solc_env()
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
 
             execution_time = time.time() - start_time
 
-            # Check for errors
-            if result.returncode != 0:
+            # Check for errors - but first check if output file was created
+            # Aderyn 0.1.9 has a version parsing bug that causes exit code 101
+            # even when analysis completes successfully
+            output_exists = Path(output_path).exists()
+
+            if result.returncode != 0 and not output_exists:
                 error_msg = result.stderr or result.stdout
                 logger.error(f"Aderyn execution failed: {error_msg}")
                 return {
@@ -197,16 +235,20 @@ class AderynAdapter(ToolAdapter):
                     "version": "1.0.0",
                     "status": "error",
                     "findings": [],
-                    "metadata": {
-                        "exit_code": result.returncode,
-                        "stderr": error_msg
-                    },
+                    "metadata": {"exit_code": result.returncode, "stderr": error_msg},
                     "execution_time": execution_time,
-                    "error": f"Aderyn analysis failed (exit code {result.returncode})"
+                    "error": f"Aderyn analysis failed (exit code {result.returncode})",
                 }
 
+            # If output exists but there was an error, log warning but continue
+            if result.returncode != 0 and output_exists:
+                logger.warning(
+                    f"Aderyn exited with code {result.returncode} but output file exists - "
+                    "possibly a version parsing bug in aderyn 0.1.9"
+                )
+
             # Parse JSON output
-            with open(output_path, 'r') as f:
+            with open(output_path, "r") as f:
                 raw_output = json.load(f)
 
             # Normalize findings
@@ -214,15 +256,13 @@ class AderynAdapter(ToolAdapter):
 
             # Enhance findings with OpenLLaMA (optional)
             try:
-                with open(contract_path, 'r') as f:
+                with open(contract_path, "r") as f:
                     contract_code = f.read()
 
                 # Enhance top findings with LLM insights
                 if findings:
                     findings = enhance_findings_with_llm(
-                        findings[:5],  # Top 5 findings
-                        contract_code,
-                        "aderyn"
+                        findings[:5], contract_code, "aderyn"  # Top 5 findings
                     )
             except Exception as e:
                 logger.debug(f"LLM enhancement failed: {e}")
@@ -233,7 +273,7 @@ class AderynAdapter(ToolAdapter):
                 "raw_findings_count": len(raw_output.get("findings", [])),
                 "normalized_findings_count": len(findings),
                 "aderyn_version": raw_output.get("version", "unknown"),
-                "analysis_timestamp": raw_output.get("timestamp", "unknown")
+                "analysis_timestamp": raw_output.get("timestamp", "unknown"),
             }
 
             logger.info(
@@ -246,7 +286,7 @@ class AderynAdapter(ToolAdapter):
                 "status": "success",
                 "findings": findings,
                 "metadata": metadata,
-                "execution_time": execution_time
+                "execution_time": execution_time,
             }
 
         except subprocess.TimeoutExpired:
@@ -259,7 +299,7 @@ class AderynAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"timeout": timeout},
                 "execution_time": execution_time,
-                "error": f"Analysis timed out after {timeout} seconds"
+                "error": f"Analysis timed out after {timeout} seconds",
             }
 
         except FileNotFoundError as e:
@@ -272,7 +312,7 @@ class AderynAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"expected_output": output_path},
                 "execution_time": execution_time,
-                "error": f"Output file not found: {output_path}"
+                "error": f"Output file not found: {output_path}",
             }
 
         except json.JSONDecodeError as e:
@@ -285,7 +325,7 @@ class AderynAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"json_error": str(e)},
                 "execution_time": execution_time,
-                "error": f"Invalid JSON output: {e}"
+                "error": f"Invalid JSON output: {e}",
             }
 
         except Exception as e:
@@ -298,12 +338,19 @@ class AderynAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"exception": str(e)},
                 "execution_time": execution_time,
-                "error": f"Unexpected error: {e}"
+                "error": f"Unexpected error: {e}",
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         """
         Normalize Aderyn findings to MIESC standard format.
+
+        Aderyn 0.1.9 output format:
+        {
+            "high_issues": {"issues": [...]},
+            "low_issues": {"issues": [...]},
+            ...
+        }
 
         Args:
             raw_output: Parsed JSON from Aderyn
@@ -312,59 +359,80 @@ class AderynAdapter(ToolAdapter):
             List of normalized findings
         """
         normalized = []
+        idx = 0
 
         try:
-            raw_findings = raw_output.get("findings", [])
+            # Process high severity issues
+            high_issues = raw_output.get("high_issues", {}).get("issues", [])
+            for finding in high_issues:
+                normalized.extend(self._normalize_issue(finding, "High", idx))
+                idx += 1
 
-            for idx, finding in enumerate(raw_findings):
-                # Extract core information
-                detector_name = finding.get("detector", "unknown")
-                severity = finding.get("severity", "Low")
-                title = finding.get("title", "Unknown issue")
-                description = finding.get("description", "")
+            # Process low severity issues (includes Medium, Low, Info)
+            low_issues = raw_output.get("low_issues", {}).get("issues", [])
+            for finding in low_issues:
+                normalized.extend(self._normalize_issue(finding, "Low", idx))
+                idx += 1
 
-                # Extract location info
-                locations = finding.get("locations", [])
-                location_info = {}
+        except Exception as e:
+            logger.error(f"Error normalizing Aderyn findings: {e}", exc_info=True)
 
-                if locations and len(locations) > 0:
-                    first_loc = locations[0]
-                    location_info = {
-                        "file": first_loc.get("source_file", "unknown"),
-                        "line": first_loc.get("source_line", 0),
-                        "function": first_loc.get("function_name", "unknown")
-                    }
-                else:
-                    location_info = {
-                        "file": "unknown",
-                        "line": 0,
-                        "function": "unknown"
-                    }
+        return normalized
 
-                # Map severity
+    def _normalize_issue(self, finding: Dict, severity: str, idx: int) -> List[Dict[str, Any]]:
+        """Normalize a single Aderyn issue with multiple instances."""
+        normalized = []
+
+        try:
+            detector_name = finding.get("detector_name", "unknown")
+            title = finding.get("title", "Unknown issue")
+            description = finding.get("description", "")
+            instances = finding.get("instances", [])
+
+            # Create one finding per instance
+            for inst_idx, instance in enumerate(instances):
+                location_info = {
+                    "file": instance.get("contract_path", "unknown"),
+                    "line": instance.get("line_no", 0),
+                    "function": "unknown",
+                }
+
                 mapped_severity = self.SEVERITY_MAP.get(severity, "Low")
 
-                # Build normalized finding
                 normalized_finding = {
-                    "id": f"aderyn-{detector_name}-{idx}",
+                    "id": f"aderyn-{detector_name}-{idx}-{inst_idx}",
                     "type": detector_name,
                     "severity": mapped_severity,
                     "confidence": self._estimate_confidence(severity, detector_name),
                     "location": location_info,
                     "message": title,
                     "description": description or title,
-                    "recommendation": finding.get("remediation", "Review and fix the issue"),
-                    "swc_id": None,  # Aderyn doesn't provide SWC IDs
-                    "cwe_id": None,  # Aderyn doesn't provide CWE IDs
-                    "owasp_category": self._map_to_owasp(detector_name)
+                    "recommendation": "Review and fix the issue",
+                    "swc_id": self._map_to_swc(detector_name),
+                    "cwe_id": None,
+                    "owasp_category": self._map_to_owasp(detector_name),
                 }
 
                 normalized.append(normalized_finding)
 
         except Exception as e:
-            logger.error(f"Error normalizing Aderyn findings: {e}", exc_info=True)
+            logger.error(f"Error normalizing Aderyn issue: {e}", exc_info=True)
 
         return normalized
+
+    def _map_to_swc(self, detector_name: str) -> Optional[str]:
+        """Map Aderyn detector to SWC ID."""
+        swc_mapping = {
+            "reentrancy": "SWC-107",
+            "unchecked-send": "SWC-104",
+            "tx-origin": "SWC-115",
+            "send-ether": "SWC-105",
+            "delegatecall": "SWC-112",
+        }
+        for key, value in swc_mapping.items():
+            if key in detector_name.lower():
+                return value
+        return None
 
     def _estimate_confidence(self, severity: str, detector: str) -> float:
         """
@@ -398,7 +466,7 @@ class AderynAdapter(ToolAdapter):
             "tx_origin": "SC08: Bad Randomness / Front-Running",
             "delegatecall": "SC07: Unprotected Delegatecall",
             "centralization": "SC09: Centralization Risk",
-            "uninitialized": "SC05: Uninitialized Storage"
+            "uninitialized": "SC05: Uninitialized Storage",
         }
 
         for key, value in owasp_mapping.items():
@@ -413,20 +481,16 @@ class AderynAdapter(ToolAdapter):
 
         # Aderyn can analyze .sol files and directories
         if path.is_file():
-            return path.suffix == '.sol'
+            return path.suffix == ".sol"
         elif path.is_dir():
             # Check if directory contains .sol files
-            return any(path.glob('**/*.sol'))
+            return any(path.glob("**/*.sol"))
 
         return False
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration for Aderyn."""
-        return {
-            "timeout": 300,
-            "no_snippets": False,
-            "output_format": "json"
-        }
+        return {"timeout": 300, "no_snippets": False, "output_format": "json"}
 
 
 # Export for registry

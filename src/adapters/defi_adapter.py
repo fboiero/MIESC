@@ -10,9 +10,9 @@ Institution: UNDEF - IUA
 """
 
 import sys
-from pathlib import Path
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -33,24 +33,39 @@ class DeFiAdapter:
     layer = 8  # Layer 8: DeFi Security (post-thesis extension)
     description = "DeFi-specific vulnerability detection"
 
+    def is_available(self):
+        """Check if DeFi detector engine is available."""
+        try:
+            from detectors.defi_detectors import DeFiDetectorEngine
+
+            return type("ToolStatus", (), {"value": "available"})()
+        except ImportError:
+            return type("ToolStatus", (), {"value": "not_installed"})()
+
+    def get_metadata(self):
+        """Return tool metadata."""
+        return type(
+            "ToolMetadata", (), {"name": self.name, "version": "1.0.0", "is_optional": True}
+        )()
+
     # SWC mappings for DeFi vulnerabilities
     CATEGORY_TO_SWC = {
-        'flash_loan': 'SWC-137',  # Custom: Flash Loan Vulnerability
-        'oracle_manipulation': 'SWC-120',  # Weak Sources of Randomness
-        'price_manipulation': 'SWC-120',
-        'sandwich_attack': 'SWC-114',  # Transaction Order Dependence
-        'mev_exposure': 'SWC-114',
-        'slippage': 'SWC-114',
-        'liquidity': 'SWC-113',  # DoS
+        "flash_loan": "SWC-137",  # Custom: Flash Loan Vulnerability
+        "oracle_manipulation": "SWC-120",  # Weak Sources of Randomness
+        "price_manipulation": "SWC-120",
+        "sandwich_attack": "SWC-114",  # Transaction Order Dependence
+        "mev_exposure": "SWC-114",
+        "slippage": "SWC-114",
+        "liquidity": "SWC-113",  # DoS
     }
 
     # Severity mapping
     SEVERITY_MAP = {
-        'critical': 'Critical',
-        'high': 'High',
-        'medium': 'Medium',
-        'low': 'Low',
-        'informational': 'Info',
+        "critical": "Critical",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low",
+        "informational": "Info",
     }
 
     def __init__(self):
@@ -69,11 +84,7 @@ class DeFiAdapter:
         path = Path(contract_path)
 
         if not path.exists():
-            return {
-                'success': False,
-                'error': f'File not found: {contract_path}',
-                'findings': []
-            }
+            return {"success": False, "error": f"File not found: {contract_path}", "findings": []}
 
         try:
             # Run analysis
@@ -83,50 +94,44 @@ class DeFiAdapter:
             miesc_findings = self._convert_findings(findings, path)
 
             return {
-                'success': True,
-                'tool': self.name,
-                'layer': self.layer,
-                'file': str(path),
-                'timestamp': datetime.now().isoformat(),
-                'findings': miesc_findings,
-                'summary': self.engine.get_summary(findings)
+                "success": True,
+                "tool": self.name,
+                "layer": self.layer,
+                "file": str(path),
+                "timestamp": datetime.now().isoformat(),
+                "findings": miesc_findings,
+                "summary": self.engine.get_summary(findings),
             }
 
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e),
-                'findings': []
-            }
+            return {"success": False, "error": str(e), "findings": []}
 
     def _convert_findings(
-        self,
-        findings: List[DeFiFinding],
-        file_path: Path
+        self, findings: List[DeFiFinding], file_path: Path
     ) -> List[Dict[str, Any]]:
         """Convert DeFi findings to MIESC standard format."""
         miesc_findings = []
 
         for finding in findings:
-            swc_id = self.CATEGORY_TO_SWC.get(finding.category.value, 'SWC-000')
+            swc_id = self.CATEGORY_TO_SWC.get(finding.category.value, "SWC-000")
 
             miesc_finding = {
-                'id': f"DEFI-{finding.category.value.upper()}-{len(miesc_findings)+1}",
-                'title': finding.title,
-                'description': finding.description,
-                'severity': self.SEVERITY_MAP.get(finding.severity.value, 'Medium'),
-                'confidence': finding.confidence,
-                'category': finding.category.value,
-                'swc_id': swc_id,
-                'location': {
-                    'file': str(file_path),
-                    'line': finding.line,
-                    'snippet': finding.code_snippet
+                "id": f"DEFI-{finding.category.value.upper()}-{len(miesc_findings)+1}",
+                "title": finding.title,
+                "description": finding.description,
+                "severity": self.SEVERITY_MAP.get(finding.severity.value, "Medium"),
+                "confidence": finding.confidence,
+                "category": finding.category.value,
+                "swc_id": swc_id,
+                "location": {
+                    "file": str(file_path),
+                    "line": finding.line,
+                    "snippet": finding.code_snippet,
                 },
-                'recommendation': finding.recommendation,
-                'references': finding.references,
-                'tool': self.name,
-                'layer': self.layer
+                "recommendation": finding.recommendation,
+                "references": finding.references,
+                "tool": self.name,
+                "layer": self.layer,
             }
 
             miesc_findings.append(miesc_finding)
@@ -140,83 +145,75 @@ class DeFiAdapter:
             miesc_findings = []
 
             for finding in findings:
-                swc_id = self.CATEGORY_TO_SWC.get(finding.category.value, 'SWC-000')
+                swc_id = self.CATEGORY_TO_SWC.get(finding.category.value, "SWC-000")
 
                 miesc_finding = {
-                    'id': f"DEFI-{finding.category.value.upper()}-{len(miesc_findings)+1}",
-                    'title': finding.title,
-                    'description': finding.description,
-                    'severity': self.SEVERITY_MAP.get(finding.severity.value, 'Medium'),
-                    'confidence': finding.confidence,
-                    'category': finding.category.value,
-                    'swc_id': swc_id,
-                    'location': {
-                        'line': finding.line,
-                        'snippet': finding.code_snippet
-                    },
-                    'recommendation': finding.recommendation,
-                    'references': finding.references,
-                    'tool': self.name,
-                    'layer': self.layer
+                    "id": f"DEFI-{finding.category.value.upper()}-{len(miesc_findings)+1}",
+                    "title": finding.title,
+                    "description": finding.description,
+                    "severity": self.SEVERITY_MAP.get(finding.severity.value, "Medium"),
+                    "confidence": finding.confidence,
+                    "category": finding.category.value,
+                    "swc_id": swc_id,
+                    "location": {"line": finding.line, "snippet": finding.code_snippet},
+                    "recommendation": finding.recommendation,
+                    "references": finding.references,
+                    "tool": self.name,
+                    "layer": self.layer,
                 }
 
                 miesc_findings.append(miesc_finding)
 
             return {
-                'success': True,
-                'tool': self.name,
-                'layer': self.layer,
-                'timestamp': datetime.now().isoformat(),
-                'findings': miesc_findings,
-                'summary': self.engine.get_summary(findings)
+                "success": True,
+                "tool": self.name,
+                "layer": self.layer,
+                "timestamp": datetime.now().isoformat(),
+                "findings": miesc_findings,
+                "summary": self.engine.get_summary(findings),
             }
 
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e),
-                'findings': []
-            }
+            return {"success": False, "error": str(e), "findings": []}
 
     @staticmethod
     def get_layer_info() -> Dict[str, Any]:
         """Return layer information for MIESC architecture."""
         return {
-            'layer': 8,
-            'name': 'DeFi Security Analysis',
-            'description': 'Specialized detection for DeFi vulnerabilities',
-            'tools': ['MIESC DeFi Detectors'],
-            'categories': [
-                'flash_loan',
-                'oracle_manipulation',
-                'price_manipulation',
-                'sandwich_attack',
-                'mev_exposure',
-                'slippage',
-                'liquidity'
+            "layer": 8,
+            "name": "DeFi Security Analysis",
+            "description": "Specialized detection for DeFi vulnerabilities",
+            "tools": ["MIESC DeFi Detectors"],
+            "categories": [
+                "flash_loan",
+                "oracle_manipulation",
+                "price_manipulation",
+                "sandwich_attack",
+                "mev_exposure",
+                "slippage",
+                "liquidity",
             ],
-            'supported_vulnerabilities': [
-                'Flash Loan Attacks',
-                'Oracle Manipulation',
-                'Price Manipulation',
-                'Sandwich Attacks',
-                'MEV Exposure',
-                'Slippage Issues',
-                'Liquidity Vulnerabilities'
-            ]
+            "supported_vulnerabilities": [
+                "Flash Loan Attacks",
+                "Oracle Manipulation",
+                "Price Manipulation",
+                "Sandwich Attacks",
+                "MEV Exposure",
+                "Slippage Issues",
+                "Liquidity Vulnerabilities",
+            ],
         }
 
 
 def main():
     """Test the DeFi adapter."""
-    import json
 
     adapter = DeFiAdapter()
 
     # Print layer info
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("  MIESC Layer 8: DeFi Security Analysis")
-    print("="*60)
+    print("=" * 60)
 
     info = adapter.get_layer_info()
     print(f"\nLayer: {info['layer']}")
@@ -225,7 +222,7 @@ def main():
     print(f"Categories: {', '.join(info['categories'])}")
 
     # Test with sample contract
-    sample_code = '''
+    sample_code = """
     pragma solidity ^0.8.0;
 
     contract FlashLoanArbitrage {
@@ -245,21 +242,21 @@ def main():
             return true;
         }
     }
-    '''
+    """
 
-    print("\n" + "-"*60)
+    print("\n" + "-" * 60)
     print("  Analyzing Sample DeFi Contract")
-    print("-"*60)
+    print("-" * 60)
 
     result = adapter.analyze_source(sample_code)
 
-    if result['success']:
+    if result["success"]:
         print(f"\nFindings: {len(result['findings'])}")
-        for finding in result['findings']:
+        for finding in result["findings"]:
             print(f"\n  [{finding['severity']}] {finding['title']}")
             print(f"    Category: {finding['category']}")
             print(f"    SWC: {finding['swc_id']}")
-            if finding['location'].get('line'):
+            if finding["location"].get("line"):
                 print(f"    Line: {finding['location']['line']}")
 
         print(f"\nSummary: {result['summary']}")
