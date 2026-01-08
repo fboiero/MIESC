@@ -45,7 +45,6 @@ from src.adapters.mev_detector_adapter import MEVDetectorAdapter
 
 # Layer 3 - Symbolic Execution (Fase 3 - 2025)
 from src.adapters.mythril_adapter import MythrilAdapter
-from src.adapters.oyente_adapter import OyenteAdapter
 from src.adapters.propertygpt_adapter import PropertyGPTAdapter
 from src.adapters.slither_adapter import SlitherAdapter
 
@@ -86,7 +85,6 @@ def register_all_adapters():
         ("gas_analyzer", GasAnalyzerAdapter),
         ("mev_detector", MEVDetectorAdapter),
         ("vertigo", VertigoAdapter),
-        ("oyente", OyenteAdapter),
         ("threat_model", ThreatModelAdapter),
         # Layer 1 - Static Analysis
         ("aderyn", AderynAdapter),
