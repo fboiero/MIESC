@@ -1,0 +1,350 @@
+{
+  "miesc_version": "4.2.2",
+  "audit_timestamp": "2025-12-30T18:30:00.000000",
+  "project": {
+    "name": "Lido stETH",
+    "description": "Token de Staking Líquido - Versión simplificada para análisis de seguridad",
+    "source": "https://github.com/lidofinance/lido-dao",
+    "contract_file": "benchmarks/real_projects/lido/stETH.sol",
+    "contract_size_bytes": 6393,
+    "solidity_version": "^0.8.0",
+    "analysis_date": "2025-12-29"
+  },
+  "executive_summary": {
+    "total_findings": 32,
+    "critical": 0,
+    "high": 0,
+    "medium": 3,
+    "low": 1,
+    "informational": 28,
+    "risk_score": 5.2,
+    "risk_level": "MEDIUM",
+    "recommendation": "Revisar centralización y agregar eventos antes de producción"
+  },
+  "findings": [
+    {
+      "id": "LIDO-001",
+      "title": "Missing Events for Critical State Changes",
+      "severity": "Medium",
+      "confidence": "High",
+      "swc_id": "SWC-110",
+      "cwe_id": "CWE-778",
+      "owasp_id": "A10:2017-Insufficient Logging & Monitoring",
+      "cvss_score": 5.3,
+      "description": {
+        "summary": "Las funciones mintShares, burnShares y setTotalPooledEther modifican estado crítico sin emitir eventos.",
+        "technical": "Estas funciones controlan la creación/destrucción de shares y el ETH total en el pool. Sin eventos, es imposible monitorear estas operaciones off-chain, lo que dificulta la auditoría, detección de anomalías, y respuesta a incidentes.",
+        "root_cause": "Omisión de emisión de eventos en funciones que modifican estado crítico del protocolo."
+      },
+      "location": {
+        "file": "stETH.sol",
+        "functions": ["mintShares", "burnShares", "setTotalPooledEther"],
+        "lines": [136, 145, 154]
+      },
+      "vulnerable_code": "// Línea 136 - mintShares()\nfunction mintShares(address _recipient, uint256 _sharesAmount) external {\n    require(msg.sender == lido, \"ONLY_LIDO\");\n    require(_recipient != address(0), \"MINT_TO_ZERO\");\n    \n    _totalShares = _totalShares + _sharesAmount;\n    _shares[_recipient] = _shares[_recipient] + _sharesAmount;\n    // Missing: emit SharesMinted(_recipient, _sharesAmount);\n}\n\n// Línea 154 - setTotalPooledEther()\nfunction setTotalPooledEther(uint256 _amount) external {\n    require(msg.sender == lido, \"ONLY_LIDO\");\n    _totalPooledEther = _amount;\n    // Missing: emit TotalPooledEtherUpdated(oldValue, _amount);\n}",
+      "impact": {
+        "financial": "Indirecto - manipulaciones maliciosas pasan desapercibidas",
+        "operational": "Imposible monitorear cambios críticos del protocolo off-chain",
+        "description": "Sin eventos, los integradores y usuarios no pueden detectar cambios en el supply de shares o en el ETH total del pool. Esto es crítico para protocolos DeFi que dependen de stETH, ya que no pueden reaccionar a cambios inesperados."
+      },
+      "exploitation_scenario": {
+        "preconditions": [
+          "El atacante compromete la dirección 'lido'",
+          "O existe un bug en el contrato Lido que permite llamadas no autorizadas"
+        ],
+        "steps": [
+          "1. Atacante llama mintShares() para crear shares sin respaldo",
+          "2. No se emite evento, los monitores off-chain no detectan la anomalía",
+          "3. Atacante llama setTotalPooledEther() para manipular el ratio ETH/shares",
+          "4. Usuarios intercambian stETH a tasas manipuladas",
+          "5. El ataque pasa desapercibido hasta que se detecta manualmente"
+        ],
+        "difficulty": "High",
+        "likelihood": "Low"
+      },
+      "validation": {
+        "manual_review": [
+          "Verificar que todas las funciones que modifican _totalShares emiten eventos",
+          "Verificar que todas las funciones que modifican _totalPooledEther emiten eventos",
+          "Buscar patrones de escritura a storage sin emit"
+        ],
+        "automated_detection": "slither --detect missing-events-access-control,missing-events-arithmetic",
+        "test_case": "// Test para verificar eventos\nfunction test_MintSharesEmitsEvent() public {\n    vm.expectEmit(true, true, false, true);\n    emit SharesMinted(alice, 1000);\n    \n    vm.prank(lido);\n    steth.mintShares(alice, 1000);\n    // Este test FALLARÁ porque no se emite evento\n}"
+      },
+      "remediation": {
+        "recommendation": "Agregar eventos para todas las operaciones críticas y emitirlos apropiadamente.",
+        "corrected_code": "// Agregar eventos:\nevent SharesMinted(address indexed recipient, uint256 sharesAmount);\nevent SharesBurned(address indexed account, uint256 sharesAmount);\nevent TotalPooledEtherUpdated(uint256 oldValue, uint256 newValue);\n\n// ANTES (vulnerable):\nfunction mintShares(address _recipient, uint256 _sharesAmount) external {\n    require(msg.sender == lido, \"ONLY_LIDO\");\n    require(_recipient != address(0), \"MINT_TO_ZERO\");\n    _totalShares = _totalShares + _sharesAmount;\n    _shares[_recipient] = _shares[_recipient] + _sharesAmount;\n}\n\n// DESPUÉS (seguro):\nfunction mintShares(address _recipient, uint256 _sharesAmount) external {\n    require(msg.sender == lido, \"ONLY_LIDO\");\n    require(_recipient != address(0), \"MINT_TO_ZERO\");\n    _totalShares = _totalShares + _sharesAmount;\n    _shares[_recipient] = _shares[_recipient] + _sharesAmount;\n    emit SharesMinted(_recipient, _sharesAmount);\n}",
+        "effort": "Low",
+        "breaking_changes": false
+      },
+      "references": [
+        "https://swcregistry.io/docs/SWC-110",
+        "https://consensys.github.io/smart-contract-best-practices/development-recommendations/solidity-specific/events/"
+      ]
+    },
+    {
+      "id": "LIDO-006",
+      "title": "Centralization Risk - Single Point of Control",
+      "severity": "Medium",
+      "confidence": "High",
+      "swc_id": "SWC-124",
+      "cwe_id": "CWE-284",
+      "owasp_id": "A5:2017-Broken Access Control",
+      "cvss_score": 6.5,
+      "description": {
+        "summary": "Una única dirección 'lido' controla todas las operaciones críticas del protocolo.",
+        "technical": "Las funciones mintShares, burnShares, setTotalPooledEther, stop y resume están todas controladas por una única dirección establecida en el constructor. Si esta clave es comprometida, todo el protocolo puede ser manipulado.",
+        "root_cause": "Diseño centralizado sin mecanismos de gobernanza distribuida o multi-firma."
+      },
+      "location": {
+        "file": "stETH.sol",
+        "variable": "lido",
+        "functions": ["mintShares", "burnShares", "setTotalPooledEther", "stop", "resume"],
+        "lines": [21, 136, 145, 154, 159, 164]
+      },
+      "vulnerable_code": "address public lido;\n\nconstructor() {\n    lido = msg.sender;  // Single point of control\n}\n\nfunction mintShares(address _recipient, uint256 _sharesAmount) external {\n    require(msg.sender == lido, \"ONLY_LIDO\");  // Solo una dirección\n    // ...\n}\n\nfunction setTotalPooledEther(uint256 _amount) external {\n    require(msg.sender == lido, \"ONLY_LIDO\");  // Sin validación de límites\n    _totalPooledEther = _amount;  // Puede ser cualquier valor\n}",
+      "impact": {
+        "financial": "Pérdida total de fondos si la clave lido es comprometida",
+        "operational": "Parálisis del protocolo via stop() o manipulación arbitraria",
+        "description": "El controlador 'lido' puede: (1) crear shares infinitos para cualquier dirección, (2) quemar shares de cualquier usuario, (3) manipular el ratio ETH/shares arbitrariamente, (4) detener todas las transferencias. Esto representa un riesgo existencial para el protocolo."
+      },
+      "exploitation_scenario": {
+        "preconditions": [
+          "La clave privada de 'lido' es comprometida (phishing, leak, insider)",
+          "O el contrato Lido tiene una vulnerabilidad"
+        ],
+        "steps": [
+          "1. Atacante obtiene control de la dirección 'lido'",
+          "2. Llama setTotalPooledEther(1) para hacer que 1 share = todo el ETH",
+          "3. Llama mintShares(attacker, 1000000) para crear shares para sí mismo",
+          "4. Intercambia shares por ETH real en DEXes",
+          "5. Llama stop() para prevenir que otros usuarios escapen"
+        ],
+        "difficulty": "High",
+        "likelihood": "Low"
+      },
+      "validation": {
+        "manual_review": [
+          "Listar todas las funciones con onlyLido o require(msg.sender == lido)",
+          "Evaluar el impacto de cada función si es llamada maliciosamente",
+          "Verificar si existe timelock o multi-sig en producción"
+        ],
+        "automated_detection": "slither --detect centralization-risk"
+      },
+      "remediation": {
+        "recommendation": "Implementar gobernanza multi-firma con timelock para operaciones críticas.",
+        "corrected_code": "// Opción 1: Usar OpenZeppelin AccessControl con roles\nimport \"@openzeppelin/contracts/access/AccessControl.sol\";\n\nbytes32 public constant MINTER_ROLE = keccak256(\"MINTER_ROLE\");\nbytes32 public constant POOL_MANAGER_ROLE = keccak256(\"POOL_MANAGER_ROLE\");\nbytes32 public constant PAUSER_ROLE = keccak256(\"PAUSER_ROLE\");\n\nfunction mintShares(address _recipient, uint256 _sharesAmount) \n    external \n    onlyRole(MINTER_ROLE) \n{\n    // ...\n}\n\n// Opción 2: Usar Timelock para operaciones críticas\nimport \"@openzeppelin/contracts/governance/TimelockController.sol\";\n\nfunction setTotalPooledEther(uint256 _amount) external {\n    require(msg.sender == address(timelock), \"ONLY_TIMELOCK\");\n    require(\n        _amount >= _totalPooledEther * 99 / 100 &&\n        _amount <= _totalPooledEther * 101 / 100,\n        \"CHANGE_TOO_LARGE\"\n    );\n    _totalPooledEther = _amount;\n}",
+        "effort": "Medium",
+        "breaking_changes": true
+      },
+      "references": [
+        "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/AccessControl.sol",
+        "https://rekt.news/leaderboard/"
+      ]
+    },
+    {
+      "id": "LIDO-007",
+      "title": "Front-Running Vulnerability in Share Transfers",
+      "severity": "Medium",
+      "confidence": "Medium",
+      "swc_id": "SWC-114",
+      "cwe_id": "CWE-362",
+      "cvss_score": 5.0,
+      "description": {
+        "summary": "Las transferencias de shares son vulnerables a front-running debido a cambios en el ratio ETH/shares.",
+        "technical": "El valor de los shares en ETH depende del ratio _totalPooledEther/_totalShares. Si este ratio cambia entre el momento en que un usuario envía una transacción y cuando se ejecuta, el valor transferido será diferente al esperado. Un atacante puede manipular esto observando el mempool.",
+        "root_cause": "Falta de protección contra slippage en transferencias de shares."
+      },
+      "location": {
+        "file": "stETH.sol",
+        "functions": ["transferShares", "transferSharesFrom"],
+        "lines": [90, 98]
+      },
+      "vulnerable_code": "// Línea 90 - transferShares()\nfunction transferShares(address _recipient, uint256 _sharesAmount) external returns (uint256) {\n    _transferShares(msg.sender, _recipient, _sharesAmount);\n    uint256 tokensAmount = getPooledEthByShares(_sharesAmount);  // Calculado DESPUÉS\n    emit Transfer(msg.sender, _recipient, tokensAmount);\n    return tokensAmount;\n}\n\n// El valor de tokensAmount puede cambiar si _totalPooledEther cambia\n// entre cuando el usuario envía la tx y cuando se ejecuta",
+      "impact": {
+        "financial": "Pérdida de valor para usuarios que transfieren durante rebases",
+        "operational": "Experiencia de usuario impredecible",
+        "description": "En el momento de un rebase (cuando Lido actualiza _totalPooledEther), el valor de los shares puede cambiar significativamente. Un atacante puede observar transacciones pendientes y front-runnearlas con un rebase que beneficie al atacante."
+      },
+      "exploitation_scenario": {
+        "preconditions": [
+          "El atacante tiene visibilidad del mempool",
+          "El atacante puede influir en el timing de rebases (o es el operador Lido)"
+        ],
+        "steps": [
+          "1. Usuario Alice envía tx para transferir 100 shares (worth 100 ETH)",
+          "2. Atacante observa la tx pendiente en el mempool",
+          "3. Atacante front-runs con setTotalPooledEther() reduciendo el valor",
+          "4. La tx de Alice se ejecuta, pero ahora 100 shares = 95 ETH",
+          "5. Alice transfiere menos valor del esperado"
+        ],
+        "difficulty": "Medium",
+        "likelihood": "Low"
+      },
+      "validation": {
+        "manual_review": [
+          "Verificar si existe protección de slippage en transferencias",
+          "Evaluar frecuencia y magnitud de rebases"
+        ],
+        "automated_detection": "Manual review required"
+      },
+      "remediation": {
+        "recommendation": "Agregar protección de slippage mínimo para transferencias de shares.",
+        "corrected_code": "// ANTES (vulnerable):\nfunction transferShares(address _recipient, uint256 _sharesAmount) external returns (uint256) {\n    _transferShares(msg.sender, _recipient, _sharesAmount);\n    uint256 tokensAmount = getPooledEthByShares(_sharesAmount);\n    emit Transfer(msg.sender, _recipient, tokensAmount);\n    return tokensAmount;\n}\n\n// DESPUÉS (con protección):\nfunction transferSharesWithSlippage(\n    address _recipient,\n    uint256 _sharesAmount,\n    uint256 _minTokensExpected\n) external returns (uint256) {\n    _transferShares(msg.sender, _recipient, _sharesAmount);\n    uint256 tokensAmount = getPooledEthByShares(_sharesAmount);\n    require(tokensAmount >= _minTokensExpected, \"SLIPPAGE_EXCEEDED\");\n    emit Transfer(msg.sender, _recipient, tokensAmount);\n    return tokensAmount;\n}",
+        "effort": "Low",
+        "breaking_changes": false
+      },
+      "references": [
+        "https://swcregistry.io/docs/SWC-114",
+        "https://blog.soliditylang.org/2019/06/14/solidity-0.5.10-release-announcement/"
+      ]
+    },
+    {
+      "id": "LIDO-002",
+      "title": "Solidity Version with Known Bugs",
+      "severity": "Low",
+      "confidence": "High",
+      "swc_id": "SWC-103",
+      "cwe_id": "CWE-1103",
+      "cvss_score": 3.1,
+      "description": {
+        "summary": "El contrato usa pragma solidity ^0.8.0 que incluye versiones con bugs conocidos del compilador.",
+        "technical": "La versión ^0.8.0 permite compilar con cualquier versión 0.8.x. Algunas versiones tempranas de 0.8.x tienen bugs conocidos que pueden afectar el comportamiento del contrato. Se recomienda usar una versión específica y reciente.",
+        "root_cause": "Uso de pragma flotante en lugar de versión específica."
+      },
+      "location": {
+        "file": "stETH.sol",
+        "line": 3
+      },
+      "vulnerable_code": "pragma solidity ^0.8.0;",
+      "impact": {
+        "financial": "Bajo - los bugs conocidos son edge cases específicos",
+        "operational": "Comportamiento potencialmente impredecible"
+      },
+      "validation": {
+        "automated_detection": "slither --detect solc-version"
+      },
+      "remediation": {
+        "recommendation": "Usar una versión específica y reciente de Solidity.",
+        "corrected_code": "// ANTES:\npragma solidity ^0.8.0;\n\n// DESPUÉS:\npragma solidity 0.8.20;",
+        "effort": "Low",
+        "breaking_changes": false
+      },
+      "references": [
+        "https://swcregistry.io/docs/SWC-103",
+        "https://docs.soliditylang.org/en/latest/bugs.html"
+      ]
+    },
+    {
+      "id": "LIDO-003",
+      "title": "State Variable Could Be Immutable",
+      "severity": "Informational",
+      "confidence": "High",
+      "description": {
+        "summary": "La variable 'lido' se establece en el constructor y nunca se modifica - debería ser immutable.",
+        "technical": "Variables que solo se asignan en el constructor deben declararse como immutable para optimizar gas y prevenir modificaciones accidentales."
+      },
+      "location": {
+        "file": "stETH.sol",
+        "variable": "lido",
+        "line": 21
+      },
+      "vulnerable_code": "address public lido;  // Debería ser immutable",
+      "remediation": {
+        "recommendation": "Declarar lido como immutable.",
+        "corrected_code": "address public immutable lido;",
+        "effort": "Low",
+        "gas_savings": "~2100 gas por lectura"
+      }
+    },
+    {
+      "id": "LIDO-004",
+      "title": "State Variables Could Be Constant",
+      "severity": "Informational",
+      "confidence": "High",
+      "description": {
+        "summary": "Las variables name, symbol y decimals nunca se modifican - deberían ser constant.",
+        "technical": "Variables con valores fijos conocidos en tiempo de compilación deben declararse como constant para optimizar gas significativamente."
+      },
+      "location": {
+        "file": "stETH.sol",
+        "variables": ["name", "symbol", "decimals"],
+        "lines": [11, 12, 13]
+      },
+      "vulnerable_code": "string public name = \"Liquid staked Ether 2.0\";\nstring public symbol = \"stETH\";\nuint8 public decimals = 18;",
+      "remediation": {
+        "recommendation": "Declarar como constant.",
+        "corrected_code": "string public constant name = \"Liquid staked Ether 2.0\";\nstring public constant symbol = \"stETH\";\nuint8 public constant decimals = 18;",
+        "effort": "Low",
+        "gas_savings": "~2100+ gas por lectura cada una"
+      }
+    },
+    {
+      "id": "LIDO-005",
+      "title": "Non-Standard Parameter Naming",
+      "severity": "Informational",
+      "confidence": "High",
+      "description": {
+        "summary": "24 parámetros usan prefijo underscore (_account, _amount, etc.) que no sigue la guía de estilo de Solidity.",
+        "technical": "La guía de estilo de Solidity recomienda mixedCase sin underscore para parámetros. El prefijo underscore tradicionalmente se usa para variables de estado privadas."
+      },
+      "location": {
+        "file": "stETH.sol",
+        "examples": ["_account", "_amount", "_recipient", "_sharesAmount"]
+      },
+      "impact": {
+        "operational": "Inconsistencia con convenciones de la comunidad"
+      },
+      "remediation": {
+        "recommendation": "Considerar usar mixedCase sin underscore para parámetros.",
+        "corrected_code": "// ANTES:\nfunction balanceOf(address _account) public view returns (uint256)\n\n// DESPUÉS:\nfunction balanceOf(address account) public view returns (uint256)",
+        "effort": "Low"
+      }
+    }
+  ],
+  "gas_optimizations": [
+    {
+      "id": "GAS-001",
+      "title": "State Variable Could Be Immutable",
+      "description": "lido se asigna solo en constructor",
+      "savings": "~2100 gas por lectura",
+      "fix": "Declarar como immutable: address public immutable lido;"
+    },
+    {
+      "id": "GAS-002",
+      "title": "State Variables Could Be Constant",
+      "description": "name, symbol, decimals nunca cambian",
+      "savings": "~2100 gas cada una por lectura",
+      "fix": "Declarar como constant"
+    },
+    {
+      "id": "GAS-003",
+      "title": "Unchecked Math for Safe Operations",
+      "description": "Operaciones en _transferShares que ya tienen require() previo",
+      "savings": "~50-100 gas por operación",
+      "fix": "Usar unchecked { } para restas que ya validaron underflow"
+    }
+  ],
+  "security_notes": [
+    "Centralization risk: Single lido address controls minting/burning",
+    "No timelock on critical operations - changes are instant",
+    "Front-running potential in share transfers during rebases",
+    "No slippage protection in transferSharesFrom",
+    "Emergency stop mechanism exists but is controlled by single address",
+    "Rebasing token - value of shares changes over time"
+  ],
+  "defi_risk_assessment": {
+    "oracle_manipulation": "N/A - No oracle dependency",
+    "centralization_risk": "HIGH - Single controller for all operations",
+    "flash_loan_exposure": "LOW - Standard ERC20 transfer patterns",
+    "governance_risk": "HIGH - No governance mechanism, single owner",
+    "rebasing_risk": "MEDIUM - Value changes with ETH staking rewards"
+  },
+  "methodology": {
+    "tools_used": ["Slither v0.10.0", "MIESC v4.2.2"],
+    "analysis_type": "Static Analysis (Layer 1)",
+    "detectors_run": 100,
+    "manual_review": true,
+    "defi_specific_checks": true
+  }
+}

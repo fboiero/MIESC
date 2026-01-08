@@ -1,0 +1,16 @@
+===========================================
+PRUEBA 4: INTERFAZ WEB STREAMLIT
+Fecha: Sat Dec  6 21:06:00 -03 2025
+===========================================
+
+--- Prueba 4.1: Verificar webapp corriendo ---
+COMMAND   PID    USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+Python  94535 fboiero    7u  IPv4 0x25d6ad0e788a1f27      0t0  TCP *:8501 (LISTEN)
+Python  94535 fboiero    8u  IPv6 0xda68eeae931cff76      0t0  TCP *:8501 (LISTEN)
+
+--- Prueba 4.2: HTTP Health Check ---
+200 (200 = OK)
+
+--- Prueba 4.3: HTML Response Contains MIESC ---
+
+ESTADO: PASS

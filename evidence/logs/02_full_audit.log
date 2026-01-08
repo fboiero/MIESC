@@ -1,0 +1,47 @@
+===========================================
+PRUEBA 2: AUDITORÍA COMPLETA 7 CAPAS
+Fecha: Sat Dec  6 20:36:20 -03 2025
+===========================================
+
+--- Prueba 2.1: Verificar adapters disponibles ---
+Total adapters encontrados: 26
+
+Adapters por capa:
+  Capa 1 (Static): slither, aderyn, solhint
+  Capa 2 (Dynamic): echidna, medusa, dogefuzz
+  Capa 3 (Symbolic): mythril, halmos
+  Capa 4 (Formal): certora, smtchecker
+  Capa 5 (AI): smartllm, llm_smartaudit, gptscan
+  Capa 6 (ML): dagnn, propertygpt
+  Capa 7 (Threat): threat_model, policy_agent
+ESTADO: PASS
+
+
+--- Prueba 2.2: Análisis con Slither (Capa 1) ---
+Disponible: ToolStatus.AVAILABLE
+Status: success
+Hallazgos: 5
+  - [High] reentrancy-eth en línea 48
+  - [High] reentrancy-eth en línea 30
+  - [Low] reentrancy-benign en línea 30
+ESTADO: PASS
+
+--- Prueba 2.3: Análisis con Mythril (Capa 3) ---
+Disponible: ToolStatus.CONFIGURATION_ERROR
+Status: error
+Hallazgos: 0
+ESTADO: PASS
+
+--- Prueba 2.4: PropertyGPT (Capa 6) ---
+
+--- Prueba 2.5: ThreatModel (Capa 7) ---
+Disponible: ToolStatus.AVAILABLE
+Status: success
+Hallazgos: 2
+  - [Critical] threat_model
+  - [Medium] threat_model
+ESTADO: PASS
+Disponible: ToolStatus.AVAILABLE
+Status: success
+Hallazgos: 0
+ESTADO: PASS

@@ -1,0 +1,20 @@
+{
+  "audit_results": {
+    "compliance_mapped": true,
+    "findings_count": 0,
+    "severity_distribution": {
+      "critical": 0,
+      "high": 0,
+      "low": 0,
+      "medium": 0
+    },
+    "tools_executed": [
+      "slither",
+      "mythril"
+    ]
+  },
+  "contract": "contracts/audit/VulnerableBank.sol",
+  "message": "audit complete",
+  "status": "success",
+  "timestamp": "2025-12-08T15:42:54.041025Z"
+}

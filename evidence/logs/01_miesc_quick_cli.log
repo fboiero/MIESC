@@ -1,0 +1,123 @@
+===========================================
+PRUEBA 1: MIESC-QUICK CLI
+Fecha: $(date)
+===========================================
+
+Fecha: Sat Dec  6 20:34:34 -03 2025
+
+--- Prueba 1.1: --help ---
+usage: miesc-quick [-h] {scan,doctor,init,watch,checklist,report} ...
+
+MIESC-Quick - Lightweight Pre-Audit Scanner (NOT the full 7-layer framework)
+
+positional arguments:
+  {scan,doctor,init,watch,checklist,report}
+                        Commands
+    scan                Scan a contract for vulnerabilities
+    doctor              Check tool installation
+    init                Initialize project configuration
+    watch               Watch directory for changes
+    checklist           Show pre-audit security checklist
+    report              Generate executive security report
+
+options:
+  -h, --help            show this help message and exit
+
+Examples:
+  miesc-quick scan Contract.sol              Quick security scan (~30s)
+  miesc-quick scan Contract.sol -o report.json  Export results
+  miesc-quick check Contract.sol             Lint check only (~5s)
+  miesc-quick doctor                         Check tool installation
+  miesc-quick checklist                      Pre-audit security checklist
+  miesc-quick watch ./contracts              Watch for changes
+
+For FULL 7-layer audits with 25+ tools, use:
+  python run_complete_multilayer_audit.py <contract.sol>
+
+For MCP JSON-RPC server:
+  python src/miesc_mcp_rest.py
+
+ESTADO: PASS
+
+--- Prueba 1.2: scan VulnerableBank.sol ---
+Aderyn execution failed: 
+thread 'main' panicked at /Users/fboiero/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aderyn_driver-0.1.9/src/process_auto.rs:96:21:
+Error running solc command
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+╔════════════════════════════════════════════════════════════════════╗
+║  MIESC-Quick - Lightweight Pre-Audit Scanner                       ║
+║  v4.0.0         For full 7-layer audit: run_complete_multilayer_audit.py  ║
+╚════════════════════════════════════════════════════════════════════╝
+
+Scanning contracts/audit/VulnerableBank.sol (scan mode)...
+
+✓ Running scan analysis...                    
+
+═══ SCAN SUMMARY ═══
+Contract: contracts/audit/VulnerableBank.sol
+Duration: 34.8s
+Tools:    solhint, slither
+Failed:   aderyn
+
+Findings by Severity:
+  ● HIGH:     2
+  ● LOW:      3
+
+  Total: 5 findings
+
+  Risk Assessment: HIGH RISK
+
+═══ DETAILED FINDINGS ═══
+
+[1] HIGH - reentrancy-eth
+    Tool: slither
+    Location: contracts/audit/VulnerableBank.sol:48
+    Function: withdrawAmount()
+    SWC: SWC-107
+    Confidence: 75%
+    Message: Reentrancy in VulnerableBank.withdrawAmount(uint256) (contracts/audit/VulnerableBank.sol#48-57):
+
+    💡 Fix: Use the Checks-Effects-Interactions pattern. Update state before external calls.
+    Example:
+      // BEFORE (vulnerable)
+      function withdraw() external {
+          uint amount = balances[msg.sender];
+          (bool success,) = msg.sender.call{value: amount}("");
+          balances[msg.sender] = 0;  // State update AFTER call
+      }
+
+[2] HIGH - reentrancy-eth
+    Tool: slither
+    Location: contracts/audit/VulnerableBank.sol:30
+    Function: withdraw()
+    SWC: SWC-107
+    Confidence: 75%
+    Message: Reentrancy in VulnerableBank.withdraw() (contracts/audit/VulnerableBank.sol#30-43):
+
+    💡 Fix: Use the Checks-Effects-Interactions pattern. Update state before external calls.
+    Example:
+      // BEFORE (vulnerable)
+      function withdraw() external {
+          uint amount = balances[msg.sender];
+          (bool success,) = msg.sender.call{value: amount}("");
+          balances[msg.sender] = 0;  // State update AFTER call
+      }
+
+[3] LOW - reentrancy-benign
+    Tool: slither
+    Location: contracts/audit/VulnerableBank.sol:30
+    Function: withdraw()
+    SWC: SWC-107
+    Confidence: 75%
+    Message: Reentrancy in VulnerableBank.withdraw() (contracts/audit/VulnerableBank.sol#30-43):
+
+    💡 Fix: Use the Checks-Effects-Interactions pattern. Update state before external calls.
+    Example:
+      // BEFORE (vulnerable)
+      function withdraw() external {
+          uint amount = balances[msg.sender];
+          (bool success,) = msg.sender.call{value: amount}("");
+          balances[msg.sender] = 0;  // State update AFTER call
+ESTADO: PASS

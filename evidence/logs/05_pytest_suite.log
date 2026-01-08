@@ -1,0 +1,87 @@
+===========================================
+PRUEBA 5: PYTEST SUITE
+Fecha: $(date)
+===========================================
+
+tests/test_core.py::TestHealthChecker::test_instantiation PASSED         [ 62%]
+tests/test_core.py::TestHealthChecker::test_check_all PASSED             [ 62%]
+tests/test_core.py::TestResultAggregator::test_import PASSED             [ 63%]
+tests/test_core.py::TestResultAggregator::test_instantiation PASSED      [ 64%]
+tests/test_core.py::TestResultAggregator::test_add_tool_results PASSED   [ 64%]
+tests/test_core.py::TestResultAggregator::test_aggregator_has_add_method PASSED [ 65%]
+tests/test_core.py::TestResultAggregator::test_aggregator_has_normalize_method PASSED [ 66%]
+tests/test_core.py::TestAgentProtocol::test_agent_capability_import PASSED [ 66%]
+tests/test_core.py::TestAgentProtocol::test_agent_metadata_import PASSED [ 67%]
+tests/test_core.py::TestAgentProtocol::test_finding_import PASSED        [ 67%]
+tests/test_core.py::TestAgentRegistry::test_import PASSED                [ 68%]
+tests/test_core.py::TestAgentRegistry::test_instantiation PASSED         [ 69%]
+tests/test_core.py::TestOptimizedOrchestrator::test_import PASSED        [ 69%]
+tests/test_core.py::TestOptimizedOrchestrator::test_instantiation PASSED [ 70%]
+tests/test_core.py::TestMLOrchestrator::test_import PASSED               [ 71%]
+tests/test_core.py::TestMLOrchestrator::test_get_ml_orchestrator PASSED  [ 71%]
+tests/test_core.py::TestMLOrchestrator::test_ml_orchestrator_methods PASSED [ 72%]
+tests/test_core.py::TestConfigLoader::test_import PASSED                 [ 73%]
+tests/test_core.py::TestConfigLoader::test_instantiation PASSED          [ 73%]
+tests/test_core.py::TestCoreInit::test_all_exports_available PASSED      [ 74%]
+tests/test_integration.py::TestMLOrchestrator::test_orchestrator_initialization PASSED [ 75%]
+tests/test_integration.py::TestMLOrchestrator::test_orchestrator_singleton PASSED [ 75%]
+tests/test_integration.py::TestMLOrchestrator::test_orchestrator_ml_report PASSED [ 76%]
+tests/test_integration.py::TestMLOrchestrator::test_orchestrator_with_temp_contract PASSED [ 76%]
+tests/test_integration.py::TestToolDiscovery::test_discovery_initialization PASSED [ 77%]
+tests/test_integration.py::TestToolDiscovery::test_get_available_tools PASSED [ 78%]
+tests/test_integration.py::TestToolDiscovery::test_get_tools_by_layer PASSED [ 78%]
+tests/test_integration.py::TestHealthChecker::test_checker_initialization PASSED [ 79%]
+tests/test_integration.py::TestHealthChecker::test_check_all PASSED      [ 80%]
+tests/test_integration.py::TestAdapterIntegration::test_slither_adapter_available PASSED [ 80%]
+tests/test_integration.py::TestAdapterIntegration::test_mythril_adapter_available PASSED [ 81%]
+tests/test_integration.py::TestAdapterIntegration::test_solhint_adapter_available PASSED [ 82%]
+tests/test_integration.py::TestEndToEndPipeline::test_full_pipeline_flow PASSED [ 82%]
+tests/test_integration.py::TestEndToEndPipeline::test_quick_scan_performance PASSED [ 83%]
+tests/test_integration.py::TestEndToEndPipeline::test_result_serialization PASSED [ 83%]
+tests/test_integration.py::TestEndToEndPipeline::test_feedback_submission PASSED [ 84%]
+tests/test_integration.py::TestMLPipelineIntegration::test_process_realistic_findings PASSED [ 85%]
+tests/test_integration.py::TestMLPipelineIntegration::test_pipeline_clusters_similar_findings PASSED [ 85%]
+tests/test_integration.py::TestConfigurationIntegration::test_environment_variables PASSED [ 86%]
+tests/test_integration.py::TestConfigurationIntegration::test_ml_pipeline_threshold_config PASSED [ 87%]
+tests/test_ml_pipeline.py::TestFalsePositiveFilter::test_filter_initialization PASSED [ 87%]
+tests/test_ml_pipeline.py::TestFalsePositiveFilter::test_filter_empty_findings PASSED [ 88%]
+tests/test_ml_pipeline.py::TestFalsePositiveFilter::test_filter_high_severity_retained PASSED [ 89%]
+tests/test_ml_pipeline.py::TestFalsePositiveFilter::test_filter_statistics PASSED [ 89%]
+tests/test_ml_pipeline.py::TestSeverityPredictor::test_predictor_initialization PASSED [ 90%]
+tests/test_ml_pipeline.py::TestSeverityPredictor::test_predict_reentrancy PASSED [ 91%]
+tests/test_ml_pipeline.py::TestSeverityPredictor::test_predict_with_context PASSED [ 91%]
+tests/test_ml_pipeline.py::TestVulnerabilityClusterer::test_clusterer_initialization PASSED [ 92%]
+tests/test_ml_pipeline.py::TestVulnerabilityClusterer::test_cluster_empty_findings PASSED [ 92%]
+tests/test_ml_pipeline.py::TestVulnerabilityClusterer::test_cluster_single_finding PASSED [ 93%]
+tests/test_ml_pipeline.py::TestVulnerabilityClusterer::test_cluster_similar_findings PASSED [ 94%]
+tests/test_ml_pipeline.py::TestVulnerabilityClusterer::test_remediation_plan PASSED [ 94%]
+tests/test_ml_pipeline.py::TestMLPipeline::test_pipeline_initialization PASSED [ 95%]
+tests/test_ml_pipeline.py::TestMLPipeline::test_pipeline_process_empty PASSED [ 96%]
+tests/test_ml_pipeline.py::TestMLPipeline::test_pipeline_process_findings PASSED [ 96%]
+tests/test_ml_pipeline.py::TestMLPipeline::test_pipeline_process_with_context PASSED [ 97%]
+tests/test_ml_pipeline.py::TestMLPipeline::test_pipeline_to_dict PASSED  [ 98%]
+tests/test_ml_pipeline.py::TestMLPipeline::test_ml_report PASSED         [ 98%]
+tests/test_ml_pipeline.py::TestFeedbackIntegration::test_submit_feedback_tp PASSED [ 99%]
+tests/test_ml_pipeline.py::TestFeedbackIntegration::test_submit_feedback_fp PASSED [100%]/Users/fboiero/Documents/GitHub/MIESC/venv/lib/python3.11/site-packages/coverage/inorout.py:519: CoverageWarning: Module miesc was never imported. (module-not-imported)
+  self.warn(f"Module {pkg} was never imported.", slug="module-not-imported")
+/Users/fboiero/Documents/GitHub/MIESC/venv/lib/python3.11/site-packages/coverage/control.py:801: CoverageWarning: No data was collected. (no-data-collected)
+  self._warn("No data was collected.", slug="no-data-collected")
+/Users/fboiero/Documents/GitHub/MIESC/venv/lib/python3.11/site-packages/pytest_cov/plugin.py:352: CovReportWarning: Failed to generate report: No data to report.
+
+  warnings.warn(CovReportWarning(message), stacklevel=1)
+WARNING: Failed to generate report: No data to report.
+
+
+
+=============================== warnings summary ===============================
+tests/test_cli.py::TestMLCLI::test_cmd_tools
+  /Users/fboiero/Documents/GitHub/MIESC/venv/lib/python3.11/site-packages/torch_geometric/llm/utils/backend_utils.py:26: DeprecationWarning: `torch_geometric.distributed` has been deprecated since 2.7.0 and will no longer be maintained. For distributed training, refer to our tutorials on distributed training at https://pytorch-geometric.readthedocs.io/en/latest/tutorial/distributed.html or cuGraph examples at https://github.com/rapidsai/cugraph-gnn/tree/main/python/cugraph-pyg/cugraph_pyg/examples
+    from torch_geometric.distributed import (
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+--------- coverage: platform darwin, python 3.11.10-final-0 ----------
+
+================= 156 passed, 1 warning in 1472.12s (0:24:32) ==================
+
+ESTADO: PASS

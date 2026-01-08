@@ -1,0 +1,48 @@
+{
+  "agent_id": "miesc-agent-v4.0.0",
+  "capabilities": {
+    "get_metrics": {
+      "description": "Retrieve scientific validation metrics",
+      "endpoint": "/mcp/get_metrics",
+      "method": "GET"
+    },
+    "get_status": {
+      "description": "Query agent health and availability",
+      "endpoint": "/mcp/status",
+      "method": "GET"
+    },
+    "policy_audit": {
+      "description": "Execute internal policy compliance validation",
+      "endpoint": "/mcp/policy_audit",
+      "method": "POST"
+    },
+    "run_audit": {
+      "description": "Execute comprehensive smart contract security audit",
+      "endpoint": "/mcp/run_audit",
+      "method": "POST",
+      "parameters": {
+        "contract": "Path to Solidity contract file"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Fernando Boiero",
+    "frameworks": [
+      "ISO/IEC 27001:2022",
+      "ISO/IEC 42001:2023",
+      "NIST SP 800-218 (SSDF)",
+      "OWASP SAMM v2.0",
+      "OWASP Smart Contract Top 10"
+    ],
+    "institution": "UNDEF - Universidad de la Defensa Nacional",
+    "scientific_validation": {
+      "cohens_kappa": 0.847,
+      "f1_score": 0.8781,
+      "precision": 0.8947,
+      "recall": 0.862
+    },
+    "thesis": "Master's in Cyberdefense"
+  },
+  "protocol": "mcp/1.0",
+  "version": "4.0.0"
+}

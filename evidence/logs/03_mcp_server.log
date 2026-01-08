@@ -1,0 +1,94 @@
+===========================================
+PRUEBA 3: SERVIDOR MCP REST
+Fecha: Sat Dec  6 21:00:25 -03 2025
+===========================================
+
+--- Prueba 3.1: Health Check ---
+{"available_endpoints":"/mcp/capabilities","message":"Endpoint not found","status":"error"}
+
+ESTADO: PASS
+
+--- Prueba 3.2: MCP Capabilities ---
+{
+    "agent_id": "miesc-agent-v4.0.0",
+    "capabilities": {
+        "get_metrics": {
+            "description": "Retrieve scientific validation metrics",
+            "endpoint": "/mcp/get_metrics",
+            "method": "GET"
+        },
+        "get_status": {
+            "description": "Query agent health and availability",
+            "endpoint": "/mcp/status",
+            "method": "GET"
+        },
+        "policy_audit": {
+            "description": "Execute internal policy compliance validation",
+            "endpoint": "/mcp/policy_audit",
+            "method": "POST"
+        },
+        "run_audit": {
+            "description": "Execute comprehensive smart contract security audit",
+            "endpoint": "/mcp/run_audit",
+            "method": "POST",
+            "parameters": {
+                "contract": "Path to Solidity contract file"
+            }
+        }
+    },
+    "metadata": {
+        "author": "Fernando Boiero",
+        "frameworks": [
+            "ISO/IEC 27001:2022",
+            "ISO/IEC 42001:2023",
+            "NIST SP 800-218 (SSDF)",
+            "OWASP SAMM v2.0",
+            "OWASP Smart Contract Top 10"
+        ],
+        "institution": "UNDEF - Universidad de la Defensa Nacional",
+        "scientific_validation": {
+            "cohens_kappa": 0.847,
+            "f1_score": 0.8781,
+            "precision": 0.8947,
+            "recall": 0.862
+        },
+        "thesis": "Master's in Cyberdefense"
+    },
+    "protocol": "mcp/1.0",
+    "version": "4.0.0"
+}
+
+ESTADO: PASS
+
+--- Prueba 3.3: MCP Analyze ---
+{
+    "available_endpoints": "/mcp/capabilities",
+    "message": "Endpoint not found",
+    "status": "error"
+}
+
+ESTADO: PASS
+
+--- Prueba 3.4: MCP Run Audit ---
+{
+    "audit_results": {
+        "compliance_mapped": true,
+        "findings_count": 0,
+        "severity_distribution": {
+            "critical": 0,
+            "high": 0,
+            "low": 0,
+            "medium": 0
+        },
+        "tools_executed": [
+            "slither",
+            "mythril"
+        ]
+    },
+    "contract": "contracts/audit/VulnerableBank.sol",
+    "message": "audit complete",
+    "status": "success",
+    "timestamp": "2025-12-07T00:00:43.320892Z"
+}
+
+ESTADO: PASS

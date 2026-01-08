@@ -1,0 +1,226 @@
+---
+---
+
+@import "jekyll-theme-hacker";
+
+/* Cypherpunk/Hacker Enhanced Styles */
+
+:root {
+  --neon-green: #00ff41;
+  --neon-cyan: #00ffff;
+  --neon-purple: #bf00ff;
+  --dark-bg: #0a0a0a;
+  --terminal-green: #39ff14;
+}
+
+body {
+  background: var(--dark-bg);
+  background-image:
+    radial-gradient(ellipse at top, #1a1a2e 0%, transparent 50%),
+    radial-gradient(ellipse at bottom, #16213e 0%, transparent 50%);
+  font-family: 'Fira Code', 'Source Code Pro', 'Courier New', monospace;
+}
+
+/* Glowing headers */
+h1, h2, h3, h4 {
+  color: var(--neon-green);
+  text-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green), 0 0 30px var(--neon-green);
+  font-family: 'Fira Code', monospace;
+  letter-spacing: 2px;
+}
+
+h1 {
+  font-size: 2.2em;
+  border-bottom: 2px solid var(--neon-green);
+  padding-bottom: 10px;
+}
+
+h2 {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px var(--neon-cyan);
+}
+
+h3 {
+  color: var(--neon-purple);
+  text-shadow: 0 0 8px var(--neon-purple);
+}
+
+/* Links with glow effect */
+a {
+  color: var(--neon-cyan);
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  color: var(--neon-green);
+  text-shadow: 0 0 10px var(--neon-green);
+}
+
+/* Code blocks - terminal style */
+pre, code {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: var(--terminal-green);
+  font-family: 'Fira Code', 'Source Code Pro', monospace;
+}
+
+pre {
+  padding: 16px;
+  overflow-x: auto;
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
+}
+
+code {
+  padding: 2px 6px;
+}
+
+/* Tables with cyber style */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 20px 0;
+  background: rgba(10, 10, 10, 0.8);
+  border: 1px solid var(--neon-green);
+}
+
+th {
+  background: linear-gradient(180deg, #1a1a2e 0%, #0a0a0a 100%);
+  color: var(--neon-green);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 12px;
+  border: 1px solid var(--neon-green);
+}
+
+td {
+  padding: 10px;
+  border: 1px solid #333;
+  color: #b5e853;
+}
+
+tr:hover {
+  background: rgba(0, 255, 65, 0.05);
+}
+
+/* Blockquotes */
+blockquote {
+  border-left: 4px solid var(--neon-purple);
+  background: rgba(191, 0, 255, 0.1);
+  padding: 10px 20px;
+  margin: 20px 0;
+  color: #e0e0e0;
+}
+
+/* Strong/Bold text */
+strong {
+  color: var(--neon-green);
+}
+
+/* Horizontal rules */
+hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
+  margin: 30px 0;
+}
+
+/* Lists */
+ul, ol {
+  color: #b5e853;
+}
+
+li::marker {
+  color: var(--neon-cyan);
+}
+
+/* Images */
+img {
+  border: 1px solid #333;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+img:hover {
+  border-color: var(--neon-green);
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+}
+
+/* Badge styling */
+img[src*="shields.io"] {
+  border: none;
+  box-shadow: none;
+}
+
+/* Navigation effect */
+.inner {
+  max-width: 900px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neon-green);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-cyan);
+}
+
+/* Selection highlighting */
+::selection {
+  background: var(--neon-green);
+  color: #000;
+}
+
+/* Animated underline for headers */
+h2::after {
+  content: '';
+  display: block;
+  width: 50px;
+  height: 2px;
+  background: var(--neon-cyan);
+  margin-top: 5px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; width: 50px; }
+  50% { opacity: 0.5; width: 80px; }
+}
+
+/* Matrix-style scanlines effect (subtle) */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.1),
+    rgba(0, 0, 0, 0.1) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  z-index: 1000;
+  opacity: 0.3;
+}
+
+/* Wrapper to ensure content is above scanlines */
+.wrapper, .container, .inner, main, article {
+  position: relative;
+  z-index: 1001;
+}
