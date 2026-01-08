@@ -9,18 +9,15 @@ License: GPL-3.0
 Version: 1.0.0
 """
 
-import subprocess
-import json
-import tempfile
-import os
 import hashlib
-import time
-from typing import Dict, List, Any, Optional
-from pathlib import Path
+import json
 import logging
-from src.core.tool_protocol import (
-    ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
+import tempfile
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import ToolCapability, ToolCategory, ToolMetadata, ToolStatus
 
 logger = logging.getLogger(__name__)
 
@@ -60,10 +57,10 @@ class SmartBugsMLAdapter:
             "delegatecall",
             "unchecked_call",
             "bad_randomness",
-            "time_manipulation"
+            "time_manipulation",
         ],
         "ml_models": ["random_forest", "svm", "neural_network"],
-        "training_dataset": "SmartBugs (47k contracts)"
+        "training_dataset": "SmartBugs (47k contracts)",
     }
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -111,13 +108,13 @@ class SmartBugsMLAdapter:
                         "delegatecall",
                         "unchecked_call",
                         "bad_randomness",
-                        "time_manipulation"
-                    ]
+                        "time_manipulation",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
@@ -134,29 +131,30 @@ class SmartBugsMLAdapter:
         """
         try:
             # Check if Python ML libraries are available
-            import sklearn
             import numpy as np
+            import sklearn
 
             return {
                 "available": True,
                 "version": "1.0.0",
                 "ml_library": f"scikit-learn {sklearn.__version__}",
                 "models_available": ["random_forest", "svm", "neural_network"],
-                "current_model": self.model
+                "current_model": self.model,
             }
         except ImportError as e:
             return {
                 "available": False,
                 "error": f"ML libraries not installed: {str(e)}",
-                "install_command": "pip install scikit-learn numpy"
+                "install_command": "pip install scikit-learn numpy",
             }
 
-    def analyze(self, contract_path: str) -> Dict[str, Any]:
+    def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
         Analyze contract using ML-based detection
 
         Args:
             contract_path: Path to Solidity contract file
+            **kwargs: Additional arguments (timeout, etc.)
 
         Returns:
             Dict containing:
@@ -177,7 +175,7 @@ class SmartBugsMLAdapter:
 
         try:
             # Read contract code
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 contract_code = f.read()
 
             # Extract features for ML model
@@ -195,7 +193,7 @@ class SmartBugsMLAdapter:
                 "confidence_threshold": self.confidence_threshold,
                 "features_extracted": len(features),
                 "analysis_duration": round(duration, 2),
-                "dpga_compliant": True
+                "dpga_compliant": True,
             }
 
             # Cache result
@@ -208,15 +206,11 @@ class SmartBugsMLAdapter:
             return {
                 "success": False,
                 "error": f"Contract file not found: {contract_path}",
-                "findings": []
+                "findings": [],
             }
         except Exception as e:
             logger.error(f"SmartBugs-ML analysis failed: {str(e)}")
-            return {
-                "success": False,
-                "error": str(e),
-                "findings": []
-            }
+            return {"success": False, "error": str(e), "findings": []}
 
     def _extract_features(self, contract_code: str) -> Dict[str, float]:
         """
@@ -237,36 +231,48 @@ class SmartBugsMLAdapter:
         features = {}
 
         # Basic code metrics
-        features["loc"] = len(contract_code.split('\n'))
-        features["num_functions"] = contract_code.count('function ')
-        features["num_modifiers"] = contract_code.count('modifier ')
-        features["num_events"] = contract_code.count('event ')
+        features["loc"] = len(contract_code.split("\n"))
+        features["num_functions"] = contract_code.count("function ")
+        features["num_modifiers"] = contract_code.count("modifier ")
+        features["num_events"] = contract_code.count("event ")
 
         # Vulnerability-related patterns
-        features["has_delegatecall"] = 1.0 if 'delegatecall' in contract_code else 0.0
-        features["has_selfdestruct"] = 1.0 if 'selfdestruct' in contract_code else 0.0
-        features["has_send"] = 1.0 if '.send(' in contract_code else 0.0
-        features["has_transfer"] = 1.0 if '.transfer(' in contract_code else 0.0
-        features["has_call"] = 1.0 if '.call(' in contract_code else 0.0
-        features["has_call_value"] = 1.0 if '.call{value:' in contract_code or '.call.value(' in contract_code else 0.0
+        features["has_delegatecall"] = 1.0 if "delegatecall" in contract_code else 0.0
+        features["has_selfdestruct"] = 1.0 if "selfdestruct" in contract_code else 0.0
+        features["has_send"] = 1.0 if ".send(" in contract_code else 0.0
+        features["has_transfer"] = 1.0 if ".transfer(" in contract_code else 0.0
+        features["has_call"] = 1.0 if ".call(" in contract_code else 0.0
+        features["has_call_value"] = (
+            1.0 if ".call{value:" in contract_code or ".call.value(" in contract_code else 0.0
+        )
 
         # Reentrancy indicators
-        features["external_calls"] = contract_code.count('.call(') + contract_code.count('.send(') + contract_code.count('.transfer(')
+        features["external_calls"] = (
+            contract_code.count(".call(")
+            + contract_code.count(".send(")
+            + contract_code.count(".transfer(")
+        )
         features["state_changes_after_call"] = self._count_state_changes_after_calls(contract_code)
 
         # Randomness patterns
-        features["uses_blockhash"] = 1.0 if 'blockhash' in contract_code or 'block.blockhash' in contract_code else 0.0
-        features["uses_timestamp"] = 1.0 if 'block.timestamp' in contract_code or 'now' in contract_code else 0.0
-        features["uses_block_number"] = 1.0 if 'block.number' in contract_code else 0.0
+        features["uses_blockhash"] = (
+            1.0 if "blockhash" in contract_code or "block.blockhash" in contract_code else 0.0
+        )
+        features["uses_timestamp"] = (
+            1.0 if "block.timestamp" in contract_code or "now" in contract_code else 0.0
+        )
+        features["uses_block_number"] = 1.0 if "block.number" in contract_code else 0.0
 
         # Integer overflow patterns (pre-Solidity 0.8.0)
         features["has_unchecked_math"] = self._detect_unchecked_math(contract_code)
-        features["uses_safe_math"] = 1.0 if 'SafeMath' in contract_code else 0.0
+        features["uses_safe_math"] = 1.0 if "SafeMath" in contract_code else 0.0
 
         # Access control patterns
-        features["has_owner"] = 1.0 if 'owner' in contract_code.lower() else 0.0
-        features["has_onlyowner"] = 1.0 if 'onlyOwner' in contract_code else 0.0
-        features["has_access_control"] = 1.0 if 'AccessControl' in contract_code or 'Ownable' in contract_code else 0.0
+        features["has_owner"] = 1.0 if "owner" in contract_code.lower() else 0.0
+        features["has_onlyowner"] = 1.0 if "onlyOwner" in contract_code else 0.0
+        features["has_access_control"] = (
+            1.0 if "AccessControl" in contract_code or "Ownable" in contract_code else 0.0
+        )
 
         return features
 
@@ -277,12 +283,12 @@ class SmartBugsMLAdapter:
         """
         # Simplified heuristic: count assignments after .call patterns
         count = 0
-        lines = code.split('\n')
+        lines = code.split("\n")
         for i, line in enumerate(lines):
-            if '.call(' in line or '.send(' in line or '.transfer(' in line:
+            if ".call(" in line or ".send(" in line or ".transfer(" in line:
                 # Check next 5 lines for assignments
-                for j in range(i+1, min(i+6, len(lines))):
-                    if '=' in lines[j] and not '==' in lines[j]:
+                for j in range(i + 1, min(i + 6, len(lines))):
+                    if "=" in lines[j] and "==" not in lines[j]:
                         count += 1
         return float(count)
 
@@ -291,19 +297,21 @@ class SmartBugsMLAdapter:
         Detect arithmetic operations that might overflow
         """
         # Check Solidity version
-        if 'pragma solidity ^0.8' in code or 'pragma solidity >=0.8' in code:
+        if "pragma solidity ^0.8" in code or "pragma solidity >=0.8" in code:
             return 0.0  # Solidity 0.8+ has built-in overflow protection
 
         # Count arithmetic operations
-        arithmetic_ops = code.count(' + ') + code.count(' - ') + code.count(' * ')
+        arithmetic_ops = code.count(" + ") + code.count(" - ") + code.count(" * ")
 
         # If no SafeMath and arithmetic ops, potential vulnerability
-        if arithmetic_ops > 0 and 'SafeMath' not in code:
+        if arithmetic_ops > 0 and "SafeMath" not in code:
             return 1.0
 
         return 0.0
 
-    def _run_ml_inference(self, features: Dict[str, float], contract_code: str) -> List[Dict[str, Any]]:
+    def _run_ml_inference(
+        self, features: Dict[str, float], contract_code: str
+    ) -> List[Dict[str, Any]]:
         """
         Run ML model inference on extracted features
 
@@ -323,66 +331,76 @@ class SmartBugsMLAdapter:
         if features["external_calls"] > 0 and features["state_changes_after_call"] > 0:
             confidence = min(0.9, 0.5 + (features["state_changes_after_call"] * 0.1))
             if confidence >= self.confidence_threshold:
-                findings.append({
-                    "type": "reentrancy",
-                    "severity": "high",
-                    "confidence": round(confidence, 3),
-                    "description": "ML model detected potential reentrancy pattern",
-                    "ml_features_used": ["external_calls", "state_changes_after_call"],
-                    "recommendation": "Use checks-effects-interactions pattern or reentrancy guard"
-                })
+                findings.append(
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "confidence": round(confidence, 3),
+                        "description": "ML model detected potential reentrancy pattern",
+                        "ml_features_used": ["external_calls", "state_changes_after_call"],
+                        "recommendation": "Use checks-effects-interactions pattern or reentrancy guard",
+                    }
+                )
 
         # Delegate call vulnerability
         if features["has_delegatecall"] > 0.5:
             confidence = 0.85
             if confidence >= self.confidence_threshold:
-                findings.append({
-                    "type": "delegatecall",
-                    "severity": "high",
-                    "confidence": confidence,
-                    "description": "ML model detected delegatecall usage without proper validation",
-                    "ml_features_used": ["has_delegatecall"],
-                    "recommendation": "Ensure delegatecall targets are whitelisted and validated"
-                })
+                findings.append(
+                    {
+                        "type": "delegatecall",
+                        "severity": "high",
+                        "confidence": confidence,
+                        "description": "ML model detected delegatecall usage without proper validation",
+                        "ml_features_used": ["has_delegatecall"],
+                        "recommendation": "Ensure delegatecall targets are whitelisted and validated",
+                    }
+                )
 
         # Bad randomness
         if features["uses_blockhash"] > 0.5 or features["uses_timestamp"] > 0.5:
             confidence = 0.8
             if confidence >= self.confidence_threshold:
-                findings.append({
-                    "type": "bad_randomness",
-                    "severity": "medium",
-                    "confidence": confidence,
-                    "description": "ML model detected weak randomness source (block.timestamp or blockhash)",
-                    "ml_features_used": ["uses_blockhash", "uses_timestamp"],
-                    "recommendation": "Use Chainlink VRF or commit-reveal scheme for randomness"
-                })
+                findings.append(
+                    {
+                        "type": "bad_randomness",
+                        "severity": "medium",
+                        "confidence": confidence,
+                        "description": "ML model detected weak randomness source (block.timestamp or blockhash)",
+                        "ml_features_used": ["uses_blockhash", "uses_timestamp"],
+                        "recommendation": "Use Chainlink VRF or commit-reveal scheme for randomness",
+                    }
+                )
 
         # Integer overflow (for pre-0.8.0 contracts)
         if features["has_unchecked_math"] > 0.5:
             confidence = 0.75
             if confidence >= self.confidence_threshold:
-                findings.append({
-                    "type": "integer_overflow",
-                    "severity": "high",
-                    "confidence": confidence,
-                    "description": "ML model detected unchecked arithmetic operations",
-                    "ml_features_used": ["has_unchecked_math", "uses_safe_math"],
-                    "recommendation": "Use Solidity 0.8+ or SafeMath library for arithmetic"
-                })
+                findings.append(
+                    {
+                        "type": "integer_overflow",
+                        "severity": "high",
+                        "confidence": confidence,
+                        "description": "ML model detected unchecked arithmetic operations",
+                        "ml_features_used": ["has_unchecked_math", "uses_safe_math"],
+                        "recommendation": "Use Solidity 0.8+ or SafeMath library for arithmetic",
+                    }
+                )
 
         # Unprotected selfdestruct
         if features["has_selfdestruct"] > 0.5 and features["has_access_control"] < 0.5:
             confidence = 0.82
             if confidence >= self.confidence_threshold:
-                findings.append({
-                    "type": "unprotected_selfdestruct",
-                    "severity": "critical",
-                    "confidence": confidence,
-                    "description": "ML model detected selfdestruct without access control",
-                    "ml_features_used": ["has_selfdestruct", "has_access_control"],
-                    "recommendation": "Add access control modifiers (e.g., onlyOwner) to selfdestruct"
-                })
+                findings.append(
+                    {
+                        "type": "unprotected_selfdestruct",
+                        "severity": "critical",
+                        "confidence": confidence,
+                        "description": "ML model detected selfdestruct without access control",
+                        "ml_features_used": ["has_selfdestruct", "has_access_control"],
+                        "recommendation": "Add access control modifiers (e.g., onlyOwner) to selfdestruct",
+                    }
+                )
 
         return findings
 
@@ -395,7 +413,7 @@ class SmartBugsMLAdapter:
             # Check if cache is not too old (24 hours)
             if time.time() - cache_file.stat().st_mtime < 86400:
                 try:
-                    with open(cache_file, 'r') as f:
+                    with open(cache_file, "r") as f:
                         return json.load(f)
                 except:
                     pass
@@ -407,7 +425,7 @@ class SmartBugsMLAdapter:
         cache_file = self.cache_dir / f"{cache_key}.json"
 
         try:
-            with open(cache_file, 'w') as f:
+            with open(cache_file, "w") as f:
                 json.dump(result, f, indent=2)
         except Exception as e:
             logger.warning(f"Failed to cache result: {e}")
@@ -415,7 +433,7 @@ class SmartBugsMLAdapter:
     def _get_cache_key(self, contract_path: str) -> str:
         """Generate cache key from contract content hash"""
         try:
-            with open(contract_path, 'rb') as f:
+            with open(contract_path, "rb") as f:
                 content = f.read()
             return hashlib.sha256(content).hexdigest()[:16]
         except:
@@ -425,7 +443,4 @@ class SmartBugsMLAdapter:
 # Adapter registration
 def register_adapter():
     """Register SmartBugs-ML adapter with MIESC"""
-    return {
-        "adapter_class": SmartBugsMLAdapter,
-        "metadata": SmartBugsMLAdapter.METADATA
-    }
+    return {"adapter_class": SmartBugsMLAdapter, "metadata": SmartBugsMLAdapter.METADATA}

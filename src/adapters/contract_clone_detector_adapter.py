@@ -10,13 +10,11 @@ Version: 1.0.0
 """
 
 import hashlib
-import re
-from typing import Dict, List, Any, Optional
-from pathlib import Path
 import logging
-from src.core.tool_protocol import (
-    ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
+import re
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import ToolCapability, ToolCategory, ToolMetadata, ToolStatus
 
 logger = logging.getLogger(__name__)
 
@@ -49,21 +47,16 @@ class ContractCloneDetectorAdapter:
             "exact_clone",  # Type-1
             "renamed_clone",  # Type-2
             "near_miss_clone",  # Type-3
-            "semantic_clone"  # Type-4
+            "semantic_clone",  # Type-4
         ],
-        "similarity_methods": [
-            "token_based",
-            "ast_based",
-            "metric_based",
-            "hybrid"
-        ]
+        "similarity_methods": ["token_based", "ast_based", "metric_based", "hybrid"],
     }
 
     # Known malicious contract hashes (example - would be populated from threat intel)
     KNOWN_MALICIOUS_HASHES = {
         # Example hashes of known scam contracts
         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": "Generic Ponzi Scheme",
-        "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592": "Fake Token Contract"
+        "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592": "Fake Token Contract",
     }
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -105,13 +98,13 @@ class ContractCloneDetectorAdapter:
                         "renamed_clone",
                         "near_miss_clone",
                         "semantic_clone",
-                        "malicious_contract"
-                    ]
+                        "malicious_contract",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
@@ -130,16 +123,19 @@ class ContractCloneDetectorAdapter:
             "version": "1.0.0",
             "methods_available": self.methods,
             "malicious_db_size": len(self.KNOWN_MALICIOUS_HASHES),
-            "similarity_threshold": self.similarity_threshold
+            "similarity_threshold": self.similarity_threshold,
         }
 
-    def analyze(self, contract_path: str, comparison_contracts: Optional[List[str]] = None) -> Dict[str, Any]:
+    def analyze(
+        self, contract_path: str, comparison_contracts: Optional[List[str]] = None, **kwargs
+    ) -> Dict[str, Any]:
         """
         Analyze contract for clones/similarities
 
         Args:
             contract_path: Path to Solidity contract file
             comparison_contracts: Optional list of contract paths to compare against
+            **kwargs: Additional arguments (timeout, etc.)
 
         Returns:
             Dict containing:
@@ -151,7 +147,7 @@ class ContractCloneDetectorAdapter:
         """
         try:
             # Read contract code
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 contract_code = f.read()
 
             # Calculate contract hash
@@ -173,11 +169,13 @@ class ContractCloneDetectorAdapter:
                 for comp_path in comparison_contracts:
                     similarity = self._calculate_similarity(contract_code, comp_path)
                     if similarity >= self.similarity_threshold:
-                        clones_found.append({
-                            "contract": comp_path,
-                            "similarity": round(similarity, 3),
-                            "clone_type": self._classify_clone_type(similarity)
-                        })
+                        clones_found.append(
+                            {
+                                "contract": comp_path,
+                                "similarity": round(similarity, 3),
+                                "clone_type": self._classify_clone_type(similarity),
+                            }
+                        )
 
             # Calculate uniqueness score (inverse of max similarity)
             max_similarity = max([c["similarity"] for c in clones_found], default=0.0)
@@ -191,7 +189,7 @@ class ContractCloneDetectorAdapter:
                 "clones_found": clones_found,
                 "uniqueness_score": round(uniqueness_score, 3),
                 "features": features,
-                "dpga_compliant": True
+                "dpga_compliant": True,
             }
 
             # Generate findings based on results
@@ -204,15 +202,11 @@ class ContractCloneDetectorAdapter:
             return {
                 "success": False,
                 "error": f"Contract file not found: {contract_path}",
-                "findings": []
+                "findings": [],
             }
         except Exception as e:
             logger.error(f"Clone detection failed: {str(e)}")
-            return {
-                "success": False,
-                "error": str(e),
-                "findings": []
-            }
+            return {"success": False, "error": str(e), "findings": []}
 
     def _calculate_hash(self, code: str) -> str:
         """Calculate SHA256 hash of normalized contract code"""
@@ -231,19 +225,19 @@ class ContractCloneDetectorAdapter:
         - License identifiers
         """
         # Remove single-line comments
-        code = re.sub(r'//.*$', '', code, flags=re.MULTILINE)
+        code = re.sub(r"//.*$", "", code, flags=re.MULTILINE)
 
         # Remove multi-line comments
-        code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
+        code = re.sub(r"/\*.*?\*/", "", code, flags=re.DOTALL)
 
         # Remove SPDX license identifiers
-        code = re.sub(r'// SPDX-License-Identifier:.*$', '', code, flags=re.MULTILINE)
+        code = re.sub(r"// SPDX-License-Identifier:.*$", "", code, flags=re.MULTILINE)
 
         # Remove extra whitespace
-        code = re.sub(r'\s+', ' ', code)
+        code = re.sub(r"\s+", " ", code)
 
         # Remove whitespace around operators
-        code = re.sub(r'\s*([{}();,=<>+\-*/])\s*', r'\1', code)
+        code = re.sub(r"\s*([{}();,=<>+\-*/])\s*", r"\1", code)
 
         return code.strip()
 
@@ -261,33 +255,35 @@ class ContractCloneDetectorAdapter:
         features = {}
 
         # Basic metrics
-        features["loc"] = len(code.split('\n'))
-        features["num_functions"] = code.count('function ')
-        features["num_modifiers"] = code.count('modifier ')
-        features["num_events"] = code.count('event ')
-        features["num_state_vars"] = code.count('public ') + code.count('private ') + code.count('internal ')
+        features["loc"] = len(code.split("\n"))
+        features["num_functions"] = code.count("function ")
+        features["num_modifiers"] = code.count("modifier ")
+        features["num_events"] = code.count("event ")
+        features["num_state_vars"] = (
+            code.count("public ") + code.count("private ") + code.count("internal ")
+        )
 
         # Extract function signatures
-        function_pattern = r'function\s+(\w+)\s*\([^)]*\)'
+        function_pattern = r"function\s+(\w+)\s*\([^)]*\)"
         functions = re.findall(function_pattern, code)
         features["function_names"] = sorted(set(functions))
         features["num_unique_functions"] = len(features["function_names"])
 
         # Extract event signatures
-        event_pattern = r'event\s+(\w+)\s*\([^)]*\)'
+        event_pattern = r"event\s+(\w+)\s*\([^)]*\)"
         events = re.findall(event_pattern, code)
         features["event_names"] = sorted(set(events))
 
         # Extract state variable names
-        state_var_pattern = r'(?:public|private|internal)\s+(?:\w+)\s+(\w+)\s*[;=]'
+        state_var_pattern = r"(?:public|private|internal)\s+(?:\w+)\s+(\w+)\s*[;=]"
         state_vars = re.findall(state_var_pattern, code)
         features["state_var_names"] = sorted(set(state_vars))
 
         # Code complexity indicators
-        features["has_assembly"] = 1 if 'assembly' in code else 0
-        features["has_delegatecall"] = 1 if 'delegatecall' in code else 0
-        features["has_selfdestruct"] = 1 if 'selfdestruct' in code else 0
-        features["uses_inheritance"] = 1 if ' is ' in code else 0
+        features["has_assembly"] = 1 if "assembly" in code else 0
+        features["has_delegatecall"] = 1 if "delegatecall" in code else 0
+        features["has_selfdestruct"] = 1 if "selfdestruct" in code else 0
+        features["uses_inheritance"] = 1 if " is " in code else 0
 
         return features
 
@@ -308,7 +304,7 @@ class ContractCloneDetectorAdapter:
             Similarity score (0.0-1.0)
         """
         try:
-            with open(contract2_path, 'r', encoding='utf-8') as f:
+            with open(contract2_path, "r", encoding="utf-8") as f:
                 code2 = f.read()
         except:
             return 0.0
@@ -337,8 +333,8 @@ class ContractCloneDetectorAdapter:
         Jaccard = |intersection| / |union|
         """
         # Tokenize (split on non-alphanumeric characters)
-        tokens1 = set(re.findall(r'\w+', text1.lower()))
-        tokens2 = set(re.findall(r'\w+', text2.lower()))
+        tokens1 = set(re.findall(r"\w+", text1.lower()))
+        tokens2 = set(re.findall(r"\w+", text2.lower()))
 
         if not tokens1 or not tokens2:
             return 0.0
@@ -407,40 +403,46 @@ class ContractCloneDetectorAdapter:
 
         # Finding 1: Malicious contract match
         if result.get("is_malicious"):
-            findings.append({
-                "type": "malicious_contract_detected",
-                "severity": "critical",
-                "confidence": 1.0,
-                "description": f"Contract matches known malicious pattern: {result['malicious_match']}",
-                "recommendation": "DO NOT DEPLOY this contract. It matches a known scam/malicious pattern.",
-                "contract_hash": result["contract_hash"]
-            })
+            findings.append(
+                {
+                    "type": "malicious_contract_detected",
+                    "severity": "critical",
+                    "confidence": 1.0,
+                    "description": f"Contract matches known malicious pattern: {result['malicious_match']}",
+                    "recommendation": "DO NOT DEPLOY this contract. It matches a known scam/malicious pattern.",
+                    "contract_hash": result["contract_hash"],
+                }
+            )
 
         # Finding 2: Low uniqueness (likely a clone)
         uniqueness = result.get("uniqueness_score", 1.0)
         if uniqueness < 0.15:  # Less than 15% unique
-            findings.append({
-                "type": "low_uniqueness",
-                "severity": "medium",
-                "confidence": 0.9,
-                "description": f"Contract has very low uniqueness score ({uniqueness:.1%})",
-                "recommendation": "Verify this is not a malicious fork or unauthorized copy of another contract",
-                "uniqueness_score": uniqueness
-            })
+            findings.append(
+                {
+                    "type": "low_uniqueness",
+                    "severity": "medium",
+                    "confidence": 0.9,
+                    "description": f"Contract has very low uniqueness score ({uniqueness:.1%})",
+                    "recommendation": "Verify this is not a malicious fork or unauthorized copy of another contract",
+                    "uniqueness_score": uniqueness,
+                }
+            )
 
         # Finding 3: Clones detected
         clones = result.get("clones_found", [])
         if clones:
             highest_similarity = max(c["similarity"] for c in clones)
-            findings.append({
-                "type": "similar_contracts_found",
-                "severity": "low" if highest_similarity < 0.95 else "medium",
-                "confidence": 0.85,
-                "description": f"Found {len(clones)} similar contract(s) with max similarity {highest_similarity:.1%}",
-                "recommendation": "Review similar contracts to ensure uniqueness and avoid plagiarism",
-                "num_clones": len(clones),
-                "max_similarity": highest_similarity
-            })
+            findings.append(
+                {
+                    "type": "similar_contracts_found",
+                    "severity": "low" if highest_similarity < 0.95 else "medium",
+                    "confidence": 0.85,
+                    "description": f"Found {len(clones)} similar contract(s) with max similarity {highest_similarity:.1%}",
+                    "recommendation": "Review similar contracts to ensure uniqueness and avoid plagiarism",
+                    "num_clones": len(clones),
+                    "max_similarity": highest_similarity,
+                }
+            )
 
         return findings
 
@@ -450,5 +452,5 @@ def register_adapter():
     """Register Contract Clone Detector adapter with MIESC"""
     return {
         "adapter_class": ContractCloneDetectorAdapter,
-        "metadata": ContractCloneDetectorAdapter.METADATA
+        "metadata": ContractCloneDetectorAdapter.METADATA,
     }
