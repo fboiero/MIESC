@@ -7,11 +7,11 @@ Multi-layer security analysis framework for Ethereum smart contracts.
 [![Version](https://img.shields.io/badge/version-4.2.3-green)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions)
 [![Coverage](https://img.shields.io/badge/coverage-80.8%25-green)](./htmlcov/index.html)
-[![Tools](https://img.shields.io/badge/tools-29%2F32%20operational-blue)](./docs/TOOLS.md)
+[![Tools](https://img.shields.io/badge/tools-31%2F31%20operational-brightgreen)](./docs/TOOLS.md)
 
 [English](./README.md) | [Espa&ntilde;ol](./README_ES.md)
 
-MIESC orchestrates **29 security tools** across **9 defense layers** with AI-assisted correlation and ML-based detection. Pre-audit triage tool for smart contract security.
+MIESC orchestrates **31 security tools** across **9 defense layers** with AI-assisted correlation and ML-based detection. Pre-audit triage tool for smart contract security.
 
 **Validated Results (SmartBugs-curated dataset, 50 contracts):**
 
@@ -51,7 +51,7 @@ miesc doctor
 ## Features
 
 - **9 defense layers**: Static, Dynamic, Symbolic, Formal, AI, ML, Threat Modeling, Cross-Chain, AI Ensemble
-- **29 operational tools**: Slither, Aderyn, Mythril, Echidna, Foundry, Certora, Halmos, SmartLLM, and more
+- **31 operational tools**: Slither, Aderyn, Mythril, Echidna, Foundry, Certora, Halmos, SmartLLM, and more
 - **AI correlation**: Local LLM (Ollama) reduces false positives
 - **Compliance mapping**: ISO 27001, NIST, OWASP, SWC
 - **Multiple interfaces**: CLI, REST API, WebSocket, MCP, Web UI
@@ -97,7 +97,7 @@ Layer 8: DeFi Security        (DeFi Analyzer, MEV Detector, Gas Analyzer)
 Layer 9: Advanced Detection   (Advanced Detector, SmartBugs, Threat Model)
 ```
 
-**29/32 tools operational** - See `miesc doctor` for availability status.
+**31/31 tools operational** - See `miesc doctor` for availability status.
 
 ## Requirements
 
