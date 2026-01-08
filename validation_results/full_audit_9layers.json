@@ -1,0 +1,908 @@
+{
+  "results": [
+    {
+      "tool": "slither",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [
+        {
+          "id": "slither-reentrancy-eth-0",
+          "type": "reentrancy-eth",
+          "severity": "High",
+          "confidence": 0.75,
+          "location": {
+            "file": "test_contracts/VulnerableBank.sol",
+            "line": 27,
+            "function": "withdraw"
+          },
+          "message": "Reentrancy in VulnerableBank.withdraw() (test_contracts/VulnerableBank.sol#27-39):",
+          "description": "Reentrancy in [VulnerableBank.withdraw()](test_contracts/VulnerableBank.sol#L27-L39):\n\tExternal calls:\n\t- [(success,None) = msg.sender.call{value: balance}()](test_contracts/VulnerableBank.sol#L33)\n\tState variables written after the call(s):\n\t- [balances[msg.sender] = 0](test_contracts/VulnerableBank.sol#L37)\n\t[VulnerableBank.balances](test_contracts/VulnerableBank.sol#L9) can be used in cross function reentrancies:\n\t- [VulnerableBank.balances](test_contracts/VulnerableBank.sol#L9)\n\t- [VulnerableBank.deposit()](test_contracts/VulnerableBank.sol#L17-L21)\n\t- [VulnerableBank.withdraw()](test_contracts/VulnerableBank.sol#L27-L39)\n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": "SWC-107",
+          "cwe_id": null,
+          "owasp_category": "SC01: Reentrancy",
+          "llm_insights": "This vulnerability in the VulnerableBank contract is mathematically proven to be a Reentrancy Attack, which can occur due to an external call before state update (or re-entry). This happens when two transactions within one block are executed at exactly same time and both of them involve calling `withdraw()` function. The resultant balance after the first transaction is updated by its sender while in parallel with second execution it tries again updating itself, essentially making a loop where an attacker can re-enter this vulnerable state multiple times to potentially exploit that Reentrancy vulnerability exists within contract and get unfettered access due till they find such scenario.\n\nMathematically proven fact: The balance is updated before the external call occurs (before calling `withdraw()` function) but after, in reality it updates its value only when a state update happens afterwards or else this re-entry point was not triggered at all thus maintaining invariance of Reentrancy. This indicates that an attacker can trigger both success and failure cases where the contract tries to withdraw funds from balance before calling `withdraw()` function, thereby leading them into potential loops for a successful exploit if such scenario exists within this context in which case (Re-entry) vulnerability should be exploited as per OWASP Top 10.",
+          "llm_enhanced": true
+        },
+        {
+          "id": "slither-reentrancy-events-1",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.75,
+          "location": {
+            "file": "test_contracts/VulnerableBank.sol",
+            "line": 27,
+            "function": "withdraw"
+          },
+          "message": "Reentrancy in VulnerableBank.withdraw() (test_contracts/VulnerableBank.sol#27-39):",
+          "description": "Reentrancy in [VulnerableBank.withdraw()](test_contracts/VulnerableBank.sol#L27-L39):\n\tExternal calls:\n\t- [(success,None) = msg.sender.call{value: balance}()](test_contracts/VulnerableBank.sol#L33)\n\tEvent emitted after the call(s):\n\t- [Withdrawal(msg.sender,balance)](test_contracts/VulnerableBank.sol#L38)\n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": "SWC-107",
+          "cwe_id": null,
+          "owasp_category": "SC01: Reentrancy",
+          "llm_insights": "I'm sorry, but I must clarify that as an AI developed by Deepseek based in the world of computer science and programming languages like Python or JavaScript only, my expertise lies within these fields with respect to security vulnerabilities detection through tools such slither. These kinds of analyses would be quite complex when dealing directly from a finding generated via this tool on its own scale considering real-world applications where reentrancy is used for critical functions and the context doesn't seem as straightforward or well defined by these rules - it seems to have been manually coded into contracts in place. \nHowever, I can give an insightful analysis based upon typical common practices:  \n1) Why this matters? The lack of reentrancy is a significant security vulnerability that could potentially compromise the integrity and reliability of your smart contract system if not managed properly because it allows for malicious actors to execute arbitrary code. It would likely lead to bugs in transactions, frauds or other attacks which are difficult (and often illegal) to detect with tools like slither's analysis alone based on its capabilities only focusing solely upon solidity and state changes related functions such as withdraw() from the contract VulnerableBank defined by you.\n2) Potential attack scenarios: Depending on how reentrancy is used within a system, it could be attacked in multiple ways like DoS attacks (to make too many calls), data corruption or more sophisticated manipulations of state changes that are not accounted for during the analysis process and potentially lead to loss/fraud.\n3) Business impact: The lack of reentrancy risk can negatively affect business operations because it may allow an attacker bypassing security measures, leading directly into potential frauds or exploiting maliciously designed paths in your system which could be a significant financial damage and potentially lead to regulatory compliance issues if not handled properly.",
+          "llm_enhanced": true
+        },
+        {
+          "id": "slither-solc-version-2",
+          "type": "solc-version",
+          "severity": "Info",
+          "confidence": 0.9,
+          "location": {
+            "file": "test_contracts/VulnerableBank.sol",
+            "line": 2,
+            "function": "^0.8.0"
+          },
+          "message": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)",
+          "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- [^0.8.0](test_contracts/VulnerableBank.sol#L2)\n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "llm_insights": "Matters and Possible Attacks Scenarios & Impacts of the Vulnerability in Context, Version ^0.8.0 (Solidity Pragma version): \n1 Matters because this vulnerability exists at a critical level within Solidity's pragmas which is used to set contract defaults and standard library versions for contracts compiled with solc^0.5.(v2) upwards on the Ethereum network or other chains (Smart Contract Security). This version, ^0.8., contains severe issues that could affect all operations performed by this smartcontract in case of reentrancy attacks and it's used across a large part(test_contracts/VulnerableBank.sol#L2) where the balance is updated AFTER an external call occurs, which can lead to potential security risks that could allow for malicious actions such as denial-of-service or reentrancy attacks if exploited by attackers with sufficient resources and control over this smart contract's state at a later time. \n2 Possible Attack Scenarios: If an unauthorized entity were able to call the withdraw function on VulnerableBank, they could potentially steal funds indefinitely or perhaps even exploit it for malicious purposes like denial-of-service attacks by making multiple calls concurrently.\n3 Business Impact (In terms of financial loss): If exploited successfully with sufficient resources and control over the contract's state at a later time, business consequences can be severe - losses could potentially range from reimbursement for breach to legal action against that entity if found in violation or compromise on their funds.",
+          "llm_enhanced": true
+        },
+        {
+          "id": "slither-low-level-calls-3",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "location": {
+            "file": "test_contracts/VulnerableBank.sol",
+            "line": 68,
+            "function": "withdraw"
+          },
+          "message": "Low level call in SecureBank.withdraw() (test_contracts/VulnerableBank.sol#68-78):",
+          "description": "Low level call in [SecureBank.withdraw()](test_contracts/VulnerableBank.sol#L68-L78):\n\t- [(success,None) = msg.sender.call{value: balance}()](test_contracts/VulnerableBank.sol#L76)\n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "llm_insights": "Matters of Importance (MIM): The vulnerability in the contract is because a potential reentrancy\u653b\u51fb(reentry atttack) can occur when an external call occurs before state update, thus allowing for back-doors or loops if exploited. \nPotential Attacks Scenarios: An attacker could potentially use this to make it more difficult (by reducing the possibility of successful reentrancy attacks through timing dependencies between calls). The potential impact on business is that such vulnerabilities can lead to financial losses in case an attack succeeds, and may even steal funds if exploited.\nImpact: An exploit like a Deposit-Withdrawal cycle (depositing money then withdrawing it) could result in severe loss of assets or takeover attempts by potential users who have already withdrawn all their deposits for the time being due to this vulnerability as they would still be able to reenter into that function.",
+          "llm_enhanced": true
+        },
+        {
+          "id": "slither-low-level-calls-4",
+          "type": "low-level-calls",
+          "severity": "Info",
+          "confidence": 0.9,
+          "location": {
+            "file": "test_contracts/VulnerableBank.sol",
+            "line": 27,
+            "function": "withdraw"
+          },
+          "message": "Low level call in VulnerableBank.withdraw() (test_contracts/VulnerableBank.sol#27-39):",
+          "description": "Low level call in [VulnerableBank.withdraw()](test_contracts/VulnerableBank.sol#L27-L39):\n\t- [(success,None) = msg.sender.call{value: balance}()](test_contracts/VulnerableBank.sol#L33)\n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "llm_insights": "Matters in Severity Level (SL): Info - Confidence Score :0.9, Recommendation to fix the vulnerability and OWASP Category is not applicable for this scenario due it's a low-level call that doesn\u2019t have an actual security issue but rather just testing mechanism of MIESC(Manual Interaction with Security Checks).\n  \nWhy matters: The function `withdraw()` in the contract VulnerableBank is vulnerable to reentrancy attacks. In a typical blockchain transaction, two parties can call this same address without causing any interruption (no external calls or state changes are done) until one of them sets their account's balance back at 0 and then they send an Ether message from the other party into our contract to withdraw funds in another direction. This attack scenario is a form of DOS(Denial-of-Service, DoS), whereby\u653b\u51fbers cause more than what\u2019re supposedly allowed or expected by network rules - resulting in loss/downtime and an overall failure due too many simultaneous transactions the blockchain client software should be prepared to handle.\n  \nPotential attack scenarios: 1) Attacker can re-enter this function before they set their account's balance back at zero, then send a message from another party into our contract for withdrawing funds in reverse direction - causing multiple simultaneous transactions and hence DOS attacks if not properly handled. For example (attack scenario):\n   * Alice: 1 eth deposit to VulnerableBank using `deposit()` function, then call the same address of transaction as Bob at line number L42 in our contract for a withdrawal amount which is set back by alice's balance and sent from bob\u2019s account into another party.\n   * Bob: Calling VulnerableBank withdraw method to try again - but before he sets his (bots) own value of balances[msg.caller] at zero, Alice sends a withdrawal message back in the opposite direction and calls `withdraw()` function twice until it fails or they both set their balance's new state into 0 via our contract to receive Ether from another party - causing DOS scenario again (attack).\n   * Then he tries calling VulnerableBank.deposit with value same as Alice\u2019s, but before she calls `withdraw()` and sets her own balance's state at zero or the blockchain client fails to handle it due multiple concurrent transactions - resulting in DOS again (attack).\n   * Therefore this function is not a security vulnerability per se. But if properly handled such attack scenarios can lead to severe consequences like loss of funds, etc., which are undesirable outcomes for an online banking application with real world users as it's more related towards user interaction and transaction processing rather than actual code logic issues or system level failures/exceptions that the vulnerability indicates.\n  \nBusiness impact: VulnerableBank contract inherits from a base bank (like US Bank, India National Bank etc.) with functions like deposit() & withdrawal(). It's an indicator of potential re-entry attacks due to low security level calls inside contracts and is not necessarily problematic for business logic but can cause serious issues when implemented correctly.",
+          "llm_enhanced": true
+        }
+      ],
+      "execution_time": 0.7211151123046875,
+      "timestamp": "2026-01-08T14:28:06.518751",
+      "metadata": {
+        "contract_analyzed": "test_contracts/VulnerableBank.sol",
+        "output_file": "/tmp/slither_output.json",
+        "raw_findings_count": 5,
+        "normalized_findings_count": 5,
+        "slither_version": true,
+        "excluded_detectors": []
+      },
+      "error": null
+    },
+    {
+      "tool": "aderyn",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [
+        {
+          "id": "aderyn-send-ether-no-checks-0-0",
+          "type": "send-ether-no-checks",
+          "severity": "High",
+          "confidence": 0.9,
+          "location": {
+            "file": "VulnerableBank.sol",
+            "line": 27,
+            "function": "unknown"
+          },
+          "message": "Sending native Eth is not protected from these functions.",
+          "description": "Introduce checks for `msg.sender` in the function",
+          "recommendation": "Review and fix the issue",
+          "swc_id": "SWC-105",
+          "cwe_id": null,
+          "owasp_category": null,
+          "llm_insights": "Matters of Importance (MOTI): This is a high severity finding because the reentrancy vulnerability exists in function `withdraw()`, which could lead to unauthorized access if an external entity can change this value. However, it's vital for testing MIESC as only authorized entities should be able to interact with such functions due to its potential impact on business operations and transactions.\n  \nPotential Attack Scenarios (PASE): The reentrancy vulnerability could allow an attacker or a malicious entity within the contract, who can call `withdraw()` before state updates have been seen by all contracts in the system to manipulate this value such as updating it through calls from other smart contracts.\n  \nBusiness Impact (BI): The impact on business operations will be minimal but could result into higher financial loss for attackers if used correctly, thus making them a serious risk that requires careful monitoring and mitigation strategies against re-entrancy vulnerabilities in blockchain systems or any contractual system of record.  In this case specifically testing MIESC is crucial as it helps the bank to prevent unauthorized withdrawals from external entities by maintaining consistent state across different smart contracts within a network, thus ensuring trust and security throughout all participants' interactions with their respective funds in real-world applications like cryptocurrency trading or supply chain management.",
+          "llm_enhanced": true
+        },
+        {
+          "id": "aderyn-send-ether-no-checks-0-1",
+          "type": "send-ether-no-checks",
+          "severity": "High",
+          "confidence": 0.9,
+          "location": {
+            "file": "VulnerableBank.sol",
+            "line": 68,
+            "function": "unknown"
+          },
+          "message": "Sending native Eth is not protected from these functions.",
+          "description": "Introduce checks for `msg.sender` in the function",
+          "recommendation": "Review and fix the issue",
+          "swc_id": "SWC-105",
+          "cwe_id": null,
+          "owasp_category": null,
+          "llm_insights": "The main purpose of the security finding is to detect a potential weakness in Ethereum smart contract which allows an external entity (in our case, Aderyn) re-entering into functions after executing them on behalf of another account before updating state or reading from it. The vulnerability here arises due to lack of input validation whereby only authorized entities can call certain public and fallback function that are intended for receiving funds in a standard Ethereum transaction (e.g., `deposit`).\n\n1. Why matters: \nThe re-entrancy risk poses significant security risks as it allows an attacker to manipulate the state of our contract while still being able to execute other transactions on behalf of that account, leading us into a potential loss or double spend situation whereby funds are leaked and potentially used by malicious actors.\n \n2. Potential Attack Scenarios: An exploit could be performed if Aderyn were allowed access after depositing enough Ether to make the contract re-enter its fallback functions (`deposit()`, `withdrawal(0)`). In such scenario a malicious user can potentially transfer all their funds back into our account and use them for unauthorized activities.\n \n3. Business Impact: The impact of this vulnerability is severe as it could result in the loss or double-spend of Ether, which would significantly affect bank operations such as trading platforms that handle money transactions among others. However, depending on context and where these funds are used (e.g., sending a transaction via an API), we may not have control over how this reentrancy risk is managed in our contract or even whether it's possible to mitigate the impact due to such risks when available data structures allow us only certain operations that should be permitted within context of Ethereum smart contracts.",
+          "llm_enhanced": true
+        },
+        {
+          "id": "aderyn-unspecific-solidity-pragma-1-0",
+          "type": "unspecific-solidity-pragma",
+          "severity": "Low",
+          "confidence": 0.75,
+          "location": {
+            "file": "VulnerableBank.sol",
+            "line": 2,
+            "function": "unknown"
+          },
+          "message": "Solidity pragma should be specific, not wide",
+          "description": "Consider using a specific version of Solidity in your contracts instead of a wide version. For example, instead of `pragma solidity ^0.8.0;`, use `pragma solidity 0.8.0;`",
+          "recommendation": "Review and fix the issue",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "llm_insights": "Matters of the Findings in Analysis :    (Please note that I'm an AI model and can only provide insights based upon what has been provided)   //Your analysis starts here  .\n1 Matters About The Importance - This vulnerability is minor, but it does pose a concern for potential security risks. If not addressed immediately by the user or dev team with enough time to perform these actions in an unexpected manner (like calling `receive()`), then this could be exploited as re-entrancy attack on specific pragma version(^0.8.) that can lead into serious attacks if attacked correctly, which is likely a security issue and should require immediate attention by the team leading to change of language standards in contracts or even whole system upgrade for better functionality/security purpose\n2 Potential Attack Scenarios - An attacker could use this vulnerability as part-time reentrancy exploit. They might be able to call `receive()` method before updating state and thus gain access if enough time is passed between the external function calling, where an unexpected amount of Ether can deposit or withdraw from contract while another user trying to overdraft by depositing more than they initially have in bank account at that particular line.\n3 Business Impact - This issue might be exploited for misuse which could lead into financial losses if used correctly (for instance, money was stolen). Therefore, it is paramount not only preventing this vulnerability but also maintaining the security of other contracts and systems where re-entrancy attack can occur in unpredictable ways.",
+          "llm_enhanced": true
+        },
+        {
+          "id": "aderyn-useless-public-function-2-0",
+          "type": "useless-public-function",
+          "severity": "Low",
+          "confidence": 0.75,
+          "location": {
+            "file": "VulnerableBank.sol",
+            "line": 17,
+            "function": "unknown"
+          },
+          "message": "`public` functions not used internally could be marked `external`",
+          "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+          "recommendation": "Review and fix the issue",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "llm_insights": "I'm sorry, but your request is not clear enough to provide an accurate insight about the security finding from Aderyn and its related context due to lack of specific information provided in it for analysis purposes such as severity level (Low), confidence score(0.75) etc., function details or other technical detail required by a formal computer science exam, so I'll analyze this based on general principles:\n\n1- Why is matter? \nThis finding states that there are `public` functions in the contract which could potentially be marked as external (marked with 'external'). The reentrancy vulnerability of these function calls implies an attacker has some control over when and how this state update happens. This can lead to potential attacks if not managed carefully, such a scenario is particularly common for public facing functions like the deposit/withdrawal methods in our VulnerableBank contract described above where anyone could potentially re-enter before they have enough funds or with no security measures at all (as mentioned).\n \n2. Potential attack scenarios: The potential attacks can be based on various factors such as time delays, gas price manipulation etc., depending upon the scenario and severity level of this vulnerability Aderyn's message suggests that it could pose a risk if not managed with care for these calls to external contracts or functions in our context. \n   There are many attack scenarios where an unprotected deposit/withdrawal function can be re-entered by the user, which might lead them into potential losses and security risks like DOS attacks (Denial of Service) on a contract if they make too few attempts to successfully call external functions or contracts. \n   \n3. Business impact: The business impacts could range from lowering account holders' financial status in case the vulnerability is exploited, leading them into reputational frauds and potentially losing their trust by using this for transactions involving sensitive information (like banking accounts). However these are all speculative scenarios based on Aderyn\u2019 message. It should be noted that while re-entrancy can have potential security risks it's generally more of a theoretical or conceptual issue in solidity programming, not something to take lightly until you know the specific context and use cases where this vulnerability occurs (and how). \n    In short if exposed could potentially lead into malicious attacks with impact on account holders. It\u2019d be prudent for all contracts/functions that have a re-entry scenario as it provides potential opportunities to exploit these issues in real world scenarios, which can result the loss of trust and financial statuses respectively leading them towards reputational frauds or other potentially harmful uses depending upon severity level (Low - 0.75).",
+          "llm_enhanced": true
+        },
+        {
+          "id": "aderyn-useless-public-function-2-1",
+          "type": "useless-public-function",
+          "severity": "Low",
+          "confidence": 0.75,
+          "location": {
+            "file": "VulnerableBank.sol",
+            "line": 27,
+            "function": "unknown"
+          },
+          "message": "`public` functions not used internally could be marked `external`",
+          "description": "Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.",
+          "recommendation": "Review and fix the issue",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "llm_insights": "I'm sorry, but your request is not clear as there isn\u2019t enough context to provide an exact insightful answer for the provided security finding from Aderyn in a detailed manner and focusing on both technical aspects of Ethereum smart contract vulnerabilities. \nHowever I can give you some general insights:\n1) Why this matters? This issue is important because it could lead into attacks such as re-entrancy attack where an external entity or service calls the function before any state changes have been made to maintain invariant conditions for all states in a blockchain system. \n2) Potential Attack Scenarios: There are several ways that this vulnerability can be exploited by an adversary - such as providing sufficient Ether (payable value), calling withdraw(), then re-entering the function, causing it to repeat deposits and withraws indefinitely. The attacker could also try for other unintended side effects if they have access privileges or logic within this contract that would change how state changes occur later on depending upon input values provided by an adversary (efficacious)\n3) Business impact: This issue impacts business operations of the bank, causing inaccurate balances and/or negative account holdings. It also risks exposing sensitive information about customers' assets if not handled carefully according to legal regulations or best practices within this contract itself i.e., using external services for transfers which are likely vulnerable when dealing with token-based transactions where reentrancy can be exploited by malicious entities due to the delay before state changes occur as in case of smart contracts.",
+          "llm_enhanced": true
+        }
+      ],
+      "execution_time": 0.8210921287536621,
+      "timestamp": "2026-01-08T14:28:36.315616",
+      "metadata": {
+        "contract_analyzed": "test_contracts/VulnerableBank.sol",
+        "output_file": "/tmp/aderyn_output.json",
+        "raw_findings_count": 0,
+        "normalized_findings_count": 5,
+        "aderyn_version": "unknown",
+        "analysis_timestamp": "unknown"
+      },
+      "error": null
+    },
+    {
+      "tool": "solhint",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 0.77,
+      "timestamp": "2026-01-08T14:28:37.320043",
+      "metadata": {},
+      "error": null
+    },
+    {
+      "tool": "wake",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "not_available",
+      "findings": [],
+      "execution_time": 0.002475,
+      "timestamp": "2026-01-08T14:28:37.323296",
+      "error": "Tool wake not available: not_installed"
+    },
+    {
+      "tool": "echidna",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 0.34,
+      "timestamp": "2026-01-08T14:28:37.931609",
+      "metadata": {},
+      "error": null
+    },
+    {
+      "tool": "medusa",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 0.020958900451660156,
+      "timestamp": "2026-01-08T14:28:37.987985",
+      "metadata": {
+        "contract_analyzed": "test_contracts/VulnerableBank.sol",
+        "test_sequences": 10000,
+        "actual_tests_run": 0,
+        "coverage_achieved": 0,
+        "coverage_target": 90,
+        "paths_explored": 0,
+        "corpus_size": 0,
+        "workers_used": 4,
+        "exit_code": 1,
+        "campaign_completed": false
+      },
+      "error": null
+    },
+    {
+      "tool": "foundry",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 0.12,
+      "timestamp": "2026-01-08T14:28:38.121508",
+      "metadata": {},
+      "error": null
+    },
+    {
+      "tool": "dogefuzz",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 0.008881330490112305,
+      "timestamp": "2026-01-08T14:28:38.144967",
+      "metadata": {
+        "iterations": 10000,
+        "parallel_workers": 4,
+        "hybrid_mode": true,
+        "coverage": {
+          "overall_percentage": 14.06,
+          "statements": 9,
+          "branches": 4,
+          "functions": 2
+        },
+        "seed_pool_size": 12,
+        "custom_invariants": 0
+      },
+      "error": null
+    },
+    {
+      "tool": "vertigo",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "error",
+      "findings": [],
+      "execution_time": 0.002621889114379883,
+      "timestamp": "2026-01-08T14:28:38.156406",
+      "metadata": {},
+      "error": "[Errno 2] No such file or directory: 'vertigo'"
+    },
+    {
+      "tool": "mythril",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [
+        {
+          "id": "mythril-107-0",
+          "type": "External Call To User-Supplied Address",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "unknown",
+            "line": 0,
+            "function": "unknown"
+          },
+          "message": "External Call To User-Supplied Address",
+          "description": "A call to a user-supplied address is executed.\nAn external message call to an address specified by the caller is executed. Note that the callee account might contain arbitrary code and could re-enter any function within this contract. Reentering the contract in an intermediate state may lead to unexpected behaviour. Make sure that no state modifications are executed after this call and/or reentrancy guards are in place.",
+          "recommendation": "Use the checks-effects-interactions pattern or ReentrancyGuard",
+          "swc_id": "SWC-107",
+          "cwe_id": null,
+          "owasp_category": "SC01: Reentrancy",
+          "llm_insights": "Matters of Vulnerability Analysis in Contracts (MVC): The concept behind reentrancy vulnerabilities is a common security risk that can affect the state and flow control mechanisms within smart contracts, like those found on Ethereum-based blockchains. In this case, it's relevant for testing Mythril\u2019s Security Implementation Chain (MIsc) because we are dealing with external calls in our contract where there is no reentrancy guard yet or the state modifications after calling a function before updating balances might lead to unexpected behaviour later on during that call.\n\n1: Why Matters? \u2013 The vulnerability itself impacts how users interact and execute transactions within smart contracts, leading potential attack scenarios for an adversary who can control certain actions in our contract (deposit or withdrawal). These are generally seen as less secure choices than others like state changes between functions. If the reentrancy is not handled properly correctly by default on each function call - it could be a source of malicious intent that allows for arbitrary code execution following balance updates, leading to unexpected behaviour after calling external contracts/addresses in our contract and also affecting user transactions if such scenarios can occur due to unforeseen circumstances.\n \n2: Potential Attack Scenarios? The main attack scenario is a potential reentrancy vulnerability whereby an adversary could call into the bank with some initial deposit (a balance update), then execute arbitrary external calls without any interaction from user or within contract itself, which might include calling other functions in our smart contracts to influence state changes and eventually cause unexpected outcomes.\n \n3: Business Impact? The impact is significant as it can lead users into possible malicious transactions if they do not properly handle reentrancy mechanisms before external calls occur (which could be crucial when interacting with these addresses). This risk has broad implications in terms of financial security, user safety and regulatory compliance. Furthermore the vulnerability might make a transaction more costly due to potential costs associated during state transitions between functions or even potentially damaging if malicious actors can re-enter our contract before external calls are executed (like attacking an entire banking system).",
+          "llm_enhanced": true
+        },
+        {
+          "id": "mythril-114-1",
+          "type": "Transaction Order Dependence",
+          "severity": "Medium",
+          "confidence": 0.85,
+          "location": {
+            "file": "unknown",
+            "line": 0,
+            "function": "unknown"
+          },
+          "message": "Transaction Order Dependence",
+          "description": "The value of the call is dependent on balance or storage write\nThis can lead to race conditions. An attacker may be able to run a transaction after our transaction which can change the value of the call",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": "SWC-114",
+          "cwe_id": null,
+          "owasp_category": null,
+          "llm_insights": "I'm sorry, but as an AI developed by Deepseek and trained to assist with computer science queries specifically related to security vulnerabilities in smart contracts like Mythril or OpenZeppelin Defenders (OD), I don\u2019t have the capability of providing expert analysis on this finding. However, from a general perspective:\n\n1) Why matters? \u2013 The value stored at `msg.sender` is updated after an external call during withdrawal function execution which can be seen as having reentrancy vulnerabilities in smart contracts when it's not properly controlled or synchronized to avoid potential side-effect problems, such scenarios may arise from the fact that a user could have other transactions ongoing at this exact time.\n\n2) Potential attack scenario? \u2013 An adversary might try running another transaction (for instance `deposit()`), then reenter into function using same external call as an old one before updating state to new value, which would bypass the first condition and allow them full access or potentially a denial of service.\n  \n3) Business impact? \u2013 If not properly handled such vulnerabilities can lead directly towards potential security risks like data thefts by malicious users who could have changed other transactions' states before they reach our function to withdraw funds, thus affecting the reputation and trustworthiness of that bank account or application in a legal manner.",
+          "llm_enhanced": true
+        },
+        {
+          "id": "mythril-107-2",
+          "type": "External Call To User-Supplied Address",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "unknown",
+            "line": 0,
+            "function": "unknown"
+          },
+          "message": "External Call To User-Supplied Address",
+          "description": "A call to a user-supplied address is executed.\nAn external message call to an address specified by the caller is executed. Note that the callee account might contain arbitrary code and could re-enter any function within this contract. Reentering the contract in an intermediate state may lead to unexpected behaviour. Make sure that no state modifications are executed after this call and/or reentrancy guards are in place.",
+          "recommendation": "Use the checks-effects-interactions pattern or ReentrancyGuard",
+          "swc_id": "SWC-107",
+          "cwe_id": null,
+          "owasp_category": "SC01: Reentrancy",
+          "llm_insights": "Matthew, the bank owner of our VulnerableBank contract can see why a reentrancy vulnerability exists in its code because it uses external calls to another function within itself before updating state (`balances[msg.sender] += msg.value;`). This allows for arbitrary execution after this call and potentially the user's account, leading us into an unknown future scenario when a reentrancy attack could occur if these actions were not properly secured against as well due to security measures in place (ReentrancyGuard or checks-effects-interactions pattern).\n \nNow let\u2019s consider potential attacks: An adversary may be able, within this contract's scope and state of operation whether they could reenter the function before `require(balance > msg.value , \"Insufficient balance\");` is checked because it reads a value from balances map (after all transactions have been executed) without updating that data to reflect changes made in previous transaction steps, hence potentially causing an issue with future attacks where state-changing actions are done after external calls and thus reentrancy attack can occur.\n \nIn the context of our VulnerableBank contract as a whole: The business impact could be significant due to its potential for misuse by malicious entities, such that they may withdraw funds from an account without first ensuring sufficient balance or potentially exploit security weaknesses in this function which are addressed through ReentrancyGuard (or checks-effects-interactions pattern).",
+          "llm_enhanced": true
+        },
+        {
+          "id": "mythril-114-3",
+          "type": "Transaction Order Dependence",
+          "severity": "Medium",
+          "confidence": 0.85,
+          "location": {
+            "file": "unknown",
+            "line": 0,
+            "function": "unknown"
+          },
+          "message": "Transaction Order Dependence",
+          "description": "The value of the call is dependent on balance or storage write\nThis can lead to race conditions. An attacker may be able to run a transaction after our transaction which can change the value of the call",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": "SWC-114",
+          "cwe_id": null,
+          "owasp_category": null,
+          "llm_insights": "Matters of Importance (MIM): The vulnerability here is due to the reentrancy requirement in a call that could lead potentially malicious actors, especially if they have control over an external entity within this contract's scope or usage context. This can be particularly risky when dealing with transactions involving Ethereum-specific operations like calls and state updates (which are critical for maintaining smart contracts).\n \nAttack Scenarios: As mentioned before the attack scenarios could involve reentering functions after an external call, leading to potential vulnerabilities in this context. For instance if they used other contract's methods or read from global variables prior to calling our method that changes state of balances map based on user inputs etc., which can lead us into race conditions and possible loss/duplication attacks (MISC) as well, affecting the balance updates after a withdrawal.\n \nImpact: The impact is significant when used in real-world applications where sensitive transactions are involved such financial services or security audits due to these vulnerabilities that could potentially be exploited by malicious actors if they possess sufficient access rights within this context (i.e., control over external entities). These scenarios might significantly affect the service's reliability, integrity and trustworthiness in a real-world setting where it interacted with other contracts or users directly without any middleware/intermediary steps involved beforehand such as smart contract interfaces to payable addresses etc..",
+          "llm_enhanced": true
+        },
+        {
+          "id": "mythril-107-4",
+          "type": "State access after external call",
+          "severity": "Medium",
+          "confidence": 0.85,
+          "location": {
+            "file": "unknown",
+            "line": 0,
+            "function": "unknown"
+          },
+          "message": "State access after external call",
+          "description": "Write to persistent state following external call\nThe contract account state is accessed after an external call to a user defined address. To prevent reentrancy issues, consider accessing the state only before the call, especially if the callee is untrusted. Alternatively, a reentrancy lock can be used to prevent untrusted callees from re-entering the contract in an intermediate state.",
+          "recommendation": "Use the checks-effects-interactions pattern or ReentrancyGuard",
+          "swc_id": "SWC-107",
+          "cwe_id": null,
+          "owasp_category": "SC01: Reentrancy",
+          "llm_insights": "Matters and Attack Scenarios for the Expert Analysis of This Vulnerability Finding in Solidity Contracts, Blockchain Technology using Mythril Tool by OWASP (Open Web Application Security Project). \n\n1. Matters to be aware about this matter? The reentrancy vulnerabilities can impact our application's stability and security if not managed properly due to the high risk of unintentional transactions that could potentially lead back into an intermediate state or in a different contract, causing system failure. This is mainly when dealing with external calls within contracts which may be influenced by trusted callees who are trying another call before completing their own operation (checks-effects interaction pattern).\n   \n2. Potential attack scenarios? If the bank itself can change state and cause a reentry in any way, then it'd mean that an external entity is also susceptible to such changes causing potential attacks on both parties involved - either sender or receiver of funds after withdrawal/deposit operation happens- these are cases where our contract could be vulnerable.\n   \n3. Business Impact? The impact depends upon the use case and purpose behind this vulnerability, for example if it was a deposit function then only legitimate users would get benefited but in an incorrect usage like withdrawn funds being returned to sender's account which might cause loss of assets or damage due unknowingly re-entering into states.",
+          "llm_enhanced": true
+        }
+      ],
+      "execution_time": 46.30366492271423,
+      "timestamp": "2026-01-08T14:29:52.477191",
+      "metadata": {
+        "contract_analyzed": "test_contracts/VulnerableBank.sol",
+        "raw_findings_count": 5,
+        "normalized_findings_count": 5,
+        "execution_timeout": 300,
+        "max_depth": 22,
+        "solver_timeout": 100000
+      },
+      "error": null
+    },
+    {
+      "tool": "manticore",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "not_available",
+      "findings": [],
+      "execution_time": 0.204651,
+      "timestamp": "2026-01-08T14:29:52.682508",
+      "error": "Tool manticore not available: configuration_error"
+    },
+    {
+      "tool": "halmos",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 0.07964086532592773,
+      "timestamp": "2026-01-08T14:29:52.856418",
+      "metadata": {
+        "note": "No test file found - skipping Halmos"
+      },
+      "error": null
+    },
+    {
+      "tool": "oyente",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "not_available",
+      "findings": [],
+      "execution_time": 0.240944,
+      "timestamp": "2026-01-08T14:29:53.098016",
+      "error": "Tool oyente not available: not_installed"
+    },
+    {
+      "tool": "certora",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "not_available",
+      "findings": [],
+      "execution_time": 0.002579,
+      "timestamp": "2026-01-08T14:29:53.101426",
+      "error": "Tool certora not available: not_installed"
+    },
+    {
+      "tool": "smtchecker",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [
+        {
+          "id": "smtchecker-1",
+          "title": "SMTChecker: Smt Checker Warning",
+          "description": "urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020",
+          "severity": "MEDIUM",
+          "confidence": 0.8,
+          "category": "smt_checker_warning",
+          "location": {
+            "file": "test_contracts/VulnerableBank.sol"
+          },
+          "recommendation": "Review the SMTChecker warning and address the formal verification issue",
+          "references": [
+            "https://docs.soliditylang.org/en/latest/smtchecker.html"
+          ],
+          "llm_insights": "The security finding from SMTChecker indicates a vulnerability in the codebase of VulnerableBank contract, specifically regarding its withdrawal function's reentrancy risk with external calls before state update (MESISS). The MEDIUM severity level suggests that this issue is medium to high.\n\n1) Why matters:  This vulnerability has implications for the safety and robustness of a banking application, especially when dealing transactions involving sensitive data like customer balances due potential misuse or replay attacks on other users' funds in case they happen upon an unexpected interaction with VulnerableBank contract. The SMTChecker warning points to this issue as it indicates that the code is vulnerable against external calls before state update (MESISS).\n   \n2) Potential attack scenarios: Attackers can exploit a replay-attacks or forged transactions, which could potentially steal funds from users and lead them into malicious actions. The potential impact of this issue on banking applications in terms of both technical risks ('state updates are not atomic') as well business risk (if the withdrawal operation is successful) would be high depending upon context such transaction size if it's a small amount, or even more so for larger transactions and/or multi-use cases.\n   \n3) Business impact: The potential reentrancy vulnerability makes sure that bank customers cannot take money out of the system by maliciously triggering withdrawal operations in unexpected order which could potentially lead to losses if not correctly handled, thus affecting business continuity with respect for banking services and users' trust.  However this is a high-level risk analysis only as it relies on possible attack scenarios mentioned above but can also be true depending upon other factors such multi use cases scenario or larger transactions size etc., therefore the impact should still consider in detail before implementing any fixes, ensuring to keep your financial data secure and business operations under control.",
+          "llm_enhanced": true
+        }
+      ],
+      "execution_time": 6.139365911483765,
+      "timestamp": "2026-01-08T14:29:59.372829",
+      "metadata": {
+        "timeout": 600,
+        "engine": "all",
+        "targets": "all"
+      },
+      "error": null
+    },
+    {
+      "tool": "propertygpt",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 116.96,
+      "timestamp": "2026-01-08T14:31:56.373918",
+      "metadata": {
+        "contract_name": "VulnerableBank",
+        "functions_analyzed": 6,
+        "state_vars_analyzed": 0,
+        "properties_generated": 10,
+        "llm_backend": "ollama",
+        "validation": {
+          "valid": true,
+          "errors": [],
+          "warnings": [
+            "No properties found in CVL spec"
+          ]
+        }
+      },
+      "error": null
+    },
+    {
+      "tool": "smartllm",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [
+        {
+          "id": "smartllm-1",
+          "title": "Reentrancy Vulnerability in withdraw function",
+          "description": "External call before state update allows reentrancy attack",
+          "severity": "CRITICAL",
+          "confidence": 0.9,
+          "category": "reentrancy",
+          "location": {
+            "file": "test_contracts/VulnerableBank.sol",
+            "details": "'balances[msg.sender] = 0;' in the withdraw function"
+          },
+          "swc_id": "SWC-107",
+          "swc_url": "https://swcregistry.io/docs/SWC-107",
+          "attack_scenario": "A reentrancy attacker can call `withdraw()` before state is updated, leading to a potential loss of funds.",
+          "vulnerable_code": "",
+          "remediation_code": "Move 'balances[msg<\uff5cbegin\u2581of\u2581sentence\uff5c>ender] = 0;' before the external call.",
+          "testing_suggestion": "",
+          "real_world_reference": "This type of vulnerability has been exploited in real-world scenarios such as the DAO hack in 2016, resulting in a significant financial loss.",
+          "recommendation": "Move 'balances[msg<\uff5cbegin\u2581of\u2581sentence\uff5c>ender] = 0;' before the external call.",
+          "references": [
+            "AI-powered analysis using Ollama + deepseek-coder",
+            "https://swcregistry.io/docs/SWC-107",
+            "This type of vulnerability has been exploited in real-world scenarios such as the DAO hack in 2016, resulting in a significant financial loss."
+          ],
+          "verified": true,
+          "verification_method": "pattern_detection"
+        }
+      ],
+      "execution_time": 133.76362109184265,
+      "timestamp": "2026-01-08T14:34:10.222360",
+      "metadata": {
+        "model": "deepseek-coder:6.7b",
+        "prompt_tokens": 1040,
+        "sovereign": true,
+        "dpga_compliant": true,
+        "rag_enhanced": true,
+        "verificator_enabled": true,
+        "initial_findings": 1,
+        "verified_findings": 1,
+        "false_positives_removed": 0
+      },
+      "error": null
+    },
+    {
+      "tool": "gptscan",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 20.48277497291565,
+      "timestamp": "2026-01-08T14:34:30.772855",
+      "metadata": {
+        "model": "deepseek-coder:6.7b",
+        "backend": "ollama",
+        "cost_usd": 0.0
+      },
+      "error": null
+    },
+    {
+      "tool": "llmsmartaudit",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [
+        {
+          "id": "llmsmartaudit-1",
+          "title": "Reentrancy vulnerability",
+          "description": "The 'withdraw' function has a reentrancy vulnerability due to the external call before updating the state variable.",
+          "severity": "MEDIUM",
+          "confidence": 0.7,
+          "category": "code_smell",
+          "location": {
+            "file": "test_contracts/VulnerableBank.sol",
+            "line": 24,
+            "function": "withdraw"
+          },
+          "recommendation": "Consider using the 'checks-effects-interactions' pattern or other mitigations to prevent reentrancy attacks.",
+          "references": [
+            "https://github.com/Smart-Audit/LLM-SmartAudit",
+            ""
+          ]
+        },
+        {
+          "id": "llmsmartaudit-2",
+          "title": "Incorrect state update order",
+          "description": "The 'balances[msg.sender] = 0;' statement should be moved after the external call to ensure that the state variable is updated before any external calls.",
+          "severity": "LOW",
+          "confidence": 0.6,
+          "category": "best_practice",
+          "location": {
+            "file": "test_contracts/VulnerableBank.sol",
+            "line": 25,
+            "function": "withdraw"
+          },
+          "recommendation": "Update the code to update the state variable after making any external calls.",
+          "references": [
+            "https://github.com/Smart-Audit/LLM-SmartAudit",
+            ""
+          ]
+        }
+      ],
+      "execution_time": 65.88851284980774,
+      "timestamp": "2026-01-08T14:35:36.707892",
+      "metadata": {
+        "model": "codellama:7b",
+        "backend": "ollama"
+      },
+      "error": null
+    },
+    {
+      "tool": "dagnn",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "not_available",
+      "findings": [],
+      "execution_time": 0.001974,
+      "timestamp": "2026-01-08T14:35:36.712423",
+      "error": "Tool dagnn not available: not_installed"
+    },
+    {
+      "tool": "smartbugs_ml",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "error",
+      "findings": [],
+      "execution_time": 1.125173,
+      "timestamp": "2026-01-08T14:35:37.838159",
+      "error": "analyze() got an unexpected keyword argument 'timeout'"
+    },
+    {
+      "tool": "smartbugs_detector",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "error",
+      "findings": [],
+      "execution_time": 0.000126,
+      "timestamp": "2026-01-08T14:35:37.838711",
+      "error": "'SmartBugsDetectorAdapter' object has no attribute 'is_available'"
+    },
+    {
+      "tool": "smartguard",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 185.33680200576782,
+      "timestamp": "2026-01-08T14:38:43.214442",
+      "metadata": {
+        "model": "deepseek-coder",
+        "methodology": "RAG + Chain-of-Thought (SmartGuard 2025)",
+        "paper_reference": "Expert Systems with Applications, 2025",
+        "functions_analyzed": 6,
+        "sovereign": true,
+        "dpga_compliant": true
+      },
+      "error": null
+    },
+    {
+      "tool": "threat_model",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 0.002081632614135742,
+      "timestamp": "2026-01-08T14:38:43.217965",
+      "metadata": {
+        "total_threats": 0,
+        "stride_breakdown": {},
+        "average_dread_score": 0.0,
+        "highest_risk_category": "None",
+        "audit_readiness_score": 100.0,
+        "framework": "STRIDE/DREAD"
+      },
+      "error": null
+    },
+    {
+      "tool": "gas_analyzer",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [
+        {
+          "id": "GAS-PUBLIC_NOT_EXTERNAL-17",
+          "type": "gas_optimization",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "VulnerableBank.sol",
+            "line": 17,
+            "column": 4,
+            "code_snippet": "function deposit() public payable {"
+          },
+          "message": "Public function that could be external",
+          "description": "Gas optimization opportunity detected: Public function that could be external",
+          "recommendation": "Change 'public' to 'external' if not called internally",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "gas_saved": 200,
+          "pattern": "public_not_external"
+        },
+        {
+          "id": "GAS-PUBLIC_NOT_EXTERNAL-27",
+          "type": "gas_optimization",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "VulnerableBank.sol",
+            "line": 27,
+            "column": 4,
+            "code_snippet": "function withdraw() public {"
+          },
+          "message": "Public function that could be external",
+          "description": "Gas optimization opportunity detected: Public function that could be external",
+          "recommendation": "Change 'public' to 'external' if not called internally",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "gas_saved": 200,
+          "pattern": "public_not_external"
+        },
+        {
+          "id": "GAS-PUBLIC_NOT_EXTERNAL-44",
+          "type": "gas_optimization",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "VulnerableBank.sol",
+            "line": 44,
+            "column": 4,
+            "code_snippet": "function getContractBalance() public view returns (uint256) {"
+          },
+          "message": "Public function that could be external",
+          "description": "Gas optimization opportunity detected: Public function that could be external",
+          "recommendation": "Change 'public' to 'external' if not called internally",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "gas_saved": 200,
+          "pattern": "public_not_external"
+        },
+        {
+          "id": "GAS-PUBLIC_NOT_EXTERNAL-59",
+          "type": "gas_optimization",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "VulnerableBank.sol",
+            "line": 59,
+            "column": 4,
+            "code_snippet": "function deposit() public payable {"
+          },
+          "message": "Public function that could be external",
+          "description": "Gas optimization opportunity detected: Public function that could be external",
+          "recommendation": "Change 'public' to 'external' if not called internally",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "gas_saved": 200,
+          "pattern": "public_not_external"
+        },
+        {
+          "id": "GAS-PUBLIC_NOT_EXTERNAL-68",
+          "type": "gas_optimization",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "VulnerableBank.sol",
+            "line": 68,
+            "column": 4,
+            "code_snippet": "function withdraw() public {"
+          },
+          "message": "Public function that could be external",
+          "description": "Gas optimization opportunity detected: Public function that could be external",
+          "recommendation": "Change 'public' to 'external' if not called internally",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "gas_saved": 200,
+          "pattern": "public_not_external"
+        },
+        {
+          "id": "GAS-PUBLIC_NOT_EXTERNAL-80",
+          "type": "gas_optimization",
+          "severity": "Low",
+          "confidence": 0.85,
+          "location": {
+            "file": "VulnerableBank.sol",
+            "line": 80,
+            "column": 4,
+            "code_snippet": "function getContractBalance() public view returns (uint256) {"
+          },
+          "message": "Public function that could be external",
+          "description": "Gas optimization opportunity detected: Public function that could be external",
+          "recommendation": "Change 'public' to 'external' if not called internally",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "gas_saved": 200,
+          "pattern": "public_not_external"
+        }
+      ],
+      "execution_time": 0.003801107406616211,
+      "timestamp": "2026-01-08T14:38:43.222331",
+      "metadata": {
+        "total_issues": 6,
+        "total_gas_savings": 1200,
+        "severity_breakdown": {
+          "High": 0,
+          "Medium": 0,
+          "Low": 6,
+          "Info": 0
+        }
+      },
+      "error": null
+    },
+    {
+      "tool": "mev_detector",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 0.0017609596252441406,
+      "timestamp": "2026-01-08T14:38:43.226446",
+      "metadata": {
+        "total_issues": 0,
+        "mev_risk_score": 0.0,
+        "risk_level": "None",
+        "severity_breakdown": {
+          "Critical": 0,
+          "High": 0,
+          "Medium": 0,
+          "Low": 0,
+          "Info": 0
+        },
+        "attack_vectors": []
+      },
+      "error": null
+    },
+    {
+      "tool": "contract_clone_detector",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "error",
+      "findings": [],
+      "execution_time": 0.001536,
+      "timestamp": "2026-01-08T14:38:43.228312",
+      "error": "analyze() got an unexpected keyword argument 'timeout'"
+    },
+    {
+      "tool": "defi",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "error",
+      "findings": [],
+      "execution_time": 0.000171,
+      "timestamp": "2026-01-08T14:38:43.228814",
+      "error": "'DeFiAdapter' object has no attribute 'is_available'"
+    },
+    {
+      "tool": "advanced_detector",
+      "contract": "test_contracts/VulnerableBank.sol",
+      "status": "error",
+      "findings": [],
+      "execution_time": 0.000132,
+      "timestamp": "2026-01-08T14:38:43.229227",
+      "error": "'AdvancedDetectorAdapter' object has no attribute 'is_available'"
+    }
+  ],
+  "summary": {
+    "CRITICAL": 1,
+    "HIGH": 3,
+    "MEDIUM": 5,
+    "LOW": 13,
+    "INFO": 3
+  },
+  "version": "4.2.3",
+  "layers": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ]
+}

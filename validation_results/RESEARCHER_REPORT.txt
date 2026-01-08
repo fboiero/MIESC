@@ -1,0 +1,169 @@
+================================================================================
+MIESC v4.2.3 - SECURITY AUDIT REPORT
+Multi-layer Intelligent Evaluation System for Smart Contracts
+================================================================================
+
+Generated: 2026-01-08 16:06:35
+Contract: test_contracts/VulnerableBank.sol
+Author: Fernando Boiero - UNDEF/IUA
+
+--------------------------------------------------------------------------------
+1. EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+
+This audit was performed using the MIESC framework with 29 security
+analysis tools across 9 defensive layers. The analysis identified 25
+potential security issues.
+
+SEVERITY BREAKDOWN:
+  - High: 3
+  - Medium: 3
+  - Low: 12
+  - Info: 3
+
+--------------------------------------------------------------------------------
+2. AUDIT CONFIGURATION
+--------------------------------------------------------------------------------
+
+LAYERS EXECUTED:
+  Layer 1: Static Analysis
+    Tools: aderyn, slither, solhint
+  Layer 2: Dynamic Analysis (Fuzzing)
+    Tools: dogefuzz, echidna, foundry, medusa
+  Layer 3: Symbolic Execution
+    Tools: halmos, manticore, mythril, oyente
+  Layer 4: Formal Verification
+    Tools: certora, smtchecker
+  Layer 5: Property-Based Testing
+    Tools: propertygpt, vertigo, wake
+  Layer 6: AI/LLM Analysis
+    Tools: gptscan, llmsmartaudit, smartbugs_ml, smartllm
+  Layer 7: Pattern Recognition
+    Tools: contract_clone_detector, dagnn, smartguard
+  Layer 8: DeFi Security
+    Tools: defi, gas_analyzer, mev_detector
+  Layer 9: Advanced Detection
+    Tools: advanced_detector, smartbugs_detector, threat_model
+
+TOOLS EXECUTED:
+  - aderyn: 5 findings
+  - advanced_detector: 0 findings
+  - certora: 0 findings
+  - contract_clone_detector: 0 findings
+  - dagnn: 0 findings
+  - defi: 0 findings
+  - dogefuzz: 0 findings
+  - echidna: 0 findings
+  - foundry: 0 findings
+  - gas_analyzer: 6 findings
+  - gptscan: 0 findings
+  - halmos: 0 findings
+  - llmsmartaudit: 2 findings
+  - manticore: 0 findings
+  - medusa: 0 findings
+  - mev_detector: 0 findings
+  - mythril: 5 findings
+  - oyente: 0 findings
+  - propertygpt: 0 findings
+  - slither: 5 findings
+  - smartbugs_detector: 0 findings
+  - smartbugs_ml: 0 findings
+  - smartguard: 0 findings
+  - smartllm: 1 findings
+  - smtchecker: 1 findings
+  - solhint: 0 findings
+  - threat_model: 0 findings
+  - vertigo: 0 findings
+  - wake: 0 findings
+
+--------------------------------------------------------------------------------
+3. VULNERABILITY CLASSIFICATION (SWC)
+--------------------------------------------------------------------------------
+
+  SWC-105: 2 occurrences
+  SWC-107: 6 occurrences
+  SWC-114: 2 occurrences
+
+--------------------------------------------------------------------------------
+4. CRITICAL AND HIGH SEVERITY FINDINGS
+--------------------------------------------------------------------------------
+
+Finding #1: [High] reentrancy-eth
+  Tool: slither
+  Location: test_contracts/VulnerableBank.sol:27
+  Function: withdraw
+  Description: Reentrancy in VulnerableBank.withdraw() (test_contracts/VulnerableBank.sol#27-39):
+  SWC ID: SWC-107
+
+Finding #2: [High] send-ether-no-checks
+  Tool: aderyn
+  Location: VulnerableBank.sol:27
+  Function: unknown
+  Description: Sending native Eth is not protected from these functions.
+  SWC ID: SWC-105
+
+Finding #3: [High] send-ether-no-checks
+  Tool: aderyn
+  Location: VulnerableBank.sol:68
+  Function: unknown
+  Description: Sending native Eth is not protected from these functions.
+  SWC ID: SWC-105
+
+--------------------------------------------------------------------------------
+5. TOOL CORRELATION ANALYSIS
+--------------------------------------------------------------------------------
+
+CROSS-TOOL DETECTION OVERLAP:
+  'unknown' detected by 3 tools: llmsmartaudit, smartllm, smtchecker
+
+LAYER COVERAGE ANALYSIS:
+  Layer 1 (Static Analysis): 10 findings
+  Layer 2 (Dynamic Analysis (Fuzzing)): 0 findings
+  Layer 3 (Symbolic Execution): 5 findings
+  Layer 4 (Formal Verification): 1 findings
+  Layer 5 (Property-Based Testing): 0 findings
+  Layer 6 (AI/LLM Analysis): 3 findings
+  Layer 7 (Pattern Recognition): 0 findings
+  Layer 8 (DeFi Security): 6 findings
+  Layer 9 (Advanced Detection): 0 findings
+
+--------------------------------------------------------------------------------
+6. RECOMMENDATIONS
+--------------------------------------------------------------------------------
+
+PRIORITY 1 - IMMEDIATE ACTION:
+  1. Fix reentrancy vulnerabilities in withdraw() function
+  2. Implement checks-effects-interactions pattern
+  3. Add reentrancy guard modifier
+
+PRIORITY 2 - SHORT TERM:
+  1. Review all external call sites
+  2. Add input validation to public functions
+  3. Implement access control where missing
+
+PRIORITY 3 - BEST PRACTICES:
+  1. Upgrade to latest Solidity version
+  2. Add comprehensive test coverage
+  3. Implement emergency pause functionality
+
+--------------------------------------------------------------------------------
+7. CONCLUSION
+--------------------------------------------------------------------------------
+
+The MIESC framework successfully analyzed the contract using 29 tools
+across all 9 security layers. A total of 25 findings were identified,
+with 0 critical and 3 high severity issues requiring
+immediate attention.
+
+The multi-layer approach provides comprehensive coverage:
+  - 3 static analysis tools
+  - 4 fuzzing tools
+  - 4 symbolic execution tools
+  - 13 AI/ML enhanced analysis tools
+
+The LLM correlation engine provided enhanced insights for each finding,
+improving the actionability of the security recommendations.
+
+================================================================================
+END OF REPORT
+================================================================================

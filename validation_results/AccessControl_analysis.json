@@ -1,0 +1,61 @@
+{
+  "results": [
+    {
+      "tool": "slither",
+      "contract": "test_contracts/AccessControl.sol",
+      "status": "not_available",
+      "findings": [],
+      "execution_time": 0.247977,
+      "timestamp": "2026-01-08T14:04:45.143765",
+      "error": "Tool slither not available: configuration_error"
+    },
+    {
+      "tool": "aderyn",
+      "contract": "test_contracts/AccessControl.sol",
+      "status": "error",
+      "findings": [],
+      "execution_time": 0.08420896530151367,
+      "timestamp": "2026-01-08T14:04:45.233772",
+      "metadata": {
+        "exit_code": 101,
+        "stderr": "\nthread 'main' panicked at /Users/fboiero/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aderyn_driver-0.1.9/src/process_auto.rs:96:21:\nError running solc command\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+      },
+      "error": "Aderyn analysis failed (exit code 101)"
+    },
+    {
+      "tool": "solhint",
+      "contract": "test_contracts/AccessControl.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 0.41,
+      "timestamp": "2026-01-08T14:04:45.736603",
+      "metadata": {},
+      "error": null
+    },
+    {
+      "tool": "mythril",
+      "contract": "test_contracts/AccessControl.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 3.514600992202759,
+      "timestamp": "2026-01-08T14:04:51.231492",
+      "metadata": {
+        "contract_analyzed": "test_contracts/AccessControl.sol",
+        "raw_findings_count": 0,
+        "normalized_findings_count": 0,
+        "execution_timeout": 300,
+        "max_depth": 22,
+        "solver_timeout": 100000
+      },
+      "error": null
+    }
+  ],
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 0,
+    "MEDIUM": 0,
+    "LOW": 0,
+    "INFO": 0
+  },
+  "version": "4.2.3"
+}
