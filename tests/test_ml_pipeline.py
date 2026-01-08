@@ -46,7 +46,7 @@ class TestFindingFeatures:
         )
 
         vector = features.to_vector()
-        assert len(vector) == 13
+        assert len(vector) == 19  # Updated: now includes additional context features
         assert all(isinstance(v, float) for v in vector)
         assert vector[0] == 0.8  # high severity
         assert vector[1] == 1.0  # has_swc
@@ -443,7 +443,7 @@ class TestFalsePositiveFilter:
         vector = features.to_vector()
 
         assert isinstance(vector, list)
-        assert len(vector) == 13  # 13 features in vector
+        assert len(vector) == 19  # 19 features in vector (updated with context features)
         assert all(isinstance(v, float) for v in vector)
 
     def test_finding_features_encode_severity(self):
