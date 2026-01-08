@@ -180,23 +180,32 @@ class ZKCircuitAdapter(ToolAdapter):
 
     def is_available(self) -> ToolStatus:
         """Check if ZK analysis tools are available."""
+        import os
+
+        # Add cargo bin to PATH for circomspect
+        env = os.environ.copy()
+        cargo_bin = os.path.expanduser("~/.cargo/bin")
+        env["PATH"] = f"{cargo_bin}:{env.get('PATH', '')}"
+
         try:
-            # Check circomspect
+            # Check circomspect (uses --help since --version not supported)
             result = subprocess.run(
-                ["circomspect", "--version"],
+                ["circomspect", "--help"],
                 capture_output=True,
                 timeout=5,
-                text=True
+                text=True,
+                env=env
             )
             self._circomspect_available = result.returncode == 0
 
             # Check picus (optional)
             try:
                 picus_result = subprocess.run(
-                    ["picus", "--version"],
+                    ["picus", "--help"],
                     capture_output=True,
                     timeout=5,
-                    text=True
+                    text=True,
+                    env=env
                 )
                 self._picus_available = picus_result.returncode == 0
             except FileNotFoundError:
