@@ -6,11 +6,12 @@ Multi-layer security analysis framework for Ethereum smart contracts.
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Version](https://img.shields.io/badge/version-4.2.3-green)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions)
-[![Coverage](https://img.shields.io/badge/coverage-87.5%25-green)](./htmlcov/index.html)
+[![Coverage](https://img.shields.io/badge/coverage-80.8%25-green)](./htmlcov/index.html)
+[![Tools](https://img.shields.io/badge/tools-29%2F32%20operational-blue)](./docs/TOOLS.md)
 
 [English](./README.md) | [Espa&ntilde;ol](./README_ES.md)
 
-MIESC orchestrates 32 security tools across 9 defense layers with AI-assisted correlation and ML-based detection. Pre-audit triage tool for smart contract security.
+MIESC orchestrates **29 security tools** across **9 defense layers** with AI-assisted correlation and ML-based detection. Pre-audit triage tool for smart contract security.
 
 **Validated Results (SmartBugs-curated dataset, 50 contracts):**
 
@@ -50,7 +51,7 @@ miesc doctor
 ## Features
 
 - **9 defense layers**: Static, Dynamic, Symbolic, Formal, AI, ML, Threat Modeling, Cross-Chain, AI Ensemble
-- **32 integrated tools**: Slither, Mythril, Echidna, Certora, Halmos, and more
+- **29 operational tools**: Slither, Aderyn, Mythril, Echidna, Foundry, Certora, Halmos, SmartLLM, and more
 - **AI correlation**: Local LLM (Ollama) reduces false positives
 - **Compliance mapping**: ISO 27001, NIST, OWASP, SWC
 - **Multiple interfaces**: CLI, REST API, WebSocket, MCP, Web UI
@@ -86,15 +87,17 @@ report = run_full_audit("contract.sol")
 
 ```
 Layer 1: Static Analysis      (Slither, Aderyn, Solhint)
-Layer 2: Dynamic Testing      (Echidna, Medusa, Foundry)
+Layer 2: Dynamic Testing      (Echidna, Medusa, Foundry, DogeFuzz)
 Layer 3: Symbolic Execution   (Mythril, Manticore, Halmos)
-Layer 4: Formal Verification  (Certora, SMTChecker, Wake)
-Layer 5: AI Analysis          (SmartLLM, GPTScan)
-Layer 6: ML Detection         (DA-GNN, Graph Neural Networks)
-Layer 7: Threat Modeling      (Risk scoring, attack surface)
-Layer 8: Cross-Chain & ZK     (Bridge security, ZK circuits)
-Layer 9: AI Ensemble          (Multi-LLM consensus detection)
+Layer 4: Formal Verification  (Certora, SMTChecker)
+Layer 5: Property Testing     (PropertyGPT, Wake, Vertigo)
+Layer 6: AI/LLM Analysis      (SmartLLM, GPTScan, LLMSmartAudit, SmartBugs-ML)
+Layer 7: Pattern Recognition  (DA-GNN, SmartGuard, Clone Detector)
+Layer 8: DeFi Security        (DeFi Analyzer, MEV Detector, Gas Analyzer)
+Layer 9: Advanced Detection   (Advanced Detector, SmartBugs, Threat Model)
 ```
+
+**29/32 tools operational** - See `miesc doctor` for availability status.
 
 ## Requirements
 
