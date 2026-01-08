@@ -511,21 +511,6 @@ class TestVertigoAdapter(TestAdapterBase):
         assert adapter is not None
 
 
-class TestOyenteAdapter(TestAdapterBase):
-    """Tests for OyenteAdapter (legacy symbolic execution)."""
-
-    def test_import(self):
-        from src.adapters.oyente_adapter import OyenteAdapter
-
-        assert OyenteAdapter is not None
-
-    def test_instantiation(self):
-        from src.adapters.oyente_adapter import OyenteAdapter
-
-        adapter = OyenteAdapter()
-        assert adapter is not None
-
-
 class TestDeFiAdapter(TestAdapterBase):
     """Tests for DeFiAdapter (specialized DeFi analysis)."""
 
@@ -1009,7 +994,6 @@ class TestAdapterRegistry:
         ("gptscan_adapter", "GPTScanAdapter"),
         ("llmsmartaudit_adapter", "LLMSmartAuditAdapter"),
         ("vertigo_adapter", "VertigoAdapter"),
-        ("oyente_adapter", "OyenteAdapter"),
         ("smartbugs_ml_adapter", "SmartBugsMLAdapter"),
         ("dagnn_adapter", "DAGNNAdapter"),
         ("dogefuzz_adapter", "DogeFuzzAdapter"),
@@ -1027,7 +1011,7 @@ class TestAdapterRegistry:
     ALL_ADAPTERS = STANDARD_ADAPTERS + ALTERNATE_ADAPTERS
 
     def test_all_adapters_importable(self):
-        """Test all 29 adapters can be imported."""
+        """Test all 31 adapters can be imported."""
         for module_name, class_name in self.ALL_ADAPTERS:
             module = __import__(f"src.adapters.{module_name}", fromlist=[class_name])
             adapter_class = getattr(module, class_name)
