@@ -16,38 +16,52 @@ Date: 2025-01-09
 """
 
 import logging
-from src.core.tool_protocol import get_tool_registry, ToolStatus
+
+from src.adapters.aderyn_adapter import AderynAdapter
+from src.adapters.certora_adapter import CertoraAdapter
+from src.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
+from src.adapters.dagnn_adapter import DAGNNAdapter
+from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+from src.adapters.echidna_adapter import EchidnaAdapter
+from src.adapters.foundry_adapter import FoundryAdapter
 
 # Importar todos los adapters
 from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
-from src.adapters.mev_detector_adapter import MEVDetectorAdapter
-from src.adapters.vertigo_adapter import VertigoAdapter
-from src.adapters.oyente_adapter import OyenteAdapter
-from src.adapters.threat_model_adapter import ThreatModelAdapter
-from src.adapters.aderyn_adapter import AderynAdapter
+from src.adapters.gptscan_adapter import GPTScanAdapter
+from src.adapters.halmos_adapter import HalmosAdapter
+
+# Invariant Synthesis (v4.2.3)
+from src.adapters.invariant_synthesizer import (
+    InvariantCategory,
+    InvariantFormat,
+    InvariantSynthesizer,
+    SynthesizedInvariant,
+    synthesize_invariants,
+)
+from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
+from src.adapters.manticore_adapter import ManticoreAdapter
 from src.adapters.medusa_adapter import MedusaAdapter
-from src.adapters.slither_adapter import SlitherAdapter
-from src.adapters.solhint_adapter import SolhintAdapter
-from src.adapters.echidna_adapter import EchidnaAdapter
-from src.adapters.foundry_adapter import FoundryAdapter
-from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+
 # Layer 3 - Symbolic Execution (Fase 3 - 2025)
 from src.adapters.mythril_adapter import MythrilAdapter
-from src.adapters.manticore_adapter import ManticoreAdapter
-from src.adapters.halmos_adapter import HalmosAdapter
-# Layer 4 - Formal Verification (Fase 4 - 2025)
-from src.adapters.smtchecker_adapter import SMTCheckerAdapter
-from src.adapters.wake_adapter import WakeAdapter
-from src.adapters.certora_adapter import CertoraAdapter
+from src.adapters.oyente_adapter import OyenteAdapter
 from src.adapters.propertygpt_adapter import PropertyGPTAdapter
-# Layer 5 - AI-Powered Analysis (Fase 5 - 2025)
-from src.adapters.smartllm_adapter import SmartLLMAdapter
-from src.adapters.gptscan_adapter import GPTScanAdapter
-from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
+from src.adapters.slither_adapter import SlitherAdapter
+
 # Layer 6 - ML-Based Detection (Fase 6 - 2025)
 from src.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter
-from src.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
-from src.adapters.dagnn_adapter import DAGNNAdapter
+
+# Layer 5 - AI-Powered Analysis (Fase 5 - 2025)
+from src.adapters.smartllm_adapter import SmartLLMAdapter
+
+# Layer 4 - Formal Verification (Fase 4 - 2025)
+from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+from src.adapters.solhint_adapter import SolhintAdapter
+from src.adapters.threat_model_adapter import ThreatModelAdapter
+from src.adapters.vertigo_adapter import VertigoAdapter
+from src.adapters.wake_adapter import WakeAdapter
+from src.core.tool_protocol import ToolStatus, get_tool_registry
 
 logger = logging.getLogger(__name__)
 
@@ -116,13 +130,15 @@ def register_all_adapters():
             status = adapter.is_available()
             metadata = adapter.get_metadata()
 
-            registered.append({
-                "name": name,
-                "status": status.value,
-                "version": metadata.version,
-                "category": metadata.category.value,
-                "optional": metadata.is_optional
-            })
+            registered.append(
+                {
+                    "name": name,
+                    "status": status.value,
+                    "version": metadata.version,
+                    "category": metadata.category.value,
+                    "optional": metadata.is_optional,
+                }
+            )
 
             status_symbol = "✅" if status == ToolStatus.AVAILABLE else "⚠️"
             logger.info(
@@ -140,12 +156,12 @@ def register_all_adapters():
         "registered": len(registered),
         "failed": len(failed),
         "adapters": registered,
-        "failures": failed
+        "failures": failed,
     }
 
     # Log summary
     logger.info(f"\n{'='*60}")
-    logger.info(f"Adapter registration complete:")
+    logger.info("Adapter registration complete:")
     logger.info(f"  Total: {report['total_adapters']}")
     logger.info(f"  Registered: {report['registered']}")
     logger.info(f"  Failed: {report['failed']}")
@@ -154,9 +170,7 @@ def register_all_adapters():
     # Verify DPGA compliance: ALL tools must be optional
     non_optional = [a for a in registered if not a.get("optional", True)]
     if non_optional:
-        logger.warning(
-            f"⚠️ DPGA WARNING: Non-optional tools detected: {non_optional}"
-        )
+        logger.warning(f"⚠️ DPGA WARNING: Non-optional tools detected: {non_optional}")
     else:
         logger.info("✅ DPGA compliance verified: All tools are optional")
 
@@ -209,6 +223,7 @@ __all__ = [
     "get_available_adapters",
     "get_adapter_status_report",
     "get_adapter_by_name",
+    # Adapters
     "GasAnalyzerAdapter",
     "MEVDetectorAdapter",
     "VertigoAdapter",
@@ -220,4 +235,11 @@ __all__ = [
     "SolhintAdapter",
     "EchidnaAdapter",
     "FoundryAdapter",
+    "SmartLLMAdapter",
+    # Invariant Synthesis (v4.2.3)
+    "InvariantSynthesizer",
+    "InvariantFormat",
+    "InvariantCategory",
+    "SynthesizedInvariant",
+    "synthesize_invariants",
 ]

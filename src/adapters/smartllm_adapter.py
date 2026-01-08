@@ -89,11 +89,16 @@ class SmartLLMAdapter(ToolAdapter):
             homepage="https://ollama.com",
             repository="https://github.com/ollama/ollama",
             documentation="https://github.com/ollama/ollama/blob/main/README.md",
-            installation_cmd="curl -fsSL https://ollama.com/install.sh | sh && ollama pull deepseek-coder",
+            installation_cmd=(
+                "curl -fsSL https://ollama.com/install.sh | sh && " "ollama pull deepseek-coder"
+            ),
             capabilities=[
                 ToolCapability(
                     name="ai_analysis",
-                    description="Local LLM-powered analysis using Ollama with RAG enhancement (100% sovereign, DPGA-compliant)",
+                    description=(
+                        "Local LLM-powered analysis using Ollama with RAG "
+                        "enhancement (100% sovereign, DPGA-compliant)"
+                    ),
                     supported_languages=["solidity"],
                     detection_types=[
                         "logic_bugs",
@@ -108,13 +113,18 @@ class SmartLLMAdapter(ToolAdapter):
                 ),
                 ToolCapability(
                     name="rag_enhanced",
-                    description="Retrieval-Augmented Generation with ERC-20/721/1155 knowledge base",
+                    description=(
+                        "Retrieval-Augmented Generation with " "ERC-20/721/1155 knowledge base"
+                    ),
                     supported_languages=["solidity"],
                     detection_types=["erc_violations", "standard_compliance"],
                 ),
                 ToolCapability(
                     name="verificator",
-                    description="Multi-stage analysis with Generator → Verificator → Consensus pipeline",
+                    description=(
+                        "Multi-stage analysis with Generator -> "
+                        "Verificator -> Consensus pipeline"
+                    ),
                     supported_languages=["solidity"],
                     detection_types=["false_positive_reduction", "fact_checking"],
                 ),
@@ -172,7 +182,10 @@ class SmartLLMAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "SmartLLM (Ollama) not available. Ensure Ollama is installed and deepseek-coder model is pulled.",
+                "error": (
+                    "SmartLLM (Ollama) not available. Ensure Ollama is "
+                    "installed and deepseek-coder model is pulled."
+                ),
             }
 
         try:
@@ -312,57 +325,182 @@ class SmartLLMAdapter(ToolAdapter):
         return code[:max_chars] + "\n// ... (truncated for analysis)"
 
     def _generate_analysis_prompt(self, contract_code: str) -> str:
-        """Generate RAG-enhanced analysis prompt for Ollama LLM."""
+        """Generate RAG-enhanced analysis prompt for Ollama LLM.
+
+        Uses structured prompt engineering with:
+        - Code pattern detection first (analyze what the code ACTUALLY does)
+        - RAG context for vulnerability pattern matching
+        - Specific SWC-based vulnerability checks
+        """
         # Get relevant knowledge from RAG knowledge base
         rag_context = ""
         if self._use_rag:
             rag_context = get_relevant_knowledge(contract_code)
 
-        prompt = f"""You are a Solidity security expert with comprehensive knowledge of ERC standards and best practices.
+        # Pre-analyze code for key patterns to guide LLM focus
+        code_patterns = self._detect_code_patterns(contract_code)
+        focus_areas = self._get_focus_areas(code_patterns)
 
-SMART CONTRACT:
+        prompt = f"""You are a senior smart contract security auditor. Your task is to analyze \
+this contract and find REAL vulnerabilities in the ACTUAL code.
+
+CRITICAL: Focus ONLY on vulnerabilities that EXIST in this specific code. \
+Do NOT report generic best practices that aren't applicable.
+
+SMART CONTRACT TO ANALYZE:
 ```solidity
 {contract_code}
 ```
+
+DETECTED CODE PATTERNS (focus your analysis on these):
+{focus_areas}
 """
 
         # Add RAG context if available
         if rag_context:
             prompt += f"""
-REFERENCE DOCUMENTATION (for context):
-{rag_context}
-
-Use this documentation to enhance your analysis, particularly for:
-- ERC-20/721/1155 standard compliance
-- Common vulnerability patterns
-- Best practices validation
+VULNERABILITY KNOWLEDGE BASE (SWC Registry patterns):
+{rag_context[:3000]}
 """
 
         prompt += """
-ANALYSIS INSTRUCTIONS:
-1. Identify all security vulnerabilities (reentrancy, integer overflow/underflow, unchecked calls, access control issues, etc.)
-2. Check for ERC standard compliance (if applicable)
-3. Verify against known vulnerability patterns
-4. Check for logic bugs and design flaws
-5. Rate each finding's severity: CRITICAL, HIGH, MEDIUM, LOW
+STEP-BY-STEP ANALYSIS (for security researchers):
 
-OUTPUT FORMAT (JSON):
+STEP 1 - CONTROL FLOW ANALYSIS:
+- Trace each function's execution path
+- Identify external calls (call, delegatecall, transfer, send)
+- Check if state changes happen BEFORE or AFTER external calls
+
+STEP 2 - REENTRANCY CHECK (SWC-107):
+- Pattern: external call BEFORE state update = REENTRANCY
+- Look for: `.call{value:`, `.transfer(`, `.send(`, `IERC20.transfer(`
+- Real-world example: The DAO hack (2016, $60M) used this exact pattern
+
+STEP 3 - ACCESS CONTROL CHECK (SWC-105):
+- Are there admin/owner functions without proper modifiers?
+- Real-world example: Ronin Bridge (2022, $625M) - compromised private keys
+
+STEP 4 - INTEGER ISSUES (SWC-101):
+- Check for unchecked arithmetic (pre-Solidity 0.8.0)
+- Look for precision loss in divisions (common in DeFi yield calculations)
+
+STEP 5 - EXTERNAL CALL SAFETY (SWC-104, SWC-113):
+- Are return values from external calls checked?
+- Real-world example: Wormhole (2022, $320M) - unchecked signature verification
+
+OUTPUT FORMAT (valid JSON only):
+```json
 {
   "findings": [
     {
-      "type": "vulnerability_type",
-      "severity": "CRITICAL/HIGH/MEDIUM/LOW",
-      "title": "Short title",
-      "description": "Detailed description",
-      "location": "Function or line reference",
-      "recommendation": "How to fix"
+      "type": "reentrancy",
+      "severity": "CRITICAL",
+      "title": "Reentrancy in withdraw function",
+      "description": "External call before state update allows reentrancy attack",
+      "location": "withdraw:14-16",
+      "swc_id": "SWC-107",
+      "attack_scenario": "1) Deploy malicious contract 2) Call withdraw 3) Fallback re-enters",
+      "remediation": "Move balances[msg.sender] -= amount before the external call",
+      "real_world_reference": "The DAO hack 2016"
     }
   ]
 }
+```
 
-Provide ONLY the JSON output, no additional text."""
+CRITICAL RULES:
+- Output ONLY valid JSON inside ```json``` code block
+- Do NOT include actual code snippets with newlines (breaks JSON)
+- Keep all string values on single lines
+- Only report REAL vulnerabilities found in this specific code
+- Include SWC Registry ID for each finding
+- For CRITICAL findings, include attack_scenario
+- Do NOT report generic best practices"""
 
         return prompt
+
+    def _detect_code_patterns(self, code: str) -> dict:
+        """Detect key patterns in code to focus LLM analysis."""
+        patterns = {
+            "has_external_calls": False,
+            "has_state_after_call": False,
+            "has_transfer": False,
+            "has_delegatecall": False,
+            "has_selfdestruct": False,
+            "has_mapping": False,
+            "has_payable": False,
+            "solidity_version": "unknown",
+        }
+
+        code_lower = code.lower()
+
+        # Check for external calls
+        if ".call{" in code or ".call(" in code:
+            patterns["has_external_calls"] = True
+        if ".transfer(" in code:
+            patterns["has_transfer"] = True
+        if "delegatecall" in code_lower:
+            patterns["has_delegatecall"] = True
+        if "selfdestruct" in code_lower:
+            patterns["has_selfdestruct"] = True
+        if "mapping(" in code_lower:
+            patterns["has_mapping"] = True
+        if "payable" in code_lower:
+            patterns["has_payable"] = True
+
+        # Detect reentrancy pattern: external call before state update
+        # Simple heuristic: if we see .call{ before -= or = on a mapping
+        call_pos = code.find(".call{")
+        if call_pos == -1:
+            call_pos = code.find(".call(")
+
+        if call_pos > 0:
+            # Check if there's a state update after the call
+            after_call = code[call_pos:]
+            if "-=" in after_call or ("+=" in after_call and "balances" in after_call.lower()):
+                patterns["has_state_after_call"] = True
+
+        # Extract Solidity version
+        import re
+
+        version_match = re.search(r"pragma solidity [\^~]?(\d+\.\d+\.\d+)", code)
+        if version_match:
+            patterns["solidity_version"] = version_match.group(1)
+
+        return patterns
+
+    def _get_focus_areas(self, patterns: dict) -> str:
+        """Generate focus areas based on detected patterns."""
+        focus = []
+
+        if patterns.get("has_external_calls"):
+            focus.append("- EXTERNAL CALLS DETECTED: Check for reentrancy (SWC-107)")
+        if patterns.get("has_state_after_call"):
+            focus.append(
+                "- WARNING: State update AFTER external call detected - likely REENTRANCY!"
+            )
+        if patterns.get("has_delegatecall"):
+            focus.append("- DELEGATECALL DETECTED: Check for storage collision (SWC-112)")
+        if patterns.get("has_selfdestruct"):
+            focus.append("- SELFDESTRUCT DETECTED: Check for unauthorized destruction (SWC-106)")
+        if patterns.get("has_payable"):
+            focus.append("- PAYABLE FUNCTIONS: Check for proper fund handling")
+        if patterns.get("has_mapping"):
+            focus.append("- MAPPINGS DETECTED: Check for balance manipulation vulnerabilities")
+
+        version = patterns.get("solidity_version", "unknown")
+        if version != "unknown":
+            major, minor, patch = version.split(".")
+            if int(minor) < 8:
+                focus.append(
+                    f"- SOLIDITY {version}: Check for integer overflow/underflow (SWC-101)"
+                )
+
+        if not focus:
+            focus.append(
+                "- Standard security review: access control, input validation, logic errors"
+            )
+
+        return "\n".join(focus)
 
     def _call_ollama_with_retry(self, prompt: str) -> Optional[str]:
         """Call Ollama API with retry logic."""
@@ -394,62 +532,346 @@ Provide ONLY the JSON output, no additional text."""
         return None
 
     def _parse_llm_response(self, llm_response: str, contract_path: str) -> List[Dict[str, Any]]:
-        """Parse LLM response to extract findings."""
+        """Parse LLM response to extract findings with robust JSON repair."""
         findings = []
 
         try:
-            # Extract JSON from response (LLM might add text around it)
-            json_start = llm_response.find("{")
-            json_end = llm_response.rfind("}") + 1
+            # Strategy 1: Try direct JSON extraction
+            parsed = self._extract_json(llm_response)
 
-            if json_start == -1 or json_end == 0:
-                logger.warning("No JSON found in LLM response")
-                return []
+            if not parsed:
+                # Strategy 2: Try to repair common JSON issues
+                parsed = self._repair_and_parse_json(llm_response)
 
-            json_str = llm_response[json_start:json_end]
-            parsed = json.loads(json_str)
+            if not parsed:
+                # Strategy 3: Extract findings using regex patterns
+                parsed = self._extract_findings_regex(llm_response)
+
+            if not parsed:
+                logger.warning("Could not parse LLM response as JSON")
+                # Return structured finding from raw text analysis
+                return self._parse_raw_response(llm_response, contract_path)
 
             # Extract findings
             llm_findings = parsed.get("findings", [])
+            if isinstance(parsed, list):
+                llm_findings = parsed
 
             for idx, finding in enumerate(llm_findings):
+                if not isinstance(finding, dict):
+                    continue
+
+                # Build SWC reference URL if available
+                swc_id = finding.get("swc_id", "")
+                swc_url = ""
+                if swc_id and "SWC-" in swc_id:
+                    swc_num = swc_id.split("SWC-")[1].split()[0].split("(")[0].strip()
+                    swc_url = f"https://swcregistry.io/docs/SWC-{swc_num}"
+
+                # Get remediation from either field name
+                remediation = (
+                    finding.get("remediation")
+                    or finding.get("remediation_code")
+                    or "Review and address the identified issue"
+                )
+
                 normalized = {
                     "id": f"smartllm-{idx+1}",
                     "title": finding.get("title", "LLM-detected issue"),
                     "description": finding.get("description", ""),
                     "severity": finding.get("severity", "MEDIUM").upper(),
-                    "confidence": 0.75,  # Medium-high confidence for LLM findings
+                    "confidence": 0.75,
                     "category": finding.get("type", "ai_detected_pattern"),
                     "location": {
                         "file": contract_path,
                         "details": finding.get("location", "See full contract"),
                     },
-                    "recommendation": finding.get(
-                        "recommendation", "Review and address the identified issue"
-                    ),
-                    "references": ["AI-powered analysis using Ollama + deepseek-coder"],
+                    # Enhanced fields for security researchers
+                    "swc_id": swc_id,
+                    "swc_url": swc_url,
+                    "attack_scenario": finding.get("attack_scenario", ""),
+                    "vulnerable_code": finding.get("vulnerable_code", ""),
+                    "remediation_code": remediation,
+                    "testing_suggestion": finding.get("testing_suggestion", ""),
+                    "real_world_reference": finding.get("real_world_reference", ""),
+                    "recommendation": finding.get("recommendation", remediation),
+                    "references": [
+                        "AI-powered analysis using Ollama + deepseek-coder",
+                    ],
                 }
+                if swc_url:
+                    normalized["references"].append(swc_url)
+                if finding.get("real_world_reference"):
+                    normalized["references"].append(finding.get("real_world_reference"))
+
                 findings.append(normalized)
 
             logger.info(f"SmartLLM: Parsed {len(findings)} findings from LLM response")
 
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON parse error: {e}")
-            # Fallback: create a single finding with the raw response
+        except Exception as e:
+            logger.error(f"Error parsing LLM response: {e}")
+            return self._parse_raw_response(llm_response, contract_path)
+
+        return findings
+
+    def _extract_json(self, text: str) -> Optional[Dict]:
+        """Extract JSON object from text using multiple strategies."""
+        import re
+
+        # Strategy 1: Find JSON block between ```json and ```
+        json_block_match = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
+        if json_block_match:
+            try:
+                return json.loads(json_block_match.group(1))
+            except json.JSONDecodeError:
+                pass
+
+        # Strategy 2: Find JSON starting with {"findings"
+        findings_match = re.search(r'\{\s*"findings"\s*:', text)
+        if findings_match:
+            start = findings_match.start()
+            # Find matching closing brace
+            depth = 0
+            for i, char in enumerate(text[start:]):
+                if char == "{":
+                    depth += 1
+                elif char == "}":
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            return json.loads(text[start : start + i + 1])
+                        except json.JSONDecodeError:
+                            break
+
+        # Strategy 3: Simple extraction between first { and last }
+        json_start = text.find("{")
+        json_end = text.rfind("}") + 1
+        if json_start != -1 and json_end > json_start:
+            try:
+                return json.loads(text[json_start:json_end])
+            except json.JSONDecodeError:
+                pass
+
+        return None
+
+    def _repair_and_parse_json(self, text: str) -> Optional[Dict]:
+        """Attempt to repair common JSON issues and parse."""
+        import re
+
+        # Find the JSON portion
+        json_start = text.find("{")
+        json_end = text.rfind("}") + 1
+        if json_start == -1 or json_end <= json_start:
+            return None
+
+        json_str = text[json_start:json_end]
+
+        # Repair common issues:
+        # 1. Remove trailing commas before ] or }
+        json_str = re.sub(r",\s*([}\]])", r"\1", json_str)
+
+        # 2. Fix unescaped newlines in strings (common in code snippets)
+        # Replace actual newlines in string values with \n
+        def fix_string_newlines(match):
+            content = match.group(1)
+            # Escape actual newlines
+            content = content.replace("\n", "\\n")
+            content = content.replace("\r", "\\r")
+            content = content.replace("\t", "\\t")
+            return f'"{content}"'
+
+        # This regex finds string values and fixes newlines
+        # Simple approach: process line by line for key-value pairs
+        lines = json_str.split("\n")
+        fixed_lines = []
+        in_string = False
+        string_buffer = ""
+
+        for line in lines:
+            # Count quotes to track if we're in a string
+            quote_count = line.count('"') - line.count('\\"')
+
+            if in_string:
+                string_buffer += "\\n" + line
+                if quote_count % 2 == 1:
+                    fixed_lines.append(string_buffer)
+                    string_buffer = ""
+                    in_string = False
+            else:
+                if quote_count % 2 == 1:
+                    in_string = True
+                    string_buffer = line
+                else:
+                    fixed_lines.append(line)
+
+        if string_buffer:
+            fixed_lines.append(string_buffer)
+
+        json_str = "\n".join(fixed_lines)
+
+        # 3. Try to parse
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            pass
+
+        # 4. More aggressive repair: extract just the findings array
+        findings_match = re.search(r'"findings"\s*:\s*\[(.*?)\]', json_str, re.DOTALL)
+        if findings_match:
+            findings_str = findings_match.group(1)
+            # Try to extract individual finding objects
+            finding_objects = []
+            depth = 0
+            start = None
+            for i, char in enumerate(findings_str):
+                if char == "{":
+                    if depth == 0:
+                        start = i
+                    depth += 1
+                elif char == "}":
+                    depth -= 1
+                    if depth == 0 and start is not None:
+                        obj_str = findings_str[start : i + 1]
+                        # Clean the object string
+                        obj_str = re.sub(r",\s*([}\]])", r"\1", obj_str)
+                        try:
+                            finding_objects.append(json.loads(obj_str))
+                        except json.JSONDecodeError:
+                            # Try minimal repair
+                            try:
+                                obj_str = obj_str.replace("\n", " ")
+                                finding_objects.append(json.loads(obj_str))
+                            except Exception:
+                                pass
+                        start = None
+
+            if finding_objects:
+                return {"findings": finding_objects}
+
+        return None
+
+    def _extract_findings_regex(self, text: str) -> Optional[Dict]:
+        """Extract findings using regex patterns as last resort."""
+        import re
+
+        findings = []
+
+        # Pattern to extract vulnerability mentions
+        vuln_patterns = [
+            (r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Rr]eentrancy[^\n]*)", "CRITICAL", "reentrancy"),
+            (
+                r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Aa]ccess\s+[Cc]ontrol[^\n]*)",
+                "HIGH",
+                "access_control",
+            ),
+            (
+                r"(?:HIGH|MEDIUM)\s*[:\-]?\s*([Ii]nteger\s+[Oo]verflow[^\n]*)",
+                "HIGH",
+                "integer_overflow",
+            ),
+            (
+                r"(?:HIGH|MEDIUM)\s*[:\-]?\s*([Uu]nchecked\s+[Cc]all[^\n]*)",
+                "HIGH",
+                "unchecked_call",
+            ),
+            (r"SWC-107[:\s]+([^\n]+)", "CRITICAL", "reentrancy"),
+            (r"SWC-105[:\s]+([^\n]+)", "HIGH", "access_control"),
+            (r"SWC-101[:\s]+([^\n]+)", "HIGH", "integer_overflow"),
+        ]
+
+        for pattern, severity, category in vuln_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            for match in matches:
+                if match and len(match) > 10:
+                    findings.append(
+                        {
+                            "type": category,
+                            "severity": severity,
+                            "title": f"{category.replace('_', ' ').title()} Vulnerability",
+                            "description": match.strip()[:500],
+                        }
+                    )
+
+        # Deduplicate by category
+        seen = set()
+        unique_findings = []
+        for f in findings:
+            key = (f["type"], f["severity"])
+            if key not in seen:
+                seen.add(key)
+                unique_findings.append(f)
+
+        if unique_findings:
+            return {"findings": unique_findings}
+
+        return None
+
+    def _parse_raw_response(self, llm_response: str, contract_path: str) -> List[Dict[str, Any]]:
+        """Parse raw LLM response when JSON parsing fails."""
+        findings = []
+
+        # Check for reentrancy mentions
+        text_lower = llm_response.lower()
+        if "reentrancy" in text_lower or "reentrant" in text_lower or "swc-107" in text_lower:
+            findings.append(
+                {
+                    "id": "smartllm-1",
+                    "title": "Potential Reentrancy Vulnerability",
+                    "description": (
+                        "LLM analysis detected reentrancy-related " "patterns in the contract."
+                    ),
+                    "severity": "CRITICAL",
+                    "confidence": 0.65,
+                    "category": "reentrancy",
+                    "swc_id": "SWC-107",
+                    "swc_url": "https://swcregistry.io/docs/SWC-107",
+                    "location": {"file": contract_path, "details": "See LLM analysis"},
+                    "recommendation": (
+                        "Apply checks-effects-interactions pattern. "
+                        "Update state before external calls."
+                    ),
+                    "references": ["AI-powered analysis using Ollama + deepseek-coder"],
+                }
+            )
+
+        if (
+            "access control" in text_lower
+            or "unauthorized" in text_lower
+            or "swc-105" in text_lower
+        ):
+            findings.append(
+                {
+                    "id": f"smartllm-{len(findings)+1}",
+                    "title": "Potential Access Control Issue",
+                    "description": (
+                        "LLM analysis detected access control " "patterns that may need review."
+                    ),
+                    "severity": "HIGH",
+                    "confidence": 0.60,
+                    "category": "access_control",
+                    "swc_id": "SWC-105",
+                    "swc_url": "https://swcregistry.io/docs/SWC-105",
+                    "location": {"file": contract_path, "details": "See LLM analysis"},
+                    "recommendation": "Review access control modifiers and function visibility.",
+                    "references": ["AI-powered analysis using Ollama + deepseek-coder"],
+                }
+            )
+
+        # If no patterns found, return raw analysis
+        if not findings:
             findings.append(
                 {
                     "id": "smartllm-raw",
-                    "title": "LLM Analysis Result (raw)",
-                    "description": llm_response[:500],  # First 500 chars
+                    "title": "LLM Analysis Result",
+                    "description": llm_response[:1000],
                     "severity": "INFO",
                     "confidence": 0.5,
                     "category": "ai_analysis",
                     "location": {"file": contract_path},
                     "recommendation": "Review full LLM response for insights",
+                    "references": ["AI-powered analysis using Ollama + deepseek-coder"],
                 }
             )
-        except Exception as e:
-            logger.error(f"Error parsing LLM response: {e}")
 
         return findings
 
@@ -462,6 +884,10 @@ Provide ONLY the JSON output, no additional text."""
         Uses a separate LLM call to verify each finding against the contract
         code and RAG knowledge base. Filters out false positives.
 
+        IMPORTANT: For CRITICAL severity findings (reentrancy, etc.), we are
+        more conservative and default to keeping the finding unless explicitly
+        marked as false positive with clear reasoning.
+
         Args:
             contract_code: Original contract source code
             initial_findings: Findings from Generator stage
@@ -472,6 +898,26 @@ Provide ONLY the JSON output, no additional text."""
         verified_findings = []
 
         for finding in initial_findings:
+            severity = finding.get("severity", "MEDIUM").upper()
+            is_critical = severity == "CRITICAL"
+            finding_type = finding.get("category", finding.get("type", "")).lower()
+            is_reentrancy = "reentrancy" in finding_type or "reentrant" in finding_type
+
+            # For known high-risk patterns, verify using code pattern detection
+            if is_reentrancy:
+                # Double-check reentrancy using pattern detection
+                patterns = self._detect_code_patterns(contract_code)
+                if patterns.get("has_external_calls") and patterns.get("has_state_after_call"):
+                    # Pattern detection confirms reentrancy - keep finding
+                    finding["verified"] = True
+                    finding["verification_method"] = "pattern_detection"
+                    finding["confidence"] = 0.90  # High confidence from pattern match
+                    verified_findings.append(finding)
+                    logger.info(
+                        f"✓ Reentrancy CONFIRMED by pattern detection: {finding.get('title')}"
+                    )
+                    continue
+
             # Generate verificator prompt
             verificator_prompt = self._generate_verificator_prompt(contract_code, finding)
 
@@ -498,25 +944,53 @@ Provide ONLY the JSON output, no additional text."""
                     ):
                         # Finding explicitly confirmed
                         finding["verified"] = True
-                        finding["verification_reasoning"] = response[:500]  # Store reasoning
+                        finding["verification_reasoning"] = response[:500]
                         finding["confidence"] = min(finding.get("confidence", 0.75) + 0.15, 0.95)
                         verified_findings.append(finding)
-                        logger.debug(f"✓ Finding confirmed with CoT: {finding.get('title')}")
+                        logger.info(f"✓ Finding confirmed with CoT: {finding.get('title')}")
                     elif (
                         "verdict: false_positive" in response_lower
                         or "verdict:false_positive" in response_lower
                     ):
-                        # Explicit false positive
-                        logger.info(f"✗ False positive (CoT verified): {finding.get('title')}")
+                        # Explicit false positive - but for CRITICAL, require clear reasoning
+                        if is_critical:
+                            # For CRITICAL findings, keep with lower confidence
+                            finding["verified"] = False
+                            finding["verification_note"] = (
+                                "Verificator marked FP but keeping due to severity"
+                            )
+                            finding["confidence"] = max(
+                                finding.get("confidence", 0.75) - 0.20, 0.50
+                            )
+                            verified_findings.append(finding)
+                            logger.warning(
+                                f"CRITICAL finding kept despite FP verdict: "
+                                f"{finding.get('title')}"
+                            )
+                        else:
+                            logger.info(f"✗ False positive (CoT verified): {finding.get('title')}")
                     elif "confirmed" in response_lower and "false_positive" not in response_lower:
                         # Legacy format: implicit confirmation
                         finding["verified"] = True
                         finding["confidence"] = min(finding.get("confidence", 0.75) + 0.1, 0.95)
                         verified_findings.append(finding)
-                        logger.debug(f"✓ Finding confirmed: {finding.get('title')}")
+                        logger.info(f"✓ Finding confirmed: {finding.get('title')}")
                     else:
-                        # Default to false positive if no clear confirmation
-                        logger.info(f"✗ False positive removed: {finding.get('title')}")
+                        # Ambiguous response - for CRITICAL, keep; otherwise filter
+                        if is_critical:
+                            finding["verified"] = False
+                            finding["verification_note"] = (
+                                "Ambiguous verification - kept due to severity"
+                            )
+                            finding["confidence"] = max(
+                                finding.get("confidence", 0.75) - 0.15, 0.50
+                            )
+                            verified_findings.append(finding)
+                            logger.warning(
+                                f"⚠ CRITICAL finding kept (ambiguous): {finding.get('title')}"
+                            )
+                        else:
+                            logger.info(f"✗ False positive removed: {finding.get('title')}")
                 else:
                     # Verificator failed - keep finding with lower confidence (conservative)
                     logger.warning("Verificator call failed, keeping finding conservatively")

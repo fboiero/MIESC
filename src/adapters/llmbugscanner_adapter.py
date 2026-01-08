@@ -21,22 +21,22 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-01-15
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter,
-    ToolMetadata,
-    ToolStatus,
-    ToolCategory,
-    ToolCapability
-)
-from typing import Dict, Any, List, Optional, Set, Tuple
+import hashlib
+import json
 import logging
 import subprocess
-import json
-import hashlib
 import time
-from pathlib import Path
 from dataclasses import dataclass
-from collections import Counter
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ModelConfig:
     """Configuration for an ensemble member model."""
+
     name: str
     weight: float  # Voting weight (0.0-1.0)
     timeout: int  # Seconds
@@ -52,24 +53,9 @@ class ModelConfig:
 
 # Default ensemble configuration (local Ollama models)
 DEFAULT_ENSEMBLE = [
-    ModelConfig(
-        name="deepseek-coder",
-        weight=0.45,
-        timeout=300,
-        specialization="code_analysis"
-    ),
-    ModelConfig(
-        name="codellama",
-        weight=0.35,
-        timeout=300,
-        specialization="code_understanding"
-    ),
-    ModelConfig(
-        name="mistral",
-        weight=0.20,
-        timeout=180,
-        specialization="reasoning"
-    )
+    ModelConfig(name="deepseek-coder", weight=0.45, timeout=300, specialization="code_analysis"),
+    ModelConfig(name="codellama", weight=0.35, timeout=300, specialization="code_understanding"),
+    ModelConfig(name="mistral", weight=0.20, timeout=180, specialization="reasoning"),
 ]
 
 # Vulnerability categories for consensus analysis
@@ -85,7 +71,7 @@ VULNERABILITY_CATEGORIES = {
     "logic_error": ["logic", "business logic", "incorrect", "wrong", "bug"],
     "timestamp_dependence": ["timestamp", "block.timestamp", "now"],
     "tx_origin": ["tx.origin", "phishing"],
-    "delegatecall": ["delegatecall", "proxy", "storage collision"]
+    "delegatecall": ["delegatecall", "proxy", "storage collision"],
 }
 
 
@@ -115,7 +101,8 @@ class LLMBugScannerAdapter(ToolAdapter):
             license="AGPL-3.0",
             homepage="https://ollama.com",
             repository="https://github.com/ollama/ollama",
-            documentation="https://arxiv.org/abs/2312.xxxxx",  # LLMBugScanner paper
+            # LLMBugScanner paper (Georgia Tech, Dec 2025)
+            documentation="https://arxiv.org/abs/2512.02069",
             installation_cmd=(
                 "curl -fsSL https://ollama.com/install.sh | sh && "
                 "ollama pull deepseek-coder && "
@@ -136,36 +123,31 @@ class LLMBugScannerAdapter(ToolAdapter):
                         "denial_of_service",
                         "front_running",
                         "flash_loan_attacks",
-                        "oracle_manipulation"
-                    ]
+                        "oracle_manipulation",
+                    ],
                 ),
                 ToolCapability(
                     name="consensus_scoring",
                     description="Weighted consensus-based confidence scoring across models",
                     supported_languages=["solidity"],
-                    detection_types=["false_positive_reduction"]
+                    detection_types=["false_positive_reduction"],
                 ),
                 ToolCapability(
                     name="cross_validation",
                     description="Cross-model validation for finding verification",
                     supported_languages=["solidity"],
-                    detection_types=["finding_verification"]
-                )
+                    detection_types=["finding_verification"],
+                ),
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if Ollama and at least one ensemble model is available."""
         try:
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                timeout=5,
-                text=True
-            )
+            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5, text=True)
 
             if result.returncode != 0:
                 logger.warning("Ollama command failed")
@@ -178,7 +160,10 @@ class LLMBugScannerAdapter(ToolAdapter):
                     self._available_models.add(model.name)
 
             if len(self._available_models) >= 1:
-                logger.info(f"LLMBugScanner: {len(self._available_models)} models available: {self._available_models}")
+                logger.info(
+                    f"LLMBugScanner: {len(self._available_models)} models available: "
+                    f"{self._available_models}"
+                )
                 return ToolStatus.AVAILABLE
             else:
                 logger.warning("No ensemble models found. Run: ollama pull deepseek-coder")
@@ -211,7 +196,7 @@ class LLMBugScannerAdapter(ToolAdapter):
         if self.is_available() != ToolStatus.AVAILABLE:
             return self._error_result(
                 start_time,
-                "LLMBugScanner not available. Ensure Ollama is installed with at least one model."
+                "LLMBugScanner not available. Ensure Ollama is installed with at least one model.",
             )
 
         try:
@@ -247,7 +232,7 @@ class LLMBugScannerAdapter(ToolAdapter):
                 model_results[model.name] = {
                     "findings_count": len(model_findings),
                     "weight": model.weight,
-                    "specialization": model.specialization
+                    "specialization": model.specialization,
                 }
 
             # STAGE 2: Consensus aggregation
@@ -255,16 +240,14 @@ class LLMBugScannerAdapter(ToolAdapter):
             consensus_findings = self._aggregate_with_consensus(
                 all_findings,
                 active_ensemble,
-                kwargs.get("consensus_threshold", self._consensus_threshold)
+                kwargs.get("consensus_threshold", self._consensus_threshold),
             )
 
             # STAGE 3: Cross-validation (verify high-severity findings)
             if kwargs.get("cross_validate", True):
                 logger.info("LLMBugScanner: Cross-validating critical findings")
                 consensus_findings = self._cross_validate_findings(
-                    contract_code,
-                    consensus_findings,
-                    active_ensemble
+                    contract_code, consensus_findings, active_ensemble
                 )
 
             # Build result
@@ -281,10 +264,10 @@ class LLMBugScannerAdapter(ToolAdapter):
                     "consensus_findings": len(consensus_findings),
                     "consensus_threshold": self._consensus_threshold,
                     "sovereign": True,
-                    "dpga_compliant": True
+                    "dpga_compliant": True,
                 },
                 "execution_time": time.time() - start_time,
-                "from_cache": False
+                "from_cache": False,
             }
 
             # Cache result
@@ -302,7 +285,7 @@ class LLMBugScannerAdapter(ToolAdapter):
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if this adapter can analyze the given contract."""
-        return Path(contract_path).suffix == '.sol'
+        return Path(contract_path).suffix == ".sol"
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
@@ -310,7 +293,7 @@ class LLMBugScannerAdapter(ToolAdapter):
             "timeout": 900,  # 15 minutes for ensemble
             "consensus_threshold": 0.5,
             "cross_validate": True,
-            "max_retries": 2
+            "max_retries": 2,
         }
 
     # ============================================================================
@@ -325,13 +308,13 @@ class LLMBugScannerAdapter(ToolAdapter):
             "status": "error",
             "findings": [],
             "execution_time": time.time() - start_time,
-            "error": error
+            "error": error,
         }
 
     def _read_contract(self, contract_path: str) -> Optional[str]:
         """Read contract file content."""
         try:
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Error reading contract: {e}")
@@ -345,10 +328,7 @@ class LLMBugScannerAdapter(ToolAdapter):
         return code[:max_chars] + "\n// ... (truncated for analysis)"
 
     def _analyze_with_model(
-        self,
-        contract_code: str,
-        contract_path: str,
-        model: ModelConfig
+        self, contract_code: str, contract_path: str, model: ModelConfig
     ) -> List[Dict[str, Any]]:
         """Run analysis with a single model."""
         prompt = self._generate_analysis_prompt(contract_code, model.specialization)
@@ -359,19 +339,19 @@ class LLMBugScannerAdapter(ToolAdapter):
                     ["ollama", "run", model.name, prompt],
                     capture_output=True,
                     timeout=model.timeout,
-                    text=True
+                    text=True,
                 )
 
                 if result.returncode == 0 and result.stdout:
                     findings = self._parse_llm_response(
-                        result.stdout.strip(),
-                        contract_path,
-                        model.name
+                        result.stdout.strip(), contract_path, model.name
                     )
                     logger.info(f"Model {model.name}: {len(findings)} findings")
                     return findings
                 else:
-                    logger.warning(f"{model.name} failed (attempt {attempt}): {result.stderr[:200]}")
+                    logger.warning(
+                        f"{model.name} failed (attempt {attempt}): {result.stderr[:200]}"
+                    )
 
             except subprocess.TimeoutExpired:
                 logger.warning(f"{model.name} timeout (attempt {attempt})")
@@ -441,18 +421,15 @@ Respond with ONLY the JSON, no additional text."""
         return base_prompt
 
     def _parse_llm_response(
-        self,
-        llm_response: str,
-        contract_path: str,
-        model_name: str
+        self, llm_response: str, contract_path: str, model_name: str
     ) -> List[Dict[str, Any]]:
         """Parse LLM response to extract findings."""
         findings = []
 
         try:
             # Extract JSON from response
-            json_start = llm_response.find('{')
-            json_end = llm_response.rfind('}') + 1
+            json_start = llm_response.find("{")
+            json_end = llm_response.rfind("}") + 1
 
             if json_start == -1 or json_end == 0:
                 return []
@@ -468,14 +445,11 @@ Respond with ONLY the JSON, no additional text."""
                     "severity": finding.get("severity", "MEDIUM").upper(),
                     "confidence": 0.7,  # Base confidence, will be adjusted by consensus
                     "category": self._categorize_finding(finding),
-                    "location": {
-                        "file": contract_path,
-                        "details": finding.get("location", "")
-                    },
+                    "location": {"file": contract_path, "details": finding.get("location", "")},
                     "impact": finding.get("impact", ""),
                     "recommendation": finding.get("recommendation", ""),
                     "source_model": model_name,
-                    "raw_type": finding.get("type", "")
+                    "raw_type": finding.get("type", ""),
                 }
                 findings.append(normalized)
 
@@ -488,7 +462,10 @@ Respond with ONLY the JSON, no additional text."""
 
     def _categorize_finding(self, finding: Dict[str, Any]) -> str:
         """Categorize finding based on type and description."""
-        text = f"{finding.get('type', '')} {finding.get('title', '')} {finding.get('description', '')}".lower()
+        text = (
+            f"{finding.get('type', '')} {finding.get('title', '')} "
+            f"{finding.get('description', '')}"
+        ).lower()
 
         for category, keywords in VULNERABILITY_CATEGORIES.items():
             if any(kw in text for kw in keywords):
@@ -500,7 +477,7 @@ Respond with ONLY the JSON, no additional text."""
         self,
         all_findings: Dict[str, List[Dict[str, Any]]],
         ensemble: List[ModelConfig],
-        threshold: float
+        threshold: float,
     ) -> List[Dict[str, Any]]:
         """Aggregate findings using weighted consensus voting."""
         # Build weight map
@@ -519,9 +496,9 @@ Respond with ONLY the JSON, no additional text."""
 
         # Calculate consensus for each group
         consensus_findings = []
-        for key, group in finding_groups.items():
+        for _key, group in finding_groups.items():
             # Calculate weighted vote
-            models_agreeing = set(model_name for model_name, _ in group)
+            models_agreeing = {model_name for model_name, _ in group}
             weighted_vote = sum(weights.get(m, 0) for m in models_agreeing)
             consensus_score = weighted_vote / total_weight if total_weight > 0 else 0
 
@@ -546,9 +523,7 @@ Respond with ONLY the JSON, no additional text."""
         return f"{category}:{severity}:{location}"
 
     def _merge_findings(
-        self,
-        group: List[Tuple[str, Dict[str, Any]]],
-        consensus_score: float
+        self, group: List[Tuple[str, Dict[str, Any]]], consensus_score: float
     ) -> Dict[str, Any]:
         """Merge multiple findings from different models into one."""
         # Take the most detailed finding as base
@@ -567,10 +542,7 @@ Respond with ONLY the JSON, no additional text."""
         return merged
 
     def _cross_validate_findings(
-        self,
-        contract_code: str,
-        findings: List[Dict[str, Any]],
-        ensemble: List[ModelConfig]
+        self, contract_code: str, findings: List[Dict[str, Any]], ensemble: List[ModelConfig]
     ) -> List[Dict[str, Any]]:
         """Cross-validate critical/high severity findings."""
         validated = []
@@ -593,10 +565,7 @@ Respond with ONLY the JSON, no additional text."""
         return validated
 
     def _verify_finding(
-        self,
-        contract_code: str,
-        finding: Dict[str, Any],
-        ensemble: List[ModelConfig]
+        self, contract_code: str, finding: Dict[str, Any], ensemble: List[ModelConfig]
     ) -> bool:
         """Verify a finding using a different model."""
         # Find a model that didn't originally report this finding
@@ -629,10 +598,7 @@ Respond with ONLY: VALID or FALSE_POSITIVE"""
 
         try:
             result = subprocess.run(
-                ["ollama", "run", verifier.name, prompt],
-                capture_output=True,
-                timeout=60,
-                text=True
+                ["ollama", "run", verifier.name, prompt], capture_output=True, timeout=60, text=True
             )
 
             if result.returncode == 0:
@@ -662,7 +628,7 @@ Respond with ONLY: VALID or FALSE_POSITIVE"""
                 cache_file.unlink()
                 return None
 
-            with open(cache_file, 'r') as f:
+            with open(cache_file, "r") as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Error reading cache: {e}")
@@ -673,7 +639,7 @@ Respond with ONLY: VALID or FALSE_POSITIVE"""
         cache_file = self._cache_dir / f"{cache_key}.json"
 
         try:
-            with open(cache_file, 'w') as f:
+            with open(cache_file, "w") as f:
                 json.dump(result, f, indent=2)
         except Exception as e:
             logger.error(f"Error writing cache: {e}")

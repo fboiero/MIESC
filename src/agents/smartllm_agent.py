@@ -7,16 +7,18 @@ Integration of SmartLLM (ArXiv 2502.13167) methodology:
 - 100% recall on logic vulnerabilities
 - No cloud API dependency
 
-Paper: https://arxiv.org/abs/2502.13167 (hypothetical - based on standard)
+Paper: https://arxiv.org/abs/2502.13167 (Jun Kevin & Pujianto Yugopuspito, Feb 2025)
 Note: This is a reference implementation showing how to integrate local LLMs
 """
 
-from src.agents.base_agent import BaseAgent
-from typing import List, Dict, Any
+import json
 import os
 import time
-import json
 from pathlib import Path
+from typing import Any, Dict, List
+
+from src.agents.base_agent import BaseAgent
+
 
 class SmartLLMAgent(BaseAgent):
     """
@@ -41,9 +43,9 @@ class SmartLLMAgent(BaseAgent):
                 "local_llm_inference",
                 "rag_vulnerability_kb",
                 "pattern_matching",
-                "high_recall_detection"
+                "high_recall_detection",
             ],
-            agent_type="ai"
+            agent_type="ai",
         )
 
         self.use_local_llm = use_local_llm
@@ -72,7 +74,7 @@ class SmartLLMAgent(BaseAgent):
             model_locations = [
                 self.model_path,
                 "models/llama-3.1-8b-instruct.gguf",
-                os.path.expanduser("~/.cache/huggingface/llama-3.1-8b-instruct.gguf")
+                os.path.expanduser("~/.cache/huggingface/llama-3.1-8b-instruct.gguf"),
             ]
 
             for location in model_locations:
@@ -82,7 +84,7 @@ class SmartLLMAgent(BaseAgent):
                         model_path=location,
                         n_ctx=4096,
                         n_threads=4,
-                        n_gpu_layers=0  # CPU only by default
+                        n_gpu_layers=0,  # CPU only by default
                     )
                     print("✅ Local LLM loaded successfully")
                     return True
@@ -109,13 +111,13 @@ class SmartLLMAgent(BaseAgent):
         kb_file = self.kb_path / "vulnerabilities.json"
 
         if kb_file.exists():
-            with open(kb_file, 'r') as f:
+            with open(kb_file, "r") as f:
                 self.knowledge_base = json.load(f)
             print(f"✅ Loaded KB with {len(self.knowledge_base)} vulnerability patterns")
         else:
             # Create minimal KB
             self.knowledge_base = self._create_minimal_kb()
-            with open(kb_file, 'w') as f:
+            with open(kb_file, "w") as f:
                 json.dump(self.knowledge_base, f, indent=2)
             print(f"✅ Created minimal KB with {len(self.knowledge_base)} patterns")
 
@@ -127,83 +129,55 @@ class SmartLLMAgent(BaseAgent):
                 "name": "Reentrancy Attack",
                 "swc_id": "SWC-107",
                 "description": "External call before state update allows reentrant calls",
-                "patterns": [
-                    "call{value:",
-                    ".call(",
-                    "before state update",
-                    "external call"
-                ],
+                "patterns": ["call{value:", ".call(", "before state update", "external call"],
                 "severity": "High",
                 "explanation": "Attacker can recursively call the function before state is updated",
-                "fix": "Use Checks-Effects-Interactions pattern or ReentrancyGuard"
+                "fix": "Use Checks-Effects-Interactions pattern or ReentrancyGuard",
             },
             {
                 "id": "access_control",
                 "name": "Missing Access Control",
                 "swc_id": "SWC-105",
                 "description": "Critical functions lack proper access control",
-                "patterns": [
-                    "function ",
-                    "public",
-                    "no modifier",
-                    "no require(msg.sender"
-                ],
+                "patterns": ["function ", "public", "no modifier", "no require(msg.sender"],
                 "severity": "High",
                 "explanation": "Unauthorized users can call privileged functions",
-                "fix": "Add onlyOwner or role-based access control modifiers"
+                "fix": "Add onlyOwner or role-based access control modifiers",
             },
             {
                 "id": "unchecked_call",
                 "swc_id": "SWC-104",
                 "name": "Unchecked Low-Level Call",
                 "description": "Return value of low-level call not checked",
-                "patterns": [
-                    ".call(",
-                    ".delegatecall(",
-                    "no require",
-                    "no if"
-                ],
+                "patterns": [".call(", ".delegatecall(", "no require", "no if"],
                 "severity": "Medium",
                 "explanation": "Call failures may be silently ignored",
-                "fix": "Always check return value with require() or handle failures"
+                "fix": "Always check return value with require() or handle failures",
             },
             {
                 "id": "timestamp_dependence",
                 "swc_id": "SWC-116",
                 "name": "Block Timestamp Manipulation",
                 "description": "Uses block.timestamp for critical logic",
-                "patterns": [
-                    "block.timestamp",
-                    "now",
-                    "critical logic"
-                ],
+                "patterns": ["block.timestamp", "now", "critical logic"],
                 "severity": "Medium",
                 "explanation": "Miners can manipulate timestamp within ~15 seconds",
-                "fix": "Use block.number or oracle for time-dependent logic"
+                "fix": "Use block.number or oracle for time-dependent logic",
             },
             {
                 "id": "weak_randomness",
                 "swc_id": "SWC-120",
                 "name": "Weak Source of Randomness",
                 "description": "Uses predictable source for randomness",
-                "patterns": [
-                    "block.timestamp",
-                    "block.number",
-                    "block.difficulty",
-                    "random"
-                ],
+                "patterns": ["block.timestamp", "block.number", "block.difficulty", "random"],
                 "severity": "High",
                 "explanation": "Attackers can predict random numbers",
-                "fix": "Use Chainlink VRF or commit-reveal scheme"
-            }
+                "fix": "Use Chainlink VRF or commit-reveal scheme",
+            },
         ]
 
     def get_context_types(self) -> List[str]:
-        return [
-            "smartllm_findings",
-            "smartllm_explanations",
-            "smartllm_rag_context"
-        ]
+        return ["smartllm_findings", "smartllm_explanations", "smartllm_rag_context"]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -218,13 +192,13 @@ class SmartLLMAgent(BaseAgent):
         """
         start_time = time.time()
 
-        print(f"\n🔍 SmartLLM Analysis Starting...")
+        print("\n🔍 SmartLLM Analysis Starting...")
         print(f"   Contract: {contract_path}")
         print(f"   Local LLM: {self.llm_available}")
         print(f"   KB Patterns: {len(self.knowledge_base)}")
 
         # Read contract
-        with open(contract_path, 'r') as f:
+        with open(contract_path, "r") as f:
             contract_code = f.read()
 
         # Step 1: RAG - Retrieve relevant patterns
@@ -255,7 +229,7 @@ class SmartLLMAgent(BaseAgent):
             "smartllm_rag_context": relevant_patterns,
             "execution_time": execution_time,
             "tool_version": "smartllm-miesc-1.0",
-            "llm_enabled": self.llm_available
+            "llm_enabled": self.llm_available,
         }
 
     def _rag_retrieve(self, contract_code: str) -> List[Dict]:
@@ -290,12 +264,7 @@ class SmartLLMAgent(BaseAgent):
             prompt = self._create_llm_prompt(contract_code, pattern)
 
             try:
-                response = self.llm(
-                    prompt,
-                    max_tokens=512,
-                    temperature=0.1,
-                    stop=["</analysis>"]
-                )
+                response = self.llm(prompt, max_tokens=512, temperature=0.1, stop=["</analysis>"])
 
                 analysis = response["choices"][0]["text"]
 
@@ -323,15 +292,17 @@ class SmartLLMAgent(BaseAgent):
 
             # If sufficient matches, consider it a vulnerability
             if len(matches) >= 2:
-                vulnerabilities.append({
-                    "id": pattern["id"],
-                    "name": pattern["name"],
-                    "swc_id": pattern["swc_id"],
-                    "severity": pattern["severity"],
-                    "description": pattern["description"],
-                    "matched_patterns": matches,
-                    "confidence": 0.70  # Lower confidence without LLM
-                })
+                vulnerabilities.append(
+                    {
+                        "id": pattern["id"],
+                        "name": pattern["name"],
+                        "swc_id": pattern["swc_id"],
+                        "severity": pattern["severity"],
+                        "description": pattern["description"],
+                        "matched_patterns": matches,
+                        "confidence": 0.70,  # Lower confidence without LLM
+                    }
+                )
 
         return vulnerabilities
 
@@ -339,7 +310,8 @@ class SmartLLMAgent(BaseAgent):
         """Create prompt for local LLM"""
 
         prompt = f"""<analysis>
-You are a smart contract auditor. Analyze this Solidity code for the vulnerability: {pattern['name']}.
+You are a smart contract auditor. Analyze this Solidity code for the vulnerability: \
+{pattern['name']}.
 
 **Vulnerability Pattern**:
 - ID: {pattern['swc_id']}
@@ -375,7 +347,8 @@ Respond with:
         if "function" in response.lower():
             # Try to extract function name
             import re
-            match = re.search(r'function\s+(\w+)', response, re.IGNORECASE)
+
+            match = re.search(r"function\s+(\w+)", response, re.IGNORECASE)
             if match:
                 location = match.group(1)
 
@@ -387,7 +360,7 @@ Respond with:
             "description": pattern["description"],
             "location": location,
             "llm_reasoning": response[:200],
-            "confidence": 0.90
+            "confidence": 0.90,
         }
 
     def _generate_explanations(self, vulnerabilities: List[Dict]) -> List[Dict]:
@@ -400,13 +373,15 @@ Respond with:
             pattern = next((p for p in self.knowledge_base if p["id"] == vuln["id"]), None)
 
             if pattern:
-                explanations.append({
-                    "vulnerability_id": vuln["id"],
-                    "explanation": pattern.get("explanation", ""),
-                    "fix": pattern.get("fix", ""),
-                    "severity": vuln["severity"],
-                    "confidence": vuln.get("confidence", 0.70)
-                })
+                explanations.append(
+                    {
+                        "vulnerability_id": vuln["id"],
+                        "explanation": pattern.get("explanation", ""),
+                        "fix": pattern.get("fix", ""),
+                        "severity": vuln["severity"],
+                        "confidence": vuln.get("confidence", 0.70),
+                    }
+                )
 
         return explanations
 
@@ -430,7 +405,7 @@ Respond with:
                 "description": vuln.get("description", ""),
                 "explanation": explanation.get("explanation", ""),
                 "recommendation": explanation.get("fix", ""),
-                "llm_enabled": self.llm_available
+                "llm_enabled": self.llm_available,
             }
 
             findings.append(finding)
@@ -444,7 +419,7 @@ Respond with:
             "SWC-105": "SC02-Access-Control",
             "SWC-104": "SC04-Unchecked-Calls",
             "SWC-116": "SC08-Time-Manipulation",
-            "SWC-120": "SC06-Bad-Randomness"
+            "SWC-120": "SC06-Bad-Randomness",
         }
         return mapping.get(swc_id, "SC10-Unknown")
 
@@ -473,7 +448,7 @@ if __name__ == "__main__":
     findings = results.get("smartllm_findings", [])
     explanations = results.get("smartllm_explanations", [])
 
-    print(f"\n📊 Analysis Summary:")
+    print("\n📊 Analysis Summary:")
     print(f"   LLM Enabled: {results.get('llm_enabled', False)}")
     print(f"   RAG Patterns: {len(results.get('smartllm_rag_context', []))}")
     print(f"   Vulnerabilities: {len(findings)}")
@@ -486,7 +461,7 @@ if __name__ == "__main__":
             print(f"   SWC: {finding['swc_id']} | OWASP: {finding['owasp_category']}")
             print(f"   Location: {finding['location']}")
             print(f"   {finding['description'][:80]}...")
-            if finding['explanation']:
+            if finding["explanation"]:
                 print(f"   💡 {finding['explanation'][:80]}...")
     else:
         print("\n✅ No vulnerabilities detected")

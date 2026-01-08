@@ -190,7 +190,8 @@ crytic-export/
 # -----------------------------------------------------------------------------
 =*
 .python-version
-benchmarks/datasets/smartbugs-curated
+benchmarks/datasets/smartbugs-curated/
+benchmarks/datasets/solidifi-benchmark/
 analysis/
 
 # -----------------------------------------------------------------------------

@@ -25,13 +25,12 @@ Date: 2025-01-15
 """
 
 import json
-import os
 import sys
 import time
-from pathlib import Path
-from typing import Dict, Any, List, Set, Tuple
-from dataclasses import dataclass, field
 from collections import defaultdict
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -50,13 +49,14 @@ CATEGORY_MAPPING = {
     "time_manipulation": ["timestamp", "block.timestamp", "now"],
     "unchecked_low_level_calls": ["unchecked", "low-level", "call", "send", "delegatecall"],
     "short_addresses": ["short-address"],
-    "other": []
+    "other": [],
 }
 
 
 @dataclass
 class BenchmarkResult:
     """Result of benchmarking a single contract."""
+
     contract_path: str
     category: str
     expected_vuln: bool  # Always True for SmartBugs Curated
@@ -71,6 +71,7 @@ class BenchmarkResult:
 @dataclass
 class CategoryStats:
     """Statistics for a vulnerability category."""
+
     true_positives: int = 0
     false_negatives: int = 0
     total_findings: int = 0
@@ -100,7 +101,7 @@ def run_adapter_benchmark(
     adapter_name: str,
     dataset_path: Path,
     max_contracts: int = 0,
-    categories: List[str] = None
+    categories: List[str] = None,
 ) -> Tuple[Dict[str, CategoryStats], List[BenchmarkResult]]:
     """
     Run benchmark for a single adapter.
@@ -145,11 +146,7 @@ def run_adapter_benchmark(
             start_time = time.time()
             try:
                 # SmartBugs Curated uses Solidity 0.4.x/0.5.x - need legacy mode
-                result = adapter.analyze(
-                    str(contract),
-                    legacy_solc=True,
-                    solc_version="0.4.24"
-                )
+                result = adapter.analyze(str(contract), legacy_solc=True, solc_version="0.4.24")
                 exec_time = time.time() - start_time
 
                 findings = result.get("findings", [])
@@ -165,7 +162,7 @@ def run_adapter_benchmark(
                     findings_count=len(findings),
                     relevant_findings=len(relevant),
                     execution_time=exec_time,
-                    findings=findings[:5]  # Keep first 5 for analysis
+                    findings=findings[:5],  # Keep first 5 for analysis
                 )
 
                 # Update stats
@@ -179,7 +176,7 @@ def run_adapter_benchmark(
                     print(f"TP ({len(findings)} findings, {len(relevant)} relevant)")
                 else:
                     stats[category].false_negatives += 1
-                    print(f"FN (no findings)")
+                    print("FN (no findings)")
 
             except Exception as e:
                 exec_time = time.time() - start_time
@@ -191,7 +188,7 @@ def run_adapter_benchmark(
                     findings_count=0,
                     relevant_findings=0,
                     execution_time=exec_time,
-                    error=str(e)
+                    error=str(e),
                 )
                 stats[category].false_negatives += 1
                 print(f"ERROR: {str(e)[:50]}")
@@ -224,7 +221,11 @@ def calculate_metrics(stats: Dict[str, CategoryStats]) -> Dict[str, Any]:
     relevant_findings = sum(s.relevant_findings for s in stats.values())
     precision_proxy = relevant_findings / total_findings if total_findings > 0 else 0
 
-    f1 = 2 * (precision_proxy * recall) / (precision_proxy + recall) if (precision_proxy + recall) > 0 else 0
+    f1 = (
+        2 * (precision_proxy * recall) / (precision_proxy + recall)
+        if (precision_proxy + recall) > 0
+        else 0
+    )
 
     return {
         "total_contracts": total_tested,
@@ -236,7 +237,7 @@ def calculate_metrics(stats: Dict[str, CategoryStats]) -> Dict[str, Any]:
         "total_findings": total_findings,
         "relevant_findings": relevant_findings,
         "avg_time_per_contract": round(total_time / total_tested, 2) if total_tested > 0 else 0,
-        "total_time": round(total_time, 2)
+        "total_time": round(total_time, 2),
     }
 
 
@@ -253,12 +254,16 @@ def print_report(adapter_name: str, stats: Dict[str, CategoryStats], metrics: Di
 
     for category, s in sorted(stats.items()):
         recall = s.true_positives / s.contracts_tested * 100 if s.contracts_tested > 0 else 0
-        print(f"{category:<25} {s.true_positives:>5} {s.false_negatives:>5} {recall:>7.1f}% {s.total_findings:>10}")
+        print(
+            f"{category:<25} {s.true_positives:>5} {s.false_negatives:>5} {recall:>7.1f}% {s.total_findings:>10}"
+        )
 
     print("-" * 60)
-    print(f"{'TOTAL':<25} {metrics['true_positives']:>5} {metrics['false_negatives']:>5} {metrics['recall']:>7.1f}% {metrics['total_findings']:>10}")
+    print(
+        f"{'TOTAL':<25} {metrics['true_positives']:>5} {metrics['false_negatives']:>5} {metrics['recall']:>7.1f}% {metrics['total_findings']:>10}"
+    )
 
-    print(f"\nOverall Metrics:")
+    print("\nOverall Metrics:")
     print(f"  Recall: {metrics['recall']}%")
     print(f"  Precision (proxy): {metrics['precision_proxy']}%")
     print(f"  F1-Score: {metrics['f1_score']}%")
@@ -297,18 +302,14 @@ def main():
 
     for name, adapter in adapters:
         stats, results = run_adapter_benchmark(
-            adapter,
-            name,
-            dataset_path,
-            max_contracts=args.max,
-            categories=args.categories
+            adapter, name, dataset_path, max_contracts=args.max, categories=args.categories
         )
         metrics = calculate_metrics(stats)
         print_report(name, stats, metrics)
 
         all_results[name] = {
             "metrics": metrics,
-            "per_category": {k: vars(v) for k, v in stats.items()}
+            "per_category": {k: vars(v) for k, v in stats.items()},
         }
 
     if args.output:

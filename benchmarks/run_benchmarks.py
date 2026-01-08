@@ -16,16 +16,16 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-12-03
 """
 
+import argparse
+import json
 import os
 import sys
-import json
 import time
-import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, asdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any, Dict, List
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -36,6 +36,7 @@ from src.core import get_ml_orchestrator, get_tool_discovery
 @dataclass
 class BenchmarkResult:
     """Result of a single benchmark run."""
+
     tool: str
     contract: str
     vulnerability_type: str
@@ -53,6 +54,7 @@ class BenchmarkResult:
 @dataclass
 class BenchmarkSummary:
     """Summary of all benchmark results for a tool."""
+
     tool: str
     total_contracts: int
     total_expected: int
@@ -74,7 +76,7 @@ class BenchmarkSummary:
 BENCHMARK_CONTRACTS = [
     {
         "name": "reentrancy_simple",
-        "code": '''
+        "code": """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -93,13 +95,13 @@ contract ReentrancyVulnerable {
         balances[msg.sender] = 0;  // State update after external call
     }
 }
-''',
+""",
         "expected_vulnerabilities": ["reentrancy"],
-        "expected_count": 1
+        "expected_count": 1,
     },
     {
         "name": "unchecked_return",
-        "code": '''
+        "code": """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -112,13 +114,13 @@ contract UncheckedReturn {
         to.call("");  // Return value ignored
     }
 }
-''',
+""",
         "expected_vulnerabilities": ["unchecked-return", "unchecked-call"],
-        "expected_count": 2
+        "expected_count": 2,
     },
     {
         "name": "access_control",
-        "code": '''
+        "code": """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -138,13 +140,13 @@ contract AccessControlMissing {
         secretValue = value;  // Anyone can call
     }
 }
-''',
+""",
         "expected_vulnerabilities": ["missing-access-control", "unprotected-function"],
-        "expected_count": 2
+        "expected_count": 2,
     },
     {
         "name": "integer_overflow",
-        "code": '''
+        "code": """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.0;  // Pre-0.8.0 for overflow
 
@@ -159,13 +161,13 @@ contract IntegerOverflow {
         return a * b;  // Can overflow
     }
 }
-''',
+""",
         "expected_vulnerabilities": ["integer-overflow", "arithmetic"],
-        "expected_count": 2
+        "expected_count": 2,
     },
     {
         "name": "timestamp_dependency",
-        "code": '''
+        "code": """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -181,13 +183,13 @@ contract TimestampLottery {
         return block.number % 7 == 0;
     }
 }
-''',
+""",
         "expected_vulnerabilities": ["timestamp-dependency", "weak-randomness"],
-        "expected_count": 2
+        "expected_count": 2,
     },
     {
         "name": "delegatecall_injection",
-        "code": '''
+        "code": """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -203,13 +205,13 @@ contract DelegatecallVuln {
         require(success);
     }
 }
-''',
+""",
         "expected_vulnerabilities": ["delegatecall", "controlled-delegatecall"],
-        "expected_count": 1
+        "expected_count": 1,
     },
     {
         "name": "safe_contract",
-        "code": '''
+        "code": """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -243,10 +245,10 @@ contract SafeContract {
         owner = newOwner;
     }
 }
-''',
+""",
         "expected_vulnerabilities": [],
-        "expected_count": 0
-    }
+        "expected_count": 0,
+    },
 ]
 
 
@@ -280,8 +282,8 @@ class MIESCBenchmark:
 
         # Calculate summary
         summary = self._calculate_summary()
-        summary['total_time_seconds'] = total_time
-        summary['timestamp'] = datetime.now().isoformat()
+        summary["total_time_seconds"] = total_time
+        summary["timestamp"] = datetime.now().isoformat()
 
         # Save results
         self._save_results(summary)
@@ -301,10 +303,7 @@ class MIESCBenchmark:
     def _run_parallel(self):
         """Run benchmarks in parallel."""
         with ThreadPoolExecutor(max_workers=4) as executor:
-            futures = {
-                executor.submit(self._benchmark_contract, c): c
-                for c in BENCHMARK_CONTRACTS
-            }
+            futures = {executor.submit(self._benchmark_contract, c): c for c in BENCHMARK_CONTRACTS}
 
             for future in as_completed(futures):
                 contract = futures[future]
@@ -317,10 +316,8 @@ class MIESCBenchmark:
         import tempfile
 
         # Write contract to temp file
-        with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.sol', delete=False
-        ) as f:
-            f.write(contract['code'])
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
+            f.write(contract["code"])
             contract_path = f.name
 
         try:
@@ -331,19 +328,19 @@ class MIESCBenchmark:
 
             # Get findings
             findings = []
-            if hasattr(result, 'filtered_findings'):
+            if hasattr(result, "filtered_findings"):
                 findings = result.filtered_findings
-            elif hasattr(result, 'findings'):
+            elif hasattr(result, "findings"):
                 findings = result.findings
 
             actual_count = len(findings)
-            expected_count = contract['expected_count']
-            expected_vulns = set(contract['expected_vulnerabilities'])
+            expected_count = contract["expected_count"]
+            expected_vulns = set(contract["expected_vulnerabilities"])
 
             # Calculate metrics
             found_vulns = set()
             for f in findings:
-                vuln_type = f.get('type', f.get('category', '')).lower()
+                vuln_type = f.get("type", f.get("category", "")).lower()
                 for expected in expected_vulns:
                     if expected.lower() in vuln_type or vuln_type in expected.lower():
                         found_vulns.add(expected)
@@ -358,8 +355,8 @@ class MIESCBenchmark:
 
             return BenchmarkResult(
                 tool="miesc",
-                contract=contract['name'],
-                vulnerability_type=",".join(contract['expected_vulnerabilities']) or "none",
+                contract=contract["name"],
+                vulnerability_type=",".join(contract["expected_vulnerabilities"]) or "none",
                 expected_findings=expected_count,
                 actual_findings=actual_count,
                 true_positives=tp,
@@ -368,7 +365,7 @@ class MIESCBenchmark:
                 execution_time_ms=exec_time,
                 precision=precision,
                 recall=recall,
-                f1_score=f1
+                f1_score=f1,
             )
 
         finally:
@@ -405,14 +402,14 @@ class MIESCBenchmark:
                 "recall": round(avg_recall, 4),
                 "f1_score": round(avg_f1, 4),
                 "detection_rate": round(detection_rate, 4),
-                "fp_rate": round(total_fp / total_detected if total_detected > 0 else 0, 4)
+                "fp_rate": round(total_fp / total_detected if total_detected > 0 else 0, 4),
             },
             "performance": {
                 "avg_time_ms": round(avg_time, 2),
                 "min_time_ms": round(min(r.execution_time_ms for r in self.results), 2),
-                "max_time_ms": round(max(r.execution_time_ms for r in self.results), 2)
+                "max_time_ms": round(max(r.execution_time_ms for r in self.results), 2),
             },
-            "per_contract_results": [asdict(r) for r in self.results]
+            "per_contract_results": [asdict(r) for r in self.results],
         }
 
     def _save_results(self, summary: Dict[str, Any]):
@@ -420,14 +417,14 @@ class MIESCBenchmark:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_file = self.output_dir / f"benchmark_{timestamp}.json"
 
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             json.dump(summary, f, indent=2)
 
         print(f"\nResults saved to: {output_file}")
 
         # Also save as latest
         latest_file = self.output_dir / "latest_benchmark.json"
-        with open(latest_file, 'w') as f:
+        with open(latest_file, "w") as f:
             json.dump(summary, f, indent=2)
 
 
@@ -446,19 +443,19 @@ def main():
     print("=" * 60)
     print(f"Tool: {summary.get('tool', 'MIESC')}")
     print(f"Contracts Tested: {summary.get('total_contracts', 0)}")
-    print(f"\nMetrics:")
-    metrics = summary.get('metrics', {})
+    print("\nMetrics:")
+    metrics = summary.get("metrics", {})
     print(f"  Precision: {metrics.get('precision', 0):.2%}")
     print(f"  Recall: {metrics.get('recall', 0):.2%}")
     print(f"  F1 Score: {metrics.get('f1_score', 0):.2%}")
     print(f"  Detection Rate: {metrics.get('detection_rate', 0):.2%}")
-    print(f"\nPerformance:")
-    perf = summary.get('performance', {})
+    print("\nPerformance:")
+    perf = summary.get("performance", {})
     print(f"  Avg Time: {perf.get('avg_time_ms', 0):.0f}ms")
     print(f"  Min Time: {perf.get('min_time_ms', 0):.0f}ms")
     print(f"  Max Time: {perf.get('max_time_ms', 0):.0f}ms")
     print("=" * 60)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

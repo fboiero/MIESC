@@ -10,17 +10,16 @@ Author: Fernando Boiero
 Institution: UNDEF - IUA
 """
 
-import os
-import sys
-import json
-import time
-import subprocess
-from pathlib import Path
-from datetime import datetime
-from dataclasses import dataclass, field
-from typing import Dict, List, Set, Tuple, Optional
-from collections import defaultdict
 import concurrent.futures
+import json
+import subprocess
+import sys
+import time
+from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -46,7 +45,7 @@ SWC_MAPPING = {
     "short_addresses": "SWC-129",
     "time_manipulation": "SWC-116",
     "unchecked_low_level_calls": "SWC-104",
-    "other": "SWC-000"
+    "other": "SWC-000",
 }
 
 # Reverse mapping for MIESC findings
@@ -69,6 +68,7 @@ MIESC_TO_CATEGORY = {
 @dataclass
 class ContractResult:
     """Result of analyzing a single contract."""
+
     name: str
     path: str
     category: str
@@ -84,6 +84,7 @@ class ContractResult:
 @dataclass
 class EvaluationMetrics:
     """Aggregated evaluation metrics."""
+
     total_contracts: int = 0
     total_ground_truth: int = 0
     total_detected: int = 0
@@ -101,16 +102,16 @@ class EvaluationMetrics:
 def load_ground_truth() -> Dict[str, Dict]:
     """Load ground truth from vulnerabilities.json."""
     vuln_file = DATASET_PATH / "vulnerabilities.json"
-    with open(vuln_file, 'r') as f:
+    with open(vuln_file, "r") as f:
         data = json.load(f)
 
     ground_truth = {}
     for contract in data:
-        path = contract['path']
+        path = contract["path"]
         ground_truth[path] = {
-            'name': contract['name'],
-            'vulnerabilities': contract['vulnerabilities'],
-            'pragma': contract.get('pragma', 'unknown')
+            "name": contract["name"],
+            "vulnerabilities": contract["vulnerabilities"],
+            "pragma": contract.get("pragma", "unknown"),
         }
 
     return ground_truth
@@ -121,20 +122,21 @@ def get_solc_version_from_file(contract_path: Path) -> Optional[str]:
     try:
         content = contract_path.read_text()
         import re
-        match = re.search(r'pragma\s+solidity\s*[\^>=<]*\s*(\d+\.\d+\.\d+)', content)
+
+        match = re.search(r"pragma\s+solidity\s*[\^>=<]*\s*(\d+\.\d+\.\d+)", content)
         if match:
             return match.group(1)
         # Try simpler pattern
-        match = re.search(r'pragma\s+solidity\s*[\^>=<]*\s*(\d+\.\d+)', content)
+        match = re.search(r"pragma\s+solidity\s*[\^>=<]*\s*(\d+\.\d+)", content)
         if match:
             version = match.group(1)
             # Map to installed version
-            if version.startswith('0.4'):
-                return '0.4.25'
-            elif version.startswith('0.5'):
-                return '0.5.16'
-            elif version.startswith('0.8'):
-                return '0.8.20'
+            if version.startswith("0.4"):
+                return "0.4.25"
+            elif version.startswith("0.5"):
+                return "0.5.16"
+            elif version.startswith("0.8"):
+                return "0.8.20"
         return None
     except:
         return None
@@ -146,65 +148,66 @@ def run_miesc_analysis(contract_path: Path, timeout: int = TIMEOUT_PER_CONTRACT)
         # Auto-select solc version
         solc_version = get_solc_version_from_file(contract_path)
         if solc_version:
-            subprocess.run(['solc-select', 'use', solc_version],
-                         capture_output=True, timeout=10)
+            subprocess.run(["solc-select", "use", solc_version], capture_output=True, timeout=10)
 
         # Use slither for fast static analysis (Layer 1)
-        cmd = ['slither', str(contract_path), '--json', '-']
+        cmd = ["slither", str(contract_path), "--json", "-"]
 
         # Get solc path if version available
         if solc_version:
-            solc_path = Path.home() / ".solc-select" / "artifacts" / f"solc-{solc_version}" / f"solc-{solc_version}"
+            solc_path = (
+                Path.home()
+                / ".solc-select"
+                / "artifacts"
+                / f"solc-{solc_version}"
+                / f"solc-{solc_version}"
+            )
             if solc_path.exists():
-                cmd.extend(['--solc', str(solc_path)])
+                cmd.extend(["--solc", str(solc_path)])
 
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=PROJECT_ROOT
+            cmd, capture_output=True, text=True, timeout=timeout, cwd=PROJECT_ROOT
         )
 
         if result.returncode == 0 or result.stdout:
             try:
                 return json.loads(result.stdout)
             except json.JSONDecodeError:
-                return {'detectors': [], 'error': 'JSON parse error'}
+                return {"detectors": [], "error": "JSON parse error"}
         else:
-            return {'detectors': [], 'error': result.stderr[:500]}
+            return {"detectors": [], "error": result.stderr[:500]}
 
     except subprocess.TimeoutExpired:
-        return {'detectors': [], 'error': 'Timeout'}
+        return {"detectors": [], "error": "Timeout"}
     except Exception as e:
-        return {'detectors': [], 'error': str(e)}
+        return {"detectors": [], "error": str(e)}
 
 
 def run_aderyn_analysis(contract_path: Path, timeout: int = TIMEOUT_PER_CONTRACT) -> Dict:
     """Run Aderyn analysis on a single contract."""
     try:
         result = subprocess.run(
-            ['aderyn', str(contract_path), '--output', 'json'],
+            ["aderyn", str(contract_path), "--output", "json"],
             capture_output=True,
             text=True,
             timeout=timeout,
-            cwd=PROJECT_ROOT
+            cwd=PROJECT_ROOT,
         )
 
         # Aderyn outputs to file, try to read it
-        json_output = contract_path.parent / 'report.json'
+        json_output = contract_path.parent / "report.json"
         if json_output.exists():
             with open(json_output) as f:
                 data = json.load(f)
             json_output.unlink()  # Clean up
             return data
 
-        return {'findings': [], 'error': result.stderr[:500] if result.stderr else None}
+        return {"findings": [], "error": result.stderr[:500] if result.stderr else None}
 
     except subprocess.TimeoutExpired:
-        return {'findings': [], 'error': 'Timeout'}
+        return {"findings": [], "error": "Timeout"}
     except Exception as e:
-        return {'findings': [], 'error': str(e)}
+        return {"findings": [], "error": str(e)}
 
 
 def run_smartbugs_detectors(contract_path: Path, min_confidence: str = None) -> List[Dict]:
@@ -221,7 +224,7 @@ def run_smartbugs_detectors(contract_path: Path, min_confidence: str = None) -> 
         findings = engine.analyze_file(contract_path)
 
         # Confidence level ordering
-        confidence_levels = {'high': 3, 'medium': 2, 'low': 1}
+        confidence_levels = {"high": 3, "medium": 2, "low": 1}
         min_level = confidence_levels.get(min_confidence, 0)
 
         results = []
@@ -231,113 +234,122 @@ def run_smartbugs_detectors(contract_path: Path, min_confidence: str = None) -> 
             if finding_level < min_level:
                 continue
 
-            results.append({
-                'tool': 'smartbugs-detector',
-                'check': finding.title,
-                'impact': finding.severity.value,
-                'confidence': finding.confidence,
-                'description': finding.description,
-                'lines': [finding.line] if finding.line else [],
-                'category': finding.category,
-                'swc_id': finding.swc_id
-            })
+            results.append(
+                {
+                    "tool": "smartbugs-detector",
+                    "check": finding.title,
+                    "impact": finding.severity.value,
+                    "confidence": finding.confidence,
+                    "description": finding.description,
+                    "lines": [finding.line] if finding.line else [],
+                    "category": finding.category,
+                    "swc_id": finding.swc_id,
+                }
+            )
         return results
-    except Exception as e:
+    except Exception:
         return []
 
 
-def extract_findings(slither_result: Dict, aderyn_result: Dict, smartbugs_findings: List[Dict] = None) -> List[Dict]:
+def extract_findings(
+    slither_result: Dict, aderyn_result: Dict, smartbugs_findings: List[Dict] = None
+) -> List[Dict]:
     """Extract and normalize findings from tool outputs."""
     findings = []
 
     # Extract from Slither
-    if 'results' in slither_result and 'detectors' in slither_result['results']:
-        for detector in slither_result['results']['detectors']:
+    if "results" in slither_result and "detectors" in slither_result["results"]:
+        for detector in slither_result["results"]["detectors"]:
             finding = {
-                'tool': 'slither',
-                'check': detector.get('check', 'unknown'),
-                'impact': detector.get('impact', 'unknown'),
-                'confidence': detector.get('confidence', 'unknown'),
-                'description': detector.get('description', ''),
-                'lines': []
+                "tool": "slither",
+                "check": detector.get("check", "unknown"),
+                "impact": detector.get("impact", "unknown"),
+                "confidence": detector.get("confidence", "unknown"),
+                "description": detector.get("description", ""),
+                "lines": [],
             }
 
             # Extract lines
-            for elem in detector.get('elements', []):
-                if 'source_mapping' in elem:
-                    lines = elem['source_mapping'].get('lines', [])
-                    finding['lines'].extend(lines)
+            for elem in detector.get("elements", []):
+                if "source_mapping" in elem:
+                    lines = elem["source_mapping"].get("lines", [])
+                    finding["lines"].extend(lines)
 
             # Map to SWC category - improved mapping for SmartBugs categories
-            check = detector.get('check', '').lower()
-            description = detector.get('description', '').lower()
+            check = detector.get("check", "").lower()
+            description = detector.get("description", "").lower()
 
             # Reentrancy
-            if 'reentrancy' in check or 'reentrancy' in description:
-                finding['category'] = 'reentrancy'
+            if "reentrancy" in check or "reentrancy" in description:
+                finding["category"] = "reentrancy"
             # Access Control
-            elif any(x in check for x in ['arbitrary', 'suicidal', 'unprotected', 'tx-origin', 'tx.origin']):
-                finding['category'] = 'access_control'
-            elif 'protected' in check and 'function' in check:
-                finding['category'] = 'access_control'
+            elif any(
+                x in check
+                for x in ["arbitrary", "suicidal", "unprotected", "tx-origin", "tx.origin"]
+            ):
+                finding["category"] = "access_control"
+            elif "protected" in check and "function" in check:
+                finding["category"] = "access_control"
             # Arithmetic (overflow/underflow)
-            elif any(x in check for x in ['overflow', 'underflow', 'divide-before-multiply']):
-                finding['category'] = 'arithmetic'
-            elif any(x in description for x in ['overflow', 'underflow', 'arithmetic']):
-                finding['category'] = 'arithmetic'
+            elif any(x in check for x in ["overflow", "underflow", "divide-before-multiply"]):
+                finding["category"] = "arithmetic"
+            elif any(x in description for x in ["overflow", "underflow", "arithmetic"]):
+                finding["category"] = "arithmetic"
             # Time Manipulation
-            elif any(x in check for x in ['timestamp', 'block-timestamp', 'weak-prng']):
-                finding['category'] = 'time_manipulation'
-            elif 'block.timestamp' in description or 'block.number' in description:
-                finding['category'] = 'time_manipulation'
+            elif any(x in check for x in ["timestamp", "block-timestamp", "weak-prng"]):
+                finding["category"] = "time_manipulation"
+            elif "block.timestamp" in description or "block.number" in description:
+                finding["category"] = "time_manipulation"
             # Unchecked Low Level Calls
-            elif any(x in check for x in ['low-level', 'unchecked', 'call-loop', 'delegatecall']):
-                finding['category'] = 'unchecked_low_level_calls'
-            elif any(x in check for x in ['unchecked-send', 'unchecked-transfer', 'unchecked-lowlevel']):
-                finding['category'] = 'unchecked_low_level_calls'
+            elif any(x in check for x in ["low-level", "unchecked", "call-loop", "delegatecall"]):
+                finding["category"] = "unchecked_low_level_calls"
+            elif any(
+                x in check for x in ["unchecked-send", "unchecked-transfer", "unchecked-lowlevel"]
+            ):
+                finding["category"] = "unchecked_low_level_calls"
             # Denial of Service
-            elif any(x in check for x in ['dos', 'denial', 'locked-ether', 'calls-loop']):
-                finding['category'] = 'denial_of_service'
-            elif 'gas' in check and 'loop' in description:
-                finding['category'] = 'denial_of_service'
+            elif any(x in check for x in ["dos", "denial", "locked-ether", "calls-loop"]):
+                finding["category"] = "denial_of_service"
+            elif "gas" in check and "loop" in description:
+                finding["category"] = "denial_of_service"
             # Bad Randomness
-            elif any(x in check for x in ['random', 'prng', 'blockhash']):
-                finding['category'] = 'bad_randomness'
-            elif any(x in description for x in ['randomness', 'predictable', 'blockhash']):
-                finding['category'] = 'bad_randomness'
+            elif any(x in check for x in ["random", "prng", "blockhash"]):
+                finding["category"] = "bad_randomness"
+            elif any(x in description for x in ["randomness", "predictable", "blockhash"]):
+                finding["category"] = "bad_randomness"
             # Front Running
-            elif any(x in check for x in ['front-run', 'frontrun', 'race-condition']):
-                finding['category'] = 'front_running'
-            elif 'transaction order' in description:
-                finding['category'] = 'front_running'
+            elif any(x in check for x in ["front-run", "frontrun", "race-condition"]):
+                finding["category"] = "front_running"
+            elif "transaction order" in description:
+                finding["category"] = "front_running"
             else:
-                finding['category'] = 'other'
+                finding["category"] = "other"
 
             findings.append(finding)
 
     # Extract from Aderyn
-    for severity in ['high', 'medium', 'low']:
-        for issue in aderyn_result.get(f'{severity}_issues', {}).get('issues', []):
+    for severity in ["high", "medium", "low"]:
+        for issue in aderyn_result.get(f"{severity}_issues", {}).get("issues", []):
             finding = {
-                'tool': 'aderyn',
-                'check': issue.get('title', 'unknown'),
-                'impact': severity,
-                'description': issue.get('description', ''),
-                'lines': [],
-                'category': 'other'
+                "tool": "aderyn",
+                "check": issue.get("title", "unknown"),
+                "impact": severity,
+                "description": issue.get("description", ""),
+                "lines": [],
+                "category": "other",
             }
 
             # Extract lines from instances
-            for instance in issue.get('instances', []):
-                if 'line' in instance:
-                    finding['lines'].append(instance['line'])
+            for instance in issue.get("instances", []):
+                if "line" in instance:
+                    finding["lines"].append(instance["line"])
 
             # Map to category
-            title = issue.get('title', '').lower()
-            if 'reentrancy' in title:
-                finding['category'] = 'reentrancy'
-            elif 'access' in title or 'owner' in title:
-                finding['category'] = 'access_control'
+            title = issue.get("title", "").lower()
+            if "reentrancy" in title:
+                finding["category"] = "reentrancy"
+            elif "access" in title or "owner" in title:
+                finding["category"] = "access_control"
 
             findings.append(finding)
 
@@ -348,23 +360,25 @@ def extract_findings(slither_result: Dict, aderyn_result: Dict, smartbugs_findin
     return findings
 
 
-def match_findings(ground_truth: List[Dict], detected: List[Dict], category: str) -> Tuple[int, int, int]:
+def match_findings(
+    ground_truth: List[Dict], detected: List[Dict], category: str
+) -> Tuple[int, int, int]:
     """Match detected findings against ground truth for a category."""
     # Get ground truth lines for this category
     gt_lines = set()
     for vuln in ground_truth:
-        if vuln.get('category') == category:
-            gt_lines.update(vuln.get('lines', []))
+        if vuln.get("category") == category:
+            gt_lines.update(vuln.get("lines", []))
 
     # Get detected lines for this category
     detected_lines = set()
     for finding in detected:
-        if finding.get('category') == category:
-            detected_lines.update(finding.get('lines', []))
+        if finding.get("category") == category:
+            detected_lines.update(finding.get("lines", []))
 
     # Also count by category match (not just line match)
-    gt_has_category = any(v.get('category') == category for v in ground_truth)
-    detected_has_category = any(f.get('category') == category for f in detected)
+    gt_has_category = any(v.get("category") == category for v in ground_truth)
+    detected_has_category = any(f.get("category") == category for f in detected)
 
     # Calculate metrics
     # True positive: detected and in ground truth
@@ -389,14 +403,14 @@ def evaluate_contract(contract_info: Tuple[str, Dict]) -> ContractResult:
     contract_path = DATASET_PATH / rel_path
 
     # Determine category from path
-    category = rel_path.split('/')[1] if '/' in rel_path else 'unknown'
+    category = rel_path.split("/")[1] if "/" in rel_path else "unknown"
 
     result = ContractResult(
-        name=truth['name'],
+        name=truth["name"],
         path=rel_path,
         category=category,
-        ground_truth_vulns=truth['vulnerabilities'],
-        detected_vulns=[]
+        ground_truth_vulns=truth["vulnerabilities"],
+        detected_vulns=[],
     )
 
     if not contract_path.exists():
@@ -415,18 +429,14 @@ def evaluate_contract(contract_info: Tuple[str, Dict]) -> ContractResult:
     result.execution_time = time.time() - start_time
 
     # Check for errors
-    if slither_result.get('error') and aderyn_result.get('error'):
+    if slither_result.get("error") and aderyn_result.get("error"):
         result.error = f"Slither: {slither_result['error']}, Aderyn: {aderyn_result['error']}"
 
     # Extract findings (including SmartBugs detectors)
     result.detected_vulns = extract_findings(slither_result, aderyn_result, smartbugs_findings)
 
     # Match against ground truth
-    tp, fp, fn = match_findings(
-        result.ground_truth_vulns,
-        result.detected_vulns,
-        category
-    )
+    tp, fp, fn = match_findings(result.ground_truth_vulns, result.detected_vulns, category)
 
     result.true_positives = tp
     result.false_positives = fp
@@ -438,17 +448,20 @@ def evaluate_contract(contract_info: Tuple[str, Dict]) -> ContractResult:
 # Module-level config for confidence filtering
 _MIN_CONFIDENCE = None
 
-def run_evaluation(max_contracts: Optional[int] = None, parallel: bool = True, min_confidence: str = None) -> EvaluationMetrics:
+
+def run_evaluation(
+    max_contracts: Optional[int] = None, parallel: bool = True, min_confidence: str = None
+) -> EvaluationMetrics:
     """Run full evaluation on SmartBugs dataset."""
     global _MIN_CONFIDENCE
     _MIN_CONFIDENCE = min_confidence
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("  MIESC v4.1 - SmartBugs Scientific Evaluation")
     print("  Dataset: 143 contracts, 10 vulnerability categories")
     if min_confidence:
         print(f"  Confidence filter: {min_confidence}+")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     # Handle foundry.toml at start to avoid Foundry detection
     foundry_toml = PROJECT_ROOT / "foundry.toml"
@@ -472,7 +485,7 @@ def run_evaluation(max_contracts: Optional[int] = None, parallel: bool = True, m
 
     # Initialize metrics
     metrics = EvaluationMetrics(total_contracts=len(contracts))
-    category_stats = defaultdict(lambda: {'tp': 0, 'fp': 0, 'fn': 0, 'count': 0})
+    category_stats = defaultdict(lambda: {"tp": 0, "fp": 0, "fn": 0, "count": 0})
 
     # Run evaluation
     print(f"\n[2/4] Analyzing {len(contracts)} contracts...")
@@ -515,10 +528,10 @@ def run_evaluation(max_contracts: Optional[int] = None, parallel: bool = True, m
 
         # By category
         cat = result.category
-        category_stats[cat]['tp'] += result.true_positives
-        category_stats[cat]['fp'] += result.false_positives
-        category_stats[cat]['fn'] += result.false_negatives
-        category_stats[cat]['count'] += 1
+        category_stats[cat]["tp"] += result.true_positives
+        category_stats[cat]["fp"] += result.false_positives
+        category_stats[cat]["fn"] += result.false_negatives
+        category_stats[cat]["count"] += 1
 
         # Track errors
         if result.error:
@@ -526,30 +539,34 @@ def run_evaluation(max_contracts: Optional[int] = None, parallel: bool = True, m
 
     # Calculate final metrics
     if metrics.true_positives + metrics.false_positives > 0:
-        metrics.precision = metrics.true_positives / (metrics.true_positives + metrics.false_positives)
+        metrics.precision = metrics.true_positives / (
+            metrics.true_positives + metrics.false_positives
+        )
 
     if metrics.true_positives + metrics.false_negatives > 0:
         metrics.recall = metrics.true_positives / (metrics.true_positives + metrics.false_negatives)
 
     if metrics.precision + metrics.recall > 0:
-        metrics.f1_score = 2 * (metrics.precision * metrics.recall) / (metrics.precision + metrics.recall)
+        metrics.f1_score = (
+            2 * (metrics.precision * metrics.recall) / (metrics.precision + metrics.recall)
+        )
 
     # Calculate per-category metrics
     for cat, stats in category_stats.items():
-        tp, fp, fn = stats['tp'], stats['fp'], stats['fn']
+        tp, fp, fn = stats["tp"], stats["fp"], stats["fn"]
 
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
 
         metrics.by_category[cat] = {
-            'contracts': stats['count'],
-            'true_positives': tp,
-            'false_positives': fp,
-            'false_negatives': fn,
-            'precision': round(precision, 4),
-            'recall': round(recall, 4),
-            'f1_score': round(f1, 4)
+            "contracts": stats["count"],
+            "true_positives": tp,
+            "false_positives": fp,
+            "false_negatives": fn,
+            "precision": round(precision, 4),
+            "recall": round(recall, 4),
+            "f1_score": round(f1, 4),
         }
 
     # Restore foundry.toml
@@ -569,9 +586,9 @@ def generate_report(metrics: EvaluationMetrics, results: List[ContractResult]):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # Console output
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("  EVALUATION RESULTS")
-    print("="*70)
+    print("=" * 70)
 
     print(f"\n  Contracts Analyzed: {metrics.total_contracts}")
     print(f"  Total Execution Time: {metrics.execution_time:.1f}s")
@@ -589,38 +606,40 @@ def generate_report(metrics: EvaluationMetrics, results: List[ContractResult]):
     print(f"  F1-SCORE:  {metrics.f1_score:.2%}")
 
     print("\n  Results by Category:")
-    print("  " + "-"*66)
+    print("  " + "-" * 66)
     print(f"  {'Category':<25} {'Contracts':>10} {'Precision':>12} {'Recall':>10} {'F1':>10}")
-    print("  " + "-"*66)
+    print("  " + "-" * 66)
 
     for cat, stats in sorted(metrics.by_category.items()):
-        print(f"  {cat:<25} {stats['contracts']:>10} {stats['precision']:>11.2%} {stats['recall']:>9.2%} {stats['f1_score']:>9.2%}")
+        print(
+            f"  {cat:<25} {stats['contracts']:>10} {stats['precision']:>11.2%} {stats['recall']:>9.2%} {stats['f1_score']:>9.2%}"
+        )
 
-    print("  " + "-"*66)
+    print("  " + "-" * 66)
 
     if metrics.errors:
         print(f"\n  Errors: {len(metrics.errors)}")
 
     # Save JSON report
     report = {
-        'timestamp': timestamp,
-        'dataset': 'SmartBugs Curated',
-        'total_contracts': metrics.total_contracts,
-        'execution_time_seconds': round(metrics.execution_time, 2),
-        'metrics': {
-            'precision': round(metrics.precision, 4),
-            'recall': round(metrics.recall, 4),
-            'f1_score': round(metrics.f1_score, 4),
-            'true_positives': metrics.true_positives,
-            'false_positives': metrics.false_positives,
-            'false_negatives': metrics.false_negatives
+        "timestamp": timestamp,
+        "dataset": "SmartBugs Curated",
+        "total_contracts": metrics.total_contracts,
+        "execution_time_seconds": round(metrics.execution_time, 2),
+        "metrics": {
+            "precision": round(metrics.precision, 4),
+            "recall": round(metrics.recall, 4),
+            "f1_score": round(metrics.f1_score, 4),
+            "true_positives": metrics.true_positives,
+            "false_positives": metrics.false_positives,
+            "false_negatives": metrics.false_negatives,
         },
-        'by_category': metrics.by_category,
-        'errors_count': len(metrics.errors)
+        "by_category": metrics.by_category,
+        "errors_count": len(metrics.errors),
     }
 
     report_file = RESULTS_PATH / f"smartbugs_evaluation_{timestamp}.json"
-    with open(report_file, 'w') as f:
+    with open(report_file, "w") as f:
         json.dump(report, f, indent=2)
 
     print(f"\n  Report saved: {report_file}")
@@ -629,21 +648,21 @@ def generate_report(metrics: EvaluationMetrics, results: List[ContractResult]):
     detailed_file = RESULTS_PATH / f"smartbugs_detailed_{timestamp}.json"
     detailed = [
         {
-            'name': r.name,
-            'path': r.path,
-            'category': r.category,
-            'ground_truth': len(r.ground_truth_vulns),
-            'detected': len(r.detected_vulns),
-            'tp': r.true_positives,
-            'fp': r.false_positives,
-            'fn': r.false_negatives,
-            'time': round(r.execution_time, 2),
-            'error': r.error
+            "name": r.name,
+            "path": r.path,
+            "category": r.category,
+            "ground_truth": len(r.ground_truth_vulns),
+            "detected": len(r.detected_vulns),
+            "tp": r.true_positives,
+            "fp": r.false_positives,
+            "fn": r.false_negatives,
+            "time": round(r.execution_time, 2),
+            "error": r.error,
         }
         for r in results
     ]
 
-    with open(detailed_file, 'w') as f:
+    with open(detailed_file, "w") as f:
         json.dump(detailed, f, indent=2)
 
     print(f"  Detailed results: {detailed_file}")
@@ -655,28 +674,30 @@ def main():
     """Main entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(description='MIESC SmartBugs Evaluation')
-    parser.add_argument('--max', type=int, help='Max contracts to analyze')
-    parser.add_argument('--no-parallel', action='store_true', help='Disable parallel execution')
-    parser.add_argument('--category', type=str, help='Only evaluate specific category')
-    parser.add_argument('--min-confidence', type=str, choices=['high', 'medium', 'low'],
-                       help='Minimum confidence level for findings (high=highest precision, low=highest recall)')
+    parser = argparse.ArgumentParser(description="MIESC SmartBugs Evaluation")
+    parser.add_argument("--max", type=int, help="Max contracts to analyze")
+    parser.add_argument("--no-parallel", action="store_true", help="Disable parallel execution")
+    parser.add_argument("--category", type=str, help="Only evaluate specific category")
+    parser.add_argument(
+        "--min-confidence",
+        type=str,
+        choices=["high", "medium", "low"],
+        help="Minimum confidence level for findings (high=highest precision, low=highest recall)",
+    )
 
     args = parser.parse_args()
 
     # Run evaluation
     metrics, results = run_evaluation(
-        max_contracts=args.max,
-        parallel=not args.no_parallel,
-        min_confidence=args.min_confidence
+        max_contracts=args.max, parallel=not args.no_parallel, min_confidence=args.min_confidence
     )
 
     # Generate report
-    report_file = generate_report(metrics, results)
+    generate_report(metrics, results)
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("  EVALUATION COMPLETE")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     return metrics
 

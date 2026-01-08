@@ -12,18 +12,19 @@ Author: Fernando Boiero
 Institution: UNDEF - IUA
 """
 
-import os
-import sys
-import time
-import json
-import psutil
-import subprocess
-import tempfile
 import concurrent.futures
-from pathlib import Path
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import time
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from dataclasses import dataclass, asdict
-from typing import List, Dict, Optional
+from pathlib import Path
+from typing import Dict, List
+
+import psutil
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -35,6 +36,7 @@ RESULTS_PATH = PROJECT_ROOT / "benchmarks" / "results"
 @dataclass
 class BenchmarkResult:
     """Results from a benchmark run."""
+
     benchmark_name: str
     contracts_analyzed: int
     total_time_seconds: float
@@ -69,7 +71,7 @@ def generate_synthetic_contracts(count: int, complexity: str = "medium") -> List
 
     # Template based on complexity
     templates = {
-        "simple": '''
+        "simple": """
 pragma solidity ^0.8.0;
 
 contract SimpleContract{n} {{
@@ -83,8 +85,8 @@ contract SimpleContract{n} {{
         return value;
     }}
 }}
-''',
-        "medium": '''
+""",
+        "medium": """
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -111,8 +113,8 @@ contract MediumContract{n} is Ownable {{
         payable(owner()).transfer(address(this).balance);
     }}
 }}
-''',
-        "complex": '''
+""",
+        "complex": """
 pragma solidity ^0.8.0;
 
 interface IUniswapV2Router02 {{
@@ -186,7 +188,7 @@ contract ComplexContract{n} {{
         balances[msg.sender] += msg.value;
     }}
 }}
-'''
+""",
     }
 
     template = templates.get(complexity, templates["medium"])
@@ -206,10 +208,10 @@ def analyze_contract_slither(contract_path: Path, timeout: int = 60) -> Dict:
 
     try:
         result = subprocess.run(
-            ['slither', str(contract_path), '--json', '-'],
+            ["slither", str(contract_path), "--json", "-"],
             capture_output=True,
             text=True,
-            timeout=timeout
+            timeout=timeout,
         )
 
         elapsed = time.time() - start_time
@@ -217,33 +219,18 @@ def analyze_contract_slither(contract_path: Path, timeout: int = 60) -> Dict:
         if result.stdout:
             try:
                 data = json.loads(result.stdout)
-                findings = len(data.get('results', {}).get('detectors', []))
+                findings = len(data.get("results", {}).get("detectors", []))
             except json.JSONDecodeError:
                 findings = 0
         else:
             findings = 0
 
-        return {
-            'success': True,
-            'time': elapsed,
-            'findings': findings,
-            'error': None
-        }
+        return {"success": True, "time": elapsed, "findings": findings, "error": None}
 
     except subprocess.TimeoutExpired:
-        return {
-            'success': False,
-            'time': timeout,
-            'findings': 0,
-            'error': 'Timeout'
-        }
+        return {"success": False, "time": timeout, "findings": 0, "error": "Timeout"}
     except Exception as e:
-        return {
-            'success': False,
-            'time': time.time() - start_time,
-            'findings': 0,
-            'error': str(e)
-        }
+        return {"success": False, "time": time.time() - start_time, "findings": 0, "error": str(e)}
 
 
 def run_sequential_benchmark(contracts: List[Path], name: str = "sequential") -> BenchmarkResult:
@@ -265,7 +252,7 @@ def run_sequential_benchmark(contracts: List[Path], name: str = "sequential") ->
     total_time = time.time() - start_time
     peak_memory = process.memory_info().rss / 1024 / 1024
 
-    successful = sum(1 for r in results if r['success'])
+    successful = sum(1 for r in results if r["success"])
     errors = len(results) - successful
 
     return BenchmarkResult(
@@ -278,11 +265,13 @@ def run_sequential_benchmark(contracts: List[Path], name: str = "sequential") ->
         cpu_percent=psutil.cpu_percent(),
         parallel_workers=1,
         errors=errors,
-        timestamp=datetime.now().isoformat()
+        timestamp=datetime.now().isoformat(),
     )
 
 
-def run_parallel_benchmark(contracts: List[Path], workers: int = 4, name: str = "parallel") -> BenchmarkResult:
+def run_parallel_benchmark(
+    contracts: List[Path], workers: int = 4, name: str = "parallel"
+) -> BenchmarkResult:
     """Run benchmark with parallel execution."""
     print(f"\n[Parallel] Analyzing {len(contracts)} contracts with {workers} workers...")
 
@@ -303,7 +292,7 @@ def run_parallel_benchmark(contracts: List[Path], workers: int = 4, name: str = 
     total_time = time.time() - start_time
     peak_memory = process.memory_info().rss / 1024 / 1024
 
-    successful = sum(1 for r in results if r['success'])
+    successful = sum(1 for r in results if r["success"])
     errors = len(results) - successful
 
     return BenchmarkResult(
@@ -316,15 +305,15 @@ def run_parallel_benchmark(contracts: List[Path], workers: int = 4, name: str = 
         cpu_percent=psutil.cpu_percent(),
         parallel_workers=workers,
         errors=errors,
-        timestamp=datetime.now().isoformat()
+        timestamp=datetime.now().isoformat(),
     )
 
 
 def run_full_benchmark():
     """Run complete scalability benchmark suite."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("  MIESC v4.1 - Scalability Benchmark")
-    print("="*70)
+    print("=" * 70)
 
     results = []
 
@@ -371,18 +360,22 @@ def run_full_benchmark():
 
 def generate_report(results: List[BenchmarkResult]):
     """Generate benchmark report."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("  BENCHMARK RESULTS")
-    print("="*70)
+    print("=" * 70)
 
-    print(f"\n{'Benchmark':<20} {'Contracts':>10} {'Time(s)':>10} {'Throughput':>15} {'Memory(MB)':>12} {'Workers':>8}")
-    print("-"*78)
+    print(
+        f"\n{'Benchmark':<20} {'Contracts':>10} {'Time(s)':>10} {'Throughput':>15} {'Memory(MB)':>12} {'Workers':>8}"
+    )
+    print("-" * 78)
 
     for r in results:
-        print(f"{r.benchmark_name:<20} {r.contracts_analyzed:>10} {r.total_time_seconds:>10.1f} "
-              f"{r.throughput_contracts_per_minute:>12.1f}/min {r.memory_peak_mb:>12.1f} {r.parallel_workers:>8}")
+        print(
+            f"{r.benchmark_name:<20} {r.contracts_analyzed:>10} {r.total_time_seconds:>10.1f} "
+            f"{r.throughput_contracts_per_minute:>12.1f}/min {r.memory_peak_mb:>12.1f} {r.parallel_workers:>8}"
+        )
 
-    print("-"*78)
+    print("-" * 78)
 
     # Calculate speedup
     if len(results) >= 2:
@@ -396,14 +389,14 @@ def generate_report(results: List[BenchmarkResult]):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     report_file = RESULTS_PATH / f"scalability_benchmark_{timestamp}.json"
 
-    with open(report_file, 'w') as f:
+    with open(report_file, "w") as f:
         json.dump([asdict(r) for r in results], f, indent=2)
 
     print(f"\nResults saved: {report_file}")
 
     # Generate summary markdown
     summary_file = RESULTS_PATH / f"SCALABILITY_REPORT_{timestamp}.md"
-    with open(summary_file, 'w') as f:
+    with open(summary_file, "w") as f:
         f.write("# MIESC v4.1 Scalability Benchmark Report\n\n")
         f.write(f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
         f.write(f"**Platform:** {os.uname().sysname} {os.uname().release}\n\n")
@@ -412,13 +405,19 @@ def generate_report(results: List[BenchmarkResult]):
         f.write("| Benchmark | Contracts | Time (s) | Throughput | Memory (MB) | Workers |\n")
         f.write("|-----------|-----------|----------|------------|-------------|----------|\n")
         for r in results:
-            f.write(f"| {r.benchmark_name} | {r.contracts_analyzed} | {r.total_time_seconds:.1f} | "
-                   f"{r.throughput_contracts_per_minute:.1f}/min | {r.memory_peak_mb:.1f} | {r.parallel_workers} |\n")
+            f.write(
+                f"| {r.benchmark_name} | {r.contracts_analyzed} | {r.total_time_seconds:.1f} | "
+                f"{r.throughput_contracts_per_minute:.1f}/min | {r.memory_peak_mb:.1f} | {r.parallel_workers} |\n"
+            )
 
         f.write("\n## Key Findings\n\n")
         if len(results) >= 2:
-            f.write(f"- **Parallel Speedup:** {speedup:.2f}x with {parallel.parallel_workers} workers\n")
-        f.write(f"- **Peak Throughput:** {max(r.throughput_contracts_per_minute for r in results):.1f} contracts/minute\n")
+            f.write(
+                f"- **Parallel Speedup:** {speedup:.2f}x with {parallel.parallel_workers} workers\n"
+            )
+        f.write(
+            f"- **Peak Throughput:** {max(r.throughput_contracts_per_minute for r in results):.1f} contracts/minute\n"
+        )
         f.write(f"- **Memory Efficiency:** Peak {max(r.memory_peak_mb for r in results):.1f} MB\n")
 
     print(f"Summary saved: {summary_file}")
