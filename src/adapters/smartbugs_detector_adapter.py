@@ -24,6 +24,12 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from detectors.smartbugs_detectors import SmartBugsDetectorEngine, SmartBugsFinding
+from src.core.tool_protocol import (
+    ToolMetadata,
+    ToolStatus,
+    ToolCategory,
+    ToolCapability,
+)
 
 
 class SmartBugsDetectorAdapter:
@@ -39,7 +45,7 @@ class SmartBugsDetectorAdapter:
     """
 
     name = "smartbugs-detector"
-    layer = 2  # Layer 2: Pattern Analysis
+    layer = 9  # Layer 9: Advanced Detection
     description = "SmartBugs-specific vulnerability detection"
 
     SEVERITY_MAP = {
@@ -53,20 +59,37 @@ class SmartBugsDetectorAdapter:
     def __init__(self):
         self.engine = SmartBugsDetectorEngine()
 
-    def is_available(self):
+    def is_available(self) -> ToolStatus:
         """Check if SmartBugs detector engine is available."""
         try:
             from detectors.smartbugs_detectors import SmartBugsDetectorEngine
 
-            return type("ToolStatus", (), {"value": "available"})()
+            return ToolStatus.AVAILABLE
         except ImportError:
-            return type("ToolStatus", (), {"value": "not_installed"})()
+            return ToolStatus.NOT_INSTALLED
 
-    def get_metadata(self):
+    def get_metadata(self) -> ToolMetadata:
         """Return tool metadata."""
-        return type(
-            "ToolMetadata", (), {"name": self.name, "version": "1.0.0", "is_optional": True}
-        )()
+        return ToolMetadata(
+            name=self.name,
+            version="1.0.0",
+            category=ToolCategory.STATIC_ANALYSIS,
+            author="Fernando Boiero",
+            license="AGPL-3.0",
+            homepage="https://github.com/fboiero/MIESC",
+            repository="https://github.com/fboiero/MIESC",
+            documentation="https://fboiero.github.io/MIESC",
+            installation_cmd="pip install -e .",
+            capabilities=[
+                ToolCapability(
+                    name="smartbugs_vulnerability_detection",
+                    description="SmartBugs-specific vulnerability detection",
+                    supported_languages=["solidity"],
+                    detection_types=["arithmetic", "bad_randomness", "denial_of_service", "front_running"],
+                )
+            ],
+            is_optional=True,
+        )
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """Analyze a contract for SmartBugs-category vulnerabilities."""

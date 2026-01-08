@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-01-08T19:33:13.939770",
+  "python_ok": true,
+  "core_deps_ok": false,
+  "tools_available": 31,
+  "tools_total": 31,
+  "issues": [
+    "Missing package: slither-analyzer"
+  ]
+}
