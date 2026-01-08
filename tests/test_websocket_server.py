@@ -6,12 +6,13 @@ Tests for real-time audit streaming functionality.
 Author: Fernando Boiero
 """
 
-import pytest
+import asyncio
 import json
 from datetime import datetime, timezone
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock
 
-import asyncio
+import pytest
+
 
 # Helper to run async tests without pytest-asyncio
 def run_async(coro):
@@ -46,7 +47,7 @@ class TestAuditSession:
             session_id="test-123",
             contract_path="/tmp/Token.sol",
             layers=[1, 2, 3, 7],
-            started_at=datetime.now(timezone.utc)
+            started_at=datetime.now(timezone.utc),
         )
 
         assert session.session_id == "test-123"
@@ -67,7 +68,7 @@ class TestAuditSession:
             layers=[1, 3],
             started_at=now,
             findings_count=5,
-            progress_percent=50.0
+            progress_percent=50.0,
         )
 
         result = session.to_dict()
@@ -85,13 +86,13 @@ class TestStreamEvent:
 
     def test_event_creation(self):
         """Test creating a stream event."""
-        from src.mcp.websocket_server import StreamEvent, EventType
+        from src.mcp.websocket_server import EventType, StreamEvent
 
         event = StreamEvent(
             event_type=EventType.AUDIT_STARTED,
             session_id="session-1",
             timestamp=datetime.now(timezone.utc),
-            data={"contract_path": "/tmp/Test.sol"}
+            data={"contract_path": "/tmp/Test.sol"},
         )
 
         assert event.event_type == EventType.AUDIT_STARTED
@@ -100,14 +101,14 @@ class TestStreamEvent:
 
     def test_event_to_json(self):
         """Test event serialization to JSON."""
-        from src.mcp.websocket_server import StreamEvent, EventType
+        from src.mcp.websocket_server import EventType, StreamEvent
 
         now = datetime.now(timezone.utc)
         event = StreamEvent(
             event_type=EventType.FINDING_DISCOVERED,
             session_id="session-2",
             timestamp=now,
-            data={"severity": "high", "type": "reentrancy"}
+            data={"severity": "high", "type": "reentrancy"},
         )
 
         json_str = event.to_json()
@@ -140,11 +141,7 @@ class TestMIESCWebSocketServer:
         pytest.importorskip("websockets")
         from src.mcp.websocket_server import MIESCWebSocketServer
 
-        server = MIESCWebSocketServer(
-            host="0.0.0.0",
-            port=9000,
-            heartbeat_interval=60
-        )
+        server = MIESCWebSocketServer(host="0.0.0.0", port=9000, heartbeat_interval=60)
 
         assert server.host == "0.0.0.0"
         assert server.port == 9000
@@ -171,10 +168,12 @@ class TestMIESCWebSocketServer:
         # This test is conditional - skip if websockets is installed
         try:
             import websockets
+
             pytest.skip("websockets is installed, cannot test ImportError")
         except ImportError:
             with pytest.raises(ImportError) as exc_info:
                 from src.mcp.websocket_server import MIESCWebSocketServer
+
                 MIESCWebSocketServer()
             assert "websockets package not installed" in str(exc_info.value)
 
@@ -185,11 +184,7 @@ class TestWebSocketServerAsync:
     def test_send_event(self):
         """Test sending event to a client."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import (
-            MIESCWebSocketServer,
-            StreamEvent,
-            EventType
-        )
+        from src.mcp.websocket_server import EventType, MIESCWebSocketServer, StreamEvent
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -202,7 +197,7 @@ class TestWebSocketServerAsync:
                 event_type=EventType.HEARTBEAT,
                 session_id="system",
                 timestamp=datetime.now(timezone.utc),
-                data={"test": True}
+                data={"test": True},
             )
 
             await server._send_event(mock_ws, event)
@@ -236,11 +231,7 @@ class TestWebSocketServerAsync:
     def test_broadcast_event(self):
         """Test broadcasting event to subscribed clients."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import (
-            MIESCWebSocketServer,
-            StreamEvent,
-            EventType
-        )
+        from src.mcp.websocket_server import EventType, MIESCWebSocketServer, StreamEvent
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -263,7 +254,7 @@ class TestWebSocketServerAsync:
                 event_type=EventType.LAYER_STARTED,
                 session_id="session-abc",
                 timestamp=datetime.now(timezone.utc),
-                data={"layer": 1}
+                data={"layer": 1},
             )
 
             await server._broadcast_event("session-abc", event)
@@ -277,10 +268,7 @@ class TestWebSocketServerAsync:
     def test_send_sessions_list(self):
         """Test sending list of sessions to client."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import (
-            MIESCWebSocketServer,
-            AuditSession
-        )
+        from src.mcp.websocket_server import AuditSession, MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -290,7 +278,7 @@ class TestWebSocketServerAsync:
                 session_id="test-session",
                 contract_path="/tmp/Test.sol",
                 layers=[1, 2],
-                started_at=datetime.now(timezone.utc)
+                started_at=datetime.now(timezone.utc),
             )
             server._sessions["test-session"] = session
 
@@ -318,10 +306,7 @@ class TestWebSocketServerAsync:
             mock_ws.send = AsyncMock()
             server._subscriptions[mock_ws] = set()
 
-            message = json.dumps({
-                "command": "subscribe",
-                "session_id": "session-xyz"
-            })
+            message = json.dumps({"command": "subscribe", "session_id": "session-xyz"})
 
             await server._handle_message(mock_ws, message)
 
@@ -341,10 +326,7 @@ class TestWebSocketServerAsync:
             mock_ws.send = AsyncMock()
             server._subscriptions[mock_ws] = {"session-xyz"}
 
-            message = json.dumps({
-                "command": "unsubscribe",
-                "session_id": "session-xyz"
-            })
+            message = json.dumps({"command": "unsubscribe", "session_id": "session-xyz"})
 
             await server._handle_message(mock_ws, message)
 
@@ -395,6 +377,280 @@ class TestWebSocketServerAsync:
             assert "Unknown command" in sent_data["data"]["error"]
 
         run_async(_test())
+
+
+class TestHandleMessageCommands:
+    """Tests for handle_message with various commands."""
+
+    def test_handle_subscribe_command(self):
+        """Test handling subscribe command."""
+        pytest.importorskip("websockets")
+        from src.mcp.websocket_server import MIESCWebSocketServer
+
+        async def _test():
+            server = MIESCWebSocketServer()
+
+            mock_ws = AsyncMock()
+            mock_ws.send = AsyncMock()
+            server._subscriptions[mock_ws] = set()
+
+            message = json.dumps({"command": "subscribe", "session_id": "test-session-123"})
+
+            await server._handle_message(mock_ws, message)
+
+            # Verify session was added to subscriptions
+            assert "test-session-123" in server._subscriptions[mock_ws]
+            mock_ws.send.assert_called_once()
+
+        run_async(_test())
+
+    def test_handle_unsubscribe_command(self):
+        """Test handling unsubscribe command."""
+        pytest.importorskip("websockets")
+        from src.mcp.websocket_server import MIESCWebSocketServer
+
+        async def _test():
+            server = MIESCWebSocketServer()
+
+            mock_ws = AsyncMock()
+            mock_ws.send = AsyncMock()
+            server._subscriptions[mock_ws] = {"test-session-123"}
+
+            message = json.dumps({"command": "unsubscribe", "session_id": "test-session-123"})
+
+            await server._handle_message(mock_ws, message)
+
+            # Verify session was removed from subscriptions
+            assert "test-session-123" not in server._subscriptions[mock_ws]
+
+        run_async(_test())
+
+    def test_handle_get_sessions_command(self):
+        """Test handling get_sessions command."""
+        pytest.importorskip("websockets")
+        from src.mcp.websocket_server import AuditSession, MIESCWebSocketServer
+
+        async def _test():
+            server = MIESCWebSocketServer()
+
+            mock_ws = AsyncMock()
+            mock_ws.send = AsyncMock()
+            server._subscriptions[mock_ws] = set()
+
+            # Add some sessions
+            server._sessions["session-1"] = AuditSession(
+                session_id="session-1",
+                contract_path="/tmp/Token.sol",
+                layers=[1, 2],
+                started_at=datetime.now(timezone.utc),
+            )
+
+            message = json.dumps({"command": "get_sessions"})
+
+            await server._handle_message(mock_ws, message)
+
+            mock_ws.send.assert_called_once()
+            sent_data = json.loads(mock_ws.send.call_args[0][0])
+            assert "sessions" in sent_data["data"]
+
+        run_async(_test())
+
+    def test_handle_get_status_command(self):
+        """Test handling get_status command for existing session."""
+        pytest.importorskip("websockets")
+        from src.mcp.websocket_server import AuditSession, MIESCWebSocketServer
+
+        async def _test():
+            server = MIESCWebSocketServer()
+
+            mock_ws = AsyncMock()
+            mock_ws.send = AsyncMock()
+            server._subscriptions[mock_ws] = set()
+
+            # Add a session
+            server._sessions["session-1"] = AuditSession(
+                session_id="session-1",
+                contract_path="/tmp/Token.sol",
+                layers=[1, 2, 3],
+                started_at=datetime.now(timezone.utc),
+                findings_count=5,
+            )
+
+            message = json.dumps({"command": "get_status", "session_id": "session-1"})
+
+            await server._handle_message(mock_ws, message)
+
+            mock_ws.send.assert_called_once()
+            sent_data = json.loads(mock_ws.send.call_args[0][0])
+            assert sent_data["event"] == "progress_update"
+            assert sent_data["data"]["session_id"] == "session-1"
+
+        run_async(_test())
+
+    def test_handle_start_audit_missing_path(self):
+        """Test start_audit command without contract_path."""
+        pytest.importorskip("websockets")
+        from src.mcp.websocket_server import MIESCWebSocketServer
+
+        async def _test():
+            server = MIESCWebSocketServer()
+
+            mock_ws = AsyncMock()
+            mock_ws.send = AsyncMock()
+            server._subscriptions[mock_ws] = set()
+
+            message = json.dumps(
+                {
+                    "command": "start_audit"
+                    # Missing contract_path
+                }
+            )
+
+            await server._handle_message(mock_ws, message)
+
+            mock_ws.send.assert_called_once()
+            sent_data = json.loads(mock_ws.send.call_args[0][0])
+            assert sent_data["event"] == "error"
+            assert "contract_path is required" in sent_data["data"]["error"]
+
+        run_async(_test())
+
+    def test_handle_start_audit_success(self):
+        """Test start_audit command with valid contract path."""
+        pytest.importorskip("websockets")
+        from src.mcp.websocket_server import MIESCWebSocketServer
+
+        async def _test():
+            server = MIESCWebSocketServer()
+
+            mock_ws = AsyncMock()
+            mock_ws.send = AsyncMock()
+            server._clients.add(mock_ws)
+            server._subscriptions[mock_ws] = set()
+
+            message = json.dumps(
+                {"command": "start_audit", "contract_path": "/tmp/Token.sol", "layers": [1, 2]}
+            )
+
+            await server._handle_message(mock_ws, message)
+
+            # Should create a session and send audit_started
+            assert len(server._sessions) == 1
+            mock_ws.send.assert_called()
+            sent_data = json.loads(mock_ws.send.call_args[0][0])
+            assert sent_data["event"] == "audit_started"
+
+        run_async(_test())
+
+
+class TestServerHelpers:
+    """Tests for server helper methods."""
+
+    def test_send_sessions_list(self):
+        """Test _send_sessions_list method."""
+        pytest.importorskip("websockets")
+        from src.mcp.websocket_server import AuditSession, MIESCWebSocketServer
+
+        async def _test():
+            server = MIESCWebSocketServer()
+
+            mock_ws = AsyncMock()
+            mock_ws.send = AsyncMock()
+
+            # Add multiple sessions
+            server._sessions["s1"] = AuditSession(
+                session_id="s1",
+                contract_path="/tmp/A.sol",
+                layers=[1],
+                started_at=datetime.now(timezone.utc),
+            )
+            server._sessions["s2"] = AuditSession(
+                session_id="s2",
+                contract_path="/tmp/B.sol",
+                layers=[1, 2],
+                started_at=datetime.now(timezone.utc),
+                status="completed",
+            )
+
+            await server._send_sessions_list(mock_ws)
+
+            mock_ws.send.assert_called_once()
+            sent_data = json.loads(mock_ws.send.call_args[0][0])
+            assert "sessions" in sent_data["data"]
+            assert len(sent_data["data"]["sessions"]) == 2
+
+        run_async(_test())
+
+    def test_send_error(self):
+        """Test _send_error method."""
+        pytest.importorskip("websockets")
+        from src.mcp.websocket_server import MIESCWebSocketServer
+
+        async def _test():
+            server = MIESCWebSocketServer()
+
+            mock_ws = AsyncMock()
+            mock_ws.send = AsyncMock()
+
+            await server._send_error(mock_ws, "Test error message")
+
+            mock_ws.send.assert_called_once()
+            sent_data = json.loads(mock_ws.send.call_args[0][0])
+            assert sent_data["event"] == "error"
+            assert sent_data["data"]["error"] == "Test error message"
+
+        run_async(_test())
+
+    def test_broadcast_event(self):
+        """Test _broadcast_event method."""
+        pytest.importorskip("websockets")
+        from src.mcp.websocket_server import EventType, MIESCWebSocketServer, StreamEvent
+
+        async def _test():
+            server = MIESCWebSocketServer()
+
+            mock_ws1 = AsyncMock()
+            mock_ws1.send = AsyncMock()
+            mock_ws2 = AsyncMock()
+            mock_ws2.send = AsyncMock()
+
+            server._clients = {mock_ws1, mock_ws2}
+            server._subscriptions[mock_ws1] = {"session-1"}
+            server._subscriptions[mock_ws2] = {"session-2"}  # Not subscribed to session-1
+
+            event = StreamEvent(
+                event_type=EventType.PROGRESS_UPDATE,
+                session_id="session-1",
+                timestamp=datetime.now(timezone.utc),
+                data={"progress": 50},
+            )
+
+            await server._broadcast_event("session-1", event)
+
+            # Only mock_ws1 should receive the event (subscribed to session-1)
+            mock_ws1.send.assert_called_once()
+            mock_ws2.send.assert_not_called()
+
+        run_async(_test())
+
+    def test_get_layer_name_all_layers(self):
+        """Test _get_layer_name for all defined layers."""
+        pytest.importorskip("websockets")
+        from src.mcp.websocket_server import MIESCWebSocketServer
+
+        server = MIESCWebSocketServer()
+
+        # Test all defined layer names
+        assert server._get_layer_name(1) == "Static Analysis"
+        assert server._get_layer_name(2) == "Fuzzing"
+        assert server._get_layer_name(3) == "Symbolic Execution"
+        assert server._get_layer_name(4) == "Invariant Testing"
+        assert server._get_layer_name(5) == "Formal Verification"
+        assert server._get_layer_name(6) == "Property Testing"
+        assert server._get_layer_name(7) == "AI Analysis"
+
+        # Unknown layer
+        assert server._get_layer_name(99) == "Layer 99"
 
 
 class TestRunServer:

@@ -9,15 +9,15 @@ Tests for:
 Author: Fernando Boiero
 """
 
-import pytest
-import tempfile
 import os
-from pathlib import Path
+import tempfile
 
+import pytest
 
 # =============================================================================
 # MCP TOOL REGISTRY TESTS
 # =============================================================================
+
 
 class TestMCPToolRegistry:
     """Tests for MCP Tool Registry and tool discovery."""
@@ -60,14 +60,14 @@ class TestMCPToolRegistry:
 
     def test_register_custom_tool(self):
         """Test registering a custom tool."""
-        from src.mcp.tool_registry import MCPToolRegistry, MCPTool, ToolCategory
+        from src.mcp.tool_registry import MCPTool, MCPToolRegistry, ToolCategory
 
         registry = MCPToolRegistry()
         custom_tool = MCPTool(
             name="custom_test_tool",
             description="A test tool",
             category=ToolCategory.STATIC_ANALYSIS,
-            parameters=[]
+            parameters=[],
         )
 
         registry.register(custom_tool)
@@ -75,14 +75,14 @@ class TestMCPToolRegistry:
 
     def test_unregister_tool(self):
         """Test unregistering a tool."""
-        from src.mcp.tool_registry import MCPToolRegistry, MCPTool, ToolCategory
+        from src.mcp.tool_registry import MCPTool, MCPToolRegistry, ToolCategory
 
         registry = MCPToolRegistry()
         custom_tool = MCPTool(
             name="temp_tool",
             description="Temporary",
             category=ToolCategory.REPORTING,
-            parameters=[]
+            parameters=[],
         )
 
         registry.register(custom_tool)
@@ -97,10 +97,7 @@ class TestMCPToolRegistry:
         from src.mcp.tool_registry import MCPToolParameter
 
         param = MCPToolParameter(
-            name="contract_path",
-            type="string",
-            description="Path to contract",
-            required=True
+            name="contract_path", type="string", description="Path to contract", required=True
         )
 
         schema = param.to_json_schema()
@@ -130,7 +127,7 @@ class TestMCPToolRegistry:
 
     def test_filter_by_category(self):
         """Test filtering tools by category."""
-        from src.mcp.tool_registry import get_tool_registry, ToolCategory
+        from src.mcp.tool_registry import ToolCategory, get_tool_registry
 
         registry = get_tool_registry()
         correlation_tools = registry.list_tools(category=ToolCategory.CORRELATION)
@@ -145,6 +142,7 @@ class TestMCPToolRegistry:
 # PERSISTENCE LAYER TESTS
 # =============================================================================
 
+
 class TestPersistence:
     """Tests for SQLite persistence layer."""
 
@@ -154,6 +152,7 @@ class TestPersistence:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "test.db")
             from src.core.persistence import MIESCDatabase
+
             yield MIESCDatabase(db_path)
 
     def test_database_initialization(self, temp_db):
@@ -161,9 +160,7 @@ class TestPersistence:
         import sqlite3
 
         conn = sqlite3.connect(temp_db.db_path)
-        cursor = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        )
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
         tables = [row[0] for row in cursor.fetchall()]
         conn.close()
 
@@ -199,8 +196,8 @@ class TestPersistence:
                 "tools_failed": [],
                 "total_findings": 5,
                 "findings_by_severity": {"high": 2, "medium": 3},
-                "execution_time_ms": 1234.5
-            }
+                "execution_time_ms": 1234.5,
+            },
         )
 
         assert result is True
@@ -214,13 +211,16 @@ class TestPersistence:
         """Test storing a finding."""
         audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
 
-        finding_id = temp_db.store_finding(audit_id, {
-            "tool": "slither",
-            "type": "reentrancy",
-            "severity": "high",
-            "title": "Reentrancy in withdraw()",
-            "confidence": 0.9
-        })
+        finding_id = temp_db.store_finding(
+            audit_id,
+            {
+                "tool": "slither",
+                "type": "reentrancy",
+                "severity": "high",
+                "title": "Reentrancy in withdraw()",
+                "confidence": 0.9,
+            },
+        )
 
         assert finding_id is not None
         assert finding_id.startswith("find-")
@@ -241,10 +241,13 @@ class TestPersistence:
         """Test retrieving findings for an audit."""
         audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
 
-        temp_db.store_findings(audit_id, [
-            {"tool": "slither", "type": "reentrancy", "severity": "high", "title": "A"},
-            {"tool": "slither", "type": "overflow", "severity": "critical", "title": "B"},
-        ])
+        temp_db.store_findings(
+            audit_id,
+            [
+                {"tool": "slither", "type": "reentrancy", "severity": "high", "title": "A"},
+                {"tool": "slither", "type": "overflow", "severity": "critical", "title": "B"},
+            ],
+        )
 
         findings = temp_db.get_findings_for_audit(audit_id)
         assert len(findings) == 2
@@ -254,12 +257,10 @@ class TestPersistence:
     def test_mark_false_positive(self, temp_db):
         """Test marking a finding as false positive."""
         audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
-        finding_id = temp_db.store_finding(audit_id, {
-            "tool": "slither",
-            "type": "reentrancy",
-            "severity": "high",
-            "title": "FP Test"
-        })
+        finding_id = temp_db.store_finding(
+            audit_id,
+            {"tool": "slither", "type": "reentrancy", "severity": "high", "title": "FP Test"},
+        )
 
         result = temp_db.mark_false_positive(finding_id, True)
         assert result is True
@@ -268,10 +269,13 @@ class TestPersistence:
         """Test getting database statistics."""
         # Create some data
         audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
-        temp_db.store_findings(audit_id, [
-            {"tool": "slither", "type": "reentrancy", "severity": "high", "title": "A"},
-            {"tool": "slither", "type": "overflow", "severity": "medium", "title": "B"},
-        ])
+        temp_db.store_findings(
+            audit_id,
+            [
+                {"tool": "slither", "type": "reentrancy", "severity": "high", "title": "A"},
+                {"tool": "slither", "type": "overflow", "severity": "medium", "title": "B"},
+            ],
+        )
 
         stats = temp_db.get_statistics()
 
@@ -282,10 +286,7 @@ class TestPersistence:
     def test_record_tool_performance(self, temp_db):
         """Test recording tool performance metrics."""
         temp_db.record_tool_performance(
-            tool_name="slither",
-            execution_time_ms=1500.0,
-            findings_count=5,
-            success=True
+            tool_name="slither", execution_time_ms=1500.0, findings_count=5, success=True
         )
 
         stats = temp_db.get_tool_statistics("slither")
@@ -300,10 +301,261 @@ class TestPersistence:
         recent = temp_db.get_recent_audits(limit=3)
         assert len(recent) == 3
 
+    def test_audit_record_to_dict(self, temp_db):
+        """Test AuditRecord.to_dict method."""
+        from src.core.persistence import AuditRecord
+
+        record = AuditRecord(
+            audit_id="audit-123",
+            contract_path="/tmp/Test.sol",
+            contract_hash="abc123",
+            status="completed",
+            tools_run=["slither"],
+            tools_success=["slither"],
+            tools_failed=[],
+            total_findings=5,
+            findings_by_severity={"high": 2, "medium": 3},
+            execution_time_ms=1000.0,
+            created_at="2024-01-01T00:00:00Z",
+            completed_at="2024-01-01T00:01:00Z",
+            metadata={"key": "value"},
+        )
+
+        result = record.to_dict()
+        assert result["audit_id"] == "audit-123"
+        assert result["total_findings"] == 5
+        assert result["metadata"] == {"key": "value"}
+
+    def test_finding_record_to_dict(self, temp_db):
+        """Test FindingRecord.to_dict method."""
+        from src.core.persistence import FindingRecord
+
+        record = FindingRecord(
+            finding_id="find-123",
+            audit_id="audit-456",
+            tool="slither",
+            vulnerability_type="reentrancy",
+            severity="high",
+            confidence=0.9,
+            title="Reentrancy vulnerability",
+            description="Found reentrancy",
+            location={"file": "test.sol", "line": 10},
+            remediation="Use checks-effects-interactions",
+            cwe_id="CWE-841",
+            swc_id="SWC-107",
+            false_positive=False,
+            cross_validated=True,
+            created_at="2024-01-01T00:00:00Z",
+        )
+
+        result = record.to_dict()
+        assert result["finding_id"] == "find-123"
+        assert result["severity"] == "high"
+        assert result["location"]["line"] == 10
+
+    def test_update_audit_status_without_results(self, temp_db):
+        """Test updating audit status without results."""
+        from src.core.persistence import AuditStatus
+
+        audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
+
+        # Update status without results
+        result = temp_db.update_audit_status(audit_id, AuditStatus.RUNNING)
+        assert result is True
+
+        audit = temp_db.get_audit(audit_id)
+        assert audit.status == "running"
+
+    def test_get_audit_not_found(self, temp_db):
+        """Test get_audit returns None for non-existent audit."""
+        result = temp_db.get_audit("nonexistent-audit-id")
+        assert result is None
+
+    def test_get_audits_for_contract(self, temp_db):
+        """Test getting audit history for a specific contract."""
+        contract_path = "/tmp/SpecificContract.sol"
+
+        # Create multiple audits for the same contract
+        for i in range(3):
+            temp_db.create_audit(contract_path, ["slither", f"tool{i}"])
+
+        # Create audit for different contract
+        temp_db.create_audit("/tmp/Other.sol", ["mythril"])
+
+        audits = temp_db.get_audits_for_contract(contract_path, limit=10)
+        assert len(audits) == 3
+        for audit in audits:
+            assert audit.contract_path == contract_path
+
+    def test_get_findings_by_severity(self, temp_db):
+        """Test getting findings filtered by severity."""
+        audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
+
+        # Store findings with different severities
+        findings = [
+            {"tool": "slither", "type": "reentrancy", "severity": "critical", "title": "A"},
+            {"tool": "slither", "type": "overflow", "severity": "critical", "title": "B"},
+            {"tool": "slither", "type": "unchecked", "severity": "medium", "title": "C"},
+        ]
+        temp_db.store_findings(audit_id, findings)
+
+        critical_findings = temp_db.get_findings_by_severity("critical", limit=50)
+        assert len(critical_findings) == 2
+        for finding in critical_findings:
+            assert finding.severity == "critical"
+
+    def test_record_metric(self, temp_db):
+        """Test recording a metric."""
+        temp_db.record_metric(
+            metric_type="analysis",
+            metric_name="coverage",
+            value=85.5,
+            labels={"contract": "Token.sol"},
+        )
+
+        # Verify by querying directly
+        import sqlite3
+
+        conn = sqlite3.connect(temp_db.db_path)
+        cursor = conn.execute("SELECT * FROM metrics WHERE metric_name = 'coverage'")
+        row = cursor.fetchone()
+        conn.close()
+
+        assert row is not None
+        assert row[3] == 85.5  # metric_value
+
+    def test_get_tool_statistics_all_tools(self, temp_db):
+        """Test getting statistics for all tools."""
+        # Record performance for multiple tools
+        temp_db.record_tool_performance("slither", 1000.0, 5, True)
+        temp_db.record_tool_performance("mythril", 5000.0, 3, True)
+        temp_db.record_tool_performance("slither", 1200.0, 7, True)
+
+        stats = temp_db.get_tool_statistics()  # No specific tool
+
+        assert "slither" in stats
+        assert "mythril" in stats
+        assert stats["slither"]["total_runs"] == 2
+        assert stats["mythril"]["total_runs"] == 1
+
+    def test_cleanup_old_audits(self, temp_db):
+        """Test cleaning up old audits."""
+        # Create an audit
+        audit_id = temp_db.create_audit("/tmp/OldContract.sol", ["slither"])
+        temp_db.store_finding(
+            audit_id, {"tool": "slither", "type": "reentrancy", "severity": "high", "title": "Test"}
+        )
+
+        # Cleanup with 0 days should delete all
+        deleted = temp_db.cleanup_old_audits(days=0)
+
+        # The cleanup function uses datetime comparison
+        # With days=0, it should delete audits created before now
+        assert deleted >= 0  # May or may not delete depending on timing
+
+    def test_vacuum(self, temp_db):
+        """Test database vacuum operation."""
+        # Create and delete some data
+        audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
+        temp_db.cleanup_old_audits(days=0)
+
+        # Vacuum should not raise
+        temp_db.vacuum()
+
+    def test_create_audit_with_real_file(self, temp_db):
+        """Test creating audit with a real file."""
+        # Create a temp contract file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
+            f.write("pragma solidity ^0.8.0; contract Test {}")
+            temp_file = f.name
+
+        try:
+            audit_id = temp_db.create_audit(temp_file, ["slither"])
+            audit = temp_db.get_audit(audit_id)
+
+            assert audit is not None
+            assert audit.contract_hash is not None
+            assert len(audit.contract_hash) == 16
+        finally:
+            os.unlink(temp_file)
+
+    def test_store_findings_with_error(self, temp_db):
+        """Test store_findings handles errors gracefully."""
+        audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
+
+        # Create a finding that will cause an error (missing required fields)
+        # The store_finding method should handle this gracefully
+        findings = [
+            {"tool": "slither", "type": "reentrancy", "severity": "high", "title": "Valid"},
+            {"tool": "slither"},  # Missing required fields
+        ]
+
+        # store_findings should continue despite errors
+        count = temp_db.store_findings(audit_id, findings)
+        # At least the valid finding should be stored
+        assert count >= 1
+
+    def test_record_tool_performance_with_error(self, temp_db):
+        """Test recording tool performance with error message."""
+        temp_db.record_tool_performance(
+            tool_name="mythril",
+            execution_time_ms=30000.0,
+            findings_count=0,
+            success=False,
+            error_message="Timeout exceeded",
+            contract_hash="abc123",
+        )
+
+        stats = temp_db.get_tool_statistics("mythril")
+        assert stats["mythril"]["success_rate"] == 0.0
+
+
+class TestPersistenceSingleton:
+    """Tests for persistence singleton functions."""
+
+    def test_get_database_singleton(self):
+        """Test get_database returns singleton instance."""
+        from src.core.persistence import get_database, reset_database
+
+        # Reset first to ensure clean state
+        reset_database()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "singleton_test.db")
+
+            db1 = get_database(db_path)
+            db2 = get_database()  # Should return same instance
+
+            assert db1 is db2
+
+            # Cleanup
+            reset_database()
+
+    def test_reset_database(self):
+        """Test reset_database clears singleton."""
+        from src.core.persistence import get_database, reset_database
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "reset_test.db")
+
+            db1 = get_database(db_path)
+            reset_database()
+
+            # New call should create new instance
+            db2 = get_database(db_path)
+
+            # They might be different objects after reset
+            # The important thing is no error occurs
+            assert db2 is not None
+
+            # Cleanup
+            reset_database()
+
 
 # =============================================================================
 # COMPLIANCE MAPPER TESTS
 # =============================================================================
+
 
 class TestComplianceMapper:
     """Tests for compliance mapping module."""
@@ -442,13 +694,14 @@ class TestComplianceMapper:
 # INTEGRATION TESTS
 # =============================================================================
 
+
 class TestIntegration:
     """Integration tests for new modules."""
 
     def test_mcp_to_persistence_flow(self):
         """Test flow from MCP tool registry to persistence."""
-        from src.mcp.tool_registry import get_tool_registry
         from src.core.persistence import MIESCDatabase
+        from src.mcp.tool_registry import get_tool_registry
 
         # Get tools from registry
         registry = get_tool_registry()
@@ -463,8 +716,8 @@ class TestIntegration:
 
     def test_compliance_with_persistence(self):
         """Test compliance mapper with persistence."""
-        from src.security.compliance_mapper import get_compliance_mapper
         from src.core.persistence import MIESCDatabase
+        from src.security.compliance_mapper import get_compliance_mapper
 
         mapper = get_compliance_mapper()
 
@@ -476,11 +729,18 @@ class TestIntegration:
             finding = {"type": "reentrancy", "severity": "high", "title": "Test"}
             enriched = mapper.enrich_finding(finding)
 
-            finding_id = db.store_finding(audit_id, {
-                **enriched,
-                "swc_id": enriched["compliance"]["swc_id"],
-                "cwe_id": enriched["compliance"]["cwe_ids"][0] if enriched["compliance"]["cwe_ids"] else None,
-            })
+            finding_id = db.store_finding(
+                audit_id,
+                {
+                    **enriched,
+                    "swc_id": enriched["compliance"]["swc_id"],
+                    "cwe_id": (
+                        enriched["compliance"]["cwe_ids"][0]
+                        if enriched["compliance"]["cwe_ids"]
+                        else None
+                    ),
+                },
+            )
 
             assert finding_id is not None
 

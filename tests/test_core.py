@@ -3,9 +3,10 @@ MIESC Core Module Tests
 Tests for core components: protocols, discovery, health, aggregator.
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
 from enum import Enum
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 class TestToolProtocol:
@@ -14,41 +15,46 @@ class TestToolProtocol:
     def test_tool_metadata_import(self):
         """Test ToolMetadata can be imported."""
         from src.core.tool_protocol import ToolMetadata
+
         assert ToolMetadata is not None
 
     def test_tool_adapter_import(self):
         """Test ToolAdapter can be imported."""
         from src.core.tool_protocol import ToolAdapter
+
         assert ToolAdapter is not None
 
     def test_tool_status_import(self):
         """Test ToolStatus can be imported."""
         from src.core.tool_protocol import ToolStatus
+
         assert ToolStatus is not None
-        assert isinstance(ToolStatus.AVAILABLE, Enum) or hasattr(ToolStatus, 'value')
+        assert isinstance(ToolStatus.AVAILABLE, Enum) or hasattr(ToolStatus, "value")
 
     def test_tool_category_import(self):
         """Test ToolCategory can be imported."""
         from src.core.tool_protocol import ToolCategory
+
         assert ToolCategory is not None
 
     def test_tool_capability_import(self):
         """Test ToolCapability can be imported."""
         from src.core.tool_protocol import ToolCapability
+
         assert ToolCapability is not None
 
     def test_create_tool_metadata(self):
         """Test creating ToolMetadata instance."""
-        from src.core.tool_protocol import ToolMetadata, ToolCategory
+        from src.core.tool_protocol import ToolCategory, ToolMetadata
 
         # ToolMetadata uses dataclass, check if it can be created
         try:
             metadata = ToolMetadata(
-                name='test_tool',
-                version='1.0.0',
+                name="test_tool",
+                version="1.0.0",
                 category=ToolCategory.STATIC_ANALYSIS,
             )
-            assert metadata.name == 'test_tool'
+            assert metadata.name == "test_tool"
         except TypeError:
             # If ToolMetadata has required fields we don't know about, just verify class exists
             assert ToolMetadata is not None
@@ -57,46 +63,46 @@ class TestToolProtocol:
 class TestToolProtocolCoverage:
     """Additional tests for ToolProtocol coverage."""
 
-    def _create_mock_adapter(self, name='test-tool', available=True):
+    def _create_mock_adapter(self, name="test-tool", available=True):
         """Create a mock ToolAdapter for testing."""
         from src.core.tool_protocol import (
-            ToolAdapter, ToolMetadata, ToolCategory, ToolCapability, ToolStatus
+            ToolAdapter,
+            ToolCapability,
+            ToolCategory,
+            ToolMetadata,
+            ToolStatus,
         )
 
         class MockAdapter(ToolAdapter):
             def get_metadata(self) -> ToolMetadata:
                 return ToolMetadata(
                     name=name,
-                    version='1.0.0',
+                    version="1.0.0",
                     category=ToolCategory.STATIC_ANALYSIS,
-                    author='Test Author',
-                    license='MIT',
-                    homepage='https://example.com',
-                    repository='https://github.com/test/test',
-                    documentation='https://docs.example.com',
-                    installation_cmd='pip install test',
+                    author="Test Author",
+                    license="MIT",
+                    homepage="https://example.com",
+                    repository="https://github.com/test/test",
+                    documentation="https://docs.example.com",
+                    installation_cmd="pip install test",
                     capabilities=[
                         ToolCapability(
-                            name='reentrancy',
-                            description='Detect reentrancy',
-                            supported_languages=['solidity'],
-                            detection_types=['reentrancy']
+                            name="reentrancy",
+                            description="Detect reentrancy",
+                            supported_languages=["solidity"],
+                            detection_types=["reentrancy"],
                         )
                     ],
                     cost=0.0,
                     requires_api_key=False,
-                    is_optional=True
+                    is_optional=True,
                 )
 
             def is_available(self) -> ToolStatus:
                 return ToolStatus.AVAILABLE if available else ToolStatus.NOT_INSTALLED
 
             def analyze(self, contract_path: str, **kwargs):
-                return {
-                    'tool': name,
-                    'status': 'success',
-                    'findings': []
-                }
+                return {"tool": name, "status": "success", "findings": []}
 
             def normalize_findings(self, raw_output):
                 return []
@@ -108,17 +114,17 @@ class TestToolProtocolCoverage:
         adapter = self._create_mock_adapter()
         instructions = adapter.get_installation_instructions()
 
-        assert 'test-tool' in instructions
-        assert 'MIT' in instructions
-        assert 'Free' in instructions
-        assert 'pip install test' in instructions
+        assert "test-tool" in instructions
+        assert "MIT" in instructions
+        assert "Free" in instructions
+        assert "pip install test" in instructions
 
     def test_can_analyze(self):
         """Test can_analyze method (line 225)."""
         adapter = self._create_mock_adapter()
 
-        assert adapter.can_analyze('contract.sol') is True
-        assert adapter.can_analyze('contract.js') is False
+        assert adapter.can_analyze("contract.sol") is True
+        assert adapter.can_analyze("contract.js") is False
 
     def test_get_default_config(self):
         """Test get_default_config method (line 233)."""
@@ -131,17 +137,17 @@ class TestToolProtocolCoverage:
         """Test validate_config method (line 241)."""
         adapter = self._create_mock_adapter()
         assert adapter.validate_config({}) is True
-        assert adapter.validate_config({'key': 'value'}) is True
+        assert adapter.validate_config({"key": "value"}) is True
 
     def test_tool_registry_register(self):
         """Test ToolRegistry.register method (lines 262-269)."""
         from src.core.tool_protocol import ToolRegistry
 
         registry = ToolRegistry()
-        adapter = self._create_mock_adapter(name='registry-test')
+        adapter = self._create_mock_adapter(name="registry-test")
 
         registry.register(adapter)
-        assert 'registry-test' in [t.get_metadata().name for t in registry.get_all_tools()]
+        assert "registry-test" in [t.get_metadata().name for t in registry.get_all_tools()]
 
         # Test overwriting with warning
         registry.register(adapter)  # Should log warning
@@ -151,23 +157,23 @@ class TestToolProtocolCoverage:
         from src.core.tool_protocol import ToolRegistry
 
         registry = ToolRegistry()
-        adapter = self._create_mock_adapter(name='get-test')
+        adapter = self._create_mock_adapter(name="get-test")
         registry.register(adapter)
 
-        result = registry.get_tool('get-test')
+        result = registry.get_tool("get-test")
         assert result is not None
-        assert result.get_metadata().name == 'get-test'
+        assert result.get_metadata().name == "get-test"
 
         # Test non-existent tool
-        assert registry.get_tool('nonexistent') is None
+        assert registry.get_tool("nonexistent") is None
 
     def test_tool_registry_get_all_tools(self):
         """Test ToolRegistry.get_all_tools method (line 277)."""
         from src.core.tool_protocol import ToolRegistry
 
         registry = ToolRegistry()
-        adapter1 = self._create_mock_adapter(name='all-test-1')
-        adapter2 = self._create_mock_adapter(name='all-test-2')
+        adapter1 = self._create_mock_adapter(name="all-test-1")
+        adapter2 = self._create_mock_adapter(name="all-test-2")
 
         registry.register(adapter1)
         registry.register(adapter2)
@@ -177,10 +183,10 @@ class TestToolProtocolCoverage:
 
     def test_tool_registry_get_tools_by_category(self):
         """Test ToolRegistry.get_tools_by_category method (lines 279-284)."""
-        from src.core.tool_protocol import ToolRegistry, ToolCategory
+        from src.core.tool_protocol import ToolCategory, ToolRegistry
 
         registry = ToolRegistry()
-        adapter = self._create_mock_adapter(name='category-test')
+        adapter = self._create_mock_adapter(name="category-test")
         registry.register(adapter)
 
         static_tools = registry.get_tools_by_category(ToolCategory.STATIC_ANALYSIS)
@@ -194,64 +200,67 @@ class TestToolProtocolCoverage:
         from src.core.tool_protocol import ToolRegistry
 
         registry = ToolRegistry()
-        available_adapter = self._create_mock_adapter(name='available-test', available=True)
-        unavailable_adapter = self._create_mock_adapter(name='unavailable-test', available=False)
+        available_adapter = self._create_mock_adapter(name="available-test", available=True)
+        unavailable_adapter = self._create_mock_adapter(name="unavailable-test", available=False)
 
         registry.register(available_adapter)
         registry.register(unavailable_adapter)
 
         available_tools = registry.get_available_tools()
         assert len(available_tools) == 1
-        assert available_tools[0].get_metadata().name == 'available-test'
+        assert available_tools[0].get_metadata().name == "available-test"
 
     def test_tool_registry_get_tool_status_report(self):
         """Test ToolRegistry.get_tool_status_report method (lines 295-331)."""
         from src.core.tool_protocol import ToolRegistry
 
         registry = ToolRegistry()
-        available_adapter = self._create_mock_adapter(name='report-available', available=True)
-        unavailable_adapter = self._create_mock_adapter(name='report-unavailable', available=False)
+        available_adapter = self._create_mock_adapter(name="report-available", available=True)
+        unavailable_adapter = self._create_mock_adapter(name="report-unavailable", available=False)
 
         registry.register(available_adapter)
         registry.register(unavailable_adapter)
 
         report = registry.get_tool_status_report()
 
-        assert report['total_tools'] == 2
-        assert report['available'] == 1
-        assert report['not_installed'] == 1
-        assert len(report['tools']) == 2
+        assert report["total_tools"] == 2
+        assert report["available"] == 1
+        assert report["not_installed"] == 1
+        assert len(report["tools"]) == 2
 
     def test_tool_status_report_configuration_error(self):
         """Test get_tool_status_report with configuration_error (lines 328-329)."""
         from src.core.tool_protocol import (
-            ToolRegistry, ToolAdapter, ToolMetadata, ToolCategory,
-            ToolCapability, ToolStatus
+            ToolAdapter,
+            ToolCategory,
+            ToolMetadata,
+            ToolRegistry,
+            ToolStatus,
         )
 
         class ConfigErrorAdapter(ToolAdapter):
             def get_metadata(self) -> ToolMetadata:
                 return ToolMetadata(
-                    name='config-error-tool',
-                    version='1.0.0',
+                    name="config-error-tool",
+                    version="1.0.0",
                     category=ToolCategory.STATIC_ANALYSIS,
-                    author='Test',
-                    license='MIT',
-                    homepage='https://example.com',
-                    repository='https://github.com/test/test',
-                    documentation='https://docs.example.com',
-                    installation_cmd='pip install test',
+                    author="Test",
+                    license="MIT",
+                    homepage="https://example.com",
+                    repository="https://github.com/test/test",
+                    documentation="https://docs.example.com",
+                    installation_cmd="pip install test",
                     capabilities=[],
                     cost=0.0,
                     requires_api_key=False,
-                    is_optional=True
+                    is_optional=True,
                 )
 
             def is_available(self) -> ToolStatus:
                 return ToolStatus.CONFIGURATION_ERROR
 
             def analyze(self, contract_path: str, **kwargs):
-                return {'findings': []}
+                return {"findings": []}
 
             def normalize_findings(self, raw_output):
                 return []
@@ -260,7 +269,7 @@ class TestToolProtocolCoverage:
         registry.register(ConfigErrorAdapter())
 
         report = registry.get_tool_status_report()
-        assert report['configuration_error'] == 1
+        assert report["configuration_error"] == 1
 
     def test_get_tool_registry_singleton(self):
         """Test get_tool_registry function (line 340)."""
@@ -278,6 +287,7 @@ class TestToolDiscovery:
     def test_import(self):
         """Test ToolDiscovery can be imported."""
         from src.core.tool_discovery import ToolDiscovery
+
         assert ToolDiscovery is not None
 
     def test_get_tool_discovery(self):
@@ -334,7 +344,7 @@ class TestToolDiscovery:
         from src.core import get_tool_discovery
 
         discovery = get_tool_discovery()
-        tool = discovery.get_tool('nonexistent_tool_xyz')
+        tool = discovery.get_tool("nonexistent_tool_xyz")
 
         assert tool is None
 
@@ -346,10 +356,10 @@ class TestToolDiscovery:
         data = discovery.to_dict()
 
         assert isinstance(data, dict)
-        assert 'total_tools' in data
-        assert 'available_tools' in data
-        assert 'tools' in data
-        assert 'by_layer' in data
+        assert "total_tools" in data
+        assert "available_tools" in data
+        assert "tools" in data
+        assert "by_layer" in data
 
     def test_cached_discovery(self):
         """Test that discovery results are cached."""
@@ -385,9 +395,9 @@ class TestToolDiscovery:
         discovery = get_tool_discovery()
 
         with pytest.raises(ValueError) as exc_info:
-            discovery.load_adapter('nonexistent_adapter_xyz')
+            discovery.load_adapter("nonexistent_adapter_xyz")
 
-        assert 'Unknown tool' in str(exc_info.value)
+        assert "Unknown tool" in str(exc_info.value)
 
 
 class TestToolDiscoveryCoverage:
@@ -395,14 +405,15 @@ class TestToolDiscoveryCoverage:
 
     def test_find_adapters_path_not_found(self):
         """Test RuntimeError when adapters directory not found (line 126)."""
-        from src.core.tool_discovery import ToolDiscovery
-        from unittest.mock import patch, MagicMock
         import tempfile
+        from unittest.mock import patch
+
+        from src.core.tool_discovery import ToolDiscovery
 
         # Create ToolDiscovery with a non-existent path
         with tempfile.TemporaryDirectory() as tmpdir:
             # Mock Path to return non-existent paths
-            with patch.object(ToolDiscovery, '_find_adapters_path') as mock_find:
+            with patch.object(ToolDiscovery, "_find_adapters_path") as mock_find:
                 mock_find.side_effect = RuntimeError("Could not find adapters directory")
 
                 with pytest.raises(RuntimeError) as exc_info:
@@ -419,45 +430,52 @@ class TestToolDiscoveryCoverage:
         adapters_dir.mkdir()
 
         # Create a normal adapter file
-        (adapters_dir / "test_adapter.py").write_text("""
+        (adapters_dir / "test_adapter.py").write_text(
+            """
 class TestAdapter:
     def is_available(self):
         return True
     def get_metadata(self):
         return None
-""")
+"""
+        )
 
         # Create an underscore file that should be skipped
-        (adapters_dir / "_private_adapter.py").write_text("""
+        (adapters_dir / "_private_adapter.py").write_text(
+            """
 class PrivateAdapter:
     pass
-""")
+"""
+        )
 
         discovery = ToolDiscovery(adapters_path=str(adapters_dir))
         tools = discovery.discover()
 
         # The underscore file should be skipped
-        assert '_private' not in tools
+        assert "_private" not in tools
 
     def test_discover_handles_load_exception(self, tmp_path):
         """Test that discover handles exceptions during adapter load (lines 146-148)."""
-        from src.core.tool_discovery import ToolDiscovery
         from unittest.mock import patch
+
+        from src.core.tool_discovery import ToolDiscovery
 
         adapters_dir = tmp_path / "adapters"
         adapters_dir.mkdir()
 
         # Create a valid adapter file
-        (adapters_dir / "valid_adapter.py").write_text("""
+        (adapters_dir / "valid_adapter.py").write_text(
+            """
 class ValidAdapter:
     def is_available(self):
         return True
-""")
+"""
+        )
 
         discovery = ToolDiscovery(adapters_path=str(adapters_dir))
 
         # Mock _load_adapter_info to raise an exception
-        with patch.object(discovery, '_load_adapter_info', side_effect=Exception("Test error")):
+        with patch.object(discovery, "_load_adapter_info", side_effect=Exception("Test error")):
             tools = discovery.discover()
 
             # Should return empty dict without raising
@@ -465,10 +483,11 @@ class ValidAdapter:
 
     def test_load_adapter_info_no_adapter_class(self, tmp_path):
         """Test _load_adapter_info returns None when no adapter class found (line 176)."""
-        from src.core.tool_discovery import ToolDiscovery
-        from unittest.mock import patch, MagicMock
-        from pathlib import Path
         import types
+        from pathlib import Path
+        from unittest.mock import patch
+
+        from src.core.tool_discovery import ToolDiscovery
 
         adapters_dir = tmp_path / "adapters"
         adapters_dir.mkdir()
@@ -476,22 +495,23 @@ class ValidAdapter:
         discovery = ToolDiscovery(adapters_path=str(adapters_dir))
 
         # Create a mock module with only non-Adapter classes
-        mock_module = types.ModuleType('fake_module')
-        mock_module.SomeClass = type('SomeClass', (), {})
-        mock_module.AnotherClass = type('AnotherClass', (), {})
+        mock_module = types.ModuleType("fake_module")
+        mock_module.SomeClass = type("SomeClass", (), {})
+        mock_module.AnotherClass = type("AnotherClass", (), {})
 
-        with patch('importlib.import_module', return_value=mock_module):
-            result = discovery._load_adapter_info(Path('fake_adapter.py'))
+        with patch("importlib.import_module", return_value=mock_module):
+            result = discovery._load_adapter_info(Path("fake_adapter.py"))
 
             # Should return None when no *Adapter class found
             assert result is None
 
     def test_load_adapter_info_metadata_exception(self, tmp_path):
         """Test _load_adapter_info handles get_metadata exception (lines 195-196)."""
-        from src.core.tool_discovery import ToolDiscovery
-        from unittest.mock import patch
-        from pathlib import Path
         import types
+        from pathlib import Path
+        from unittest.mock import patch
+
+        from src.core.tool_discovery import ToolDiscovery
 
         adapters_dir = tmp_path / "adapters"
         adapters_dir.mkdir()
@@ -507,11 +527,11 @@ class ValidAdapter:
                 raise Exception("Metadata error")
 
         # Create a mock module
-        mock_module = types.ModuleType('test_module')
+        mock_module = types.ModuleType("test_module")
         mock_module.TestAdapter = MockAdapter
 
-        with patch('importlib.import_module', return_value=mock_module):
-            result = discovery._load_adapter_info(Path('test_adapter.py'))
+        with patch("importlib.import_module", return_value=mock_module):
+            result = discovery._load_adapter_info(Path("test_adapter.py"))
 
             # Should still return ToolInfo even if metadata fails
             assert result is not None
@@ -519,22 +539,23 @@ class ValidAdapter:
 
     def test_load_adapter_info_import_error(self, tmp_path):
         """Test _load_adapter_info handles ImportError (lines 218-220)."""
-        from src.core.tool_discovery import ToolDiscovery
-        from unittest.mock import patch
         from pathlib import Path
+        from unittest.mock import patch
+
+        from src.core.tool_discovery import ToolDiscovery
 
         adapters_dir = tmp_path / "adapters"
         adapters_dir.mkdir()
 
         discovery = ToolDiscovery(adapters_path=str(adapters_dir))
 
-        with patch('importlib.import_module', side_effect=ImportError("Module not found")):
-            result = discovery._load_adapter_info(Path('missing_adapter.py'))
+        with patch("importlib.import_module", side_effect=ImportError("Module not found")):
+            result = discovery._load_adapter_info(Path("missing_adapter.py"))
 
             # Should return ToolInfo with available=False
             assert result is not None
             assert result.available is False
-            assert result.name == 'missing'
+            assert result.name == "missing"
 
 
 class TestToolInfo:
@@ -545,14 +566,14 @@ class TestToolInfo:
         from src.core.tool_discovery import ToolInfo
 
         tool = ToolInfo(
-            name='test_tool',
-            adapter_class='TestAdapter',
-            module_path='src.adapters.test_adapter',
-            layer='static_analysis',
-            category='Static Analysis',
+            name="test_tool",
+            adapter_class="TestAdapter",
+            module_path="src.adapters.test_adapter",
+            layer="static_analysis",
+            category="Static Analysis",
             available=True,
-            description='Test tool description',
-            version='1.0.0',
+            description="Test tool description",
+            version="1.0.0",
             is_optional=True,
             requires_api_key=False,
         )
@@ -560,22 +581,22 @@ class TestToolInfo:
         data = tool.to_dict()
 
         assert isinstance(data, dict)
-        assert data['name'] == 'test_tool'
-        assert data['layer'] == 'static_analysis'
-        assert data['available'] is True
-        assert data['description'] == 'Test tool description'
-        assert data['version'] == '1.0.0'
+        assert data["name"] == "test_tool"
+        assert data["layer"] == "static_analysis"
+        assert data["available"] is True
+        assert data["description"] == "Test tool description"
+        assert data["version"] == "1.0.0"
 
     def test_tool_info_defaults(self):
         """Test ToolInfo with default values."""
         from src.core.tool_discovery import ToolInfo
 
         tool = ToolInfo(
-            name='minimal_tool',
-            adapter_class='MinimalAdapter',
-            module_path='src.adapters.minimal',
-            layer='other',
-            category='Other',
+            name="minimal_tool",
+            adapter_class="MinimalAdapter",
+            module_path="src.adapters.minimal",
+            layer="other",
+            category="Other",
             available=False,
         )
 
@@ -592,11 +613,13 @@ class TestHealthChecker:
     def test_import(self):
         """Test HealthChecker can be imported."""
         from src.core.health_checker import HealthChecker
+
         assert HealthChecker is not None
 
     def test_health_status_import(self):
         """Test HealthStatus can be imported."""
         from src.core import HealthStatus
+
         assert HealthStatus is not None
 
     def test_instantiation(self):
@@ -614,9 +637,9 @@ class TestHealthChecker:
         health = checker.check_all()
 
         assert health is not None
-        assert hasattr(health, 'status')
-        assert hasattr(health, 'healthy_tools')
-        assert hasattr(health, 'unhealthy_tools')
+        assert hasattr(health, "status")
+        assert hasattr(health, "healthy_tools")
+        assert hasattr(health, "unhealthy_tools")
 
 
 class TestHealthCheckerCoverage:
@@ -624,39 +647,38 @@ class TestHealthCheckerCoverage:
 
     def test_tool_health_to_dict(self):
         """Test ToolHealth.to_dict method (line 38)."""
-        from src.core.health_checker import ToolHealth, HealthStatus
         from datetime import datetime
 
+        from src.core.health_checker import HealthStatus, ToolHealth
+
         health = ToolHealth(
-            name='test_tool',
+            name="test_tool",
             status=HealthStatus.HEALTHY,
             available=True,
-            version='1.0.0',
+            version="1.0.0",
             response_time_ms=50.123,
             last_check=datetime(2024, 1, 1, 12, 0, 0),
             error_message=None,
-            details={'layer': 'static'}
+            details={"layer": "static"},
         )
 
         result = health.to_dict()
-        assert result['name'] == 'test_tool'
-        assert result['status'] == 'healthy'
-        assert result['available'] is True
-        assert result['version'] == '1.0.0'
-        assert result['response_time_ms'] == 50.12
-        assert result['last_check'] == '2024-01-01T12:00:00'
-        assert result['details'] == {'layer': 'static'}
+        assert result["name"] == "test_tool"
+        assert result["status"] == "healthy"
+        assert result["available"] is True
+        assert result["version"] == "1.0.0"
+        assert result["response_time_ms"] == 50.12
+        assert result["last_check"] == "2024-01-01T12:00:00"
+        assert result["details"] == {"layer": "static"}
 
     def test_system_health_to_dict(self):
         """Test SystemHealth.to_dict method (line 63)."""
-        from src.core.health_checker import SystemHealth, ToolHealth, HealthStatus
         from datetime import datetime
 
+        from src.core.health_checker import HealthStatus, SystemHealth, ToolHealth
+
         tool = ToolHealth(
-            name='test_tool',
-            status=HealthStatus.HEALTHY,
-            available=True,
-            last_check=datetime.now()
+            name="test_tool", status=HealthStatus.HEALTHY, available=True, last_check=datetime.now()
         )
 
         system = SystemHealth(
@@ -667,56 +689,55 @@ class TestHealthCheckerCoverage:
             unhealthy_tools=0,
             tools=[tool],
             check_duration_ms=100.5,
-            timestamp=datetime(2024, 1, 1, 12, 0, 0)
+            timestamp=datetime(2024, 1, 1, 12, 0, 0),
         )
 
         result = system.to_dict()
-        assert result['status'] == 'healthy'
-        assert result['summary']['total'] == 1
-        assert result['summary']['healthy'] == 1
-        assert len(result['tools']) == 1
-        assert result['check_duration_ms'] == 100.5
-        assert result['timestamp'] == '2024-01-01T12:00:00'
+        assert result["status"] == "healthy"
+        assert result["summary"]["total"] == 1
+        assert result["summary"]["healthy"] == 1
+        assert len(result["tools"]) == 1
+        assert result["check_duration_ms"] == 100.5
+        assert result["timestamp"] == "2024-01-01T12:00:00"
 
     def test_load_adapter_not_found(self):
         """Test _load_adapter returns None for unknown tool (line 123)."""
         from src.core.health_checker import HealthChecker
 
         checker = HealthChecker()
-        result = checker._load_adapter('nonexistent_tool')
+        result = checker._load_adapter("nonexistent_tool")
         assert result is None
 
     def test_load_adapter_import_error(self):
         """Test _load_adapter handles import error (lines 131-133)."""
-        from src.core.health_checker import HealthChecker
         from unittest.mock import patch
+
+        from src.core.health_checker import HealthChecker
 
         checker = HealthChecker()
 
         # Mock an adapter that will fail to import
-        with patch.dict(checker.ADAPTER_MAP, {'fake_tool': ('nonexistent.module', 'FakeClass')}):
-            result = checker._load_adapter('fake_tool')
+        with patch.dict(checker.ADAPTER_MAP, {"fake_tool": ("nonexistent.module", "FakeClass")}):
+            result = checker._load_adapter("fake_tool")
             assert result is None
 
     def test_check_tool_cache_hit(self):
         """Test check_tool with cache hit (lines 141-145)."""
-        from src.core.health_checker import HealthChecker, ToolHealth, HealthStatus
         from datetime import datetime
+
+        from src.core.health_checker import HealthChecker, HealthStatus, ToolHealth
 
         checker = HealthChecker()
         checker._cache_ttl = 3600  # 1 hour
 
         # Pre-populate cache
         cached_health = ToolHealth(
-            name='test_tool',
-            status=HealthStatus.HEALTHY,
-            available=True,
-            last_check=datetime.now()
+            name="test_tool", status=HealthStatus.HEALTHY, available=True, last_check=datetime.now()
         )
-        checker._cache['test_tool'] = cached_health
+        checker._cache["test_tool"] = cached_health
 
         # Should return cached result
-        result = checker.check_tool('test_tool', use_cache=True)
+        result = checker.check_tool("test_tool", use_cache=True)
         assert result == cached_health
 
     def test_check_tool_adapter_not_found(self):
@@ -724,17 +745,18 @@ class TestHealthCheckerCoverage:
         from src.core.health_checker import HealthChecker, HealthStatus
 
         checker = HealthChecker()
-        result = checker.check_tool('nonexistent_tool', use_cache=False)
+        result = checker.check_tool("nonexistent_tool", use_cache=False)
 
-        assert result.name == 'nonexistent_tool'
+        assert result.name == "nonexistent_tool"
         assert result.status == HealthStatus.UNKNOWN
         assert result.available is False
-        assert result.error_message == 'Adapter not found'
+        assert result.error_message == "Adapter not found"
 
     def test_check_tool_metadata_exception(self):
         """Test check_tool handles metadata exception (lines 176-177)."""
+        from unittest.mock import MagicMock, patch
+
         from src.core.health_checker import HealthChecker
-        from unittest.mock import patch, MagicMock
 
         checker = HealthChecker()
 
@@ -742,37 +764,41 @@ class TestHealthCheckerCoverage:
         mock_adapter.is_available.return_value = True
         mock_adapter.get_metadata.side_effect = Exception("Metadata error")
 
-        with patch.object(checker, '_load_adapter', return_value=mock_adapter):
-            result = checker.check_tool('test_tool', use_cache=False)
+        with patch.object(checker, "_load_adapter", return_value=mock_adapter):
+            result = checker.check_tool("test_tool", use_cache=False)
             # Should still succeed despite metadata error
             assert result.available is True
             assert result.version is None
 
     def test_check_tool_unhealthy(self):
         """Test check_tool when tool is not available (line 183)."""
+        from unittest.mock import MagicMock, patch
+
         from src.core.health_checker import HealthChecker, HealthStatus
-        from unittest.mock import patch, MagicMock
 
         checker = HealthChecker()
 
         mock_adapter = MagicMock()
         mock_adapter.is_available.return_value = False
-        mock_adapter.get_metadata.return_value = MagicMock(version='1.0', layer='test', category='test')
+        mock_adapter.get_metadata.return_value = MagicMock(
+            version="1.0", layer="test", category="test"
+        )
 
-        with patch.object(checker, '_load_adapter', return_value=mock_adapter):
-            result = checker.check_tool('test_tool', use_cache=False)
+        with patch.object(checker, "_load_adapter", return_value=mock_adapter):
+            result = checker.check_tool("test_tool", use_cache=False)
             assert result.status == HealthStatus.UNHEALTHY
             assert result.available is False
 
     def test_check_tool_exception(self):
         """Test check_tool exception handling (lines 199-210)."""
-        from src.core.health_checker import HealthChecker, HealthStatus
         from unittest.mock import patch
+
+        from src.core.health_checker import HealthChecker, HealthStatus
 
         checker = HealthChecker()
 
-        with patch.object(checker, '_load_adapter', side_effect=RuntimeError("Test error")):
-            result = checker.check_tool('test_tool', use_cache=False)
+        with patch.object(checker, "_load_adapter", side_effect=RuntimeError("Test error")):
+            result = checker.check_tool("test_tool", use_cache=False)
             assert result.status == HealthStatus.UNHEALTHY
             assert result.available is False
             assert "Test error" in result.error_message
@@ -782,14 +808,15 @@ class TestHealthCheckerCoverage:
         from src.core.health_checker import HealthChecker
 
         checker = HealthChecker()
-        health = checker.check_all(tools=['nonexistent1', 'nonexistent2'])
+        health = checker.check_all(tools=["nonexistent1", "nonexistent2"])
 
         assert health.total_tools == 2
 
     def test_check_all_future_exception(self):
         """Test check_all handles future exceptions (lines 234-236)."""
-        from src.core.health_checker import HealthChecker, HealthStatus
         from unittest.mock import patch
+
+        from src.core.health_checker import HealthChecker
 
         checker = HealthChecker()
 
@@ -797,36 +824,40 @@ class TestHealthCheckerCoverage:
         def raise_exception(*args, **kwargs):
             raise TimeoutError("Test timeout")
 
-        with patch.object(checker, 'check_tool', side_effect=raise_exception):
+        with patch.object(checker, "check_tool", side_effect=raise_exception):
             # The ThreadPoolExecutor will catch the exception and we check
             # that check_all handles it gracefully
-            health = checker.check_all(tools=['test_tool'])
+            health = checker.check_all(tools=["test_tool"])
             # Should still return a result (may be healthy or not depending on implementation)
             assert health is not None
 
     def test_check_all_degraded_status(self):
         """Test check_all returns DEGRADED status (lines 252-253)."""
+        from unittest.mock import MagicMock, patch
+
         from src.core.health_checker import HealthChecker, HealthStatus
-        from unittest.mock import patch, MagicMock
 
         checker = HealthChecker()
 
         def mock_load_adapter(tool):
             mock_adapter = MagicMock()
             # 'fail' in tool name -> not available, others -> available
-            mock_adapter.is_available.return_value = ('fail' not in tool)
-            mock_adapter.get_metadata.return_value = MagicMock(version='1.0', layer='test', category='test')
+            mock_adapter.is_available.return_value = "fail" not in tool
+            mock_adapter.get_metadata.return_value = MagicMock(
+                version="1.0", layer="test", category="test"
+            )
             return mock_adapter
 
-        with patch.object(checker, '_load_adapter', side_effect=mock_load_adapter):
-            health = checker.check_all(tools=['tool1', 'tool2', 'fail_tool'])
+        with patch.object(checker, "_load_adapter", side_effect=mock_load_adapter):
+            health = checker.check_all(tools=["tool1", "tool2", "fail_tool"])
             # 2 healthy, 1 unhealthy -> DEGRADED (healthy > unhealthy but unhealthy > 0)
             assert health.status == HealthStatus.DEGRADED
 
     def test_check_all_unhealthy_status(self):
         """Test check_all returns UNHEALTHY status (lines 254-255)."""
+        from unittest.mock import MagicMock, patch
+
         from src.core.health_checker import HealthChecker, HealthStatus
-        from unittest.mock import patch, MagicMock
 
         checker = HealthChecker()
 
@@ -834,18 +865,21 @@ class TestHealthCheckerCoverage:
             mock_adapter = MagicMock()
             # All tools unavailable
             mock_adapter.is_available.return_value = False
-            mock_adapter.get_metadata.return_value = MagicMock(version='1.0', layer='test', category='test')
+            mock_adapter.get_metadata.return_value = MagicMock(
+                version="1.0", layer="test", category="test"
+            )
             return mock_adapter
 
-        with patch.object(checker, '_load_adapter', side_effect=mock_load_adapter):
-            health = checker.check_all(tools=['unhealthy1', 'unhealthy2'])
+        with patch.object(checker, "_load_adapter", side_effect=mock_load_adapter):
+            health = checker.check_all(tools=["unhealthy1", "unhealthy2"])
             assert health.status == HealthStatus.UNHEALTHY
 
     def test_get_available_tools(self):
         """Test get_available_tools method (lines 272-273)."""
-        from src.core.health_checker import HealthChecker, HealthStatus, SystemHealth, ToolHealth
-        from unittest.mock import patch
         from datetime import datetime
+        from unittest.mock import patch
+
+        from src.core.health_checker import HealthChecker, HealthStatus, SystemHealth, ToolHealth
 
         checker = HealthChecker()
 
@@ -856,23 +890,34 @@ class TestHealthCheckerCoverage:
             degraded_tools=0,
             unhealthy_tools=1,
             tools=[
-                ToolHealth(name='tool1', status=HealthStatus.HEALTHY, available=True, last_check=datetime.now()),
-                ToolHealth(name='tool2', status=HealthStatus.UNHEALTHY, available=False, last_check=datetime.now())
+                ToolHealth(
+                    name="tool1",
+                    status=HealthStatus.HEALTHY,
+                    available=True,
+                    last_check=datetime.now(),
+                ),
+                ToolHealth(
+                    name="tool2",
+                    status=HealthStatus.UNHEALTHY,
+                    available=False,
+                    last_check=datetime.now(),
+                ),
             ],
             check_duration_ms=100,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
-        with patch.object(checker, 'check_all', return_value=mock_health):
+        with patch.object(checker, "check_all", return_value=mock_health):
             result = checker.get_available_tools()
-            assert 'tool1' in result
-            assert 'tool2' not in result
+            assert "tool1" in result
+            assert "tool2" not in result
 
     def test_get_tools_by_layer(self):
         """Test get_tools_by_layer method (lines 277-287)."""
-        from src.core.health_checker import HealthChecker, HealthStatus, SystemHealth, ToolHealth
-        from unittest.mock import patch
         from datetime import datetime
+        from unittest.mock import patch
+
+        from src.core.health_checker import HealthChecker, HealthStatus, SystemHealth, ToolHealth
 
         checker = HealthChecker()
 
@@ -883,39 +928,52 @@ class TestHealthCheckerCoverage:
             degraded_tools=0,
             unhealthy_tools=0,
             tools=[
-                ToolHealth(name='tool1', status=HealthStatus.HEALTHY, available=True,
-                          last_check=datetime.now(), details={'layer': 'static'}),
-                ToolHealth(name='tool2', status=HealthStatus.HEALTHY, available=True,
-                          last_check=datetime.now(), details={'layer': 'dynamic'}),
-                ToolHealth(name='tool3', status=HealthStatus.UNHEALTHY, available=False,
-                          last_check=datetime.now(), details={'layer': 'static'})
+                ToolHealth(
+                    name="tool1",
+                    status=HealthStatus.HEALTHY,
+                    available=True,
+                    last_check=datetime.now(),
+                    details={"layer": "static"},
+                ),
+                ToolHealth(
+                    name="tool2",
+                    status=HealthStatus.HEALTHY,
+                    available=True,
+                    last_check=datetime.now(),
+                    details={"layer": "dynamic"},
+                ),
+                ToolHealth(
+                    name="tool3",
+                    status=HealthStatus.UNHEALTHY,
+                    available=False,
+                    last_check=datetime.now(),
+                    details={"layer": "static"},
+                ),
             ],
             check_duration_ms=100,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
-        with patch.object(checker, 'check_all', return_value=mock_health):
+        with patch.object(checker, "check_all", return_value=mock_health):
             result = checker.get_tools_by_layer()
-            assert 'static' in result
-            assert 'tool1' in result['static']
-            assert 'dynamic' in result
-            assert 'tool2' in result['dynamic']
+            assert "static" in result
+            assert "tool1" in result["static"]
+            assert "dynamic" in result
+            assert "tool2" in result["dynamic"]
             # tool3 should not be in result because not available
-            assert 'tool3' not in result.get('static', [])
+            assert "tool3" not in result.get("static", [])
 
     def test_clear_cache(self):
         """Test clear_cache method (line 291)."""
-        from src.core.health_checker import HealthChecker, ToolHealth, HealthStatus
         from datetime import datetime
+
+        from src.core.health_checker import HealthChecker, HealthStatus, ToolHealth
 
         checker = HealthChecker()
 
         # Add something to cache
-        checker._cache['test'] = ToolHealth(
-            name='test',
-            status=HealthStatus.HEALTHY,
-            available=True,
-            last_check=datetime.now()
+        checker._cache["test"] = ToolHealth(
+            name="test", status=HealthStatus.HEALTHY, available=True, last_check=datetime.now()
         )
 
         assert len(checker._cache) > 0
@@ -924,9 +982,10 @@ class TestHealthCheckerCoverage:
 
     def test_load_adapter_success(self):
         """Test _load_adapter successfully loads an adapter (lines 129-130)."""
-        from src.core.health_checker import HealthChecker
-        from unittest.mock import patch, MagicMock
         import importlib
+        from unittest.mock import MagicMock, patch
+
+        from src.core.health_checker import HealthChecker
 
         checker = HealthChecker()
 
@@ -936,8 +995,8 @@ class TestHealthCheckerCoverage:
         mock_module = MagicMock()
         mock_module.SlitherAdapter = mock_adapter_class
 
-        with patch.object(importlib, 'import_module', return_value=mock_module):
-            result = checker._load_adapter('slither')
+        with patch.object(importlib, "import_module", return_value=mock_module):
+            result = checker._load_adapter("slither")
             assert result == mock_adapter_instance
 
     def test_check_all_default_tools(self):
@@ -961,7 +1020,7 @@ class TestHealthCheckerCoverage:
             assert router is not None
             # Check that routes are registered
             routes = [r.path for r in router.routes]
-            assert '/' in routes or '/health/' in routes or any('health' in str(r) for r in routes)
+            assert "/" in routes or "/health/" in routes or any("health" in str(r) for r in routes)
         except ImportError:
             # FastAPI not installed, skip test
             pass
@@ -973,6 +1032,7 @@ class TestResultAggregator:
     def test_import(self):
         """Test ResultAggregator can be imported."""
         from src.core.result_aggregator import ResultAggregator
+
         assert ResultAggregator is not None
 
     def test_instantiation(self):
@@ -988,12 +1048,10 @@ class TestResultAggregator:
 
         aggregator = ResultAggregator()
         tool_result = {
-            'status': 'success',
-            'findings': [
-                {'type': 'reentrancy', 'severity': 'high', 'message': 'Test'}
-            ]
+            "status": "success",
+            "findings": [{"type": "reentrancy", "severity": "high", "message": "Test"}],
         }
-        count = aggregator.add_tool_results('slither', tool_result)
+        count = aggregator.add_tool_results("slither", tool_result)
 
         assert count >= 0
 
@@ -1002,14 +1060,14 @@ class TestResultAggregator:
         from src.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
-        assert hasattr(aggregator, 'add_tool_results')
+        assert hasattr(aggregator, "add_tool_results")
 
     def test_aggregator_has_normalize_method(self):
         """Test aggregator has _normalize_finding method."""
         from src.core.result_aggregator import ResultAggregator
 
         aggregator = ResultAggregator()
-        assert hasattr(aggregator, '_normalize_finding')
+        assert hasattr(aggregator, "_normalize_finding")
 
 
 class TestResultAggregatorCoverage:
@@ -1020,58 +1078,63 @@ class TestResultAggregatorCoverage:
         from src.core.result_aggregator import Finding
 
         finding = Finding(
-            id='test-123',
-            tool='slither',
-            severity='high',
-            type='reentrancy',
-            message='Test vulnerability',
-            file='contract.sol',
+            id="test-123",
+            tool="slither",
+            severity="high",
+            type="reentrancy",
+            message="Test vulnerability",
+            file="contract.sol",
             line=42,
-            function='withdraw',
-            swc_id='SWC-107',
-            cwe_id='CWE-841',
-            confidence=0.9
+            function="withdraw",
+            swc_id="SWC-107",
+            cwe_id="CWE-841",
+            confidence=0.9,
         )
 
         result = finding.to_dict()
-        assert result['id'] == 'test-123'
-        assert result['tool'] == 'slither'
-        assert result['severity'] == 'high'
-        assert result['type'] == 'reentrancy'
-        assert result['swc_id'] == 'SWC-107'
-        assert result['cwe_id'] == 'CWE-841'
+        assert result["id"] == "test-123"
+        assert result["tool"] == "slither"
+        assert result["severity"] == "high"
+        assert result["type"] == "reentrancy"
+        assert result["swc_id"] == "SWC-107"
+        assert result["cwe_id"] == "CWE-841"
 
     def test_aggregated_finding_to_dict(self):
         """Test AggregatedFinding.to_dict method (line 64)."""
         from src.core.result_aggregator import AggregatedFinding, Finding
 
         original = Finding(
-            id='orig-1', tool='slither', severity='high',
-            type='reentrancy', message='Test', file='test.sol', line=10
+            id="orig-1",
+            tool="slither",
+            severity="high",
+            type="reentrancy",
+            message="Test",
+            file="test.sol",
+            line=10,
         )
 
         agg_finding = AggregatedFinding(
-            id='AGG-123',
-            severity='high',
-            type='reentrancy',
-            message='Aggregated vulnerability',
-            file='contract.sol',
+            id="AGG-123",
+            severity="high",
+            type="reentrancy",
+            message="Aggregated vulnerability",
+            file="contract.sol",
             line=42,
-            function='withdraw',
-            swc_id='SWC-107',
-            cwe_id='CWE-841',
+            function="withdraw",
+            swc_id="SWC-107",
+            cwe_id="CWE-841",
             confidence=0.95,
-            tools=['slither', 'mythril'],
+            tools=["slither", "mythril"],
             confirmations=2,
-            original_findings=[original]
+            original_findings=[original],
         )
 
         result = agg_finding.to_dict()
-        assert result['id'] == 'AGG-123'
-        assert result['location']['file'] == 'contract.sol'
-        assert result['location']['line'] == 42
-        assert result['cross_validated'] is True
-        assert result['confirmations'] == 2
+        assert result["id"] == "AGG-123"
+        assert result["location"]["file"] == "contract.sol"
+        assert result["location"]["line"] == 42
+        assert result["cross_validated"] is True
+        assert result["confirmations"] == 2
 
     def test_normalize_severity_variations(self):
         """Test _normalize_severity with various inputs (lines 202-213)."""
@@ -1080,26 +1143,26 @@ class TestResultAggregatorCoverage:
         aggregator = ResultAggregator()
 
         # Test critical variations
-        assert aggregator._normalize_severity('CRITICAL') == 'critical'
-        assert aggregator._normalize_severity('crit_error') == 'critical'
+        assert aggregator._normalize_severity("CRITICAL") == "critical"
+        assert aggregator._normalize_severity("crit_error") == "critical"
 
         # Test high variations
-        assert aggregator._normalize_severity('HIGH_IMPACT') == 'high'
+        assert aggregator._normalize_severity("HIGH_IMPACT") == "high"
 
         # Test medium variations
-        assert aggregator._normalize_severity('MEDIUM') == 'medium'
-        assert aggregator._normalize_severity('med_risk') == 'medium'
+        assert aggregator._normalize_severity("MEDIUM") == "medium"
+        assert aggregator._normalize_severity("med_risk") == "medium"
 
         # Test low variations
-        assert aggregator._normalize_severity('LOW_PRIORITY') == 'low'
+        assert aggregator._normalize_severity("LOW_PRIORITY") == "low"
 
         # Test info variations
-        assert aggregator._normalize_severity('informational') == 'informational'
-        assert aggregator._normalize_severity('info_note') == 'informational'
-        assert aggregator._normalize_severity('note') == 'note'
+        assert aggregator._normalize_severity("informational") == "informational"
+        assert aggregator._normalize_severity("info_note") == "informational"
+        assert aggregator._normalize_severity("note") == "note"
 
         # Test default fallback
-        assert aggregator._normalize_severity('unknown_value') == 'medium'
+        assert aggregator._normalize_severity("unknown_value") == "medium"
 
     def test_normalize_finding_with_confidence_string(self):
         """Test _normalize_finding with string confidence (line 171)."""
@@ -1108,24 +1171,24 @@ class TestResultAggregatorCoverage:
         aggregator = ResultAggregator()
 
         raw = {
-            'type': 'reentrancy',
-            'severity': 'high',
-            'message': 'Test vulnerability',
-            'confidence': 'high'  # String confidence
+            "type": "reentrancy",
+            "severity": "high",
+            "message": "Test vulnerability",
+            "confidence": "high",  # String confidence
         }
 
-        finding = aggregator._normalize_finding('slither', raw)
+        finding = aggregator._normalize_finding("slither", raw)
         assert finding is not None
         assert finding.confidence == 0.9
 
         # Test medium confidence
-        raw['confidence'] = 'medium'
-        finding = aggregator._normalize_finding('slither', raw)
+        raw["confidence"] = "medium"
+        finding = aggregator._normalize_finding("slither", raw)
         assert finding.confidence == 0.7
 
         # Test low confidence
-        raw['confidence'] = 'low'
-        finding = aggregator._normalize_finding('slither', raw)
+        raw["confidence"] = "low"
+        finding = aggregator._normalize_finding("slither", raw)
         assert finding.confidence == 0.5
 
     def test_normalize_finding_exception(self):
@@ -1135,56 +1198,86 @@ class TestResultAggregatorCoverage:
         aggregator = ResultAggregator()
 
         # Pass something that will cause an exception
-        result = aggregator._normalize_finding('tool', None)
+        result = aggregator._normalize_finding("tool", None)
         assert result is None
 
     def test_are_similar_different_files(self):
         """Test _are_similar with different files (lines 225-229)."""
-        from src.core.result_aggregator import ResultAggregator, Finding
+        from src.core.result_aggregator import Finding, ResultAggregator
 
         aggregator = ResultAggregator()
 
         f1 = Finding(
-            id='1', tool='slither', severity='high', type='reentrancy',
-            message='Test', file='file1.sol', line=10
+            id="1",
+            tool="slither",
+            severity="high",
+            type="reentrancy",
+            message="Test",
+            file="file1.sol",
+            line=10,
         )
         f2 = Finding(
-            id='2', tool='mythril', severity='high', type='reentrancy',
-            message='Test', file='file2.sol', line=10
+            id="2",
+            tool="mythril",
+            severity="high",
+            type="reentrancy",
+            message="Test",
+            file="file2.sol",
+            line=10,
         )
 
         assert aggregator._are_similar(f1, f2) is False
 
     def test_are_similar_distant_lines(self):
         """Test _are_similar with distant lines (line 228-229)."""
-        from src.core.result_aggregator import ResultAggregator, Finding
+        from src.core.result_aggregator import Finding, ResultAggregator
 
         aggregator = ResultAggregator()
 
         f1 = Finding(
-            id='1', tool='slither', severity='high', type='reentrancy',
-            message='Test', file='contract.sol', line=10
+            id="1",
+            tool="slither",
+            severity="high",
+            type="reentrancy",
+            message="Test",
+            file="contract.sol",
+            line=10,
         )
         f2 = Finding(
-            id='2', tool='mythril', severity='high', type='reentrancy',
-            message='Test', file='contract.sol', line=100  # More than 5 lines away
+            id="2",
+            tool="mythril",
+            severity="high",
+            type="reentrancy",
+            message="Test",
+            file="contract.sol",
+            line=100,  # More than 5 lines away
         )
 
         assert aggregator._are_similar(f1, f2) is False
 
     def test_are_similar_different_types_low_similarity(self):
         """Test _are_similar with different types and low message similarity (lines 235-239)."""
-        from src.core.result_aggregator import ResultAggregator, Finding
+        from src.core.result_aggregator import Finding, ResultAggregator
 
         aggregator = ResultAggregator()
 
         f1 = Finding(
-            id='1', tool='slither', severity='high', type='reentrancy',
-            message='Reentrancy vulnerability detected', file='contract.sol', line=10
+            id="1",
+            tool="slither",
+            severity="high",
+            type="reentrancy",
+            message="Reentrancy vulnerability detected",
+            file="contract.sol",
+            line=10,
         )
         f2 = Finding(
-            id='2', tool='mythril', severity='high', type='overflow',
-            message='Integer overflow possible', file='contract.sol', line=10
+            id="2",
+            tool="mythril",
+            severity="high",
+            type="overflow",
+            message="Integer overflow possible",
+            file="contract.sol",
+            line=10,
         )
 
         assert aggregator._are_similar(f1, f2) is False
@@ -1196,14 +1289,14 @@ class TestResultAggregatorCoverage:
         aggregator = ResultAggregator()
 
         # Test known aliases
-        assert aggregator._normalize_type('reentrancy-eth') == 'reentrancy'
-        assert aggregator._normalize_type('integer-overflow') == 'overflow'
-        assert aggregator._normalize_type('unchecked-lowlevel') == 'unchecked-call'
-        assert aggregator._normalize_type('timestamp-dependency') == 'timestamp'
-        assert aggregator._normalize_type('frontrunning') == 'front-running'
+        assert aggregator._normalize_type("reentrancy-eth") == "reentrancy"
+        assert aggregator._normalize_type("integer-overflow") == "overflow"
+        assert aggregator._normalize_type("unchecked-lowlevel") == "unchecked-call"
+        assert aggregator._normalize_type("timestamp-dependency") == "timestamp"
+        assert aggregator._normalize_type("frontrunning") == "front-running"
 
         # Test unknown type (returns as-is)
-        assert aggregator._normalize_type('custom-check') == 'custom-check'
+        assert aggregator._normalize_type("custom-check") == "custom-check"
 
     def test_aggregate_empty(self):
         """Test aggregate with empty findings (line 257-258)."""
@@ -1220,18 +1313,34 @@ class TestResultAggregatorCoverage:
         aggregator = ResultAggregator()
 
         # Add similar findings from different tools
-        aggregator.add_tool_results('slither', {
-            'findings': [
-                {'type': 'reentrancy', 'severity': 'high', 'message': 'Reentrancy in withdraw',
-                 'file': 'contract.sol', 'line': 42}
-            ]
-        })
-        aggregator.add_tool_results('mythril', {
-            'findings': [
-                {'type': 'reentrancy', 'severity': 'high', 'message': 'Reentrancy in withdraw function',
-                 'file': 'contract.sol', 'line': 43}
-            ]
-        })
+        aggregator.add_tool_results(
+            "slither",
+            {
+                "findings": [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "message": "Reentrancy in withdraw",
+                        "file": "contract.sol",
+                        "line": 42,
+                    }
+                ]
+            },
+        )
+        aggregator.add_tool_results(
+            "mythril",
+            {
+                "findings": [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "message": "Reentrancy in withdraw function",
+                        "file": "contract.sol",
+                        "line": 43,
+                    }
+                ]
+            },
+        )
 
         result = aggregator.aggregate()
         assert len(result) >= 1
@@ -1246,18 +1355,21 @@ class TestResultAggregatorCoverage:
         aggregator = ResultAggregator()
 
         # Add findings
-        aggregator.add_tool_results('slither', {
-            'findings': [
-                {'type': 'reentrancy', 'severity': 'high', 'message': 'Test 1'},
-                {'type': 'overflow', 'severity': 'medium', 'message': 'Test 2'}
-            ]
-        })
+        aggregator.add_tool_results(
+            "slither",
+            {
+                "findings": [
+                    {"type": "reentrancy", "severity": "high", "message": "Test 1"},
+                    {"type": "overflow", "severity": "medium", "message": "Test 2"},
+                ]
+            },
+        )
 
         stats = aggregator.get_statistics()
-        assert 'total_findings' in stats
-        assert 'severity_distribution' in stats
-        assert 'findings_per_tool' in stats
-        assert 'average_confidence' in stats
+        assert "total_findings" in stats
+        assert "severity_distribution" in stats
+        assert "findings_per_tool" in stats
+        assert "average_confidence" in stats
 
     def test_get_high_confidence_findings(self):
         """Test get_high_confidence_findings method (lines 375-377)."""
@@ -1266,11 +1378,19 @@ class TestResultAggregatorCoverage:
         aggregator = ResultAggregator()
 
         # Add findings
-        aggregator.add_tool_results('slither', {
-            'findings': [
-                {'type': 'reentrancy', 'severity': 'high', 'message': 'Test', 'confidence': 0.95}
-            ]
-        })
+        aggregator.add_tool_results(
+            "slither",
+            {
+                "findings": [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "message": "Test",
+                        "confidence": 0.95,
+                    }
+                ]
+            },
+        )
 
         high_conf = aggregator.get_high_confidence_findings(min_confidence=0.8)
         assert isinstance(high_conf, list)
@@ -1282,18 +1402,34 @@ class TestResultAggregatorCoverage:
         aggregator = ResultAggregator()
 
         # Add similar findings from multiple tools
-        aggregator.add_tool_results('slither', {
-            'findings': [
-                {'type': 'reentrancy', 'severity': 'high', 'message': 'Reentrancy detected',
-                 'file': 'test.sol', 'line': 10}
-            ]
-        })
-        aggregator.add_tool_results('mythril', {
-            'findings': [
-                {'type': 'reentrancy', 'severity': 'high', 'message': 'Reentrancy detected',
-                 'file': 'test.sol', 'line': 10}
-            ]
-        })
+        aggregator.add_tool_results(
+            "slither",
+            {
+                "findings": [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "message": "Reentrancy detected",
+                        "file": "test.sol",
+                        "line": 10,
+                    }
+                ]
+            },
+        )
+        aggregator.add_tool_results(
+            "mythril",
+            {
+                "findings": [
+                    {
+                        "type": "reentrancy",
+                        "severity": "high",
+                        "message": "Reentrancy detected",
+                        "file": "test.sol",
+                        "line": 10,
+                    }
+                ]
+            },
+        )
 
         cross_val = aggregator.get_cross_validated_findings()
         assert isinstance(cross_val, list)
@@ -1305,17 +1441,20 @@ class TestResultAggregatorCoverage:
         aggregator = ResultAggregator()
 
         # Add findings
-        aggregator.add_tool_results('slither', {
-            'findings': [
-                {'type': 'reentrancy', 'severity': 'high', 'message': 'Test vulnerability'}
-            ]
-        })
+        aggregator.add_tool_results(
+            "slither",
+            {
+                "findings": [
+                    {"type": "reentrancy", "severity": "high", "message": "Test vulnerability"}
+                ]
+            },
+        )
 
         report = aggregator.to_report()
-        assert 'summary' in report
-        assert 'findings' in report
-        assert 'high_confidence' in report
-        assert 'cross_validated' in report
+        assert "summary" in report
+        assert "findings" in report
+        assert "high_confidence" in report
+        assert "cross_validated" in report
 
     def test_clear(self):
         """Test clear method (lines 399-400)."""
@@ -1324,11 +1463,9 @@ class TestResultAggregatorCoverage:
         aggregator = ResultAggregator()
 
         # Add findings
-        aggregator.add_tool_results('slither', {
-            'findings': [
-                {'type': 'reentrancy', 'severity': 'high', 'message': 'Test'}
-            ]
-        })
+        aggregator.add_tool_results(
+            "slither", {"findings": [{"type": "reentrancy", "severity": "high", "message": "Test"}]}
+        )
 
         aggregator.aggregate()
         assert len(aggregator._findings) > 0
@@ -1345,16 +1482,19 @@ class TestAgentProtocol:
     def test_agent_capability_import(self):
         """Test AgentCapability can be imported."""
         from src.core.agent_protocol import AgentCapability
+
         assert AgentCapability is not None
 
     def test_agent_metadata_import(self):
         """Test AgentMetadata can be imported."""
         from src.core.agent_protocol import AgentMetadata
+
         assert AgentMetadata is not None
 
     def test_finding_import(self):
         """Test Finding can be imported."""
         from src.core.agent_protocol import Finding
+
         assert Finding is not None
 
 
@@ -1363,11 +1503,15 @@ class TestAgentProtocolCoverage:
 
     def test_security_agent_concrete_implementation(self):
         """Test SecurityAgent with concrete implementation (lines 278, 302-320, 329, 338, 341, 344)."""
-        from src.core.agent_protocol import (
-            SecurityAgent, AgentCapability, AgentSpeed,
-            AnalysisResult, AnalysisStatus, Finding, FindingSeverity
-        )
         from datetime import datetime
+
+        from src.core.agent_protocol import (
+            AgentCapability,
+            AgentSpeed,
+            AnalysisResult,
+            AnalysisStatus,
+            SecurityAgent,
+        )
 
         # Create a concrete implementation
         class TestAgent(SecurityAgent):
@@ -1411,7 +1555,7 @@ class TestAgentProtocolCoverage:
                 return True
 
             def can_analyze(self, file_path: str) -> bool:
-                return file_path.endswith('.sol')
+                return file_path.endswith(".sol")
 
             def analyze(self, contract: str, **kwargs):
                 return AnalysisResult(
@@ -1421,7 +1565,7 @@ class TestAgentProtocolCoverage:
                     timestamp=datetime.now(),
                     execution_time=0.1,
                     findings=[],
-                    summary={'critical': 0},
+                    summary={"critical": 0},
                 )
 
         agent = TestAgent()
@@ -1449,7 +1593,11 @@ class TestAgentProtocolCoverage:
 
     def test_security_agent_validate_fails(self):
         """Test SecurityAgent.validate returns False on invalid agent."""
-        from src.core.agent_protocol import SecurityAgent, AgentCapability, AgentSpeed, AnalysisResult
+        from src.core.agent_protocol import (
+            AgentCapability,
+            AgentSpeed,
+            SecurityAgent,
+        )
 
         class InvalidAgent(SecurityAgent):
             @property
@@ -1503,11 +1651,16 @@ class TestAgentProtocolCoverage:
 
     def test_agent_plugin_register(self):
         """Test AgentPlugin.register decorator (lines 363-366)."""
-        from src.core.agent_protocol import (
-            SecurityAgent, AgentPlugin, AgentCapability, AgentSpeed,
-            AnalysisResult, AnalysisStatus
-        )
         from datetime import datetime
+
+        from src.core.agent_protocol import (
+            AgentCapability,
+            AgentPlugin,
+            AgentSpeed,
+            AnalysisResult,
+            AnalysisStatus,
+            SecurityAgent,
+        )
 
         # Clear registry for test isolation
         AgentPlugin._registry = []
@@ -1577,6 +1730,7 @@ class TestAgentProtocolCoverage:
         from src.core.agent_protocol import AgentPlugin
 
         with pytest.raises(TypeError) as exc_info:
+
             @AgentPlugin.register
             class NotAnAgent:
                 pass
@@ -1590,6 +1744,7 @@ class TestAgentRegistry:
     def test_import(self):
         """Test AgentRegistry can be imported."""
         from src.core.agent_registry import AgentRegistry
+
         assert AgentRegistry is not None
 
     def test_instantiation(self):
@@ -1603,9 +1758,9 @@ class TestAgentRegistry:
 class TestAgentRegistryCoverage:
     """Additional tests for AgentRegistry coverage."""
 
-    def _create_mock_agent(self, name='test-agent', version='1.0.0', available=True, cost=0):
+    def _create_mock_agent(self, name="test-agent", version="1.0.0", available=True, cost=0):
         """Create a mock agent for testing."""
-        from src.core.agent_protocol import SecurityAgent, AgentCapability, AgentSpeed
+        from src.core.agent_protocol import AgentCapability, AgentSpeed, SecurityAgent
 
         class MockAgent(SecurityAgent):
             @property
@@ -1634,7 +1789,7 @@ class TestAgentRegistryCoverage:
 
             @property
             def supported_languages(self):
-                return ['solidity']
+                return ["solidity"]
 
             @property
             def speed(self):
@@ -1648,10 +1803,10 @@ class TestAgentRegistryCoverage:
                 return available
 
             def can_analyze(self, file_path: str) -> bool:
-                return file_path.endswith('.sol')
+                return file_path.endswith(".sol")
 
             def analyze(self, source_code: str, **kwargs):
-                return {'findings': []}
+                return {"findings": []}
 
         return MockAgent()
 
@@ -1712,7 +1867,7 @@ class TestAgentRegistryCoverage:
         assert agent.name not in registry.agents
 
         # Unregister non-existent
-        result = registry.unregister('nonexistent')
+        result = registry.unregister("nonexistent")
         assert result is False
 
     def test_get(self):
@@ -1727,7 +1882,7 @@ class TestAgentRegistryCoverage:
         result = registry.get(agent.name)
         assert result is agent
 
-        result = registry.get('nonexistent')
+        result = registry.get("nonexistent")
         assert result is None
 
     def test_list_agents(self):
@@ -1735,8 +1890,8 @@ class TestAgentRegistryCoverage:
         from src.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
-        agent1 = self._create_mock_agent(name='agent1', available=True)
-        agent2 = self._create_mock_agent(name='agent2', available=False)
+        agent1 = self._create_mock_agent(name="agent1", available=True)
+        agent2 = self._create_mock_agent(name="agent2", available=False)
 
         registry.register(agent1)
         registry.register(agent2)
@@ -1767,8 +1922,9 @@ class TestAgentRegistryCoverage:
         registry = AgentRegistry()
 
         # Create a simple agent file
-        agent_file = tmp_path / 'test_agent.py'
-        agent_file.write_text('''
+        agent_file = tmp_path / "test_agent.py"
+        agent_file.write_text(
+            """
 from src.core.agent_protocol import SecurityAgent, AgentCapability, AgentSpeed
 
 class TestAgentClass(SecurityAgent):
@@ -1788,7 +1944,8 @@ class TestAgentClass(SecurityAgent):
     def cost(self): return 0
     def is_available(self): return True
     def analyze(self, source_code, **kwargs): return {'findings': []}
-''')
+"""
+        )
 
         result = registry._discover_from_directory(tmp_path)
         # May or may not discover depending on import path
@@ -1802,10 +1959,10 @@ class TestAgentClass(SecurityAgent):
         agent = self._create_mock_agent()
         registry.register(agent)
 
-        result = registry.filter_agents(language='solidity')
+        result = registry.filter_agents(language="solidity")
         assert len(result) == 1
 
-        result = registry.filter_agents(language='rust')
+        result = registry.filter_agents(language="rust")
         assert len(result) == 0
 
     def test_filter_agents_by_capability(self):
@@ -1816,14 +1973,14 @@ class TestAgentClass(SecurityAgent):
         agent = self._create_mock_agent()
         registry.register(agent)
 
-        result = registry.filter_agents(capability='static_analysis')
+        result = registry.filter_agents(capability="static_analysis")
         assert len(result) == 1
 
-        result = registry.filter_agents(capability='fuzzing')
+        result = registry.filter_agents(capability="fuzzing")
         assert len(result) == 0
 
         # Test invalid capability - logs warning but continues with current list
-        result = registry.filter_agents(capability='invalid_cap')
+        result = registry.filter_agents(capability="invalid_cap")
         assert len(result) == 1  # Agent not filtered, warning logged
 
     def test_filter_agents_free_only(self):
@@ -1831,15 +1988,15 @@ class TestAgentClass(SecurityAgent):
         from src.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
-        free_agent = self._create_mock_agent(name='free', cost=0)
-        paid_agent = self._create_mock_agent(name='paid', cost=100)
+        free_agent = self._create_mock_agent(name="free", cost=0)
+        paid_agent = self._create_mock_agent(name="paid", cost=100)
 
         registry.register(free_agent)
         registry.register(paid_agent)
 
         result = registry.filter_agents(free_only=True)
         assert len(result) == 1
-        assert result[0].name == 'free'
+        assert result[0].name == "free"
 
     def test_filter_agents_by_speed(self):
         """Test filter_agents by speed (lines 271-280)."""
@@ -1849,14 +2006,14 @@ class TestAgentClass(SecurityAgent):
         agent = self._create_mock_agent()  # FAST speed
         registry.register(agent)
 
-        result = registry.filter_agents(max_speed='fast')
+        result = registry.filter_agents(max_speed="fast")
         assert len(result) == 1
 
-        result = registry.filter_agents(max_speed='medium')
+        result = registry.filter_agents(max_speed="medium")
         assert len(result) == 1
 
         # Test invalid speed - logs warning but continues with current list
-        result = registry.filter_agents(max_speed='invalid')
+        result = registry.filter_agents(max_speed="invalid")
         assert len(result) == 1  # Agent not filtered, warning logged
 
     def test_get_statistics(self):
@@ -1868,12 +2025,12 @@ class TestAgentClass(SecurityAgent):
         registry.register(agent)
 
         stats = registry.get_statistics()
-        assert stats['total_agents'] == 1
-        assert stats['available_agents'] == 1
-        assert stats['free_agents'] == 1
-        assert 'capabilities' in stats
-        assert 'languages' in stats
-        assert 'solidity' in stats['languages']
+        assert stats["total_agents"] == 1
+        assert stats["available_agents"] == 1
+        assert stats["free_agents"] == 1
+        assert "capabilities" in stats
+        assert "languages" in stats
+        assert "solidity" in stats["languages"]
 
     def test_validate_all(self):
         """Test validate_all method (lines 325-332)."""
@@ -1900,7 +2057,7 @@ class TestAgentClass(SecurityAgent):
 
         # __contains__
         assert agent.name in registry
-        assert 'nonexistent' not in registry
+        assert "nonexistent" not in registry
 
         # __iter__
         names = list(registry)
@@ -1908,13 +2065,13 @@ class TestAgentClass(SecurityAgent):
 
         # __repr__
         repr_str = repr(registry)
-        assert 'AgentRegistry' in repr_str
-        assert '1' in repr_str
+        assert "AgentRegistry" in repr_str
+        assert "1" in repr_str
 
     def test_register_validation_failure(self):
         """Test register with validation failure (line 75)."""
+        from src.core.agent_protocol import AgentCapability, AgentSpeed, SecurityAgent
         from src.core.agent_registry import AgentRegistry
-        from src.core.agent_protocol import SecurityAgent, AgentCapability, AgentSpeed
 
         # Create an agent with invalid name format (validation will fail)
         class InvalidAgent(SecurityAgent):
@@ -1944,7 +2101,7 @@ class TestAgentClass(SecurityAgent):
 
             @property
             def supported_languages(self):
-                return ['solidity']
+                return ["solidity"]
 
             @property
             def speed(self):
@@ -1961,7 +2118,7 @@ class TestAgentClass(SecurityAgent):
                 return True
 
             def analyze(self, source_code: str, **kwargs):
-                return {'findings': []}
+                return {"findings": []}
 
         registry = AgentRegistry()
         invalid_agent = InvalidAgent()
@@ -1977,7 +2134,8 @@ class TestAgentClass(SecurityAgent):
 
         # Create a mock agent file that will produce duplicates
         agent_file = tmp_path / "test_agent.py"
-        agent_file.write_text('''
+        agent_file.write_text(
+            """
 from src.core.agent_protocol import SecurityAgent, AgentCapability, AgentSpeed
 
 class TestAgent(SecurityAgent):
@@ -2002,7 +2160,8 @@ class TestAgent(SecurityAgent):
     def is_available(self): return True
     def can_analyze(self, f): return True
     def analyze(self, s, **k): return {"findings": []}
-''')
+"""
+        )
 
         # First discovery should work
         discovered1 = registry._discover_from_directory(tmp_path)
@@ -2014,8 +2173,9 @@ class TestAgent(SecurityAgent):
 
     def test_validate_all_with_exception(self):
         """Test validate_all with exception in validation (lines 329-331)."""
-        from src.core.agent_registry import AgentRegistry
         from unittest.mock import MagicMock
+
+        from src.core.agent_registry import AgentRegistry
 
         registry = AgentRegistry()
         agent = self._create_mock_agent()
@@ -2034,8 +2194,8 @@ class TestAgent(SecurityAgent):
 
     def test_project_plugin_dir_exists(self, tmp_path, monkeypatch):
         """Test _init_plugin_dirs with existing project dir (line 48)."""
+
         from src.core.agent_registry import AgentRegistry
-        import os
 
         # Create a plugins/agents directory
         plugins_dir = tmp_path / "plugins" / "agents"
@@ -2055,6 +2215,7 @@ class TestOptimizedOrchestrator:
     def test_import(self):
         """Test OptimizedOrchestrator can be imported."""
         from src.core.optimized_orchestrator import OptimizedOrchestrator
+
         assert OptimizedOrchestrator is not None
 
     def test_instantiation(self):
@@ -2070,186 +2231,192 @@ class TestOptimizedOrchestratorCoverage:
 
     def test_cache_entry_is_valid(self):
         """Test CacheEntry.is_valid method (lines 36-37)."""
-        from src.core.optimized_orchestrator import CacheEntry
         from datetime import datetime, timedelta
+
+        from src.core.optimized_orchestrator import CacheEntry
 
         # Valid entry (recent)
         entry = CacheEntry(
-            tool='slither',
-            contract_hash='abc123',
-            results={'findings': []},
+            tool="slither",
+            contract_hash="abc123",
+            results={"findings": []},
             timestamp=datetime.now(),
-            ttl_seconds=3600
+            ttl_seconds=3600,
         )
         assert entry.is_valid() is True
 
         # Invalid entry (expired)
         old_entry = CacheEntry(
-            tool='slither',
-            contract_hash='abc123',
-            results={'findings': []},
+            tool="slither",
+            contract_hash="abc123",
+            results={"findings": []},
             timestamp=datetime.now() - timedelta(hours=2),
-            ttl_seconds=3600
+            ttl_seconds=3600,
         )
         assert old_entry.is_valid() is False
 
     def test_analysis_result_to_dict(self):
         """Test AnalysisResult.to_dict method (line 57)."""
-        from src.core.optimized_orchestrator import AnalysisResult
         from datetime import datetime
 
+        from src.core.optimized_orchestrator import AnalysisResult
+
         result = AnalysisResult(
-            contract_path='test.sol',
-            tools_run=['slither', 'mythril'],
-            tools_success=['slither'],
-            tools_failed=['mythril'],
+            contract_path="test.sol",
+            tools_run=["slither", "mythril"],
+            tools_success=["slither"],
+            tools_failed=["mythril"],
             total_findings=5,
             aggregated_findings=3,
             cross_validated=1,
-            severity_counts={'high': 2, 'medium': 1},
+            severity_counts={"high": 2, "medium": 1},
             execution_time_ms=1500.5,
-            timestamp=datetime(2024, 1, 1, 12, 0, 0)
+            timestamp=datetime(2024, 1, 1, 12, 0, 0),
         )
 
         d = result.to_dict()
-        assert d['contract_path'] == 'test.sol'
-        assert d['tools_run'] == ['slither', 'mythril']
-        assert d['execution_time_ms'] == 1500.5
-        assert d['timestamp'] == '2024-01-01T12:00:00'
+        assert d["contract_path"] == "test.sol"
+        assert d["tools_run"] == ["slither", "mythril"]
+        assert d["execution_time_ms"] == 1500.5
+        assert d["timestamp"] == "2024-01-01T12:00:00"
 
     def test_result_cache_compute_hash(self, tmp_path):
         """Test ResultCache._compute_hash method (lines 82-87)."""
         from src.core.optimized_orchestrator import ResultCache
 
-        cache = ResultCache(cache_dir=str(tmp_path / 'cache'))
+        cache = ResultCache(cache_dir=str(tmp_path / "cache"))
 
         # Test with existing file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         hash1 = cache._compute_hash(str(test_file))
         assert len(hash1) == 16
 
         # Test with non-existent file (fallback)
-        hash2 = cache._compute_hash('/nonexistent/file.sol')
+        hash2 = cache._compute_hash("/nonexistent/file.sol")
         assert len(hash2) == 16
 
     def test_result_cache_get_cache_key(self, tmp_path):
         """Test ResultCache._get_cache_key method (lines 91-92)."""
         from src.core.optimized_orchestrator import ResultCache
 
-        cache = ResultCache(cache_dir=str(tmp_path / 'cache'))
+        cache = ResultCache(cache_dir=str(tmp_path / "cache"))
 
-        key = cache._get_cache_key('slither', '/path/to/contract.sol')
-        assert 'slither_' in key
+        key = cache._get_cache_key("slither", "/path/to/contract.sol")
+        assert "slither_" in key
 
     def test_result_cache_get_and_set(self, tmp_path):
         """Test ResultCache.get and set methods (lines 96-154)."""
         from src.core.optimized_orchestrator import ResultCache
 
-        cache = ResultCache(cache_dir=str(tmp_path / 'cache'), ttl_seconds=3600)
+        cache = ResultCache(cache_dir=str(tmp_path / "cache"), ttl_seconds=3600)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         # Initially nothing in cache
-        result = cache.get('slither', str(test_file))
+        result = cache.get("slither", str(test_file))
         assert result is None
 
         # Set cache
-        cache.set('slither', str(test_file), {'findings': [{'type': 'test'}]})
+        cache.set("slither", str(test_file), {"findings": [{"type": "test"}]})
 
         # Now should be in cache
-        result = cache.get('slither', str(test_file))
+        result = cache.get("slither", str(test_file))
         assert result is not None
-        assert result['findings'][0]['type'] == 'test'
+        assert result["findings"][0]["type"] == "test"
 
     def test_result_cache_clear(self, tmp_path):
         """Test ResultCache.clear method (lines 160-163)."""
         from src.core.optimized_orchestrator import ResultCache
 
-        cache = ResultCache(cache_dir=str(tmp_path / 'cache'))
+        cache = ResultCache(cache_dir=str(tmp_path / "cache"))
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         # Set cache
-        cache.set('slither', str(test_file), {'findings': []})
+        cache.set("slither", str(test_file), {"findings": []})
 
         # Clear
         cache.clear()
 
         # Should be empty now
-        result = cache.get('slither', str(test_file))
+        result = cache.get("slither", str(test_file))
         assert result is None
 
     def test_run_tool_with_cache(self, tmp_path):
         """Test _run_tool method with cache hit (lines 198-202)."""
+
         from src.core.optimized_orchestrator import OptimizedOrchestrator
-        from unittest.mock import patch, MagicMock
 
         orchestrator = OptimizedOrchestrator(cache_enabled=True)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         # Pre-populate cache
-        orchestrator.cache.set('slither', str(test_file), {
-            'status': 'success',
-            'findings': [{'type': 'cached'}]
-        })
+        orchestrator.cache.set(
+            "slither", str(test_file), {"status": "success", "findings": [{"type": "cached"}]}
+        )
 
         # Should return cached result
-        result = orchestrator._run_tool('slither', str(test_file))
-        assert result['findings'][0]['type'] == 'cached'
+        result = orchestrator._run_tool("slither", str(test_file))
+        assert result["findings"][0]["type"] == "cached"
 
     def test_run_tool_exception(self, tmp_path):
         """Test _run_tool method with exception (lines 221-227)."""
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
         from unittest.mock import patch
+
+        from src.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         # Mock discovery to raise exception
-        with patch.object(orchestrator.discovery, 'load_adapter', side_effect=Exception("Test error")):
-            result = orchestrator._run_tool('slither', str(test_file))
-            assert result['status'] == 'error'
-            assert 'Test error' in result['error']
+        with patch.object(
+            orchestrator.discovery, "load_adapter", side_effect=Exception("Test error")
+        ):
+            result = orchestrator._run_tool("slither", str(test_file))
+            assert result["status"] == "error"
+            assert "Test error" in result["error"]
 
     def test_analyze_no_tools(self, tmp_path):
         """Test analyze with no tools available (lines 255-267)."""
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
         from unittest.mock import patch
+
+        from src.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         # Mock _determine_tools to return empty list
-        with patch.object(orchestrator, '_determine_tools', return_value=[]):
+        with patch.object(orchestrator, "_determine_tools", return_value=[]):
             result = orchestrator.analyze(str(test_file))
             assert result.tools_run == []
             assert result.total_findings == 0
 
     def test_analyze_with_callback(self, tmp_path):
         """Test analyze with progress_callback (lines 291-304)."""
+        from unittest.mock import patch
+
         from src.core.optimized_orchestrator import OptimizedOrchestrator
-        from unittest.mock import patch, MagicMock
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         callback_calls = []
 
@@ -2257,77 +2424,88 @@ class TestOptimizedOrchestratorCoverage:
             callback_calls.append((tool, status))
 
         # Mock to return an error result
-        mock_result = {'status': 'error', 'error': 'Test', 'findings': []}
-        with patch.object(orchestrator, '_run_tool', return_value=mock_result):
-            with patch.object(orchestrator, '_determine_tools', return_value=['test_tool']):
+        mock_result = {"status": "error", "error": "Test", "findings": []}
+        with patch.object(orchestrator, "_run_tool", return_value=mock_result):
+            with patch.object(orchestrator, "_determine_tools", return_value=["test_tool"]):
                 result = orchestrator.analyze(str(test_file), progress_callback=callback)
                 assert len(callback_calls) >= 1
 
     def test_determine_tools_with_tools_list(self):
         """Test _determine_tools with specific tools (lines 341-344)."""
+        from unittest.mock import MagicMock, patch
+
         from src.core.optimized_orchestrator import OptimizedOrchestrator
-        from unittest.mock import patch, MagicMock
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
         # Mock available tools
         mock_tool = MagicMock()
-        mock_tool.name = 'slither'
-        with patch.object(orchestrator.discovery, 'get_available_tools', return_value=[mock_tool]):
-            result = orchestrator._determine_tools(tools=['slither', 'nonexistent'])
-            assert 'slither' in result
-            assert 'nonexistent' not in result
+        mock_tool.name = "slither"
+        with patch.object(orchestrator.discovery, "get_available_tools", return_value=[mock_tool]):
+            result = orchestrator._determine_tools(tools=["slither", "nonexistent"])
+            assert "slither" in result
+            assert "nonexistent" not in result
 
     def test_determine_tools_with_layers(self):
         """Test _determine_tools with layers (lines 346-355)."""
+        from unittest.mock import MagicMock, patch
+
         from src.core.optimized_orchestrator import OptimizedOrchestrator
-        from unittest.mock import patch, MagicMock
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
         # Mock tools by layer
         mock_tool = MagicMock()
-        mock_tool.name = 'slither'
+        mock_tool.name = "slither"
         mock_tool.available = True
 
-        with patch.object(orchestrator.discovery, 'get_tools_by_layer',
-                         return_value={'static_analysis': [mock_tool]}):
-            result = orchestrator._determine_tools(layers=['static_analysis'])
-            assert 'slither' in result
+        with patch.object(
+            orchestrator.discovery,
+            "get_tools_by_layer",
+            return_value={"static_analysis": [mock_tool]},
+        ):
+            result = orchestrator._determine_tools(layers=["static_analysis"])
+            assert "slither" in result
 
     def test_determine_tools_default(self):
         """Test _determine_tools default behavior (lines 357-360)."""
+        from unittest.mock import MagicMock, patch
+
         from src.core.optimized_orchestrator import OptimizedOrchestrator
-        from unittest.mock import patch, MagicMock
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
         # Mock enabled adapters and available tools
         mock_tool = MagicMock()
-        mock_tool.name = 'slither'
+        mock_tool.name = "slither"
 
-        with patch.object(orchestrator.config, 'get_enabled_adapters', return_value=['slither', 'mythril']):
-            with patch.object(orchestrator.discovery, 'get_available_tools', return_value=[mock_tool]):
+        with patch.object(
+            orchestrator.config, "get_enabled_adapters", return_value=["slither", "mythril"]
+        ):
+            with patch.object(
+                orchestrator.discovery, "get_available_tools", return_value=[mock_tool]
+            ):
                 result = orchestrator._determine_tools()
-                assert 'slither' in result
+                assert "slither" in result
 
     def test_analyze_batch(self, tmp_path):
         """Test analyze_batch method (lines 381-395)."""
-        from src.core.optimized_orchestrator import OptimizedOrchestrator, AnalysisResult
-        from unittest.mock import patch
         from datetime import datetime
+        from unittest.mock import patch
+
+        from src.core.optimized_orchestrator import AnalysisResult, OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
         # Create test files
-        file1 = tmp_path / 'test1.sol'
-        file1.write_text('pragma solidity ^0.8.0;')
-        file2 = tmp_path / 'test2.sol'
-        file2.write_text('pragma solidity ^0.8.0;')
+        file1 = tmp_path / "test1.sol"
+        file1.write_text("pragma solidity ^0.8.0;")
+        file2 = tmp_path / "test2.sol"
+        file2.write_text("pragma solidity ^0.8.0;")
 
         # Mock analyze to return a simple result
         mock_result = AnalysisResult(
-            contract_path='test',
+            contract_path="test",
             tools_run=[],
             tools_success=[],
             tools_failed=[],
@@ -2336,24 +2514,25 @@ class TestOptimizedOrchestratorCoverage:
             cross_validated=0,
             severity_counts={},
             execution_time_ms=100,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
-        with patch.object(orchestrator, 'analyze', return_value=mock_result):
+        with patch.object(orchestrator, "analyze", return_value=mock_result):
             results = orchestrator.analyze_batch([str(file1), str(file2)])
             assert len(results) == 2
 
     def test_quick_scan(self, tmp_path):
         """Test quick_scan method (line 401)."""
-        from src.core.optimized_orchestrator import OptimizedOrchestrator, AnalysisResult
-        from unittest.mock import patch
         from datetime import datetime
+        from unittest.mock import patch
+
+        from src.core.optimized_orchestrator import AnalysisResult, OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         mock_result = AnalysisResult(
             contract_path=str(test_file),
@@ -2365,27 +2544,28 @@ class TestOptimizedOrchestratorCoverage:
             cross_validated=0,
             severity_counts={},
             execution_time_ms=100,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
-        with patch.object(orchestrator, 'analyze', return_value=mock_result) as mock_analyze:
+        with patch.object(orchestrator, "analyze", return_value=mock_result) as mock_analyze:
             result = orchestrator.quick_scan(str(test_file))
             mock_analyze.assert_called_once()
             # Check that layers=['static_analysis'] was passed
             call_kwargs = mock_analyze.call_args[1]
-            assert call_kwargs.get('layers') == ['static_analysis']
+            assert call_kwargs.get("layers") == ["static_analysis"]
 
     def test_deep_scan(self, tmp_path):
         """Test deep_scan method (line 411)."""
-        from src.core.optimized_orchestrator import OptimizedOrchestrator, AnalysisResult
-        from unittest.mock import patch
         from datetime import datetime
+        from unittest.mock import patch
+
+        from src.core.optimized_orchestrator import AnalysisResult, OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         mock_result = AnalysisResult(
             contract_path=str(test_file),
@@ -2397,10 +2577,10 @@ class TestOptimizedOrchestratorCoverage:
             cross_validated=0,
             severity_counts={},
             execution_time_ms=100,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
-        with patch.object(orchestrator, 'analyze', return_value=mock_result) as mock_analyze:
+        with patch.object(orchestrator, "analyze", return_value=mock_result) as mock_analyze:
             result = orchestrator.deep_scan(str(test_file))
             mock_analyze.assert_called_once()
 
@@ -2411,17 +2591,17 @@ class TestOptimizedOrchestratorCoverage:
         orchestrator = OptimizedOrchestrator(cache_enabled=True)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         # Add to cache
-        orchestrator.cache.set('slither', str(test_file), {'findings': []})
+        orchestrator.cache.set("slither", str(test_file), {"findings": []})
 
         # Clear cache
         orchestrator.clear_cache()
 
         # Should be empty
-        result = orchestrator.cache.get('slither', str(test_file))
+        result = orchestrator.cache.get("slither", str(test_file))
         assert result is None
 
     def test_clear_cache_disabled(self):
@@ -2434,97 +2614,98 @@ class TestOptimizedOrchestratorCoverage:
 
     def test_cache_get_from_disk(self, tmp_path):
         """Test ResultCache.get loading from disk (lines 109-126)."""
-        from src.core.optimized_orchestrator import ResultCache
         import json
         from datetime import datetime
 
-        cache_dir = tmp_path / 'cache'
+        from src.core.optimized_orchestrator import ResultCache
+
+        cache_dir = tmp_path / "cache"
         cache = ResultCache(cache_dir=str(cache_dir), ttl_seconds=3600)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         # Manually create cache file on disk
-        key = cache._get_cache_key('slither', str(test_file))
+        key = cache._get_cache_key("slither", str(test_file))
         cache_file = cache_dir / f"{key}.json"
 
         cache_data = {
-            'tool': 'slither',
-            'results': {'findings': [{'type': 'disk_cached'}]},
-            'timestamp': datetime.now().isoformat()
+            "tool": "slither",
+            "results": {"findings": [{"type": "disk_cached"}]},
+            "timestamp": datetime.now().isoformat(),
         }
 
-        with open(cache_file, 'w') as f:
+        with open(cache_file, "w") as f:
             json.dump(cache_data, f)
 
         # Now get should load from disk
-        result = cache.get('slither', str(test_file))
+        result = cache.get("slither", str(test_file))
         assert result is not None
-        assert result['findings'][0]['type'] == 'disk_cached'
+        assert result["findings"][0]["type"] == "disk_cached"
 
     def test_cache_invalidation(self, tmp_path):
         """Test cache invalidation when expired (lines 103-104)."""
-        from src.core.optimized_orchestrator import ResultCache, CacheEntry
         from datetime import datetime, timedelta
 
-        cache = ResultCache(cache_dir=str(tmp_path / 'cache'), ttl_seconds=1)
+        from src.core.optimized_orchestrator import CacheEntry, ResultCache
+
+        cache = ResultCache(cache_dir=str(tmp_path / "cache"), ttl_seconds=1)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         # Manually add expired entry to memory cache
-        key = cache._get_cache_key('slither', str(test_file))
+        key = cache._get_cache_key("slither", str(test_file))
         cache._memory_cache[key] = CacheEntry(
-            tool='slither',
-            contract_hash='hash',
-            results={'findings': []},
+            tool="slither",
+            contract_hash="hash",
+            results={"findings": []},
             timestamp=datetime.now() - timedelta(hours=1),
-            ttl_seconds=1
+            ttl_seconds=1,
         )
 
         # Get should return None and delete expired entry
-        result = cache.get('slither', str(test_file))
+        result = cache.get("slither", str(test_file))
         assert result is None
         assert key not in cache._memory_cache
 
     def test_run_tool_success_and_cache(self, tmp_path):
         """Test _run_tool success path with caching (lines 209-219)."""
+        from unittest.mock import MagicMock, patch
+
         from src.core.optimized_orchestrator import OptimizedOrchestrator
-        from unittest.mock import patch, MagicMock
 
         orchestrator = OptimizedOrchestrator(cache_enabled=True)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         # Mock adapter
         mock_adapter = MagicMock()
-        mock_adapter.analyze.return_value = {
-            'status': 'success',
-            'findings': [{'type': 'test'}]
-        }
+        mock_adapter.analyze.return_value = {"status": "success", "findings": [{"type": "test"}]}
 
-        with patch.object(orchestrator.discovery, 'load_adapter', return_value=mock_adapter):
-            result = orchestrator._run_tool('slither', str(test_file))
-            assert result['status'] == 'success'
+        with patch.object(orchestrator.discovery, "load_adapter", return_value=mock_adapter):
+            result = orchestrator._run_tool("slither", str(test_file))
+            assert result["status"] == "success"
 
             # Should be cached now
-            cached = orchestrator.cache.get('slither', str(test_file))
+            cached = orchestrator.cache.get("slither", str(test_file))
             assert cached is not None
 
     def test_analyze_with_success_callback(self, tmp_path):
         """Test analyze with success callback (line 289)."""
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
         from unittest.mock import patch
+
+        from src.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         callback_calls = []
 
@@ -2532,33 +2713,32 @@ class TestOptimizedOrchestratorCoverage:
             callback_calls.append((tool, status))
 
         # Mock to return success
-        mock_result = {'status': 'success', 'findings': [{'type': 'test'}]}
-        with patch.object(orchestrator, '_run_tool', return_value=mock_result):
-            with patch.object(orchestrator, '_determine_tools', return_value=['test_tool']):
+        mock_result = {"status": "success", "findings": [{"type": "test"}]}
+        with patch.object(orchestrator, "_run_tool", return_value=mock_result):
+            with patch.object(orchestrator, "_determine_tools", return_value=["test_tool"]):
                 result = orchestrator.analyze(str(test_file), progress_callback=callback)
                 # Should have 'success' in callback
-                assert any(status == 'success' for _, status in callback_calls)
+                assert any(status == "success" for _, status in callback_calls)
 
     def test_analyze_with_successful_aggregation(self, tmp_path):
         """Test analyze with successful tool results for aggregation (lines 312-313)."""
-        from src.core.optimized_orchestrator import OptimizedOrchestrator
         from unittest.mock import patch
+
+        from src.core.optimized_orchestrator import OptimizedOrchestrator
 
         orchestrator = OptimizedOrchestrator(cache_enabled=False)
 
         # Create test file
-        test_file = tmp_path / 'test.sol'
-        test_file.write_text('pragma solidity ^0.8.0;')
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
 
         # Mock to return success with findings
         mock_result = {
-            'status': 'success',
-            'findings': [
-                {'type': 'reentrancy', 'severity': 'high', 'message': 'Test'}
-            ]
+            "status": "success",
+            "findings": [{"type": "reentrancy", "severity": "high", "message": "Test"}],
         }
-        with patch.object(orchestrator, '_run_tool', return_value=mock_result):
-            with patch.object(orchestrator, '_determine_tools', return_value=['slither']):
+        with patch.object(orchestrator, "_run_tool", return_value=mock_result):
+            with patch.object(orchestrator, "_determine_tools", return_value=["slither"]):
                 result = orchestrator.analyze(str(test_file))
                 assert result.total_findings >= 0
 
@@ -2569,6 +2749,7 @@ class TestMLOrchestrator:
     def test_import(self):
         """Test MLOrchestrator can be imported."""
         from src.core.ml_orchestrator import MLOrchestrator
+
         assert MLOrchestrator is not None
 
     def test_get_ml_orchestrator(self):
@@ -2587,11 +2768,11 @@ class TestMLOrchestrator:
 
         orchestrator = get_ml_orchestrator()
 
-        assert hasattr(orchestrator, 'analyze')
-        assert hasattr(orchestrator, 'quick_scan')
-        assert hasattr(orchestrator, 'deep_scan')
-        assert hasattr(orchestrator, 'get_ml_report')
-        assert hasattr(orchestrator, 'submit_feedback')
+        assert hasattr(orchestrator, "analyze")
+        assert hasattr(orchestrator, "quick_scan")
+        assert hasattr(orchestrator, "deep_scan")
+        assert hasattr(orchestrator, "get_ml_report")
+        assert hasattr(orchestrator, "submit_feedback")
 
 
 class TestMLOrchestratorCoverage:
@@ -2599,13 +2780,14 @@ class TestMLOrchestratorCoverage:
 
     def test_ml_analysis_result_risk_levels(self):
         """Test MLAnalysisResult._calculate_risk_level with different scenarios (lines 131-136)."""
-        from src.core.ml_orchestrator import MLAnalysisResult
         from datetime import datetime
+
+        from src.core.ml_orchestrator import MLAnalysisResult
 
         # Test HIGH risk level (high > 2)
         result = MLAnalysisResult(
-            contract_path='test.sol',
-            contract_source='',
+            contract_path="test.sol",
+            contract_source="",
             tools_run=[],
             tools_success=[],
             tools_failed=[],
@@ -2619,21 +2801,21 @@ class TestMLOrchestratorCoverage:
             cluster_count=0,
             remediation_plan=[],
             pattern_matches=[],
-            severity_distribution={'critical': 0, 'high': 3, 'medium': 0, 'low': 0},
+            severity_distribution={"critical": 0, "high": 3, "medium": 0, "low": 0},
             cross_validated=0,
             execution_time_ms=0,
             ml_processing_time_ms=0,
             timestamp=datetime.now(),
         )
-        assert result._calculate_risk_level() == 'HIGH'
+        assert result._calculate_risk_level() == "HIGH"
 
         # Test MEDIUM risk level (high > 0 but <= 2)
-        result.severity_distribution = {'critical': 0, 'high': 1, 'medium': 0, 'low': 0}
-        assert result._calculate_risk_level() == 'MEDIUM'
+        result.severity_distribution = {"critical": 0, "high": 1, "medium": 0, "low": 0}
+        assert result._calculate_risk_level() == "MEDIUM"
 
         # Test LOW risk level (no high or critical)
-        result.severity_distribution = {'critical': 0, 'high': 0, 'medium': 5, 'low': 10}
-        assert result._calculate_risk_level() == 'LOW'
+        result.severity_distribution = {"critical": 0, "high": 0, "medium": 5, "low": 10}
+        assert result._calculate_risk_level() == "LOW"
 
     def test_read_contract_source_exception(self, tmp_path):
         """Test _read_contract_source handles exceptions (lines 185-187)."""
@@ -2642,7 +2824,7 @@ class TestMLOrchestratorCoverage:
         orchestrator = MLOrchestrator(ml_enabled=False)
 
         # Try to read non-existent file
-        result = orchestrator._read_contract_source('/nonexistent/path/contract.sol')
+        result = orchestrator._read_contract_source("/nonexistent/path/contract.sol")
 
         # Should return empty string on error
         assert result == ""
@@ -2656,14 +2838,14 @@ class TestMLOrchestratorCoverage:
 
         # Test submit_feedback returns ml_disabled
         result = orchestrator.submit_feedback(
-            finding={'id': 'test'},
+            finding={"id": "test"},
             feedback_type=FeedbackType.FALSE_POSITIVE,
         )
-        assert result == {'status': 'ml_disabled'}
+        assert result == {"status": "ml_disabled"}
 
         # Test get_ml_report returns ml_disabled
         report = orchestrator.get_ml_report()
-        assert report == {'status': 'ml_disabled'}
+        assert report == {"status": "ml_disabled"}
 
     def test_clear_cache(self):
         """Test clear_cache method (lines 516-517)."""
@@ -2686,16 +2868,16 @@ class TestMLOrchestratorCoverage:
 
         # Test with 'info' severity
         findings = [
-            {'severity': 'info'},
-            {'severity': 'unknown'},  # Should map to medium
-            {'severity': 'critical'},
+            {"severity": "info"},
+            {"severity": "unknown"},  # Should map to medium
+            {"severity": "critical"},
         ]
 
         dist = orchestrator._calculate_severity_distribution(findings)
 
-        assert dist['informational'] == 1
-        assert dist['medium'] == 1  # 'unknown' maps to medium
-        assert dist['critical'] == 1
+        assert dist["informational"] == 1
+        assert dist["medium"] == 1  # 'unknown' maps to medium
+        assert dist["critical"] == 1
 
     def test_determine_tools_with_specific_tools(self):
         """Test _determine_tools with specific tools list (lines 433-434)."""
@@ -2708,36 +2890,37 @@ class TestMLOrchestratorCoverage:
 
         if available_tools:
             # Request some available and some unavailable tools
-            requested = available_tools[:2] + ['nonexistent_tool']
+            requested = available_tools[:2] + ["nonexistent_tool"]
             result = orchestrator._determine_tools(tools=requested)
 
             # Should only include available tools
-            assert 'nonexistent_tool' not in result
+            assert "nonexistent_tool" not in result
             for tool in result:
                 assert tool in available_tools
 
     def test_ml_analysis_result_to_dict(self):
         """Test MLAnalysisResult.to_dict method (lines 71-99)."""
-        from src.core.ml_orchestrator import MLAnalysisResult
         from datetime import datetime
 
+        from src.core.ml_orchestrator import MLAnalysisResult
+
         result = MLAnalysisResult(
-            contract_path='test.sol',
-            contract_source='pragma solidity ^0.8.0;',
-            tools_run=['slither'],
-            tools_success=['slither'],
+            contract_path="test.sol",
+            contract_source="pragma solidity ^0.8.0;",
+            tools_run=["slither"],
+            tools_success=["slither"],
             tools_failed=[],
             total_raw_findings=5,
-            raw_findings=[{'id': '1', 'severity': 'high'}],
-            ml_filtered_findings=[{'id': '1', 'severity': 'high'}],
-            ml_filtered_out=[{'id': '2', 'severity': 'low'}],
+            raw_findings=[{"id": "1", "severity": "high"}],
+            ml_filtered_findings=[{"id": "1", "severity": "high"}],
+            ml_filtered_out=[{"id": "2", "severity": "low"}],
             false_positives_removed=1,
             severity_adjustments=2,
             clusters=[],
             cluster_count=0,
-            remediation_plan=[{'action': 'fix', 'severity': 'high'}],
-            pattern_matches=[{'pattern': 'reentrancy'}],
-            severity_distribution={'critical': 0, 'high': 1, 'medium': 0, 'low': 0},
+            remediation_plan=[{"action": "fix", "severity": "high"}],
+            pattern_matches=[{"pattern": "reentrancy"}],
+            severity_distribution={"critical": 0, "high": 1, "medium": 0, "low": 0},
             cross_validated=1,
             execution_time_ms=100.5,
             ml_processing_time_ms=50.2,
@@ -2746,38 +2929,39 @@ class TestMLOrchestratorCoverage:
 
         d = result.to_dict()
 
-        assert d['contract_path'] == 'test.sol'
-        assert d['tools_run'] == ['slither']
-        assert d['raw_findings']['total'] == 5
-        assert d['ml_enhanced']['filtered_findings'] == 1
-        assert d['clusters']['count'] == 0
-        assert 'metrics' in d
+        assert d["contract_path"] == "test.sol"
+        assert d["tools_run"] == ["slither"]
+        assert d["raw_findings"]["total"] == 5
+        assert d["ml_enhanced"]["filtered_findings"] == 1
+        assert d["clusters"]["count"] == 0
+        assert "metrics" in d
 
     def test_ml_analysis_result_get_summary(self):
         """Test MLAnalysisResult.get_summary method (lines 101-122)."""
-        from src.core.ml_orchestrator import MLAnalysisResult
         from datetime import datetime
 
+        from src.core.ml_orchestrator import MLAnalysisResult
+
         result = MLAnalysisResult(
-            contract_path='test.sol',
-            contract_source='',
+            contract_path="test.sol",
+            contract_source="",
             tools_run=[],
             tools_success=[],
             tools_failed=[],
             total_raw_findings=10,
             raw_findings=[],
-            ml_filtered_findings=[{'id': '1'}],
+            ml_filtered_findings=[{"id": "1"}],
             ml_filtered_out=[],
             false_positives_removed=5,
             severity_adjustments=0,
             clusters=[],
             cluster_count=2,
             remediation_plan=[
-                {'severity': 'critical', 'action': 'fix'},
-                {'severity': 'low', 'action': 'review'}
+                {"severity": "critical", "action": "fix"},
+                {"severity": "low", "action": "review"},
             ],
             pattern_matches=[],
-            severity_distribution={'critical': 1, 'high': 2, 'medium': 3, 'low': 4},
+            severity_distribution={"critical": 1, "high": 2, "medium": 3, "low": 4},
             cross_validated=0,
             execution_time_ms=0,
             ml_processing_time_ms=0,
@@ -2786,14 +2970,14 @@ class TestMLOrchestratorCoverage:
 
         summary = result.get_summary()
 
-        assert summary['risk_level'] == 'CRITICAL'
-        assert summary['total_findings'] == 1
-        assert summary['critical'] == 1
-        assert summary['high'] == 2
-        assert summary['clusters'] == 2
-        assert summary['fp_removed'] == 5
-        assert 'reduction_rate' in summary
-        assert summary['priority_actions'] == 1  # Only critical action
+        assert summary["risk_level"] == "CRITICAL"
+        assert summary["total_findings"] == 1
+        assert summary["critical"] == 1
+        assert summary["high"] == 2
+        assert summary["clusters"] == 2
+        assert summary["fp_removed"] == 5
+        assert "reduction_rate" in summary
+        assert summary["priority_actions"] == 1  # Only critical action
 
     def test_build_code_context_map(self, tmp_path):
         """Test _build_code_context_map method (lines 195-212)."""
@@ -2810,15 +2994,15 @@ contract Test {
 }"""
 
         findings = [
-            {'location': {'file': 'test.sol', 'line': 5}},
-            {'location': {'file': 'test.sol', 'line': 3}},
-            {'location': {}},  # No line number
+            {"location": {"file": "test.sol", "line": 5}},
+            {"location": {"file": "test.sol", "line": 3}},
+            {"location": {}},  # No line number
         ]
 
         context_map = orchestrator._build_code_context_map(source, findings)
 
-        assert 'test.sol:5' in context_map
-        assert 'test.sol:3' in context_map
+        assert "test.sol:5" in context_map
+        assert "test.sol:3" in context_map
         assert len(context_map) == 2
 
     def test_is_same_location(self):
@@ -2827,10 +3011,10 @@ contract Test {
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
-        f1 = {'location': {'file': 'test.sol', 'line': 10}}
-        f2 = {'location': {'file': 'test.sol', 'line': 12}}  # Within 3 lines
-        f3 = {'location': {'file': 'test.sol', 'line': 20}}  # Too far
-        f4 = {'location': {'file': 'other.sol', 'line': 10}}  # Different file
+        f1 = {"location": {"file": "test.sol", "line": 10}}
+        f2 = {"location": {"file": "test.sol", "line": 12}}  # Within 3 lines
+        f3 = {"location": {"file": "test.sol", "line": 20}}  # Too far
+        f4 = {"location": {"file": "other.sol", "line": 10}}  # Different file
 
         assert orchestrator._is_same_location(f1, f2) is True
         assert orchestrator._is_same_location(f1, f3) is False
@@ -2843,7 +3027,7 @@ contract Test {
         orchestrator = MLOrchestrator(ml_enabled=False)
 
         # Test with layers
-        result = orchestrator._determine_tools(layers=['static_analysis'])
+        result = orchestrator._determine_tools(layers=["static_analysis"])
         # Result depends on what's available, just check it doesn't error
         assert isinstance(result, list)
 
@@ -2852,34 +3036,35 @@ contract Test {
         from src.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
-        result = orchestrator._empty_result('test.sol', 'code')
+        result = orchestrator._empty_result("test.sol", "code")
 
-        assert result.contract_path == 'test.sol'
-        assert result.contract_source == 'code'
+        assert result.contract_path == "test.sol"
+        assert result.contract_source == "code"
         assert result.tools_run == []
         assert result.total_raw_findings == 0
 
     def test_quick_scan_and_deep_scan(self):
         """Test quick_scan and deep_scan methods (lines 499-512)."""
-        from src.core.ml_orchestrator import MLOrchestrator
         from unittest.mock import MagicMock
+
+        from src.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
         # Mock analyze to avoid complex execution
-        orchestrator.analyze = MagicMock(return_value=orchestrator._empty_result('test.sol', ''))
+        orchestrator.analyze = MagicMock(return_value=orchestrator._empty_result("test.sol", ""))
 
         # These should call analyze with layers
-        quick_result = orchestrator.quick_scan('test.sol', timeout=30)
+        quick_result = orchestrator.quick_scan("test.sol", timeout=30)
         assert quick_result is not None
 
-        deep_result = orchestrator.deep_scan('test.sol', timeout=30)
+        deep_result = orchestrator.deep_scan("test.sol", timeout=30)
         assert deep_result is not None
 
     def test_run_tool_cache_paths(self, tmp_path):
         """Test _run_tool with cache paths (lines 222-246)."""
+
         from src.core.ml_orchestrator import MLOrchestrator
-        from unittest.mock import MagicMock, patch
 
         orchestrator = MLOrchestrator(cache_enabled=True, ml_enabled=False)
 
@@ -2887,13 +3072,14 @@ contract Test {
         contract.write_text("pragma solidity ^0.8.0;")
 
         # Test with non-existent tool (should return error result)
-        result = orchestrator._run_tool('nonexistent_tool', str(contract))
-        assert result['status'] == 'error'
+        result = orchestrator._run_tool("nonexistent_tool", str(contract))
+        assert result["status"] == "error"
 
     def test_analyze_empty_tools(self, tmp_path):
         """Test analyze when no tools available (empty result path)."""
-        from src.core.ml_orchestrator import MLOrchestrator
         from unittest.mock import MagicMock
+
+        from src.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -2911,8 +3097,8 @@ contract Test {
 
     def test_run_tool_cache_hit(self, tmp_path):
         """Test _run_tool with cache hit (lines 222-226)."""
+
         from src.core.ml_orchestrator import MLOrchestrator
-        from unittest.mock import MagicMock
 
         orchestrator = MLOrchestrator(cache_enabled=True, ml_enabled=False)
 
@@ -2920,17 +3106,18 @@ contract Test {
         contract.write_text("pragma solidity ^0.8.0;")
 
         # Pre-populate cache
-        cached_result = {'tool': 'slither', 'status': 'success', 'findings': [{'id': '1'}]}
-        orchestrator.cache.set('slither', str(contract), cached_result)
+        cached_result = {"tool": "slither", "status": "success", "findings": [{"id": "1"}]}
+        orchestrator.cache.set("slither", str(contract), cached_result)
 
         # Should get cached result
-        result = orchestrator._run_tool('slither', str(contract))
+        result = orchestrator._run_tool("slither", str(contract))
         assert result == cached_result
 
     def test_run_tool_successful_execution(self, tmp_path):
         """Test _run_tool with successful tool execution (lines 228-238)."""
-        from src.core.ml_orchestrator import MLOrchestrator
         from unittest.mock import MagicMock, patch
+
+        from src.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(cache_enabled=True, ml_enabled=False)
 
@@ -2940,19 +3127,20 @@ contract Test {
         # Create mock adapter
         mock_adapter = MagicMock()
         mock_adapter.analyze.return_value = {
-            'tool': 'test-tool',
-            'status': 'success',
-            'findings': []
+            "tool": "test-tool",
+            "status": "success",
+            "findings": [],
         }
 
-        with patch.object(orchestrator.discovery, 'load_adapter', return_value=mock_adapter):
-            result = orchestrator._run_tool('test-tool', str(contract))
-            assert result['status'] == 'success'
+        with patch.object(orchestrator.discovery, "load_adapter", return_value=mock_adapter):
+            result = orchestrator._run_tool("test-tool", str(contract))
+            assert result["status"] == "success"
 
     def test_analyze_with_tools_success(self, tmp_path):
         """Test analyze with successful tool execution (lines 280-378)."""
+        from unittest.mock import MagicMock
+
         from src.core.ml_orchestrator import MLOrchestrator
-        from unittest.mock import MagicMock, patch
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -2962,25 +3150,26 @@ contract Test {
         # Mock _run_tool to return findings
         def mock_run_tool(tool, path, timeout=120):
             return {
-                'tool': tool,
-                'status': 'success',
-                'findings': [
-                    {'id': '1', 'severity': 'high', 'location': {'file': 'test.sol', 'line': 1}}
-                ]
+                "tool": tool,
+                "status": "success",
+                "findings": [
+                    {"id": "1", "severity": "high", "location": {"file": "test.sol", "line": 1}}
+                ],
             }
 
         orchestrator._run_tool = MagicMock(side_effect=mock_run_tool)
-        orchestrator._determine_tools = MagicMock(return_value=['slither'])
+        orchestrator._determine_tools = MagicMock(return_value=["slither"])
 
         result = orchestrator.analyze(str(contract))
 
-        assert 'slither' in result.tools_success
+        assert "slither" in result.tools_success
         assert result.total_raw_findings >= 1
 
     def test_analyze_with_tool_error(self, tmp_path):
         """Test analyze with tool execution error (lines 304-305, 317-324)."""
-        from src.core.ml_orchestrator import MLOrchestrator
         from unittest.mock import MagicMock
+
+        from src.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
@@ -2989,25 +3178,21 @@ contract Test {
 
         # Mock _run_tool to return error
         def mock_run_tool(tool, path, timeout=120):
-            return {
-                'tool': tool,
-                'status': 'error',
-                'error': 'Tool failed',
-                'findings': []
-            }
+            return {"tool": tool, "status": "error", "error": "Tool failed", "findings": []}
 
         orchestrator._run_tool = MagicMock(side_effect=mock_run_tool)
-        orchestrator._determine_tools = MagicMock(return_value=['failing_tool'])
+        orchestrator._determine_tools = MagicMock(return_value=["failing_tool"])
 
         result = orchestrator.analyze(str(contract))
 
-        assert 'failing_tool' in result.tools_failed
+        assert "failing_tool" in result.tools_failed
         assert len(result.tools_success) == 0
 
     def test_analyze_with_ml_enabled(self, tmp_path):
         """Test analyze with ML enabled (lines 334-356)."""
-        from src.core.ml_orchestrator import MLOrchestrator
         from unittest.mock import MagicMock
+
+        from src.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=True, fp_threshold=0.5)
 
@@ -3017,15 +3202,15 @@ contract Test {
         # Mock _run_tool to return findings
         def mock_run_tool(tool, path, timeout=120):
             return {
-                'tool': tool,
-                'status': 'success',
-                'findings': [
-                    {'id': '1', 'severity': 'high', 'location': {'file': 'test.sol', 'line': 1}}
-                ]
+                "tool": tool,
+                "status": "success",
+                "findings": [
+                    {"id": "1", "severity": "high", "location": {"file": "test.sol", "line": 1}}
+                ],
             }
 
         orchestrator._run_tool = MagicMock(side_effect=mock_run_tool)
-        orchestrator._determine_tools = MagicMock(return_value=['slither'])
+        orchestrator._determine_tools = MagicMock(return_value=["slither"])
 
         result = orchestrator.analyze(str(contract))
 
@@ -3034,56 +3219,57 @@ contract Test {
 
     def test_submit_feedback_ml_enabled(self):
         """Test submit_feedback when ML is enabled (line 488)."""
+        from unittest.mock import MagicMock
+
         from src.core.ml_orchestrator import MLOrchestrator
         from src.ml import FeedbackType
-        from unittest.mock import MagicMock
 
         orchestrator = MLOrchestrator(ml_enabled=True)
 
         # Mock ml_pipeline.submit_feedback
-        orchestrator.ml_pipeline.submit_feedback = MagicMock(return_value={'status': 'recorded'})
+        orchestrator.ml_pipeline.submit_feedback = MagicMock(return_value={"status": "recorded"})
 
         result = orchestrator.submit_feedback(
-            finding={'id': 'test'},
-            feedback_type=FeedbackType.FALSE_POSITIVE,
-            user_id='test-user'
+            finding={"id": "test"}, feedback_type=FeedbackType.FALSE_POSITIVE, user_id="test-user"
         )
 
-        assert result == {'status': 'recorded'}
+        assert result == {"status": "recorded"}
 
     def test_get_ml_report_ml_enabled(self):
         """Test get_ml_report when ML is enabled (line 496)."""
-        from src.core.ml_orchestrator import MLOrchestrator
         from unittest.mock import MagicMock
+
+        from src.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=True)
 
         # Mock ml_pipeline.get_ml_report
-        orchestrator.ml_pipeline.get_ml_report = MagicMock(return_value={'fp_rate': 0.1})
+        orchestrator.ml_pipeline.get_ml_report = MagicMock(return_value={"fp_rate": 0.1})
 
         report = orchestrator.get_ml_report()
 
-        assert report == {'fp_rate': 0.1}
+        assert report == {"fp_rate": 0.1}
 
     def test_determine_tools_layers_with_available(self):
         """Test _determine_tools with layers and available tools (lines 436-448)."""
-        from src.core.ml_orchestrator import MLOrchestrator
         from unittest.mock import MagicMock
+
+        from src.core.ml_orchestrator import MLOrchestrator
 
         orchestrator = MLOrchestrator(ml_enabled=False)
 
         # Mock tools_by_layer
         mock_tool = MagicMock()
-        mock_tool.name = 'test-tool'
+        mock_tool.name = "test-tool"
         mock_tool.available = True
 
-        orchestrator.discovery.get_tools_by_layer = MagicMock(return_value={
-            'static_analysis': [mock_tool]
-        })
+        orchestrator.discovery.get_tools_by_layer = MagicMock(
+            return_value={"static_analysis": [mock_tool]}
+        )
 
-        result = orchestrator._determine_tools(layers=['static_analysis'])
+        result = orchestrator._determine_tools(layers=["static_analysis"])
 
-        assert 'test-tool' in result
+        assert "test-tool" in result
 
 
 class TestConfigLoader:
@@ -3092,6 +3278,7 @@ class TestConfigLoader:
     def test_import(self):
         """Test MIESCConfig can be imported."""
         from src.core.config_loader import MIESCConfig
+
         assert MIESCConfig is not None
 
     def test_instantiation(self):
@@ -3108,12 +3295,14 @@ class TestConfigLoaderCoverage:
     def _reset_singleton(self):
         """Reset the MIESCConfig singleton for testing."""
         from src.core.config_loader import MIESCConfig
+
         MIESCConfig._instance = None
         MIESCConfig._config = {}
 
     def test_properties(self):
         """Test all config properties."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
@@ -3134,28 +3323,30 @@ class TestConfigLoaderCoverage:
 
     def test_get_adapter_config(self):
         """Test get_adapter_config method (lines 121-124)."""
-        from src.core.config_loader import MIESCConfig, AdapterConfig
+        from src.core.config_loader import AdapterConfig, MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
         # Test with non-existent adapter (returns defaults)
-        adapter_config = config.get_adapter_config('nonexistent_adapter')
+        adapter_config = config.get_adapter_config("nonexistent_adapter")
         assert isinstance(adapter_config, AdapterConfig)
-        assert adapter_config.name == 'nonexistent_adapter'
+        assert adapter_config.name == "nonexistent_adapter"
         assert adapter_config.enabled is True
-        assert adapter_config.layer == 'static_analysis'
+        assert adapter_config.layer == "static_analysis"
         assert adapter_config.timeout == 60
         assert adapter_config.options == {}
 
     def test_get_layer_config(self):
         """Test get_layer_config method (lines 134-137)."""
-        from src.core.config_loader import MIESCConfig, LayerConfig
+        from src.core.config_loader import LayerConfig, MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
-        layer_config = config.get_layer_config('test_layer')
+        layer_config = config.get_layer_config("test_layer")
         assert isinstance(layer_config, LayerConfig)
-        assert layer_config.name == 'test_layer'
+        assert layer_config.name == "test_layer"
         assert layer_config.enabled is True
         assert layer_config.priority == 1
         assert layer_config.tools == []
@@ -3163,6 +3354,7 @@ class TestConfigLoaderCoverage:
     def test_get_enabled_adapters(self):
         """Test get_enabled_adapters method (lines 146-147)."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
@@ -3172,15 +3364,17 @@ class TestConfigLoaderCoverage:
     def test_get_adapters_by_layer(self):
         """Test get_adapters_by_layer method (lines 154-155)."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
-        adapters = config.get_adapters_by_layer('static_analysis')
+        adapters = config.get_adapters_by_layer("static_analysis")
         assert isinstance(adapters, list)
 
     def test_get_all_layers(self):
         """Test get_all_layers method (lines 162-173)."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
@@ -3190,16 +3384,18 @@ class TestConfigLoaderCoverage:
     def test_get_llm_config(self):
         """Test get_llm_config method (line 177)."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
         llm_config = config.get_llm_config()
         assert isinstance(llm_config, dict)
-        assert 'provider' in llm_config or 'host' in llm_config or 'default_model' in llm_config
+        assert "provider" in llm_config or "host" in llm_config or "default_model" in llm_config
 
     def test_get_results_config(self):
         """Test get_results_config method (line 185)."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
@@ -3209,6 +3405,7 @@ class TestConfigLoaderCoverage:
     def test_get_compliance_frameworks(self):
         """Test get_compliance_frameworks method (lines 192-195)."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
@@ -3218,15 +3415,17 @@ class TestConfigLoaderCoverage:
     def test_get_license_plan_config(self):
         """Test get_license_plan_config method (lines 199-200)."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
-        plan_config = config.get_license_plan_config('PROFESSIONAL')
+        plan_config = config.get_license_plan_config("PROFESSIONAL")
         assert isinstance(plan_config, dict)
 
     def test_to_dict(self):
         """Test to_dict method (line 204)."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
@@ -3236,6 +3435,7 @@ class TestConfigLoaderCoverage:
     def test_reload(self):
         """Test reload method (line 92)."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
@@ -3246,75 +3446,81 @@ class TestConfigLoaderCoverage:
     def test_env_config_path(self, tmp_path):
         """Test MIESC_CONFIG env var (line 57)."""
         import os
+
         from src.core.config_loader import MIESCConfig
 
         # Create temp config file
-        config_file = tmp_path / 'test_config.yaml'
+        config_file = tmp_path / "test_config.yaml"
         config_file.write_text('version: "test_env"')
 
         self._reset_singleton()
-        old_env = os.environ.get('MIESC_CONFIG')
+        old_env = os.environ.get("MIESC_CONFIG")
         try:
-            os.environ['MIESC_CONFIG'] = str(config_file)
+            os.environ["MIESC_CONFIG"] = str(config_file)
             config = MIESCConfig()
             # Config should load from env path
-            assert config.version in ['test_env', '4.0.0']  # May vary
+            assert config.version in ["test_env", "4.0.0"]  # May vary
         finally:
             if old_env is not None:
-                os.environ['MIESC_CONFIG'] = old_env
+                os.environ["MIESC_CONFIG"] = old_env
             else:
-                os.environ.pop('MIESC_CONFIG', None)
+                os.environ.pop("MIESC_CONFIG", None)
             self._reset_singleton()
 
     def test_default_config_when_no_file(self, tmp_path, monkeypatch):
         """Test default config when no file exists (lines 64, 74, 78)."""
         import os
+
         from src.core.config_loader import MIESCConfig
 
         self._reset_singleton()
 
         # Mock Path.cwd() to return a temp dir with no config
-        monkeypatch.setattr('pathlib.Path.cwd', lambda: tmp_path)
-        os.environ.pop('MIESC_CONFIG', None)
+        monkeypatch.setattr("pathlib.Path.cwd", lambda: tmp_path)
+        os.environ.pop("MIESC_CONFIG", None)
 
         config = MIESCConfig()
         # Should get default config
-        assert config.version == '4.1.0'
+        assert config.version == "4.1.0"
         self._reset_singleton()
 
     def test_get_config_function(self):
         """Test get_config convenience function."""
         from src.core.config_loader import get_config
+
         config = get_config()
         assert config is not None
 
     def test_get_chain_config_default(self):
         """Test get_chain_config returns default ethereum config."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
         chain_config = config.get_chain_config()
         assert isinstance(chain_config, dict)
-        assert 'name' in chain_config or 'chain_id' in chain_config
+        assert "name" in chain_config or "chain_id" in chain_config
 
     def test_get_chain_config_specific(self):
         """Test get_chain_config with specific chain name."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
         # Test with ethereum
-        eth_config = config.get_chain_config('ethereum')
+        eth_config = config.get_chain_config("ethereum")
         assert isinstance(eth_config, dict)
 
         # Test with nonexistent chain (should return default)
-        unknown_config = config.get_chain_config('unknown_chain')
+        unknown_config = config.get_chain_config("unknown_chain")
         assert isinstance(unknown_config, dict)
 
     def test_get_enabled_chains(self):
         """Test get_enabled_chains returns list of enabled chains."""
         from src.core.config_loader import MIESCConfig
+
         self._reset_singleton()
         config = MIESCConfig()
 
@@ -3327,6 +3533,7 @@ class TestConfigLoaderCoverage:
     def test_get_chain_config_with_yaml_config(self, tmp_path):
         """Test get_chain_config with actual YAML config."""
         import os
+
         from src.core.config_loader import MIESCConfig
 
         self._reset_singleton()
@@ -3349,32 +3556,32 @@ chains:
     chain_id: 999
     enabled: false
 """
-        config_file = tmp_path / 'test_chains.yaml'
+        config_file = tmp_path / "test_chains.yaml"
         config_file.write_text(config_content)
 
-        old_env = os.environ.get('MIESC_CONFIG')
+        old_env = os.environ.get("MIESC_CONFIG")
         try:
-            os.environ['MIESC_CONFIG'] = str(config_file)
+            os.environ["MIESC_CONFIG"] = str(config_file)
             config = MIESCConfig()
 
             # Test default chain (polygon)
             default_config = config.get_chain_config()
-            assert default_config.get('chain_id') == 137
+            assert default_config.get("chain_id") == 137
 
             # Test specific chain
-            eth_config = config.get_chain_config('ethereum')
-            assert eth_config.get('chain_id') == 1
+            eth_config = config.get_chain_config("ethereum")
+            assert eth_config.get("chain_id") == 1
 
             # Test enabled chains (should not include disabled)
             enabled = config.get_enabled_chains()
-            assert 'ethereum' in enabled
-            assert 'polygon' in enabled
-            assert 'disabled_chain' not in enabled
+            assert "ethereum" in enabled
+            assert "polygon" in enabled
+            assert "disabled_chain" not in enabled
         finally:
             if old_env is not None:
-                os.environ['MIESC_CONFIG'] = old_env
+                os.environ["MIESC_CONFIG"] = old_env
             else:
-                os.environ.pop('MIESC_CONFIG', None)
+                os.environ.pop("MIESC_CONFIG", None)
             self._reset_singleton()
 
 
@@ -3384,11 +3591,11 @@ class TestCoreInit:
     def test_all_exports_available(self):
         """Test all expected exports are available."""
         from src.core import (
+            HealthChecker,
+            HealthStatus,
             MLOrchestrator,
             get_ml_orchestrator,
             get_tool_discovery,
-            HealthChecker,
-            HealthStatus,
         )
 
         assert MLOrchestrator is not None
@@ -3405,20 +3612,20 @@ class TestCorrelationAPICoverage:
         """Create sample findings for testing."""
         return [
             {
-                'type': 'reentrancy-eth',
-                'severity': 'high',
-                'message': 'Reentrancy in Contract.withdraw()',
-                'location': {'file': 'Contract.sol', 'line': 42, 'function': 'withdraw'},
-                'swc_id': 'SWC-107',
-                'confidence': 0.8,
+                "type": "reentrancy-eth",
+                "severity": "high",
+                "message": "Reentrancy in Contract.withdraw()",
+                "location": {"file": "Contract.sol", "line": 42, "function": "withdraw"},
+                "swc_id": "SWC-107",
+                "confidence": 0.8,
             },
             {
-                'type': 'arbitrary-send',
-                'severity': 'medium',
-                'message': 'Contract sends ETH to arbitrary address',
-                'location': {'file': 'Contract.sol', 'line': 45, 'function': 'withdraw'},
-                'swc_id': 'SWC-105',
-                'confidence': 0.7,
+                "type": "arbitrary-send",
+                "severity": "medium",
+                "message": "Contract sends ETH to arbitrary address",
+                "location": {"file": "Contract.sol", "line": 45, "function": "withdraw"},
+                "swc_id": "SWC-105",
+                "confidence": 0.7,
             },
         ]
 
@@ -3426,23 +3633,25 @@ class TestCorrelationAPICoverage:
         """Create findings from a second tool for cross-validation."""
         return [
             {
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'State change after external call',
-                'location': {'file': 'Contract.sol', 'line': 42, 'function': 'withdraw'},
-                'swc_id': 'SWC-107',
-                'confidence': 0.85,
+                "type": "reentrancy",
+                "severity": "high",
+                "message": "State change after external call",
+                "location": {"file": "Contract.sol", "line": 42, "function": "withdraw"},
+                "swc_id": "SWC-107",
+                "confidence": 0.85,
             },
         ]
 
     def test_correlation_api_import(self):
         """Test MIESCCorrelationAPI can be imported."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         assert MIESCCorrelationAPI is not None
 
     def test_correlation_api_init_defaults(self):
         """Test MIESCCorrelationAPI initialization with defaults."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
         assert api.confidence_threshold == 0.5
         assert api.fp_threshold == 0.6
@@ -3451,6 +3660,7 @@ class TestCorrelationAPICoverage:
     def test_correlation_api_init_custom(self):
         """Test MIESCCorrelationAPI with custom parameters."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI(
             min_tools_for_validation=3,
             confidence_threshold=0.7,
@@ -3464,123 +3674,134 @@ class TestCorrelationAPICoverage:
     def test_add_tool_results(self):
         """Test adding tool results."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
         findings = self._create_sample_findings()
 
-        count = api.add_tool_results('slither', findings)
+        count = api.add_tool_results("slither", findings)
         assert count >= 0
-        assert 'slither' in api._analysis_metadata['tools_used']
+        assert "slither" in api._analysis_metadata["tools_used"]
 
     def test_add_tool_results_multiple_tools(self):
         """Test adding results from multiple tools."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
 
-        api.add_tool_results('slither', self._create_sample_findings())
-        api.add_tool_results('aderyn', self._create_second_tool_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
+        api.add_tool_results("aderyn", self._create_second_tool_findings())
 
-        assert 'slither' in api._analysis_metadata['tools_used']
-        assert 'aderyn' in api._analysis_metadata['tools_used']
+        assert "slither" in api._analysis_metadata["tools_used"]
+        assert "aderyn" in api._analysis_metadata["tools_used"]
 
     def test_add_tool_results_sets_start_time(self):
         """Test that adding results sets start_time."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
 
-        assert api._analysis_metadata['start_time'] is None
-        api.add_tool_results('slither', self._create_sample_findings())
-        assert api._analysis_metadata['start_time'] is not None
+        assert api._analysis_metadata["start_time"] is None
+        api.add_tool_results("slither", self._create_sample_findings())
+        assert api._analysis_metadata["start_time"] is not None
 
     def test_analyze_full_format(self):
         """Test analyze with full output format."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
-        api.add_tool_results('slither', self._create_sample_findings())
-        api.add_tool_results('aderyn', self._create_second_tool_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
+        api.add_tool_results("aderyn", self._create_second_tool_findings())
 
-        result = api.analyze(output_format='full')
+        result = api.analyze(output_format="full")
 
-        assert 'metadata' in result
-        assert 'summary' in result
-        assert 'findings' in result
-        assert 'tool_analysis' in result
+        assert "metadata" in result
+        assert "summary" in result
+        assert "findings" in result
+        assert "tool_analysis" in result
 
     def test_analyze_summary_format(self):
         """Test analyze with summary output format."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
-        api.add_tool_results('slither', self._create_sample_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
 
-        result = api.analyze(output_format='summary')
+        result = api.analyze(output_format="summary")
 
-        assert 'total_findings' in result
-        assert 'filtered_as_fp' in result
-        assert 'by_severity' in result
-        assert 'by_type' in result
-        assert 'tools_used' in result
-        assert 'top_issues' in result
+        assert "total_findings" in result
+        assert "filtered_as_fp" in result
+        assert "by_severity" in result
+        assert "by_type" in result
+        assert "tools_used" in result
+        assert "top_issues" in result
 
     def test_analyze_actionable_format(self):
         """Test analyze with actionable output format."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
-        api.add_tool_results('slither', self._create_sample_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
 
-        result = api.analyze(output_format='actionable')
+        result = api.analyze(output_format="actionable")
 
-        assert 'total_actions' in result
-        assert 'critical_count' in result
-        assert 'high_count' in result
-        assert 'actions' in result
-        assert 'remediation_plan' in result
+        assert "total_actions" in result
+        assert "critical_count" in result
+        assert "high_count" in result
+        assert "actions" in result
+        assert "remediation_plan" in result
 
     def test_analyze_default_format(self):
         """Test analyze with default (full) output format."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
-        api.add_tool_results('slither', self._create_sample_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
 
         result = api.analyze()  # No format specified
 
-        assert 'metadata' in result
-        assert 'summary' in result
+        assert "metadata" in result
+        assert "summary" in result
 
     def test_analyze_with_clustering_disabled(self):
         """Test analyze with clustering disabled."""
         from src.core.correlation_api import MIESCCorrelationAPI
-        api = MIESCCorrelationAPI(enable_clustering=False)
-        api.add_tool_results('slither', self._create_sample_findings())
 
-        result = api.analyze(output_format='full')
+        api = MIESCCorrelationAPI(enable_clustering=False)
+        api.add_tool_results("slither", self._create_sample_findings())
+
+        result = api.analyze(output_format="full")
         # Should work without errors even with clustering disabled
-        assert 'findings' in result
+        assert "findings" in result
 
     def test_get_findings_by_severity(self):
         """Test get_findings_by_severity method."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
-        api.add_tool_results('slither', self._create_sample_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
         api.analyze()  # Trigger correlation
 
-        high_findings = api.get_findings_by_severity('high')
+        high_findings = api.get_findings_by_severity("high")
         assert isinstance(high_findings, list)
 
     def test_get_findings_by_type(self):
         """Test get_findings_by_type method."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
-        api.add_tool_results('slither', self._create_sample_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
         api.analyze()
 
-        reentrancy_findings = api.get_findings_by_type('reentrancy')
+        reentrancy_findings = api.get_findings_by_type("reentrancy")
         assert isinstance(reentrancy_findings, list)
 
     def test_get_cross_validated_only(self):
         """Test get_cross_validated_only method."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
-        api.add_tool_results('slither', self._create_sample_findings())
-        api.add_tool_results('aderyn', self._create_second_tool_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
+        api.add_tool_results("aderyn", self._create_second_tool_findings())
         api.analyze()
 
         cross_validated = api.get_cross_validated_only()
@@ -3589,34 +3810,35 @@ class TestCorrelationAPICoverage:
     def test_clear(self):
         """Test clear method."""
         from src.core.correlation_api import MIESCCorrelationAPI
-        api = MIESCCorrelationAPI()
-        api.add_tool_results('slither', self._create_sample_findings())
 
-        assert len(api._analysis_metadata['tools_used']) > 0
+        api = MIESCCorrelationAPI()
+        api.add_tool_results("slither", self._create_sample_findings())
+
+        assert len(api._analysis_metadata["tools_used"]) > 0
         api.clear()
-        assert api._analysis_metadata['tools_used'] == []
-        assert api._analysis_metadata['start_time'] is None
+        assert api._analysis_metadata["tools_used"] == []
+        assert api._analysis_metadata["start_time"] is None
 
     def test_analyze_contract_with_correlation_function(self):
         """Test analyze_contract_with_correlation convenience function."""
         from src.core.correlation_api import analyze_contract_with_correlation
 
         tool_results = {
-            'slither': self._create_sample_findings(),
-            'aderyn': self._create_second_tool_findings(),
+            "slither": self._create_sample_findings(),
+            "aderyn": self._create_second_tool_findings(),
         }
 
         result = analyze_contract_with_correlation(tool_results)
 
-        assert 'metadata' in result
-        assert 'findings' in result
+        assert "metadata" in result
+        assert "findings" in result
 
     def test_analyze_contract_with_correlation_custom_thresholds(self):
         """Test analyze_contract_with_correlation with custom thresholds."""
         from src.core.correlation_api import analyze_contract_with_correlation
 
         tool_results = {
-            'slither': self._create_sample_findings(),
+            "slither": self._create_sample_findings(),
         }
 
         result = analyze_contract_with_correlation(
@@ -3630,62 +3852,65 @@ class TestCorrelationAPICoverage:
     def test_generate_summary_report_counts(self):
         """Test summary report correctly counts severities."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI(confidence_threshold=0.1, fp_threshold=0.99)
-        api.add_tool_results('slither', self._create_sample_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
 
-        result = api.analyze(output_format='summary')
+        result = api.analyze(output_format="summary")
 
-        assert 'by_severity' in result
-        assert isinstance(result['by_severity'], dict)
-        assert 'critical' in result['by_severity']
-        assert 'high' in result['by_severity']
-        assert 'medium' in result['by_severity']
-        assert 'low' in result['by_severity']
+        assert "by_severity" in result
+        assert isinstance(result["by_severity"], dict)
+        assert "critical" in result["by_severity"]
+        assert "high" in result["by_severity"]
+        assert "medium" in result["by_severity"]
+        assert "low" in result["by_severity"]
 
     def test_generate_actionable_report_prioritization(self):
         """Test actionable report prioritizes by severity."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI(confidence_threshold=0.1, fp_threshold=0.99)
 
         findings = [
             {
-                'type': 'low-issue',
-                'severity': 'low',
-                'message': 'Low severity issue',
-                'location': {'file': 'Test.sol', 'line': 10},
-                'swc_id': 'SWC-100',
-                'confidence': 0.9,
+                "type": "low-issue",
+                "severity": "low",
+                "message": "Low severity issue",
+                "location": {"file": "Test.sol", "line": 10},
+                "swc_id": "SWC-100",
+                "confidence": 0.9,
             },
             {
-                'type': 'critical-issue',
-                'severity': 'critical',
-                'message': 'Critical severity issue',
-                'location': {'file': 'Test.sol', 'line': 20},
-                'swc_id': 'SWC-101',
-                'confidence': 0.9,
+                "type": "critical-issue",
+                "severity": "critical",
+                "message": "Critical severity issue",
+                "location": {"file": "Test.sol", "line": 20},
+                "swc_id": "SWC-101",
+                "confidence": 0.9,
             },
         ]
-        api.add_tool_results('test-tool', findings)
+        api.add_tool_results("test-tool", findings)
 
-        result = api.analyze(output_format='actionable')
+        result = api.analyze(output_format="actionable")
 
-        if result['actions']:
+        if result["actions"]:
             # First action should be critical
-            assert result['critical_count'] >= 0
+            assert result["critical_count"] >= 0
 
     def test_full_report_with_clusters(self):
         """Test full report includes clusters when enabled."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI(
             enable_clustering=True,
             confidence_threshold=0.1,
             fp_threshold=0.99,
         )
-        api.add_tool_results('slither', self._create_sample_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
 
-        result = api.analyze(output_format='full')
+        result = api.analyze(output_format="full")
         # Clusters may or may not be present depending on findings
-        assert 'findings' in result
+        assert "findings" in result
 
     def test_fp_filtering(self):
         """Test false positive filtering based on threshold."""
@@ -3693,11 +3918,11 @@ class TestCorrelationAPICoverage:
 
         # Very low FP threshold to filter most findings
         api = MIESCCorrelationAPI(fp_threshold=0.001)
-        api.add_tool_results('slither', self._create_sample_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
 
-        result = api.analyze(output_format='full')
+        result = api.analyze(output_format="full")
         # Should have filtered some as FP
-        assert 'findings' in result
+        assert "findings" in result
 
     def test_confidence_filtering(self):
         """Test confidence filtering based on threshold."""
@@ -3705,47 +3930,50 @@ class TestCorrelationAPICoverage:
 
         # Very high confidence threshold to filter findings
         api = MIESCCorrelationAPI(confidence_threshold=0.99)
-        api.add_tool_results('slither', self._create_sample_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
 
-        result = api.analyze(output_format='summary')
+        result = api.analyze(output_format="summary")
         # Should filter low confidence findings
-        assert result['total_findings'] >= 0
+        assert result["total_findings"] >= 0
 
     def test_empty_findings(self):
         """Test handling of empty findings."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
-        api.add_tool_results('slither', [])
+        api.add_tool_results("slither", [])
 
         result = api.analyze()
-        assert 'findings' in result
+        assert "findings" in result
 
     def test_metadata_configuration(self):
         """Test metadata includes configuration."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI(
             confidence_threshold=0.6,
             fp_threshold=0.7,
         )
-        api.add_tool_results('slither', self._create_sample_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
 
-        result = api.analyze(output_format='full')
+        result = api.analyze(output_format="full")
 
-        assert 'metadata' in result
-        assert 'configuration' in result['metadata']
-        assert result['metadata']['configuration']['confidence_threshold'] == 0.6
-        assert result['metadata']['configuration']['fp_threshold'] == 0.7
+        assert "metadata" in result
+        assert "configuration" in result["metadata"]
+        assert result["metadata"]["configuration"]["confidence_threshold"] == 0.6
+        assert result["metadata"]["configuration"]["fp_threshold"] == 0.7
 
     def test_add_same_tool_twice(self):
         """Test adding results from same tool twice doesn't duplicate in tools_used."""
         from src.core.correlation_api import MIESCCorrelationAPI
+
         api = MIESCCorrelationAPI()
 
-        api.add_tool_results('slither', self._create_sample_findings())
-        api.add_tool_results('slither', self._create_sample_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
+        api.add_tool_results("slither", self._create_sample_findings())
 
         # Should only appear once
-        assert api._analysis_metadata['tools_used'].count('slither') == 1
+        assert api._analysis_metadata["tools_used"].count("slither") == 1
 
     def test_summary_with_cross_validated_findings(self):
         """Test summary report counts cross-validated findings (line 201)."""
@@ -3760,22 +3988,22 @@ class TestCorrelationAPICoverage:
 
         # Add identical findings from two tools to trigger cross-validation
         reentrancy_finding = {
-            'type': 'reentrancy',
-            'severity': 'high',
-            'message': 'Reentrancy vulnerability',
-            'location': {'file': 'Test.sol', 'line': 10, 'function': 'withdraw'},
-            'swc_id': 'SWC-107',
-            'confidence': 0.9,
+            "type": "reentrancy",
+            "severity": "high",
+            "message": "Reentrancy vulnerability",
+            "location": {"file": "Test.sol", "line": 10, "function": "withdraw"},
+            "swc_id": "SWC-107",
+            "confidence": 0.9,
         }
 
-        api.add_tool_results('slither', [reentrancy_finding])
-        api.add_tool_results('aderyn', [reentrancy_finding])
+        api.add_tool_results("slither", [reentrancy_finding])
+        api.add_tool_results("aderyn", [reentrancy_finding])
 
-        result = api.analyze(output_format='summary')
+        result = api.analyze(output_format="summary")
 
         # Check cross_validated field exists and is integer
-        assert 'cross_validated' in result
-        assert isinstance(result['cross_validated'], int)
+        assert "cross_validated" in result
+        assert isinstance(result["cross_validated"], int)
 
     def test_summary_with_exact_location_cross_validation(self):
         """Test cross-validation with exact same location from multiple tools."""
@@ -3789,21 +4017,259 @@ class TestCorrelationAPICoverage:
 
         # Exact same finding from multiple tools
         finding = {
-            'type': 'reentrancy-eth',
-            'severity': 'high',
-            'message': 'State change after external call',
-            'location': {'file': 'Contract.sol', 'line': 42, 'function': 'withdraw'},
-            'swc_id': 'SWC-107',
-            'confidence': 0.85,
+            "type": "reentrancy-eth",
+            "severity": "high",
+            "message": "State change after external call",
+            "location": {"file": "Contract.sol", "line": 42, "function": "withdraw"},
+            "swc_id": "SWC-107",
+            "confidence": 0.85,
         }
 
-        api.add_tool_results('tool1', [finding])
-        api.add_tool_results('tool2', [finding])
-        api.add_tool_results('tool3', [finding])
+        api.add_tool_results("tool1", [finding])
+        api.add_tool_results("tool2", [finding])
+        api.add_tool_results("tool3", [finding])
 
-        result = api.analyze(output_format='summary')
-        assert 'cross_validated' in result
+        result = api.analyze(output_format="summary")
+        assert "cross_validated" in result
+
+    def test_parse_root_causes_basic(self):
+        """Test _parse_root_causes with basic LLM response format."""
+        from src.core.correlation_api import MIESCCorrelationAPI
+
+        api = MIESCCorrelationAPI()
+
+        # Create mock CorrelatedFinding
+        mock_findings = []
+
+        llm_response = """ROOT_CAUSE_1: Missing access control on sensitive functions
+EXPLAINS: 1, 2, 3
+PRIORITY: HIGH
+
+ROOT_CAUSE_2: State changes after external calls
+EXPLAINS: 4, 5
+PRIORITY: MEDIUM"""
+
+        result = api._parse_root_causes(llm_response, mock_findings)
+
+        assert "root_causes" in result
+        assert "grouped_findings" in result
+        assert len(result["root_causes"]) == 2
+        assert result["root_causes"][0]["priority"] == "HIGH"
+        assert result["root_causes"][1]["priority"] == "MEDIUM"
+
+    def test_parse_root_causes_empty_response(self):
+        """Test _parse_root_causes with empty response."""
+        from src.core.correlation_api import MIESCCorrelationAPI
+
+        api = MIESCCorrelationAPI()
+        result = api._parse_root_causes("", [])
+
+        assert result["root_causes"] == []
+        assert result["grouped_findings"] == {}
+
+    def test_parse_root_causes_malformed_response(self):
+        """Test _parse_root_causes with malformed response."""
+        from src.core.correlation_api import MIESCCorrelationAPI
+
+        api = MIESCCorrelationAPI()
+        llm_response = """Some random text
+without proper formatting
+but with ROOT_CAUSE_1: partial format
+and more noise"""
+
+        result = api._parse_root_causes(llm_response, [])
+
+        assert "root_causes" in result
+        # Should handle partial parsing gracefully
+        assert isinstance(result["root_causes"], list)
+
+    def test_parse_root_causes_invalid_explains(self):
+        """Test _parse_root_causes with invalid EXPLAINS format."""
+        from src.core.correlation_api import MIESCCorrelationAPI
+
+        api = MIESCCorrelationAPI()
+        llm_response = """ROOT_CAUSE_1: Test cause
+EXPLAINS: not numbers here
+PRIORITY: LOW"""
+
+        result = api._parse_root_causes(llm_response, [])
+
+        assert len(result["root_causes"]) == 1
+        assert result["root_causes"][0]["finding_indices"] == []
+        assert result["root_causes"][0]["priority"] == "LOW"
+
+    def test_llm_root_cause_analysis_empty_findings(self):
+        """Test _llm_root_cause_analysis with empty findings."""
+        from src.core.correlation_api import MIESCCorrelationAPI
+
+        api = MIESCCorrelationAPI()
+        result = api._llm_root_cause_analysis([])
+
+        assert result == {"root_causes": [], "grouped_findings": {}}
+
+    @patch("subprocess.run")
+    def test_llm_root_cause_analysis_timeout(self, mock_run):
+        """Test _llm_root_cause_analysis handles timeout."""
+        import subprocess
+
+        from src.core.correlation_api import MIESCCorrelationAPI
+        from src.ml.correlation_engine import CorrelatedFinding
+
+        mock_run.side_effect = subprocess.TimeoutExpired("curl", 60)
+
+        api = MIESCCorrelationAPI()
+        # Set LLM config to avoid lazy loading issues
+        api._llm_model = "test-model"
+        api._ollama_host = "http://localhost:11434"
+
+        # Create a minimal mock finding
+        mock_finding = MagicMock(spec=CorrelatedFinding)
+        mock_finding.severity = "high"
+        mock_finding.canonical_type = "reentrancy"
+        mock_finding.location = {"file": "Test.sol", "line": 10}
+        mock_finding.message = "Test vulnerability"
+
+        result = api._llm_root_cause_analysis([mock_finding])
+
+        assert result == {"root_causes": [], "grouped_findings": {}}
+
+    @patch("subprocess.run")
+    def test_llm_root_cause_analysis_json_error(self, mock_run):
+        """Test _llm_root_cause_analysis handles JSON decode error."""
+        from src.core.correlation_api import MIESCCorrelationAPI
+        from src.ml.correlation_engine import CorrelatedFinding
+
+        mock_run.return_value = MagicMock(returncode=0, stdout="not valid json")
+
+        api = MIESCCorrelationAPI()
+        api._llm_model = "test-model"
+        api._ollama_host = "http://localhost:11434"
+
+        mock_finding = MagicMock(spec=CorrelatedFinding)
+        mock_finding.severity = "high"
+        mock_finding.canonical_type = "reentrancy"
+        mock_finding.location = {"file": "Test.sol", "line": 10}
+        mock_finding.message = "Test vulnerability"
+
+        result = api._llm_root_cause_analysis([mock_finding])
+
+        assert result == {"root_causes": [], "grouped_findings": {}}
+
+    @patch("subprocess.run")
+    def test_llm_root_cause_analysis_success(self, mock_run):
+        """Test _llm_root_cause_analysis with successful LLM response."""
+        import json
+
+        from src.core.correlation_api import MIESCCorrelationAPI
+        from src.ml.correlation_engine import CorrelatedFinding
+
+        llm_response = """ROOT_CAUSE_1: Access control issue
+EXPLAINS: 1
+PRIORITY: HIGH"""
+
+        mock_run.return_value = MagicMock(
+            returncode=0, stdout=json.dumps({"response": llm_response})
+        )
+
+        api = MIESCCorrelationAPI()
+        api._llm_model = "test-model"
+        api._ollama_host = "http://localhost:11434"
+
+        mock_finding = MagicMock(spec=CorrelatedFinding)
+        mock_finding.severity = "high"
+        mock_finding.canonical_type = "reentrancy"
+        mock_finding.location = {"file": "Test.sol", "line": 10}
+        mock_finding.message = "Test vulnerability"
+
+        result = api._llm_root_cause_analysis([mock_finding])
+
+        assert "root_causes" in result
+        assert len(result["root_causes"]) >= 1
+
+    @patch("subprocess.run")
+    def test_analyze_with_llm_correlation_enabled(self, mock_run):
+        """Test analyze with LLM correlation enabled."""
+        import json
+
+        from src.core.correlation_api import MIESCCorrelationAPI
+
+        llm_response = """ROOT_CAUSE_1: Common pattern issue
+EXPLAINS: 1
+PRIORITY: HIGH"""
+
+        mock_run.return_value = MagicMock(
+            returncode=0, stdout=json.dumps({"response": llm_response})
+        )
+
+        api = MIESCCorrelationAPI(
+            enable_llm_correlation=True,
+            confidence_threshold=0.1,
+            fp_threshold=0.99,
+        )
+        api._llm_model = "test-model"
+        api._ollama_host = "http://localhost:11434"
+
+        findings = [
+            {
+                "type": "reentrancy-eth",
+                "severity": "high",
+                "message": "State change after external call",
+                "location": {"file": "Contract.sol", "line": 42},
+                "swc_id": "SWC-107",
+                "confidence": 0.85,
+            }
+        ]
+
+        api.add_tool_results("slither", findings)
+        result = api.analyze(output_format="full")
+
+        assert "llm_root_cause_analysis" in result
+        assert result["llm_root_cause_analysis"]["enabled"] is True
+
+    @patch("subprocess.run")
+    def test_llm_root_cause_analysis_general_exception(self, mock_run):
+        """Test _llm_root_cause_analysis handles general exceptions."""
+        from src.core.correlation_api import MIESCCorrelationAPI
+        from src.ml.correlation_engine import CorrelatedFinding
+
+        mock_run.side_effect = Exception("Connection refused")
+
+        api = MIESCCorrelationAPI()
+        api._llm_model = "test-model"
+        api._ollama_host = "http://localhost:11434"
+
+        mock_finding = MagicMock(spec=CorrelatedFinding)
+        mock_finding.severity = "high"
+        mock_finding.canonical_type = "reentrancy"
+        mock_finding.location = {"file": "Test.sol", "line": 10}
+        mock_finding.message = "Test vulnerability"
+
+        result = api._llm_root_cause_analysis([mock_finding])
+
+        assert result == {"root_causes": [], "grouped_findings": {}}
+
+    @patch("subprocess.run")
+    def test_llm_root_cause_analysis_nonzero_return(self, mock_run):
+        """Test _llm_root_cause_analysis handles non-zero return code."""
+        from src.core.correlation_api import MIESCCorrelationAPI
+        from src.ml.correlation_engine import CorrelatedFinding
+
+        mock_run.return_value = MagicMock(returncode=1, stdout="")
+
+        api = MIESCCorrelationAPI()
+        api._llm_model = "test-model"
+        api._ollama_host = "http://localhost:11434"
+
+        mock_finding = MagicMock(spec=CorrelatedFinding)
+        mock_finding.severity = "high"
+        mock_finding.canonical_type = "reentrancy"
+        mock_finding.location = {"file": "Test.sol", "line": 10}
+        mock_finding.message = "Test vulnerability"
+
+        result = api._llm_root_cause_analysis([mock_finding])
+
+        assert result == {"root_causes": [], "grouped_findings": {}}
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '--tb=short'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])
