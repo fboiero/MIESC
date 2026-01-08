@@ -17,18 +17,54 @@ Date: 2025-01-09
 
 import logging
 
+# Layer 1 - Static Analysis
 from src.adapters.aderyn_adapter import AderynAdapter
-from src.adapters.certora_adapter import CertoraAdapter
-from src.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
-from src.adapters.dagnn_adapter import DAGNNAdapter
-from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
-from src.adapters.echidna_adapter import EchidnaAdapter
-from src.adapters.foundry_adapter import FoundryAdapter
+from src.adapters.slither_adapter import SlitherAdapter
+from src.adapters.solhint_adapter import SolhintAdapter
 
-# Importar todos los adapters
-from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
-from src.adapters.gptscan_adapter import GPTScanAdapter
+# Layer 2 - Dynamic Testing
+from src.adapters.echidna_adapter import EchidnaAdapter
+from src.adapters.medusa_adapter import MedusaAdapter
+from src.adapters.foundry_adapter import FoundryAdapter
+from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+
+# Layer 3 - Symbolic Execution
+from src.adapters.mythril_adapter import MythrilAdapter
+from src.adapters.manticore_adapter import ManticoreAdapter
 from src.adapters.halmos_adapter import HalmosAdapter
+
+# Layer 4 - Formal Verification
+from src.adapters.certora_adapter import CertoraAdapter
+from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+from src.adapters.wake_adapter import WakeAdapter
+
+# Layer 5 - Property Testing
+from src.adapters.propertygpt_adapter import PropertyGPTAdapter
+from src.adapters.vertigo_adapter import VertigoAdapter
+
+# Layer 6 - AI/LLM Analysis
+from src.adapters.smartllm_adapter import SmartLLMAdapter
+from src.adapters.gptscan_adapter import GPTScanAdapter
+from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
+from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
+
+# Layer 7 - Pattern Recognition / ML
+from src.adapters.dagnn_adapter import DAGNNAdapter
+from src.adapters.smartguard_adapter import SmartGuardAdapter
+from src.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter
+from src.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
+
+# Layer 8 - DeFi Security
+from src.adapters.defi_adapter import DeFiAdapter
+from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
+from src.adapters.crosschain_adapter import CrossChainAdapter
+
+# Layer 9 - Advanced Detection
+from src.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
+from src.adapters.smartbugs_detector_adapter import SmartBugsDetectorAdapter
+from src.adapters.threat_model_adapter import ThreatModelAdapter
+from src.adapters.zk_circuit_adapter import ZKCircuitAdapter
 
 # Invariant Synthesis (v4.2.3)
 from src.adapters.invariant_synthesizer import (
@@ -38,28 +74,6 @@ from src.adapters.invariant_synthesizer import (
     SynthesizedInvariant,
     synthesize_invariants,
 )
-from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
-from src.adapters.manticore_adapter import ManticoreAdapter
-from src.adapters.medusa_adapter import MedusaAdapter
-from src.adapters.mev_detector_adapter import MEVDetectorAdapter
-
-# Layer 3 - Symbolic Execution (Fase 3 - 2025)
-from src.adapters.mythril_adapter import MythrilAdapter
-from src.adapters.propertygpt_adapter import PropertyGPTAdapter
-from src.adapters.slither_adapter import SlitherAdapter
-
-# Layer 6 - ML-Based Detection (Fase 6 - 2025)
-from src.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter
-
-# Layer 5 - AI-Powered Analysis (Fase 5 - 2025)
-from src.adapters.smartllm_adapter import SmartLLMAdapter
-
-# Layer 4 - Formal Verification (Fase 4 - 2025)
-from src.adapters.smtchecker_adapter import SMTCheckerAdapter
-from src.adapters.solhint_adapter import SolhintAdapter
-from src.adapters.threat_model_adapter import ThreatModelAdapter
-from src.adapters.vertigo_adapter import VertigoAdapter
-from src.adapters.wake_adapter import WakeAdapter
 from src.core.tool_protocol import ToolStatus, get_tool_registry
 
 logger = logging.getLogger(__name__)
@@ -79,39 +93,48 @@ def register_all_adapters():
     registered = []
     failed = []
 
-    # Lista de adaptadores a registrar (25 adapters - 7 layers)
+    # Lista de adaptadores a registrar (31 adapters - 9 layers)
     adapters_to_register = [
-        # Layer 0 - Built-in analyzers
-        ("gas_analyzer", GasAnalyzerAdapter),
-        ("mev_detector", MEVDetectorAdapter),
-        ("vertigo", VertigoAdapter),
-        ("threat_model", ThreatModelAdapter),
-        # Layer 1 - Static Analysis
-        ("aderyn", AderynAdapter),
+        # Layer 1 - Static Analysis (3 tools)
         ("slither", SlitherAdapter),
+        ("aderyn", AderynAdapter),
         ("solhint", SolhintAdapter),
-        # Layer 2 - Dynamic Testing
-        ("medusa", MedusaAdapter),
+        # Layer 2 - Dynamic Testing (4 tools)
         ("echidna", EchidnaAdapter),
+        ("medusa", MedusaAdapter),
         ("foundry", FoundryAdapter),
         ("dogefuzz", DogeFuzzAdapter),
-        # Layer 3 - Symbolic Execution (Fase 3 - 2025)
+        # Layer 3 - Symbolic Execution (3 tools)
         ("mythril", MythrilAdapter),
         ("manticore", ManticoreAdapter),
         ("halmos", HalmosAdapter),
-        # Layer 4 - Formal Verification (Fase 4 - 2025)
+        # Layer 4 - Formal Verification (3 tools)
+        ("certora", CertoraAdapter),
         ("smtchecker", SMTCheckerAdapter),
         ("wake", WakeAdapter),
-        ("certora", CertoraAdapter),
+        # Layer 5 - Property Testing (2 tools)
         ("propertygpt", PropertyGPTAdapter),
-        # Layer 5 - AI-Powered Analysis (Fase 5 - 2025)
+        ("vertigo", VertigoAdapter),
+        # Layer 6 - AI/LLM Analysis (4 tools)
         ("smartllm", SmartLLMAdapter),
         ("gptscan", GPTScanAdapter),
         ("llmsmartaudit", LLMSmartAuditAdapter),
-        # Layer 6 - ML-Based Detection (Fase 6 - 2025)
+        ("llmbugscanner", LLMBugScannerAdapter),
+        # Layer 7 - Pattern Recognition / ML (4 tools)
+        ("dagnn", DAGNNAdapter),
+        ("smartguard", SmartGuardAdapter),
         ("smartbugs_ml", SmartBugsMLAdapter),
         ("contract_clone_detector", ContractCloneDetectorAdapter),
-        ("dagnn", DAGNNAdapter),
+        # Layer 8 - DeFi Security (4 tools)
+        ("defi_analyzer", DeFiAdapter),
+        ("mev_detector", MEVDetectorAdapter),
+        ("gas_analyzer", GasAnalyzerAdapter),
+        ("crosschain", CrossChainAdapter),
+        # Layer 9 - Advanced Detection (4 tools)
+        ("advanced_detector", AdvancedDetectorAdapter),
+        ("smartbugs_detector", SmartBugsDetectorAdapter),
+        ("threat_model", ThreatModelAdapter),
+        ("zk_circuit", ZKCircuitAdapter),
     ]
 
     logger.info("Initializing tool adapter registration...")
@@ -217,23 +240,51 @@ def get_adapter_by_name(name: str):
 
 
 __all__ = [
+    # Registry functions
     "register_all_adapters",
     "get_available_adapters",
     "get_adapter_status_report",
     "get_adapter_by_name",
-    # Adapters
-    "GasAnalyzerAdapter",
-    "MEVDetectorAdapter",
-    "VertigoAdapter",
-    "OyenteAdapter",
-    "ThreatModelAdapter",
-    "AderynAdapter",
-    "MedusaAdapter",
+    # Layer 1 - Static Analysis
     "SlitherAdapter",
+    "AderynAdapter",
     "SolhintAdapter",
+    # Layer 2 - Dynamic Testing
     "EchidnaAdapter",
+    "MedusaAdapter",
     "FoundryAdapter",
+    "DogeFuzzAdapter",
+    # Layer 3 - Symbolic Execution
+    "MythrilAdapter",
+    "ManticoreAdapter",
+    "HalmosAdapter",
+    # Layer 4 - Formal Verification
+    "CertoraAdapter",
+    "SMTCheckerAdapter",
+    "WakeAdapter",
+    # Layer 5 - Property Testing
+    "PropertyGPTAdapter",
+    "VertigoAdapter",
+    # Layer 6 - AI/LLM Analysis
     "SmartLLMAdapter",
+    "GPTScanAdapter",
+    "LLMSmartAuditAdapter",
+    "LLMBugScannerAdapter",
+    # Layer 7 - Pattern Recognition / ML
+    "DAGNNAdapter",
+    "SmartGuardAdapter",
+    "SmartBugsMLAdapter",
+    "ContractCloneDetectorAdapter",
+    # Layer 8 - DeFi Security
+    "DeFiAdapter",
+    "MEVDetectorAdapter",
+    "GasAnalyzerAdapter",
+    "CrossChainAdapter",
+    # Layer 9 - Advanced Detection
+    "AdvancedDetectorAdapter",
+    "SmartBugsDetectorAdapter",
+    "ThreatModelAdapter",
+    "ZKCircuitAdapter",
     # Invariant Synthesis (v4.2.3)
     "InvariantSynthesizer",
     "InvariantFormat",

@@ -23,6 +23,12 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from detectors.advanced_detectors import AdvancedDetectorEngine, AdvancedFinding
+from src.core.tool_protocol import (
+    ToolMetadata,
+    ToolStatus,
+    ToolCategory,
+    ToolCapability,
+)
 
 
 class AdvancedDetectorAdapter:
@@ -34,23 +40,40 @@ class AdvancedDetectorAdapter:
     """
 
     name = "advanced-detector"
-    layer = 2  # Layer 2: Pattern Analysis
+    layer = 9  # Layer 9: Advanced Detection
     description = "Advanced vulnerability detection (rug pull, honeypot, governance)"
 
-    def is_available(self):
+    def is_available(self) -> ToolStatus:
         """Check if advanced detector engine is available."""
         try:
             from detectors.advanced_detectors import AdvancedDetectorEngine
 
-            return type("ToolStatus", (), {"value": "available"})()
+            return ToolStatus.AVAILABLE
         except ImportError:
-            return type("ToolStatus", (), {"value": "not_installed"})()
+            return ToolStatus.NOT_INSTALLED
 
-    def get_metadata(self):
+    def get_metadata(self) -> ToolMetadata:
         """Return tool metadata."""
-        return type(
-            "ToolMetadata", (), {"name": self.name, "version": "1.0.0", "is_optional": True}
-        )()
+        return ToolMetadata(
+            name=self.name,
+            version="1.0.0",
+            category=ToolCategory.STATIC_ANALYSIS,
+            author="Fernando Boiero",
+            license="AGPL-3.0",
+            homepage="https://github.com/fboiero/MIESC",
+            repository="https://github.com/fboiero/MIESC",
+            documentation="https://fboiero.github.io/MIESC",
+            installation_cmd="pip install -e .",
+            capabilities=[
+                ToolCapability(
+                    name="advanced_vulnerability_detection",
+                    description="Advanced vulnerability detection (rug pull, honeypot, governance)",
+                    supported_languages=["solidity"],
+                    detection_types=["rug_pull", "governance_attack", "honeypot", "proxy_upgrade"],
+                )
+            ],
+            is_optional=True,
+        )
 
     # SWC mappings for advanced vulnerabilities
     CATEGORY_TO_SWC = {
