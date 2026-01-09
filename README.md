@@ -25,8 +25,11 @@ MIESC orchestrates **31 security tools** across **9 defense layers** with AI-ass
 ## Installation
 
 ```bash
-# From PyPI (recommended)
+# From PyPI (recommended) - minimal CLI
 pip install miesc
+
+# With web UI and API servers
+pip install miesc[web]
 
 # With all optional features
 pip install miesc[full]
