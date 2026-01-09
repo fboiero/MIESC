@@ -5,6 +5,46 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.2] - 2025-01-09
+
+### Added
+
+#### PyPI Publication
+- **MIESC is now available on PyPI**: `pip install miesc`
+- Installation options: `miesc`, `miesc[cli]`, `miesc[web]`, `miesc[full]`
+- Package includes all 31 adapters and 9 defense layers
+
+#### New CLI Commands
+- **`miesc scan`** - Simplified quick vulnerability scan
+  - `miesc scan contract.sol` - Quick 4-tool scan
+  - `miesc scan contract.sol --ci` - CI mode (exit 1 on critical/high issues)
+  - `miesc scan contract.sol -o report.json` - JSON output
+
+#### Module Execution
+- Support for `python -m miesc` execution
+- Added `miesc/__main__.py` for module entry point
+
+### Fixed
+- **Optional dependency imports** - WebSocket/FastAPI type annotations no longer fail when packages not installed
+- Added `from __future__ import annotations` for deferred type evaluation
+- Fallback `None` assignments for optional imports (FastAPI, uvicorn, WebSocket)
+
+### Changed
+- Web frameworks (FastAPI, Flask, Streamlit, Django) are now optional dependencies
+- Minimal core dependencies: click, pydantic, pyyaml, slither-analyzer
+- Package structure updated to include `src.*` modules in distribution
+
+### Documentation
+- Added `QUICKSTART.md` with CLI usage and 9-layer architecture guide
+- Updated README badges (PyPI, version 4.3.2)
+- Updated README_ES.md with same badges
+
+### Links
+- **PyPI**: https://pypi.org/project/miesc/4.3.2/
+- **GitHub Release**: https://github.com/fboiero/MIESC/releases/tag/v4.3.2
+
+---
+
 ## [4.2.1] - 2024-12-23
 
 ### Added
