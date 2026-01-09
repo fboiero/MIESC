@@ -19,9 +19,9 @@ lang: es
 </p>
 
 <p align="center">
-  <a href="webapp/README.md">Probar Demo Web</a> •
+  <a href="https://github.com/fboiero/MIESC/tree/main/webapp">Probar Demo Web</a> •
   <a href="thesis_es.html">Tesis</a> •
-  <a href="docs/INDEX.html">Documentacion</a> •
+  <a href="INSTALLATION.md">Documentacion</a> •
   <a href="https://github.com/fboiero/MIESC">GitHub</a>
 </p>
 
@@ -42,6 +42,7 @@ lang: es
 </p>
 
 **Demuestra:**
+
 - Analisis Defense-in-Depth a traves de 7 capas de seguridad
 - 29 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
 - Integracion del Model Context Protocol (MCP) con Claude Desktop
@@ -53,6 +54,7 @@ lang: es
 ## Alcance y Limitaciones
 
 **Proposito:**
+
 - Orquestacion automatizada de 25 herramientas de analisis de seguridad
 - Correlacion asistida por IA para reducir reportes duplicados
 - Deteccion de vulnerabilidades basada en ML con 95.7% de precision
@@ -60,6 +62,7 @@ lang: es
 - Formato de reportes estandarizado (JSON/HTML/PDF)
 
 **Limitaciones:**
+
 - No puede detectar todas las clases de vulnerabilidades (especialmente logica de negocio compleja)
 - Metricas de efectividad pendientes de validacion empirica a gran escala
 - Requiere revision manual de todos los hallazgos por profesionales calificados
@@ -89,24 +92,28 @@ lang: es
 **Lanzamiento Mayor** (Enero 2025) - Cuatro mejoras basadas en investigación de vanguardia:
 
 ### 1. PropertyGPT (Capa 4 - Verificación Formal)
+
 - Generación automatizada de propiedades CVL para verificación formal
 - 80% recall en propiedades Certora de ground-truth
 - Aumenta la adopción de verificación formal del 5% al 40% (+700%)
 - Basado en paper NDSS 2025 (arXiv:2405.02580)
 
 ### 2. DA-GNN (Capa 6 - Detección ML)
+
 - Detección de vulnerabilidades basada en Redes Neuronales de Grafos
 - 95.7% de precisión con 4.3% de tasa de falsos positivos
 - Representa contratos como grafos de flujo de control + flujo de datos
 - Basado en Computer Networks (ScienceDirect, Feb 2024)
 
 ### 3. SmartLLM RAG Mejorado (Capa 5 - Análisis IA)
+
 - Generación Aumentada por Recuperación con base de conocimiento ERC-20/721/1155
 - Rol de Verificador para comprobación de hechos (Generador → Verificador → Consenso)
 - Precisión mejorada del 75% al 88% (+17%), tasa FP reducida en 52%
 - Basado en arXiv:2502.13167 (Feb 2025)
 
 ### 4. DogeFuzz (Capa 2 - Testing Dinámico)
+
 - Fuzzing guiado por cobertura estilo AFL con programación de potencia
 - Fuzzing híbrido + ejecución simbólica
 - 85% cobertura de código, 3x más rápido que Echidna
@@ -196,7 +203,7 @@ make webapp
 # Abrir navegador en http://localhost:8501
 ```
 
-[Guía de Instalación Completa](docs/02_SETUP_AND_USAGE.md)
+[Guía de Instalación Completa](INSTALLATION.md)
 ---
 
 ## Arquitectura
@@ -231,7 +238,7 @@ Static Dynamic Symbolic Formal
 | **L6** | Agente ML + Política | Detección + Cumplimiento | Puntuaciones de riesgo + mapeos de frameworks |
 | **L7** | Agente de Auditoría | Evaluación de preparación | Reporte final de auditoría |
 
-[Detalles de Arquitectura](docs/01_ARCHITECTURE.md)
+[Detalles de Arquitectura](thesis_es.md)
 ---
 
 ## Métricas de Rendimiento
@@ -299,32 +306,32 @@ Static Dynamic Symbolic Formal
 
 ### Comenzar
 
-- [Guía de Instalación](docs/02_SETUP_AND_USAGE.md)
-- [Tutorial del Demo](docs/03_DEMO_GUIDE.md)
-- [Demo Web](webapp/README.md)
-- [Configuración Docker](docs/DOCKER.md)
+- [Guía de Instalación](INSTALLATION.md)
+- [Tutorial del Demo](https://github.com/fboiero/MIESC/tree/main/examples)
+- [Demo Web](https://github.com/fboiero/MIESC/tree/main/webapp)
+- [Configuración Docker](INSTALLATION.md#docker-installation)
 
 ### Conceptos Principales
 
-- [Descripción de Arquitectura](docs/01_ARCHITECTURE.md)
-- [Correlación IA](docs/04_AI_CORRELATION.md)
-- [Policy Agent](docs/05_POLICY_AGENT.md)
-- [Protocolo MCP](docs/07_MCP_INTEROPERABILITY.md)
+- [Descripción de Arquitectura](thesis_es.md)
+- [Correlación IA](thesis_es.md)
+- [Policy Agent](thesis_es.md)
+- [Protocolo MCP](thesis_es.md)
 
 ### Recursos para Desarrolladores
 
-- [Guía de Desarrollador](docs/DEVELOPER_GUIDE.md)
+- [Guía de Desarrollador](CONTRIBUTING.md)
 - [Guía de Contribución](CONTRIBUTING.md)
-- [Referencia API](docs/API_SETUP.md)
-- [Extender MIESC](docs/EXTENDING.md)
+- [Referencia API](https://github.com/fboiero/MIESC)
+- [Extender MIESC](CONTRIBUTING.md)
 
 ### Temas Avanzados
 
-- [Seguridad Shift-Left](docs/SHIFT_LEFT_SECURITY.md)
-- [Mapeo de Cumplimiento](docs/compliance/COMPLIANCE.md)
-- [Características v4.0](docs/PHASE_3_4_5_COMPLETION_SUMMARY.md)
+- [Seguridad Shift-Left](SECURITY.md)
+- [Mapeo de Cumplimiento](thesis_es.md)
+- [Características v4.0](evidence/PHASE_3_4_5_COMPLETION_SUMMARY.md)
 
-[Índice Completo de Documentación](docs/INDEX.md)
+[Índice Completo de Documentación](index_es.md)
 ---
 
 ## Contribuir
@@ -335,7 +342,7 @@ Damos la bienvenida a contribuciones de las comunidades de investigación en seg
 
 1. **Hacer fork del repositorio**
 2. **Crear una rama de feature**: `git checkout -b feature/nuevo-detector`
-3. **Realizar cambios** siguiendo nuestra [guía de estilo](CONTRIBUTING.md#code-style)
+3. **Realizar cambios** siguiendo nuestra [guía de estilo](CONTRIBUTING.md#coding-standards)
 4. **Ejecutar verificaciones de calidad**: `make all-checks`
 5. **Enviar pull request**
 
@@ -343,7 +350,7 @@ Damos la bienvenida a contribuciones de las comunidades de investigación en seg
 
 - Specs CVL Certora para patrones comunes (ERC-20/721)
 - Templates de propiedades Echidna para DeFi
-- Tests de integración para las 25 herramientas
+- Tests de integración para las 31 herramientas
 - Análisis de vulnerabilidades cross-chain
 - Traducciones de documentación
 
@@ -356,19 +363,21 @@ Damos la bienvenida a contribuciones de las comunidades de investigación en seg
 
 - **Documentación**: [https://fboiero.github.io/MIESC](https://fboiero.github.io/MIESC)
 - **Issues de GitHub**: [Reportes de bugs y solicitudes de features](https://github.com/fboiero/MIESC/issues)
-- **Email**: fboiero@frvm.utn.edu.ar
+- **Email**: <fboiero@frvm.utn.edu.ar>
 
 ---
 
 ## Ejemplos de Uso
 
 **Integracion CI/CD:**
+
 ```bash
 python xaudit.py --target contracts/MyToken.sol --mode fast --output ci_report.json
 # Codigo de salida 0 si no hay issues criticos, 1 de lo contrario
 ```
 
 **Pre-Auditoria Completa:**
+
 ```bash
 python xaudit.py \
   --target contracts/ \
@@ -378,6 +387,7 @@ python xaudit.py \
 ```
 
 **Reporte de Cumplimiento:**
+
 ```bash
 python xaudit.py \
   --target contracts/DeFiProtocol.sol \
@@ -386,6 +396,7 @@ python xaudit.py \
 ```
 
 **Ejecucion Selectiva de Capas:**
+
 ```bash
 python xaudit.py \
   --target contracts/Treasury.sol \
@@ -395,6 +406,7 @@ python xaudit.py \
 ```
 
 **Modo Servidor MCP:**
+
 ```bash
 python src/mcp/server.py
 # Habilita: audit_contract(), explain_vulnerability(), suggest_fix()
@@ -440,7 +452,7 @@ Asegura que el framework permanezca open-source. Permite uso comercial con atrib
 </p>
 
 <p align="center">
-  <a href="docs/02_SETUP_AND_USAGE.md">Comenzar</a> |
+  <a href="INSTALLATION.md">Comenzar</a> |
   <a href="https://github.com/fboiero/MIESC">Ver en GitHub</a>
 </p>
 
