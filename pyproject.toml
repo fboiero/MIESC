@@ -35,21 +35,12 @@ keywords = [
     "model-context-protocol"
 ]
 requires-python = ">=3.12"
+# Core dependencies - minimal for CLI usage
 dependencies = [
-    "fastapi>=0.104.0",
-    "uvicorn>=0.24.0",
     "click>=8.1.0",
     "pydantic>=2.0.0",
-    "slither-analyzer>=0.10.0",
-    "streamlit>=1.28.0",
-    "plotly>=5.18.0",
-    "flask>=3.0.0",
-    "flask-socketio>=5.3.0",
-    "flask-cors>=4.0.0",
     "pyyaml>=6.0.0",
-    "django>=5.0.0",
-    "djangorestframework>=3.14.0",
-    "django-cors-headers>=4.3.0",
+    "slither-analyzer>=0.10.0",
 ]
 
 [project.optional-dependencies]
@@ -87,14 +78,38 @@ llm = [
     "anthropic>=0.18.0",
     "httpx>=0.25.0",
 ]
+# Web frameworks for API servers and web UI
+web = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "flask>=3.0.0",
+    "flask-socketio>=5.3.0",
+    "flask-cors>=4.0.0",
+    "streamlit>=1.28.0",
+    "plotly>=5.18.0",
+]
+# Django REST API (requires Python 3.10+)
+django = [
+    "django>=5.0.0",
+    "djangorestframework>=3.14.0",
+    "django-cors-headers>=4.3.0",
+]
+# Full installation with all features
 full = [
-    "prometheus-client>=0.19.0",
     "rich>=13.0.0",
+    "prometheus-client>=0.19.0",
     "openai>=1.0.0",
     "anthropic>=0.18.0",
     "httpx>=0.25.0",
-    # Note: mythril excluded due to dependency conflicts with slither
-    # Use Docker for Mythril: docker run -it mythril/myth analyze <contract.sol>
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "flask>=3.0.0",
+    "flask-socketio>=5.3.0",
+    "flask-cors>=4.0.0",
+    "streamlit>=1.28.0",
+    "plotly>=5.18.0",
+    # Note: mythril and django excluded due to dependency conflicts
+    # Install separately: pip install mythril django djangorestframework
 ]
 
 [project.urls]
