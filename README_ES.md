@@ -77,30 +77,26 @@ Documentación: [webapp/README.md](./webapp/README.md)
 ## Inicio Rápido
 
 ```bash
-git clone https://github.com/fboiero/MIESC.git
-cd MIESC
+# Desde PyPI (recomendado)
+pip install miesc
 
-# Instalar dependencias principales
-pip install slither-analyzer mythril
+# Escaneo rápido de vulnerabilidades
+miesc scan contrato.sol
 
-# Ejecutar demo (v4.0 - incluye detección ML avanzada + RAG)
-python3 examples/demo_v4.0.py
+# Modo CI/CD (exit 1 si hay issues críticos/altos)
+miesc scan contrato.sol --ci
+
+# Auditoría rápida con 4 herramientas
+miesc audit quick contrato.sol
+
+# Auditoría completa con 9 capas
+miesc audit full contrato.sol
+
+# Verificar disponibilidad de herramientas
+miesc doctor
 ```
 
-El demo realiza:
-
-1. Registro de adaptadores (31 herramientas en 9 capas)
-2. Análisis estático de contrato intencionalmente vulnerable (VulnerableBank.sol)
-3. Correlación de hallazgos asistida por IA usando LLM local (deepseek-coder via Ollama)
-4. Generación de reporte con mapeos de cumplimiento
-
-Hallazgos esperados: reentrancy, bypass de control de acceso, autenticación tx.origin
-
-Alternativa:
-
-```bash
-bash demo/run_demo.sh  # Suite completa de análisis multi-contrato
-```
+**[Guía de Inicio Rápido Completa](./QUICKSTART_ES.md)** - Instrucciones detalladas de instalación y uso.
 
 Ver [docs/03_DEMO_GUIDE.md](./docs/03_DEMO_GUIDE.md) para detalles.
 
