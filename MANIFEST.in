@@ -1,0 +1,56 @@
+# MANIFEST.in - Package distribution manifest
+# Controls which files are included in source distributions
+
+# Include essential project files
+include LICENSE
+include README.md
+include CHANGELOG.md
+include pyproject.toml
+include requirements.txt
+
+# Include Python source files
+recursive-include miesc *.py
+recursive-include src *.py
+
+# Include type hints
+recursive-include miesc py.typed
+recursive-include src py.typed
+
+# Include configuration files
+recursive-include miesc *.yaml *.json
+recursive-include src *.yaml *.json
+
+# Exclude development and build artifacts
+prune tests
+prune docs
+prune benchmarks
+prune venv
+prune .venv
+prune .git
+prune .github
+prune __pycache__
+prune *.egg-info
+prune dist
+prune build
+prune validation_results
+prune crytic-export
+prune external_contracts
+prune test_contracts
+
+# Exclude large demo files
+prune demo/recordings
+recursive-exclude demo *.mp4 *.wav *.aiff *.gif *.cast
+
+# Exclude thesis-specific files
+prune thesis_generator
+prune analysis
+prune htmlcov
+
+# Exclude specific files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude .DS_Store
+global-exclude .gitignore
+global-exclude *.so
+global-exclude *.dylib
