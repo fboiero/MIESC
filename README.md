@@ -25,20 +25,41 @@ MIESC orchestrates **31 security tools** across **9 defense layers** with AI-ass
 ## Installation
 
 ```bash
-pip install -e .
+# From PyPI (recommended)
+pip install miesc
+
+# With all optional features
+pip install miesc[full]
+
+# From source (development)
+git clone https://github.com/fboiero/MIESC.git
+cd MIESC && pip install -e .[dev]
 ```
 
 **Docker:**
 
 ```bash
 docker pull ghcr.io/fboiero/miesc:latest
-docker run --rm -v $(pwd):/contracts miesc:latest audit quick /contracts/MyContract.sol
+docker run --rm -v $(pwd):/contracts miesc:latest scan /contracts/MyContract.sol
+```
+
+**As module:**
+
+```bash
+python -m miesc --help
+python -m miesc scan contract.sol
 ```
 
 ## Quick Start
 
 ```bash
-# Quick scan (~30s)
+# Quick vulnerability scan (simplest command)
+miesc scan contract.sol
+
+# CI/CD mode (exits 1 if critical/high issues)
+miesc scan contract.sol --ci
+
+# Quick 4-tool audit with more options
 miesc audit quick contract.sol
 
 # Full 9-layer audit
@@ -61,10 +82,13 @@ miesc doctor
 ### CLI
 
 ```bash
+miesc scan contract.sol              # Quick vulnerability scan
+miesc scan contract.sol --ci         # CI mode (exit 1 on issues)
 miesc audit quick contract.sol       # Fast 4-tool scan
 miesc audit full contract.sol        # Complete 9-layer audit
 miesc audit layer 3 contract.sol     # Run specific layer
 miesc server rest --port 5001        # Start REST API
+miesc doctor                         # Check tool availability
 ```
 
 ### Web Interface

@@ -4,7 +4,7 @@
 # Author: Fernando Boiero - UNDEF
 # Thesis: Master's in Cyberdefense
 
-.PHONY: help install test lint audit experiments clean docs docker mcp
+.PHONY: help install test lint audit experiments clean docs docker mcp build publish release
 
 # Default target
 .DEFAULT_GOAL := help
@@ -146,6 +146,43 @@ clean-all: clean  ## Clean all generated files
 	rm -rf analysis/results/*.html
 	rm -rf venv/
 	@echo "$(GREEN)✓ All cleaned$(NC)"
+
+# ============================================
+# PyPI BUILD & PUBLISH (v4.3.0+)
+# ============================================
+
+build:  ## Build Python packages (wheel + sdist)
+	@echo "$(BLUE)Building MIESC packages...$(NC)"
+	@rm -rf dist/ build/ *.egg-info
+	@python -m build
+	@echo "$(GREEN)✓ Packages built in dist/$(NC)"
+	@ls -la dist/
+
+build-check:  ## Check package integrity before publish
+	@echo "$(BLUE)Checking package integrity...$(NC)"
+	@twine check dist/*
+	@echo "$(GREEN)✓ Package checks passed$(NC)"
+
+publish-test:  ## Upload to TestPyPI (for testing)
+	@echo "$(BLUE)Uploading to TestPyPI...$(NC)"
+	@twine upload --repository testpypi dist/*
+	@echo "$(GREEN)✓ Uploaded to TestPyPI$(NC)"
+	@echo "$(YELLOW)Install with: pip install --index-url https://test.pypi.org/simple/ miesc$(NC)"
+
+publish:  ## Upload to PyPI (production release)
+	@echo "$(BLUE)Uploading to PyPI...$(NC)"
+	@echo "$(RED)WARNING: This will publish to the real PyPI!$(NC)"
+	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ]
+	@twine upload dist/*
+	@echo "$(GREEN)✓ Published to PyPI$(NC)"
+	@echo "$(YELLOW)Install with: pip install miesc$(NC)"
+
+release: build build-check  ## Full release pipeline (build + check)
+	@echo "$(GREEN)✓ Release package ready in dist/$(NC)"
+	@echo "$(YELLOW)Next steps:$(NC)"
+	@echo "  1. Test: make publish-test"
+	@echo "  2. Install from TestPyPI and verify"
+	@echo "  3. Publish: make publish"
 
 docker-build:  ## Build Docker image
 	@echo "$(BLUE)Building Docker image...$(NC)"
@@ -380,4 +417,3 @@ academic-report:  ## Generate comprehensive academic report
 	@echo ""
 	@echo "$(YELLOW)Citation:$(NC)"
 	@cat CITATION.cff
-
