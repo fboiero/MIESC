@@ -73,6 +73,8 @@ miesc audit full contract.sol
 miesc doctor
 ```
 
+**[Complete Quick Start Guide](./QUICKSTART.md)** - Detailed installation and usage instructions.
+
 ## Features
 
 - **9 defense layers**: Static, Dynamic, Symbolic, Formal, AI, ML, Threat Modeling, Cross-Chain, AI Ensemble
