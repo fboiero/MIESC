@@ -8,30 +8,37 @@ Author: Fernando Boiero
 License: GPL-3.0
 """
 
-import asyncio
+from __future__ import annotations
+
 import json
 import logging
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional, Set
-from dataclasses import dataclass, field, asdict
 from enum import Enum
-from contextlib import asynccontextmanager
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 # Try to import WebSocket dependencies
 try:
+    import uvicorn
     from fastapi import FastAPI, WebSocket, WebSocketDisconnect
     from fastapi.middleware.cors import CORSMiddleware
-    import uvicorn
+
     WEBSOCKET_AVAILABLE = True
 except ImportError:
     WEBSOCKET_AVAILABLE = False
+    FastAPI = None  # type: ignore
+    WebSocket = None  # type: ignore
+    WebSocketDisconnect = None  # type: ignore
+    CORSMiddleware = None  # type: ignore
+    uvicorn = None  # type: ignore
     logger.warning("FastAPI/uvicorn not installed. WebSocket API unavailable.")
 
 
 class EventType(str, Enum):
     """Types of WebSocket events."""
+
     # Connection events
     CONNECTED = "connected"
     DISCONNECTED = "disconnected"
@@ -64,6 +71,7 @@ class EventType(str, Enum):
 @dataclass
 class WebSocketEvent:
     """Represents a WebSocket event."""
+
     type: EventType
     data: Dict[str, Any]
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -71,12 +79,14 @@ class WebSocketEvent:
 
     def to_json(self) -> str:
         """Convert event to JSON string."""
-        return json.dumps({
-            "type": self.type.value,
-            "data": self.data,
-            "timestamp": self.timestamp,
-            "audit_id": self.audit_id
-        })
+        return json.dumps(
+            {
+                "type": self.type.value,
+                "data": self.data,
+                "timestamp": self.timestamp,
+                "audit_id": self.audit_id,
+            }
+        )
 
 
 class ConnectionManager:
@@ -175,13 +185,9 @@ class AuditProgressTracker:
             self.audit_id,
             WebSocketEvent(
                 type=EventType.AUDIT_STARTED,
-                data={
-                    "contract": contract_path,
-                    "tools": tools,
-                    "total_layers": self.total_layers
-                },
-                audit_id=self.audit_id
-            )
+                data={"contract": contract_path, "tools": tools, "total_layers": self.total_layers},
+                audit_id=self.audit_id,
+            ),
         )
 
     async def start_layer(self, layer: int, layer_name: str, tools: List[str]) -> None:
@@ -191,13 +197,9 @@ class AuditProgressTracker:
             self.audit_id,
             WebSocketEvent(
                 type=EventType.LAYER_STARTED,
-                data={
-                    "layer": layer,
-                    "name": layer_name,
-                    "tools": tools
-                },
-                audit_id=self.audit_id
-            )
+                data={"layer": layer, "name": layer_name, "tools": tools},
+                audit_id=self.audit_id,
+            ),
         )
 
     async def complete_layer(self, layer: int, findings_count: int, duration: float) -> None:
@@ -209,10 +211,10 @@ class AuditProgressTracker:
                 data={
                     "layer": layer,
                     "findings_count": findings_count,
-                    "duration_seconds": duration
+                    "duration_seconds": duration,
                 },
-                audit_id=self.audit_id
-            )
+                audit_id=self.audit_id,
+            ),
         )
 
     async def start_tool(self, tool: str, layer: int) -> None:
@@ -222,12 +224,9 @@ class AuditProgressTracker:
             self.audit_id,
             WebSocketEvent(
                 type=EventType.TOOL_STARTED,
-                data={
-                    "tool": tool,
-                    "layer": layer
-                },
-                audit_id=self.audit_id
-            )
+                data={"tool": tool, "layer": layer},
+                audit_id=self.audit_id,
+            ),
         )
 
     async def tool_progress(self, tool: str, progress: float, message: str = "") -> None:
@@ -236,13 +235,9 @@ class AuditProgressTracker:
             self.audit_id,
             WebSocketEvent(
                 type=EventType.TOOL_PROGRESS,
-                data={
-                    "tool": tool,
-                    "progress": progress,
-                    "message": message
-                },
-                audit_id=self.audit_id
-            )
+                data={"tool": tool, "progress": progress, "message": message},
+                audit_id=self.audit_id,
+            ),
         )
 
     async def complete_tool(self, tool: str, findings: List[Dict], duration: float) -> None:
@@ -259,10 +254,10 @@ class AuditProgressTracker:
                     "findings_count": len(findings),
                     "duration_seconds": duration,
                     "tools_completed": self.tools_completed,
-                    "total_tools": self.total_tools
+                    "total_tools": self.total_tools,
                 },
-                audit_id=self.audit_id
-            )
+                audit_id=self.audit_id,
+            ),
         )
 
         # Send findings batch
@@ -275,12 +270,9 @@ class AuditProgressTracker:
             self.audit_id,
             WebSocketEvent(
                 type=EventType.TOOL_ERROR,
-                data={
-                    "tool": tool,
-                    "error": error
-                },
-                audit_id=self.audit_id
-            )
+                data={"tool": tool, "error": error},
+                audit_id=self.audit_id,
+            ),
         )
 
     async def report_finding(self, finding: Dict) -> None:
@@ -290,12 +282,9 @@ class AuditProgressTracker:
             self.audit_id,
             WebSocketEvent(
                 type=EventType.FINDING_DETECTED,
-                data={
-                    "finding": finding,
-                    "total_findings": self.findings_count
-                },
-                audit_id=self.audit_id
-            )
+                data={"finding": finding, "total_findings": self.findings_count},
+                audit_id=self.audit_id,
+            ),
         )
 
     async def report_findings(self, findings: List[Dict]) -> None:
@@ -307,10 +296,10 @@ class AuditProgressTracker:
                 data={
                     "findings": findings,
                     "count": len(findings),
-                    "total_findings": self.findings_count
+                    "total_findings": self.findings_count,
                 },
-                audit_id=self.audit_id
-            )
+                audit_id=self.audit_id,
+            ),
         )
 
     async def update_progress(self, progress: float, message: str = "") -> None:
@@ -326,10 +315,10 @@ class AuditProgressTracker:
                     "current_tool": self.current_tool,
                     "findings_count": self.findings_count,
                     "tools_completed": self.tools_completed,
-                    "total_tools": self.total_tools
+                    "total_tools": self.total_tools,
                 },
-                audit_id=self.audit_id
-            )
+                audit_id=self.audit_id,
+            ),
         )
 
     async def complete_audit(self, results: Dict) -> None:
@@ -344,10 +333,10 @@ class AuditProgressTracker:
                     "total_findings": self.findings_count,
                     "duration_seconds": duration,
                     "summary": results.get("summary", {}),
-                    "layers_analyzed": self.current_layer
+                    "layers_analyzed": self.current_layer,
                 },
-                audit_id=self.audit_id
-            )
+                audit_id=self.audit_id,
+            ),
         )
 
     async def error(self, error: str) -> None:
@@ -361,15 +350,15 @@ class AuditProgressTracker:
                     "progress_at_error": {
                         "layer": self.current_layer,
                         "tool": self.current_tool,
-                        "findings_count": self.findings_count
-                    }
+                        "findings_count": self.findings_count,
+                    },
                 },
-                audit_id=self.audit_id
-            )
+                audit_id=self.audit_id,
+            ),
         )
 
 
-def create_websocket_app() -> Optional['FastAPI']:
+def create_websocket_app() -> Optional["FastAPI"]:
     """Create FastAPI application with WebSocket support."""
     if not WEBSOCKET_AVAILABLE:
         logger.error("Cannot create WebSocket app: dependencies not installed")
@@ -378,7 +367,7 @@ def create_websocket_app() -> Optional['FastAPI']:
     app = FastAPI(
         title="MIESC Real-Time API",
         description="WebSocket API for real-time audit updates",
-        version="4.1.0"
+        version="4.1.0",
     )
 
     # CORS configuration
@@ -403,9 +392,8 @@ def create_websocket_app() -> Optional['FastAPI']:
         await manager.send_to_connection(
             websocket,
             WebSocketEvent(
-                type=EventType.CONNECTED,
-                data={"message": "Connected to MIESC Real-Time API"}
-            )
+                type=EventType.CONNECTED, data={"message": "Connected to MIESC Real-Time API"}
+            ),
         )
 
         try:
@@ -422,9 +410,8 @@ def create_websocket_app() -> Optional['FastAPI']:
                         await manager.send_to_connection(
                             websocket,
                             WebSocketEvent(
-                                type=EventType.SYSTEM_STATUS,
-                                data={"subscribed_to": audit_id}
-                            )
+                                type=EventType.SYSTEM_STATUS, data={"subscribed_to": audit_id}
+                            ),
                         )
 
                 elif message.get("action") == "unsubscribe":
@@ -434,11 +421,7 @@ def create_websocket_app() -> Optional['FastAPI']:
 
                 elif message.get("action") == "ping":
                     await manager.send_to_connection(
-                        websocket,
-                        WebSocketEvent(
-                            type=EventType.HEARTBEAT,
-                            data={"pong": True}
-                        )
+                        websocket, WebSocketEvent(type=EventType.HEARTBEAT, data={"pong": True})
                     )
 
         except WebSocketDisconnect:
@@ -457,11 +440,8 @@ def create_websocket_app() -> Optional['FastAPI']:
             websocket,
             WebSocketEvent(
                 type=EventType.CONNECTED,
-                data={
-                    "message": f"Subscribed to audit {audit_id}",
-                    "audit_id": audit_id
-                }
-            )
+                data={"message": f"Subscribed to audit {audit_id}", "audit_id": audit_id},
+            ),
         )
 
         try:
@@ -473,10 +453,8 @@ def create_websocket_app() -> Optional['FastAPI']:
                     await manager.send_to_connection(
                         websocket,
                         WebSocketEvent(
-                            type=EventType.HEARTBEAT,
-                            data={"pong": True},
-                            audit_id=audit_id
-                        )
+                            type=EventType.HEARTBEAT, data={"pong": True}, audit_id=audit_id
+                        ),
                     )
 
         except WebSocketDisconnect:
@@ -491,7 +469,7 @@ def create_websocket_app() -> Optional['FastAPI']:
         return {
             "status": "healthy",
             "connections": len(manager.active_connections),
-            "active_audits": len(manager.audit_subscriptions)
+            "active_audits": len(manager.audit_subscriptions),
         }
 
     @app.get("/status")
@@ -501,7 +479,7 @@ def create_websocket_app() -> Optional['FastAPI']:
             "websocket_available": True,
             "connections": len(manager.active_connections),
             "subscribed_audits": list(manager.audit_subscriptions.keys()),
-            "version": "4.1.0"
+            "version": "4.1.0",
         }
 
     return app
@@ -541,7 +519,7 @@ class WebSocketServer:
 
 # Global instances for easy access
 _manager: Optional[ConnectionManager] = None
-_app: Optional['FastAPI'] = None
+_app: Optional["FastAPI"] = None
 
 
 def get_connection_manager() -> Optional[ConnectionManager]:

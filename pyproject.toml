@@ -144,7 +144,19 @@ packages = [
     "miesc.agents",
     "miesc.security",
     "miesc.ml",
-    "miesc.mcp"
+    "miesc.mcp",
+    "miesc.llm",
+    "src",
+    "src.adapters",
+    "src.agents",
+    "src.agents.audit_readiness",
+    "src.core",
+    "src.detectors",
+    "src.llm",
+    "src.mcp",
+    "src.ml",
+    "src.ml.fine_tuning",
+    "src.security"
 ]
 
 [tool.setuptools.package-data]
