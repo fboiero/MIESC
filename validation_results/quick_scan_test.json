@@ -1,0 +1,131 @@
+{
+  "timestamp": "2026-01-08T20:04:20.900251",
+  "version": "4.3.0",
+  "mode": "quick_scan",
+  "contracts": [
+    {
+      "contract": "test_contracts/VulnerableBank.sol",
+      "success": true,
+      "tools_executed": 0,
+      "findings": 0,
+      "result": {
+        "contract_path": "test_contracts/VulnerableBank.sol",
+        "tools_run": [
+          "aderyn",
+          "slither",
+          "solhint"
+        ],
+        "tools_success": [
+          "solhint",
+          "slither",
+          "aderyn"
+        ],
+        "tools_failed": [],
+        "total_findings": 10,
+        "aggregated_findings": 8,
+        "cross_validated": 0,
+        "severity_counts": {
+          "high": 3,
+          "low": 3,
+          "info": 2
+        },
+        "execution_time_ms": 3158.04,
+        "timestamp": "2026-01-08T20:04:20.897994"
+      }
+    },
+    {
+      "contract": "test_contracts/EtherStore.sol",
+      "success": true,
+      "tools_executed": 0,
+      "findings": 0,
+      "result": {
+        "contract_path": "test_contracts/EtherStore.sol",
+        "tools_run": [
+          "aderyn",
+          "slither",
+          "solhint"
+        ],
+        "tools_success": [
+          "slither",
+          "aderyn",
+          "solhint"
+        ],
+        "tools_failed": [],
+        "total_findings": 10,
+        "aggregated_findings": 7,
+        "cross_validated": 0,
+        "severity_counts": {
+          "high": 3,
+          "low": 2,
+          "info": 2
+        },
+        "execution_time_ms": 0.73,
+        "timestamp": "2026-01-08T20:04:20.898775"
+      }
+    },
+    {
+      "contract": "test_contracts/AccessControl.sol",
+      "success": true,
+      "tools_executed": 0,
+      "findings": 0,
+      "result": {
+        "contract_path": "test_contracts/AccessControl.sol",
+        "tools_run": [
+          "aderyn",
+          "slither",
+          "solhint"
+        ],
+        "tools_success": [
+          "aderyn",
+          "slither",
+          "solhint"
+        ],
+        "tools_failed": [],
+        "total_findings": 10,
+        "aggregated_findings": 8,
+        "cross_validated": 0,
+        "severity_counts": {
+          "high": 3,
+          "low": 3,
+          "info": 2
+        },
+        "execution_time_ms": 0.77,
+        "timestamp": "2026-01-08T20:04:20.899577"
+      }
+    },
+    {
+      "contract": "test_contracts/DeFiVault.sol",
+      "success": true,
+      "tools_executed": 0,
+      "findings": 0,
+      "result": {
+        "contract_path": "test_contracts/DeFiVault.sol",
+        "tools_run": [
+          "aderyn",
+          "slither",
+          "solhint"
+        ],
+        "tools_success": [
+          "slither",
+          "solhint",
+          "aderyn"
+        ],
+        "tools_failed": [],
+        "total_findings": 10,
+        "aggregated_findings": 8,
+        "cross_validated": 0,
+        "severity_counts": {
+          "high": 2,
+          "low": 4,
+          "info": 2
+        },
+        "execution_time_ms": 0.61,
+        "timestamp": "2026-01-08T20:04:20.900217"
+      }
+    }
+  ],
+  "summary": {
+    "contracts_analyzed": 4,
+    "total_findings": 0
+  }
+}
