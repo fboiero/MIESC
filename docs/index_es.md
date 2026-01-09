@@ -7,7 +7,8 @@ lang: es
 # MIESC - Evaluación Inteligente Multicapa para Smart Contracts
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MIESC-v4.2.0-blue?style=for-the-badge" alt="MIESC v4.2.0">
+  <img src="https://img.shields.io/badge/MIESC-v4.3.2-blue?style=for-the-badge" alt="MIESC v4.3.2">
+  <img src="https://img.shields.io/pypi/v/miesc?style=for-the-badge&label=PyPI" alt="PyPI">
   <img src="https://img.shields.io/badge/Licencia-AGPL--3.0-green?style=for-the-badge" alt="Licencia">
   <img src="https://img.shields.io/badge/Python-3.12+-yellow?style=for-the-badge" alt="Python">
   <img src="https://img.shields.io/badge/IA-Potenciado-purple?style=for-the-badge" alt="IA Potenciado">
@@ -34,31 +35,31 @@ lang: es
 ## Video Demostrativo
 
 <p align="center">
-  <strong>Mira MIESC en Accion</strong><br><br>
-  <a href="https://youtu.be/-SP6555edSw">
+  <strong>Mira MIESC en Acción</strong><br><br>
+  <a href="https://youtu.be/pLa_McNBRRw">
     <img src="https://img.shields.io/badge/YouTube-Demo-red?style=for-the-badge&logo=youtube" alt="YouTube Demo">
   </a><br><br>
-  <a href="https://youtu.be/-SP6555edSw">Ver en YouTube</a> (~10 minutos)
+  <a href="https://youtu.be/pLa_McNBRRw">Ver en YouTube</a> (~10 minutos)
 </p>
 
 **Demuestra:**
 
-- Analisis Defense-in-Depth a traves de 7 capas de seguridad
-- 29 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
-- Integracion del Model Context Protocol (MCP) con Claude Desktop
-- 100% Recall, 87.5% Precision, F1-Score 0.93
-- IA Soberana con Ollama (el codigo nunca sale de tu maquina)
+- Análisis Defense-in-Depth a través de 9 capas de seguridad
+- 31 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
+- Integración del Model Context Protocol (MCP) con Claude Desktop
+- 100% Precisión, 70% Recall, F1-Score 82.35% (benchmark SmartBugs-curated)
+- IA Soberana con Ollama (el código nunca sale de tu máquina)
 
 ---
 
 ## Alcance y Limitaciones
 
-**Proposito:**
+**Propósito:**
 
-- Orquestacion automatizada de 25 herramientas de analisis de seguridad
-- Correlacion asistida por IA para reducir reportes duplicados
-- Deteccion de vulnerabilidades basada en ML con 95.7% de precision
-- Mapeo de cumplimiento a estandares ISO/NIST/OWASP
+- Orquestación automatizada de 31 herramientas de análisis de seguridad
+- Correlación asistida por IA para reducir reportes duplicados
+- Detección de vulnerabilidades basada en ML con 95.7% de precisión
+- Mapeo de cumplimiento a estándares ISO/NIST/OWASP
 - Formato de reportes estandarizado (JSON/HTML/PDF)
 
 **Limitaciones:**
@@ -74,16 +75,17 @@ lang: es
 
 ## Descripción General
 
-**MIESC** es un framework de seguridad de smart contracts de grado de producción que implementa una **arquitectura Defense-in-Depth de 7 capas**, integrando **25 herramientas de seguridad especializadas** con **correlación potenciada por IA** y **detección basada en ML** para ofrecer detección integral de vulnerabilidades con precisión líder en la industria.
+**MIESC** es un framework de seguridad de smart contracts de grado de producción que implementa una **arquitectura Defense-in-Depth de 9 capas**, integrando **31 herramientas de seguridad especializadas** con **correlación potenciada por IA** y **detección basada en ML** para ofrecer detección integral de vulnerabilidades con precisión líder en la industria.
 
-### Logros Principales (v4.0.0)
+### Logros Principales (v4.3.2)
 
-- **25 Herramientas Integradas** en 7 capas de defensa
+- **31 Herramientas Integradas** en 9 capas de defensa
 - **95.7% de Precisión de Detección ML** con Redes Neuronales de Grafos DA-GNN
-- **94.5% Precisión**, **92.8% Recall**, **F1-Score 0.93**
+- **100% Precisión**, **70% Recall**, **F1-Score 82.35%** (benchmark SmartBugs-curated)
 - **91.4% Índice de Cumplimiento** en 12 estándares internacionales
 - **IA Soberana** con Ollama - el código nunca sale de tu máquina
 - **$0 Costo Operativo** - ejecución completamente local
+- **Disponible en PyPI**: `pip install miesc`
 
 ---
 
@@ -123,17 +125,19 @@ lang: es
 
 ## Características
 
-### Arquitectura de Defensa de 7 Capas
+### Arquitectura de Defensa de 9 Capas
 
 | Capa | Categoría | Herramientas | Enfoque de Detección |
 |------|-----------|--------------|----------------------|
 | **1** | Análisis Estático | Slither, Aderyn, Solhint | Detección de patrones (90+ detectores) |
-| **2** | Testing Dinámico | Echidna, Medusa, Foundry | Fuzzing basado en propiedades |
+| **2** | Testing Dinámico | Echidna, Medusa, Foundry, DogeFuzz | Fuzzing basado en propiedades |
 | **3** | Ejecución Simbólica | Mythril, Manticore, Halmos | Exploración profunda de estados |
-| **4** | Verificación Formal | Certora, SMTChecker, Wake | Pruebas matemáticas |
-| **5** | Análisis IA | SmartLLM, GPTScan, LLM-SmartAudit | Análisis semántico |
-| **6** | Detección ML | DA-GNN, PolicyAgent | Detección basada en grafos |
-| **7** | Preparación Auditoría | Layer7Agent | Mapeo de cumplimiento |
+| **4** | Verificación Formal | Certora, SMTChecker | Pruebas matemáticas |
+| **5** | Testing de Propiedades | PropertyGPT, Wake, Vertigo | Generación de invariantes |
+| **6** | Análisis IA/LLM | SmartLLM, GPTScan, LLM-SmartAudit | Análisis semántico |
+| **7** | Reconocimiento de Patrones | DA-GNN, SmartGuard, Clone Detector | Detección basada en ML |
+| **8** | Seguridad DeFi | DeFi Analyzer, MEV Detector, Gas Analyzer | Específico de protocolos |
+| **9** | Detección Avanzada | Advanced Detector, Threat Model | Correlación entre capas |
 
 ### Inteligencia Potenciada por IA
 
@@ -173,60 +177,70 @@ Soporte nativo de Model Context Protocol para integración con asistentes de IA:
 ### Instalación
 
 ```bash
-# Clonar repositorio
+# Desde PyPI (recomendado)
+pip install miesc
+
+# Con todas las funciones
+pip install miesc[full]
+
+# Desde código fuente (desarrollo)
 git clone https://github.com/fboiero/MIESC.git
-cd MIESC
-
-# Instalar dependencias
-pip install slither-analyzer mythril
-
-# Verificar instalación
-python scripts/verify_installation.py
+cd MIESC && pip install -e .[dev]
 ```
 
-### Ejecutar Demo
+### Uso Básico
 
 ```bash
-# Ejecutar demo v4.0 con detección ML + RAG
-python3 examples/demo_v4.0.py
+# Escaneo rápido de vulnerabilidades
+miesc scan contract.sol
 
-# O análisis completo multi-contrato
-bash demo/run_demo.sh
+# Modo CI/CD (exit 1 si hay issues críticos/altos)
+miesc scan contract.sol --ci
+
+# Auditoría completa de 9 capas
+miesc audit full contract.sol
+
+# Verificar disponibilidad de herramientas
+miesc doctor
 ```
 
 ### Interfaz Web
 
 ```bash
 # Lanzar UI web interactiva
-pip install streamlit plotly streamlit-extras
+pip install miesc[web]
 make webapp
 # Abrir navegador en http://localhost:8501
 ```
 
-[Guía de Instalación Completa](INSTALLATION.md)
+[Guía de Instalación Completa](INSTALLATION.md) | [Guía de Inicio Rápido](https://github.com/fboiero/MIESC/blob/main/QUICKSTART.md)
 ---
 
 ## Arquitectura
 
 ```
 Smart Contract
-      |
+      │
 CoordinatorAgent (MCP)
-      |
+      │
    ┌──┴──┬──────┬─────────┐
-   |     |      |         |
+   │     │      │         │
 Capa1  Capa2  Capa3   Capa4   → Herramientas ejecutan en paralelo
 Static Dynamic Symbolic Formal
-   |     |      |         |
+   │     │      │         │
    └──┬──┴──────┴─────────┘
-      |
-   Capa5 (correlación IA)
-      |
-   Capa6 (detección ML + Cumplimiento)
-      |
-   Capa7 (preparación auditoría)
-      |
-   Reporte (JSON/HTML/PDF)
+      │
+   Capa5 (Testing de Propiedades)
+      │
+   Capa6 (Análisis IA/LLM)
+      │
+   Capa7 (Reconocimiento de Patrones ML)
+      │
+   Capa8 (Seguridad DeFi)
+      │
+   Capa9 (Detección Avanzada + Correlación)
+      │
+   Reporte (JSON/HTML/PDF/SARIF)
 ```
 
 ### Descripción de Componentes
@@ -234,32 +248,33 @@ Static Dynamic Symbolic Formal
 | Capa | Agente | Propósito | Salida |
 |------|--------|-----------|--------|
 | **L1-4** | Agentes de Análisis | Escaneo multi-herramienta | Hallazgos de vulnerabilidades crudos |
-| **L5** | Agente IA | Análisis semántico | Hallazgos correlacionados + causa raíz |
-| **L6** | Agente ML + Política | Detección + Cumplimiento | Puntuaciones de riesgo + mapeos de frameworks |
-| **L7** | Agente de Auditoría | Evaluación de preparación | Reporte final de auditoría |
+| **L5** | Agente de Propiedades | Generación de invariantes | Propiedades CVL/tests de propiedad |
+| **L6** | Agente IA | Análisis semántico | Hallazgos correlacionados + causa raíz |
+| **L7** | Agente ML | Detección basada en grafos | Patrones de vulnerabilidad |
+| **L8** | Agente DeFi | Análisis específico de protocolos | Riesgos DeFi/MEV |
+| **L9** | Agente Avanzado | Correlación entre capas | Reporte final de auditoría |
 
 [Detalles de Arquitectura](thesis_es.md)
 ---
 
 ## Métricas de Rendimiento
 
-### Resultados v4.0.0
+### Resultados v4.3.2 (Benchmark SmartBugs-curated)
 
-| Métrica | v3.5 | v4.0 | Mejora |
-|---------|------|------|--------|
-| **Precisión** | 89.47% | 94.5% | +5.03pp |
-| **Recall** | 86.2% | 92.8% | +6.6pp |
-| **F1-Score** | 0.88 | 0.93 | +5.7% |
-| **Tasa FP** | 10.53% | 5.5% | -48% |
-| **Cobertura de Detección** | 85% | 96% | +11pp |
-| **Adaptadores de Herramientas** | 22 | 25 | +13.6% |
+| Métrica | Valor | Notas |
+|---------|-------|-------|
+| **Precisión** | 100% | 0 falsos positivos |
+| **Recall** | 70% | 35/50 vulnerabilidades detectadas |
+| **F1-Score** | 82.35% | Benchmark de 50 contratos |
+| **Herramientas** | 31 | Operativas en 9 capas |
+| **Categorías con 100% Recall** | 3 | arithmetic, bad_randomness, front_running |
 
 ### Suite de Tests
 
 - **117 tests pasando**
-- **87.5% cobertura de código**
+- **80.8% cobertura de código**
 - **0 vulnerabilidades críticas**
-- **94.2% cumplimiento de políticas**
+- **31/31 herramientas operativas**
 
 ---
 
@@ -279,8 +294,8 @@ Static Dynamic Symbolic Formal
 
 ### Contribuciones de Investigación
 
-1. **Arquitectura Defense-in-Depth de 7 Capas** para seguridad de smart contracts
-2. **Integración de 25 Herramientas** bajo protocolo unificado ToolAdapter
+1. **Arquitectura Defense-in-Depth de 9 Capas** para seguridad de smart contracts
+2. **Integración de 31 Herramientas** bajo protocolo unificado ToolAdapter
 3. **Sistema de Normalización Triple** (SWC/CWE/OWASP) con 97.1% de precisión
 4. **Backend de IA Soberano** con Ollama para soberanía de datos
 5. **Servidor MCP** para integración con asistentes de IA
@@ -291,10 +306,10 @@ Static Dynamic Symbolic Formal
 ```bibtex
 @software{boiero2025miesc,
   author = {Boiero, Fernando},
-  title = {MIESC: Evaluacion Inteligente Multicapa para Smart Contracts},
+  title = {MIESC: Evaluación Inteligente Multicapa para Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
-  version = {4.0.0},
+  version = {4.3.2},
   note = {Implementación para Tesis de Maestría en Ciberdefensa}
 }
 ```
@@ -369,46 +384,43 @@ Damos la bienvenida a contribuciones de las comunidades de investigación en seg
 
 ## Ejemplos de Uso
 
-**Integracion CI/CD:**
+**Escaneo Rápido (Integración CI/CD):**
 
 ```bash
-python xaudit.py --target contracts/MyToken.sol --mode fast --output ci_report.json
-# Codigo de salida 0 si no hay issues criticos, 1 de lo contrario
+miesc scan contracts/MyToken.sol --ci
+# Código de salida 0 si no hay issues críticos, 1 de lo contrario
 ```
 
-**Pre-Auditoria Completa:**
+**Auditoría Completa de 9 Capas:**
 
 ```bash
-python xaudit.py \
-  --target contracts/ \
-  --mode full \
-  --enable-ai-triage \
-  --output-format html,json,pdf
+miesc audit full contracts/MyToken.sol -o audit_report.json
 ```
 
-**Reporte de Cumplimiento:**
+**Auditoría Batch (Múltiples Contratos):**
 
 ```bash
-python xaudit.py \
-  --target contracts/DeFiProtocol.sol \
-  --compliance-only \
-  --standards iso27001,nist,owasp
+miesc audit batch contracts/ -r -o batch_report.json
 ```
 
-**Ejecucion Selectiva de Capas:**
+**Ejecución Selectiva de Capas:**
 
 ```bash
-python xaudit.py \
-  --target contracts/Treasury.sol \
-  --layers symbolic \
-  --functions withdraw,emergencyWithdraw \
-  --timeout 3600
+miesc audit full contracts/Treasury.sol --layers 1,3,6
+# Ejecuta solo Capa 1 (Estático), Capa 3 (Simbólico), Capa 6 (IA)
+```
+
+**Exportar a Diferentes Formatos:**
+
+```bash
+miesc audit quick contract.sol -f sarif -o report.sarif
+miesc audit quick contract.sol -f markdown -o report.md
 ```
 
 **Modo Servidor MCP:**
 
 ```bash
-python src/mcp/server.py
+miesc server mcp
 # Habilita: audit_contract(), explain_vulnerability(), suggest_fix()
 ```
 
@@ -459,7 +471,7 @@ Asegura que el framework permanezca open-source. Permite uso comercial con atrib
 ---
 
 <p align="center">
-  <strong>MIESC v4.2.0</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
+  <strong>MIESC v4.3.2</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
 </p>
 
 <p align="center">
