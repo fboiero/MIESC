@@ -6,7 +6,8 @@ title: MIESC - Smart Contract Security Framework
 # MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MIESC-v4.2.3-blue?style=for-the-badge" alt="MIESC v4.2.3">
+  <img src="https://img.shields.io/badge/MIESC-v4.3.2-blue?style=for-the-badge" alt="MIESC v4.3.2">
+  <img src="https://img.shields.io/pypi/v/miesc?style=for-the-badge&label=PyPI" alt="PyPI">
   <img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Python-3.12+-yellow?style=for-the-badge" alt="Python">
   <img src="https://img.shields.io/badge/AI-Powered-purple?style=for-the-badge" alt="AI Powered">
@@ -18,9 +19,9 @@ title: MIESC - Smart Contract Security Framework
 </p>
 
 <p align="center">
-  <a href="webapp/README.md">Try Web Demo</a> •
-  <a href="thesis.html">Thesis</a> •
-  <a href="docs/INDEX.html">Documentation</a> •
+  <a href="https://github.com/fboiero/MIESC/tree/main/webapp">Try Web Demo</a> •
+  <a href="thesis.md">Thesis</a> •
+  <a href="INSTALLATION.md">Documentation</a> •
   <a href="https://github.com/fboiero/MIESC">GitHub</a>
 </p>
 
@@ -34,18 +35,18 @@ title: MIESC - Smart Contract Security Framework
 
 <p align="center">
   <strong>Watch MIESC in Action</strong><br><br>
-  <a href="https://youtu.be/-SP6555edSw">
+  <a href="https://youtu.be/pLa_McNBRRw">
     <img src="https://img.shields.io/badge/YouTube-Demo-red?style=for-the-badge&logo=youtube" alt="YouTube Demo">
   </a><br><br>
-  <a href="https://youtu.be/-SP6555edSw">Watch on YouTube</a> (~10 minutes)
+  <a href="https://youtu.be/pLa_McNBRRw">Watch on YouTube</a> (~10 minutes)
 </p>
 
 **Demonstrates:**
 
 - Defense-in-Depth analysis across 9 security layers
-- 32 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
+- 31 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
 - Model Context Protocol (MCP) integration with Claude Desktop
-- 100% Precision, 70% Recall, F1-Score 0.82 (SmartBugs-curated benchmark)
+- 100% Precision, 70% Recall, F1-Score 82.35% (SmartBugs-curated benchmark)
 - Sovereign AI with Ollama (code never leaves your machine)
 
 ---
@@ -54,7 +55,7 @@ title: MIESC - Smart Contract Security Framework
 
 **Purpose:**
 
-- Automated orchestration of 32 security analysis tools
+- Automated orchestration of 31 security analysis tools
 - AI-assisted finding correlation to reduce duplicate reports
 - ML-based vulnerability detection with 95.7% accuracy
 - Compliance mapping to ISO/NIST/OWASP standards
@@ -73,16 +74,17 @@ title: MIESC - Smart Contract Security Framework
 
 ## Overview
 
-**MIESC** is a production-grade smart contract security framework that implements a **9-layer Defense-in-Depth architecture**, integrating **32 specialized security tools** with **AI-powered correlation** and **ML-based detection** to deliver comprehensive vulnerability detection with industry-leading accuracy.
+**MIESC** is a production-grade smart contract security framework that implements a **9-layer Defense-in-Depth architecture**, integrating **31 specialized security tools** with **AI-powered correlation** and **ML-based detection** to deliver comprehensive vulnerability detection with industry-leading accuracy.
 
-### Key Achievements (v4.2.3)
+### Key Achievements (v4.3.2)
 
-- **32 Integrated Tools** across 9 defense layers
+- **31 Integrated Tools** across 9 defense layers
 - **95.7% ML Detection Accuracy** with DA-GNN Graph Neural Networks
-- **100% Precision**, **70% Recall**, **F1-Score 0.82** (SmartBugs-curated benchmark)
+- **100% Precision**, **70% Recall**, **F1-Score 82.35%** (SmartBugs-curated benchmark)
 - **91.4% Compliance Index** across 12 international standards
 - **Sovereign AI** with Ollama - code never leaves your machine
 - **$0 Operational Cost** - fully local execution
+- **Now on PyPI**: `pip install miesc`
 
 ---
 
@@ -127,12 +129,14 @@ title: MIESC - Smart Contract Security Framework
 | Layer | Category | Tools | Detection Focus |
 |-------|----------|-------|-----------------|
 | **1** | Static Analysis | Slither, Aderyn, Solhint | Pattern detection (90+ detectors) |
-| **2** | Dynamic Testing | Echidna, Medusa, Foundry | Property-based fuzzing |
+| **2** | Dynamic Testing | Echidna, Medusa, Foundry, DogeFuzz | Property-based fuzzing |
 | **3** | Symbolic Execution | Mythril, Manticore, Halmos | Deep state exploration |
-| **4** | Formal Verification | Certora, SMTChecker, Wake | Mathematical proofs |
-| **5** | AI Analysis | SmartLLM, GPTScan, LLM-SmartAudit | Semantic analysis |
-| **6** | ML Detection | DA-GNN, PolicyAgent | Graph-based detection |
-| **7** | Audit Readiness | Layer7Agent | Compliance mapping |
+| **4** | Formal Verification | Certora, SMTChecker | Mathematical proofs |
+| **5** | Property Testing | PropertyGPT, Wake, Vertigo | Invariant generation |
+| **6** | AI/LLM Analysis | SmartLLM, GPTScan, LLM-SmartAudit | Semantic analysis |
+| **7** | Pattern Recognition | DA-GNN, SmartGuard, Clone Detector | ML-based detection |
+| **8** | DeFi Security | DeFi Analyzer, MEV Detector, Gas Analyzer | Protocol-specific |
+| **9** | Advanced Detection | Advanced Detector, Threat Model | Cross-layer correlation |
 
 ### AI-Powered Intelligence
 
@@ -172,37 +176,43 @@ Native Model Context Protocol support for AI assistant integration:
 ### Installation
 
 ```bash
-# Clone repository
+# From PyPI (recommended)
+pip install miesc
+
+# With all features
+pip install miesc[full]
+
+# From source (development)
 git clone https://github.com/fboiero/MIESC.git
-cd MIESC
-
-# Install dependencies
-pip install slither-analyzer mythril
-
-# Verify installation
-python scripts/verify_installation.py
+cd MIESC && pip install -e .[dev]
 ```
 
-### Run Demo
+### Basic Usage
 
 ```bash
-# Run v4.0 demo with ML detection + RAG
-python3 examples/demo_v4.0.py
+# Quick vulnerability scan
+miesc scan contract.sol
 
-# Or full multi-contract analysis
-bash demo/run_demo.sh
+# CI/CD mode (exit 1 if critical/high issues)
+miesc scan contract.sol --ci
+
+# Full 9-layer audit
+miesc audit full contract.sol
+
+# Check tool availability
+miesc doctor
 ```
 
 ### Web Interface
 
 ```bash
 # Launch interactive web UI
-pip install streamlit plotly streamlit-extras
+pip install miesc[web]
 make webapp
 # Open browser to http://localhost:8501
 ```
 
-[Full Installation Guide](docs/02_SETUP_AND_USAGE.md)
+[Full Installation Guide](INSTALLATION.md) | [Quick Start Guide](https://github.com/fboiero/MIESC/blob/main/QUICKSTART.md)
 
 ---
 
@@ -210,23 +220,27 @@ make webapp
 
 ```
 Smart Contract
-      |
+      │
 CoordinatorAgent (MCP)
-      |
+      │
    ┌──┴──┬──────┬─────────┐
-   |     |      |         |
+   │     │      │         │
 Layer1 Layer2 Layer3  Layer4   → Tools execute in parallel
 Static Dynamic Symbolic Formal
-   |     |      |         |
+   │     │      │         │
    └──┬──┴──────┴─────────┘
-      |
-   Layer5 (AI correlation)
-      |
-   Layer6 (ML detection + Compliance)
-      |
-   Layer7 (Audit readiness)
-      |
-   Report (JSON/HTML/PDF)
+      │
+   Layer5 (Property Testing)
+      │
+   Layer6 (AI/LLM Analysis)
+      │
+   Layer7 (ML Pattern Recognition)
+      │
+   Layer8 (DeFi Security)
+      │
+   Layer9 (Advanced Detection + Correlation)
+      │
+   Report (JSON/HTML/PDF/SARIF)
 ```
 
 ### Component Overview
@@ -234,33 +248,34 @@ Static Dynamic Symbolic Formal
 | Layer | Agent | Purpose | Output |
 |-------|-------|---------|--------|
 | **L1-4** | Analysis Agents | Multi-tool scanning | Raw vulnerability findings |
-| **L5** | AI Agent | Semantic analysis | Correlated findings + root cause |
-| **L6** | ML + Policy Agent | Detection + Compliance | Risk scores + framework mappings |
-| **L7** | Audit Agent | Readiness assessment | Final audit report |
+| **L5** | Property Agent | Invariant generation | CVL properties/property tests |
+| **L6** | AI Agent | Semantic analysis | Correlated findings + root cause |
+| **L7** | ML Agent | Graph-based detection | Vulnerability patterns |
+| **L8** | DeFi Agent | Protocol-specific analysis | DeFi/MEV risks |
+| **L9** | Advanced Agent | Cross-layer correlation | Final audit report |
 
-[Architecture Details](docs/01_ARCHITECTURE.md)
+[Architecture Details](thesis.md)
 
 ---
 
 ## Performance Metrics
 
-### v4.0.0 Results
+### v4.3.2 Results (SmartBugs-curated Benchmark)
 
-| Metric | v3.5 | v4.0 | Improvement |
-|--------|------|------|-------------|
-| **Precision** | 89.47% | 94.5% | +5.03pp |
-| **Recall** | 86.2% | 92.8% | +6.6pp |
-| **F1-Score** | 0.88 | 0.93 | +5.7% |
-| **FP Rate** | 10.53% | 5.5% | -48% |
-| **Detection Coverage** | 85% | 96% | +11pp |
-| **Tool Adapters** | 22 | 25 | +13.6% |
+| Metric | Value | Notes |
+|--------|-------|-------|
+| **Precision** | 100% | 0 false positives |
+| **Recall** | 70% | 35/50 vulnerabilities detected |
+| **F1-Score** | 82.35% | 50 contract benchmark |
+| **Tools** | 31 | Operational across 9 layers |
+| **Categories with 100% Recall** | 3 | arithmetic, bad_randomness, front_running |
 
 ### Test Suite
 
 - **117 tests passing**
-- **87.5% code coverage**
+- **80.8% code coverage**
 - **0 critical vulnerabilities**
-- **94.2% policy compliance**
+- **31/31 tools operational**
 
 ---
 
@@ -281,11 +296,11 @@ Static Dynamic Symbolic Formal
 ### Research Contributions
 
 1. **9-Layer Defense-in-Depth Architecture** for smart contract security
-2. **32 Tool Integration** under unified ToolAdapter protocol
+2. **31 Tool Integration** under unified ToolAdapter protocol
 3. **Triple Normalization System** (SWC/CWE/OWASP) with 97.1% accuracy
 4. **Sovereign AI Backend** with Ollama for data sovereignty
 5. **MCP Server** for AI assistant integration
-6. **Legacy Tool Rescue** (Manticore Python 3.11, Oyente Docker)
+6. **Legacy Tool Rescue** (Manticore Python 3.11 compatibility)
 
 ### Citation
 
@@ -295,7 +310,7 @@ Static Dynamic Symbolic Formal
   title = {MIESC: Multi-layer Intelligent Evaluation for Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
-  version = {4.2.3},
+  version = {4.3.2},
   note = {Implementation for Master's thesis in Cyberdefense}
 }
 ```
@@ -308,32 +323,26 @@ Static Dynamic Symbolic Formal
 
 ### Getting Started
 
-- [Installation Guide](docs/02_SETUP_AND_USAGE.md)
-- [Demo Walkthrough](docs/03_DEMO_GUIDE.md)
-- [Web Demo](webapp/README.md)
-- [Docker Setup](docs/DOCKER.md)
+- [Installation Guide](INSTALLATION.md)
+- [Tools Reference](TOOLS.md)
+- [Validation Guide](VALIDATION_GUIDE.md)
 
-### Core Concepts
+### Releases
 
-- [Architecture Overview](docs/01_ARCHITECTURE.md)
-- [AI Correlation](docs/04_AI_CORRELATION.md)
-- [Policy Agent](docs/05_POLICY_AGENT.md)
-- [MCP Protocol](docs/07_MCP_INTEROPERABILITY.md)
+- [Release Notes v4.3.0](RELEASE_NOTES_v4.3.0.md)
+- [Release Notes v4.2.3](RELEASE_NOTES_v4.2.3.md)
+- [Release Notes v4.0.0](RELEASE_NOTES_v4.0.0.md)
 
 ### Developer Resources
 
-- [Developer Guide](docs/DEVELOPER_GUIDE.md)
 - [Contributing Guidelines](CONTRIBUTING.md)
-- [API Reference](docs/API_SETUP.md)
-- [Extending MIESC](docs/EXTENDING.md)
+- [Security Policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
-### Advanced Topics
+### Thesis
 
-- [Shift-Left Security](docs/SHIFT_LEFT_SECURITY.md)
-- [Compliance Mapping](docs/compliance/COMPLIANCE.md)
-- [v4.0 Features](docs/PHASE_3_4_5_COMPLETION_SUMMARY.md)
-
-[Complete Documentation Index](docs/INDEX.md)
+- [Thesis Overview](thesis.md)
+- [Tesis (Español)](thesis_es.md)
 
 ---
 
@@ -345,7 +354,7 @@ We welcome contributions from the security research and blockchain communities!
 
 1. **Fork the repository**
 2. **Create a feature branch**: `git checkout -b feature/new-detector`
-3. **Make changes** following our [style guide](CONTRIBUTING.md#code-style)
+3. **Make changes** following our [style guide](CONTRIBUTING.md)
 4. **Run quality checks**: `make all-checks`
 5. **Submit pull request**
 
@@ -353,7 +362,7 @@ We welcome contributions from the security research and blockchain communities!
 
 - Certora CVL specs for common patterns (ERC-20/721)
 - Echidna property templates for DeFi
-- Integration tests for all 32 tools
+- Integration tests for all 31 tools
 - Cross-chain vulnerability analysis
 - Documentation translations
 
@@ -373,46 +382,43 @@ We welcome contributions from the security research and blockchain communities!
 
 ## Usage Examples
 
-**CI/CD Integration:**
+**Quick Scan (CI/CD Integration):**
 
 ```bash
-python xaudit.py --target contracts/MyToken.sol --mode fast --output ci_report.json
+miesc scan contracts/MyToken.sol --ci
 # Exit code 0 if no critical issues, 1 otherwise
 ```
 
-**Full Pre-Audit:**
+**Full 9-Layer Audit:**
 
 ```bash
-python xaudit.py \
-  --target contracts/ \
-  --mode full \
-  --enable-ai-triage \
-  --output-format html,json,pdf
+miesc audit full contracts/MyToken.sol -o audit_report.json
 ```
 
-**Compliance Reporting:**
+**Batch Audit (Multiple Contracts):**
 
 ```bash
-python xaudit.py \
-  --target contracts/DeFiProtocol.sol \
-  --compliance-only \
-  --standards iso27001,nist,owasp
+miesc audit batch contracts/ -r -o batch_report.json
 ```
 
 **Selective Layer Execution:**
 
 ```bash
-python xaudit.py \
-  --target contracts/Treasury.sol \
-  --layers symbolic \
-  --functions withdraw,emergencyWithdraw \
-  --timeout 3600
+miesc audit full contracts/Treasury.sol --layers 1,3,6
+# Runs only Layer 1 (Static), Layer 3 (Symbolic), Layer 6 (AI)
+```
+
+**Export to Different Formats:**
+
+```bash
+miesc audit quick contract.sol -f sarif -o report.sarif
+miesc audit quick contract.sol -f markdown -o report.md
 ```
 
 **MCP Server Mode:**
 
 ```bash
-python src/mcp/server.py
+miesc server mcp
 # Enables: audit_contract(), explain_vulnerability(), suggest_fix()
 ```
 
@@ -456,14 +462,14 @@ Ensures framework remains open-source. Allows commercial use with attribution. D
 </p>
 
 <p align="center">
-  <a href="docs/02_SETUP_AND_USAGE.md">Get Started</a> |
+  <a href="INSTALLATION.md">Get Started</a> |
   <a href="https://github.com/fboiero/MIESC">View on GitHub</a>
 </p>
 
 ---
 
 <p align="center">
-  <strong>MIESC v4.2.3</strong> | Master's Thesis in Cyberdefense | AGPL-3.0 License
+  <strong>MIESC v4.3.2</strong> | Master's Thesis in Cyberdefense | AGPL-3.0 License
 </p>
 
 <p align="center">
