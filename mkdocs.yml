@@ -161,6 +161,7 @@ nav:
     - Resumen (ES): thesis_es.md
 
   - Developer Guide:
+    - Custom Detectors: CUSTOM_DETECTORS.md
     - Contributing: CONTRIBUTING.md
     - Security Policy: SECURITY.md
     - Changelog: CHANGELOG.md

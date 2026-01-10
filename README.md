@@ -9,6 +9,7 @@ Multi-layer security analysis framework for Ethereum smart contracts.
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions)
 [![Coverage](https://img.shields.io/badge/coverage-80.8%25-green)](./htmlcov/index.html)
 [![Tools](https://img.shields.io/badge/tools-31%2F31%20operational-brightgreen)](./docs/TOOLS.md)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 
 [English](./README.md) | [Espa&ntilde;ol](./README_ES.md)
 
@@ -95,7 +96,62 @@ miesc audit full contract.sol        # Complete 9-layer audit
 miesc audit layer 3 contract.sol     # Run specific layer
 miesc server rest --port 5001        # Start REST API
 miesc doctor                         # Check tool availability
+miesc watch ./contracts              # Watch mode (auto-scan on save)
+miesc detectors list                 # List custom detectors
+miesc detectors run contract.sol     # Run custom detectors
 ```
+
+### Custom Detectors
+
+Create your own vulnerability detectors:
+
+```python
+from miesc.detectors import BaseDetector, Finding, Severity
+
+class MyDetector(BaseDetector):
+    name = "my-detector"
+    description = "Detects my custom pattern"
+
+    def analyze(self, source_code, file_path=None):
+        findings = []
+        # Your detection logic
+        return findings
+```
+
+Register in `pyproject.toml`:
+
+```toml
+[project.entry-points."miesc.detectors"]
+my-detector = "my_package:MyDetector"
+```
+
+See [docs/CUSTOM_DETECTORS.md](./docs/CUSTOM_DETECTORS.md) for full API documentation.
+
+### Pre-commit Hook
+
+Integrate MIESC into your git workflow:
+
+```bash
+pip install pre-commit
+```
+
+Add to your `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/fboiero/MIESC
+    rev: v4.3.2
+    hooks:
+      - id: miesc-quick
+        args: ['--ci']  # Fail on critical/high issues
+```
+
+```bash
+pre-commit install
+git commit -m "..."  # MIESC runs automatically
+```
+
+See [examples/pre-commit-config.yaml](./examples/pre-commit-config.yaml) for more options.
 
 ### Web Interface
 

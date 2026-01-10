@@ -1,0 +1,49 @@
+# Example .pre-commit-config.yaml for Solidity projects
+# Copy this file to your project root as .pre-commit-config.yaml
+#
+# Installation:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Usage:
+#   git commit -m "..."  # Runs automatically
+#   pre-commit run --all-files  # Manual run
+#   pre-commit run miesc-quick --all-files  # Run specific hook
+
+repos:
+  # MIESC - Smart Contract Security Scanner
+  - repo: https://github.com/fboiero/MIESC
+    rev: v4.3.2
+    hooks:
+      # Recommended: Quick scan on every commit
+      - id: miesc-quick
+        name: MIESC Security Scan
+        # Fail commit if critical or high severity issues found
+        args: ['--ci']
+
+  # Optional: Additional Solidity linters
+  # - repo: https://github.com/prettier-solidity/prettier-plugin-solidity
+  #   rev: v1.3.1
+  #   hooks:
+  #     - id: prettier-plugin-solidity
+
+# Alternative configurations:
+
+# For faster iteration (slither + aderyn only):
+# - repo: https://github.com/fboiero/MIESC
+#   rev: v4.3.2
+#   hooks:
+#     - id: miesc-fast
+
+# For CI pipelines (strict mode):
+# - repo: https://github.com/fboiero/MIESC
+#   rev: v4.3.2
+#   hooks:
+#     - id: miesc-ci
+#       args: ['--ci']
+
+# For manual full audits (run with: pre-commit run miesc-full --hook-stage manual):
+# - repo: https://github.com/fboiero/MIESC
+#   rev: v4.3.2
+#   hooks:
+#     - id: miesc-full

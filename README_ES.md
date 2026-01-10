@@ -7,6 +7,7 @@
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions/workflows/secure-dev-pipeline.yml)
 [![Cobertura](https://img.shields.io/badge/cobertura-81%25-green)](./htmlcov/index.html)
 [![Herramientas](https://img.shields.io/badge/herramientas-31%2F31%20operativas-brightgreen)](./docs/TOOLS.md)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 
 [English](./README.md) | **Español**
 
@@ -94,9 +95,38 @@ miesc audit full contrato.sol
 
 # Verificar disponibilidad de herramientas
 miesc doctor
+
+# Modo watch (escaneo automático al guardar)
+miesc watch ./contracts
 ```
 
 **[Guía de Inicio Rápido Completa](./QUICKSTART_ES.md)** - Instrucciones detalladas de instalación y uso.
+
+### Hook Pre-commit
+
+Integra MIESC en tu flujo de trabajo git:
+
+```bash
+pip install pre-commit
+```
+
+Agrega a tu `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/fboiero/MIESC
+    rev: v4.3.2
+    hooks:
+      - id: miesc-quick
+        args: ['--ci']  # Falla en issues críticos/altos
+```
+
+```bash
+pre-commit install
+git commit -m "..."  # MIESC ejecuta automáticamente
+```
+
+Ver [examples/pre-commit-config.yaml](./examples/pre-commit-config.yaml) para más opciones.
 
 Ver [docs/03_DEMO_GUIDE.md](./docs/03_DEMO_GUIDE.md) para detalles.
 
