@@ -17,7 +17,7 @@ Institution: UNDEF - IUA Cordoba
 License: AGPL-3.0
 """
 
-__version__ = "4.2.3"
+__version__ = "4.3.2"
 
 # Export main components - these are intentional re-exports for the public API
 try:

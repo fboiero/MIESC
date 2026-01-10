@@ -19,7 +19,7 @@ class TestRestApiImports:
         from miesc.api import rest
 
         assert hasattr(rest, "VERSION")
-        assert rest.VERSION == "4.2.3"
+        assert rest.VERSION == "4.3.2"
 
     def test_import_layers(self):
         """Test LAYERS dictionary is available."""
@@ -382,7 +382,7 @@ class TestCLIImports:
         """Test CLI version matches."""
         from miesc.cli.main import VERSION
 
-        assert VERSION == "4.2.3"
+        assert VERSION == "4.3.2"
 
     def test_cli_layers_defined(self):
         """Test CLI has LAYERS defined."""
@@ -476,7 +476,7 @@ class TestApiPackageInit:
         """Test API package version."""
         from miesc.api import __version__
 
-        assert __version__ == "4.2.3"
+        assert __version__ == "4.3.2"
 
 
 # Skip Django-specific tests if Django not properly configured

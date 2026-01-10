@@ -62,7 +62,7 @@ except ImportError:
 # Configuration
 # ============================================================================
 
-VERSION = "4.2.3"
+VERSION = "4.3.2"
 
 # Layer definitions (same as CLI)
 LAYERS = {
