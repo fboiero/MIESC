@@ -133,17 +133,34 @@ markdown_extensions:
   - pymdownx.tilde
 
 # ============================================================================
-# Navigation Structure (Minimal - Tool Adapter Protocol Only)
+# Navigation Structure
 # ============================================================================
 
 nav:
   - Home:
-    - Welcome: INDEX.md
+    - Welcome: index.md
+    - Español: index_es.md
+
+  - Getting Started:
+    - Installation: INSTALLATION.md
+    - Tools Reference: TOOLS.md
+    - Validation Guide: VALIDATION_GUIDE.md
+
+  - Releases:
+    - v4.3.0: RELEASE_NOTES_v4.3.0.md
+    - v4.2.3: RELEASE_NOTES_v4.2.3.md
+    - v4.0.0: RELEASE_NOTES_v4.0.0.md
+
+  - Evaluation:
+    - Evaluation Report v4.1: EVALUATION_REPORT_v4.1.md
+    - MIESC Evaluation: MIESC_Evaluation_Report.md
+
+  - Thesis:
+    - Overview: thesis.md
+    - Resumen (ES): thesis_es.md
 
   - Developer Guide:
     - Contributing: CONTRIBUTING.md
-
-  - Security:
     - Security Policy: SECURITY.md
     - Changelog: CHANGELOG.md
 
