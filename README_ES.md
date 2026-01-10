@@ -688,7 +688,7 @@ Resultados: `benchmark_results/`, `outputs/benchmarks/`
   title = {{MIESC}: Evaluación Inteligente Multicapa para Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
-  version = {4.0.0},
+  version = {4.3.2},
   note = {Implementación para Tesis de Maestría en Ciberdefensa}
 }
 ```
@@ -697,7 +697,7 @@ Resultados: `benchmark_results/`, `outputs/benchmarks/`
 
 ## Roadmap
 
-**v4.0.0 (actual)**:
+**v4.3.2 (actual)**:
 
 - PropertyGPT: Generación automatizada de propiedades CVL (+700% adopción verificación formal)
 - DA-GNN: Detección de vulnerabilidades con Redes Neuronales de Grafos (95.7% precisión)
@@ -787,6 +787,6 @@ Datasets: SmartBugs (INESC-ID), SolidiFI (TU Delft), Etherscan.
 
 ---
 
-**Versión 4.0.0** | Noviembre 2025
+**Versión 4.3.2** | Enero 2026
 
 [Repositorio](https://github.com/fboiero/MIESC) | [Documentación](https://fboiero.github.io/MIESC) | [Issues](https://github.com/fboiero/MIESC/issues)
