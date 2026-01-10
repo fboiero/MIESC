@@ -380,7 +380,7 @@ def test_mcp_integration() -> Dict:
         import miesc
 
         results["rest_api"] = True
-        results["api_version"] = getattr(miesc, "__version__", "4.2.2")
+        results["api_version"] = getattr(miesc, "__version__", "4.3.2")
     except Exception:
         pass
 
