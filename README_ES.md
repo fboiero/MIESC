@@ -699,21 +699,24 @@ Resultados: `benchmark_results/`, `outputs/benchmarks/`
 
 **v4.3.2 (actual)**:
 
+- Distribución PyPI: `pip install miesc` disponible
 - PropertyGPT: Generación automatizada de propiedades CVL (+700% adopción verificación formal)
 - DA-GNN: Detección de vulnerabilidades con Redes Neuronales de Grafos (95.7% precisión)
 - SmartLLM RAG Mejorado: Rol verificador para comprobación de hechos (+17% precisión)
 - DogeFuzz: Fuzzing guiado por cobertura con programación de potencia (3x más rápido)
 - 31 adaptadores de herramientas en 9 capas de defensa
-- 716 tests pasando, 87.5% cobertura
+- 1833 tests pasando, 80.4% cobertura
 
 **Futuro (v5.0)**:
 
-- Empaquetado Docker
-- Distribución PyPI (`pip install miesc`)
+- Empaquetado Docker oficial
 - Soporte multi-chain (Soroban, Solana, Cairo)
-- Extensión VSCode
-- Características IA mejoradas (parcheo automatizado, generación de exploits)
-- Integración de monitoreo en runtime
+- Extensión VSCode mejorada
+- Pre-commit hooks oficiales
+- Integración Foundry/Hardhat nativa
+- API de detectores personalizados
+- Dashboard de equipos
+- Monitoreo continuo en runtime
 
 ---
 
