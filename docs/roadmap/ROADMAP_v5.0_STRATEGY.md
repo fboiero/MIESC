@@ -582,4 +582,4 @@ jobs:
 
 *Strategic Roadmap v5.0 "Guardian"*
 *Generated: 2025-12-28*
-*Author: Fernando Boiero with AI assistance*
+*Author: Fernando Boiero*
