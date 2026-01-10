@@ -147,6 +147,7 @@ nav:
     - Validation Guide: VALIDATION_GUIDE.md
 
   - Releases:
+    - v4.3.2: RELEASE_NOTES_v4.3.2.md
     - v4.3.0: RELEASE_NOTES_v4.3.0.md
     - v4.2.3: RELEASE_NOTES_v4.2.3.md
     - v4.0.0: RELEASE_NOTES_v4.0.0.md
