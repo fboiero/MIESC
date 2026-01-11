@@ -179,6 +179,36 @@ npx hardhat miesc:doctor    # Verificar instalación
 
 Ver [integrations/hardhat/](./integrations/hardhat/) para documentación completa del plugin.
 
+### Servidor MCP (Integración con Claude Desktop)
+
+MIESC incluye un servidor MCP (Model Context Protocol) para integración en tiempo real con agentes de IA como Claude Desktop:
+
+```bash
+# Iniciar el servidor MCP WebSocket
+miesc server mcp
+
+# Host/puerto personalizado
+miesc server mcp --host 0.0.0.0 --port 9000
+```
+
+**Configuración de Claude Desktop** (`~/.claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "miesc": {
+      "command": "miesc",
+      "args": ["server", "mcp"]
+    }
+  }
+}
+```
+
+Características:
+- Streaming en tiempo real del progreso de auditoría
+- Notificaciones de hallazgos a medida que se descubren
+- Soporte multi-sesión para auditorías concurrentes
+- Compatible con cualquier cliente MCP
+
 Ver [docs/03_DEMO_GUIDE.md](./docs/03_DEMO_GUIDE.md) para detalles.
 
 ---

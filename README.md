@@ -216,6 +216,36 @@ results = run_tool("slither", "contract.sol")
 report = run_full_audit("contract.sol")
 ```
 
+### MCP Server (Claude Desktop Integration)
+
+MIESC includes an MCP (Model Context Protocol) server for real-time integration with AI agents like Claude Desktop:
+
+```bash
+# Start the MCP WebSocket server
+miesc server mcp
+
+# Custom host/port
+miesc server mcp --host 0.0.0.0 --port 9000
+```
+
+**Claude Desktop Configuration** (`~/.claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "miesc": {
+      "command": "miesc",
+      "args": ["server", "mcp"]
+    }
+  }
+}
+```
+
+Features:
+- Real-time audit progress streaming
+- Finding notifications as they're discovered
+- Multi-session support for concurrent audits
+- Compatible with any MCP-compliant client
+
 ## Architecture
 
 ```
