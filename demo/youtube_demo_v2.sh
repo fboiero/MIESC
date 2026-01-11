@@ -342,6 +342,13 @@ pause_short
 echo -e "${YELLOW}${BOLD}VS Code:${NC}"
 echo -e "${WHITE}Extensión con análisis en tiempo real${NC}"
 echo ""
+pause_short
+
+echo -e "${YELLOW}${BOLD}Claude Desktop (MCP):${NC}"
+echo -e "${DIM}# Servidor MCP para integración con IA${NC}"
+echo -e "${WHITE}miesc server mcp${NC}"
+echo -e "${DIM}→ Permite a Claude analizar contratos en tiempo real${NC}"
+echo ""
 
 pause_long
 

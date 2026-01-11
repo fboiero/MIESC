@@ -1747,19 +1747,36 @@ def server_rest(port, host, debug):
 
 
 @server.command("mcp")
-@click.option("--port", "-p", type=int, default=8080, help="Port number")
-def server_mcp(port):
-    """Start the MCP server for AI integration."""
+@click.option("--port", "-p", type=int, default=8765, help="WebSocket port number")
+@click.option("--host", "-h", type=str, default="localhost", help="Host to bind to")
+def server_mcp(port, host):
+    """Start the MCP WebSocket server for AI agent integration.
+
+    The MCP (Model Context Protocol) server enables real-time communication
+    with AI agents like Claude Desktop for collaborative security analysis.
+
+    Example:
+        miesc server mcp
+        miesc server mcp --port 9000 --host 0.0.0.0
+    """
     print_banner()
-    info(f"Starting MCP server on port {port}")
+    info(f"Starting MCP WebSocket server on ws://{host}:{port}")
+    info("Compatible with Claude Desktop and other MCP clients")
 
-    mcp_script = ROOT_DIR / "src" / "miesc_mcp_rest.py"
-    if mcp_script.exists():
-        import subprocess
+    try:
+        from src.mcp.websocket_server import run_server
+        import asyncio
 
-        subprocess.run([sys.executable, str(mcp_script), "--mcp", "--port", str(port)])
-    else:
-        error("MCP server script not found")
+        info("Press Ctrl+C to stop the server")
+        asyncio.run(run_server(host=host, port=port))
+    except ImportError as e:
+        error(f"MCP dependencies not installed: {e}")
+        info("Install with: pip install websockets")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        info("MCP server stopped")
+    except Exception as e:
+        error(f"MCP server error: {e}")
         sys.exit(1)
 
 
