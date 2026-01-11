@@ -1,0 +1,127 @@
+# =============================================================================
+# Makefile for Foundry Projects with MIESC Integration
+# =============================================================================
+# Add this to your Foundry project root.
+# Usage: make help
+# =============================================================================
+
+.PHONY: all build test clean audit audit-quick audit-full audit-layer security install help
+
+# Default target
+all: build test audit-quick
+
+# =============================================================================
+# Build & Test
+# =============================================================================
+
+build: ## Build the project
+	@echo "Building..."
+	forge build
+
+test: ## Run tests
+	@echo "Running tests..."
+	forge test -vvv
+
+test-gas: ## Run tests with gas reporting
+	@echo "Running tests with gas report..."
+	forge test --gas-report
+
+clean: ## Clean build artifacts
+	@echo "Cleaning..."
+	forge clean
+	rm -f miesc-*.json miesc-*.sarif miesc-*.md
+
+# =============================================================================
+# Security Auditing
+# =============================================================================
+
+audit: audit-quick ## Alias for audit-quick
+
+audit-quick: ## Quick security scan (slither, aderyn, solhint, mythril)
+	@echo "Running MIESC quick audit..."
+	miesc audit quick ./src --ci
+
+audit-full: ## Full 9-layer security audit
+	@echo "Running MIESC full audit (this may take a while)..."
+	miesc audit full ./src --ci --output json > miesc-full-audit.json
+	@echo "Report saved to: miesc-full-audit.json"
+
+audit-layer: ## Run specific layer (usage: make audit-layer LAYER=1)
+	@echo "Running MIESC layer $(LAYER) audit..."
+	miesc audit layer $(LAYER) ./src --ci
+
+audit-report: ## Generate markdown security report
+	@echo "Generating security report..."
+	miesc audit quick ./src --output markdown > SECURITY_REPORT.md
+	@echo "Report saved to: SECURITY_REPORT.md"
+
+audit-sarif: ## Generate SARIF report for GitHub
+	@echo "Generating SARIF report..."
+	miesc audit quick ./src --output sarif > miesc-results.sarif
+	@echo "SARIF saved to: miesc-results.sarif"
+
+# =============================================================================
+# Custom Detectors
+# =============================================================================
+
+detectors: ## List available custom detectors
+	miesc detectors list --verbose
+
+detectors-run: ## Run custom detectors
+	miesc detectors run ./src -o miesc-custom.json
+	@echo "Custom detector results saved to: miesc-custom.json"
+
+# =============================================================================
+# CI/CD Helpers
+# =============================================================================
+
+ci: build test audit-quick ## Run full CI pipeline
+
+ci-strict: build test ## Run CI with strict security (fails on any issue)
+	miesc audit quick ./src --ci --fail-on low
+
+security: audit-full audit-report ## Run full security audit with report
+	@echo ""
+	@echo "Security audit complete!"
+	@echo "  - Full audit: miesc-full-audit.json"
+	@echo "  - Report: SECURITY_REPORT.md"
+
+# =============================================================================
+# Installation
+# =============================================================================
+
+install: ## Install dependencies
+	@echo "Installing Foundry..."
+	curl -L https://foundry.paradigm.xyz | bash
+	foundryup
+	@echo "Installing MIESC..."
+	pip install miesc
+	@echo "Verifying installation..."
+	forge --version
+	miesc --version
+
+install-miesc: ## Install/upgrade MIESC only
+	pip install --upgrade miesc
+	miesc doctor
+
+# =============================================================================
+# Watch Mode
+# =============================================================================
+
+watch: ## Watch for changes and auto-scan
+	miesc watch ./src --profile quick
+
+watch-fast: ## Fast watch mode (slither + aderyn only)
+	miesc watch ./src --profile fast
+
+# =============================================================================
+# Help
+# =============================================================================
+
+help: ## Show this help
+	@echo "MIESC + Foundry Makefile"
+	@echo ""
+	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Targets:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'

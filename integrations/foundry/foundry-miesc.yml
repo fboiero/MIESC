@@ -1,0 +1,191 @@
+# =============================================================================
+# GitHub Actions Workflow: Foundry + MIESC Security Audit
+# =============================================================================
+# Copy this file to your Foundry project: .github/workflows/security.yml
+#
+# This workflow:
+# 1. Builds your Foundry project
+# 2. Runs MIESC security audit
+# 3. Uploads results to GitHub Code Scanning
+# 4. Posts summary as PR comment (optional)
+# =============================================================================
+
+name: Security Audit
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - '**.sol'
+      - 'foundry.toml'
+  pull_request:
+    paths:
+      - '**.sol'
+      - 'foundry.toml'
+  workflow_dispatch:
+    inputs:
+      audit_level:
+        description: 'Audit level'
+        required: true
+        default: 'quick'
+        type: choice
+        options:
+          - quick
+          - full
+
+jobs:
+  security-audit:
+    name: MIESC Security Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install MIESC
+        run: |
+          pip install miesc
+          miesc --version
+          miesc doctor
+
+      - name: Build with Forge
+        run: forge build --sizes
+
+      - name: Run MIESC Quick Audit
+        if: github.event.inputs.audit_level != 'full'
+        run: |
+          miesc audit quick ./src --ci --output sarif > miesc-results.sarif || true
+          miesc audit quick ./src --output json > miesc-results.json || true
+
+      - name: Run MIESC Full Audit
+        if: github.event.inputs.audit_level == 'full'
+        run: |
+          miesc audit full ./src --ci --output sarif > miesc-results.sarif || true
+          miesc audit full ./src --output json > miesc-results.json || true
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: miesc-results.sarif
+        continue-on-error: true
+
+      - name: Generate Summary
+        if: always()
+        run: |
+          echo "## MIESC Security Audit Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f miesc-results.json ]; then
+            CRITICAL=$(jq -r '.summary.critical // 0' miesc-results.json)
+            HIGH=$(jq -r '.summary.high // 0' miesc-results.json)
+            MEDIUM=$(jq -r '.summary.medium // 0' miesc-results.json)
+            LOW=$(jq -r '.summary.low // 0' miesc-results.json)
+
+            echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Critical | $CRITICAL |" >> $GITHUB_STEP_SUMMARY
+            echo "| High | $HIGH |" >> $GITHUB_STEP_SUMMARY
+            echo "| Medium | $MEDIUM |" >> $GITHUB_STEP_SUMMARY
+            echo "| Low | $LOW |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
+              echo "### Critical/High Findings" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              jq -r '.findings[] | select(.severity == "critical" or .severity == "high") | "- **[\(.severity | ascii_upcase)]** \(.title) - `\(.location // "unknown")`"' miesc-results.json >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+            fi
+          else
+            echo "No results file found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let body = '## MIESC Security Audit\n\n';
+
+            try {
+              const results = JSON.parse(fs.readFileSync('miesc-results.json', 'utf8'));
+              const summary = results.summary || {};
+
+              body += `| Severity | Count |\n|----------|-------|\n`;
+              body += `| Critical | ${summary.critical || 0} |\n`;
+              body += `| High | ${summary.high || 0} |\n`;
+              body += `| Medium | ${summary.medium || 0} |\n`;
+              body += `| Low | ${summary.low || 0} |\n\n`;
+
+              const criticalHigh = (results.findings || []).filter(f =>
+                f.severity === 'critical' || f.severity === 'high'
+              );
+
+              if (criticalHigh.length > 0) {
+                body += '### Action Required\n\n';
+                criticalHigh.slice(0, 5).forEach(f => {
+                  body += `- **[${f.severity.toUpperCase()}]** ${f.title}\n`;
+                });
+                if (criticalHigh.length > 5) {
+                  body += `\n*...and ${criticalHigh.length - 5} more*\n`;
+                }
+              } else {
+                body += '**No critical or high severity issues found.**\n';
+              }
+            } catch (e) {
+              body += 'Unable to parse results. Check the workflow logs.\n';
+            }
+
+            body += '\n---\n*Powered by [MIESC](https://github.com/fboiero/MIESC)*';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Check for Critical Issues
+        run: |
+          if [ -f miesc-results.json ]; then
+            CRITICAL=$(jq -r '.summary.critical // 0' miesc-results.json)
+            HIGH=$(jq -r '.summary.high // 0' miesc-results.json)
+
+            if [ "$CRITICAL" -gt 0 ]; then
+              echo "::error::Found $CRITICAL critical security issues"
+              exit 1
+            fi
+
+            if [ "$HIGH" -gt 0 ]; then
+              echo "::warning::Found $HIGH high severity issues"
+              # Uncomment to fail on high severity:
+              # exit 1
+            fi
+          fi
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: miesc-audit-results
+          path: |
+            miesc-results.json
+            miesc-results.sarif
+          retention-days: 30
