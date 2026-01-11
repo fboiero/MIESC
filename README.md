@@ -153,6 +153,25 @@ git commit -m "..."  # MIESC runs automatically
 
 See [examples/pre-commit-config.yaml](./examples/pre-commit-config.yaml) for more options.
 
+### Foundry Integration
+
+Add MIESC to your Foundry project:
+
+```toml
+# foundry.toml
+[profile.default]
+post_build_hook = "miesc audit quick ./src --ci"
+
+[profile.ci]
+post_build_hook = "miesc audit quick ./src --ci --fail-on high"
+```
+
+```bash
+forge build  # MIESC runs automatically after build
+```
+
+See [integrations/foundry/](./integrations/foundry/) for hook scripts and GitHub Actions.
+
 ### Web Interface
 
 ```bash
