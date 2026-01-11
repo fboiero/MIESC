@@ -57,13 +57,9 @@ try:
 except ImportError:
     YAML_AVAILABLE = False
 
-# Try to import centralized logging
-try:
-    from src.core.logging_config import get_logger, log_context, setup_logging
-
-    LOGGING_AVAILABLE = True
-except ImportError:
-    LOGGING_AVAILABLE = False
+# Lazy import for centralized logging (avoid heavy src.core imports at startup)
+LOGGING_AVAILABLE = None  # Will be set on first use
+_setup_logging = None
 
 # Configure logging (will be reconfigured by setup_logging if available)
 logging.basicConfig(level=logging.INFO)
@@ -72,6 +68,8 @@ logger = logging.getLogger(__name__)
 
 def configure_logging(debug: bool = False, quiet: bool = False):
     """Configure logging based on flags and environment variables."""
+    global LOGGING_AVAILABLE, _setup_logging
+
     # Check environment variable
     env_debug = os.environ.get("MIESC_DEBUG", "").lower() in ("1", "true", "yes")
     env_level = os.environ.get("MIESC_LOG_LEVEL", "").upper()
@@ -84,8 +82,17 @@ def configure_logging(debug: bool = False, quiet: bool = False):
     else:
         level = "INFO"
 
-    if LOGGING_AVAILABLE:
-        setup_logging(level=level, quiet=quiet)
+    # Lazy import of centralized logging
+    if LOGGING_AVAILABLE is None:
+        try:
+            from src.core.logging_config import setup_logging
+            _setup_logging = setup_logging
+            LOGGING_AVAILABLE = True
+        except ImportError:
+            LOGGING_AVAILABLE = False
+
+    if LOGGING_AVAILABLE and _setup_logging:
+        _setup_logging(level=level, quiet=quiet)
         logger.debug(f"Logging configured with level={level}")
     else:
         logging.basicConfig(level=getattr(logging, level, logging.INFO))
@@ -1764,8 +1771,9 @@ def server_mcp(port, host):
     info("Compatible with Claude Desktop and other MCP clients")
 
     try:
-        from src.mcp.websocket_server import run_server
         import asyncio
+
+        from src.mcp.websocket_server import run_server
 
         info("Press Ctrl+C to stop the server")
         asyncio.run(run_server(host=host, port=port))
@@ -2357,9 +2365,12 @@ def detectors_list(verbose):
     print_banner()
 
     try:
-        from miesc.detectors import list_detectors, get_all_detectors
         # Also load example detectors
-        from miesc.detectors import examples  # noqa: F401
+        from miesc.detectors import (
+            examples,  # noqa: F401
+            get_all_detectors,
+            list_detectors,
+        )
     except ImportError as e:
         error(f"Detector API not available: {e}")
         return
@@ -2423,11 +2434,14 @@ def detectors_run(contract, detector, output, severity):
     print_banner()
 
     try:
-        from miesc.detectors import (
-            Severity, get_all_detectors, run_detector, run_all_detectors
-        )
         # Load example detectors
-        from miesc.detectors import examples  # noqa: F401
+        from miesc.detectors import (
+            Severity,
+            examples,  # noqa: F401
+            get_all_detectors,
+            run_all_detectors,
+            run_detector,
+        )
     except ImportError as e:
         error(f"Detector API not available: {e}")
         sys.exit(1)
@@ -2656,7 +2670,7 @@ def report(results_file, template, output, output_format, client, auditor, title
 
     if not template_file.exists():
         error(f"Template not found: {template_file}")
-        info(f"Available templates: professional, executive, technical, github-pr, simple")
+        info("Available templates: professional, executive, technical, github-pr, simple")
         sys.exit(1)
 
     # Load template
@@ -2689,20 +2703,22 @@ def report(results_file, template, output, output_format, client, auditor, title
     # Prepare findings for template
     formatted_findings = []
     for i, finding in enumerate(findings, 1):
-        formatted_findings.append({
-            "id": f"F-{i:03d}",
-            "title": finding.get("title", "Unknown"),
-            "severity": finding.get("severity", "unknown"),
-            "category": finding.get("category", "general"),
-            "location": finding.get("location", "unknown"),
-            "description": finding.get("description", ""),
-            "recommendation": finding.get("recommendation", ""),
-            "tool": finding.get("tool", "unknown"),
-            "status": finding.get("status", "open"),
-            "impact": finding.get("impact", ""),
-            "poc": finding.get("poc", "// No PoC provided"),
-            "references": finding.get("references", []),
-        })
+        formatted_findings.append(
+            {
+                "id": f"F-{i:03d}",
+                "title": finding.get("title", "Unknown"),
+                "severity": finding.get("severity", "unknown"),
+                "category": finding.get("category", "general"),
+                "location": finding.get("location", "unknown"),
+                "description": finding.get("description", ""),
+                "recommendation": finding.get("recommendation", ""),
+                "tool": finding.get("tool", "unknown"),
+                "status": finding.get("status", "open"),
+                "impact": finding.get("impact", ""),
+                "poc": finding.get("poc", "// No PoC provided"),
+                "references": finding.get("references", []),
+            }
+        )
 
     variables["findings"] = formatted_findings
     variables["critical_high_findings"] = [
@@ -2797,7 +2813,7 @@ def _render_template(template: str, variables: dict) -> str:
 
         if findings_section_end > findings_section_start:
             loop_template = output[
-                findings_section_start + len("{% for finding in findings %}"):findings_section_end
+                findings_section_start + len("{% for finding in findings %}") : findings_section_end
             ]
 
             findings_output = ""
@@ -2823,7 +2839,7 @@ def _render_template(template: str, variables: dict) -> str:
 
         if section_end > section_start:
             loop_template = output[
-                section_start + len("{% for finding in critical_high_findings %}"):section_end
+                section_start + len("{% for finding in critical_high_findings %}") : section_end
             ]
 
             findings_output = ""
@@ -2834,7 +2850,9 @@ def _render_template(template: str, variables: dict) -> str:
                 findings_output += finding_text
 
             output = (
-                output[:section_start] + findings_output + output[section_end + len("{% endfor %}") :]
+                output[:section_start]
+                + findings_output
+                + output[section_end + len("{% endfor %}") :]
             )
 
     # Handle conditionals (simplified)
@@ -2955,11 +2973,15 @@ def benchmark(directory, save, compare, history, period, output):
     try:
         import subprocess
 
-        commit = subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"],
-            cwd=directory_path,
-            stderr=subprocess.DEVNULL,
-        ).decode().strip()
+        commit = (
+            subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=directory_path,
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
         current_metrics["commit"] = commit
     except Exception:
         current_metrics["commit"] = "unknown"
@@ -2982,9 +3004,21 @@ def benchmark(directory, save, compare, history, period, output):
         table.add_column("Metric", style="bold")
         table.add_column("Value", justify="right")
 
-        table.add_row("Critical Issues", str(current_metrics["critical"]), style="red" if current_metrics["critical"] > 0 else "green")
-        table.add_row("High Issues", str(current_metrics["high"]), style="red" if current_metrics["high"] > 0 else "green")
-        table.add_row("Medium Issues", str(current_metrics["medium"]), style="yellow" if current_metrics["medium"] > 0 else "green")
+        table.add_row(
+            "Critical Issues",
+            str(current_metrics["critical"]),
+            style="red" if current_metrics["critical"] > 0 else "green",
+        )
+        table.add_row(
+            "High Issues",
+            str(current_metrics["high"]),
+            style="red" if current_metrics["high"] > 0 else "green",
+        )
+        table.add_row(
+            "Medium Issues",
+            str(current_metrics["medium"]),
+            style="yellow" if current_metrics["medium"] > 0 else "green",
+        )
         table.add_row("Low Issues", str(current_metrics["low"]), style="cyan")
         table.add_row("Total Findings", str(current_metrics["total"]))
         table.add_row("Files Analyzed", str(current_metrics["files"]))
@@ -3112,7 +3146,9 @@ def _compare_benchmarks(benchmark_dir: Path, project_id: str, compare_to: str, c
             console.print("\n[dim]No change in total findings[/dim]")
     else:
         print("\n=== Comparison ===")
-        print(f"Previous: {previous.get('total', 0)} | Current: {current['total']} | Change: {format_delta(deltas['total'])}")
+        print(
+            f"Previous: {previous.get('total', 0)} | Current: {current['total']} | Change: {format_delta(deltas['total'])}"
+        )
 
 
 def _generate_benchmark_report(metrics: dict, output_path: str, period: str):
