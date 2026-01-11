@@ -45,7 +45,7 @@ title: MIESC - Smart Contract Security Framework
 
 - Defense-in-Depth analysis across 9 security layers
 - 31 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
-- Model Context Protocol (MCP) integration with Claude Desktop
+- Model Context Protocol (MCP) integration with MCP client
 - 100% Precision, 70% Recall, F1-Score 82.35% (SmartBugs-curated benchmark)
 - Sovereign AI with Ollama (code never leaves your machine)
 

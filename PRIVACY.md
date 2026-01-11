@@ -76,7 +76,7 @@ MIESC uses **Ollama** for AI-assisted analysis by default:
 
 ### Optional Cloud AI
 
-If you choose to enable cloud AI features (GPT-4, Claude):
+If you choose to enable cloud AI features (GPT-4):
 
 - **Opt-in only**: Requires explicit configuration
 - **Your responsibility**: You must review the provider's privacy policy

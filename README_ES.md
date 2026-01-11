@@ -179,9 +179,9 @@ npx hardhat miesc:doctor    # Verificar instalación
 
 Ver [integrations/hardhat/](./integrations/hardhat/) para documentación completa del plugin.
 
-### Servidor MCP (Integración con Claude Desktop)
+### Servidor MCP (Integración con MCP client)
 
-MIESC incluye un servidor MCP (Model Context Protocol) para integración en tiempo real con agentes de IA como Claude Desktop:
+MIESC incluye un servidor MCP (Model Context Protocol) para integración en tiempo real con agentes de IA como MCP client:
 
 ```bash
 # Iniciar el servidor MCP WebSocket
@@ -191,7 +191,7 @@ miesc server mcp
 miesc server mcp --host 0.0.0.0 --port 9000
 ```
 
-**Configuración de Claude Desktop** (`~/.claude/claude_desktop_config.json`):
+**Configuración de MCP client** (`~/.config/mcp/config.json`):
 ```json
 {
   "mcpServers": {
@@ -221,7 +221,7 @@ Demuestra:
 
 - Análisis Defense-in-Depth a través de 9 capas de seguridad
 - 31 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
-- Integración Model Context Protocol (MCP) con Claude Desktop
+- Integración Model Context Protocol (MCP) con MCP client
 - 100% Precisión, 70% Recall, F1-Score 0.82 (dataset SmartBugs-curated)
 - IA Soberana con Ollama (el código nunca sale de tu máquina)
 
@@ -392,10 +392,10 @@ MIESC implementa MCP (Model Context Protocol de Anthropic) para acceso programá
 - `generate_report` - Producir reportes formateados
 - `get_status` - Consultar salud del sistema
 
-**Configuración** (ejemplo Claude Desktop):
+**Configuración** (ejemplo MCP client):
 
 ```json
-// ~/.config/claude/claude_desktop_config.json
+// ~/.config/mcp/config.json
 {
   "mcpServers": {
     "miesc": {
