@@ -2574,6 +2574,562 @@ def detectors_info(detector_name):
 
 
 # ============================================================================
+# Report Command
+# ============================================================================
+
+
+@cli.command()
+@click.argument("results_file", type=click.Path(exists=True))
+@click.option(
+    "--template",
+    "-t",
+    type=click.Choice(["professional", "executive", "technical", "github-pr", "simple"]),
+    default="simple",
+    help="Report template to use",
+)
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option(
+    "--format",
+    "-f",
+    "output_format",
+    type=click.Choice(["markdown", "html", "pdf"]),
+    default="markdown",
+    help="Output format",
+)
+@click.option("--client", type=str, help="Client name for the report")
+@click.option("--auditor", type=str, help="Auditor name for the report")
+@click.option("--title", type=str, help="Custom report title")
+def report(results_file, template, output, output_format, client, auditor, title):
+    """Generate formatted security reports from audit results.
+
+    Takes JSON audit results and applies a template to generate
+    professional security reports.
+
+    Examples:
+
+      miesc report results.json -t professional -o report.md
+
+      miesc report results.json -t executive --client "Acme" -o summary.md
+
+      miesc report results.json -t technical --auditor "Security Team"
+
+      miesc report results.json -t github-pr  # Output to stdout
+    """
+    print_banner()
+
+    # Load results
+    try:
+        with open(results_file, "r") as f:
+            results = json.load(f)
+    except json.JSONDecodeError as e:
+        error(f"Invalid JSON in {results_file}: {e}")
+        sys.exit(1)
+    except Exception as e:
+        error(f"Failed to read {results_file}: {e}")
+        sys.exit(1)
+
+    info(f"Loaded results from {results_file}")
+
+    # Locate template
+    templates_dir = ROOT_DIR / "docs" / "templates" / "reports"
+    template_file = templates_dir / f"{template}.md"
+
+    if not template_file.exists():
+        error(f"Template not found: {template_file}")
+        info(f"Available templates: professional, executive, technical, github-pr, simple")
+        sys.exit(1)
+
+    # Load template
+    template_content = template_file.read_text()
+
+    # Extract data from results
+    summary = results.get("summary", {})
+    findings = results.get("findings", [])
+
+    # Prepare template variables
+    variables = {
+        "contract_name": results.get("contract", "Unknown"),
+        "audit_date": results.get("timestamp", datetime.now().isoformat())[:10],
+        "generation_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "client_name": client or "Client",
+        "auditor_name": auditor or "MIESC Security",
+        "version": results.get("version", VERSION),
+        "critical_count": summary.get("critical", 0),
+        "high_count": summary.get("high", 0),
+        "medium_count": summary.get("medium", 0),
+        "low_count": summary.get("low", 0),
+        "info_count": summary.get("info", 0),
+        "total_findings": len(findings),
+        "files_count": results.get("files_count", 1),
+        "tools_count": len(results.get("tools", [])),
+        "overall_risk": _calculate_risk_level(summary),
+        "miesc_version": VERSION,
+    }
+
+    # Prepare findings for template
+    formatted_findings = []
+    for i, finding in enumerate(findings, 1):
+        formatted_findings.append({
+            "id": f"F-{i:03d}",
+            "title": finding.get("title", "Unknown"),
+            "severity": finding.get("severity", "unknown"),
+            "category": finding.get("category", "general"),
+            "location": finding.get("location", "unknown"),
+            "description": finding.get("description", ""),
+            "recommendation": finding.get("recommendation", ""),
+            "tool": finding.get("tool", "unknown"),
+            "status": finding.get("status", "open"),
+            "impact": finding.get("impact", ""),
+            "poc": finding.get("poc", "// No PoC provided"),
+            "references": finding.get("references", []),
+        })
+
+    variables["findings"] = formatted_findings
+    variables["critical_high_findings"] = [
+        f for f in formatted_findings if f["severity"] in ("critical", "high")
+    ]
+    variables["medium_low_findings"] = [
+        f for f in formatted_findings if f["severity"] in ("medium", "low")
+    ]
+
+    # Simple template rendering (basic variable substitution)
+    output_content = _render_template(template_content, variables)
+
+    # Handle output
+    if output:
+        output_path = Path(output)
+
+        if output_format == "html":
+            output_content = _markdown_to_html(output_content, title or "MIESC Security Report")
+        elif output_format == "pdf":
+            # Try to use pandoc for PDF
+            html_content = _markdown_to_html(output_content, title or "MIESC Security Report")
+            try:
+                import subprocess
+
+                temp_html = output_path.with_suffix(".tmp.html")
+                temp_html.write_text(html_content)
+                subprocess.run(
+                    ["pandoc", str(temp_html), "-o", str(output_path), "--pdf-engine=wkhtmltopdf"],
+                    check=True,
+                    capture_output=True,
+                )
+                temp_html.unlink()
+                success(f"PDF report saved to {output_path}")
+                return
+            except FileNotFoundError:
+                warning("pandoc not found, saving as HTML instead")
+                output_path = output_path.with_suffix(".html")
+                output_content = html_content
+            except subprocess.CalledProcessError as e:
+                warning(f"PDF generation failed: {e}")
+                output_path = output_path.with_suffix(".html")
+                output_content = html_content
+
+        output_path.write_text(output_content)
+        success(f"Report saved to {output_path}")
+    else:
+        # Output to stdout
+        print(output_content)
+
+    # Summary
+    if RICH_AVAILABLE and output:
+        console.print(
+            f"\n[bold]Report Summary:[/bold] "
+            f"[red]{variables['critical_count']}[/red] critical, "
+            f"[red]{variables['high_count']}[/red] high, "
+            f"[yellow]{variables['medium_count']}[/yellow] medium, "
+            f"[cyan]{variables['low_count']}[/cyan] low"
+        )
+
+
+def _calculate_risk_level(summary: dict) -> str:
+    """Calculate overall risk level from summary."""
+    critical = summary.get("critical", 0)
+    high = summary.get("high", 0)
+    medium = summary.get("medium", 0)
+
+    if critical > 0:
+        return "CRITICAL"
+    elif high > 2:
+        return "HIGH"
+    elif high > 0 or medium > 3:
+        return "MEDIUM"
+    elif medium > 0:
+        return "LOW"
+    return "MINIMAL"
+
+
+def _render_template(template: str, variables: dict) -> str:
+    """Simple template rendering with Jinja2-like syntax."""
+    output = template
+
+    # Replace simple variables {{ var }}
+    for key, value in variables.items():
+        if not isinstance(value, (list, dict)):
+            output = output.replace("{{ " + key + " }}", str(value))
+            output = output.replace("{{" + key + "}}", str(value))
+
+    # Handle findings loop
+    if "{% for finding in findings %}" in output:
+        findings_section_start = output.find("{% for finding in findings %}")
+        findings_section_end = output.find("{% endfor %}", findings_section_start)
+
+        if findings_section_end > findings_section_start:
+            loop_template = output[
+                findings_section_start + len("{% for finding in findings %}"):findings_section_end
+            ]
+
+            findings_output = ""
+            for finding in variables.get("findings", []):
+                finding_text = loop_template
+                for fkey, fvalue in finding.items():
+                    if isinstance(fvalue, list):
+                        fvalue = ", ".join(str(v) for v in fvalue)
+                    finding_text = finding_text.replace("{{ finding." + fkey + " }}", str(fvalue))
+                    finding_text = finding_text.replace("{{finding." + fkey + "}}", str(fvalue))
+                findings_output += finding_text
+
+            output = (
+                output[:findings_section_start]
+                + findings_output
+                + output[findings_section_end + len("{% endfor %}") :]
+            )
+
+    # Handle critical_high_findings loop
+    if "{% for finding in critical_high_findings %}" in output:
+        section_start = output.find("{% for finding in critical_high_findings %}")
+        section_end = output.find("{% endfor %}", section_start)
+
+        if section_end > section_start:
+            loop_template = output[
+                section_start + len("{% for finding in critical_high_findings %}"):section_end
+            ]
+
+            findings_output = ""
+            for finding in variables.get("critical_high_findings", []):
+                finding_text = loop_template
+                for fkey, fvalue in finding.items():
+                    finding_text = finding_text.replace("{{ finding." + fkey + " }}", str(fvalue))
+                findings_output += finding_text
+
+            output = (
+                output[:section_start] + findings_output + output[section_end + len("{% endfor %}") :]
+            )
+
+    # Handle conditionals (simplified)
+    if "{% if " in output:
+        # Remove unfilled conditionals
+        import re
+
+        output = re.sub(r"\{% if [^%]+%\}.*?\{% endif %\}", "", output, flags=re.DOTALL)
+
+    return output
+
+
+def _markdown_to_html(markdown: str, title: str) -> str:
+    """Convert markdown to HTML with basic styling."""
+    try:
+        import markdown as md
+
+        html_body = md.markdown(markdown, extensions=["tables", "fenced_code"])
+    except ImportError:
+        # Fallback: wrap in pre tag
+        html_body = f"<pre>{markdown}</pre>"
+
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{title}</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 2rem; line-height: 1.6; }}
+        h1, h2, h3 {{ color: #1a1a2e; }}
+        table {{ border-collapse: collapse; width: 100%; margin: 1rem 0; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th {{ background-color: #1a1a2e; color: white; }}
+        tr:nth-child(even) {{ background-color: #f9f9f9; }}
+        code {{ background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; }}
+        pre {{ background-color: #f4f4f4; padding: 1rem; border-radius: 5px; overflow-x: auto; }}
+        .critical {{ color: #dc3545; font-weight: bold; }}
+        .high {{ color: #fd7e14; font-weight: bold; }}
+        .medium {{ color: #ffc107; }}
+        .low {{ color: #17a2b8; }}
+    </style>
+</head>
+<body>
+{html_body}
+</body>
+</html>"""
+
+
+# ============================================================================
+# Benchmark Command
+# ============================================================================
+
+
+@cli.command()
+@click.argument("directory", type=click.Path(exists=True))
+@click.option("--save", is_flag=True, help="Save benchmark results for comparison")
+@click.option("--compare", type=str, help="Compare with previous run (run ID or 'last')")
+@click.option("--history", is_flag=True, help="Show benchmark history")
+@click.option("--period", type=str, default="30d", help="Period for trend report (e.g., 7d, 30d)")
+@click.option("--output", "-o", type=click.Path(), help="Output file for report")
+def benchmark(directory, save, compare, history, period, output):
+    """Track security posture over time.
+
+    Run security audits and track improvements across commits and versions.
+
+    Examples:
+
+      miesc benchmark ./contracts --save
+
+      miesc benchmark ./contracts --compare last
+
+      miesc benchmark ./contracts --history
+
+      miesc benchmark ./contracts --period 30d -o trend.md
+    """
+    print_banner()
+
+    benchmark_dir = Path.home() / ".miesc" / "benchmarks"
+    benchmark_dir.mkdir(parents=True, exist_ok=True)
+
+    directory_path = Path(directory).resolve()
+    project_id = directory_path.name
+
+    if history:
+        _show_benchmark_history(benchmark_dir, project_id)
+        return
+
+    # Run audit to get current state
+    info(f"Running security audit on {directory}...")
+
+    try:
+        from src.core.orchestrator import SecurityOrchestrator
+
+        orchestrator = SecurityOrchestrator()
+        # Quick audit for benchmark
+        results = orchestrator.run_quick_audit(str(directory_path))
+    except Exception as e:
+        error(f"Audit failed: {e}")
+        sys.exit(1)
+
+    # Calculate metrics
+    summary = results.get("summary", {})
+    current_metrics = {
+        "timestamp": datetime.now().isoformat(),
+        "project": project_id,
+        "directory": str(directory_path),
+        "critical": summary.get("critical", 0),
+        "high": summary.get("high", 0),
+        "medium": summary.get("medium", 0),
+        "low": summary.get("low", 0),
+        "info": summary.get("info", 0),
+        "total": sum(summary.values()) if summary else 0,
+        "files": results.get("files_count", 0),
+        "tools_run": len(results.get("tools", [])),
+    }
+
+    # Try to get git commit
+    try:
+        import subprocess
+
+        commit = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=directory_path,
+            stderr=subprocess.DEVNULL,
+        ).decode().strip()
+        current_metrics["commit"] = commit
+    except Exception:
+        current_metrics["commit"] = "unknown"
+
+    if save:
+        # Save benchmark
+        run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        benchmark_file = benchmark_dir / f"{project_id}_{run_id}.json"
+        with open(benchmark_file, "w") as f:
+            json.dump(current_metrics, f, indent=2)
+        success(f"Benchmark saved: {run_id}")
+
+    if compare:
+        _compare_benchmarks(benchmark_dir, project_id, compare, current_metrics)
+        return
+
+    # Display current metrics
+    if RICH_AVAILABLE:
+        table = Table(title=f"Security Posture: {project_id}", box=box.ROUNDED)
+        table.add_column("Metric", style="bold")
+        table.add_column("Value", justify="right")
+
+        table.add_row("Critical Issues", str(current_metrics["critical"]), style="red" if current_metrics["critical"] > 0 else "green")
+        table.add_row("High Issues", str(current_metrics["high"]), style="red" if current_metrics["high"] > 0 else "green")
+        table.add_row("Medium Issues", str(current_metrics["medium"]), style="yellow" if current_metrics["medium"] > 0 else "green")
+        table.add_row("Low Issues", str(current_metrics["low"]), style="cyan")
+        table.add_row("Total Findings", str(current_metrics["total"]))
+        table.add_row("Files Analyzed", str(current_metrics["files"]))
+        table.add_row("Commit", current_metrics.get("commit", "N/A"))
+
+        console.print(table)
+    else:
+        print(f"\n=== Security Posture: {project_id} ===")
+        print(f"Critical: {current_metrics['critical']}")
+        print(f"High: {current_metrics['high']}")
+        print(f"Medium: {current_metrics['medium']}")
+        print(f"Low: {current_metrics['low']}")
+        print(f"Total: {current_metrics['total']}")
+
+    if output:
+        _generate_benchmark_report(current_metrics, output, period)
+
+
+def _show_benchmark_history(benchmark_dir: Path, project_id: str):
+    """Show benchmark history for a project."""
+    benchmarks = sorted(benchmark_dir.glob(f"{project_id}_*.json"), reverse=True)
+
+    if not benchmarks:
+        warning(f"No benchmarks found for {project_id}")
+        return
+
+    if RICH_AVAILABLE:
+        table = Table(title=f"Benchmark History: {project_id}", box=box.ROUNDED)
+        table.add_column("Run ID", style="cyan")
+        table.add_column("Date")
+        table.add_column("Commit")
+        table.add_column("Crit", justify="right")
+        table.add_column("High", justify="right")
+        table.add_column("Med", justify="right")
+        table.add_column("Low", justify="right")
+        table.add_column("Total", justify="right")
+
+        for bf in benchmarks[:20]:
+            with open(bf) as f:
+                data = json.load(f)
+            run_id = bf.stem.replace(f"{project_id}_", "")
+            table.add_row(
+                run_id,
+                data.get("timestamp", "")[:10],
+                data.get("commit", "N/A")[:7],
+                str(data.get("critical", 0)),
+                str(data.get("high", 0)),
+                str(data.get("medium", 0)),
+                str(data.get("low", 0)),
+                str(data.get("total", 0)),
+            )
+
+        console.print(table)
+    else:
+        print(f"\n=== Benchmark History: {project_id} ===")
+        for bf in benchmarks[:10]:
+            with open(bf) as f:
+                data = json.load(f)
+            run_id = bf.stem.replace(f"{project_id}_", "")
+            print(f"  {run_id}: {data.get('total', 0)} findings")
+
+    success(f"{len(benchmarks)} benchmarks found")
+
+
+def _compare_benchmarks(benchmark_dir: Path, project_id: str, compare_to: str, current: dict):
+    """Compare current benchmark with a previous run."""
+    if compare_to == "last":
+        benchmarks = sorted(benchmark_dir.glob(f"{project_id}_*.json"), reverse=True)
+        if not benchmarks:
+            warning("No previous benchmarks to compare")
+            return
+        compare_file = benchmarks[0]
+    else:
+        compare_file = benchmark_dir / f"{project_id}_{compare_to}.json"
+
+    if not compare_file.exists():
+        error(f"Benchmark not found: {compare_to}")
+        return
+
+    with open(compare_file) as f:
+        previous = json.load(f)
+
+    # Calculate deltas
+    deltas = {
+        "critical": current["critical"] - previous.get("critical", 0),
+        "high": current["high"] - previous.get("high", 0),
+        "medium": current["medium"] - previous.get("medium", 0),
+        "low": current["low"] - previous.get("low", 0),
+        "total": current["total"] - previous.get("total", 0),
+    }
+
+    def format_delta(val):
+        if val > 0:
+            return f"+{val}"
+        elif val < 0:
+            return str(val)
+        return "0"
+
+    if RICH_AVAILABLE:
+        table = Table(title="Security Posture Comparison", box=box.ROUNDED)
+        table.add_column("Metric", style="bold")
+        table.add_column("Previous", justify="right")
+        table.add_column("Current", justify="right")
+        table.add_column("Change", justify="right")
+
+        for metric in ["critical", "high", "medium", "low", "total"]:
+            delta = deltas[metric]
+            delta_style = "green" if delta < 0 else ("red" if delta > 0 else "dim")
+            table.add_row(
+                metric.title(),
+                str(previous.get(metric, 0)),
+                str(current[metric]),
+                format_delta(delta),
+                style=delta_style if metric in ("critical", "high") else None,
+            )
+
+        console.print(table)
+
+        # Summary
+        if deltas["total"] < 0:
+            console.print(f"\n[green]Improved by {abs(deltas['total'])} findings[/green]")
+        elif deltas["total"] > 0:
+            console.print(f"\n[red]Regressed by {deltas['total']} findings[/red]")
+        else:
+            console.print("\n[dim]No change in total findings[/dim]")
+    else:
+        print("\n=== Comparison ===")
+        print(f"Previous: {previous.get('total', 0)} | Current: {current['total']} | Change: {format_delta(deltas['total'])}")
+
+
+def _generate_benchmark_report(metrics: dict, output_path: str, period: str):
+    """Generate a benchmark trend report."""
+    report = f"""# Security Posture Report
+
+**Project:** {metrics['project']}
+**Date:** {metrics['timestamp'][:10]}
+**Commit:** {metrics.get('commit', 'N/A')}
+
+## Current Status
+
+| Severity | Count |
+|----------|-------|
+| Critical | {metrics['critical']} |
+| High | {metrics['high']} |
+| Medium | {metrics['medium']} |
+| Low | {metrics['low']} |
+| **Total** | **{metrics['total']}** |
+
+## Risk Level
+
+{"**CRITICAL** - Immediate action required" if metrics['critical'] > 0 else ""}
+{"**HIGH** - Address before deployment" if metrics['high'] > 0 and metrics['critical'] == 0 else ""}
+{"**MEDIUM** - Review recommended" if metrics['medium'] > 0 and metrics['high'] == 0 and metrics['critical'] == 0 else ""}
+{"**LOW** - Good security posture" if metrics['total'] == 0 or (metrics['critical'] == 0 and metrics['high'] == 0 and metrics['medium'] == 0) else ""}
+
+---
+
+*Generated by [MIESC](https://github.com/fboiero/MIESC) v{VERSION}*
+"""
+
+    Path(output_path).write_text(report)
+    success(f"Report saved to {output_path}")
+
+
+# ============================================================================
 # Entry Point
 # ============================================================================
 

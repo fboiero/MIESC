@@ -94,6 +94,8 @@ miesc scan contract.sol --ci         # CI mode (exit 1 on issues)
 miesc audit quick contract.sol       # Fast 4-tool scan
 miesc audit full contract.sol        # Complete 9-layer audit
 miesc audit layer 3 contract.sol     # Run specific layer
+miesc report results.json -t professional  # Generate audit report
+miesc benchmark ./contracts --save   # Track security posture
 miesc server rest --port 5001        # Start REST API
 miesc doctor                         # Check tool availability
 miesc watch ./contracts              # Watch mode (auto-scan on save)

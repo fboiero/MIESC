@@ -93,6 +93,12 @@ miesc audit quick contrato.sol
 # Auditoría completa con 9 capas
 miesc audit full contrato.sol
 
+# Generar reporte profesional de auditoría
+miesc report results.json -t professional -o reporte.md
+
+# Seguimiento de postura de seguridad
+miesc benchmark ./contracts --save
+
 # Verificar disponibilidad de herramientas
 miesc doctor
 
