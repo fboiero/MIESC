@@ -1,0 +1,98 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "MIESC",
+          "version": "{{ miesc_version }}",
+          "informationUri": "https://github.com/fboiero/MIESC",
+          "organization": "Fernando Boiero - UNDEF IUA",
+          "fullDescription": {
+            "text": "Multi-layer Intelligent Evaluation for Smart Contracts - A comprehensive 9-layer security framework with 32+ integrated tools."
+          },
+          "rules": [
+            {% for finding in findings %}
+            {
+              "id": "{{ finding.rule_id }}",
+              "name": "{{ finding.category }}",
+              "shortDescription": {
+                "text": "{{ finding.title }}"
+              },
+              "fullDescription": {
+                "text": "{{ finding.description }}"
+              },
+              "help": {
+                "text": "{{ finding.recommendation }}",
+                "markdown": "**Recommendation:** {{ finding.recommendation }}\n\n**References:**\n{% for ref in finding.references %}- {{ ref }}\n{% endfor %}"
+              },
+              "defaultConfiguration": {
+                "level": "{% if finding.severity == 'critical' or finding.severity == 'high' %}error{% elif finding.severity == 'medium' %}warning{% else %}note{% endif %}"
+              },
+              "properties": {
+                "tags": ["smart-contract", "solidity", "{{ finding.category }}"],
+                "security-severity": "{% if finding.severity == 'critical' %}9.0{% elif finding.severity == 'high' %}7.0{% elif finding.severity == 'medium' %}5.0{% else %}3.0{% endif %}",
+                "swc-id": "{{ finding.swc_id }}",
+                "cwe-id": "{{ finding.cwe_id }}"
+              }
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+          ]
+        }
+      },
+      "results": [
+        {% for finding in findings %}
+        {
+          "ruleId": "{{ finding.rule_id }}",
+          "ruleIndex": {{ loop.index0 }},
+          "level": "{% if finding.severity == 'critical' or finding.severity == 'high' %}error{% elif finding.severity == 'medium' %}warning{% else %}note{% endif %}",
+          "message": {
+            "text": "{{ finding.title }}: {{ finding.description }}"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "{{ finding.file_path }}",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": {{ finding.line_number | default(1) }},
+                  "startColumn": 1,
+                  "snippet": {
+                    "text": "{{ finding.code_snippet | default('// Code snippet not available') }}"
+                  }
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "miesc/finding/v1": "{{ finding.id }}"
+          },
+          "properties": {
+            "tool": "{{ finding.tool }}",
+            "layer": {{ finding.layer | default(1) }},
+            "confidence": "{{ finding.confidence | default('high') }}",
+            "category": "{{ finding.category }}"
+          }
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ],
+      "automationDetails": {
+        "id": "miesc-audit-{{ audit_date }}",
+        "description": {
+          "text": "MIESC automated security audit for {{ contract_name }}"
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "commandLine": "miesc audit {{ profile | default('full') }} {{ contract_path }}",
+          "startTimeUtc": "{{ start_time }}",
+          "endTimeUtc": "{{ end_time }}"
+        }
+      ]
+    }
+  ]
+}

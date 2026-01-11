@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/fboiero/MIESC/docs/templates/reports/schema.json",
+  "title": "MIESC Audit Report Schema",
+  "description": "JSON Schema for MIESC security audit report output",
+  "type": "object",
+  "required": ["metadata", "summary", "findings"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "description": "Report metadata",
+      "required": ["contract_name", "audit_date", "report_id"],
+      "properties": {
+        "project_name": {
+          "type": "string",
+          "description": "Name of the project being audited"
+        },
+        "contract_name": {
+          "type": "string",
+          "description": "Name of the audited contract"
+        },
+        "version": {
+          "type": "string",
+          "description": "Contract version"
+        },
+        "auditor": {
+          "type": "string",
+          "description": "Name of the auditor or team"
+        },
+        "organization": {
+          "type": "string",
+          "description": "Organization conducting the audit"
+        },
+        "client": {
+          "type": "string",
+          "description": "Client organization name"
+        },
+        "audit_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Date of the audit (YYYY-MM-DD)"
+        },
+        "report_id": {
+          "type": "string",
+          "description": "Unique report identifier",
+          "pattern": "^MIESC-[0-9]{8}-[0-9]{3}$"
+        },
+        "contract_hash": {
+          "type": "string",
+          "description": "SHA256 hash of the contract source",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "commit_hash": {
+          "type": "string",
+          "description": "Git commit hash"
+        },
+        "solidity_version": {
+          "type": "string",
+          "description": "Solidity compiler version used"
+        },
+        "lines_of_code": {
+          "type": "integer",
+          "description": "Total lines of code analyzed",
+          "minimum": 0
+        },
+        "files_analyzed": {
+          "type": "array",
+          "description": "List of files analyzed",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Audit summary statistics",
+      "required": ["total_findings", "risk_score"],
+      "properties": {
+        "total_findings": {
+          "type": "integer",
+          "description": "Total number of findings",
+          "minimum": 0
+        },
+        "risk_score": {
+          "type": "number",
+          "description": "Overall risk score (0-100)",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "risk_level": {
+          "type": "string",
+          "description": "Risk level classification",
+          "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "MINIMAL"]
+        },
+        "by_severity": {
+          "type": "object",
+          "description": "Finding counts by severity",
+          "properties": {
+            "critical": { "type": "integer", "minimum": 0 },
+            "high": { "type": "integer", "minimum": 0 },
+            "medium": { "type": "integer", "minimum": 0 },
+            "low": { "type": "integer", "minimum": 0 },
+            "informational": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "by_layer": {
+          "type": "object",
+          "description": "Finding counts by MIESC layer",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "by_tool": {
+          "type": "object",
+          "description": "Finding counts by detection tool",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "by_category": {
+          "type": "object",
+          "description": "Finding counts by vulnerability category",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "List of security findings",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "tools_used": {
+      "type": "array",
+      "description": "List of tools used in the audit",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "layer": { "type": "integer", "minimum": 1, "maximum": 9 },
+          "status": { "type": "string", "enum": ["success", "failed", "timeout", "skipped"] },
+          "duration_ms": { "type": "integer", "minimum": 0 },
+          "findings_count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "compliance": {
+      "type": "object",
+      "description": "Compliance mapping",
+      "properties": {
+        "swc": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "pattern": "^SWC-[0-9]+$" },
+              "title": { "type": "string" },
+              "status": { "type": "string", "enum": ["pass", "fail", "n/a"] },
+              "finding_ids": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "owasp": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "pattern": "^SC[0-9]{2}$" },
+              "category": { "type": "string" },
+              "status": { "type": "string", "enum": ["pass", "fail", "n/a"] },
+              "finding_ids": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "cwe": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "pattern": "^CWE-[0-9]+$" },
+              "name": { "type": "string" },
+              "finding_ids": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Report generation timestamp"
+    },
+    "generator": {
+      "type": "string",
+      "description": "Generator version",
+      "pattern": "^MIESC v[0-9]+\\.[0-9]+\\.[0-9]+$"
+    }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "description": "A single security finding",
+      "required": ["id", "title", "severity", "description"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique finding identifier",
+          "pattern": "^[A-Z]+-[0-9]+$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Short title of the finding"
+        },
+        "severity": {
+          "type": "string",
+          "description": "Severity level",
+          "enum": ["critical", "high", "medium", "low", "informational"]
+        },
+        "category": {
+          "type": "string",
+          "description": "Vulnerability category"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the vulnerability"
+        },
+        "impact": {
+          "type": "string",
+          "description": "Potential impact of exploitation"
+        },
+        "location": {
+          "type": "object",
+          "description": "Code location",
+          "properties": {
+            "file": { "type": "string" },
+            "line": { "type": "integer", "minimum": 1 },
+            "column": { "type": "integer", "minimum": 1 },
+            "function": { "type": "string" },
+            "contract": { "type": "string" }
+          }
+        },
+        "code_snippet": {
+          "type": "string",
+          "description": "Vulnerable code snippet"
+        },
+        "recommendation": {
+          "type": "string",
+          "description": "Recommended fix"
+        },
+        "fixed_code": {
+          "type": "string",
+          "description": "Example of fixed code"
+        },
+        "tool": {
+          "type": "string",
+          "description": "Tool that detected the finding"
+        },
+        "layer": {
+          "type": "integer",
+          "description": "MIESC layer (1-9)",
+          "minimum": 1,
+          "maximum": 9
+        },
+        "confidence": {
+          "type": "string",
+          "description": "Detection confidence",
+          "enum": ["high", "medium", "low"]
+        },
+        "swc_id": {
+          "type": "string",
+          "description": "SWC Registry ID",
+          "pattern": "^SWC-[0-9]+$"
+        },
+        "cwe_id": {
+          "type": "string",
+          "description": "CWE ID",
+          "pattern": "^CWE-[0-9]+$"
+        },
+        "references": {
+          "type": "array",
+          "description": "Reference URLs",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "status": {
+          "type": "string",
+          "description": "Finding status",
+          "enum": ["open", "acknowledged", "fixed", "won't fix", "false positive"]
+        },
+        "evidence": {
+          "type": "object",
+          "description": "Supporting evidence",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}
