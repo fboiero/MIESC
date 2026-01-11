@@ -708,8 +708,8 @@ def cli(ctx, version, no_banner, debug, quiet):
     # Configure logging based on flags and environment
     configure_logging(debug=debug, quiet=quiet)
 
-    # Pre-load adapters
-    AdapterLoader.load_all()
+    # Note: Adapters are loaded lazily when needed, not at startup
+    # This improves CLI startup time significantly
 
     if version:
         click.echo(f"MIESC version {VERSION}")
