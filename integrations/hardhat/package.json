@@ -1,0 +1,47 @@
+{
+  "name": "hardhat-miesc",
+  "version": "1.0.0",
+  "description": "Hardhat plugin for MIESC smart contract security analysis",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "keywords": [
+    "hardhat",
+    "hardhat-plugin",
+    "ethereum",
+    "solidity",
+    "security",
+    "audit",
+    "smart-contracts",
+    "miesc",
+    "vulnerability",
+    "static-analysis"
+  ],
+  "author": "Fernando Boiero",
+  "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fboiero/MIESC.git",
+    "directory": "integrations/hardhat"
+  },
+  "homepage": "https://github.com/fboiero/MIESC",
+  "bugs": {
+    "url": "https://github.com/fboiero/MIESC/issues"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "hardhat": "^2.0.0"
+  },
+  "devDependencies": {
+    "hardhat": "^2.19.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "test": "echo \"See MIESC main repository for tests\""
+  }
+}

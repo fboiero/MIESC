@@ -128,6 +128,51 @@ git commit -m "..."  # MIESC ejecuta automáticamente
 
 Ver [examples/pre-commit-config.yaml](./examples/pre-commit-config.yaml) para más opciones.
 
+### Integración con Foundry
+
+Agrega MIESC a tu proyecto Foundry:
+
+```toml
+# foundry.toml
+[profile.default]
+post_build_hook = "miesc audit quick ./src --ci"
+
+[profile.ci]
+post_build_hook = "miesc audit quick ./src --ci --fail-on high"
+```
+
+```bash
+forge build  # MIESC ejecuta automáticamente después del build
+```
+
+Ver [integrations/foundry/](./integrations/foundry/) para scripts y GitHub Actions.
+
+### Integración con Hardhat
+
+Agrega MIESC a tu proyecto Hardhat:
+
+```javascript
+// hardhat.config.js
+require("hardhat-miesc");
+
+module.exports = {
+  solidity: "0.8.20",
+  miesc: {
+    enabled: true,
+    runOnCompile: true,  // Escaneo automático después de compilar
+    failOn: "high",
+  },
+};
+```
+
+```bash
+npx hardhat miesc           # Ejecutar auditoría de seguridad
+npx hardhat miesc:full      # Auditoría completa de 9 capas
+npx hardhat miesc:doctor    # Verificar instalación
+```
+
+Ver [integrations/hardhat/](./integrations/hardhat/) para documentación completa del plugin.
+
 Ver [docs/03_DEMO_GUIDE.md](./docs/03_DEMO_GUIDE.md) para detalles.
 
 ---

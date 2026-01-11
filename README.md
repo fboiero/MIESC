@@ -172,6 +172,32 @@ forge build  # MIESC runs automatically after build
 
 See [integrations/foundry/](./integrations/foundry/) for hook scripts and GitHub Actions.
 
+### Hardhat Integration
+
+Add MIESC to your Hardhat project:
+
+```javascript
+// hardhat.config.js
+require("hardhat-miesc");
+
+module.exports = {
+  solidity: "0.8.20",
+  miesc: {
+    enabled: true,
+    runOnCompile: true,  // Auto-scan after compile
+    failOn: "high",
+  },
+};
+```
+
+```bash
+npx hardhat miesc           # Run security audit
+npx hardhat miesc:full      # Full 9-layer audit
+npx hardhat miesc:doctor    # Check installation
+```
+
+See [integrations/hardhat/](./integrations/hardhat/) for full plugin documentation.
+
 ### Web Interface
 
 ```bash
