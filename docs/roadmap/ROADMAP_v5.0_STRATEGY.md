@@ -1,7 +1,8 @@
 # MIESC v5.0 - Strategic Roadmap for Developers & Security Researchers
 
 **Date:** 2025-12-28
-**Current Version:** 4.2.2
+**Last Updated:** 2026-01-11
+**Current Version:** 4.3.2
 **Target Version:** 5.0.0
 **Codename:** "Guardian"
 
@@ -11,14 +12,14 @@
 
 MIESC is a powerful 9-layer smart contract security framework with 32 integrated tools. However, to achieve widespread adoption among Solidity developers and security researchers, we need to focus on **reducing friction** and **increasing value delivery** at every touchpoint.
 
-### Current State (v4.2.2)
+### Current State (v4.3.2)
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
 | Tool Coverage | 9/10 | 32 tools across 9 layers - excellent |
 | Architecture | 8.5/10 | Well-designed, defense-in-depth |
-| Developer Experience | 5/10 | CLI works, but integration lacking |
-| Researcher Tools | 6/10 | Good analysis, needs customization |
+| Developer Experience | 8/10 | Foundry/Hardhat integration, pre-commit, watch mode |
+| Researcher Tools | 8.5/10 | Custom detectors, batch analysis, report templates |
 | Enterprise Readiness | 4/10 | Single-user, no auth, limited scale |
 
 ### Target State (v5.0)
@@ -27,9 +28,36 @@ MIESC is a powerful 9-layer smart contract security framework with 32 integrated
 |-----------|--------|------------------|
 | Tool Coverage | 9.5/10 | Layer 10: Formal verification synthesis |
 | Architecture | 9/10 | Plugin system, clean API |
-| Developer Experience | 8.5/10 | IDE integration, pre-commit, watch mode |
-| Researcher Tools | 8.5/10 | Custom detectors, batch analysis, API |
+| Developer Experience | 9/10 | VS Code inline diagnostics |
+| Researcher Tools | 9/10 | Plugin marketplace |
 | Enterprise Readiness | 7/10 | Auth, teams, reports |
+
+---
+
+## Progress Summary
+
+### Completed Items
+
+| Phase | Feature | Status | Commit/Version |
+|-------|---------|--------|----------------|
+| 1.1 | Watch Mode | ✅ Done | v4.3.0 |
+| 1.2 | Pre-commit Hook | ✅ Done | v4.3.0 |
+| 1.3 | Foundry Integration | ✅ Done | v4.3.2 - `miesc init foundry` |
+| 1.3 | Hardhat Integration | ✅ Done | v4.3.2 - `miesc init hardhat` |
+| 2.1 | Custom Detector API | ✅ Done | v4.3.2 - 15 detectors |
+| 2.2 | Batch Analysis | ✅ Done | v4.3.0 |
+| 2.3 | Report Templates | ✅ Done | v4.3.2 - 8 templates |
+| 2.4 | Benchmark Tracking | ✅ Done | v4.3.0 |
+| - | GitHub Actions Init | ✅ Done | v4.3.2 - `miesc init github` |
+
+### Remaining Items
+
+| Phase | Feature | Status | Priority |
+|-------|---------|--------|----------|
+| 1.4 | VS Code Extension v2 | ⏳ Pending | P1 |
+| 3.1 | Authentication | ⏳ Pending | P2 |
+| 3.2 | Team Dashboard | ⏳ Pending | P3 |
+| 3.3 | Continuous Monitoring | ⏳ Pending | P3 |
 
 ---
 
@@ -92,11 +120,11 @@ API Access        →  Integration with internal tools
 
 ## Strategic Roadmap
 
-### Phase 1: Developer Experience (v4.3)
+### Phase 1: Developer Experience (v4.3) - 90% COMPLETE
 **Timeline:** Q1 2026
 **Focus:** Make MIESC the easiest security tool to adopt
 
-#### 1.1 Watch Mode (Priority: CRITICAL)
+#### 1.1 Watch Mode ✅ COMPLETED
 
 **Problem:** Developers want real-time feedback
 
@@ -131,7 +159,7 @@ class ContractWatcher:
         self.observer.start()
 ```
 
-#### 1.2 Pre-commit Hook (Priority: HIGH)
+#### 1.2 Pre-commit Hook ✅ COMPLETED
 
 **Problem:** Developers want to catch issues before commit
 
@@ -167,29 +195,28 @@ repos:
   stages: [manual]
 ```
 
-#### 1.3 Foundry/Hardhat Integration (Priority: HIGH)
+#### 1.3 Foundry/Hardhat Integration ✅ COMPLETED
 
 **Problem:** Developers already use Foundry/Hardhat
 
-**Solution:** Plugin that runs MIESC during test
+**Solution:** CLI init commands and plugins
+
+```bash
+# Automatic setup
+miesc init foundry                    # Configure foundry.toml
+miesc init hardhat                    # Create tasks/miesc.js
+miesc init github                     # Create GitHub Actions workflow
+```
 
 ```javascript
 // hardhat.config.js
-require("@miesc/hardhat-plugin");
-
-module.exports = {
-  miesc: {
-    runOnCompile: true,
-    failOnHigh: true,
-    layers: [1, 2, 3]  // Static, Dynamic, Symbolic
-  }
-};
+require("./tasks/miesc");  // After miesc init hardhat
 ```
 
 ```toml
-# foundry.toml
+# foundry.toml (after miesc init foundry)
 [profile.default]
-post_build_hook = "miesc audit quick . --ci"
+post_build_hook = "miesc audit quick ./src --ci --fail-on high"
 ```
 
 #### 1.4 VS Code Extension v2 (Priority: HIGH)
@@ -226,11 +253,11 @@ export class MIESCExtension {
 
 ---
 
-### Phase 2: Researcher Tools (v4.4)
+### Phase 2: Researcher Tools (v4.4) - 100% COMPLETE
 **Timeline:** Q2 2026
 **Focus:** Enable custom analysis and batch processing
 
-#### 2.1 Custom Detector API (Priority: CRITICAL)
+#### 2.1 Custom Detector API ✅ COMPLETED
 
 **Problem:** Researchers need to write custom checks
 
@@ -277,7 +304,7 @@ flash-loan = "my_detectors:FlashLoanDetector"
 governance = "my_detectors:GovernanceDetector"
 ```
 
-#### 2.2 Batch Analysis (Priority: HIGH)
+#### 2.2 Batch Analysis ✅ COMPLETED
 
 **Problem:** Scanning 100+ contracts is slow and manual
 
@@ -317,11 +344,11 @@ class BatchAnalyzer:
         return BatchReport(results)
 ```
 
-#### 2.3 Professional Report Templates (Priority: MEDIUM)
+#### 2.3 Professional Report Templates ✅ COMPLETED
 
 **Problem:** Audit reports need professional formatting
 
-**Solution:** Customizable report templates
+**Solution:** 8 customizable report templates with JSON schema
 
 ```bash
 # Generate professional audit report
@@ -333,17 +360,21 @@ miesc report results.json \
   --output audit_report.pdf
 ```
 
-**Templates:**
+**Templates (8 total):**
 ```
-docs/templates/
+docs/templates/reports/
 ├── professional.md    # Full audit report
 ├── executive.md       # Executive summary
 ├── technical.md       # Technical deep-dive
+├── compliance.md      # SWC/OWASP/CWE mapping
+├── checklist.md       # Audit checklist with sign-off
 ├── github-pr.md       # PR comment format
-└── custom/           # User templates
+├── simple.md          # Basic findings list
+├── sarif.json         # GitHub Code Scanning format
+└── schema.json        # JSON Schema for validation
 ```
 
-#### 2.4 Benchmark Tracking (Priority: MEDIUM)
+#### 2.4 Benchmark Tracking ✅ COMPLETED
 
 **Problem:** Hard to track security improvements
 
@@ -424,33 +455,28 @@ monitor.start()
 
 ## Implementation Priorities
 
-### Immediate Actions (Next 2 Weeks)
+### Completed (v4.3.2)
+
+| Priority | Task | Impact | Status |
+|----------|------|--------|--------|
+| P0 | Watch mode CLI command | High | ✅ Done |
+| P0 | Pre-commit hook setup | High | ✅ Done |
+| P1 | Custom detector API | High | ✅ Done (15 detectors) |
+| P1 | Foundry integration | High | ✅ Done (`miesc init foundry`) |
+| P1 | Hardhat plugin | High | ✅ Done (`miesc init hardhat`) |
+| P2 | Report templates | Medium | ✅ Done (8 templates) |
+| P2 | GitHub Actions workflow | Medium | ✅ Done (`miesc init github`) |
+| P2 | Batch analysis command | Medium | ✅ Done |
+| P2 | Benchmark tracking | Medium | ✅ Done |
+
+### Next Priority (v4.4 / v5.0)
 
 | Priority | Task | Impact | Effort |
 |----------|------|--------|--------|
-| P0 | Watch mode CLI command | High | Low |
-| P0 | Pre-commit hook setup | High | Low |
-| P1 | VS Code inline diagnostics | High | Medium |
-| P1 | Custom detector API design | High | Medium |
-| P2 | Batch analysis command | Medium | Medium |
-
-### Short Term (1-2 Months)
-
-| Priority | Task | Impact | Effort |
-|----------|------|--------|--------|
-| P1 | Foundry integration | High | Medium |
-| P1 | Hardhat plugin | High | Medium |
 | P1 | VS Code extension v2 | High | High |
-| P2 | Report templates | Medium | Low |
-| P2 | GitHub Actions workflow | Medium | Low |
-
-### Medium Term (3-6 Months)
-
-| Priority | Task | Impact | Effort |
-|----------|------|--------|--------|
-| P1 | Plugin system | High | High |
+| P1 | Plugin system / marketplace | High | High |
 | P2 | Team dashboard | Medium | High |
-| P2 | Benchmark tracking | Medium | Medium |
+| P3 | Authentication & API keys | Low | Medium |
 | P3 | Continuous monitoring | Low | High |
 
 ---
@@ -573,13 +599,25 @@ jobs:
 
 ## Next Steps
 
-1. **This Week:** Implement watch mode + pre-commit hook
-2. **Next Week:** VS Code diagnostics provider
-3. **Week 3-4:** Custom detector API design + implementation
-4. **Month 2:** Batch analysis + report templates
+### Completed ✅
+1. ~~Watch mode + pre-commit hook~~
+2. ~~Custom detector API (15 DeFi detectors)~~
+3. ~~Foundry/Hardhat/GitHub integration (`miesc init`)~~
+4. ~~Report templates (8 templates + JSON schema)~~
+5. ~~Batch analysis + benchmark tracking~~
+
+### In Progress
+1. **VS Code Extension v2** - Inline diagnostics, hover info, quick fixes
+2. **Plugin System** - External detector marketplace
+
+### Future (v5.0)
+1. Team dashboard with multi-user support
+2. Authentication & API keys
+3. Continuous on-chain monitoring
 
 ---
 
 *Strategic Roadmap v5.0 "Guardian"*
 *Generated: 2025-12-28*
+*Last Updated: 2026-01-11*
 *Author: Fernando Boiero*
