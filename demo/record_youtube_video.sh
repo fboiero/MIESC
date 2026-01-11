@@ -74,22 +74,8 @@ echo "  Terminal: ${COLS}x${ROWS}"
 echo "  Archivo: $CAST_FILE"
 echo ""
 
-# Preguntar modo
-echo -e "${YELLOW}Selecciona el modo de demo:${NC}"
-echo "  1) Automático (con pausas cronometradas)"
-echo "  2) Interactivo (ENTER entre secciones)"
-echo ""
-read -p "Opción [1]: " MODE_CHOICE
-MODE_CHOICE=${MODE_CHOICE:-1}
-
-if [ "$MODE_CHOICE" = "1" ]; then
-    DEMO_MODE="--auto"
-else
-    DEMO_MODE="--interactive"
-fi
-
-echo ""
 echo -e "${GREEN}Iniciando grabación en 3 segundos...${NC}"
+echo -e "${YELLOW}La demo v2 dura aproximadamente 2 minutos${NC}"
 echo -e "${YELLOW}Tip: Maximiza el terminal para mejor calidad${NC}"
 sleep 3
 
@@ -99,7 +85,7 @@ asciinema rec "$CAST_FILE" \
     --overwrite \
     --cols "$COLS" \
     --rows "$ROWS" \
-    -c "bash $SCRIPT_DIR/youtube_demo.sh $DEMO_MODE"
+    -c "bash $SCRIPT_DIR/youtube_demo_v2.sh"
 
 echo ""
 echo -e "${GREEN}Grabación completada!${NC}"

@@ -192,15 +192,79 @@ class MythrilAdapter(ToolAdapter):
 
             logger.info(f"Running Mythril analysis: {' '.join(cmd)}")
 
-            # Execute Mythril
-            result = subprocess.run(
+            # Show progress message
+            verbose = kwargs.get("verbose", True)
+            if verbose:
+                print(f"  [Mythril] Starting symbolic execution analysis...")
+                print(f"  [Mythril] This may take 2-5 minutes for complex contracts")
+                print(f"  [Mythril] Parameters: max_depth={max_depth}, solver_timeout={solver_timeout}")
+
+            # Execute Mythril with streaming output
+            process = subprocess.Popen(
                 cmd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=timeout
+                bufsize=1
+            )
+
+            stdout_data = []
+            stderr_data = []
+            last_progress = time.time()
+            progress_interval = 15  # Show progress every 15 seconds
+
+            # Read output while process runs
+            import select
+            while process.poll() is None:
+                # Check if we should show progress
+                if verbose and (time.time() - last_progress) >= progress_interval:
+                    elapsed = int(time.time() - start_time)
+                    print(f"  [Mythril] Analysis in progress... ({elapsed}s elapsed)")
+                    last_progress = time.time()
+
+                # Non-blocking read of stderr for progress info
+                if process.stderr:
+                    try:
+                        # Use select for non-blocking read on Unix
+                        readable, _, _ = select.select([process.stderr], [], [], 0.5)
+                        if readable:
+                            line = process.stderr.readline()
+                            if line:
+                                stderr_data.append(line)
+                                if verbose and any(kw in line.lower() for kw in ['analyzing', 'solving', 'checking', 'creating']):
+                                    print(f"  [Mythril] {line.strip()}")
+                    except:
+                        time.sleep(0.5)
+
+                # Check timeout
+                if (time.time() - start_time) > timeout:
+                    process.kill()
+                    raise subprocess.TimeoutExpired(cmd, timeout)
+
+            # Get remaining output
+            remaining_stdout, remaining_stderr = process.communicate()
+            if remaining_stdout:
+                stdout_data.append(remaining_stdout)
+            if remaining_stderr:
+                stderr_data.append(remaining_stderr)
+
+            # Combine output
+            class Result:
+                def __init__(self, stdout, stderr, returncode):
+                    self.stdout = stdout
+                    self.stderr = stderr
+                    self.returncode = returncode
+
+            result = Result(
+                stdout=''.join(stdout_data),
+                stderr=''.join(stderr_data),
+                returncode=process.returncode
             )
 
             execution_time = time.time() - start_time
+
+            if verbose:
+                print(f"  [Mythril] Analysis completed in {execution_time:.1f}s")
 
             # Parse JSON output
             try:

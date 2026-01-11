@@ -230,6 +230,11 @@ class SolhintAdapter(ToolAdapter):
 
             logger.info(f"Running Solhint: {' '.join(cmd)}")
 
+            # Show progress message
+            verbose = kwargs.get("verbose", True)
+            if verbose:
+                print(f"  [Solhint] Running linting analysis...")
+
             # Run solhint
             result = subprocess.run(
                 cmd,
@@ -239,6 +244,9 @@ class SolhintAdapter(ToolAdapter):
             )
 
             duration = time.time() - start_time
+
+            if verbose:
+                print(f"  [Solhint] Analysis completed in {duration:.1f}s")
 
             # Parse output
             findings = self._parse_output(result.stdout, result.stderr)

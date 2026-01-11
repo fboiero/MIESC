@@ -248,10 +248,18 @@ class SlitherAdapter(ToolAdapter):
 
             logger.info(f"Running Slither analysis: {' '.join(cmd)}")
 
+            # Show progress message
+            verbose = kwargs.get("verbose", True)
+            if verbose:
+                print(f"  [Slither] Running static analysis...")
+
             # Execute Slither
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
             execution_time = time.time() - start_time
+
+            if verbose:
+                print(f"  [Slither] Analysis completed in {execution_time:.1f}s")
 
             # Slither returns non-zero even on success if vulnerabilities found
             # So we check if JSON was created instead of exit code
