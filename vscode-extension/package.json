@@ -1,14 +1,14 @@
 {
   "name": "miesc-security-auditor",
   "displayName": "MIESC Security Auditor",
-  "description": "Multi-layer Intelligent Evaluation for Smart Contracts - Security audit tool for Solidity smart contracts",
-  "version": "0.1.0",
+  "description": "Multi-layer Intelligent Evaluation for Smart Contracts - 9-layer security audit with 31 tools for Solidity smart contracts",
+  "version": "0.4.0",
   "publisher": "miesc",
   "author": {
     "name": "Fernando Boiero",
-    "email": "fboiero@undef.edu.ar"
+    "email": "fboiero@frvm.utn.edu.ar"
   },
-  "license": "GPL-3.0",
+  "license": "AGPL-3.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/fboiero/MIESC"
@@ -141,8 +141,8 @@
         },
         "miesc.defaultLayers": {
           "type": "array",
-          "default": [1, 2, 3, 7],
-          "description": "Default layers to run during audit (1-7)"
+          "default": [1, 2, 3, 6],
+          "description": "Default layers to run during audit (1-9)"
         },
         "miesc.autoAuditOnSave": {
           "type": "boolean",

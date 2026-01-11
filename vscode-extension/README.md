@@ -6,133 +6,160 @@
 
 **Multi-layer Intelligent Evaluation for Smart Contracts**
 
-Extensión de Visual Studio Code para auditoría de seguridad de smart contracts Solidity utilizando el framework MIESC de 7 capas de defensa en profundidad.
+Visual Studio Code extension for Solidity smart contract security auditing using the MIESC 9-layer defense-in-depth framework with 31 integrated tools.
 
-## Características
+## Features
 
-### Análisis Multi-Capa
+### 9-Layer Security Analysis
 
-- **Capa 1**: Análisis estático (Slither, Solhint)
-- **Capa 2**: Fuzzing (Echidna, Foundry)
-- **Capa 3**: Ejecución simbólica (Mythril, Manticore)
-- **Capa 4**: Testing de invariantes (Medusa)
-- **Capa 5**: Verificación formal (Certora, SMTChecker)
-- **Capa 6**: Property testing (Halmos)
-- **Capa 7**: Análisis con IA soberana (Ollama/DeepSeek)
+| Layer | Technique | Tools |
+|-------|-----------|-------|
+| 1 | Static Analysis | Slither, Aderyn, Solhint |
+| 2 | Dynamic Testing | Echidna, Medusa, Foundry, DogeFuzz |
+| 3 | Symbolic Execution | Mythril, Manticore, Halmos |
+| 4 | Formal Verification | Certora, SMTChecker |
+| 5 | Property Testing | PropertyGPT, Wake, Vertigo |
+| 6 | AI/LLM Analysis | SmartLLM, GPTScan, LLMSmartAudit |
+| 7 | Pattern Recognition | DA-GNN, SmartGuard, Clone Detector |
+| 8 | DeFi Security | DeFi Analyzer, MEV Detector, Gas Analyzer |
+| 9 | Advanced Detection | Advanced Detector, SmartBugs, Threat Model |
 
-### Funcionalidades
+### Key Features
 
-- **Quick Scan**: Análisis rápido solo con Capa 1
-- **Full Audit**: Auditoría completa con todas las 7 capas
-- **Auto-audit on Save**: Escaneo automático al guardar archivos `.sol`
-- **Inline Diagnostics**: Warnings y errores directamente en el editor
-- **Sidebar Panel**: Vista de hallazgos organizados por severidad
-- **HTML Reports**: Reportes detallados con remediaciones
+- **Inline Diagnostics**: Vulnerability warnings directly in the editor
+- **Hover Information**: Detailed vulnerability info on hover
+- **Quick Fixes**: Code actions for common vulnerability remediation
+- **Sidebar Panel**: Findings organized by severity
+- **HTML Reports**: Detailed reports with recommendations
+- **Auto-audit on Save**: Automatic scanning when saving `.sol` files
+- **Real-time Analysis**: Background scanning as you code
 
-## Requisitos
+## Requirements
 
 - VS Code 1.85.0+
-- Python 3.9+
-- MIESC instalado (`pip install miesc` o desde fuente)
-- Herramientas de análisis (Slither, Mythril, etc.)
+- Python 3.12+
+- MIESC installed (`pip install miesc`)
+- Analysis tools (Slither required, others optional)
 
-## Instalación
+## Installation
 
-### Desde VSIX (Recomendado)
-
-```bash
-# En el directorio vscode-extension
-npm install
-npm run compile
-npm run package
-code --install-extension miesc-security-auditor-0.1.0.vsix
-```
-
-### Desde Código Fuente
+### From VSIX
 
 ```bash
 cd vscode-extension
 npm install
 npm run compile
-# Presiona F5 en VS Code para abrir Extension Development Host
+npm run package
+code --install-extension miesc-security-auditor-0.4.0.vsix
 ```
 
-## Configuración
+### From Source (Development)
 
-| Setting | Descripción | Default |
+```bash
+cd vscode-extension
+npm install
+npm run compile
+# Press F5 in VS Code to open Extension Development Host
+```
+
+## Configuration
+
+| Setting | Description | Default |
 |---------|-------------|---------|
-| `miesc.serverUrl` | URL del servidor REST de MIESC | `http://localhost:8000` |
-| `miesc.pythonPath` | Path al intérprete Python | `python3` |
-| `miesc.miescPath` | Directorio de instalación de MIESC | `` |
-| `miesc.defaultLayers` | Capas por defecto | `[1, 2, 3, 7]` |
-| `miesc.autoAuditOnSave` | Auto-scan al guardar | `false` |
-| `miesc.showInlineWarnings` | Mostrar warnings inline | `true` |
-| `miesc.severityThreshold` | Severidad mínima a mostrar | `medium` |
-| `miesc.timeout` | Timeout en segundos | `300` |
-| `miesc.useLocalLLM` | Usar LLM local (Ollama) | `true` |
-| `miesc.ollamaModel` | Modelo de Ollama | `deepseek-coder:6.7b` |
+| `miesc.serverUrl` | MIESC REST API server URL | `http://localhost:8000` |
+| `miesc.pythonPath` | Python interpreter path | `python3` |
+| `miesc.miescPath` | MIESC installation directory | `` |
+| `miesc.defaultLayers` | Default layers to run | `[1, 2, 3, 6]` |
+| `miesc.autoAuditOnSave` | Auto-scan on save | `false` |
+| `miesc.showInlineWarnings` | Show inline warnings | `true` |
+| `miesc.severityThreshold` | Minimum severity to display | `medium` |
+| `miesc.timeout` | Audit timeout in seconds | `300` |
+| `miesc.useLocalLLM` | Use local LLM (Ollama) | `true` |
+| `miesc.ollamaModel` | Ollama model for AI analysis | `deepseek-coder:6.7b` |
 
-## Comandos
+## Commands
 
-| Comando | Keybinding | Descripción |
+| Command | Keybinding | Description |
 |---------|------------|-------------|
-| `MIESC: Audit Current File` | `Ctrl+Shift+M` / `Cmd+Shift+M` | Auditar archivo actual |
-| `MIESC: Quick Scan` | `Ctrl+Shift+Q` / `Cmd+Shift+Q` | Scan rápido (solo Capa 1) |
-| `MIESC: Deep Audit` | - | Auditoría profunda (7 capas) |
-| `MIESC: Audit Workspace` | - | Auditar todo el workspace |
-| `MIESC: Audit Selection` | - | Auditar código seleccionado |
-| `MIESC: Configure Layers` | - | Configurar capas activas |
-| `MIESC: Show Report` | - | Mostrar último reporte |
-| `MIESC: Start Server` | - | Iniciar servidor MIESC |
-| `MIESC: Stop Server` | - | Detener servidor MIESC |
+| `MIESC: Audit Current File` | `Ctrl+Shift+M` / `Cmd+Shift+M` | Audit current file |
+| `MIESC: Quick Scan` | `Ctrl+Shift+Q` / `Cmd+Shift+Q` | Quick scan (Layer 1 only) |
+| `MIESC: Deep Audit` | - | Full 9-layer audit |
+| `MIESC: Audit Workspace` | - | Audit all workspace files |
+| `MIESC: Audit Selection` | - | Audit selected code |
+| `MIESC: Configure Layers` | - | Configure active layers |
+| `MIESC: Show Report` | - | Show last audit report |
+| `MIESC: Start Server` | - | Start MIESC server |
+| `MIESC: Stop Server` | - | Stop MIESC server |
 
-## Uso
+## Usage
 
 ### Quick Start
 
-1. Abrir un archivo `.sol` en VS Code
-2. Presionar `Ctrl+Shift+M` (o `Cmd+Shift+M` en Mac)
-3. Ver resultados en el panel lateral y diagnósticos inline
+1. Open a `.sol` file in VS Code
+2. Press `Ctrl+Shift+M` (or `Cmd+Shift+M` on Mac)
+3. View results in the sidebar and inline diagnostics
 
-### Menú Contextual
+### Hover for Details
 
-Click derecho en un archivo `.sol`:
-- En el editor: "MIESC: Audit Current File"
-- Con texto seleccionado: "MIESC: Audit Selected Code"
-- En el explorador: "MIESC: Audit Current File"
+Hover over any highlighted line to see:
+- Vulnerability severity and title
+- Detailed description
+- SWC ID with link to registry
+- Recommended fix
+- Detection tool and confidence
+
+### Quick Fixes
+
+Click the lightbulb icon or press `Ctrl+.` to see available fixes:
+- Add ReentrancyGuard modifier
+- Add return value checks
+- Replace tx.origin with msg.sender
+- Lock Solidity version
+- Add zero address checks
+- Mark as reviewed
+
+### Context Menu
+
+Right-click on a `.sol` file:
+- In editor: "MIESC: Audit Current File"
+- With selection: "MIESC: Audit Selected Code"
+- In explorer: "MIESC: Audit Current File"
 
 ### Sidebar
 
-La extensión añade un panel "MIESC Security" en la barra de actividad con:
-- **Security Findings**: Hallazgos organizados por severidad
-- **Analysis Layers**: Estado de cada capa
-- **Audit History**: Historial de auditorías
+The extension adds a "MIESC Security" panel with:
+- **Security Findings**: Findings by severity
+- **Analysis Layers**: Layer status and tools
+- **Audit History**: Previous audit results
 
-## Arquitectura
+## Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│           VS Code Extension                  │
-│  ┌────────────────────────────────────────┐ │
-│  │  Commands → REST Client → MIESC Server │ │
-│  └────────────────────────────────────────┘ │
-│           ↓                                  │
-│  ┌────────────────────────────────────────┐ │
-│  │   DiagnosticCollection (Warnings)      │ │
-│  │   TreeView (Findings)                  │ │
-│  │   WebView (HTML Reports)               │ │
-│  └────────────────────────────────────────┘ │
-└─────────────────────────────────────────────┘
-                    ↓ HTTP
-┌─────────────────────────────────────────────┐
-│         MIESC REST API Server               │
-│  ┌───┬───┬───┬───┬───┬───┬───┐             │
-│  │ L1│ L2│ L3│ L4│ L5│ L6│ L7│  7 Capas   │
-│  └───┴───┴───┴───┴───┴───┴───┘             │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│              VS Code Extension                       │
+│  ┌────────────────────────────────────────────────┐ │
+│  │  Commands → REST Client → MIESC Server         │ │
+│  └────────────────────────────────────────────────┘ │
+│           ↓                                          │
+│  ┌────────────────────────────────────────────────┐ │
+│  │   DiagnosticCollection (Inline Warnings)       │ │
+│  │   HoverProvider (Vulnerability Details)        │ │
+│  │   CodeActionsProvider (Quick Fixes)            │ │
+│  │   TreeView (Findings Panel)                    │ │
+│  │   WebView (HTML Reports)                       │ │
+│  └────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+                      ↓ HTTP
+┌─────────────────────────────────────────────────────┐
+│            MIESC REST API Server                     │
+│  ┌───┬───┬───┬───┬───┬───┬───┬───┬───┐             │
+│  │ L1│ L2│ L3│ L4│ L5│ L6│ L7│ L8│ L9│  9 Layers  │
+│  └───┴───┴───┴───┴───┴───┴───┴───┴───┘             │
+│              31 Security Tools                       │
+└─────────────────────────────────────────────────────┘
 ```
 
-## Desarrollo
+## Development
 
 ### Setup
 
@@ -145,62 +172,50 @@ npm install
 ### Build
 
 ```bash
-npm run compile    # Compilar TypeScript
+npm run compile    # Compile TypeScript
 npm run watch      # Watch mode
 npm run lint       # Linting
 npm run test       # Tests
-npm run package    # Crear VSIX
+npm run package    # Create VSIX
 ```
 
 ### Debug
 
-1. Abrir la carpeta `vscode-extension` en VS Code
-2. Presionar `F5` para iniciar Extension Development Host
-3. En la nueva ventana, abrir un archivo `.sol`
-4. Probar los comandos de MIESC
-
-## Publicación
-
-Para publicar en el Marketplace:
-
-```bash
-# Login con token de Azure DevOps
-vsce login miesc
-
-# Publicar
-vsce publish
-```
+1. Open `vscode-extension` folder in VS Code
+2. Press `F5` to start Extension Development Host
+3. Open a `.sol` file in the new window
+4. Test MIESC commands
 
 ## Troubleshooting
 
 ### "MIESC server not running"
 
 ```bash
-# Iniciar servidor manualmente
-cd /path/to/MIESC
-python -m src.miesc_mcp_rest --host localhost --port 8000
+# Start server manually
+miesc server rest --port 8000
 ```
 
 ### "Python not found"
 
-Configurar `miesc.pythonPath` con la ruta correcta al intérprete Python.
+Configure `miesc.pythonPath` with the correct Python interpreter path.
 
 ### "Timeout during analysis"
 
-Incrementar `miesc.timeout` en la configuración o usar Quick Scan para análisis más rápidos.
+Increase `miesc.timeout` or use Quick Scan for faster analysis.
 
-## Licencia
+## License
 
-GPL-3.0 - Ver [LICENSE](../LICENSE)
+AGPL-3.0 - See [LICENSE](../LICENSE)
 
-## Autor
+## Author
 
 **Fernando Boiero**
-fboiero@undef.edu.ar
-Maestría en Ciberdefensa - UNDEF
+fboiero@frvm.utn.edu.ar
+Master's in Cyberdefense - UNDEF
 
 ## Links
 
 - [MIESC Repository](https://github.com/fboiero/MIESC)
-- [Documentation](https://github.com/fboiero/MIESC/docs)
+- [Documentation](https://fboiero.github.io/MIESC)
+- [PyPI Package](https://pypi.org/project/miesc/)
 - [Issue Tracker](https://github.com/fboiero/MIESC/issues)
