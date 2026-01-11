@@ -131,6 +131,18 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider('miesc.findings', new FindingsTreeProvider());
     vscode.window.registerTreeDataProvider('miesc.layers', new LayersTreeProvider());
 
+    // Register hover provider for Solidity files
+    const hoverProvider = vscode.languages.registerHoverProvider('solidity', new MIESCHoverProvider());
+    context.subscriptions.push(hoverProvider);
+
+    // Register code actions provider for quick fixes
+    const codeActionsProvider = vscode.languages.registerCodeActionsProvider(
+        'solidity',
+        new MIESCCodeActionsProvider(),
+        { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
+    );
+    context.subscriptions.push(codeActionsProvider);
+
     outputChannel.appendLine('MIESC Security Auditor activated');
     outputChannel.appendLine(`Server URL: ${config.get('serverUrl')}`);
 }
@@ -240,7 +252,7 @@ async function quickScan() {
 }
 
 /**
- * Deep audit - All 7 layers
+ * Deep audit - All 9 layers
  */
 async function deepAudit() {
     const editor = vscode.window.activeTextEditor;
@@ -249,7 +261,7 @@ async function deepAudit() {
         return;
     }
 
-    await runAudit(editor.document.uri.fsPath, [1, 2, 3, 4, 5, 6, 7]);
+    await runAudit(editor.document.uri.fsPath, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 }
 
 /**
@@ -550,13 +562,15 @@ async function configureLayers() {
     const currentLayers = config.get<number[]>('defaultLayers') || [1, 2, 3, 7];
 
     const layerOptions = [
-        { label: 'Layer 1: Static Analysis', description: 'Slither, Solhint, Aderyn', picked: currentLayers.includes(1), layer: 1 },
-        { label: 'Layer 2: Fuzzing', description: 'Echidna, Medusa', picked: currentLayers.includes(2), layer: 2 },
-        { label: 'Layer 3: Symbolic Execution', description: 'Mythril, Manticore', picked: currentLayers.includes(3), layer: 3 },
-        { label: 'Layer 4: Invariant Testing', description: 'Halmos, Kontrol', picked: currentLayers.includes(4), layer: 4 },
-        { label: 'Layer 5: Formal Verification', description: 'SMTChecker, Certora', picked: currentLayers.includes(5), layer: 5 },
-        { label: 'Layer 6: Property Testing', description: 'PropertyGPT, DA-GNN', picked: currentLayers.includes(6), layer: 6 },
-        { label: 'Layer 7: AI Analysis', description: 'SmartLLM, ThreatModel', picked: currentLayers.includes(7), layer: 7 }
+        { label: 'Layer 1: Static Analysis', description: 'Slither, Aderyn, Solhint', picked: currentLayers.includes(1), layer: 1 },
+        { label: 'Layer 2: Dynamic Testing', description: 'Echidna, Medusa, Foundry, DogeFuzz', picked: currentLayers.includes(2), layer: 2 },
+        { label: 'Layer 3: Symbolic Execution', description: 'Mythril, Manticore, Halmos', picked: currentLayers.includes(3), layer: 3 },
+        { label: 'Layer 4: Formal Verification', description: 'Certora, SMTChecker', picked: currentLayers.includes(4), layer: 4 },
+        { label: 'Layer 5: Property Testing', description: 'PropertyGPT, Wake, Vertigo', picked: currentLayers.includes(5), layer: 5 },
+        { label: 'Layer 6: AI/LLM Analysis', description: 'SmartLLM, GPTScan, LLMSmartAudit', picked: currentLayers.includes(6), layer: 6 },
+        { label: 'Layer 7: Pattern Recognition', description: 'DA-GNN, SmartGuard, Clone Detector', picked: currentLayers.includes(7), layer: 7 },
+        { label: 'Layer 8: DeFi Security', description: 'DeFi Analyzer, MEV Detector, Gas Analyzer', picked: currentLayers.includes(8), layer: 8 },
+        { label: 'Layer 9: Advanced Detection', description: 'Advanced Detector, SmartBugs, Threat Model', picked: currentLayers.includes(9), layer: 9 }
     ];
 
     const selected = await vscode.window.showQuickPick(layerOptions, {
@@ -659,13 +673,15 @@ class LayersTreeProvider implements vscode.TreeDataProvider<LayerItem> {
 
     getChildren(): LayerItem[] {
         return [
-            new LayerItem('Layer 1', 'Static Analysis', 'Slither, Solhint, Aderyn'),
-            new LayerItem('Layer 2', 'Fuzzing', 'Echidna, Medusa'),
-            new LayerItem('Layer 3', 'Symbolic Execution', 'Mythril, Manticore'),
-            new LayerItem('Layer 4', 'Invariant Testing', 'Halmos, Kontrol'),
-            new LayerItem('Layer 5', 'Formal Verification', 'SMTChecker'),
-            new LayerItem('Layer 6', 'Property Testing', 'PropertyGPT'),
-            new LayerItem('Layer 7', 'AI Analysis', 'SmartLLM')
+            new LayerItem('Layer 1', 'Static Analysis', 'Slither, Aderyn, Solhint'),
+            new LayerItem('Layer 2', 'Dynamic Testing', 'Echidna, Medusa, Foundry, DogeFuzz'),
+            new LayerItem('Layer 3', 'Symbolic Execution', 'Mythril, Manticore, Halmos'),
+            new LayerItem('Layer 4', 'Formal Verification', 'Certora, SMTChecker'),
+            new LayerItem('Layer 5', 'Property Testing', 'PropertyGPT, Wake, Vertigo'),
+            new LayerItem('Layer 6', 'AI/LLM Analysis', 'SmartLLM, GPTScan, LLMSmartAudit'),
+            new LayerItem('Layer 7', 'Pattern Recognition', 'DA-GNN, SmartGuard'),
+            new LayerItem('Layer 8', 'DeFi Security', 'DeFi Analyzer, MEV Detector'),
+            new LayerItem('Layer 9', 'Advanced Detection', 'SmartBugs, Threat Model')
         ];
     }
 }
@@ -680,5 +696,180 @@ class LayerItem extends vscode.TreeItem {
         this.description = tools;
         this.tooltip = `${layer} - ${technique}\nTools: ${tools}`;
         this.iconPath = new vscode.ThemeIcon('layers');
+    }
+}
+
+/**
+ * Hover provider for showing vulnerability details on hover
+ */
+class MIESCHoverProvider implements vscode.HoverProvider {
+    provideHover(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        token: vscode.CancellationToken
+    ): vscode.ProviderResult<vscode.Hover> {
+        if (!lastAuditResult) {
+            return null;
+        }
+
+        const line = position.line + 1;
+        const findings = lastAuditResult.findings.filter(f => f.line === line);
+
+        if (findings.length === 0) {
+            return null;
+        }
+
+        const markdownContent = new vscode.MarkdownString();
+        markdownContent.isTrusted = true;
+
+        for (const finding of findings) {
+            const severityIcon = finding.severity === 'critical' ? '🔴' :
+                                finding.severity === 'high' ? '🟠' :
+                                finding.severity === 'medium' ? '🟡' : '🔵';
+
+            markdownContent.appendMarkdown(`### ${severityIcon} ${finding.title}\n\n`);
+            markdownContent.appendMarkdown(`**Severity:** ${finding.severity.toUpperCase()}\n\n`);
+            markdownContent.appendMarkdown(`${finding.description}\n\n`);
+
+            if (finding.swc_id) {
+                markdownContent.appendMarkdown(`**SWC ID:** [${finding.swc_id}](https://swcregistry.io/docs/${finding.swc_id})\n\n`);
+            }
+
+            if (finding.recommendation) {
+                markdownContent.appendMarkdown(`**Recommendation:** ${finding.recommendation}\n\n`);
+            }
+
+            markdownContent.appendMarkdown(`*Detected by ${finding.tool} (${Math.round(finding.confidence * 100)}% confidence)*\n\n`);
+            markdownContent.appendMarkdown('---\n\n');
+        }
+
+        return new vscode.Hover(markdownContent);
+    }
+}
+
+/**
+ * Code actions provider for quick fixes
+ */
+class MIESCCodeActionsProvider implements vscode.CodeActionProvider {
+
+    // Common vulnerability fixes
+    private readonly fixes: { [key: string]: { title: string; fix: string }[] } = {
+        'reentrancy': [
+            {
+                title: 'Add ReentrancyGuard modifier',
+                fix: '// Add: import "@openzeppelin/contracts/security/ReentrancyGuard.sol";\n// Inherit: contract MyContract is ReentrancyGuard\n// Add modifier: nonReentrant'
+            },
+            {
+                title: 'Use Checks-Effects-Interactions pattern',
+                fix: '// Move state changes before external calls'
+            }
+        ],
+        'unchecked-call': [
+            {
+                title: 'Add return value check',
+                fix: '(bool success, ) = target.call{value: amount}("");\nrequire(success, "Call failed");'
+            }
+        ],
+        'tx-origin': [
+            {
+                title: 'Replace tx.origin with msg.sender',
+                fix: '// Replace tx.origin with msg.sender for authentication'
+            }
+        ],
+        'floating-pragma': [
+            {
+                title: 'Lock Solidity version',
+                fix: 'pragma solidity 0.8.20; // Lock to specific version'
+            }
+        ],
+        'missing-zero-check': [
+            {
+                title: 'Add zero address check',
+                fix: 'require(addr != address(0), "Zero address not allowed");'
+            }
+        ],
+        'unprotected-selfdestruct': [
+            {
+                title: 'Add access control',
+                fix: 'require(msg.sender == owner, "Only owner can destroy");'
+            }
+        ]
+    };
+
+    provideCodeActions(
+        document: vscode.TextDocument,
+        range: vscode.Range | vscode.Selection,
+        context: vscode.CodeActionContext,
+        token: vscode.CancellationToken
+    ): vscode.CodeAction[] {
+        const actions: vscode.CodeAction[] = [];
+
+        // Get diagnostics for this range
+        const diagnostics = context.diagnostics.filter(d => d.source === 'MIESC');
+
+        for (const diagnostic of diagnostics) {
+            const vulnType = this.getVulnerabilityType(diagnostic);
+
+            if (vulnType && this.fixes[vulnType]) {
+                for (const fixTemplate of this.fixes[vulnType]) {
+                    const action = new vscode.CodeAction(
+                        `MIESC: ${fixTemplate.title}`,
+                        vscode.CodeActionKind.QuickFix
+                    );
+
+                    action.diagnostics = [diagnostic];
+
+                    // Create comment with fix suggestion
+                    action.edit = new vscode.WorkspaceEdit();
+                    const lineStart = new vscode.Position(diagnostic.range.start.line, 0);
+                    const comment = `// MIESC Fix: ${fixTemplate.title}\n// ${fixTemplate.fix.split('\n').join('\n// ')}\n`;
+                    action.edit.insert(document.uri, lineStart, comment);
+
+                    actions.push(action);
+                }
+            }
+
+            // Add generic "Acknowledge" action
+            const acknowledgeAction = new vscode.CodeAction(
+                'MIESC: Mark as reviewed',
+                vscode.CodeActionKind.QuickFix
+            );
+            acknowledgeAction.diagnostics = [diagnostic];
+            acknowledgeAction.edit = new vscode.WorkspaceEdit();
+            const lineEnd = document.lineAt(diagnostic.range.start.line).range.end;
+            acknowledgeAction.edit.insert(
+                document.uri,
+                lineEnd,
+                ' // MIESC-REVIEWED: acknowledged'
+            );
+            actions.push(acknowledgeAction);
+        }
+
+        return actions;
+    }
+
+    private getVulnerabilityType(diagnostic: vscode.Diagnostic): string | null {
+        const message = diagnostic.message.toLowerCase();
+
+        if (message.includes('reentrancy') || message.includes('reentrant')) {
+            return 'reentrancy';
+        }
+        if (message.includes('unchecked') && (message.includes('call') || message.includes('return'))) {
+            return 'unchecked-call';
+        }
+        if (message.includes('tx.origin')) {
+            return 'tx-origin';
+        }
+        if (message.includes('pragma') && message.includes('float')) {
+            return 'floating-pragma';
+        }
+        if (message.includes('zero') && message.includes('address')) {
+            return 'missing-zero-check';
+        }
+        if (message.includes('selfdestruct')) {
+            return 'unprotected-selfdestruct';
+        }
+
+        return null;
     }
 }
