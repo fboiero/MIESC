@@ -4,6 +4,38 @@ Hardhat plugin for [MIESC](https://github.com/fboiero/MIESC) smart contract secu
 
 MIESC (Multi-layer Intelligent Evaluation for Smart Contracts) orchestrates **31 security tools** across **9 defense layers** with AI-assisted correlation and ML-based detection.
 
+## Quick Start
+
+### Option A: Automatic Setup (Recommended)
+
+```bash
+# Install MIESC
+pip install miesc
+
+# Initialize Hardhat integration (run from project root)
+miesc init hardhat
+```
+
+This automatically:
+- Creates `tasks/miesc.js` with Hardhat tasks
+- Provides `npx hardhat miesc` command
+- Hooks into compile for optional auto-scanning
+
+**Available options:**
+
+```bash
+miesc init hardhat                    # Basic setup (fail on high)
+miesc init hardhat --fail-on critical # Only fail on critical issues
+```
+
+After running, add to your `hardhat.config.js`:
+
+```javascript
+require("./tasks/miesc");
+```
+
+### Option B: Full Plugin Installation
+
 ## Installation
 
 ### Prerequisites
@@ -210,7 +242,13 @@ module.exports = {
 
 ## GitHub Actions Integration
 
-Copy `hardhat-miesc.yml` to `.github/workflows/security.yml`:
+Generate workflow automatically:
+
+```bash
+miesc init github
+```
+
+Or copy `hardhat-miesc.yml` to `.github/workflows/security.yml`:
 
 ```yaml
 name: Security Audit

@@ -4,13 +4,38 @@ Integrate MIESC security scanning into your Foundry projects.
 
 ## Quick Start
 
-### 1. Install MIESC
+### Option A: Automatic Setup (Recommended)
+
+```bash
+# Install MIESC
+pip install miesc
+
+# Initialize Foundry integration (run from project root)
+miesc init foundry
+```
+
+This automatically:
+- Adds `post_build_hook` to your `foundry.toml`
+- Configures security scanning on every `forge build`
+
+**Available options:**
+
+```bash
+miesc init foundry                      # Basic setup (default profile)
+miesc init foundry --profile ci         # Configure CI profile
+miesc init foundry --hook-script        # Create full hook script
+miesc init foundry --fail-on critical   # Only fail on critical issues
+```
+
+### Option B: Manual Setup
+
+#### 1. Install MIESC
 
 ```bash
 pip install miesc
 ```
 
-### 2. Add Post-Build Hook
+#### 2. Add Post-Build Hook
 
 Add to your `foundry.toml`:
 
@@ -32,9 +57,15 @@ post_build_hook = "./scripts/miesc-hook.sh"
 post_build_hook = "miesc audit quick ./src --ci --fail-on high"
 ```
 
-### 3. Create Hook Script (Optional)
+#### 3. Create Hook Script (Optional)
 
-For more control, create `scripts/miesc-hook.sh`:
+Use the automatic generator:
+
+```bash
+miesc init foundry --hook-script
+```
+
+Or manually create `scripts/miesc-hook.sh`:
 
 ```bash
 #!/bin/bash
@@ -116,6 +147,14 @@ repos:
 ```
 
 ### GitHub Actions
+
+Generate workflow automatically:
+
+```bash
+miesc init github
+```
+
+Or manually create `.github/workflows/security.yml`:
 
 ```yaml
 name: Security Audit
