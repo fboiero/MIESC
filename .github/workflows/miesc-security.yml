@@ -1,0 +1,162 @@
+name: MIESC Security Audit
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '**.sol'
+      - 'contracts/**'
+      - 'src/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**.sol'
+      - 'contracts/**'
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Scan type'
+        required: true
+        default: 'quick'
+        type: choice
+        options:
+          - quick
+          - full
+          - layer1
+
+jobs:
+  security-audit:
+    name: MIESC Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install MIESC
+        run: |
+          pip install --upgrade pip
+          pip install miesc
+          pip install slither-analyzer  # Core dependency
+
+      - name: Install Solidity compiler
+        run: |
+          pip install solc-select
+          solc-select install 0.8.20
+          solc-select use 0.8.20
+
+      - name: Verify MIESC installation
+        run: |
+          miesc --version
+          miesc doctor
+
+      - name: Run MIESC Security Scan
+        id: scan
+        run: |
+          SCAN_TYPE="${{ github.event.inputs.scan_type || 'quick' }}"
+          echo "Running MIESC $SCAN_TYPE scan..."
+
+          if [ "$SCAN_TYPE" = "full" ]; then
+            miesc audit full contracts/ --output miesc-results.json --format json || true
+          elif [ "$SCAN_TYPE" = "layer1" ]; then
+            miesc audit layer 1 contracts/ --output miesc-results.json || true
+          else
+            miesc audit quick contracts/ --output miesc-results.json --format json || true
+          fi
+
+      - name: Generate SARIF report
+        if: always()
+        run: |
+          if [ -f miesc-results.json ]; then
+            miesc report miesc-results.json --format sarif --output miesc.sarif || true
+          fi
+
+      - name: Upload SARIF to GitHub Security
+        if: always() && hashFiles('miesc.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: miesc.sarif
+          category: miesc-security
+
+      - name: Upload results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: miesc-security-report
+          path: |
+            miesc-results.json
+            miesc.sarif
+          retention-days: 30
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let comment = '## MIESC Security Scan Results\n\n';
+
+            if (fs.existsSync('miesc-results.json')) {
+              const results = JSON.parse(fs.readFileSync('miesc-results.json', 'utf8'));
+              const summary = results.summary || {};
+
+              comment += '| Severity | Count |\n';
+              comment += '|----------|-------|\n';
+              comment += `| Critical | ${summary.CRITICAL || 0} |\n`;
+              comment += `| High | ${summary.HIGH || 0} |\n`;
+              comment += `| Medium | ${summary.MEDIUM || 0} |\n`;
+              comment += `| Low | ${summary.LOW || 0} |\n`;
+              comment += `| Info | ${summary.INFO || 0} |\n\n`;
+
+              if ((summary.CRITICAL || 0) > 0 || (summary.HIGH || 0) > 0) {
+                comment += '⚠️ **Action Required:** Critical or High severity issues found.\n\n';
+              } else {
+                comment += '✅ No critical or high severity issues found.\n\n';
+              }
+            } else {
+              comment += '⚠️ Scan completed but no results file generated.\n\n';
+            }
+
+            comment += '---\n';
+            comment += '*Powered by [MIESC](https://github.com/fboiero/MIESC) - Multi-layer Intelligent Evaluation for Smart Contracts*';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # Optional: Fail on critical/high issues
+  check-results:
+    name: Check Security Results
+    needs: security-audit
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Download results
+        uses: actions/download-artifact@v4
+        with:
+          name: miesc-security-report
+
+      - name: Check for critical issues
+        run: |
+          if [ -f miesc-results.json ]; then
+            CRITICAL=$(cat miesc-results.json | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('summary', {}).get('CRITICAL', 0))")
+            HIGH=$(cat miesc-results.json | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('summary', {}).get('HIGH', 0))")
+
+            echo "Critical: $CRITICAL, High: $HIGH"
+
+            if [ "$CRITICAL" -gt 0 ]; then
+              echo "::error::Found $CRITICAL critical security issues"
+              exit 1
+            fi
+          fi

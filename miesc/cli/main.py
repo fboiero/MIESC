@@ -2357,46 +2357,45 @@ def detectors_list(verbose):
     print_banner()
 
     try:
-        from src.detectors.detector_api import get_registry
-    except ImportError:
-        error("Detector API not available")
+        from miesc.detectors import list_detectors, get_all_detectors
+        # Also load example detectors
+        from miesc.detectors import examples  # noqa: F401
+    except ImportError as e:
+        error(f"Detector API not available: {e}")
         return
 
-    registry = get_registry()
-    detector_list = registry.list_detectors()
+    detector_list = list_detectors()
 
     if not detector_list:
         warning("No custom detectors registered")
-        info("Create detectors in pyproject.toml [project.entry-points.'miesc.detectors']")
+        info("Create detectors using miesc.detectors.BaseDetector")
         return
 
     if RICH_AVAILABLE:
         table = Table(title="Custom Detectors", box=box.ROUNDED)
         table.add_column("Name", style="bold cyan")
-        table.add_column("Category", width=20)
+        table.add_column("Category", width=15)
         table.add_column("Severity", width=10)
         if verbose:
             table.add_column("Description", width=40)
+            table.add_column("Author", width=20)
 
-        for name in sorted(detector_list):
-            detector = registry.get(name)
-            if detector:
-                row = [
-                    name,
-                    detector.category.value,
-                    detector.default_severity.value,
-                ]
-                if verbose:
-                    row.append(detector.description[:40])
-                table.add_row(*row)
+        for detector in sorted(detector_list, key=lambda x: x["name"]):
+            row = [
+                detector["name"],
+                detector.get("category", "general"),
+                detector.get("severity", "Medium"),
+            ]
+            if verbose:
+                row.append(detector.get("description", "")[:40])
+                row.append(detector.get("author", "")[:20])
+            table.add_row(*row)
 
         console.print(table)
     else:
         print(f"\n=== Custom Detectors ({len(detector_list)}) ===")
-        for name in sorted(detector_list):
-            detector = registry.get(name)
-            if detector:
-                print(f"  - {name}: {detector.description[:50]}")
+        for detector in sorted(detector_list, key=lambda x: x["name"]):
+            print(f"  - {detector['name']}: {detector.get('description', '')[:50]}")
 
     success(f"{len(detector_list)} detectors registered")
 
@@ -2424,15 +2423,18 @@ def detectors_run(contract, detector, output, severity):
     print_banner()
 
     try:
-        from src.detectors.detector_api import Severity, get_registry
-    except ImportError:
-        error("Detector API not available")
+        from miesc.detectors import (
+            Severity, get_all_detectors, run_detector, run_all_detectors
+        )
+        # Load example detectors
+        from miesc.detectors import examples  # noqa: F401
+    except ImportError as e:
+        error(f"Detector API not available: {e}")
         sys.exit(1)
 
-    registry = get_registry()
-    detector_list = registry.list_detectors()
+    all_detectors = get_all_detectors()
 
-    if not detector_list:
+    if not all_detectors:
         warning("No custom detectors registered")
         return
 
@@ -2444,15 +2446,16 @@ def detectors_run(contract, detector, output, severity):
     info(f"Analyzing {contract_path.name}")
 
     # Filter detectors if specific ones requested
+    detector_names = list(all_detectors.keys())
     if detector:
-        detectors_to_run = [d for d in detector if d in detector_list]
+        detectors_to_run = [d for d in detector if d in detector_names]
         if not detectors_to_run:
             error(f"None of the specified detectors found: {', '.join(detector)}")
-            info(f"Available: {', '.join(detector_list)}")
+            info(f"Available: {', '.join(detector_names)}")
             sys.exit(1)
         info(f"Running: {', '.join(detectors_to_run)}")
     else:
-        detectors_to_run = detector_list
+        detectors_to_run = detector_names
         info(f"Running all {len(detectors_to_run)} detectors")
 
     # Run detectors
@@ -2460,17 +2463,15 @@ def detectors_run(contract, detector, output, severity):
     start_time = datetime.now()
 
     for det_name in detectors_to_run:
-        det = registry.get(det_name)
-        if det:
-            try:
-                findings = det.analyze(source_code, contract_path)
-                all_findings.extend(findings)
-                if findings:
-                    success(f"{det_name}: {len(findings)} findings")
-                else:
-                    info(f"{det_name}: clean")
-            except Exception as e:
-                warning(f"{det_name}: error - {e}")
+        try:
+            findings = run_detector(det_name, source_code, str(contract_path))
+            all_findings.extend(findings)
+            if findings:
+                success(f"{det_name}: {len(findings)} findings")
+            else:
+                info(f"{det_name}: clean")
+        except Exception as e:
+            warning(f"{det_name}: error - {e}")
 
     elapsed = (datetime.now() - start_time).total_seconds()
 
@@ -2500,13 +2501,13 @@ def detectors_run(contract, detector, output, severity):
         }
 
         for finding in all_findings[:25]:
-            line = str(finding.location.line_start) if finding.location else "-"
+            line = str(finding.location.line) if finding.location else "-"
             table.add_row(
                 finding.severity.value,
                 finding.detector,
                 finding.title[:35],
                 line,
-                style=colors.get(finding.severity.value, "white"),
+                style=colors.get(finding.severity.value.lower(), "white"),
             )
 
         if len(all_findings) > 25:
@@ -2517,7 +2518,9 @@ def detectors_run(contract, detector, output, severity):
     # Summary
     summary = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     for f in all_findings:
-        summary[f.severity.value] += 1
+        sev = f.severity.value.lower()
+        if sev in summary:
+            summary[sev] += 1
 
     if RICH_AVAILABLE:
         console.print(
