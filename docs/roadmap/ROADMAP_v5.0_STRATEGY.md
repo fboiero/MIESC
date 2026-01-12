@@ -1,7 +1,7 @@
 # MIESC v5.0 - Strategic Roadmap for Developers & Security Researchers
 
 **Date:** 2025-12-28
-**Last Updated:** 2026-01-11
+**Last Updated:** 2026-01-12
 **Current Version:** 4.3.2
 **Target Version:** 5.0.0
 **Codename:** "Guardian"
@@ -49,12 +49,12 @@ MIESC is a powerful 9-layer smart contract security framework with 32 integrated
 | 2.3 | Report Templates | ✅ Done | v4.3.2 - 8 templates |
 | 2.4 | Benchmark Tracking | ✅ Done | v4.3.0 |
 | - | GitHub Actions Init | ✅ Done | v4.3.2 - `miesc init github` |
+| 1.4 | VS Code Extension v2 | ✅ Done | v0.5.0 - CLI mode, real-time scanning |
 
 ### Remaining Items
 
 | Phase | Feature | Status | Priority |
 |-------|---------|--------|----------|
-| 1.4 | VS Code Extension v2 | ⏳ Pending | P1 |
 | 3.1 | Authentication | ⏳ Pending | P2 |
 | 3.2 | Team Dashboard | ⏳ Pending | P3 |
 | 3.3 | Continuous Monitoring | ⏳ Pending | P3 |
@@ -120,7 +120,7 @@ API Access        →  Integration with internal tools
 
 ## Strategic Roadmap
 
-### Phase 1: Developer Experience (v4.3) - 90% COMPLETE
+### Phase 1: Developer Experience (v4.3) - 100% COMPLETE
 **Timeline:** Q1 2026
 **Focus:** Make MIESC the easiest security tool to adopt
 
@@ -219,35 +219,38 @@ require("./tasks/miesc");  // After miesc init hardhat
 post_build_hook = "miesc audit quick ./src --ci --fail-on high"
 ```
 
-#### 1.4 VS Code Extension v2 (Priority: HIGH)
+#### 1.4 VS Code Extension v2 ✅ COMPLETED
 
-**Current:** Basic extension exists
-**Target:** Full IDE integration
+**Problem:** Developers want IDE-integrated security feedback
 
-**Features:**
-- Inline vulnerability warnings
-- Hover info with explanation + fix
-- Quick fix actions
-- Findings panel
-- Real-time scanning
+**Solution:** Full VS Code extension with CLI mode and real-time scanning
+
+**Features Implemented (v0.5.0):**
+- ✅ CLI-based analysis (no server required)
+- ✅ Inline vulnerability warnings with diagnostics
+- ✅ Hover info with explanation + SWC links
+- ✅ 16 quick fix templates for common vulnerabilities
+- ✅ Findings panel with tree view
+- ✅ Real-time scanning with debouncing (1.5s)
+- ✅ 10 pattern-based instant checks
+- ✅ Configuration hot-reload
 
 ```typescript
-// Extension capabilities
-export class MIESCExtension {
-  // Diagnostics: Show issues inline
-  diagnostics: vscode.DiagnosticCollection;
+// Extension capabilities (implemented)
+- MIESCCli: CLI client for serverless operation
+- DiagnosticCollection: Inline vulnerability markers
+- CodeActionsProvider: 16 quick fix templates
+- HoverProvider: Vulnerability details on hover
+- FindingsTreeView: Sidebar findings panel
+- runLightweightCheck: Real-time pattern matching
+```
 
-  // Code Actions: Suggest fixes
-  codeActionProvider: MIESCCodeActionProvider;
-
-  // Hover: Show vulnerability details
-  hoverProvider: MIESCHoverProvider;
-
-  // Tree View: Findings panel
-  findingsTreeView: MIESCFindingsTreeView;
-
-  // WebSocket: Real-time updates
-  realTimeClient: MIESCRealtimeClient;
+**Configuration:**
+```json
+{
+  "miesc.useCli": true,           // CLI mode (default)
+  "miesc.autoAuditOnSave": true,  // Real-time scanning
+  "miesc.severityThreshold": "medium"
 }
 ```
 
@@ -469,15 +472,20 @@ monitor.start()
 | P2 | Batch analysis command | Medium | ✅ Done |
 | P2 | Benchmark tracking | Medium | ✅ Done |
 
-### Next Priority (v4.4 / v5.0)
+### Next Priority (v5.0)
 
 | Priority | Task | Impact | Effort |
 |----------|------|--------|--------|
-| P1 | VS Code extension v2 | High | High |
 | P1 | Plugin system / marketplace | High | High |
 | P2 | Team dashboard | Medium | High |
 | P3 | Authentication & API keys | Low | Medium |
 | P3 | Continuous monitoring | Low | High |
+
+### Recently Completed
+
+| Priority | Task | Impact | Status |
+|----------|------|--------|--------|
+| P1 | VS Code extension v2 | High | ✅ Done (v0.5.0) |
 
 ---
 
@@ -605,10 +613,10 @@ jobs:
 3. ~~Foundry/Hardhat/GitHub integration (`miesc init`)~~
 4. ~~Report templates (8 templates + JSON schema)~~
 5. ~~Batch analysis + benchmark tracking~~
+6. ~~VS Code Extension v2 (v0.5.0) - CLI mode, real-time scanning, 16 quick fixes~~
 
 ### In Progress
-1. **VS Code Extension v2** - Inline diagnostics, hover info, quick fixes
-2. **Plugin System** - External detector marketplace
+1. **Plugin System** - External detector marketplace
 
 ### Future (v5.0)
 1. Team dashboard with multi-user support
@@ -619,5 +627,5 @@ jobs:
 
 *Strategic Roadmap v5.0 "Guardian"*
 *Generated: 2025-12-28*
-*Last Updated: 2026-01-11*
+*Last Updated: 2026-01-12*
 *Author: Fernando Boiero*
