@@ -13,6 +13,7 @@ import * as vscode from 'vscode';
 import axios from 'axios';
 import * as path from 'path';
 import * as fs from 'fs';
+import { MIESCCli, CLIAuditResult, CLIFinding } from './services/miescCli';
 
 // Types
 interface MIESCFinding {
@@ -54,6 +55,10 @@ let outputChannel: vscode.OutputChannel;
 let statusBarItem: vscode.StatusBarItem;
 let lastAuditResult: MIESCAuditResult | null = null;
 let serverProcess: any = null;
+let miescCli: MIESCCli;
+let useCli: boolean = true; // Prefer CLI mode by default
+let scanDebounceTimer: NodeJS.Timeout | undefined;
+const SCAN_DEBOUNCE_MS = 1500; // Debounce delay for real-time scanning
 
 // Decoration types for inline highlighting
 const criticalDecorationType = vscode.window.createTextEditorDecorationType({
@@ -92,6 +97,54 @@ export function activate(context: vscode.ExtensionContext) {
     diagnosticCollection = vscode.languages.createDiagnosticCollection('miesc');
     outputChannel = vscode.window.createOutputChannel('MIESC Security');
 
+    // Initialize CLI client
+    miescCli = new MIESCCli(outputChannel);
+
+    // Read CLI preference from configuration
+    const cliConfig = vscode.workspace.getConfiguration('miesc');
+    useCli = cliConfig.get<boolean>('useCli') !== false; // Default to true
+
+    // Check CLI availability if CLI mode is preferred
+    if (useCli) {
+        miescCli.isAvailable().then(async available => {
+            if (available) {
+                const version = await miescCli.getVersion();
+                outputChannel.appendLine(`MIESC CLI available (v${version})`);
+                useCli = true;
+            } else {
+                outputChannel.appendLine('MIESC CLI not found. Install with: pip install miesc');
+                outputChannel.appendLine('Falling back to REST API mode.');
+                useCli = false;
+            }
+        });
+    } else {
+        outputChannel.appendLine('CLI mode disabled by configuration. Using REST API mode.');
+    }
+
+    // Listen for configuration changes
+    vscode.workspace.onDidChangeConfiguration(e => {
+        if (e.affectsConfiguration('miesc.useCli')) {
+            const newUseCli = vscode.workspace.getConfiguration('miesc').get<boolean>('useCli') !== false;
+            if (newUseCli !== useCli) {
+                useCli = newUseCli;
+                outputChannel.appendLine(`Mode changed to: ${useCli ? 'CLI' : 'REST API'}`);
+                if (useCli) {
+                    miescCli.isAvailable().then(available => {
+                        if (!available) {
+                            vscode.window.showWarningMessage(
+                                'MIESC CLI not found. Install with: pip install miesc'
+                            );
+                            useCli = false;
+                        }
+                    });
+                }
+            }
+        }
+        if (e.affectsConfiguration('miesc.pythonPath')) {
+            miescCli.updatePythonPath();
+        }
+    });
+
     // Status bar item
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     statusBarItem.command = 'miesc.showReport';
@@ -120,11 +173,35 @@ export function activate(context: vscode.ExtensionContext) {
     // Auto-audit on save (if enabled)
     const config = vscode.workspace.getConfiguration('miesc');
     if (config.get('autoAuditOnSave')) {
-        vscode.workspace.onDidSaveTextDocument(async (document) => {
+        // Debounced on-save scanning
+        const saveHandler = vscode.workspace.onDidSaveTextDocument(async (document) => {
             if (document.languageId === 'solidity') {
                 await quickScan();
             }
         });
+        context.subscriptions.push(saveHandler);
+
+        // Real-time scanning on document change (debounced)
+        const changeHandler = vscode.workspace.onDidChangeTextDocument((event) => {
+            if (event.document.languageId === 'solidity' && event.contentChanges.length > 0) {
+                // Clear existing timer
+                if (scanDebounceTimer) {
+                    clearTimeout(scanDebounceTimer);
+                }
+
+                // Set new debounced scan
+                scanDebounceTimer = setTimeout(async () => {
+                    // Only run quick scan if document is saved or if changes are significant
+                    if (!event.document.isDirty) {
+                        await runAudit(event.document.uri.fsPath, [1], false);
+                    } else {
+                        // For unsaved documents, run a lightweight pattern check
+                        runLightweightCheck(event.document);
+                    }
+                }, SCAN_DEBOUNCE_MS);
+            }
+        });
+        context.subscriptions.push(changeHandler);
     }
 
     // Register tree view providers
@@ -252,6 +329,104 @@ async function quickScan() {
 }
 
 /**
+ * Lightweight pattern-based check for real-time feedback
+ * Runs without calling external tools - pure regex matching
+ */
+function runLightweightCheck(document: vscode.TextDocument) {
+    const text = document.getText();
+    const diagnostics: vscode.Diagnostic[] = [];
+
+    // Define vulnerability patterns
+    const patterns: { pattern: RegExp; severity: vscode.DiagnosticSeverity; message: string; code: string }[] = [
+        {
+            pattern: /\.call\{.*?\}\([^)]*\)(?![^;]*require|[^;]*assert|[^;]*success)/g,
+            severity: vscode.DiagnosticSeverity.Warning,
+            message: 'Unchecked call return value - consider checking success',
+            code: 'SWC-104'
+        },
+        {
+            pattern: /tx\.origin/g,
+            severity: vscode.DiagnosticSeverity.Error,
+            message: 'tx.origin used for authorization - use msg.sender instead',
+            code: 'SWC-115'
+        },
+        {
+            pattern: /pragma solidity \^/g,
+            severity: vscode.DiagnosticSeverity.Information,
+            message: 'Floating pragma - consider locking to specific version',
+            code: 'SWC-103'
+        },
+        {
+            pattern: /selfdestruct\s*\(/g,
+            severity: vscode.DiagnosticSeverity.Warning,
+            message: 'selfdestruct detected - ensure proper access control',
+            code: 'SWC-106'
+        },
+        {
+            pattern: /delegatecall\s*\(/g,
+            severity: vscode.DiagnosticSeverity.Warning,
+            message: 'delegatecall detected - ensure target is trusted',
+            code: 'SWC-112'
+        },
+        {
+            pattern: /block\.(timestamp|number)\s*[<>=]/g,
+            severity: vscode.DiagnosticSeverity.Information,
+            message: 'Block property used for comparison - may be manipulable',
+            code: 'SWC-116'
+        },
+        {
+            pattern: /assembly\s*\{/g,
+            severity: vscode.DiagnosticSeverity.Information,
+            message: 'Inline assembly detected - verify carefully',
+            code: 'SWC-127'
+        },
+        {
+            pattern: /\.transfer\s*\(/g,
+            severity: vscode.DiagnosticSeverity.Information,
+            message: 'transfer() has fixed gas stipend - may fail with complex receivers',
+            code: 'SWC-134'
+        },
+        {
+            pattern: /blockhash\s*\([^)]*\)\s*%/g,
+            severity: vscode.DiagnosticSeverity.Error,
+            message: 'Weak randomness using blockhash - easily predictable',
+            code: 'SWC-120'
+        },
+        {
+            pattern: /\brevert\s*\(\s*\)/g,
+            severity: vscode.DiagnosticSeverity.Information,
+            message: 'Empty revert - consider adding error message',
+            code: 'INFO-001'
+        }
+    ];
+
+    for (const { pattern, severity, message, code } of patterns) {
+        let match;
+        while ((match = pattern.exec(text)) !== null) {
+            const startPos = document.positionAt(match.index);
+            const endPos = document.positionAt(match.index + match[0].length);
+            const range = new vscode.Range(startPos, endPos);
+
+            const diagnostic = new vscode.Diagnostic(range, `[MIESC] ${message}`, severity);
+            diagnostic.source = 'MIESC (real-time)';
+            diagnostic.code = code;
+            diagnostics.push(diagnostic);
+        }
+    }
+
+    diagnosticCollection.set(document.uri, diagnostics);
+
+    // Update status bar with real-time count
+    const errors = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error).length;
+    const warnings = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Warning).length;
+    if (errors > 0 || warnings > 0) {
+        updateStatusBar(`$(shield) ${errors}E ${warnings}W (live)`);
+    } else {
+        updateStatusBar('$(shield) MIESC');
+    }
+}
+
+/**
  * Deep audit - All 9 layers
  */
 async function deepAudit() {
@@ -265,28 +440,27 @@ async function deepAudit() {
 }
 
 /**
- * Run the audit using MIESC API
+ * Run the audit using MIESC CLI or API
  */
 async function runAudit(filePath: string, layers: number[], showNotification: boolean = true) {
     const config = vscode.workspace.getConfiguration('miesc');
-    const serverUrl = config.get<string>('serverUrl') || 'http://localhost:8000';
-    const timeout = (config.get<number>('timeout') || 300) * 1000;
 
     updateStatusBar('$(sync~spin) Auditing...');
     outputChannel.appendLine(`\n--- Audit Started: ${path.basename(filePath)} ---`);
     outputChannel.appendLine(`Layers: ${layers.join(', ')}`);
+    outputChannel.appendLine(`Mode: ${useCli ? 'CLI' : 'REST API'}`);
 
     try {
-        const response = await axios.post(`${serverUrl}/mcp/run_audit`, {
-            contract_path: filePath,
-            layers: layers,
-            use_local_llm: config.get('useLocalLLM'),
-            ollama_model: config.get('ollamaModel')
-        }, {
-            timeout: timeout
-        });
+        let result: MIESCAuditResult;
 
-        const result: MIESCAuditResult = response.data;
+        if (useCli) {
+            // Use CLI mode (preferred)
+            result = await runAuditCli(filePath, layers);
+        } else {
+            // Fall back to REST API
+            result = await runAuditApi(filePath, layers);
+        }
+
         lastAuditResult = result;
 
         // Process results
@@ -322,19 +496,81 @@ async function runAudit(filePath: string, layers: number[], showNotification: bo
     } catch (error: any) {
         outputChannel.appendLine(`Error: ${error.message}`);
         updateStatusBar('$(shield) MIESC Error');
+        vscode.window.showErrorMessage(`MIESC Error: ${error.message}`);
+    }
+}
 
+/**
+ * Run audit using CLI
+ */
+async function runAuditCli(filePath: string, layers: number[]): Promise<MIESCAuditResult> {
+    let cliResult: CLIAuditResult;
+
+    if (layers.length === 1 && layers[0] === 1) {
+        // Quick scan
+        cliResult = await miescCli.quickAudit(filePath);
+    } else if (layers.length === 9) {
+        // Full audit
+        cliResult = await miescCli.fullAudit(filePath);
+    } else {
+        // Custom layers - use detectors for now
+        cliResult = await miescCli.runDetectors(filePath);
+    }
+
+    // Convert CLI result to MIESCAuditResult format
+    return {
+        success: cliResult.success,
+        findings: cliResult.findings.map(f => ({
+            id: f.id,
+            type: f.category,
+            severity: f.severity,
+            title: f.title,
+            description: f.description,
+            line: f.line,
+            column: f.column,
+            tool: f.tool,
+            swc_id: f.swc_id,
+            cwe_id: f.cwe_id,
+            recommendation: f.recommendation,
+            confidence: f.confidence
+        })),
+        execution_time_ms: cliResult.execution_time_ms,
+        layers_executed: cliResult.layers_executed,
+        tools_used: cliResult.tools_used,
+        summary: cliResult.summary
+    };
+}
+
+/**
+ * Run audit using REST API
+ */
+async function runAuditApi(filePath: string, layers: number[]): Promise<MIESCAuditResult> {
+    const config = vscode.workspace.getConfiguration('miesc');
+    const serverUrl = config.get<string>('serverUrl') || 'http://localhost:8000';
+    const timeout = (config.get<number>('timeout') || 300) * 1000;
+
+    try {
+        const response = await axios.post(`${serverUrl}/mcp/run_audit`, {
+            contract_path: filePath,
+            layers: layers,
+            use_local_llm: config.get('useLocalLLM'),
+            ollama_model: config.get('ollamaModel')
+        }, {
+            timeout: timeout
+        });
+
+        return response.data;
+    } catch (error: any) {
         if (error.code === 'ECONNREFUSED') {
-            vscode.window.showErrorMessage(
-                'MIESC server not running. Start the server or use CLI mode.',
-                'Start Server'
-            ).then(selection => {
-                if (selection === 'Start Server') {
-                    startServer();
-                }
-            });
-        } else {
-            vscode.window.showErrorMessage(`MIESC Error: ${error.message}`);
+            // Try CLI as fallback
+            if (await miescCli.isAvailable()) {
+                outputChannel.appendLine('Server not available, falling back to CLI...');
+                useCli = true;
+                return runAuditCli(filePath, layers);
+            }
+            throw new Error('MIESC server not running and CLI not available. Install MIESC: pip install miesc');
         }
+        throw error;
     }
 }
 
@@ -793,6 +1029,76 @@ class MIESCCodeActionsProvider implements vscode.CodeActionProvider {
                 title: 'Add access control',
                 fix: 'require(msg.sender == owner, "Only owner can destroy");'
             }
+        ],
+        'integer-overflow': [
+            {
+                title: 'Use SafeMath or Solidity 0.8+',
+                fix: '// Solidity 0.8+ has built-in overflow checks\n// For older versions: import "@openzeppelin/contracts/utils/math/SafeMath.sol";'
+            }
+        ],
+        'delegatecall': [
+            {
+                title: 'Add trusted contract check',
+                fix: 'require(trustedContracts[target], "Untrusted delegatecall target");'
+            }
+        ],
+        'timestamp-dependence': [
+            {
+                title: 'Use block.number instead',
+                fix: '// Use block.number for timing if acceptable\n// Or accept minor timestamp manipulation risk with require(block.timestamp > lastTime + minDelay);'
+            }
+        ],
+        'dos-gas': [
+            {
+                title: 'Implement pull pattern',
+                fix: '// Use pull-over-push pattern:\n// mapping(address => uint256) public pendingWithdrawals;\n// function withdraw() external { uint256 amount = pendingWithdrawals[msg.sender]; ... }'
+            }
+        ],
+        'access-control': [
+            {
+                title: 'Add onlyOwner modifier',
+                fix: 'modifier onlyOwner() { require(msg.sender == owner, "Not owner"); _; }'
+            },
+            {
+                title: 'Use OpenZeppelin Ownable',
+                fix: '// import "@openzeppelin/contracts/access/Ownable.sol";\n// contract MyContract is Ownable { ... }'
+            }
+        ],
+        'front-running': [
+            {
+                title: 'Add commit-reveal scheme',
+                fix: '// Implement commit-reveal:\n// 1. commit(hash) - store keccak256(value, secret)\n// 2. reveal(value, secret) - verify and execute'
+            }
+        ],
+        'weak-randomness': [
+            {
+                title: 'Use Chainlink VRF',
+                fix: '// import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";\n// Use Chainlink VRF for secure randomness'
+            }
+        ],
+        'arbitrary-send': [
+            {
+                title: 'Validate recipient address',
+                fix: 'require(allowedRecipients[to], "Recipient not allowed");\n// Or: require(to == msg.sender, "Can only withdraw to self");'
+            }
+        ],
+        'uninitialized-storage': [
+            {
+                title: 'Initialize storage pointer',
+                fix: '// Declare storage variables with explicit storage location\nDataStruct storage myData = storageMapping[key];'
+            }
+        ],
+        'shadowing': [
+            {
+                title: 'Rename shadowed variable',
+                fix: '// Rename the local variable to avoid shadowing state variable'
+            }
+        ],
+        'deprecated': [
+            {
+                title: 'Update deprecated function',
+                fix: '// Common updates:\n// sha3() -> keccak256()\n// throw -> revert()\n// constant -> view or pure\n// var -> explicit type'
+            }
         ]
     };
 
@@ -868,6 +1174,39 @@ class MIESCCodeActionsProvider implements vscode.CodeActionProvider {
         }
         if (message.includes('selfdestruct')) {
             return 'unprotected-selfdestruct';
+        }
+        if (message.includes('overflow') || message.includes('underflow')) {
+            return 'integer-overflow';
+        }
+        if (message.includes('delegatecall')) {
+            return 'delegatecall';
+        }
+        if (message.includes('timestamp') || message.includes('block.timestamp') || message.includes('now')) {
+            return 'timestamp-dependence';
+        }
+        if (message.includes('denial of service') || message.includes('dos') || message.includes('gas limit')) {
+            return 'dos-gas';
+        }
+        if (message.includes('access control') || message.includes('unauthorized') || message.includes('missing modifier')) {
+            return 'access-control';
+        }
+        if (message.includes('front-run') || message.includes('frontrun') || message.includes('sandwich')) {
+            return 'front-running';
+        }
+        if (message.includes('random') && (message.includes('weak') || message.includes('predict') || message.includes('blockhash'))) {
+            return 'weak-randomness';
+        }
+        if (message.includes('arbitrary') && message.includes('send')) {
+            return 'arbitrary-send';
+        }
+        if (message.includes('uninitialized') && message.includes('storage')) {
+            return 'uninitialized-storage';
+        }
+        if (message.includes('shadow')) {
+            return 'shadowing';
+        }
+        if (message.includes('deprecated') || message.includes('sha3') || message.includes('throw')) {
+            return 'deprecated';
         }
 
         return null;

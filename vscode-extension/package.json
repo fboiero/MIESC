@@ -2,7 +2,7 @@
   "name": "miesc-security-auditor",
   "displayName": "MIESC Security Auditor",
   "description": "Multi-layer Intelligent Evaluation for Smart Contracts - 9-layer security audit with 31 tools for Solidity smart contracts",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "miesc",
   "author": {
     "name": "Fernando Boiero",
@@ -138,6 +138,11 @@
           "type": "string",
           "default": "",
           "description": "Path to MIESC installation directory"
+        },
+        "miesc.useCli": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use CLI mode (no server required). If false, requires REST API server."
         },
         "miesc.defaultLayers": {
           "type": "array",
