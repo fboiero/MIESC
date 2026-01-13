@@ -44,7 +44,8 @@ cd MIESC && pip install -e .[dev]
 **Docker:**
 
 ```bash
-docker pull ghcr.io/fboiero/miesc:latest
+# Build locally
+docker build -t miesc:latest .
 docker run --rm -v $(pwd):/contracts miesc:latest scan /contracts/MyContract.sol
 ```
 

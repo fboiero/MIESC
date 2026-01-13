@@ -19,14 +19,14 @@ title: MIESC - Smart Contract Security Framework
 </p>
 
 <p align="center">
-  <a href="https://github.com/fboiero/MIESC/tree/main/webapp">Try Web Demo</a> •
-  <a href="thesis.md">Thesis</a> •
-  <a href="INSTALLATION.md">Documentation</a> •
+  <a href="https://youtu.be/pLa_McNBRRw">Video Demo</a> •
+  <a href="thesis">Thesis</a> •
+  <a href="INSTALLATION">Documentation</a> •
   <a href="https://github.com/fboiero/MIESC">GitHub</a>
 </p>
 
 <p align="center">
-  <strong>English</strong> | <a href="index_es.html">Español</a>
+  <strong>English</strong> | <a href="index_es">Español</a>
 </p>
 
 ---
@@ -212,7 +212,7 @@ make webapp
 # Open browser to http://localhost:8501
 ```
 
-[Full Installation Guide](INSTALLATION.md) | [Quick Start Guide](https://github.com/fboiero/MIESC/blob/main/QUICKSTART.md)
+[Full Installation Guide](INSTALLATION) | [Quick Start Guide](https://github.com/fboiero/MIESC/blob/main/QUICKSTART.md)
 
 ---
 
@@ -254,7 +254,7 @@ Static Dynamic Symbolic Formal
 | **L8** | DeFi Agent | Protocol-specific analysis | DeFi/MEV risks |
 | **L9** | Advanced Agent | Cross-layer correlation | Final audit report |
 
-[Architecture Details](thesis.md)
+[Architecture Details](thesis)
 
 ---
 
@@ -315,7 +315,7 @@ Static Dynamic Symbolic Formal
 }
 ```
 
-[Thesis Documentation](thesis.md)
+[Thesis Documentation](thesis)
 
 ---
 
@@ -323,26 +323,26 @@ Static Dynamic Symbolic Formal
 
 ### Getting Started
 
-- [Installation Guide](INSTALLATION.md)
-- [Tools Reference](TOOLS.md)
-- [Validation Guide](VALIDATION_GUIDE.md)
+- [Installation Guide](INSTALLATION)
+- [Tools Reference](TOOLS)
+- [Validation Guide](VALIDATION_GUIDE)
 
 ### Releases
 
-- [Release Notes v4.3.0](RELEASE_NOTES_v4.3.0.md)
-- [Release Notes v4.2.3](RELEASE_NOTES_v4.2.3.md)
-- [Release Notes v4.0.0](RELEASE_NOTES_v4.0.0.md)
+- [Release Notes v4.3.0](RELEASE_NOTES_v4.3.0)
+- [Release Notes v4.2.3](RELEASE_NOTES_v4.2.3)
+- [Release Notes v4.0.0](RELEASE_NOTES_v4.0.0)
 
 ### Developer Resources
 
-- [Contributing Guidelines](CONTRIBUTING.md)
-- [Security Policy](SECURITY.md)
-- [Changelog](CHANGELOG.md)
+- [Contributing Guidelines](CONTRIBUTING)
+- [Security Policy](SECURITY)
+- [Changelog](CHANGELOG)
 
 ### Thesis
 
-- [Thesis Overview](thesis.md)
-- [Tesis (Español)](thesis_es.md)
+- [Thesis Overview](thesis)
+- [Tesis (Español)](thesis_es)
 
 ---
 
@@ -354,7 +354,7 @@ We welcome contributions from the security research and blockchain communities!
 
 1. **Fork the repository**
 2. **Create a feature branch**: `git checkout -b feature/new-detector`
-3. **Make changes** following our [style guide](CONTRIBUTING.md)
+3. **Make changes** following our [style guide](CONTRIBUTING)
 4. **Run quality checks**: `make all-checks`
 5. **Submit pull request**
 
@@ -366,7 +366,7 @@ We welcome contributions from the security research and blockchain communities!
 - Cross-chain vulnerability analysis
 - Documentation translations
 
-[Contributing Guide](CONTRIBUTING.md)
+[Contributing Guide](CONTRIBUTING)
 
 ---
 

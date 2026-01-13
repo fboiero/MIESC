@@ -271,10 +271,14 @@ docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:v4.3.0-x86 .
 docker run --platform linux/amd64 --rm -v $(pwd):/contracts miesc:v4.3.0-x86 audit quick /contracts/MyContract.sol
 ```
 
-### Pre-built Image (Coming Soon)
+### Pre-built Image
+
+> **Note:** Pre-built Docker images are not yet available on ghcr.io. Please build locally using the instructions above, or install via pip: `pip install miesc`
 
 ```bash
-docker pull ghcr.io/fboiero/miesc:latest
+# Build locally (recommended)
+docker build -t miesc:latest .
+docker run --rm -v $(pwd):/contracts miesc:latest audit quick /contracts/MyContract.sol
 ```
 
 ---

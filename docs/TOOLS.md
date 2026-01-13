@@ -92,7 +92,8 @@ npm install -g solhint
 
 ```bash
 # Use Docker for complete environment
-docker pull ghcr.io/fboiero/miesc:latest
+docker build -t miesc:latest .
+docker run --rm -v $(pwd):/contracts miesc:latest audit full /contracts/
 ```
 
 ## Custom Tool Integration

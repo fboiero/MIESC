@@ -20,14 +20,14 @@ lang: es
 </p>
 
 <p align="center">
-  <a href="https://github.com/fboiero/MIESC/tree/main/webapp">Probar Demo Web</a> •
-  <a href="thesis_es.html">Tesis</a> •
-  <a href="INSTALLATION.md">Documentacion</a> •
+  <a href="https://youtu.be/pLa_McNBRRw">Video Demo</a> •
+  <a href="thesis_es">Tesis</a> •
+  <a href="INSTALLATION">Documentacion</a> •
   <a href="https://github.com/fboiero/MIESC">GitHub</a>
 </p>
 
 <p align="center">
-  <a href="index.html">English</a> | <strong>Español</strong>
+  <a href="./">English</a> | <strong>Español</strong>
 </p>
 
 ---
@@ -213,7 +213,7 @@ make webapp
 # Abrir navegador en http://localhost:8501
 ```
 
-[Guía de Instalación Completa](INSTALLATION.md) | [Guía de Inicio Rápido](https://github.com/fboiero/MIESC/blob/main/QUICKSTART.md)
+[Guía de Instalación Completa](INSTALLATION) | [Guía de Inicio Rápido](https://github.com/fboiero/MIESC/blob/main/QUICKSTART.md)
 ---
 
 ## Arquitectura
@@ -254,7 +254,7 @@ Static Dynamic Symbolic Formal
 | **L8** | Agente DeFi | Análisis específico de protocolos | Riesgos DeFi/MEV |
 | **L9** | Agente Avanzado | Correlación entre capas | Reporte final de auditoría |
 
-[Detalles de Arquitectura](thesis_es.md)
+[Detalles de Arquitectura](thesis_es)
 ---
 
 ## Métricas de Rendimiento
@@ -321,32 +321,32 @@ Static Dynamic Symbolic Formal
 
 ### Comenzar
 
-- [Guía de Instalación](INSTALLATION.md)
-- [Tutorial del Demo](https://github.com/fboiero/MIESC/tree/main/examples)
-- [Demo Web](https://github.com/fboiero/MIESC/tree/main/webapp)
-- [Configuración Docker](INSTALLATION.md#docker-installation)
+- [Guía de Instalación](INSTALLATION)
+- [Ejemplos y Demos](https://github.com/fboiero/MIESC/tree/main/examples)
+- [Ejecutar Web App](https://github.com/fboiero/MIESC#web-interface)
+- [Configuración Docker](INSTALLATION#docker-installation)
 
 ### Conceptos Principales
 
-- [Descripción de Arquitectura](thesis_es.md)
-- [Correlación IA](thesis_es.md)
-- [Policy Agent](thesis_es.md)
-- [Protocolo MCP](thesis_es.md)
+- [Descripción de Arquitectura](thesis_es)
+- [Correlación IA](thesis_es)
+- [Policy Agent](thesis_es)
+- [Protocolo MCP](thesis_es)
 
 ### Recursos para Desarrolladores
 
-- [Guía de Desarrollador](CONTRIBUTING.md)
-- [Guía de Contribución](CONTRIBUTING.md)
+- [Guía de Desarrollador](CONTRIBUTING)
+- [Guía de Contribución](CONTRIBUTING)
 - [Referencia API](https://github.com/fboiero/MIESC)
-- [Extender MIESC](CONTRIBUTING.md)
+- [Extender MIESC](CONTRIBUTING)
 
 ### Temas Avanzados
 
-- [Seguridad Shift-Left](SECURITY.md)
-- [Mapeo de Cumplimiento](thesis_es.md)
-- [Características v4.0](evidence/PHASE_3_4_5_COMPLETION_SUMMARY.md)
+- [Seguridad Shift-Left](SECURITY)
+- [Mapeo de Cumplimiento](thesis_es)
+- [Características v4.0](evidence/PHASE_3_4_5_COMPLETION_SUMMARY)
 
-[Índice Completo de Documentación](index_es.md)
+[Índice Completo de Documentación](index_es)
 ---
 
 ## Contribuir
@@ -357,7 +357,7 @@ Damos la bienvenida a contribuciones de las comunidades de investigación en seg
 
 1. **Hacer fork del repositorio**
 2. **Crear una rama de feature**: `git checkout -b feature/nuevo-detector`
-3. **Realizar cambios** siguiendo nuestra [guía de estilo](CONTRIBUTING.md#coding-standards)
+3. **Realizar cambios** siguiendo nuestra [guía de estilo](CONTRIBUTING)
 4. **Ejecutar verificaciones de calidad**: `make all-checks`
 5. **Enviar pull request**
 
@@ -369,7 +369,7 @@ Damos la bienvenida a contribuciones de las comunidades de investigación en seg
 - Análisis de vulnerabilidades cross-chain
 - Traducciones de documentación
 
-[Guía de Contribución](CONTRIBUTING.md)
+[Guía de Contribución](CONTRIBUTING)
 ---
 
 ## Soporte y Comunidad
