@@ -106,6 +106,9 @@ miesc doctor                         # Check tool availability
 miesc watch ./contracts              # Watch mode (auto-scan on save)
 miesc detectors list                 # List custom detectors
 miesc detectors run contract.sol     # Run custom detectors
+miesc plugins list                   # List installed plugins
+miesc plugins install <package>      # Install plugin from PyPI
+miesc plugins create <name>          # Create new plugin project
 ```
 
 ### Custom Detectors
@@ -133,6 +136,53 @@ my-detector = "my_package:MyDetector"
 ```
 
 See [docs/CUSTOM_DETECTORS.md](./docs/CUSTOM_DETECTORS.md) for full API documentation.
+
+### Plugin System
+
+Install, manage, and create detector plugins from PyPI:
+
+```bash
+# List installed plugins
+miesc plugins list
+
+# Install a plugin from PyPI
+miesc plugins install miesc-defi-detectors
+
+# Create a new plugin project
+miesc plugins create my-detector -d "My custom detector"
+
+# Enable/disable plugins
+miesc plugins disable miesc-some-plugin
+miesc plugins enable miesc-some-plugin
+
+# Show plugin details
+miesc plugins info miesc-defi-detectors
+```
+
+**Create your own plugin package:**
+
+```bash
+# Generate plugin scaffold
+miesc plugins create flash-loan-detector -o ./my-plugins
+
+# Structure created:
+# miesc-flash_loan_detector/
+#   pyproject.toml          # With entry points configured
+#   flash_loan_detector/
+#     detectors.py          # Your detector class
+#   tests/
+#     test_flash_loan_detector.py
+
+# Install in development mode
+cd miesc-flash_loan_detector
+pip install -e .
+
+# Verify it's registered
+miesc plugins list
+miesc detectors list
+```
+
+Plugins are discovered automatically via `miesc.detectors` entry points.
 
 ### Pre-commit Hook
 
