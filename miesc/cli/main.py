@@ -2608,6 +2608,295 @@ def detectors_info(detector_name):
 
 
 # ============================================================================
+# Plugins Command Group
+# ============================================================================
+
+
+@cli.group()
+def plugins():
+    """Manage MIESC detector plugins."""
+    pass
+
+
+@plugins.command("list")
+@click.option("--all", "-a", "show_all", is_flag=True, help="Show disabled plugins too")
+def plugins_list(show_all):
+    """List installed plugins."""
+    print_banner()
+
+    try:
+        from miesc.plugins import PluginManager
+    except ImportError:
+        error("Plugin system not available")
+        return
+
+    manager = PluginManager()
+    installed_plugins = manager.list_installed(include_disabled=show_all)
+
+    if not installed_plugins:
+        info("No plugins installed")
+        info("Install plugins with: miesc plugins install <package>")
+        return
+
+    if RICH_AVAILABLE:
+        table = Table(title="Installed Plugins")
+        table.add_column("Package", style="cyan")
+        table.add_column("Version", style="green")
+        table.add_column("Status")
+        table.add_column("Detectors", justify="right")
+        table.add_column("Description")
+
+        for plugin in installed_plugins:
+            status = "[green]enabled[/green]" if plugin.enabled else "[red]disabled[/red]"
+            table.add_row(
+                plugin.package,
+                plugin.version,
+                status,
+                str(plugin.detector_count),
+                plugin.description[:40] + "..." if len(plugin.description) > 40 else plugin.description,
+            )
+        console.print(table)
+    else:
+        print("\nInstalled Plugins:")
+        for plugin in installed_plugins:
+            status = "enabled" if plugin.enabled else "disabled"
+            print(f"  {plugin.package} v{plugin.version} - {status} ({plugin.detector_count} detectors)")
+
+    success(f"{len(installed_plugins)} plugins installed")
+
+
+@plugins.command("install")
+@click.argument("package")
+@click.option("--upgrade", "-U", is_flag=True, help="Upgrade if already installed")
+def plugins_install(package, upgrade):
+    """Install a plugin from PyPI.
+
+    The package name can be with or without the 'miesc-' prefix.
+
+    Examples:
+
+      miesc plugins install miesc-defi-detectors
+
+      miesc plugins install defi-detectors
+
+      miesc plugins install my-plugin -U
+    """
+    print_banner()
+
+    try:
+        from miesc.plugins import PluginManager
+    except ImportError:
+        error("Plugin system not available")
+        raise SystemExit(1)
+
+    manager = PluginManager()
+
+    info(f"Installing {package}...")
+
+    ok, message = manager.install(package, upgrade=upgrade)
+
+    if ok:
+        success(message)
+    else:
+        error(message)
+        raise SystemExit(1)
+
+
+@plugins.command("uninstall")
+@click.argument("package")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation")
+def plugins_uninstall(package, yes):
+    """Uninstall a plugin.
+
+    Examples:
+
+      miesc plugins uninstall miesc-defi-detectors
+
+      miesc plugins uninstall defi-detectors -y
+    """
+    print_banner()
+
+    try:
+        from miesc.plugins import PluginManager
+    except ImportError:
+        error("Plugin system not available")
+        raise SystemExit(1)
+
+    if not yes:
+        if not click.confirm(f"Uninstall {package}?"):
+            info("Cancelled")
+            return
+
+    manager = PluginManager()
+
+    info(f"Uninstalling {package}...")
+
+    ok, message = manager.uninstall(package)
+
+    if ok:
+        success(message)
+    else:
+        error(message)
+        raise SystemExit(1)
+
+
+@plugins.command("enable")
+@click.argument("plugin_name")
+def plugins_enable(plugin_name):
+    """Enable a disabled plugin.
+
+    Examples:
+
+      miesc plugins enable miesc-defi-detectors
+    """
+    print_banner()
+
+    try:
+        from miesc.plugins import PluginManager
+    except ImportError:
+        error("Plugin system not available")
+        raise SystemExit(1)
+
+    manager = PluginManager()
+    ok, message = manager.enable(plugin_name)
+
+    if ok:
+        success(message)
+    else:
+        error(message)
+        raise SystemExit(1)
+
+
+@plugins.command("disable")
+@click.argument("plugin_name")
+def plugins_disable(plugin_name):
+    """Disable a plugin without uninstalling.
+
+    Examples:
+
+      miesc plugins disable miesc-defi-detectors
+    """
+    print_banner()
+
+    try:
+        from miesc.plugins import PluginManager
+    except ImportError:
+        error("Plugin system not available")
+        raise SystemExit(1)
+
+    manager = PluginManager()
+    ok, message = manager.disable(plugin_name)
+
+    if ok:
+        success(message)
+    else:
+        error(message)
+        raise SystemExit(1)
+
+
+@plugins.command("info")
+@click.argument("plugin_name")
+def plugins_info(plugin_name):
+    """Show detailed information about a plugin.
+
+    Examples:
+
+      miesc plugins info miesc-defi-detectors
+    """
+    print_banner()
+
+    try:
+        from miesc.plugins import PluginManager
+    except ImportError:
+        error("Plugin system not available")
+        raise SystemExit(1)
+
+    manager = PluginManager()
+    plugin = manager.get_plugin_info(plugin_name)
+
+    if not plugin:
+        error(f"Plugin not found: {plugin_name}")
+        return
+
+    if RICH_AVAILABLE:
+        panel_content = f"""[bold cyan]Package:[/bold cyan] {plugin.package}
+[bold cyan]Version:[/bold cyan] {plugin.version}
+[bold cyan]Status:[/bold cyan] {'[green]Enabled[/green]' if plugin.enabled else '[red]Disabled[/red]'}
+[bold cyan]Author:[/bold cyan] {plugin.author or 'N/A'}
+[bold cyan]Description:[/bold cyan] {plugin.description or 'N/A'}
+[bold cyan]Detectors:[/bold cyan] {plugin.detector_count}
+[bold cyan]Local:[/bold cyan] {'Yes' if plugin.local else 'No'}
+
+[bold]Registered Detectors:[/bold]
+{chr(10).join('  - ' + d for d in plugin.detectors) if plugin.detectors else '  (none)'}
+"""
+        console.print(Panel(panel_content, title=f"Plugin: {plugin.name}", border_style="cyan"))
+    else:
+        print(f"\n=== {plugin.name} ===")
+        print(f"Package: {plugin.package}")
+        print(f"Version: {plugin.version}")
+        print(f"Status: {'Enabled' if plugin.enabled else 'Disabled'}")
+        print(f"Detectors: {plugin.detector_count}")
+        if plugin.detectors:
+            print("Registered Detectors:")
+            for d in plugin.detectors:
+                print(f"  - {d}")
+
+
+@plugins.command("create")
+@click.argument("name")
+@click.option("--output", "-o", type=click.Path(), default=".", help="Output directory")
+@click.option("--description", "-d", type=str, default="", help="Plugin description")
+@click.option("--author", "-a", type=str, default="", help="Author name")
+def plugins_create(name, output, description, author):
+    """Create a new plugin project scaffold.
+
+    Creates a complete plugin project structure with:
+    - pyproject.toml with entry points
+    - Detector class template
+    - Test file template
+    - README.md
+
+    Examples:
+
+      miesc plugins create my-detector
+
+      miesc plugins create flash-loan-detector -o ./plugins -d "Flash loan detector"
+    """
+    print_banner()
+
+    try:
+        from miesc.plugins import PluginManager
+    except ImportError:
+        error("Plugin system not available")
+        raise SystemExit(1)
+
+    from pathlib import Path
+
+    manager = PluginManager()
+
+    info(f"Creating plugin scaffold for '{name}'...")
+
+    try:
+        plugin_path = manager.create_plugin_scaffold(
+            name=name,
+            output_dir=Path(output),
+            description=description,
+            author=author,
+        )
+        success(f"Created plugin at: {plugin_path}")
+        info("")
+        info("Next steps:")
+        info(f"  cd {plugin_path}")
+        info("  pip install -e .")
+        info("  # Edit the detector in detectors.py")
+        info("  miesc plugins list  # Verify plugin is registered")
+    except Exception as e:
+        error(f"Failed to create plugin: {e}")
+        raise SystemExit(1)
+
+
+# ============================================================================
 # Report Command
 # ============================================================================
 
