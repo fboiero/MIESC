@@ -13,8 +13,8 @@
 FROM python:3.11-slim-bookworm AS builder
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="4.2.2"
-LABEL description="MIESC - ML-enhanced MCP-compatible blockchain security framework"
+LABEL version="4.3.2"
+LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -47,8 +47,8 @@ RUN cargo install medusa || echo "Medusa install failed - will be optional"
 FROM python:3.11-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="4.2.2"
-LABEL description="MIESC - ML-enhanced MCP-compatible blockchain security framework"
+LABEL version="4.3.2"
+LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
 # Copy Rust binaries from builder
 COPY --from=builder /root/.cargo/bin/aderyn /usr/local/bin/
@@ -118,20 +118,20 @@ RUN pip install --no-cache-dir --user manticore[native] && \
     echo "WARNING: Manticore install failed - may not support this architecture"
 
 # Environment variables for MIESC
-ENV MIESC_VERSION="4.2.2"
+ENV MIESC_VERSION="4.3.2"
 ENV MIESC_ENV="docker"
 ENV PYTHONPATH="/app:${PYTHONPATH}"
 ENV PYTHONUNBUFFERED=1
 
 # Health check with ML pipeline verification
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "from src.core import get_ml_orchestrator; print('MIESC v4.2.2 ML OK')" || exit 1
+    CMD python -c "from src.core import get_ml_orchestrator; print('MIESC v4.3.2 ML OK')" || exit 1
 
 # Expose API port (if running FastAPI server)
 EXPOSE 8000
 
 # Default command: Show MIESC version and run tests
-CMD ["sh", "-c", "echo '=== MIESC v4.2.2 - Docker Deployment ===' && \
+CMD ["sh", "-c", "echo '=== MIESC v4.3.2 - Docker Deployment ===' && \
      echo 'Python version:' && python --version && \
      echo 'Installed tools:' && \
      echo '- Slither:' && slither --version 2>&1 | head -1 && \

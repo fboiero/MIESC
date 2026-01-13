@@ -92,6 +92,10 @@ npm install -g solhint
 
 ```bash
 # Use Docker for complete environment
+docker pull ghcr.io/fboiero/miesc:latest
+docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:latest audit full /contracts/
+
+# Or build locally
 docker build -t miesc:latest .
 docker run --rm -v $(pwd):/contracts miesc:latest audit full /contracts/
 ```
