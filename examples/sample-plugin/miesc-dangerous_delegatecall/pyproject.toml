@@ -1,0 +1,23 @@
+[project]
+name = "miesc-dangerous_delegatecall"
+version = "0.1.0"
+description = "Detects dangerous delegatecall patterns in smart contracts"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "MIESC Team"}
+]
+dependencies = [
+    "miesc>=4.3.0",
+]
+
+[project.entry-points."miesc.detectors"]
+dangerous_delegatecall = "dangerous_delegatecall.detectors:DangerousDelegatecallDetector"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
