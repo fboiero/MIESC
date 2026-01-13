@@ -1,8 +1,8 @@
-# MIESC v4.0.0 - Complete Docker Deployment
+# MIESC v4.3.2 - Complete Docker Deployment
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile creates a complete, production-ready environment with:
-# - Python 3.11 runtime
+# - Python 3.12 runtime
 # - Security tools: Slither, Mythril, Manticore, Aderyn, Medusa
 # - Solidity compiler (solc)
 # - ML Pipeline: FP filtering, severity prediction, clustering
@@ -10,7 +10,7 @@
 # - Complete test suite
 
 # Stage 1: Builder - Install dependencies and build tools
-FROM python:3.11-slim-bookworm AS builder
+FROM python:3.12-slim-bookworm AS builder
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
 LABEL version="4.3.2"
@@ -44,7 +44,7 @@ RUN cargo install aderyn
 RUN cargo install medusa || echo "Medusa install failed - will be optional"
 
 # Stage 2: Runtime - Create lean production image
-FROM python:3.11-slim-bookworm
+FROM python:3.12-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
 LABEL version="4.3.2"
