@@ -61,12 +61,11 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=,format=short
             type=ref,event=branch
             type=ref,event=pr
 
-      - name: Build and push (amd64 only for speed)
+      - name: Build and push (amd64 only for PR/SHA tags)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -80,8 +79,8 @@ jobs:
       - name: Test Docker image
         if: github.event_name != 'pull_request'
         run: |
-          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest miesc --version || \
-          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest python -c "import miesc; print('MIESC OK')"
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main miesc --version || \
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main python -c "import miesc; print('MIESC OK')"
 
   build-multiarch:
     name: Build Multi-arch Image
