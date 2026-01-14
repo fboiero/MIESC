@@ -135,7 +135,7 @@ class Finding:
 
 
 class BaseDetector(ABC):
-    """
+    r"""
     Abstract base class for custom vulnerability detectors.
 
     To create a custom detector:
@@ -320,7 +320,7 @@ class BaseDetector(ABC):
 
 
 class PatternDetector(BaseDetector):
-    """
+    r"""
     Simplified detector for pattern-based detection.
 
     Define PATTERNS as a list of (regex_pattern, description, severity) tuples.
