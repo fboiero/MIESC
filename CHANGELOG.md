@@ -5,6 +5,61 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.3] - 2025-01-14
+
+### Added
+
+#### Plugin System
+- **Full plugin management CLI**: `miesc plugins list/install/uninstall/enable/disable/create`
+- **Plugin scaffolding**: `miesc plugins create my-detector` generates complete plugin project
+- **PyPI integration**: Install detector plugins directly from PyPI
+- **Plugin configuration**: Enable/disable plugins via `~/.miesc/plugins.yaml`
+
+#### Custom Detectors
+- **15 built-in detectors** available out of the box:
+  - `flash-loan-attack` - Flash loan attack patterns
+  - `reentrancy-patterns` - Reentrancy vulnerabilities
+  - `access-control` - Missing access controls
+  - `tx-origin` - tx.origin authentication issues
+  - `unchecked-return` - Unchecked return values
+  - `slippage-protection` - Missing slippage protection
+  - `rug-pull-patterns` - Token rug pull patterns
+  - `mev-vulnerability` - MEV extraction vulnerabilities
+  - `delegatecall-danger` - Dangerous delegatecall patterns
+  - `selfdestruct-usage` - Selfdestruct usage detection
+  - `weak-randomness` - Weak randomness sources
+  - `timestamp-dependence` - Block.timestamp reliance
+  - `approval-race` - ERC20 approval race conditions
+  - `unbounded-loop` - DoS via unbounded loops
+  - `hardcoded-address` - Hardcoded addresses
+
+#### Sample Plugin
+- **Example plugin** in `examples/sample-plugin/` demonstrating:
+  - Complete plugin structure with `pyproject.toml`
+  - Custom detector implementation (`DangerousDelegatecallDetector`)
+  - Test suite for the detector
+  - Vulnerable test contract (`VulnerableProxy.sol`)
+
+#### Docker ARM64 Support
+- **Multi-arch Docker images**: `ghcr.io/fboiero/miesc:latest` now supports both AMD64 and ARM64
+- Native support for Apple Silicon (M1/M2/M3/M4) Macs
+- Fixed `latest` tag to include ARM64 manifest
+
+### Changed
+- Docker workflow builds `latest` tag only from multi-arch job
+- Plugin entry points now use string category instead of enum for flexibility
+
+### Documentation
+- Added sample plugin documentation in `examples/sample-plugin/README.md`
+- Updated plugin system documentation in README.md
+
+### Links
+- **PyPI**: https://pypi.org/project/miesc/4.3.3/
+- **GitHub Release**: https://github.com/fboiero/MIESC/releases/tag/v4.3.3
+- **Docker**: `docker pull ghcr.io/fboiero/miesc:latest`
+
+---
+
 ## [4.3.2] - 2025-01-09
 
 ### Added
