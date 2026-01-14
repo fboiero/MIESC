@@ -3,7 +3,7 @@
 [![Licencia: AGPL v3](https://img.shields.io/badge/Licencia-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/pypi/v/miesc)](https://pypi.org/project/miesc/)
-[![Versión](https://img.shields.io/badge/versión-4.3.2-green)](https://github.com/fboiero/MIESC/releases)
+[![Versión](https://img.shields.io/badge/versión-4.3.3-green)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions/workflows/secure-dev-pipeline.yml)
 [![Cobertura](https://img.shields.io/badge/cobertura-81%25-green)](./htmlcov/index.html)
 [![Herramientas](https://img.shields.io/badge/herramientas-31%2F31%20operativas-brightgreen)](./docs/TOOLS.md)
@@ -121,7 +121,7 @@ Agrega a tu `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v4.3.2
+    rev: v4.3.3
     hooks:
       - id: miesc-quick
         args: ['--ci']  # Falla en issues críticos/altos
@@ -799,7 +799,7 @@ Resultados: `benchmark_results/`, `outputs/benchmarks/`
   title = {{MIESC}: Evaluación Inteligente Multicapa para Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
-  version = {4.3.2},
+  version = {4.3.3},
   note = {Implementación para Tesis de Maestría en Ciberdefensa}
 }
 ```
@@ -808,7 +808,7 @@ Resultados: `benchmark_results/`, `outputs/benchmarks/`
 
 ## Roadmap
 
-**v4.3.2 (actual)**:
+**v4.3.3 (actual)**:
 
 - Distribución PyPI: `pip install miesc` disponible
 - PropertyGPT: Generación automatizada de propiedades CVL (+700% adopción verificación formal)
@@ -901,6 +901,6 @@ Datasets: SmartBugs (INESC-ID), SolidiFI (TU Delft), Etherscan.
 
 ---
 
-**Versión 4.3.2** | Enero 2026
+**Versión 4.3.3** | Enero 2026
 
 [Repositorio](https://github.com/fboiero/MIESC) | [Documentación](https://fboiero.github.io/MIESC) | [Issues](https://github.com/fboiero/MIESC/issues)
