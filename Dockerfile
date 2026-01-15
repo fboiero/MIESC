@@ -1,4 +1,4 @@
-# MIESC v4.3.3 - Complete Docker Deployment
+# MIESC v4.3.4 - Complete Docker Deployment
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile creates a complete, production-ready environment with:
@@ -13,7 +13,7 @@
 FROM python:3.12-slim-bookworm AS builder
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="4.3.3"
+LABEL version="4.3.4"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
 # Install system dependencies
@@ -47,7 +47,7 @@ RUN cargo install medusa || echo "Medusa install failed - will be optional"
 FROM python:3.12-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="4.3.3"
+LABEL version="4.3.4"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
 # Copy Rust binaries from builder
@@ -118,37 +118,20 @@ RUN pip install --no-cache-dir --user manticore[native] && \
     echo "WARNING: Manticore install failed - may not support this architecture"
 
 # Environment variables for MIESC
-ENV MIESC_VERSION="4.3.3"
+ENV MIESC_VERSION="4.3.4"
 ENV MIESC_ENV="docker"
 ENV PYTHONPATH="/app:${PYTHONPATH}"
 ENV PYTHONUNBUFFERED=1
 
 # Health check with ML pipeline verification
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "from src.core import get_ml_orchestrator; print('MIESC v4.3.3 ML OK')" || exit 1
+    CMD miesc --version || exit 1
 
 # Expose API port (if running FastAPI server)
 EXPOSE 8000
 
-# Default command: Show MIESC version and run tests
-CMD ["sh", "-c", "echo '=== MIESC v4.3.3 - Docker Deployment ===' && \
-     echo 'Python version:' && python --version && \
-     echo 'Installed tools:' && \
-     echo '- Slither:' && slither --version 2>&1 | head -1 && \
-     echo '- Mythril:' && (myth version 2>&1 | head -1 || echo 'Not installed (optional)') && \
-     echo '- Aderyn:' && (aderyn --version 2>&1 | head -1 || echo 'Not installed') && \
-     echo '- Solc:' && solc --version | head -1 && \
-     echo '- Manticore:' && (manticore --version 2>&1 | head -1 || echo 'Not installed (optional)') && \
-     echo '' && \
-     echo 'Running MIESC test suite...' && \
-     python -m pytest tests/ -v --tb=short --maxfail=3"]
+# Set ENTRYPOINT to miesc CLI - allows: docker run miesc scan contract.sol
+ENTRYPOINT ["miesc"]
 
-# Alternative entry points (uncomment as needed):
-# Run API server:
-# CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
-# Run CLI:
-# ENTRYPOINT ["python", "-m", "src.cli.miesc_cli"]
-
-# Interactive shell:
-# CMD ["/bin/bash"]
+# Default command: show help
+CMD ["--help"]
