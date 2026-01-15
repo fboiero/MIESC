@@ -229,6 +229,9 @@ class PluginManager:
     def _discover_local_plugins(self) -> list[PluginInfo]:
         """Discover plugins from local plugins directory.
 
+        Scans ~/.miesc/plugins/ for valid plugin packages and introspects
+        them to find detector classes.
+
         Returns:
             List of PluginInfo for local plugins
         """
@@ -241,26 +244,179 @@ class PluginManager:
             if not plugin_dir.is_dir():
                 continue
 
-            # Look for __init__.py or detectors.py
-            init_file = plugin_dir / "__init__.py"
-            detectors_file = plugin_dir / "detectors.py"
+            # Skip hidden directories and __pycache__
+            if plugin_dir.name.startswith('.') or plugin_dir.name == '__pycache__':
+                continue
 
-            if init_file.exists() or detectors_file.exists():
-                enabled = self.config_manager.is_enabled(plugin_dir.name)
-                plugins.append(
-                    PluginInfo(
-                        name=plugin_dir.name,
-                        package=plugin_dir.name,
-                        version="local",
-                        enabled=enabled,
-                        detector_count=0,  # Would need to introspect
-                        detectors=[],
-                        description=f"Local plugin from {plugin_dir}",
-                        local=True,
-                    )
-                )
+            # Try to load plugin info
+            plugin_info = self._load_local_plugin_info(plugin_dir)
+            if plugin_info:
+                plugins.append(plugin_info)
 
         return plugins
+
+    def _load_local_plugin_info(self, plugin_dir: Path) -> PluginInfo | None:
+        """Load plugin info from a local plugin directory.
+
+        Args:
+            plugin_dir: Path to the plugin directory
+
+        Returns:
+            PluginInfo or None if not a valid plugin
+        """
+        import importlib.util
+        import tomllib
+        import inspect
+
+        plugin_name = plugin_dir.name
+        version = "local"
+        description = ""
+        author = ""
+        detectors = []
+
+        # Try to read pyproject.toml for metadata
+        pyproject_path = plugin_dir / "pyproject.toml"
+        if pyproject_path.exists():
+            try:
+                with open(pyproject_path, "rb") as f:
+                    pyproject = tomllib.load(f)
+                    project = pyproject.get("project", {})
+                    version = project.get("version", "local")
+                    description = project.get("description", "")
+                    authors = project.get("authors", [])
+                    if authors and isinstance(authors, list):
+                        author = authors[0].get("name", "") if isinstance(authors[0], dict) else str(authors[0])
+            except Exception:
+                pass
+
+        # Find detector classes in the plugin
+        detector_classes = self._find_detector_classes_in_dir(plugin_dir)
+        detectors = [cls.__name__ for cls in detector_classes]
+
+        # Must have at least one detector or a recognizable structure
+        has_detectors_file = (plugin_dir / "detectors.py").exists()
+        has_init = (plugin_dir / "__init__.py").exists()
+        has_subpackage = any(
+            (plugin_dir / d / "detectors.py").exists()
+            for d in plugin_dir.iterdir()
+            if d.is_dir() and not d.name.startswith('.')
+        )
+
+        if not (detectors or has_detectors_file or has_init or has_subpackage):
+            return None
+
+        enabled = self.config_manager.is_enabled(plugin_name)
+
+        return PluginInfo(
+            name=plugin_name,
+            package=plugin_name,
+            version=version,
+            enabled=enabled,
+            detector_count=len(detectors),
+            detectors=detectors,
+            description=description or f"Local plugin from {plugin_dir}",
+            author=author,
+            local=True,
+        )
+
+    def _find_detector_classes_in_dir(self, plugin_dir: Path) -> list[type]:
+        """Find all detector classes in a plugin directory.
+
+        Args:
+            plugin_dir: Path to the plugin directory
+
+        Returns:
+            List of detector classes found
+        """
+        import importlib.util
+        import inspect
+        import sys
+
+        detector_classes = []
+
+        # Import BaseDetector for isinstance checks
+        try:
+            from miesc.detectors import BaseDetector
+        except ImportError:
+            try:
+                from src.detectors.detector_api import BaseDetector
+            except ImportError:
+                return detector_classes
+
+        # Files to check for detectors
+        files_to_check = []
+
+        # Direct detectors.py
+        if (plugin_dir / "detectors.py").exists():
+            files_to_check.append(plugin_dir / "detectors.py")
+
+        # Check subpackages (e.g., my_plugin/detectors.py)
+        for subdir in plugin_dir.iterdir():
+            if subdir.is_dir() and not subdir.name.startswith('.') and subdir.name != '__pycache__':
+                if (subdir / "detectors.py").exists():
+                    files_to_check.append(subdir / "detectors.py")
+                if (subdir / "__init__.py").exists():
+                    files_to_check.append(subdir / "__init__.py")
+
+        for file_path in files_to_check:
+            try:
+                # Create a unique module name
+                module_name = f"miesc_local_plugin_{plugin_dir.name}_{file_path.stem}"
+
+                # Load the module
+                spec = importlib.util.spec_from_file_location(module_name, file_path)
+                if spec is None or spec.loader is None:
+                    continue
+
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module
+
+                try:
+                    spec.loader.exec_module(module)
+                except Exception:
+                    continue
+
+                # Find detector classes
+                for name, obj in inspect.getmembers(module, inspect.isclass):
+                    if (obj is not BaseDetector and
+                        issubclass(obj, BaseDetector) and
+                        hasattr(obj, 'name') and
+                        hasattr(obj, 'analyze')):
+                        detector_classes.append(obj)
+
+            except Exception:
+                continue
+
+        return detector_classes
+
+    def ensure_local_plugins_dir(self) -> Path:
+        """Ensure the local plugins directory exists.
+
+        Returns:
+            Path to the local plugins directory
+        """
+        self.LOCAL_PLUGINS_DIR.mkdir(parents=True, exist_ok=True)
+        return self.LOCAL_PLUGINS_DIR
+
+    def get_local_plugin_detectors(self) -> list[tuple[str, type]]:
+        """Get all detector classes from enabled local plugins.
+
+        Returns:
+            List of (detector_name, detector_class) tuples
+        """
+        detectors = []
+
+        for plugin in self._discover_local_plugins():
+            if not plugin.enabled:
+                continue
+
+            plugin_dir = self.LOCAL_PLUGINS_DIR / plugin.name
+            if plugin_dir.exists():
+                for detector_class in self._find_detector_classes_in_dir(plugin_dir):
+                    detector_name = getattr(detector_class, 'name', detector_class.__name__)
+                    detectors.append((detector_name, detector_class))
+
+        return detectors
 
     def enable(self, plugin_name: str) -> tuple[bool, str]:
         """Enable a plugin.
@@ -332,13 +488,14 @@ class PluginManager:
         return plugin
 
     def get_enabled_detectors(self) -> list[tuple[str, Any]]:
-        """Get all detector classes from enabled plugins.
+        """Get all detector classes from enabled plugins (PyPI and local).
 
         Returns:
             List of (name, detector_class) tuples
         """
         detectors = []
 
+        # Get detectors from PyPI-installed plugins (entry points)
         try:
             eps = importlib.metadata.entry_points()
             if hasattr(eps, "select"):
@@ -346,7 +503,7 @@ class PluginManager:
             else:
                 detector_eps = eps.get(self.ENTRY_POINT_GROUP, [])
         except Exception:
-            return detectors
+            detector_eps = []
 
         for ep in detector_eps:
             try:
@@ -360,6 +517,10 @@ class PluginManager:
                 detectors.append((ep.name, detector_class))
             except Exception:
                 continue
+
+        # Get detectors from local plugins
+        local_detectors = self.get_local_plugin_detectors()
+        detectors.extend(local_detectors)
 
         return detectors
 

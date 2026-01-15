@@ -2365,12 +2365,15 @@ def detectors_list(verbose):
     print_banner()
 
     try:
-        # Also load example detectors
+        # Also load example detectors and local plugins
         from miesc.detectors import (
             examples,  # noqa: F401
             get_all_detectors,
             list_detectors,
+            load_local_plugins,
         )
+        # Load local plugins from ~/.miesc/plugins/
+        load_local_plugins()
     except ImportError as e:
         error(f"Detector API not available: {e}")
         return
@@ -2434,14 +2437,17 @@ def detectors_run(contract, detector, output, severity):
     print_banner()
 
     try:
-        # Load example detectors
+        # Load example detectors and local plugins
         from miesc.detectors import (
             Severity,
             examples,  # noqa: F401
             get_all_detectors,
+            load_local_plugins,
             run_all_detectors,
             run_detector,
         )
+        # Load local plugins from ~/.miesc/plugins/
+        load_local_plugins()
     except ImportError as e:
         error(f"Detector API not available: {e}")
         sys.exit(1)
@@ -2638,31 +2644,45 @@ def plugins_list(show_all):
         info("Install plugins with: miesc plugins install <package>")
         return
 
+    # Separate local and PyPI plugins for display
+    local_plugins = [p for p in installed_plugins if p.local]
+    pypi_plugins = [p for p in installed_plugins if not p.local]
+
     if RICH_AVAILABLE:
         table = Table(title="Installed Plugins")
         table.add_column("Package", style="cyan")
         table.add_column("Version", style="green")
+        table.add_column("Type")
         table.add_column("Status")
         table.add_column("Detectors", justify="right")
         table.add_column("Description")
 
         for plugin in installed_plugins:
             status = "[green]enabled[/green]" if plugin.enabled else "[red]disabled[/red]"
+            plugin_type = "[yellow]local[/yellow]" if plugin.local else "PyPI"
             table.add_row(
                 plugin.package,
                 plugin.version,
+                plugin_type,
                 status,
                 str(plugin.detector_count),
-                plugin.description[:40] + "..." if len(plugin.description) > 40 else plugin.description,
+                plugin.description[:35] + "..." if len(plugin.description) > 35 else plugin.description,
             )
         console.print(table)
+
+        if local_plugins:
+            info(f"Local plugins directory: {manager.LOCAL_PLUGINS_DIR}")
     else:
         print("\nInstalled Plugins:")
         for plugin in installed_plugins:
             status = "enabled" if plugin.enabled else "disabled"
-            print(f"  {plugin.package} v{plugin.version} - {status} ({plugin.detector_count} detectors)")
+            local_marker = " (local)" if plugin.local else ""
+            print(f"  {plugin.package} v{plugin.version}{local_marker} - {status} ({plugin.detector_count} detectors)")
 
-    success(f"{len(installed_plugins)} plugins installed")
+        if local_plugins:
+            print(f"\nLocal plugins directory: {manager.LOCAL_PLUGINS_DIR}")
+
+    success(f"{len(installed_plugins)} plugins installed ({len(local_plugins)} local, {len(pypi_plugins)} PyPI)")
 
 
 @plugins.command("install")
@@ -2962,6 +2982,53 @@ def plugins_search(query, timeout):
                 print(f"    {desc}")
             print()
         print("Install with: miesc plugins install <package-name>")
+
+
+@plugins.command("path")
+@click.option("--create", "-c", is_flag=True, help="Create the directory if it doesn't exist")
+def plugins_path(create):
+    """Show the local plugins directory path.
+
+    Local plugins can be placed in this directory for automatic discovery
+    without requiring PyPI installation.
+
+    Examples:
+
+      miesc plugins path
+
+      miesc plugins path --create
+    """
+    print_banner()
+
+    try:
+        from miesc.plugins import PluginManager
+    except ImportError:
+        error("Plugin system not available")
+        raise SystemExit(1)
+
+    manager = PluginManager()
+    plugins_dir = manager.LOCAL_PLUGINS_DIR
+
+    if create:
+        plugins_dir = manager.ensure_local_plugins_dir()
+        success(f"Local plugins directory created: {plugins_dir}")
+    else:
+        info(f"Local plugins directory: {plugins_dir}")
+        if plugins_dir.exists():
+            success("Directory exists")
+            # Count plugins
+            plugin_count = sum(1 for d in plugins_dir.iterdir() if d.is_dir() and not d.name.startswith('.'))
+            if plugin_count:
+                info(f"Contains {plugin_count} plugin(s)")
+        else:
+            info("Directory does not exist yet")
+            info("Use --create to create it, or it will be created automatically")
+
+    info("")
+    info("To add a local plugin:")
+    info(f"  1. Copy your plugin to: {plugins_dir}/<plugin-name>/")
+    info("  2. Ensure it has a detectors.py or <package>/detectors.py file")
+    info("  3. Run 'miesc plugins list' to verify it's detected")
 
 
 # ============================================================================

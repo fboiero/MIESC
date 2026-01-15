@@ -427,6 +427,35 @@ def load_detectors_from_package(package_name: str) -> int:
     return loaded
 
 
+def load_local_plugins() -> int:
+    """
+    Load detectors from local plugins directory (~/.miesc/plugins/).
+
+    Returns:
+        Number of detectors loaded
+    """
+    loaded = 0
+    try:
+        from miesc.plugins import PluginManager
+
+        manager = PluginManager()
+        local_detectors = manager.get_local_plugin_detectors()
+
+        for name, detector_class in local_detectors:
+            try:
+                register_detector(detector_class)
+                loaded += 1
+            except Exception as e:
+                logger.error(f"Error registering local detector {name}: {e}")
+
+    except ImportError:
+        logger.debug("Plugin manager not available, skipping local plugins")
+    except Exception as e:
+        logger.error(f"Error loading local plugins: {e}")
+
+    return loaded
+
+
 # Export public API
 __all__ = [
     "Severity",
@@ -442,4 +471,5 @@ __all__ = [
     "run_detector",
     "run_all_detectors",
     "load_detectors_from_package",
+    "load_local_plugins",
 ]
