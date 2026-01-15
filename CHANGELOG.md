@@ -5,7 +5,7 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.3.3] - 2025-01-14
+## [4.3.3] - 2025-01-15
 
 ### Added
 
@@ -13,7 +13,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Full plugin management CLI**: `miesc plugins list/install/uninstall/enable/disable/create`
 - **Plugin scaffolding**: `miesc plugins create my-detector` generates complete plugin project
 - **PyPI integration**: Install detector plugins directly from PyPI
+- **PyPI search**: `miesc plugins search <query>` to discover plugins on PyPI
+- **Local plugins directory**: `~/.miesc/plugins/` for development and local plugins
+- **Version compatibility validation**: Checks plugin compatibility with MIESC version before installation
 - **Plugin configuration**: Enable/disable plugins via `~/.miesc/plugins.yaml`
+
+#### New CLI Commands
+- `miesc plugins search <query>` - Search for plugins on PyPI
+- `miesc plugins path [--create]` - Show/create local plugins directory
+- `miesc plugins info <name>` - Show plugin details including version requirements
+- `miesc plugins install --force` - Force install incompatible plugins
+- `miesc plugins install --no-check` - Skip compatibility validation
 
 #### Custom Detectors
 - **15 built-in detectors** available out of the box:
@@ -48,6 +58,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - Docker workflow builds `latest` tag only from multi-arch job
 - Plugin entry points now use string category instead of enum for flexibility
+- `miesc plugins list` now shows compatibility status column
+- `miesc plugins info` now displays version requirements and compatibility details
+
+### Fixed
+- **SyntaxWarning in detector_api.py**: Escaped regex patterns in docstrings (Issue #4)
 
 ### Documentation
 - Added sample plugin documentation in `examples/sample-plugin/README.md`
@@ -309,7 +324,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/fboiero/MIESC/compare/v4.2.1...HEAD
+[Unreleased]: https://github.com/fboiero/MIESC/compare/v4.3.3...HEAD
+[4.3.3]: https://github.com/fboiero/MIESC/compare/v4.3.2...v4.3.3
+[4.3.2]: https://github.com/fboiero/MIESC/compare/v4.2.1...v4.3.2
 [4.2.1]: https://github.com/fboiero/MIESC/compare/v4.1.0...v4.2.1
 [4.1.0]: https://github.com/fboiero/MIESC/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/fboiero/MIESC/compare/v3.5.0...v4.0.0
