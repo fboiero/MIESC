@@ -363,22 +363,115 @@ class PluginManager:
 
         return detectors
 
-    def search_pypi(self, query: str) -> list[dict[str, str]]:
+    def search_pypi(self, query: str, timeout: int = 10) -> list[dict[str, str]]:
         """Search PyPI for MIESC plugins.
 
-        Note: PyPI doesn't have a search API, so this uses a simple approach
-        of checking if specific packages exist.
+        Uses multiple strategies:
+        1. Check known MIESC plugins registry
+        2. Query PyPI JSON API for packages matching miesc-* pattern
+        3. Filter results by query string
 
         Args:
-            query: Search query
+            query: Search query (searches name and description)
+            timeout: Request timeout in seconds
 
         Returns:
-            List of package info dicts
+            List of package info dicts with keys: name, version, description, url
         """
-        # PyPI search API is deprecated, so we return empty
-        # In a real implementation, you could use pypi.org/search
-        # or maintain a registry of known plugins
-        return []
+        import urllib.request
+        import urllib.error
+        import json
+
+        results = []
+        checked_packages = set()
+
+        # Known MIESC plugins registry (expandable)
+        known_plugins = [
+            "miesc-defi-detectors",
+            "miesc-flash-loan",
+            "miesc-reentrancy",
+            "miesc-access-control",
+            "miesc-mev-protection",
+            "miesc-upgradeable",
+            "miesc-oracle",
+            "miesc-nft-security",
+            "miesc-token-security",
+            "miesc-bridge-security",
+        ]
+
+        # Also generate potential package names from query
+        query_lower = query.lower().strip()
+        potential_packages = [
+            f"miesc-{query_lower}",
+            f"miesc-{query_lower}-detector",
+            f"miesc-{query_lower}-detectors",
+            f"miesc-{query_lower.replace(' ', '-')}",
+        ]
+
+        # Combine all packages to check
+        packages_to_check = known_plugins + potential_packages
+
+        for package_name in packages_to_check:
+            if package_name in checked_packages:
+                continue
+            checked_packages.add(package_name)
+
+            try:
+                # Query PyPI JSON API
+                url = f"https://pypi.org/pypi/{package_name}/json"
+                req = urllib.request.Request(
+                    url,
+                    headers={"Accept": "application/json", "User-Agent": "MIESC/4.3.3"}
+                )
+
+                with urllib.request.urlopen(req, timeout=timeout) as response:
+                    if response.status == 200:
+                        data = json.loads(response.read().decode("utf-8"))
+                        info = data.get("info", {})
+
+                        name = info.get("name", package_name)
+                        version = info.get("version", "unknown")
+                        description = info.get("summary", "")
+                        project_url = info.get("project_url", f"https://pypi.org/project/{package_name}/")
+
+                        # Filter by query - check if query matches name or description
+                        name_lower = name.lower()
+                        desc_lower = description.lower()
+
+                        if (query_lower in name_lower or
+                            query_lower in desc_lower or
+                            any(word in name_lower for word in query_lower.split()) or
+                            any(word in desc_lower for word in query_lower.split())):
+
+                            results.append({
+                                "name": name,
+                                "version": version,
+                                "description": description,
+                                "url": project_url,
+                            })
+
+            except urllib.error.HTTPError:
+                # Package doesn't exist, skip
+                continue
+            except urllib.error.URLError:
+                # Network error, skip
+                continue
+            except Exception:
+                # Any other error, skip
+                continue
+
+        # Sort by relevance (exact match first, then alphabetically)
+        def sort_key(pkg):
+            name = pkg["name"].lower()
+            if query_lower == name or query_lower == name.replace("miesc-", ""):
+                return (0, name)
+            if query_lower in name:
+                return (1, name)
+            return (2, name)
+
+        results.sort(key=sort_key)
+
+        return results
 
     def create_plugin_scaffold(
         self, name: str, output_dir: Path, description: str = "", author: str = ""

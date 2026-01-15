@@ -2896,6 +2896,74 @@ def plugins_create(name, output, description, author):
         raise SystemExit(1)
 
 
+@plugins.command("search")
+@click.argument("query")
+@click.option("--timeout", "-t", type=int, default=10, help="Request timeout in seconds")
+def plugins_search(query, timeout):
+    """Search PyPI for MIESC detector plugins.
+
+    Searches the PyPI registry for packages matching the query.
+    Results include package name, version, and description.
+
+    Examples:
+
+      miesc plugins search defi
+
+      miesc plugins search flash-loan
+
+      miesc plugins search reentrancy
+    """
+    print_banner()
+
+    try:
+        from miesc.plugins import PluginManager
+    except ImportError:
+        error("Plugin system not available")
+        raise SystemExit(1)
+
+    manager = PluginManager()
+
+    info(f"Searching PyPI for MIESC plugins matching '{query}'...")
+
+    results = manager.search_pypi(query, timeout=timeout)
+
+    if not results:
+        info(f"No plugins found matching '{query}'")
+        info("")
+        info("Tips:")
+        info("  - Try a different search term")
+        info("  - Check https://pypi.org/search/?q=miesc for all MIESC packages")
+        info("  - Create your own plugin: miesc plugins create <name>")
+        return
+
+    if RICH_AVAILABLE:
+        table = Table(title=f"Found {len(results)} plugin(s)")
+        table.add_column("Package", style="cyan")
+        table.add_column("Version", style="green")
+        table.add_column("Description")
+
+        for pkg in results:
+            desc = pkg["description"]
+            if len(desc) > 50:
+                desc = desc[:47] + "..."
+            table.add_row(pkg["name"], pkg["version"], desc)
+
+        console.print(table)
+        console.print("")
+        info("Install with: miesc plugins install <package-name>")
+    else:
+        print(f"\nFound {len(results)} plugin(s) matching '{query}':\n")
+        for pkg in results:
+            desc = pkg["description"]
+            if len(desc) > 50:
+                desc = desc[:47] + "..."
+            print(f"  {pkg['name']} (v{pkg['version']})")
+            if desc:
+                print(f"    {desc}")
+            print()
+        print("Install with: miesc plugins install <package-name>")
+
+
 # ============================================================================
 # Report Command
 # ============================================================================
