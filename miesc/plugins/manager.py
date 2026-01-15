@@ -5,13 +5,116 @@ external detector plugins from PyPI or local directories.
 """
 
 import importlib.metadata
+import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 from .config import PluginConfigManager
+
+
+class CompatibilityStatus(Enum):
+    """Plugin compatibility status with current MIESC version."""
+
+    COMPATIBLE = "compatible"
+    INCOMPATIBLE = "incompatible"
+    UNKNOWN = "unknown"
+    WARNING = "warning"  # Compatible but newer version recommended
+
+
+@dataclass
+class VersionConstraint:
+    """Represents a version constraint (e.g., >=4.0.0, <5.0.0)."""
+
+    min_version: str | None = None
+    max_version: str | None = None
+    min_inclusive: bool = True
+    max_inclusive: bool = False
+
+    def __str__(self) -> str:
+        parts = []
+        if self.min_version:
+            op = ">=" if self.min_inclusive else ">"
+            parts.append(f"{op}{self.min_version}")
+        if self.max_version:
+            op = "<=" if self.max_inclusive else "<"
+            parts.append(f"{op}{self.max_version}")
+        return ", ".join(parts) if parts else "any"
+
+    @classmethod
+    def from_string(cls, constraint_str: str) -> "VersionConstraint":
+        """Parse a version constraint string like '>=4.0.0,<5.0.0' or 'miesc>=4.2.0'."""
+        constraint = cls()
+
+        # Remove package name if present (e.g., "miesc>=4.0.0" -> ">=4.0.0")
+        constraint_str = re.sub(r"^miesc\s*", "", constraint_str.strip())
+
+        # Parse operators and versions
+        patterns = [
+            (r">=\s*([\d.]+)", "min_inclusive"),
+            (r">\s*([\d.]+)", "min_exclusive"),
+            (r"<=\s*([\d.]+)", "max_inclusive"),
+            (r"<\s*([\d.]+)", "max_exclusive"),
+            (r"==\s*([\d.]+)", "exact"),
+            (r"~=\s*([\d.]+)", "compatible"),
+        ]
+
+        for pattern, kind in patterns:
+            match = re.search(pattern, constraint_str)
+            if match:
+                version = match.group(1)
+                if kind == "min_inclusive":
+                    constraint.min_version = version
+                    constraint.min_inclusive = True
+                elif kind == "min_exclusive":
+                    constraint.min_version = version
+                    constraint.min_inclusive = False
+                elif kind == "max_inclusive":
+                    constraint.max_version = version
+                    constraint.max_inclusive = True
+                elif kind == "max_exclusive":
+                    constraint.max_version = version
+                    constraint.max_inclusive = False
+                elif kind == "exact":
+                    constraint.min_version = version
+                    constraint.max_version = version
+                    constraint.min_inclusive = True
+                    constraint.max_inclusive = True
+                elif kind == "compatible":
+                    # ~=4.2.0 means >=4.2.0, <4.3.0
+                    constraint.min_version = version
+                    constraint.min_inclusive = True
+                    parts = version.split(".")
+                    if len(parts) >= 2:
+                        parts[-2] = str(int(parts[-2]) + 1)
+                        parts[-1] = "0"
+                        constraint.max_version = ".".join(parts)
+                        constraint.max_inclusive = False
+
+        return constraint
+
+
+@dataclass
+class CompatibilityInfo:
+    """Detailed compatibility information for a plugin."""
+
+    status: CompatibilityStatus = CompatibilityStatus.UNKNOWN
+    miesc_constraint: VersionConstraint | None = None
+    current_miesc_version: str = ""
+    message: str = ""
+    python_constraint: str | None = None
+
+    def __str__(self) -> str:
+        if self.status == CompatibilityStatus.COMPATIBLE:
+            return "compatible"
+        elif self.status == CompatibilityStatus.INCOMPATIBLE:
+            return f"incompatible ({self.message})"
+        elif self.status == CompatibilityStatus.WARNING:
+            return f"warning ({self.message})"
+        return "unknown"
 
 
 @dataclass
@@ -27,10 +130,67 @@ class PluginInfo:
     description: str = ""
     author: str = ""
     local: bool = False
+    compatibility: CompatibilityInfo | None = None
+    requires_miesc: str | None = None  # e.g., ">=4.0.0"
+    requires_python: str | None = None
 
     def __str__(self) -> str:
         status = "enabled" if self.enabled else "disabled"
-        return f"{self.name} ({self.package} v{self.version}) - {status}"
+        compat = ""
+        if self.compatibility and self.compatibility.status != CompatibilityStatus.COMPATIBLE:
+            compat = f" [{self.compatibility.status.value}]"
+        return f"{self.name} ({self.package} v{self.version}) - {status}{compat}"
+
+
+def get_miesc_version() -> str:
+    """Get the current MIESC version.
+
+    Returns:
+        Version string (e.g., '4.3.3')
+    """
+    try:
+        from miesc import __version__
+
+        return __version__
+    except ImportError:
+        try:
+            return importlib.metadata.version("miesc")
+        except importlib.metadata.PackageNotFoundError:
+            return "0.0.0"
+
+
+def compare_versions(v1: str, v2: str) -> int:
+    """Compare two version strings.
+
+    Args:
+        v1: First version string
+        v2: Second version string
+
+    Returns:
+        -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2
+    """
+
+    def normalize(v: str) -> tuple[int, ...]:
+        parts = []
+        for part in v.split("."):
+            # Handle versions like "4.3.3a1" -> extract numeric part
+            numeric = re.match(r"(\d+)", part)
+            if numeric:
+                parts.append(int(numeric.group(1)))
+            else:
+                parts.append(0)
+        # Pad to at least 3 parts
+        while len(parts) < 3:
+            parts.append(0)
+        return tuple(parts)
+
+    n1, n2 = normalize(v1), normalize(v2)
+
+    if n1 < n2:
+        return -1
+    elif n1 > n2:
+        return 1
+    return 0
 
 
 class PluginManager:
@@ -48,6 +208,145 @@ class PluginManager:
         """
         self.config_manager = config_manager or PluginConfigManager()
         self._cached_plugins: list[PluginInfo] | None = None
+        self._miesc_version = get_miesc_version()
+
+    def validate_compatibility(
+        self,
+        requires_miesc: str | None = None,
+        requires_python: str | None = None,
+    ) -> CompatibilityInfo:
+        """Validate plugin compatibility with current MIESC version.
+
+        Args:
+            requires_miesc: MIESC version constraint (e.g., ">=4.0.0,<5.0.0")
+            requires_python: Python version constraint (optional)
+
+        Returns:
+            CompatibilityInfo with validation results
+        """
+        info = CompatibilityInfo(
+            current_miesc_version=self._miesc_version,
+            python_constraint=requires_python,
+        )
+
+        # If no constraint specified, assume compatible
+        if not requires_miesc:
+            info.status = CompatibilityStatus.UNKNOWN
+            info.message = "No MIESC version requirement specified"
+            return info
+
+        # Parse the constraint
+        constraint = VersionConstraint.from_string(requires_miesc)
+        info.miesc_constraint = constraint
+
+        # Check minimum version
+        if constraint.min_version:
+            cmp = compare_versions(self._miesc_version, constraint.min_version)
+            if constraint.min_inclusive and cmp < 0:
+                info.status = CompatibilityStatus.INCOMPATIBLE
+                info.message = f"Requires MIESC {constraint.min_version}+, current is {self._miesc_version}"
+                return info
+            elif not constraint.min_inclusive and cmp <= 0:
+                info.status = CompatibilityStatus.INCOMPATIBLE
+                info.message = f"Requires MIESC >{constraint.min_version}, current is {self._miesc_version}"
+                return info
+
+        # Check maximum version
+        if constraint.max_version:
+            cmp = compare_versions(self._miesc_version, constraint.max_version)
+            if constraint.max_inclusive and cmp > 0:
+                info.status = CompatibilityStatus.INCOMPATIBLE
+                info.message = f"Requires MIESC <={constraint.max_version}, current is {self._miesc_version}"
+                return info
+            elif not constraint.max_inclusive and cmp >= 0:
+                info.status = CompatibilityStatus.INCOMPATIBLE
+                info.message = f"Requires MIESC <{constraint.max_version}, current is {self._miesc_version}"
+                return info
+
+        # Check Python version if specified
+        if requires_python:
+            python_version = f"{sys.version_info.major}.{sys.version_info.minor}"
+            py_constraint = VersionConstraint.from_string(requires_python)
+
+            if py_constraint.min_version:
+                cmp = compare_versions(python_version, py_constraint.min_version)
+                if cmp < 0:
+                    info.status = CompatibilityStatus.WARNING
+                    info.message = f"Recommends Python {py_constraint.min_version}+, using {python_version}"
+                    return info
+
+        # All checks passed
+        info.status = CompatibilityStatus.COMPATIBLE
+        info.message = "Compatible with current MIESC version"
+        return info
+
+    def check_pypi_compatibility(
+        self, package_name: str, timeout: int = 10
+    ) -> tuple[CompatibilityInfo, str | None]:
+        """Check compatibility of a PyPI package before installation.
+
+        Args:
+            package_name: Package name to check
+            timeout: Request timeout in seconds
+
+        Returns:
+            Tuple of (CompatibilityInfo, version_string or None)
+        """
+        import json
+        import urllib.error
+        import urllib.request
+
+        normalized_name = self._normalize_package_name(package_name)
+
+        try:
+            url = f"https://pypi.org/pypi/{normalized_name}/json"
+            req = urllib.request.Request(
+                url,
+                headers={"Accept": "application/json", "User-Agent": f"MIESC/{self._miesc_version}"},
+            )
+
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode("utf-8"))
+                    info = data.get("info", {})
+                    version = info.get("version", "unknown")
+                    requires_dist = info.get("requires_dist") or []
+
+                    # Find MIESC dependency requirement
+                    miesc_constraint = None
+                    python_constraint = info.get("requires_python")
+
+                    for req_str in requires_dist:
+                        # Look for miesc requirement
+                        if req_str.lower().startswith("miesc"):
+                            # Extract constraint (e.g., "miesc>=4.0.0" -> ">=4.0.0")
+                            miesc_constraint = req_str
+                            break
+
+                    # Validate compatibility
+                    compat = self.validate_compatibility(
+                        requires_miesc=miesc_constraint,
+                        requires_python=python_constraint,
+                    )
+
+                    return compat, version
+
+        except urllib.error.HTTPError:
+            info = CompatibilityInfo(
+                status=CompatibilityStatus.UNKNOWN,
+                current_miesc_version=self._miesc_version,
+                message="Package not found on PyPI",
+            )
+            return info, None
+        except Exception as e:
+            info = CompatibilityInfo(
+                status=CompatibilityStatus.UNKNOWN,
+                current_miesc_version=self._miesc_version,
+                message=f"Could not check compatibility: {e}",
+            )
+            return info, None
+
+        return CompatibilityInfo(status=CompatibilityStatus.UNKNOWN), None
 
     def _normalize_package_name(self, name: str) -> str:
         """Normalize package name to include miesc- prefix.
@@ -62,17 +361,38 @@ class PluginManager:
             return name
         return f"{self.PLUGIN_PREFIX}{name}"
 
-    def install(self, package_name: str, upgrade: bool = False) -> tuple[bool, str]:
+    def install(
+        self,
+        package_name: str,
+        upgrade: bool = False,
+        check_compatibility: bool = True,
+        force: bool = False,
+    ) -> tuple[bool, str]:
         """Install a plugin package from PyPI.
 
         Args:
             package_name: Package name (with or without miesc- prefix)
             upgrade: If True, upgrade if already installed
+            check_compatibility: If True, check version compatibility before install
+            force: If True, install even if incompatible
 
         Returns:
             Tuple of (success, message)
         """
         normalized_name = self._normalize_package_name(package_name)
+
+        # Check compatibility before installation
+        if check_compatibility:
+            compat, pkg_version = self.check_pypi_compatibility(normalized_name)
+            if compat.status == CompatibilityStatus.INCOMPATIBLE and not force:
+                return (
+                    False,
+                    f"Plugin {normalized_name} is incompatible: {compat.message}. "
+                    f"Use --force to install anyway.",
+                )
+            elif compat.status == CompatibilityStatus.WARNING:
+                # Warn but proceed
+                pass  # Will show warning in CLI
 
         cmd = [sys.executable, "-m", "pip", "install", "--quiet"]
         if upgrade:
@@ -98,6 +418,13 @@ class PluginManager:
                 self.config_manager.enable_plugin(
                     normalized_name, package=normalized_name, version=version
                 )
+
+                # Include compatibility warning if applicable
+                if check_compatibility and compat.status == CompatibilityStatus.WARNING:
+                    return (
+                        True,
+                        f"Successfully installed {normalized_name} (warning: {compat.message})",
+                    )
 
                 return True, f"Successfully installed {normalized_name}"
             else:
@@ -190,15 +517,33 @@ class PluginManager:
                 # Get or create plugin info
                 if package_name not in plugins:
                     # Get metadata
+                    description = ""
+                    author = ""
+                    requires_miesc = None
+                    requires_python = None
+
                     try:
                         metadata = dist.metadata
                         description = metadata.get("Summary", "")
                         author = metadata.get("Author", "")
+                        requires_python = metadata.get("Requires-Python", "")
+
+                        # Check requires_dist for miesc dependency
+                        requires_dist = metadata.get_all("Requires-Dist") or []
+                        for req in requires_dist:
+                            if req.lower().startswith("miesc"):
+                                requires_miesc = req
+                                break
                     except Exception:
-                        description = ""
-                        author = ""
+                        pass
 
                     enabled = self.config_manager.is_enabled(package_name)
+
+                    # Validate compatibility
+                    compatibility = self.validate_compatibility(
+                        requires_miesc=requires_miesc,
+                        requires_python=requires_python,
+                    )
 
                     plugins[package_name] = PluginInfo(
                         name=package_name,
@@ -209,6 +554,9 @@ class PluginManager:
                         detectors=[],
                         description=description,
                         author=author,
+                        compatibility=compatibility,
+                        requires_miesc=requires_miesc,
+                        requires_python=requires_python,
                     )
 
                 # Add detector to plugin

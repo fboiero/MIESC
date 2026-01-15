@@ -2631,7 +2631,7 @@ def plugins_list(show_all):
     print_banner()
 
     try:
-        from miesc.plugins import PluginManager
+        from miesc.plugins import PluginManager, CompatibilityStatus
     except ImportError:
         error("Plugin system not available")
         return
@@ -2648,39 +2648,74 @@ def plugins_list(show_all):
     local_plugins = [p for p in installed_plugins if p.local]
     pypi_plugins = [p for p in installed_plugins if not p.local]
 
+    # Count compatibility issues
+    incompatible_count = sum(
+        1
+        for p in installed_plugins
+        if p.compatibility and p.compatibility.status == CompatibilityStatus.INCOMPATIBLE
+    )
+
     if RICH_AVAILABLE:
         table = Table(title="Installed Plugins")
         table.add_column("Package", style="cyan")
         table.add_column("Version", style="green")
         table.add_column("Type")
         table.add_column("Status")
+        table.add_column("Compat")
         table.add_column("Detectors", justify="right")
         table.add_column("Description")
 
         for plugin in installed_plugins:
             status = "[green]enabled[/green]" if plugin.enabled else "[red]disabled[/red]"
             plugin_type = "[yellow]local[/yellow]" if plugin.local else "PyPI"
+
+            # Compatibility status
+            if plugin.compatibility:
+                if plugin.compatibility.status == CompatibilityStatus.COMPATIBLE:
+                    compat_str = "[green]ok[/green]"
+                elif plugin.compatibility.status == CompatibilityStatus.INCOMPATIBLE:
+                    compat_str = "[red]incompatible[/red]"
+                elif plugin.compatibility.status == CompatibilityStatus.WARNING:
+                    compat_str = "[yellow]warning[/yellow]"
+                else:
+                    compat_str = "[dim]unknown[/dim]"
+            else:
+                compat_str = "[dim]-[/dim]"
+
             table.add_row(
                 plugin.package,
                 plugin.version,
                 plugin_type,
                 status,
+                compat_str,
                 str(plugin.detector_count),
-                plugin.description[:35] + "..." if len(plugin.description) > 35 else plugin.description,
+                plugin.description[:30] + "..." if len(plugin.description) > 30 else plugin.description,
             )
         console.print(table)
 
         if local_plugins:
             info(f"Local plugins directory: {manager.LOCAL_PLUGINS_DIR}")
+
+        if incompatible_count > 0:
+            warning(f"{incompatible_count} plugin(s) may be incompatible with MIESC {manager._miesc_version}")
+            info("Run 'miesc plugins info <name>' for compatibility details")
     else:
         print("\nInstalled Plugins:")
         for plugin in installed_plugins:
             status = "enabled" if plugin.enabled else "disabled"
             local_marker = " (local)" if plugin.local else ""
-            print(f"  {plugin.package} v{plugin.version}{local_marker} - {status} ({plugin.detector_count} detectors)")
+            compat_marker = ""
+            if plugin.compatibility and plugin.compatibility.status == CompatibilityStatus.INCOMPATIBLE:
+                compat_marker = " [INCOMPATIBLE]"
+            elif plugin.compatibility and plugin.compatibility.status == CompatibilityStatus.WARNING:
+                compat_marker = " [warning]"
+            print(f"  {plugin.package} v{plugin.version}{local_marker}{compat_marker} - {status} ({plugin.detector_count} detectors)")
 
         if local_plugins:
             print(f"\nLocal plugins directory: {manager.LOCAL_PLUGINS_DIR}")
+
+        if incompatible_count > 0:
+            print(f"\nWarning: {incompatible_count} plugin(s) may be incompatible with MIESC {manager._miesc_version}")
 
     success(f"{len(installed_plugins)} plugins installed ({len(local_plugins)} local, {len(pypi_plugins)} PyPI)")
 
@@ -2688,10 +2723,13 @@ def plugins_list(show_all):
 @plugins.command("install")
 @click.argument("package")
 @click.option("--upgrade", "-U", is_flag=True, help="Upgrade if already installed")
-def plugins_install(package, upgrade):
+@click.option("--force", "-f", is_flag=True, help="Force install even if incompatible")
+@click.option("--no-check", is_flag=True, help="Skip compatibility check")
+def plugins_install(package, upgrade, force, no_check):
     """Install a plugin from PyPI.
 
     The package name can be with or without the 'miesc-' prefix.
+    Compatibility with current MIESC version is checked before installation.
 
     Examples:
 
@@ -2700,20 +2738,41 @@ def plugins_install(package, upgrade):
       miesc plugins install defi-detectors
 
       miesc plugins install my-plugin -U
+
+      miesc plugins install old-plugin --force
     """
     print_banner()
 
     try:
-        from miesc.plugins import PluginManager
+        from miesc.plugins import PluginManager, CompatibilityStatus
     except ImportError:
         error("Plugin system not available")
         raise SystemExit(1)
 
     manager = PluginManager()
 
+    # Check compatibility first if not skipped
+    if not no_check and not force:
+        info(f"Checking compatibility for {package}...")
+        compat, version = manager.check_pypi_compatibility(package)
+
+        if compat.status == CompatibilityStatus.INCOMPATIBLE:
+            error(f"Plugin {package} is incompatible: {compat.message}")
+            info("Use --force to install anyway, or --no-check to skip validation")
+            raise SystemExit(1)
+        elif compat.status == CompatibilityStatus.WARNING:
+            warning(f"Compatibility warning: {compat.message}")
+        elif compat.status == CompatibilityStatus.UNKNOWN and version is None:
+            warning(f"Package {package} not found on PyPI")
+
     info(f"Installing {package}...")
 
-    ok, message = manager.install(package, upgrade=upgrade)
+    ok, message = manager.install(
+        package,
+        upgrade=upgrade,
+        check_compatibility=False,  # Already checked above
+        force=force,
+    )
 
     if ok:
         success(message)
@@ -2826,7 +2885,7 @@ def plugins_info(plugin_name):
     print_banner()
 
     try:
-        from miesc.plugins import PluginManager
+        from miesc.plugins import PluginManager, CompatibilityStatus
     except ImportError:
         error("Plugin system not available")
         raise SystemExit(1)
@@ -2838,6 +2897,29 @@ def plugins_info(plugin_name):
         error(f"Plugin not found: {plugin_name}")
         return
 
+    # Compatibility display
+    if plugin.compatibility:
+        compat = plugin.compatibility
+        if compat.status == CompatibilityStatus.COMPATIBLE:
+            compat_str = "[green]Compatible[/green]"
+            compat_plain = "Compatible"
+        elif compat.status == CompatibilityStatus.INCOMPATIBLE:
+            compat_str = f"[red]Incompatible[/red] - {compat.message}"
+            compat_plain = f"Incompatible - {compat.message}"
+        elif compat.status == CompatibilityStatus.WARNING:
+            compat_str = f"[yellow]Warning[/yellow] - {compat.message}"
+            compat_plain = f"Warning - {compat.message}"
+        else:
+            compat_str = "[dim]Unknown[/dim]"
+            compat_plain = "Unknown"
+    else:
+        compat_str = "[dim]Not checked[/dim]"
+        compat_plain = "Not checked"
+
+    # Version requirements
+    requires_miesc = plugin.requires_miesc or "any"
+    requires_python = plugin.requires_python or "any"
+
     if RICH_AVAILABLE:
         panel_content = f"""[bold cyan]Package:[/bold cyan] {plugin.package}
 [bold cyan]Version:[/bold cyan] {plugin.version}
@@ -2846,6 +2928,13 @@ def plugins_info(plugin_name):
 [bold cyan]Description:[/bold cyan] {plugin.description or 'N/A'}
 [bold cyan]Detectors:[/bold cyan] {plugin.detector_count}
 [bold cyan]Local:[/bold cyan] {'Yes' if plugin.local else 'No'}
+
+[bold]Version Requirements:[/bold]
+  MIESC: {requires_miesc}
+  Python: {requires_python}
+
+[bold]Compatibility:[/bold] {compat_str}
+[dim](Current MIESC: {manager._miesc_version})[/dim]
 
 [bold]Registered Detectors:[/bold]
 {chr(10).join('  - ' + d for d in plugin.detectors) if plugin.detectors else '  (none)'}
@@ -2856,9 +2945,15 @@ def plugins_info(plugin_name):
         print(f"Package: {plugin.package}")
         print(f"Version: {plugin.version}")
         print(f"Status: {'Enabled' if plugin.enabled else 'Disabled'}")
+        print(f"Author: {plugin.author or 'N/A'}")
         print(f"Detectors: {plugin.detector_count}")
+        print(f"\nVersion Requirements:")
+        print(f"  MIESC: {requires_miesc}")
+        print(f"  Python: {requires_python}")
+        print(f"\nCompatibility: {compat_plain}")
+        print(f"(Current MIESC: {manager._miesc_version})")
         if plugin.detectors:
-            print("Registered Detectors:")
+            print("\nRegistered Detectors:")
             for d in plugin.detectors:
                 print(f"  - {d}")
 
