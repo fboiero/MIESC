@@ -79,8 +79,9 @@ jobs:
       - name: Test Docker image
         if: github.event_name != 'pull_request'
         run: |
-          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main miesc --version || \
-          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main python -c "import miesc; print('MIESC OK')"
+          # With ENTRYPOINT ["miesc"], just pass arguments directly
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main --version || \
+          docker run --rm --entrypoint python ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main -c "import miesc; print('MIESC OK')"
 
   build-multiarch:
     name: Build Multi-arch Image
