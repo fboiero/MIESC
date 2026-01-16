@@ -92,7 +92,8 @@ USER miesc
 COPY --chown=miesc:miesc . .
 
 # Install MIESC core dependencies (editable mode for development)
-RUN pip install --no-cache-dir --user -e .[dev,all-tools]
+# Using [dev,full] to include prometheus-client, FastAPI, uvicorn, and all features
+RUN pip install --no-cache-dir --user -e .[dev,full]
 
 # Add user's local bin to PATH (needed for tools installed above)
 ENV PATH="/home/miesc/.local/bin:${PATH}"
