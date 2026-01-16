@@ -53,6 +53,57 @@ docker build -t miesc:latest .
 docker run --rm -v $(pwd):/contracts miesc:latest scan /contracts/MyContract.sol
 ```
 
+<details>
+<summary><strong>Docker Troubleshooting</strong></summary>
+
+**"executable file not found" or "scan: not found" error:**
+
+You have an old cached image. Force a fresh download:
+
+```bash
+# Remove old cached images
+docker rmi ghcr.io/fboiero/miesc:latest 2>/dev/null
+docker rmi ghcr.io/fboiero/miesc:main 2>/dev/null
+
+# Pull fresh image
+docker pull ghcr.io/fboiero/miesc:latest
+
+# Verify version (should show 4.3.4+)
+docker run --rm ghcr.io/fboiero/miesc:latest --version
+```
+
+**Verify correct usage:**
+
+```bash
+# Correct - arguments passed directly to miesc
+docker run --rm ghcr.io/fboiero/miesc:latest --help
+docker run --rm ghcr.io/fboiero/miesc:latest scan /contracts/MyContract.sol
+
+# Wrong - don't repeat "miesc"
+docker run --rm ghcr.io/fboiero/miesc:latest miesc scan ...  # WRONG!
+```
+
+**Permission denied errors:**
+
+```bash
+# On Linux, you may need to run as root or add user to docker group
+sudo usermod -aG docker $USER
+# Then log out and back in
+```
+
+**Contract file not found:**
+
+```bash
+# Make sure the volume mount path is correct
+# The path INSIDE the container must match where you mounted
+docker run --rm -v /full/path/to/contracts:/contracts ghcr.io/fboiero/miesc:latest scan /contracts/MyContract.sol
+
+# On Windows PowerShell, use ${PWD}
+docker run --rm -v ${PWD}:/contracts ghcr.io/fboiero/miesc:latest scan /contracts/MyContract.sol
+```
+
+</details>
+
 **As module:**
 
 ```bash

@@ -3,7 +3,7 @@
 [![Licencia: AGPL v3](https://img.shields.io/badge/Licencia-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/pypi/v/miesc)](https://pypi.org/project/miesc/)
-[![Versión](https://img.shields.io/badge/versión-4.3.3-green)](https://github.com/fboiero/MIESC/releases)
+[![Versión](https://img.shields.io/badge/versión-4.3.4-green)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions/workflows/secure-dev-pipeline.yml)
 [![Cobertura](https://img.shields.io/badge/cobertura-81%25-green)](./htmlcov/index.html)
 [![Herramientas](https://img.shields.io/badge/herramientas-31%2F31%20operativas-brightgreen)](./docs/TOOLS.md)
@@ -81,6 +81,54 @@ Documentación: [webapp/README.md](./webapp/README.md)
 # Desde PyPI (recomendado)
 pip install miesc
 
+# O con Docker (no requiere instalación local)
+docker pull ghcr.io/fboiero/miesc:latest
+docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:latest scan /contracts/MiContrato.sol
+```
+
+<details>
+<summary><strong>Solución de Problemas Docker</strong></summary>
+
+**Error "executable file not found" o "scan: not found":**
+
+Tienes una imagen cacheada antigua. Fuerza una descarga limpia:
+
+```bash
+# Eliminar imágenes cacheadas
+docker rmi ghcr.io/fboiero/miesc:latest 2>/dev/null
+docker rmi ghcr.io/fboiero/miesc:main 2>/dev/null
+
+# Descargar imagen fresca
+docker pull ghcr.io/fboiero/miesc:latest
+
+# Verificar versión (debe mostrar 4.3.4+)
+docker run --rm ghcr.io/fboiero/miesc:latest --version
+```
+
+**Uso correcto:**
+
+```bash
+# Correcto - argumentos pasan directamente a miesc
+docker run --rm ghcr.io/fboiero/miesc:latest --help
+docker run --rm ghcr.io/fboiero/miesc:latest scan /contracts/MiContrato.sol
+
+# Incorrecto - NO repetir "miesc"
+docker run --rm ghcr.io/fboiero/miesc:latest miesc scan ...  # MAL!
+```
+
+**Archivo de contrato no encontrado:**
+
+```bash
+# Asegúrate de que el path del volumen sea correcto
+docker run --rm -v /ruta/completa/contratos:/contracts ghcr.io/fboiero/miesc:latest scan /contracts/MiContrato.sol
+
+# En Windows PowerShell, usa ${PWD}
+docker run --rm -v ${PWD}:/contracts ghcr.io/fboiero/miesc:latest scan /contracts/MiContrato.sol
+```
+
+</details>
+
+```bash
 # Escaneo rápido de vulnerabilidades
 miesc scan contrato.sol
 
@@ -121,7 +169,7 @@ Agrega a tu `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v4.3.3
+    rev: v4.3.4
     hooks:
       - id: miesc-quick
         args: ['--ci']  # Falla en issues críticos/altos
