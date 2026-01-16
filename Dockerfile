@@ -50,9 +50,8 @@ LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
 LABEL version="4.3.4"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
-# Copy Rust binaries from builder
+# Copy Rust binaries from builder (aderyn only, foundry installed separately)
 COPY --from=builder /root/.cargo/bin/aderyn /usr/local/bin/
-COPY --from=builder /root/.foundry/bin/* /usr/local/bin/
 
 # Install runtime AND build dependencies (needed for Mythril/Manticore compilation)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -76,6 +75,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -fsSL https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.20+commit.a1b79de6 -o /usr/local/bin/solc-0.8.20 || \
     (apt-get update && apt-get install -y solc && rm -rf /var/lib/apt/lists/*) && \
     chmod +x /usr/local/bin/solc-0.8.20 2>/dev/null || true
+
+# Install Foundry (forge, cast, anvil) - needed by crytic-compile/slither
+RUN curl -L https://foundry.paradigm.xyz | bash && \
+    /root/.foundry/bin/foundryup && \
+    cp /root/.foundry/bin/* /usr/local/bin/ && \
+    chmod +x /usr/local/bin/forge /usr/local/bin/cast /usr/local/bin/anvil 2>/dev/null || true
 
 # Create non-root user for security
 RUN useradd -m -u 1000 -s /bin/bash miesc && \
