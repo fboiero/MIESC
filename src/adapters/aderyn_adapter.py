@@ -609,10 +609,18 @@ auto_detect_solc = false
             foundry_toml = Path(workspace) / "foundry.toml"
             foundry_toml.write_text(foundry_config)
 
+            # Initialize git repo (required by forge install)
+            subprocess.run(
+                ["git", "init"],
+                cwd=workspace,
+                capture_output=True,
+                timeout=10,
+            )
+
             for dep in deps_to_install:
                 logger.info(f"Installing dependency: {dep}")
                 result = subprocess.run(
-                    ["forge", "install", dep, "--no-git", "--no-commit"],
+                    ["forge", "install", dep, "--no-git"],
                     cwd=workspace,
                     capture_output=True,
                     text=True,
