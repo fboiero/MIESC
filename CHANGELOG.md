@@ -5,6 +5,22 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.5] - 2025-01-19
+
+### Fixed
+- **Slither ARM64 compatibility**: Auto-creates minimal Foundry project for standalone `.sol` files when solc-select binaries don't work on ARM64 architecture
+- **crytic-compile detection**: Prevents `AssertionError` when forge is installed but no `foundry.toml` exists
+
+### Changed
+- Slither adapter now intelligently detects platform and chooses compilation method
+- Added `_setup_foundry_project()` and `_cleanup_foundry_project()` for temporary Foundry configuration
+
+### Links
+- **GitHub Release**: https://github.com/fboiero/MIESC/releases/tag/v4.3.5
+- **Docker**: `docker pull ghcr.io/fboiero/miesc:4.3.5`
+
+---
+
 ## [4.3.4] - 2025-01-15
 
 ### Added
