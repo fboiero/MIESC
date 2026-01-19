@@ -206,6 +206,7 @@ class SlitherAdapter(ToolAdapter):
             }
         """
         start_time = time.time()
+        temp_foundry_toml = None  # Track for cleanup in finally block
 
         # Check availability first
         status = self.is_available()
@@ -234,11 +235,22 @@ class SlitherAdapter(ToolAdapter):
             # Forces direct solc compilation instead of Foundry/Hardhat detection
             legacy_solc = kwargs.get("legacy_solc", False)
             solc_version = kwargs.get("solc_version")
+            force_solc = kwargs.get("force_solc", None)
 
-            if legacy_solc or solc_version:
+            # Auto-detect if we should force solc compilation
+            # This prevents crytic-compile from incorrectly detecting Foundry
+            # when forge is installed but the contract is a standalone file
+            if force_solc is None:
+                force_solc = self._should_force_solc(contract_path)
+
+            if force_solc or legacy_solc or solc_version:
                 cmd.extend(["--compile-force-framework", "solc"])
                 if solc_version:
                     cmd.extend(["--solc-solcs-select", solc_version])
+            else:
+                # If not forcing solc and no project exists, create minimal Foundry project
+                # This handles ARM64 where solc-select binaries don't work
+                temp_foundry_toml = self._setup_foundry_project(contract_path)
 
             if exclude_detectors:
                 cmd.extend(["--exclude", ",".join(exclude_detectors)])
@@ -370,6 +382,11 @@ class SlitherAdapter(ToolAdapter):
                 "error": f"Unexpected error: {e}",
             }
 
+        finally:
+            # Always cleanup temporary Foundry project files
+            if temp_foundry_toml:
+                self._cleanup_foundry_project(temp_foundry_toml)
+
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         """
         Normalize Slither findings to MIESC standard format.
@@ -494,6 +511,151 @@ class SlitherAdapter(ToolAdapter):
                 return value
 
         return None
+
+    def _should_force_solc(self, contract_path: str) -> bool:
+        """
+        Determine if we should force solc compilation instead of auto-detection.
+
+        This prevents crytic-compile from incorrectly detecting Foundry/Hardhat
+        when forge/npx is installed but the contract is a standalone file.
+
+        Returns True if:
+        - Contract is a single .sol file
+        - No foundry.toml or hardhat.config.js in parent directories
+        - AND solc is working (not ARM64 with x86_64 binaries)
+
+        Returns False if:
+        - Contract is in a Foundry project (foundry.toml exists)
+        - Contract is in a Hardhat project (hardhat.config.js/ts exists)
+        - Contract is a directory (let crytic-compile detect)
+        - solc is not working (ARM64) - will use _setup_foundry_project instead
+        """
+        path = Path(contract_path).resolve()
+
+        # If it's a directory, let crytic-compile auto-detect
+        if path.is_dir():
+            return False
+
+        # Check parent directories for project files (up to 5 levels)
+        check_dir = path.parent
+        for _ in range(5):
+            # Foundry project markers
+            if (check_dir / "foundry.toml").exists():
+                logger.debug(f"Found foundry.toml in {check_dir}, using Foundry")
+                return False
+
+            # Hardhat project markers
+            if (check_dir / "hardhat.config.js").exists() or (
+                check_dir / "hardhat.config.ts"
+            ).exists():
+                logger.debug(f"Found hardhat config in {check_dir}, using Hardhat")
+                return False
+
+            # Truffle project marker
+            if (check_dir / "truffle-config.js").exists():
+                logger.debug(f"Found truffle config in {check_dir}, using Truffle")
+                return False
+
+            # Move up one directory
+            parent = check_dir.parent
+            if parent == check_dir:  # Reached root
+                break
+            check_dir = parent
+
+        # No project detected - check if solc works before forcing it
+        if not self._is_solc_working():
+            logger.debug(f"solc not working, will use Foundry for {contract_path}")
+            return False
+
+        # solc works, force it for standalone files
+        logger.debug(f"No project detected for {contract_path}, forcing solc")
+        return True
+
+    def _is_solc_working(self) -> bool:
+        """Check if solc is working (may fail on ARM64 with x86_64 binaries)."""
+        try:
+            result = subprocess.run(
+                ["solc", "--version"], capture_output=True, text=True, timeout=5
+            )
+            # Check for QEMU errors (ARM64 running x86_64 binaries)
+            if "qemu" in result.stderr.lower() or result.returncode != 0:
+                return False
+            return True
+        except Exception:
+            return False
+
+    def _setup_foundry_project(self, contract_path: str) -> Optional[str]:
+        """
+        Create a minimal Foundry project for standalone .sol files.
+
+        This is needed when:
+        - forge is installed but no foundry.toml exists
+        - solc is not working (ARM64)
+
+        Returns the path to the created foundry.toml, or None if not needed/failed.
+        """
+        path = Path(contract_path).resolve()
+        contract_dir = path.parent
+
+        # Check if foundry.toml already exists
+        foundry_toml = contract_dir / "foundry.toml"
+        if foundry_toml.exists():
+            return None
+
+        # Check if forge is available
+        if not shutil.which("forge"):
+            logger.debug("forge not available, cannot create Foundry project")
+            return None
+
+        # Detect Solidity version from contract
+        solc_version = self._detect_solidity_version(contract_path)
+
+        # Create minimal foundry.toml
+        try:
+            config = f'''[profile.default]
+src = "."
+out = "out"
+libs = []
+solc = "{solc_version}"
+auto_detect_solc = false
+'''
+            foundry_toml.write_text(config)
+            logger.info(f"Created minimal foundry.toml at {foundry_toml}")
+            return str(foundry_toml)
+        except Exception as e:
+            logger.warning(f"Failed to create foundry.toml: {e}")
+            return None
+
+    def _detect_solidity_version(self, contract_path: str) -> str:
+        """Detect Solidity version from pragma statement."""
+        try:
+            with open(contract_path, "r") as f:
+                content = f.read()
+
+            # Match pragma solidity ^0.8.19; or similar
+            import re
+
+            match = re.search(r"pragma\s+solidity\s*[\^~>=<]*\s*([\d.]+)", content)
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+
+        # Default to 0.8.20 if not detected
+        return "0.8.20"
+
+    def _cleanup_foundry_project(self, foundry_toml_path: Optional[str]) -> None:
+        """Remove the temporary foundry.toml created for analysis."""
+        if foundry_toml_path:
+            try:
+                Path(foundry_toml_path).unlink(missing_ok=True)
+                # Also clean up the out directory if created
+                out_dir = Path(foundry_toml_path).parent / "out"
+                if out_dir.exists():
+                    shutil.rmtree(out_dir, ignore_errors=True)
+                logger.debug(f"Cleaned up temporary Foundry files")
+            except Exception as e:
+                logger.warning(f"Failed to cleanup Foundry files: {e}")
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if Slither can analyze the given contract."""
