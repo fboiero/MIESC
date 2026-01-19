@@ -10,11 +10,13 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
+import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -207,6 +209,8 @@ class SlitherAdapter(ToolAdapter):
         """
         start_time = time.time()
         temp_foundry_toml = None  # Track for cleanup in finally block
+        temp_workspace = None  # Track for cleanup
+        actual_contract_path = contract_path  # May change if workspace created
 
         # Check availability first
         status = self.is_available()
@@ -228,8 +232,12 @@ class SlitherAdapter(ToolAdapter):
             exclude_detectors = kwargs.get("exclude_detectors", [])
             filter_paths = kwargs.get("filter_paths", [])
 
-            # Build command
-            cmd = [self._slither_binary, contract_path, "--json", output_path]
+            # Detect external imports that need to be resolved
+            external_imports = set()
+            if Path(contract_path).is_file():
+                external_imports = self._detect_imports(contract_path)
+                if external_imports:
+                    logger.info(f"Detected external imports: {external_imports}")
 
             # Support for legacy Solidity versions (0.4.x, 0.5.x)
             # Forces direct solc compilation instead of Foundry/Hardhat detection
@@ -243,14 +251,26 @@ class SlitherAdapter(ToolAdapter):
             if force_solc is None:
                 force_solc = self._should_force_solc(contract_path)
 
+            # If contract has external imports, set up workspace with dependencies
+            if external_imports and not force_solc:
+                workspace_result = self._setup_workspace_with_deps(
+                    contract_path, external_imports
+                )
+                if workspace_result:
+                    temp_workspace, actual_contract_path = workspace_result
+                    logger.info(f"Using workspace with dependencies: {temp_workspace}")
+
+            # Build command with actual path (may be temp workspace)
+            cmd = [self._slither_binary, actual_contract_path, "--json", output_path]
+
             if force_solc or legacy_solc or solc_version:
                 cmd.extend(["--compile-force-framework", "solc"])
                 if solc_version:
                     cmd.extend(["--solc-solcs-select", solc_version])
-            else:
-                # If not forcing solc and no project exists, create minimal Foundry project
+            elif not temp_workspace:
+                # If not forcing solc, no workspace, and no project exists, create minimal Foundry project
                 # This handles ARM64 where solc-select binaries don't work
-                temp_foundry_toml = self._setup_foundry_project(contract_path)
+                temp_foundry_toml = self._setup_foundry_project(actual_contract_path)
 
             if exclude_detectors:
                 cmd.extend(["--exclude", ",".join(exclude_detectors)])
@@ -383,9 +403,11 @@ class SlitherAdapter(ToolAdapter):
             }
 
         finally:
-            # Always cleanup temporary Foundry project files
+            # Always cleanup temporary files
             if temp_foundry_toml:
                 self._cleanup_foundry_project(temp_foundry_toml)
+            if temp_workspace:
+                self._cleanup_workspace(temp_workspace)
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         """
@@ -633,8 +655,6 @@ auto_detect_solc = false
                 content = f.read()
 
             # Match pragma solidity ^0.8.19; or similar
-            import re
-
             match = re.search(r"pragma\s+solidity\s*[\^~>=<]*\s*([\d.]+)", content)
             if match:
                 return match.group(1)
@@ -643,6 +663,179 @@ auto_detect_solc = false
 
         # Default to 0.8.20 if not detected
         return "0.8.20"
+
+    def _detect_imports(self, contract_path: str) -> Set[str]:
+        """
+        Detect external imports in a Solidity contract.
+
+        Returns a set of import prefixes like:
+        - 'forge-std'
+        - '@openzeppelin/contracts'
+        - '@chainlink/contracts'
+        """
+        imports = set()
+        try:
+            with open(contract_path, "r") as f:
+                content = f.read()
+
+            # Match import statements
+            # import "forge-std/Test.sol";
+            # import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+            # import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+            import_pattern = r'import\s+(?:{[^}]+}\s+from\s+)?["\']([^"\']+)["\']'
+            matches = re.findall(import_pattern, content)
+
+            for match in matches:
+                # Extract the root package
+                if match.startswith("forge-std/"):
+                    imports.add("forge-std")
+                elif match.startswith("@openzeppelin/"):
+                    imports.add("@openzeppelin/contracts")
+                elif match.startswith("@chainlink/"):
+                    imports.add("@chainlink/contracts")
+                elif match.startswith("@uniswap/"):
+                    imports.add("@uniswap")
+                elif match.startswith("solmate/"):
+                    imports.add("solmate")
+                elif match.startswith("solady/"):
+                    imports.add("solady")
+                # Relative imports (./foo.sol, ../bar.sol) are OK
+                elif not match.startswith("."):
+                    # Unknown external import
+                    root = match.split("/")[0]
+                    if root and not root.endswith(".sol"):
+                        imports.add(root)
+
+        except Exception as e:
+            logger.debug(f"Error detecting imports: {e}")
+
+        return imports
+
+    def _get_dependency_info(self, import_name: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Get forge install command and remapping for a dependency.
+
+        Returns (install_target, remapping) or (None, None) if unknown.
+        """
+        # Known dependencies mapping: import_name -> (forge_install_target, remapping)
+        KNOWN_DEPS = {
+            "forge-std": (
+                "foundry-rs/forge-std",
+                "forge-std/=lib/forge-std/src/"
+            ),
+            "@openzeppelin/contracts": (
+                "OpenZeppelin/openzeppelin-contracts",
+                "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/"
+            ),
+            "@openzeppelin/contracts-upgradeable": (
+                "OpenZeppelin/openzeppelin-contracts-upgradeable",
+                "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/"
+            ),
+            "@chainlink/contracts": (
+                "smartcontractkit/chainlink",
+                "@chainlink/contracts/=lib/chainlink/contracts/"
+            ),
+            "solmate": (
+                "transmissions11/solmate",
+                "solmate/=lib/solmate/src/"
+            ),
+            "solady": (
+                "Vectorized/solady",
+                "solady/=lib/solady/src/"
+            ),
+        }
+
+        return KNOWN_DEPS.get(import_name, (None, None))
+
+    def _setup_workspace_with_deps(
+        self, contract_path: str, imports: Set[str]
+    ) -> Optional[Tuple[str, str]]:
+        """
+        Create a temporary workspace with dependencies installed.
+
+        This handles the case where:
+        - Contract has external imports (forge-std, openzeppelin, etc.)
+        - Original directory might be read-only (Docker volume)
+
+        Returns (temp_workspace_path, temp_contract_path) or None if failed.
+        """
+        if not shutil.which("forge"):
+            logger.debug("forge not available, cannot install dependencies")
+            return None
+
+        try:
+            # Create temporary workspace
+            workspace = tempfile.mkdtemp(prefix="miesc_slither_")
+            logger.debug(f"Created temporary workspace: {workspace}")
+
+            # Copy contract to workspace
+            contract_name = Path(contract_path).name
+            temp_contract = Path(workspace) / contract_name
+            shutil.copy2(contract_path, temp_contract)
+
+            # Detect solidity version
+            solc_version = self._detect_solidity_version(contract_path)
+
+            # Build remappings
+            remappings = []
+            deps_to_install = []
+
+            for imp in imports:
+                install_target, remapping = self._get_dependency_info(imp)
+                if install_target:
+                    deps_to_install.append(install_target)
+                    if remapping:
+                        remappings.append(remapping)
+                else:
+                    logger.warning(f"Unknown dependency: {imp} - may fail to compile")
+
+            # Create foundry.toml
+            foundry_config = f'''[profile.default]
+src = "."
+out = "out"
+libs = ["lib"]
+solc = "{solc_version}"
+auto_detect_solc = false
+'''
+            if remappings:
+                foundry_config += "\nremappings = [\n"
+                for r in remappings:
+                    foundry_config += f'    "{r}",\n'
+                foundry_config += "]\n"
+
+            foundry_toml = Path(workspace) / "foundry.toml"
+            foundry_toml.write_text(foundry_config)
+            logger.debug(f"Created foundry.toml with remappings: {remappings}")
+
+            # Install dependencies
+            for dep in deps_to_install:
+                logger.info(f"Installing dependency: {dep}")
+                result = subprocess.run(
+                    ["forge", "install", dep, "--no-git", "--no-commit"],
+                    cwd=workspace,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                if result.returncode != 0:
+                    logger.warning(f"Failed to install {dep}: {result.stderr}")
+                else:
+                    logger.debug(f"Installed {dep} successfully")
+
+            return workspace, str(temp_contract)
+
+        except Exception as e:
+            logger.error(f"Error setting up workspace: {e}")
+            return None
+
+    def _cleanup_workspace(self, workspace: Optional[str]) -> None:
+        """Remove temporary workspace directory."""
+        if workspace and Path(workspace).exists():
+            try:
+                shutil.rmtree(workspace, ignore_errors=True)
+                logger.debug(f"Cleaned up workspace: {workspace}")
+            except Exception as e:
+                logger.warning(f"Failed to cleanup workspace: {e}")
 
     def _cleanup_foundry_project(self, foundry_toml_path: Optional[str]) -> None:
         """Remove the temporary foundry.toml created for analysis."""

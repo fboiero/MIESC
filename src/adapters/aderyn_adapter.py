@@ -14,10 +14,13 @@ Version: 1.0.0
 import json
 import logging
 import os
+import re
+import shutil
 import subprocess
+import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -180,6 +183,8 @@ class AderynAdapter(ToolAdapter):
             }
         """
         start_time = time.time()
+        temp_workspace = None
+        actual_contract_path = contract_path
 
         # Check availability first
         status = self.is_available()
@@ -200,16 +205,31 @@ class AderynAdapter(ToolAdapter):
             timeout = kwargs.get("timeout", 300)
             no_snippets = kwargs.get("no_snippets", False)
 
+            # Detect external imports
+            external_imports = set()
+            contract_file = Path(contract_path)
+            if contract_file.is_file():
+                external_imports = self._detect_imports(contract_path)
+                if external_imports:
+                    logger.info(f"Detected external imports: {external_imports}")
+                    # Set up workspace with dependencies
+                    workspace_result = self._setup_workspace_with_deps(
+                        contract_path, external_imports
+                    )
+                    if workspace_result:
+                        temp_workspace, actual_contract_path = workspace_result
+                        logger.info(f"Using workspace with dependencies: {temp_workspace}")
+                        contract_file = Path(actual_contract_path)
+
             # Build command
             # Aderyn works better on directories than single files
-            contract_file = Path(contract_path)
             if contract_file.is_file():
                 # Run Aderyn on parent directory with include filter
                 contract_dir = str(contract_file.parent)
                 contract_name = contract_file.name
                 cmd = ["aderyn", contract_dir, "-i", contract_name, "-o", output_path]
             else:
-                cmd = ["aderyn", contract_path, "-o", output_path]
+                cmd = ["aderyn", actual_contract_path, "-o", output_path]
 
             if no_snippets:
                 cmd.append("--no-snippets")
@@ -349,6 +369,11 @@ class AderynAdapter(ToolAdapter):
                 "error": f"Unexpected error: {e}",
             }
 
+        finally:
+            # Always cleanup temporary workspace
+            if temp_workspace:
+                self._cleanup_workspace(temp_workspace)
+
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         """
         Normalize Aderyn findings to MIESC standard format.
@@ -482,6 +507,133 @@ class AderynAdapter(ToolAdapter):
                 return value
 
         return None
+
+    def _detect_imports(self, contract_path: str) -> Set[str]:
+        """Detect external imports in a Solidity contract."""
+        imports = set()
+        try:
+            with open(contract_path, "r") as f:
+                content = f.read()
+
+            import_pattern = r'import\s+(?:{[^}]+}\s+from\s+)?["\']([^"\']+)["\']'
+            matches = re.findall(import_pattern, content)
+
+            for match in matches:
+                if match.startswith("forge-std/"):
+                    imports.add("forge-std")
+                elif match.startswith("@openzeppelin/"):
+                    imports.add("@openzeppelin/contracts")
+                elif match.startswith("@chainlink/"):
+                    imports.add("@chainlink/contracts")
+                elif match.startswith("solmate/"):
+                    imports.add("solmate")
+                elif match.startswith("solady/"):
+                    imports.add("solady")
+                elif not match.startswith("."):
+                    root = match.split("/")[0]
+                    if root and not root.endswith(".sol"):
+                        imports.add(root)
+
+        except Exception as e:
+            logger.debug(f"Error detecting imports: {e}")
+        return imports
+
+    def _get_dependency_info(self, import_name: str) -> Tuple[Optional[str], Optional[str]]:
+        """Get forge install command and remapping for a dependency."""
+        KNOWN_DEPS = {
+            "forge-std": ("foundry-rs/forge-std", "forge-std/=lib/forge-std/src/"),
+            "@openzeppelin/contracts": (
+                "OpenZeppelin/openzeppelin-contracts",
+                "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+            ),
+            "solmate": ("transmissions11/solmate", "solmate/=lib/solmate/src/"),
+            "solady": ("Vectorized/solady", "solady/=lib/solady/src/"),
+        }
+        return KNOWN_DEPS.get(import_name, (None, None))
+
+    def _detect_solidity_version(self, contract_path: str) -> str:
+        """Detect Solidity version from pragma statement."""
+        try:
+            with open(contract_path, "r") as f:
+                content = f.read()
+            match = re.search(r"pragma\s+solidity\s*[\^~>=<]*\s*([\d.]+)", content)
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+        return "0.8.20"
+
+    def _setup_workspace_with_deps(
+        self, contract_path: str, imports: Set[str]
+    ) -> Optional[Tuple[str, str]]:
+        """Create a temporary workspace with dependencies installed."""
+        if not shutil.which("forge"):
+            logger.debug("forge not available, cannot install dependencies")
+            return None
+
+        try:
+            workspace = tempfile.mkdtemp(prefix="miesc_aderyn_")
+            logger.debug(f"Created temporary workspace: {workspace}")
+
+            contract_name = Path(contract_path).name
+            temp_contract = Path(workspace) / contract_name
+            shutil.copy2(contract_path, temp_contract)
+
+            solc_version = self._detect_solidity_version(contract_path)
+
+            remappings = []
+            deps_to_install = []
+
+            for imp in imports:
+                install_target, remapping = self._get_dependency_info(imp)
+                if install_target:
+                    deps_to_install.append(install_target)
+                    if remapping:
+                        remappings.append(remapping)
+                else:
+                    logger.warning(f"Unknown dependency: {imp}")
+
+            foundry_config = f'''[profile.default]
+src = "."
+out = "out"
+libs = ["lib"]
+solc = "{solc_version}"
+auto_detect_solc = false
+'''
+            if remappings:
+                foundry_config += "\nremappings = [\n"
+                for r in remappings:
+                    foundry_config += f'    "{r}",\n'
+                foundry_config += "]\n"
+
+            foundry_toml = Path(workspace) / "foundry.toml"
+            foundry_toml.write_text(foundry_config)
+
+            for dep in deps_to_install:
+                logger.info(f"Installing dependency: {dep}")
+                result = subprocess.run(
+                    ["forge", "install", dep, "--no-git", "--no-commit"],
+                    cwd=workspace,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                if result.returncode != 0:
+                    logger.warning(f"Failed to install {dep}: {result.stderr}")
+
+            return workspace, str(temp_contract)
+
+        except Exception as e:
+            logger.error(f"Error setting up workspace: {e}")
+            return None
+
+    def _cleanup_workspace(self, workspace: Optional[str]) -> None:
+        """Remove temporary workspace directory."""
+        if workspace and Path(workspace).exists():
+            try:
+                shutil.rmtree(workspace, ignore_errors=True)
+            except Exception as e:
+                logger.warning(f"Failed to cleanup workspace: {e}")
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if Aderyn can analyze the given contract."""
