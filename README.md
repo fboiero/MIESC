@@ -104,6 +104,22 @@ docker run --rm -v ${PWD}:/contracts ghcr.io/fboiero/miesc:latest scan /contract
 
 </details>
 
+**Docker with LLM Support (Premium Reports):**
+
+```bash
+# Interactive setup wizard (recommended)
+./scripts/docker-setup.sh
+
+# Or manually start with LLM profile
+docker-compose --profile llm up -d
+
+# Production deployment with both models pre-loaded
+docker-compose -f docker-compose.prod-llm.yml up -d
+
+# Health check
+./deploy/health-check.sh
+```
+
 **As module:**
 
 ```bash
@@ -151,6 +167,7 @@ miesc audit quick contract.sol       # Fast 4-tool scan
 miesc audit full contract.sol        # Complete 9-layer audit
 miesc audit layer 3 contract.sol     # Run specific layer
 miesc report results.json -t professional  # Generate audit report
+miesc report results.json -t premium --llm-interpret  # Premium report with AI
 miesc benchmark ./contracts --save   # Track security posture
 miesc server rest --port 5001        # Start REST API
 miesc doctor                         # Check tool availability
@@ -160,6 +177,44 @@ miesc detectors run contract.sol     # Run custom detectors
 miesc plugins list                   # List installed plugins
 miesc plugins install <package>      # Install plugin from PyPI
 miesc plugins create <name>          # Create new plugin project
+```
+
+### Report Generation
+
+Generate professional audit reports from analysis results:
+
+```bash
+# Available templates
+miesc report results.json -t simple        # Basic findings list
+miesc report results.json -t professional  # Standard audit report
+miesc report results.json -t executive     # C-level summary
+miesc report results.json -t premium       # Trail of Bits style (CVSS, risk matrix)
+
+# With AI-powered interpretation (requires Ollama)
+miesc report results.json -t premium --llm-interpret -o report.md
+
+# Different output formats
+miesc report results.json -t premium -f html -o report.html
+miesc report results.json -t premium -f pdf -o report.pdf
+```
+
+**Premium Report Features:**
+- CVSS-like scoring for each finding
+- Risk matrix (Impact vs Likelihood)
+- Deployment recommendation (GO/NO-GO/CONDITIONAL)
+- Attack scenarios for critical vulnerabilities
+- Code remediation suggestions with diffs
+- Remediation roadmap with prioritization
+
+**LLM Requirements:**
+```bash
+# Start Ollama with required models
+ollama serve &
+ollama pull mistral:latest      # General interpretation
+ollama pull deepseek-coder:6.7b # Code analysis
+
+# Or use Docker setup
+./scripts/docker-setup.sh
 ```
 
 ### Custom Detectors

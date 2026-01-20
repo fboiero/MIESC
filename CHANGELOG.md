@@ -5,6 +5,43 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.7] - 2025-01-20
+
+### Added
+
+#### Premium Audit Reports
+- **Premium report template** (`-t premium`): Trail of Bits / OpenZeppelin style professional audit reports
+- **CVSS-like scoring**: Automatic vulnerability scoring with attack vectors (AV, AC, PR, UI, C/I/A)
+- **Risk matrix**: Visual Impact vs Likelihood matrix with finding distribution
+- **Deployment recommendation**: GO / NO-GO / CONDITIONAL with justification
+- **Attack scenarios**: AI-generated step-by-step attack scenarios for critical findings
+- **Code remediation**: AI-generated fix suggestions with git-style diffs
+- **Remediation roadmap**: Prioritized timeline for addressing vulnerabilities
+
+#### Docker LLM Distribution
+- **Dual-model support**: docker-compose now downloads both `deepseek-coder:6.7b` and `mistral:latest`
+- **Production config**: New `docker-compose.prod-llm.yml` with health checks, resource limits, and GPU support
+- **Setup wizard**: Interactive `scripts/docker-setup.sh` for easy deployment
+- **Health check**: New `deploy/health-check.sh` to verify Ollama and model availability
+
+#### New Files
+- `docs/templates/reports/premium.md` - Premium report template
+- `src/reports/risk_calculator.py` - CVSS scoring and risk matrix generator
+- `docker-compose.prod-llm.yml` - Production Docker config with LLM
+- `scripts/docker-setup.sh` - Interactive setup wizard
+- `deploy/health-check.sh` - Service health verification
+
+### Changed
+- `miesc report` now supports `--template premium` option
+- `llm_interpreter.py` enhanced with attack scenario and code remediation generation
+- `config/miesc.yaml` includes premium report configuration section
+
+### Links
+- **GitHub Release**: https://github.com/fboiero/MIESC/releases/tag/v4.3.7
+- **Docker**: `docker pull ghcr.io/fboiero/miesc:4.3.7`
+
+---
+
 ## [4.3.5] - 2025-01-19
 
 ### Fixed
