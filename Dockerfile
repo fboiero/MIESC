@@ -1,4 +1,4 @@
-# MIESC v4.3.4 - Complete Docker Deployment
+# MIESC v4.3.6 - Complete Docker Deployment
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile creates a complete, production-ready environment with:
@@ -13,7 +13,7 @@
 FROM python:3.12-slim-bookworm AS builder
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="4.3.4"
+LABEL version="4.3.6"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
 # Install system dependencies
@@ -47,7 +47,7 @@ RUN cargo install medusa || echo "Medusa install failed - will be optional"
 FROM python:3.12-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="4.3.4"
+LABEL version="4.3.6"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
 # Copy Rust binaries from builder (aderyn only, foundry installed separately)
@@ -69,7 +69,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     software-properties-common \
     gnupg \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Solhint (Solidity linter)
+RUN npm install -g solhint
 
 # Install Solc from Ethereum PPA (native binary for ARM/x86)
 RUN curl -fsSL https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.20+commit.a1b79de6 -o /usr/local/bin/solc-0.8.20 || \
@@ -124,10 +129,15 @@ RUN pip install --no-cache-dir --user manticore[native] && \
     echo "WARNING: Manticore install failed - may not support this architecture"
 
 # Environment variables for MIESC
-ENV MIESC_VERSION="4.3.4"
+ENV MIESC_VERSION="4.3.6"
 ENV MIESC_ENV="docker"
 ENV PYTHONPATH="/app:${PYTHONPATH}"
 ENV PYTHONUNBUFFERED=1
+
+# LLM Configuration (for AI-powered report interpretation)
+# These can be overridden at runtime via docker-compose or docker run -e
+ENV OLLAMA_HOST="http://localhost:11434"
+ENV MIESC_LLM_MODEL="deepseek-coder:6.7b"
 
 # Health check with ML pipeline verification
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

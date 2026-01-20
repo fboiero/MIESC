@@ -434,6 +434,43 @@ llm:
     max_entries: 1000
 
 # =============================================================================
+# Report Generation Configuration (v4.3.6+)
+# =============================================================================
+reports:
+  # Default template for report generation
+  default_template: professional
+
+  # Available templates
+  templates:
+    - professional
+    - executive
+    - technical
+    - github-pr
+    - simple
+
+  # LLM Interpretation settings
+  llm_interpretation:
+    enabled: false  # Set to true to enable by default (or use --llm-interpret flag)
+    model: deepseek-coder:6.7b
+    ollama_host: http://localhost:11434  # Override via OLLAMA_HOST env var
+
+    # Generation parameters for report interpretation
+    temperature: 0.2  # Slightly creative for summaries
+    max_tokens: 2000
+    timeout: 180  # 3 minutes per LLM call
+
+    # Features to include when LLM interpretation is enabled
+    features:
+      executive_summary: true      # AI-generated executive summary
+      risk_narrative: true         # AI-generated risk narrative
+      critical_interpretations: true  # Detailed interpretation of critical findings
+      remediation_priority: true   # AI-suggested remediation order
+
+    # Limits
+    max_findings_to_interpret: 5   # Max critical findings to interpret in detail
+    max_findings_to_prioritize: 10 # Max findings for prioritization
+
+# =============================================================================
 # Configuración de Resultados
 # =============================================================================
 results:

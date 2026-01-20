@@ -3131,6 +3131,18 @@ def plugins_path(create):
 # ============================================================================
 
 
+def _get_impact_description(severity: str) -> str:
+    """Get impact description based on severity."""
+    impacts = {
+        "critical": "Complete loss of funds or contract takeover possible. Immediate exploitation risk.",
+        "high": "Significant financial loss or contract compromise possible under certain conditions.",
+        "medium": "Limited financial impact or requires specific conditions to exploit.",
+        "low": "Minor impact on contract functionality or gas efficiency.",
+        "info": "Informational finding for code quality improvement.",
+    }
+    return impacts.get(severity, "Impact assessment pending.")
+
+
 @cli.command()
 @click.argument("results_file", type=click.Path(exists=True))
 @click.option(
@@ -3152,7 +3164,13 @@ def plugins_path(create):
 @click.option("--client", type=str, help="Client name for the report")
 @click.option("--auditor", type=str, help="Auditor name for the report")
 @click.option("--title", type=str, help="Custom report title")
-def report(results_file, template, output, output_format, client, auditor, title):
+@click.option(
+    "--llm-interpret",
+    is_flag=True,
+    default=False,
+    help="Use LLM to interpret findings and generate executive insights (requires Ollama)",
+)
+def report(results_file, template, output, output_format, client, auditor, title, llm_interpret):
     """Generate formatted security reports from audit results.
 
     Takes JSON audit results and applies a template to generate
@@ -3197,7 +3215,49 @@ def report(results_file, template, output, output_format, client, auditor, title
 
     # Extract data from results
     summary = results.get("summary", {})
+
+    # Extract findings from results (can be at root level or within tool results)
     findings = results.get("findings", [])
+    if not findings:
+        # Extract from tool results
+        for tool_result in results.get("results", []):
+            tool_findings = tool_result.get("findings", [])
+            for f in tool_findings:
+                f["tool"] = tool_result.get("tool", "unknown")
+            findings.extend(tool_findings)
+
+    # Normalize summary keys (can be uppercase or lowercase)
+    if summary:
+        summary = {k.lower(): v for k, v in summary.items()}
+
+    # Calculate severity status labels
+    critical_count = summary.get("critical", 0)
+    high_count = summary.get("high", 0)
+    medium_count = summary.get("medium", 0)
+    low_count = summary.get("low", 0)
+    info_count = summary.get("info", 0)
+
+    def get_status(count, severity):
+        if count == 0:
+            return "✅ None Found"
+        elif severity in ("critical", "high"):
+            return f"⚠️ {count} Issue{'s' if count > 1 else ''} - Action Required"
+        else:
+            return f"ℹ️ {count} Issue{'s' if count > 1 else ''}"
+
+    # Get tools used per layer
+    tools_by_layer = results.get("tools_by_layer", {})
+    tool_list = results.get("tools", [])
+
+    # Generate risk summary based on findings
+    overall_risk = _calculate_risk_level(summary)
+    risk_summaries = {
+        "CRITICAL": "**CRITICAL RISK**: This contract contains critical vulnerabilities that could lead to complete loss of funds or contract takeover. Immediate remediation is required before deployment.",
+        "HIGH": "**HIGH RISK**: Significant security issues were identified that could result in substantial financial loss or contract compromise. These issues should be addressed before deployment.",
+        "MEDIUM": "**MEDIUM RISK**: Several security concerns were found that could potentially be exploited under certain conditions. Recommended to address before deployment.",
+        "LOW": "**LOW RISK**: Minor issues were identified that should be addressed to improve code quality and security posture.",
+        "MINIMAL": "**MINIMAL RISK**: No significant security issues were identified. The contract follows security best practices."
+    }
 
     # Prepare template variables
     variables = {
@@ -3207,33 +3267,240 @@ def report(results_file, template, output, output_format, client, auditor, title
         "client_name": client or "Client",
         "auditor_name": auditor or "MIESC Security",
         "version": results.get("version", VERSION),
-        "critical_count": summary.get("critical", 0),
-        "high_count": summary.get("high", 0),
-        "medium_count": summary.get("medium", 0),
-        "low_count": summary.get("low", 0),
-        "info_count": summary.get("info", 0),
+        "critical_count": critical_count,
+        "high_count": high_count,
+        "medium_count": medium_count,
+        "low_count": low_count,
+        "info_count": info_count,
         "total_findings": len(findings),
         "files_count": results.get("files_count", 1),
-        "tools_count": len(results.get("tools", [])),
-        "overall_risk": _calculate_risk_level(summary),
+        "tools_count": len(tool_list),
+        "overall_risk": overall_risk,
         "miesc_version": VERSION,
+        # Additional fields for professional template
+        "repository": results.get("repository", "Local Analysis"),
+        "commit_hash": results.get("commit", "N/A"),
+        "lines_of_code": results.get("lines_of_code", "N/A"),
+        "audit_duration": results.get("duration", "N/A"),
+        "critical_status": get_status(critical_count, "critical"),
+        "high_status": get_status(high_count, "high"),
+        "medium_status": get_status(medium_count, "medium"),
+        "low_status": get_status(low_count, "low"),
+        "info_status": get_status(info_count, "info"),
+        "risk_summary": risk_summaries.get(overall_risk, "Risk assessment pending."),
+        # Layer tools
+        "layer1_tools": ", ".join(tools_by_layer.get("static_analysis", ["slither", "aderyn", "solhint"])),
+        "layer2_tools": ", ".join(tools_by_layer.get("dynamic_testing", ["echidna", "medusa", "foundry"])),
+        "layer3_tools": ", ".join(tools_by_layer.get("symbolic_execution", ["mythril", "manticore", "halmos"])),
+        "layer4_tools": ", ".join(tools_by_layer.get("formal_verification", ["certora", "smtchecker"])),
+        "layer5_tools": ", ".join(tools_by_layer.get("property_testing", ["propertygpt"])),
+        "layer6_tools": ", ".join(tools_by_layer.get("ai_analysis", ["smartllm", "gptscan", "llmsmartaudit"])),
+        "layer7_tools": ", ".join(tools_by_layer.get("ml_detection", ["dagnn", "smartbugs_ml"])),
+        "layer8_tools": ", ".join(tools_by_layer.get("defi", ["defi", "mev_detector"])),
+        "layer9_tools": ", ".join(tools_by_layer.get("specialized", ["gas_analyzer", "threat_model"])),
+        # Empty lists for optional sections
+        "swc_mappings": [],
+        "owasp_mappings": [],
+        "tool_outputs": [],
+        "files_analyzed": [{"path": results.get("contract", "Unknown"), "lines": "N/A", "findings": len(findings)}],
+        # LLM interpretation placeholders (populated if --llm-interpret is used)
+        "llm_executive_summary": "",
+        "llm_risk_narrative": "",
+        "llm_remediation_priority": [],
+        "llm_critical_interpretations": [],
+        "llm_enabled": False,
     }
+
+    # =========================================================================
+    # Enhanced Tool Execution Summary
+    # =========================================================================
+    tool_results = results.get("results", [])
+    tools_execution_summary = []
+    layer_summary = {}
+
+    # Layer name mapping
+    layer_names = {
+        "static_analysis": "Layer 1: Static Analysis",
+        "dynamic_testing": "Layer 2: Dynamic Testing",
+        "symbolic_execution": "Layer 3: Symbolic Execution",
+        "formal_verification": "Layer 4: Formal Verification",
+        "property_testing": "Layer 5: Property Testing",
+        "ai_analysis": "Layer 6: AI/LLM Analysis",
+        "ml_detection": "Layer 7: ML Detection",
+        "defi": "Layer 8: DeFi Security",
+        "specialized": "Layer 9: Specialized Analysis",
+    }
+
+    for tool_result in tool_results:
+        tool_name = tool_result.get("tool", "unknown")
+        tool_status = tool_result.get("status", "unknown")
+        tool_duration = tool_result.get("duration", "N/A")
+        tool_findings = tool_result.get("findings", [])
+        tool_layer = tool_result.get("layer", "unknown")
+        tool_error = tool_result.get("error", "")
+
+        # Map status to human-readable
+        status_map = {
+            "success": "Success",
+            "failed": "Failed",
+            "skipped": "Skipped",
+            "timeout": "Timeout",
+            "error": "Error",
+        }
+        display_status = status_map.get(tool_status, tool_status.capitalize() if isinstance(tool_status, str) else "Unknown")
+
+        tools_execution_summary.append({
+            "name": tool_name,
+            "status": display_status,
+            "status_icon": "✅" if tool_status == "success" else ("⚠️" if tool_status in ("failed", "error", "timeout") else "⏭️"),
+            "duration": f"{tool_duration}s" if isinstance(tool_duration, (int, float)) else str(tool_duration),
+            "findings_count": len(tool_findings),
+            "layer": layer_names.get(tool_layer, tool_layer),
+            "error": tool_error[:100] if tool_error else "",
+        })
+
+        # Aggregate by layer
+        layer_key = tool_layer if tool_layer else "unknown"
+        if layer_key not in layer_summary:
+            layer_summary[layer_key] = {
+                "name": layer_names.get(layer_key, layer_key),
+                "tools_executed": [],
+                "tools_success": 0,
+                "tools_failed": 0,
+                "findings_count": 0,
+            }
+        layer_summary[layer_key]["tools_executed"].append(tool_name)
+        layer_summary[layer_key]["findings_count"] += len(tool_findings)
+        if tool_status == "success":
+            layer_summary[layer_key]["tools_success"] += 1
+        elif tool_status in ("failed", "error", "timeout"):
+            layer_summary[layer_key]["tools_failed"] += 1
+
+    # Convert layer_summary to list sorted by layer order
+    layer_order = ["static_analysis", "dynamic_testing", "symbolic_execution",
+                   "formal_verification", "property_testing", "ai_analysis",
+                   "ml_detection", "defi", "specialized"]
+    layer_summary_list = []
+    for layer_key in layer_order:
+        if layer_key in layer_summary:
+            ls = layer_summary[layer_key]
+            layer_summary_list.append({
+                "name": ls["name"],
+                "tools": ", ".join(ls["tools_executed"]) if ls["tools_executed"] else "None",
+                "success_count": ls["tools_success"],
+                "failed_count": ls["tools_failed"],
+                "findings_count": ls["findings_count"],
+                "coverage_status": "✅ Complete" if ls["tools_success"] > 0 and ls["tools_failed"] == 0 else (
+                    "⚠️ Partial" if ls["tools_success"] > 0 else "❌ Not Executed"
+                ),
+            })
+
+    variables["tools_execution_summary"] = tools_execution_summary
+    variables["layer_summary"] = layer_summary_list
+    variables["total_tools_executed"] = len(tools_execution_summary)
+    variables["tools_success_count"] = sum(1 for t in tools_execution_summary if t["status"] == "Success")
+    variables["tools_failed_count"] = sum(1 for t in tools_execution_summary if t["status"] in ("Failed", "Error", "Timeout"))
+
+    # =========================================================================
+    # LLM Interpretation (if enabled)
+    # =========================================================================
+    if llm_interpret:
+        info("LLM interpretation enabled - generating AI-powered insights...")
+        try:
+            from src.reports.llm_interpreter import LLMReportInterpreter
+
+            # Get contract code if available
+            contract_path = results.get("contract_path") or results.get("contract")
+            contract_code = ""
+            if contract_path:
+                try:
+                    contract_file = Path(contract_path)
+                    if contract_file.exists():
+                        contract_code = contract_file.read_text()[:10000]  # Limit to 10k chars
+                except Exception:
+                    pass
+
+            interpreter = LLMReportInterpreter()
+
+            if interpreter.is_available():
+                variables["llm_enabled"] = True
+                variables["llm_model"] = interpreter.config.model
+
+                # Generate executive interpretation
+                info("Generating executive summary interpretation...")
+                exec_summary = interpreter.generate_executive_interpretation(
+                    findings=findings,
+                    summary=summary,
+                    contract_name=results.get("contract", "Unknown")
+                )
+                variables["llm_executive_summary"] = exec_summary
+
+                # Generate risk narrative
+                info("Generating risk narrative...")
+                risk_narrative = interpreter.generate_risk_narrative(
+                    summary=summary,
+                    findings=findings
+                )
+                variables["llm_risk_narrative"] = risk_narrative
+
+                # Interpret critical findings
+                critical_high = [f for f in findings if f.get("severity", "").lower() in ("critical", "high")]
+                if critical_high:
+                    info(f"Interpreting {len(critical_high[:5])} critical/high findings...")
+                    interpreted = interpreter.interpret_critical_findings(
+                        critical_findings=critical_high[:5],  # Top 5
+                        contract_code=contract_code
+                    )
+                    variables["llm_critical_interpretations"] = interpreted
+
+                # Generate remediation priority
+                if findings:
+                    info("Generating remediation priority recommendations...")
+                    priority = interpreter.suggest_remediation_priority(
+                        findings=findings[:10]  # Top 10
+                    )
+                    variables["llm_remediation_priority"] = priority
+
+                success("LLM interpretation complete!")
+            else:
+                warning("Ollama not available - skipping LLM interpretation")
+                warning("Start Ollama with: ollama serve && ollama pull deepseek-coder:6.7b")
+
+        except ImportError as e:
+            warning(f"LLM interpreter not available: {e}")
+        except Exception as e:
+            warning(f"LLM interpretation failed: {e}")
 
     # Prepare findings for template
     formatted_findings = []
     for i, finding in enumerate(findings, 1):
+        # Handle location (can be string or dict)
+        location = finding.get("location", {})
+        if isinstance(location, dict):
+            loc_str = f"{location.get('file', 'unknown')}:{location.get('line', '?')}"
+            if location.get("function"):
+                loc_str += f" ({location.get('function')})"
+        else:
+            loc_str = str(location) if location else "unknown"
+
+        # Get title from various possible fields
+        title = finding.get("title") or finding.get("type") or finding.get("message", "Unknown")[:50]
+
+        # Get category from swc_id, owasp_category, or type
+        category = finding.get("category") or finding.get("owasp_category") or finding.get("swc_id") or finding.get("type", "general")
+
         formatted_findings.append(
             {
                 "id": f"F-{i:03d}",
-                "title": finding.get("title", "Unknown"),
-                "severity": finding.get("severity", "unknown"),
-                "category": finding.get("category", "general"),
-                "location": finding.get("location", "unknown"),
-                "description": finding.get("description", ""),
-                "recommendation": finding.get("recommendation", ""),
+                "title": title,
+                "severity": finding.get("severity", "unknown").lower(),
+                "category": category,
+                "location": loc_str,
+                "description": finding.get("description", finding.get("message", "")),
+                "recommendation": finding.get("recommendation", "Review and fix the vulnerability."),
                 "tool": finding.get("tool", "unknown"),
                 "status": finding.get("status", "open"),
-                "impact": finding.get("impact", ""),
+                "impact": finding.get("impact", _get_impact_description(finding.get("severity", "").lower())),
                 "poc": finding.get("poc", "// No PoC provided"),
                 "references": finding.get("references", []),
             }
@@ -3316,7 +3583,22 @@ def _calculate_risk_level(summary: dict) -> str:
 
 
 def _render_template(template: str, variables: dict) -> str:
-    """Simple template rendering with Jinja2-like syntax."""
+    """Render template using Jinja2 if available, otherwise simple replacement."""
+    try:
+        from jinja2 import Template, Environment, BaseLoader
+
+        # Create Jinja2 environment with proper settings
+        env = Environment(loader=BaseLoader())
+        jinja_template = env.from_string(template)
+        return jinja_template.render(**variables)
+    except ImportError:
+        # Fallback to simple rendering
+        return _simple_render_template(template, variables)
+
+
+def _simple_render_template(template: str, variables: dict) -> str:
+    """Simple template rendering fallback without Jinja2."""
+    import re
     output = template
 
     # Replace simple variables {{ var }}
@@ -3325,61 +3607,41 @@ def _render_template(template: str, variables: dict) -> str:
             output = output.replace("{{ " + key + " }}", str(value))
             output = output.replace("{{" + key + "}}", str(value))
 
-    # Handle findings loop
-    if "{% for finding in findings %}" in output:
-        findings_section_start = output.find("{% for finding in findings %}")
-        findings_section_end = output.find("{% endfor %}", findings_section_start)
+    # Handle generic for loops
+    loop_pattern = r"\{% for (\w+) in (\w+) %\}(.*?)\{% endfor %\}"
 
-        if findings_section_end > findings_section_start:
-            loop_template = output[
-                findings_section_start + len("{% for finding in findings %}") : findings_section_end
-            ]
+    def replace_loop(match):
+        item_name = match.group(1)
+        list_name = match.group(2)
+        loop_body = match.group(3)
 
-            findings_output = ""
-            for finding in variables.get("findings", []):
-                finding_text = loop_template
-                for fkey, fvalue in finding.items():
-                    if isinstance(fvalue, list):
-                        fvalue = ", ".join(str(v) for v in fvalue)
-                    finding_text = finding_text.replace("{{ finding." + fkey + " }}", str(fvalue))
-                    finding_text = finding_text.replace("{{finding." + fkey + "}}", str(fvalue))
-                findings_output += finding_text
+        items = variables.get(list_name, [])
+        if not items:
+            return ""
 
-            output = (
-                output[:findings_section_start]
-                + findings_output
-                + output[findings_section_end + len("{% endfor %}") :]
-            )
+        result = ""
+        for item in items:
+            item_output = loop_body
+            if isinstance(item, dict):
+                for key, value in item.items():
+                    if isinstance(value, list):
+                        value = ", ".join(str(v) for v in value)
+                    item_output = item_output.replace(f"{{{{ {item_name}.{key} }}}}", str(value))
+                    item_output = item_output.replace(f"{{{{{item_name}.{key}}}}}", str(value))
+            else:
+                item_output = item_output.replace(f"{{{{ {item_name} }}}}", str(item))
+            result += item_output
+        return result
 
-    # Handle critical_high_findings loop
-    if "{% for finding in critical_high_findings %}" in output:
-        section_start = output.find("{% for finding in critical_high_findings %}")
-        section_end = output.find("{% endfor %}", section_start)
+    # Process all loops (may need multiple passes for nested loops)
+    for _ in range(5):  # Max 5 passes for nested loops
+        new_output = re.sub(loop_pattern, replace_loop, output, flags=re.DOTALL)
+        if new_output == output:
+            break
+        output = new_output
 
-        if section_end > section_start:
-            loop_template = output[
-                section_start + len("{% for finding in critical_high_findings %}") : section_end
-            ]
-
-            findings_output = ""
-            for finding in variables.get("critical_high_findings", []):
-                finding_text = loop_template
-                for fkey, fvalue in finding.items():
-                    finding_text = finding_text.replace("{{ finding." + fkey + " }}", str(fvalue))
-                findings_output += finding_text
-
-            output = (
-                output[:section_start]
-                + findings_output
-                + output[section_end + len("{% endfor %}") :]
-            )
-
-    # Handle conditionals (simplified)
-    if "{% if " in output:
-        # Remove unfilled conditionals
-        import re
-
-        output = re.sub(r"\{% if [^%]+%\}.*?\{% endif %\}", "", output, flags=re.DOTALL)
+    # Handle conditionals (simplified - remove unfilled ones)
+    output = re.sub(r"\{% if [^%]+%\}.*?\{% endif %\}", "", output, flags=re.DOTALL)
 
     return output
 
