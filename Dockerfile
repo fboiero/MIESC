@@ -126,17 +126,18 @@ RUN solc-select install 0.8.0 && \
     solc-select install 0.8.20 && \
     solc-select use 0.8.20
 
-# Install Mythril (symbolic execution) - with build dependencies available
-# Note: On ARM, this may take longer due to compilation
-RUN pip install --no-cache-dir --user mythril>=0.24.0 && \
+# Install Mythril (symbolic execution) - with timeout to prevent hanging
+# Note: On ARM, this may take very long or fail due to z3-solver compilation
+# Timeout after 5 minutes, then continue without Mythril
+RUN timeout 300 pip install --no-cache-dir --user mythril>=0.24.0 && \
     echo "Mythril installed successfully" || \
-    echo "WARNING: Mythril install failed - check build dependencies"
+    echo "WARNING: Mythril install skipped (timeout or failed) - symbolic execution will be limited"
 
-# Install Manticore (symbolic execution engine)
+# Install Manticore (symbolic execution engine) - with timeout
 # Note: Manticore may have limited ARM support
-RUN pip install --no-cache-dir --user manticore[native] && \
+RUN timeout 300 pip install --no-cache-dir --user manticore[native] && \
     echo "Manticore installed successfully" || \
-    echo "WARNING: Manticore install failed - may not support this architecture"
+    echo "WARNING: Manticore install skipped (timeout or failed) - may not support this architecture"
 
 # Install weasyprint for PDF generation
 RUN pip install --no-cache-dir --user weasyprint markdown && \
