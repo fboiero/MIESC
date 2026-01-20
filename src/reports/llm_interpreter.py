@@ -393,6 +393,299 @@ EXPLANATION:"""
         return response if response else ""
 
     # =========================================================================
+    # Premium Report Methods
+    # =========================================================================
+
+    def generate_attack_scenario(
+        self,
+        finding: Dict[str, Any],
+        contract_code: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Generate detailed attack scenario for a vulnerability.
+
+        Args:
+            finding: The vulnerability finding
+            contract_code: Optional contract source code
+
+        Returns:
+            Dict with attack scenario, steps, and impact
+        """
+        if not self.is_available():
+            return {}
+
+        title = finding.get("title") or finding.get("type") or "Unknown"
+        severity = finding.get("severity", "unknown").upper()
+        description = finding.get("description", "")[:800]
+        location = finding.get("location", {})
+
+        if isinstance(location, dict):
+            loc_str = f"{location.get('file', 'unknown')}:{location.get('line', '?')}"
+        else:
+            loc_str = str(location)
+
+        code_context = ""
+        if contract_code:
+            code_context = f"\nRELEVANT CODE:\n```solidity\n{contract_code[:1200]}\n```"
+
+        prompt = f"""You are a smart contract security researcher creating an attack scenario for a security report.
+
+VULNERABILITY:
+- Title: {title}
+- Severity: {severity}
+- Location: {loc_str}
+- Description: {description}
+{code_context}
+
+TASK: Create a detailed attack scenario in JSON format:
+
+{{
+  "scenario_description": "Brief narrative of how an attacker would exploit this (50-80 words)",
+  "prerequisites": ["What the attacker needs before exploiting"],
+  "attack_steps": [
+    "Step 1: Specific action",
+    "Step 2: Specific action",
+    "Step 3: ..."
+  ],
+  "expected_outcome": "What the attacker achieves",
+  "financial_impact": "Estimated impact (e.g., 'Total loss of contract funds', 'Up to X ETH at risk')",
+  "difficulty": "Low/Medium/High - difficulty for attacker"
+}}
+
+Return ONLY valid JSON. Be specific to this vulnerability, not generic.
+
+JSON:"""
+
+        response = self._call_llm(prompt)
+        if not response:
+            return {}
+
+        try:
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+            if json_start == -1 or json_end == 0:
+                return {}
+
+            return json.loads(response[json_start:json_end])
+        except (json.JSONDecodeError, Exception) as e:
+            logger.error(f"Error parsing attack scenario: {e}")
+            return {}
+
+    def generate_code_remediation(
+        self,
+        finding: Dict[str, Any],
+        contract_code: str
+    ) -> Dict[str, Any]:
+        """
+        Generate code remediation with before/after diff.
+
+        Args:
+            finding: The vulnerability finding
+            contract_code: Contract source code
+
+        Returns:
+            Dict with vulnerable code, fixed code, and explanation
+        """
+        if not self.is_available() or not contract_code:
+            return {}
+
+        title = finding.get("title") or finding.get("type") or "Unknown"
+        description = finding.get("description", "")[:500]
+        location = finding.get("location", {})
+
+        if isinstance(location, dict):
+            line = location.get("line", 0)
+        else:
+            line = 0
+
+        # Extract relevant code section
+        lines = contract_code.split('\n')
+        start = max(0, line - 10)
+        end = min(len(lines), line + 15)
+        code_excerpt = '\n'.join(lines[start:end])
+
+        prompt = f"""You are a Solidity security expert providing code remediation.
+
+VULNERABILITY: {title}
+DESCRIPTION: {description}
+
+CODE AROUND LINE {line}:
+```solidity
+{code_excerpt}
+```
+
+TASK: Provide code remediation in JSON format:
+
+{{
+  "vulnerable_code": "The specific vulnerable code snippet (just the problematic lines)",
+  "fixed_code": "The corrected code with the vulnerability fixed",
+  "diff": "A git-style diff showing the changes (use - for removed, + for added)",
+  "explanation": "Brief explanation of the fix (30-50 words)",
+  "effort": "Low/Medium/High - implementation effort",
+  "fix_time": "Estimated time (e.g., '30 min', '1-2 hours')"
+}}
+
+Return ONLY valid JSON. Provide working Solidity code.
+
+JSON:"""
+
+        response = self._call_llm(prompt)
+        if not response:
+            return {}
+
+        try:
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+            if json_start == -1 or json_end == 0:
+                return {}
+
+            return json.loads(response[json_start:json_end])
+        except (json.JSONDecodeError, Exception) as e:
+            logger.error(f"Error parsing code remediation: {e}")
+            return {}
+
+    def generate_deployment_recommendation(
+        self,
+        findings: List[Dict[str, Any]],
+        summary: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Generate deployment recommendation (GO/NO-GO/CONDITIONAL).
+
+        Args:
+            findings: List of findings
+            summary: Summary with severity counts
+
+        Returns:
+            Dict with recommendation, justification, and action items
+        """
+        if not self.is_available():
+            return {
+                "recommendation": "UNKNOWN",
+                "justification": "LLM not available for analysis",
+                "action_items": []
+            }
+
+        critical = summary.get("critical", 0)
+        high = summary.get("high", 0)
+        medium = summary.get("medium", 0)
+        low = summary.get("low", 0)
+        total = len(findings)
+
+        # Get top issues
+        top_issues = []
+        for f in findings[:8]:
+            severity = f.get("severity", "unknown").upper()
+            title = f.get("title") or f.get("type") or "Unknown"
+            top_issues.append(f"[{severity}] {title}")
+
+        issues_text = "\n".join(top_issues) if top_issues else "No issues found"
+
+        prompt = f"""You are a senior security auditor making a deployment recommendation.
+
+AUDIT RESULTS:
+- Critical vulnerabilities: {critical}
+- High severity: {high}
+- Medium severity: {medium}
+- Low severity: {low}
+- Total issues: {total}
+
+TOP FINDINGS:
+{issues_text}
+
+TASK: Provide deployment recommendation in JSON format:
+
+{{
+  "recommendation": "GO" or "NO-GO" or "CONDITIONAL",
+  "justification": "Clear explanation for the recommendation (50-80 words)",
+  "risk_level": "Critical/High/Medium/Low",
+  "action_items": [
+    "Specific action 1 before deployment",
+    "Specific action 2",
+    "..."
+  ],
+  "conditions": ["If CONDITIONAL, list conditions that must be met"],
+  "timeline": "Recommended timeline for fixes before re-assessment"
+}}
+
+Criteria:
+- GO: No critical, max 1 high (if easily fixable), few medium issues
+- CONDITIONAL: Some high/medium issues that need attention but aren't blockers
+- NO-GO: Any critical, multiple high severity, or systemic security issues
+
+Return ONLY valid JSON.
+
+JSON:"""
+
+        response = self._call_llm(prompt)
+        if not response:
+            return {
+                "recommendation": "CONDITIONAL",
+                "justification": "Unable to generate LLM recommendation",
+                "action_items": ["Review findings manually"]
+            }
+
+        try:
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+            if json_start == -1 or json_end == 0:
+                return {
+                    "recommendation": "CONDITIONAL",
+                    "justification": "Unable to parse LLM response",
+                    "action_items": ["Review findings manually"]
+                }
+
+            return json.loads(response[json_start:json_end])
+        except (json.JSONDecodeError, Exception) as e:
+            logger.error(f"Error parsing deployment recommendation: {e}")
+            return {
+                "recommendation": "CONDITIONAL",
+                "justification": f"Parse error: {str(e)[:50]}",
+                "action_items": ["Review findings manually"]
+            }
+
+    def generate_premium_finding_analysis(
+        self,
+        finding: Dict[str, Any],
+        contract_code: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Generate comprehensive premium analysis for a single finding.
+
+        Combines attack scenario, code remediation, and interpretation.
+
+        Args:
+            finding: The vulnerability finding
+            contract_code: Optional contract source code
+
+        Returns:
+            Dict with all premium analysis components
+        """
+        result = {
+            "finding_id": finding.get("id", "UNK"),
+            "title": finding.get("title") or finding.get("type") or "Unknown",
+            "severity": finding.get("severity", "Medium"),
+        }
+
+        # Generate attack scenario for critical/high findings
+        if finding.get("severity", "").lower() in ("critical", "high"):
+            attack_scenario = self.generate_attack_scenario(finding, contract_code)
+            if attack_scenario:
+                result["attack_scenario"] = attack_scenario.get("scenario_description", "")
+                result["attack_steps"] = attack_scenario.get("attack_steps", [])
+                result["attack_difficulty"] = attack_scenario.get("difficulty", "Unknown")
+
+        # Generate code remediation if code is provided
+        if contract_code:
+            remediation = self.generate_code_remediation(finding, contract_code)
+            if remediation:
+                result["remediation_code"] = remediation.get("diff", "")
+                result["remediation_effort"] = remediation.get("effort", "Medium")
+                result["fix_time"] = remediation.get("fix_time", "Unknown")
+
+        return result
+
+    # =========================================================================
     # Private Helper Methods
     # =========================================================================
 
@@ -466,8 +759,97 @@ def generate_llm_report_insights(
     }
 
 
+def generate_premium_report_insights(
+    findings: List[Dict[str, Any]],
+    summary: Dict[str, Any],
+    contract_name: str,
+    contract_code: str = "",
+    config: Optional[LLMInterpreterConfig] = None
+) -> Dict[str, Any]:
+    """
+    Generate comprehensive LLM insights for premium audit reports.
+
+    Includes all standard insights plus:
+    - Deployment recommendation (GO/NO-GO/CONDITIONAL)
+    - Attack scenarios for critical/high findings
+    - Code remediation suggestions with diffs
+    - Enhanced prioritization with effort estimates
+
+    Usage:
+        insights = generate_premium_report_insights(findings, summary, "MyContract", code)
+        if insights["available"]:
+            print(insights["deployment_recommendation"])
+            print(insights["attack_scenarios"])
+    """
+    interpreter = LLMReportInterpreter(config)
+
+    if not interpreter.is_available():
+        return {"available": False}
+
+    # Get standard insights
+    standard = generate_llm_report_insights(findings, summary, contract_name, contract_code, config)
+    if not standard.get("available"):
+        return standard
+
+    # Generate deployment recommendation
+    deployment = interpreter.generate_deployment_recommendation(findings, summary)
+
+    # Generate attack scenarios for critical/high findings
+    critical_high = [f for f in findings if f.get("severity", "").lower() in ("critical", "high")]
+    attack_scenarios = []
+    for finding in critical_high[:3]:  # Limit to top 3
+        scenario = interpreter.generate_attack_scenario(finding, contract_code)
+        if scenario:
+            attack_scenarios.append({
+                "finding_id": finding.get("id", "UNK"),
+                "title": finding.get("title") or finding.get("type", "Unknown"),
+                **scenario
+            })
+
+    # Generate code remediations if code is provided
+    code_remediations = []
+    if contract_code:
+        for finding in findings[:5]:  # Limit to top 5
+            remediation = interpreter.generate_code_remediation(finding, contract_code)
+            if remediation:
+                code_remediations.append({
+                    "finding_id": finding.get("id", "UNK"),
+                    "title": finding.get("title") or finding.get("type", "Unknown"),
+                    **remediation
+                })
+
+    # Add effort estimates to remediation priority
+    enhanced_priority = []
+    for item in standard.get("remediation_priority", []):
+        item["effort"] = "Medium"  # Default
+        for finding in findings:
+            if finding.get("title") == item.get("title"):
+                # Estimate effort based on category
+                category = finding.get("category", "").lower()
+                if "reentrancy" in category or "access" in category:
+                    item["effort"] = "High"
+                elif "visibility" in category or "pragma" in category:
+                    item["effort"] = "Low"
+                break
+        enhanced_priority.append(item)
+
+    return {
+        **standard,
+        "deployment_recommendation": deployment.get("recommendation", "CONDITIONAL"),
+        "deployment_justification": deployment.get("justification", ""),
+        "deployment_risk_level": deployment.get("risk_level", "Medium"),
+        "deployment_action_items": deployment.get("action_items", []),
+        "deployment_conditions": deployment.get("conditions", []),
+        "deployment_timeline": deployment.get("timeline", ""),
+        "attack_scenarios": attack_scenarios,
+        "code_remediations": code_remediations,
+        "remediation_priority": enhanced_priority,
+    }
+
+
 __all__ = [
     "LLMReportInterpreter",
     "LLMInterpreterConfig",
     "generate_llm_report_insights",
+    "generate_premium_report_insights",
 ]

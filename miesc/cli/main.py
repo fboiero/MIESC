@@ -3148,9 +3148,9 @@ def _get_impact_description(severity: str) -> str:
 @click.option(
     "--template",
     "-t",
-    type=click.Choice(["professional", "executive", "technical", "github-pr", "simple"]),
+    type=click.Choice(["professional", "executive", "technical", "github-pr", "simple", "premium"]),
     default="simple",
-    help="Report template to use",
+    help="Report template to use (premium includes CVSS scores, attack scenarios, and deployment recommendations)",
 )
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
 @click.option(
@@ -3309,6 +3309,26 @@ def report(results_file, template, output, output_format, client, auditor, title
         "llm_remediation_priority": [],
         "llm_critical_interpretations": [],
         "llm_enabled": False,
+        # Premium template variables (populated for premium template)
+        "cvss_scores": [],
+        "risk_matrix": {},
+        "overall_risk_score": 0,
+        "deployment_recommendation": "CONDITIONAL",
+        "deployment_justification": "",
+        "deployment_recommendation_color": "#ff9800",
+        "quick_wins": [],
+        "attack_scenarios": [],
+        "code_remediations": [],
+        "category_summary": [],
+        "exploitability_rating": "Medium",
+        "business_impact": "Medium",
+        "confidence_level": "High",
+        "value_at_risk": None,
+        "out_of_scope": [],
+        "engagement_type": "Security Audit",
+        "target_network": "Ethereum Mainnet",
+        "classification": "CONFIDENTIAL",
+        "report_version": "1.0",
     }
 
     # =========================================================================
@@ -3471,6 +3491,122 @@ def report(results_file, template, output, output_format, client, auditor, title
         except Exception as e:
             warning(f"LLM interpretation failed: {e}")
 
+    # =========================================================================
+    # Premium Template Processing
+    # =========================================================================
+    if template == "premium":
+        info("Generating premium report data (CVSS scores, risk matrix, etc.)...")
+        try:
+            from src.reports.risk_calculator import calculate_premium_risk_data
+
+            # Calculate risk data
+            risk_data = calculate_premium_risk_data(findings)
+
+            # Update variables with risk data
+            variables.update({
+                "cvss_scores": risk_data.get("cvss_scores", []),
+                "risk_matrix": risk_data.get("risk_matrix", {}),
+                "overall_risk_score": risk_data.get("overall_risk_score", 0),
+                "deployment_recommendation": risk_data.get("deployment_recommendation", "CONDITIONAL"),
+                "deployment_justification": risk_data.get("deployment_justification", ""),
+                "deployment_recommendation_color": risk_data.get("deployment_recommendation_color", "#ff9800"),
+                "quick_wins": risk_data.get("quick_wins", []),
+                "critical_percent": risk_data.get("critical_percent", 0),
+                "high_percent": risk_data.get("high_percent", 0),
+                "medium_percent": risk_data.get("medium_percent", 0),
+                "low_percent": risk_data.get("low_percent", 0),
+                "info_percent": risk_data.get("info_percent", 0),
+            })
+
+            # Calculate category summary
+            categories = {}
+            for f in findings:
+                cat = f.get("category") or f.get("type", "General")
+                if cat not in categories:
+                    categories[cat] = {"count": 0, "severities": []}
+                categories[cat]["count"] += 1
+                categories[cat]["severities"].append(f.get("severity", "unknown").lower())
+
+            category_summary = []
+            for cat, data in sorted(categories.items(), key=lambda x: -x[1]["count"]):
+                sev_counts = {}
+                for s in data["severities"]:
+                    sev_counts[s] = sev_counts.get(s, 0) + 1
+                breakdown = ", ".join([f"{v} {k}" for k, v in sorted(sev_counts.items())])
+                category_summary.append({
+                    "name": cat,
+                    "count": data["count"],
+                    "breakdown": breakdown,
+                })
+            variables["category_summary"] = category_summary
+
+            # Add layer coverage bars
+            for layer in variables.get("layer_summary", []):
+                success_count = layer.get("success_count", 0)
+                failed_count = layer.get("failed_count", 0)
+                total = success_count + failed_count
+                if total > 0:
+                    percentage = int(success_count / total * 100)
+                    bar = "█" * (percentage // 10) + "░" * (10 - percentage // 10)
+                    layer["coverage_bar"] = f"{bar} {percentage}%"
+                else:
+                    layer["coverage_bar"] = "░░░░░░░░░░ N/A"
+
+            # If LLM is enabled and premium, use premium insights
+            if llm_interpret and variables.get("llm_enabled"):
+                try:
+                    from src.reports.llm_interpreter import generate_premium_report_insights
+
+                    info("Generating premium LLM insights (attack scenarios, deployment recommendation)...")
+
+                    # Get contract code if available
+                    contract_path = results.get("contract_path") or results.get("contract")
+                    contract_code = ""
+                    if contract_path:
+                        try:
+                            contract_file = Path(contract_path)
+                            if contract_file.exists():
+                                contract_code = contract_file.read_text()[:10000]
+                        except Exception:
+                            pass
+
+                    premium_insights = generate_premium_report_insights(
+                        findings=findings,
+                        summary=summary,
+                        contract_name=results.get("contract", "Unknown"),
+                        contract_code=contract_code
+                    )
+
+                    if premium_insights.get("available"):
+                        # LLM-based deployment recommendation overrides calculated one
+                        if premium_insights.get("deployment_recommendation"):
+                            variables["deployment_recommendation"] = premium_insights["deployment_recommendation"]
+                            variables["deployment_justification"] = premium_insights.get("deployment_justification", "")
+
+                        # Add attack scenarios
+                        if premium_insights.get("attack_scenarios"):
+                            variables["attack_scenarios"] = premium_insights["attack_scenarios"]
+
+                        # Add code remediations
+                        if premium_insights.get("code_remediations"):
+                            variables["code_remediations"] = premium_insights["code_remediations"]
+
+                        # Update remediation priority with effort
+                        if premium_insights.get("remediation_priority"):
+                            variables["llm_remediation_priority"] = premium_insights["remediation_priority"]
+
+                        success("Premium LLM insights generated!")
+
+                except Exception as e:
+                    warning(f"Premium LLM insights failed: {e}")
+
+            success("Premium report data generated!")
+
+        except ImportError as e:
+            warning(f"Risk calculator not available: {e}")
+        except Exception as e:
+            warning(f"Premium report processing failed: {e}")
+
     # Prepare findings for template
     formatted_findings = []
     for i, finding in enumerate(findings, 1):
@@ -3489,20 +3625,77 @@ def report(results_file, template, output, output_format, client, auditor, title
         # Get category from swc_id, owasp_category, or type
         category = finding.get("category") or finding.get("owasp_category") or finding.get("swc_id") or finding.get("type", "general")
 
+        # Severity display helpers for premium template
+        severity_lower = finding.get("severity", "unknown").lower()
+        severity_badges = {
+            "critical": "**CRITICAL**",
+            "high": "**HIGH**",
+            "medium": "MEDIUM",
+            "low": "LOW",
+            "info": "INFO",
+            "informational": "INFO",
+        }
+        severity_colors = {
+            "critical": "#dc3545",
+            "high": "#fd7e14",
+            "medium": "#ffc107",
+            "low": "#28a745",
+            "info": "#17a2b8",
+            "informational": "#17a2b8",
+        }
+
+        # Get CVSS score if available
+        cvss_score = None
+        for score in variables.get("cvss_scores", []):
+            if score.get("title") == title or score.get("finding_id") == f"F-{i:03d}":
+                cvss_score = score.get("base_score")
+                break
+
+        # Get attack scenario if available
+        attack_scenario = None
+        attack_steps = []
+        for scenario in variables.get("attack_scenarios", []):
+            if scenario.get("title") == title:
+                attack_scenario = scenario.get("scenario_description")
+                attack_steps = scenario.get("attack_steps", [])
+                break
+
+        # Get code remediation if available
+        remediation_code = None
+        remediation_effort = None
+        fix_time = None
+        for remediation in variables.get("code_remediations", []):
+            if remediation.get("title") == title:
+                remediation_code = remediation.get("diff")
+                remediation_effort = remediation.get("effort")
+                fix_time = remediation.get("fix_time")
+                break
+
         formatted_findings.append(
             {
                 "id": f"F-{i:03d}",
                 "title": title,
-                "severity": finding.get("severity", "unknown").lower(),
+                "severity": severity_lower,
+                "severity_badge": severity_badges.get(severity_lower, severity_lower.upper()),
+                "severity_color": severity_colors.get(severity_lower, "#6c757d"),
                 "category": category,
                 "location": loc_str,
                 "description": finding.get("description", finding.get("message", "")),
                 "recommendation": finding.get("recommendation", "Review and fix the vulnerability."),
                 "tool": finding.get("tool", "unknown"),
                 "status": finding.get("status", "open"),
-                "impact": finding.get("impact", _get_impact_description(finding.get("severity", "").lower())),
+                "impact": finding.get("impact", _get_impact_description(severity_lower)),
                 "poc": finding.get("poc", "// No PoC provided"),
+                "vulnerable_code": finding.get("vulnerable_code", finding.get("poc", "// No code snippet")),
                 "references": finding.get("references", []),
+                # Premium fields
+                "cvss_score": cvss_score,
+                "attack_scenario": attack_scenario,
+                "attack_steps": attack_steps,
+                "remediation_code": remediation_code,
+                "remediation_effort": remediation_effort,
+                "fix_time": fix_time,
+                "llm_interpretation": finding.get("llm_interpretation", ""),
             }
         )
 

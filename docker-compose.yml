@@ -2,6 +2,7 @@
 # Multi-layer Intelligent Evaluation for Smart Contracts
 # Now with ML Pipeline: FP filtering, severity prediction, clustering
 # Plus: Ollama LLM integration for AI-powered report interpretation
+# SmartLLM: Uses deepseek-coder for code analysis, mistral for general interpretation
 #
 # Usage:
 #   Build and run:     docker-compose up --build
@@ -11,13 +12,17 @@
 #   Interactive shell: docker-compose run miesc-shell
 #
 # LLM-Enhanced Reports:
-#   # Start Ollama service
+#   # Start Ollama with both models
 #   docker-compose --profile llm up -d ollama ollama-init
+#
+#   # Or use the setup script
+#   ./scripts/docker-setup.sh
 #
 #   # Run audit with LLM interpretation
 #   docker-compose run miesc-shell
 #   miesc audit full /app/contracts/MyContract.sol -o /data/results.json
 #   miesc report /data/results.json -t professional --llm-interpret -o /data/report.md
+#   miesc report /data/results.json -t premium --llm-interpret -o /data/premium-report.md
 
 version: '3.8'
 
@@ -213,7 +218,8 @@ services:
 
   # ===========================================================================
   # Ollama Model Initializer
-  # Automatically pulls the required model on first run
+  # Automatically pulls required models on first run
+  # SmartLLM uses: deepseek-coder (code analysis) + mistral (general interpretation)
   # ===========================================================================
   ollama-init:
     image: ollama/ollama:latest
@@ -227,16 +233,38 @@ services:
     command:
       - |
         echo "=== MIESC Ollama Model Initializer ==="
-        echo "Checking for mistral:latest model..."
-        if ! ollama list | grep -q "mistral:latest"; then
-          echo "Pulling mistral:latest (~4GB, this may take a while)..."
-          ollama pull mistral:latest
-          echo "Model downloaded successfully!"
+        echo "SmartLLM requires two models for optimal analysis:"
+        echo "  - deepseek-coder:6.7b (Solidity/code analysis)"
+        echo "  - mistral:latest (general interpretation)"
+        echo ""
+
+        # Model 1: deepseek-coder for code analysis
+        echo "[1/2] Checking deepseek-coder:6.7b..."
+        if ! ollama list | grep -q "deepseek-coder:6.7b"; then
+          echo "Pulling deepseek-coder:6.7b (~3.8GB)..."
+          ollama pull deepseek-coder:6.7b
+          echo "✓ deepseek-coder ready!"
         else
-          echo "Model already available."
+          echo "✓ deepseek-coder already available."
         fi
-        echo "Ollama initialization complete."
-        echo "You can now use --llm-interpret flag with miesc report command."
+
+        # Model 2: mistral for general interpretation
+        echo "[2/2] Checking mistral:latest..."
+        if ! ollama list | grep -q "mistral:latest"; then
+          echo "Pulling mistral:latest (~4GB)..."
+          ollama pull mistral:latest
+          echo "✓ mistral ready!"
+        else
+          echo "✓ mistral already available."
+        fi
+
+        echo ""
+        echo "=== Both models ready! ==="
+        echo "Available models:"
+        ollama list
+        echo ""
+        echo "You can now use --llm-interpret with miesc report command."
+        echo "SmartLLM will automatically select the best model for each task."
     networks:
       - miesc-network
     restart: "no"

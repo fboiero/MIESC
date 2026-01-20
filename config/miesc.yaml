@@ -447,6 +447,7 @@ reports:
     - technical
     - github-pr
     - simple
+    - premium  # New: Trail of Bits / OpenZeppelin style premium reports
 
   # LLM Interpretation settings
   llm_interpretation:
@@ -469,6 +470,51 @@ reports:
     # Limits
     max_findings_to_interpret: 5   # Max critical findings to interpret in detail
     max_findings_to_prioritize: 10 # Max findings for prioritization
+
+  # Premium Report Configuration (v4.3.7+)
+  # Used when --template premium is specified
+  premium:
+    enabled: true
+
+    # CVSS-like scoring
+    cvss_scoring:
+      enabled: true
+      # Adjust base score weights
+      impact_weight: 0.6
+      exploitability_weight: 0.4
+
+    # Risk matrix configuration
+    risk_matrix:
+      enabled: true
+      # Labels for matrix cells
+      impact_levels: ["Low", "Medium", "High"]
+      likelihood_levels: ["Low", "Medium", "High"]
+
+    # Deployment recommendation thresholds
+    deployment_recommendation:
+      # NO-GO conditions
+      no_go_critical_threshold: 1  # Any critical = NO-GO
+      no_go_high_threshold: 2      # 2+ high = NO-GO
+      # CONDITIONAL conditions
+      conditional_high_threshold: 1
+      conditional_medium_threshold: 3
+
+    # Premium LLM features (requires --llm-interpret)
+    llm_features:
+      attack_scenarios: true       # Generate step-by-step attack scenarios
+      code_remediation: true       # Generate code fix suggestions with diffs
+      deployment_justification: true  # LLM-based deployment recommendation
+
+    # Limits for premium LLM generation
+    max_attack_scenarios: 3        # Max critical/high findings for attack scenarios
+    max_code_remediations: 5       # Max findings for code remediation suggestions
+
+    # Report metadata defaults
+    defaults:
+      classification: "CONFIDENTIAL"
+      engagement_type: "Security Audit"
+      target_network: "Ethereum Mainnet"
+      report_version: "1.0"
 
 # =============================================================================
 # Configuración de Resultados
