@@ -24,8 +24,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Setup wizard**: Interactive `scripts/docker-setup.sh` for easy deployment
 - **Health check**: New `deploy/health-check.sh` to verify Ollama and model availability
 
+#### PDF Report Generation
+- **WeasyPrint integration**: Native PDF generation with professional styling in Docker
+- **Premium CSS**: Professional CSS optimized for PDF output with A4 page setup
+- **CLI support**: `miesc report results.json -f pdf -o report.pdf` now works in Docker
+- **Auto-fallback**: Falls back to pandoc/wkhtmltopdf if weasyprint unavailable
+
 #### New Files
 - `docs/templates/reports/premium.md` - Premium report template
+- `docs/templates/reports/premium.css` - Professional PDF styling
 - `src/reports/risk_calculator.py` - CVSS scoring and risk matrix generator
 - `docker-compose.prod-llm.yml` - Production Docker config with LLM
 - `scripts/docker-setup.sh` - Interactive setup wizard

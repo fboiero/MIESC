@@ -3717,29 +3717,60 @@ def report(results_file, template, output, output_format, client, auditor, title
         if output_format == "html":
             output_content = _markdown_to_html(output_content, title or "MIESC Security Report")
         elif output_format == "pdf":
-            # Try to use pandoc for PDF
+            # Generate PDF from HTML using weasyprint (preferred) or pandoc fallback
             html_content = _markdown_to_html(output_content, title or "MIESC Security Report")
-            try:
-                import subprocess
+            pdf_generated = False
 
-                temp_html = output_path.with_suffix(".tmp.html")
-                temp_html.write_text(html_content)
-                subprocess.run(
-                    ["pandoc", str(temp_html), "-o", str(output_path), "--pdf-engine=wkhtmltopdf"],
-                    check=True,
-                    capture_output=True,
-                )
-                temp_html.unlink()
+            # Try weasyprint first (available in Docker image)
+            try:
+                from weasyprint import HTML, CSS
+                from weasyprint.text.fonts import FontConfiguration
+
+                info("Generating PDF with WeasyPrint...")
+                font_config = FontConfiguration()
+
+                # Load premium CSS if available
+                css_path = ROOT_DIR / "docs" / "templates" / "reports" / "premium.css"
+                if css_path.exists():
+                    css_content = css_path.read_text()
+                    css = CSS(string=css_content, font_config=font_config)
+                    HTML(string=html_content).write_pdf(
+                        output_path, stylesheets=[css], font_config=font_config
+                    )
+                else:
+                    HTML(string=html_content).write_pdf(output_path)
+
+                pdf_generated = True
                 success(f"PDF report saved to {output_path}")
                 return
-            except FileNotFoundError:
-                warning("pandoc not found, saving as HTML instead")
-                output_path = output_path.with_suffix(".html")
-                output_content = html_content
-            except subprocess.CalledProcessError as e:
-                warning(f"PDF generation failed: {e}")
-                output_path = output_path.with_suffix(".html")
-                output_content = html_content
+            except ImportError:
+                info("WeasyPrint not available, trying pandoc...")
+            except Exception as e:
+                warning(f"WeasyPrint PDF generation failed: {e}")
+
+            # Fallback to pandoc
+            if not pdf_generated:
+                try:
+                    import subprocess
+
+                    temp_html = output_path.with_suffix(".tmp.html")
+                    temp_html.write_text(html_content)
+                    subprocess.run(
+                        ["pandoc", str(temp_html), "-o", str(output_path), "--pdf-engine=wkhtmltopdf"],
+                        check=True,
+                        capture_output=True,
+                    )
+                    temp_html.unlink()
+                    success(f"PDF report saved to {output_path}")
+                    return
+                except FileNotFoundError:
+                    warning("pandoc not found, saving as HTML instead")
+                    output_path = output_path.with_suffix(".html")
+                    output_content = html_content
+                except subprocess.CalledProcessError as e:
+                    warning(f"PDF generation failed: {e}")
+                    output_path = output_path.with_suffix(".html")
+                    output_content = html_content
 
         output_path.write_text(output_content)
         success(f"Report saved to {output_path}")
@@ -3839,40 +3870,90 @@ def _simple_render_template(template: str, variables: dict) -> str:
     return output
 
 
-def _markdown_to_html(markdown: str, title: str) -> str:
-    """Convert markdown to HTML with basic styling."""
+def _markdown_to_html(markdown: str, title: str, use_premium_css: bool = True) -> str:
+    """Convert markdown to HTML with professional styling."""
     try:
         import markdown as md
 
-        html_body = md.markdown(markdown, extensions=["tables", "fenced_code"])
+        html_body = md.markdown(
+            markdown,
+            extensions=["tables", "fenced_code", "toc", "attr_list"]
+        )
     except ImportError:
         # Fallback: wrap in pre tag
         html_body = f"<pre>{markdown}</pre>"
 
+    # Try to load premium CSS
+    css_content = ""
+    if use_premium_css:
+        css_path = ROOT_DIR / "docs" / "templates" / "reports" / "premium.css"
+        if css_path.exists():
+            css_content = css_path.read_text()
+
+    # Fallback to basic CSS if premium not available
+    if not css_content:
+        css_content = """
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 2rem; line-height: 1.6; }
+        h1, h2, h3 { color: #1a1a2e; }
+        table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #1a1a2e; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        code { background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
+        pre { background-color: #f4f4f4; padding: 1rem; border-radius: 5px; overflow-x: auto; }
+        .critical { color: #dc3545; font-weight: bold; }
+        .high { color: #fd7e14; font-weight: bold; }
+        .medium { color: #ffc107; }
+        .low { color: #17a2b8; }
+        """
+
+    # Enhance HTML with severity badges
+    html_body = _enhance_html_severity(html_body)
+
     return f"""<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 2rem; line-height: 1.6; }}
-        h1, h2, h3 {{ color: #1a1a2e; }}
-        table {{ border-collapse: collapse; width: 100%; margin: 1rem 0; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th {{ background-color: #1a1a2e; color: white; }}
-        tr:nth-child(even) {{ background-color: #f9f9f9; }}
-        code {{ background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; }}
-        pre {{ background-color: #f4f4f4; padding: 1rem; border-radius: 5px; overflow-x: auto; }}
-        .critical {{ color: #dc3545; font-weight: bold; }}
-        .high {{ color: #fd7e14; font-weight: bold; }}
-        .medium {{ color: #ffc107; }}
-        .low {{ color: #17a2b8; }}
+{css_content}
     </style>
 </head>
 <body>
 {html_body}
+    <script>
+        // Auto-enhance severity badges
+        document.querySelectorAll('td, strong').forEach(el => {{
+            const text = el.textContent.trim();
+            if (['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'].includes(text)) {{
+                el.innerHTML = '<span class="severity-' + text.toLowerCase() + '">' + text + '</span>';
+            }}
+        }});
+    </script>
 </body>
 </html>"""
+
+
+def _enhance_html_severity(html: str) -> str:
+    """Add CSS classes to severity indicators in HTML."""
+    import re
+
+    for sev in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']:
+        # Wrap **SEVERITY** in spans
+        html = re.sub(
+            rf'\*\*({sev})\*\*',
+            rf'<span class="severity-{sev.lower()}">{sev}</span>',
+            html
+        )
+        # Also handle plain text in tables
+        html = re.sub(
+            rf'<td>({sev})</td>',
+            rf'<td><span class="severity-{sev.lower()}">{sev}</span></td>',
+            html
+        )
+
+    return html
 
 
 # ============================================================================

@@ -5,7 +5,7 @@ Multi-layer security analysis framework for Ethereum smart contracts.
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/pypi/v/miesc)](https://pypi.org/project/miesc/)
-[![Version](https://img.shields.io/badge/version-4.3.4-green)](https://github.com/fboiero/MIESC/releases)
+[![Version](https://img.shields.io/badge/version-4.3.7-green)](https://github.com/fboiero/MIESC/releases)
 [![Security Audit](https://github.com/fboiero/MIESC/actions/workflows/miesc-security.yml/badge.svg)](https://github.com/fboiero/MIESC/actions/workflows/miesc-security.yml)
 [![Coverage](https://img.shields.io/badge/coverage-80.8%25-green)](./htmlcov/index.html)
 [![Tools](https://img.shields.io/badge/tools-31%2F31%20operational-brightgreen)](./docs/TOOLS.md)

@@ -1,4 +1,4 @@
-# MIESC v4.3.6 - Complete Docker Deployment
+# MIESC v4.3.7 - Complete Docker Deployment
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile creates a complete, production-ready environment with:
@@ -7,6 +7,7 @@
 # - Solidity compiler (solc)
 # - ML Pipeline: FP filtering, severity prediction, clustering
 # - All MIESC dependencies + OpenLLaMA support
+# - PDF generation with weasyprint
 # - Complete test suite
 
 # Stage 1: Builder - Install dependencies and build tools
@@ -47,13 +48,14 @@ RUN cargo install medusa || echo "Medusa install failed - will be optional"
 FROM python:3.12-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="4.3.6"
+LABEL version="4.3.7"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
 # Copy Rust binaries from builder (aderyn only, foundry installed separately)
 COPY --from=builder /root/.cargo/bin/aderyn /usr/local/bin/
 
 # Install runtime AND build dependencies (needed for Mythril/Manticore compilation)
+# Also includes weasyprint dependencies for PDF generation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
@@ -71,6 +73,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     nodejs \
     npm \
+    # WeasyPrint dependencies for PDF generation
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf2.0-0 \
+    libffi-dev \
+    shared-mime-info \
+    fonts-liberation \
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Solhint (Solidity linter)
@@ -128,8 +138,12 @@ RUN pip install --no-cache-dir --user manticore[native] && \
     echo "Manticore installed successfully" || \
     echo "WARNING: Manticore install failed - may not support this architecture"
 
+# Install weasyprint for PDF generation
+RUN pip install --no-cache-dir --user weasyprint markdown && \
+    echo "WeasyPrint installed successfully"
+
 # Environment variables for MIESC
-ENV MIESC_VERSION="4.3.6"
+ENV MIESC_VERSION="4.3.7"
 ENV MIESC_ENV="docker"
 ENV PYTHONPATH="/app:${PYTHONPATH}"
 ENV PYTHONUNBUFFERED=1
