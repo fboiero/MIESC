@@ -54,12 +54,12 @@ This document contains confidential security findings and is intended solely for
 
 ## 1.2 Deployment Recommendation
 
-<div class="recommendation-box" style="border: 2px solid {{ deployment_recommendation_color | default('#ff9800') }}; padding: 15px; margin: 10px 0; border-radius: 5px;">
-
-**Recommendation:** {{ deployment_recommendation | default('CONDITIONAL') }}
-
-{{ deployment_justification | default('Review and address findings before deployment.') }}
-
+<div class="recommendation-box" style="border: 2px solid {{ deployment_recommendation_color | default('#ff9800') }}; padding: 20px; margin: 15px 0; border-radius: 8px; background: {{ deployment_recommendation_bg | default('#fff8e1') }};">
+<p style="margin: 0 0 10px 0; font-size: 11pt;">
+<strong style="color: {{ deployment_recommendation_color | default('#ff9800') }};">Recommendation:</strong>
+<span style="font-weight: bold; font-size: 14pt; margin-left: 8px;">{{ deployment_recommendation | default('CONDITIONAL') }}</span>
+</p>
+<p style="margin: 0; color: #4a5568; line-height: 1.5;">{{ deployment_justification | default('Review and address findings before deployment.') }}</p>
 </div>
 
 ## 1.3 Risk Summary
@@ -183,18 +183,66 @@ Layer 9: Advanced Detection     [{{ layer9_coverage | default('--') }}]
 
 The following matrix maps findings by **Impact** (vertical) and **Likelihood** (horizontal):
 
-```
-                    LIKELIHOOD
-              Low        Medium       High
-         +-----------+-----------+-----------+
-    High | {{ risk_matrix.high_low | default(0) }} Medium  | {{ risk_matrix.high_med | default(0) }} High    | {{ risk_matrix.high_high | default(0) }} Critical |
- I       +-----------+-----------+-----------+
- M  Med  | {{ risk_matrix.med_low | default(0) }} Low     | {{ risk_matrix.med_med | default(0) }} Medium  | {{ risk_matrix.med_high | default(0) }} High     |
- P       +-----------+-----------+-----------+
- A  Low  | {{ risk_matrix.low_low | default(0) }} Info    | {{ risk_matrix.low_med | default(0) }} Low     | {{ risk_matrix.low_high | default(0) }} Medium   |
- C       +-----------+-----------+-----------+
- T
-```
+<svg viewBox="0 0 450 320" xmlns="http://www.w3.org/2000/svg" style="max-width: 450px; margin: 20px auto; display: block;">
+  <!-- Title -->
+  <text x="280" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#374151" text-anchor="middle">LIKELIHOOD</text>
+
+  <!-- Column headers -->
+  <text x="180" y="55" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">Low</text>
+  <text x="280" y="55" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">Medium</text>
+  <text x="380" y="55" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">High</text>
+
+  <!-- Row label IMPACT -->
+  <text x="35" y="175" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#374151" text-anchor="middle" transform="rotate(-90, 35, 175)">IMPACT</text>
+
+  <!-- Row labels -->
+  <text x="80" y="105" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">High</text>
+  <text x="80" y="175" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">Med</text>
+  <text x="80" y="245" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">Low</text>
+
+  <!-- Grid cells - Row 1 (High Impact) -->
+  <rect x="130" y="70" width="100" height="70" fill="#fbbf24" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+  <rect x="230" y="70" width="100" height="70" fill="#f97316" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+  <rect x="330" y="70" width="100" height="70" fill="#dc2626" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+
+  <!-- Grid cells - Row 2 (Med Impact) -->
+  <rect x="130" y="140" width="100" height="70" fill="#22c55e" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+  <rect x="230" y="140" width="100" height="70" fill="#fbbf24" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+  <rect x="330" y="140" width="100" height="70" fill="#f97316" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+
+  <!-- Grid cells - Row 3 (Low Impact) -->
+  <rect x="130" y="210" width="100" height="70" fill="#94a3b8" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+  <rect x="230" y="210" width="100" height="70" fill="#22c55e" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+  <rect x="330" y="210" width="100" height="70" fill="#fbbf24" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+
+  <!-- Cell labels and counts -->
+  <text x="180" y="100" font-family="Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle">Medium</text>
+  <text x="180" y="118" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">{{ risk_matrix.high_low | default(0) }}</text>
+
+  <text x="280" y="100" font-family="Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle">High</text>
+  <text x="280" y="118" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">{{ risk_matrix.high_med | default(0) }}</text>
+
+  <text x="380" y="100" font-family="Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle">Critical</text>
+  <text x="380" y="118" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">{{ risk_matrix.high_high | default(0) }}</text>
+
+  <text x="180" y="170" font-family="Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle">Low</text>
+  <text x="180" y="188" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">{{ risk_matrix.med_low | default(0) }}</text>
+
+  <text x="280" y="170" font-family="Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle">Medium</text>
+  <text x="280" y="188" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">{{ risk_matrix.med_med | default(0) }}</text>
+
+  <text x="380" y="170" font-family="Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle">High</text>
+  <text x="380" y="188" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">{{ risk_matrix.med_high | default(0) }}</text>
+
+  <text x="180" y="240" font-family="Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle">Info</text>
+  <text x="180" y="258" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">{{ risk_matrix.low_low | default(0) }}</text>
+
+  <text x="280" y="240" font-family="Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle">Low</text>
+  <text x="280" y="258" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">{{ risk_matrix.low_med | default(0) }}</text>
+
+  <text x="380" y="240" font-family="Arial, sans-serif" font-size="10" fill="#fff" text-anchor="middle">Medium</text>
+  <text x="380" y="258" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">{{ risk_matrix.low_high | default(0) }}</text>
+</svg>
 
 ## 3.2 CVSS-like Scoring
 
@@ -349,21 +397,50 @@ The analyzed contract presents security concerns that should be addressed before
 
 ## 6.2 Remediation Timeline
 
-```
-Week 1: Critical & High Severity
-├── {{ critical_count }} Critical findings
-└── {{ high_count }} High severity findings
+<svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg" style="max-width: 600px; margin: 20px auto; display: block;">
+  <!-- Timeline base line -->
+  <line x1="50" y1="100" x2="550" y2="100" stroke="#e5e7eb" stroke-width="4" stroke-linecap="round"/>
 
-Week 2: Medium Severity
-└── {{ medium_count }} Medium severity findings
+  <!-- Week 1 - Critical & High -->
+  <circle cx="100" cy="100" r="20" fill="#dc2626"/>
+  <text x="100" y="106" font-family="Arial, sans-serif" font-size="11" fill="#fff" text-anchor="middle" font-weight="bold">W1</text>
+  <text x="100" y="75" font-family="Arial, sans-serif" font-size="10" fill="#374151" text-anchor="middle" font-weight="bold">Critical & High</text>
+  <text x="100" y="140" font-family="Arial, sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">{{ critical_count }} Critical</text>
+  <text x="100" y="155" font-family="Arial, sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">{{ high_count }} High</text>
 
-Week 3: Low & Informational
-├── {{ low_count }} Low severity findings
-└── {{ info_count }} Informational items
+  <!-- Week 2 - Medium -->
+  <circle cx="225" cy="100" r="20" fill="#f97316"/>
+  <text x="225" y="106" font-family="Arial, sans-serif" font-size="11" fill="#fff" text-anchor="middle" font-weight="bold">W2</text>
+  <text x="225" y="75" font-family="Arial, sans-serif" font-size="10" fill="#374151" text-anchor="middle" font-weight="bold">Medium</text>
+  <text x="225" y="140" font-family="Arial, sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">{{ medium_count }} Medium</text>
+  <text x="225" y="155" font-family="Arial, sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">findings</text>
 
-Week 4: Verification & Re-audit
-└── Validate all fixes implemented correctly
-```
+  <!-- Week 3 - Low & Info -->
+  <circle cx="350" cy="100" r="20" fill="#22c55e"/>
+  <text x="350" y="106" font-family="Arial, sans-serif" font-size="11" fill="#fff" text-anchor="middle" font-weight="bold">W3</text>
+  <text x="350" y="75" font-family="Arial, sans-serif" font-size="10" fill="#374151" text-anchor="middle" font-weight="bold">Low & Info</text>
+  <text x="350" y="140" font-family="Arial, sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">{{ low_count }} Low</text>
+  <text x="350" y="155" font-family="Arial, sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">{{ info_count }} Info</text>
+
+  <!-- Week 4 - Verification -->
+  <circle cx="475" cy="100" r="20" fill="#3b82f6"/>
+  <text x="475" y="106" font-family="Arial, sans-serif" font-size="11" fill="#fff" text-anchor="middle" font-weight="bold">W4</text>
+  <text x="475" y="75" font-family="Arial, sans-serif" font-size="10" fill="#374151" text-anchor="middle" font-weight="bold">Verification</text>
+  <text x="475" y="140" font-family="Arial, sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">Re-audit &</text>
+  <text x="475" y="155" font-family="Arial, sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">Validation</text>
+
+  <!-- Arrows between phases -->
+  <path d="M125 100 L195 100" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <path d="M250 100 L320 100" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <path d="M375 100 L445 100" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#9ca3af"/>
+    </marker>
+  </defs>
+</svg>
 
 ## 6.3 Quick Wins
 
@@ -379,18 +456,51 @@ Review findings marked as "Low" effort for quick security improvements.
 
 ## 6.4 Effort vs Impact Matrix
 
-```
-                    IMPACT
-              Low        Medium       High
-         +-----------+-----------+-----------+
-   High  |  Avoid    |  Consider |  Schedule |
- E       +-----------+-----------+-----------+
- F  Med  |  Defer    |  Plan     |  Priority |
- F       +-----------+-----------+-----------+
- O  Low  |  If Time  | Quick Win | DO FIRST! |
- R       +-----------+-----------+-----------+
- T
-```
+<svg viewBox="0 0 450 320" xmlns="http://www.w3.org/2000/svg" style="max-width: 450px; margin: 20px auto; display: block;">
+  <!-- Title -->
+  <text x="280" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#374151" text-anchor="middle">IMPACT</text>
+
+  <!-- Column headers -->
+  <text x="180" y="55" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">Low</text>
+  <text x="280" y="55" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">Medium</text>
+  <text x="380" y="55" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">High</text>
+
+  <!-- Row label EFFORT -->
+  <text x="35" y="175" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#374151" text-anchor="middle" transform="rotate(-90, 35, 175)">EFFORT</text>
+
+  <!-- Row labels -->
+  <text x="80" y="105" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">High</text>
+  <text x="80" y="175" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">Med</text>
+  <text x="80" y="245" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">Low</text>
+
+  <!-- Grid cells - Row 1 (High Effort) -->
+  <rect x="130" y="70" width="100" height="70" fill="#ef4444" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+  <rect x="230" y="70" width="100" height="70" fill="#f97316" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+  <rect x="330" y="70" width="100" height="70" fill="#eab308" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+
+  <!-- Grid cells - Row 2 (Med Effort) -->
+  <rect x="130" y="140" width="100" height="70" fill="#94a3b8" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+  <rect x="230" y="140" width="100" height="70" fill="#3b82f6" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+  <rect x="330" y="140" width="100" height="70" fill="#8b5cf6" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+
+  <!-- Grid cells - Row 3 (Low Effort) -->
+  <rect x="130" y="210" width="100" height="70" fill="#64748b" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+  <rect x="230" y="210" width="100" height="70" fill="#22c55e" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+  <rect x="330" y="210" width="100" height="70" fill="#16a34a" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+
+  <!-- Cell labels -->
+  <text x="180" y="110" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Avoid</text>
+  <text x="280" y="110" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Consider</text>
+  <text x="380" y="110" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Schedule</text>
+
+  <text x="180" y="180" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Defer</text>
+  <text x="280" y="180" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Plan</text>
+  <text x="380" y="180" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Priority</text>
+
+  <text x="180" y="250" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">If Time</text>
+  <text x="280" y="250" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Quick Win</text>
+  <text x="380" y="250" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">DO FIRST!</text>
+</svg>
 
 ---
 

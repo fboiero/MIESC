@@ -389,11 +389,11 @@ class RiskCalculator:
     def get_deployment_recommendation(
         self,
         findings: list[dict[str, Any]]
-    ) -> tuple[str, str, str]:
+    ) -> tuple[str, str, str, str]:
         """
         Generate deployment recommendation based on findings.
 
-        Returns (recommendation, justification, color).
+        Returns (recommendation, justification, border_color, background_color).
         """
         critical_count = sum(
             1 for f in findings
@@ -413,7 +413,8 @@ class RiskCalculator:
                 "NO-GO",
                 f"Contract has {critical_count} critical vulnerabilities that "
                 "must be fixed before deployment. Immediate remediation required.",
-                "#dc3545"  # Red
+                "#dc3545",  # Red border
+                "#fef2f2"   # Light red background
             )
 
         if high_count >= 2:
@@ -421,7 +422,8 @@ class RiskCalculator:
                 "NO-GO",
                 f"Contract has {high_count} high severity vulnerabilities. "
                 "Fix all high severity issues before deployment.",
-                "#dc3545"  # Red
+                "#dc3545",  # Red border
+                "#fef2f2"   # Light red background
             )
 
         if high_count == 1 or medium_count >= 3:
@@ -430,7 +432,8 @@ class RiskCalculator:
                 f"Contract has {high_count} high and {medium_count} medium "
                 "severity findings. Address these issues and re-audit before "
                 "production deployment.",
-                "#ff9800"  # Orange
+                "#ff9800",  # Orange border
+                "#fff8e1"   # Light orange background
             )
 
         if medium_count > 0:
@@ -438,14 +441,16 @@ class RiskCalculator:
                 "CONDITIONAL",
                 f"Contract has {medium_count} medium severity findings. "
                 "Review and address these issues before deployment.",
-                "#ffc107"  # Yellow
+                "#ffc107",  # Yellow border
+                "#fffde7"   # Light yellow background
             )
 
         return (
             "GO",
             "No critical or high severity issues found. Contract appears "
             "suitable for deployment after addressing any minor findings.",
-            "#28a745"  # Green
+            "#28a745",  # Green border
+            "#f0fdf4"   # Light green background
         )
 
     def identify_quick_wins(
@@ -534,7 +539,7 @@ def calculate_premium_risk_data(findings: list[dict[str, Any]]) -> dict[str, Any
     overall_score = calculator.calculate_overall_risk_score(findings)
 
     # Deployment recommendation
-    recommendation, justification, color = calculator.get_deployment_recommendation(findings)
+    recommendation, justification, color, bg_color = calculator.get_deployment_recommendation(findings)
 
     # Quick wins
     quick_wins = calculator.identify_quick_wins(findings)
@@ -558,6 +563,7 @@ def calculate_premium_risk_data(findings: list[dict[str, Any]]) -> dict[str, Any
         "deployment_recommendation": recommendation,
         "deployment_justification": justification,
         "deployment_recommendation_color": color,
+        "deployment_recommendation_bg": bg_color,
         "quick_wins": quick_wins,
         **percentages,
     }
