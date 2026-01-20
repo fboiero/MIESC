@@ -299,21 +299,18 @@ The analyzed contract presents security concerns that should be addressed before
 
 # 5. Detailed Findings
 
-{% for finding in findings %}
-## {{ finding.id }}. {{ finding.title }}
+{%- for finding in findings %}
 
-<div class="finding-header" style="background: {{ finding.severity_color | default('#e0e0e0') }}; padding: 10px; border-radius: 5px;">
+## {{ finding.id }}. {{ finding.title }}
 
 | Property | Value |
 |----------|-------|
-| **Severity** | {{ finding.severity_badge }} |
+| **Severity** | <span style="background: {{ finding.severity_color | default('#e0e0e0') }}; color: white; padding: 2px 8px; border-radius: 4px;">{{ finding.severity_badge }}</span> |
 | **Category** | {{ finding.category }} |
 | **CVSS Score** | {{ finding.cvss_score | default('N/A') }} |
 | **Location** | `{{ finding.location }}` |
 | **Status** | {{ finding.status }} |
 | **Detected By** | {{ finding.tool }} |
-
-</div>
 
 ### Description
 
