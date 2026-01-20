@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LLMInterpreterConfig:
     """Configuration for LLM Report Interpreter."""
-    model: str = "deepseek-coder:6.7b"
+    model: str = "mistral:latest"
     ollama_host: str = "http://localhost:11434"
     temperature: float = 0.2  # Slightly creative for summaries
     max_tokens: int = 2000

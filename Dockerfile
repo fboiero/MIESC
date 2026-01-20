@@ -137,7 +137,7 @@ ENV PYTHONUNBUFFERED=1
 # LLM Configuration (for AI-powered report interpretation)
 # These can be overridden at runtime via docker-compose or docker run -e
 ENV OLLAMA_HOST="http://localhost:11434"
-ENV MIESC_LLM_MODEL="deepseek-coder:6.7b"
+ENV MIESC_LLM_MODEL="mistral:latest"
 
 # Health check with ML pipeline verification
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

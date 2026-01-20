@@ -37,7 +37,7 @@ services:
       - PYTHONUNBUFFERED=1
       # Ollama configuration (when using LLM features)
       - OLLAMA_HOST=http://ollama:11434
-      - MIESC_LLM_MODEL=deepseek-coder:6.7b
+      - MIESC_LLM_MODEL=mistral:latest
     volumes:
       # Mount source code for development (optional, comment out for production)
       # - ./src:/app/src:ro
@@ -67,7 +67,7 @@ services:
       - MIESC_ENV=docker-ml
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
-      - MIESC_LLM_MODEL=deepseek-coder:6.7b
+      - MIESC_LLM_MODEL=mistral:latest
     command: python -m src.miesc_ml_cli --help
     volumes:
       - miesc-data:/data
@@ -111,7 +111,7 @@ services:
       - MIESC_ENV=docker-api
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
-      - MIESC_LLM_MODEL=deepseek-coder:6.7b
+      - MIESC_LLM_MODEL=mistral:latest
     command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
@@ -141,7 +141,7 @@ services:
       - MIESC_ENV=docker-shell
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
-      - MIESC_LLM_MODEL=deepseek-coder:6.7b
+      - MIESC_LLM_MODEL=mistral:latest
     command: /bin/bash
     stdin_open: true
     tty: true
@@ -166,7 +166,7 @@ services:
       - PYTHONUNBUFFERED=1
       - CONTRACT_PATH=${CONTRACT_PATH:-/app/contracts/example.sol}
       - OLLAMA_HOST=http://ollama:11434
-      - MIESC_LLM_MODEL=deepseek-coder:6.7b
+      - MIESC_LLM_MODEL=mistral:latest
     command: >
       sh -c "echo '=== MIESC v4.3.6 - Contract Analyzer ===' &&
              echo 'Analyzing: ${CONTRACT_PATH}' &&
@@ -227,10 +227,10 @@ services:
     command:
       - |
         echo "=== MIESC Ollama Model Initializer ==="
-        echo "Checking for deepseek-coder:6.7b model..."
-        if ! ollama list | grep -q "deepseek-coder:6.7b"; then
-          echo "Pulling deepseek-coder:6.7b (~4GB, this may take a while)..."
-          ollama pull deepseek-coder:6.7b
+        echo "Checking for mistral:latest model..."
+        if ! ollama list | grep -q "mistral:latest"; then
+          echo "Pulling mistral:latest (~4GB, this may take a while)..."
+          ollama pull mistral:latest
           echo "Model downloaded successfully!"
         else
           echo "Model already available."

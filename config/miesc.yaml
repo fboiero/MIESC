@@ -451,7 +451,7 @@ reports:
   # LLM Interpretation settings
   llm_interpretation:
     enabled: false  # Set to true to enable by default (or use --llm-interpret flag)
-    model: deepseek-coder:6.7b
+    model: mistral:latest  # Best results for report interpretation
     ollama_host: http://localhost:11434  # Override via OLLAMA_HOST env var
 
     # Generation parameters for report interpretation
