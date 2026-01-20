@@ -10,7 +10,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 #### Premium Audit Reports
-- **Premium report template** (`-t premium`): Trail of Bits / OpenZeppelin style professional audit reports
+- **Premium report template** (`-t profesional`): Trail of Bits / OpenZeppelin style professional audit reports
 - **CVSS-like scoring**: Automatic vulnerability scoring with attack vectors (AV, AC, PR, UI, C/I/A)
 - **Risk matrix**: Visual Impact vs Likelihood matrix with finding distribution
 - **Deployment recommendation**: GO / NO-GO / CONDITIONAL with justification
@@ -31,17 +31,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Auto-fallback**: Falls back to pandoc/wkhtmltopdf if weasyprint unavailable
 
 #### New Files
-- `docs/templates/reports/premium.md` - Premium report template
-- `docs/templates/reports/premium.css` - Professional PDF styling
+- `docs/templates/reports/profesional.md` - Premium report template
+- `docs/templates/reports/profesional.css` - Professional PDF styling
 - `src/reports/risk_calculator.py` - CVSS scoring and risk matrix generator
 - `docker-compose.prod-llm.yml` - Production Docker config with LLM
 - `scripts/docker-setup.sh` - Interactive setup wizard
 - `deploy/health-check.sh` - Service health verification
 
 ### Changed
-- `miesc report` now supports `--template premium` option
+- `miesc report` now supports `--template profesional` option
 - `llm_interpreter.py` enhanced with attack scenario and code remediation generation
-- `config/miesc.yaml` includes premium report configuration section
+- `config/miesc.yaml` includes profesional report configuration section
 
 ### Links
 - **GitHub Release**: https://github.com/fboiero/MIESC/releases/tag/v4.3.7

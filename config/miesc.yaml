@@ -447,7 +447,7 @@ reports:
     - technical
     - github-pr
     - simple
-    - premium  # New: Trail of Bits / OpenZeppelin style premium reports
+    - profesional  # New: Trail of Bits / OpenZeppelin style profesional reports
 
   # LLM Interpretation settings
   llm_interpretation:
@@ -472,8 +472,8 @@ reports:
     max_findings_to_prioritize: 10 # Max findings for prioritization
 
   # Premium Report Configuration (v4.3.7+)
-  # Used when --template premium is specified
-  premium:
+  # Used when --template profesional is specified
+  profesional:
     enabled: true
 
     # CVSS-like scoring
@@ -505,7 +505,7 @@ reports:
       code_remediation: true       # Generate code fix suggestions with diffs
       deployment_justification: true  # LLM-based deployment recommendation
 
-    # Limits for premium LLM generation
+    # Limits for profesional LLM generation
     max_attack_scenarios: 3        # Max critical/high findings for attack scenarios
     max_code_remediations: 5       # Max findings for code remediation suggestions
 

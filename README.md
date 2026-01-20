@@ -104,7 +104,7 @@ docker run --rm -v ${PWD}:/contracts ghcr.io/fboiero/miesc:latest scan /contract
 
 </details>
 
-**Docker with LLM Support (Premium Reports):**
+**Docker with LLM Support (Profesional Reports):**
 
 ```bash
 # Interactive setup wizard (recommended)
@@ -167,7 +167,7 @@ miesc audit quick contract.sol       # Fast 4-tool scan
 miesc audit full contract.sol        # Complete 9-layer audit
 miesc audit layer 3 contract.sol     # Run specific layer
 miesc report results.json -t professional  # Generate audit report
-miesc report results.json -t premium --llm-interpret  # Premium report with AI
+miesc report results.json -t profesional --llm-interpret  # Profesional report with AI
 miesc benchmark ./contracts --save   # Track security posture
 miesc server rest --port 5001        # Start REST API
 miesc doctor                         # Check tool availability
@@ -188,17 +188,17 @@ Generate professional audit reports from analysis results:
 miesc report results.json -t simple        # Basic findings list
 miesc report results.json -t professional  # Standard audit report
 miesc report results.json -t executive     # C-level summary
-miesc report results.json -t premium       # Trail of Bits style (CVSS, risk matrix)
+miesc report results.json -t profesional       # Trail of Bits style (CVSS, risk matrix)
 
 # With AI-powered interpretation (requires Ollama)
-miesc report results.json -t premium --llm-interpret -o report.md
+miesc report results.json -t profesional --llm-interpret -o report.md
 
 # Different output formats
-miesc report results.json -t premium -f html -o report.html
-miesc report results.json -t premium -f pdf -o report.pdf
+miesc report results.json -t profesional -f html -o report.html
+miesc report results.json -t profesional -f pdf -o report.pdf
 ```
 
-**Premium Report Features:**
+**Profesional Report Features:**
 - CVSS-like scoring for each finding
 - Risk matrix (Impact vs Likelihood)
 - Deployment recommendation (GO/NO-GO/CONDITIONAL)

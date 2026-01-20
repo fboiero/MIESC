@@ -3148,9 +3148,9 @@ def _get_impact_description(severity: str) -> str:
 @click.option(
     "--template",
     "-t",
-    type=click.Choice(["professional", "executive", "technical", "github-pr", "simple", "premium"]),
+    type=click.Choice(["professional", "executive", "technical", "github-pr", "simple", "profesional"]),
     default="simple",
-    help="Report template to use (premium includes CVSS scores, attack scenarios, and deployment recommendations)",
+    help="Report template to use (profesional includes CVSS scores, attack scenarios, and deployment recommendations)",
 )
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
 @click.option(
@@ -3309,7 +3309,7 @@ def report(results_file, template, output, output_format, client, auditor, title
         "llm_remediation_priority": [],
         "llm_critical_interpretations": [],
         "llm_enabled": False,
-        # Premium template variables (populated for premium template)
+        # Profesional template variables (populated for profesional template)
         "cvss_scores": [],
         "risk_matrix": {},
         "overall_risk_score": 0,
@@ -3492,10 +3492,10 @@ def report(results_file, template, output, output_format, client, auditor, title
             warning(f"LLM interpretation failed: {e}")
 
     # =========================================================================
-    # Premium Template Processing
+    # Profesional Template Processing
     # =========================================================================
-    if template == "premium":
-        info("Generating premium report data (CVSS scores, risk matrix, etc.)...")
+    if template == "profesional":
+        info("Generating profesional report data (CVSS scores, risk matrix, etc.)...")
         try:
             from src.reports.risk_calculator import calculate_premium_risk_data
 
@@ -3557,7 +3557,7 @@ def report(results_file, template, output, output_format, client, auditor, title
                 try:
                     from src.reports.llm_interpreter import generate_premium_report_insights
 
-                    info("Generating premium LLM insights (attack scenarios, deployment recommendation)...")
+                    info("Generating profesional LLM insights (attack scenarios, deployment recommendation)...")
 
                     # Get contract code if available
                     contract_path = results.get("contract_path") or results.get("contract")
@@ -3595,17 +3595,17 @@ def report(results_file, template, output, output_format, client, auditor, title
                         if premium_insights.get("remediation_priority"):
                             variables["llm_remediation_priority"] = premium_insights["remediation_priority"]
 
-                        success("Premium LLM insights generated!")
+                        success("Profesional LLM insights generated!")
 
                 except Exception as e:
-                    warning(f"Premium LLM insights failed: {e}")
+                    warning(f"Profesional LLM insights failed: {e}")
 
-            success("Premium report data generated!")
+            success("Profesional report data generated!")
 
         except ImportError as e:
             warning(f"Risk calculator not available: {e}")
         except Exception as e:
-            warning(f"Premium report processing failed: {e}")
+            warning(f"Profesional report processing failed: {e}")
 
     # Prepare findings for template
     formatted_findings = []
@@ -3730,7 +3730,7 @@ def report(results_file, template, output, output_format, client, auditor, title
                 font_config = FontConfiguration()
 
                 # Load premium CSS if available
-                css_path = ROOT_DIR / "docs" / "templates" / "reports" / "premium.css"
+                css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
                 if css_path.exists():
                     css_content = css_path.read_text()
                     css = CSS(string=css_content, font_config=font_config)
@@ -3886,7 +3886,7 @@ def _markdown_to_html(markdown: str, title: str, use_premium_css: bool = True) -
     # Try to load premium CSS
     css_content = ""
     if use_premium_css:
-        css_path = ROOT_DIR / "docs" / "templates" / "reports" / "premium.css"
+        css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
         if css_path.exists():
             css_content = css_path.read_text()
 
