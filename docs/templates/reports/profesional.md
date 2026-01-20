@@ -115,9 +115,9 @@ This document contains confidential security findings and is intended solely for
 
 | File | Lines | Description |
 |------|------:|-------------|
-{% for file in files_in_scope %}
+{%- for file in files_in_scope %}
 | `{{ file.path }}` | {{ file.lines }} | {{ file.description | default('Contract source') }} |
-{% endfor %}
+{%- endfor %}
 
 **Total:** {{ files_count }} files, {{ lines_of_code }} lines of code
 
@@ -154,9 +154,9 @@ Layer 9: Advanced Detection     [{{ layer9_coverage | default('--') }}]
 
 | Layer | Tool | Version | Status |
 |-------|------|---------|--------|
-{% for tool in tools_execution_summary %}
+{%- for tool in tools_execution_summary %}
 | {{ tool.layer }} | {{ tool.name }} | {{ tool.version | default('latest') }} | {{ tool.status_icon }} {{ tool.status }} |
-{% endfor %}
+{%- endfor %}
 
 ### Audit Process
 
@@ -248,9 +248,9 @@ The following matrix maps findings by **Impact** (vertical) and **Likelihood** (
 
 | Finding ID | Title | Base Score | Vector |
 |------------|-------|-----------|--------|
-{% for score in cvss_scores %}
+{%- for score in cvss_scores %}
 | {{ score.finding_id }} | {{ score.title }} | **{{ score.base_score }}** | {{ score.vector }} |
-{% endfor %}
+{%- endfor %}
 
 **Scoring Methodology:**
 - **Attack Vector (AV):** Network, Adjacent, Local, Physical
@@ -275,25 +275,25 @@ The analyzed contract presents security concerns that should be addressed before
 
 | ID | Title | Severity | Status | CVSS |
 |----|-------|----------|--------|-----:|
-{% for finding in findings %}
+{%- for finding in findings %}
 | {{ finding.id }} | {{ finding.title }} | {{ finding.severity_badge }} | {{ finding.status }} | {{ finding.cvss_score | default('--') }} |
-{% endfor %}
+{%- endfor %}
 
 ## 4.2 Category Distribution
 
 | Category | Count | Severity Breakdown |
 |----------|------:|-------------------|
-{% for cat in category_summary %}
+{%- for cat in category_summary %}
 | {{ cat.name }} | {{ cat.count }} | {{ cat.breakdown }} |
-{% endfor %}
+{%- endfor %}
 
 ## 4.3 Layer Coverage Analysis
 
 | Layer | Tools Run | Passed | Failed | Findings | Coverage |
 |-------|----------:|-------:|-------:|----------:|----------|
-{% for layer in layer_summary %}
+{%- for layer in layer_summary %}
 | {{ layer.name }} | {{ layer.tools }} | {{ layer.success_count }} | {{ layer.failed_count }} | {{ layer.findings_count }} | {{ layer.coverage_bar }} |
-{% endfor %}
+{%- endfor %}
 
 ---
 
@@ -382,17 +382,17 @@ The analyzed contract presents security concerns that should be addressed before
 {% if llm_enabled and llm_remediation_priority %}
 | Priority | Finding | Severity | Effort | Rationale |
 |:--------:|---------|----------|--------|-----------|
-{% for item in llm_remediation_priority %}
+{%- for item in llm_remediation_priority %}
 | {{ item.priority }} | {{ item.title }} | {{ item.severity }} | {{ item.effort }} | {{ item.reason }} |
-{% endfor %}
+{%- endfor %}
 {% else %}
 | Priority | Finding | Severity | Recommended Action |
 |:--------:|---------|----------|-------------------|
-{% for finding in findings %}
-{% if finding.severity in ['Critical', 'High'] %}
+{%- for finding in findings %}
+{%- if finding.severity in ['Critical', 'High'] %}
 | {{ loop.index }} | {{ finding.title }} | {{ finding.severity }} | Immediate fix required |
-{% endif %}
-{% endfor %}
+{%- endif %}
+{%- endfor %}
 {% endif %}
 
 ## 6.2 Remediation Timeline
@@ -530,25 +530,25 @@ Review findings marked as "Low" effort for quick security improvements.
 
 | # | File Path | Lines | Functions | Findings |
 |--:|-----------|------:|----------:|----------:|
-{% for file in files_analyzed %}
+{%- for file in files_analyzed %}
 | {{ loop.index }} | `{{ file.path }}` | {{ file.lines }} | {{ file.functions | default('--') }} | {{ file.findings }} |
-{% endfor %}
+{%- endfor %}
 
 ## Appendix C: SWC Registry Compliance
 
 | SWC ID | Title | Status | Finding(s) |
 |--------|-------|--------|------------|
-{% for swc in swc_mappings %}
+{%- for swc in swc_mappings %}
 | [{{ swc.id }}](https://swcregistry.io/docs/{{ swc.id }}) | {{ swc.title }} | {{ swc.status_icon }} {{ swc.status }} | {{ swc.finding_ids | default('--') }} |
-{% endfor %}
+{%- endfor %}
 
 ## Appendix D: OWASP Smart Contract Top 10
 
 | Rank | Category | Status | Findings |
 |------|----------|--------|----------|
-{% for owasp in owasp_mappings %}
+{%- for owasp in owasp_mappings %}
 | {{ owasp.id }} | {{ owasp.category }} | {{ owasp.status_icon }} | {{ owasp.count }} |
-{% endfor %}
+{%- endfor %}
 
 ## Appendix E: Glossary
 
