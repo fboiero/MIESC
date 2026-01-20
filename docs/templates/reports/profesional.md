@@ -1,32 +1,34 @@
----
-title: Smart Contract Security Audit
-subtitle: Premium Security Assessment Report
-classification: {{ classification | default('CONFIDENTIAL') }}
-version: {{ report_version | default('1.0') }}
----
-
 <!-- COVER PAGE -->
-<div class="cover-page" style="text-align: center; page-break-after: always;">
+<div class="cover-page">
 
-# {{ client_name | default('Client Name') }}
+<div style="margin-bottom: 60px;">
+<h1 style="font-size: 42pt; margin-bottom: 10px; color: white; border: none;">🛡️ MIESC</h1>
+<p style="font-size: 14pt; color: #94a3b8;">Multi-layer Intelligent Evaluation for Smart Contracts</p>
+</div>
 
-## Smart Contract Security Audit
+<h2 style="font-size: 28pt; font-weight: 300; color: white; margin: 40px 0;">Smart Contract Security Audit</h2>
 
-### {{ contract_name }}
+<div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 30px; margin: 30px 0;">
+<h3 style="font-size: 22pt; color: #60a5fa; border: none; margin: 0;">{{ contract_name }}</h3>
+<p style="color: #94a3b8; margin-top: 10px;">{{ client_name | default('Client') }}</p>
+</div>
 
----
+<div style="margin-top: 60px; text-align: left; display: inline-block;">
+<table style="background: transparent; border: none;">
+<tr><td style="color: #94a3b8; border: none; padding: 8px 20px 8px 0;">Prepared by:</td><td style="color: white; border: none; padding: 8px 0;"><strong>{{ auditor_name | default('MIESC Security') }}</strong></td></tr>
+<tr><td style="color: #94a3b8; border: none; padding: 8px 20px 8px 0;">Audit Date:</td><td style="color: white; border: none; padding: 8px 0;"><strong>{{ audit_date }}</strong></td></tr>
+<tr><td style="color: #94a3b8; border: none; padding: 8px 20px 8px 0;">Report Date:</td><td style="color: white; border: none; padding: 8px 0;"><strong>{{ generation_date }}</strong></td></tr>
+<tr><td style="color: #94a3b8; border: none; padding: 8px 20px 8px 0;">Version:</td><td style="color: white; border: none; padding: 8px 0;"><strong>{{ report_version | default('1.0') }}</strong></td></tr>
+</table>
+</div>
 
-**Prepared by:** {{ auditor_name | default('MIESC Security Team') }}
+<div style="margin-top: 50px;">
+<span style="background: #dc3545; color: white; padding: 8px 20px; border-radius: 4px; font-weight: 600; font-size: 10pt;">{{ classification | default('CONFIDENTIAL') }}</span>
+</div>
 
-**Engagement Date:** {{ audit_date }}
-
-**Report Date:** {{ generation_date }}
-
-**Classification:** {{ classification | default('CONFIDENTIAL') }}
-
----
-
-*This document contains confidential security findings and is intended solely for the addressee. Unauthorized distribution is prohibited.*
+<p style="color: #64748b; font-size: 9pt; margin-top: 60px; max-width: 400px;">
+This document contains confidential security findings and is intended solely for the addressee. Unauthorized distribution is prohibited.
+</p>
 
 </div>
 
