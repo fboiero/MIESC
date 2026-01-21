@@ -3148,9 +3148,9 @@ def _get_impact_description(severity: str) -> str:
 @click.option(
     "--template",
     "-t",
-    type=click.Choice(["professional", "executive", "technical", "github-pr", "simple", "profesional"]),
+    type=click.Choice(["professional", "executive", "technical", "github-pr", "simple", "profesional", "premium"]),
     default="simple",
-    help="Report template to use (profesional includes CVSS scores, attack scenarios, and deployment recommendations)",
+    help="Report template to use (premium/profesional include CVSS scores, attack scenarios, and deployment recommendations)",
 )
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
 @click.option(
@@ -3207,7 +3207,7 @@ def report(results_file, template, output, output_format, client, auditor, title
 
     if not template_file.exists():
         error(f"Template not found: {template_file}")
-        info("Available templates: professional, executive, technical, github-pr, simple")
+        info("Available templates: professional, executive, technical, github-pr, simple, premium")
         sys.exit(1)
 
     # Load template
@@ -3495,8 +3495,8 @@ def report(results_file, template, output, output_format, client, auditor, title
     # =========================================================================
     # Profesional Template Processing
     # =========================================================================
-    if template == "profesional":
-        info("Generating profesional report data (CVSS scores, risk matrix, etc.)...")
+    if template in ("profesional", "premium"):
+        info("Generating premium report data (CVSS scores, risk matrix, etc.)...")
         try:
             from src.reports.risk_calculator import calculate_premium_risk_data
 
@@ -3559,7 +3559,7 @@ def report(results_file, template, output, output_format, client, auditor, title
                 try:
                     from src.reports.llm_interpreter import generate_premium_report_insights
 
-                    info("Generating profesional LLM insights (attack scenarios, deployment recommendation)...")
+                    info("Generating premium LLM insights (attack scenarios, deployment recommendation)...")
 
                     # Get contract code if available
                     contract_path = results.get("contract_path") or results.get("contract")

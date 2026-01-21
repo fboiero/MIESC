@@ -1,4 +1,4 @@
-# MIESC v4.3.6 - Docker Compose Configuration
+# MIESC v4.3.7 - Docker Compose Configuration
 # Multi-layer Intelligent Evaluation for Smart Contracts
 # Now with ML Pipeline: FP filtering, severity prediction, clustering
 # Plus: Ollama LLM integration for AI-powered report interpretation
@@ -34,10 +34,10 @@ services:
       dockerfile: Dockerfile
       args:
         - BUILDKIT_INLINE_CACHE=1
-    image: miesc:4.3.6
+    image: miesc:4.3.7
     container_name: miesc-main
     environment:
-      - MIESC_VERSION=4.3.6
+      - MIESC_VERSION=4.3.7
       - MIESC_ENV=docker
       - PYTHONUNBUFFERED=1
       # Ollama configuration (when using LLM features)
@@ -65,10 +65,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:4.3.6
+    image: miesc:4.3.7
     container_name: miesc-ml
     environment:
-      - MIESC_VERSION=4.3.6
+      - MIESC_VERSION=4.3.7
       - MIESC_ENV=docker-ml
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
@@ -87,10 +87,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:4.3.6
+    image: miesc:4.3.7
     container_name: miesc-test
     environment:
-      - MIESC_VERSION=4.3.6
+      - MIESC_VERSION=4.3.7
       - MIESC_ENV=docker-test
       - PYTHONUNBUFFERED=1
     command: >
@@ -109,10 +109,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:4.3.6
+    image: miesc:4.3.7
     container_name: miesc-api
     environment:
-      - MIESC_VERSION=4.3.6
+      - MIESC_VERSION=4.3.7
       - MIESC_ENV=docker-api
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
@@ -139,10 +139,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:4.3.6
+    image: miesc:4.3.7
     container_name: miesc-shell
     environment:
-      - MIESC_VERSION=4.3.6
+      - MIESC_VERSION=4.3.7
       - MIESC_ENV=docker-shell
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
@@ -163,10 +163,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:4.3.6
+    image: miesc:4.3.7
     container_name: miesc-analyzer
     environment:
-      - MIESC_VERSION=4.3.6
+      - MIESC_VERSION=4.3.7
       - MIESC_ENV=docker-analyzer
       - PYTHONUNBUFFERED=1
       - CONTRACT_PATH=${CONTRACT_PATH:-/app/contracts/example.sol}
@@ -313,4 +313,4 @@ volumes:
 #
 # 8. Clean up:
 #    docker-compose down -v
-#    docker rmi miesc:4.3.6
+#    docker rmi miesc:4.3.7
