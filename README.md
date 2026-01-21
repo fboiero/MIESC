@@ -150,20 +150,26 @@ docker run --rm \
   ghcr.io/fboiero/miesc:latest \
   audit full /contracts/MyContract.sol -o /contracts/results.json
 
-# 2. Generate professional PDF report with AI interpretation
+# 2. Generate professional HTML report (without LLM - works immediately)
+docker run --rm \
+  -v $(pwd):/contracts \
+  ghcr.io/fboiero/miesc:latest \
+  report /contracts/results.json -t premium -f html -o /contracts/audit_report.html
+
+# 2b. With AI interpretation (requires Ollama running with ≥8GB Docker RAM)
 # macOS/Windows:
 docker run --rm \
   -e OLLAMA_HOST=http://host.docker.internal:11434 \
   -v $(pwd):/contracts \
   ghcr.io/fboiero/miesc:latest \
-  report /contracts/results.json -t profesional --llm-interpret -f html -o /contracts/audit_report.html
+  report /contracts/results.json -t premium --llm-interpret -f html -o /contracts/audit_report.html
 
 # Linux (use host network):
 docker run --rm --network host \
   -e OLLAMA_HOST=http://localhost:11434 \
   -v $(pwd):/contracts \
   ghcr.io/fboiero/miesc:latest \
-  report /contracts/results.json -t profesional --llm-interpret -f html -o /contracts/audit_report.html
+  report /contracts/results.json -t premium --llm-interpret -f html -o /contracts/audit_report.html
 
 # 3. Convert HTML to PDF (open in browser and print, or use Chrome)
 # google-chrome --headless --print-to-pdf=audit_report.pdf audit_report.html
@@ -250,7 +256,7 @@ docker-compose --profile llm up -d
 
 # Run full audit and generate report
 docker-compose exec miesc miesc audit full /data/contract.sol -o results.json
-docker-compose exec miesc miesc report results.json -t profesional --llm-interpret -o report.html
+docker-compose exec miesc miesc report results.json -t premium --llm-interpret -o report.html
 ```
 
 </details>
@@ -302,7 +308,7 @@ miesc audit quick contract.sol       # Fast 4-tool scan
 miesc audit full contract.sol        # Complete 9-layer audit
 miesc audit layer 3 contract.sol     # Run specific layer
 miesc report results.json -t professional  # Generate audit report
-miesc report results.json -t profesional --llm-interpret  # Profesional report with AI
+miesc report results.json -t premium --llm-interpret  # Premium report with AI
 miesc benchmark ./contracts --save   # Track security posture
 miesc server rest --port 5001        # Start REST API
 miesc doctor                         # Check tool availability
@@ -323,17 +329,17 @@ Generate professional audit reports from analysis results:
 miesc report results.json -t simple        # Basic findings list
 miesc report results.json -t professional  # Standard audit report
 miesc report results.json -t executive     # C-level summary
-miesc report results.json -t profesional       # Trail of Bits style (CVSS, risk matrix)
+miesc report results.json -t premium       # Trail of Bits style (CVSS, risk matrix)
 
 # With AI-powered interpretation (requires Ollama)
-miesc report results.json -t profesional --llm-interpret -o report.md
+miesc report results.json -t premium --llm-interpret -o report.md
 
 # Different output formats
-miesc report results.json -t profesional -f html -o report.html
-miesc report results.json -t profesional -f pdf -o report.pdf
+miesc report results.json -t premium -f html -o report.html
+miesc report results.json -t premium -f pdf -o report.pdf
 ```
 
-**Profesional Report Features:**
+**Premium Report Features:**
 - CVSS-like scoring for each finding
 - Risk matrix (Impact vs Likelihood)
 - Deployment recommendation (GO/NO-GO/CONDITIONAL)
