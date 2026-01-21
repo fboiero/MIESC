@@ -104,67 +104,80 @@ docker run --rm -v ${PWD}:/contracts ghcr.io/fboiero/miesc:latest scan /contract
 
 </details>
 
-**Docker with LLM Support (Professional Reports):**
+**Docker with LLM Support (Professional PDF Reports):**
 
-To generate AI-powered professional reports from Docker, you need Ollama running on your host machine:
+Generate AI-powered professional audit reports with MIESC + Ollama:
+
+<details>
+<summary><strong>Step 1: Install Ollama (one-time setup)</strong></summary>
 
 ```bash
-# 1. Install and start Ollama on your host (https://ollama.ai)
+# macOS
+brew install ollama
+
+# Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Windows: Download from https://ollama.com/download
+
+# Start Ollama and download the model (~4GB)
 ollama serve &
 ollama pull mistral:latest
+```
 
-# 2. Run MIESC with LLM support (connects to host's Ollama)
-# On macOS/Windows:
+</details>
+
+```bash
+# Full Audit + Professional PDF Report (recommended workflow)
+
+# 1. Run full 9-layer security audit
+docker run --rm \
+  -v $(pwd):/contracts \
+  ghcr.io/fboiero/miesc:latest \
+  audit full /contracts/MyContract.sol -o /contracts/results.json
+
+# 2. Generate professional PDF report with AI interpretation
+# macOS/Windows:
 docker run --rm \
   -e OLLAMA_HOST=http://host.docker.internal:11434 \
   -v $(pwd):/contracts \
   ghcr.io/fboiero/miesc:latest \
-  report /contracts/results.json -t profesional --llm-interpret
+  report /contracts/results.json -t profesional --llm-interpret -f html -o /contracts/audit_report.html
 
-# On Linux (use host network):
+# Linux (use host network):
 docker run --rm --network host \
   -e OLLAMA_HOST=http://localhost:11434 \
   -v $(pwd):/contracts \
   ghcr.io/fboiero/miesc:latest \
-  report /contracts/results.json -t profesional --llm-interpret
+  report /contracts/results.json -t profesional --llm-interpret -f html -o /contracts/audit_report.html
+
+# 3. Convert HTML to PDF (open in browser and print, or use Chrome)
+# google-chrome --headless --print-to-pdf=audit_report.pdf audit_report.html
 ```
 
 <details>
-<summary><strong>Docker + LLM Complete Workflow</strong></summary>
+<summary><strong>What the Professional Report Includes</strong></summary>
+
+- **Cover Page** with confidentiality classification
+- **Executive Summary** with AI-generated business risk analysis
+- **Deployment Recommendation** (GO / NO-GO / CONDITIONAL)
+- **Risk Matrix** with CVSS-like scoring
+- **Detailed Findings** with attack scenarios
+- **Remediation Roadmap** with prioritization
+- **AI Disclosure** for transparency
+
+</details>
+
+<details>
+<summary><strong>Alternative: docker-compose with Ollama</strong></summary>
 
 ```bash
-# Step 1: Ensure Ollama is running with required model
-ollama list  # Should show mistral:latest
-
-# Step 2: Run audit and save results
-docker run --rm \
-  -v $(pwd):/contracts \
-  ghcr.io/fboiero/miesc:latest \
-  audit quick /contracts/MyContract.sol -o /contracts/results.json
-
-# Step 3: Generate professional report with AI interpretation
-docker run --rm \
-  -e OLLAMA_HOST=http://host.docker.internal:11434 \
-  -v $(pwd):/contracts \
-  ghcr.io/fboiero/miesc:latest \
-  report /contracts/results.json -t profesional --llm-interpret -o /contracts/report.md
-
-# The report will include:
-# - AI-generated executive summary
-# - Risk narrative with attack vectors
-# - Deployment recommendation (GO/NO-GO/CONDITIONAL)
-# - Prioritized remediation roadmap
-```
-
-**Alternative: Use docker-compose with Ollama:**
-
-```bash
-# Start with LLM profile (includes Ollama container)
+# Start MIESC + Ollama containers
 docker-compose --profile llm up -d
 
-# Run analysis
-docker-compose exec miesc miesc audit quick /data/contract.sol
-docker-compose exec miesc miesc report results.json -t profesional --llm-interpret
+# Run full audit and generate report
+docker-compose exec miesc miesc audit full /data/contract.sol -o results.json
+docker-compose exec miesc miesc report results.json -t profesional --llm-interpret -o report.html
 ```
 
 </details>
@@ -255,15 +268,24 @@ miesc report results.json -t profesional -f pdf -o report.pdf
 - Code remediation suggestions with diffs
 - Remediation roadmap with prioritization
 
-**LLM Requirements:**
-```bash
-# Start Ollama with required models
-ollama serve &
-ollama pull mistral:latest      # General interpretation
-ollama pull deepseek-coder:6.7b # Code analysis
+**LLM Requirements (for `--llm-interpret`):**
 
-# Or use Docker setup
-./scripts/docker-setup.sh
+| Model | Size | Purpose |
+|-------|------|---------|
+| `mistral:latest` | ~4GB | Report interpretation, risk analysis |
+| `deepseek-coder:6.7b` | ~4GB | Code analysis (optional) |
+
+```bash
+# Install Ollama: https://ollama.com/download
+# Then pull the required model:
+ollama pull mistral:latest
+
+# Verify it's working:
+ollama list  # Should show mistral:latest
+
+# For Docker: set OLLAMA_HOST to connect to host
+# macOS/Windows: OLLAMA_HOST=http://host.docker.internal:11434
+# Linux: use --network host
 ```
 
 ### Custom Detectors
