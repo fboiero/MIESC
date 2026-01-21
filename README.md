@@ -108,6 +108,10 @@ docker run --rm -v ${PWD}:/contracts ghcr.io/fboiero/miesc:latest scan /contract
 
 Generate AI-powered professional audit reports with MIESC + Ollama:
 
+> **⚠️ Memory Requirement:** LLM models require significant RAM. Configure Docker Desktop with **≥8GB memory**:
+> - Docker Desktop → Settings → Resources → Memory → 8GB (or more)
+> - The `mistral:latest` model requires ~4.5GB RAM to run
+
 <details>
 <summary><strong>Step 1: Install Ollama (one-time setup)</strong></summary>
 
@@ -123,7 +127,17 @@ curl -fsSL https://ollama.com/install.sh | sh
 # Start Ollama and download the model (~4GB)
 ollama serve &
 ollama pull mistral:latest
+
+# Optional: Download deepseek-coder for code analysis (~3.8GB)
+ollama pull deepseek-coder:6.7b
 ```
+
+**Available Models:**
+
+| Model | Size | RAM Required | Use Case |
+|-------|------|--------------|----------|
+| `mistral:latest` | 4.0GB | ~4.5GB | General interpretation |
+| `deepseek-coder:6.7b` | 3.8GB | ~4.2GB | Code analysis |
 
 </details>
 
