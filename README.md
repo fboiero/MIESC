@@ -156,6 +156,65 @@ docker run --rm --network host \
 ```
 
 <details>
+<summary><strong>Example Output: Step 1 - Full Audit</strong></summary>
+
+```
+=== Layer 1: Static Analysis ===
+OK slither: 5 findings in 1.7s
+OK aderyn: 5 findings in 3.0s
+OK solhint: 0 findings in 0.7s
+
+=== Layer 2: Dynamic Testing ===
+OK echidna: 0 findings in 2.0s
+OK foundry: 0 findings in 9.0s
+
+=== Layer 3: Symbolic Execution ===
+OK mythril: 2 findings in 298.0s
+
+=== Layer 5: AI Analysis ===
+OK smartllm: 4 findings in 198.9s
+OK gptscan: 4 findings in 49.7s
+
+ Full Audit Summary
+╭──────────┬───────╮
+│ Severity │ Count │
+├──────────┼───────┤
+│ CRITICAL │     1 │
+│ HIGH     │    11 │
+│ MEDIUM   │     1 │
+│ LOW      │     9 │
+│ TOTAL    │    22 │
+╰──────────┴───────╯
+
+Tools executed: 12/29
+OK Report saved to /contracts/results.json
+```
+
+</details>
+
+<details>
+<summary><strong>Example Output: Step 2 - Professional Report with LLM</strong></summary>
+
+```
+INFO Loaded results from /contracts/results.json
+INFO LLM interpretation enabled - generating AI-powered insights...
+INFO LLM Interpreter: mistral:latest available via HTTP API
+INFO Generating executive summary interpretation...
+INFO Generating risk narrative...
+INFO Interpreting 5 critical/high findings...
+INFO Generating remediation priority recommendations...
+OK LLM interpretation complete!
+INFO Generating profesional report data (CVSS scores, risk matrix, etc.)...
+INFO Generating profesional LLM insights (attack scenarios, deployment recommendation)...
+OK Profesional LLM insights generated!
+OK Report saved to /contracts/audit_report.html
+
+Report Summary: 1 critical, 11 high, 1 medium, 9 low
+```
+
+</details>
+
+<details>
 <summary><strong>What the Professional Report Includes</strong></summary>
 
 - **Cover Page** with confidentiality classification
