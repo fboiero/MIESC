@@ -44,13 +44,21 @@ cd MIESC && pip install -e .[dev]
 **Docker:**
 
 ```bash
-# Pull from GitHub Container Registry
+# STANDARD image (~2-3GB) - Core tools: Slither, Aderyn, Solhint, Foundry
 docker pull ghcr.io/fboiero/miesc:latest
 docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:latest scan /contracts/MyContract.sol
 
+# FULL image (~8GB) - ALL tools: Mythril, Manticore, Echidna, Halmos, PyTorch
+docker pull ghcr.io/fboiero/miesc:full
+docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:full scan /contracts/MyContract.sol
+
+# Check available tools
+docker run --rm ghcr.io/fboiero/miesc:latest doctor  # Standard: ~15 tools
+docker run --rm ghcr.io/fboiero/miesc:full doctor    # Full: ~30 tools
+
 # Or build locally
-docker build -t miesc:latest .
-docker run --rm -v $(pwd):/contracts miesc:latest scan /contracts/MyContract.sol
+docker build -t miesc:latest .                         # Standard
+docker build -f Dockerfile.full -t miesc:full .        # Full
 ```
 
 <details>

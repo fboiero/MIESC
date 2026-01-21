@@ -1,52 +1,48 @@
-# Recordings and large media files
-demo/recordings/
-*.mp4
-*.gif
-*.wav
-*.aiff
-*.cast
-
-# Development files
+# Git
 .git
-.github
-.vscode
-.idea
-*.egg-info
+.gitignore
+
+# Python
 __pycache__
-*.pyc
-*.pyo
-.pytest_cache
-.coverage
-htmlcov
-.tox
-.nox
+*.py[cod]
+*.egg-info
+.eggs
 dist
 build
 *.egg
+.pytest_cache
+.coverage
+htmlcov
+.mypy_cache
+.ruff_cache
+.venv
+venv
+env
 
-# Virtual environments
-venv/
-venv314/
-.venv/
+# Node
+node_modules
+npm-debug.log
 
-# Thesis and documentation builds
-thesis_generator/
-docs/*
-!docs/templates/
-*.docx
-*.pdf
-
-# Test artifacts
-.benchmarks/
-benchmarks/datasets/
-
-# IDE and OS files
-.DS_Store
+# IDE
+.vscode
+.idea
 *.swp
 *.swo
+
+# Docker
+.docker
+
+# Test data
+test_data
+
+# Documentation build
+docs/_build
+site
+
+# OS
+.DS_Store
 Thumbs.db
 
-# Misc
+# Large files
 *.log
 *.tmp
-node_modules/

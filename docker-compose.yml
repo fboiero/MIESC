@@ -158,6 +158,36 @@ services:
     profiles:
       - dev
 
+  # ===========================================================================
+  # MIESC FULL - Complete image with ALL 30+ security tools
+  # Includes: Mythril, Manticore, Echidna, Halmos, PyTorch for ML
+  # Image size: ~8GB | Memory required: 8GB+
+  # ===========================================================================
+  miesc-full:
+    build:
+      context: .
+      dockerfile: Dockerfile.full
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: miesc:4.3.7-full
+    container_name: miesc-full
+    environment:
+      - MIESC_VERSION=4.3.7-full
+      - MIESC_ENV=docker-full
+      - PYTHONUNBUFFERED=1
+      - OLLAMA_HOST=http://ollama:11434
+      - MIESC_LLM_MODEL=mistral:latest
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    volumes:
+      - miesc-data:/data
+      - ./contracts:/app/contracts
+    networks:
+      - miesc-network
+    profiles:
+      - full
+
   # MIESC Analyzer (analyze specific contract)
   miesc-analyzer:
     build:

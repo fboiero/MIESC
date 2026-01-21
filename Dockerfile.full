@@ -1,0 +1,93 @@
+# MIESC v4.3.7 FULL - Extended Docker Image
+# Multi-layer Intelligent Evaluation for Smart Contracts
+#
+# This Dockerfile EXTENDS the standard image with additional tools:
+# - Layer 4: Symbolic Execution (Mythril, Manticore, Halmos)
+# - Layer 8-9: ML Analysis (PyTorch, scikit-learn for DAGNN/SmartGuard)
+# - Additional: Semgrep for pattern-based analysis
+#
+# Image size: ~6GB (includes PyTorch, symbolic execution engines)
+# Build time: ~15-20 minutes
+# Memory requirement: 8GB+ RAM recommended
+#
+# PREREQUISITE: Build the standard image first:
+#   docker build -t ghcr.io/fboiero/miesc:latest .
+#
+# Then build this full image:
+#   docker build -f Dockerfile.full -t ghcr.io/fboiero/miesc:full .
+
+# Use the standard MIESC image as base
+FROM ghcr.io/fboiero/miesc:latest
+
+LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
+LABEL version="4.3.7-full"
+LABEL description="MIESC FULL - Extended with Mythril, Manticore, PyTorch for ML Analysis"
+
+# Switch to root for system packages
+USER root
+
+# Install Z3 solver and additional dependencies for symbolic execution
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libz3-dev \
+    z3 \
+    libopenblas-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Switch back to miesc user
+USER miesc
+
+# ==========================================
+# LAYER 4: SYMBOLIC EXECUTION TOOLS
+# ==========================================
+
+# Install Mythril (symbolic execution for Solidity)
+# This may take a while due to z3-solver compilation on some platforms
+RUN pip install --no-cache-dir --user mythril>=0.24.0 && \
+    echo "✓ Mythril installed" || \
+    echo "⚠ Mythril skipped - install manually if needed"
+
+# Install Manticore (symbolic execution engine)
+RUN pip install --no-cache-dir --user manticore[native] && \
+    echo "✓ Manticore installed" || \
+    echo "⚠ Manticore skipped - install manually if needed"
+
+# Install Halmos (formal verification)
+RUN pip install --no-cache-dir --user halmos && \
+    echo "✓ Halmos installed" || \
+    echo "⚠ Halmos skipped"
+
+# ==========================================
+# LAYER 8-9: ML ANALYSIS TOOLS
+# ==========================================
+
+# Install PyTorch CPU-only version (~800MB)
+RUN pip install --no-cache-dir --user \
+    torch --index-url https://download.pytorch.org/whl/cpu && \
+    echo "✓ PyTorch CPU installed"
+
+# Install ML dependencies for DAGNN, SmartGuard
+RUN pip install --no-cache-dir --user \
+    torch-geometric \
+    networkx \
+    && echo "✓ Graph Neural Network libraries installed" || \
+    echo "⚠ Some GNN libraries skipped"
+
+# Install Semgrep (pattern-based analysis)
+RUN pip install --no-cache-dir --user semgrep && \
+    echo "✓ Semgrep installed"
+
+# ==========================================
+# ENVIRONMENT CONFIGURATION
+# ==========================================
+
+ENV MIESC_VERSION="4.3.7-full"
+ENV MIESC_ENV="docker-full"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD miesc --version || exit 1
+
+EXPOSE 8000
+
+ENTRYPOINT ["miesc"]
+CMD ["--help"]
