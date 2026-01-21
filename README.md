@@ -594,6 +594,57 @@ pytest tests/
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
+## Support
+
+Need help? Here's how to get support:
+
+| Resource | Description |
+|----------|-------------|
+| [GitHub Issues](https://github.com/fboiero/MIESC/issues) | Bug reports and feature requests |
+| [Documentation](https://fboiero.github.io/MIESC) | Full documentation and guides |
+| [Quick Start](./QUICKSTART.md) | Get started in 5 minutes |
+| [Security Issues](./SECURITY.md) | Report security vulnerabilities |
+
+**Common Issues:**
+
+<details>
+<summary><strong>Tool not found / not installed</strong></summary>
+
+```bash
+# Check which tools are available
+miesc doctor
+
+# Most tools are optional - MIESC works with whatever is installed
+# Install specific tools as needed:
+pip install slither-analyzer  # Static analysis
+pip install mythril           # Symbolic execution
+```
+
+</details>
+
+<details>
+<summary><strong>Docker memory errors with LLM</strong></summary>
+
+LLM models require significant RAM. Configure Docker Desktop:
+- Settings → Resources → Memory → 8GB (minimum)
+- The `mistral:latest` model needs ~4.5GB RAM
+
+</details>
+
+<details>
+<summary><strong>Ollama connection refused</strong></summary>
+
+```bash
+# Make sure Ollama is running
+ollama serve
+
+# For Docker, set the correct host:
+# macOS/Windows: OLLAMA_HOST=http://host.docker.internal:11434
+# Linux: use --network host
+```
+
+</details>
+
 ## License
 
 AGPL-3.0 - See [LICENSE](./LICENSE)
