@@ -68,7 +68,7 @@ docker rmi ghcr.io/fboiero/miesc:main 2>/dev/null
 # Pull fresh image
 docker pull ghcr.io/fboiero/miesc:latest
 
-# Verify version (should show 4.3.4+)
+# Verify version (should show 4.3.7+)
 docker run --rm ghcr.io/fboiero/miesc:latest --version
 ```
 
@@ -303,7 +303,7 @@ Add to your `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v4.3.4
+    rev: v4.3.7
     hooks:
       - id: miesc-quick
         args: ['--ci']  # Fail on critical/high issues

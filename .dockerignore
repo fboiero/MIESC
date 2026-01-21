@@ -31,7 +31,8 @@ venv314/
 
 # Thesis and documentation builds
 thesis_generator/
-docs/
+docs/*
+!docs/templates/
 *.docx
 *.pdf
 
