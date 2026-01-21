@@ -104,21 +104,70 @@ docker run --rm -v ${PWD}:/contracts ghcr.io/fboiero/miesc:latest scan /contract
 
 </details>
 
-**Docker with LLM Support (Profesional Reports):**
+**Docker with LLM Support (Professional Reports):**
+
+To generate AI-powered professional reports from Docker, you need Ollama running on your host machine:
 
 ```bash
-# Interactive setup wizard (recommended)
-./scripts/docker-setup.sh
+# 1. Install and start Ollama on your host (https://ollama.ai)
+ollama serve &
+ollama pull mistral:latest
 
-# Or manually start with LLM profile
+# 2. Run MIESC with LLM support (connects to host's Ollama)
+# On macOS/Windows:
+docker run --rm \
+  -e OLLAMA_HOST=http://host.docker.internal:11434 \
+  -v $(pwd):/contracts \
+  ghcr.io/fboiero/miesc:latest \
+  report /contracts/results.json -t profesional --llm-interpret
+
+# On Linux (use host network):
+docker run --rm --network host \
+  -e OLLAMA_HOST=http://localhost:11434 \
+  -v $(pwd):/contracts \
+  ghcr.io/fboiero/miesc:latest \
+  report /contracts/results.json -t profesional --llm-interpret
+```
+
+<details>
+<summary><strong>Docker + LLM Complete Workflow</strong></summary>
+
+```bash
+# Step 1: Ensure Ollama is running with required model
+ollama list  # Should show mistral:latest
+
+# Step 2: Run audit and save results
+docker run --rm \
+  -v $(pwd):/contracts \
+  ghcr.io/fboiero/miesc:latest \
+  audit quick /contracts/MyContract.sol -o /contracts/results.json
+
+# Step 3: Generate professional report with AI interpretation
+docker run --rm \
+  -e OLLAMA_HOST=http://host.docker.internal:11434 \
+  -v $(pwd):/contracts \
+  ghcr.io/fboiero/miesc:latest \
+  report /contracts/results.json -t profesional --llm-interpret -o /contracts/report.md
+
+# The report will include:
+# - AI-generated executive summary
+# - Risk narrative with attack vectors
+# - Deployment recommendation (GO/NO-GO/CONDITIONAL)
+# - Prioritized remediation roadmap
+```
+
+**Alternative: Use docker-compose with Ollama:**
+
+```bash
+# Start with LLM profile (includes Ollama container)
 docker-compose --profile llm up -d
 
-# Production deployment with both models pre-loaded
-docker-compose -f docker-compose.prod-llm.yml up -d
-
-# Health check
-./deploy/health-check.sh
+# Run analysis
+docker-compose exec miesc miesc audit quick /data/contract.sol
+docker-compose exec miesc miesc report results.json -t profesional --llm-interpret
 ```
+
+</details>
 
 **As module:**
 

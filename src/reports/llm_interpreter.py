@@ -18,8 +18,9 @@ Version: 1.0.0
 import json
 import logging
 import os
-import subprocess
 import time
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
@@ -59,39 +60,42 @@ class LLMReportInterpreter:
             self.config.model = os.environ["MIESC_LLM_MODEL"]
 
     def is_available(self) -> bool:
-        """Check if Ollama is available with the configured model."""
+        """Check if Ollama is available with the configured model via HTTP API."""
         if self._available is not None:
             return self._available
 
         try:
-            # Set OLLAMA_HOST for the subprocess if configured
-            env = os.environ.copy()
-            if self.config.ollama_host and self.config.ollama_host != "http://localhost:11434":
-                env["OLLAMA_HOST"] = self.config.ollama_host
+            # Use HTTP API to check availability (works in Docker without CLI)
+            url = f"{self.config.ollama_host}/api/tags"
+            req = urllib.request.Request(url, method="GET")
+            req.add_header("Content-Type", "application/json")
 
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                timeout=10,
-                text=True,
-                env=env
-            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode())
+                models = [m.get("name", "") for m in data.get("models", [])]
 
-            if result.returncode == 0:
                 # Check if our model is available
                 model_base = self.config.model.split(":")[0]
-                if model_base in result.stdout or self.config.model in result.stdout:
-                    self._available = True
-                    logger.info(f"LLM Interpreter: {self.config.model} available")
-                else:
-                    # Model not pulled yet, try to check if ollama is running
-                    self._available = True
-                    logger.warning(f"LLM Interpreter: Model {self.config.model} not found, will attempt to use")
-            else:
-                self._available = False
-                logger.warning("LLM Interpreter: Ollama not available")
+                model_found = any(
+                    self.config.model in m or model_base in m
+                    for m in models
+                )
 
-        except (FileNotFoundError, subprocess.TimeoutExpired, Exception) as e:
+                if model_found:
+                    self._available = True
+                    logger.info(f"LLM Interpreter: {self.config.model} available via HTTP API")
+                else:
+                    # Ollama is running but model not found - will try to use anyway
+                    self._available = True
+                    logger.warning(
+                        f"LLM Interpreter: Model {self.config.model} not found in {models}, "
+                        "will attempt to use"
+                    )
+
+        except urllib.error.URLError as e:
+            self._available = False
+            logger.debug(f"LLM Interpreter not available (URL error): {e}")
+        except Exception as e:
             self._available = False
             logger.debug(f"LLM Interpreter not available: {e}")
 
@@ -690,27 +694,36 @@ JSON:"""
     # =========================================================================
 
     def _call_llm(self, prompt: str) -> Optional[str]:
-        """Call Ollama LLM with retry logic."""
-        env = os.environ.copy()
-        if self.config.ollama_host and self.config.ollama_host != "http://localhost:11434":
-            env["OLLAMA_HOST"] = self.config.ollama_host
+        """Call Ollama LLM via HTTP API with retry logic."""
+        url = f"{self.config.ollama_host}/api/generate"
+
+        payload = json.dumps({
+            "model": self.config.model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": self.config.temperature,
+                "num_predict": self.config.max_tokens,
+            }
+        }).encode("utf-8")
 
         for attempt in range(1, self.config.retry_attempts + 1):
             try:
-                result = subprocess.run(
-                    ["ollama", "run", self.config.model, prompt],
-                    capture_output=True,
-                    timeout=self.config.timeout,
-                    text=True,
-                    env=env
-                )
+                req = urllib.request.Request(url, data=payload, method="POST")
+                req.add_header("Content-Type", "application/json")
 
-                if result.returncode == 0 and result.stdout:
-                    return result.stdout.strip()
+                with urllib.request.urlopen(req, timeout=self.config.timeout) as response:
+                    data = json.loads(response.read().decode())
+                    result = data.get("response", "").strip()
 
-                logger.warning(f"LLM call attempt {attempt} failed: {result.stderr}")
+                    if result:
+                        return result
 
-            except subprocess.TimeoutExpired:
+                    logger.warning(f"LLM call attempt {attempt}: empty response")
+
+            except urllib.error.URLError as e:
+                logger.warning(f"LLM call attempt {attempt} URL error: {e}")
+            except TimeoutError:
                 logger.warning(f"LLM call attempt {attempt} timeout")
             except Exception as e:
                 logger.error(f"LLM call attempt {attempt} error: {e}")
