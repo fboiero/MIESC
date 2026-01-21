@@ -205,31 +205,31 @@ class AderynAdapter(ToolAdapter):
             timeout = kwargs.get("timeout", 300)
             no_snippets = kwargs.get("no_snippets", False)
 
-            # Detect external imports
-            external_imports = set()
             contract_file = Path(contract_path)
+
+            # Always copy contract to a clean temp directory for Aderyn
+            # This avoids issues with solc discovery and complex project structures
+            if contract_file.is_file():
+                temp_workspace = tempfile.mkdtemp(prefix="miesc_aderyn_")
+                temp_contract = Path(temp_workspace) / contract_file.name
+                shutil.copy2(contract_path, temp_contract)
+                analysis_dir = temp_workspace
+                logger.debug(f"Copied contract to temp workspace: {temp_workspace}")
+            else:
+                temp_workspace = None
+                analysis_dir = str(contract_file)
+
+            # Check for external imports and set up dependencies if needed
             if contract_file.is_file():
                 external_imports = self._detect_imports(contract_path)
                 if external_imports:
                     logger.info(f"Detected external imports: {external_imports}")
-                    # Set up workspace with dependencies
-                    workspace_result = self._setup_workspace_with_deps(
-                        contract_path, external_imports
-                    )
-                    if workspace_result:
-                        temp_workspace, actual_contract_path = workspace_result
-                        logger.info(f"Using workspace with dependencies: {temp_workspace}")
-                        contract_file = Path(actual_contract_path)
+                    # Set up workspace with dependencies (reuse temp_workspace)
+                    self._install_deps_in_workspace(temp_workspace, contract_path, external_imports)
 
-            # Build command
-            # Aderyn works better on directories than single files
-            if contract_file.is_file():
-                # Run Aderyn on parent directory with include filter
-                contract_dir = str(contract_file.parent)
-                contract_name = contract_file.name
-                cmd = ["aderyn", contract_dir, "-i", contract_name, "-o", output_path]
-            else:
-                cmd = ["aderyn", actual_contract_path, "-o", output_path]
+            # Build command - always analyze the directory, not a single file
+            # Aderyn 0.1.9 has issues finding solc when targeting single files
+            cmd = ["aderyn", analysis_dir, "-o", output_path]
 
             if no_snippets:
                 cmd.append("--no-snippets")
@@ -250,12 +250,22 @@ class AderynAdapter(ToolAdapter):
             if verbose:
                 print(f"  [Aderyn] Analysis completed in {execution_time:.1f}s")
 
-            # Check for errors - but first check if output file was created
+            # Check for errors - but first check if output file was created with valid JSON
             # Aderyn 0.1.9 has a version parsing bug that causes exit code 101
-            # even when analysis completes successfully
+            # even when analysis completes successfully and output is written
             output_exists = Path(output_path).exists()
+            output_valid = False
 
-            if result.returncode != 0 and not output_exists:
+            if output_exists:
+                try:
+                    with open(output_path, "r") as f:
+                        test_json = json.load(f)
+                        # Check if it has the expected structure
+                        output_valid = "high_issues" in test_json or "low_issues" in test_json
+                except (json.JSONDecodeError, Exception):
+                    output_valid = False
+
+            if result.returncode != 0 and not output_valid:
                 error_msg = result.stderr or result.stdout
                 logger.error(f"Aderyn execution failed: {error_msg}")
                 return {
@@ -268,11 +278,12 @@ class AderynAdapter(ToolAdapter):
                     "error": f"Aderyn analysis failed (exit code {result.returncode})",
                 }
 
-            # If output exists but there was an error, log warning but continue
-            if result.returncode != 0 and output_exists:
-                logger.warning(
-                    f"Aderyn exited with code {result.returncode} but output file exists - "
-                    "possibly a version parsing bug in aderyn 0.1.9"
+            # If output is valid but there was an error exit code, log warning but continue
+            # This handles Aderyn 0.1.9 version parsing bug (exit 101 after successful analysis)
+            if result.returncode != 0 and output_valid:
+                logger.debug(
+                    f"Aderyn exited with code {result.returncode} but output is valid - "
+                    "ignoring exit code (known bug in aderyn 0.1.9)"
                 )
 
             # Parse JSON output
@@ -563,22 +574,15 @@ class AderynAdapter(ToolAdapter):
             pass
         return "0.8.20"
 
-    def _setup_workspace_with_deps(
-        self, contract_path: str, imports: Set[str]
-    ) -> Optional[Tuple[str, str]]:
-        """Create a temporary workspace with dependencies installed."""
+    def _install_deps_in_workspace(
+        self, workspace: str, contract_path: str, imports: Set[str]
+    ) -> bool:
+        """Install dependencies in an existing workspace."""
         if not shutil.which("forge"):
             logger.debug("forge not available, cannot install dependencies")
-            return None
+            return False
 
         try:
-            workspace = tempfile.mkdtemp(prefix="miesc_aderyn_")
-            logger.debug(f"Created temporary workspace: {workspace}")
-
-            contract_name = Path(contract_path).name
-            temp_contract = Path(workspace) / contract_name
-            shutil.copy2(contract_path, temp_contract)
-
             solc_version = self._detect_solidity_version(contract_path)
 
             remappings = []
@@ -592,6 +596,9 @@ class AderynAdapter(ToolAdapter):
                         remappings.append(remapping)
                 else:
                     logger.warning(f"Unknown dependency: {imp}")
+
+            if not deps_to_install:
+                return True
 
             foundry_config = f'''[profile.default]
 src = "."
@@ -628,6 +635,27 @@ auto_detect_solc = false
                 )
                 if result.returncode != 0:
                     logger.warning(f"Failed to install {dep}: {result.stderr}")
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Error installing dependencies: {e}")
+            return False
+
+    def _setup_workspace_with_deps(
+        self, contract_path: str, imports: Set[str]
+    ) -> Optional[Tuple[str, str]]:
+        """Create a temporary workspace with dependencies installed."""
+        try:
+            workspace = tempfile.mkdtemp(prefix="miesc_aderyn_")
+            logger.debug(f"Created temporary workspace: {workspace}")
+
+            contract_name = Path(contract_path).name
+            temp_contract = Path(workspace) / contract_name
+            shutil.copy2(contract_path, temp_contract)
+
+            if imports:
+                self._install_deps_in_workspace(workspace, contract_path, imports)
 
             return workspace, str(temp_contract)
 
