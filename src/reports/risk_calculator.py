@@ -10,6 +10,15 @@ from enum import Enum
 from typing import Any
 
 
+def _get_finding_title(finding: dict) -> str:
+    """Get finding title with fallbacks for different adapter formats."""
+    return (finding.get("title") or 
+            finding.get("type") or 
+            finding.get("message", "Unknown")[:100])
+
+
+
+
 class AttackVector(Enum):
     """Attack vector component."""
     NETWORK = "N"  # Remote/network exploitable
@@ -287,7 +296,7 @@ class RiskCalculator:
     def calculate_finding_score(self, finding: dict[str, Any]) -> CVSSScore:
         """Calculate CVSS score for a single finding."""
         finding_id = finding.get("id", "UNK")
-        title = finding.get("title", "Unknown")
+        title = _get_finding_title(finding)
         category = finding.get("category", "unknown")
         severity = finding.get("severity", "Medium")
 
@@ -475,7 +484,7 @@ class RiskCalculator:
         ]
 
         for finding in findings:
-            title_lower = finding.get("title", "").lower()
+            title_lower = _get_finding_title(finding).lower()
             category_lower = finding.get("category", "").lower()
             desc_lower = finding.get("description", "").lower()
 
@@ -484,7 +493,7 @@ class RiskCalculator:
             for pattern, description in quick_fix_patterns:
                 if pattern in combined:
                     quick_wins.append({
-                        "title": finding.get("title", "Unknown"),
+                        "title": _get_finding_title(finding),
                         "description": description,
                         "finding_id": finding.get("id", "?"),
                     })

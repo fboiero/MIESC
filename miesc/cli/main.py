@@ -3143,6 +3143,49 @@ def _get_impact_description(severity: str) -> str:
     return impacts.get(severity, "Impact assessment pending.")
 
 
+
+def _interactive_wizard(variables: dict, console) -> dict:
+    """
+    Interactive wizard for report metadata.
+    Only asks for client and auditor info - everything else comes from audit data.
+    """
+    from rich.prompt import Prompt
+    
+    def is_missing(value):
+        if value is None:
+            return True
+        if isinstance(value, str):
+            return value.strip() == "" or value.lower() in ("n/a", "unknown", "none")
+        return False
+    
+    fields_to_ask = []
+    
+    if is_missing(variables.get("client_name")):
+        fields_to_ask.append(("client_name", "Client/Project Name"))
+    
+    if is_missing(variables.get("auditor_name")):
+        fields_to_ask.append(("auditor_name", "Auditor Name"))
+    
+    if not fields_to_ask:
+        console.print("[green]✓ Report metadata complete.[/green]")
+        return variables
+    
+    console.print("\n[bold cyan]MIESC Report Wizard[/bold cyan]")
+    console.print("[dim]Press Enter to skip.[/dim]\n")
+    
+    changes = 0
+    for key, label in fields_to_ask:
+        value = Prompt.ask(f"[yellow]{label}[/yellow]", default="")
+        if value.strip():
+            variables[key] = value.strip()
+            changes += 1
+    
+    if changes:
+        console.print(f"[green]✓ {changes} field(s) updated.[/green]\n")
+    
+    return variables
+
+
 @cli.command()
 @click.argument("results_file", type=click.Path(exists=True))
 @click.option(
@@ -3170,7 +3213,14 @@ def _get_impact_description(severity: str) -> str:
     default=False,
     help="Use LLM to interpret findings and generate executive insights (requires Ollama)",
 )
-def report(results_file, template, output, output_format, client, auditor, title, llm_interpret):
+@click.option(
+    "--interactive",
+    "-i",
+    is_flag=True,
+    default=False,
+    help="Interactive wizard mode: prompt for missing/unknown values before generating report",
+)
+def report(results_file, template, output, output_format, client, auditor, title, llm_interpret, interactive):
     """Generate formatted security reports from audit results.
 
     Takes JSON audit results and applies a template to generate
@@ -3352,12 +3402,36 @@ def report(results_file, template, output, output_format, client, auditor, title
         "specialized": "Layer 9: Specialized Analysis",
     }
 
+    # Tool to layer mapping (when layer not specified by adapter)
+    TOOL_LAYER_MAP = {
+        "slither": "static_analysis",
+        "aderyn": "static_analysis",
+        "solhint": "static_analysis",
+        "semgrep": "static_analysis",
+        "solc": "static_analysis",
+        "mythril": "symbolic_execution",
+        "manticore": "symbolic_execution",
+        "halmos": "symbolic_execution",
+        "hevm": "symbolic_execution",
+        "echidna": "dynamic_testing",
+        "foundry": "dynamic_testing",
+        "hardhat": "dynamic_testing",
+        "certora": "formal_verification",
+        "scribble": "formal_verification",
+        "pyrometer": "formal_verification",
+        "4naly3er": "ai_analysis",
+        "gpt-4": "ai_analysis",
+        "ml-detector": "ml_detection",
+        "defi-scanner": "defi",
+        "token-analyzer": "specialized",
+    }
+
     for tool_result in tool_results:
         tool_name = tool_result.get("tool", "unknown")
         tool_status = tool_result.get("status", "unknown")
         tool_duration = tool_result.get("duration", "N/A")
         tool_findings = tool_result.get("findings", [])
-        tool_layer = tool_result.get("layer", "unknown")
+        tool_layer = tool_result.get("layer") or TOOL_LAYER_MAP.get(tool_name.lower(), "unknown")
         tool_error = tool_result.get("error", "")
 
         # Map status to human-readable
@@ -3419,6 +3493,10 @@ def report(results_file, template, output, output_format, client, auditor, title
     variables["tools_execution_summary"] = tools_execution_summary
     variables["layer_summary"] = layer_summary_list
     variables["total_tools_executed"] = len(tools_execution_summary)
+    
+    # Interactive wizard mode
+    if interactive and RICH_AVAILABLE:
+        variables = _interactive_wizard(variables, console)
     variables["tools_success_count"] = sum(1 for t in tools_execution_summary if t["status"] == "Success")
     variables["tools_failed_count"] = sum(1 for t in tools_execution_summary if t["status"] in ("Failed", "Error", "Timeout"))
 
