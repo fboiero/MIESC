@@ -5,7 +5,7 @@ Multi-layer security analysis framework for Ethereum smart contracts.
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/pypi/v/miesc)](https://pypi.org/project/miesc/)
-[![Version](https://img.shields.io/badge/version-4.3.7-green)](https://github.com/fboiero/MIESC/releases)
+[![Version](https://img.shields.io/badge/version-4.3.8-green)](https://github.com/fboiero/MIESC/releases)
 [![Security Audit](https://github.com/fboiero/MIESC/actions/workflows/miesc-security.yml/badge.svg)](https://github.com/fboiero/MIESC/actions/workflows/miesc-security.yml)
 [![Coverage](https://img.shields.io/badge/coverage-80.8%25-green)](./htmlcov/index.html)
 [![Tools](https://img.shields.io/badge/tools-31%2F31%20operational-brightgreen)](./docs/TOOLS.md)
@@ -152,36 +152,57 @@ ollama pull deepseek-coder:6.7b
 ```bash
 # Full Audit + Professional PDF Report (recommended workflow)
 
-# 1. Run full 9-layer security audit
+# 1. Run full 9-layer security audit (use :full image for all tools)
 docker run --rm \
   -v $(pwd):/contracts \
-  ghcr.io/fboiero/miesc:latest \
-  audit full /contracts/MyContract.sol -o /contracts/results.json
+  ghcr.io/fboiero/miesc:full \
+  audit batch /contracts -o /contracts/results.json -p thorough -r
 
-# 2. Generate professional HTML report (without LLM - works immediately)
+# 2. Generate professional PDF report with cover page metadata
 docker run --rm \
   -v $(pwd):/contracts \
-  ghcr.io/fboiero/miesc:latest \
-  report /contracts/results.json -t premium -f html -o /contracts/audit_report.html
+  ghcr.io/fboiero/miesc:full \
+  report /contracts/results.json -t premium -f pdf \
+    --client "Acme Corp" \
+    --auditor "Security Team" \
+    --contract-name "TokenV2.sol" \
+    --repository "github.com/acme/token" \
+    --network "Ethereum Mainnet" \
+    -o /contracts/audit_report.pdf
 
-# 2b. With AI interpretation (requires Ollama running with ≥8GB Docker RAM)
+# 3. With AI interpretation (requires Ollama running)
 # macOS/Windows:
 docker run --rm \
   -e OLLAMA_HOST=http://host.docker.internal:11434 \
   -v $(pwd):/contracts \
-  ghcr.io/fboiero/miesc:latest \
-  report /contracts/results.json -t premium --llm-interpret -f html -o /contracts/audit_report.html
+  ghcr.io/fboiero/miesc:full \
+  report /contracts/results.json -t premium -f pdf \
+    --client "Acme Corp" \
+    --auditor "Security Team" \
+    --contract-name "TokenV2.sol" \
+    --llm-interpret \
+    -o /contracts/audit_report.pdf
 
 # Linux (use host network):
 docker run --rm --network host \
   -e OLLAMA_HOST=http://localhost:11434 \
   -v $(pwd):/contracts \
-  ghcr.io/fboiero/miesc:latest \
-  report /contracts/results.json -t premium --llm-interpret -f html -o /contracts/audit_report.html
-
-# 3. Convert HTML to PDF (open in browser and print, or use Chrome)
-# google-chrome --headless --print-to-pdf=audit_report.pdf audit_report.html
+  ghcr.io/fboiero/miesc:full \
+  report /contracts/results.json -t premium --llm-interpret -f pdf -o /contracts/audit_report.pdf
 ```
+
+**Report CLI Options:**
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--client` | Client name for cover page | `--client "Acme Corp"` |
+| `--auditor` | Auditor name | `--auditor "Security Team"` |
+| `--contract-name` | Override contract name | `--contract-name "TokenV2"` |
+| `--repository` | Repository URL | `--repository "github.com/acme/token"` |
+| `--network` | Target network | `--network "Polygon"` |
+| `--classification` | Report classification | `--classification "PUBLIC"` |
+| `--llm-interpret` | Enable AI insights | Requires Ollama |
+| `-i, --interactive` | Interactive wizard mode | Prompts for missing fields |
 
 <details>
 <summary><strong>Example Output: Step 1 - Full Audit</strong></summary>
