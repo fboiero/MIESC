@@ -3404,25 +3404,53 @@ def report(results_file, template, output, output_format, client, auditor, title
 
     # Tool to layer mapping (when layer not specified by adapter)
     TOOL_LAYER_MAP = {
+        # Layer 1: Static Analysis
         "slither": "static_analysis",
         "aderyn": "static_analysis",
         "solhint": "static_analysis",
         "semgrep": "static_analysis",
         "solc": "static_analysis",
+        "wake": "static_analysis",
+        # Layer 2: Dynamic Testing
+        "echidna": "dynamic_testing",
+        "foundry": "dynamic_testing",
+        "hardhat": "dynamic_testing",
+        "medusa": "dynamic_testing",
+        "dogefuzz": "dynamic_testing",
+        "vertigo": "dynamic_testing",
+        # Layer 3: Symbolic Execution
         "mythril": "symbolic_execution",
         "manticore": "symbolic_execution",
         "halmos": "symbolic_execution",
         "hevm": "symbolic_execution",
-        "echidna": "dynamic_testing",
-        "foundry": "dynamic_testing",
-        "hardhat": "dynamic_testing",
+        "oyente": "symbolic_execution",
+        # Layer 4: Formal Verification
         "certora": "formal_verification",
         "scribble": "formal_verification",
         "pyrometer": "formal_verification",
+        "smtchecker": "formal_verification",
+        "propertygpt": "formal_verification",
+        # Layer 5: AI Analysis
+        "smartllm": "ai_analysis",
+        "gptscan": "ai_analysis",
+        "llmsmartaudit": "ai_analysis",
         "4naly3er": "ai_analysis",
         "gpt-4": "ai_analysis",
+        # Layer 6: ML Detection
+        "dagnn": "ml_detection",
+        "smartbugs_ml": "ml_detection",
+        "smartbugs_detector": "ml_detection",
+        "smartguard": "ml_detection",
         "ml-detector": "ml_detection",
+        # Layer 7: DeFi Security
+        "defi": "defi",
         "defi-scanner": "defi",
+        "mev_detector": "defi",
+        # Layer 8: Specialized Analysis
+        "threat_model": "specialized",
+        "gas_analyzer": "specialized",
+        "contract_clone_detector": "specialized",
+        "advanced_detector": "specialized",
         "token-analyzer": "specialized",
     }
 

@@ -1,5 +1,5 @@
 """
-MIESC False Positive Filter v2.0
+MIESC False Positive Filter v2.1
 ================================
 
 ML-based filter to reduce false positives based on finding characteristics.
@@ -16,9 +16,16 @@ Improvements in v2.0:
 - Statistical validation metrics
 - Bayesian confidence adjustment
 
+Improvements in v2.1:
+- Context-aware FP detection for incorrect-equality (enums, hashes, existence)
+- encode-packed-collision detection with counter/nonce awareness
+- timestamp FP detection for legitimate deadline usage
+- Library code detection (OpenZeppelin, solmate, solady, forge-std)
+- Enhanced msg-value-loop analysis
+
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
-Date: 2025-01-09
-Version: 2.0.0
+Date: 2025-01-24
+Version: 2.1.0
 License: AGPL-3.0
 """
 
@@ -241,6 +248,23 @@ class FalsePositiveFilter:
         # Cross-chain specific
         "bridge-message-format": 0.60,
         "layer2-compatibility": 0.55,
+        # v2.1: High FP rate patterns (context-dependent)
+        # These require context analysis - base rates are conservative
+        "incorrect-equality": 0.55,  # High FP for enums, hashes, existence checks
+        "dangerous-strict-equalities": 0.55,  # Same as incorrect-equality
+        "encode-packed-collision": 0.50,  # FP when counter/nonce present
+        "hash-collisions-due-to-abi-encodepacked": 0.50,
+        "msg-value-loop": 0.45,  # Often FP in controlled contexts
+        "arbitrary-send-eth": 0.40,  # Context-dependent
+        # Slither specific patterns with high FP rates
+        "solc-version": 0.80,  # Almost always informational
+        "different-pragma-directives-are-used": 0.75,
+        "missing-inheritance": 0.70,
+        "conformance-to-solidity-naming-conventions": 0.85,
+        "local-variable-never-initialized": 0.55,
+        "state-variables-could-be-declared-immutable": 0.80,
+        "state-variables-could-be-declared-constant": 0.80,
+        "public-functions-could-be-declared-external": 0.75,
     }
 
     # v2.0: Patrones que son FP en Solidity 0.8+ (overflow protection)
@@ -253,6 +277,118 @@ class FalsePositiveFilter:
         "arithmetic-overflow",
         "arithmetic-underflow",
     }
+
+    # v2.1: Context-aware FP patterns
+    # These require code context analysis to determine if FP
+    CONTEXT_AWARE_FP_PATTERNS = {
+        # incorrect-equality: FP when comparing enums, hashes, or existence checks
+        "incorrect-equality": {
+            "base_fp": 0.40,
+            "fp_contexts": [
+                # Enum comparisons - match pattern in message or code
+                (r"(Status|State|Role|Type|Phase|Mode|Kind)\s*\.\s*\w+", 0.85, "enum comparison"),
+                (r"==\s*(Status|State|Role|Type|Phase|Mode|Kind)\.", 0.85, "enum comparison"),
+                (r"(status|state|role|type|phase|mode)\s*==\s*\w+\.\w+", 0.85, "enum comparison"),
+                # Hash comparisons
+                (r"==\s*keccak256\s*\(", 0.90, "hash comparison"),
+                (r"keccak256\s*\([^)]+\)\s*==", 0.90, "hash comparison"),
+                (r"hash\s*==|==\s*hash", 0.85, "hash comparison"),
+                (r"Hash\s*==|==\s*\w*Hash", 0.85, "hash comparison"),
+                # Existence checks (== 0 or != 0)
+                (r"==\s*0[\s;)\]]", 0.75, "existence check (== 0)"),
+                (r"==\s*0\s*for\s*existence", 0.80, "existence check"),
+                (r"!=\s*0", 0.70, "non-zero existence check"),
+                # Address checks
+                (r"==\s*address\s*\(\s*0\s*\)", 0.80, "zero address check"),
+                (r"address\s*\(0\)|address\(0x0\)", 0.80, "zero address check"),
+                # Bytes32 checks
+                (r"bytes32\s*\([^)]*\)\s*==\s*bytes32\s*\(0\)", 0.85, "bytes32 zero check"),
+                (r"==\s*bytes32\s*\(0\)", 0.85, "bytes32 zero check"),
+                (r"resultHash\s*==\s*0|==\s*0.*hash", 0.80, "hash existence check"),
+                # Array/length checks
+                (r"\.length\s*==\s*0", 0.80, "array empty check"),
+            ],
+        },
+        # encode-packed-collision: FP when counter/nonce prevents collision
+        "encode-packed-collision": {
+            "base_fp": 0.45,
+            "fp_contexts": [
+                (r"abi\.encodePacked\s*\([^)]*\+\+", 0.90, "counter increment"),
+                (r"\+\+|count\+\+|counter\+\+|index\+\+", 0.90, "counter increment"),
+                (r"nonce", 0.85, "nonce present"),
+                (r"counter|Count", 0.85, "counter present"),
+                (r"requestCount|requestId|uniqueId", 0.85, "unique identifier"),
+                (r"abi\.encodePacked\s*\([^)]*id\s*[,)]", 0.80, "unique id present"),
+                (r"abi\.encodePacked\s*\([^)]*block\.(timestamp|number)", 0.75, "block data for uniqueness"),
+                (r"sequence|seq\d*|incrementing", 0.80, "sequential value"),
+            ],
+        },
+        # timestamp: FP for legitimate deadline usage
+        "timestamp": {
+            "base_fp": 0.55,
+            "fp_contexts": [
+                (r"deadline|expiry|expires|validUntil|timeout", 0.80, "deadline variable"),
+                (r">\s*\d{4,}", 0.75, "large time constant (days/weeks)"),
+                (r"block\.timestamp\s*\+\s*\d+\s*(days|hours|minutes)", 0.85, "explicit time unit"),
+                (r"lastUpdate|lastAction|cooldown|lockTime", 0.75, "tracking last action"),
+                (r"createdAt|startTime|endTime|releaseTime", 0.80, "lifecycle timestamps"),
+            ],
+        },
+        # block-timestamp: Same as timestamp
+        "block-timestamp": {
+            "base_fp": 0.55,
+            "fp_contexts": [
+                (r"deadline|expiry|expires|validUntil|timeout", 0.80, "deadline variable"),
+                (r">\s*\d{4,}", 0.75, "large time constant"),
+                (r"block\.timestamp\s*\+\s*\d+\s*(days|hours|minutes)", 0.85, "explicit time unit"),
+            ],
+        },
+        # weak-prng: Same timestamp considerations
+        "weak-prng": {
+            "base_fp": 0.50,
+            "fp_contexts": [
+                (r"commit.*reveal|reveal.*commit", 0.85, "commit-reveal pattern"),
+                (r"chainlink|vrf|randomness", 0.90, "using secure randomness"),
+            ],
+        },
+        # msg-value-loop: FP in controlled contexts or when value is properly divided
+        "msg-value-loop": {
+            "base_fp": 0.40,
+            "fp_contexts": [
+                (r"for\s*\([^)]*;\s*[^;]*<\s*1\s*;", 0.90, "single iteration"),
+                (r"msg\.value\s*/\s*\w+\.length", 0.85, "value divided by iterations"),
+                (r"require\s*\([^)]*msg\.value\s*==", 0.80, "exact value check"),
+                (r"msg\.value\s*/\s*\d+", 0.80, "value divided by constant"),
+                (r"totalAmount|amount\s*/\s*count", 0.75, "controlled amount distribution"),
+                (r"V1\.sol|v1\.sol|Version1|deprecated", 0.60, "deprecated/v1 contract"),
+            ],
+        },
+    }
+
+    # v2.1: OpenZeppelin and standard library patterns (always FP)
+    LIBRARY_CODE_PATTERNS = [
+        r"@openzeppelin",
+        r"openzeppelin-contracts",
+        r"OpenZeppelin",
+        r"/oz/",
+        r"node_modules/@",
+        r"lib/forge-std",
+        r"lib/solmate",
+        r"lib/solady",
+    ]
+
+    # v2.1: Common safe patterns that indicate FP
+    SAFE_COMPARISON_PATTERNS = [
+        # Enum comparisons
+        (r"==\s*(Status|State|Role|Type|Phase|Mode)\.\w+", "enum_comparison"),
+        # Hash comparisons (intentional strict equality)
+        (r"keccak256\s*\([^)]+\)\s*==\s*keccak256", "hash_comparison"),
+        (r"==\s*bytes32\s*\(", "bytes32_comparison"),
+        # Existence checks
+        (r"\w+\s*==\s*0\s*\)", "zero_check"),
+        (r"\w+\s*!=\s*0\s*\)", "non_zero_check"),
+        (r"address\s*\([^)]*\)\s*==\s*address\s*\(\s*0", "zero_address_check"),
+    ]
 
     # Patrones que REQUIEREN validación cruzada (2+ herramientas)
     REQUIRE_CROSS_VALIDATION = {
@@ -377,6 +513,62 @@ class FalsePositiveFilter:
         }
         return safeguards
 
+    def _is_library_code(self, file_path: str) -> bool:
+        """
+        Detecta si el archivo es código de librería (OpenZeppelin, etc).
+
+        Library code findings are almost always FPs since the code is
+        battle-tested and audited.
+        """
+        for pattern in self.LIBRARY_CODE_PATTERNS:
+            if re.search(pattern, file_path, re.IGNORECASE):
+                return True
+        return False
+
+    def _analyze_context_for_fp(
+        self,
+        vuln_type: str,
+        code_context: str,
+        message: str,
+    ) -> Tuple[float, List[str]]:
+        """
+        Analiza el contexto del código para patrones FP específicos.
+
+        Args:
+            vuln_type: Tipo de vulnerabilidad
+            code_context: Código circundante
+            message: Mensaje del hallazgo
+
+        Returns:
+            Tuple de (ajuste_fp, razones)
+        """
+        fp_adjustment = 0.0
+        reasons = []
+
+        # Combinar contexto y mensaje para análisis
+        full_context = f"{code_context}\n{message}".lower()
+
+        # Buscar en patrones context-aware
+        vuln_lower = vuln_type.lower()
+        for pattern_key, pattern_config in self.CONTEXT_AWARE_FP_PATTERNS.items():
+            if pattern_key in vuln_lower:
+                # Verificar cada patrón de contexto FP
+                for regex, fp_prob, reason in pattern_config["fp_contexts"]:
+                    if re.search(regex, full_context, re.IGNORECASE):
+                        fp_adjustment = max(fp_adjustment, fp_prob)
+                        reasons.append(f"Context match '{reason}': FP prob {fp_prob:.0%}")
+                        break  # Solo tomar el match más fuerte
+
+        # Verificar comparaciones seguras para incorrect-equality
+        if "incorrect-equality" in vuln_lower or "equality" in vuln_lower:
+            for regex, pattern_name in self.SAFE_COMPARISON_PATTERNS:
+                if re.search(regex, full_context, re.IGNORECASE):
+                    fp_adjustment = max(fp_adjustment, 0.85)
+                    reasons.append(f"Safe comparison pattern ({pattern_name}): FP prob 85%")
+                    break
+
+        return fp_adjustment, reasons
+
     def _load_feedback(self) -> None:
         """Carga feedback histórico."""
         if self.feedback_path.exists():
@@ -494,6 +686,12 @@ class FalsePositiveFilter:
         """
         Predice la probabilidad de que un hallazgo sea falso positivo.
 
+        v2.1: Enhanced with context-aware analysis for:
+        - incorrect-equality (enums, hashes, existence checks)
+        - encode-packed-collision (with counters/nonces)
+        - timestamp (legitimate deadline usage)
+        - Library code (OpenZeppelin, etc.)
+
         Returns:
             Tuple de (probabilidad_fp, explicación)
         """
@@ -501,14 +699,31 @@ class FalsePositiveFilter:
         fp_score = 0.0
         reasons = []
 
-        # 1. Reglas heurísticas
+        # Get file path and message for context analysis
+        file_path = finding.get("location", {}).get("file", "")
+        message = finding.get("message", "")
         vuln_type = features.vuln_type.lower()
+
+        # 0. Library code detection (highest priority - almost always FP)
+        if self._is_library_code(file_path):
+            fp_score += 0.80
+            reasons.append("In library code (OpenZeppelin/etc): +0.80")
+
+        # 1. Reglas heurísticas base
         if vuln_type in self.FALSE_POSITIVE_PATTERNS:
             base_fp = self.FALSE_POSITIVE_PATTERNS[vuln_type]
             fp_score += base_fp * 0.3
             reasons.append(f"Known FP pattern '{vuln_type}': +{base_fp*0.3:.2f}")
 
-        # 2. Contexto de código seguro
+        # 2. Context-aware analysis (v2.1)
+        context_fp, context_reasons = self._analyze_context_for_fp(
+            features.vuln_type, code_context, message
+        )
+        if context_fp > 0:
+            fp_score += context_fp * 0.5  # Weight context analysis at 50%
+            reasons.extend(context_reasons)
+
+        # 3. Contexto de código seguro
         if features.near_require:
             fp_score += 0.15
             reasons.append("Near require/assert: +0.15")
@@ -517,40 +732,40 @@ class FalsePositiveFilter:
             fp_score += 0.1
             reasons.append("Has security modifier: +0.10")
 
-        # 3. Archivo de test
+        # 4. Archivo de test
         if features.in_test_file:
             fp_score += 0.25
             reasons.append("In test file: +0.25")
 
-        # 4. Interface
+        # 5. Interface
         if features.in_interface:
             fp_score += 0.2
             reasons.append("In interface: +0.20")
 
-        # 5. Confirmaciones múltiples (reduce FP)
+        # 6. Confirmaciones múltiples (reduce FP)
         if confirmations >= 2:
             fp_score -= 0.2 * min(confirmations - 1, 3)
             reasons.append(
                 f"Cross-validated ({confirmations} tools): -{0.2 * min(confirmations - 1, 3):.2f}"
             )
 
-        # 6. Severidad baja
+        # 7. Severidad baja
         if features.severity in ["low", "informational", "info"]:
             fp_score += 0.1
             reasons.append("Low severity: +0.10")
 
-        # 7. Post Solidity 0.8 overflow checks
+        # 8. Post Solidity 0.8 overflow checks
         if "overflow" in vuln_type or "underflow" in vuln_type:
             fp_score += 0.3
             reasons.append("Overflow (likely Solidity 0.8+): +0.30")
 
-        # 8. Validación cruzada OBLIGATORIA para patrones críticos
+        # 9. Validación cruzada OBLIGATORIA para patrones críticos
         requires_cv = any(p in vuln_type for p in self.REQUIRE_CROSS_VALIDATION)
         if requires_cv and confirmations < 2:
             fp_score += 0.35
             reasons.append(f"Critical pattern '{vuln_type}' without cross-validation: +0.35")
 
-        # 9. Aprendizaje de feedback
+        # 10. Aprendizaje de feedback
         if features.vuln_type in self._learned_weights:
             learned_adj = self._learned_weights[features.vuln_type]
             fp_score += learned_adj
@@ -566,9 +781,11 @@ class FalsePositiveFilter:
             "reasons": reasons,
             "features": {
                 "in_test": features.in_test_file,
+                "in_library": self._is_library_code(file_path),
                 "near_require": features.near_require,
                 "near_modifier": features.near_modifier,
                 "confirmations": confirmations,
+                "context_analysis": context_reasons if context_reasons else None,
             },
         }
 
