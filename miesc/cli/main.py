@@ -3266,26 +3266,49 @@ def report(results_file, template, output, output_format, client, auditor, title
     # Extract data from results
     summary = results.get("summary", {})
 
-    # Extract findings from results (can be at root level or within tool results)
+    # For batch results, use aggregated_summary if available
+    if not summary and "aggregated_summary" in results:
+        summary = results.get("aggregated_summary", {})
+
+    # Extract findings from results (can be at root level, within tool results, or in batch format)
     findings = results.get("findings", [])
     if not findings:
-        # Extract from tool results
+        # Extract from tool results (single contract format)
         for tool_result in results.get("results", []):
             tool_findings = tool_result.get("findings", [])
             for f in tool_findings:
                 f["tool"] = tool_result.get("tool", "unknown")
             findings.extend(tool_findings)
 
+    if not findings:
+        # Extract from batch format: contracts[].results[].findings
+        for contract_data in results.get("contracts", []):
+            contract_file = contract_data.get("contract", "unknown")
+            for tool_result in contract_data.get("results", []):
+                tool_findings = tool_result.get("findings", [])
+                for f in tool_findings:
+                    f["tool"] = tool_result.get("tool", "unknown")
+                    f["source_contract"] = contract_file
+                findings.extend(tool_findings)
+
     # Normalize summary keys (can be uppercase or lowercase)
     if summary:
         summary = {k.lower(): v for k, v in summary.items()}
 
-    # Calculate severity status labels
-    critical_count = summary.get("critical", 0)
-    high_count = summary.get("high", 0)
-    medium_count = summary.get("medium", 0)
-    low_count = summary.get("low", 0)
-    info_count = summary.get("info", 0)
+    # Calculate severity counts from summary or from findings
+    if summary:
+        critical_count = summary.get("critical", 0)
+        high_count = summary.get("high", 0)
+        medium_count = summary.get("medium", 0)
+        low_count = summary.get("low", 0)
+        info_count = summary.get("info", summary.get("informational", 0))
+    else:
+        # Calculate from findings if summary is not available
+        critical_count = sum(1 for f in findings if f.get("severity", "").lower() == "critical")
+        high_count = sum(1 for f in findings if f.get("severity", "").lower() == "high")
+        medium_count = sum(1 for f in findings if f.get("severity", "").lower() == "medium")
+        low_count = sum(1 for f in findings if f.get("severity", "").lower() == "low")
+        info_count = sum(1 for f in findings if f.get("severity", "").lower() in ("info", "informational"))
 
     def get_status(count, severity):
         if count == 0:
