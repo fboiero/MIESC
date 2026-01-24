@@ -3207,6 +3207,11 @@ def _interactive_wizard(variables: dict, console) -> dict:
 @click.option("--client", type=str, help="Client name for the report")
 @click.option("--auditor", type=str, help="Auditor name for the report")
 @click.option("--title", type=str, help="Custom report title")
+@click.option("--contract-name", type=str, help="Contract name (overrides auto-detected)")
+@click.option("--repository", type=str, help="Repository URL or path")
+@click.option("--commit", type=str, help="Commit hash for the audited code")
+@click.option("--network", type=str, default="Ethereum Mainnet", help="Target network (e.g., Ethereum Mainnet, Polygon)")
+@click.option("--classification", type=str, default="CONFIDENTIAL", help="Report classification (CONFIDENTIAL, PUBLIC, etc.)")
 @click.option(
     "--llm-interpret",
     is_flag=True,
@@ -3220,7 +3225,7 @@ def _interactive_wizard(variables: dict, console) -> dict:
     default=False,
     help="Interactive wizard mode: prompt for missing/unknown values before generating report",
 )
-def report(results_file, template, output, output_format, client, auditor, title, llm_interpret, interactive):
+def report(results_file, template, output, output_format, client, auditor, title, contract_name, repository, commit, network, classification, llm_interpret, interactive):
     """Generate formatted security reports from audit results.
 
     Takes JSON audit results and applies a template to generate
@@ -3232,7 +3237,11 @@ def report(results_file, template, output, output_format, client, auditor, title
 
       miesc report results.json -t executive --client "Acme" -o summary.md
 
-      miesc report results.json -t technical --auditor "Security Team"
+      miesc report results.json -t premium --client "Acme Corp" --auditor "Security Team" \\
+          --contract-name "TokenV2.sol" --repository "github.com/acme/token" \\
+          --network "Polygon" -o audit.pdf -f pdf
+
+      miesc report results.json -t premium -i  # Interactive wizard mode
 
       miesc report results.json -t github-pr  # Output to stdout
     """
@@ -3333,8 +3342,9 @@ def report(results_file, template, output, output_format, client, auditor, title
     }
 
     # Prepare template variables
+    # CLI parameters override auto-detected values from results
     variables = {
-        "contract_name": results.get("contract", "Unknown"),
+        "contract_name": contract_name or results.get("contract", results.get("path", "Unknown")),
         "audit_date": results.get("timestamp", datetime.now().isoformat())[:10],
         "generation_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "client_name": client or "Client",
@@ -3346,13 +3356,13 @@ def report(results_file, template, output, output_format, client, auditor, title
         "low_count": low_count,
         "info_count": info_count,
         "total_findings": len(findings),
-        "files_count": results.get("files_count", 1),
+        "files_count": results.get("files_count", results.get("contracts_analyzed", 1)),
         "tools_count": len(tool_list),
         "overall_risk": overall_risk,
         "miesc_version": VERSION,
         # Additional fields for professional template
-        "repository": results.get("repository", "Local Analysis"),
-        "commit_hash": results.get("commit", "N/A"),
+        "repository": repository or results.get("repository", "Local Analysis"),
+        "commit_hash": commit or results.get("commit", "N/A"),
         "lines_of_code": results.get("lines_of_code", "N/A"),
         "audit_duration": results.get("duration", "N/A"),
         "critical_status": get_status(critical_count, "critical"),
@@ -3400,8 +3410,8 @@ def report(results_file, template, output, output_format, client, auditor, title
         "value_at_risk": None,
         "out_of_scope": [],
         "engagement_type": "Security Audit",
-        "target_network": "Ethereum Mainnet",
-        "classification": "CONFIDENTIAL",
+        "target_network": network,
+        "classification": classification,
         "report_version": "1.0",
     }
 
