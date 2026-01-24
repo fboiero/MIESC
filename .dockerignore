@@ -35,8 +35,12 @@ npm-debug.log
 # Test data
 test_data
 
-# Documentation build
+# Documentation build (keep templates for reports)
 docs/_build
+docs/*.md
+docs/api
+docs/guides
+docs/images
 site
 
 # OS
@@ -46,3 +50,18 @@ Thumbs.db
 # Large files
 *.log
 *.tmp
+
+# Large development folders
+vscode-extension
+benchmarks
+venv*
+demo
+thesis_generator
+validation_results
+tests
+contracts
+data
+*.pdf
+*.html
+*.json
+!config/*.yaml
