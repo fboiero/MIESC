@@ -31,6 +31,14 @@ from .llm_orchestrator import (
     analyze_solidity
 )
 
+from .finding_validator import (
+    LLMFindingValidator,
+    LLMValidation,
+    ValidationResult,
+    ValidatorConfig,
+    validate_findings_sync,
+)
+
 __all__ = [
     # Legacy OpenLLaMA helpers
     "OpenLLaMAHelper",
@@ -49,4 +57,10 @@ __all__ = [
     "AnthropicBackend",
     "LLMOrchestrator",
     "analyze_solidity",
+    # LLM Finding Validator
+    "LLMFindingValidator",
+    "LLMValidation",
+    "ValidationResult",
+    "ValidatorConfig",
+    "validate_findings_sync",
 ]

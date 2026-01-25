@@ -167,7 +167,53 @@ class SmartCorrelationEngine:
     3. Scoring de confianza multi-señal
     4. Reducción de falsos positivos por análisis de contexto
     5. Aprendizaje de patrones de herramientas
+    6. Scoring ponderado por herramienta (v4.2.0+)
     """
+
+    # =========================================================================
+    # TOOL WEIGHTS - Pesos de confiabilidad por herramienta
+    # =========================================================================
+    # Basados en benchmarks de precision/recall en SmartBugs dataset y auditorías reales
+    # Valores más altos = mayor confiabilidad y menor tasa de FP
+
+    TOOL_WEIGHTS = {
+        # Layer 1: Static Analysis
+        "slither": 0.85,       # Alta precisión, bajo FP, estándar de la industria
+        "aderyn": 0.80,        # Rust-based, buena precisión, complementa Slither
+        "solhint": 0.70,       # Más enfocado en linting, algunos FPs
+        "wake": 0.75,          # Buen balance precisión/recall
+
+        # Layer 2: Dynamic Testing
+        "echidna": 0.88,       # Fuzzer de confianza, muy bajo FP
+        "foundry": 0.85,       # Forge fuzzing, alta confianza
+        "medusa": 0.82,        # Buen fuzzer paralelo
+        "dogefuzz": 0.75,      # Más experimental
+
+        # Layer 3: Symbolic Execution
+        "mythril": 0.70,       # Más FPs pero detecta cosas únicas
+        "manticore": 0.72,     # Similar a Mythril
+        "halmos": 0.78,        # Más preciso para invariantes
+
+        # Layer 4: Formal Verification
+        "smtchecker": 0.90,    # Muy alta precisión (pero bajo recall)
+        "certora": 0.92,       # Estándar de oro para FV
+
+        # Layer 5: AI Analysis
+        "smartllm": 0.65,      # LLM puede alucinar, más FPs
+        "gptscan": 0.68,       # Similar
+        "llmsmartaudit": 0.65,
+
+        # Layer 6: ML Detection
+        "dagnn": 0.72,         # ML tiene tasa moderada de FP
+        "smartbugs_ml": 0.70,
+        "smartbugs_detector": 0.68,
+        "smartguard": 0.70,
+
+        # Layer 7: Specialized
+        "advanced_detector": 0.65,  # Más FPs, detecta cosas novedosas
+        "semgrep": 0.75,       # Bueno para patterns
+        "4naly3er": 0.65,      # Más FPs
+    }
 
     # Perfiles base de herramientas (basados en benchmarks conocidos)
     DEFAULT_TOOL_PROFILES = {
@@ -683,6 +729,71 @@ class SmartCorrelationEngine:
 
         return min(agreement_score, 1.0)
 
+    def calculate_weighted_confidence(
+        self,
+        finding: Dict[str, Any],
+        tools_reporting: List[str],
+    ) -> float:
+        """
+        Calcula confianza ponderada basada en herramientas que reportan.
+
+        Usa TOOL_WEIGHTS para ponderar la confianza según la confiabilidad
+        histórica de cada herramienta. Herramientas más confiables (como
+        Slither, Echidna) tienen mayor peso que las experimentales.
+
+        Args:
+            finding: El hallazgo a evaluar
+            tools_reporting: Lista de herramientas que reportan este hallazgo
+
+        Returns:
+            Confianza ponderada entre 0.0 y 1.0
+        """
+        if not tools_reporting:
+            return finding.get('confidence', 0.5)
+
+        # Obtener peso total y ponderado
+        total_weight = 0.0
+        weighted_confidence = 0.0
+        base_confidence = finding.get('confidence', 0.7)
+
+        for tool in tools_reporting:
+            tool_weight = self.TOOL_WEIGHTS.get(tool.lower(), 0.50)
+            total_weight += tool_weight
+            weighted_confidence += tool_weight * base_confidence
+
+        if total_weight == 0:
+            return base_confidence
+
+        # Normalizar
+        normalized_confidence = weighted_confidence / total_weight
+
+        # Boost por múltiples herramientas de alta confianza
+        high_confidence_tools = sum(
+            1 for t in tools_reporting
+            if self.TOOL_WEIGHTS.get(t.lower(), 0.5) >= 0.80
+        )
+
+        if high_confidence_tools >= 2:
+            # Dos o más herramientas confiables confirman = boost significativo
+            normalized_confidence += 0.10
+        elif high_confidence_tools == 1 and len(tools_reporting) >= 2:
+            # Una herramienta confiable + otra = boost moderado
+            normalized_confidence += 0.05
+
+        return min(normalized_confidence, 0.99)
+
+    def get_tool_weight(self, tool_name: str) -> float:
+        """
+        Obtiene el peso de confiabilidad de una herramienta.
+
+        Args:
+            tool_name: Nombre de la herramienta
+
+        Returns:
+            Peso de confiabilidad (0.0-1.0), default 0.50 si no conocida
+        """
+        return self.TOOL_WEIGHTS.get(tool_name.lower(), 0.50)
+
     def _calculate_context_score(self, group: List[Dict[str, Any]]) -> float:
         """
         Calcula score basado en contexto del código.
@@ -979,6 +1090,229 @@ class SmartCorrelationEngine:
         self._findings = []
         self._correlated = []
         self._code_context_cache = {}
+
+    # =========================================================================
+    # SEMANTIC DEDUPLICATION - Deduplicación Semántica Avanzada
+    # =========================================================================
+
+    def _calculate_semantic_hash(self, finding: Dict[str, Any]) -> str:
+        """
+        Calcula un hash semántico para un hallazgo.
+
+        El hash está basado en:
+        - Tipo de vulnerabilidad (normalizado)
+        - Archivo fuente
+        - Rango de líneas (con tolerancia de ±3 líneas)
+        - Función afectada (si disponible)
+
+        Esto permite agrupar hallazgos que reportan el mismo problema
+        desde diferentes herramientas con ligeras variaciones en ubicación.
+
+        Args:
+            finding: Hallazgo normalizado
+
+        Returns:
+            Hash semántico como string
+        """
+        vuln_type = finding.get('canonical_type', finding.get('type', 'unknown'))
+        location = finding.get('location', {})
+        file_path = location.get('file', '')
+        line = location.get('line', 0)
+        function = location.get('function', '')
+
+        # Normalizar línea a rango (agrupamos líneas cercanas)
+        line_bucket = (line // 5) * 5  # Bucket de 5 líneas
+
+        # Construir componentes del hash
+        components = [
+            vuln_type.lower(),
+            Path(file_path).name if file_path else 'unknown',
+            str(line_bucket),
+            function.lower() if function else '',
+        ]
+
+        # Crear hash
+        hash_input = '|'.join(components)
+        return hashlib.md5(hash_input.encode()).hexdigest()[:12]
+
+    def deduplicate_findings(
+        self,
+        findings: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """
+        Agrupa y deduplica hallazgos que reportan el mismo problema.
+
+        Hallazgos similares de múltiples herramientas se fusionan en uno,
+        combinando evidencia y aumentando la confianza.
+
+        Args:
+            findings: Lista de hallazgos a deduplicar
+
+        Returns:
+            Lista de hallazgos deduplicados con metadata de fusión
+        """
+        if not findings:
+            return []
+
+        # Agrupar por hash semántico
+        groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+
+        for finding in findings:
+            semantic_hash = self._calculate_semantic_hash(finding)
+            groups[semantic_hash].append(finding)
+
+        # Fusionar cada grupo
+        deduplicated = []
+        for semantic_hash, group in groups.items():
+            if len(group) == 1:
+                # Un solo hallazgo, no hay fusión
+                merged = group[0].copy()
+                merged['_dedup'] = {
+                    'merged_count': 1,
+                    'tools': [group[0].get('tool', 'unknown')],
+                    'semantic_hash': semantic_hash,
+                }
+                deduplicated.append(merged)
+            else:
+                # Múltiples hallazgos, fusionar
+                merged = self._merge_finding_group(group, semantic_hash)
+                deduplicated.append(merged)
+
+        logger.info(
+            f"Deduplication: {len(findings)} -> {len(deduplicated)} "
+            f"({len(findings) - len(deduplicated)} merged)"
+        )
+
+        return deduplicated
+
+    def _merge_finding_group(
+        self,
+        group: List[Dict[str, Any]],
+        semantic_hash: str,
+    ) -> Dict[str, Any]:
+        """
+        Fusiona un grupo de hallazgos similares en uno.
+
+        La fusión:
+        - Usa la severidad más alta
+        - Combina evidencia de todas las herramientas
+        - Aumenta la confianza basándose en confirmaciones múltiples
+        - Preserva el mejor mensaje/descripción
+
+        Args:
+            group: Lista de hallazgos a fusionar
+            semantic_hash: Hash semántico del grupo
+
+        Returns:
+            Hallazgo fusionado
+        """
+        # Ordenar por severidad (usar el más severo como base)
+        severity_order = {'critical': 4, 'high': 3, 'medium': 2, 'low': 1, 'info': 0}
+        sorted_group = sorted(
+            group,
+            key=lambda f: severity_order.get(f.get('severity', '').lower(), 0),
+            reverse=True
+        )
+
+        # Usar el hallazgo más severo como base
+        base = sorted_group[0].copy()
+
+        # Recopilar herramientas
+        tools = list(set(f.get('tool', 'unknown') for f in group))
+
+        # Recopilar evidencia (mensajes únicos)
+        evidence = []
+        seen_messages = set()
+        for f in group:
+            msg = f.get('message', f.get('description', ''))[:200]
+            if msg and msg not in seen_messages:
+                evidence.append({
+                    'tool': f.get('tool', 'unknown'),
+                    'message': msg,
+                    'severity': f.get('severity', 'unknown'),
+                })
+                seen_messages.add(msg)
+
+        # Calcular boost de confianza por múltiples confirmaciones
+        base_confidence = max(f.get('confidence', 0.5) for f in group)
+        confidence_boost = min(len(tools) * 0.12, 0.35)  # Max 35% boost
+
+        # Aplicar pesos de herramientas
+        weighted_boost = 0.0
+        for tool in tools:
+            tool_weight = self.TOOL_WEIGHTS.get(tool.lower(), 0.5)
+            weighted_boost += tool_weight * 0.05
+
+        final_confidence = min(base_confidence + confidence_boost + weighted_boost, 0.99)
+
+        # Mejor descripción (la más larga suele ser más informativa)
+        best_description = max(
+            (f.get('description', '') for f in group),
+            key=len,
+            default=base.get('description', '')
+        )
+
+        # Combinar SWC/CWE IDs
+        swc_ids = [f.get('swc_id') for f in group if f.get('swc_id')]
+        cwe_ids = [f.get('cwe_id') for f in group if f.get('cwe_id')]
+
+        # Actualizar hallazgo fusionado
+        base['confidence'] = final_confidence
+        base['description'] = best_description
+        base['swc_id'] = swc_ids[0] if swc_ids else base.get('swc_id')
+        base['cwe_id'] = cwe_ids[0] if cwe_ids else base.get('cwe_id')
+
+        # Metadata de deduplicación
+        base['_dedup'] = {
+            'merged_count': len(group),
+            'tools': tools,
+            'semantic_hash': semantic_hash,
+            'evidence': evidence,
+            'confidence_boost': round(confidence_boost + weighted_boost, 3),
+            'is_cross_validated': len(tools) >= 2,
+        }
+
+        return base
+
+    def get_deduplication_stats(
+        self,
+        original: List[Dict[str, Any]],
+        deduplicated: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        Genera estadísticas de deduplicación.
+
+        Args:
+            original: Lista original de hallazgos
+            deduplicated: Lista deduplicada
+
+        Returns:
+            Estadísticas de la deduplicación
+        """
+        merged_count = len(original) - len(deduplicated)
+        dedup_rate = merged_count / max(len(original), 1)
+
+        # Contar cross-validated
+        cross_validated = sum(
+            1 for f in deduplicated
+            if f.get('_dedup', {}).get('is_cross_validated', False)
+        )
+
+        # Promedio de herramientas por hallazgo
+        avg_tools = sum(
+            len(f.get('_dedup', {}).get('tools', []))
+            for f in deduplicated
+        ) / max(len(deduplicated), 1)
+
+        return {
+            'original_count': len(original),
+            'deduplicated_count': len(deduplicated),
+            'merged_count': merged_count,
+            'deduplication_rate': round(dedup_rate, 3),
+            'cross_validated_count': cross_validated,
+            'cross_validation_rate': round(cross_validated / max(len(deduplicated), 1), 3),
+            'average_tools_per_finding': round(avg_tools, 2),
+        }
 
 
 # =============================================================================

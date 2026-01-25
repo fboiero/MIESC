@@ -556,6 +556,84 @@ results:
     - sarif
 
 # =============================================================================
+# Configuración Optimizada de Análisis (v4.2.0+)
+# =============================================================================
+# Configuración mejorada para reducir FPs y aumentar detección de vulnerabilidades reales
+analysis:
+  # Herramientas a ejecutar por defecto (en orden de prioridad)
+  tools:
+    quick:
+      - slither      # Siempre, alta precisión
+      - aderyn       # Si disponible, complementa Slither
+      - solhint      # Linting básico
+    full:
+      - slither
+      - aderyn
+      - mythril      # Para contratos < 500 líneas
+      - echidna      # Si hay tests
+      - semgrep
+
+  # Umbrales de confianza para reportes
+  confidence:
+    min_report: 0.6          # Mínimo para incluir en reporte (default)
+    min_report_strict: 0.75  # Modo estricto (menos FPs pero puede perder algunos)
+    min_critical: 0.8        # Mínimo para marcar como CRITICAL
+    min_high: 0.7            # Mínimo para marcar como HIGH
+
+  # Filtrado avanzado
+  filtering:
+    exclude_info: false           # Incluir INFO por defecto
+    exclude_gas: true             # Excluir optimizaciones de gas
+    openzeppelin_safe: true       # Confiar en código de OpenZeppelin
+    solmate_safe: true            # Confiar en Solmate
+    solady_safe: true             # Confiar en Solady
+    exclude_test_files: true      # Excluir archivos de test
+    exclude_mocks: true           # Excluir contratos mock
+
+  # Pesos de herramientas para scoring (higher = más confiable)
+  tool_weights:
+    slither: 0.85
+    aderyn: 0.80
+    echidna: 0.88
+    foundry: 0.85
+    mythril: 0.70
+    semgrep: 0.75
+    solhint: 0.70
+    smtchecker: 0.90
+
+  # Configuración de deduplicación semántica
+  deduplication:
+    enabled: true
+    line_bucket_size: 5          # Agrupar líneas en buckets de 5
+    confidence_boost_per_tool: 0.12  # Boost por cada herramienta adicional
+    max_confidence_boost: 0.35   # Boost máximo por múltiples herramientas
+
+# =============================================================================
+# Validación LLM de Hallazgos (v4.2.0+)
+# =============================================================================
+# Usa LLM local para validar hallazgos antes de reportarlos
+llm_validation:
+  enabled: true                  # Activar validación LLM
+  provider: ollama
+  model: deepseek-coder:6.7b     # Modelo para validación
+  ollama_host: http://localhost:11434
+
+  # Configuración de validación
+  validate_severity: medium      # Validar >= MEDIUM
+  batch_size: 5                  # Procesar en lotes de 5
+  timeout_seconds: 60            # Timeout por validación
+
+  # Parámetros de generación
+  temperature: 0.1               # Baja temperatura para consistencia
+  max_tokens: 1024
+
+  # Acciones basadas en resultado
+  actions:
+    filter_confirmed_fp: true    # Filtrar FPs confirmados por LLM
+    adjust_confidence: true      # Ajustar confianza basado en validación
+    log_uncertain: true          # Loguear hallazgos inciertos
+
+# =============================================================================
 # Compliance Mapping
 # =============================================================================
 compliance:

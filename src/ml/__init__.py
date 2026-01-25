@@ -13,6 +13,22 @@ from .vulnerability_clusterer import VulnerabilityClusterer, VulnerabilityCluste
 from .code_embeddings import CodeEmbedder, CodeEmbedding, VulnerabilityPatternDB
 from .feedback_loop import FeedbackLoop, FeedbackType, UserFeedback
 
+# v4.2.0+ Enhanced modules
+from .fp_filter import (
+    FalsePositiveFilter as EnhancedFPFilter,
+    FilterResult,
+    FPMatch,
+    FPCategory,
+    filter_false_positives,
+)
+from .correlation_engine import (
+    SmartCorrelationEngine,
+    CorrelatedFinding,
+    ExploitChainAnalyzer,
+    ExploitChain,
+    correlate_findings,
+)
+
 
 @dataclass
 class MLEnhancedResult:
@@ -227,4 +243,16 @@ __all__ = [
     'MLPipeline',
     'MLEnhancedResult',
     'get_ml_pipeline',
+    # v4.2.0+ Enhanced FP Filter
+    'EnhancedFPFilter',
+    'FilterResult',
+    'FPMatch',
+    'FPCategory',
+    'filter_false_positives',
+    # v4.2.0+ Smart Correlation Engine
+    'SmartCorrelationEngine',
+    'CorrelatedFinding',
+    'ExploitChainAnalyzer',
+    'ExploitChain',
+    'correlate_findings',
 ]
