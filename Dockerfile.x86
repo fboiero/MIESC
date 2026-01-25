@@ -11,7 +11,7 @@
 
 # Force x86_64 architecture for all stages
 # Using Python 3.10 for Manticore compatibility (pysha3 incompatible with 3.11+)
-FROM --platform=linux/amd64 python:3.10-slim-bookworm AS builder
+FROM --platform=linux/amd64 python:3.14-slim-bookworm AS builder
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
 LABEL version="4.2.2"
@@ -44,7 +44,7 @@ RUN cargo install aderyn
 
 # Stage 2: Runtime - x86_64 production image
 # Using Python 3.10 for Manticore compatibility (pysha3 incompatible with 3.11+)
-FROM --platform=linux/amd64 python:3.10-slim-bookworm
+FROM --platform=linux/amd64 python:3.14-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
 LABEL version="4.2.2"

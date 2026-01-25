@@ -11,7 +11,7 @@
 # - Complete test suite
 
 # Stage 1: Builder - Install dependencies and build tools
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
 LABEL version="4.3.6"
@@ -45,7 +45,7 @@ RUN cargo install aderyn
 RUN cargo install medusa || echo "Medusa install failed - will be optional"
 
 # Stage 2: Runtime - Create lean production image
-FROM python:3.12-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
 LABEL version="4.3.7"
