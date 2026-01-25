@@ -4134,7 +4134,48 @@ def report(results_file, template, output, output_format, client, auditor, title
     variables["tools_execution_summary"] = tools_execution_summary
     variables["layer_summary"] = layer_summary_list
     variables["total_tools_executed"] = len(tools_execution_summary)
-    
+
+    # Populate tool_outputs for Appendix A (detailed tool execution)
+    tool_outputs = []
+    for tool_result in tool_results:
+        tool_name = tool_result.get("tool", "unknown")
+        tool_status = tool_result.get("status", "unknown")
+        tool_duration = tool_result.get("execution_time", "N/A")
+        tool_findings = tool_result.get("findings", [])
+        tool_error = tool_result.get("error", "")
+        tool_metadata = tool_result.get("metadata", {})
+
+        # Build output summary
+        output_lines = []
+        if tool_status == "success":
+            output_lines.append(f"Analysis completed successfully.")
+            output_lines.append(f"Findings detected: {len(tool_findings)}")
+            if tool_findings:
+                output_lines.append("")
+                output_lines.append("Findings summary:")
+                for i, f in enumerate(tool_findings[:10], 1):
+                    sev = f.get("severity", "unknown").upper()
+                    ftype = f.get("type", f.get("title", "unknown"))
+                    loc = f.get("location", {})
+                    line = loc.get("line", "?")
+                    output_lines.append(f"  {i}. [{sev}] {ftype} (line {line})")
+                if len(tool_findings) > 10:
+                    output_lines.append(f"  ... and {len(tool_findings) - 10} more")
+        elif tool_error:
+            output_lines.append(f"Error: {tool_error}")
+        else:
+            output_lines.append(f"Status: {tool_status}")
+
+        tool_outputs.append({
+            "name": tool_name,
+            "duration": f"{tool_duration}s" if isinstance(tool_duration, (int, float)) else str(tool_duration),
+            "exit_code": 0 if tool_status == "success" else 1,
+            "findings_count": len(tool_findings),
+            "output": "\n".join(output_lines),
+        })
+
+    variables["tool_outputs"] = tool_outputs
+
     # Interactive wizard mode
     if interactive and RICH_AVAILABLE:
         variables = _interactive_wizard(variables, console)
