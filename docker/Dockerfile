@@ -1,4 +1,4 @@
-# MIESC v4.3.7 - Complete Docker Deployment
+# MIESC v4.4.0 - Complete Docker Deployment
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile creates a complete, production-ready environment with:
@@ -14,7 +14,7 @@
 FROM python:3.12-slim-bookworm AS builder
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="4.3.6"
+LABEL version="4.4.0"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
 # Install system dependencies
@@ -48,7 +48,7 @@ RUN cargo install medusa || echo "Medusa install failed - will be optional"
 FROM python:3.12-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="4.3.7"
+LABEL version="4.4.0"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
 # Copy Rust binaries from builder (aderyn only, foundry installed separately)
@@ -111,6 +111,11 @@ USER miesc
 # Copy all source code first (needed for editable install)
 COPY --chown=miesc:miesc . .
 
+# Create temp directory for pip builds (avoids read-only /tmp issues)
+RUN mkdir -p /home/miesc/.tmp && chmod 755 /home/miesc/.tmp
+ENV TMPDIR="/home/miesc/.tmp"
+ENV PIP_CACHE_DIR="/home/miesc/.cache/pip"
+
 # Install MIESC core dependencies (editable mode for development)
 # Using [dev,full] to include prometheus-client, FastAPI, uvicorn, and all features
 RUN pip install --no-cache-dir --user -e .[dev,full]
@@ -144,7 +149,7 @@ RUN pip install --no-cache-dir --user weasyprint markdown && \
     echo "WeasyPrint installed successfully"
 
 # Environment variables for MIESC
-ENV MIESC_VERSION="4.3.7"
+ENV MIESC_VERSION="4.4.0"
 ENV MIESC_ENV="docker"
 ENV PYTHONPATH="/app:${PYTHONPATH}"
 ENV PYTHONUNBUFFERED=1

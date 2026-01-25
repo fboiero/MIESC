@@ -1,4 +1,4 @@
-# MIESC v4.3.7 FULL - Extended Docker Image
+# MIESC v4.4.0 FULL - Extended Docker Image
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile EXTENDS the standard image with additional tools:
@@ -20,7 +20,7 @@
 FROM ghcr.io/fboiero/miesc:latest
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="4.3.7-full"
+LABEL version="4.4.0-full"
 LABEL description="MIESC FULL - Extended with Mythril, Manticore, PyTorch for ML Analysis"
 
 # Switch to root for system packages
@@ -80,7 +80,7 @@ RUN pip install --no-cache-dir --user semgrep && \
 # ENVIRONMENT CONFIGURATION
 # ==========================================
 
-ENV MIESC_VERSION="4.3.7-full"
+ENV MIESC_VERSION="4.4.0-full"
 ENV MIESC_ENV="docker-full"
 
 # Health check
