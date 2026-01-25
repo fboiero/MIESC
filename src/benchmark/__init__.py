@@ -36,6 +36,18 @@ from .metrics_calculator import (
     compare_runs,
 )
 
+from .slither_benchmark import (
+    SlitherBenchmarkRunner,
+    run_slither_benchmark,
+)
+
+from .pattern_benchmark import (
+    PatternBenchmarkRunner,
+    PatternBenchmarkResult,
+    PatternMatch,
+    run_pattern_benchmark,
+)
+
 __all__ = [
     # Runner
     "BenchmarkRunner",
@@ -54,4 +66,12 @@ __all__ = [
     "ConfusionMatrix",
     "calculate_metrics",
     "compare_runs",
+    # Slither Direct
+    "SlitherBenchmarkRunner",
+    "run_slither_benchmark",
+    # Pattern Direct
+    "PatternBenchmarkRunner",
+    "PatternBenchmarkResult",
+    "PatternMatch",
+    "run_pattern_benchmark",
 ]
