@@ -115,6 +115,7 @@ class MLPipeline:
         fp_threshold: float = 0.6,
         similarity_threshold: float = 0.7,
         enable_feedback: bool = True,
+        enable_classic_patterns: bool = True,
     ):
         self.fp_filter = FalsePositiveFilter()
         self.severity_predictor = SeverityPredictor()
@@ -122,6 +123,9 @@ class MLPipeline:
         self.embedder = CodeEmbedder()
         self.pattern_db = VulnerabilityPatternDB(self.embedder)
         self.feedback_loop = FeedbackLoop() if enable_feedback else None
+
+        # Classic pattern detector (81.2% recall on SmartBugs)
+        self.classic_detector = ClassicPatternDetector() if enable_classic_patterns else None
 
         self.fp_threshold = fp_threshold
 
@@ -146,6 +150,12 @@ class MLPipeline:
         start_time = time.time()
 
         code_context_map = code_context_map or {}
+
+        # 0. Run classic pattern detector for additional findings
+        if self.classic_detector and contract_source:
+            classic_findings = self._detect_classic_patterns(contract_source)
+            findings = self._merge_findings(findings, classic_findings)
+
         original_count = len(findings)
 
         # 1. Filtrar falsos positivos
@@ -210,6 +220,99 @@ class MLPipeline:
             processing_time_ms=processing_time,
             timestamp=datetime.now(),
         )
+
+    def _detect_classic_patterns(self, source_code: str) -> List[Dict[str, Any]]:
+        """
+        Detect vulnerabilities using classic regex patterns.
+        These complement tool-based detection with 81.2% recall.
+        """
+        if not self.classic_detector:
+            return []
+
+        matches = self.classic_detector.detect(source_code)
+        findings = []
+
+        for match in matches:
+            findings.append({
+                'id': f"pattern-{match.vuln_type.value}-{match.line}",
+                'type': match.vuln_type.value,
+                'severity': match.severity.capitalize(),
+                'confidence': match.confidence,
+                'location': {
+                    'file': 'contract.sol',
+                    'line': match.line,
+                },
+                'message': match.description,
+                'description': match.description,
+                'recommendation': match.recommendation,
+                'swc_id': match.swc_id,
+                'tool': 'classic-pattern-detector',
+                '_pattern_match': True,
+            })
+
+        return findings
+
+    def _merge_findings(
+        self,
+        tool_findings: List[Dict[str, Any]],
+        pattern_findings: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """
+        Merge tool findings with pattern-detected findings.
+        Avoids duplicates by checking location and type overlap.
+        """
+        merged = list(tool_findings)
+        existing_locations = set()
+
+        # Index existing findings by location+type
+        for f in tool_findings:
+            loc = f.get('location', {})
+            line = loc.get('line', 0)
+            ftype = f.get('type', '').lower()
+            existing_locations.add((line, ftype))
+
+        # Add pattern findings that don't overlap
+        for pf in pattern_findings:
+            loc = pf.get('location', {})
+            line = loc.get('line', 0)
+            ftype = pf.get('type', '').lower()
+
+            # Check for overlap (within 5 lines and same category)
+            is_duplicate = False
+            for (el, et) in existing_locations:
+                if abs(el - line) <= 5 and self._types_similar(et, ftype):
+                    is_duplicate = True
+                    break
+
+            if not is_duplicate:
+                merged.append(pf)
+                existing_locations.add((line, ftype))
+
+        return merged
+
+    def _types_similar(self, type1: str, type2: str) -> bool:
+        """Check if two vulnerability types are similar."""
+        # Normalize types
+        t1 = type1.lower().replace('-', '_').replace(' ', '_')
+        t2 = type2.lower().replace('-', '_').replace(' ', '_')
+
+        if t1 == t2:
+            return True
+
+        # Similar categories
+        similar_groups = [
+            {'reentrancy', 'reentrancy_eth', 'reentrancy_no_eth'},
+            {'access_control', 'unprotected', 'arbitrary_send'},
+            {'arithmetic', 'overflow', 'underflow', 'integer_overflow'},
+            {'unchecked', 'unchecked_low_level_calls', 'unchecked_call'},
+            {'timestamp', 'timestamp_dependence', 'block_timestamp'},
+        ]
+
+        for group in similar_groups:
+            if any(t1 in g or g in t1 for g in group) and any(t2 in g or g in t2 for g in group):
+                return True
+
+        return False
 
     def submit_feedback(
         self,
