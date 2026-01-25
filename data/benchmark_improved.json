@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-01-25T18:39:32.520562",
-  "version": "arithmetic-improvement",
+  "timestamp": "2026-01-25T18:40:34.127108",
+  "version": "unchecked-calls-v2",
   "total_contracts": 143,
   "total_ground_truth": 207,
-  "true_positives": 189,
-  "false_negatives": 18,
-  "overall_recall": 0.913,
+  "true_positives": 193,
+  "false_negatives": 14,
+  "overall_recall": 0.932,
   "by_category": {
     "access_control": 0.905,
     "arithmetic": 0.957,
@@ -16,6 +16,6 @@
     "reentrancy": 0.906,
     "short_addresses": 1.0,
     "time_manipulation": 1.0,
-    "unchecked_low_level_calls": 0.88
+    "unchecked_low_level_calls": 0.933
   }
 }

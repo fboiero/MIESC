@@ -153,6 +153,9 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
             # .call patterns - detect ANY call usage
             r"\w+\.call\s*\(",                              # addr.call(
             r"\w+\.call\.value\s*\([^)]*\)\s*\(",           # addr.call.value(x)(
+            r"\w+\.call\.value\s*\([^)]*\)\s*;",            # addr.call.value(x); (no function call)
+            r"\w+\.call\.value\s*\([^)]*\)\.gas\s*\(",      # addr.call.value(x).gas(y)
+            r"\w+\.call\.gas\s*\(",                         # addr.call.gas(x)
             # .send patterns
             r"\w+\.send\s*\(",                              # addr.send(
             # .delegatecall patterns
