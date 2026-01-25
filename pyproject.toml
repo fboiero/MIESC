@@ -73,6 +73,11 @@ cli = [
 watch = [
     "watchdog>=3.0.0",
 ]
+# PDF report generation
+pdf = [
+    "weasyprint>=60.0",
+    "markdown>=3.5.0",
+]
 llm = [
     "openai>=1.0.0",
     "anthropic>=0.18.0",
@@ -108,6 +113,8 @@ full = [
     "flask-cors>=4.0.0",
     "streamlit>=1.28.0",
     "plotly>=5.18.0",
+    "weasyprint>=60.0",
+    "markdown>=3.5.0",
     # Note: mythril and django excluded due to dependency conflicts
     # Install separately: pip install mythril django djangorestframework
 ]
