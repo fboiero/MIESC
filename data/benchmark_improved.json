@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-01-25T18:28:29.815339",
+  "version": "after-pattern-improvements",
+  "total_contracts": 143,
+  "total_ground_truth": 207,
+  "true_positives": 168,
+  "false_negatives": 39,
+  "overall_recall": 0.8115942028985508,
+  "by_category": {
+    "access_control": 0.9047619047619048,
+    "arithmetic": 0.8260869565217391,
+    "bad_randomness": 0.8064516129032258,
+    "denial_of_service": 0.7142857142857143,
+    "front_running": 1.0,
+    "other": 0.0,
+    "reentrancy": 0.90625,
+    "short_addresses": 1.0,
+    "time_manipulation": 1.0,
+    "unchecked_low_level_calls": 0.7466666666666667
+  }
+}

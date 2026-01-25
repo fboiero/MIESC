@@ -102,16 +102,20 @@ class PatternBenchmarkRunner:
         "access_control": {
             "patterns": [
                 r"tx\.origin",
-                r"function\s+\w+\s*\([^)]*\)\s*public\s+[^{]*\{",
                 r"selfdestruct\s*\(",
                 r"suicide\s*\(",
+                r"delegatecall\s*\(",  # Arbitrary delegatecall
+                # Incorrect constructor names (pre-0.4.22) - functions that SET owner
+                r"function\s+[A-Z]\w*\s*\(\s*\)\s*(public|external)",
+                r"function\s+(Constructor|Init|Initialize)\s*\(",
+                # Public functions that set owner without modifier
+                r"owner\s*=\s*msg\.sender",
+                # Storage manipulation
+                r"\.length\s*--",  # Array length underflow
+                r"\.length\s*-=",
             ],
-            "anti_patterns": [
-                r"onlyOwner",
-                r"onlyRole",
-                r"require\s*\(\s*msg\.sender\s*==",
-                r"modifier\s+only",
-            ],
+            # NO global anti-patterns - use context_check instead
+            # Some functions may be protected while others aren't
         },
         "arithmetic": {
             "patterns": [
@@ -128,15 +132,15 @@ class PatternBenchmarkRunner:
         },
         "unchecked_low_level_calls": {
             "patterns": [
-                r"\.call\s*\(",
-                r"\.delegatecall\s*\(",
-                r"\.staticcall\s*\(",
+                # Calls that end with semicolon (return value ignored)
+                r"\w+\.call\s*\([^)]*\)\s*;",  # addr.call(...);
+                r"\w+\.call\.value\s*\([^)]*\)\s*\([^)]*\)\s*;",  # addr.call.value(x)();
+                r"\w+\.send\s*\([^)]*\)\s*;",  # addr.send(x);
+                r"\w+\.delegatecall\s*\([^)]*\)\s*;",
+                # Calls inside if without proper check
+                r"if\s*\([^)]*\.call",
             ],
-            "anti_patterns": [
-                r"require\s*\(\s*success",
-                r"if\s*\(\s*!?\s*success",
-                r"bool\s+success\s*,?\s*\)?\s*=.*\.call",
-            ],
+            # No global anti-patterns - line-based detection
         },
         "timestamp": {
             "patterns": [
@@ -174,18 +178,40 @@ class PatternBenchmarkRunner:
         },
         "front_running": {
             "patterns": [
-                r"approve\s*\(",  # ERC20 approve (susceptible to front-running)
-                r"swap\s*\(",
-                r"buy\s*\(",
-                r"sell\s*\(",
+                # ERC20 approve front-running
+                r"function\s+approve\s*\(",
+                r"_allowed\s*\[.*\]\s*\[.*\]\s*=",  # Direct allowance setting
+                # Hash-based puzzles (solution visible in mempool)
+                r"sha3\s*\(\s*\w+\s*\)",  # sha3(solution)
+                r"keccak256\s*\(\s*\w+\s*\)",  # keccak256(solution)
+                # Transaction order dependence
+                r"\.transfer\s*\(\s*reward",  # transfer(reward)
+                r"reward\s*=\s*msg\.value",  # reward assignment
+                # Games/gambling patterns
+                r"function\s+play\s*\(",
+                r"function\s+bet\s*\(",
+                r"function\s+guess\s*\(",
+            ],
+            "anti_patterns": [
+                r"increaseAllowance",  # Safe allowance pattern
+                r"decreaseAllowance",
+                r"safeApprove",
             ],
         },
         "short_addresses": {
             "patterns": [
-                r"\.call\s*\(",  # Low-level calls
-                r"abi\.encode",
+                # Functions that transfer to address with amount (classic pattern)
+                r"function\s+\w*[Ss]end\w*\s*\(\s*address\s+\w+\s*,\s*uint",
+                r"function\s+\w*[Tt]ransfer\w*\s*\(\s*address\s+\w+\s*,\s*uint",
+                r"function\s+sendCoin\s*\(",
+                # Direct balance manipulation with address param
+                r"balances\s*\[\s*\w+\s*\]\s*[-+]=",
             ],
-            # Short address attacks are mostly historical (pre-0.5)
+            "anti_patterns": [
+                # Solidity 0.5+ has built-in protection
+                r"pragma\s+solidity\s+[>=^]*0\.[5-9]",
+                r"pragma\s+solidity\s+[>=^]*0\.1",  # 0.10+
+            ],
         },
     }
 
