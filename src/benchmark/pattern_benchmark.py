@@ -167,15 +167,17 @@ class PatternBenchmarkRunner:
         },
         "denial_of_service": {
             "patterns": [
+                # Loop-based gas exhaustion (unbounded iteration)
                 r"for\s*\([^)]*\)\s*\{",  # Any loop
                 r"while\s*\(",
                 r"\.length\s*[<>]",  # Array length comparison
                 r"address\s*\[\]",  # Dynamic address array
+                # Push payment DoS (external call in require/if can block entire function)
+                r"require\s*\([^)]*\.send\s*\(",  # require(x.send()) - blocks if fails
+                r"require\s*\([^)]*\.call",       # require(x.call()) - blocks if fails
+                r"require\s*\([^)]*\.transfer",   # require(x.transfer()) - blocks if fails
             ],
-            "context_check": lambda code, line: (
-                # Check if there's a transfer/call inside
-                ".call" in code or ".send" in code or ".transfer" in code
-            ),
+            # No context_check - both loop-based and push-payment DoS are valid
         },
         "front_running": {
             "patterns": [

@@ -230,22 +230,27 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
     ),
 
     # =========================================================================
-    # DOS (SWC-128) - 71.4% recall
+    # DOS (SWC-128) - improved patterns
     # =========================================================================
     ClassicVulnType.DOS: PatternConfig(
         vuln_type=ClassicVulnType.DOS,
         patterns=[
+            # Loop-based gas exhaustion (unbounded iteration)
             r"for\s*\([^)]*\)\s*\{",            # Loop
             r"while\s*\(",                      # While loop
             r"\.length\s*[<>]",                 # Array length check
             r"address\s*\[\]",                  # Dynamic address array
+            # Push payment DoS (external call in require/if can block entire function)
+            r"require\s*\([^)]*\.send\s*\(",   # require(x.send()) - blocks if fails
+            r"require\s*\([^)]*\.call",        # require(x.call()) - blocks if fails
+            r"require\s*\([^)]*\.transfer",    # require(x.transfer()) - blocks if fails
         ],
         anti_patterns=[],
         severity="medium",
         swc_id="SWC-128",
-        description="Denial of service through gas exhaustion",
+        description="Denial of service through gas exhaustion or external call failure",
         recommendation="Limit loop iterations or use pull payment pattern",
-        context_validator=lambda code, _: ".call" in code or ".send" in code or ".transfer" in code,
+        # No context_validator - both loop-based and push-payment DoS are valid
     ),
 
     # =========================================================================
