@@ -1,0 +1,9 @@
+# Cloned benchmark datasets (download separately)
+smartbugs-curated/
+damn-vulnerable-defi/
+SWC-registry/
+DeFiHackLabs/
+
+# Keep this file and README
+!.gitignore
+!README.md
