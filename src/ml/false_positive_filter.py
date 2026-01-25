@@ -621,6 +621,23 @@ class FalsePositiveFilter:
         with open(self.feedback_path, "w") as f:
             json.dump(data, f, indent=2)
 
+    def _parse_confidence(self, value) -> float:
+        """Parse confidence value, handling both float and string formats."""
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            # Handle string severity/confidence levels
+            confidence_map = {
+                "critical": 0.95,
+                "high": 0.85,
+                "medium": 0.70,
+                "low": 0.50,
+                "info": 0.30,
+                "informational": 0.30,
+            }
+            return confidence_map.get(value.lower(), 0.7)
+        return 0.7  # Default
+
     def _extract_features(
         self,
         finding: Dict[str, Any],
@@ -659,7 +676,7 @@ class FalsePositiveFilter:
             code_context_length=len(code_context),
             line_number=int(location.get("line") or 0),
             confirmations=confirmations,
-            confidence_original=float(finding.get("confidence", 0.7)),
+            confidence_original=self._parse_confidence(finding.get("confidence", 0.7)),
             is_common_pattern=is_common,
             in_test_file=in_test,
             in_interface=in_interface,
@@ -830,7 +847,7 @@ class FalsePositiveFilter:
 
             if fp_prob < threshold:
                 # Ajustar confianza
-                original_conf = finding.get("confidence", 0.7)
+                original_conf = self._parse_confidence(finding.get("confidence", 0.7))
                 finding["confidence"] = round(
                     original_conf * explanation["confidence_adjustment"], 3
                 )
