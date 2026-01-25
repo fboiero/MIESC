@@ -121,7 +121,7 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
     ),
 
     # =========================================================================
-    # ARITHMETIC (SWC-101) - 82.6% recall
+    # ARITHMETIC (SWC-101) - improved patterns
     # =========================================================================
     ClassicVulnType.ARITHMETIC: PatternConfig(
         vuln_type=ClassicVulnType.ARITHMETIC,
@@ -129,6 +129,9 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
             r"\+\+|\-\-",                       # Increment/decrement
             r"\+\s*=|\-\s*=|\*\s*=",           # Compound assignment
             r"[^/]/\s*[^/\*]",                 # Division
+            r"=\s*\w+\s*\*\s*\w+",             # Multiplication: a = b * c
+            r"=\s*\w+\s*-\s*\w+",              # Subtraction: a = b - c
+            r"=\s*\w+\s*\+\s*\w+",             # Addition: a = b + c
         ],
         anti_patterns=[
             r"SafeMath",

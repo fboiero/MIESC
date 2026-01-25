@@ -119,9 +119,12 @@ class PatternBenchmarkRunner:
         },
         "arithmetic": {
             "patterns": [
-                r"\+\+|\-\-",
-                r"\+\s*=|\-\s*=|\*\s*=",
-                r"[^/]/\s*[^/]",  # Division (not comments)
+                r"\+\+|\-\-",                     # Increment/decrement
+                r"\+\s*=|\-\s*=|\*\s*=",         # Compound assignment
+                r"[^/]/\s*[^/]",                 # Division (not comments)
+                r"=\s*\w+\s*\*\s*\w+",           # Multiplication: a = b * c
+                r"=\s*\w+\s*-\s*\w+",            # Subtraction: a = b - c
+                r"=\s*\w+\s*\+\s*\w+",           # Addition: a = b + c
             ],
             "anti_patterns": [
                 r"SafeMath",
