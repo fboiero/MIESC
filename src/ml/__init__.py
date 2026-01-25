@@ -280,6 +280,9 @@ class MLPipeline:
             # Check for overlap (within 5 lines and same category)
             is_duplicate = False
             for (el, et) in existing_locations:
+                # Skip if either line is None
+                if el is None or line is None:
+                    continue
                 if abs(el - line) <= 5 and self._types_similar(et, ftype):
                     is_duplicate = True
                     break
