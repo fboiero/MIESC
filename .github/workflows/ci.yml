@@ -175,8 +175,8 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t miesc:${{ github.sha }} .
-          docker build -t miesc:latest .
+          docker build -f docker/Dockerfile -t miesc:${{ github.sha }} .
+          docker build -f docker/Dockerfile -t miesc:latest .
 
       - name: Test Docker image
         run: |

@@ -204,3 +204,4 @@ miesc-quick
 
 # Virtual environments (additional patterns)
 venv*/
+vscode-extension/node_modules/

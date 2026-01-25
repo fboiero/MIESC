@@ -1,0 +1,49 @@
+[profile.default]
+src = "src/contracts"
+out = "out"
+libs = ["lib"]
+test = "src/tests"
+cache_path = "cache"
+solc = "0.8.20"
+
+# Optimizer settings
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+
+# Compiler settings
+evm_version = "shanghai"
+bytecode_hash = "none"
+
+# Test settings
+verbosity = 2
+
+# Fuzz testing configuration
+[profile.default.fuzz]
+runs = 10000
+max_test_rejects = 65536
+
+# Invariant testing configuration
+[profile.default.invariant]
+runs = 256
+depth = 100
+fail_on_revert = false
+call_override = false
+
+# Gas reporting
+gas_reports = ["*"]
+
+# CI profile (more tests)
+[profile.ci]
+fuzz = { runs = 10000 }
+invariant = { runs = 512 }
+verbosity = 4
+
+# Etherscan
+[etherscan]
+mainnet = { key = "${ETHERSCAN_API_KEY}" }
+
+# RPC endpoints
+[rpc_endpoints]
+mainnet = "${MAINNET_RPC_URL}"
+sepolia = "${SEPOLIA_RPC_URL}"

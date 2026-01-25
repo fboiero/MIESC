@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'Dockerfile'
-      - 'Dockerfile.*'
+      - 'docker/Dockerfile'
+      - 'docker/Dockerfile.*'
       - 'src/**'
       - 'miesc/**'
       - 'pyproject.toml'
@@ -13,8 +13,8 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'Dockerfile'
-      - 'Dockerfile.*'
+      - 'docker/Dockerfile'
+      - 'docker/Dockerfile.*'
   workflow_dispatch:
     inputs:
       push_image:
@@ -69,6 +69,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: docker/Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
@@ -125,6 +126,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: docker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}

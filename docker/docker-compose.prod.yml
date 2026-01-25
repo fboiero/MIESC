@@ -1,0 +1,94 @@
+# MIESC Production Docker Compose
+# For local production testing and docker-compose deployment
+
+version: '3.8'
+
+services:
+  # Main webapp (Streamlit)
+  webapp:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.prod
+    container_name: miesc-webapp
+    ports:
+      - "8501:8501"
+    environment:
+      - MIESC_ENV=production
+      - DATABASE_URL=sqlite:///data/licenses.db
+    volumes:
+      - miesc-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - miesc-network
+
+  # REST API
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.prod
+    container_name: miesc-api
+    command: ["python", "src/miesc_mcp_rest.py"]
+    ports:
+      - "5001:5001"
+    environment:
+      - MIESC_ENV=production
+    restart: unless-stopped
+    networks:
+      - miesc-network
+
+  # License Admin API
+  admin-api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.prod
+    container_name: miesc-admin-api
+    command: ["uvicorn", "src.licensing.admin_api:app", "--host", "0.0.0.0", "--port", "5002"]
+    ports:
+      - "5002:5002"
+    environment:
+      - MIESC_ENV=production
+      - MIESC_ADMIN_API_KEY=${MIESC_ADMIN_API_KEY:-miesc-admin-secret-key}
+      - DATABASE_URL=sqlite:///data/licenses.db
+    volumes:
+      - miesc-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - miesc-network
+
+  # Nginx reverse proxy (optional, for production)
+  nginx:
+    image: nginx:alpine
+    container_name: miesc-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - webapp
+      - api
+      - admin-api
+    restart: unless-stopped
+    networks:
+      - miesc-network
+    profiles:
+      - with-nginx
+
+volumes:
+  miesc-data:
+    driver: local
+
+networks:
+  miesc-network:
+    driver: bridge

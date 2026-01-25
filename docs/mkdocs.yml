@@ -1,0 +1,229 @@
+# ============================================================================
+# MkDocs Configuration for MIESC Documentation
+# ============================================================================
+# Simplified version for Tool Adapter Protocol deployment
+# Version: 1.0.0 (Minimal)
+# Last Updated: 2025-11-10
+# ============================================================================
+
+site_name: MIESC - Tool Adapter Protocol Documentation
+site_description: Tool Adapter Protocol for autonomous smart contract security analysis
+site_author: Fernando Boiero - UNDEF
+site_url: https://fboiero.github.io/MIESC
+
+# Repository information
+repo_name: fboiero/MIESC
+repo_url: https://github.com/fboiero/MIESC
+edit_uri: edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2025 Fernando Boiero - Universidad de la Defensa Nacional (UNDEF)
+
+# ============================================================================
+# Theme Configuration
+# ============================================================================
+
+theme:
+  name: material
+  language: en
+
+  # Color scheme
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  # Fonts
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+  # Features
+  features:
+    - navigation.instant      # Instant loading
+    - navigation.tracking     # URL tracking
+    - navigation.tabs         # Top-level tabs
+    - navigation.tabs.sticky  # Sticky tabs
+    - navigation.sections     # Navigation sections
+    - navigation.expand       # Expand navigation by default
+    - navigation.top          # Back to top button
+    - search.suggest          # Search suggestions
+    - search.highlight        # Highlight search results
+    - search.share            # Share search results
+    - toc.follow              # Follow TOC
+    - toc.integrate           # Integrate TOC into navigation
+    - content.code.copy       # Copy code button
+    - content.code.annotate   # Code annotations
+
+  icon:
+    repo: fontawesome/brands/github
+
+# ============================================================================
+# Plugins
+# ============================================================================
+
+plugins:
+  - search:
+      lang: en
+      separator: '[\s\-\.]+'
+  - minify:
+      minify_html: true
+
+# ============================================================================
+# Markdown Extensions
+# ============================================================================
+
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - meta
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# ============================================================================
+# Navigation Structure
+# ============================================================================
+
+nav:
+  - Home:
+    - Welcome: index.md
+    - Español: index_es.md
+
+  - Getting Started:
+    - Installation: INSTALLATION.md
+    - Tools Reference: TOOLS.md
+    - Validation Guide: VALIDATION_GUIDE.md
+
+  - Releases:
+    - v4.3.2: RELEASE_NOTES_v4.3.2.md
+    - v4.3.0: RELEASE_NOTES_v4.3.0.md
+    - v4.2.3: RELEASE_NOTES_v4.2.3.md
+    - v4.0.0: RELEASE_NOTES_v4.0.0.md
+
+  - Evaluation:
+    - Evaluation Report v4.1: EVALUATION_REPORT_v4.1.md
+    - MIESC Evaluation: MIESC_Evaluation_Report.md
+
+  - Thesis:
+    - Overview: thesis.md
+    - Resumen (ES): thesis_es.md
+
+  - Developer Guide:
+    - Custom Detectors: CUSTOM_DETECTORS.md
+    - Contributing: CONTRIBUTING.md
+    - Security Policy: SECURITY.md
+    - Changelog: CHANGELOG.md
+
+  - Community:
+    - GitHub: https://github.com/fboiero/MIESC
+    - Issues: https://github.com/fboiero/MIESC/issues
+    - Discussions: https://github.com/fboiero/MIESC/discussions
+
+# ============================================================================
+# Extra Configuration
+# ============================================================================
+
+extra:
+  version:
+    provider: mike
+    default: latest
+
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/fboiero/MIESC
+      name: MIESC on GitHub
+    - icon: fontawesome/brands/linkedin
+      link: https://linkedin.com/in/fboiero
+      name: Fernando Boiero on LinkedIn
+    - icon: fontawesome/solid/envelope
+      link: mailto:fboiero@frvm.utn.edu.ar
+      name: Email
+
+# ============================================================================
+# Extra CSS and JavaScript
+# ============================================================================
+
+# Commented out - files not available in minimal deployment
+# extra_css:
+#   - stylesheets/extra.css
+#   - stylesheets/custom.css
+
+# extra_javascript:
+#   - javascripts/mathjax.js
+#   - https://polyfill.io/v3/polyfill.min.js?features=es6
+#   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+# ============================================================================
+# Validation and Strict Mode
+# ============================================================================
+
+strict: false
+validation:
+  nav:
+    omitted_files: info
+    not_found: warn
+    absolute_links: info
+  links:
+    not_found: warn
+    absolute_links: info
+    unrecognized_links: info
+
+# ============================================================================
+# Build Configuration
+# ============================================================================
+
+site_dir: site
+docs_dir: docs
+use_directory_urls: true

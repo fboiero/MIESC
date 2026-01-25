@@ -1,0 +1,301 @@
+# MIESC v4.3.7 - Production Docker Compose with LLM Support
+# Multi-layer Intelligent Evaluation for Smart Contracts
+# SmartLLM: deepseek-coder (code analysis) + mistral (general interpretation)
+#
+# This is a production-ready configuration with:
+# - Both LLM models pre-loaded
+# - Robust health checks
+# - Restart policies
+# - Resource limits
+# - Optional GPU support
+#
+# Quick Start:
+#   # CPU-only mode
+#   docker-compose -f docker-compose.prod-llm.yml up -d
+#
+#   # With GPU support (uncomment GPU sections first)
+#   docker-compose -f docker-compose.prod-llm.yml up -d
+#
+#   # Run audit with premium report
+#   docker-compose -f docker-compose.prod-llm.yml exec miesc \
+#     miesc audit full /app/contracts/MyContract.sol -o /data/results.json
+#   docker-compose -f docker-compose.prod-llm.yml exec miesc \
+#     miesc report /data/results.json -t premium --llm-interpret -o /data/report.md
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # MIESC Main Service - Smart Contract Auditing
+  # ===========================================================================
+  miesc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: ghcr.io/fboiero/miesc:v4.3.7
+    container_name: miesc-prod
+    environment:
+      - MIESC_VERSION=4.3.7
+      - MIESC_ENV=production
+      - PYTHONUNBUFFERED=1
+      # Ollama LLM configuration
+      - OLLAMA_HOST=http://ollama:11434
+      - MIESC_LLM_MODEL=mistral:latest
+      - MIESC_CODE_MODEL=deepseek-coder:6.7b
+      # Timeouts for LLM calls (increased for large models)
+      - MIESC_LLM_TIMEOUT=180
+    volumes:
+      - miesc-data:/data
+      - ./contracts:/app/contracts:ro
+    networks:
+      - miesc-prod-network
+    depends_on:
+      ollama-ready:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "from src.agents.base_agent import BaseAgent; print('OK')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+  # ===========================================================================
+  # Ollama LLM Server - Local AI Model Inference
+  # ===========================================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: miesc-ollama-prod
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - miesc-prod-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+    # Resource limits for CPU mode
+    deploy:
+      resources:
+        limits:
+          cpus: '8'
+          memory: 16G
+        reservations:
+          cpus: '2'
+          memory: 8G
+    # GPU Support (uncomment for NVIDIA GPU)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ===========================================================================
+  # Model Initializer - Downloads both required models
+  # ===========================================================================
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: miesc-ollama-init-prod
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "╔══════════════════════════════════════════════════════════════╗"
+        echo "║     MIESC SmartLLM Model Initializer (Production)           ║"
+        echo "╚══════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "Required models for optimal smart contract analysis:"
+        echo "  1. deepseek-coder:6.7b - Solidity/code analysis (~3.8GB)"
+        echo "  2. mistral:latest      - General interpretation (~4.0GB)"
+        echo ""
+        echo "Total disk space required: ~8GB"
+        echo "────────────────────────────────────────────────────────────────"
+
+        # Function to pull model with progress
+        pull_model() {
+          local model="$1"
+          local desc="$2"
+          echo ""
+          echo ">>> Downloading $model ($desc)..."
+          if ollama list 2>/dev/null | grep -q "$model"; then
+            echo "    ✓ Already available"
+            return 0
+          fi
+          if ollama pull "$model"; then
+            echo "    ✓ Downloaded successfully"
+            return 0
+          else
+            echo "    ✗ Failed to download"
+            return 1
+          fi
+        }
+
+        # Pull models
+        pull_model "deepseek-coder:6.7b" "code analysis" || exit 1
+        pull_model "mistral:latest" "general interpretation" || exit 1
+
+        echo ""
+        echo "────────────────────────────────────────────────────────────────"
+        echo "✓ All models ready!"
+        echo ""
+        echo "Installed models:"
+        ollama list
+        echo ""
+        echo "SmartLLM is ready for smart contract analysis."
+        echo "────────────────────────────────────────────────────────────────"
+    networks:
+      - miesc-prod-network
+    restart: "no"
+
+  # ===========================================================================
+  # Ready Check - Validates all models are available before MIESC starts
+  # ===========================================================================
+  ollama-ready:
+    image: ollama/ollama:latest
+    container_name: miesc-ollama-ready
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Verifying model availability..."
+
+        # Check deepseek-coder
+        if ! ollama list | grep -q "deepseek-coder:6.7b"; then
+          echo "ERROR: deepseek-coder:6.7b not found"
+          exit 1
+        fi
+
+        # Check mistral
+        if ! ollama list | grep -q "mistral:latest"; then
+          echo "ERROR: mistral:latest not found"
+          exit 1
+        fi
+
+        # Warm up models with simple prompts
+        echo "Warming up models..."
+        echo "Testing deepseek-coder..."
+        curl -s http://ollama:11434/api/generate -d '{"model":"deepseek-coder:6.7b","prompt":"// test","stream":false}' > /dev/null || true
+        echo "Testing mistral..."
+        curl -s http://ollama:11434/api/generate -d '{"model":"mistral:latest","prompt":"test","stream":false}' > /dev/null || true
+
+        echo "✓ All models verified and warmed up"
+        echo "MIESC is ready for production use!"
+    networks:
+      - miesc-prod-network
+    restart: "no"
+
+  # ===========================================================================
+  # MIESC API Server (Optional - for REST API access)
+  # ===========================================================================
+  miesc-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/fboiero/miesc:v4.3.7
+    container_name: miesc-api-prod
+    environment:
+      - MIESC_VERSION=4.3.7
+      - MIESC_ENV=production-api
+      - PYTHONUNBUFFERED=1
+      - OLLAMA_HOST=http://ollama:11434
+      - MIESC_LLM_MODEL=mistral:latest
+      - MIESC_CODE_MODEL=deepseek-coder:6.7b
+      - MIESC_LLM_TIMEOUT=180
+    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - miesc-data:/data
+      - ./contracts:/app/contracts:ro
+    networks:
+      - miesc-prod-network
+    depends_on:
+      ollama-ready:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    profiles:
+      - api
+
+networks:
+  miesc-prod-network:
+    driver: bridge
+    name: miesc-prod-network
+
+volumes:
+  miesc-data:
+    driver: local
+    name: miesc-prod-data
+  ollama-models:
+    driver: local
+    name: miesc-ollama-models-prod
+
+# ===========================================================================
+# Usage Examples
+# ===========================================================================
+#
+# 1. Start all services (first run will download ~8GB of models):
+#    docker-compose -f docker-compose.prod-llm.yml up -d
+#
+# 2. Check status:
+#    docker-compose -f docker-compose.prod-llm.yml ps
+#    docker-compose -f docker-compose.prod-llm.yml logs -f ollama-init
+#
+# 3. Run a quick audit:
+#    docker-compose -f docker-compose.prod-llm.yml exec miesc \
+#      miesc audit quick /app/contracts/VulnerableBank.sol -o /data/results.json
+#
+# 4. Generate premium report:
+#    docker-compose -f docker-compose.prod-llm.yml exec miesc \
+#      miesc report /data/results.json -t premium --llm-interpret -o /data/report.md
+#
+# 5. Copy report to host:
+#    docker cp miesc-prod:/data/report.md ./audit-report.md
+#
+# 6. Enable API server:
+#    docker-compose -f docker-compose.prod-llm.yml --profile api up -d
+#
+# 7. Stop all services:
+#    docker-compose -f docker-compose.prod-llm.yml down
+#
+# 8. Clean up (removes data):
+#    docker-compose -f docker-compose.prod-llm.yml down -v

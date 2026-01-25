@@ -1,0 +1,139 @@
+# MIESC v4.2.2 - Full x86_64 Docker Deployment
+# Forces x86_64 architecture for 100% tool compatibility
+#
+# Build command:
+#   docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:v4.2.1-x86 .
+#
+# Run command:
+#   docker run --platform linux/amd64 --rm miesc:v4.2.1-x86
+#
+# Note: On Apple Silicon, this uses Rosetta 2 emulation (~3-5x slower but fully compatible)
+
+# Force x86_64 architecture for all stages
+# Using Python 3.10 for Manticore compatibility (pysha3 incompatible with 3.11+)
+FROM --platform=linux/amd64 python:3.10-slim-bookworm AS builder
+
+LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
+LABEL version="4.2.2"
+LABEL description="MIESC - Full x86_64 build with all security tools"
+LABEL architecture="linux/amd64"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    curl \
+    wget \
+    ca-certificates \
+    libssl-dev \
+    pkg-config \
+    software-properties-common \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust (required for Aderyn)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Install Foundry (forge, cast, anvil)
+RUN curl -L https://foundry.paradigm.xyz | bash
+ENV PATH="/root/.foundry/bin:${PATH}"
+RUN /root/.foundry/bin/foundryup
+
+# Install Aderyn (Rust-based Solidity analyzer)
+RUN cargo install aderyn
+
+# Stage 2: Runtime - x86_64 production image
+# Using Python 3.10 for Manticore compatibility (pysha3 incompatible with 3.11+)
+FROM --platform=linux/amd64 python:3.10-slim-bookworm
+
+LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
+LABEL version="4.2.2"
+LABEL description="MIESC - Full x86_64 build with all security tools"
+
+# Copy Rust and Foundry binaries from builder
+COPY --from=builder /root/.cargo/bin/aderyn /usr/local/bin/
+COPY --from=builder /root/.foundry/bin/forge /usr/local/bin/
+COPY --from=builder /root/.foundry/bin/cast /usr/local/bin/
+COPY --from=builder /root/.foundry/bin/anvil /usr/local/bin/
+
+# Install runtime AND build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    wget \
+    libssl3 \
+    ca-certificates \
+    build-essential \
+    gcc \
+    g++ \
+    libffi-dev \
+    libgmp-dev \
+    cmake \
+    pkg-config \
+    software-properties-common \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN useradd -m -u 1000 -s /bin/bash miesc && \
+    mkdir -p /app /data && \
+    chown -R miesc:miesc /app /data
+
+# Set working directory
+WORKDIR /app
+
+# Switch to non-root user
+USER miesc
+
+# Copy all source code first (needed for editable install)
+COPY --chown=miesc:miesc . .
+
+# Install MIESC core dependencies (editable mode for development)
+RUN pip install --no-cache-dir --user -e .[dev,all-tools]
+
+# Add user's local bin to PATH
+ENV PATH="/home/miesc/.local/bin:${PATH}"
+
+# Install solc versions using solc-select (x86_64 binaries work natively)
+RUN solc-select install 0.8.0 && \
+    solc-select install 0.8.17 && \
+    solc-select install 0.8.20 && \
+    solc-select install 0.8.24 && \
+    solc-select use 0.8.20
+
+# Install Mythril (symbolic execution) - x86_64 compatible
+RUN pip install --no-cache-dir --user mythril>=0.24.0
+
+# Install Manticore (symbolic execution engine) - x86_64 required
+# Python 3.10 is compatible with pysha3
+RUN pip install --no-cache-dir --user 'manticore[native]'
+
+# Environment variables for MIESC
+ENV MIESC_VERSION="4.2.2"
+ENV MIESC_ENV="docker-x86"
+ENV PYTHONPATH="/app:${PYTHONPATH}"
+ENV PYTHONUNBUFFERED=1
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "from src.core import get_ml_orchestrator; print('MIESC v4.2.1 x86 OK')" || exit 1
+
+# Expose API port
+EXPOSE 8000
+
+# Default command: Verify all tools
+CMD ["sh", "-c", "echo '=== MIESC v4.2.1-x86 - Full Tool Deployment ===' && \
+     echo '' && \
+     echo 'Architecture:' && uname -m && \
+     echo '' && \
+     echo 'Python version:' && python --version && \
+     echo '' && \
+     echo 'Installed tools:' && \
+     echo '1. Slither:' && slither --version 2>&1 | head -1 && \
+     echo '2. Mythril:' && myth version 2>&1 | head -1 && \
+     echo '3. Aderyn:' && aderyn --version 2>&1 | head -1 && \
+     echo '4. Solc:' && solc --version | head -2 && \
+     echo '5. Manticore:' && manticore --version 2>&1 | head -1 && \
+     echo '6. Forge:' && forge --version 2>&1 | head -1 && \
+     echo '' && \
+     echo 'All tools ready!'"]

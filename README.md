@@ -317,7 +317,7 @@ miesc audit full contract.sol
 miesc doctor
 ```
 
-**[Complete Quick Start Guide](./QUICKSTART.md)** - Detailed installation and usage instructions.
+**[Complete Quick Start Guide](./docs/guides/QUICKSTART.md)** - Detailed installation and usage instructions.
 
 ## Features
 
@@ -638,8 +638,8 @@ Need help? Here's how to get support:
 |----------|-------------|
 | [GitHub Issues](https://github.com/fboiero/MIESC/issues) | Bug reports and feature requests |
 | [Documentation](https://fboiero.github.io/MIESC) | Full documentation and guides |
-| [Quick Start](./QUICKSTART.md) | Get started in 5 minutes |
-| [Security Issues](./SECURITY.md) | Report security vulnerabilities |
+| [Quick Start](./docs/guides/QUICKSTART.md) | Get started in 5 minutes |
+| [Security Issues](./docs/policies/SECURITY.md) | Report security vulnerabilities |
 
 **Common Issues:**
 

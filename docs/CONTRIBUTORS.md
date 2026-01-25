@@ -12,10 +12,9 @@ Thank you to everyone who has contributed to MIESC!
 
 **Institution**: Universidad de la Defensa Nacional (UNDEF), Argentina
 
-**Contact**: <fboiero@frvm.utn.edu.ar>
+**Contact**: fboiero@frvm.utn.edu.ar
 
 **Contributions**:
-
 - Project architecture and design
 - Core framework implementation
 - Tool adapter development
@@ -92,7 +91,6 @@ The theoretical foundation of MIESC draws from:
 ### Future Partners (Planned)
 
 We welcome partnerships with:
-
 - Universities and research institutions
 - Blockchain security companies
 - Open-source foundations
