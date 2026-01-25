@@ -132,15 +132,16 @@ class PatternBenchmarkRunner:
         },
         "unchecked_low_level_calls": {
             "patterns": [
-                # Calls that end with semicolon (return value ignored)
-                r"\w+\.call\s*\([^)]*\)\s*;",  # addr.call(...);
-                r"\w+\.call\.value\s*\([^)]*\)\s*\([^)]*\)\s*;",  # addr.call.value(x)();
-                r"\w+\.send\s*\([^)]*\)\s*;",  # addr.send(x);
-                r"\w+\.delegatecall\s*\([^)]*\)\s*;",
-                # Calls inside if without proper check
-                r"if\s*\([^)]*\.call",
+                # .call patterns - detect ANY call usage
+                r"\w+\.call\s*\(",                              # addr.call(
+                r"\w+\.call\.value\s*\([^)]*\)\s*\(",           # addr.call.value(x)(
+                # .send patterns
+                r"\w+\.send\s*\(",                              # addr.send(
+                # .delegatecall patterns
+                r"\w+\.delegatecall\s*\(",                      # addr.delegatecall(
             ],
-            # No global anti-patterns - line-based detection
+            # NO global anti-patterns - each call must be checked individually
+            # A contract might have both protected and unprotected calls
         },
         "timestamp": {
             "patterns": [

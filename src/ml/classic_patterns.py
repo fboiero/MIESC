@@ -142,17 +142,22 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
     ),
 
     # =========================================================================
-    # UNCHECKED CALLS (SWC-104) - 74.7% recall
+    # UNCHECKED CALLS (SWC-104) - improved patterns
     # =========================================================================
     ClassicVulnType.UNCHECKED_CALLS: PatternConfig(
         vuln_type=ClassicVulnType.UNCHECKED_CALLS,
         patterns=[
-            r"\w+\.call\s*\([^)]*\)\s*;",                        # addr.call(...);
-            r"\w+\.call\.value\s*\([^)]*\)\s*\([^)]*\)\s*;",    # addr.call.value(x)();
-            r"\w+\.send\s*\([^)]*\)\s*;",                       # addr.send(x);
-            r"\w+\.delegatecall\s*\([^)]*\)\s*;",               # delegatecall
+            # .call patterns - detect ANY call usage
+            r"\w+\.call\s*\(",                              # addr.call(
+            r"\w+\.call\.value\s*\([^)]*\)\s*\(",           # addr.call.value(x)(
+            # .send patterns
+            r"\w+\.send\s*\(",                              # addr.send(
+            # .delegatecall patterns
+            r"\w+\.delegatecall\s*\(",                      # addr.delegatecall(
         ],
-        anti_patterns=[],  # Line-level detection
+        # NO global anti-patterns - a contract may have both protected AND unprotected calls
+        # Each call must be analyzed individually by the context validator
+        anti_patterns=[],
         severity="medium",
         swc_id="SWC-104",
         description="Return value of low-level call not checked",

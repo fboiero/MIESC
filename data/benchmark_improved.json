@@ -1,21 +1,21 @@
 {
-  "timestamp": "2026-01-25T18:28:29.815339",
-  "version": "after-pattern-improvements",
+  "timestamp": "2026-01-25T18:36:03.929766",
+  "version": "unchecked-calls-fix",
   "total_contracts": 143,
   "total_ground_truth": 207,
-  "true_positives": 168,
-  "false_negatives": 39,
-  "overall_recall": 0.8115942028985508,
+  "true_positives": 178,
+  "false_negatives": 29,
+  "overall_recall": 0.86,
   "by_category": {
-    "access_control": 0.9047619047619048,
-    "arithmetic": 0.8260869565217391,
-    "bad_randomness": 0.8064516129032258,
-    "denial_of_service": 0.7142857142857143,
+    "access_control": 0.905,
+    "arithmetic": 0.826,
+    "bad_randomness": 0.806,
+    "denial_of_service": 0.714,
     "front_running": 1.0,
     "other": 0.0,
-    "reentrancy": 0.90625,
+    "reentrancy": 0.906,
     "short_addresses": 1.0,
     "time_manipulation": 1.0,
-    "unchecked_low_level_calls": 0.7466666666666667
+    "unchecked_low_level_calls": 0.88
   }
 }
