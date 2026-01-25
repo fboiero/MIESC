@@ -181,7 +181,7 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
     ),
 
     # =========================================================================
-    # BAD RANDOMNESS (SWC-120) - 80.6% recall
+    # BAD RANDOMNESS (SWC-120) - improved patterns
     # =========================================================================
     ClassicVulnType.BAD_RANDOMNESS: PatternConfig(
         vuln_type=ClassicVulnType.BAD_RANDOMNESS,
@@ -189,6 +189,10 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
             r"block\.timestamp\s*%",           # timestamp mod
             r"blockhash\s*\(",                 # blockhash
             r"block\.number\s*%",              # block number mod
+            r"block\.number\s*[;=]",           # block.number assignment (for later use)
+            r"block\.coinbase",                # Miner address - predictable
+            r"block\.difficulty",              # Predictable in PoS
+            r"block\.prevrandao",              # Alias for difficulty in PoS
             r"keccak256\s*\([^)]*block",       # keccak with block data
         ],
         anti_patterns=[

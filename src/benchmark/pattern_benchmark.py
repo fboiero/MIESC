@@ -162,7 +162,11 @@ class PatternBenchmarkRunner:
                 r"block\.timestamp\s*%",
                 r"blockhash\s*\(",
                 r"block\.number\s*%",
-                r"keccak256\s*\([^)]*block",  # keccak with block data
+                r"block\.number\s*[;=]",           # block.number assignment (for later use)
+                r"block\.coinbase",                 # Miner address - predictable
+                r"block\.difficulty",               # Predictable in PoS
+                r"block\.prevrandao",               # Alias for difficulty in PoS
+                r"keccak256\s*\([^)]*block",       # keccak with block data
             ],
         },
         "denial_of_service": {
