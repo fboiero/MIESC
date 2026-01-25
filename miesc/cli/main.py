@@ -3944,28 +3944,43 @@ def report(results_file, template, output, output_format, client, auditor, title
                 "description": "Smart Contract"
             })
     else:
-        # Single contract
-        contract_path = results.get("contract", results.get("path", "Unknown"))
+        # Single contract - try multiple sources for contract path
+        contract_path = results.get("contract", results.get("contract_path", results.get("path", "Unknown")))
+
+        # If not found at root level, try to get from first result
+        if contract_path == "Unknown" and results.get("results"):
+            for r in results.get("results", []):
+                if r.get("contract"):
+                    contract_path = r.get("contract")
+                    break
+
         contract_name_short = Path(contract_path).name if contract_path and contract_path != "Unknown" else "Contract"
 
-        lines = "N/A"
+        lines = 0
+        functions_count = 0
         try:
-            if contract_path and Path(contract_path).exists():
+            if contract_path and contract_path != "Unknown" and Path(contract_path).exists():
                 with open(contract_path, 'r') as f:
-                    lines = len(f.readlines())
+                    content = f.read()
+                    lines = len(content.splitlines())
                     total_lines = lines
+                    # Count functions
+                    import re
+                    functions_count = len(re.findall(r'\bfunction\s+\w+\s*\(', content))
         except Exception:
-            pass
+            lines = "N/A"
 
         files_analyzed.append({
             "path": contract_name_short,
             "full_path": contract_path,
             "lines": lines,
+            "functions": functions_count,
             "findings": len(findings),
         })
         files_in_scope.append({
             "path": contract_name_short,
             "lines": lines,
+            "functions": functions_count,
             "description": "Smart Contract"
         })
 
