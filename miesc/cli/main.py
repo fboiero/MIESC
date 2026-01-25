@@ -3385,7 +3385,8 @@ def report(results_file, template, output, output_format, client, auditor, title
         "swc_mappings": [],
         "owasp_mappings": [],
         "tool_outputs": [],
-        "files_analyzed": [{"path": results.get("contract", "Unknown"), "lines": "N/A", "findings": len(findings)}],
+        "files_analyzed": [],  # Will be populated below
+        "files_in_scope": [],  # Will be populated below
         # LLM interpretation placeholders (populated if --llm-interpret is used)
         "llm_executive_summary": "",
         "llm_risk_narrative": "",
@@ -3416,9 +3417,81 @@ def report(results_file, template, output, output_format, client, auditor, title
     }
 
     # =========================================================================
+    # Generate Files Analyzed / Files In Scope
+    # =========================================================================
+    files_analyzed = []
+    files_in_scope = []
+    total_lines = 0
+
+    # Check if batch audit (has "contracts" array)
+    if "contracts" in results:
+        for idx, contract_data in enumerate(results.get("contracts", []), 1):
+            contract_path = contract_data.get("contract", "Unknown")
+            contract_name_short = Path(contract_path).name if contract_path != "Unknown" else f"Contract {idx}"
+            contract_findings = contract_data.get("total_findings", 0)
+
+            # Try to get lines of code
+            lines = "N/A"
+            try:
+                if contract_path and Path(contract_path).exists():
+                    with open(contract_path, 'r') as f:
+                        lines = len(f.readlines())
+                        total_lines += lines
+            except Exception:
+                pass
+
+            files_analyzed.append({
+                "path": contract_name_short,
+                "full_path": contract_path,
+                "lines": lines,
+                "findings": contract_findings,
+            })
+            files_in_scope.append({
+                "path": contract_name_short,
+                "lines": lines,
+                "description": "Smart Contract"
+            })
+    else:
+        # Single contract
+        contract_path = results.get("contract", results.get("path", "Unknown"))
+        contract_name_short = Path(contract_path).name if contract_path and contract_path != "Unknown" else "Contract"
+
+        lines = "N/A"
+        try:
+            if contract_path and Path(contract_path).exists():
+                with open(contract_path, 'r') as f:
+                    lines = len(f.readlines())
+                    total_lines = lines
+        except Exception:
+            pass
+
+        files_analyzed.append({
+            "path": contract_name_short,
+            "full_path": contract_path,
+            "lines": lines,
+            "findings": len(findings),
+        })
+        files_in_scope.append({
+            "path": contract_name_short,
+            "lines": lines,
+            "description": "Smart Contract"
+        })
+
+    variables["files_analyzed"] = files_analyzed
+    variables["files_in_scope"] = files_in_scope
+    variables["files_count"] = len(files_analyzed)
+    if total_lines > 0:
+        variables["lines_of_code"] = total_lines
+
+    # =========================================================================
     # Enhanced Tool Execution Summary
     # =========================================================================
+    # Get tool results - handle both single and batch audit formats
     tool_results = results.get("results", [])
+    if not tool_results and "contracts" in results:
+        # Batch audit format: aggregate results from all contracts
+        for contract_data in results.get("contracts", []):
+            tool_results.extend(contract_data.get("results", []))
     tools_execution_summary = []
     layer_summary = {}
 
@@ -3680,6 +3753,113 @@ def report(results_file, template, output, output_format, client, auditor, title
                     "breakdown": breakdown,
                 })
             variables["category_summary"] = category_summary
+
+            # =================================================================
+            # Generate SWC Registry Compliance
+            # =================================================================
+            SWC_MAPPING = {
+                "reentrancy": ("SWC-107", "Reentrancy"),
+                "reentrant": ("SWC-107", "Reentrancy"),
+                "integer-overflow": ("SWC-101", "Integer Overflow and Underflow"),
+                "overflow": ("SWC-101", "Integer Overflow and Underflow"),
+                "underflow": ("SWC-101", "Integer Overflow and Underflow"),
+                "unchecked-call": ("SWC-104", "Unchecked Call Return Value"),
+                "unchecked-return": ("SWC-104", "Unchecked Call Return Value"),
+                "tx-origin": ("SWC-115", "Authorization through tx.origin"),
+                "tx.origin": ("SWC-115", "Authorization through tx.origin"),
+                "access-control": ("SWC-105", "Unprotected Ether Withdrawal"),
+                "delegatecall": ("SWC-112", "Delegatecall to Untrusted Callee"),
+                "timestamp": ("SWC-116", "Block values as a proxy for time"),
+                "block-timestamp": ("SWC-116", "Block values as a proxy for time"),
+                "denial-of-service": ("SWC-113", "DoS with Failed Call"),
+                "dos": ("SWC-113", "DoS with Failed Call"),
+                "assembly": ("SWC-127", "Arbitrary Jump with Function Type Variable"),
+                "uninitialized": ("SWC-109", "Uninitialized Storage Pointer"),
+                "floating-pragma": ("SWC-103", "Floating Pragma"),
+                "pragma": ("SWC-103", "Floating Pragma"),
+                "outdated-compiler": ("SWC-102", "Outdated Compiler Version"),
+                "solc-version": ("SWC-102", "Outdated Compiler Version"),
+                "shadowing": ("SWC-119", "Shadowing State Variables"),
+                "visibility": ("SWC-100", "Function Default Visibility"),
+            }
+
+            swc_found = {}
+            for f in findings:
+                f_type = (f.get("type") or f.get("check") or f.get("category") or "").lower().replace("_", "-").replace(" ", "-")
+                f_title = (f.get("title") or f.get("name") or "").lower()
+
+                # Try to match by type or title
+                for key, (swc_id, swc_title) in SWC_MAPPING.items():
+                    if key in f_type or key in f_title:
+                        if swc_id not in swc_found:
+                            swc_found[swc_id] = {"id": swc_id, "title": swc_title, "count": 0, "status": "Found", "status_icon": "⚠️", "finding_ids": []}
+                        swc_found[swc_id]["count"] += 1
+                        swc_found[swc_id]["finding_ids"].append(f"F{len(swc_found[swc_id]['finding_ids'])+1}")
+                        break
+
+            # Add common SWC entries that were checked but not found
+            common_swc = [
+                ("SWC-107", "Reentrancy"),
+                ("SWC-101", "Integer Overflow and Underflow"),
+                ("SWC-104", "Unchecked Call Return Value"),
+                ("SWC-115", "Authorization through tx.origin"),
+                ("SWC-103", "Floating Pragma"),
+                ("SWC-102", "Outdated Compiler Version"),
+            ]
+            for swc_id, swc_title in common_swc:
+                if swc_id not in swc_found:
+                    swc_found[swc_id] = {"id": swc_id, "title": swc_title, "count": 0, "status": "Not Found", "status_icon": "✅", "finding_ids": "--"}
+
+            # Convert finding_ids list to string
+            for swc in swc_found.values():
+                if isinstance(swc["finding_ids"], list):
+                    swc["finding_ids"] = ", ".join(swc["finding_ids"]) if swc["finding_ids"] else "--"
+
+            variables["swc_mappings"] = sorted(swc_found.values(), key=lambda x: x["id"])
+
+            # =================================================================
+            # Generate OWASP Smart Contract Top 10 Compliance
+            # =================================================================
+            OWASP_MAPPING = {
+                "reentrancy": (1, "SC01", "Reentrancy Attacks"),
+                "access-control": (2, "SC02", "Access Control Vulnerabilities"),
+                "arithmetic": (3, "SC03", "Arithmetic Issues"),
+                "overflow": (3, "SC03", "Arithmetic Issues"),
+                "unchecked": (4, "SC04", "Unchecked Return Values"),
+                "dos": (5, "SC05", "Denial of Service"),
+                "denial-of-service": (5, "SC05", "Denial of Service"),
+                "randomness": (6, "SC06", "Bad Randomness"),
+                "front-running": (7, "SC07", "Front-Running"),
+                "timestamp": (8, "SC08", "Time Manipulation"),
+                "short-address": (9, "SC09", "Short Address Attack"),
+                "unknown-unknowns": (10, "SC10", "Unknown Unknowns"),
+            }
+
+            owasp_found = {}
+            for f in findings:
+                f_type = (f.get("type") or f.get("check") or f.get("category") or "").lower().replace("_", "-")
+                f_title = (f.get("title") or f.get("name") or "").lower()
+
+                for key, (rank, owasp_id, owasp_category) in OWASP_MAPPING.items():
+                    if key in f_type or key in f_title:
+                        if owasp_id not in owasp_found:
+                            owasp_found[owasp_id] = {"rank": rank, "id": owasp_id, "category": owasp_category, "count": 0, "status": "Found", "status_icon": "⚠️"}
+                        owasp_found[owasp_id]["count"] += 1
+                        break
+
+            # Add top OWASP entries that were checked
+            top_owasp = [
+                (1, "SC01", "Reentrancy Attacks"),
+                (2, "SC02", "Access Control Vulnerabilities"),
+                (3, "SC03", "Arithmetic Issues"),
+                (4, "SC04", "Unchecked Return Values"),
+                (5, "SC05", "Denial of Service"),
+            ]
+            for rank, owasp_id, owasp_category in top_owasp:
+                if owasp_id not in owasp_found:
+                    owasp_found[owasp_id] = {"rank": rank, "id": owasp_id, "category": owasp_category, "count": 0, "status": "Not Found", "status_icon": "✅"}
+
+            variables["owasp_mappings"] = sorted(owasp_found.values(), key=lambda x: x["rank"])
 
             # Add layer coverage bars
             for layer in variables.get("layer_summary", []):

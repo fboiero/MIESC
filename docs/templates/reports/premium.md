@@ -82,7 +82,7 @@ This document contains confidential security findings and is intended solely for
 | **Informational** | {{ info_count | default(0) }} | {{ info_percent | default(0) }}% |
 | **Total** | **{{ total_findings | default(0) }}** | 100% |
 
-## 1.4 Estimated Value at Risk
+## 1.4 Impact Assessment
 
 {%- if value_at_risk %}
 | Scenario | Estimated Impact |
@@ -91,7 +91,13 @@ This document contains confidential security findings and is intended solely for
 | Likely Case | {{ value_at_risk.likely_case | default('Unable to estimate') }} |
 | Best Case (Minor Exploits Only) | {{ value_at_risk.best_case | default('Unable to estimate') }} |
 {%- else %}
-*Value at risk estimation requires additional context about contract TVL and usage patterns.*
+Based on the identified vulnerabilities:
+
+| Impact Category | Assessment |
+|----------------|------------|
+| **Confidentiality** | {{ 'High' if critical_count > 0 else ('Medium' if high_count > 0 else 'Low') }} - {% if critical_count > 0 or high_count > 0 %}Sensitive data or state could be exposed{% else %}No significant confidentiality risks identified{% endif %} |
+| **Integrity** | {{ 'High' if critical_count > 0 else ('Medium' if high_count > 0 else 'Low') }} - {% if critical_count > 0 or high_count > 0 %}Contract state could be manipulated{% else %}Contract logic appears sound{% endif %} |
+| **Availability** | {{ 'Medium' if critical_count > 0 or high_count > 0 else 'Low' }} - {% if critical_count > 0 %}Denial of service possible{% else %}No significant availability risks{% endif %} |
 {%- endif %}
 
 ---
