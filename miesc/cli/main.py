@@ -61,6 +61,11 @@ except ImportError:
 LOGGING_AVAILABLE = None  # Will be set on first use
 _setup_logging = None
 
+# Lazy imports for ML/Correlation (v4.2.0+)
+ML_ORCHESTRATOR_AVAILABLE = None
+_MLOrchestrator = None
+_MIESCCorrelationAPI = None
+
 # Configure logging (will be reconfigured by setup_logging if available)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -97,6 +102,43 @@ def configure_logging(debug: bool = False, quiet: bool = False):
     else:
         logging.basicConfig(level=getattr(logging, level, logging.INFO))
         logger.debug(f"Basic logging configured with level={level}")
+
+
+def get_ml_orchestrator():
+    """Lazy load MLOrchestrator for ML-enhanced analysis."""
+    global ML_ORCHESTRATOR_AVAILABLE, _MLOrchestrator
+
+    if ML_ORCHESTRATOR_AVAILABLE is None:
+        try:
+            from src.core.ml_orchestrator import MLOrchestrator
+            _MLOrchestrator = MLOrchestrator
+            ML_ORCHESTRATOR_AVAILABLE = True
+            logger.debug("MLOrchestrator loaded successfully")
+        except ImportError as e:
+            logger.debug(f"MLOrchestrator not available: {e}")
+            ML_ORCHESTRATOR_AVAILABLE = False
+
+    if ML_ORCHESTRATOR_AVAILABLE and _MLOrchestrator:
+        return _MLOrchestrator()
+    return None
+
+
+def get_correlation_api():
+    """Lazy load MIESCCorrelationAPI for intelligent correlation."""
+    global _MIESCCorrelationAPI
+
+    if _MIESCCorrelationAPI is None:
+        try:
+            from src.core.correlation_api import MIESCCorrelationAPI
+            _MIESCCorrelationAPI = MIESCCorrelationAPI
+            logger.debug("MIESCCorrelationAPI loaded successfully")
+        except ImportError as e:
+            logger.debug(f"MIESCCorrelationAPI not available: {e}")
+            return None
+
+    if _MIESCCorrelationAPI:
+        return _MIESCCorrelationAPI()
+    return None
 
 
 # Version and banner
@@ -948,12 +990,207 @@ def audit_quick(contract, output, fmt, ci, timeout):
 )
 @click.option("--timeout", "-t", type=int, default=600, help="Timeout per tool in seconds")
 @click.option("--skip-unavailable", is_flag=True, default=True, help="Skip unavailable tools")
-def audit_full(contract, output, fmt, layers, timeout, skip_unavailable):
-    """Complete 7-layer security audit with all 29 tools."""
+@click.option("--ml/--no-ml", default=True, help="Enable ML pipeline for FP filtering and correlation")
+@click.option("--correlate/--no-correlate", default=True, help="Enable cross-tool correlation")
+def audit_full(contract, output, fmt, layers, timeout, skip_unavailable, ml, correlate):
+    """Complete 7-layer security audit with all 29 tools.
+
+    By default uses ML pipeline for false positive filtering and
+    cross-tool correlation for improved accuracy.
+
+    \b
+    Examples:
+        miesc audit full contract.sol                    # Full audit with ML
+        miesc audit full contract.sol --no-ml           # Without ML filtering
+        miesc audit full contract.sol -l 1,2,3          # Only layers 1-3
+        miesc audit full contract.sol -o report.json    # Save to file
+    """
     print_banner()
     info(f"Full audit of {contract}")
 
     layer_list = [int(x.strip()) for x in layers.split(",") if x.strip().isdigit()]
+
+    # Try to use ML Orchestrator for enhanced analysis
+    ml_orchestrator = get_ml_orchestrator() if ml else None
+    correlation_api = get_correlation_api() if correlate and not ml_orchestrator else None
+
+    if ml_orchestrator:
+        info("[bold green]ML Pipeline enabled[/bold green] - FP filtering active" if RICH_AVAILABLE else "ML Pipeline enabled - FP filtering active")
+        _run_full_audit_with_ml(
+            contract, output, fmt, layer_list, timeout, ml_orchestrator
+        )
+        return
+
+    if correlation_api:
+        info("[cyan]Correlation enabled[/cyan] - Cross-tool validation active" if RICH_AVAILABLE else "Correlation enabled - Cross-tool validation active")
+        _run_full_audit_with_correlation(
+            contract, output, fmt, layer_list, timeout, correlation_api
+        )
+        return
+
+    # Fallback to basic mode
+    if ml or correlate:
+        warning("ML/Correlation modules not available, using basic mode")
+
+    _run_full_audit_basic(contract, output, fmt, layer_list, timeout)
+
+
+def _run_full_audit_with_ml(contract, output, fmt, layer_list, timeout, orchestrator):
+    """Run full audit using ML Orchestrator."""
+    # Determine tools from layers
+    tools_to_run = []
+    for layer in layer_list:
+        if layer in LAYERS:
+            tools_to_run.extend(LAYERS[layer]["tools"])
+
+    info(f"Running {len(tools_to_run)} tools with ML enhancement...")
+
+    # Progress callback for Rich
+    def progress_callback(stage, message, progress):
+        if RICH_AVAILABLE:
+            console.print(f"[dim]{stage}:[/dim] {message}")
+
+    # Run ML-enhanced analysis
+    try:
+        result = orchestrator.analyze(
+            contract_path=contract,
+            tools=tools_to_run,
+            timeout=timeout,
+            progress_callback=progress_callback if RICH_AVAILABLE else None,
+        )
+
+        # Display ML-enhanced summary
+        summary_data = result.get_summary()
+
+        if RICH_AVAILABLE:
+            console.print("\n")
+
+            # Main summary table
+            table = Table(title="ML-Enhanced Audit Summary", box=box.ROUNDED)
+            table.add_column("Metric", style="bold")
+            table.add_column("Value", justify="right")
+
+            table.add_row("Risk Level", f"[{'red' if summary_data['risk_level'] in ['CRITICAL', 'HIGH'] else 'yellow'}]{summary_data['risk_level']}[/]")
+            table.add_row("Total Findings", str(summary_data['total_findings']))
+            table.add_row("Critical", f"[red]{summary_data['critical']}[/red]")
+            table.add_row("High", f"[red]{summary_data['high']}[/red]")
+            table.add_row("Medium", f"[yellow]{summary_data['medium']}[/yellow]")
+            table.add_row("Low", f"[cyan]{summary_data['low']}[/cyan]")
+            console.print(table)
+
+            # ML metrics table
+            ml_table = Table(title="ML Pipeline Metrics", box=box.SIMPLE)
+            ml_table.add_column("Metric", style="dim")
+            ml_table.add_column("Value", justify="right")
+
+            ml_table.add_row("Raw Findings", str(result.total_raw_findings))
+            ml_table.add_row("False Positives Removed", f"[green]{result.false_positives_removed}[/green]")
+            ml_table.add_row("Reduction Rate", f"{summary_data['reduction_rate']:.1f}%")
+            ml_table.add_row("Severity Adjustments", str(result.severity_adjustments))
+            ml_table.add_row("Vulnerability Clusters", str(result.cluster_count))
+            ml_table.add_row("Cross-Validated", str(result.cross_validated))
+            console.print(ml_table)
+
+            # Tools summary
+            console.print(f"\n[dim]Tools: {len(result.tools_success)}/{len(result.tools_run)} successful[/dim]")
+            if result.tools_failed:
+                console.print(f"[yellow]Failed: {', '.join(result.tools_failed)}[/yellow]")
+
+            console.print(f"[dim]Execution time: {result.execution_time_ms/1000:.1f}s (ML: {result.ml_processing_time_ms/1000:.1f}s)[/dim]")
+        else:
+            print("\n=== ML-Enhanced Audit Summary ===")
+            print(f"Risk Level: {summary_data['risk_level']}")
+            print(f"Total: {summary_data['total_findings']} (Critical: {summary_data['critical']}, High: {summary_data['high']})")
+            print(f"FPs Removed: {result.false_positives_removed} ({summary_data['reduction_rate']:.1f}% reduction)")
+
+        # Save output
+        if output:
+            if fmt == "json":
+                data = result.to_dict()
+                with open(output, "w") as f:
+                    json.dump(data, f, indent=2, default=str)
+            elif fmt == "markdown":
+                data = _ml_result_to_markdown(result, contract)
+                with open(output, "w") as f:
+                    f.write(data)
+            elif fmt == "sarif":
+                # Convert ML result to SARIF format
+                all_results = [{"tool": t, "findings": result.ml_filtered_findings, "status": "success"}
+                              for t in result.tools_success[:1]]  # Use first tool as source
+                data = _to_sarif(all_results)
+                with open(output, "w") as f:
+                    json.dump(data, f, indent=2)
+            success(f"Report saved to {output}")
+
+    except Exception as e:
+        error(f"ML analysis failed: {e}")
+        logger.exception("ML analysis error")
+        info("Falling back to basic mode...")
+        _run_full_audit_basic(contract, output, fmt, layer_list, timeout)
+
+
+def _run_full_audit_with_correlation(contract, output, fmt, layer_list, timeout, api):
+    """Run full audit using Correlation API."""
+    all_results = []
+
+    for layer in layer_list:
+        if layer in LAYERS:
+            layer_info = LAYERS[layer]
+            if RICH_AVAILABLE:
+                console.print(f"\n[bold cyan]=== Layer {layer}: {layer_info['name']} ===[/bold cyan]")
+            else:
+                print(f"\n=== Layer {layer}: {layer_info['name']} ===")
+
+            results = _run_layer(layer, contract, timeout)
+            all_results.extend(results)
+
+            # Add to correlation API
+            for result in results:
+                if result.get("status") == "success" and result.get("findings"):
+                    api.add_tool_results(result["tool"], result["findings"])
+
+    # Run correlation analysis
+    info("Running cross-tool correlation...")
+    report = api.analyze(output_format="full")
+
+    # Display correlated summary
+    summary = report.get("summary", {})
+    findings = report.get("findings", {})
+
+    if RICH_AVAILABLE:
+        console.print("\n")
+        table = Table(title="Correlated Audit Summary", box=box.ROUNDED)
+        table.add_column("Metric", style="bold")
+        table.add_column("Value", justify="right")
+
+        table.add_row("Total Correlated", str(summary.get("total_correlated", 0)))
+        table.add_row("Cross-Validated", str(summary.get("cross_validated", 0)))
+        table.add_row("High Confidence", str(summary.get("high_confidence_count", 0)))
+        table.add_row("Likely FPs Filtered", str(len(findings.get("likely_false_positives", []))))
+        table.add_row("Dedup Rate", f"{summary.get('deduplication_rate', 0)*100:.1f}%")
+        console.print(table)
+
+        # Actionable findings
+        actionable = findings.get("actionable", [])
+        if actionable:
+            console.print(f"\n[bold]Top Actionable Findings ({len(actionable)}):[/bold]")
+            for f in actionable[:5]:
+                sev = f.get("severity", "unknown").upper()
+                color = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow"}.get(sev, "white")
+                console.print(f"  [{color}][{sev}][/{color}] {f.get('type', 'unknown')} - {f.get('location', {}).get('file', '')}:{f.get('location', {}).get('line', 0)}")
+    else:
+        print("\n=== Correlated Summary ===")
+        print(f"Total: {summary.get('total_correlated', 0)}")
+        print(f"Cross-validated: {summary.get('cross_validated', 0)}")
+
+    if output:
+        with open(output, "w") as f:
+            json.dump(report, f, indent=2, default=str)
+        success(f"Report saved to {output}")
+
+
+def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
+    """Run full audit in basic mode (no ML/correlation)."""
     all_results = []
 
     for layer in layer_list:
@@ -976,7 +1213,7 @@ def audit_full(contract, output, fmt, layers, timeout, skip_unavailable):
     # Display summary
     if RICH_AVAILABLE:
         console.print("\n")
-        table = Table(title="Full Audit Summary", box=box.ROUNDED)
+        table = Table(title="Full Audit Summary (Basic Mode)", box=box.ROUNDED)
         table.add_column("Severity", style="bold")
         table.add_column("Count", justify="right")
 
@@ -995,6 +1232,12 @@ def audit_full(contract, output, fmt, layers, timeout, skip_unavailable):
         # Execution summary
         successful = len([r for r in all_results if r.get("status") == "success"])
         console.print(f"\n[dim]Tools executed: {successful}/{len(all_results)}[/dim]")
+        console.print("[yellow]Note: ML filtering disabled. Results may contain false positives.[/yellow]")
+    else:
+        print("\n=== Full Audit Summary (Basic Mode) ===")
+        for sev, count in summary.items():
+            print(f"{sev}: {count}")
+        print(f"TOTAL: {total}")
 
     if output:
         if fmt == "sarif":
@@ -1007,6 +1250,7 @@ def audit_full(contract, output, fmt, layers, timeout, skip_unavailable):
                 "summary": summary,
                 "version": VERSION,
                 "layers": layer_list,
+                "ml_enabled": False,
             }
 
         with open(output, "w") as f:
@@ -1015,6 +1259,86 @@ def audit_full(contract, output, fmt, layers, timeout, skip_unavailable):
             else:
                 json.dump(data, f, indent=2, default=str)
         success(f"Report saved to {output}")
+
+
+def _ml_result_to_markdown(result, contract: str) -> str:
+    """Convert ML analysis result to Markdown report."""
+    summary = result.get_summary()
+
+    md = f"""# MIESC ML-Enhanced Security Audit Report
+
+**Contract**: `{contract}`
+**Date**: {result.timestamp.strftime("%Y-%m-%d %H:%M:%S")}
+**MIESC Version**: {VERSION}
+**Risk Level**: {summary['risk_level']}
+
+## Executive Summary
+
+| Metric | Value |
+|--------|-------|
+| Total Findings | {summary['total_findings']} |
+| Critical | {summary['critical']} |
+| High | {summary['high']} |
+| Medium | {summary['medium']} |
+| Low | {summary['low']} |
+| False Positives Removed | {result.false_positives_removed} |
+| Reduction Rate | {summary['reduction_rate']:.1f}% |
+
+## ML Pipeline Metrics
+
+- **Raw findings analyzed**: {result.total_raw_findings}
+- **After FP filtering**: {len(result.ml_filtered_findings)}
+- **Severity adjustments**: {result.severity_adjustments}
+- **Vulnerability clusters**: {result.cluster_count}
+- **Cross-validated findings**: {result.cross_validated}
+
+## Tools Executed
+
+- **Successful**: {', '.join(result.tools_success) if result.tools_success else 'None'}
+- **Failed**: {', '.join(result.tools_failed) if result.tools_failed else 'None'}
+
+## Detailed Findings
+
+"""
+    for finding in result.ml_filtered_findings[:20]:
+        severity = finding.get("severity", "INFO").upper()
+        title = finding.get("title", finding.get("type", finding.get("id", "Unknown")))
+        description = finding.get("description", finding.get("message", ""))
+        location = finding.get("location", {})
+
+        md += f"### [{severity}] {title}\n\n"
+        md += f"{description}\n\n"
+
+        if isinstance(location, dict) and location.get("file"):
+            md += f"- **Location**: `{location['file']}:{location.get('line', 0)}`\n"
+
+        if finding.get("confidence"):
+            md += f"- **Confidence**: {finding['confidence']:.2f}\n"
+
+        if finding.get("tool"):
+            md += f"- **Detected by**: {finding['tool']}\n"
+
+        md += "\n---\n\n"
+
+    if result.cluster_count > 0:
+        md += "## Vulnerability Clusters\n\n"
+        for i, cluster in enumerate(result.clusters[:5], 1):
+            cluster_dict = cluster.to_dict() if hasattr(cluster, 'to_dict') else {}
+            md += f"### Cluster {i}: {cluster_dict.get('primary_type', 'Unknown')}\n"
+            md += f"- Findings: {cluster_dict.get('count', 0)}\n"
+            md += f"- Severity: {cluster_dict.get('max_severity', 'unknown')}\n\n"
+
+    md += f"""
+## Execution Details
+
+- **Execution time**: {result.execution_time_ms/1000:.1f}s
+- **ML processing time**: {result.ml_processing_time_ms/1000:.1f}s
+
+---
+
+*Generated by MIESC v{VERSION} with ML Pipeline*
+"""
+    return md
 
 
 @audit.command("layer")
@@ -1056,6 +1380,174 @@ def audit_layer(layer_num, contract, output, timeout):
                 indent=2,
                 default=str,
             )
+        success(f"Report saved to {output}")
+
+
+@audit.command("smart")
+@click.argument("contract", type=click.Path(exists=True))
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option(
+    "--format", "-f", "fmt", type=click.Choice(["json", "markdown"]), default="json"
+)
+@click.option("--timeout", "-t", type=int, default=300, help="Timeout per tool in seconds")
+@click.option("--llm-validate/--no-llm-validate", default=False, help="Use LLM to validate findings")
+def audit_smart(contract, output, fmt, timeout, llm_validate):
+    """Smart audit with ML filtering, correlation, and optional LLM validation.
+
+    This is the recommended command for accurate security analysis:
+    - Runs multiple tools (Slither, Aderyn, Mythril, etc.)
+    - Applies ML-based false positive filtering
+    - Correlates findings across tools
+    - Optionally validates findings with local LLM
+
+    \b
+    Examples:
+        miesc audit smart contract.sol                    # Smart audit
+        miesc audit smart contract.sol --llm-validate    # With LLM validation
+        miesc audit smart contract.sol -o report.json    # Save report
+    """
+    print_banner()
+    info(f"Smart audit of {contract}")
+
+    # Get ML orchestrator
+    ml_orchestrator = get_ml_orchestrator()
+
+    if not ml_orchestrator:
+        error("ML Orchestrator not available. Please check installation.")
+        info("Falling back to basic audit...")
+        # Fall back to basic
+        _run_full_audit_basic(contract, output, fmt, [1, 2, 3], timeout)
+        return
+
+    if RICH_AVAILABLE:
+        console.print("[bold green]ML Pipeline[/bold green] enabled")
+        console.print("[cyan]Cross-tool correlation[/cyan] enabled")
+        if llm_validate:
+            console.print("[magenta]LLM validation[/magenta] enabled")
+
+    # Define smart tool selection (core reliable tools)
+    smart_tools = ["slither", "aderyn", "mythril", "solhint"]
+
+    info(f"Tools: {', '.join(smart_tools)}")
+
+    # Progress display
+    if RICH_AVAILABLE:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        ) as progress:
+            task = progress.add_task("Analyzing...", total=100)
+
+            def progress_callback(stage, message, pct):
+                progress.update(task, description=message, completed=int(pct * 100))
+
+            result = ml_orchestrator.analyze(
+                contract_path=contract,
+                tools=smart_tools,
+                timeout=timeout,
+                progress_callback=progress_callback,
+            )
+    else:
+        result = ml_orchestrator.analyze(
+            contract_path=contract,
+            tools=smart_tools,
+            timeout=timeout,
+        )
+
+    # Optional LLM validation
+    if llm_validate and result.ml_filtered_findings:
+        info("Running LLM validation on findings...")
+        try:
+            from src.llm.finding_validator import LLMFindingValidator, ValidatorConfig
+
+            validator_config = ValidatorConfig(
+                min_severity_to_validate="medium",
+                timeout_seconds=60,
+            )
+            validator = LLMFindingValidator(validator_config)
+
+            import asyncio
+
+            async def validate():
+                validated, validations = await validator.validate_findings_batch(
+                    result.ml_filtered_findings
+                )
+                await validator.close()
+                return validated, validations
+
+            validated_findings, validations = asyncio.run(validate())
+
+            # Update result with LLM validation
+            llm_fp_count = len(result.ml_filtered_findings) - len(validated_findings)
+            if llm_fp_count > 0:
+                info(f"LLM filtered {llm_fp_count} additional false positives")
+                result.ml_filtered_findings = validated_findings
+                result.false_positives_removed += llm_fp_count
+
+        except Exception as e:
+            warning(f"LLM validation failed: {e}")
+
+    # Display results
+    summary = result.get_summary()
+
+    if RICH_AVAILABLE:
+        console.print("\n")
+
+        # Risk badge
+        risk_colors = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow", "LOW": "green"}
+        risk_color = risk_colors.get(summary["risk_level"], "white")
+        console.print(Panel(
+            f"[bold {risk_color}]{summary['risk_level']}[/bold {risk_color}]",
+            title="Risk Level",
+            border_style=risk_color,
+        ))
+
+        # Summary table
+        table = Table(title="Smart Audit Results", box=box.ROUNDED)
+        table.add_column("Severity", style="bold")
+        table.add_column("Count", justify="right")
+
+        table.add_row("Critical", f"[red]{summary['critical']}[/red]")
+        table.add_row("High", f"[red]{summary['high']}[/red]")
+        table.add_row("Medium", f"[yellow]{summary['medium']}[/yellow]")
+        table.add_row("Low", f"[cyan]{summary['low']}[/cyan]")
+        table.add_row("Total", f"[bold]{summary['total_findings']}[/bold]")
+        console.print(table)
+
+        # Effectiveness metrics
+        console.print(f"\n[dim]Raw findings: {result.total_raw_findings}[/dim]")
+        console.print(f"[green]FPs removed: {result.false_positives_removed} ({summary['reduction_rate']:.1f}% reduction)[/green]")
+        console.print(f"[dim]Cross-validated: {result.cross_validated}[/dim]")
+
+        # Top findings
+        if result.ml_filtered_findings:
+            console.print("\n[bold]Top Findings:[/bold]")
+            for f in result.ml_filtered_findings[:5]:
+                sev = f.get("severity", "unknown").upper()
+                color = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow"}.get(sev, "cyan")
+                vtype = f.get("type", f.get("title", "unknown"))
+                loc = f.get("location", {})
+                console.print(f"  [{color}][{sev}][/{color}] {vtype} - {loc.get('file', '')}:{loc.get('line', 0)}")
+    else:
+        print(f"\n=== Smart Audit Results ===")
+        print(f"Risk Level: {summary['risk_level']}")
+        print(f"Total: {summary['total_findings']}")
+        print(f"Critical: {summary['critical']}, High: {summary['high']}")
+        print(f"FPs removed: {result.false_positives_removed}")
+
+    # Save output
+    if output:
+        if fmt == "json":
+            data = result.to_dict()
+            data["llm_validated"] = llm_validate
+            with open(output, "w") as f:
+                json.dump(data, f, indent=2, default=str)
+        else:
+            md = _ml_result_to_markdown(result, contract)
+            with open(output, "w") as f:
+                f.write(md)
         success(f"Report saved to {output}")
 
 
