@@ -279,7 +279,7 @@ def main():
 
     # Find a test contract
     project_root = Path(__file__).parent.parent
-    test_contracts = list(project_root.glob("test_contracts/*.sol"))
+    test_contracts = list(project_root.glob("examples/contracts/*.sol"))
 
     if test_contracts:
         contract = test_contracts[0]
@@ -292,7 +292,7 @@ def main():
             error = test_result.get("error", "Unknown error")
             check_warn(f"Analysis test: {error}")
     else:
-        check_warn("No test contracts found in test_contracts/")
+        check_warn("No test contracts found in examples/contracts/")
 
     # Summary
     print_header("Installation Summary")

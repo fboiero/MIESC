@@ -6,7 +6,7 @@ Usage:
     python cyberpunk_demo.py <contract.sol>
 
 Example:
-    python cyberpunk_demo.py test_contracts/vulnerable.sol
+    python cyberpunk_demo.py examples/contracts/VulnerableBank.sol
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 """

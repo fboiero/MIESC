@@ -117,7 +117,7 @@ function withdraw() public {
   "severity": "High",
   "confidence": 0.75,
   "location": {
-    "file": "test_contracts/VulnerableBank.sol",
+    "file": "examples/contracts/VulnerableBank.sol",
     "line": 27,
     "function": "withdraw"
   },
@@ -307,7 +307,7 @@ MIESC se integra con Model Context Protocol para uso con Claude y otros LLMs:
 
 ### A. Contratos de Prueba Utilizados
 
-Los contratos estan disponibles en `test_contracts/`:
+Los contratos estan disponibles en `examples/contracts/`:
 
 - VulnerableBank.sol
 - EtherStore.sol
@@ -318,13 +318,13 @@ Los contratos estan disponibles en `test_contracts/`:
 
 ```bash
 # Ejecutar auditoria multi-contrato
-python3 run_complete_multilayer_audit.py test_contracts/*.sol
+python3 run_complete_multilayer_audit.py examples/contracts/*.sol
 
 # Usar adapter de Slither directamente
 python3 -c "
 from src.adapters.slither_adapter import SlitherAdapter
 adapter = SlitherAdapter()
-result = adapter.analyze('test_contracts/VulnerableBank.sol')
+result = adapter.analyze('examples/contracts/VulnerableBank.sol')
 print(result)
 "
 ```

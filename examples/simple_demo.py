@@ -6,7 +6,7 @@ Usage:
     python simple_demo.py <contract.sol>
 
 Example:
-    python simple_demo.py test_contracts/not-so-smart-contracts/reentrancy/EtherStore.sol
+    python simple_demo.py examples/contracts/EtherStore.sol
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 """
@@ -147,11 +147,11 @@ def main():
 
     if len(sys.argv) < 2:
         print(f"{Colors.YELLOW}Usage: python simple_demo.py <contract.sol>{Colors.ENDC}")
-        print(f"{Colors.YELLOW}Example: python simple_demo.py test_contracts/not-so-smart-contracts/reentrancy/EtherStore.sol{Colors.ENDC}\n")
+        print(f"{Colors.YELLOW}Example: python simple_demo.py examples/contracts/EtherStore.sol{Colors.ENDC}\n")
 
         # Run demo with sample contract
         print(f"{Colors.CYAN}Running demo with sample vulnerable contract...{Colors.ENDC}\n")
-        analyze_contract("examples/vulnerable/EtherStore.sol")
+        analyze_contract("examples/contracts/EtherStore.sol")
     else:
         contract_path = sys.argv[1]
 

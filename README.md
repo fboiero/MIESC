@@ -58,8 +58,8 @@ docker run --rm ghcr.io/fboiero/miesc:latest doctor  # Standard: ~15 tools
 docker run --rm ghcr.io/fboiero/miesc:full doctor    # Full: ~30 tools
 
 # Or build locally
-docker build -t miesc:latest .                         # Standard
-docker build -f Dockerfile.full -t miesc:full .        # Full
+docker build -t miesc:latest -f docker/Dockerfile .              # Standard
+docker build -t miesc:full -f docker/Dockerfile.full .           # Full
 ```
 
 <details>
@@ -282,11 +282,11 @@ Report Summary: 1 critical, 11 high, 1 medium, 9 low
 
 ```bash
 # Start MIESC + Ollama containers
-docker-compose --profile llm up -d
+docker-compose -f docker/docker-compose.yml --profile llm up -d
 
 # Run full audit and generate report
-docker-compose exec miesc miesc audit full /data/contract.sol -o results.json
-docker-compose exec miesc miesc report results.json -t premium --llm-interpret -o report.html
+docker-compose -f docker/docker-compose.yml exec miesc miesc audit full /data/contract.sol -o results.json
+docker-compose -f docker/docker-compose.yml exec miesc miesc report results.json -t premium --llm-interpret -o report.html
 ```
 
 </details>

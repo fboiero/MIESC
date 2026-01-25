@@ -79,7 +79,7 @@ ls -la
 # drwxr-xr-x  miesc/
 # drwxr-xr-x  src/
 # drwxr-xr-x  tests/
-# drwxr-xr-x  test_contracts/
+# drwxr-xr-x  examples/contracts/
 # -rw-r--r--  pyproject.toml
 # -rw-r--r--  README.md
 # ...
@@ -222,13 +222,13 @@ El analisis rapido utiliza las herramientas mas rapidas disponibles (~30 segundo
 
 ```bash
 # Analisis rapido de un contrato
-miesc audit quick test_contracts/VulnerableBank.sol
+miesc audit quick examples/contracts/VulnerableBank.sol
 
 # Con salida a archivo JSON
-miesc audit quick test_contracts/VulnerableBank.sol -o results/quick_scan.json
+miesc audit quick examples/contracts/VulnerableBank.sol -o results/quick_scan.json
 
 # Con formato Markdown
-miesc audit quick test_contracts/VulnerableBank.sol -o results/quick_scan.md -f markdown
+miesc audit quick examples/contracts/VulnerableBank.sol -o results/quick_scan.md -f markdown
 ```
 
 ### 5.2 Analisis Completo (Full Audit)
@@ -237,10 +237,10 @@ El analisis completo ejecuta todas las capas disponibles (~3-5 minutos).
 
 ```bash
 # Analisis completo
-miesc audit full test_contracts/VulnerableBank.sol -o results/full_audit.json
+miesc audit full examples/contracts/VulnerableBank.sol -o results/full_audit.json
 
 # Especificar capas
-miesc audit full test_contracts/VulnerableBank.sol -l 1,2,3 -o results/layers_123.json
+miesc audit full examples/contracts/VulnerableBank.sol -l 1,2,3 -o results/layers_123.json
 ```
 
 ### 5.3 Analisis por Perfil
@@ -250,26 +250,26 @@ miesc audit full test_contracts/VulnerableBank.sol -l 1,2,3 -o results/layers_12
 miesc audit profile list
 
 # Ejecutar perfil especifico
-miesc audit profile security test_contracts/VulnerableBank.sol
-miesc audit profile defi test_contracts/DeFiVault.sol
-miesc audit profile token test_contracts/AccessControl.sol
+miesc audit profile security examples/contracts/VulnerableBank.sol
+miesc audit profile defi examples/contracts/DeFiVault.sol
+miesc audit profile token examples/contracts/AccessControl.sol
 ```
 
 ### 5.4 Analisis de Herramienta Individual
 
 ```bash
 # Solo Slither
-miesc audit single slither test_contracts/VulnerableBank.sol
+miesc audit single slither examples/contracts/VulnerableBank.sol
 
 # Solo Solhint
-miesc audit single solhint test_contracts/VulnerableBank.sol
+miesc audit single solhint examples/contracts/VulnerableBank.sol
 ```
 
 ### 5.5 Analisis en Lote (Batch)
 
 ```bash
 # Analizar todos los contratos en un directorio
-miesc audit batch test_contracts/ --profile quick -o results/batch_report.json
+miesc audit batch examples/contracts/ --profile quick -o results/batch_report.json
 
 # Con procesamiento paralelo
 miesc audit batch contracts/audit/ --profile balanced -j 4 -o results/audit_batch.json
@@ -285,10 +285,10 @@ El repositorio incluye contratos de prueba con vulnerabilidades conocidas:
 
 | Contrato | Ubicacion | Vulnerabilidades |
 |----------|-----------|------------------|
-| VulnerableBank.sol | test_contracts/ | Reentrancy, Access Control |
-| AccessControl.sol | test_contracts/ | Missing Access Control |
-| EtherStore.sol | test_contracts/ | Reentrancy |
-| DeFiVault.sol | test_contracts/ | Flash Loan, Price Oracle |
+| VulnerableBank.sol | examples/contracts/ | Reentrancy, Access Control |
+| AccessControl.sol | examples/contracts/ | Missing Access Control |
+| EtherStore.sol | examples/contracts/ | Reentrancy |
+| DeFiVault.sol | examples/contracts/ | Flash Loan, Price Oracle |
 | UnsafeToken.sol | contracts/audit/ | Integer Overflow |
 | FlashLoanVault.sol | contracts/audit/ | Flash Loan Attack |
 | NFTMarketplace.sol | contracts/audit/ | Front-running |
@@ -314,7 +314,7 @@ ls benchmarks/datasets/smartbugs-curated/dataset/
 mkdir -p results/validation
 
 # Analizar cada contrato de prueba
-for contract in test_contracts/*.sol; do
+for contract in examples/contracts/*.sol; do
     name=$(basename "$contract" .sol)
     echo "Analizando: $name"
     miesc audit quick "$contract" -o "results/validation/${name}_report.json"
@@ -339,7 +339,7 @@ done
 
 ```bash
 # Ejecutar analisis
-miesc audit full test_contracts/VulnerableBank.sol -o results/analysis.json
+miesc audit full examples/contracts/VulnerableBank.sol -o results/analysis.json
 
 # Convertir a otros formatos
 miesc export results/analysis.json -f markdown -o results/REPORT.md
@@ -442,10 +442,10 @@ echo ""
 echo "2. Analizando contratos de prueba..."
 
 contracts=(
-    "test_contracts/VulnerableBank.sol"
-    "test_contracts/AccessControl.sol"
-    "test_contracts/EtherStore.sol"
-    "test_contracts/DeFiVault.sol"
+    "examples/contracts/VulnerableBank.sol"
+    "examples/contracts/AccessControl.sol"
+    "examples/contracts/EtherStore.sol"
+    "examples/contracts/DeFiVault.sol"
 )
 
 for contract in "${contracts[@]}"; do
@@ -457,7 +457,7 @@ done
 # 4. Generar reporte consolidado
 echo ""
 echo "3. Generando reportes..."
-miesc audit batch test_contracts/ --profile quick -o validation_results/batch_report.json
+miesc audit batch examples/contracts/ --profile quick -o validation_results/batch_report.json
 
 # 5. Convertir a formatos legibles
 miesc export validation_results/batch_report.json -f markdown -o validation_results/FINAL_REPORT.md
@@ -592,7 +592,7 @@ MIESC/
 │   ├── security/          # Modulos de seguridad
 │   └── utils/             # Utilidades
 ├── tests/                 # Tests unitarios
-├── test_contracts/        # Contratos de prueba
+├── examples/contracts/        # Contratos de prueba
 ├── contracts/audit/       # Contratos de auditoria
 ├── benchmarks/            # Datasets de evaluacion
 ├── docs/                  # Documentacion
