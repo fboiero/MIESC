@@ -29,6 +29,28 @@ from .correlation_engine import (
     correlate_findings,
 )
 
+# v4.3.0+ New ML Components (2025-2026 Improvements)
+from .defi_patterns import (
+    DeFiVulnType,
+    DeFiVulnerabilityPattern,
+    DeFiPatternMatch,
+    DeFiPatternDetector,
+    DEFI_VULNERABILITY_PATTERNS,
+    detect_defi_vulnerabilities,
+)
+
+from .severity_classifier import (
+    MLSeverityClassifier,
+    SeverityLevel as MLSeverityLevel,
+    SeverityFactors,
+    SeverityPrediction as MLSeverityPrediction,
+    ContractContext,
+    ImpactLevel,
+    ExploitabilityLevel,
+    ScopeLevel,
+    classify_severity,
+)
+
 
 @dataclass
 class MLEnhancedResult:
@@ -255,4 +277,21 @@ __all__ = [
     'ExploitChainAnalyzer',
     'ExploitChain',
     'correlate_findings',
+    # v4.3.0+ DeFi Pattern Detector
+    'DeFiVulnType',
+    'DeFiVulnerabilityPattern',
+    'DeFiPatternMatch',
+    'DeFiPatternDetector',
+    'DEFI_VULNERABILITY_PATTERNS',
+    'detect_defi_vulnerabilities',
+    # v4.3.0+ ML Severity Classifier
+    'MLSeverityClassifier',
+    'MLSeverityLevel',
+    'SeverityFactors',
+    'MLSeverityPrediction',
+    'ContractContext',
+    'ImpactLevel',
+    'ExploitabilityLevel',
+    'ScopeLevel',
+    'classify_severity',
 ]

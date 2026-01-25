@@ -355,6 +355,18 @@ class AuditReportGenerator:
             .no-print { display: none; }
         }
 
+        /* Remediation code section */
+        .remediation-code pre {
+            margin: 0;
+            padding: 1rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .remediation-code .code-block {
+            border-left: 4px solid #16a34a;
+        }
+
         /* Layer colors */
         .layer-1 { --layer-color: #3b82f6; }
         .layer-2 { --layer-color: #8b5cf6; }
@@ -576,15 +588,70 @@ class AuditReportGenerator:
 
                 {code_html}
 
-                {f'''<div class="finding-section">
-                    <h4>Remediation</h4>
-                    <p>{self._escape_html(finding.remediation)}</p>
-                </div>''' if finding.remediation else ''}
+                {self._generate_remediation_section(finding)}
 
                 {refs_html}
             </div>
         </div>
         """
+
+    def _generate_remediation_section(self, finding: Finding) -> str:
+        """
+        Generate enhanced remediation section with code fixes.
+
+        If the finding has generated remediation code, show it with syntax highlighting.
+        Otherwise, fall back to basic remediation text.
+        """
+        if not finding.remediation and not finding.evidence.get('fixed_code'):
+            return ""
+
+        sections = []
+
+        # Basic remediation description
+        if finding.remediation:
+            sections.append(f"""
+            <div class="finding-section">
+                <h4>Remediation</h4>
+                <p>{self._escape_html(finding.remediation)}</p>
+            </div>
+            """)
+
+        # Generated code fix (if available)
+        fixed_code = finding.evidence.get('fixed_code')
+        if fixed_code:
+            escaped_code = self._escape_html(fixed_code)
+            sections.append(f"""
+            <div class="finding-section remediation-code">
+                <h4>Suggested Fix</h4>
+                <div class="code-block" style="background: #f0fdf4; border: 1px solid #16a34a;">
+                    <span style="color: #16a34a; font-weight: bold;">// FIXED CODE</span>
+                    <pre>{escaped_code}</pre>
+                </div>
+            </div>
+            """)
+
+        # Fix explanation (if available)
+        fix_explanation = finding.evidence.get('fix_explanation')
+        if fix_explanation:
+            sections.append(f"""
+            <div class="finding-section">
+                <h4>Why This Fixes The Issue</h4>
+                <p>{self._escape_html(fix_explanation)}</p>
+            </div>
+            """)
+
+        # Suggested tests (if available)
+        test_suggestions = finding.evidence.get('test_suggestions')
+        if test_suggestions and isinstance(test_suggestions, list):
+            tests_html = "".join(f"<li>{self._escape_html(t)}</li>" for t in test_suggestions[:5])
+            sections.append(f"""
+            <div class="finding-section">
+                <h4>Suggested Tests</h4>
+                <ul>{tests_html}</ul>
+            </div>
+            """)
+
+        return "".join(sections)
 
     def _generate_findings_section(self) -> str:
         """Generate all findings section"""

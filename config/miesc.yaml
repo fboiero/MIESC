@@ -609,6 +609,86 @@ analysis:
     max_confidence_boost: 0.35   # Boost máximo por múltiples herramientas
 
 # =============================================================================
+# v4.3.0+ Nuevas Capas de Inteligencia (2025-2026)
+# =============================================================================
+intelligence:
+  # LLM Ensemble Detector - Multi-model voting
+  ensemble_detection:
+    enabled: true
+    models:
+      - deepseek-coder:6.7b
+      - codellama:7b
+      - llama3.1:8b
+    voting_strategy: threshold  # majority, unanimous, threshold, weighted
+    consensus_threshold: 2      # Mínimo 2 modelos deben coincidir
+    timeout: 120
+
+  # Autonomous Auditor Agent
+  auditor_agent:
+    enabled: true
+    model: deepseek-coder:6.7b
+    checkpoint_dir: ~/.miesc/checkpoints
+    verbose: true
+    steps:
+      understand_contract: true
+      identify_entry_points: true
+      trace_value_flows: true
+      check_access_control: true
+      analyze_state_changes: true
+      detect_vulnerabilities: true
+      validate_findings: true
+      generate_recommendations: true
+
+  # Vulnerability RAG - Retrieval-Augmented Generation
+  vulnerability_rag:
+    enabled: true
+    model: deepseek-coder:6.7b
+    top_k_similar: 3
+    swc_registry: true
+    exploit_examples: true
+
+  # DeFi Pattern Detection
+  defi_patterns:
+    enabled: true
+    min_confidence: 0.3
+    patterns:
+      - flash_loan_attack
+      - sandwich_attack
+      - governance_attack
+      - bridge_vulnerability
+      - oracle_manipulation
+      - liquidity_drain
+      - reward_manipulation
+      - donation_attack
+      - inflation_attack
+
+  # ML Severity Classifier
+  severity_classifier:
+    enabled: true
+    use_llm_analysis: false  # Set true for deeper analysis
+    factors:
+      financial_impact_weight: 0.50
+      exploitability_weight: 0.30
+      scope_weight: 0.20
+
+  # Remediation Generator
+  remediation_generation:
+    enabled: true
+    model: deepseek-coder:6.7b
+    generate_code_fixes: true
+    generate_tests: true
+    parallel: true
+    max_concurrent: 3
+
+  # LLM Analysis Cache
+  cache:
+    enabled: true
+    cache_dir: ~/.miesc/llm_cache
+    ttl_seconds: 86400  # 24 hours
+    max_entries: 1000
+    auto_cleanup: true
+
+# =============================================================================
 # Validación LLM de Hallazgos (v4.2.0+)
 # =============================================================================
 # Usa LLM local para validar hallazgos antes de reportarlos

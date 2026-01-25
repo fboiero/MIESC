@@ -39,6 +39,33 @@ from .finding_validator import (
     validate_findings_sync,
 )
 
+# v4.3.0+ New LLM Components (2025-2026 Improvements)
+from .ensemble_detector import (
+    LLMEnsembleDetector,
+    EnsembleFinding,
+    EnsembleResult,
+    VotingStrategy,
+    detect_with_ensemble,
+)
+
+from .vulnerability_rag import (
+    VulnerabilityRAG,
+    VulnerabilityExample,
+    SimilarVuln,
+    EnhancedFinding,
+    SWC_REGISTRY,
+    EXPLOIT_EXAMPLES,
+)
+
+from .remediation_generator import (
+    RemediationGenerator,
+    Remediation,
+    RemediationResult,
+    REMEDIATION_PATTERNS,
+    generate_fix,
+    get_quick_fix,
+)
+
 __all__ = [
     # Legacy OpenLLaMA helpers
     "OpenLLaMAHelper",
@@ -63,4 +90,24 @@ __all__ = [
     "ValidationResult",
     "ValidatorConfig",
     "validate_findings_sync",
+    # v4.3.0+ LLM Ensemble Detector
+    "LLMEnsembleDetector",
+    "EnsembleFinding",
+    "EnsembleResult",
+    "VotingStrategy",
+    "detect_with_ensemble",
+    # v4.3.0+ Vulnerability RAG
+    "VulnerabilityRAG",
+    "VulnerabilityExample",
+    "SimilarVuln",
+    "EnhancedFinding",
+    "SWC_REGISTRY",
+    "EXPLOIT_EXAMPLES",
+    # v4.3.0+ Remediation Generator
+    "RemediationGenerator",
+    "Remediation",
+    "RemediationResult",
+    "REMEDIATION_PATTERNS",
+    "generate_fix",
+    "get_quick_fix",
 ]
