@@ -1,0 +1,54 @@
+# OpenSSF Scorecard
+# https://securityscorecards.dev/
+# Measures security health of the project
+
+name: OpenSSF Scorecard
+
+on:
+  # Run on branch protection changes
+  branch_protection_rule:
+  # Run weekly
+  schedule:
+    - cron: "0 9 * * 1"  # Monday 9am UTC
+  # Allow manual trigger
+  workflow_dispatch:
+  # Run on pushes to main
+  push:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@v2.4.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+
+      - name: Upload Scorecard Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 30

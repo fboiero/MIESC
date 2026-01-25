@@ -1,0 +1,61 @@
+# SBOM (Software Bill of Materials) Generation
+# Generates CycloneDX SBOM for each release
+# https://cyclonedx.org/
+
+name: SBOM Generation
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install CycloneDX
+        run: pip install cyclonedx-bom
+
+      - name: Generate Python SBOM
+        run: |
+          cyclonedx-py requirements \
+            -i requirements.txt \
+            -o sbom-python.json \
+            --format json
+
+      - name: Generate pip SBOM
+        run: |
+          pip install -r requirements.txt
+          cyclonedx-py environment \
+            -o sbom-environment.json \
+            --format json
+
+      - name: Upload SBOM to Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            sbom-python.json
+            sbom-environment.json
+
+      - name: Upload SBOM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            sbom-python.json
+            sbom-environment.json
+          retention-days: 90
