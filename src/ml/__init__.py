@@ -51,6 +51,15 @@ from .severity_classifier import (
     classify_severity,
 )
 
+from .classic_patterns import (
+    ClassicVulnType,
+    ClassicPatternDetector,
+    PatternMatch as ClassicPatternMatch,
+    PatternConfig,
+    CLASSIC_PATTERNS,
+    detect_classic_vulnerabilities,
+)
+
 
 @dataclass
 class MLEnhancedResult:
@@ -294,4 +303,11 @@ __all__ = [
     'ExploitabilityLevel',
     'ScopeLevel',
     'classify_severity',
+    # v4.3.0+ Classic Pattern Detector (81.2% recall)
+    'ClassicVulnType',
+    'ClassicPatternDetector',
+    'ClassicPatternMatch',
+    'PatternConfig',
+    'CLASSIC_PATTERNS',
+    'detect_classic_vulnerabilities',
 ]
