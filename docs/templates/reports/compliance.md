@@ -24,9 +24,9 @@ Smart Contract Weakness Classification coverage analysis.
 
 | SWC ID | Title | Status | Finding |
 |--------|-------|--------|---------|
-{% for swc in swc_mappings %}
+{%- for swc in swc_mappings %}
 | [{{ swc.id }}](https://swcregistry.io/docs/{{ swc.id }}) | {{ swc.title }} | {{ swc.status }} | {{ swc.finding_id | default('-') }} |
-{% endfor %}
+{%- endfor %}
 
 ### SWC Categories Analyzed
 
@@ -66,9 +66,9 @@ Common Weakness Enumeration mapping for identified vulnerabilities.
 
 | CWE ID | Name | Finding Count | Severity |
 |--------|------|---------------|----------|
-{% for cwe in cwe_mappings %}
+{%- for cwe in cwe_mappings %}
 | [CWE-{{ cwe.id }}](https://cwe.mitre.org/data/definitions/{{ cwe.id }}.html) | {{ cwe.name }} | {{ cwe.count }} | {{ cwe.severity }} |
-{% endfor %}
+{%- endfor %}
 
 ---
 
@@ -138,9 +138,9 @@ MIESC 9-layer defense-in-depth analysis coverage.
 
 | Priority | Finding | SWC | Effort | Risk |
 |----------|---------|-----|--------|------|
-{% for finding in prioritized_findings %}
+{%- for finding in prioritized_findings %}
 | {{ finding.priority }} | {{ finding.title }} | {{ finding.swc_id }} | {{ finding.effort }} | {{ finding.risk }} |
-{% endfor %}
+{%- endfor %}
 
 ---
 

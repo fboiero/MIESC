@@ -60,9 +60,9 @@ This security audit was conducted by {{ auditor_name }} on behalf of {{ client_n
 
 | Tool | Status | Duration | Findings | Layer |
 |------|--------|----------|----------|-------|
-{% for tool in tools_execution_summary %}
+{%- for tool in tools_execution_summary %}
 | {{ tool.name }} | {{ tool.status_icon }} {{ tool.status }} | {{ tool.duration }} | {{ tool.findings_count }} | {{ tool.layer }} |
-{% endfor %}
+{%- endfor %}
 
 ---
 
@@ -72,9 +72,9 @@ MIESC employs a 9-layer defense-in-depth approach. The following table shows the
 
 | Layer | Tools Executed | Success | Failed | Findings | Status |
 |-------|----------------|---------|--------|----------|--------|
-{% for layer in layer_summary %}
+{%- for layer in layer_summary %}
 | {{ layer.name }} | {{ layer.tools }} | {{ layer.success_count }} | {{ layer.failed_count }} | {{ layer.findings_count }} | {{ layer.coverage_status }} |
-{% endfor %}
+{%- endfor %}
 
 ---
 
@@ -145,9 +145,9 @@ MIESC employs a 9-layer defense-in-depth approach. The following table shows the
 
 | Priority | Finding | Severity | Justification |
 |----------|---------|----------|---------------|
-{% for item in llm_remediation_priority %}
+{%- for item in llm_remediation_priority %}
 | {{ item.priority }} | {{ item.title }} | {{ item.severity }} | {{ item.reason }} |
-{% endfor %}
+{%- endfor %}
 
 {% endif %}
 
@@ -185,17 +185,17 @@ This audit employed MIESC's 9-layer defense-in-depth methodology:
 
 | SWC ID | Title | Status |
 |--------|-------|--------|
-{% for swc in swc_mappings %}
+{%- for swc in swc_mappings %}
 | {{ swc.id }} | {{ swc.title }} | {{ swc.status }} |
-{% endfor %}
+{%- endfor %}
 
 ### OWASP Smart Contract Top 10
 
 | ID | Category | Findings |
 |----|----------|----------|
-{% for owasp in owasp_mappings %}
+{%- for owasp in owasp_mappings %}
 | {{ owasp.id }} | {{ owasp.category }} | {{ owasp.count }} |
-{% endfor %}
+{%- endfor %}
 
 ---
 
@@ -216,9 +216,9 @@ This audit employed MIESC's 9-layer defense-in-depth methodology:
 
 | File | Lines | Findings |
 |------|-------|----------|
-{% for file in files_analyzed %}
+{%- for file in files_analyzed %}
 | {{ file.path }} | {{ file.lines }} | {{ file.findings }} |
-{% endfor %}
+{%- endfor %}
 
 ---
 

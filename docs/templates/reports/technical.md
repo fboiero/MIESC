@@ -19,9 +19,9 @@ parallel_workers: {{ parallel }}
 
 | Tool | Layer | Status | Duration | Findings |
 |------|-------|--------|----------|----------|
-{% for tool in tools %}
+{%- for tool in tools %}
 | {{ tool.name }} | {{ tool.layer }} | {{ tool.status }} | {{ tool.duration }} | {{ tool.findings }} |
-{% endfor %}
+{%- endfor %}
 
 **Total Execution Time:** {{ total_duration }}
 
@@ -147,17 +147,17 @@ No unchecked external call issues detected.
 
 | Dependency | Version | Known Vulnerabilities |
 |------------|---------|----------------------|
-{% for dep in dependencies %}
+{%- for dep in dependencies %}
 | {{ dep.name }} | {{ dep.version }} | {{ dep.vulnerabilities }} |
-{% endfor %}
+{%- endfor %}
 
 ## Gas Analysis
 
 | Function | Gas Cost | Optimization Potential |
 |----------|----------|------------------------|
-{% for func in gas_analysis %}
+{%- for func in gas_analysis %}
 | {{ func.name }} | {{ func.gas }} | {{ func.optimization }} |
-{% endfor %}
+{%- endfor %}
 
 ---
 
