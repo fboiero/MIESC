@@ -10,6 +10,7 @@ Features:
 - Parallel model execution
 - Confidence aggregation
 - Vulnerability type consensus
+- Multi-provider support (Ollama, OpenAI, Anthropic) (v4.4.0)
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Institution: UNDEF - IUA
@@ -20,11 +21,29 @@ import asyncio
 import json
 import logging
 import hashlib
+import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from enum import Enum
 
 logger = logging.getLogger(__name__)
+
+
+class LLMProvider(Enum):
+    """Supported LLM providers."""
+    OLLAMA = "ollama"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+
+
+class ProviderUnavailable(Exception):
+    """Exception raised when a provider is unavailable."""
+    pass
+
+
+class AllProvidersUnavailable(Exception):
+    """Exception raised when all providers are unavailable."""
+    pass
 
 
 class VotingStrategy(Enum):
@@ -74,13 +93,31 @@ class LLMEnsembleDetector:
     Uses multiple models with voting to improve detection accuracy
     and reduce false positives through consensus.
 
-    Supported models (Ollama):
-    - deepseek-coder:6.7b  - Excellent code understanding
-    - codellama:7b         - Specialized code analysis
-    - llama3.1:8b          - Strong general reasoning
+    Supported providers (v4.4.0):
+    - Ollama: deepseek-coder:6.7b, codellama:7b, llama3.1:8b
+    - OpenAI: gpt-4-turbo, gpt-4o, gpt-3.5-turbo
+    - Anthropic: claude-3-5-sonnet-20241022, claude-3-haiku-20240307
 
     Voting: A finding is valid if >= 2 models independently identify it.
     """
+
+    # Provider-specific model configurations (v4.4.0)
+    PROVIDER_MODELS = {
+        LLMProvider.OLLAMA: [
+            "deepseek-coder:6.7b",   # Primary - best for code
+            "codellama:7b",           # Secondary - code specialist
+            "llama3.1:8b",            # Tertiary - general reasoning
+        ],
+        LLMProvider.OPENAI: [
+            "gpt-4-turbo",            # Best for complex analysis
+            "gpt-4o",                 # Fast and capable
+            "gpt-3.5-turbo",          # Fallback
+        ],
+        LLMProvider.ANTHROPIC: [
+            "claude-3-5-sonnet-20241022",   # Best for code analysis
+            "claude-3-haiku-20240307",       # Fast and efficient
+        ],
+    }
 
     # Default models for ensemble (ordered by priority)
     DEFAULT_MODELS = [
@@ -91,6 +128,7 @@ class LLMEnsembleDetector:
 
     # Model weights based on code analysis expertise
     MODEL_WEIGHTS = {
+        # Ollama models
         "deepseek-coder:6.7b": 1.3,
         "deepseek-coder:1.3b": 1.0,
         "codellama:7b": 1.2,
@@ -98,6 +136,15 @@ class LLMEnsembleDetector:
         "llama3.1:8b": 1.0,
         "llama3:8b": 0.9,
         "mistral:7b": 0.8,
+        # OpenAI models (v4.4.0)
+        "gpt-4-turbo": 1.4,
+        "gpt-4o": 1.35,
+        "gpt-4": 1.3,
+        "gpt-3.5-turbo": 1.0,
+        # Anthropic models (v4.4.0)
+        "claude-3-5-sonnet-20241022": 1.4,
+        "claude-3-opus-20240229": 1.5,
+        "claude-3-haiku-20240307": 1.1,
     }
 
     # Vulnerability detection prompt
@@ -133,6 +180,9 @@ Response (JSON array only):"""
         consensus_threshold: int = 2,
         timeout: int = 120,
         temperature: float = 0.1,
+        providers: Optional[List[LLMProvider]] = None,
+        openai_api_key: Optional[str] = None,
+        anthropic_api_key: Optional[str] = None,
     ):
         """
         Initialize the ensemble detector.
@@ -144,6 +194,9 @@ Response (JSON array only):"""
             consensus_threshold: Minimum votes for THRESHOLD strategy
             timeout: Request timeout in seconds
             temperature: LLM temperature (lower = more deterministic)
+            providers: List of providers to use (default: [OLLAMA])
+            openai_api_key: OpenAI API key (or from OPENAI_API_KEY env)
+            anthropic_api_key: Anthropic API key (or from ANTHROPIC_API_KEY env)
         """
         self.models = models or self.DEFAULT_MODELS
         self.base_url = ollama_base_url
@@ -152,17 +205,24 @@ Response (JSON array only):"""
         self.timeout = timeout
         self.temperature = temperature
 
+        # Multi-provider support (v4.4.0)
+        self.providers = providers or [LLMProvider.OLLAMA]
+        self.openai_api_key = openai_api_key or os.environ.get("OPENAI_API_KEY")
+        self.anthropic_api_key = anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY")
+
         self._available_models: List[str] = []
+        self._available_providers: Dict[LLMProvider, List[str]] = {}
         self._initialized = False
 
         logger.info(
             f"LLMEnsembleDetector initialized with {len(self.models)} models, "
+            f"providers={[p.value for p in self.providers]}, "
             f"strategy={voting_strategy.value}, threshold={consensus_threshold}"
         )
 
     async def initialize(self) -> Dict[str, bool]:
         """
-        Initialize detector and check model availability.
+        Initialize detector and check model availability across all providers.
 
         Returns:
             Dict mapping model name to availability status
@@ -171,38 +231,317 @@ Response (JSON array only):"""
 
         status = {}
         self._available_models = []
+        self._available_providers = {}
+
+        # Check each provider
+        for provider in self.providers:
+            provider_models = await self._check_provider_availability(provider)
+            self._available_providers[provider] = provider_models
+
+            for model in provider_models:
+                status[f"{provider.value}:{model}"] = True
+                if model not in self._available_models:
+                    self._available_models.append(model)
+
+        # Also check explicitly configured models with Ollama
+        if LLMProvider.OLLAMA in self.providers:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"{self.base_url}/api/tags",
+                        timeout=aiohttp.ClientTimeout(total=10)
+                    ) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            installed_models = [m["name"] for m in data.get("models", [])]
+
+                            for model in self.models:
+                                # Check exact match or prefix match
+                                available = model in installed_models or any(
+                                    m.startswith(model.split(":")[0]) for m in installed_models
+                                )
+                                status[model] = available
+                                if available and model not in self._available_models:
+                                    self._available_models.append(model)
+            except Exception as e:
+                logger.warning(f"Failed to check Ollama models: {e}")
+
+        self._initialized = True
+        total_available = len(self._available_models)
+        logger.info(
+            f"Ensemble detector: {total_available} models available across "
+            f"{len([p for p, m in self._available_providers.items() if m])} providers"
+        )
+        return status
+
+    async def _check_provider_availability(
+        self,
+        provider: LLMProvider
+    ) -> List[str]:
+        """
+        Check availability of models for a specific provider.
+
+        Args:
+            provider: The LLM provider to check
+
+        Returns:
+            List of available model names for this provider
+        """
+        available = []
+
+        if provider == LLMProvider.OLLAMA:
+            import aiohttp
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"{self.base_url}/api/tags",
+                        timeout=aiohttp.ClientTimeout(total=10)
+                    ) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            available = [m["name"] for m in data.get("models", [])]
+            except Exception as e:
+                logger.debug(f"Ollama not available: {e}")
+
+        elif provider == LLMProvider.OPENAI:
+            if self.openai_api_key:
+                # OpenAI models are available if API key is set
+                available = self.PROVIDER_MODELS[LLMProvider.OPENAI]
+                logger.debug(f"OpenAI available with {len(available)} models")
+            else:
+                logger.debug("OpenAI not available: no API key")
+
+        elif provider == LLMProvider.ANTHROPIC:
+            if self.anthropic_api_key:
+                # Anthropic models are available if API key is set
+                available = self.PROVIDER_MODELS[LLMProvider.ANTHROPIC]
+                logger.debug(f"Anthropic available with {len(available)} models")
+            else:
+                logger.debug("Anthropic not available: no API key")
+
+        return available
+
+    async def detect_with_fallback(
+        self,
+        code: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[EnsembleFinding]:
+        """
+        Detect vulnerabilities with provider fallback.
+
+        Tries providers in order until one succeeds.
+
+        Args:
+            code: Solidity source code to analyze
+            context: Optional additional context
+
+        Returns:
+            List of validated findings
+
+        Raises:
+            AllProvidersUnavailable: If no providers can process the request
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        last_error = None
+
+        for provider in self.providers:
+            if provider not in self._available_providers:
+                continue
+
+            provider_models = self._available_providers.get(provider, [])
+            if not provider_models:
+                continue
+
+            try:
+                logger.info(f"Trying provider: {provider.value}")
+                result = await self._detect_with_provider(provider, code, context)
+                return result
+            except ProviderUnavailable as e:
+                logger.warning(f"Provider {provider.value} unavailable: {e}")
+                last_error = e
+                continue
+            except Exception as e:
+                logger.warning(f"Provider {provider.value} failed: {e}")
+                last_error = e
+                continue
+
+        raise AllProvidersUnavailable(
+            f"All providers failed. Last error: {last_error}"
+        )
+
+    async def _detect_with_provider(
+        self,
+        provider: LLMProvider,
+        code: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[EnsembleFinding]:
+        """
+        Run detection with a specific provider.
+
+        Args:
+            provider: The LLM provider to use
+            code: Solidity source code
+            context: Optional context
+
+        Returns:
+            List of findings from this provider
+        """
+        models = self._available_providers.get(provider, [])[:3]  # Max 3 models
+
+        if not models:
+            raise ProviderUnavailable(f"No models available for {provider.value}")
+
+        tasks = []
+        for model in models:
+            if provider == LLMProvider.OLLAMA:
+                tasks.append(self._query_model(model, code, context))
+            elif provider == LLMProvider.OPENAI:
+                tasks.append(self._query_openai(model, code, context))
+            elif provider == LLMProvider.ANTHROPIC:
+                tasks.append(self._query_anthropic(model, code, context))
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results
+        model_findings: Dict[str, List[Dict]] = {}
+
+        for model, result in zip(models, results):
+            if isinstance(result, Exception):
+                logger.warning(f"Model {model} failed: {result}")
+            else:
+                model_findings[model] = result
+
+        if not model_findings:
+            raise ProviderUnavailable(f"All models failed for {provider.value}")
+
+        return self._ensemble_vote(model_findings)
+
+    async def _query_openai(
+        self,
+        model: str,
+        code: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Query OpenAI API for vulnerabilities.
+
+        Args:
+            model: OpenAI model name
+            code: Solidity code
+            context: Optional context
+
+        Returns:
+            List of findings from this model
+        """
+        import aiohttp
+
+        if not self.openai_api_key:
+            raise ProviderUnavailable("OpenAI API key not configured")
+
+        prompt = self.DETECTION_PROMPT.format(code=code)
+        if context:
+            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2)}"
+
+        headers = {
+            "Authorization": f"Bearer {self.openai_api_key}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are an expert smart contract security auditor. Respond only with valid JSON."
+                },
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": self.temperature,
+            "max_tokens": 4096,
+        }
 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{self.base_url}/api/tags",
-                    timeout=aiohttp.ClientTimeout(total=10)
+                async with session.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    json=payload,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=self.timeout)
                 ) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        installed_models = [m["name"] for m in data.get("models", [])]
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise ProviderUnavailable(f"OpenAI error: {error_text}")
 
-                        for model in self.models:
-                            # Check exact match or prefix match
-                            available = model in installed_models or any(
-                                m.startswith(model.split(":")[0]) for m in installed_models
-                            )
-                            status[model] = available
-                            if available:
-                                self._available_models.append(model)
-                    else:
-                        logger.warning(f"Ollama API returned status {resp.status}")
-                        for model in self.models:
-                            status[model] = False
+                    data = await resp.json()
+                    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
-        except Exception as e:
-            logger.warning(f"Failed to check Ollama models: {e}")
-            for model in self.models:
-                status[model] = False
+                    return self._parse_model_response(content, model)
 
-        self._initialized = True
-        logger.info(f"Ensemble detector: {len(self._available_models)}/{len(self.models)} models available")
-        return status
+        except aiohttp.ClientError as e:
+            raise ProviderUnavailable(f"OpenAI connection error: {e}")
+
+    async def _query_anthropic(
+        self,
+        model: str,
+        code: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Query Anthropic API for vulnerabilities.
+
+        Args:
+            model: Anthropic model name
+            code: Solidity code
+            context: Optional context
+
+        Returns:
+            List of findings from this model
+        """
+        import aiohttp
+
+        if not self.anthropic_api_key:
+            raise ProviderUnavailable("Anthropic API key not configured")
+
+        prompt = self.DETECTION_PROMPT.format(code=code)
+        if context:
+            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2)}"
+
+        headers = {
+            "x-api-key": self.anthropic_api_key,
+            "Content-Type": "application/json",
+            "anthropic-version": "2023-06-01",
+        }
+
+        payload = {
+            "model": model,
+            "max_tokens": 4096,
+            "system": "You are an expert smart contract security auditor. Respond only with valid JSON.",
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.anthropic.com/v1/messages",
+                    json=payload,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=self.timeout)
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise ProviderUnavailable(f"Anthropic error: {error_text}")
+
+                    data = await resp.json()
+                    content = data.get("content", [{}])[0].get("text", "")
+
+                    return self._parse_model_response(content, model)
+
+        except aiohttp.ClientError as e:
+            raise ProviderUnavailable(f"Anthropic connection error: {e}")
 
     async def detect_vulnerabilities(
         self,
@@ -539,5 +878,8 @@ __all__ = [
     "EnsembleFinding",
     "EnsembleResult",
     "VotingStrategy",
+    "LLMProvider",
+    "ProviderUnavailable",
+    "AllProvidersUnavailable",
     "detect_with_ensemble",
 ]

@@ -21,12 +21,14 @@ import logging
 from src.adapters.aderyn_adapter import AderynAdapter
 from src.adapters.slither_adapter import SlitherAdapter
 from src.adapters.solhint_adapter import SolhintAdapter
+from src.adapters.semgrep_adapter import SemgrepAdapter
 
 # Layer 2 - Dynamic Testing
 from src.adapters.echidna_adapter import EchidnaAdapter
 from src.adapters.medusa_adapter import MedusaAdapter
 from src.adapters.foundry_adapter import FoundryAdapter
 from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+from src.adapters.hardhat_adapter import HardhatAdapter
 
 # Layer 3 - Symbolic Execution
 from src.adapters.mythril_adapter import MythrilAdapter
@@ -93,17 +95,19 @@ def register_all_adapters():
     registered = []
     failed = []
 
-    # Lista de adaptadores a registrar (31 adapters - 9 layers)
+    # Lista de adaptadores a registrar (33 adapters - 9 layers)
     adapters_to_register = [
-        # Layer 1 - Static Analysis (3 tools)
+        # Layer 1 - Static Analysis (4 tools)
         ("slither", SlitherAdapter),
         ("aderyn", AderynAdapter),
         ("solhint", SolhintAdapter),
-        # Layer 2 - Dynamic Testing (4 tools)
+        ("semgrep", SemgrepAdapter),
+        # Layer 2 - Dynamic Testing (5 tools)
         ("echidna", EchidnaAdapter),
         ("medusa", MedusaAdapter),
         ("foundry", FoundryAdapter),
         ("dogefuzz", DogeFuzzAdapter),
+        ("hardhat", HardhatAdapter),
         # Layer 3 - Symbolic Execution (3 tools)
         ("mythril", MythrilAdapter),
         ("manticore", ManticoreAdapter),
@@ -249,11 +253,13 @@ __all__ = [
     "SlitherAdapter",
     "AderynAdapter",
     "SolhintAdapter",
+    "SemgrepAdapter",
     # Layer 2 - Dynamic Testing
     "EchidnaAdapter",
     "MedusaAdapter",
     "FoundryAdapter",
     "DogeFuzzAdapter",
+    "HardhatAdapter",
     # Layer 3 - Symbolic Execution
     "MythrilAdapter",
     "ManticoreAdapter",

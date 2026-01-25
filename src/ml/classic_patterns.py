@@ -38,6 +38,9 @@ class ClassicVulnType(Enum):
     FRONT_RUNNING = "front_running"
     DOS = "denial_of_service"
     SHORT_ADDRESS = "short_address"
+    # New patterns v4.4.0
+    VYPER_REENTRANCY = "vyper_reentrancy"
+    PERMIT_FRONTRUN = "permit_frontrun"
 
 
 @dataclass
@@ -281,6 +284,84 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         swc_id="SWC-102",
         description="Short address attack in token transfer",
         recommendation="Use Solidity 0.5+ or validate input length",
+    ),
+
+    # =========================================================================
+    # VYPER REENTRANCY (v4.4.0) - Vyper compiler bug
+    # =========================================================================
+    ClassicVulnType.VYPER_REENTRANCY: PatternConfig(
+        vuln_type=ClassicVulnType.VYPER_REENTRANCY,
+        patterns=[
+            # Vyper-specific patterns
+            r"@nonreentrant\s*\(['\"]lock['\"]\)",
+            r"@nonreentrant\s*\(['\"][^'\"]+['\"]\)",
+            r"raw_call\s*\(",
+            r"send\s*\(\s*\w+\s*,\s*\w+\s*\)",
+            # Vyper function definitions with raw_call
+            r"def\s+\w+\([^)]*\)[^:]*:\s*\n[^@]*raw_call",
+            # Vyper pragma indicating vulnerable versions
+            r"#\s*@version\s+0\.2\.1[5-6]",
+            r"#\s*@version\s+0\.3\.0\b",
+        ],
+        anti_patterns=[
+            # Safe Vyper versions
+            r"#\s*@version\s+0\.3\.[1-9]",
+            r"#\s*@version\s+0\.[4-9]",
+        ],
+        severity="critical",
+        swc_id="SWC-107",
+        description=(
+            "Vyper compiler versions 0.2.15, 0.2.16, and 0.3.0 had a bug where "
+            "@nonreentrant decorator did not work correctly. Contracts using "
+            "these versions with raw_call may be vulnerable to reentrancy."
+        ),
+        recommendation=(
+            "Upgrade Vyper to version 0.3.1 or later. "
+            "Audit all contracts compiled with vulnerable versions. "
+            "Consider redeploying affected contracts."
+        ),
+    ),
+
+    # =========================================================================
+    # PERMIT FRONT-RUNNING (v4.4.0) - ERC20 permit attack
+    # =========================================================================
+    ClassicVulnType.PERMIT_FRONTRUN: PatternConfig(
+        vuln_type=ClassicVulnType.PERMIT_FRONTRUN,
+        patterns=[
+            # Permit followed by transferFrom
+            r"permit\s*\([^)]*\)\s*[;\n][^}]*transferFrom\s*\(",
+            r"IERC20Permit.*permit.*[;\n][^}]*transfer",
+            # Permit in same function as transfer
+            r"function\s+\w+[^}]*permit\s*\([^}]*transferFrom",
+            # Self-permit patterns
+            r"selfPermit\s*\(",
+            r"permitAndTransfer\s*\(",
+            # Permit with external call
+            r"\.permit\s*\([^)]*\)\s*;",
+        ],
+        anti_patterns=[
+            # Try-catch around permit
+            r"try\s+\w+\.permit",
+            r"try\s*\{[^}]*permit",
+            # Permit + nonce check
+            r"nonces\s*\[[^]]+\]\s*[+<>=]",
+            # Using permit2
+            r"permit2",
+            r"PERMIT2",
+        ],
+        severity="medium",
+        swc_id="SWC-114",
+        description=(
+            "When permit() and transferFrom() are called in separate transactions, "
+            "or when permit() can revert, attackers can front-run the permit call "
+            "with their own permit to DoS the user or steal approved tokens."
+        ),
+        recommendation=(
+            "Wrap permit() in try-catch to handle DoS attacks. "
+            "Use Permit2 for more secure permits. "
+            "Consider combining permit and transfer in atomic operations. "
+            "Be aware that permit can be front-run."
+        ),
     ),
 }
 

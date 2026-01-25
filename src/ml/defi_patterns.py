@@ -41,6 +41,15 @@ class DeFiVulnType(Enum):
     MEV_EXTRACTION = "mev_extraction"
     DONATION_ATTACK = "donation_attack"
     INFLATION_ATTACK = "inflation_attack"
+    # New patterns v4.4.0
+    READ_ONLY_REENTRANCY = "read_only_reentrancy"
+    ERC4626_INFLATION = "erc4626_inflation"
+    ARBITRARY_EXTERNAL_CALL = "arbitrary_external_call"
+    PRECISION_LOSS = "precision_loss"
+    CROSS_FUNCTION_REENTRANCY = "cross_function_reentrancy"
+    SIGNATURE_REPLAY = "signature_replay"
+    FIRST_DEPOSITOR = "first_depositor"
+    STORAGE_COLLISION = "storage_collision"
 
 
 @dataclass
@@ -589,6 +598,498 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         ),
         swc_id=None,
         estimated_loss_usd="$200M+",
+    ),
+
+    # =========================================================================
+    # READ-ONLY REENTRANCY (v4.4.0)
+    # =========================================================================
+    DeFiVulnType.READ_ONLY_REENTRANCY: DeFiVulnerabilityPattern(
+        vuln_type=DeFiVulnType.READ_ONLY_REENTRANCY,
+        name="Read-Only Reentrancy Attack",
+        severity="high",
+        indicators=[
+            # View functions called during external calls
+            r"\.balanceOf\s*\([^)]*\)\s*[^;]*view",
+            r"getReserves\s*\(\s*\)",
+            r"totalSupply\s*\(\)",
+            r"getRate\s*\(\s*\)",
+            r"get_virtual_price\s*\(",
+            # External call patterns
+            r"\.call\s*\{[^}]*\}\s*\(",
+            r"\.transfer\s*\(",
+            r"safeTransfer\s*\(",
+            # Callback patterns
+            r"onERC721Received",
+            r"onERC1155Received",
+            r"tokensReceived\s*\(",
+        ],
+        anti_patterns=[
+            # Reentrancy guards on view functions
+            r"nonReentrant",
+            r"ReentrancyGuard",
+            # Checks for callback context
+            r"_inCallback",
+            r"isInFlashLoan",
+            # State validation
+            r"require\s*\(\s*!_locked",
+        ],
+        description=(
+            "Read-only reentrancy occurs when a view function returns stale data "
+            "during an external call's callback. Protocols relying on these view "
+            "functions for pricing can be exploited during the callback window."
+        ),
+        attack_example=(
+            "1. Call Balancer pool join/exit\n"
+            "2. During callback, pool.getRate() returns stale value\n"
+            "3. Victim protocol reads stale rate\n"
+            "4. Borrow at favorable rate or deposit at inflated value\n"
+            "5. Callback completes, rate normalizes\n"
+            "6. Attacker has undercollateralized position"
+        ),
+        real_exploits=[
+            "Sentiment Protocol ($1M, 2023)",
+            "Curve/Vyper ($70M, 2023)",
+            "Multiple Balancer integrations (2023)",
+        ],
+        remediation=(
+            "Check if external protocol is mid-transaction before reading. "
+            "Use TWAPs instead of spot prices. "
+            "Implement callback detection in view functions. "
+            "Add reentrancy guards to pricing functions. "
+            "Consider using Balancer's QueryProcessor for safe reads."
+        ),
+        swc_id="SWC-107",
+        estimated_loss_usd="$100M+",
+    ),
+
+    # =========================================================================
+    # ERC4626 INFLATION ATTACK (v4.4.0)
+    # =========================================================================
+    DeFiVulnType.ERC4626_INFLATION: DeFiVulnerabilityPattern(
+        vuln_type=DeFiVulnType.ERC4626_INFLATION,
+        name="ERC4626 Vault First Depositor Attack",
+        severity="critical",
+        indicators=[
+            # ERC4626 functions
+            r"convertToShares\s*\(",
+            r"convertToAssets\s*\(",
+            r"previewDeposit\s*\(",
+            r"previewMint\s*\(",
+            # Total assets/supply checks
+            r"totalAssets\s*\(\s*\)\s*==\s*0",
+            r"totalSupply\s*\(\s*\)\s*==\s*0",
+            # Share calculation without protection
+            r"shares\s*=\s*assets\s*\*\s*totalSupply\s*/\s*totalAssets",
+            r"assets\s*\*\s*_totalSupply\s*/\s*_totalAssets",
+            # Direct balance usage
+            r"asset\.balanceOf\s*\(\s*address\s*\(\s*this\s*\)\s*\)",
+        ],
+        anti_patterns=[
+            # OpenZeppelin's virtual offset protection
+            r"_decimalsOffset\s*\(",
+            r"virtualAssets",
+            r"virtualShares",
+            r"DECIMALS_OFFSET",
+            # Dead shares
+            r"_mint\s*\(\s*address\s*\(\s*0\s*\)",
+            r"_mint\s*\(\s*address\s*\(\s*0xdead\s*\)",
+            # Minimum deposit
+            r"MIN_INITIAL_DEPOSIT",
+            r"require\s*\([^)]*>=\s*MIN",
+        ],
+        description=(
+            "ERC4626 vaults are vulnerable to first-depositor attacks where an attacker "
+            "deposits 1 wei, then donates a large amount to inflate the share price. "
+            "Subsequent depositors lose funds to rounding in favor of the attacker."
+        ),
+        attack_example=(
+            "1. Be first depositor with 1 wei → get 1 share\n"
+            "2. Donate 1e18 tokens directly to vault\n"
+            "3. Exchange rate: 1 share = 1e18 + 1 tokens\n"
+            "4. Victim deposits 1.5e18 tokens\n"
+            "5. Victim gets 0 shares (rounds down from 1.49)\n"
+            "6. Attacker withdraws 1 share → gets 2.5e18 tokens\n"
+            "7. Victim lost all deposited funds"
+        ),
+        real_exploits=[
+            "Radiant Capital ($4.5M, 2024)",
+            "Multiple ERC4626 vaults (various)",
+        ],
+        remediation=(
+            "Use OpenZeppelin's ERC4626 with _decimalsOffset(). "
+            "Mint 'dead shares' to zero address on deployment. "
+            "Require minimum initial deposit (e.g., 1000 wei). "
+            "Use virtual shares/assets offset. "
+            "Check for zero shares on deposit."
+        ),
+        swc_id=None,
+        estimated_loss_usd="$50M+",
+    ),
+
+    # =========================================================================
+    # ARBITRARY EXTERNAL CALL (v4.4.0)
+    # =========================================================================
+    DeFiVulnType.ARBITRARY_EXTERNAL_CALL: DeFiVulnerabilityPattern(
+        vuln_type=DeFiVulnType.ARBITRARY_EXTERNAL_CALL,
+        name="Arbitrary External Call Vulnerability",
+        severity="critical",
+        indicators=[
+            # Direct call with user input
+            r"\.call\s*\(\s*\w+\s*\)",
+            r"address\s*\(\s*\w+\s*\)\s*\.call",
+            r"target\.call\s*\(",
+            r"_target\.call\s*\(",
+            r"to\.call\s*\(",
+            # Calldata from user
+            r"\.call\s*\([^)]*data\s*\)",
+            r"\.call\s*\([^)]*calldata\s*\)",
+            r"\.call\s*\([^)]*_data\s*\)",
+            # Bridge/aggregator patterns
+            r"performAction\s*\(",
+            r"executeSwap\s*\(",
+            r"_executeSwaps\s*\(",
+        ],
+        anti_patterns=[
+            # Whitelisted targets
+            r"allowedTargets\s*\[",
+            r"whitelistedTargets\s*\[",
+            r"approvedContracts\s*\[",
+            # Function selector validation
+            r"_isValidSelector\s*\(",
+            r"validateCalldata\s*\(",
+            r"checkSelector\s*\(",
+            # Hardcoded targets
+            r"ROUTER\s*=\s*0x",
+            r"DEX\s*=\s*0x",
+        ],
+        description=(
+            "Contracts that allow arbitrary external calls with user-controlled "
+            "target and data can be exploited to steal approved tokens, call "
+            "privileged functions, or drain funds."
+        ),
+        attack_example=(
+            "1. Find bridge/aggregator with user approvals\n"
+            "2. Craft calldata: transferFrom(victim, attacker, amount)\n"
+            "3. Call performAction(tokenAddress, maliciousCalldata)\n"
+            "4. Contract executes transferFrom as itself\n"
+            "5. Attacker receives victim's approved tokens"
+        ),
+        real_exploits=[
+            "Socket/Bungee ($3.3M, 2024)",
+            "LI.FI Protocol ($12M, 2024)",
+            "Dough Finance ($2M, 2024)",
+        ],
+        remediation=(
+            "Whitelist allowed target contracts. "
+            "Validate function selectors in calldata. "
+            "Never allow arbitrary calls to token contracts. "
+            "Use specific interfaces instead of raw calls. "
+            "Implement per-contract approval patterns."
+        ),
+        swc_id="SWC-112",
+        estimated_loss_usd="$20M+",
+    ),
+
+    # =========================================================================
+    # PRECISION LOSS (v4.4.0)
+    # =========================================================================
+    DeFiVulnType.PRECISION_LOSS: DeFiVulnerabilityPattern(
+        vuln_type=DeFiVulnType.PRECISION_LOSS,
+        name="Precision Loss / Rounding Error Attack",
+        severity="high",
+        indicators=[
+            # Multiply then divide (precision loss)
+            r"\*\s*\d+\s*/\s*\d+",
+            r"\.mul\s*\([^)]+\)\s*\.div\s*\(",
+            r"\.mul\s*\([^)]+\)\s*/",
+            # Divide then multiply (worse precision loss)
+            r"/\s*\d+\s*\*\s*\d+",
+            r"\.div\s*\([^)]+\)\s*\.mul\s*\(",
+            # Common vulnerable patterns
+            r"amount\s*/\s*total",
+            r"shares\s*=\s*[^;]*/\s*total",
+            r"fee\s*=\s*amount\s*\*\s*\w+\s*/\s*\d+",
+            # Integer division truncation
+            r"/\s*1e\d+\s*\*",
+            r"/\s*PRECISION\s*\*",
+        ],
+        anti_patterns=[
+            # Higher precision intermediate values
+            r"PRECISION\s*=\s*1e18",
+            r"\*\s*1e18\s*[^/]*$",
+            # Rounding functions
+            r"mulDivUp\s*\(",
+            r"mulDivDown\s*\(",
+            r"ceilDiv\s*\(",
+            # Explicit rounding direction
+            r"\+\s*\w+\s*-\s*1\s*\)\s*/",  # Round up pattern
+        ],
+        description=(
+            "Integer arithmetic in Solidity truncates results. Careless ordering "
+            "of multiplication and division can lead to significant precision loss, "
+            "which attackers can exploit through repeated transactions."
+        ),
+        attack_example=(
+            "1. Identify AMM/vault with precision loss\n"
+            "2. Calculate optimal input that maximizes rounding benefit\n"
+            "3. Execute many small transactions\n"
+            "4. Each transaction extracts tiny extra amount\n"
+            "5. Aggregate small gains into significant profit"
+        ),
+        real_exploits=[
+            "Velocore ($6.8M, 2024)",
+            "Abracadabra ($6.5M, 2024)",
+            "Many DeFi protocols (ongoing)",
+        ],
+        remediation=(
+            "Multiply before dividing when possible. "
+            "Use higher precision for intermediate calculations. "
+            "Implement explicit rounding direction (round against user). "
+            "Use libraries like PRBMath or FullMath. "
+            "Add minimum output requirements."
+        ),
+        swc_id="SWC-101",
+        estimated_loss_usd="$50M+",
+    ),
+
+    # =========================================================================
+    # CROSS-FUNCTION REENTRANCY (v4.4.0)
+    # =========================================================================
+    DeFiVulnType.CROSS_FUNCTION_REENTRANCY: DeFiVulnerabilityPattern(
+        vuln_type=DeFiVulnType.CROSS_FUNCTION_REENTRANCY,
+        name="Cross-Function Reentrancy Attack",
+        severity="critical",
+        indicators=[
+            # External calls in state-modifying functions
+            r"external\s+[^}]+\{[^}]*\.call\s*\{",
+            r"external\s+[^}]+\{[^}]*\.transfer\s*\(",
+            r"external\s+[^}]+\{[^}]*safeTransfer\s*\(",
+            # Mint/burn during external calls
+            r"external\s+[^}]+\{[^}]*_mint\s*\(",
+            r"external\s+[^}]+\{[^}]*_burn\s*\(",
+            # Callback patterns
+            r"callback\s*\([^)]*\)\s*[^;]*\{",
+            r"on\w+Received\s*\(",
+            # State reads after external calls
+            r"\.call[^;]+;\s*[^}]*balance",
+        ],
+        anti_patterns=[
+            # Global reentrancy guard
+            r"nonReentrant",
+            r"ReentrancyGuard",
+            # Per-function locks
+            r"modifier\s+lock",
+            r"locked\s*=\s*true",
+            # CEI pattern (effects before interactions)
+            r"//\s*CEI",
+        ],
+        description=(
+            "Cross-function reentrancy occurs when function A makes an external call "
+            "that reenters via function B. Even if A has a reentrancy guard, B might "
+            "not, allowing state manipulation through a different entry point."
+        ),
+        attack_example=(
+            "1. Call withdraw() which sends ETH\n"
+            "2. In receive(), call deposit() (different function)\n"
+            "3. deposit() reads stale balance state\n"
+            "4. Attacker credited for deposit they didn't make\n"
+            "5. withdraw() completes, reduces balance\n"
+            "6. Attacker has extra funds"
+        ),
+        real_exploits=[
+            "Penpie ($27M, 2024)",
+            "Curve/Vyper ($70M, 2023)",
+            "Hundred Finance ($7M, 2023)",
+        ],
+        remediation=(
+            "Use contract-wide reentrancy guard (not per-function). "
+            "Follow checks-effects-interactions pattern strictly. "
+            "Lock all state-modifying functions together. "
+            "Use pull payment pattern for ETH transfers."
+        ),
+        swc_id="SWC-107",
+        estimated_loss_usd="$150M+",
+    ),
+
+    # =========================================================================
+    # SIGNATURE REPLAY (v4.4.0)
+    # =========================================================================
+    DeFiVulnType.SIGNATURE_REPLAY: DeFiVulnerabilityPattern(
+        vuln_type=DeFiVulnType.SIGNATURE_REPLAY,
+        name="Signature Replay Attack",
+        severity="high",
+        indicators=[
+            # Signature verification without nonce
+            r"ecrecover\s*\(",
+            r"ECDSA\.recover\s*\(",
+            r"SignatureChecker\.isValidSignature",
+            # Missing nonce in hash
+            r"keccak256\s*\([^)]*\)\s*[^;]*(?!.*nonce)",
+            r"abi\.encodePacked\s*\([^)]*\)\s*[^;]*(?!.*nonce)",
+            # Missing chain ID
+            r"keccak256\s*\([^)]*\)\s*[^;]*(?!.*chainid)",
+        ],
+        anti_patterns=[
+            # Nonce tracking
+            r"mapping\s*\([^)]*nonce",
+            r"usedNonces\s*\[",
+            r"nonces\s*\[",
+            # EIP-712 domain separator
+            r"DOMAIN_SEPARATOR",
+            r"_domainSeparatorV4\s*\(",
+            # Deadline/expiry
+            r"require\s*\(\s*block\.timestamp\s*[<>]=?\s*deadline",
+            r"require\s*\(\s*deadline\s*[<>]=?\s*block\.timestamp",
+        ],
+        description=(
+            "Signatures without nonces, expiration, or chain ID can be replayed. "
+            "An attacker can reuse a valid signature multiple times or across "
+            "different chains to perform unauthorized actions."
+        ),
+        attack_example=(
+            "1. User signs permit() for 100 USDC\n"
+            "2. Attacker intercepts signature\n"
+            "3. Uses signature to transfer 100 USDC\n"
+            "4. User deposits another 100 USDC\n"
+            "5. Attacker replays same signature\n"
+            "6. Another 100 USDC stolen"
+        ),
+        real_exploits=[
+            "Multiple permit implementations (ongoing)",
+            "Cross-chain replay attacks (various)",
+        ],
+        remediation=(
+            "Include nonce in signed message and track used nonces. "
+            "Add deadline/expiration timestamp. "
+            "Include chain ID in signature (EIP-712). "
+            "Include contract address in signature. "
+            "Use OpenZeppelin's EIP712 and Nonces contracts."
+        ),
+        swc_id="SWC-121",
+        estimated_loss_usd="$30M+",
+    ),
+
+    # =========================================================================
+    # FIRST DEPOSITOR ATTACK (v4.4.0)
+    # =========================================================================
+    DeFiVulnType.FIRST_DEPOSITOR: DeFiVulnerabilityPattern(
+        vuln_type=DeFiVulnType.FIRST_DEPOSITOR,
+        name="First Depositor / Exchange Rate Attack",
+        severity="high",
+        indicators=[
+            # Empty pool checks
+            r"totalSupply\s*\(\s*\)\s*==\s*0",
+            r"if\s*\(\s*supply\s*==\s*0\s*\)",
+            r"if\s*\(\s*_totalSupply\s*==\s*0\s*\)",
+            # Direct 1:1 minting for first depositor
+            r"shares\s*=\s*assets",
+            r"shares\s*=\s*amount",
+            r"return\s+amount\s*;",
+            # Exchange rate calculation
+            r"shares\s*=\s*amount\s*\*\s*totalSupply\s*/\s*totalAssets",
+        ],
+        anti_patterns=[
+            # Dead shares
+            r"_mint\s*\(\s*address\s*\(\s*0\s*\)",
+            r"BURN_ADDRESS",
+            # Minimum deposit
+            r"MIN_DEPOSIT",
+            r"require\s*\(\s*shares\s*>=\s*MIN",
+            # Virtual offset
+            r"virtualShares",
+            r"INITIAL_SHARES",
+        ],
+        description=(
+            "In vaults and lending pools, the first depositor can manipulate the "
+            "exchange rate by depositing minimal shares then donating assets. "
+            "This inflates the share price, causing later depositors to receive "
+            "fewer shares (potentially zero due to rounding)."
+        ),
+        attack_example=(
+            "1. Deploy or find new vault/pool\n"
+            "2. Deposit 1 wei as first depositor → get 1 share\n"
+            "3. Donate large amount (e.g., 10 ETH) to vault\n"
+            "4. Exchange rate: 1 share = 10 ETH\n"
+            "5. Victim deposits 15 ETH → gets 1 share (15/10 rounds down)\n"
+            "6. Attacker withdraws 1 share → gets ~12.5 ETH\n"
+            "7. Victim effectively lost 2.5 ETH to attacker"
+        ),
+        real_exploits=[
+            "Radiant Capital ($4.5M, 2024)",
+            "Multiple Compound forks (various)",
+        ],
+        remediation=(
+            "Mint initial 'dead shares' to burn address. "
+            "Require minimum first deposit. "
+            "Use virtual shares/assets offset. "
+            "Check that minted shares > 0. "
+            "Implement minimum share threshold."
+        ),
+        swc_id=None,
+        estimated_loss_usd="$20M+",
+    ),
+
+    # =========================================================================
+    # STORAGE COLLISION (v4.4.0)
+    # =========================================================================
+    DeFiVulnType.STORAGE_COLLISION: DeFiVulnerabilityPattern(
+        vuln_type=DeFiVulnType.STORAGE_COLLISION,
+        name="Proxy Storage Collision Vulnerability",
+        severity="critical",
+        indicators=[
+            # Proxy patterns
+            r"delegatecall\s*\(",
+            r"Proxy\s*\{",
+            r"TransparentUpgradeableProxy",
+            r"UUPSUpgradeable",
+            # Implementation storage
+            r"implementation\s*\(\s*\)",
+            r"_implementation\s*\(",
+            r"_setImplementation\s*\(",
+            # Storage slot access
+            r"sload\s*\(",
+            r"sstore\s*\(",
+            r"assembly\s*\{[^}]*slot",
+        ],
+        anti_patterns=[
+            # EIP-1967 storage slots
+            r"0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
+            r"_IMPLEMENTATION_SLOT",
+            r"ERC1967_IMPLEMENTATION_SLOT",
+            # Storage gaps
+            r"__gap\s*\[",
+            r"uint256\s*\[\s*\d+\s*\]\s+private\s+__gap",
+            # Initializable pattern
+            r"initializer\s+modifier",
+            r"_initialized",
+        ],
+        description=(
+            "Proxy contracts use delegatecall which executes implementation code "
+            "with the proxy's storage. If the implementation's storage layout "
+            "doesn't match the proxy's, variables can be overwritten unexpectedly."
+        ),
+        attack_example=(
+            "1. Proxy has owner at slot 0\n"
+            "2. Implementation has differentVar at slot 0\n"
+            "3. Attacker calls function that sets differentVar\n"
+            "4. Actually overwrites owner in proxy storage\n"
+            "5. Attacker becomes owner of proxy\n"
+            "6. Attacker drains funds or upgrades to malicious impl"
+        ),
+        real_exploits=[
+            "Parity Wallet ($30M frozen, 2017)",
+            "Audius ($6M, 2022)",
+            "Various proxy vulnerabilities (ongoing)",
+        ],
+        remediation=(
+            "Use EIP-1967 storage slots for proxy variables. "
+            "Implement storage gaps in upgradeable contracts. "
+            "Never add state variables before existing ones in upgrades. "
+            "Use OpenZeppelin's upgradeable contract patterns. "
+            "Test storage layout compatibility before upgrades."
+        ),
+        swc_id="SWC-112",
+        estimated_loss_usd="$50M+",
     ),
 }
 
