@@ -1,9 +1,15 @@
 # =============================================================================
-# MIESC v4.1 - Configuración Centralizada
+# MIESC v4.6.0 - Configuración Centralizada
 # Multi-layer Intelligent Evaluation for Smart Contracts
+#
+# v4.6.0 Changes:
+# - Enhanced false positive filtering with detector-specific rates
+# - Cross-validation enforcement for critical patterns
+# - Semantic context analysis for guards and CEI pattern
+# - Call graph and taint analysis integration
 # =============================================================================
 
-version: "4.1.0"
+version: "4.6.0"
 
 # =============================================================================
 # Configuración Global
@@ -546,6 +552,28 @@ results:
     require_cross_validation_for_critical: true  # Reentrancy, delegatecall, etc.
     filter_informational: true  # Filtrar severidad informational
     filter_test_files: true  # Filtrar hallazgos en archivos de test
+
+    # v4.6.0: Enhanced FP filtering with detector-specific rates
+    use_detector_fp_rates: true  # Use SLITHER_DETECTOR_FP_RATES
+    semantic_context_analysis: true  # Use SemanticContextAnalyzer
+
+  # v4.6.0: Cross-validation enforcement
+  cross_validation_v2:
+    enabled: true
+    # Patterns requiring 2+ tools for confirmation
+    require_multi_tool:
+      - reentrancy
+      - reentrancy-eth
+      - reentrancy-no-eth
+      - arbitrary-send
+      - arbitrary-send-eth
+      - controlled-delegatecall
+      - suicidal
+      - unprotected-upgrade
+    # Maximum confidence for single-tool critical findings
+    single_tool_max_confidence: 0.60
+    # Confidence boost per additional tool
+    multi_tool_confidence_boost: 0.08
 
   # Formatos de exportación
   export_formats:

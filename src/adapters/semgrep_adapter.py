@@ -72,13 +72,29 @@ class SemgrepAdapter(ToolAdapter):
     ]
 
     # Custom rule patterns for common vulnerabilities
+    # v4.6.0: Expanded from 6 to 20+ rules for better DeFi coverage
     CUSTOM_RULES = {
+        # === REENTRANCY PATTERNS ===
         "reentrancy": {
             "pattern": "$X.call{value: $V}($DATA)",
             "message": "Potential reentrancy vulnerability: external call with value transfer",
             "severity": "ERROR",
             "languages": ["solidity"]
         },
+        "reentrancy-send": {
+            "pattern": "$X.send($V)",
+            "message": "Potential reentrancy: send() can trigger fallback",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+        "reentrancy-transfer": {
+            "pattern": "$X.transfer($V)",
+            "message": "External transfer before state update",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+
+        # === UNCHECKED CALLS ===
         "unchecked-call": {
             "pattern": "$X.call($DATA);",
             "pattern-not": "(bool $SUCCESS,) = $X.call($DATA);",
@@ -86,6 +102,20 @@ class SemgrepAdapter(ToolAdapter):
             "severity": "WARNING",
             "languages": ["solidity"]
         },
+        "unchecked-return-transfer": {
+            "pattern": "$TOKEN.transfer($TO, $AMOUNT);",
+            "message": "Unchecked ERC20 transfer return value - use SafeERC20",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+        "unchecked-return-transferfrom": {
+            "pattern": "$TOKEN.transferFrom($FROM, $TO, $AMOUNT);",
+            "message": "Unchecked ERC20 transferFrom return value - use SafeERC20",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+
+        # === ACCESS CONTROL ===
         "tx-origin": {
             "pattern": "tx.origin",
             "message": "Use of tx.origin for authorization is insecure",
@@ -98,18 +128,129 @@ class SemgrepAdapter(ToolAdapter):
             "severity": "ERROR",
             "languages": ["solidity"]
         },
+        "delegatecall": {
+            "pattern": "$X.delegatecall($DATA)",
+            "message": "Delegatecall to potentially untrusted contract",
+            "severity": "ERROR",
+            "languages": ["solidity"]
+        },
+        "unprotected-initializer": {
+            "pattern": "function initialize($PARAMS) $VISIBILITY { ... }",
+            "pattern-not": "function initialize($PARAMS) $VISIBILITY initializer { ... }",
+            "message": "Initialize function missing initializer modifier",
+            "severity": "ERROR",
+            "languages": ["solidity"]
+        },
+
+        # === TIMESTAMP/RANDOMNESS ===
         "block-timestamp": {
             "pattern": "block.timestamp",
             "message": "Block timestamp used for critical logic - can be manipulated",
             "severity": "WARNING",
             "languages": ["solidity"]
         },
-        "delegatecall": {
-            "pattern": "$X.delegatecall($DATA)",
-            "message": "Delegatecall to potentially untrusted contract",
+        "weak-randomness-blockhash": {
+            "pattern": "blockhash($X)",
+            "message": "Blockhash used for randomness is predictable",
             "severity": "ERROR",
             "languages": ["solidity"]
-        }
+        },
+        "weak-randomness-prevrandao": {
+            "pattern": "block.prevrandao",
+            "message": "prevrandao is predictable for PoS validators",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+
+        # === DEFI PATTERNS ===
+        "flash-loan-callback": {
+            "pattern": "function $FUNC($PARAMS) external { ... $X.call($DATA) ... }",
+            "message": "Flash loan callback with external call - verify authorization",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+        "price-manipulation-spot": {
+            "pattern": "$PAIR.getReserves()",
+            "message": "Spot price from reserves can be manipulated - use TWAP",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+        "oracle-single-source": {
+            "pattern": "$ORACLE.latestRoundData()",
+            "message": "Single oracle source - consider using multiple oracles",
+            "severity": "INFO",
+            "languages": ["solidity"]
+        },
+        "missing-slippage-check": {
+            "pattern": "function swap($PARAMS) { ... $ROUTER.swap($ARGS) ... }",
+            "pattern-not": "function swap($PARAMS) { ... require($AMOUNT >= $MIN) ... }",
+            "message": "Swap function missing slippage protection",
+            "severity": "ERROR",
+            "languages": ["solidity"]
+        },
+        "missing-deadline": {
+            "pattern": "$ROUTER.swapExactTokensForTokens($A, $B, $PATH, $TO, $DEADLINE)",
+            "message": "Ensure deadline parameter is not hardcoded or too far in future",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+
+        # === ARITHMETIC ===
+        "division-before-multiplication": {
+            "pattern": "$A / $B * $C",
+            "message": "Division before multiplication causes precision loss",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+        "unsafe-downcast": {
+            "pattern": "uint8($X)",
+            "message": "Unsafe downcast may truncate value",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+
+        # === DOS ===
+        "unbounded-loop": {
+            "pattern": "for ($INIT; $COND < $ARR.length; $INC) { ... }",
+            "message": "Loop over unbounded array can cause DoS",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+        "push-payment-in-loop": {
+            "pattern": "for ($INIT; $COND; $INC) { ... $X.transfer($V) ... }",
+            "message": "Push payment in loop can be blocked by malicious recipient",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+
+        # === SIGNATURE ===
+        "signature-replay": {
+            "pattern": "ecrecover($HASH, $V, $R, $S)",
+            "message": "Ensure signature includes nonce and chain ID to prevent replay",
+            "severity": "WARNING",
+            "languages": ["solidity"]
+        },
+        "missing-zero-check-ecrecover": {
+            "pattern": "address $SIGNER = ecrecover($PARAMS);",
+            "pattern-not": "require($SIGNER != address(0))",
+            "message": "ecrecover can return address(0) on invalid signature",
+            "severity": "ERROR",
+            "languages": ["solidity"]
+        },
+
+        # === STORAGE ===
+        "uninitialized-storage": {
+            "pattern": "$TYPE storage $VAR;",
+            "message": "Uninitialized storage pointer can reference unexpected storage",
+            "severity": "ERROR",
+            "languages": ["solidity"]
+        },
+        "storage-collision": {
+            "pattern": "bytes32 constant $SLOT = keccak256($STRING);",
+            "message": "Manual storage slot - ensure no collision with standard slots",
+            "severity": "INFO",
+            "languages": ["solidity"]
+        },
     }
 
     # Severity mapping from Semgrep to MIESC

@@ -454,7 +454,7 @@ class SlitherAdapter(ToolAdapter):
                 # Map severity (use impact as severity)
                 mapped_severity = self.SEVERITY_MAP.get(impact, "Low")
 
-                # Build normalized finding
+                # v4.6.0: Build normalized finding with detector name for FP filtering
                 normalized_finding = {
                     "id": f"slither-{check}-{idx}",
                     "type": check,
@@ -465,8 +465,12 @@ class SlitherAdapter(ToolAdapter):
                     "description": markdown or description,
                     "recommendation": self._get_recommendation(check),
                     "swc_id": self._map_to_swc(check),
-                    "cwe_id": None,  # Slither doesn't provide CWE directly
+                    "cwe_id": self._map_to_cwe(check),
                     "owasp_category": self._map_to_owasp(check),
+                    # v4.6.0: Add detector name for FP rate adjustment
+                    "_slither_detector": check,
+                    "_slither_impact": impact,
+                    "_slither_confidence": confidence,
                 }
 
                 normalized.append(normalized_finding)
@@ -507,9 +511,40 @@ class SlitherAdapter(ToolAdapter):
             "locked-ether": "SWC-132",
             "controlled-delegatecall": "SWC-112",
             "unchecked-send": "SWC-104",
+            "weak-prng": "SWC-120",
+            "divide-before-multiply": "SWC-101",
+            "shadowing": "SWC-119",
+            "assembly": "SWC-127",
+            "deprecated": "SWC-111",
         }
 
         for key, value in swc_mapping.items():
+            if key in check.lower():
+                return value
+
+        return None
+
+    def _map_to_cwe(self, check: str) -> Optional[str]:
+        """Map Slither detector to CWE ID (v4.6.0)."""
+        cwe_mapping = {
+            "reentrancy": "CWE-841",
+            "access-control": "CWE-284",
+            "arbitrary-send": "CWE-284",
+            "tx-origin": "CWE-477",
+            "overflow": "CWE-190",
+            "underflow": "CWE-191",
+            "divide": "CWE-369",
+            "unchecked": "CWE-252",
+            "delegatecall": "CWE-829",
+            "timestamp": "CWE-330",
+            "weak-prng": "CWE-330",
+            "dos": "CWE-400",
+            "locked-ether": "CWE-400",
+            "uninitialized": "CWE-457",
+            "shadowing": "CWE-710",
+        }
+
+        for key, value in cwe_mapping.items():
             if key in check.lower():
                 return value
 

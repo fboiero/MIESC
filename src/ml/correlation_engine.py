@@ -1,7 +1,13 @@
 """
-MIESC Smart Correlation Engine
+MIESC Smart Correlation Engine v4.6.0
 Motor ML que correlaciona hallazgos entre herramientas, reduce FPs por consenso
 y genera scores de confianza basados en múltiples señales.
+
+v4.6.0 Enhancements:
+- CROSS_VALIDATION_REQUIRED: Mandatory cross-validation for critical patterns
+- Single-tool confidence cap at 0.6 for critical findings
+- Detector-specific FP rate integration
+- Improved cross-function analysis support
 
 Author: Fernando Boiero
 Institution: UNDEF - IUA
@@ -353,6 +359,44 @@ class SmartCorrelationEngine:
         'info': 0.1,
     }
 
+    # =========================================================================
+    # v4.6.0: CROSS-VALIDATION REQUIRED PATTERNS
+    # =========================================================================
+    # These vulnerability patterns REQUIRE confirmation from 2+ tools
+    # Single-tool findings for these patterns get max confidence of 0.6
+    # Based on high FP rates observed in SmartBugs benchmark
+
+    CROSS_VALIDATION_REQUIRED = {
+        # Reentrancy patterns - high FP rate from single tools
+        "reentrancy",
+        "reentrancy-eth",
+        "reentrancy-no-eth",
+        "reentrancy-benign",
+        "reentrancy-events",
+
+        # Access control - context dependent
+        "arbitrary-send",
+        "arbitrary-send-eth",
+        "unprotected-upgrade",
+
+        # Dangerous operations
+        "suicidal",
+        "selfdestruct",
+        "delegatecall",
+        "controlled-delegatecall",
+
+        # Storage issues
+        "uninitialized-state",
+        "uninitialized-storage",
+
+        # Critical patterns
+        "backdoor",
+        "tx-origin",
+    }
+
+    # Maximum confidence for single-tool findings on critical patterns
+    SINGLE_TOOL_MAX_CONFIDENCE = 0.60
+
     def __init__(
         self,
         min_tools_for_validation: int = 2,
@@ -638,12 +682,14 @@ class SmartCorrelationEngine:
         ml_confidence = self._calculate_ml_confidence(group)
 
         # Calcular confianza final ponderada
+        # v4.6.0: Pass vuln_type for cross-validation enforcement
         final_confidence = self._calculate_final_confidence(
             base_confidence,
             tool_agreement_score,
             context_score,
             ml_confidence,
             len(tools),
+            vuln_type=base['canonical_type'],
         )
 
         # Calcular probabilidad de FP
@@ -794,6 +840,61 @@ class SmartCorrelationEngine:
         """
         return self.TOOL_WEIGHTS.get(tool_name.lower(), 0.50)
 
+    def requires_cross_validation(self, vuln_type: str) -> bool:
+        """
+        Check if a vulnerability type requires cross-validation (2+ tools).
+
+        v4.6.0: Critical patterns need confirmation from multiple tools
+        to reduce false positives.
+
+        Args:
+            vuln_type: Vulnerability type (e.g., "reentrancy-eth")
+
+        Returns:
+            True if cross-validation is required
+        """
+        vuln_lower = vuln_type.lower()
+        return any(
+            pattern in vuln_lower
+            for pattern in self.CROSS_VALIDATION_REQUIRED
+        )
+
+    def apply_cross_validation_penalty(
+        self,
+        finding: Dict[str, Any],
+        tool_count: int,
+    ) -> Dict[str, Any]:
+        """
+        Apply cross-validation penalty to single-tool critical findings.
+
+        If a finding requires cross-validation but only has one tool,
+        cap its confidence at SINGLE_TOOL_MAX_CONFIDENCE.
+
+        Args:
+            finding: The finding to evaluate
+            tool_count: Number of tools that reported this finding
+
+        Returns:
+            Finding with potentially adjusted confidence
+        """
+        vuln_type = finding.get('type', finding.get('canonical_type', ''))
+
+        if tool_count < 2 and self.requires_cross_validation(vuln_type):
+            finding = finding.copy()
+            original_confidence = finding.get('confidence', 0.7)
+
+            if original_confidence > self.SINGLE_TOOL_MAX_CONFIDENCE:
+                finding['confidence'] = self.SINGLE_TOOL_MAX_CONFIDENCE
+                finding['_cross_validation'] = {
+                    'required': True,
+                    'tool_count': tool_count,
+                    'original_confidence': original_confidence,
+                    'capped_confidence': self.SINGLE_TOOL_MAX_CONFIDENCE,
+                    'reason': 'Critical pattern requires 2+ tools for confirmation',
+                }
+
+        return finding
+
     def _calculate_context_score(self, group: List[Dict[str, Any]]) -> float:
         """
         Calcula score basado en contexto del código.
@@ -902,9 +1003,14 @@ class SmartCorrelationEngine:
         context: float,
         ml: float,
         tool_count: int,
+        vuln_type: str = "",
     ) -> float:
         """
         Calcula confianza final combinando todas las señales.
+
+        v4.6.0: Added cross-validation enforcement for critical patterns.
+        Single-tool findings for patterns in CROSS_VALIDATION_REQUIRED
+        are capped at SINGLE_TOOL_MAX_CONFIDENCE (0.60).
         """
         # Pesos adaptativos basados en número de herramientas
         if tool_count >= 3:
@@ -942,6 +1048,19 @@ class SmartCorrelationEngine:
         # Bonus por múltiples herramientas
         if tool_count >= 2:
             final += 0.05 * min(tool_count - 1, 3)
+
+        # v4.6.0: Cross-validation enforcement for critical patterns
+        if tool_count < 2:
+            # Check if this vulnerability type requires cross-validation
+            vuln_lower = vuln_type.lower()
+            requires_cv = any(
+                pattern in vuln_lower
+                for pattern in self.CROSS_VALIDATION_REQUIRED
+            )
+
+            if requires_cv:
+                # Cap confidence for single-tool critical findings
+                final = min(final, self.SINGLE_TOOL_MAX_CONFIDENCE)
 
         return min(final, 0.99)
 

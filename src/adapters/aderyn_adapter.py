@@ -443,6 +443,7 @@ class AderynAdapter(ToolAdapter):
 
                 mapped_severity = self.SEVERITY_MAP.get(severity, "Low")
 
+                # v4.6.0: Enhanced normalization with CWE and better recommendations
                 normalized_finding = {
                     "id": f"aderyn-{detector_name}-{idx}-{inst_idx}",
                     "type": detector_name,
@@ -451,10 +452,11 @@ class AderynAdapter(ToolAdapter):
                     "location": location_info,
                     "message": title,
                     "description": description or title,
-                    "recommendation": "Review and fix the issue",
+                    "recommendation": self._get_recommendation(detector_name),
                     "swc_id": self._map_to_swc(detector_name),
-                    "cwe_id": None,
+                    "cwe_id": self._map_to_cwe(detector_name),
                     "owasp_category": self._map_to_owasp(detector_name),
+                    "_aderyn_detector": detector_name,  # For cross-validation
                 }
 
                 normalized.append(normalized_finding)
@@ -464,19 +466,128 @@ class AderynAdapter(ToolAdapter):
 
         return normalized
 
+    # v4.6.0: Comprehensive SWC mapping for Aderyn detectors
+    SWC_MAPPING = {
+        # Reentrancy
+        "reentrancy": "SWC-107",
+        "cross-function-reentrancy": "SWC-107",
+        "read-only-reentrancy": "SWC-107",
+
+        # Access Control
+        "unprotected": "SWC-105",
+        "arbitrary-send": "SWC-105",
+        "send-ether": "SWC-105",
+        "suicidal": "SWC-106",
+        "selfdestruct": "SWC-106",
+        "tx-origin": "SWC-115",
+
+        # Unchecked Returns
+        "unchecked": "SWC-104",
+        "unchecked-send": "SWC-104",
+        "unchecked-transfer": "SWC-104",
+        "unchecked-call": "SWC-104",
+
+        # Integer Issues
+        "overflow": "SWC-101",
+        "underflow": "SWC-101",
+        "integer": "SWC-101",
+
+        # Delegatecall
+        "delegatecall": "SWC-112",
+        "controlled-delegatecall": "SWC-112",
+
+        # Timestamp
+        "timestamp": "SWC-116",
+        "block-timestamp": "SWC-116",
+
+        # DoS
+        "dos": "SWC-128",
+        "gas-limit": "SWC-128",
+        "unbounded": "SWC-128",
+
+        # Randomness
+        "random": "SWC-120",
+        "weak-prng": "SWC-120",
+        "blockhash": "SWC-120",
+
+        # Storage
+        "uninitialized-storage": "SWC-109",
+        "uninitialized-state": "SWC-109",
+        "shadowing": "SWC-119",
+
+        # Signature
+        "signature": "SWC-117",
+        "ecrecover": "SWC-117",
+
+        # Default Visibility
+        "visibility": "SWC-100",
+        "missing-visibility": "SWC-100",
+
+        # Code Quality
+        "unused": "SWC-131",
+        "deprecated": "SWC-111",
+        "assembly": "SWC-127",
+    }
+
+    # v4.6.0: CWE mapping for Aderyn detectors
+    CWE_MAPPING = {
+        "reentrancy": "CWE-841",
+        "access-control": "CWE-284",
+        "unprotected": "CWE-284",
+        "tx-origin": "CWE-477",
+        "overflow": "CWE-190",
+        "underflow": "CWE-191",
+        "unchecked": "CWE-252",
+        "delegatecall": "CWE-829",
+        "timestamp": "CWE-330",
+        "random": "CWE-330",
+        "dos": "CWE-400",
+        "signature": "CWE-347",
+        "uninitialized": "CWE-457",
+    }
+
     def _map_to_swc(self, detector_name: str) -> Optional[str]:
         """Map Aderyn detector to SWC ID."""
-        swc_mapping = {
-            "reentrancy": "SWC-107",
-            "unchecked-send": "SWC-104",
-            "tx-origin": "SWC-115",
-            "send-ether": "SWC-105",
-            "delegatecall": "SWC-112",
-        }
-        for key, value in swc_mapping.items():
-            if key in detector_name.lower():
+        detector_lower = detector_name.lower()
+        for key, value in self.SWC_MAPPING.items():
+            if key in detector_lower:
                 return value
         return None
+
+    def _map_to_cwe(self, detector_name: str) -> Optional[str]:
+        """Map Aderyn detector to CWE ID."""
+        detector_lower = detector_name.lower()
+        for key, value in self.CWE_MAPPING.items():
+            if key in detector_lower:
+                return value
+        return None
+
+    # v4.6.0: Recommendations for common Aderyn detectors
+    RECOMMENDATIONS = {
+        "reentrancy": "Use ReentrancyGuard or checks-effects-interactions pattern",
+        "unprotected": "Add access control modifier (onlyOwner) or require(msg.sender == owner)",
+        "tx-origin": "Use msg.sender instead of tx.origin for authorization",
+        "unchecked": "Always check return value of low-level calls or use SafeERC20",
+        "delegatecall": "Validate target address and use access control for delegatecall",
+        "selfdestruct": "Add access control and consider removing selfdestruct",
+        "timestamp": "Avoid using block.timestamp for critical decisions or randomness",
+        "overflow": "Use Solidity 0.8+ or SafeMath for arithmetic operations",
+        "random": "Use Chainlink VRF or commit-reveal scheme for randomness",
+        "dos": "Limit loop iterations or use pull payment pattern",
+        "signature": "Include nonce and chain ID in signed messages to prevent replay",
+        "uninitialized": "Initialize all state variables in constructor",
+        "centralization": "Consider using multi-sig or timelocks for privileged operations",
+        "unused": "Remove unused code to reduce attack surface and gas costs",
+        "visibility": "Explicitly declare function visibility",
+    }
+
+    def _get_recommendation(self, detector_name: str) -> str:
+        """Get recommendation for a detector type."""
+        detector_lower = detector_name.lower()
+        for key, value in self.RECOMMENDATIONS.items():
+            if key in detector_lower:
+                return value
+        return "Review and fix the issue according to best practices"
 
     def _estimate_confidence(self, severity: str, detector: str) -> float:
         """

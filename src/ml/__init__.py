@@ -82,6 +82,58 @@ from .invariant_validator import (
     quick_validate,
 )
 
+# v4.6.0+ New Analysis Modules
+from .call_graph import (
+    Visibility,
+    Mutability,
+    FunctionNode,
+    CallEdge,
+    CallPath,
+    CallGraph,
+    CallGraphBuilder,
+    build_call_graph,
+    analyze_reentrancy_risk,
+)
+
+from .taint_analysis import (
+    TaintSource,
+    TaintSink,
+    SanitizerType,
+    TaintedVariable,
+    TaintedPath,
+    TaintAnalyzer,
+    analyze_taint,
+    find_tainted_sinks,
+)
+
+from .slither_ir_parser import (
+    IROpcode,
+    IRVariable,
+    IRInstruction,
+    StateTransition,
+    Call as IRCall,
+    FunctionIR,
+    SlitherIRParser,
+    parse_slither_ir,
+    get_function_state_transitions,
+    get_external_calls,
+)
+
+# v4.6.0+ Enhanced FP Filter exports
+from .false_positive_filter import (
+    SLITHER_DETECTOR_FP_RATES,
+    SemanticContextAnalyzer,
+)
+
+# v4.6.0+ Classic Pattern enhancements
+from .classic_patterns import (
+    AccessControlFinding,
+    AccessControlSemanticDetector,
+    DoSFinding,
+    DoSCrossFunctionDetector,
+    detect_semantic_vulnerabilities,
+)
+
 
 @dataclass
 class MLEnhancedResult:
@@ -455,4 +507,43 @@ __all__ = [
     'ValidationReport',
     'validate_invariants',
     'quick_validate',
+    # v4.6.0+ Call Graph
+    'Visibility',
+    'Mutability',
+    'FunctionNode',
+    'CallEdge',
+    'CallPath',
+    'CallGraph',
+    'CallGraphBuilder',
+    'build_call_graph',
+    'analyze_reentrancy_risk',
+    # v4.6.0+ Taint Analysis
+    'TaintSource',
+    'TaintSink',
+    'SanitizerType',
+    'TaintedVariable',
+    'TaintedPath',
+    'TaintAnalyzer',
+    'analyze_taint',
+    'find_tainted_sinks',
+    # v4.6.0+ Slither IR Parser
+    'IROpcode',
+    'IRVariable',
+    'IRInstruction',
+    'StateTransition',
+    'IRCall',
+    'FunctionIR',
+    'SlitherIRParser',
+    'parse_slither_ir',
+    'get_function_state_transitions',
+    'get_external_calls',
+    # v4.6.0+ Enhanced FP Filter
+    'SLITHER_DETECTOR_FP_RATES',
+    'SemanticContextAnalyzer',
+    # v4.6.0+ Semantic Detectors
+    'AccessControlFinding',
+    'AccessControlSemanticDetector',
+    'DoSFinding',
+    'DoSCrossFunctionDetector',
+    'detect_semantic_vulnerabilities',
 ]
