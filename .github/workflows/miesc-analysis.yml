@@ -154,14 +154,14 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Download Static Analysis Results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: static-analysis-results
           path: reports/static/
         continue-on-error: true
 
       - name: Download Symbolic Analysis Results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: symbolic-analysis-results
           path: reports/symbolic/
