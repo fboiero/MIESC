@@ -60,6 +60,28 @@ from .classic_patterns import (
     detect_classic_vulnerabilities,
 )
 
+# v4.5.0+ ML Invariant Synthesis (Sprint 4)
+from .ml_invariant_synthesizer import (
+    MLInvariantSynthesizer,
+    FeatureExtractor,
+    InvariantPredictor,
+    ContractFeatures,
+    InvariantPrediction,
+    TrainingExample,
+    extract_contract_features,
+    predict_invariants,
+    synthesize_with_ml,
+)
+
+from .invariant_validator import (
+    InvariantValidator,
+    InvariantTestGenerator,
+    InvariantTestResult,
+    ValidationReport,
+    validate_invariants,
+    quick_validate,
+)
+
 
 @dataclass
 class MLEnhancedResult:
@@ -416,4 +438,21 @@ __all__ = [
     'PatternConfig',
     'CLASSIC_PATTERNS',
     'detect_classic_vulnerabilities',
+    # v4.5.0+ ML Invariant Synthesis
+    'MLInvariantSynthesizer',
+    'FeatureExtractor',
+    'InvariantPredictor',
+    'ContractFeatures',
+    'InvariantPrediction',
+    'TrainingExample',
+    'extract_contract_features',
+    'predict_invariants',
+    'synthesize_with_ml',
+    # v4.5.0+ Invariant Validator
+    'InvariantValidator',
+    'InvariantTestGenerator',
+    'InvariantTestResult',
+    'ValidationReport',
+    'validate_invariants',
+    'quick_validate',
 ]
