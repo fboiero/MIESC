@@ -5,6 +5,111 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.0] - 2026-01-26
+
+### Added
+
+#### Multi-Chain Support (Alpha/Experimental)
+
+MIESC now supports security analysis across **7 blockchain platforms**:
+
+| Chain | Status | Languages | Key Features |
+|-------|--------|-----------|--------------|
+| **EVM** | Production | Solidity, Vyper | 31 tools, 9 layers |
+| **Solana** | Alpha | Rust/Anchor | Pattern detection |
+| **NEAR** | Alpha | Rust | Pattern detection |
+| **Move** (Sui/Aptos) | Alpha | Move | Pattern detection |
+| **Stellar/Soroban** | Alpha | Rust | Pattern detection |
+| **Algorand** | Alpha | TEAL, PyTeal | Pattern detection |
+| **Cardano** | Alpha | Plutus, Aiken | Pattern detection |
+
+#### New Chain Adapters
+
+- **SolanaAnalyzer** (`src/adapters/solana_adapter.py`)
+  - Anchor framework support
+  - Detects: missing signer checks, PDA issues, account data vulnerabilities
+  - 450+ lines of analysis logic
+
+- **NEARAnalyzer** (`src/adapters/near_adapter.py`)
+  - near-sdk support
+  - Detects: callback reentrancy, promise result handling, storage issues
+  - 400+ lines of analysis logic
+
+- **MoveAnalyzer** (`src/adapters/move_adapter.py`)
+  - Sui and Aptos support
+  - Detects: object ownership, capability leaks, flash loan vulnerabilities
+  - 550+ lines of analysis logic
+
+- **StellarAnalyzer** (`src/adapters/stellar_adapter.py`)
+  - Soroban SDK support
+  - Detects: authorization issues, TTL problems, cross-contract risks
+  - 680+ lines of analysis logic
+
+- **AlgorandAnalyzer** (`src/adapters/algorand_adapter.py`)
+  - TEAL and PyTeal support
+  - Detects: rekey attacks, inner txn safety, group validation
+  - 720+ lines of analysis logic
+
+- **CardanoAnalyzer** (`src/adapters/cardano_adapter.py`)
+  - Plutus (Haskell) and Aiken support
+  - Detects: double satisfaction, datum hijacking, eUTXO vulnerabilities
+  - 950+ lines of analysis logic
+
+#### Chain Abstraction Layer
+
+- **ChainType enum** expanded: SOLANA, NEAR, SUI, APTOS, STELLAR, ALGORAND, CARDANO
+- **ContractLanguage enum** expanded: ANCHOR, MOVE, TEAL, PYTEAL, PLUTUS, AIKEN
+- **AbstractChainAnalyzer** base class for consistent multi-chain API
+- **VulnerabilityMapping** for cross-chain finding normalization
+
+#### Enhanced Detection (v4.4.0 Patterns)
+
+- **DeFi Patterns**: 20 vulnerability categories (up from 12)
+  - Read-only reentrancy
+  - ERC4626 inflation attacks
+  - Arbitrary external calls
+  - Precision loss / rounding errors
+  - Cross-function reentrancy
+  - Signature replay attacks
+  - First depositor attacks
+  - Storage collision (proxy)
+
+- **RAG Knowledge Base**: 32+ SWC entries with code examples
+  - SWC-100 through SWC-136 covered
+  - Real-world exploit references (2023-2025)
+  - Attack scenarios and remediations
+
+#### Documentation
+
+- **Multi-Chain Documentation** (`docs/MULTICHAIN.md`)
+  - Support levels (Production vs Alpha)
+  - Per-chain vulnerability categories
+  - Usage examples for each chain
+  - Limitations and recommendations
+
+### Changed
+
+- Updated README with multi-chain badge and support table
+- Updated version badge to 4.5.0
+- Added chain support status to Features section
+
+### Testing
+
+- **117 multi-chain tests** (all passing)
+  - TestSolanaAnalyzer: 12 tests
+  - TestNEARAnalyzer: 10 tests
+  - TestMoveAnalyzer: 12 tests
+  - TestStellarAnalyzer: 11 tests
+  - TestAlgorandAnalyzer: 11 tests
+  - TestCardanoAnalyzer: 17 tests
+  - Cross-chain integration: 8 tests
+
+### Important Notes
+
+> **Non-EVM chain support is experimental/alpha.** These analyzers use pattern-based detection without the full 9-layer analysis available for EVM. Production audits should use EVM analysis for comprehensive coverage.
+
+---
+
 ## [4.2.1] - 2024-12-23
 
 ### Added

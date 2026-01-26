@@ -1,20 +1,35 @@
 # MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
-Multi-layer security analysis framework for Ethereum smart contracts.
+Multi-layer security analysis framework for smart contracts with **multi-chain support**.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/pypi/v/miesc)](https://pypi.org/project/miesc/)
-[![Version](https://img.shields.io/badge/version-4.3.9-green)](https://github.com/fboiero/MIESC/releases)
+[![Version](https://img.shields.io/badge/version-4.5.0-green)](https://github.com/fboiero/MIESC/releases)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/fboiero/MIESC/badge)](https://securityscorecards.dev/viewer/?uri=github.com/fboiero/MIESC)
 [![Security Audit](https://github.com/fboiero/MIESC/actions/workflows/miesc-security.yml/badge.svg)](https://github.com/fboiero/MIESC/actions/workflows/miesc-security.yml)
 [![codecov](https://codecov.io/gh/fboiero/MIESC/graph/badge.svg)](https://codecov.io/gh/fboiero/MIESC)
 [![Tools](https://img.shields.io/badge/tools-31%2F31%20operational-brightgreen)](./docs/TOOLS.md)
+[![Chains](https://img.shields.io/badge/chains-7%20supported-blue)](./docs/MULTICHAIN.md)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 
 [English](./README.md) | [Espa&ntilde;ol](./README_ES.md)
 
 MIESC orchestrates **31 security tools** across **9 defense layers** with AI-assisted correlation and ML-based detection. Pre-audit triage tool for smart contract security.
+
+## Supported Blockchains
+
+| Chain | Status | Languages | Tools |
+|-------|--------|-----------|-------|
+| **EVM** (Ethereum, Polygon, BSC, etc.) | ✅ Production | Solidity, Vyper | 31 tools, 9 layers |
+| **Solana** | 🧪 Alpha | Rust/Anchor | Pattern detection |
+| **NEAR** | 🧪 Alpha | Rust | Pattern detection |
+| **Move** (Sui, Aptos) | 🧪 Alpha | Move | Pattern detection |
+| **Stellar/Soroban** | 🧪 Alpha | Rust | Pattern detection |
+| **Algorand** | 🧪 Alpha | TEAL, PyTeal | Pattern detection |
+| **Cardano** | 🧪 Alpha | Plutus, Aiken | Pattern detection |
+
+> **Note:** Non-EVM chain support is **experimental/alpha**. These analyzers use pattern-based detection and are under active development. Production audits should use EVM analysis (31 tools, 9 defense layers) for comprehensive coverage.
 
 **Validated Results (SmartBugs-curated dataset, 50 contracts):**
 
@@ -326,9 +341,11 @@ miesc doctor
 
 - **9 defense layers**: Static, Dynamic, Symbolic, Formal, AI, ML, Threat Modeling, Cross-Chain, AI Ensemble
 - **31 operational tools**: Slither, Aderyn, Mythril, Echidna, Foundry, Certora, Halmos, SmartLLM, and more
+- **Multi-chain support**: EVM (production), Solana, NEAR, Move, Stellar, Algorand, Cardano (alpha)
 - **AI correlation**: Local LLM (Ollama) reduces false positives
 - **Compliance mapping**: ISO 27001, NIST, OWASP, SWC
 - **Multiple interfaces**: CLI, REST API, WebSocket, MCP, Web UI
+- **Professional reports**: PDF/HTML audit reports comparable to OpenZeppelin/Certora style
 
 ## Usage
 
@@ -559,6 +576,32 @@ from miesc.api import run_tool, run_full_audit
 results = run_tool("slither", "contract.sol")
 report = run_full_audit("contract.sol")
 ```
+
+### Multi-Chain Analysis (Alpha)
+
+Analyze smart contracts on non-EVM chains:
+
+```bash
+# Solana/Anchor programs
+miesc scan program.rs --chain solana
+
+# NEAR Protocol
+miesc scan contract.rs --chain near
+
+# Move (Sui/Aptos)
+miesc scan module.move --chain sui
+
+# Stellar/Soroban
+miesc scan contract.rs --chain stellar
+
+# Algorand (TEAL/PyTeal)
+miesc scan approval.teal --chain algorand
+
+# Cardano (Plutus/Aiken)
+miesc scan validator.hs --chain cardano
+```
+
+> **Important:** Non-EVM chain support is **alpha/experimental**. These analyzers use pattern-based detection without the full 9-layer analysis available for EVM. See [Multi-Chain Documentation](./docs/MULTICHAIN.md) for details.
 
 ### MCP Server (MCP client Integration)
 
