@@ -81,6 +81,18 @@ from src.adapters.algorand_adapter import (
     AlgorandContract,
 )
 
+from src.adapters.cardano_adapter import (
+    CardanoAnalyzer,
+    CardanoVulnerability,
+    CardanoPatternDetector,
+    PlutusParser,
+    AikenParser,
+    PlutusValidator,
+    AikenValidator,
+    CardanoContract,
+    PlutusScriptType,
+)
+
 
 # ============================================================================
 # Test Fixtures
@@ -596,6 +608,133 @@ def vulnerable_approval():
     )
 
     return program
+'''
+
+
+@pytest.fixture
+def sample_plutus_validator():
+    """Sample Plutus validator source code."""
+    return '''
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TemplateHaskell #-}
+
+module TokenValidator where
+
+import Plutus.V2.Ledger.Api
+import Plutus.V2.Ledger.Contexts
+import PlutusTx.Prelude
+
+data TokenDatum = TokenDatum
+    { owner :: PubKeyHash
+    , amount :: Integer
+    }
+
+data TokenRedeemer = Spend | Update
+
+mkValidator :: TokenDatum -> TokenRedeemer -> ScriptContext -> Bool
+mkValidator datum redeemer ctx =
+    case redeemer of
+        Spend -> traceIfFalse "not signed by owner" signedByOwner &&
+                 traceIfFalse "value not preserved" valuePreserved
+        Update -> traceIfFalse "not signed by owner" signedByOwner
+  where
+    info :: TxInfo
+    info = scriptContextTxInfo ctx
+
+    signedByOwner :: Bool
+    signedByOwner = txSignedBy info (owner datum)
+
+    valuePreserved :: Bool
+    valuePreserved = valuePaidTo info (owner datum) >= Ada.lovelaceValueOf (amount datum)
+'''
+
+
+@pytest.fixture
+def sample_vulnerable_plutus():
+    """Sample vulnerable Plutus validator."""
+    return '''
+{-# LANGUAGE DataKinds #-}
+
+module VulnerableValidator where
+
+import Plutus.V2.Ledger.Api
+import PlutusTx.Prelude
+
+data VulnDatum = VulnDatum { value :: Integer }
+data VulnRedeemer = Claim | Withdraw
+
+-- VULNERABLE: No signer check, no value validation
+mkValidator :: VulnDatum -> VulnRedeemer -> ScriptContext -> Bool
+mkValidator datum redeemer ctx =
+    case redeemer of
+        Claim -> True  -- Anyone can claim!
+        Withdraw -> True  -- No validation!
+'''
+
+
+@pytest.fixture
+def sample_aiken_validator():
+    """Sample Aiken validator source code."""
+    return '''
+use aiken/list
+use aiken/transaction.{ScriptContext, Spend, Transaction}
+use aiken/transaction/credential.{VerificationKeyCredential}
+
+type Datum {
+  owner: VerificationKeyCredential,
+  deadline: Int,
+}
+
+type Redeemer {
+  Claim
+  Cancel
+}
+
+validator token_lock {
+  spend(datum: Datum, redeemer: Redeemer, ctx: ScriptContext) {
+    let ScriptContext { transaction, purpose } = ctx
+    let Transaction { extra_signatories, validity_range, .. } = transaction
+
+    when redeemer is {
+      Claim -> {
+        let owner_signed = list.has(extra_signatories, datum.owner)
+        let after_deadline = validity_range.lower_bound >= datum.deadline
+        owner_signed && after_deadline
+      }
+      Cancel -> {
+        list.has(extra_signatories, datum.owner)
+      }
+    }
+  }
+}
+'''
+
+
+@pytest.fixture
+def sample_vulnerable_aiken():
+    """Sample vulnerable Aiken validator."""
+    return '''
+use aiken/transaction.{ScriptContext, Spend}
+
+type Datum {
+  value: Int,
+}
+
+type Redeemer {
+  Spend
+  Update
+}
+
+validator vulnerable {
+  spend(datum: Datum, redeemer: Redeemer, ctx: ScriptContext) {
+    // VULNERABLE: No signer check!
+    // VULNERABLE: No output validation!
+    when redeemer is {
+      Spend -> datum.value > 0
+      Update -> True
+    }
+  }
+}
 '''
 
 
@@ -2060,6 +2199,243 @@ class TestAlgorandPatternDetector:
 
 
 # ============================================================================
+# Cardano/Plutus Adapter Tests
+# ============================================================================
+
+
+class TestCardanoAnalyzer:
+    """Tests for CardanoAnalyzer."""
+
+    def test_analyzer_properties(self):
+        """Test analyzer basic properties."""
+        analyzer = CardanoAnalyzer()
+        assert analyzer.name == "CardanoAnalyzer"
+        assert analyzer.version == "1.0.0"
+        assert ".hs" in analyzer.supported_extensions
+        assert ".ak" in analyzer.supported_extensions
+        assert analyzer.chain_type == ChainType.CARDANO
+
+    def test_parse_plutus_validator(self, sample_plutus_validator):
+        """Test parsing a Plutus validator."""
+        with tempfile.NamedTemporaryFile(suffix=".hs", mode="w", delete=False) as f:
+            f.write(sample_plutus_validator)
+            f.flush()
+
+            analyzer = CardanoAnalyzer()
+            contract = analyzer.parse(f.name)
+
+            assert contract.name is not None
+            assert contract.chain_type == ChainType.CARDANO
+            assert contract.language == ContractLanguage.PLUTUS
+            assert len(contract.functions) >= 1
+
+    def test_parse_aiken_validator(self, sample_aiken_validator):
+        """Test parsing an Aiken validator."""
+        with tempfile.NamedTemporaryFile(suffix=".ak", mode="w", delete=False) as f:
+            f.write(sample_aiken_validator)
+            f.flush()
+
+            analyzer = CardanoAnalyzer()
+            contract = analyzer.parse(f.name)
+
+            assert contract.name is not None
+            assert contract.chain_type == ChainType.CARDANO
+            assert contract.language == ContractLanguage.AIKEN
+            assert len(contract.functions) >= 1
+
+    def test_detect_plutus_vulnerabilities(self, sample_vulnerable_plutus):
+        """Test vulnerability detection in Plutus."""
+        with tempfile.NamedTemporaryFile(suffix=".hs", mode="w", delete=False) as f:
+            f.write(sample_vulnerable_plutus)
+            f.flush()
+
+            analyzer = CardanoAnalyzer()
+            result = analyzer.analyze(f.name)
+
+            assert result["status"] == "success"
+            # Should detect missing checks
+            assert len(result["findings"]) >= 1
+
+    def test_detect_aiken_vulnerabilities(self, sample_vulnerable_aiken):
+        """Test vulnerability detection in Aiken."""
+        with tempfile.NamedTemporaryFile(suffix=".ak", mode="w", delete=False) as f:
+            f.write(sample_vulnerable_aiken)
+            f.flush()
+
+            analyzer = CardanoAnalyzer()
+            result = analyzer.analyze(f.name)
+
+            assert result["status"] == "success"
+            # Should detect missing signer check
+            signer_findings = [
+                f for f in result["findings"]
+                if "signer" in f.get("type", "").lower() or "signer" in f.get("message", "").lower()
+            ]
+            assert len(signer_findings) >= 1
+
+    def test_safe_plutus_analysis(self, sample_plutus_validator):
+        """Test that safe validator has fewer findings."""
+        with tempfile.NamedTemporaryFile(suffix=".hs", mode="w", delete=False) as f:
+            f.write(sample_plutus_validator)
+            f.flush()
+
+            analyzer = CardanoAnalyzer()
+            result = analyzer.analyze(f.name)
+
+            assert result["status"] == "success"
+            # Safe validator should have proper checks
+            critical_findings = [
+                f for f in result["findings"]
+                if f.get("severity") == "Critical"
+            ]
+            assert len(critical_findings) == 0
+
+    def test_safe_aiken_analysis(self, sample_aiken_validator):
+        """Test that safe Aiken validator has fewer findings."""
+        with tempfile.NamedTemporaryFile(suffix=".ak", mode="w", delete=False) as f:
+            f.write(sample_aiken_validator)
+            f.flush()
+
+            analyzer = CardanoAnalyzer()
+            result = analyzer.analyze(f.name)
+
+            assert result["status"] == "success"
+            # Safe validator should have few critical findings
+            critical_findings = [
+                f for f in result["findings"]
+                if f.get("severity") == "Critical"
+            ]
+            assert len(critical_findings) <= 1
+
+
+class TestPlutusParser:
+    """Tests for PlutusParser."""
+
+    def test_parse_imports(self, sample_plutus_validator):
+        """Test parsing Plutus imports."""
+        with tempfile.NamedTemporaryFile(suffix=".hs", mode="w", delete=False) as f:
+            f.write(sample_plutus_validator)
+            f.flush()
+
+            parser = PlutusParser()
+            contract = parser.parse(f.name)
+
+            assert len(contract.imports) >= 1
+
+    def test_parse_data_types(self, sample_plutus_validator):
+        """Test parsing Plutus data types."""
+        with tempfile.NamedTemporaryFile(suffix=".hs", mode="w", delete=False) as f:
+            f.write(sample_plutus_validator)
+            f.flush()
+
+            parser = PlutusParser()
+            contract = parser.parse(f.name)
+
+            # Should find TokenDatum and TokenRedeemer
+            type_names = [t["name"] for t in contract.data_types]
+            assert len(type_names) >= 1
+
+    def test_parse_validators(self, sample_plutus_validator):
+        """Test parsing Plutus validators."""
+        with tempfile.NamedTemporaryFile(suffix=".hs", mode="w", delete=False) as f:
+            f.write(sample_plutus_validator)
+            f.flush()
+
+            parser = PlutusParser()
+            contract = parser.parse(f.name)
+
+            assert len(contract.validators) >= 1
+            validator = contract.validators[0]
+            assert validator.script_type == PlutusScriptType.VALIDATOR
+
+
+class TestAikenParser:
+    """Tests for AikenParser."""
+
+    def test_parse_imports(self, sample_aiken_validator):
+        """Test parsing Aiken imports."""
+        with tempfile.NamedTemporaryFile(suffix=".ak", mode="w", delete=False) as f:
+            f.write(sample_aiken_validator)
+            f.flush()
+
+            parser = AikenParser()
+            contract = parser.parse(f.name)
+
+            assert len(contract.imports) >= 1
+            assert any("aiken" in imp for imp in contract.imports)
+
+    def test_parse_validators(self, sample_aiken_validator):
+        """Test parsing Aiken validators."""
+        with tempfile.NamedTemporaryFile(suffix=".ak", mode="w", delete=False) as f:
+            f.write(sample_aiken_validator)
+            f.flush()
+
+            parser = AikenParser()
+            contract = parser.parse(f.name)
+
+            assert len(contract.validators) >= 1
+
+    def test_parse_types(self, sample_aiken_validator):
+        """Test parsing Aiken types."""
+        with tempfile.NamedTemporaryFile(suffix=".ak", mode="w", delete=False) as f:
+            f.write(sample_aiken_validator)
+            f.flush()
+
+            parser = AikenParser()
+            contract = parser.parse(f.name)
+
+            # Should find Datum and Redeemer types
+            assert len(contract.data_types) >= 1
+
+
+class TestCardanoPatternDetector:
+    """Tests for CardanoPatternDetector."""
+
+    def test_detect_plutus_patterns(self, sample_vulnerable_plutus):
+        """Test Plutus vulnerability detection."""
+        with tempfile.NamedTemporaryFile(suffix=".hs", mode="w", delete=False) as f:
+            f.write(sample_vulnerable_plutus)
+            f.flush()
+
+            parser = PlutusParser()
+            contract = parser.parse(f.name)
+
+            findings = CardanoPatternDetector.detect_plutus_vulnerabilities(
+                contract, sample_vulnerable_plutus
+            )
+            assert isinstance(findings, list)
+            # Should find vulnerabilities
+            assert len(findings) >= 1
+
+    def test_detect_aiken_patterns(self, sample_vulnerable_aiken):
+        """Test Aiken vulnerability detection."""
+        with tempfile.NamedTemporaryFile(suffix=".ak", mode="w", delete=False) as f:
+            f.write(sample_vulnerable_aiken)
+            f.flush()
+
+            parser = AikenParser()
+            contract = parser.parse(f.name)
+
+            findings = CardanoPatternDetector.detect_aiken_vulnerabilities(
+                contract, sample_vulnerable_aiken
+            )
+            assert isinstance(findings, list)
+            # Should find missing signer check
+            assert len(findings) >= 1
+
+    def test_cardano_vulnerability_types(self):
+        """Test that all vulnerability types are defined."""
+        expected_vulns = [
+            "DOUBLE_SATISFACTION",
+            "MISSING_SIGNER_CHECK",
+            "MISSING_DATUM_VALIDATION",
+            "UNAUTHORIZED_MINTING",
+        ]
+        for vuln in expected_vulns:
+            assert hasattr(CardanoVulnerability, vuln)
+
+
+# ============================================================================
 # Cross-Chain Integration Tests
 # ============================================================================
 
@@ -2090,6 +2466,14 @@ class TestCrossChainAnalysis:
 
         assert stellar.chain_type == ChainType.STELLAR
         assert algorand.chain_type == ChainType.ALGORAND
+
+    def test_cardano_analyzer(self):
+        """Test that Cardano analyzer works."""
+        cardano = CardanoAnalyzer()
+
+        assert cardano.chain_type == ChainType.CARDANO
+        assert ".hs" in cardano.supported_extensions
+        assert ".ak" in cardano.supported_extensions
 
     def test_normalized_findings_across_chains(
         self,
@@ -2151,16 +2535,17 @@ class TestCrossChainAnalysis:
     def test_all_chain_types_supported(self):
         """Test that all expected chain types are defined."""
         expected_chains = [
-            "ETHEREUM", "SOLANA", "NEAR", "SUI", "APTOS", "STELLAR", "ALGORAND"
+            "ETHEREUM", "SOLANA", "NEAR", "SUI", "APTOS", "STELLAR", "ALGORAND", "CARDANO"
         ]
         for chain in expected_chains:
             assert hasattr(ChainType, chain), f"Missing ChainType: {chain}"
 
     def test_vulnerability_mappings_include_new_chains(self):
-        """Test that vulnerability mappings include Stellar and Algorand."""
+        """Test that vulnerability mappings include Stellar, Algorand and Cardano."""
         for mapping in VULNERABILITY_MAPPINGS.values():
             assert hasattr(mapping, "stellar_names")
             assert hasattr(mapping, "algorand_names")
+            assert hasattr(mapping, "cardano_names")
 
 
 # ============================================================================

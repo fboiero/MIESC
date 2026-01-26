@@ -288,9 +288,13 @@ class MLInvariantSynthesizer:
 - [x] Sprint 5.5: Algorand TEAL/PyTeal Adapter (algorand_adapter.py)
 - [x] Tests: +33 tests (100 total Multi-Chain)
 
-### Iteración 11+
-- [ ] Sprint 5.6: Cardano/Plutus Adapter (cardano_adapter.py) - Alto esfuerzo (UTXO + Haskell)
-- [ ] Sprint 6: Enterprise Features
+### Iteración 11 ✅ COMPLETADA
+- [x] Sprint 5.6: Cardano/Plutus Adapter (cardano_adapter.py)
+- [x] Sprint 5.6: Aiken support (modern Cardano language)
+- [x] Tests: +17 tests (117 total Multi-Chain)
+
+### Iteración 12+
+- [ ] Sprint 6: Enterprise Features (API Keys, Teams, Dashboard)
 
 ---
 
@@ -339,13 +343,14 @@ tests/test_ml_invariant_system.py             ✅ 58 tests
 src/ml/__init__.py                            ✅ +ML Invariant exports
 
 # Sprint 5 - COMPLETADO
-src/core/chain_abstraction.py                 ✅ Multi-chain abstraction layer (800+ lines)
+src/core/chain_abstraction.py                 ✅ Multi-chain abstraction layer (850+ lines)
 src/adapters/solana_adapter.py                ✅ Solana/Anchor adapter (720 lines)
 src/adapters/near_adapter.py                  ✅ NEAR adapter (620 lines)
 src/adapters/move_adapter.py                  ✅ Move/Sui/Aptos adapter (680 lines)
 src/adapters/stellar_adapter.py               ✅ Stellar/Soroban adapter (680 lines)
 src/adapters/algorand_adapter.py              ✅ Algorand TEAL/PyTeal adapter (720 lines)
-tests/test_multichain_system.py               ✅ 100 tests
+src/adapters/cardano_adapter.py               ✅ Cardano/Plutus/Aiken adapter (950 lines)
+tests/test_multichain_system.py               ✅ 117 tests
 ```
 
 ---
@@ -358,7 +363,7 @@ tests/test_multichain_system.py               ✅ 100 tests
 | PoC Generation | 0 | 10+ templates | ✅ 4 templates |
 | Plugin Support | No | Sí | ✅ Completo |
 | ML Invariants | No | Sí | ✅ Completo |
-| Multi-Chain | No | Sí | ✅ 6 chains (EVM, Solana, NEAR, Sui/Aptos, Stellar, Algorand) |
+| Multi-Chain | No | Sí | ✅ 7 chains (EVM, Solana, NEAR, Sui/Aptos, Stellar, Algorand, Cardano) |
 | Detection Recall | ~96% | >97% | ⏳ |
 | False Positives | ~12% | <8% | ⏳ |
 

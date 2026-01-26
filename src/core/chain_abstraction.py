@@ -59,6 +59,7 @@ class ChainType(Enum):
     APTOS = "aptos"
     STELLAR = "stellar"
     ALGORAND = "algorand"
+    CARDANO = "cardano"
 
     # Language-based grouping
     @classmethod
@@ -82,6 +83,8 @@ class ContractLanguage(Enum):
     CAIRO = "cairo"  # StarkNet
     TEAL = "teal"  # Algorand
     PYTEAL = "pyteal"  # Algorand Python SDK
+    PLUTUS = "plutus"  # Cardano (Haskell-based)
+    AIKEN = "aiken"  # Cardano (modern language)
 
 
 class Visibility(Enum):
@@ -412,6 +415,7 @@ class VulnerabilityMapping:
     move_names: List[str] = field(default_factory=list)
     stellar_names: List[str] = field(default_factory=list)
     algorand_names: List[str] = field(default_factory=list)
+    cardano_names: List[str] = field(default_factory=list)
 
     # Standard identifiers
     swc_ids: List[str] = field(default_factory=list)
@@ -431,6 +435,7 @@ VULNERABILITY_MAPPINGS: Dict[str, VulnerabilityMapping] = {
         move_names=["missing-capability", "unauthorized-access"],
         stellar_names=["missing-auth-check", "missing-require-auth", "admin-unprotected"],
         algorand_names=["missing-sender-check", "unprotected-update", "missing-app-creator-check"],
+        cardano_names=["missing-signer-check", "unauthorized-minting", "missing-datum-check"],
         swc_ids=["SWC-105"],
         cwe_ids=["CWE-284", "CWE-285"],
     ),
@@ -445,6 +450,7 @@ VULNERABILITY_MAPPINGS: Dict[str, VulnerabilityMapping] = {
         move_names=["reentrancy"],  # Move prevents most reentrancy by design
         stellar_names=["reentrancy-risk", "cross-contract-unsafe"],
         algorand_names=["inner-txn-reentrancy"],  # Algorand has atomic groups
+        cardano_names=["double-satisfaction"],  # eUTXO prevents traditional reentrancy
         swc_ids=["SWC-107"],
         cwe_ids=["CWE-841"],
     ),
@@ -459,6 +465,7 @@ VULNERABILITY_MAPPINGS: Dict[str, VulnerabilityMapping] = {
         move_names=["abort-on-overflow"],  # Move has built-in overflow checks
         stellar_names=["arithmetic-overflow", "unchecked-ops"],
         algorand_names=["overflow", "underflow", "division-by-zero"],
+        cardano_names=["integer-overflow", "ada-calculation-error"],
         swc_ids=["SWC-101"],
         cwe_ids=["CWE-190", "CWE-191"],
     ),
@@ -473,6 +480,7 @@ VULNERABILITY_MAPPINGS: Dict[str, VulnerabilityMapping] = {
         move_names=["type-safety", "borrow-check"],
         stellar_names=["unwrap-without-check", "panic-in-contract"],
         algorand_names=["unchecked-txn-type", "missing-asset-check", "gtxn-validation"],
+        cardano_names=["datum-validation", "redeemer-injection", "missing-utxo-check"],
         swc_ids=["SWC-123"],
         cwe_ids=["CWE-20"],
     ),
@@ -487,6 +495,7 @@ VULNERABILITY_MAPPINGS: Dict[str, VulnerabilityMapping] = {
         move_names=["signature-verification"],
         stellar_names=["signature-check"],
         algorand_names=["ed25519-verify", "lsig-security"],
+        cardano_names=["ed25519-verify", "multisig-validation"],
         swc_ids=["SWC-117", "SWC-121", "SWC-122"],
         cwe_ids=["CWE-347"],
     ),
@@ -508,7 +517,8 @@ def get_vulnerability_mapping(vuln_type: str) -> Optional[VulnerabilityMapping]:
             mapping.near_names +
             mapping.move_names +
             mapping.stellar_names +
-            mapping.algorand_names
+            mapping.algorand_names +
+            mapping.cardano_names
         )
         for name in all_names:
             if name.lower().replace("-", "_") == vuln_lower:
