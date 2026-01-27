@@ -33,6 +33,7 @@ class ClassicVulnType(Enum):
     ACCESS_CONTROL = "access_control"
     ARITHMETIC = "arithmetic"
     UNCHECKED_CALLS = "unchecked_low_level_calls"
+    UNCHECKED_SEND = "unchecked_send"  # v4.6.0: Specific .send() pattern
     TIMESTAMP = "timestamp_dependence"
     BAD_RANDOMNESS = "bad_randomness"
     FRONT_RUNNING = "front_running"
@@ -41,6 +42,9 @@ class ClassicVulnType(Enum):
     # New patterns v4.4.0
     VYPER_REENTRANCY = "vyper_reentrancy"
     PERMIT_FRONTRUN = "permit_frontrun"
+    # v4.6.0 additional types
+    INTEGER_OVERFLOW = "integer_overflow"
+    INTEGER_UNDERFLOW = "integer_underflow"
 
 
 @dataclass
@@ -243,6 +247,97 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
     ),
 
     # =========================================================================
+    # UNCHECKED SEND (SWC-104) - v4.6.0 specific .send() and .transfer() patterns
+    # Note: SolidiFI uses .transfer() for "Unchecked-Send" category
+    # =========================================================================
+    ClassicVulnType.UNCHECKED_SEND: PatternConfig(
+        vuln_type=ClassicVulnType.UNCHECKED_SEND,
+        patterns=[
+            # .send() patterns (returns bool, needs check)
+            r"\w+\.send\s*\(",                 # any .send() call
+            r"msg\.sender\.send\s*\(",
+            # .transfer() patterns (reverts on failure, but 2300 gas limit issue)
+            r"msg\.sender\.transfer\s*\(",     # msg.sender.transfer()
+            r"\w+\.transfer\s*\(\s*\d+\s*(ether|wei|gwei)",  # .transfer(amount)
+            r"\.transfer\s*\(\s*\w+\s*\)",     # .transfer(var)
+            # Dangerous patterns - transfer in public payable without checks
+            r"function\s+\w+\s*\(\s*\)\s*(external|public)\s*payable[^}]*\.transfer",
+        ],
+        anti_patterns=[
+            r"require\s*\(\s*\w+\.send",       # require(x.send())
+            r"if\s*\(\s*!\s*\w+\.send",        # if (!x.send())
+            r"assert\s*\(\s*\w+\.send",        # assert(x.send())
+            r"bool\s+\w+\s*=\s*\w+\.send",     # bool success = x.send()
+        ],
+        severity="medium",
+        swc_id="SWC-104",
+        description="Unchecked external call - .send()/.transfer() may fail silently or with 2300 gas limit",
+        recommendation="Use .call{value: x}('') with proper checks, or verify contract receivers",
+    ),
+
+    # =========================================================================
+    # INTEGER OVERFLOW (SWC-101) - v4.6.0 specific overflow patterns
+    # More selective patterns to reduce FP while maintaining recall
+    # =========================================================================
+    ClassicVulnType.INTEGER_OVERFLOW: PatternConfig(
+        vuln_type=ClassicVulnType.INTEGER_OVERFLOW,
+        patterns=[
+            # Compound assignment (high confidence - storage modification)
+            r"\w+\s*\+=\s*\w+",               # a += b
+            r"\w+\s*\*=\s*\w+",               # a *= b
+            # Increment operators
+            r"\+\+\w+|\w+\+\+",               # ++a or a++
+            # Storage/mapping operations with addition
+            r"balances?\s*\[[^\]]+\]\s*\+",   # balances[x] + y
+            r"mapping.*\+=",                   # mapping modification
+            # Specific overflow-prone patterns from SolidiFI
+            r"lockTime\w*\s*\+=",             # lockTime += x (common overflow)
+        ],
+        anti_patterns=[
+            r"\.add\s*\(",                    # SafeMath.add() usage
+            r"\.mul\s*\(",                    # SafeMath.mul() usage
+            r"pragma\s+solidity\s*[\^>=]*\s*0\.8",
+            r"unchecked\s*\{",
+            r"require\s*\([^)]*<=",           # Overflow check before
+        ],
+        severity="high",
+        swc_id="SWC-101",
+        description="Integer overflow - arithmetic operation exceeds max value",
+        recommendation="Use Solidity 0.8+ or SafeMath library for safe arithmetic",
+    ),
+
+    # =========================================================================
+    # INTEGER UNDERFLOW (SWC-101) - v4.6.0 specific underflow patterns
+    # =========================================================================
+    ClassicVulnType.INTEGER_UNDERFLOW: PatternConfig(
+        vuln_type=ClassicVulnType.INTEGER_UNDERFLOW,
+        patterns=[
+            # Compound subtraction (high confidence)
+            r"\w+\s*-=\s*\w+",               # a -= b
+            # Decrement operators
+            r"--\w+|\w+--",                  # --a or a--
+            # Balance/storage subtraction patterns
+            r"balance\w*\s*-=",
+            r"balances\s*\[[^\]]+\]\s*-=",
+            r"_balances\s*\[[^\]]+\]\s*-=",
+            # Direct subtraction in assignments
+            r"=\s*\w+\s*-\s*\w+\s*;",        # x = a - b;
+            # Underflow pattern from SolidiFI
+            r"vundflw\s*=.*-",               # vundflw = x - y
+        ],
+        anti_patterns=[
+            r"\.sub\s*\(",                    # SafeMath.sub() usage
+            r"pragma\s+solidity\s*[\^>=]*\s*0\.8",
+            r"unchecked\s*\{",
+            r"require\s*\([^)]*>=",           # Underflow check before
+        ],
+        severity="high",
+        swc_id="SWC-101",
+        description="Integer underflow - subtraction results in negative value wrapping",
+        recommendation="Use Solidity 0.8+ or SafeMath library, check value before subtraction",
+    ),
+
+    # =========================================================================
     # DOS (SWC-128) - improved patterns
     # =========================================================================
     ClassicVulnType.DOS: PatternConfig(
@@ -423,15 +518,35 @@ class ClassicPatternDetector:
         """Detect vulnerabilities for a single category."""
         matches = []
 
-        # Check anti-patterns first (global check)
-        for anti in config.anti_patterns:
-            if re.search(anti, source_code, re.IGNORECASE):
-                return []  # Protected
+        # For arithmetic patterns, check anti-patterns per-line/function context
+        # instead of globally (a contract may have both SafeMath and vulnerable code)
+        use_local_antipattern = config.vuln_type in (
+            ClassicVulnType.ARITHMETIC,
+            ClassicVulnType.INTEGER_OVERFLOW,
+            ClassicVulnType.INTEGER_UNDERFLOW,
+        )
+
+        # Check anti-patterns globally (for non-arithmetic patterns)
+        if not use_local_antipattern:
+            for anti in config.anti_patterns:
+                if re.search(anti, source_code, re.IGNORECASE):
+                    return []  # Protected
 
         # Find pattern matches
         for pattern in config.patterns:
             for i, line in enumerate(lines, 1):
                 if re.search(pattern, line, re.IGNORECASE):
+                    # For arithmetic, check anti-patterns in local context (surrounding lines)
+                    if use_local_antipattern:
+                        local_context = self._get_function_context(lines, i)
+                        is_protected = False
+                        for anti in config.anti_patterns:
+                            if re.search(anti, local_context, re.IGNORECASE):
+                                is_protected = True
+                                break
+                        if is_protected:
+                            continue
+
                     # Context validation if specified
                     if config.context_validator:
                         if not config.context_validator(line, i):
@@ -450,6 +565,12 @@ class ClassicPatternDetector:
                     ))
 
         return matches
+
+    def _get_function_context(self, lines: List[str], line_num: int, context_lines: int = 20) -> str:
+        """Get function context around a line for local anti-pattern checking."""
+        start = max(0, line_num - context_lines)
+        end = min(len(lines), line_num + context_lines)
+        return '\n'.join(lines[start:end])
 
     def detect_with_context(
         self,
