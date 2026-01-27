@@ -7,24 +7,21 @@ import os
 import time
 import logging
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional, Callable, TYPE_CHECKING
 from dataclasses import dataclass, field
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+if TYPE_CHECKING:
+    from ..ml import MLPipeline, VulnerabilityCluster
 
 from .config_loader import get_config, MIESCConfig
 from .result_aggregator import ResultAggregator
 from .tool_discovery import get_tool_discovery
 from .optimized_orchestrator import OptimizedOrchestrator, AnalysisResult, ResultCache
 
-# Import ML components
-from ..ml import (
-    MLPipeline,
-    MLEnhancedResult,
-    FeedbackType,
-    VulnerabilityCluster,
-    get_ml_pipeline,
-)
+# ML components imported lazily to avoid circular imports
+# from ..ml import MLPipeline, MLEnhancedResult, FeedbackType, VulnerabilityCluster, get_ml_pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +47,7 @@ class MLAnalysisResult:
     severity_adjustments: int
 
     # Clustering
-    clusters: List[VulnerabilityCluster]
+    clusters: List[Any]  # VulnerabilityCluster - lazy import
     cluster_count: int
 
     # Remediation
@@ -170,12 +167,15 @@ class MLOrchestrator:
         self.max_workers = max_workers
         self.aggregator = ResultAggregator()
 
-        # ML components
+        # ML components (lazy import to avoid circular imports)
         self.ml_enabled = ml_enabled
-        self.ml_pipeline = MLPipeline(
-            fp_threshold=fp_threshold,
-            enable_feedback=True,
-        ) if ml_enabled else None
+        self.ml_pipeline = None
+        if ml_enabled:
+            from ..ml import MLPipeline
+            self.ml_pipeline = MLPipeline(
+                fp_threshold=fp_threshold,
+                enable_feedback=True,
+            )
 
     def _read_contract_source(self, contract_path: str) -> str:
         """Lee código fuente del contrato."""
@@ -488,7 +488,7 @@ class MLOrchestrator:
     def submit_feedback(
         self,
         finding: Dict[str, Any],
-        feedback_type: FeedbackType,
+        feedback_type: Any,  # FeedbackType - lazy import
         user_id: str = "anonymous",
         notes: str = "",
     ) -> Dict[str, Any]:
