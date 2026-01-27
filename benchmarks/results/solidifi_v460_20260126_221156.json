@@ -1,0 +1,94 @@
+{
+  "version": "4.6.0",
+  "timestamp": "2026-01-26T22:11:48.485379",
+  "total_contracts": 70,
+  "total_ground_truth": 1828,
+  "total_detections": 88,
+  "true_positives": 0,
+  "false_positives": 88,
+  "false_negatives": 1828,
+  "precision": 0.0,
+  "recall": 0.0,
+  "f1_score": 0.0,
+  "total_time_seconds": 7.539186000823975,
+  "by_category": {
+    "Re-entrancy": {
+      "total_contracts": 10,
+      "total_ground_truth": 263,
+      "total_detections": 13,
+      "true_positives": 0,
+      "false_positives": 13,
+      "false_negatives": 263,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0
+    },
+    "Overflow-Underflow": {
+      "total_contracts": 10,
+      "total_ground_truth": 259,
+      "total_detections": 13,
+      "true_positives": 0,
+      "false_positives": 13,
+      "false_negatives": 259,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0
+    },
+    "TOD": {
+      "total_contracts": 10,
+      "total_ground_truth": 260,
+      "total_detections": 10,
+      "true_positives": 0,
+      "false_positives": 10,
+      "false_negatives": 260,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0
+    },
+    "Timestamp-Dependency": {
+      "total_contracts": 10,
+      "total_ground_truth": 272,
+      "total_detections": 13,
+      "true_positives": 0,
+      "false_positives": 13,
+      "false_negatives": 272,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0
+    },
+    "Unchecked-Send": {
+      "total_contracts": 10,
+      "total_ground_truth": 239,
+      "total_detections": 13,
+      "true_positives": 0,
+      "false_positives": 13,
+      "false_negatives": 239,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0
+    },
+    "Unhandled-Exceptions": {
+      "total_contracts": 10,
+      "total_ground_truth": 275,
+      "total_detections": 13,
+      "true_positives": 0,
+      "false_positives": 13,
+      "false_negatives": 275,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0
+    },
+    "tx.origin": {
+      "total_contracts": 10,
+      "total_ground_truth": 260,
+      "total_detections": 13,
+      "true_positives": 0,
+      "false_positives": 13,
+      "false_negatives": 260,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0
+    }
+  },
+  "errors": []
+}
