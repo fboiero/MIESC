@@ -85,6 +85,27 @@ except Exception:
     FPClassifier = None
     FP_CLASSIFIER_AVAILABLE = False
 
+# Import Mythril adapter for cross-validation
+# Need to add project root to path for mythril_adapter's internal imports
+import sys
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+ADAPTERS_PATH = PROJECT_ROOT / "src" / "adapters"
+try:
+    mythril_module = _import_module_directly(
+        str(ADAPTERS_PATH / "mythril_adapter.py"), "mythril_adapter_direct"
+    )
+    MythrilAdapter = mythril_module.MythrilAdapter
+    # Check if Mythril is actually available
+    _mythril_test = MythrilAdapter()
+    from src.core.tool_protocol import ToolStatus
+    MYTHRIL_AVAILABLE = _mythril_test.is_available() == ToolStatus.AVAILABLE
+except Exception as e:
+    print(f"Warning: Mythril import failed: {e}")
+    MythrilAdapter = None
+    MYTHRIL_AVAILABLE = False
+
 
 # Category mapping
 SOLIDIFI_TO_SWC = {
@@ -363,6 +384,102 @@ def analyze_contract_with_fp_filter(
     return adjusted_detections, elapsed_ms, high_fp_count
 
 
+def cross_validate_with_mythril(
+    source_code: str,
+    detections: List[Detection],
+    timeout: int = 60,
+) -> Tuple[List[Detection], int]:
+    """
+    Cross-validate detections using Mythril symbolic execution.
+
+    Findings confirmed by Mythril get boosted confidence.
+    Findings not confirmed get reduced confidence.
+
+    Returns: (validated_detections, mythril_confirmed_count)
+    """
+    if not MYTHRIL_AVAILABLE or not detections:
+        return detections, 0
+
+    adapter = MythrilAdapter()
+
+    # Run Mythril analysis once
+    import tempfile
+    import os
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.sol', delete=False) as f:
+        f.write(source_code)
+        temp_path = f.name
+
+    try:
+        mythril_result = adapter.analyze(temp_path, timeout=timeout, verbose=False)
+    finally:
+        try:
+            os.unlink(temp_path)
+        except:
+            pass
+
+    if mythril_result.get("status") != "success":
+        return detections, 0
+
+    mythril_findings = mythril_result.get("findings", [])
+
+    # Map Mythril SWC to vulnerability types
+    mythril_swc_to_type = {
+        "SWC-107": {"reentrancy", "reentrancy_eth", "reentrancy_no_eth"},
+        "SWC-101": {"integer_overflow", "integer_underflow", "arithmetic"},
+        "SWC-104": {"unchecked_low_level_calls", "unchecked_send", "unchecked_call"},
+        "SWC-105": {"access_control", "unprotected_function"},
+        "SWC-106": {"access_control", "suicidal"},
+        "SWC-115": {"tx_origin"},
+        "SWC-116": {"timestamp_dependence", "timestamp"},
+        "SWC-114": {"front_running", "tod"},
+        "SWC-120": {"bad_randomness", "weak_randomness"},
+    }
+
+    # Build set of (type, line) confirmed by Mythril
+    mythril_confirmed = set()
+    for mf in mythril_findings:
+        swc = mf.get("swc_id", "")
+        line = mf.get("location", {}).get("line", 0)
+        types = mythril_swc_to_type.get(swc, set())
+        for t in types:
+            mythril_confirmed.add((t, line))
+
+    # Validate detections
+    validated = []
+    confirmed_count = 0
+
+    for det in detections:
+        det_type = det.vuln_type.lower().replace("-", "_")
+        det_line = det.line
+
+        # Check if Mythril confirms this (within 10 lines)
+        is_confirmed = False
+        for (mtype, mline) in mythril_confirmed:
+            if mtype in det_type or det_type in mtype:
+                if abs(mline - det_line) <= 10:
+                    is_confirmed = True
+                    break
+
+        if is_confirmed:
+            confirmed_count += 1
+            # Boost confidence for confirmed
+            new_conf = min(0.95, det.confidence + 0.2)
+        else:
+            # Reduce confidence for unconfirmed (but not too much)
+            new_conf = max(0.3, det.confidence - 0.1)
+
+        validated.append(Detection(
+            line=det.line,
+            vuln_type=det.vuln_type,
+            severity=det.severity,
+            confidence=new_conf,
+            detector=det.detector + ("+mythril" if is_confirmed else "")
+        ))
+
+    return validated, confirmed_count
+
+
 def _find_function_line(source: str, func_name: str) -> int:
     """Find line number where function is defined."""
     pattern = rf'function\s+{re.escape(func_name)}\s*\('
@@ -426,6 +543,8 @@ def run_benchmark(
     min_confidence: float = 0.0,
     use_fp_filter: bool = False,
     fp_threshold: float = 0.6,
+    use_mythril: bool = False,
+    mythril_timeout: int = 60,
 ) -> BenchmarkResults:
     """Run the complete benchmark.
 
@@ -435,6 +554,8 @@ def run_benchmark(
         min_confidence: Minimum confidence to count detection (improves precision)
         use_fp_filter: Use ML-based FP classifier (v4.7.0)
         fp_threshold: FP probability threshold for filtering
+        use_mythril: Use Mythril for cross-validation (slow but improves precision)
+        mythril_timeout: Timeout per contract for Mythril analysis
     """
     results = BenchmarkResults(
         timestamp=datetime.now().isoformat()
@@ -443,7 +564,7 @@ def run_benchmark(
     if categories is None:
         categories = list(SOLIDIFI_TO_SWC.keys())
 
-    version = "v4.7.0" if use_fp_filter else "v4.6.0"
+    version = "v4.7.0" if (use_fp_filter or use_mythril) else "v4.6.0"
     print("=" * 70)
     print(f"  MIESC {version} - SolidiFI Benchmark Evaluation")
     print("=" * 70)
@@ -455,6 +576,12 @@ def run_benchmark(
         print(f"Minimum confidence threshold: {min_confidence:.0%}")
     if use_fp_filter:
         print(f"FP Classifier: ENABLED (threshold={fp_threshold})")
+    if use_mythril:
+        if MYTHRIL_AVAILABLE:
+            print(f"Mythril Cross-Validation: ENABLED (timeout={mythril_timeout}s)")
+        else:
+            print("Mythril Cross-Validation: NOT AVAILABLE (mythril not installed)")
+            use_mythril = False
     print()
 
     start_time = time.time()
@@ -498,6 +625,12 @@ def run_benchmark(
                 )
             else:
                 detections, analysis_time = analyze_contract(source_code, category)
+
+            # Cross-validate with Mythril (slow but improves precision)
+            if use_mythril and MYTHRIL_AVAILABLE and detections:
+                detections, mythril_confirmed = cross_validate_with_mythril(
+                    source_code, detections, mythril_timeout
+                )
 
             # Filter by minimum confidence (improves precision)
             if min_confidence > 0:
@@ -679,6 +812,10 @@ if __name__ == "__main__":
                         help="Use ML-based FP classifier (v4.7.0)")
     parser.add_argument("--fp-threshold", type=float, default=0.6,
                         help="FP probability threshold (default: 0.6)")
+    parser.add_argument("--mythril", action="store_true",
+                        help="Use Mythril for cross-validation (slow)")
+    parser.add_argument("--mythril-timeout", type=int, default=60,
+                        help="Mythril timeout per contract (default: 60s)")
 
     args = parser.parse_args()
 
@@ -697,6 +834,8 @@ if __name__ == "__main__":
         min_confidence=min_confidence,
         use_fp_filter=args.fp_filter,
         fp_threshold=args.fp_threshold,
+        use_mythril=args.mythril,
+        mythril_timeout=args.mythril_timeout,
     )
 
     # Print results
