@@ -356,54 +356,62 @@ class FPClassifier:
     # Rule weights (learned from benchmark data)
     # Positive = increases FP probability (more likely FP)
     # Negative = decreases FP probability (more likely TP)
+    #
+    # NOTE: These weights are conservative to avoid filtering real vulnerabilities.
+    # The goal is to filter OBVIOUS false positives while preserving recall.
     FEATURE_WEIGHTS = {
-        # Guards that INCREASE FP probability (code is protected)
-        "has_reentrancy_guard": 0.35,
-        "has_access_control": 0.2,
-        "follows_cei_pattern": 0.25,
-        "is_solidity_08_plus": 0.15,  # Built-in overflow checks
-        "uses_safemath": 0.2,
-        "has_require_check": 0.1,
-        "has_modifier": 0.1,
+        # Strong guards that INCREASE FP probability (code is protected)
+        "has_reentrancy_guard": 0.35,  # Strong indicator - actual guard present
+
+        # Moderate guards - less reliable indicators
+        "has_access_control": 0.1,  # May still have vulns elsewhere
+        "follows_cei_pattern": 0.05,  # CEI detection can be unreliable
+        "is_solidity_08_plus": 0.1,  # Only affects arithmetic, not reentrancy
+        "uses_safemath": 0.15,
+
+        # Weak indicators - don't heavily weight these
+        "has_require_check": 0.02,  # Almost all code has requires
+        "has_modifier": 0.02,  # Common pattern
 
         # Indicators that also increase FP probability
-        "is_proxy_contract": 0.15,  # Proxy patterns often flagged incorrectly
-        "is_upgradeable": 0.1,
-        "has_initializer": 0.05,
+        "is_proxy_contract": 0.1,  # Proxy patterns often flagged incorrectly
+        "is_upgradeable": 0.05,
+        "has_initializer": 0.02,
 
         # Context indicators
-        "high_confidence": -0.15,  # High confidence -> less likely FP
-        "low_confidence": 0.1,  # Low confidence -> more likely FP
-        "multi_tool": -0.2,  # Multiple tools agree -> less likely FP
-        "single_tool": 0.05,  # Single tool -> slightly more likely FP
+        "high_confidence": -0.1,  # High confidence -> less likely FP
+        "low_confidence": 0.05,  # Low confidence -> more likely FP
+        "multi_tool": -0.15,  # Multiple tools agree -> less likely FP
+        "single_tool": 0.02,  # Single tool -> slightly more likely FP
         "has_swc_id": -0.05,  # Has SWC -> slightly less likely FP
     }
 
     # Vulnerability-specific adjustments (override base weights)
+    # Only apply strong adjustments for DEFINITIVE indicators
     VULN_TYPE_ADJUSTMENTS = {
         "reentrancy": {
-            "has_reentrancy_guard": 0.4,  # Strong indicator of FP
-            "follows_cei_pattern": 0.35,
+            "has_reentrancy_guard": 0.45,  # Strong indicator - actual guard
+            "follows_cei_pattern": 0.1,  # Weak - CEI detection unreliable
         },
         "arithmetic": {
-            "is_solidity_08_plus": 0.45,  # Very strong - 0.8+ has built-in checks
-            "uses_safemath": 0.4,
+            "is_solidity_08_plus": 0.4,  # Strong - 0.8+ has built-in checks
+            "uses_safemath": 0.35,
         },
         "integer_overflow": {
-            "is_solidity_08_plus": 0.45,
-            "uses_safemath": 0.4,
+            "is_solidity_08_plus": 0.4,
+            "uses_safemath": 0.35,
         },
         "integer_underflow": {
-            "is_solidity_08_plus": 0.45,
-            "uses_safemath": 0.4,
+            "is_solidity_08_plus": 0.4,
+            "uses_safemath": 0.35,
         },
         "access_control": {
-            "has_access_control": 0.35,
-            "has_modifier": 0.25,
+            "has_access_control": 0.15,  # Moderate - may still have issues
+            "has_modifier": 0.1,
         },
         "timestamp": {
-            # Timestamp issues often benign in practice
-            "default_fp_boost": 0.15,
+            # Timestamp issues often benign but still report them
+            "default_fp_boost": 0.1,
         },
     }
 

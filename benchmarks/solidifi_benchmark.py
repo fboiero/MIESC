@@ -74,6 +74,17 @@ except Exception:
     SlitherValidator = None
     SLITHER_VALIDATION_AVAILABLE = False
 
+# Import FP classifier for v4.7.0
+try:
+    fp_classifier_module = _import_module_directly(
+        str(ML_PATH / "fp_classifier.py"), "fp_classifier_direct"
+    )
+    FPClassifier = fp_classifier_module.FPClassifier
+    FP_CLASSIFIER_AVAILABLE = True
+except Exception:
+    FPClassifier = None
+    FP_CLASSIFIER_AVAILABLE = False
+
 
 # Category mapping
 SOLIDIFI_TO_SWC = {
@@ -298,6 +309,60 @@ def analyze_contract(source_code: str, category: str) -> Tuple[List[Detection], 
     return detections, elapsed_ms
 
 
+def analyze_contract_with_fp_filter(
+    source_code: str, category: str, fp_threshold: float = 0.6
+) -> Tuple[List[Detection], float, int]:
+    """
+    Analyze contract using v4.6.0 modules with v4.7.0 FP scoring.
+
+    NOTE: We DON'T remove findings - we only adjust confidence scores.
+    This preserves recall while improving precision through confidence thresholds.
+
+    Returns: (detections, elapsed_ms, high_fp_count)
+    """
+    detections, elapsed_ms = analyze_contract(source_code, category)
+
+    if not FP_CLASSIFIER_AVAILABLE or not detections:
+        return detections, elapsed_ms, 0
+
+    # Apply FP classifier - adjust confidence only, don't remove
+    classifier = FPClassifier(fp_threshold=fp_threshold)
+
+    # Convert detections to dict format for classifier
+    findings_dicts = []
+    for det in detections:
+        findings_dicts.append({
+            "type": det.vuln_type,
+            "confidence": det.confidence,
+            "severity": det.severity,
+            "location": {"line": det.line},
+            "detector": det.detector,
+        })
+
+    # Score but don't filter (remove_fps=False)
+    scored, _ = classifier.filter_findings(
+        findings_dicts, source_code, remove_fps=False, adjust_confidence=True
+    )
+
+    # Convert back to Detection objects with adjusted confidence
+    adjusted_detections = []
+    high_fp_count = 0
+    for f in scored:
+        fp_prob = f.get("_fp_probability", 0.0)
+        if fp_prob >= fp_threshold:
+            high_fp_count += 1
+
+        adjusted_detections.append(Detection(
+            line=f["location"]["line"],
+            vuln_type=f["type"],
+            severity=f["severity"],
+            confidence=f["confidence"],  # Now adjusted by FP classifier
+            detector=f.get("detector", "fp_scored")
+        ))
+
+    return adjusted_detections, elapsed_ms, high_fp_count
+
+
 def _find_function_line(source: str, func_name: str) -> int:
     """Find line number where function is defined."""
     pattern = rf'function\s+{re.escape(func_name)}\s*\('
@@ -358,7 +423,9 @@ def match_detections(
 def run_benchmark(
     max_contracts_per_category: Optional[int] = None,
     categories: Optional[List[str]] = None,
-    min_confidence: float = 0.0
+    min_confidence: float = 0.0,
+    use_fp_filter: bool = False,
+    fp_threshold: float = 0.6,
 ) -> BenchmarkResults:
     """Run the complete benchmark.
 
@@ -366,6 +433,8 @@ def run_benchmark(
         max_contracts_per_category: Limit contracts per category
         categories: List of categories to evaluate
         min_confidence: Minimum confidence to count detection (improves precision)
+        use_fp_filter: Use ML-based FP classifier (v4.7.0)
+        fp_threshold: FP probability threshold for filtering
     """
     results = BenchmarkResults(
         timestamp=datetime.now().isoformat()
@@ -374,8 +443,9 @@ def run_benchmark(
     if categories is None:
         categories = list(SOLIDIFI_TO_SWC.keys())
 
+    version = "v4.7.0" if use_fp_filter else "v4.6.0"
     print("=" * 70)
-    print("  MIESC v4.6.0 - SolidiFI Benchmark Evaluation")
+    print(f"  MIESC {version} - SolidiFI Benchmark Evaluation")
     print("=" * 70)
     print(f"\nDataset: {DATASET_PATH}")
     print(f"Categories: {', '.join(categories)}")
@@ -383,6 +453,8 @@ def run_benchmark(
         print(f"Max contracts per category: {max_contracts_per_category}")
     if min_confidence > 0:
         print(f"Minimum confidence threshold: {min_confidence:.0%}")
+    if use_fp_filter:
+        print(f"FP Classifier: ENABLED (threshold={fp_threshold})")
     print()
 
     start_time = time.time()
@@ -420,7 +492,12 @@ def run_benchmark(
                 continue
 
             # Analyze contract
-            detections, analysis_time = analyze_contract(source_code, category)
+            if use_fp_filter and FP_CLASSIFIER_AVAILABLE:
+                detections, analysis_time, filtered_count = analyze_contract_with_fp_filter(
+                    source_code, category, fp_threshold
+                )
+            else:
+                detections, analysis_time = analyze_contract(source_code, category)
 
             # Filter by minimum confidence (improves precision)
             if min_confidence > 0:
@@ -598,6 +675,10 @@ if __name__ == "__main__":
                         help="Minimum confidence threshold to count as detection (default: 0.0)")
     parser.add_argument("--high-precision", action="store_true",
                         help="High precision mode: min-confidence=0.5")
+    parser.add_argument("--fp-filter", action="store_true",
+                        help="Use ML-based FP classifier (v4.7.0)")
+    parser.add_argument("--fp-threshold", type=float, default=0.6,
+                        help="FP probability threshold (default: 0.6)")
 
     args = parser.parse_args()
 
@@ -613,7 +694,9 @@ if __name__ == "__main__":
     results = run_benchmark(
         max_contracts_per_category=max_contracts,
         categories=args.categories,
-        min_confidence=min_confidence
+        min_confidence=min_confidence,
+        use_fp_filter=args.fp_filter,
+        fp_threshold=args.fp_threshold,
     )
 
     # Print results
