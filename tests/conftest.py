@@ -231,6 +231,146 @@ def sample_tool_result():
 
 
 @pytest.fixture
+def cli_runner():
+    """Click CLI test runner."""
+    from click.testing import CliRunner
+    return CliRunner()
+
+
+@pytest.fixture
+def multi_tool_findings():
+    """Findings from multiple tools for the same contract."""
+    return {
+        'slither': [
+            {
+                'type': 'reentrancy-eth',
+                'severity': 'high',
+                'message': 'Reentrancy in VulnerableBank.withdraw()',
+                'location': {'file': 'VulnerableBank.sol', 'line': 15, 'function': 'withdraw'},
+                'confidence': 'high',
+                'swc_id': 'SWC-107',
+                'cwe_id': 'CWE-841',
+            },
+            {
+                'type': 'unchecked-lowlevel',
+                'severity': 'medium',
+                'message': 'Low level call in withdraw()',
+                'location': {'file': 'VulnerableBank.sol', 'line': 18, 'function': 'withdraw'},
+                'confidence': 'medium',
+                'swc_id': 'SWC-104',
+            },
+        ],
+        'mythril': [
+            {
+                'type': 'reentrancy',
+                'severity': 'high',
+                'message': 'State change after external call in function withdraw',
+                'location': {'file': 'VulnerableBank.sol', 'line': 15, 'function': 'withdraw'},
+                'confidence': 'high',
+                'swc_id': 'SWC-107',
+            },
+            {
+                'type': 'integer-overflow',
+                'severity': 'high',
+                'message': 'Integer overflow possible in deposit()',
+                'location': {'file': 'VulnerableBank.sol', 'line': 8, 'function': 'deposit'},
+                'confidence': 'medium',
+                'swc_id': 'SWC-101',
+                'cwe_id': 'CWE-190',
+            },
+        ],
+        'solhint': [
+            {
+                'type': 'reentrancy',
+                'severity': 'high',
+                'message': 'Possible reentrancy vulnerability detected',
+                'location': {'file': 'VulnerableBank.sol', 'line': 14, 'function': 'withdraw'},
+                'confidence': 'medium',
+            },
+            {
+                'type': 'pragma',
+                'severity': 'informational',
+                'message': 'Floating pragma version detected',
+                'location': {'file': 'VulnerableBank.sol', 'line': 2},
+                'confidence': 'high',
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def correlation_engine():
+    """Pre-configured correlation engine."""
+    from src.ml.correlation_engine import SmartCorrelationEngine
+    return SmartCorrelationEngine(min_tools_for_validation=2)
+
+
+@pytest.fixture
+def report_findings():
+    """Findings suitable for report generation (using audit_report.Finding)."""
+    from src.reports.audit_report import Finding
+    return [
+        Finding(
+            id='MIESC-001',
+            title='Reentrancy Vulnerability in withdraw()',
+            severity='Critical',
+            category='Reentrancy',
+            description='The withdraw function makes an external call before updating state.',
+            location='VulnerableBank.sol:15',
+            line_number=15,
+            tool='slither',
+            layer=1,
+            swc_id='SWC-107',
+            cwe_id='CWE-841',
+            remediation='Apply checks-effects-interactions pattern.',
+        ),
+        Finding(
+            id='MIESC-002',
+            title='Unchecked Return Value',
+            severity='High',
+            category='Unchecked Calls',
+            description='Return value of external call is not checked.',
+            location='VulnerableBank.sol:18',
+            line_number=18,
+            tool='slither',
+            layer=1,
+            swc_id='SWC-104',
+            cwe_id='CWE-252',
+            remediation='Check the return value of low-level calls.',
+        ),
+        Finding(
+            id='MIESC-003',
+            title='Floating Pragma',
+            severity='Informational',
+            category='Best Practices',
+            description='Contract uses a floating pragma version.',
+            location='VulnerableBank.sol:2',
+            line_number=2,
+            tool='solhint',
+            layer=1,
+        ),
+    ]
+
+
+@pytest.fixture
+def report_metadata():
+    """Pre-configured audit metadata for report tests."""
+    from src.reports.audit_report import AuditMetadata
+    return AuditMetadata(
+        project_name='Test Project',
+        contract_name='VulnerableBank.sol',
+        version='1.0.0',
+        auditor='Test Auditor',
+        organization='MIESC Testing',
+        audit_date='2026-01-27',
+        report_id='TEST-20260127-001',
+        contract_hash='abc123def456',
+        solidity_version='0.8.0',
+        lines_of_code=30,
+    )
+
+
+@pytest.fixture
 def mock_orchestrator():
     """Create mock orchestrator for testing."""
     from unittest.mock import MagicMock
