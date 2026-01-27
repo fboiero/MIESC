@@ -485,5 +485,130 @@ class MythrilAdapter(ToolAdapter):
         }
 
 
+# v4.7.0: Cross-validation support for precision improvement
+    def validate_finding(
+        self,
+        source_code: str,
+        finding_type: str,
+        finding_line: int,
+        timeout: int = 60,
+    ) -> tuple:
+        """
+        Validate a pattern-based finding using Mythril symbolic execution.
+
+        Args:
+            source_code: Solidity source code
+            finding_type: Type of vulnerability from pattern detector
+            finding_line: Line number of the finding
+            timeout: Timeout for Mythril
+
+        Returns:
+            Tuple of (is_confirmed, matching_mythril_finding_or_None)
+        """
+        import tempfile
+        import os
+
+        # Create temp file for analysis
+        with tempfile.NamedTemporaryFile(
+            mode='w', suffix='.sol', delete=False
+        ) as f:
+            f.write(source_code)
+            temp_path = f.name
+
+        try:
+            result = self.analyze(temp_path, timeout=timeout, verbose=False)
+
+            if result.get("status") != "success" or not result.get("findings"):
+                return False, None
+
+            # Map pattern type to SWC IDs
+            type_to_swc = {
+                "reentrancy": ["107"],
+                "reentrancy_eth": ["107"],
+                "integer_overflow": ["101"],
+                "integer_underflow": ["101"],
+                "arithmetic": ["101"],
+                "access_control": ["105", "106", "112"],
+                "unprotected_function": ["105", "106"],
+                "timestamp_dependence": ["116"],
+                "tx_origin": ["115"],
+                "unchecked_low_level_calls": ["104"],
+                "front_running": ["114"],
+                "bad_randomness": ["120"],
+            }
+
+            expected_swcs = type_to_swc.get(
+                finding_type.lower().replace("-", "_"), []
+            )
+
+            # Find matching Mythril finding
+            for mythril_finding in result.get("findings", []):
+                swc = mythril_finding.get("swc_id", "").replace("SWC-", "")
+                if swc in expected_swcs:
+                    return True, mythril_finding
+
+            return False, None
+
+        finally:
+            try:
+                os.unlink(temp_path)
+            except Exception:
+                pass
+
+
+def validate_findings_with_mythril(
+    source_code: str,
+    findings: List[Dict[str, Any]],
+    timeout: int = 60,
+) -> List[Dict[str, Any]]:
+    """
+    Validate pattern-based findings using Mythril symbolic execution.
+
+    This function helps improve precision by confirming if vulnerabilities
+    detected by pattern matching are actually exploitable.
+
+    Args:
+        source_code: Solidity source code
+        findings: List of findings to validate
+        timeout: Timeout per finding
+
+    Returns:
+        Findings with Mythril validation results and adjusted confidence
+    """
+    adapter = MythrilAdapter()
+
+    status = adapter.is_available()
+    if status != ToolStatus.AVAILABLE:
+        return findings
+
+    validated_findings = []
+
+    for finding in findings:
+        finding_type = finding.get("type", "")
+        finding_line = finding.get("location", {}).get("line", 0)
+
+        is_confirmed, mythril_finding = adapter.validate_finding(
+            source_code, finding_type, finding_line, timeout
+        )
+
+        updated = finding.copy()
+        updated["_mythril_validated"] = is_confirmed
+
+        if is_confirmed and mythril_finding:
+            updated["_mythril_swc"] = mythril_finding.get("swc_id")
+            updated["_mythril_description"] = mythril_finding.get("description")
+            # Boost confidence for confirmed findings
+            current_conf = finding.get("confidence", 0.5)
+            updated["confidence"] = min(0.95, current_conf + 0.25)
+        else:
+            # Slightly reduce confidence for unconfirmed findings
+            current_conf = finding.get("confidence", 0.5)
+            updated["confidence"] = max(0.2, current_conf - 0.1)
+
+        validated_findings.append(updated)
+
+    return validated_findings
+
+
 # Export for registry
-__all__ = ["MythrilAdapter"]
+__all__ = ["MythrilAdapter", "validate_findings_with_mythril"]
