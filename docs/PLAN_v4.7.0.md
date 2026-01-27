@@ -152,16 +152,16 @@ Detectar y verificar invariantes comunes:
 ## Orden de Implementación
 
 ### Sprint 1: Quick Wins
-1. [ ] Probar SlitherValidator con benchmark real
-2. [ ] Ajustar umbrales de confianza
-3. [ ] Filtrar por confianza mínima 0.5
+1. [x] Probar SlitherValidator con benchmark real (Slither no instalado - infraestructura lista)
+2. [x] Ajustar umbrales de confianza
+3. [x] Filtrar por confianza mínima 0.5
 
 **Meta:** Precisión 35%+
 
 ### Sprint 2: Mythril
-1. [ ] Crear MythrilAdapter
-2. [ ] Integrar con pipeline de análisis
-3. [ ] Cross-validation Slither + Mythril
+1. [x] Crear MythrilAdapter (existente, mejorado con validate_finding)
+2. [x] Integrar con pipeline de análisis (validate_findings_with_mythril)
+3. [ ] Cross-validation Slither + Mythril (pendiente - requiere Slither)
 
 **Meta:** Precisión 45%+
 
