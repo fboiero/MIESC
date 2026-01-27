@@ -244,8 +244,16 @@ solc-select install 0.4.26 0.5.17 0.6.12 0.7.6 0.8.20
 
 1. **FP Classifier:** Contratos SolidiFI no tienen guards → classifier no puede mejorar precisión
 2. **Mythril:** Muy lento (2+ min/contrato) para benchmark completo
-3. **Trade-off precisión/recall:** No se puede alcanzar 60% precisión sin perder >20% recall
-4. **Cobertura Slither:** No detecta overflow/underflow ni TOD efectivamente
+3. **Slither full benchmark:** ~2+ horas para 350 contratos (usamos quick=70 contratos)
+4. **Trade-off precisión/recall:** No se puede alcanzar 60% precisión sin perder >20% recall
+5. **Cobertura Slither:** No detecta overflow/underflow ni TOD efectivamente
+
+### Conclusiones v4.7.0
+
+1. **Mejora lograda:** +8.8% precisión (26.7% → 35.5%) con Slither cross-validation
+2. **Trade-off aceptable:** F1 mejoró +5.7% (40.7% → 46.4%)
+3. **Meta 60% no alcanzada:** Requeriría sacrificar >50% de recall
+4. **Recomendación:** Usar `--slither --min-confidence 0.5` para balance óptimo
 
 ---
 

@@ -1,6 +1,12 @@
 # =============================================================================
-# MIESC v4.6.0 - Configuración Centralizada
+# MIESC v4.7.0 - Configuración Centralizada
 # Multi-layer Intelligent Evaluation for Smart Contracts
+#
+# v4.7.0 Changes:
+# - Slither cross-validation with solc-select support
+# - Selective confidence penalties by vulnerability type
+# - ML-based false positive classifier (rule-based weights)
+# - Mythril symbolic execution integration
 #
 # v4.6.0 Changes:
 # - Enhanced false positive filtering with detector-specific rates
@@ -9,7 +15,7 @@
 # - Call graph and taint analysis integration
 # =============================================================================
 
-version: "4.6.0"
+version: "4.7.0"
 
 # =============================================================================
 # Configuración Global

@@ -201,7 +201,7 @@ class CategoryMetrics:
 @dataclass
 class BenchmarkResults:
     """Complete benchmark results."""
-    version: str = "4.6.0"
+    version: str = "4.7.0"
     timestamp: str = ""
     total_contracts: int = 0
     total_ground_truth: int = 0
