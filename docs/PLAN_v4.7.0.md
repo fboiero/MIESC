@@ -174,10 +174,34 @@ Detectar y verificar invariantes comunes:
 
 ### Sprint 4: Polish
 1. [ ] Echidna integration (opcional)
-2. [ ] Benchmark final
+2. [x] Benchmark con FP classifier integrado
 3. [ ] Documentación
 
 **Meta:** Precisión 60%+
+
+## Notas de Implementación
+
+### FP Classifier Limitaciones en SolidiFI
+
+El benchmark SolidiFI usa contratos intencionalmente vulnerables SIN guards:
+- No tienen ReentrancyGuard
+- No tienen Solidity 0.8+
+- No tienen SafeMath
+
+Por lo tanto, el FP classifier no puede mejorar la precisión en este benchmark
+específico. En contratos de producción con guards, será más efectivo.
+
+### Resultados Actuales
+
+| Modo | Precisión | Recall | F1 |
+|------|-----------|--------|-----|
+| v4.6.0 base | 26.7% | 85.7% | 40.7% |
+| v4.7.0 + FP filter | 26.7% | 85.7% | 40.7% |
+| v4.7.0 + min-conf 0.4 | 25.5% | 24.9% | 25.2% |
+
+Para mejorar precisión significativamente se requiere:
+1. Slither real para cross-validation
+2. Mythril para confirmación simbólica
 
 ---
 
