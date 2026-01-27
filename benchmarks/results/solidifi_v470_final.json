@@ -1,0 +1,94 @@
+{
+  "version": "4.7.0",
+  "timestamp": "2026-01-27T01:39:51.731146",
+  "total_contracts": 70,
+  "total_ground_truth": 1828,
+  "total_detections": 4139,
+  "true_positives": 1484,
+  "false_positives": 2655,
+  "false_negatives": 344,
+  "precision": 0.3585407103165016,
+  "recall": 0.811816192560175,
+  "f1_score": 0.4974023797553209,
+  "total_time_seconds": 299.5253779888153,
+  "by_category": {
+    "Re-entrancy": {
+      "total_contracts": 10,
+      "total_ground_truth": 263,
+      "total_detections": 1042,
+      "true_positives": 221,
+      "false_positives": 821,
+      "false_negatives": 42,
+      "precision": 0.21209213051823417,
+      "recall": 0.8403041825095057,
+      "f1_score": 0.33869731800766284
+    },
+    "Overflow-Underflow": {
+      "total_contracts": 10,
+      "total_ground_truth": 259,
+      "total_detections": 603,
+      "true_positives": 237,
+      "false_positives": 366,
+      "false_negatives": 22,
+      "precision": 0.39303482587064675,
+      "recall": 0.915057915057915,
+      "f1_score": 0.5498839907192574
+    },
+    "TOD": {
+      "total_contracts": 10,
+      "total_ground_truth": 260,
+      "total_detections": 400,
+      "true_positives": 167,
+      "false_positives": 233,
+      "false_negatives": 93,
+      "precision": 0.4175,
+      "recall": 0.6423076923076924,
+      "f1_score": 0.5060606060606061
+    },
+    "Timestamp-Dependency": {
+      "total_contracts": 10,
+      "total_ground_truth": 272,
+      "total_detections": 643,
+      "true_positives": 253,
+      "false_positives": 390,
+      "false_negatives": 19,
+      "precision": 0.39346811819595645,
+      "recall": 0.9301470588235294,
+      "f1_score": 0.5530054644808743
+    },
+    "Unchecked-Send": {
+      "total_contracts": 10,
+      "total_ground_truth": 239,
+      "total_detections": 359,
+      "true_positives": 107,
+      "false_positives": 252,
+      "false_negatives": 132,
+      "precision": 0.298050139275766,
+      "recall": 0.4476987447698745,
+      "f1_score": 0.3578595317725752
+    },
+    "Unhandled-Exceptions": {
+      "total_contracts": 10,
+      "total_ground_truth": 275,
+      "total_detections": 613,
+      "true_positives": 245,
+      "false_positives": 368,
+      "false_negatives": 30,
+      "precision": 0.399673735725938,
+      "recall": 0.8909090909090909,
+      "f1_score": 0.5518018018018017
+    },
+    "tx.origin": {
+      "total_contracts": 10,
+      "total_ground_truth": 260,
+      "total_detections": 479,
+      "true_positives": 254,
+      "false_positives": 225,
+      "false_negatives": 6,
+      "precision": 0.5302713987473904,
+      "recall": 0.9769230769230769,
+      "f1_score": 0.6874154262516915
+    }
+  },
+  "errors": []
+}

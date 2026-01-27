@@ -11,9 +11,9 @@ Version 4.7.0 focuses on improving detection precision through cross-validation 
 
 | Metric | v4.6.0 | v4.7.0 | Change |
 |--------|--------|--------|--------|
-| **Precision** | 26.7% | 35.5% | **+8.8%** |
-| **Recall** | 85.7% | 67.1% | -18.6% |
-| **F1 Score** | 40.7% | 46.4% | **+5.7%** |
+| **Precision** | 26.7% | 35.9% | **+9.2%** |
+| **Recall** | 85.7% | 81.2% | -4.5% |
+| **F1 Score** | 40.7% | 49.7% | **+9.0%** |
 
 *Measured on SolidiFI benchmark (70 contracts) with `--slither --min-confidence 0.5`*
 

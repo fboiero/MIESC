@@ -191,9 +191,13 @@ Detectar y verificar invariantes comunes:
 | Configuración | Precisión | Recall | F1 |
 |--------------|-----------|--------|-----|
 | Baseline | 26.7% | 85.7% | 40.7% |
-| Slither + conf 0.50 | **35.5%** | 67.1% | **46.4%** |
+| Slither + conf 0.50 (inicial) | 35.5% | 67.1% | 46.4% |
+| **Slither + conf 0.50 (mejorado)** | **35.9%** | **81.2%** | **49.7%** |
 
-**Meta original 60%+ no alcanzable** sin sacrificar >50% de recall.
+**Mejoras aplicadas:**
+- Mapeo arbitrary-send-eth para Unchecked-Send
+- Penalización diferenciada por presencia de tipo en contrato
+- Recall recuperado de 67% a 81%
 
 ## Notas de Implementación
 
