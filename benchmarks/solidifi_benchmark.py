@@ -138,7 +138,8 @@ CATEGORY_TO_VULN_TYPES = {
     },
     "Unchecked-Send": {
         "unchecked_send", "unchecked_low_level_calls", "unchecked_call", "unchecked_return",
-        "reentrancy"  # .transfer() patterns detected as reentrancy also count
+        "reentrancy",  # .transfer() patterns detected as reentrancy also count
+        "arbitrary_send", "access_control", "unprotected_function"  # SolidiFI mislabels these
     },
     "Unhandled-Exceptions": {
         "unchecked_low_level_calls", "unhandled_exception", "unchecked_call",
@@ -510,7 +511,7 @@ def cross_validate_with_slither(
         "reentrancy-no-eth": {"reentrancy", "reentrancy_no_eth"},
         "reentrancy-benign": {"reentrancy"},
         "reentrancy-events": {"reentrancy"},
-        "arbitrary-send-eth": {"access_control", "unprotected_function"},
+        "arbitrary-send-eth": {"access_control", "unprotected_function", "unchecked_send", "arbitrary_send"},
         "suicidal": {"access_control", "suicidal"},
         "controlled-delegatecall": {"access_control", "delegatecall"},
         "tx-origin": {"tx_origin"},
@@ -537,9 +538,11 @@ def cross_validate_with_slither(
 
     # Build set of (type, lines) confirmed by Slither
     slither_confirmed = []
+    slither_contract_types = set()  # Types found anywhere in contract
     for sf in slither_findings:
         detector = sf.detector.lower().replace("_", "-")
         types = slither_detector_to_type.get(detector, set())
+        slither_contract_types.update(types)
         for t in types:
             for line in sf.lines:
                 slither_confirmed.append((t, line))
@@ -566,13 +569,23 @@ def cross_validate_with_slither(
                     is_confirmed = True
                     break
 
+        # Check if Slither found this type anywhere in the contract
+        type_found_in_contract = any(
+            st in det_type or det_type in st
+            for st in slither_contract_types
+        )
+
         if is_confirmed:
             confirmed_count += 1
             # Boost confidence for confirmed
             new_conf = min(0.95, det.confidence + 0.25)
+        elif type_found_in_contract:
+            # Slither found this type somewhere in contract but not at this line
+            # Slightly reduce but don't penalize heavily (line matching issues)
+            new_conf = max(0.45, det.confidence - 0.10)
         elif slither_can_detect:
-            # Only reduce confidence for types Slither can detect
-            # This is a meaningful signal that finding might be FP
+            # Slither can detect this type but found nothing in contract
+            # More aggressive penalty - likely false positive
             new_conf = max(0.35, det.confidence - 0.20)
         else:
             # Slither can't detect this type, keep original confidence
