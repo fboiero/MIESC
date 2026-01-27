@@ -69,10 +69,12 @@ try:
         str(ML_PATH / "slither_validator.py"), "slither_validator_direct"
     )
     SlitherValidator = slither_validator.SlitherValidator
-    SLITHER_VALIDATION_AVAILABLE = True
+    # Check if Slither binary is actually available
+    _slither_test = SlitherValidator()
+    SLITHER_AVAILABLE = _slither_test.is_available
 except Exception:
     SlitherValidator = None
-    SLITHER_VALIDATION_AVAILABLE = False
+    SLITHER_AVAILABLE = False
 
 # Import FP classifier for v4.7.0
 try:
@@ -480,6 +482,113 @@ def cross_validate_with_mythril(
     return validated, confirmed_count
 
 
+def cross_validate_with_slither(
+    source_code: str,
+    detections: List[Detection],
+    timeout: int = 30,
+) -> Tuple[List[Detection], int]:
+    """
+    Cross-validate detections using Slither static analysis.
+
+    Findings confirmed by Slither get boosted confidence.
+    Findings not confirmed get reduced confidence (only for types Slither can detect).
+
+    Returns: (validated_detections, slither_confirmed_count)
+    """
+    if not SLITHER_AVAILABLE or not detections:
+        return detections, 0
+
+    validator = SlitherValidator(timeout=timeout)
+    slither_findings = validator.run_slither(source_code)
+
+    if not slither_findings:
+        return detections, 0
+
+    # Map Slither detector names to vulnerability types
+    slither_detector_to_type = {
+        "reentrancy-eth": {"reentrancy", "reentrancy_eth"},
+        "reentrancy-no-eth": {"reentrancy", "reentrancy_no_eth"},
+        "reentrancy-benign": {"reentrancy"},
+        "reentrancy-events": {"reentrancy"},
+        "arbitrary-send-eth": {"access_control", "unprotected_function"},
+        "suicidal": {"access_control", "suicidal"},
+        "controlled-delegatecall": {"access_control", "delegatecall"},
+        "tx-origin": {"tx_origin"},
+        "timestamp": {"timestamp_dependence", "timestamp"},
+        "weak-prng": {"bad_randomness", "timestamp_dependence"},
+        "unchecked-lowlevel": {"unchecked_low_level_calls", "unchecked_call"},
+        "unchecked-send": {"unchecked_send", "unchecked_low_level_calls"},
+        "low-level-calls": {"unchecked_low_level_calls"},
+        "calls-loop": {"denial_of_service", "dos"},
+        "costly-loop": {"denial_of_service", "dos"},
+        "divide-before-multiply": {"arithmetic"},
+    }
+
+    # Types that Slither CAN detect well - only apply penalty for these
+    # Slither doesn't detect overflow/underflow, TOD, front-running, short address well
+    slither_detectable_types = {
+        "reentrancy", "reentrancy_eth", "reentrancy_no_eth", "reentrancy_path",
+        "access_control", "unprotected_function", "suicidal",
+        "tx_origin", "tx.origin",
+        "timestamp_dependence", "timestamp", "bad_randomness",
+        "unchecked_low_level_calls", "unchecked_call", "unchecked_send",
+        "denial_of_service", "dos",
+    }
+
+    # Build set of (type, lines) confirmed by Slither
+    slither_confirmed = []
+    for sf in slither_findings:
+        detector = sf.detector.lower().replace("_", "-")
+        types = slither_detector_to_type.get(detector, set())
+        for t in types:
+            for line in sf.lines:
+                slither_confirmed.append((t, line))
+
+    # Validate detections
+    validated = []
+    confirmed_count = 0
+
+    for det in detections:
+        det_type = det.vuln_type.lower().replace("-", "_")
+        det_line = det.line
+
+        # Check if this is a type Slither can detect
+        slither_can_detect = any(
+            st in det_type or det_type in st
+            for st in slither_detectable_types
+        )
+
+        # Check if Slither confirms this (within 10 lines)
+        is_confirmed = False
+        for (stype, sline) in slither_confirmed:
+            if stype in det_type or det_type in stype:
+                if abs(sline - det_line) <= 10:
+                    is_confirmed = True
+                    break
+
+        if is_confirmed:
+            confirmed_count += 1
+            # Boost confidence for confirmed
+            new_conf = min(0.95, det.confidence + 0.25)
+        elif slither_can_detect:
+            # Only reduce confidence for types Slither can detect
+            # This is a meaningful signal that finding might be FP
+            new_conf = max(0.35, det.confidence - 0.20)
+        else:
+            # Slither can't detect this type, keep original confidence
+            new_conf = det.confidence
+
+        validated.append(Detection(
+            line=det.line,
+            vuln_type=det.vuln_type,
+            severity=det.severity,
+            confidence=new_conf,
+            detector=det.detector + ("+slither" if is_confirmed else "")
+        ))
+
+    return validated, confirmed_count
+
+
 def _find_function_line(source: str, func_name: str) -> int:
     """Find line number where function is defined."""
     pattern = rf'function\s+{re.escape(func_name)}\s*\('
@@ -545,6 +654,8 @@ def run_benchmark(
     fp_threshold: float = 0.6,
     use_mythril: bool = False,
     mythril_timeout: int = 60,
+    use_slither: bool = False,
+    slither_timeout: int = 30,
 ) -> BenchmarkResults:
     """Run the complete benchmark.
 
@@ -556,6 +667,8 @@ def run_benchmark(
         fp_threshold: FP probability threshold for filtering
         use_mythril: Use Mythril for cross-validation (slow but improves precision)
         mythril_timeout: Timeout per contract for Mythril analysis
+        use_slither: Use Slither for cross-validation (fast, improves precision)
+        slither_timeout: Timeout per contract for Slither analysis
     """
     results = BenchmarkResults(
         timestamp=datetime.now().isoformat()
@@ -564,7 +677,7 @@ def run_benchmark(
     if categories is None:
         categories = list(SOLIDIFI_TO_SWC.keys())
 
-    version = "v4.7.0" if (use_fp_filter or use_mythril) else "v4.6.0"
+    version = "v4.7.0" if (use_fp_filter or use_mythril or use_slither) else "v4.6.0"
     print("=" * 70)
     print(f"  MIESC {version} - SolidiFI Benchmark Evaluation")
     print("=" * 70)
@@ -576,6 +689,12 @@ def run_benchmark(
         print(f"Minimum confidence threshold: {min_confidence:.0%}")
     if use_fp_filter:
         print(f"FP Classifier: ENABLED (threshold={fp_threshold})")
+    if use_slither:
+        if SLITHER_AVAILABLE:
+            print(f"Slither Cross-Validation: ENABLED (timeout={slither_timeout}s)")
+        else:
+            print("Slither Cross-Validation: NOT AVAILABLE (slither not installed)")
+            use_slither = False
     if use_mythril:
         if MYTHRIL_AVAILABLE:
             print(f"Mythril Cross-Validation: ENABLED (timeout={mythril_timeout}s)")
@@ -625,6 +744,12 @@ def run_benchmark(
                 )
             else:
                 detections, analysis_time = analyze_contract(source_code, category)
+
+            # Cross-validate with Slither (fast, improves precision)
+            if use_slither and SLITHER_AVAILABLE and detections:
+                detections, slither_confirmed = cross_validate_with_slither(
+                    source_code, detections, slither_timeout
+                )
 
             # Cross-validate with Mythril (slow but improves precision)
             if use_mythril and MYTHRIL_AVAILABLE and detections:
@@ -816,6 +941,10 @@ if __name__ == "__main__":
                         help="Use Mythril for cross-validation (slow)")
     parser.add_argument("--mythril-timeout", type=int, default=60,
                         help="Mythril timeout per contract (default: 60s)")
+    parser.add_argument("--slither", action="store_true",
+                        help="Use Slither for cross-validation (fast, recommended)")
+    parser.add_argument("--slither-timeout", type=int, default=30,
+                        help="Slither timeout per contract (default: 30s)")
 
     args = parser.parse_args()
 
@@ -836,6 +965,8 @@ if __name__ == "__main__":
         fp_threshold=args.fp_threshold,
         use_mythril=args.mythril,
         mythril_timeout=args.mythril_timeout,
+        use_slither=args.slither,
+        slither_timeout=args.slither_timeout,
     )
 
     # Print results

@@ -267,9 +267,17 @@ class SlitherValidator:
         """Detect Solidity version from pragma."""
         import re
 
+        # Check for address payable (requires 0.5+)
+        has_address_payable = "address payable" in source_code
+
         match = re.search(r"pragma\s+solidity\s*[\^>=<]*\s*(\d+\.\d+)", source_code)
         if match:
             version = match.group(1)
+
+            # If contract uses 0.5+ features but pragma allows 0.4, use 0.5
+            if version.startswith("0.4") and has_address_payable:
+                return "0.5.17"
+
             # Map to closest available solc version
             version_map = {
                 "0.4": "0.4.26",

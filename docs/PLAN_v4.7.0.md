@@ -151,36 +151,49 @@ Detectar y verificar invariantes comunes:
 
 ## Orden de Implementación
 
-### Sprint 1: Quick Wins
-1. [x] Probar SlitherValidator con benchmark real (Slither no instalado - infraestructura lista)
+### Sprint 1: Quick Wins ✅
+1. [x] Probar SlitherValidator con benchmark real
 2. [x] Ajustar umbrales de confianza
-3. [x] Filtrar por confianza mínima 0.5
+3. [x] Filtrar por confianza mínima
 
-**Meta:** Precisión 35%+
+**Resultado:** Precisión 27.8% con min-conf 0.7 (+1.1%)
 
-### Sprint 2: Mythril
+### Sprint 2: Mythril ✅
 1. [x] Crear MythrilAdapter (existente, mejorado con validate_finding)
 2. [x] Integrar con pipeline de análisis (validate_findings_with_mythril)
-3. [x] Mythril en benchmark (--mythril flag) - funciona pero muy lento (2+ min/contrato)
+3. [x] Mythril en benchmark (--mythril flag)
+4. [x] Cross-validation con Mythril funcional
 
-**Meta:** Precisión 45%+
+**Resultado:** Mythril funciona pero muy lento (2+ min/contrato).
 
-**Nota Mythril:** Mythril funciona correctamente pero el análisis simbólico es lento.
-Para benchmarks completos (70 contratos) tomaría ~2+ horas. Mejor para análisis específicos.
-
-### Sprint 3: ML
-1. [x] Crear dataset de entrenamiento (rule-based weights from benchmark)
+### Sprint 3: ML ✅
+1. [x] Crear dataset de entrenamiento (rule-based weights)
 2. [x] Implementar FPClassifier (src/ml/fp_classifier.py)
-3. [x] Entrenar y evaluar modelo (17 tests passing)
+3. [x] 17 tests passing
 
-**Meta:** Precisión 55%+
+**Resultado:** FP Classifier no mejora SolidiFI (contratos sin guards)
 
-### Sprint 4: Polish
-1. [ ] Echidna integration (opcional)
-2. [x] Benchmark con FP classifier integrado
-3. [ ] Documentación
+### Sprint 4: Slither Cross-Validation ✅
+1. [x] Implementar cross_validate_with_slither()
+2. [x] Agregar CLI flags --slither, --slither-timeout
+3. [x] Integrar en benchmark
 
-**Meta:** Precisión 60%+
+**Resultado:** Slither no puede compilar contratos SolidiFI (pragma 0.4-0.5)
+
+### Sprint 5: Slither con solc-select ✅
+1. [x] Instalar solc-select (pip install solc-select)
+2. [x] Configurar múltiples versiones solc (0.4.26, 0.5.17)
+3. [x] Modificar SlitherValidator para auto-detectar versión
+4. [x] Cross-validation selectiva por tipo de vulnerabilidad
+5. [x] Re-evaluar benchmark con Slither funcionando
+
+**Resultado Final:**
+| Configuración | Precisión | Recall | F1 |
+|--------------|-----------|--------|-----|
+| Baseline | 26.7% | 85.7% | 40.7% |
+| Slither + conf 0.50 | **35.5%** | 67.1% | **46.4%** |
+
+**Meta original 60%+ no alcanzable** sin sacrificar >50% de recall.
 
 ## Notas de Implementación
 
@@ -194,17 +207,45 @@ El benchmark SolidiFI usa contratos intencionalmente vulnerables SIN guards:
 Por lo tanto, el FP classifier no puede mejorar la precisión en este benchmark
 específico. En contratos de producción con guards, será más efectivo.
 
-### Resultados Actuales
+### Resultados Actuales (con Slither funcionando)
 
-| Modo | Precisión | Recall | F1 |
-|------|-----------|--------|-----|
-| v4.6.0 base | 26.7% | 85.7% | 40.7% |
-| v4.7.0 + FP filter | 26.7% | 85.7% | 40.7% |
-| v4.7.0 + min-conf 0.4 | 25.5% | 24.9% | 25.2% |
+| Modo | Precisión | Recall | F1 | Notas |
+|------|-----------|--------|-----|-------|
+| v4.6.0 base | 26.7% | 85.7% | 40.7% | Línea base |
+| v4.7.0 + Slither + conf 0.45 | 27.6% | 85.4% | 41.8% | Bajo impacto |
+| v4.7.0 + Slither + conf 0.48 | 27.7% | 85.3% | 41.8% | Bajo impacto |
+| **v4.7.0 + Slither + conf 0.50** | **35.5%** | **67.1%** | **46.4%** | **Mejor F1** |
 
-Para mejorar precisión significativamente se requiere:
-1. Slither real para cross-validation
-2. Mythril para confirmación simbólica
+### Análisis de Resultados con Slither
+
+La cross-validación con Slither funciona correctamente después de:
+1. Instalar solc-select con versiones 0.4.26 y 0.5.17
+2. Corregir detección de versión Solidity (address payable → 0.5+)
+3. Aplicar penalización selectiva solo a tipos que Slither puede detectar
+
+**Hallazgos clave:**
+- Slither confirma ~44% de las detecciones (36/81 en reentrancy)
+- Con umbral 0.50: Precisión sube +8.8% pero Recall baja -18.6%
+- Trade-off: Mayor precisión requiere sacrificar recall
+- Tipos sin cobertura Slither (overflow, TOD) mantienen recall original
+
+### Problema Resuelto: Incompatibilidad de Versiones Solidity
+
+**Solución implementada:**
+```bash
+# Instalar solc-select para múltiples versiones
+pip install solc-select
+solc-select install 0.4.26 0.5.17 0.6.12 0.7.6 0.8.20
+```
+
+**Corrección en SlitherValidator:** Auto-detecta `address payable` y usa 0.5.17 en vez de 0.4.26.
+
+### Limitaciones Identificadas
+
+1. **FP Classifier:** Contratos SolidiFI no tienen guards → classifier no puede mejorar precisión
+2. **Mythril:** Muy lento (2+ min/contrato) para benchmark completo
+3. **Trade-off precisión/recall:** No se puede alcanzar 60% precisión sin perder >20% recall
+4. **Cobertura Slither:** No detecta overflow/underflow ni TOD efectivamente
 
 ---
 
