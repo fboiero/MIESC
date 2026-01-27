@@ -166,9 +166,9 @@ Detectar y verificar invariantes comunes:
 **Meta:** Precisión 45%+
 
 ### Sprint 3: ML
-1. [ ] Crear dataset de entrenamiento
-2. [ ] Implementar FPClassifier
-3. [ ] Entrenar y evaluar modelo
+1. [x] Crear dataset de entrenamiento (rule-based weights from benchmark)
+2. [x] Implementar FPClassifier (src/ml/fp_classifier.py)
+3. [x] Entrenar y evaluar modelo (17 tests passing)
 
 **Meta:** Precisión 55%+
 
