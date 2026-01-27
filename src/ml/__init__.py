@@ -143,6 +143,17 @@ from .slither_validator import (
     filter_unconfirmed,
 )
 
+# v4.7.0+ ML-based False Positive Classifier
+from .fp_classifier import (
+    FPClassifier,
+    FeatureExtractor,
+    FindingFeatures,
+    FPPrediction,
+    FeatureCategory,
+    classify_false_positives,
+    filter_likely_fps,
+)
+
 
 @dataclass
 class MLEnhancedResult:
@@ -561,4 +572,12 @@ __all__ = [
     'ValidationResult',
     'validate_with_slither',
     'filter_unconfirmed',
+    # v4.7.0+ ML-based FP Classifier
+    'FPClassifier',
+    'FeatureExtractor',
+    'FindingFeatures',
+    'FPPrediction',
+    'FeatureCategory',
+    'classify_false_positives',
+    'filter_likely_fps',
 ]
