@@ -63,6 +63,17 @@ SLITHER_DETECTOR_FP_RATES = false_positive_filter.SLITHER_DETECTOR_FP_RATES
 CallGraphBuilder = call_graph.CallGraphBuilder
 TaintAnalyzer = taint_analysis.TaintAnalyzer
 
+# Import Slither validator if available
+try:
+    slither_validator = _import_module_directly(
+        str(ML_PATH / "slither_validator.py"), "slither_validator_direct"
+    )
+    SlitherValidator = slither_validator.SlitherValidator
+    SLITHER_VALIDATION_AVAILABLE = True
+except Exception:
+    SlitherValidator = None
+    SLITHER_VALIDATION_AVAILABLE = False
+
 
 # Category mapping
 SOLIDIFI_TO_SWC = {
@@ -346,9 +357,16 @@ def match_detections(
 
 def run_benchmark(
     max_contracts_per_category: Optional[int] = None,
-    categories: Optional[List[str]] = None
+    categories: Optional[List[str]] = None,
+    min_confidence: float = 0.0
 ) -> BenchmarkResults:
-    """Run the complete benchmark."""
+    """Run the complete benchmark.
+
+    Args:
+        max_contracts_per_category: Limit contracts per category
+        categories: List of categories to evaluate
+        min_confidence: Minimum confidence to count detection (improves precision)
+    """
     results = BenchmarkResults(
         timestamp=datetime.now().isoformat()
     )
@@ -363,6 +381,8 @@ def run_benchmark(
     print(f"Categories: {', '.join(categories)}")
     if max_contracts_per_category:
         print(f"Max contracts per category: {max_contracts_per_category}")
+    if min_confidence > 0:
+        print(f"Minimum confidence threshold: {min_confidence:.0%}")
     print()
 
     start_time = time.time()
@@ -401,6 +421,10 @@ def run_benchmark(
 
             # Analyze contract
             detections, analysis_time = analyze_contract(source_code, category)
+
+            # Filter by minimum confidence (improves precision)
+            if min_confidence > 0:
+                detections = [d for d in detections if d.confidence >= min_confidence]
 
             # Match detections
             tp, fp, fn = match_detections(ground_truth, detections, category)
@@ -570,6 +594,10 @@ if __name__ == "__main__":
                         help="Output JSON file path")
     parser.add_argument("--quick", action="store_true",
                         help="Quick mode: 10 contracts per category")
+    parser.add_argument("--min-confidence", type=float, default=0.0,
+                        help="Minimum confidence threshold to count as detection (default: 0.0)")
+    parser.add_argument("--high-precision", action="store_true",
+                        help="High precision mode: min-confidence=0.5")
 
     args = parser.parse_args()
 
@@ -577,10 +605,15 @@ if __name__ == "__main__":
     if args.quick:
         max_contracts = 10
 
+    min_confidence = args.min_confidence
+    if args.high_precision:
+        min_confidence = 0.5
+
     # Run benchmark
     results = run_benchmark(
         max_contracts_per_category=max_contracts,
-        categories=args.categories
+        categories=args.categories,
+        min_confidence=min_confidence
     )
 
     # Print results

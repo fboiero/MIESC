@@ -134,6 +134,15 @@ from .classic_patterns import (
     detect_semantic_vulnerabilities,
 )
 
+# v4.6.0+ Slither Validator for cross-validation
+from .slither_validator import (
+    SlitherValidator,
+    SlitherFinding,
+    ValidationResult,
+    validate_with_slither,
+    filter_unconfirmed,
+)
+
 
 @dataclass
 class MLEnhancedResult:
@@ -546,4 +555,10 @@ __all__ = [
     'DoSFinding',
     'DoSCrossFunctionDetector',
     'detect_semantic_vulnerabilities',
+    # v4.6.0+ Slither Validator
+    'SlitherValidator',
+    'SlitherFinding',
+    'ValidationResult',
+    'validate_with_slither',
+    'filter_unconfirmed',
 ]
