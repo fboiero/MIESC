@@ -161,9 +161,12 @@ Detectar y verificar invariantes comunes:
 ### Sprint 2: Mythril
 1. [x] Crear MythrilAdapter (existente, mejorado con validate_finding)
 2. [x] Integrar con pipeline de análisis (validate_findings_with_mythril)
-3. [ ] Cross-validation Slither + Mythril (pendiente - requiere Slither)
+3. [x] Mythril en benchmark (--mythril flag) - funciona pero muy lento (2+ min/contrato)
 
 **Meta:** Precisión 45%+
+
+**Nota Mythril:** Mythril funciona correctamente pero el análisis simbólico es lento.
+Para benchmarks completos (70 contratos) tomaría ~2+ horas. Mejor para análisis específicos.
 
 ### Sprint 3: ML
 1. [x] Crear dataset de entrenamiento (rule-based weights from benchmark)
