@@ -252,7 +252,7 @@ class TestClassicVulnType:
 
     def test_enum_count(self):
         """Test enum has expected number of values."""
-        assert len(ClassicVulnType) == 11
+        assert len(ClassicVulnType) == 14
 
     def test_core_types_exist(self):
         """Test that core vulnerability types exist."""
@@ -368,7 +368,7 @@ class TestClassicPatternsDB:
 
     def test_patterns_count(self):
         """Test that database has expected number of entries."""
-        assert len(CLASSIC_PATTERNS) == 11
+        assert len(CLASSIC_PATTERNS) == 14
 
     def test_all_enum_types_have_patterns(self):
         """Test that all enum types have pattern configs."""
@@ -751,8 +751,8 @@ def test_pattern_matches_expected_code(pattern_str, expected_match):
 
 
 @pytest.mark.parametrize("severity,count_range", [
-    ("critical", (2, 4)),    # 2-4 critical patterns expected
-    ("high", (1, 3)),        # 1-3 high patterns
+    ("critical", (2, 5)),    # 2-5 critical patterns expected
+    ("high", (1, 5)),        # 1-5 high patterns
     ("medium", (2, 5)),      # 2-5 medium patterns
     ("low", (1, 3)),         # 1-3 low patterns
 ])
