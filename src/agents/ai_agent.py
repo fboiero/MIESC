@@ -6,8 +6,14 @@ Consumes findings from other agents and performs intelligent triage
 """
 import json
 import logging
-import openai
 from typing import Dict, Any, List, Optional
+
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    openai = None  # type: ignore
+    OPENAI_AVAILABLE = False
 from pathlib import Path
 from src.agents.base_agent import BaseAgent
 from src.mcp.context_bus import MCPMessage
@@ -55,7 +61,7 @@ class AIAgent(BaseAgent):
 
         self.model = model  # Updated to GPT-4o for superior reasoning
         self.api_key = api_key
-        if api_key:
+        if api_key and OPENAI_AVAILABLE:
             openai.api_key = api_key
 
         # Advanced triage configuration
@@ -185,6 +191,9 @@ class AIAgent(BaseAgent):
         Returns:
             Dictionary with "triaged" and "false_positives" lists
         """
+        if not OPENAI_AVAILABLE:
+            logger.warning("AIAgent: openai package not installed, skipping AI triage")
+            return {"triaged": findings, "false_positives": []}
         if not self.api_key:
             logger.warning("AIAgent: No API key, skipping AI triage")
             return {"triaged": findings, "false_positives": []}
@@ -332,10 +341,10 @@ Respond in this JSON format:
         Returns:
             Dictionary with root cause analysis
         """
-        if not self.api_key:
+        if not OPENAI_AVAILABLE or not self.api_key:
             return {
                 "finding_id": finding.get("id"),
-                "root_cause": "AI analysis not available",
+                "root_cause": "AI analysis not available (openai not installed or no API key)",
                 "attack_scenario": "",
                 "remediation_steps": []
             }
