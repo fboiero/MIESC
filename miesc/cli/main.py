@@ -4217,12 +4217,45 @@ def report(results_file, template, output, output_format, client, auditor, title
     # =========================================================================
     # Enhanced Tool Execution Summary
     # =========================================================================
-    # Get tool results - handle both single and batch audit formats
+    # Get tool results - handle multiple audit formats
     tool_results = results.get("results", [])
     if not tool_results and "contracts" in results:
         # Batch audit format: aggregate results from all contracts
         for contract_data in results.get("contracts", []):
             tool_results.extend(contract_data.get("results", []))
+
+    # Smart audit format: build tool_results from tools_run/success/failed
+    if not tool_results and "tools_run" in results:
+        tools_run = results.get("tools_run", [])
+        tools_success = set(results.get("tools_success", []))
+        tools_failed = set(results.get("tools_failed", []))
+        raw_findings = results.get("raw_findings", {}).get("findings", [])
+        ml_findings = results.get("ml_filtered", {}).get("findings", [])
+        all_findings = ml_findings if ml_findings else raw_findings
+
+        # Group findings by tool
+        findings_by_tool = {}
+        for f in all_findings:
+            tool = f.get("tool", "unknown")
+            if tool not in findings_by_tool:
+                findings_by_tool[tool] = []
+            findings_by_tool[tool].append(f)
+
+        # Build tool_results from tools_run
+        for tool in tools_run:
+            tool_findings = findings_by_tool.get(tool, [])
+            if tool in tools_success:
+                status = "success"
+            elif tool in tools_failed:
+                status = "failed"
+            else:
+                status = "unknown"
+            tool_results.append({
+                "tool": tool,
+                "status": status,
+                "findings": tool_findings,
+                "duration": "N/A",
+            })
     tools_execution_summary = []
     layer_summary = {}
 
