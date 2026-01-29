@@ -78,6 +78,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment: test-pypi
+    continue-on-error: true  # Don't block PyPI publish if Test PyPI fails
     permissions:
       id-token: write
     steps:
@@ -95,7 +96,8 @@ jobs:
 
   publish:
     name: Publish to PyPI
-    needs: [build, publish-test]
+    needs: [build]  # Only depend on build, not test-pypi
+    if: always()  # Run even if publish-test fails
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
