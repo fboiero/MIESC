@@ -96,6 +96,9 @@ broadcast/
 # Analysis Results (Generated Data)
 # -----------------------------------------------------------------------------
 audit_results/
+reports/
+benchmarks/results/
+data/benchmark_history/
 analysis/results/*.json
 analysis/results/*.html
 analysis/results/*.txt
