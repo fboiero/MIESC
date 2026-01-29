@@ -379,10 +379,11 @@ class TestCLIImports:
         assert hasattr(main, "VERSION")
 
     def test_cli_version(self):
-        """Test CLI version matches."""
+        """Test CLI version matches package version."""
         from miesc.cli.main import VERSION
+        from miesc import __version__
 
-        assert VERSION == "4.5.0"
+        assert VERSION == __version__
 
     def test_cli_layers_defined(self):
         """Test CLI has LAYERS defined."""
@@ -473,10 +474,11 @@ class TestApiPackageInit:
     """Test API package __init__.py."""
 
     def test_api_version(self):
-        """Test API package version."""
-        from miesc.api import __version__
+        """Test API package version matches main version."""
+        from miesc.api import __version__ as api_version
+        from miesc import __version__
 
-        assert __version__ == "4.5.0"
+        assert api_version == __version__
 
 
 # Skip Django-specific tests if Django not properly configured
