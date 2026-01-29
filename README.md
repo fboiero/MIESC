@@ -664,6 +664,7 @@ See [docs/INSTALLATION.md](./docs/INSTALLATION.md) for complete setup.
 - [Architecture](https://fboiero.github.io/MIESC/docs/01_ARCHITECTURE/)
 - [API Reference](https://fboiero.github.io/MIESC/docs/API_SETUP/)
 - [Tool Reference](./docs/TOOLS.md)
+- [Report Generation Guide](./docs/guides/REPORTS.md)
 - [Testing Guide](./docs/guides/TESTING.md)
 - [Contributing](./CONTRIBUTING.md)
 
