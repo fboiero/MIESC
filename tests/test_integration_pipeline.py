@@ -98,40 +98,37 @@ class TestAuditPipelineCLI:
         """Run audit smart with mocked adapters and verify ML enhancement applied."""
         from miesc.cli.main import cli
 
-        with patch('miesc.cli.main._run_tool') as mock_run, \
-             patch('miesc.cli.main.get_ml_orchestrator') as mock_ml:
+        with patch('miesc.cli.main.get_ml_orchestrator') as mock_ml:
 
-            mock_run.return_value = {
-                'tool': 'slither',
-                'contract': vulnerable_contract,
-                'status': 'success',
-                'findings': [
-                    {
-                        'type': 'reentrancy',
-                        'severity': 'HIGH',
-                        'message': 'Reentrancy detected',
-                    }
-                ],
-                'execution_time': 1.0,
-                'timestamp': '2026-01-27T00:00:00',
+            # Create a properly mocked result object
+            mock_result = MagicMock()
+            mock_result.ml_filtered_findings = [
+                {
+                    'type': 'reentrancy',
+                    'severity': 'HIGH',
+                    'title': 'Reentrancy vulnerability',
+                    'location': {'file': 'test.sol', 'line': 10},
+                }
+            ]
+            mock_result.total_raw_findings = 3
+            mock_result.false_positives_removed = 2
+            mock_result.cross_validated = 1
+            mock_result.get_summary.return_value = {
+                'total_findings': 1,
+                'risk_level': 'HIGH',
+                'critical': 0,
+                'high': 1,
+                'medium': 0,
+                'low': 0,
+                'reduction_rate': 66.7,
+            }
+            mock_result.to_dict.return_value = {
+                'findings': mock_result.ml_filtered_findings,
+                'summary': mock_result.get_summary.return_value,
             }
 
             mock_orchestrator = MagicMock()
-            mock_orchestrator.quick_scan.return_value = MagicMock(
-                get_summary=lambda: {
-                    'total_findings': 1,
-                    'risk_level': 'HIGH',
-                    'critical': 0,
-                    'high': 1,
-                    'medium': 0,
-                    'low': 0,
-                    'fp_removed': 0,
-                    'reduction_rate': 0,
-                    'clusters': 1,
-                    'priority_actions': 1,
-                },
-                to_dict=lambda: {'findings': []},
-            )
+            mock_orchestrator.analyze.return_value = mock_result
             mock_ml.return_value = mock_orchestrator
 
             result = cli_runner.invoke(
