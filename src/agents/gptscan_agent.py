@@ -15,12 +15,13 @@ import os
 import subprocess
 from typing import Any, Dict, List
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv()  # Load environment variables from .env
+except ImportError:
+    pass  # dotenv not installed, environment variables must be set manually
 
 from src.agents.base_agent import BaseAgent
-
-# Load environment variables from .env
-load_dotenv()
 
 class GPTScanAgent(BaseAgent):
     """
