@@ -143,7 +143,7 @@ jobs:
 
     steps:
       - name: Download results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: miesc-security-report
 
