@@ -6,8 +6,14 @@ Provides context-aware analysis, semantic understanding, and cross-tool correlat
 """
 import json
 import logging
-import openai
 from typing import Dict, Any, List, Optional
+
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    openai = None  # type: ignore
+    OPENAI_AVAILABLE = False
 from datetime import datetime
 from src.agents.base_agent import BaseAgent
 from src.mcp.context_bus import MCPMessage
@@ -54,7 +60,7 @@ class InterpretationAgent(BaseAgent):
 
         self.model = model  # GPT-4o for better reasoning
         self.api_key = api_key
-        if api_key:
+        if api_key and OPENAI_AVAILABLE:
             openai.api_key = api_key
 
         # Knowledge base for vulnerability patterns
@@ -196,8 +202,8 @@ class InterpretationAgent(BaseAgent):
         Returns:
             List of interpreted findings with enhanced context
         """
-        if not self.api_key:
-            logger.warning("InterpretationAgent: No API key, returning raw findings")
+        if not OPENAI_AVAILABLE or not self.api_key:
+            logger.warning("InterpretationAgent: openai not available or no API key, returning raw findings")
             return findings
 
         interpreted_findings = []

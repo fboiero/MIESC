@@ -6,8 +6,14 @@ Provides actionable guidance for developers, auditors, and security teams
 """
 import json
 import logging
-import openai
 from typing import Dict, Any, List, Optional
+
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    openai = None  # type: ignore
+    OPENAI_AVAILABLE = False
 from datetime import datetime
 from src.agents.base_agent import BaseAgent
 from src.mcp.context_bus import MCPMessage
@@ -56,7 +62,7 @@ class RecommendationAgent(BaseAgent):
 
         self.model = model
         self.api_key = api_key
-        if api_key:
+        if api_key and OPENAI_AVAILABLE:
             openai.api_key = api_key
 
         # Subscribe to analysis results
@@ -220,7 +226,7 @@ class RecommendationAgent(BaseAgent):
         Returns:
             List of prioritized action items
         """
-        if not self.api_key:
+        if not OPENAI_AVAILABLE or not self.api_key:
             return self._generate_basic_next_steps(findings)
 
         try:

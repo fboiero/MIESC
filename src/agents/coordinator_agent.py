@@ -6,8 +6,14 @@ Implements intelligent task delegation and workflow optimization
 """
 import json
 import logging
-import openai
 from typing import Dict, Any, List, Optional
+
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    openai = None  # type: ignore
+    OPENAI_AVAILABLE = False
 from datetime import datetime
 from src.agents.base_agent import BaseAgent
 from src.mcp.context_bus import MCPMessage
@@ -54,7 +60,7 @@ class CoordinatorAgent(BaseAgent):
 
         self.model = model  # Updated to GPT-4o for better reasoning
         self.api_key = api_key
-        if api_key:
+        if api_key and OPENAI_AVAILABLE:
             openai.api_key = api_key
 
         # Track active agents
@@ -186,7 +192,7 @@ class CoordinatorAgent(BaseAgent):
             plan["estimated_duration"] = 3480  # ~58 minutes
 
         # Use LLM to optimize plan if API key available
-        if self.api_key:
+        if OPENAI_AVAILABLE and self.api_key:
             try:
                 optimized_plan = self._llm_optimize_plan(plan, contract_path)
                 plan = optimized_plan
@@ -286,7 +292,7 @@ Respond in JSON format with optimized plan:
         Returns:
             Complexity analysis dictionary
         """
-        if not self.api_key:
+        if not OPENAI_AVAILABLE or not self.api_key:
             return {"complexity": "medium", "risk_factors": []}
 
         try:
