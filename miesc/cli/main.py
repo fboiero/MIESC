@@ -3978,6 +3978,14 @@ def report(results_file, template, output, output_format, client, auditor, title
 
     # Extract findings from results (can be at root level, within tool results, or in batch format)
     findings = results.get("findings", [])
+
+    # Smart audit format: raw_findings.findings or ml_filtered.findings
+    if not findings:
+        if "ml_filtered" in results and results["ml_filtered"].get("findings"):
+            findings = results["ml_filtered"]["findings"]
+        elif "raw_findings" in results and results["raw_findings"].get("findings"):
+            findings = results["raw_findings"]["findings"]
+
     if not findings:
         # Extract from tool results (single contract format)
         for tool_result in results.get("results", []):
@@ -4040,8 +4048,19 @@ def report(results_file, template, output, output_format, client, auditor, title
 
     # Prepare template variables
     # CLI parameters override auto-detected values from results
+    # Support multiple JSON formats: contract, contract_path, path
+    detected_contract = (
+        results.get("contract") or
+        results.get("contract_path") or
+        results.get("path") or
+        "Unknown"
+    )
+    # Extract just the filename from path
+    if "/" in detected_contract:
+        detected_contract = detected_contract.split("/")[-1]
+
     variables = {
-        "contract_name": contract_name or results.get("contract", results.get("path", "Unknown")),
+        "contract_name": contract_name or detected_contract,
         "audit_date": results.get("timestamp", datetime.now().isoformat())[:10],
         "generation_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "client_name": client or "Client",
