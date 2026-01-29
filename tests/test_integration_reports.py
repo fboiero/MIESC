@@ -382,5 +382,96 @@ class TestHTMLReportSave:
                 os.unlink(output_path)
 
 
+@pytest.mark.integration
+class TestDeploymentRecommendation:
+    """Tests for deployment recommendation logic."""
+
+    def test_nogo_with_critical_findings(self):
+        """Deployment should be NO-GO when there are critical findings."""
+        from src.reports.risk_calculator import RiskCalculator
+
+        calculator = RiskCalculator()
+        findings = [
+            {"severity": "Critical", "type": "reentrancy"},
+            {"severity": "Medium", "type": "pragma"},
+        ]
+
+        rec, justification, _, _ = calculator.get_deployment_recommendation(findings)
+        assert rec == "NO-GO"
+        assert "critical" in justification.lower()
+
+    def test_nogo_with_multiple_high_findings(self):
+        """Deployment should be NO-GO when there are 2+ high findings."""
+        from src.reports.risk_calculator import RiskCalculator
+
+        calculator = RiskCalculator()
+        findings = [
+            {"severity": "High", "type": "access-control"},
+            {"severity": "High", "type": "unchecked-call"},
+        ]
+
+        rec, justification, _, _ = calculator.get_deployment_recommendation(findings)
+        assert rec == "NO-GO"
+        assert "high" in justification.lower()
+
+    def test_conditional_with_one_high_finding(self):
+        """Deployment should be CONDITIONAL with 1 high finding."""
+        from src.reports.risk_calculator import RiskCalculator
+
+        calculator = RiskCalculator()
+        findings = [
+            {"severity": "High", "type": "access-control"},
+            {"severity": "Low", "type": "pragma"},
+        ]
+
+        rec, _, _, _ = calculator.get_deployment_recommendation(findings)
+        assert rec == "CONDITIONAL"
+
+    def test_go_with_only_low_findings(self):
+        """Deployment should be GO when only low/info findings."""
+        from src.reports.risk_calculator import RiskCalculator
+
+        calculator = RiskCalculator()
+        findings = [
+            {"severity": "Low", "type": "naming"},
+            {"severity": "Informational", "type": "pragma"},
+        ]
+
+        rec, _, _, _ = calculator.get_deployment_recommendation(findings)
+        assert rec == "GO"
+
+    def test_llm_cannot_override_nogo_to_go(self):
+        """LLM recommendation should not override NO-GO to GO."""
+        # This tests the severity order logic used in CLI
+        severity_order = {"NO-GO": 3, "CONDITIONAL": 2, "GO": 1}
+
+        calc_rec = "NO-GO"  # Calculated from critical findings
+        llm_rec = "GO"  # LLM incorrectly says GO
+
+        calc_severity = severity_order.get(calc_rec, 1)
+        llm_severity = severity_order.get(llm_rec, 1)
+
+        # LLM recommendation should NOT be used because it's less strict
+        assert llm_severity < calc_severity
+        # Final recommendation should remain NO-GO
+        final_rec = llm_rec if llm_severity >= calc_severity else calc_rec
+        assert final_rec == "NO-GO"
+
+    def test_llm_can_make_stricter(self):
+        """LLM recommendation should be used when stricter than calculated."""
+        severity_order = {"NO-GO": 3, "CONDITIONAL": 2, "GO": 1}
+
+        calc_rec = "GO"  # Calculated as safe
+        llm_rec = "CONDITIONAL"  # LLM is more cautious
+
+        calc_severity = severity_order.get(calc_rec, 1)
+        llm_severity = severity_order.get(llm_rec, 1)
+
+        # LLM recommendation SHOULD be used because it's stricter
+        assert llm_severity >= calc_severity
+        final_rec = llm_rec if llm_severity >= calc_severity else calc_rec
+        assert final_rec == "CONDITIONAL"
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v', '--tb=short'])

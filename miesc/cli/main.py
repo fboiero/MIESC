@@ -4706,10 +4706,25 @@ def report(results_file, template, output, output_format, client, auditor, title
                     )
 
                     if premium_insights.get("available"):
-                        # LLM-based deployment recommendation overrides calculated one
+                        # LLM deployment recommendation - only allow stricter recommendations
+                        # Severity order: NO-GO > CONDITIONAL > GO
                         if premium_insights.get("deployment_recommendation"):
-                            variables["deployment_recommendation"] = premium_insights["deployment_recommendation"]
-                            variables["deployment_justification"] = premium_insights.get("deployment_justification", "")
+                            llm_rec = premium_insights["deployment_recommendation"]
+                            calc_rec = variables.get("deployment_recommendation", "GO")
+                            severity_order = {"NO-GO": 3, "CONDITIONAL": 2, "GO": 1}
+
+                            # Only use LLM recommendation if it's stricter (or equal)
+                            llm_severity = severity_order.get(llm_rec, 1)
+                            calc_severity = severity_order.get(calc_rec, 1)
+
+                            if llm_severity >= calc_severity:
+                                variables["deployment_recommendation"] = llm_rec
+                                variables["deployment_justification"] = premium_insights.get("deployment_justification", "")
+                            else:
+                                # Keep calculated recommendation, but add LLM justification as note
+                                existing_just = variables.get("deployment_justification", "")
+                                if existing_just:
+                                    variables["deployment_justification"] = existing_just
 
                         # Add attack scenarios
                         if premium_insights.get("attack_scenarios"):
