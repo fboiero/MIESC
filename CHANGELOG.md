@@ -5,6 +5,17 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.1] - 2026-01-29
+
+### Fixed
+- **Deployment recommendation override**: LLM can no longer override a stricter deployment recommendation (NO-GO) with a more permissive one (GO/CONDITIONAL). This prevents critical findings from being incorrectly marked as safe for deployment.
+
+### Links
+- **PyPI**: https://pypi.org/project/miesc/4.5.1/
+- **Docker**: `docker pull ghcr.io/fboiero/miesc:4.5.1`
+
+---
+
 ## [4.5.0] - 2026-01-29
 
 ### Added
