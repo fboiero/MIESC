@@ -462,6 +462,146 @@ class RiskCalculator:
             "#f0fdf4"   # Light green background
         )
 
+    # Effort classification for vulnerability types
+    # Low effort: simple config/pragma changes, adding modifiers
+    # Medium effort: adding validation, checks, events
+    # High effort: architectural changes, complex refactoring
+    EFFORT_CLASSIFICATION = {
+        # Low effort fixes
+        "pragma": "low",
+        "solidity-version": "low",
+        "naming": "low",
+        "visibility": "low",
+        "constant": "low",
+        "immutable": "low",
+        "dead-code": "low",
+        "unused": "low",
+        "similar-names": "low",
+        "assembly": "low",
+        "low-level-calls": "low",
+        # Medium effort fixes
+        "unchecked": "medium",
+        "require": "medium",
+        "event": "medium",
+        "timestamp": "medium",
+        "block-timestamp": "medium",
+        "tx-origin": "medium",
+        "delegatecall": "medium",
+        "external-call": "medium",
+        "gas": "medium",
+        "loop": "medium",
+        "division": "medium",
+        "zero-check": "medium",
+        "missing-zero": "medium",
+        # High effort fixes
+        "reentrancy": "high",
+        "reentrant": "high",
+        "access-control": "high",
+        "authorization": "high",
+        "owner": "high",
+        "overflow": "high",
+        "underflow": "high",
+        "integer": "high",
+        "dos": "high",
+        "denial": "high",
+        "front-running": "high",
+        "oracle": "high",
+        "price": "high",
+        "flash": "high",
+        "storage": "high",
+        "upgrade": "high",
+        "proxy": "high",
+        "selfdestruct": "high",
+        "suicide": "high",
+    }
+
+    def classify_effort(self, finding: dict[str, Any]) -> str:
+        """
+        Classify the remediation effort for a finding.
+
+        Returns: 'low', 'medium', or 'high'
+        """
+        title = _get_finding_title(finding).lower()
+        category = finding.get("category", "").lower()
+        check = finding.get("check", "").lower()
+        vuln_type = finding.get("type", "").lower()
+
+        combined = f"{title} {category} {check} {vuln_type}"
+
+        # Check for pattern matches
+        for pattern, effort in self.EFFORT_CLASSIFICATION.items():
+            if pattern in combined:
+                return effort
+
+        # Default based on severity
+        severity = finding.get("severity", "medium").lower()
+        if severity in ["critical", "high"]:
+            return "high"
+        elif severity == "medium":
+            return "medium"
+        return "low"
+
+    def classify_impact(self, finding: dict[str, Any]) -> str:
+        """
+        Classify the security impact of a finding.
+
+        Returns: 'low', 'medium', or 'high'
+        """
+        severity = finding.get("severity", "medium").lower()
+
+        if severity in ["critical", "high"]:
+            return "high"
+        elif severity == "medium":
+            return "medium"
+        return "low"
+
+    def generate_effort_impact_matrix(
+        self,
+        findings: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """
+        Generate effort vs impact matrix for prioritization.
+
+        Matrix cells:
+        - high_effort_low_impact: Avoid
+        - high_effort_medium_impact: Consider
+        - high_effort_high_impact: Schedule
+        - medium_effort_low_impact: Defer
+        - medium_effort_medium_impact: Plan
+        - medium_effort_high_impact: Priority
+        - low_effort_low_impact: If Time
+        - low_effort_medium_impact: Quick Win
+        - low_effort_high_impact: DO FIRST!
+
+        Returns dict with counts and finding lists per cell.
+        """
+        matrix = {
+            "high_low": {"count": 0, "findings": [], "action": "Avoid"},
+            "high_medium": {"count": 0, "findings": [], "action": "Consider"},
+            "high_high": {"count": 0, "findings": [], "action": "Schedule"},
+            "medium_low": {"count": 0, "findings": [], "action": "Defer"},
+            "medium_medium": {"count": 0, "findings": [], "action": "Plan"},
+            "medium_high": {"count": 0, "findings": [], "action": "Priority"},
+            "low_low": {"count": 0, "findings": [], "action": "If Time"},
+            "low_medium": {"count": 0, "findings": [], "action": "Quick Win"},
+            "low_high": {"count": 0, "findings": [], "action": "DO FIRST!"},
+        }
+
+        for finding in findings:
+            effort = self.classify_effort(finding)
+            impact = self.classify_impact(finding)
+            key = f"{effort}_{impact}"
+
+            if key in matrix:
+                matrix[key]["count"] += 1
+                matrix[key]["findings"].append({
+                    "id": finding.get("id", "?"),
+                    "title": _get_finding_title(finding)[:50],
+                    "severity": finding.get("severity", "Unknown"),
+                })
+
+        return matrix
+
     def identify_quick_wins(
         self,
         findings: list[dict[str, Any]]
@@ -553,6 +693,9 @@ def calculate_premium_risk_data(findings: list[dict[str, Any]]) -> dict[str, Any
     # Quick wins
     quick_wins = calculator.identify_quick_wins(findings)
 
+    # Effort vs Impact matrix
+    effort_impact_matrix = calculator.generate_effort_impact_matrix(findings)
+
     # Severity percentages
     percentages = calculator.get_severity_percentages(findings)
 
@@ -574,5 +717,6 @@ def calculate_premium_risk_data(findings: list[dict[str, Any]]) -> dict[str, Any
         "deployment_recommendation_color": color,
         "deployment_recommendation_bg": bg_color,
         "quick_wins": quick_wins,
+        "effort_impact_matrix": effort_impact_matrix,
         **percentages,
     }

@@ -397,7 +397,7 @@ Review findings marked as "Low" effort for quick security improvements.
 
 ## 6.4 Effort vs Impact Matrix
 
-<table style="width: 100%; max-width: 500px; margin: 20px auto; border-collapse: collapse; text-align: center;">
+<table style="width: 100%; max-width: 550px; margin: 20px auto; border-collapse: collapse; text-align: center;">
 <tr>
 <td style="border: none; width: 80px;"></td>
 <td style="border: none;" colspan="3"><strong>IMPACT</strong></td>
@@ -409,28 +409,32 @@ Review findings marked as "Low" effort for quick security improvements.
 <td style="border: none; color: #6b7280; padding: 8px;">High</td>
 </tr>
 <tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>High</strong></td>
-<td style="background: #ef4444; color: white; padding: 20px; border-radius: 4px;"><strong>Avoid</strong></td>
-<td style="background: #f97316; color: white; padding: 20px; border-radius: 4px;"><strong>Consider</strong></td>
-<td style="background: #eab308; color: white; padding: 20px; border-radius: 4px;"><strong>Schedule</strong></td>
+<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>E<br/>F<br/>F<br/>O<br/>R<br/>T</strong></td>
+<td style="background: #ef4444; color: white; padding: 15px; border-radius: 4px;"><strong>Avoid</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.high_low.count if effort_impact_matrix else 0 }}</span></td>
+<td style="background: #f97316; color: white; padding: 15px; border-radius: 4px;"><strong>Consider</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.high_medium.count if effort_impact_matrix else 0 }}</span></td>
+<td style="background: #eab308; color: white; padding: 15px; border-radius: 4px;"><strong>Schedule</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.high_high.count if effort_impact_matrix else 0 }}</span></td>
 </tr>
 <tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>Med</strong></td>
-<td style="background: #94a3b8; color: white; padding: 20px; border-radius: 4px;"><strong>Defer</strong></td>
-<td style="background: #3b82f6; color: white; padding: 20px; border-radius: 4px;"><strong>Plan</strong></td>
-<td style="background: #8b5cf6; color: white; padding: 20px; border-radius: 4px;"><strong>Priority</strong></td>
-</tr>
-<tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>Low</strong></td>
-<td style="background: #64748b; color: white; padding: 20px; border-radius: 4px;"><strong>If Time</strong></td>
-<td style="background: #22c55e; color: white; padding: 20px; border-radius: 4px;"><strong>Quick Win</strong></td>
-<td style="background: #16a34a; color: white; padding: 20px; border-radius: 4px;"><strong>DO FIRST!</strong></td>
+<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>High<br/>↑<br/>Med<br/>↑<br/>Low</strong></td>
+<td style="background: #94a3b8; color: white; padding: 15px; border-radius: 4px;"><strong>Defer</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.medium_low.count if effort_impact_matrix else 0 }}</span></td>
+<td style="background: #3b82f6; color: white; padding: 15px; border-radius: 4px;"><strong>Plan</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.medium_medium.count if effort_impact_matrix else 0 }}</span></td>
+<td style="background: #8b5cf6; color: white; padding: 15px; border-radius: 4px;"><strong>Priority</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.medium_high.count if effort_impact_matrix else 0 }}</span></td>
 </tr>
 <tr>
 <td style="border: none;"></td>
-<td style="border: none;" colspan="3"><em style="color: #6b7280; font-size: 9pt;">EFFORT →</em></td>
+<td style="background: #64748b; color: white; padding: 15px; border-radius: 4px;"><strong>If Time</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.low_low.count if effort_impact_matrix else 0 }}</span></td>
+<td style="background: #22c55e; color: white; padding: 15px; border-radius: 4px;"><strong>Quick Win</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.low_medium.count if effort_impact_matrix else 0 }}</span></td>
+<td style="background: #16a34a; color: white; padding: 15px; border-radius: 4px;"><strong>DO FIRST!</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.low_high.count if effort_impact_matrix else 0 }}</span></td>
 </tr>
 </table>
+
+{% if effort_impact_matrix %}
+**Prioritization Summary:**
+{% if effort_impact_matrix.low_high.count > 0 %}- 🚀 **DO FIRST ({{ effort_impact_matrix.low_high.count }})**: Low effort, high impact - immediate wins{% endif %}
+{% if effort_impact_matrix.low_medium.count > 0 %}- ✅ **Quick Wins ({{ effort_impact_matrix.low_medium.count }})**: Low effort, medium impact - easy improvements{% endif %}
+{% if effort_impact_matrix.medium_high.count > 0 %}- ⚡ **Priority ({{ effort_impact_matrix.medium_high.count }})**: Medium effort, high impact - plan these next{% endif %}
+{% if effort_impact_matrix.high_high.count > 0 %}- 📅 **Schedule ({{ effort_impact_matrix.high_high.count }})**: High effort, high impact - important but complex{% endif %}
+{% endif %}
 
 ---
 
