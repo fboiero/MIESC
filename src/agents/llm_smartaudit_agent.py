@@ -14,10 +14,12 @@ from src.agents.base_agent import BaseAgent
 from typing import List, Dict, Any
 import os
 import time
-from dotenv import load_dotenv
 
-# Load environment variables from .env
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()  # Load environment variables from .env
+except ImportError:
+    pass  # dotenv not installed, environment variables must be set manually
 
 class LLMSmartAuditAgent(BaseAgent):
     """

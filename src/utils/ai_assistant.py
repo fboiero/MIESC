@@ -10,15 +10,19 @@ import os
 import sys
 from pathlib import Path
 from typing import Dict, List, Any
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not installed, environment variables must be set manually
 
 try:
     import openai
+    OPENAI_AVAILABLE = True
 except ImportError:
-    print("Error: openai library not installed. Run: pip install openai")
-    sys.exit(1)
-
-load_dotenv()
+    openai = None  # type: ignore
+    OPENAI_AVAILABLE = False
 
 
 class AIAuditAssistant:
