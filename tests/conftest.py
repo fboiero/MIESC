@@ -412,6 +412,12 @@ def pytest_configure(config):
     )
 
 
+def _check_foundry_available():
+    """Check if Foundry (forge) is available."""
+    import shutil
+    return shutil.which("forge") is not None
+
+
 def pytest_collection_modifyitems(config, items):
     """Modify test collection."""
     # Skip slow tests unless explicitly requested
@@ -420,3 +426,10 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "slow" in item.keywords:
                 item.add_marker(skip_slow)
+
+    # Skip requires_tools tests if Foundry is not available
+    if not _check_foundry_available():
+        skip_tools = pytest.mark.skip(reason="Foundry not installed")
+        for item in items:
+            if "requires_tools" in item.keywords:
+                item.add_marker(skip_tools)
