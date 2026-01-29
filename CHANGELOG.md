@@ -5,6 +5,47 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.0] - 2026-01-29
+
+### Added
+
+#### Comprehensive Integration Tests
+- **Full test suite**: 2700+ tests with 71% coverage
+- **Integration test files**: Pipeline, reports, multichain, and benchmark integration tests
+- **CLI testing**: End-to-end audit command testing with Click's CliRunner
+
+#### Enhanced Report Generation
+- **Smart audit format support**: Reports now correctly parse `tools_run`, `tools_success`, `tools_failed` arrays
+- **Effort vs Impact Matrix**: Prioritization matrix with finding counts per cell (DO FIRST, Quick Win, Priority, Schedule, etc.)
+- **Tool execution details**: Tools Utilized, Layer Coverage Analysis, and Appendix sections now populate correctly
+- **Report documentation**: Comprehensive `docs/guides/REPORTS.md` guide
+
+#### Optional Dependencies
+- **Graceful degradation**: `openai` and `python-dotenv` are now optional imports
+- **Cleaner installs**: Base installation works without LLM dependencies
+
+### Fixed
+- **PDF generation**: Fixed Jinja2 template rendering by adding to core dependencies
+- **Smart audit reports**: Contract name, findings, and tool data now correctly extracted
+- **Test mock**: Fixed `audit smart` test to use correct `analyze` method
+
+### Links
+- **PyPI**: https://pypi.org/project/miesc/4.5.0/
+- **Docker**: `docker pull ghcr.io/fboiero/miesc:4.5.0`
+
+---
+
+## [4.4.0] - 2026-01-25
+
+### Changed
+- **Repository reorganization**: Restructured project layout for better maintainability
+- **CI/CD improvements**: Enhanced GitHub Actions workflows
+
+### Links
+- **GitHub Release**: https://github.com/fboiero/MIESC/releases/tag/v4.4.0
+
+---
+
 ## [4.3.7] - 2025-01-20
 
 ### Added
