@@ -219,23 +219,22 @@ class MyAdapter(BaseAdapter):
 
 ## Testing
 
-### Running Tests
+For comprehensive testing documentation, see [Testing Guide](./docs/guides/TESTING.md).
+
+### Quick Reference
 
 ```bash
-# Run all tests
-pytest tests/
+# Run all tests with coverage
+make test
 
-# Run with coverage
-pytest tests/ --cov=src --cov-report=html
+# Run tests without coverage (faster)
+make test-quick
+
+# Run only integration tests
+pytest -m integration --no-cov
 
 # Run specific test file
-pytest tests/unit/test_slither_adapter.py
-
-# Run tests matching pattern
-pytest tests/ -k "test_analyze"
-
-# Run with verbose output
-pytest tests/ -v
+pytest tests/test_integration_pipeline.py -v --no-cov
 ```
 
 ### Writing Tests
