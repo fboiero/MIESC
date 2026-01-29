@@ -840,8 +840,9 @@ class TestValidationReport:
 # ============================================================================
 
 
+@pytest.mark.requires_tools
 class TestInvariantValidator:
-    """Tests for InvariantValidator."""
+    """Tests for InvariantValidator. Requires Foundry (forge) to be installed."""
 
     def test_initialization(self):
         """Test validator initialization."""
@@ -1178,8 +1179,9 @@ class TestEdgeCases:
             assert "function invariant_test-inv" not in content
             assert "function invariant_test@" not in content
 
+    @pytest.mark.requires_tools
     def test_validator_with_fork_url(self):
-        """Test validator initialization with fork URL."""
+        """Test validator initialization with fork URL. Requires Foundry."""
         with tempfile.TemporaryDirectory() as tmpdir:
             validator = InvariantValidator(
                 project_dir=tmpdir,
