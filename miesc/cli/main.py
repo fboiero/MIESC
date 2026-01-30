@@ -4761,7 +4761,15 @@ def report(results_file, template, output, output_format, client, auditor, title
             from src.poc.poc_generator import PoCGenerator
 
             poc_generator = PoCGenerator()
-            contract_name_for_poc = results.get("contract") or results.get("contract_path") or "Unknown"
+            contract_name_for_poc = (
+                results.get("contract")
+                or results.get("contract_path")
+                or results.get("path")
+                or "Unknown"
+            )
+            # For batch format, strip trailing slash from directory path
+            if contract_name_for_poc.endswith("/"):
+                contract_name_for_poc = "Unknown"
 
             critical_high_for_poc = [
                 f for f in findings
@@ -4773,7 +4781,9 @@ def report(results_file, template, output, output_format, client, auditor, title
                 info(f"Generating PoC exploits for {len(critical_high_for_poc)} critical/high findings...")
                 for finding in critical_high_for_poc:
                     try:
-                        poc = poc_generator.generate(finding, target_contract=contract_name_for_poc)
+                        # Use per-finding source_contract (batch) or global contract name
+                        target = finding.get("source_contract") or contract_name_for_poc
+                        poc = poc_generator.generate(finding, target_contract=target)
                         finding["poc"] = poc.solidity_code
                         finding["poc_available"] = True
                         finding["poc_name"] = poc.name
