@@ -75,7 +75,8 @@ class MLAnalysisResult:
                 'findings': self.raw_findings[:20],  # Limit for output
             },
             'ml_enhanced': {
-                'filtered_findings': len(self.ml_filtered_findings),
+                'filtered_count': len(self.ml_filtered_findings),
+                'findings': self.ml_filtered_findings,
                 'false_positives_removed': self.false_positives_removed,
                 'severity_adjustments': self.severity_adjustments,
                 'top_findings': self.ml_filtered_findings[:10],

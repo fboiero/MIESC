@@ -3979,10 +3979,13 @@ def report(results_file, template, output, output_format, client, auditor, title
     # Extract findings from results (can be at root level, within tool results, or in batch format)
     findings = results.get("findings", [])
 
-    # Smart audit format: raw_findings.findings or ml_filtered.findings
+    # Smart audit format: prefer ML-enhanced findings (adjusted severities) over raw
     if not findings:
-        if "ml_filtered" in results and results["ml_filtered"].get("findings"):
-            findings = results["ml_filtered"]["findings"]
+        ml_enhanced = results.get("ml_enhanced", {})
+        if isinstance(ml_enhanced, dict) and isinstance(ml_enhanced.get("findings"), list) and ml_enhanced["findings"]:
+            findings = ml_enhanced["findings"]
+        elif isinstance(ml_enhanced, dict) and isinstance(ml_enhanced.get("top_findings"), list) and ml_enhanced["top_findings"]:
+            findings = ml_enhanced["top_findings"]
         elif "raw_findings" in results and results["raw_findings"].get("findings"):
             findings = results["raw_findings"]["findings"]
 
