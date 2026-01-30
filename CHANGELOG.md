@@ -5,6 +5,13 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.3] - 2026-01-30
+
+### Fixed
+- **Batch audit PoC names**: PoC exploit templates now use the correct per-contract name instead of "Unknown" when generating reports from batch audits (`audit batch`).
+
+---
+
 ## [4.5.2] - 2026-01-29
 
 ### Added
