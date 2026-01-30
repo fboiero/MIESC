@@ -2932,7 +2932,7 @@ class TestMLOrchestratorCoverage:
         assert d["contract_path"] == "test.sol"
         assert d["tools_run"] == ["slither"]
         assert d["raw_findings"]["total"] == 5
-        assert d["ml_enhanced"]["filtered_findings"] == 1
+        assert d["ml_enhanced"]["filtered_count"] == 1
         assert d["clusters"]["count"] == 0
         assert "metrics" in d
 

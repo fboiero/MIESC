@@ -4753,6 +4753,43 @@ def report(results_file, template, output, output_format, client, auditor, title
         except Exception as e:
             warning(f"Profesional report processing failed: {e}")
 
+    # =========================================================================
+    # Proof of Concept Generation (for Critical/High findings)
+    # =========================================================================
+    if template in ("profesional", "premium"):
+        try:
+            from src.poc.poc_generator import PoCGenerator
+
+            poc_generator = PoCGenerator()
+            contract_name_for_poc = results.get("contract") or results.get("contract_path") or "Unknown"
+
+            critical_high_for_poc = [
+                f for f in findings
+                if f.get("severity", "").lower() in ("critical", "high")
+                and f.get("type")
+            ]
+
+            if critical_high_for_poc:
+                info(f"Generating PoC exploits for {len(critical_high_for_poc)} critical/high findings...")
+                for finding in critical_high_for_poc:
+                    try:
+                        poc = poc_generator.generate(finding, target_contract=contract_name_for_poc)
+                        finding["poc"] = poc.solidity_code
+                        finding["poc_available"] = True
+                        finding["poc_name"] = poc.name
+                        finding["poc_prerequisites"] = poc.prerequisites
+                        finding["poc_expected_outcome"] = poc.expected_outcome
+                    except Exception as e:
+                        logger.debug(f"PoC generation failed for {finding.get('type')}: {e}")
+
+                poc_count = sum(1 for f in critical_high_for_poc if f.get("poc_available"))
+                if poc_count:
+                    success(f"Generated {poc_count} PoC exploit templates")
+        except ImportError:
+            logger.debug("PoCGenerator not available")
+        except Exception as e:
+            warning(f"PoC generation failed: {e}")
+
     # Prepare findings for template
     formatted_findings = []
     for i, finding in enumerate(findings, 1):
@@ -4842,6 +4879,11 @@ def report(results_file, template, output, output_format, client, auditor, title
                 "remediation_effort": remediation_effort,
                 "fix_time": fix_time,
                 "llm_interpretation": finding.get("llm_interpretation", ""),
+                # PoC fields
+                "poc_available": finding.get("poc_available", False),
+                "poc_name": finding.get("poc_name", ""),
+                "poc_prerequisites": finding.get("poc_prerequisites", []),
+                "poc_expected_outcome": finding.get("poc_expected_outcome", ""),
             }
         )
 
