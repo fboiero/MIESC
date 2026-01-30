@@ -5,6 +5,16 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.2] - 2026-01-29
+
+### Added
+- **PoC exploit generation in PDF reports**: Professional/premium reports now auto-generate Foundry test templates for Critical/High findings, including exploit code, prerequisites, and expected outcomes.
+
+### Fixed
+- **ML-enhanced findings in reports**: Reports now use ML-adjusted severities instead of raw findings, ensuring deployment recommendations reflect the full ML pipeline (FP filtering, severity adjustments).
+
+---
+
 ## [4.5.1] - 2026-01-29
 
 ### Fixed
