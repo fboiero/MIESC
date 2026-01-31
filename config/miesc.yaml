@@ -1,6 +1,16 @@
 # =============================================================================
-# MIESC v4.7.0 - Configuración Centralizada
+# MIESC v5.0.0 - Configuración Centralizada
 # Multi-layer Intelligent Evaluation for Smart Contracts
+#
+# v5.0.0 Changes:
+# - Expanded to 9 defense layers with 50 security tools
+# - MCP server for Claude Desktop integration (stdio transport)
+# - New adapters: 4naly3er, pakala, scribble, solcmc, gptlens,
+#   llamaaudit, iaudit, peculiar, upgradability_checker,
+#   bridge_monitor, l2_validator, circom_analyzer, audit_consensus,
+#   exploit_synthesizer, vuln_verifier, remediation_validator
+# - Cross-validation v3 with Bayesian scoring and inter-layer boost
+# - Layer 9 meta-analysis: exploit confirmation + formal refutation
 #
 # v4.7.0 Changes:
 # - Slither cross-validation with solc-select support
@@ -15,7 +25,7 @@
 # - Call graph and taint analysis integration
 # =============================================================================
 
-version: "4.7.0"
+version: "5.0.0"
 
 # =============================================================================
 # Configuración Global
@@ -86,10 +96,10 @@ chains:
     enabled: true
 
 # =============================================================================
-# Capas de Análisis - 7 Layers Defense
+# Capas de Análisis - 9 Layers Defense (50 Tools)
 # =============================================================================
 layers:
-  # Layer 1: Static Analysis
+  # Layer 1: Static Analysis (6 tools)
   static_analysis:
     enabled: true
     priority: 1
@@ -97,18 +107,23 @@ layers:
       - slither
       - aderyn
       - solhint
+      - semgrep
+      - wake
+      - fouranalyzer
 
-  # Layer 2: Dynamic Testing (Fuzzing)
+  # Layer 2: Dynamic Testing / Fuzzing (6 tools)
   dynamic_testing:
     enabled: true
     priority: 2
     tools:
       - echidna
-      - foundry
       - medusa
+      - foundry
       - dogefuzz
+      - hardhat
+      - vertigo
 
-  # Layer 3: Symbolic Execution
+  # Layer 3: Symbolic Execution (5 tools)
   symbolic_execution:
     enabled: true
     priority: 3
@@ -116,43 +131,77 @@ layers:
       - mythril
       - manticore
       - halmos
+      - oyente
+      - pakala
 
-  # Layer 4: Formal Verification
+  # Layer 4: Formal Verification (5 tools)
   formal_verification:
     enabled: true
     priority: 4
     tools:
-      - smtchecker
       - certora
-      - wake
-
-  # Layer 5: Property Testing
-  property_testing:
-    enabled: true
-    priority: 5
-    tools:
+      - smtchecker
       - propertygpt
+      - scribble
+      - solcmc
 
-  # Layer 6: AI/LLM Analysis
+  # Layer 5: AI Analysis (6 tools)
   ai_analysis:
     enabled: true
-    priority: 6
+    priority: 5
     tools:
       - smartllm
       - gptscan
       - llmsmartaudit
+      - gptlens
+      - llamaaudit
+      - iaudit
 
-  # Layer 7: Specialized Analysis
+  # Layer 6: ML Detection (5 tools)
+  ml_detection:
+    enabled: true
+    priority: 6
+    tools:
+      - dagnn
+      - smartbugs_ml
+      - smartbugs_detector
+      - smartguard
+      - peculiar
+
+  # Layer 7: Specialized Analysis (7 tools)
   specialized:
     enabled: true
     priority: 7
     tools:
+      - threat_model
       - gas_analyzer
       - mev_detector
-      - threat_model
-      - smartbugs_ml
-      - dagnn
       - contract_clone_detector
+      - defi_analyzer
+      - advanced_detector
+      - upgradability_checker
+
+  # Layer 8: Cross-Chain & ZK Security (5 tools)
+  crosschain_zk:
+    enabled: true
+    priority: 8
+    tools:
+      - crosschain
+      - zk_circuit
+      - bridge_monitor
+      - l2_validator
+      - circom_analyzer
+
+  # Layer 9: Advanced AI Ensemble (5 tools)
+  advanced_ensemble:
+    enabled: true
+    priority: 9
+    tools:
+      - llmbugscanner
+      - audit_consensus
+      - exploit_synthesizer
+      - vuln_verifier
+      - remediation_validator
 
 # =============================================================================
 # Configuración de Adaptadores
@@ -385,6 +434,120 @@ adapters:
       - type3  # Modified statements
       - type4  # Semantic clones
 
+  # ---------------------------------------------------------------------------
+  # NEW v5.0.0 ADAPTERS
+  # ---------------------------------------------------------------------------
+
+  # Layer 1 - 4naly3er (Code4rena style)
+  fouranalyzer:
+    enabled: true
+    layer: static_analysis
+    timeout: 60
+
+  # Layer 3 - Pakala (multi-tx symbolic)
+  pakala:
+    enabled: true
+    layer: symbolic_execution
+    timeout: 300
+
+  # Layer 4 - Scribble (ConsenSys runtime verification)
+  scribble:
+    enabled: true
+    layer: formal_verification
+    timeout: 120
+
+  # Layer 4 - SolCMC (CHC model checker)
+  solcmc:
+    enabled: true
+    layer: formal_verification
+    timeout: 120
+    engine: chc
+    targets:
+      - assert
+      - underflow
+      - overflow
+      - divByZero
+
+  # Layer 5 - GPTLens (Auditor+Critic dual-role)
+  gptlens:
+    enabled: true
+    layer: ai_analysis
+    timeout: 120
+    model: deepseek-coder
+    ollama_host: http://localhost:11434
+
+  # Layer 5 - LlamaAudit (CodeLlama via Ollama)
+  llamaaudit:
+    enabled: true
+    layer: ai_analysis
+    timeout: 120
+    model: codellama
+    ollama_host: http://localhost:11434
+
+  # Layer 5 - iAudit (Multi-agent Planner+Detector+Reviewer)
+  iaudit:
+    enabled: true
+    layer: ai_analysis
+    timeout: 180
+    model: deepseek-coder
+    ollama_host: http://localhost:11434
+
+  # Layer 6 - Peculiar (Heterogeneous graph NN)
+  peculiar:
+    enabled: true
+    layer: ml_detection
+    timeout: 90
+    model_path: ~/.miesc/models/peculiar
+
+  # Layer 7 - Upgradability Checker (Proxy security)
+  upgradability_checker:
+    enabled: true
+    layer: specialized
+    timeout: 30
+
+  # Layer 8 - Bridge Monitor (Cross-chain bridge security)
+  bridge_monitor:
+    enabled: true
+    layer: crosschain_zk
+    timeout: 60
+
+  # Layer 8 - L2 Validator (Layer 2 security)
+  l2_validator:
+    enabled: true
+    layer: crosschain_zk
+    timeout: 60
+
+  # Layer 8 - Circom Analyzer (ZK circuit security)
+  circom_analyzer:
+    enabled: true
+    layer: crosschain_zk
+    timeout: 120
+
+  # Layer 9 - Audit Consensus (Bayesian meta-analyzer)
+  audit_consensus:
+    enabled: true
+    layer: advanced_ensemble
+    timeout: 30
+
+  # Layer 9 - Exploit Synthesizer (Foundry PoC gen)
+  exploit_synthesizer:
+    enabled: true
+    layer: advanced_ensemble
+    timeout: 120
+    run_poc: false  # Set true to auto-run PoC tests
+
+  # Layer 9 - Vuln Verifier (Z3 counter-example)
+  vuln_verifier:
+    enabled: true
+    layer: advanced_ensemble
+    timeout: 60
+
+  # Layer 9 - Remediation Validator (patch verification)
+  remediation_validator:
+    enabled: true
+    layer: advanced_ensemble
+    timeout: 60
+
 # =============================================================================
 # Configuración de LLM Local (Ollama) - Centralizada v4.2.3
 # =============================================================================
@@ -565,7 +728,7 @@ results:
 
   # v4.6.0: Cross-validation enforcement
   cross_validation_v2:
-    enabled: true
+    enabled: false  # Superseded by v3
     # Patterns requiring 2+ tools for confirmation
     require_multi_tool:
       - reentrancy
@@ -580,6 +743,44 @@ results:
     single_tool_max_confidence: 0.60
     # Confidence boost per additional tool
     multi_tool_confidence_boost: 0.08
+
+  # v5.0.0: Cross-validation v3 with Bayesian scoring
+  cross_validation_v3:
+    enabled: true
+
+    # Intra-layer: require 2+ tools for confidence > 0.55
+    intra_layer:
+      min_tools_for_high_confidence: 2
+      single_tool_max_confidence: 0.55
+
+    # Inter-layer boost when findings confirmed across layers
+    inter_layer:
+      static_symbolic_boost: 0.15      # L1 + L3
+      static_formal_boost: 0.20        # L1 + L4
+      symbolic_formal_boost: 0.18      # L3 + L4
+      ai_ml_boost: 0.10               # L5 + L6
+      three_layer_boost: 0.25          # 3+ layers agree
+
+    # Layer 9 meta-analysis overrides
+    layer9_meta:
+      exploit_confirmed_confidence: 0.98   # PoC passed
+      formal_refutation_confidence: 0.05   # Z3/verifier refuted
+      consensus_verified_boost: 0.15       # Bayesian consensus confirmed
+
+    # Tool weight overrides for Bayesian scoring
+    tool_weights:
+      exploit_synthesizer: 0.95
+      vuln_verifier: 0.92
+      audit_consensus: 0.90
+      certora: 0.92
+      echidna: 0.88
+      solcmc: 0.85
+      scribble: 0.82
+      slither: 0.85
+      upgradability_checker: 0.80
+      gptlens: 0.82
+      iaudit: 0.78
+      peculiar: 0.74
 
   # Formatos de exportación
   export_formats:
@@ -626,14 +827,64 @@ analysis:
 
   # Pesos de herramientas para scoring (higher = más confiable)
   tool_weights:
+    # Layer 1 - Static Analysis
     slither: 0.85
     aderyn: 0.80
+    solhint: 0.70
+    semgrep: 0.75
+    wake: 0.78
+    fouranalyzer: 0.72
+    # Layer 2 - Dynamic Testing
     echidna: 0.88
     foundry: 0.85
-    mythril: 0.70
-    semgrep: 0.75
-    solhint: 0.70
-    smtchecker: 0.90
+    medusa: 0.82
+    hardhat: 0.75
+    vertigo: 0.80
+    # Layer 3 - Symbolic Execution
+    mythril: 0.78
+    manticore: 0.75
+    halmos: 0.80
+    oyente: 0.65
+    pakala: 0.72
+    # Layer 4 - Formal Verification
+    certora: 0.92
+    smtchecker: 0.85
+    propertygpt: 0.78
+    scribble: 0.82
+    solcmc: 0.85
+    # Layer 5 - AI Analysis
+    smartllm: 0.80
+    gptscan: 0.75
+    llmsmartaudit: 0.73
+    gptlens: 0.82
+    llamaaudit: 0.70
+    iaudit: 0.78
+    # Layer 6 - ML Detection
+    dagnn: 0.72
+    smartbugs_ml: 0.68
+    smartbugs_detector: 0.65
+    smartguard: 0.70
+    peculiar: 0.74
+    # Layer 7 - Specialized
+    gas_analyzer: 0.75
+    mev_detector: 0.78
+    threat_model: 0.72
+    contract_clone_detector: 0.70
+    defi_analyzer: 0.78
+    advanced_detector: 0.75
+    upgradability_checker: 0.80
+    # Layer 8 - Cross-Chain & ZK
+    crosschain: 0.75
+    zk_circuit: 0.72
+    bridge_monitor: 0.78
+    l2_validator: 0.75
+    circom_analyzer: 0.80
+    # Layer 9 - Advanced Ensemble
+    llmbugscanner: 0.83
+    audit_consensus: 0.90
+    exploit_synthesizer: 0.95
+    vuln_verifier: 0.92
+    remediation_validator: 0.88
 
   # Configuración de deduplicación semántica
   deduplication:

@@ -9,7 +9,7 @@ Scientific Context: Agent interoperability in distributed security systems
 
 Author: Fernando Boiero
 Thesis: Master's in Cyberdefense - UNDEF
-Version: 4.1.0
+Version: 5.0.0
 """
 
 import logging
@@ -91,7 +91,7 @@ class MCPTool:
     handler: Optional[Callable] = None
     layer: Optional[int] = None
     available: bool = True
-    version: str = "1.0.0"
+    version: str = "5.0.0"
 
     def to_mcp_format(self) -> Dict[str, Any]:
         """
@@ -185,9 +185,10 @@ class MCPToolRegistry:
             name="miesc_run_audit",
             description=(
                 "Execute comprehensive multi-layer security audit on a Solidity smart contract. "
-                "Uses 7-layer defense-in-depth approach with static analysis, symbolic execution, "
-                "fuzzing, and AI-powered correlation. Returns normalized findings with severity, "
-                "confidence scores, and compliance mapping."
+                "Uses 9-layer defense-in-depth approach with 50 security tools: static analysis, "
+                "symbolic execution, fuzzing, formal verification, AI/ML detection, and advanced "
+                "ensemble methods. Returns normalized findings with severity, confidence scores, "
+                "and compliance mapping."
             ),
             category=ToolCategory.STATIC_ANALYSIS,
             layer=1,
@@ -207,9 +208,9 @@ class MCPToolRegistry:
                 MCPToolParameter(
                     name="layers",
                     type="array",
-                    description="Specific layers to execute (1-7)",
+                    description="Specific layers to execute (1-9)",
                     required=False,
-                    items={"type": "integer", "minimum": 1, "maximum": 7}
+                    items={"type": "integer", "minimum": 1, "maximum": 9}
                 ),
                 MCPToolParameter(
                     name="enable_ai_triage",
@@ -371,8 +372,9 @@ class MCPToolRegistry:
         self.register(MCPTool(
             name="miesc_deep_scan",
             description=(
-                "Comprehensive security scan using all 7 defense layers. "
-                "Includes symbolic execution, fuzzing, formal verification, and AI analysis. "
+                "Comprehensive security scan using all 9 defense layers (50 tools). "
+                "Includes symbolic execution, fuzzing, formal verification, AI analysis, "
+                "ML detection, cross-chain/ZK security, and advanced AI ensemble. "
                 "Recommended for pre-deployment audits."
             ),
             category=ToolCategory.SYMBOLIC_EXECUTION,
@@ -456,6 +458,190 @@ class MCPToolRegistry:
                     name="findings",
                     type="object",
                     description="Dict of tool findings to analyze"
+                ),
+            ]
+        ))
+
+        # Tool 12: Run Specific Tool
+        self.register(MCPTool(
+            name="miesc_run_tool",
+            description=(
+                "Run a specific security analysis tool on a contract. "
+                "Choose from 50 available tools across 9 defense layers."
+            ),
+            category=ToolCategory.STATIC_ANALYSIS,
+            parameters=[
+                MCPToolParameter(
+                    name="tool_name",
+                    type="string",
+                    description="Name of the tool to run (e.g., 'slither', 'mythril')"
+                ),
+                MCPToolParameter(
+                    name="contract_path",
+                    type="string",
+                    description="Path to the Solidity contract file"
+                ),
+                MCPToolParameter(
+                    name="timeout",
+                    type="integer",
+                    description="Timeout in seconds (default: 300)",
+                    required=False,
+                    default=300
+                ),
+            ]
+        ))
+
+        # Tool 13: Run Layer
+        self.register(MCPTool(
+            name="miesc_run_layer",
+            description=(
+                "Run all tools in a specific defense layer (1-9). "
+                "Layers: 1=Static, 2=Dynamic, 3=Symbolic, 4=Formal, "
+                "5=AI, 6=ML, 7=Specialized, 8=Cross-Chain/ZK, 9=Ensemble."
+            ),
+            category=ToolCategory.STATIC_ANALYSIS,
+            parameters=[
+                MCPToolParameter(
+                    name="layer",
+                    type="integer",
+                    description="Layer number (1-9)"
+                ),
+                MCPToolParameter(
+                    name="contract_path",
+                    type="string",
+                    description="Path to the Solidity contract file"
+                ),
+                MCPToolParameter(
+                    name="timeout",
+                    type="integer",
+                    description="Timeout per tool in seconds (default: 300)",
+                    required=False,
+                    default=300
+                ),
+            ]
+        ))
+
+        # Tool 14: Profile Scan
+        self.register(MCPTool(
+            name="miesc_profile_scan",
+            description=(
+                "Run analysis with a predefined profile. "
+                "Profiles: quick (L1), balanced (L1+L3+L5), thorough (all), "
+                "defi (DeFi-focused), formal (L1+L3+L4)."
+            ),
+            category=ToolCategory.STATIC_ANALYSIS,
+            parameters=[
+                MCPToolParameter(
+                    name="contract_path",
+                    type="string",
+                    description="Path to the Solidity contract file"
+                ),
+                MCPToolParameter(
+                    name="profile",
+                    type="string",
+                    description="Scan profile",
+                    required=False,
+                    default="balanced",
+                    enum=["quick", "balanced", "thorough", "defi", "formal"]
+                ),
+            ]
+        ))
+
+        # Tool 15: Filter False Positives
+        self.register(MCPTool(
+            name="miesc_filter_fp",
+            description=(
+                "Filter false positives from findings using ML-based classifier. "
+                "Reduces noise and increases precision of audit results."
+            ),
+            category=ToolCategory.CORRELATION,
+            parameters=[
+                MCPToolParameter(
+                    name="findings",
+                    type="array",
+                    description="List of findings to filter"
+                ),
+                MCPToolParameter(
+                    name="threshold",
+                    type="number",
+                    description="FP probability threshold (default: 0.50)",
+                    required=False,
+                    default=0.50
+                ),
+            ]
+        ))
+
+        # Tool 16: Verify Finding
+        self.register(MCPTool(
+            name="miesc_verify_finding",
+            description=(
+                "Verify a specific finding using Z3 counter-example generation. "
+                "Uses Layer 9 vuln_verifier for formal verification of findings."
+            ),
+            category=ToolCategory.FORMAL_VERIFICATION,
+            layer=9,
+            parameters=[
+                MCPToolParameter(
+                    name="finding",
+                    type="object",
+                    description="The finding to verify"
+                ),
+                MCPToolParameter(
+                    name="contract_path",
+                    type="string",
+                    description="Path to the contract file"
+                ),
+            ]
+        ))
+
+        # Tool 17: List Tools
+        self.register(MCPTool(
+            name="miesc_list_tools",
+            description=(
+                "List all 50 available security analysis tools. "
+                "Optionally filter by layer number (1-9)."
+            ),
+            category=ToolCategory.REPORTING,
+            parameters=[
+                MCPToolParameter(
+                    name="layer",
+                    type="integer",
+                    description="Filter by layer number (1-9)",
+                    required=False
+                ),
+            ]
+        ))
+
+        # Tool 18: Get Tool Info
+        self.register(MCPTool(
+            name="miesc_get_tool_info",
+            description=(
+                "Get detailed information about a specific security tool. "
+                "Returns metadata, capabilities, installation instructions."
+            ),
+            category=ToolCategory.REPORTING,
+            parameters=[
+                MCPToolParameter(
+                    name="tool_name",
+                    type="string",
+                    description="Name of the tool to query"
+                ),
+            ]
+        ))
+
+        # Tool 19: Read Contract
+        self.register(MCPTool(
+            name="miesc_read_contract",
+            description=(
+                "Read a smart contract file and return its contents with metadata. "
+                "Extracts pragma version, contract names, and source code."
+            ),
+            category=ToolCategory.STATIC_ANALYSIS,
+            parameters=[
+                MCPToolParameter(
+                    name="contract_path",
+                    type="string",
+                    description="Path to the contract file"
                 ),
             ]
         ))
@@ -646,10 +832,10 @@ class MCPToolRegistry:
             },
             "experimental": {
                 "miesc": {
-                    "version": "4.1.0",
-                    "layers": 7,
-                    "adapters": 29,
-                    "frameworks": ["ISO27001", "NIST", "OWASP", "CWE", "SWC"]
+                    "version": "5.0.0",
+                    "layers": 9,
+                    "adapters": 50,
+                    "frameworks": ["ISO27001", "NIST", "OWASP", "CWE", "SWC", "MITRE"]
                 }
             }
         }

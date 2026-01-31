@@ -17,12 +17,16 @@ logger = logging.getLogger(__name__)
 
 
 class ToolCategory(Enum):
-    """Tool categories per MIESC 7-layer architecture"""
+    """Tool categories per MIESC 9-layer architecture"""
     STATIC_ANALYSIS = "static_analysis"
     DYNAMIC_TESTING = "dynamic_testing"
     SYMBOLIC_EXECUTION = "symbolic_execution"
     FORMAL_VERIFICATION = "formal_verification"
     AI_ANALYSIS = "ai_analysis"
+    ML_DETECTION = "ml_detection"
+    SPECIALIZED = "specialized"
+    CROSSCHAIN_ZK = "crosschain_zk"
+    ADVANCED_AI_ENSEMBLE = "advanced_ai_ensemble"
     COMPLIANCE = "compliance"
     AUDIT_READINESS = "audit_readiness"
     GAS_OPTIMIZATION = "gas_optimization"

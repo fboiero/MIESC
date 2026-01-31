@@ -1,5 +1,5 @@
 """
-MIESC False Positive Filter v2.2
+MIESC False Positive Filter v2.3
 ================================
 
 ML-based filter to reduce false positives based on finding characteristics.
@@ -31,9 +31,15 @@ Improvements in v2.2 (v4.6.0):
 - CEI (Checks-Effects-Interactions) pattern detection
 - Solidity 0.8+ overflow protection awareness
 
+Improvements in v2.3 (v5.0.0):
+- FP rates for 17 new adapters (L1-L9 expansion to 50 tools)
+- Proxy-aware filtering for upgradability checker findings
+- Layer 9 meta-analysis integration (exploit_confirmed, refuted, consensus)
+- Cross-chain and ZK circuit FP rate calibration
+
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
-Date: 2025-01-24
-Version: 2.2.0
+Date: 2026-01-31
+Version: 2.3.0
 License: AGPL-3.0
 """
 
@@ -349,6 +355,40 @@ class FalsePositiveFilter:
         "state-variables-could-be-declared-immutable": 0.80,
         "state-variables-could-be-declared-constant": 0.80,
         "public-functions-could-be-declared-external": 0.75,
+        # === v5.0.0: New adapter FP rates ===
+        # Layer 1 - 4naly3er patterns
+        "centralization_risk": 0.50,
+        "magic_numbers": 0.70,
+        "missing_event_emission": 0.60,
+        # Layer 4 - SolCMC / Scribble
+        "chc_assertion_violation": 0.30,
+        "chc_overflow": 0.35,
+        "annotation_violation": 0.35,
+        # Layer 5 - AI Analysis (higher base FP)
+        "gptlens_finding": 0.45,
+        "llamaaudit_finding": 0.50,
+        "iaudit_finding": 0.45,
+        # Layer 6 - ML Detection
+        "peculiar_finding": 0.45,
+        # Layer 7 - Proxy/Upgradability
+        "storage_collision": 0.35,
+        "uninitialized_proxy": 0.30,
+        "function_selector_clash": 0.40,
+        "missing_storage_gap": 0.55,
+        "eip1967_noncompliance": 0.45,
+        # Layer 8 - Cross-chain & ZK
+        "unverified_relay_message": 0.40,
+        "missing_nonce_tracking": 0.35,
+        "under_constrained_signal": 0.25,
+        "signal_aliasing": 0.30,
+        "unconstrained_output": 0.20,
+        # Layer 9 - Ensemble (low FP by design)
+        "fix_confirmed": 0.90,  # Not a vulnerability
+        "fix_partial": 0.40,
+        "refuted_vulnerability": 0.90,  # Not a vulnerability
+        "verified_vulnerability": 0.10,
+        "exploit_confirmed": 0.05,
+        "consensus_finding": 0.15,
     }
 
     # v2.0: Patrones que son FP en Solidity 0.8+ (overflow protection)

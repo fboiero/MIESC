@@ -155,37 +155,37 @@ BANNER = r"""
 # Layer and Tool Definitions
 # ============================================================================
 
-# Complete 9-layer architecture with 32 tools
+# Complete 9-layer architecture with 50 tools
 LAYERS = {
     1: {
         "name": "Static Analysis",
         "description": "Pattern-based code analysis",
-        "tools": ["slither", "aderyn", "solhint", "wake"],
+        "tools": ["slither", "aderyn", "solhint", "wake", "semgrep", "fouranalyzer"],
     },
     2: {
         "name": "Dynamic Testing",
         "description": "Fuzzing and property testing",
-        "tools": ["echidna", "medusa", "foundry", "dogefuzz", "vertigo"],
+        "tools": ["echidna", "medusa", "foundry", "dogefuzz", "vertigo", "hardhat"],
     },
     3: {
         "name": "Symbolic Execution",
         "description": "Path exploration and constraint solving",
-        "tools": ["mythril", "manticore", "halmos", "oyente"],
+        "tools": ["mythril", "manticore", "halmos", "oyente", "pakala"],
     },
     4: {
         "name": "Formal Verification",
         "description": "Mathematical proofs of correctness",
-        "tools": ["certora", "smtchecker", "propertygpt"],
+        "tools": ["certora", "smtchecker", "propertygpt", "scribble", "solcmc"],
     },
     5: {
         "name": "AI Analysis",
         "description": "LLM-powered vulnerability detection",
-        "tools": ["smartllm", "gptscan", "llmsmartaudit"],
+        "tools": ["smartllm", "gptscan", "llmsmartaudit", "gptlens", "llamaaudit", "iaudit"],
     },
     6: {
         "name": "ML Detection",
         "description": "Machine learning classifiers",
-        "tools": ["dagnn", "smartbugs_ml", "smartbugs_detector", "smartguard"],
+        "tools": ["dagnn", "smartbugs_ml", "smartbugs_detector", "smartguard", "peculiar"],
     },
     7: {
         "name": "Specialized Analysis",
@@ -197,17 +197,24 @@ LAYERS = {
             "contract_clone_detector",
             "defi",
             "advanced_detector",
+            "upgradability_checker",
         ],
     },
     8: {
         "name": "Cross-Chain & ZK Security",
         "description": "Bridge security and zero-knowledge circuit analysis",
-        "tools": ["crosschain", "zk_circuit"],
+        "tools": ["crosschain", "zk_circuit", "bridge_monitor", "l2_validator", "circom_analyzer"],
     },
     9: {
         "name": "Advanced AI Ensemble",
         "description": "Multi-LLM ensemble with consensus-based detection",
-        "tools": ["llmbugscanner"],
+        "tools": [
+            "llmbugscanner",
+            "audit_consensus",
+            "exploit_synthesizer",
+            "vuln_verifier",
+            "remediation_validator",
+        ],
     },
 }
 
@@ -216,40 +223,65 @@ QUICK_TOOLS = ["slither", "aderyn", "solhint", "mythril"]
 
 # Adapter class mapping (tool name -> adapter class name)
 ADAPTER_MAP = {
+    # Layer 1: Static Analysis
     "slither": "SlitherAdapter",
     "aderyn": "AderynAdapter",
     "solhint": "SolhintAdapter",
     "wake": "WakeAdapter",
+    "semgrep": "SemgrepAdapter",
+    "fouranalyzer": "FourAnalyzerAdapter",
+    # Layer 2: Dynamic Testing
     "echidna": "EchidnaAdapter",
     "medusa": "MedusaAdapter",
     "foundry": "FoundryAdapter",
     "dogefuzz": "DogeFuzzAdapter",
     "vertigo": "VertigoAdapter",
+    "hardhat": "HardhatAdapter",
+    # Layer 3: Symbolic Execution
     "mythril": "MythrilAdapter",
     "manticore": "ManticoreAdapter",
     "halmos": "HalmosAdapter",
     "oyente": "OyenteAdapter",
+    "pakala": "PakalaAdapter",
+    # Layer 4: Formal Verification
     "certora": "CertoraAdapter",
     "smtchecker": "SMTCheckerAdapter",
     "propertygpt": "PropertyGPTAdapter",
+    "scribble": "ScribbleAdapter",
+    "solcmc": "SolCMCAdapter",
+    # Layer 5: AI Analysis
     "smartllm": "SmartLLMAdapter",
     "gptscan": "GPTScanAdapter",
     "llmsmartaudit": "LLMSmartAuditAdapter",
+    "gptlens": "GPTLensAdapter",
+    "llamaaudit": "LlamaAuditAdapter",
+    "iaudit": "IAuditAdapter",
+    # Layer 6: ML Detection
     "dagnn": "DAGNNAdapter",
     "smartbugs_ml": "SmartBugsMLAdapter",
     "smartbugs_detector": "SmartBugsDetectorAdapter",
     "smartguard": "SmartGuardAdapter",
+    "peculiar": "PeculiarAdapter",
+    # Layer 7: Specialized Analysis
     "threat_model": "ThreatModelAdapter",
     "gas_analyzer": "GasAnalyzerAdapter",
     "mev_detector": "MEVDetectorAdapter",
     "contract_clone_detector": "ContractCloneDetectorAdapter",
     "defi": "DeFiAdapter",
     "advanced_detector": "AdvancedDetectorAdapter",
+    "upgradability_checker": "UpgradabilityCheckerAdapter",
     # Layer 8: Cross-Chain & ZK Security
     "crosschain": "CrossChainAdapter",
     "zk_circuit": "ZKCircuitAdapter",
+    "bridge_monitor": "BridgeMonitorAdapter",
+    "l2_validator": "L2ValidatorAdapter",
+    "circom_analyzer": "CircomAnalyzerAdapter",
     # Layer 9: Advanced AI Ensemble
     "llmbugscanner": "LLMBugScannerAdapter",
+    "audit_consensus": "AuditConsensusAdapter",
+    "exploit_synthesizer": "ExploitSynthesizerAdapter",
+    "vuln_verifier": "VulnVerifierAdapter",
+    "remediation_validator": "RemediationValidatorAdapter",
 }
 
 
@@ -345,11 +377,11 @@ def print_banner():
         console.print(
             f"[cyan]v{VERSION}[/cyan] - Multi-layer Intelligent Evaluation for Smart Contracts"
         )
-        console.print("[dim]7 Defense Layers | 29 Security Tools | AI-Powered Analysis[/dim]\n")
+        console.print("[dim]9 Defense Layers | 50 Security Tools | AI-Powered Analysis[/dim]\n")
     else:
         print(BANNER)
         print(f"v{VERSION} - Multi-layer Intelligent Evaluation for Smart Contracts")
-        print("7 Defense Layers | 29 Security Tools | AI-Powered Analysis\n")
+        print("9 Defense Layers | 50 Security Tools | AI-Powered Analysis\n")
 
 
 def success(msg: str):

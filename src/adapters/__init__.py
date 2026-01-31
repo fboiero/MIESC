@@ -17,56 +17,73 @@ Date: 2025-01-09
 
 import logging
 
-# Layer 1 - Static Analysis
+# Layer 1 - Static Analysis (6 tools)
 from src.adapters.aderyn_adapter import AderynAdapter
 from src.adapters.slither_adapter import SlitherAdapter
 from src.adapters.solhint_adapter import SolhintAdapter
 from src.adapters.semgrep_adapter import SemgrepAdapter
+from src.adapters.wake_adapter import WakeAdapter
+from src.adapters.fouranalyzer_adapter import FourAnalyzerAdapter
 
-# Layer 2 - Dynamic Testing
+# Layer 2 - Dynamic Testing (6 tools)
 from src.adapters.echidna_adapter import EchidnaAdapter
 from src.adapters.medusa_adapter import MedusaAdapter
 from src.adapters.foundry_adapter import FoundryAdapter
 from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
 from src.adapters.hardhat_adapter import HardhatAdapter
+from src.adapters.vertigo_adapter import VertigoAdapter
 
-# Layer 3 - Symbolic Execution
+# Layer 3 - Symbolic Execution (5 tools)
 from src.adapters.mythril_adapter import MythrilAdapter
 from src.adapters.manticore_adapter import ManticoreAdapter
 from src.adapters.halmos_adapter import HalmosAdapter
+from src.adapters.oyente_adapter import OyenteAdapter
+from src.adapters.pakala_adapter import PakalaAdapter
 
-# Layer 4 - Formal Verification
+# Layer 4 - Formal Verification (5 tools)
 from src.adapters.certora_adapter import CertoraAdapter
 from src.adapters.smtchecker_adapter import SMTCheckerAdapter
-from src.adapters.wake_adapter import WakeAdapter
-
-# Layer 5 - Property Testing
 from src.adapters.propertygpt_adapter import PropertyGPTAdapter
-from src.adapters.vertigo_adapter import VertigoAdapter
+from src.adapters.scribble_adapter import ScribbleAdapter
+from src.adapters.solcmc_adapter import SolCMCAdapter
 
-# Layer 6 - AI/LLM Analysis
+# Layer 5 - AI Analysis (6 tools)
 from src.adapters.smartllm_adapter import SmartLLMAdapter
 from src.adapters.gptscan_adapter import GPTScanAdapter
 from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
-from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
+from src.adapters.gptlens_adapter import GPTLensAdapter
+from src.adapters.llamaaudit_adapter import LlamaAuditAdapter
+from src.adapters.iaudit_adapter import IAuditAdapter
 
-# Layer 7 - Pattern Recognition / ML
+# Layer 6 - ML Detection (5 tools)
 from src.adapters.dagnn_adapter import DAGNNAdapter
 from src.adapters.smartguard_adapter import SmartGuardAdapter
 from src.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter
-from src.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
-
-# Layer 8 - DeFi Security
-from src.adapters.defi_adapter import DeFiAdapter
-from src.adapters.mev_detector_adapter import MEVDetectorAdapter
-from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
-from src.adapters.crosschain_adapter import CrossChainAdapter
-
-# Layer 9 - Advanced Detection
-from src.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
 from src.adapters.smartbugs_detector_adapter import SmartBugsDetectorAdapter
+from src.adapters.peculiar_adapter import PeculiarAdapter
+
+# Layer 7 - Specialized Analysis (7 tools)
+from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
+from src.adapters.mev_detector_adapter import MEVDetectorAdapter
 from src.adapters.threat_model_adapter import ThreatModelAdapter
+from src.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
+from src.adapters.defi_adapter import DeFiAdapter
+from src.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
+from src.adapters.upgradability_checker_adapter import UpgradabilityCheckerAdapter
+
+# Layer 8 - Cross-Chain & ZK Security (5 tools)
+from src.adapters.crosschain_adapter import CrossChainAdapter
 from src.adapters.zk_circuit_adapter import ZKCircuitAdapter
+from src.adapters.bridge_monitor_adapter import BridgeMonitorAdapter
+from src.adapters.l2_validator_adapter import L2ValidatorAdapter
+from src.adapters.circom_analyzer_adapter import CircomAnalyzerAdapter
+
+# Layer 9 - Advanced AI Ensemble (5 tools)
+from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
+from src.adapters.audit_consensus_adapter import AuditConsensusAdapter
+from src.adapters.exploit_synthesizer_adapter import ExploitSynthesizerAdapter
+from src.adapters.vuln_verifier_adapter import VulnVerifierAdapter
+from src.adapters.remediation_validator_adapter import RemediationValidatorAdapter
 
 # Invariant Synthesis (v4.2.3)
 from src.adapters.invariant_synthesizer import (
@@ -95,50 +112,67 @@ def register_all_adapters():
     registered = []
     failed = []
 
-    # Lista de adaptadores a registrar (33 adapters - 9 layers)
+    # Lista de adaptadores a registrar (50 adapters - 9 layers)
     adapters_to_register = [
-        # Layer 1 - Static Analysis (4 tools)
+        # Layer 1 - Static Analysis (6 tools)
         ("slither", SlitherAdapter),
         ("aderyn", AderynAdapter),
         ("solhint", SolhintAdapter),
         ("semgrep", SemgrepAdapter),
-        # Layer 2 - Dynamic Testing (5 tools)
+        ("wake", WakeAdapter),
+        ("fouranalyzer", FourAnalyzerAdapter),
+        # Layer 2 - Dynamic Testing (6 tools)
         ("echidna", EchidnaAdapter),
         ("medusa", MedusaAdapter),
         ("foundry", FoundryAdapter),
         ("dogefuzz", DogeFuzzAdapter),
         ("hardhat", HardhatAdapter),
-        # Layer 3 - Symbolic Execution (3 tools)
+        ("vertigo", VertigoAdapter),
+        # Layer 3 - Symbolic Execution (5 tools)
         ("mythril", MythrilAdapter),
         ("manticore", ManticoreAdapter),
         ("halmos", HalmosAdapter),
-        # Layer 4 - Formal Verification (3 tools)
+        ("oyente", OyenteAdapter),
+        ("pakala", PakalaAdapter),
+        # Layer 4 - Formal Verification (5 tools)
         ("certora", CertoraAdapter),
         ("smtchecker", SMTCheckerAdapter),
-        ("wake", WakeAdapter),
-        # Layer 5 - Property Testing (2 tools)
         ("propertygpt", PropertyGPTAdapter),
-        ("vertigo", VertigoAdapter),
-        # Layer 6 - AI/LLM Analysis (4 tools)
+        ("scribble", ScribbleAdapter),
+        ("solcmc", SolCMCAdapter),
+        # Layer 5 - AI Analysis (6 tools)
         ("smartllm", SmartLLMAdapter),
         ("gptscan", GPTScanAdapter),
         ("llmsmartaudit", LLMSmartAuditAdapter),
-        ("llmbugscanner", LLMBugScannerAdapter),
-        # Layer 7 - Pattern Recognition / ML (4 tools)
+        ("gptlens", GPTLensAdapter),
+        ("llamaaudit", LlamaAuditAdapter),
+        ("iaudit", IAuditAdapter),
+        # Layer 6 - ML Detection (5 tools)
         ("dagnn", DAGNNAdapter),
         ("smartguard", SmartGuardAdapter),
         ("smartbugs_ml", SmartBugsMLAdapter),
-        ("contract_clone_detector", ContractCloneDetectorAdapter),
-        # Layer 8 - DeFi Security (4 tools)
-        ("defi_analyzer", DeFiAdapter),
-        ("mev_detector", MEVDetectorAdapter),
-        ("gas_analyzer", GasAnalyzerAdapter),
-        ("crosschain", CrossChainAdapter),
-        # Layer 9 - Advanced Detection (4 tools)
-        ("advanced_detector", AdvancedDetectorAdapter),
         ("smartbugs_detector", SmartBugsDetectorAdapter),
+        ("peculiar", PeculiarAdapter),
+        # Layer 7 - Specialized Analysis (7 tools)
+        ("gas_analyzer", GasAnalyzerAdapter),
+        ("mev_detector", MEVDetectorAdapter),
         ("threat_model", ThreatModelAdapter),
+        ("contract_clone_detector", ContractCloneDetectorAdapter),
+        ("defi_analyzer", DeFiAdapter),
+        ("advanced_detector", AdvancedDetectorAdapter),
+        ("upgradability_checker", UpgradabilityCheckerAdapter),
+        # Layer 8 - Cross-Chain & ZK Security (5 tools)
+        ("crosschain", CrossChainAdapter),
         ("zk_circuit", ZKCircuitAdapter),
+        ("bridge_monitor", BridgeMonitorAdapter),
+        ("l2_validator", L2ValidatorAdapter),
+        ("circom_analyzer", CircomAnalyzerAdapter),
+        # Layer 9 - Advanced AI Ensemble (5 tools)
+        ("llmbugscanner", LLMBugScannerAdapter),
+        ("audit_consensus", AuditConsensusAdapter),
+        ("exploit_synthesizer", ExploitSynthesizerAdapter),
+        ("vuln_verifier", VulnVerifierAdapter),
+        ("remediation_validator", RemediationValidatorAdapter),
     ]
 
     logger.info("Initializing tool adapter registration...")
@@ -249,48 +283,65 @@ __all__ = [
     "get_available_adapters",
     "get_adapter_status_report",
     "get_adapter_by_name",
-    # Layer 1 - Static Analysis
+    # Layer 1 - Static Analysis (6 tools)
     "SlitherAdapter",
     "AderynAdapter",
     "SolhintAdapter",
     "SemgrepAdapter",
-    # Layer 2 - Dynamic Testing
+    "WakeAdapter",
+    "FourAnalyzerAdapter",
+    # Layer 2 - Dynamic Testing (6 tools)
     "EchidnaAdapter",
     "MedusaAdapter",
     "FoundryAdapter",
     "DogeFuzzAdapter",
     "HardhatAdapter",
-    # Layer 3 - Symbolic Execution
+    "VertigoAdapter",
+    # Layer 3 - Symbolic Execution (5 tools)
     "MythrilAdapter",
     "ManticoreAdapter",
     "HalmosAdapter",
-    # Layer 4 - Formal Verification
+    "OyenteAdapter",
+    "PakalaAdapter",
+    # Layer 4 - Formal Verification (5 tools)
     "CertoraAdapter",
     "SMTCheckerAdapter",
-    "WakeAdapter",
-    # Layer 5 - Property Testing
     "PropertyGPTAdapter",
-    "VertigoAdapter",
-    # Layer 6 - AI/LLM Analysis
+    "ScribbleAdapter",
+    "SolCMCAdapter",
+    # Layer 5 - AI Analysis (6 tools)
     "SmartLLMAdapter",
     "GPTScanAdapter",
     "LLMSmartAuditAdapter",
-    "LLMBugScannerAdapter",
-    # Layer 7 - Pattern Recognition / ML
+    "GPTLensAdapter",
+    "LlamaAuditAdapter",
+    "IAuditAdapter",
+    # Layer 6 - ML Detection (5 tools)
     "DAGNNAdapter",
     "SmartGuardAdapter",
     "SmartBugsMLAdapter",
-    "ContractCloneDetectorAdapter",
-    # Layer 8 - DeFi Security
-    "DeFiAdapter",
-    "MEVDetectorAdapter",
-    "GasAnalyzerAdapter",
-    "CrossChainAdapter",
-    # Layer 9 - Advanced Detection
-    "AdvancedDetectorAdapter",
     "SmartBugsDetectorAdapter",
+    "PeculiarAdapter",
+    # Layer 7 - Specialized Analysis (7 tools)
+    "GasAnalyzerAdapter",
+    "MEVDetectorAdapter",
     "ThreatModelAdapter",
+    "ContractCloneDetectorAdapter",
+    "DeFiAdapter",
+    "AdvancedDetectorAdapter",
+    "UpgradabilityCheckerAdapter",
+    # Layer 8 - Cross-Chain & ZK Security (5 tools)
+    "CrossChainAdapter",
     "ZKCircuitAdapter",
+    "BridgeMonitorAdapter",
+    "L2ValidatorAdapter",
+    "CircomAnalyzerAdapter",
+    # Layer 9 - Advanced AI Ensemble (5 tools)
+    "LLMBugScannerAdapter",
+    "AuditConsensusAdapter",
+    "ExploitSynthesizerAdapter",
+    "VulnVerifierAdapter",
+    "RemediationValidatorAdapter",
     # Invariant Synthesis (v4.2.3)
     "InvariantSynthesizer",
     "InvariantFormat",

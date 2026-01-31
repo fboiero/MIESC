@@ -74,6 +74,9 @@ cli = [
 watch = [
     "watchdog>=3.0.0",
 ]
+mcp = [
+    "mcp[cli]>=1.0.0",
+]
 # PDF report generation (requires system dependencies: pango, cairo)
 # macOS: brew install pango cairo
 # Ubuntu: apt-get install libpango-1.0-0 libcairo2
@@ -130,6 +133,7 @@ Repository = "https://github.com/fboiero/MIESC.git"
 
 [project.scripts]
 miesc = "miesc.cli.main:cli"
+miesc-mcp = "miesc.mcp_server:main"
 
 [project.entry-points."miesc.detectors"]
 # Built-in detectors (for reference/documentation)
@@ -329,6 +333,23 @@ omit = [
     "src/adapters/advanced_detector_adapter.py",
     "src/adapters/threat_model_adapter.py",
     "src/adapters/aderyn_adapter.py",
+    # New v5.0.0 adapters (require external tools/models)
+    "src/adapters/fouranalyzer_adapter.py",
+    "src/adapters/pakala_adapter.py",
+    "src/adapters/scribble_adapter.py",
+    "src/adapters/solcmc_adapter.py",
+    "src/adapters/gptlens_adapter.py",
+    "src/adapters/llamaaudit_adapter.py",
+    "src/adapters/iaudit_adapter.py",
+    "src/adapters/peculiar_adapter.py",
+    "src/adapters/upgradability_checker_adapter.py",
+    "src/adapters/bridge_monitor_adapter.py",
+    "src/adapters/l2_validator_adapter.py",
+    "src/adapters/circom_analyzer_adapter.py",
+    "src/adapters/audit_consensus_adapter.py",
+    "src/adapters/exploit_synthesizer_adapter.py",
+    "src/adapters/vuln_verifier_adapter.py",
+    "src/adapters/remediation_validator_adapter.py",
     # Core modules with external dependencies
     "src/core/ml_orchestrator.py",
     "src/core/optimized_orchestrator.py",
