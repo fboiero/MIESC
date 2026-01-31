@@ -158,7 +158,7 @@ def register_all_adapters():
         ("mev_detector", MEVDetectorAdapter),
         ("threat_model", ThreatModelAdapter),
         ("contract_clone_detector", ContractCloneDetectorAdapter),
-        ("defi_analyzer", DeFiAdapter),
+        ("defi", DeFiAdapter),
         ("advanced_detector", AdvancedDetectorAdapter),
         ("upgradability_checker", UpgradabilityCheckerAdapter),
         # Layer 8 - Cross-Chain & ZK Security (5 tools)

@@ -177,7 +177,7 @@ layers:
       - gas_analyzer
       - mev_detector
       - contract_clone_detector
-      - defi_analyzer
+      - defi
       - advanced_detector
       - upgradability_checker
 
@@ -870,7 +870,7 @@ analysis:
     mev_detector: 0.78
     threat_model: 0.72
     contract_clone_detector: 0.70
-    defi_analyzer: 0.78
+    defi: 0.78
     advanced_detector: 0.75
     upgradability_checker: 0.80
     # Layer 8 - Cross-Chain & ZK
