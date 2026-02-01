@@ -110,13 +110,11 @@ def hardhat_project_dir(tmp_path):
 
     # Create hardhat.config.js
     config_file = project / "hardhat.config.js"
-    config_file.write_text(
-        """
+    config_file.write_text("""
 module.exports = {
   solidity: "0.8.20",
 };
-"""
-    )
+""")
 
     # Create contracts directory
     contracts = project / "contracts"
@@ -124,8 +122,7 @@ module.exports = {
 
     # Create a sample contract
     token = contracts / "Token.sol"
-    token.write_text(
-        """
+    token.write_text("""
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -138,8 +135,7 @@ contract Token {
         balances[to] += amount;
     }
 }
-"""
-    )
+""")
 
     return project
 

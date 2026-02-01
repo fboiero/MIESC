@@ -409,16 +409,14 @@ class TestSmartBugsDetectorEngine:
     def test_engine_analyzes_file(self, engine, tmp_path):
         """Test file analysis."""
         test_file = tmp_path / "test.sol"
-        test_file.write_text(
-            """
+        test_file.write_text("""
         pragma solidity ^0.4.24;
         contract Test {
             function add(uint a, uint b) public returns (uint) {
                 return a + b;
             }
         }
-        """
-        )
+        """)
         findings = engine.analyze_file(test_file)
         assert isinstance(findings, list)
 

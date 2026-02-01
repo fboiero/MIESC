@@ -602,8 +602,7 @@ echidna_test_transfer: passed"""
 
         # Create a test .sol file
         sol_file = temp_results_dir / "Test.sol"
-        sol_file.write_text(
-            """
+        sol_file.write_text("""
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -614,8 +613,7 @@ contract Test {
         value = _value;
     }
 }
-"""
-        )
+""")
 
         loc = reporter._calculate_lines_of_code()
         assert loc > 0

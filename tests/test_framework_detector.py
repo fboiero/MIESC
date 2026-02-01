@@ -116,8 +116,7 @@ class TestFrameworkDetector:
         with TemporaryDirectory() as tmpdir:
             # Create foundry.toml
             foundry_toml = Path(tmpdir) / "foundry.toml"
-            foundry_toml.write_text(
-                """
+            foundry_toml.write_text("""
 [profile.default]
 src = 'src'
 out = 'out'
@@ -125,8 +124,7 @@ libs = ['lib']
 solc = '0.8.20'
 optimizer = true
 optimizer_runs = 200
-"""
-            )
+""")
 
             config = detector.detect(tmpdir)
 
@@ -236,8 +234,7 @@ optimizer_runs = 200
         """Test parsing Foundry configuration."""
         with TemporaryDirectory() as tmpdir:
             foundry_toml = Path(tmpdir) / "foundry.toml"
-            foundry_toml.write_text(
-                """
+            foundry_toml.write_text("""
 [profile.default]
 src = 'src'
 out = 'out'
@@ -255,8 +252,7 @@ runs = 1000
 
 [profile.default.invariant]
 runs = 512
-"""
-            )
+""")
 
             config = detector.detect(tmpdir)
 
@@ -272,13 +268,11 @@ runs = 512
         """Test that Foundry parser reads remappings.txt."""
         with TemporaryDirectory() as tmpdir:
             Path(tmpdir, "foundry.toml").write_text("[profile.default]")
-            Path(tmpdir, "remappings.txt").write_text(
-                """
+            Path(tmpdir, "remappings.txt").write_text("""
 forge-std/=lib/forge-std/src/
 @openzeppelin/=lib/openzeppelin-contracts/
 # This is a comment
-"""
-            )
+""")
 
             config = detector.detect(tmpdir)
 

@@ -211,8 +211,7 @@ class TestMIESCRichCLI:
     def test_show_contract_info_existing_file(self, cli, tmp_path):
         """Test show_contract_info with existing file."""
         contract = tmp_path / "Test.sol"
-        contract.write_text(
-            """
+        contract.write_text("""
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -221,8 +220,7 @@ contract Test {
         return "Hello";
     }
 }
-"""
-        )
+""")
         cli.show_contract_info(str(contract))
 
     def test_show_contract_info_nonexistent_file(self, cli):
@@ -240,8 +238,7 @@ contract Test {
     def test_show_contract_info_verbose(self, verbose_cli, tmp_path):
         """Test show_contract_info in verbose mode shows code preview."""
         contract = tmp_path / "Test.sol"
-        contract.write_text(
-            """
+        contract.write_text("""
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -256,8 +253,7 @@ contract Test {
         return value;
     }
 }
-"""
-        )
+""")
         verbose_cli.show_contract_info(str(contract))
 
     # --- Findings Display Tests ---

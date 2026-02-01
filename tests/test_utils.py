@@ -488,8 +488,7 @@ echidna_no_overflow: passed!
         (manticore_dir / "exploit_1.sol").write_text("// exploit code")
 
         # Create a test contract
-        (results / "test.sol").write_text(
-            """
+        (results / "test.sol").write_text("""
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -498,8 +497,7 @@ contract Test {
         // vulnerable code
     }
 }
-"""
-        )
+""")
 
         return results
 
@@ -1328,13 +1326,11 @@ class TestXauditDashboardCoverage:
 
         foundry_dir = tmp_path / "foundry"
         foundry_dir.mkdir()
-        (foundry_dir / "test_results.txt").write_text(
-            """
+        (foundry_dir / "test_results.txt").write_text("""
         [PASS] test_deposit()
         [PASS] test_withdraw()
         [FAIL] test_reentrancy()
-        """
-        )
+        """)
 
         dashboard = XauditDashboard(tmp_path)
         result = dashboard._collect_foundry_metrics()
@@ -1359,13 +1355,11 @@ class TestXauditDashboardCoverage:
 
         echidna_dir = tmp_path / "echidna"
         echidna_dir.mkdir()
-        (echidna_dir / "results.txt").write_text(
-            """
+        (echidna_dir / "results.txt").write_text("""
         echidna_test_balance: passed!
         echidna_test_overflow: failed!
         echidna_test_reentrancy: passed!
-        """
-        )
+        """)
 
         dashboard = XauditDashboard(tmp_path)
         result = dashboard._collect_echidna_metrics()

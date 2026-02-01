@@ -946,15 +946,13 @@ class TestIntegration:
         """Test complete analysis flow with mocked subprocess."""
         # Create test contract
         contract = tmp_path / "Vulnerable.sol"
-        contract.write_text(
-            """
+        contract.write_text("""
             contract Test {
                 function withdraw() external {
                     msg.sender.call{value: 1}("");
                 }
             }
-        """
-        )
+        """)
 
         mock_result = MagicMock()
         mock_result.stdout = json.dumps(sample_semgrep_output)

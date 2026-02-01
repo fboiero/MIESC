@@ -785,14 +785,12 @@ def quick_validate(
 
         # Create foundry.toml
         foundry_toml = project_dir / "foundry.toml"
-        foundry_toml.write_text(
-            """
+        foundry_toml.write_text("""
 [profile.default]
 src = "src"
 out = "out"
 libs = ["lib"]
-"""
-        )
+""")
 
         # Validate
         validator = InvariantValidator(project_dir=project_dir)

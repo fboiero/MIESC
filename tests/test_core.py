@@ -430,23 +430,19 @@ class TestToolDiscoveryCoverage:
         adapters_dir.mkdir()
 
         # Create a normal adapter file
-        (adapters_dir / "test_adapter.py").write_text(
-            """
+        (adapters_dir / "test_adapter.py").write_text("""
 class TestAdapter:
     def is_available(self):
         return True
     def get_metadata(self):
         return None
-"""
-        )
+""")
 
         # Create an underscore file that should be skipped
-        (adapters_dir / "_private_adapter.py").write_text(
-            """
+        (adapters_dir / "_private_adapter.py").write_text("""
 class PrivateAdapter:
     pass
-"""
-        )
+""")
 
         discovery = ToolDiscovery(adapters_path=str(adapters_dir))
         tools = discovery.discover()
@@ -464,13 +460,11 @@ class PrivateAdapter:
         adapters_dir.mkdir()
 
         # Create a valid adapter file
-        (adapters_dir / "valid_adapter.py").write_text(
-            """
+        (adapters_dir / "valid_adapter.py").write_text("""
 class ValidAdapter:
     def is_available(self):
         return True
-"""
-        )
+""")
 
         discovery = ToolDiscovery(adapters_path=str(adapters_dir))
 
@@ -1923,8 +1917,7 @@ class TestAgentRegistryCoverage:
 
         # Create a simple agent file
         agent_file = tmp_path / "test_agent.py"
-        agent_file.write_text(
-            """
+        agent_file.write_text("""
 from src.core.agent_protocol import SecurityAgent, AgentCapability, AgentSpeed
 
 class TestAgentClass(SecurityAgent):
@@ -1944,8 +1937,7 @@ class TestAgentClass(SecurityAgent):
     def cost(self): return 0
     def is_available(self): return True
     def analyze(self, source_code, **kwargs): return {'findings': []}
-"""
-        )
+""")
 
         result = registry._discover_from_directory(tmp_path)
         # May or may not discover depending on import path
@@ -2134,8 +2126,7 @@ class TestAgentClass(SecurityAgent):
 
         # Create a mock agent file that will produce duplicates
         agent_file = tmp_path / "test_agent.py"
-        agent_file.write_text(
-            """
+        agent_file.write_text("""
 from src.core.agent_protocol import SecurityAgent, AgentCapability, AgentSpeed
 
 class TestAgent(SecurityAgent):
@@ -2160,8 +2151,7 @@ class TestAgent(SecurityAgent):
     def is_available(self): return True
     def can_analyze(self, f): return True
     def analyze(self, s, **k): return {"findings": []}
-"""
-        )
+""")
 
         # First discovery should work
         discovered1 = registry._discover_from_directory(tmp_path)
