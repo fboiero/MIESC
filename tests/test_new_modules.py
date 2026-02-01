@@ -24,7 +24,7 @@ class TestMCPToolRegistry:
 
     def test_registry_initialization(self):
         """Test registry initializes with default tools."""
-        from src.mcp.tool_registry import MCPToolRegistry
+        from src.mcp_core.tool_registry import MCPToolRegistry
 
         registry = MCPToolRegistry()
         assert len(registry._tools) > 0
@@ -32,7 +32,7 @@ class TestMCPToolRegistry:
 
     def test_list_tools_mcp_format(self):
         """Test tools are listed in MCP format."""
-        from src.mcp.tool_registry import get_tool_registry
+        from src.mcp_core.tool_registry import get_tool_registry
 
         registry = get_tool_registry()
         tools = registry.list_tools()
@@ -49,7 +49,7 @@ class TestMCPToolRegistry:
 
     def test_get_tool(self):
         """Test getting a specific tool."""
-        from src.mcp.tool_registry import get_tool_registry
+        from src.mcp_core.tool_registry import get_tool_registry
 
         registry = get_tool_registry()
         tool = registry.get_tool("miesc_run_audit")
@@ -60,7 +60,7 @@ class TestMCPToolRegistry:
 
     def test_register_custom_tool(self):
         """Test registering a custom tool."""
-        from src.mcp.tool_registry import MCPTool, MCPToolRegistry, ToolCategory
+        from src.mcp_core.tool_registry import MCPTool, MCPToolRegistry, ToolCategory
 
         registry = MCPToolRegistry()
         custom_tool = MCPTool(
@@ -75,7 +75,7 @@ class TestMCPToolRegistry:
 
     def test_unregister_tool(self):
         """Test unregistering a tool."""
-        from src.mcp.tool_registry import MCPTool, MCPToolRegistry, ToolCategory
+        from src.mcp_core.tool_registry import MCPTool, MCPToolRegistry, ToolCategory
 
         registry = MCPToolRegistry()
         custom_tool = MCPTool(
@@ -94,7 +94,7 @@ class TestMCPToolRegistry:
 
     def test_tool_parameter_schema(self):
         """Test tool parameter JSON schema generation."""
-        from src.mcp.tool_registry import MCPToolParameter
+        from src.mcp_core.tool_registry import MCPToolParameter
 
         param = MCPToolParameter(
             name="contract_path", type="string", description="Path to contract", required=True
@@ -106,7 +106,7 @@ class TestMCPToolRegistry:
 
     def test_mcp_response_format(self):
         """Test MCP tools/list response format."""
-        from src.mcp.tool_registry import get_tool_registry
+        from src.mcp_core.tool_registry import get_tool_registry
 
         registry = get_tool_registry()
         response = registry.get_mcp_response()
@@ -116,7 +116,7 @@ class TestMCPToolRegistry:
 
     def test_capabilities(self):
         """Test capabilities for MCP initialize."""
-        from src.mcp.tool_registry import get_tool_registry
+        from src.mcp_core.tool_registry import get_tool_registry
 
         registry = get_tool_registry()
         caps = registry.get_capabilities()
@@ -127,7 +127,7 @@ class TestMCPToolRegistry:
 
     def test_filter_by_category(self):
         """Test filtering tools by category."""
-        from src.mcp.tool_registry import ToolCategory, get_tool_registry
+        from src.mcp_core.tool_registry import ToolCategory, get_tool_registry
 
         registry = get_tool_registry()
         correlation_tools = registry.list_tools(category=ToolCategory.CORRELATION)
@@ -702,7 +702,7 @@ class TestIntegration:
     def test_mcp_to_persistence_flow(self):
         """Test flow from MCP tool registry to persistence."""
         from src.core.persistence import MIESCDatabase
-        from src.mcp.tool_registry import get_tool_registry
+        from src.mcp_core.tool_registry import get_tool_registry
 
         # Get tools from registry
         registry = get_tool_registry()

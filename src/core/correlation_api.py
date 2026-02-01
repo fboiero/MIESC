@@ -22,11 +22,12 @@ from typing import Any, Dict, List, Optional
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from ml.correlation_engine import CorrelatedFinding, SmartCorrelationEngine  # noqa: E402
-from ml.false_positive_filter import FalsePositiveFilter  # noqa: E402
-from ml.vulnerability_clusterer import VulnerabilityClusterer  # noqa: E402
+from src.ml.correlation_engine import CorrelatedFinding, SmartCorrelationEngine  # noqa: E402
+from src.ml.false_positive_filter import FalsePositiveFilter  # noqa: E402
+from src.ml.vulnerability_clusterer import VulnerabilityClusterer  # noqa: E402
 
 logger = logging.getLogger(__name__)
 

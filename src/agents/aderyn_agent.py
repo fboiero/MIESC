@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.agents.base_agent import BaseAgent
-from src.mcp.context_bus import MCPMessage
+from src.mcp_core.context_bus import MCPMessage
 
 
 class AderynAgent(BaseAgent):

@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from src.mcp.context_bus import MCPMessage, get_context_bus
+from src.mcp_core.context_bus import MCPMessage, get_context_bus
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

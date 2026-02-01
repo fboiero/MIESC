@@ -18,7 +18,7 @@ except ImportError:
     OPENAI_AVAILABLE = False
 
 from src.agents.base_agent import BaseAgent
-from src.mcp.context_bus import MCPMessage
+from src.mcp_core.context_bus import MCPMessage
 
 logger = logging.getLogger(__name__)
 

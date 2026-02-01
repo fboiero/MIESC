@@ -167,7 +167,7 @@ packages = [
     "src.core",
     "src.detectors",
     "src.llm",
-    "src.mcp",
+    "src.mcp_core",
     "src.ml",
     "src.ml.fine_tuning",
     "src.security"
@@ -357,7 +357,7 @@ omit = [
     "src/core/tool_protocol.py",
     "src/core/rich_cli.py",
     # MCP modules (require full stack)
-    "src/mcp/context_bus.py",
+    "src/mcp_core/context_bus.py",
     # ML modules with external dependencies
     "src/ml/correlation_engine.py",
     # Agent modules

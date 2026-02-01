@@ -99,7 +99,7 @@ mcp-manifest:  ## Generate MCP manifest
 
 mcp-server:  ## Start MCP server
 	@echo "$(BLUE)Starting MIESC MCP server...$(NC)"
-	python src/mcp/server.py
+	python src/mcp_core/server.py
 
 docs:  ## Serve documentation locally with MkDocs
 	@echo "$(BLUE)Starting MkDocs development server...$(NC)"

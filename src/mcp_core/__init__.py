@@ -12,8 +12,8 @@ Components:
 Reference: https://modelcontextprotocol.io/specification
 """
 
-from src.mcp.context_bus import ContextBus, MCPMessage, get_context_bus
-from src.mcp.tool_registry import (
+from src.mcp_core.context_bus import ContextBus, MCPMessage, get_context_bus
+from src.mcp_core.tool_registry import (
     MCPTool,
     MCPToolParameter,
     MCPToolRegistry,

@@ -15,13 +15,13 @@ class TestMCPMessage:
 
     def test_mcp_message_import(self):
         """Test that MCPMessage can be imported."""
-        from src.mcp.context_bus import MCPMessage
+        from src.mcp_core.context_bus import MCPMessage
 
         assert MCPMessage is not None
 
     def test_mcp_message_creation(self):
         """Test creating a valid MCP message."""
-        from src.mcp.context_bus import MCPMessage
+        from src.mcp_core.context_bus import MCPMessage
 
         msg = MCPMessage(
             protocol="mcp/1.0",
@@ -43,7 +43,7 @@ class TestMCPMessage:
 
     def test_mcp_message_default_metadata(self):
         """Test MCPMessage with default metadata."""
-        from src.mcp.context_bus import MCPMessage
+        from src.mcp_core.context_bus import MCPMessage
 
         msg = MCPMessage(
             protocol="mcp/1.0",
@@ -58,7 +58,7 @@ class TestMCPMessage:
 
     def test_mcp_message_auto_timestamp(self):
         """Test MCPMessage auto-generates timestamp if empty."""
-        from src.mcp.context_bus import MCPMessage
+        from src.mcp_core.context_bus import MCPMessage
 
         msg = MCPMessage(
             protocol="mcp/1.0",
@@ -75,7 +75,7 @@ class TestMCPMessage:
 
     def test_mcp_message_non_standard_protocol(self):
         """Test MCPMessage warns on non-standard protocol."""
-        from src.mcp.context_bus import MCPMessage
+        from src.mcp_core.context_bus import MCPMessage
 
         # Should not raise, but logs a warning
         msg = MCPMessage(
@@ -100,13 +100,13 @@ class TestContextBus:
 
     def test_context_bus_import(self):
         """Test that ContextBus can be imported."""
-        from src.mcp.context_bus import ContextBus
+        from src.mcp_core.context_bus import ContextBus
 
         assert ContextBus is not None
 
     def test_context_bus_initialization(self):
         """Test ContextBus can be initialized."""
-        from src.mcp.context_bus import ContextBus
+        from src.mcp_core.context_bus import ContextBus
 
         bus = ContextBus()
         assert bus is not None
@@ -116,7 +116,7 @@ class TestContextBus:
 
     def test_context_bus_publish(self):
         """Test publishing a message to the bus."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
         msg = MCPMessage(
@@ -137,7 +137,7 @@ class TestContextBus:
 
     def test_context_bus_publish_multiple(self):
         """Test publishing multiple messages."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
 
@@ -157,7 +157,7 @@ class TestContextBus:
 
     def test_context_bus_subscribe(self):
         """Test subscribing to context type."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
         received_messages = []
@@ -184,7 +184,7 @@ class TestContextBus:
 
     def test_context_bus_subscribe_multiple_callbacks(self):
         """Test multiple subscribers to same context type."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
         callback1_called = []
@@ -208,7 +208,7 @@ class TestContextBus:
 
     def test_context_bus_subscribe_error_handling(self):
         """Test that subscriber errors don't crash the bus."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
 
@@ -230,7 +230,7 @@ class TestContextBus:
 
     def test_context_bus_get_latest_context(self):
         """Test getting the latest message of a context type."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
 
@@ -253,7 +253,7 @@ class TestContextBus:
 
     def test_context_bus_get_latest_context_empty(self):
         """Test getting latest from empty context type."""
-        from src.mcp.context_bus import ContextBus
+        from src.mcp_core.context_bus import ContextBus
 
         bus = ContextBus()
         latest = bus.get_latest_context("nonexistent_type")
@@ -261,7 +261,7 @@ class TestContextBus:
 
     def test_context_bus_get_all_contexts(self):
         """Test getting all messages of a context type."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
 
@@ -282,7 +282,7 @@ class TestContextBus:
 
     def test_context_bus_get_all_contexts_empty(self):
         """Test getting all from empty context type."""
-        from src.mcp.context_bus import ContextBus
+        from src.mcp_core.context_bus import ContextBus
 
         bus = ContextBus()
         messages = bus.get_all_contexts("nonexistent_type")
@@ -290,7 +290,7 @@ class TestContextBus:
 
     def test_context_bus_aggregate_contexts(self):
         """Test aggregating multiple context types."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
 
@@ -315,7 +315,7 @@ class TestContextBus:
 
     def test_context_bus_aggregate_contexts_with_missing(self):
         """Test aggregating with some missing context types."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
 
@@ -338,7 +338,7 @@ class TestContextBus:
 
     def test_context_bus_clear(self):
         """Test clearing the bus."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
 
@@ -364,7 +364,7 @@ class TestContextBus:
 
     def test_context_bus_get_statistics(self):
         """Test getting bus statistics."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
 
@@ -415,7 +415,7 @@ class TestContextBusSingleton:
 
     def test_get_context_bus(self):
         """Test getting singleton instance."""
-        from src.mcp.context_bus import get_context_bus, reset_context_bus
+        from src.mcp_core.context_bus import get_context_bus, reset_context_bus
 
         # Reset to ensure clean state
         reset_context_bus()
@@ -427,7 +427,7 @@ class TestContextBusSingleton:
 
     def test_reset_context_bus(self):
         """Test resetting singleton instance."""
-        from src.mcp.context_bus import MCPMessage, get_context_bus, reset_context_bus
+        from src.mcp_core.context_bus import MCPMessage, get_context_bus, reset_context_bus
 
         bus1 = get_context_bus()
 
@@ -463,7 +463,7 @@ class TestContextBusThreadSafety:
         """Test concurrent message publishing."""
         from concurrent.futures import ThreadPoolExecutor
 
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
 
@@ -498,7 +498,7 @@ class TestContextBusIntegration:
 
     def test_multi_agent_communication(self):
         """Test communication between multiple agents via bus."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
+        from src.mcp_core.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
         received_by_coordinator = []

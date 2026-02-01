@@ -56,9 +56,8 @@ logger = logging.getLogger("miesc.mcp_server")
 # Initialize FastMCP server
 mcp = FastMCP(
     "miesc",
-    version=__version__,
-    description=(
-        "MIESC - Multi-layer Intelligent Evaluation for Smart Contracts. "
+    instructions=(
+        f"MIESC v{__version__} - Multi-layer Intelligent Evaluation for Smart Contracts. "
         "9 defense layers, 50 security tools, AI-powered correlation."
     ),
 )

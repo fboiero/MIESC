@@ -5,9 +5,9 @@ Model Context Protocol implementation for tool coordination.
 """
 
 try:
-    from src.mcp.context_bus import ContextBus
-    from src.mcp.tool_registry import ToolRegistry
-    from src.mcp.websocket_server import MIESCWebSocketServer
+    from src.mcp_core.context_bus import ContextBus
+    from src.mcp_core.tool_registry import ToolRegistry
+    from src.mcp_core.websocket_server import MIESCWebSocketServer
 except ImportError:
     ToolRegistry = None
     MIESCWebSocketServer = None

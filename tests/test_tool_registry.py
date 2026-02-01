@@ -7,7 +7,7 @@ Author: Fernando Boiero
 License: AGPL-3.0
 """
 
-from src.mcp.tool_registry import (
+from src.mcp_core.tool_registry import (
     MCPTool,
     MCPToolParameter,
     MCPToolRegistry,

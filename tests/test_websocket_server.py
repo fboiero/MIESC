@@ -25,7 +25,7 @@ class TestEventType:
 
     def test_event_type_values(self):
         """Test that all event types have correct string values."""
-        from src.mcp.websocket_server import EventType
+        from src.mcp_core.websocket_server import EventType
 
         assert EventType.CONNECTED.value == "connected"
         assert EventType.AUDIT_STARTED.value == "audit_started"
@@ -41,7 +41,7 @@ class TestAuditSession:
 
     def test_session_creation(self):
         """Test creating an audit session."""
-        from src.mcp.websocket_server import AuditSession
+        from src.mcp_core.websocket_server import AuditSession
 
         session = AuditSession(
             session_id="test-123",
@@ -59,7 +59,7 @@ class TestAuditSession:
 
     def test_session_to_dict(self):
         """Test session serialization to dict."""
-        from src.mcp.websocket_server import AuditSession
+        from src.mcp_core.websocket_server import AuditSession
 
         now = datetime.now(timezone.utc)
         session = AuditSession(
@@ -86,7 +86,7 @@ class TestStreamEvent:
 
     def test_event_creation(self):
         """Test creating a stream event."""
-        from src.mcp.websocket_server import EventType, StreamEvent
+        from src.mcp_core.websocket_server import EventType, StreamEvent
 
         event = StreamEvent(
             event_type=EventType.AUDIT_STARTED,
@@ -101,7 +101,7 @@ class TestStreamEvent:
 
     def test_event_to_json(self):
         """Test event serialization to JSON."""
-        from src.mcp.websocket_server import EventType, StreamEvent
+        from src.mcp_core.websocket_server import EventType, StreamEvent
 
         now = datetime.now(timezone.utc)
         event = StreamEvent(
@@ -126,7 +126,7 @@ class TestMIESCWebSocketServer:
     def test_server_initialization(self):
         """Test server initialization with default params."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         server = MIESCWebSocketServer()
 
@@ -139,7 +139,7 @@ class TestMIESCWebSocketServer:
     def test_server_custom_params(self):
         """Test server initialization with custom params."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         server = MIESCWebSocketServer(host="0.0.0.0", port=9000, heartbeat_interval=60)
 
@@ -150,7 +150,7 @@ class TestMIESCWebSocketServer:
     def test_get_layer_name(self):
         """Test getting human-readable layer names."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         server = MIESCWebSocketServer()
 
@@ -172,7 +172,7 @@ class TestMIESCWebSocketServer:
             pytest.skip("websockets is installed, cannot test ImportError")
         except ImportError:
             with pytest.raises(ImportError) as exc_info:
-                from src.mcp.websocket_server import MIESCWebSocketServer
+                from src.mcp_core.websocket_server import MIESCWebSocketServer
 
                 MIESCWebSocketServer()
             assert "websockets package not installed" in str(exc_info.value)
@@ -184,7 +184,7 @@ class TestWebSocketServerAsync:
     def test_send_event(self):
         """Test sending event to a client."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import EventType, MIESCWebSocketServer, StreamEvent
+        from src.mcp_core.websocket_server import EventType, MIESCWebSocketServer, StreamEvent
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -211,7 +211,7 @@ class TestWebSocketServerAsync:
     def test_send_error(self):
         """Test sending error event to client."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -231,7 +231,7 @@ class TestWebSocketServerAsync:
     def test_broadcast_event(self):
         """Test broadcasting event to subscribed clients."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import EventType, MIESCWebSocketServer, StreamEvent
+        from src.mcp_core.websocket_server import EventType, MIESCWebSocketServer, StreamEvent
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -268,7 +268,7 @@ class TestWebSocketServerAsync:
     def test_send_sessions_list(self):
         """Test sending list of sessions to client."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import AuditSession, MIESCWebSocketServer
+        from src.mcp_core.websocket_server import AuditSession, MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -297,7 +297,7 @@ class TestWebSocketServerAsync:
     def test_handle_message_subscribe(self):
         """Test handling subscribe command."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -317,7 +317,7 @@ class TestWebSocketServerAsync:
     def test_handle_message_unsubscribe(self):
         """Test handling unsubscribe command."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -337,7 +337,7 @@ class TestWebSocketServerAsync:
     def test_handle_message_invalid_json(self):
         """Test handling invalid JSON message."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -358,7 +358,7 @@ class TestWebSocketServerAsync:
     def test_handle_message_unknown_command(self):
         """Test handling unknown command."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -385,7 +385,7 @@ class TestHandleMessageCommands:
     def test_handle_subscribe_command(self):
         """Test handling subscribe command."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -407,7 +407,7 @@ class TestHandleMessageCommands:
     def test_handle_unsubscribe_command(self):
         """Test handling unsubscribe command."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -428,7 +428,7 @@ class TestHandleMessageCommands:
     def test_handle_get_sessions_command(self):
         """Test handling get_sessions command."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import AuditSession, MIESCWebSocketServer
+        from src.mcp_core.websocket_server import AuditSession, MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -458,7 +458,7 @@ class TestHandleMessageCommands:
     def test_handle_get_status_command(self):
         """Test handling get_status command for existing session."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import AuditSession, MIESCWebSocketServer
+        from src.mcp_core.websocket_server import AuditSession, MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -490,7 +490,7 @@ class TestHandleMessageCommands:
     def test_handle_start_audit_missing_path(self):
         """Test start_audit command without contract_path."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -518,7 +518,7 @@ class TestHandleMessageCommands:
     def test_handle_start_audit_success(self):
         """Test start_audit command with valid contract path."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -549,7 +549,7 @@ class TestServerHelpers:
     def test_send_sessions_list(self):
         """Test _send_sessions_list method."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import AuditSession, MIESCWebSocketServer
+        from src.mcp_core.websocket_server import AuditSession, MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -584,7 +584,7 @@ class TestServerHelpers:
     def test_send_error(self):
         """Test _send_error method."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -604,7 +604,7 @@ class TestServerHelpers:
     def test_broadcast_event(self):
         """Test _broadcast_event method."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import EventType, MIESCWebSocketServer, StreamEvent
+        from src.mcp_core.websocket_server import EventType, MIESCWebSocketServer, StreamEvent
 
         async def _test():
             server = MIESCWebSocketServer()
@@ -636,7 +636,7 @@ class TestServerHelpers:
     def test_get_layer_name_all_layers(self):
         """Test _get_layer_name for all defined layers."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import MIESCWebSocketServer
+        from src.mcp_core.websocket_server import MIESCWebSocketServer
 
         server = MIESCWebSocketServer()
 
@@ -659,6 +659,6 @@ class TestRunServer:
     def test_run_server_function_exists(self):
         """Test that run_server function exists."""
         pytest.importorskip("websockets")
-        from src.mcp.websocket_server import run_server
+        from src.mcp_core.websocket_server import run_server
 
         assert callable(run_server)
