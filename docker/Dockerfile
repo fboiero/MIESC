@@ -115,14 +115,21 @@ RUN mkdir -p /home/miesc/.tmp && chmod 755 /home/miesc/.tmp
 ENV TMPDIR="/home/miesc/.tmp"
 ENV PIP_CACHE_DIR="/home/miesc/.cache/pip"
 
-# Copy only dependency files first (changes rarely - better layer caching)
+# Copy package definition + wrapper package (stable, changes rarely)
 COPY --chown=miesc:miesc pyproject.toml README.md ./
-COPY --chown=miesc:miesc miesc/__init__.py miesc/__init__.py
+COPY --chown=miesc:miesc miesc/ miesc/
+
+# Create src package stubs so setuptools can resolve declared packages.
+# Real source code is copied later; this just satisfies the editable install.
+RUN mkdir -p src/adapters src/agents/audit_readiness src/core src/detectors \
+             src/llm src/mcp_core src/ml/fine_tuning src/security \
+             src/poc/validators src/plugins src/reports src/utils && \
+    find src -type d -exec sh -c 'touch "$1/__init__.py"' _ {} \;
 
 # Install MIESC dependencies (cached unless pyproject.toml changes)
 # Using [dev,full] to include prometheus-client, FastAPI, uvicorn, and all features
 RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
-    pip install --user -e .[dev,full]
+    pip install --user -e ".[dev,full]"
 
 # Install MCP server dependencies
 RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
