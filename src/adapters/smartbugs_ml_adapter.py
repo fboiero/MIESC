@@ -131,8 +131,8 @@ class SmartBugsMLAdapter:
         """
         try:
             # Check if Python ML libraries are available
-            import numpy as np
-            import sklearn
+            import numpy as np  # noqa: F401
+            import sklearn  # noqa: F401
 
             return {
                 "available": True,
@@ -420,7 +420,7 @@ class SmartBugsMLAdapter:
                 try:
                     with open(cache_file, "r") as f:
                         return json.load(f)
-                except:
+                except Exception:
                     pass
         return None
 
@@ -441,7 +441,7 @@ class SmartBugsMLAdapter:
             with open(contract_path, "rb") as f:
                 content = f.read()
             return hashlib.sha256(content).hexdigest()[:16]
-        except:
+        except Exception:
             return hashlib.sha256(contract_path.encode()).hexdigest()[:16]
 
 

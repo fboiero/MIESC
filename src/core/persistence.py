@@ -14,23 +14,23 @@ Thesis: Master's in Cyberdefense - UNDEF
 Version: 4.1.0
 """
 
-import os
-import json
-import sqlite3
-import logging
 import hashlib
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
-from pathlib import Path
+import json
+import logging
+import sqlite3
 from contextlib import contextmanager
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class AuditStatus(Enum):
     """Status of an audit run."""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -41,6 +41,7 @@ class AuditStatus(Enum):
 @dataclass
 class AuditRecord:
     """Record of a completed audit."""
+
     audit_id: str
     contract_path: str
     contract_hash: str
@@ -62,6 +63,7 @@ class AuditRecord:
 @dataclass
 class FindingRecord:
     """Record of a security finding."""
+
     finding_id: str
     audit_id: str
     tool: str
@@ -216,6 +218,7 @@ class MIESCDatabase:
     def _generate_id(self, prefix: str = "") -> str:
         """Generate unique ID."""
         import uuid
+
         return f"{prefix}{uuid.uuid4().hex[:12]}"
 
     def _compute_hash(self, content: str) -> str:
@@ -231,10 +234,7 @@ class MIESCDatabase:
     # =========================================================================
 
     def create_audit(
-        self,
-        contract_path: str,
-        tools: List[str],
-        metadata: Optional[Dict[str, Any]] = None
+        self, contract_path: str, tools: List[str], metadata: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Create a new audit record.
@@ -251,36 +251,36 @@ class MIESCDatabase:
 
         # Compute contract hash
         try:
-            with open(contract_path, 'r') as f:
+            with open(contract_path, "r") as f:
                 contract_hash = self._compute_hash(f.read())
         except Exception:
             contract_hash = self._compute_hash(contract_path)
 
         with self._get_connection() as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO audits (
                     audit_id, contract_path, contract_hash, status,
                     tools_run, created_at, metadata
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                audit_id,
-                contract_path,
-                contract_hash,
-                AuditStatus.PENDING.value,
-                json.dumps(tools),
-                self._now_iso(),
-                json.dumps(metadata) if metadata else None
-            ))
+            """,
+                (
+                    audit_id,
+                    contract_path,
+                    contract_hash,
+                    AuditStatus.PENDING.value,
+                    json.dumps(tools),
+                    self._now_iso(),
+                    json.dumps(metadata) if metadata else None,
+                ),
+            )
             conn.commit()
 
         logger.info(f"Created audit {audit_id} for {contract_path}")
         return audit_id
 
     def update_audit_status(
-        self,
-        audit_id: str,
-        status: AuditStatus,
-        results: Optional[Dict[str, Any]] = None
+        self, audit_id: str, status: AuditStatus, results: Optional[Dict[str, Any]] = None
     ) -> bool:
         """
         Update audit status and results.
@@ -295,7 +295,8 @@ class MIESCDatabase:
         """
         with self._get_connection() as conn:
             if results:
-                conn.execute("""
+                conn.execute(
+                    """
                     UPDATE audits SET
                         status = ?,
                         tools_success = ?,
@@ -305,20 +306,29 @@ class MIESCDatabase:
                         execution_time_ms = ?,
                         completed_at = ?
                     WHERE audit_id = ?
-                """, (
-                    status.value,
-                    json.dumps(results.get('tools_success', [])),
-                    json.dumps(results.get('tools_failed', [])),
-                    results.get('total_findings', 0),
-                    json.dumps(results.get('findings_by_severity', {})),
-                    results.get('execution_time_ms', 0),
-                    self._now_iso() if status in [AuditStatus.COMPLETED, AuditStatus.FAILED] else None,
-                    audit_id
-                ))
+                """,
+                    (
+                        status.value,
+                        json.dumps(results.get("tools_success", [])),
+                        json.dumps(results.get("tools_failed", [])),
+                        results.get("total_findings", 0),
+                        json.dumps(results.get("findings_by_severity", {})),
+                        results.get("execution_time_ms", 0),
+                        (
+                            self._now_iso()
+                            if status in [AuditStatus.COMPLETED, AuditStatus.FAILED]
+                            else None
+                        ),
+                        audit_id,
+                    ),
+                )
             else:
-                conn.execute("""
+                conn.execute(
+                    """
                     UPDATE audits SET status = ? WHERE audit_id = ?
-                """, (status.value, audit_id))
+                """,
+                    (status.value, audit_id),
+                )
 
             conn.commit()
             return conn.total_changes > 0
@@ -326,58 +336,54 @@ class MIESCDatabase:
     def get_audit(self, audit_id: str) -> Optional[AuditRecord]:
         """Get audit by ID."""
         with self._get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM audits WHERE audit_id = ?",
-                (audit_id,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM audits WHERE audit_id = ?", (audit_id,)).fetchone()
 
             if row:
                 return AuditRecord(
-                    audit_id=row['audit_id'],
-                    contract_path=row['contract_path'],
-                    contract_hash=row['contract_hash'],
-                    status=row['status'],
-                    tools_run=json.loads(row['tools_run'] or '[]'),
-                    tools_success=json.loads(row['tools_success'] or '[]'),
-                    tools_failed=json.loads(row['tools_failed'] or '[]'),
-                    total_findings=row['total_findings'] or 0,
-                    findings_by_severity=json.loads(row['findings_by_severity'] or '{}'),
-                    execution_time_ms=row['execution_time_ms'] or 0,
-                    created_at=row['created_at'],
-                    completed_at=row['completed_at'],
-                    metadata=json.loads(row['metadata']) if row['metadata'] else None
+                    audit_id=row["audit_id"],
+                    contract_path=row["contract_path"],
+                    contract_hash=row["contract_hash"],
+                    status=row["status"],
+                    tools_run=json.loads(row["tools_run"] or "[]"),
+                    tools_success=json.loads(row["tools_success"] or "[]"),
+                    tools_failed=json.loads(row["tools_failed"] or "[]"),
+                    total_findings=row["total_findings"] or 0,
+                    findings_by_severity=json.loads(row["findings_by_severity"] or "{}"),
+                    execution_time_ms=row["execution_time_ms"] or 0,
+                    created_at=row["created_at"],
+                    completed_at=row["completed_at"],
+                    metadata=json.loads(row["metadata"]) if row["metadata"] else None,
                 )
         return None
 
-    def get_audits_for_contract(
-        self,
-        contract_path: str,
-        limit: int = 10
-    ) -> List[AuditRecord]:
+    def get_audits_for_contract(self, contract_path: str, limit: int = 10) -> List[AuditRecord]:
         """Get audit history for a contract."""
         with self._get_connection() as conn:
-            rows = conn.execute("""
+            rows = conn.execute(
+                """
                 SELECT * FROM audits
                 WHERE contract_path = ?
                 ORDER BY created_at DESC
                 LIMIT ?
-            """, (contract_path, limit)).fetchall()
+            """,
+                (contract_path, limit),
+            ).fetchall()
 
             return [
                 AuditRecord(
-                    audit_id=row['audit_id'],
-                    contract_path=row['contract_path'],
-                    contract_hash=row['contract_hash'],
-                    status=row['status'],
-                    tools_run=json.loads(row['tools_run'] or '[]'),
-                    tools_success=json.loads(row['tools_success'] or '[]'),
-                    tools_failed=json.loads(row['tools_failed'] or '[]'),
-                    total_findings=row['total_findings'] or 0,
-                    findings_by_severity=json.loads(row['findings_by_severity'] or '{}'),
-                    execution_time_ms=row['execution_time_ms'] or 0,
-                    created_at=row['created_at'],
-                    completed_at=row['completed_at'],
-                    metadata=json.loads(row['metadata']) if row['metadata'] else None
+                    audit_id=row["audit_id"],
+                    contract_path=row["contract_path"],
+                    contract_hash=row["contract_hash"],
+                    status=row["status"],
+                    tools_run=json.loads(row["tools_run"] or "[]"),
+                    tools_success=json.loads(row["tools_success"] or "[]"),
+                    tools_failed=json.loads(row["tools_failed"] or "[]"),
+                    total_findings=row["total_findings"] or 0,
+                    findings_by_severity=json.loads(row["findings_by_severity"] or "{}"),
+                    execution_time_ms=row["execution_time_ms"] or 0,
+                    created_at=row["created_at"],
+                    completed_at=row["completed_at"],
+                    metadata=json.loads(row["metadata"]) if row["metadata"] else None,
                 )
                 for row in rows
             ]
@@ -385,27 +391,30 @@ class MIESCDatabase:
     def get_recent_audits(self, limit: int = 20) -> List[AuditRecord]:
         """Get most recent audits."""
         with self._get_connection() as conn:
-            rows = conn.execute("""
+            rows = conn.execute(
+                """
                 SELECT * FROM audits
                 ORDER BY created_at DESC
                 LIMIT ?
-            """, (limit,)).fetchall()
+            """,
+                (limit,),
+            ).fetchall()
 
             return [
                 AuditRecord(
-                    audit_id=row['audit_id'],
-                    contract_path=row['contract_path'],
-                    contract_hash=row['contract_hash'],
-                    status=row['status'],
-                    tools_run=json.loads(row['tools_run'] or '[]'),
-                    tools_success=json.loads(row['tools_success'] or '[]'),
-                    tools_failed=json.loads(row['tools_failed'] or '[]'),
-                    total_findings=row['total_findings'] or 0,
-                    findings_by_severity=json.loads(row['findings_by_severity'] or '{}'),
-                    execution_time_ms=row['execution_time_ms'] or 0,
-                    created_at=row['created_at'],
-                    completed_at=row['completed_at'],
-                    metadata=json.loads(row['metadata']) if row['metadata'] else None
+                    audit_id=row["audit_id"],
+                    contract_path=row["contract_path"],
+                    contract_hash=row["contract_hash"],
+                    status=row["status"],
+                    tools_run=json.loads(row["tools_run"] or "[]"),
+                    tools_success=json.loads(row["tools_success"] or "[]"),
+                    tools_failed=json.loads(row["tools_failed"] or "[]"),
+                    total_findings=row["total_findings"] or 0,
+                    findings_by_severity=json.loads(row["findings_by_severity"] or "{}"),
+                    execution_time_ms=row["execution_time_ms"] or 0,
+                    created_at=row["created_at"],
+                    completed_at=row["completed_at"],
+                    metadata=json.loads(row["metadata"]) if row["metadata"] else None,
                 )
                 for row in rows
             ]
@@ -414,11 +423,7 @@ class MIESCDatabase:
     # FINDINGS OPERATIONS
     # =========================================================================
 
-    def store_finding(
-        self,
-        audit_id: str,
-        finding: Dict[str, Any]
-    ) -> str:
+    def store_finding(self, audit_id: str, finding: Dict[str, Any]) -> str:
         """
         Store a single finding.
 
@@ -432,38 +437,37 @@ class MIESCDatabase:
         finding_id = self._generate_id("find-")
 
         with self._get_connection() as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO findings (
                     finding_id, audit_id, tool, vulnerability_type, severity,
                     confidence, title, description, location, remediation,
                     cwe_id, swc_id, false_positive, cross_validated, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                finding_id,
-                audit_id,
-                finding.get('tool', 'unknown'),
-                finding.get('type', finding.get('vulnerability_type', 'unknown')),
-                finding.get('severity', 'unknown'),
-                finding.get('confidence', 0.5),
-                finding.get('title', 'Untitled'),
-                finding.get('description', ''),
-                json.dumps(finding.get('location')) if finding.get('location') else None,
-                finding.get('remediation'),
-                finding.get('cwe_id'),
-                finding.get('swc_id'),
-                1 if finding.get('false_positive') else 0,
-                1 if finding.get('cross_validated') else 0,
-                self._now_iso()
-            ))
+            """,
+                (
+                    finding_id,
+                    audit_id,
+                    finding.get("tool", "unknown"),
+                    finding.get("type", finding.get("vulnerability_type", "unknown")),
+                    finding.get("severity", "unknown"),
+                    finding.get("confidence", 0.5),
+                    finding.get("title", "Untitled"),
+                    finding.get("description", ""),
+                    json.dumps(finding.get("location")) if finding.get("location") else None,
+                    finding.get("remediation"),
+                    finding.get("cwe_id"),
+                    finding.get("swc_id"),
+                    1 if finding.get("false_positive") else 0,
+                    1 if finding.get("cross_validated") else 0,
+                    self._now_iso(),
+                ),
+            )
             conn.commit()
 
         return finding_id
 
-    def store_findings(
-        self,
-        audit_id: str,
-        findings: List[Dict[str, Any]]
-    ) -> int:
+    def store_findings(self, audit_id: str, findings: List[Dict[str, Any]]) -> int:
         """
         Store multiple findings.
 
@@ -486,7 +490,8 @@ class MIESCDatabase:
     def get_findings_for_audit(self, audit_id: str) -> List[FindingRecord]:
         """Get all findings for an audit."""
         with self._get_connection() as conn:
-            rows = conn.execute("""
+            rows = conn.execute(
+                """
                 SELECT * FROM findings WHERE audit_id = ?
                 ORDER BY
                     CASE severity
@@ -497,60 +502,61 @@ class MIESCDatabase:
                         ELSE 5
                     END,
                     confidence DESC
-            """, (audit_id,)).fetchall()
+            """,
+                (audit_id,),
+            ).fetchall()
 
             return [
                 FindingRecord(
-                    finding_id=row['finding_id'],
-                    audit_id=row['audit_id'],
-                    tool=row['tool'],
-                    vulnerability_type=row['vulnerability_type'],
-                    severity=row['severity'],
-                    confidence=row['confidence'],
-                    title=row['title'],
-                    description=row['description'],
-                    location=json.loads(row['location']) if row['location'] else None,
-                    remediation=row['remediation'],
-                    cwe_id=row['cwe_id'],
-                    swc_id=row['swc_id'],
-                    false_positive=bool(row['false_positive']),
-                    cross_validated=bool(row['cross_validated']),
-                    created_at=row['created_at']
+                    finding_id=row["finding_id"],
+                    audit_id=row["audit_id"],
+                    tool=row["tool"],
+                    vulnerability_type=row["vulnerability_type"],
+                    severity=row["severity"],
+                    confidence=row["confidence"],
+                    title=row["title"],
+                    description=row["description"],
+                    location=json.loads(row["location"]) if row["location"] else None,
+                    remediation=row["remediation"],
+                    cwe_id=row["cwe_id"],
+                    swc_id=row["swc_id"],
+                    false_positive=bool(row["false_positive"]),
+                    cross_validated=bool(row["cross_validated"]),
+                    created_at=row["created_at"],
                 )
                 for row in rows
             ]
 
-    def get_findings_by_severity(
-        self,
-        severity: str,
-        limit: int = 100
-    ) -> List[FindingRecord]:
+    def get_findings_by_severity(self, severity: str, limit: int = 100) -> List[FindingRecord]:
         """Get findings filtered by severity."""
         with self._get_connection() as conn:
-            rows = conn.execute("""
+            rows = conn.execute(
+                """
                 SELECT * FROM findings
                 WHERE severity = ?
                 ORDER BY created_at DESC
                 LIMIT ?
-            """, (severity.lower(), limit)).fetchall()
+            """,
+                (severity.lower(), limit),
+            ).fetchall()
 
             return [
                 FindingRecord(
-                    finding_id=row['finding_id'],
-                    audit_id=row['audit_id'],
-                    tool=row['tool'],
-                    vulnerability_type=row['vulnerability_type'],
-                    severity=row['severity'],
-                    confidence=row['confidence'],
-                    title=row['title'],
-                    description=row['description'],
-                    location=json.loads(row['location']) if row['location'] else None,
-                    remediation=row['remediation'],
-                    cwe_id=row['cwe_id'],
-                    swc_id=row['swc_id'],
-                    false_positive=bool(row['false_positive']),
-                    cross_validated=bool(row['cross_validated']),
-                    created_at=row['created_at']
+                    finding_id=row["finding_id"],
+                    audit_id=row["audit_id"],
+                    tool=row["tool"],
+                    vulnerability_type=row["vulnerability_type"],
+                    severity=row["severity"],
+                    confidence=row["confidence"],
+                    title=row["title"],
+                    description=row["description"],
+                    location=json.loads(row["location"]) if row["location"] else None,
+                    remediation=row["remediation"],
+                    cwe_id=row["cwe_id"],
+                    swc_id=row["swc_id"],
+                    false_positive=bool(row["false_positive"]),
+                    cross_validated=bool(row["cross_validated"]),
+                    created_at=row["created_at"],
                 )
                 for row in rows
             ]
@@ -560,7 +566,7 @@ class MIESCDatabase:
         with self._get_connection() as conn:
             conn.execute(
                 "UPDATE findings SET false_positive = ? WHERE finding_id = ?",
-                (1 if is_fp else 0, finding_id)
+                (1 if is_fp else 0, finding_id),
             )
             conn.commit()
             return conn.total_changes > 0
@@ -574,20 +580,23 @@ class MIESCDatabase:
         metric_type: str,
         metric_name: str,
         value: float,
-        labels: Optional[Dict[str, str]] = None
+        labels: Optional[Dict[str, str]] = None,
     ) -> None:
         """Record a metric value."""
         with self._get_connection() as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO metrics (metric_type, metric_name, metric_value, labels, recorded_at)
                 VALUES (?, ?, ?, ?, ?)
-            """, (
-                metric_type,
-                metric_name,
-                value,
-                json.dumps(labels) if labels else None,
-                self._now_iso()
-            ))
+            """,
+                (
+                    metric_type,
+                    metric_name,
+                    value,
+                    json.dumps(labels) if labels else None,
+                    self._now_iso(),
+                ),
+            )
             conn.commit()
 
     def record_tool_performance(
@@ -597,24 +606,27 @@ class MIESCDatabase:
         findings_count: int,
         success: bool,
         error_message: Optional[str] = None,
-        contract_hash: Optional[str] = None
+        contract_hash: Optional[str] = None,
     ) -> None:
         """Record tool execution performance."""
         with self._get_connection() as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO tool_performance (
                     tool_name, execution_time_ms, findings_count,
                     success, error_message, contract_hash, recorded_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                tool_name,
-                execution_time_ms,
-                findings_count,
-                1 if success else 0,
-                error_message,
-                contract_hash,
-                self._now_iso()
-            ))
+            """,
+                (
+                    tool_name,
+                    execution_time_ms,
+                    findings_count,
+                    1 if success else 0,
+                    error_message,
+                    contract_hash,
+                    self._now_iso(),
+                ),
+            )
             conn.commit()
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -623,18 +635,22 @@ class MIESCDatabase:
             audits_count = conn.execute("SELECT COUNT(*) FROM audits").fetchone()[0]
             findings_count = conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
 
-            severity_dist = conn.execute("""
+            severity_dist = conn.execute(
+                """
                 SELECT severity, COUNT(*) as count
                 FROM findings
                 GROUP BY severity
-            """).fetchall()
+            """
+            ).fetchall()
 
-            tool_dist = conn.execute("""
+            tool_dist = conn.execute(
+                """
                 SELECT tool, COUNT(*) as count
                 FROM findings
                 GROUP BY tool
                 ORDER BY count DESC
-            """).fetchall()
+            """
+            ).fetchall()
 
             return {
                 "total_audits": audits_count,
@@ -648,7 +664,8 @@ class MIESCDatabase:
         """Get tool performance statistics."""
         with self._get_connection() as conn:
             if tool_name:
-                rows = conn.execute("""
+                rows = conn.execute(
+                    """
                     SELECT
                         tool_name,
                         AVG(execution_time_ms) as avg_time,
@@ -660,9 +677,12 @@ class MIESCDatabase:
                     FROM tool_performance
                     WHERE tool_name = ?
                     GROUP BY tool_name
-                """, (tool_name,)).fetchall()
+                """,
+                    (tool_name,),
+                ).fetchall()
             else:
-                rows = conn.execute("""
+                rows = conn.execute(
+                    """
                     SELECT
                         tool_name,
                         AVG(execution_time_ms) as avg_time,
@@ -673,7 +693,8 @@ class MIESCDatabase:
                         COUNT(*) as total_runs
                     FROM tool_performance
                     GROUP BY tool_name
-                """).fetchall()
+                """
+                ).fetchall()
 
             return {
                 row[0]: {
@@ -682,7 +703,7 @@ class MIESCDatabase:
                     "min_execution_time_ms": row[3] or 0,
                     "avg_findings": round(row[4] or 0, 2),
                     "success_rate": round((row[5] / row[6]) * 100 if row[6] > 0 else 0, 2),
-                    "total_runs": row[6]
+                    "total_runs": row[6],
                 }
                 for row in rows
             }
@@ -693,20 +714,23 @@ class MIESCDatabase:
 
     def cleanup_old_audits(self, days: int = 90) -> int:
         """Remove audits older than specified days."""
-        cutoff = datetime.now(timezone.utc).isoformat()
+        datetime.now(timezone.utc).isoformat()
         # Simple approach: delete based on timestamp string comparison
         with self._get_connection() as conn:
             # Get old audit IDs
-            old_audits = conn.execute("""
+            old_audits = conn.execute(
+                """
                 SELECT audit_id FROM audits
                 WHERE datetime(created_at) < datetime('now', ?)
-            """, (f'-{days} days',)).fetchall()
+            """,
+                (f"-{days} days",),
+            ).fetchall()
 
             audit_ids = [row[0] for row in old_audits]
 
             if audit_ids:
                 # Delete findings first (foreign key)
-                placeholders = ','.join(['?'] * len(audit_ids))
+                placeholders = ",".join(["?"] * len(audit_ids))
                 conn.execute(f"DELETE FROM findings WHERE audit_id IN ({placeholders})", audit_ids)
                 conn.execute(f"DELETE FROM audits WHERE audit_id IN ({placeholders})", audit_ids)
                 conn.commit()

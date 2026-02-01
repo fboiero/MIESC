@@ -7,17 +7,18 @@ Enables loose coupling and avoids vendor lock-in (DPGA requirement).
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 """
 
+import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass
 from enum import Enum
-import logging
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class ToolCategory(Enum):
     """Tool categories per MIESC 9-layer architecture"""
+
     STATIC_ANALYSIS = "static_analysis"
     DYNAMIC_TESTING = "dynamic_testing"
     SYMBOLIC_EXECUTION = "symbolic_execution"
@@ -36,6 +37,7 @@ class ToolCategory(Enum):
 
 class ToolStatus(Enum):
     """Tool availability status"""
+
     AVAILABLE = "available"
     NOT_INSTALLED = "not_installed"
     CONFIGURATION_ERROR = "configuration_error"
@@ -46,6 +48,7 @@ class ToolStatus(Enum):
 @dataclass
 class ToolCapability:
     """Specific capability of a tool"""
+
     name: str
     description: str
     supported_languages: List[str]
@@ -55,6 +58,7 @@ class ToolCapability:
 @dataclass
 class ToolMetadata:
     """Tool metadata"""
+
     name: str
     version: str
     category: ToolCategory
@@ -226,7 +230,7 @@ print(f"Status: {{status}}")
         OPTIONAL: Allows filtering tools by contract type.
         Default: accepts all .sol files
         """
-        return contract_path.endswith('.sol')
+        return contract_path.endswith(".sol")
 
     def get_default_config(self) -> Dict[str, Any]:
         """
@@ -282,10 +286,7 @@ class ToolRegistry:
 
     def get_tools_by_category(self, category: ToolCategory) -> List[ToolAdapter]:
         """Return tools of a specific category"""
-        return [
-            tool for tool in self._tools.values()
-            if tool.get_metadata().category == category
-        ]
+        return [tool for tool in self._tools.values() if tool.get_metadata().category == category]
 
     def get_available_tools(self) -> List[ToolAdapter]:
         """Return only available tools (installed and configured)"""
@@ -307,7 +308,7 @@ class ToolRegistry:
             "available": 0,
             "not_installed": 0,
             "configuration_error": 0,
-            "tools": []
+            "tools": [],
         }
 
         for tool in self._tools.values():
@@ -320,7 +321,7 @@ class ToolRegistry:
                 "category": metadata.category.value,
                 "status": status.value,
                 "cost": metadata.cost,
-                "optional": metadata.is_optional
+                "optional": metadata.is_optional,
             }
 
             report["tools"].append(tool_info)

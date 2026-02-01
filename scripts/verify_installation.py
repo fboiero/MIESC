@@ -13,8 +13,6 @@ Institution: UNDEF - IUA
 """
 
 import json
-import os
-import shutil
 import subprocess
 import sys
 from datetime import datetime
@@ -94,7 +92,11 @@ def check_python_package(package: str) -> Tuple[bool, str]:
     """Check if a Python package is installed."""
     try:
         result = subprocess.run(
-            [sys.executable, "-c", f"import {package}; print({package}.__version__ if hasattr({package}, '__version__') else 'installed')"],
+            [
+                sys.executable,
+                "-c",
+                f"import {package}; print({package}.__version__ if hasattr({package}, '__version__') else 'installed')",
+            ],
             capture_output=True,
             text=True,
             timeout=10,

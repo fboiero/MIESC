@@ -4,11 +4,13 @@ Base Agent Class for MCP Architecture
 Provides abstract interface for all specialized agents in MIESC framework.
 Each agent wraps one or more security tools and communicates via MCP Context Bus.
 """
+
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional
 from datetime import datetime
-from src.mcp.context_bus import get_context_bus, MCPMessage
+from typing import Any, Dict, List, Optional
+
+from src.mcp.context_bus import MCPMessage, get_context_bus
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -69,8 +71,9 @@ class BaseAgent(ABC):
         """
         pass
 
-    def publish_findings(self, context_type: str, findings: Dict[str, Any],
-                        metadata: Optional[Dict[str, Any]] = None) -> None:
+    def publish_findings(
+        self, context_type: str, findings: Dict[str, Any], metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
         """
         Publish findings to Context Bus as MCP message
 
@@ -86,7 +89,7 @@ class BaseAgent(ABC):
             contract=self.contract_path or "unknown",
             timestamp=datetime.utcnow().isoformat() + "Z",
             data=findings,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         self.bus.publish(message)
@@ -155,9 +158,9 @@ class BaseAgent(ABC):
             findings={
                 "error_type": type(error).__name__,
                 "error_message": str(error),
-                "context": context
+                "context": context,
             },
-            metadata={"status": "error"}
+            metadata={"status": "error"},
         )
 
     def run(self, contract_path: str, **kwargs) -> Dict[str, Any]:
@@ -187,8 +190,8 @@ class BaseAgent(ABC):
                         findings=results[context_type],
                         metadata={
                             "execution_count": self.execution_count,
-                            "capabilities": self.capabilities
-                        }
+                            "capabilities": self.capabilities,
+                        },
                     )
 
             self.set_status("idle")
@@ -212,7 +215,7 @@ class BaseAgent(ABC):
             "capabilities": self.capabilities,
             "status": self.status,
             "execution_count": self.execution_count,
-            "context_types": self.get_context_types()
+            "context_types": self.get_context_types(),
         }
 
     def __repr__(self) -> str:

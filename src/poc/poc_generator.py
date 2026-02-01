@@ -17,20 +17,20 @@ Version: 1.0.0
 """
 
 import logging
-import subprocess
 import re
+import subprocess
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
-from datetime import datetime
-import json
 
 logger = logging.getLogger(__name__)
 
 
 class VulnerabilityType(Enum):
     """Supported vulnerability types for PoC generation."""
+
     REENTRANCY = "reentrancy"
     FLASH_LOAN = "flash_loan"
     ORACLE_MANIPULATION = "oracle_manipulation"
@@ -52,6 +52,7 @@ class VulnerabilityType(Enum):
 @dataclass
 class GenerationOptions:
     """Options for PoC generation."""
+
     include_setup: bool = True
     include_comments: bool = True
     include_console_logs: bool = True
@@ -66,6 +67,7 @@ class GenerationOptions:
 @dataclass
 class PoCTemplate:
     """A generated PoC template."""
+
     name: str
     vulnerability_type: VulnerabilityType
     solidity_code: str
@@ -93,7 +95,7 @@ class PoCTemplate:
         filename = f"PoC_{self.vulnerability_type.value}_{self.name}.t.sol"
         filepath = output_path / filename
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             f.write(self.solidity_code)
 
         logger.info(f"PoC saved to {filepath}")
@@ -117,6 +119,7 @@ class PoCTemplate:
 @dataclass
 class PoCResult:
     """Result of running a PoC."""
+
     success: bool
     output: str
     gas_used: Optional[int] = None
@@ -320,8 +323,10 @@ class PoCGenerator:
         try:
             # Run forge test
             cmd = [
-                "forge", "test",
-                "--match-path", str(poc_path),
+                "forge",
+                "test",
+                "--match-path",
+                str(poc_path),
                 "-vvv",  # Verbose output with traces
             ]
 
@@ -401,7 +406,7 @@ class PoCGenerator:
             return location.get("function") or location.get("func")
         elif isinstance(location, str):
             # Try to parse function from string
-            match = re.search(r'function\s+(\w+)', location)
+            match = re.search(r"function\s+(\w+)", location)
             if match:
                 return match.group(1)
 
@@ -438,7 +443,7 @@ class PoCGenerator:
         template_path = self.templates_dir / template_name
 
         if template_path.exists():
-            with open(template_path, 'r') as f:
+            with open(template_path, "r") as f:
                 template = f.read()
         else:
             # Use embedded default template
@@ -497,14 +502,14 @@ class PoCGenerator:
             result = result.replace("// {{FORK_CONFIG}}", fork_config)
 
         # Remove unused placeholders
-        result = re.sub(r'// \{\{[A-Z_]+\}\}', '', result)
+        result = re.sub(r"// \{\{[A-Z_]+\}\}", "", result)
 
         return result
 
     def _get_default_template(self, vuln_type: VulnerabilityType) -> str:
         """Get embedded default template for vulnerability type."""
         # Basic Foundry test template
-        return '''// SPDX-License-Identifier: MIT
+        return """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
@@ -563,7 +568,7 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
         // assertGt(attackerBalanceAfter, attackerBalanceBefore, "Exploit should profit");
     }
 }
-'''
+"""
 
     def _get_prerequisites(self, vuln_type: VulnerabilityType) -> List[str]:
         """Get prerequisites for running PoC."""
@@ -573,15 +578,19 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
         ]
 
         if vuln_type == VulnerabilityType.FLASH_LOAN:
-            prereqs.extend([
-                "Flash loan provider (Aave, dYdX) available",
-                "Sufficient liquidity in target pool",
-            ])
+            prereqs.extend(
+                [
+                    "Flash loan provider (Aave, dYdX) available",
+                    "Sufficient liquidity in target pool",
+                ]
+            )
         elif vuln_type == VulnerabilityType.ORACLE_MANIPULATION:
-            prereqs.extend([
-                "Access to oracle price feed",
-                "Ability to manipulate prices (DEX liquidity)",
-            ])
+            prereqs.extend(
+                [
+                    "Access to oracle price feed",
+                    "Ability to manipulate prices (DEX liquidity)",
+                ]
+            )
         elif vuln_type in (VulnerabilityType.FRONT_RUNNING, VulnerabilityType.PRICE_MANIPULATION):
             prereqs.append("Mempool access or simulation environment")
 
@@ -606,7 +615,7 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
 
     def _extract_gas_from_output(self, output: str) -> Optional[int]:
         """Extract gas used from forge output."""
-        match = re.search(r'gas:\s*(\d+)', output)
+        match = re.search(r"gas:\s*(\d+)", output)
         if match:
             return int(match.group(1))
         return None

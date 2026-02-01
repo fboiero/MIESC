@@ -18,14 +18,15 @@ Date: January 2026
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class SeverityLevel(Enum):
     """Severity levels for findings."""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -35,6 +36,7 @@ class SeverityLevel(Enum):
 
 class ImpactLevel(Enum):
     """Impact levels for severity calculation."""
+
     TOTAL_LOSS = "total_loss"
     PARTIAL_LOSS = "partial_loss"
     NO_DIRECT_LOSS = "no_direct_loss"
@@ -43,6 +45,7 @@ class ImpactLevel(Enum):
 
 class ExploitabilityLevel(Enum):
     """Exploitability levels."""
+
     TRIVIAL = "trivial"  # Anyone can exploit easily
     MODERATE = "moderate"  # Requires some knowledge
     COMPLEX = "complex"  # Very difficult to exploit
@@ -50,6 +53,7 @@ class ExploitabilityLevel(Enum):
 
 class ScopeLevel(Enum):
     """Scope of the vulnerability."""
+
     PROTOCOL_WIDE = "protocol_wide"  # Affects entire protocol
     CONTRACT_WIDE = "contract_wide"  # Affects one contract
     FUNCTION_ONLY = "function_only"  # Only one function
@@ -58,6 +62,7 @@ class ScopeLevel(Enum):
 @dataclass
 class SeverityFactors:
     """Factors used to calculate severity."""
+
     financial_impact: ImpactLevel
     exploitability: ExploitabilityLevel
     scope: ScopeLevel
@@ -70,6 +75,7 @@ class SeverityFactors:
 @dataclass
 class SeverityPrediction:
     """Result of severity classification."""
+
     severity: SeverityLevel
     confidence: float
     factors: SeverityFactors
@@ -81,6 +87,7 @@ class SeverityPrediction:
 @dataclass
 class ContractContext:
     """Context about the contract being analyzed."""
+
     contract_type: str  # dex, lending, nft, etc.
     has_value_handling: bool
     uses_access_control: bool
@@ -143,7 +150,6 @@ class MLSeverityClassifier:
         "bridge-vulnerability": ImpactLevel.TOTAL_LOSS,
         "unprotected-selfdestruct": ImpactLevel.TOTAL_LOSS,
         "arbitrary-send": ImpactLevel.TOTAL_LOSS,
-
         # High by default
         "access-control": ImpactLevel.PARTIAL_LOSS,
         "oracle-manipulation": ImpactLevel.PARTIAL_LOSS,
@@ -151,14 +157,12 @@ class MLSeverityClassifier:
         "delegatecall": ImpactLevel.PARTIAL_LOSS,
         "integer-overflow": ImpactLevel.PARTIAL_LOSS,
         "integer-underflow": ImpactLevel.PARTIAL_LOSS,
-
         # Medium by default
         "unchecked-call": ImpactLevel.NO_DIRECT_LOSS,
         "front-running": ImpactLevel.NO_DIRECT_LOSS,
         "sandwich-attack": ImpactLevel.NO_DIRECT_LOSS,
         "timestamp-dependence": ImpactLevel.NO_DIRECT_LOSS,
         "tx-origin": ImpactLevel.NO_DIRECT_LOSS,
-
         # Low/Info by default
         "gas-optimization": ImpactLevel.INFORMATIONAL,
         "naming-convention": ImpactLevel.INFORMATIONAL,
@@ -171,12 +175,10 @@ class MLSeverityClassifier:
         "access-control": ExploitabilityLevel.TRIVIAL,
         "unprotected-selfdestruct": ExploitabilityLevel.TRIVIAL,
         "arbitrary-send": ExploitabilityLevel.TRIVIAL,
-
         # Moderate difficulty
         "reentrancy": ExploitabilityLevel.MODERATE,
         "oracle-manipulation": ExploitabilityLevel.MODERATE,
         "unchecked-call": ExploitabilityLevel.MODERATE,
-
         # Complex to exploit
         "flash-loan-attack": ExploitabilityLevel.COMPLEX,
         "governance-attack": ExploitabilityLevel.COMPLEX,
@@ -297,9 +299,7 @@ class MLSeverityClassifier:
         impact = self.TYPE_IMPACT_MAP.get(vuln_type, ImpactLevel.NO_DIRECT_LOSS)
 
         # Get default exploitability
-        exploitability = self.TYPE_EXPLOITABILITY_MAP.get(
-            vuln_type, ExploitabilityLevel.MODERATE
-        )
+        exploitability = self.TYPE_EXPLOITABILITY_MAP.get(vuln_type, ExploitabilityLevel.MODERATE)
 
         # Determine scope from description
         scope = self._determine_scope(description, code)
@@ -330,9 +330,9 @@ class MLSeverityClassifier:
         scope_score = self.SCOPE_SCORES[factors.scope]
 
         score = (
-            impact_score * self.WEIGHTS["financial_impact"] +
-            exploit_score * self.WEIGHTS["exploitability"] +
-            scope_score * self.WEIGHTS["scope"]
+            impact_score * self.WEIGHTS["financial_impact"]
+            + exploit_score * self.WEIGHTS["exploitability"]
+            + scope_score * self.WEIGHTS["scope"]
         )
 
         return score
@@ -515,16 +515,25 @@ class MLSeverityClassifier:
         desc_lower = description.lower()
 
         # Protocol-wide indicators
-        if any(word in desc_lower for word in [
-            "all users", "entire protocol", "all funds", "total supply",
-            "all contracts", "protocol-wide", "every", "complete drainage"
-        ]):
+        if any(
+            word in desc_lower
+            for word in [
+                "all users",
+                "entire protocol",
+                "all funds",
+                "total supply",
+                "all contracts",
+                "protocol-wide",
+                "every",
+                "complete drainage",
+            ]
+        ):
             return ScopeLevel.PROTOCOL_WIDE
 
         # Contract-wide indicators
-        if any(word in desc_lower for word in [
-            "contract", "this contract", "the contract", "balance"
-        ]):
+        if any(
+            word in desc_lower for word in ["contract", "this contract", "the contract", "balance"]
+        ):
             return ScopeLevel.CONTRACT_WIDE
 
         return ScopeLevel.FUNCTION_ONLY
@@ -532,9 +541,19 @@ class MLSeverityClassifier:
     def _check_known_exploit(self, description: str) -> bool:
         """Check if description mentions known exploits."""
         exploit_keywords = [
-            "dao hack", "parity", "beanstalk", "wormhole", "ronin",
-            "nomad", "harvest", "bzx", "cream", "mango",
-            "known exploit", "real-world", "historic"
+            "dao hack",
+            "parity",
+            "beanstalk",
+            "wormhole",
+            "ronin",
+            "nomad",
+            "harvest",
+            "bzx",
+            "cream",
+            "mango",
+            "known exploit",
+            "real-world",
+            "historic",
         ]
         desc_lower = description.lower()
         return any(kw in desc_lower for kw in exploit_keywords)
@@ -542,9 +561,22 @@ class MLSeverityClassifier:
     def _check_affects_funds(self, description: str, code: str) -> bool:
         """Check if vulnerability affects funds."""
         fund_keywords = [
-            "eth", "ether", "funds", "balance", "transfer", "withdraw",
-            "token", "erc20", "usdc", "usdt", "dai", "weth",
-            "vault", "treasury", "stake", "deposit"
+            "eth",
+            "ether",
+            "funds",
+            "balance",
+            "transfer",
+            "withdraw",
+            "token",
+            "erc20",
+            "usdc",
+            "usdt",
+            "dai",
+            "weth",
+            "vault",
+            "treasury",
+            "stake",
+            "deposit",
         ]
         text = (description + " " + code).lower()
         return any(kw in text for kw in fund_keywords)

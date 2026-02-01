@@ -8,16 +8,14 @@ This bypasses the full MIESC CLI for faster benchmarking.
 
 import json
 import subprocess
-import tempfile
 import time
-from dataclasses import dataclass, field
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from .dataset_loader import VulnerableContract, VulnerabilityCategory, GroundTruth
 from .benchmark_runner import BenchmarkResult, ContractResult, DetectionMetrics
+from .dataset_loader import GroundTruth, VulnerableContract
 
 
 class SlitherBenchmarkRunner:
@@ -78,29 +76,30 @@ class SlitherBenchmarkRunner:
 
         if parallel:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = {
-                    executor.submit(self._analyze_with_slither, c): c
-                    for c in contracts
-                }
+                futures = {executor.submit(self._analyze_with_slither, c): c for c in contracts}
                 for i, future in enumerate(as_completed(futures)):
                     contract = futures[future]
                     try:
                         result = future.result()
                         results.append(result)
                         if verbose:
-                            status = "OK" if not result.error else f"ERR"
+                            status = "OK" if not result.error else "ERR"
                             tp = len(result.true_positives)
                             fp = len(result.false_positives)
                             fn = len(result.false_negatives)
-                            print(f"[{i+1}/{len(contracts)}] {contract.name}: {status} TP={tp} FP={fp} FN={fn}")
+                            print(
+                                f"[{i+1}/{len(contracts)}] {contract.name}: {status} TP={tp} FP={fp} FN={fn}"
+                            )
                     except Exception as e:
-                        results.append(ContractResult(
-                            contract_name=contract.name,
-                            contract_path=contract.path,
-                            ground_truth=contract.vulnerabilities,
-                            detected_findings=[],
-                            error=str(e),
-                        ))
+                        results.append(
+                            ContractResult(
+                                contract_name=contract.name,
+                                contract_path=contract.path,
+                                ground_truth=contract.vulnerabilities,
+                                detected_findings=[],
+                                error=str(e),
+                            )
+                        )
         else:
             for i, contract in enumerate(contracts):
                 result = self._analyze_with_slither(contract)
@@ -121,7 +120,8 @@ class SlitherBenchmarkRunner:
             cmd = [
                 "slither",
                 contract.path,
-                "--json", "-",
+                "--json",
+                "-",
                 "--exclude-informational",
                 "--exclude-optimization",
             ]
@@ -139,12 +139,12 @@ class SlitherBenchmarkRunner:
                 output = result.stdout or result.stderr
                 if output.strip():
                     # Slither might output multiple JSON objects, take the last one
-                    lines = output.strip().split('\n')
+                    lines = output.strip().split("\n")
                     for line in reversed(lines):
-                        if line.startswith('{'):
+                        if line.startswith("{"):
                             data = json.loads(line)
-                            if 'results' in data:
-                                for detector in data.get('results', {}).get('detectors', []):
+                            if "results" in data:
+                                for detector in data.get("results", {}).get("detectors", []):
                                     finding = self._parse_slither_finding(detector, contract.path)
                                     if finding:
                                         findings.append(finding)
@@ -189,22 +189,22 @@ class SlitherBenchmarkRunner:
 
     def _parse_slither_finding(self, detector: Dict, contract_path: str) -> Optional[Dict]:
         """Parse a Slither detector result."""
-        check = detector.get('check', '')
+        check = detector.get("check", "")
 
         # Get line numbers from elements
         lines = []
-        for elem in detector.get('elements', []):
-            if 'source_mapping' in elem:
-                sm = elem['source_mapping']
-                if sm.get('lines'):
-                    lines.extend(sm['lines'])
+        for elem in detector.get("elements", []):
+            if "source_mapping" in elem:
+                sm = elem["source_mapping"]
+                if sm.get("lines"):
+                    lines.extend(sm["lines"])
 
         # Filter to only findings in the target contract
         target_name = Path(contract_path).stem.lower()
         relevant = False
-        for elem in detector.get('elements', []):
-            if 'source_mapping' in elem:
-                filename = elem['source_mapping'].get('filename_relative', '')
+        for elem in detector.get("elements", []):
+            if "source_mapping" in elem:
+                filename = elem["source_mapping"].get("filename_relative", "")
                 if target_name in filename.lower():
                     relevant = True
                     break
@@ -213,15 +213,15 @@ class SlitherBenchmarkRunner:
             return None
 
         return {
-            'type': check,
-            'severity': detector.get('impact', 'Medium'),
-            'confidence': detector.get('confidence', 'Medium'),
-            'lines': lines,
-            'location': {
-                'file': contract_path,
-                'line': lines[0] if lines else 0,
+            "type": check,
+            "severity": detector.get("impact", "Medium"),
+            "confidence": detector.get("confidence", "Medium"),
+            "lines": lines,
+            "location": {
+                "file": contract_path,
+                "line": lines[0] if lines else 0,
             },
-            'description': detector.get('description', ''),
+            "description": detector.get("description", ""),
         }
 
     def _match_findings(
@@ -235,12 +235,12 @@ class SlitherBenchmarkRunner:
         matched_gt = set()
 
         for finding in findings:
-            finding_type = finding.get('type', '').lower()
-            finding_lines = finding.get('lines', [finding.get('location', {}).get('line', 0)])
+            finding_type = finding.get("type", "").lower()
+            finding_lines = finding.get("lines", [finding.get("location", {}).get("line", 0)])
             if not isinstance(finding_lines, list):
                 finding_lines = [finding_lines]
 
-            mapped_category = self.DETECTOR_MAP.get(finding_type, 'other')
+            mapped_category = self.DETECTOR_MAP.get(finding_type, "other")
 
             matched = False
             for i, gt in enumerate(ground_truth):
@@ -289,13 +289,13 @@ class SlitherBenchmarkRunner:
             overall.false_negatives += len(result.false_negatives)
 
             for tp in result.true_positives:
-                cat = self.DETECTOR_MAP.get(tp.get('type', '').lower(), 'other')
+                cat = self.DETECTOR_MAP.get(tp.get("type", "").lower(), "other")
                 if cat not in metrics_by_cat:
                     metrics_by_cat[cat] = DetectionMetrics(category=cat)
                 metrics_by_cat[cat].true_positives += 1
 
             for fp in result.false_positives:
-                cat = self.DETECTOR_MAP.get(fp.get('type', '').lower(), 'other')
+                cat = self.DETECTOR_MAP.get(fp.get("type", "").lower(), "other")
                 if cat not in metrics_by_cat:
                     metrics_by_cat[cat] = DetectionMetrics(category=cat)
                 metrics_by_cat[cat].false_positives += 1

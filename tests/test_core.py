@@ -381,7 +381,7 @@ class TestToolDiscovery:
         discovery = ToolDiscovery()
 
         # First discovery
-        tools1 = discovery.discover()
+        discovery.discover()
         # Force re-discovery
         tools2 = discovery.discover(force=True)
 
@@ -411,7 +411,7 @@ class TestToolDiscoveryCoverage:
         from src.core.tool_discovery import ToolDiscovery
 
         # Create ToolDiscovery with a non-existent path
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory():
             # Mock Path to return non-existent paths
             with patch.object(ToolDiscovery, "_find_adapters_path") as mock_find:
                 mock_find.side_effect = RuntimeError("Could not find adapters directory")
@@ -2427,7 +2427,7 @@ class TestOptimizedOrchestratorCoverage:
         mock_result = {"status": "error", "error": "Test", "findings": []}
         with patch.object(orchestrator, "_run_tool", return_value=mock_result):
             with patch.object(orchestrator, "_determine_tools", return_value=["test_tool"]):
-                result = orchestrator.analyze(str(test_file), progress_callback=callback)
+                orchestrator.analyze(str(test_file), progress_callback=callback)
                 assert len(callback_calls) >= 1
 
     def test_determine_tools_with_tools_list(self):
@@ -2548,7 +2548,7 @@ class TestOptimizedOrchestratorCoverage:
         )
 
         with patch.object(orchestrator, "analyze", return_value=mock_result) as mock_analyze:
-            result = orchestrator.quick_scan(str(test_file))
+            orchestrator.quick_scan(str(test_file))
             mock_analyze.assert_called_once()
             # Check that layers=['static_analysis'] was passed
             call_kwargs = mock_analyze.call_args[1]
@@ -2581,7 +2581,7 @@ class TestOptimizedOrchestratorCoverage:
         )
 
         with patch.object(orchestrator, "analyze", return_value=mock_result) as mock_analyze:
-            result = orchestrator.deep_scan(str(test_file))
+            orchestrator.deep_scan(str(test_file))
             mock_analyze.assert_called_once()
 
     def test_clear_cache(self, tmp_path):
@@ -2716,7 +2716,7 @@ class TestOptimizedOrchestratorCoverage:
         mock_result = {"status": "success", "findings": [{"type": "test"}]}
         with patch.object(orchestrator, "_run_tool", return_value=mock_result):
             with patch.object(orchestrator, "_determine_tools", return_value=["test_tool"]):
-                result = orchestrator.analyze(str(test_file), progress_callback=callback)
+                orchestrator.analyze(str(test_file), progress_callback=callback)
                 # Should have 'success' in callback
                 assert any(status == "success" for _, status in callback_calls)
 
@@ -3481,7 +3481,7 @@ class TestConfigLoaderCoverage:
 
         config = MIESCConfig()
         # Should get default config
-        assert config.version == "5.0.1"
+        assert config.version == "5.0.2"
         self._reset_singleton()
 
     def test_get_config_function(self):

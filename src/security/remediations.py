@@ -3,12 +3,14 @@ MIESC Remediation Database
 Comprehensive remediation suggestions for Solidity vulnerabilities
 """
 
-from typing import Dict, List, Optional
 from dataclasses import dataclass
+from typing import Dict, List, Optional
+
 
 @dataclass
 class Remediation:
     """Remediation suggestion for a vulnerability."""
+
     swc_id: str
     title: str
     severity: str
@@ -41,9 +43,8 @@ function transfer(address to, uint amount) public {
     balances[to] += amount;
 }""",
         references=["https://swcregistry.io/docs/SWC-100"],
-        gas_impact="None"
+        gas_impact="None",
     ),
-
     # SWC-101: Integer Overflow and Underflow
     "SWC-101": Remediation(
         swc_id="SWC-101",
@@ -62,9 +63,8 @@ using SafeMath for uint256;
 uint256 balance = 100;
 balance = balance.sub(1);  // Reverts on underflow""",
         references=["https://swcregistry.io/docs/SWC-101", "CWE-190"],
-        gas_impact="Minimal (~200 gas per operation)"
+        gas_impact="Minimal (~200 gas per operation)",
     ),
-
     # SWC-102: Outdated Compiler Version
     "SWC-102": Remediation(
         swc_id="SWC-102",
@@ -75,9 +75,8 @@ balance = balance.sub(1);  // Reverts on underflow""",
         example_vulnerable="""pragma solidity ^0.4.0;  // Very outdated!""",
         example_fixed="""pragma solidity 0.8.19;  // Recent stable version""",
         references=["https://swcregistry.io/docs/SWC-102"],
-        gas_impact="May improve gas efficiency"
+        gas_impact="May improve gas efficiency",
     ),
-
     # SWC-103: Floating Pragma
     "SWC-103": Remediation(
         swc_id="SWC-103",
@@ -88,9 +87,8 @@ balance = balance.sub(1);  // Reverts on underflow""",
         example_vulnerable="""pragma solidity ^0.8.0;  // Floating - can be 0.8.0 to 0.8.x""",
         example_fixed="""pragma solidity 0.8.19;  // Locked to specific version""",
         references=["https://swcregistry.io/docs/SWC-103"],
-        gas_impact="None"
+        gas_impact="None",
     ),
-
     # SWC-104: Unchecked Call Return Value
     "SWC-104": Remediation(
         swc_id="SWC-104",
@@ -109,9 +107,8 @@ require(success, "Transfer failed");
 import "@openzeppelin/contracts/utils/Address.sol";
 Address.sendValue(payable(recipient), amount);""",
         references=["https://swcregistry.io/docs/SWC-104", "CWE-252"],
-        gas_impact="Minimal"
+        gas_impact="Minimal",
     ),
-
     # SWC-105: Unprotected Ether Withdrawal
     "SWC-105": Remediation(
         swc_id="SWC-105",
@@ -133,9 +130,8 @@ contract SecureContract is Ownable {
 }""",
         references=["https://swcregistry.io/docs/SWC-105", "CWE-284"],
         gas_impact="~2,100 gas for SLOAD",
-        breaking_change=True
+        breaking_change=True,
     ),
-
     # SWC-106: Unprotected SELFDESTRUCT
     "SWC-106": Remediation(
         swc_id="SWC-106",
@@ -163,9 +159,8 @@ function destroy() external onlyOwner {
 }""",
         references=["https://swcregistry.io/docs/SWC-106"],
         gas_impact="None",
-        breaking_change=True
+        breaking_change=True,
     ),
-
     # SWC-107: Reentrancy
     "SWC-107": Remediation(
         swc_id="SWC-107",
@@ -197,9 +192,8 @@ contract SecureBank is ReentrancyGuard {
     }
 }""",
         references=["https://swcregistry.io/docs/SWC-107", "CWE-841", "The DAO Hack"],
-        gas_impact="~10,000 gas for ReentrancyGuard"
+        gas_impact="~10,000 gas for ReentrancyGuard",
     ),
-
     # SWC-108: State Variable Default Visibility
     "SWC-108": Remediation(
         swc_id="SWC-108",
@@ -213,9 +207,8 @@ uint256 secretData;""",
 uint256 private secretData;
 uint256 public visibleData;""",
         references=["https://swcregistry.io/docs/SWC-108"],
-        gas_impact="None"
+        gas_impact="None",
     ),
-
     # SWC-109: Uninitialized Storage Pointer
     "SWC-109": Remediation(
         swc_id="SWC-109",
@@ -236,9 +229,8 @@ function secure(uint id) external {
     s.value = 123;
 }""",
         references=["https://swcregistry.io/docs/SWC-109"],
-        gas_impact="None"
+        gas_impact="None",
     ),
-
     # SWC-110: Assert Violation
     "SWC-110": Remediation(
         swc_id="SWC-110",
@@ -255,9 +247,8 @@ function transfer(uint amount) external {
     require(amount > 0, "Amount must be positive");
 }""",
         references=["https://swcregistry.io/docs/SWC-110"],
-        gas_impact="Assert consumes all gas, require refunds remaining"
+        gas_impact="Assert consumes all gas, require refunds remaining",
     ),
-
     # SWC-111: Use of Deprecated Functions
     "SWC-111": Remediation(
         swc_id="SWC-111",
@@ -278,9 +269,8 @@ keccak256(abi.encodePacked(...))
 selfdestruct(payable(addr))
 blockhash(n)""",
         references=["https://swcregistry.io/docs/SWC-111"],
-        gas_impact="None"
+        gas_impact="None",
     ),
-
     # SWC-112: Delegatecall to Untrusted Callee
     "SWC-112": Remediation(
         swc_id="SWC-112",
@@ -303,9 +293,8 @@ function execute(bytes calldata data) external {
 }""",
         references=["https://swcregistry.io/docs/SWC-112", "Parity Wallet Hack"],
         gas_impact="None",
-        breaking_change=True
+        breaking_change=True,
     ),
-
     # SWC-113: DoS with Failed Call
     "SWC-113": Remediation(
         swc_id="SWC-113",
@@ -331,9 +320,8 @@ function claimReward() external {
     require(success, "Transfer failed");
 }""",
         references=["https://swcregistry.io/docs/SWC-113", "King of Ether"],
-        gas_impact="Slightly higher for individual withdrawals"
+        gas_impact="Slightly higher for individual withdrawals",
     ),
-
     # SWC-114: Transaction Order Dependence (Front-Running)
     "SWC-114": Remediation(
         swc_id="SWC-114",
@@ -364,9 +352,8 @@ function reveal(bytes32 answer, bytes32 salt) external {
     }
 }""",
         references=["https://swcregistry.io/docs/SWC-114"],
-        gas_impact="Higher due to two transactions"
+        gas_impact="Higher due to two transactions",
     ),
-
     # SWC-115: Authorization through tx.origin
     "SWC-115": Remediation(
         swc_id="SWC-115",
@@ -385,9 +372,8 @@ function transfer(address to, uint amount) external {
     balances[to] += amount;
 }""",
         references=["https://swcregistry.io/docs/SWC-115", "CWE-477"],
-        gas_impact="None"
+        gas_impact="None",
     ),
-
     # SWC-116: Block Timestamp Dependence
     "SWC-116": Remediation(
         swc_id="SWC-116",
@@ -413,9 +399,8 @@ function reveal(uint256 commitment) external {
     ));
 }""",
         references=["https://swcregistry.io/docs/SWC-116"],
-        gas_impact="Varies by solution"
+        gas_impact="Varies by solution",
     ),
-
     # SWC-117: Signature Malleability
     "SWC-117": Remediation(
         swc_id="SWC-117",
@@ -445,9 +430,8 @@ function verify(bytes32 hash, bytes memory sig) public view returns (address) {
     return hash.toEthSignedMessageHash().recover(sig);
 }""",
         references=["https://swcregistry.io/docs/SWC-117"],
-        gas_impact="Minimal"
+        gas_impact="Minimal",
     ),
-
     # SWC-120: Weak Sources of Randomness
     "SWC-120": Remediation(
         swc_id="SWC-120",
@@ -480,9 +464,8 @@ function fulfillRandomWords(uint256, uint256[] memory randomWords) internal over
     // Use randomWords[0] for secure randomness
 }""",
         references=["https://swcregistry.io/docs/SWC-120", "Chainlink VRF"],
-        gas_impact="~200,000 gas for VRF request"
+        gas_impact="~200,000 gas for VRF request",
     ),
-
     # SWC-123: Requirement Violation
     "SWC-123": Remediation(
         swc_id="SWC-123",
@@ -506,9 +489,8 @@ function withdraw(uint amount) external nonReentrant {
     require(success, "Transfer failed");
 }""",
         references=["https://swcregistry.io/docs/SWC-123"],
-        gas_impact="Additional gas per check"
+        gas_impact="Additional gas per check",
     ),
-
     # SWC-124: Write to Arbitrary Storage Location
     "SWC-124": Remediation(
         swc_id="SWC-124",
@@ -531,9 +513,8 @@ function write(uint256 index, uint256 value) external {
 // Better: Use mapping
 mapping(uint256 => uint256) public data;""",
         references=["https://swcregistry.io/docs/SWC-124"],
-        gas_impact="Minimal for bounds check"
+        gas_impact="Minimal for bounds check",
     ),
-
     # SWC-126: Insufficient Gas Griefing
     "SWC-126": Remediation(
         swc_id="SWC-126",
@@ -551,7 +532,7 @@ function forward(address payable recipient) external payable {
     require(success, "Transfer failed");
 }""",
         references=["https://swcregistry.io/docs/SWC-126"],
-        gas_impact="None"
+        gas_impact="None",
     ),
 }
 
@@ -563,47 +544,47 @@ def get_remediation(swc_id: str) -> Optional[Remediation]:
 
 def get_remediation_by_type(vuln_type: str) -> Optional[Remediation]:
     """Get remediation by vulnerability type name."""
-    type_lower = vuln_type.lower().replace('_', '-').replace(' ', '-')
+    type_lower = vuln_type.lower().replace("_", "-").replace(" ", "-")
 
     # Direct mapping of common names to SWC IDs
     type_map = {
-        'reentrancy': 'SWC-107',
-        'reentrancy-eth': 'SWC-107',
-        'reentrancy-benign': 'SWC-107',
-        'reentrancy-events': 'SWC-107',
-        'reentrancy-no-eth': 'SWC-107',
-        'unchecked-call': 'SWC-104',
-        'unchecked-lowlevel': 'SWC-104',
-        'unchecked-send': 'SWC-104',
-        'access-control': 'SWC-105',
-        'unprotected-ether': 'SWC-105',
-        'integer-overflow': 'SWC-101',
-        'integer-underflow': 'SWC-101',
-        'overflow': 'SWC-101',
-        'underflow': 'SWC-101',
-        'tx-origin': 'SWC-115',
-        'tx.origin': 'SWC-115',
-        'delegatecall': 'SWC-112',
-        'controlled-delegatecall': 'SWC-112',
-        'floating-pragma': 'SWC-103',
-        'pragma': 'SWC-103',
-        'solc-version': 'SWC-102',
-        'outdated-solc': 'SWC-102',
-        'uninitialized-storage': 'SWC-109',
-        'uninitialized-local': 'SWC-109',
-        'timestamp': 'SWC-116',
-        'block-timestamp': 'SWC-116',
-        'weak-prng': 'SWC-120',
-        'weak-randomness': 'SWC-120',
-        'signature-malleability': 'SWC-117',
-        'front-running': 'SWC-114',
-        'tod': 'SWC-114',
-        'dos': 'SWC-113',
-        'denial-of-service': 'SWC-113',
-        'selfdestruct': 'SWC-106',
-        'suicidal': 'SWC-106',
-        'arbitrary-write': 'SWC-124',
-        'arbitrary-storage': 'SWC-124',
+        "reentrancy": "SWC-107",
+        "reentrancy-eth": "SWC-107",
+        "reentrancy-benign": "SWC-107",
+        "reentrancy-events": "SWC-107",
+        "reentrancy-no-eth": "SWC-107",
+        "unchecked-call": "SWC-104",
+        "unchecked-lowlevel": "SWC-104",
+        "unchecked-send": "SWC-104",
+        "access-control": "SWC-105",
+        "unprotected-ether": "SWC-105",
+        "integer-overflow": "SWC-101",
+        "integer-underflow": "SWC-101",
+        "overflow": "SWC-101",
+        "underflow": "SWC-101",
+        "tx-origin": "SWC-115",
+        "tx.origin": "SWC-115",
+        "delegatecall": "SWC-112",
+        "controlled-delegatecall": "SWC-112",
+        "floating-pragma": "SWC-103",
+        "pragma": "SWC-103",
+        "solc-version": "SWC-102",
+        "outdated-solc": "SWC-102",
+        "uninitialized-storage": "SWC-109",
+        "uninitialized-local": "SWC-109",
+        "timestamp": "SWC-116",
+        "block-timestamp": "SWC-116",
+        "weak-prng": "SWC-120",
+        "weak-randomness": "SWC-120",
+        "signature-malleability": "SWC-117",
+        "front-running": "SWC-114",
+        "tod": "SWC-114",
+        "dos": "SWC-113",
+        "denial-of-service": "SWC-113",
+        "selfdestruct": "SWC-106",
+        "suicidal": "SWC-106",
+        "arbitrary-write": "SWC-124",
+        "arbitrary-storage": "SWC-124",
     }
 
     for key, swc_id in type_map.items():
@@ -627,7 +608,7 @@ SECURITY_CHECKLIST = [
             "Critical state changes are protected",
             "No use of tx.origin for authentication",
             "Multi-sig or timelock for sensitive operations",
-        ]
+        ],
     },
     {
         "category": "Reentrancy",
@@ -636,7 +617,7 @@ SECURITY_CHECKLIST = [
             "ReentrancyGuard used on external-calling functions",
             "State updated before external calls",
             "No callbacks to untrusted addresses",
-        ]
+        ],
     },
     {
         "category": "Arithmetic",
@@ -645,7 +626,7 @@ SECURITY_CHECKLIST = [
             "No unchecked arithmetic in critical paths",
             "Division by zero protected",
             "Percentage calculations handle precision",
-        ]
+        ],
     },
     {
         "category": "External Calls",
@@ -654,7 +635,7 @@ SECURITY_CHECKLIST = [
             "No unbounded loops with external calls",
             "Pull-over-push pattern for ETH transfers",
             "Adequate gas forwarded for recipient contracts",
-        ]
+        ],
     },
     {
         "category": "Token Handling",
@@ -663,7 +644,7 @@ SECURITY_CHECKLIST = [
             "SafeERC20 used for token transfers",
             "Fee-on-transfer tokens handled",
             "Rebasing tokens considered",
-        ]
+        ],
     },
     {
         "category": "Upgradeability",
@@ -672,7 +653,7 @@ SECURITY_CHECKLIST = [
             "Initializers protected from re-initialization",
             "Implementation contracts properly secured",
             "Upgrade authorization restricted",
-        ]
+        ],
     },
     {
         "category": "Oracle & External Data",
@@ -681,7 +662,7 @@ SECURITY_CHECKLIST = [
             "Multiple oracle sources or fallbacks",
             "Flash loan attacks considered",
             "Price manipulation resistance",
-        ]
+        ],
     },
     {
         "category": "Best Practices",
@@ -690,7 +671,7 @@ SECURITY_CHECKLIST = [
             "Events emitted for state changes",
             "NatSpec documentation complete",
             "Test coverage > 90%",
-        ]
+        ],
     },
 ]
 

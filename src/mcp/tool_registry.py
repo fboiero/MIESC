@@ -13,16 +13,16 @@ Version: 5.0.0
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Callable
-from dataclasses import dataclass, field, asdict
-from datetime import datetime
+from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class ToolCategory(Enum):
     """MCP Tool categories for MIESC."""
+
     STATIC_ANALYSIS = "static_analysis"
     DYNAMIC_TESTING = "dynamic_testing"
     SYMBOLIC_EXECUTION = "symbolic_execution"
@@ -44,6 +44,7 @@ class MCPToolParameter:
     Follows JSON Schema specification for parameter definitions
     as required by MCP tools/list response.
     """
+
     name: str
     type: str  # "string", "number", "boolean", "array", "object"
     description: str
@@ -84,6 +85,7 @@ class MCPTool:
         layer: MIESC defense layer (1-7)
         available: Whether the tool is currently available
     """
+
     name: str
     description: str
     category: ToolCategory
@@ -123,7 +125,7 @@ class MCPTool:
                 "type": "object",
                 "properties": properties,
                 "required": required,
-            }
+            },
         }
 
     def to_extended_format(self) -> Dict[str, Any]:
@@ -181,470 +183,497 @@ class MCPToolRegistry:
         """Register MIESC's default tools for MCP discovery."""
 
         # Tool 1: Run Audit (Primary capability)
-        self.register(MCPTool(
-            name="miesc_run_audit",
-            description=(
-                "Execute comprehensive multi-layer security audit on a Solidity smart contract. "
-                "Uses 9-layer defense-in-depth approach with 50 security tools: static analysis, "
-                "symbolic execution, fuzzing, formal verification, AI/ML detection, and advanced "
-                "ensemble methods. Returns normalized findings with severity, confidence scores, "
-                "and compliance mapping."
-            ),
-            category=ToolCategory.STATIC_ANALYSIS,
-            layer=1,
-            parameters=[
-                MCPToolParameter(
-                    name="contract_path",
-                    type="string",
-                    description="Path to the Solidity contract file (.sol)"
+        self.register(
+            MCPTool(
+                name="miesc_run_audit",
+                description=(
+                    "Execute comprehensive multi-layer security audit on a Solidity smart contract. "
+                    "Uses 9-layer defense-in-depth approach with 50 security tools: static analysis, "
+                    "symbolic execution, fuzzing, formal verification, AI/ML detection, and advanced "
+                    "ensemble methods. Returns normalized findings with severity, confidence scores, "
+                    "and compliance mapping."
                 ),
-                MCPToolParameter(
-                    name="tools",
-                    type="array",
-                    description="List of tools to run (default: all enabled)",
-                    required=False,
-                    items={"type": "string"}
-                ),
-                MCPToolParameter(
-                    name="layers",
-                    type="array",
-                    description="Specific layers to execute (1-9)",
-                    required=False,
-                    items={"type": "integer", "minimum": 1, "maximum": 9}
-                ),
-                MCPToolParameter(
-                    name="enable_ai_triage",
-                    type="boolean",
-                    description="Enable AI-powered finding triage and correlation",
-                    required=False,
-                    default=True
-                ),
-            ]
-        ))
+                category=ToolCategory.STATIC_ANALYSIS,
+                layer=1,
+                parameters=[
+                    MCPToolParameter(
+                        name="contract_path",
+                        type="string",
+                        description="Path to the Solidity contract file (.sol)",
+                    ),
+                    MCPToolParameter(
+                        name="tools",
+                        type="array",
+                        description="List of tools to run (default: all enabled)",
+                        required=False,
+                        items={"type": "string"},
+                    ),
+                    MCPToolParameter(
+                        name="layers",
+                        type="array",
+                        description="Specific layers to execute (1-9)",
+                        required=False,
+                        items={"type": "integer", "minimum": 1, "maximum": 9},
+                    ),
+                    MCPToolParameter(
+                        name="enable_ai_triage",
+                        type="boolean",
+                        description="Enable AI-powered finding triage and correlation",
+                        required=False,
+                        default=True,
+                    ),
+                ],
+            )
+        )
 
         # Tool 2: Correlate Findings
-        self.register(MCPTool(
-            name="miesc_correlate",
-            description=(
-                "Correlate security findings from multiple tools using the Smart Correlation Engine. "
-                "Applies cross-validation, deduplication, and false positive filtering. "
-                "Outputs unified findings with enhanced confidence scores."
-            ),
-            category=ToolCategory.CORRELATION,
-            parameters=[
-                MCPToolParameter(
-                    name="findings",
-                    type="object",
-                    description="Dict mapping tool names to their findings arrays"
+        self.register(
+            MCPTool(
+                name="miesc_correlate",
+                description=(
+                    "Correlate security findings from multiple tools using the Smart Correlation Engine. "
+                    "Applies cross-validation, deduplication, and false positive filtering. "
+                    "Outputs unified findings with enhanced confidence scores."
                 ),
-                MCPToolParameter(
-                    name="min_tools_for_validation",
-                    type="integer",
-                    description="Minimum tools to confirm a finding (default: 2)",
-                    required=False,
-                    default=2
-                ),
-                MCPToolParameter(
-                    name="confidence_threshold",
-                    type="number",
-                    description="Minimum confidence score (0.0-1.0, default: 0.5)",
-                    required=False,
-                    default=0.5
-                ),
-            ]
-        ))
+                category=ToolCategory.CORRELATION,
+                parameters=[
+                    MCPToolParameter(
+                        name="findings",
+                        type="object",
+                        description="Dict mapping tool names to their findings arrays",
+                    ),
+                    MCPToolParameter(
+                        name="min_tools_for_validation",
+                        type="integer",
+                        description="Minimum tools to confirm a finding (default: 2)",
+                        required=False,
+                        default=2,
+                    ),
+                    MCPToolParameter(
+                        name="confidence_threshold",
+                        type="number",
+                        description="Minimum confidence score (0.0-1.0, default: 0.5)",
+                        required=False,
+                        default=0.5,
+                    ),
+                ],
+            )
+        )
 
         # Tool 3: Map Compliance
-        self.register(MCPTool(
-            name="miesc_map_compliance",
-            description=(
-                "Map security findings to international compliance frameworks. "
-                "Supports ISO/IEC 27001, NIST CSF, OWASP, CWE, SWC, and MITRE ATT&CK. "
-                "Returns compliance matrix with coverage scores and identified gaps."
-            ),
-            category=ToolCategory.COMPLIANCE,
-            parameters=[
-                MCPToolParameter(
-                    name="findings",
-                    type="array",
-                    description="List of security findings to map"
+        self.register(
+            MCPTool(
+                name="miesc_map_compliance",
+                description=(
+                    "Map security findings to international compliance frameworks. "
+                    "Supports ISO/IEC 27001, NIST CSF, OWASP, CWE, SWC, and MITRE ATT&CK. "
+                    "Returns compliance matrix with coverage scores and identified gaps."
                 ),
-                MCPToolParameter(
-                    name="frameworks",
-                    type="array",
-                    description="Target frameworks (default: all)",
-                    required=False,
-                    items={"type": "string", "enum": ["ISO27001", "NIST", "OWASP", "CWE", "SWC", "MITRE"]}
-                ),
-            ]
-        ))
+                category=ToolCategory.COMPLIANCE,
+                parameters=[
+                    MCPToolParameter(
+                        name="findings",
+                        type="array",
+                        description="List of security findings to map",
+                    ),
+                    MCPToolParameter(
+                        name="frameworks",
+                        type="array",
+                        description="Target frameworks (default: all)",
+                        required=False,
+                        items={
+                            "type": "string",
+                            "enum": ["ISO27001", "NIST", "OWASP", "CWE", "SWC", "MITRE"],
+                        },
+                    ),
+                ],
+            )
+        )
 
         # Tool 4: Get Remediation
-        self.register(MCPTool(
-            name="miesc_remediate",
-            description=(
-                "Enrich vulnerabilities with remediation suggestions. "
-                "Provides SWC-based fix patterns, code examples, effort estimates, "
-                "and prioritized fix plans based on severity and exploitability."
-            ),
-            category=ToolCategory.REMEDIATION,
-            parameters=[
-                MCPToolParameter(
-                    name="findings",
-                    type="array",
-                    description="List of vulnerability findings"
+        self.register(
+            MCPTool(
+                name="miesc_remediate",
+                description=(
+                    "Enrich vulnerabilities with remediation suggestions. "
+                    "Provides SWC-based fix patterns, code examples, effort estimates, "
+                    "and prioritized fix plans based on severity and exploitability."
                 ),
-                MCPToolParameter(
-                    name="contract_name",
-                    type="string",
-                    description="Name of the contract for context",
-                    required=False
-                ),
-                MCPToolParameter(
-                    name="source_code",
-                    type="string",
-                    description="Source code for contextual analysis",
-                    required=False
-                ),
-            ]
-        ))
+                category=ToolCategory.REMEDIATION,
+                parameters=[
+                    MCPToolParameter(
+                        name="findings", type="array", description="List of vulnerability findings"
+                    ),
+                    MCPToolParameter(
+                        name="contract_name",
+                        type="string",
+                        description="Name of the contract for context",
+                        required=False,
+                    ),
+                    MCPToolParameter(
+                        name="source_code",
+                        type="string",
+                        description="Source code for contextual analysis",
+                        required=False,
+                    ),
+                ],
+            )
+        )
 
         # Tool 5: Generate Report
-        self.register(MCPTool(
-            name="miesc_generate_report",
-            description=(
-                "Generate structured security audit report. "
-                "Supports JSON, Markdown, HTML, and PDF formats. "
-                "Includes executive summary, detailed findings, and compliance status."
-            ),
-            category=ToolCategory.REPORTING,
-            parameters=[
-                MCPToolParameter(
-                    name="audit_results",
-                    type="object",
-                    description="Complete audit results object"
+        self.register(
+            MCPTool(
+                name="miesc_generate_report",
+                description=(
+                    "Generate structured security audit report. "
+                    "Supports JSON, Markdown, HTML, and PDF formats. "
+                    "Includes executive summary, detailed findings, and compliance status."
                 ),
-                MCPToolParameter(
-                    name="format",
-                    type="string",
-                    description="Output format",
-                    required=False,
-                    default="json",
-                    enum=["json", "markdown", "html", "pdf", "sarif"]
-                ),
-                MCPToolParameter(
-                    name="include_compliance",
-                    type="boolean",
-                    description="Include compliance mapping section",
-                    required=False,
-                    default=True
-                ),
-            ]
-        ))
+                category=ToolCategory.REPORTING,
+                parameters=[
+                    MCPToolParameter(
+                        name="audit_results",
+                        type="object",
+                        description="Complete audit results object",
+                    ),
+                    MCPToolParameter(
+                        name="format",
+                        type="string",
+                        description="Output format",
+                        required=False,
+                        default="json",
+                        enum=["json", "markdown", "html", "pdf", "sarif"],
+                    ),
+                    MCPToolParameter(
+                        name="include_compliance",
+                        type="boolean",
+                        description="Include compliance mapping section",
+                        required=False,
+                        default=True,
+                    ),
+                ],
+            )
+        )
 
         # Tool 6: Quick Scan
-        self.register(MCPTool(
-            name="miesc_quick_scan",
-            description=(
-                "Fast security scan using only static analysis tools. "
-                "Ideal for CI/CD pipelines and quick feedback. "
-                "Uses Slither, Aderyn, and Solhint."
-            ),
-            category=ToolCategory.STATIC_ANALYSIS,
-            layer=1,
-            parameters=[
-                MCPToolParameter(
-                    name="contract_path",
-                    type="string",
-                    description="Path to the Solidity contract file"
+        self.register(
+            MCPTool(
+                name="miesc_quick_scan",
+                description=(
+                    "Fast security scan using only static analysis tools. "
+                    "Ideal for CI/CD pipelines and quick feedback. "
+                    "Uses Slither, Aderyn, and Solhint."
                 ),
-                MCPToolParameter(
-                    name="timeout",
-                    type="integer",
-                    description="Timeout in seconds (default: 60)",
-                    required=False,
-                    default=60
-                ),
-            ]
-        ))
+                category=ToolCategory.STATIC_ANALYSIS,
+                layer=1,
+                parameters=[
+                    MCPToolParameter(
+                        name="contract_path",
+                        type="string",
+                        description="Path to the Solidity contract file",
+                    ),
+                    MCPToolParameter(
+                        name="timeout",
+                        type="integer",
+                        description="Timeout in seconds (default: 60)",
+                        required=False,
+                        default=60,
+                    ),
+                ],
+            )
+        )
 
         # Tool 7: Deep Scan
-        self.register(MCPTool(
-            name="miesc_deep_scan",
-            description=(
-                "Comprehensive security scan using all 9 defense layers (50 tools). "
-                "Includes symbolic execution, fuzzing, formal verification, AI analysis, "
-                "ML detection, cross-chain/ZK security, and advanced AI ensemble. "
-                "Recommended for pre-deployment audits."
-            ),
-            category=ToolCategory.SYMBOLIC_EXECUTION,
-            layer=3,
-            parameters=[
-                MCPToolParameter(
-                    name="contract_path",
-                    type="string",
-                    description="Path to the Solidity contract file"
+        self.register(
+            MCPTool(
+                name="miesc_deep_scan",
+                description=(
+                    "Comprehensive security scan using all 9 defense layers (50 tools). "
+                    "Includes symbolic execution, fuzzing, formal verification, AI analysis, "
+                    "ML detection, cross-chain/ZK security, and advanced AI ensemble. "
+                    "Recommended for pre-deployment audits."
                 ),
-                MCPToolParameter(
-                    name="timeout",
-                    type="integer",
-                    description="Timeout per tool in seconds (default: 300)",
-                    required=False,
-                    default=300
-                ),
-            ]
-        ))
+                category=ToolCategory.SYMBOLIC_EXECUTION,
+                layer=3,
+                parameters=[
+                    MCPToolParameter(
+                        name="contract_path",
+                        type="string",
+                        description="Path to the Solidity contract file",
+                    ),
+                    MCPToolParameter(
+                        name="timeout",
+                        type="integer",
+                        description="Timeout per tool in seconds (default: 300)",
+                        required=False,
+                        default=300,
+                    ),
+                ],
+            )
+        )
 
         # Tool 8: Get Metrics
-        self.register(MCPTool(
-            name="miesc_get_metrics",
-            description=(
-                "Retrieve MIESC's scientific validation metrics. "
-                "Returns precision, recall, F1-score, and Cohen's kappa from thesis experiments. "
-                "Based on analysis of 5,127 smart contracts."
-            ),
-            category=ToolCategory.REPORTING,
-            parameters=[]
-        ))
+        self.register(
+            MCPTool(
+                name="miesc_get_metrics",
+                description=(
+                    "Retrieve MIESC's scientific validation metrics. "
+                    "Returns precision, recall, F1-score, and Cohen's kappa from thesis experiments. "
+                    "Based on analysis of 5,127 smart contracts."
+                ),
+                category=ToolCategory.REPORTING,
+                parameters=[],
+            )
+        )
 
         # Tool 9: Get Status
-        self.register(MCPTool(
-            name="miesc_get_status",
-            description=(
-                "Get MIESC agent status, available tools, and health information. "
-                "Returns version, active capabilities, and component health."
-            ),
-            category=ToolCategory.REPORTING,
-            parameters=[]
-        ))
+        self.register(
+            MCPTool(
+                name="miesc_get_status",
+                description=(
+                    "Get MIESC agent status, available tools, and health information. "
+                    "Returns version, active capabilities, and component health."
+                ),
+                category=ToolCategory.REPORTING,
+                parameters=[],
+            )
+        )
 
         # Tool 10: Analyze DeFi
-        self.register(MCPTool(
-            name="miesc_analyze_defi",
-            description=(
-                "Specialized DeFi vulnerability analysis. "
-                "Detects flash loan attacks, oracle manipulation, MEV vulnerabilities, "
-                "reentrancy in DeFi contexts, and protocol-specific issues."
-            ),
-            category=ToolCategory.SPECIALIZED,
-            layer=7,
-            parameters=[
-                MCPToolParameter(
-                    name="contract_path",
-                    type="string",
-                    description="Path to the DeFi contract file"
+        self.register(
+            MCPTool(
+                name="miesc_analyze_defi",
+                description=(
+                    "Specialized DeFi vulnerability analysis. "
+                    "Detects flash loan attacks, oracle manipulation, MEV vulnerabilities, "
+                    "reentrancy in DeFi contexts, and protocol-specific issues."
                 ),
-                MCPToolParameter(
-                    name="protocol_type",
-                    type="string",
-                    description="DeFi protocol type for targeted analysis",
-                    required=False,
-                    enum=["lending", "dex", "yield", "bridge", "nft", "dao", "generic"]
-                ),
-            ]
-        ))
+                category=ToolCategory.SPECIALIZED,
+                layer=7,
+                parameters=[
+                    MCPToolParameter(
+                        name="contract_path",
+                        type="string",
+                        description="Path to the DeFi contract file",
+                    ),
+                    MCPToolParameter(
+                        name="protocol_type",
+                        type="string",
+                        description="DeFi protocol type for targeted analysis",
+                        required=False,
+                        enum=["lending", "dex", "yield", "bridge", "nft", "dao", "generic"],
+                    ),
+                ],
+            )
+        )
 
         # Tool 11: Detect Exploit Chains
-        self.register(MCPTool(
-            name="miesc_detect_exploit_chains",
-            description=(
-                "Analyze findings to detect exploit chains - combinations of "
-                "vulnerabilities that create more severe attack paths. "
-                "Identifies critical multi-step attack scenarios."
-            ),
-            category=ToolCategory.CORRELATION,
-            parameters=[
-                MCPToolParameter(
-                    name="findings",
-                    type="object",
-                    description="Dict of tool findings to analyze"
+        self.register(
+            MCPTool(
+                name="miesc_detect_exploit_chains",
+                description=(
+                    "Analyze findings to detect exploit chains - combinations of "
+                    "vulnerabilities that create more severe attack paths. "
+                    "Identifies critical multi-step attack scenarios."
                 ),
-            ]
-        ))
+                category=ToolCategory.CORRELATION,
+                parameters=[
+                    MCPToolParameter(
+                        name="findings",
+                        type="object",
+                        description="Dict of tool findings to analyze",
+                    ),
+                ],
+            )
+        )
 
         # Tool 12: Run Specific Tool
-        self.register(MCPTool(
-            name="miesc_run_tool",
-            description=(
-                "Run a specific security analysis tool on a contract. "
-                "Choose from 50 available tools across 9 defense layers."
-            ),
-            category=ToolCategory.STATIC_ANALYSIS,
-            parameters=[
-                MCPToolParameter(
-                    name="tool_name",
-                    type="string",
-                    description="Name of the tool to run (e.g., 'slither', 'mythril')"
+        self.register(
+            MCPTool(
+                name="miesc_run_tool",
+                description=(
+                    "Run a specific security analysis tool on a contract. "
+                    "Choose from 50 available tools across 9 defense layers."
                 ),
-                MCPToolParameter(
-                    name="contract_path",
-                    type="string",
-                    description="Path to the Solidity contract file"
-                ),
-                MCPToolParameter(
-                    name="timeout",
-                    type="integer",
-                    description="Timeout in seconds (default: 300)",
-                    required=False,
-                    default=300
-                ),
-            ]
-        ))
+                category=ToolCategory.STATIC_ANALYSIS,
+                parameters=[
+                    MCPToolParameter(
+                        name="tool_name",
+                        type="string",
+                        description="Name of the tool to run (e.g., 'slither', 'mythril')",
+                    ),
+                    MCPToolParameter(
+                        name="contract_path",
+                        type="string",
+                        description="Path to the Solidity contract file",
+                    ),
+                    MCPToolParameter(
+                        name="timeout",
+                        type="integer",
+                        description="Timeout in seconds (default: 300)",
+                        required=False,
+                        default=300,
+                    ),
+                ],
+            )
+        )
 
         # Tool 13: Run Layer
-        self.register(MCPTool(
-            name="miesc_run_layer",
-            description=(
-                "Run all tools in a specific defense layer (1-9). "
-                "Layers: 1=Static, 2=Dynamic, 3=Symbolic, 4=Formal, "
-                "5=AI, 6=ML, 7=Specialized, 8=Cross-Chain/ZK, 9=Ensemble."
-            ),
-            category=ToolCategory.STATIC_ANALYSIS,
-            parameters=[
-                MCPToolParameter(
-                    name="layer",
-                    type="integer",
-                    description="Layer number (1-9)"
+        self.register(
+            MCPTool(
+                name="miesc_run_layer",
+                description=(
+                    "Run all tools in a specific defense layer (1-9). "
+                    "Layers: 1=Static, 2=Dynamic, 3=Symbolic, 4=Formal, "
+                    "5=AI, 6=ML, 7=Specialized, 8=Cross-Chain/ZK, 9=Ensemble."
                 ),
-                MCPToolParameter(
-                    name="contract_path",
-                    type="string",
-                    description="Path to the Solidity contract file"
-                ),
-                MCPToolParameter(
-                    name="timeout",
-                    type="integer",
-                    description="Timeout per tool in seconds (default: 300)",
-                    required=False,
-                    default=300
-                ),
-            ]
-        ))
+                category=ToolCategory.STATIC_ANALYSIS,
+                parameters=[
+                    MCPToolParameter(
+                        name="layer", type="integer", description="Layer number (1-9)"
+                    ),
+                    MCPToolParameter(
+                        name="contract_path",
+                        type="string",
+                        description="Path to the Solidity contract file",
+                    ),
+                    MCPToolParameter(
+                        name="timeout",
+                        type="integer",
+                        description="Timeout per tool in seconds (default: 300)",
+                        required=False,
+                        default=300,
+                    ),
+                ],
+            )
+        )
 
         # Tool 14: Profile Scan
-        self.register(MCPTool(
-            name="miesc_profile_scan",
-            description=(
-                "Run analysis with a predefined profile. "
-                "Profiles: quick (L1), balanced (L1+L3+L5), thorough (all), "
-                "defi (DeFi-focused), formal (L1+L3+L4)."
-            ),
-            category=ToolCategory.STATIC_ANALYSIS,
-            parameters=[
-                MCPToolParameter(
-                    name="contract_path",
-                    type="string",
-                    description="Path to the Solidity contract file"
+        self.register(
+            MCPTool(
+                name="miesc_profile_scan",
+                description=(
+                    "Run analysis with a predefined profile. "
+                    "Profiles: quick (L1), balanced (L1+L3+L5), thorough (all), "
+                    "defi (DeFi-focused), formal (L1+L3+L4)."
                 ),
-                MCPToolParameter(
-                    name="profile",
-                    type="string",
-                    description="Scan profile",
-                    required=False,
-                    default="balanced",
-                    enum=["quick", "balanced", "thorough", "defi", "formal"]
-                ),
-            ]
-        ))
+                category=ToolCategory.STATIC_ANALYSIS,
+                parameters=[
+                    MCPToolParameter(
+                        name="contract_path",
+                        type="string",
+                        description="Path to the Solidity contract file",
+                    ),
+                    MCPToolParameter(
+                        name="profile",
+                        type="string",
+                        description="Scan profile",
+                        required=False,
+                        default="balanced",
+                        enum=["quick", "balanced", "thorough", "defi", "formal"],
+                    ),
+                ],
+            )
+        )
 
         # Tool 15: Filter False Positives
-        self.register(MCPTool(
-            name="miesc_filter_fp",
-            description=(
-                "Filter false positives from findings using ML-based classifier. "
-                "Reduces noise and increases precision of audit results."
-            ),
-            category=ToolCategory.CORRELATION,
-            parameters=[
-                MCPToolParameter(
-                    name="findings",
-                    type="array",
-                    description="List of findings to filter"
+        self.register(
+            MCPTool(
+                name="miesc_filter_fp",
+                description=(
+                    "Filter false positives from findings using ML-based classifier. "
+                    "Reduces noise and increases precision of audit results."
                 ),
-                MCPToolParameter(
-                    name="threshold",
-                    type="number",
-                    description="FP probability threshold (default: 0.50)",
-                    required=False,
-                    default=0.50
-                ),
-            ]
-        ))
+                category=ToolCategory.CORRELATION,
+                parameters=[
+                    MCPToolParameter(
+                        name="findings", type="array", description="List of findings to filter"
+                    ),
+                    MCPToolParameter(
+                        name="threshold",
+                        type="number",
+                        description="FP probability threshold (default: 0.50)",
+                        required=False,
+                        default=0.50,
+                    ),
+                ],
+            )
+        )
 
         # Tool 16: Verify Finding
-        self.register(MCPTool(
-            name="miesc_verify_finding",
-            description=(
-                "Verify a specific finding using Z3 counter-example generation. "
-                "Uses Layer 9 vuln_verifier for formal verification of findings."
-            ),
-            category=ToolCategory.FORMAL_VERIFICATION,
-            layer=9,
-            parameters=[
-                MCPToolParameter(
-                    name="finding",
-                    type="object",
-                    description="The finding to verify"
+        self.register(
+            MCPTool(
+                name="miesc_verify_finding",
+                description=(
+                    "Verify a specific finding using Z3 counter-example generation. "
+                    "Uses Layer 9 vuln_verifier for formal verification of findings."
                 ),
-                MCPToolParameter(
-                    name="contract_path",
-                    type="string",
-                    description="Path to the contract file"
-                ),
-            ]
-        ))
+                category=ToolCategory.FORMAL_VERIFICATION,
+                layer=9,
+                parameters=[
+                    MCPToolParameter(
+                        name="finding", type="object", description="The finding to verify"
+                    ),
+                    MCPToolParameter(
+                        name="contract_path", type="string", description="Path to the contract file"
+                    ),
+                ],
+            )
+        )
 
         # Tool 17: List Tools
-        self.register(MCPTool(
-            name="miesc_list_tools",
-            description=(
-                "List all 50 available security analysis tools. "
-                "Optionally filter by layer number (1-9)."
-            ),
-            category=ToolCategory.REPORTING,
-            parameters=[
-                MCPToolParameter(
-                    name="layer",
-                    type="integer",
-                    description="Filter by layer number (1-9)",
-                    required=False
+        self.register(
+            MCPTool(
+                name="miesc_list_tools",
+                description=(
+                    "List all 50 available security analysis tools. "
+                    "Optionally filter by layer number (1-9)."
                 ),
-            ]
-        ))
+                category=ToolCategory.REPORTING,
+                parameters=[
+                    MCPToolParameter(
+                        name="layer",
+                        type="integer",
+                        description="Filter by layer number (1-9)",
+                        required=False,
+                    ),
+                ],
+            )
+        )
 
         # Tool 18: Get Tool Info
-        self.register(MCPTool(
-            name="miesc_get_tool_info",
-            description=(
-                "Get detailed information about a specific security tool. "
-                "Returns metadata, capabilities, installation instructions."
-            ),
-            category=ToolCategory.REPORTING,
-            parameters=[
-                MCPToolParameter(
-                    name="tool_name",
-                    type="string",
-                    description="Name of the tool to query"
+        self.register(
+            MCPTool(
+                name="miesc_get_tool_info",
+                description=(
+                    "Get detailed information about a specific security tool. "
+                    "Returns metadata, capabilities, installation instructions."
                 ),
-            ]
-        ))
+                category=ToolCategory.REPORTING,
+                parameters=[
+                    MCPToolParameter(
+                        name="tool_name", type="string", description="Name of the tool to query"
+                    ),
+                ],
+            )
+        )
 
         # Tool 19: Read Contract
-        self.register(MCPTool(
-            name="miesc_read_contract",
-            description=(
-                "Read a smart contract file and return its contents with metadata. "
-                "Extracts pragma version, contract names, and source code."
-            ),
-            category=ToolCategory.STATIC_ANALYSIS,
-            parameters=[
-                MCPToolParameter(
-                    name="contract_path",
-                    type="string",
-                    description="Path to the contract file"
+        self.register(
+            MCPTool(
+                name="miesc_read_contract",
+                description=(
+                    "Read a smart contract file and return its contents with metadata. "
+                    "Extracts pragma version, contract names, and source code."
                 ),
-            ]
-        ))
+                category=ToolCategory.STATIC_ANALYSIS,
+                parameters=[
+                    MCPToolParameter(
+                        name="contract_path", type="string", description="Path to the contract file"
+                    ),
+                ],
+            )
+        )
 
     def register(self, tool: MCPTool) -> None:
         """
@@ -752,10 +781,7 @@ class MCPToolRegistry:
         if tool_name not in self._tools:
             return {
                 "isError": True,
-                "content": [{
-                    "type": "text",
-                    "text": f"Unknown tool: {tool_name}"
-                }]
+                "content": [{"type": "text", "text": f"Unknown tool: {tool_name}"}],
             }
 
         tool = self._tools[tool_name]
@@ -763,19 +789,17 @@ class MCPToolRegistry:
         if not tool.available:
             return {
                 "isError": True,
-                "content": [{
-                    "type": "text",
-                    "text": f"Tool '{tool_name}' is currently unavailable"
-                }]
+                "content": [
+                    {"type": "text", "text": f"Tool '{tool_name}' is currently unavailable"}
+                ],
             }
 
         if tool_name not in self._handlers:
             return {
                 "isError": True,
-                "content": [{
-                    "type": "text",
-                    "text": f"No handler registered for tool: {tool_name}"
-                }]
+                "content": [
+                    {"type": "text", "text": f"No handler registered for tool: {tool_name}"}
+                ],
             }
 
         try:
@@ -783,27 +807,27 @@ class MCPToolRegistry:
 
             # Call handler (support both sync and async)
             import asyncio
+
             if asyncio.iscoroutinefunction(handler):
                 result = await handler(**arguments)
             else:
                 result = handler(**arguments)
 
             return {
-                "content": [{
-                    "type": "text",
-                    "text": str(result) if not isinstance(result, dict) else None,
-                    "data": result if isinstance(result, dict) else None
-                }]
+                "content": [
+                    {
+                        "type": "text",
+                        "text": str(result) if not isinstance(result, dict) else None,
+                        "data": result if isinstance(result, dict) else None,
+                    }
+                ]
             }
 
         except Exception as e:
             logger.error(f"Tool '{tool_name}' execution failed: {e}", exc_info=True)
             return {
                 "isError": True,
-                "content": [{
-                    "type": "text",
-                    "text": f"Tool execution error: {str(e)}"
-                }]
+                "content": [{"type": "text", "text": f"Tool execution error: {str(e)}"}],
             }
 
     def get_mcp_response(self) -> Dict[str, Any]:
@@ -816,9 +840,7 @@ class MCPToolRegistry:
         Returns:
             MCP-compliant tools/list response
         """
-        return {
-            "tools": self.list_tools()
-        }
+        return {"tools": self.list_tools()}
 
     def get_capabilities(self) -> Dict[str, Any]:
         """
@@ -827,17 +849,15 @@ class MCPToolRegistry:
         Returns capabilities object for MCP handshake.
         """
         return {
-            "tools": {
-                "listChanged": True  # We support tools/list_changed notifications
-            },
+            "tools": {"listChanged": True},  # We support tools/list_changed notifications
             "experimental": {
                 "miesc": {
                     "version": "5.0.0",
                     "layers": 9,
                     "adapters": 50,
-                    "frameworks": ["ISO27001", "NIST", "OWASP", "CWE", "SWC", "MITRE"]
+                    "frameworks": ["ISO27001", "NIST", "OWASP", "CWE", "SWC", "MITRE"],
                 }
-            }
+            },
         }
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -852,7 +872,7 @@ class MCPToolRegistry:
             "available_tools": sum(1 for t in self._tools.values() if t.available),
             "tools_with_handlers": len(self._handlers),
             "categories": categories,
-            "layers_covered": list(set(t.layer for t in self._tools.values() if t.layer)),
+            "layers_covered": list({t.layer for t in self._tools.values() if t.layer}),
         }
 
 

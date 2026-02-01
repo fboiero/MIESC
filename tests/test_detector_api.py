@@ -574,7 +574,7 @@ class TestIntegration:
 
                 # Check for state changes after external calls
                 call_matches = self.find_pattern(source_code, r"\.call\{")
-                for match, line, code in call_matches:
+                for _match, line, code in call_matches:
                     findings.append(
                         self.create_finding(
                             title="Potential Reentrancy",
@@ -630,7 +630,7 @@ class TestIntegration:
 
             def analyze(self, source_code, file_path=None):
                 findings = []
-                for match, line, code in self.find_pattern(source_code, r"\.call\{"):
+                for _match, line, _code in self.find_pattern(source_code, r"\.call\{"):
                     findings.append(
                         self.create_finding(
                             title="Call detected",
@@ -646,7 +646,7 @@ class TestIntegration:
 
             def analyze(self, source_code, file_path=None):
                 findings = []
-                for match, line, code in self.find_pattern(source_code, r"\.transfer\("):
+                for _match, line, _code in self.find_pattern(source_code, r"\.transfer\("):
                     findings.append(
                         self.create_finding(
                             title="Transfer detected",
@@ -699,7 +699,7 @@ contract Test {
 
         assert isinstance(results, list)
         assert len(results) >= 1
-        for match, start_line, end_line in results:
+        for _match, start_line, end_line in results:
             assert start_line >= 1
             assert end_line >= start_line
 

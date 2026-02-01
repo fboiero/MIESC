@@ -4,17 +4,19 @@ Recommendation Agent for MCP Architecture
 Intelligent agent that analyzes audit results and recommends next steps
 Provides actionable guidance for developers, auditors, and security teams
 """
+
 import json
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 try:
     import openai
+
     OPENAI_AVAILABLE = True
 except ImportError:
     openai = None  # type: ignore
     OPENAI_AVAILABLE = False
-from datetime import datetime
+
 from src.agents.base_agent import BaseAgent
 from src.mcp.context_bus import MCPMessage
 
@@ -55,9 +57,9 @@ class RecommendationAgent(BaseAgent):
                 "testing_strategy_recommendation",
                 "tool_selection_guidance",
                 "effort_estimation",
-                "prevention_strategy"
+                "prevention_strategy",
             ],
-            agent_type="recommendation"
+            agent_type="recommendation",
         )
 
         self.model = model
@@ -67,12 +69,8 @@ class RecommendationAgent(BaseAgent):
 
         # Subscribe to analysis results
         self.subscribe_to(
-            context_types=[
-                "interpreted_findings",
-                "ai_triage",
-                "audit_summary"
-            ],
-            callback=self._handle_analysis_results
+            context_types=["interpreted_findings", "ai_triage", "audit_summary"],
+            callback=self._handle_analysis_results,
         )
 
     def get_context_types(self) -> List[str]:
@@ -81,7 +79,7 @@ class RecommendationAgent(BaseAgent):
             "remediation_roadmap",
             "deployment_readiness",
             "testing_recommendations",
-            "prevention_strategy"
+            "prevention_strategy",
         ]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
@@ -108,7 +106,7 @@ class RecommendationAgent(BaseAgent):
             "testing_recommendations": [],
             "prevention_strategy": {},
             "estimated_effort": {},
-            "risk_assessment": {}
+            "risk_assessment": {},
         }
 
         # Collect analysis data
@@ -121,38 +119,27 @@ class RecommendationAgent(BaseAgent):
 
         if not findings:
             logger.warning("RecommendationAgent: No findings available")
-            results["next_steps"] = [{
-                "priority": "High",
-                "action": "Run security analysis",
-                "reason": "No vulnerability scan results found"
-            }]
+            results["next_steps"] = [
+                {
+                    "priority": "High",
+                    "action": "Run security analysis",
+                    "reason": "No vulnerability scan results found",
+                }
+            ]
             return results
 
         logger.info(f"RecommendationAgent: Generating recommendations for {len(findings)} findings")
 
         # Phase 1: Prioritized next steps
-        next_steps = self._generate_next_steps(
-            findings,
-            audit_summary,
-            target_env,
-            value_at_risk
-        )
+        next_steps = self._generate_next_steps(findings, audit_summary, target_env, value_at_risk)
         results["next_steps"] = next_steps
 
         # Phase 2: Detailed remediation roadmap
-        roadmap = self._generate_remediation_roadmap(
-            findings,
-            timeline,
-            project_context
-        )
+        roadmap = self._generate_remediation_roadmap(findings, timeline, project_context)
         results["remediation_roadmap"] = roadmap
 
         # Phase 3: Deployment readiness assessment
-        readiness = self._assess_deployment_readiness(
-            findings,
-            target_env,
-            value_at_risk
-        )
+        readiness = self._assess_deployment_readiness(findings, target_env, value_at_risk)
         results["deployment_readiness"] = readiness
 
         # Phase 4: Testing recommendations
@@ -181,19 +168,15 @@ class RecommendationAgent(BaseAgent):
     def _handle_analysis_results(self, message: MCPMessage) -> None:
         """Handle incoming analysis results"""
         logger.info(
-            f"RecommendationAgent: Received {message.context_type} "
-            f"from {message.agent}"
+            f"RecommendationAgent: Received {message.context_type} " f"from {message.agent}"
         )
 
     def _collect_findings(self) -> List[Dict[str, Any]]:
         """Collect findings from context bus"""
-        contexts = self.aggregate_contexts([
-            "interpreted_findings",
-            "ai_triage"
-        ])
+        contexts = self.aggregate_contexts(["interpreted_findings", "ai_triage"])
 
         all_findings = []
-        for context_type, messages in contexts.items():
+        for _context_type, messages in contexts.items():
             for message in messages:
                 if isinstance(message.data, list):
                     all_findings.extend(message.data)
@@ -210,10 +193,13 @@ class RecommendationAgent(BaseAgent):
 
         return {}
 
-    def _generate_next_steps(self, findings: List[Dict[str, Any]],
-                            audit_summary: Dict[str, Any],
-                            target_env: str,
-                            value_at_risk: float) -> List[Dict[str, Any]]:
+    def _generate_next_steps(
+        self,
+        findings: List[Dict[str, Any]],
+        audit_summary: Dict[str, Any],
+        target_env: str,
+        value_at_risk: float,
+    ) -> List[Dict[str, Any]]:
         """
         Generate prioritized next steps using LLM
 
@@ -288,12 +274,12 @@ Respond in JSON format:
                             "You are an expert smart contract security consultant who provides "
                             "clear, actionable recommendations to development teams. You understand "
                             "the balance between security, development velocity, and business needs."
-                        )
+                        ),
                     },
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
-                max_tokens=3000
+                max_tokens=3000,
             )
 
             result = json.loads(response.choices[0].message.content)
@@ -311,44 +297,52 @@ Respond in JSON format:
         steps = []
 
         if critical_count > 0:
-            steps.append({
-                "priority": "Critical",
-                "category": "remediation",
-                "action": f"Fix {critical_count} critical vulnerabilities immediately",
-                "reason": "Critical vulnerabilities can lead to fund loss or contract compromise",
-                "estimated_effort": f"{critical_count * 4}-{critical_count * 8} hours"
-            })
+            steps.append(
+                {
+                    "priority": "Critical",
+                    "category": "remediation",
+                    "action": f"Fix {critical_count} critical vulnerabilities immediately",
+                    "reason": "Critical vulnerabilities can lead to fund loss or contract compromise",
+                    "estimated_effort": f"{critical_count * 4}-{critical_count * 8} hours",
+                }
+            )
 
         if high_count > 0:
-            steps.append({
-                "priority": "High",
-                "category": "remediation",
-                "action": f"Address {high_count} high-severity issues",
-                "reason": "High-severity issues should be fixed before deployment",
-                "estimated_effort": f"{high_count * 2}-{high_count * 4} hours"
-            })
+            steps.append(
+                {
+                    "priority": "High",
+                    "category": "remediation",
+                    "action": f"Address {high_count} high-severity issues",
+                    "reason": "High-severity issues should be fixed before deployment",
+                    "estimated_effort": f"{high_count * 2}-{high_count * 4} hours",
+                }
+            )
 
-        steps.append({
-            "priority": "Medium",
-            "category": "testing",
-            "action": "Write exploit tests for identified vulnerabilities",
-            "reason": "Verify that fixes actually work",
-            "estimated_effort": "1-2 days"
-        })
+        steps.append(
+            {
+                "priority": "Medium",
+                "category": "testing",
+                "action": "Write exploit tests for identified vulnerabilities",
+                "reason": "Verify that fixes actually work",
+                "estimated_effort": "1-2 days",
+            }
+        )
 
-        steps.append({
-            "priority": "Medium",
-            "category": "audit",
-            "action": "Consider professional security audit",
-            "reason": "Automated tools cannot catch all vulnerabilities",
-            "estimated_effort": "2-4 weeks (external audit)"
-        })
+        steps.append(
+            {
+                "priority": "Medium",
+                "category": "audit",
+                "action": "Consider professional security audit",
+                "reason": "Automated tools cannot catch all vulnerabilities",
+                "estimated_effort": "2-4 weeks (external audit)",
+            }
+        )
 
         return steps
 
-    def _generate_remediation_roadmap(self, findings: List[Dict[str, Any]],
-                                     timeline: str,
-                                     project_context: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_remediation_roadmap(
+        self, findings: List[Dict[str, Any]], timeline: str, project_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Generate detailed remediation roadmap
 
@@ -364,7 +358,7 @@ Respond in JSON format:
             "phases": [],
             "total_findings": len(findings),
             "estimated_completion": timeline,
-            "critical_path": []
+            "critical_path": [],
         }
 
         # Group findings by severity
@@ -375,72 +369,80 @@ Respond in JSON format:
 
         # Phase 1: Critical fixes
         if by_severity["Critical"]:
-            roadmap["phases"].append({
-                "phase": 1,
-                "name": "Critical Vulnerability Remediation",
-                "duration": "1-2 weeks",
-                "findings_count": len(by_severity["Critical"]),
-                "findings": by_severity["Critical"][:5],  # Top 5
-                "blockers": True,
-                "deliverables": [
-                    "All critical vulnerabilities fixed",
-                    "Fix verification tests written",
-                    "Re-scan showing no critical issues"
-                ]
-            })
+            roadmap["phases"].append(
+                {
+                    "phase": 1,
+                    "name": "Critical Vulnerability Remediation",
+                    "duration": "1-2 weeks",
+                    "findings_count": len(by_severity["Critical"]),
+                    "findings": by_severity["Critical"][:5],  # Top 5
+                    "blockers": True,
+                    "deliverables": [
+                        "All critical vulnerabilities fixed",
+                        "Fix verification tests written",
+                        "Re-scan showing no critical issues",
+                    ],
+                }
+            )
 
         # Phase 2: High-severity fixes
         if by_severity["High"]:
-            roadmap["phases"].append({
-                "phase": 2,
-                "name": "High-Severity Issue Resolution",
-                "duration": "1-2 weeks",
-                "findings_count": len(by_severity["High"]),
-                "findings": by_severity["High"][:5],
-                "blockers": False,
-                "deliverables": [
-                    "All high-severity issues addressed",
-                    "Code review completed",
-                    "Integration tests passing"
-                ]
-            })
+            roadmap["phases"].append(
+                {
+                    "phase": 2,
+                    "name": "High-Severity Issue Resolution",
+                    "duration": "1-2 weeks",
+                    "findings_count": len(by_severity["High"]),
+                    "findings": by_severity["High"][:5],
+                    "blockers": False,
+                    "deliverables": [
+                        "All high-severity issues addressed",
+                        "Code review completed",
+                        "Integration tests passing",
+                    ],
+                }
+            )
 
         # Phase 3: Medium/Low improvements
         if by_severity["Medium"] or by_severity["Low"]:
-            roadmap["phases"].append({
-                "phase": 3,
-                "name": "Code Quality Improvements",
-                "duration": "2-3 weeks",
-                "findings_count": len(by_severity["Medium"]) + len(by_severity["Low"]),
-                "findings": (by_severity["Medium"] + by_severity["Low"])[:5],
-                "blockers": False,
-                "deliverables": [
-                    "Medium/low issues resolved",
-                    "Code quality improved",
-                    "Technical debt reduced"
-                ]
-            })
+            roadmap["phases"].append(
+                {
+                    "phase": 3,
+                    "name": "Code Quality Improvements",
+                    "duration": "2-3 weeks",
+                    "findings_count": len(by_severity["Medium"]) + len(by_severity["Low"]),
+                    "findings": (by_severity["Medium"] + by_severity["Low"])[:5],
+                    "blockers": False,
+                    "deliverables": [
+                        "Medium/low issues resolved",
+                        "Code quality improved",
+                        "Technical debt reduced",
+                    ],
+                }
+            )
 
         # Phase 4: Validation
-        roadmap["phases"].append({
-            "phase": len(roadmap["phases"]) + 1,
-            "name": "Security Validation",
-            "duration": "1 week",
-            "findings_count": 0,
-            "blockers": False,
-            "deliverables": [
-                "Full re-scan with all tools",
-                "Professional audit (if applicable)",
-                "Penetration testing",
-                "Deployment readiness review"
-            ]
-        })
+        roadmap["phases"].append(
+            {
+                "phase": len(roadmap["phases"]) + 1,
+                "name": "Security Validation",
+                "duration": "1 week",
+                "findings_count": 0,
+                "blockers": False,
+                "deliverables": [
+                    "Full re-scan with all tools",
+                    "Professional audit (if applicable)",
+                    "Penetration testing",
+                    "Deployment readiness review",
+                ],
+            }
+        )
 
         return roadmap
 
-    def _assess_deployment_readiness(self, findings: List[Dict[str, Any]],
-                                    target_env: str,
-                                    value_at_risk: float) -> Dict[str, Any]:
+    def _assess_deployment_readiness(
+        self, findings: List[Dict[str, Any]], target_env: str, value_at_risk: float
+    ) -> Dict[str, Any]:
         """
         Assess whether contract is ready for deployment
 
@@ -464,7 +466,9 @@ Respond in JSON format:
         elif high_count > 0 and target_env == "mainnet":
             status = "NOT_READY"
             blocking_issues = high_count
-            message = f"⚠️ NOT READY: {high_count} high-severity issues should be fixed before mainnet"
+            message = (
+                f"⚠️ NOT READY: {high_count} high-severity issues should be fixed before mainnet"
+            )
         elif high_count > 3:
             status = "RISKY"
             blocking_issues = high_count
@@ -487,9 +491,7 @@ Respond in JSON format:
             )
 
         if target_env == "mainnet" and status != "READY":
-            recommendations.append(
-                "🛑 Deploy to testnet first for extensive testing"
-            )
+            recommendations.append("🛑 Deploy to testnet first for extensive testing")
 
         if critical_count == 0 and high_count == 0:
             recommendations.append(
@@ -507,14 +509,11 @@ Respond in JSON format:
                 "tests_written": False,  # External input needed
                 "code_reviewed": False,  # External input needed
                 "audit_completed": False,  # External input needed
-                "testnet_deployed": target_env != "mainnet"
+                "testnet_deployed": target_env != "mainnet",
             },
             "risk_level": self._calculate_risk_level(
-                critical_count,
-                high_count,
-                medium_count,
-                value_at_risk
-            )
+                critical_count, high_count, medium_count, value_at_risk
+            ),
         }
 
     def _recommend_testing_strategy(self, findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -523,57 +522,70 @@ Respond in JSON format:
 
         # Check for specific vulnerability types
         has_reentrancy = any("reentrancy" in f.get("type", "").lower() for f in findings)
-        has_arithmetic = any("overflow" in f.get("type", "").lower() or "underflow" in f.get("type", "").lower() for f in findings)
+        has_arithmetic = any(
+            "overflow" in f.get("type", "").lower() or "underflow" in f.get("type", "").lower()
+            for f in findings
+        )
         has_access_control = any("access" in f.get("type", "").lower() for f in findings)
 
         if has_reentrancy:
-            recommendations.append({
-                "test_type": "Exploit Test",
-                "tool": "Foundry",
-                "target": "Reentrancy vulnerabilities",
-                "description": "Write attack contract that attempts reentrancy",
-                "priority": "Critical",
-                "example_framework": "forge test"
-            })
+            recommendations.append(
+                {
+                    "test_type": "Exploit Test",
+                    "tool": "Foundry",
+                    "target": "Reentrancy vulnerabilities",
+                    "description": "Write attack contract that attempts reentrancy",
+                    "priority": "Critical",
+                    "example_framework": "forge test",
+                }
+            )
 
         if has_arithmetic:
-            recommendations.append({
-                "test_type": "Property-Based Testing",
-                "tool": "Echidna",
-                "target": "Arithmetic operations",
-                "description": "Fuzz test arithmetic to find overflow/underflow",
-                "priority": "High",
-                "example_framework": "echidna-test"
-            })
+            recommendations.append(
+                {
+                    "test_type": "Property-Based Testing",
+                    "tool": "Echidna",
+                    "target": "Arithmetic operations",
+                    "description": "Fuzz test arithmetic to find overflow/underflow",
+                    "priority": "High",
+                    "example_framework": "echidna-test",
+                }
+            )
 
         if has_access_control:
-            recommendations.append({
-                "test_type": "Access Control Testing",
-                "tool": "Foundry",
-                "target": "Permission-restricted functions",
-                "description": "Test all access control modifiers with unauthorized accounts",
-                "priority": "High",
-                "example_framework": "forge test"
-            })
+            recommendations.append(
+                {
+                    "test_type": "Access Control Testing",
+                    "tool": "Foundry",
+                    "target": "Permission-restricted functions",
+                    "description": "Test all access control modifiers with unauthorized accounts",
+                    "priority": "High",
+                    "example_framework": "forge test",
+                }
+            )
 
         # General recommendations
-        recommendations.append({
-            "test_type": "Integration Testing",
-            "tool": "Hardhat/Foundry",
-            "target": "Complete contract workflows",
-            "description": "Test realistic user scenarios end-to-end",
-            "priority": "Medium",
-            "example_framework": "hardhat test"
-        })
+        recommendations.append(
+            {
+                "test_type": "Integration Testing",
+                "tool": "Hardhat/Foundry",
+                "target": "Complete contract workflows",
+                "description": "Test realistic user scenarios end-to-end",
+                "priority": "Medium",
+                "example_framework": "hardhat test",
+            }
+        )
 
-        recommendations.append({
-            "test_type": "Formal Verification",
-            "tool": "Certora",
-            "target": "Critical invariants",
-            "description": "Prove mathematical properties of core logic",
-            "priority": "Medium",
-            "example_framework": "certoraRun"
-        })
+        recommendations.append(
+            {
+                "test_type": "Formal Verification",
+                "tool": "Certora",
+                "target": "Critical invariants",
+                "description": "Prove mathematical properties of core logic",
+                "priority": "Medium",
+                "example_framework": "certoraRun",
+            }
+        )
 
         return recommendations
 
@@ -585,27 +597,27 @@ Respond in JSON format:
                 "Follow Checks-Effects-Interactions pattern",
                 "Use Solidity 0.8+ for automatic overflow protection",
                 "Implement comprehensive test coverage (>90%)",
-                "Use static analysis in CI/CD pipeline"
+                "Use static analysis in CI/CD pipeline",
             ],
             "code_review_checklist": [
                 "Review all external calls for reentrancy",
                 "Verify access control on privileged functions",
                 "Check arithmetic operations for edge cases",
                 "Validate input parameters",
-                "Ensure proper event emission"
+                "Ensure proper event emission",
             ],
             "tooling_recommendations": [
                 "Slither: Run on every commit (fast)",
                 "Echidna: Run weekly (fuzzing)",
                 "Mythril: Run before PR merge (symbolic execution)",
-                "Certora: Run for critical functions (formal verification)"
+                "Certora: Run for critical functions (formal verification)",
             ],
             "training_recommendations": [
                 "Study OWASP Smart Contract Top 10",
                 "Review historical exploits (The DAO, Parity, etc.)",
                 "Practice secure coding patterns",
-                "Stay updated on latest vulnerabilities"
-            ]
+                "Stay updated on latest vulnerabilities",
+            ],
         }
 
     def _estimate_effort(self, roadmap: Dict[str, Any]) -> Dict[str, Any]:
@@ -619,12 +631,14 @@ Respond in JSON format:
             hours = findings_count * 3  # 3 hours per finding average
 
             total_hours += hours
-            by_phase.append({
-                "phase": phase["phase"],
-                "name": phase["name"],
-                "estimated_hours": hours,
-                "estimated_days": hours / 8
-            })
+            by_phase.append(
+                {
+                    "phase": phase["phase"],
+                    "name": phase["name"],
+                    "estimated_hours": hours,
+                    "estimated_days": hours / 8,
+                }
+            )
 
         return {
             "total_hours": total_hours,
@@ -632,12 +646,12 @@ Respond in JSON format:
             "total_weeks": total_hours / 40,
             "by_phase": by_phase,
             "team_size_recommendation": "2-3 developers + 1 security engineer",
-            "timeline_estimate": f"{int(total_hours / 40)}-{int(total_hours / 20)} weeks"
+            "timeline_estimate": f"{int(total_hours / 40)}-{int(total_hours / 20)} weeks",
         }
 
-    def _assess_risks(self, findings: List[Dict[str, Any]],
-                     value_at_risk: float,
-                     target_env: str) -> Dict[str, Any]:
+    def _assess_risks(
+        self, findings: List[Dict[str, Any]], value_at_risk: float, target_env: str
+    ) -> Dict[str, Any]:
         """Assess overall security risks"""
         critical_count = sum(1 for f in findings if f.get("severity") == "Critical")
         high_count = sum(1 for f in findings if f.get("severity") == "High")
@@ -664,9 +678,9 @@ Respond in JSON format:
                 "critical_vulnerabilities": critical_count,
                 "high_vulnerabilities": high_count,
                 "value_at_risk": value_at_risk,
-                "target_environment": target_env
+                "target_environment": target_env,
             },
-            "recommendation": self._get_risk_recommendation(risk_level, value_at_risk)
+            "recommendation": self._get_risk_recommendation(risk_level, value_at_risk),
         }
 
     def _get_risk_recommendation(self, risk_level: str, value_at_risk: float) -> str:
@@ -682,8 +696,9 @@ Respond in JSON format:
         else:
             return "✅ LOW RISK: No critical issues detected. Consider additional testing for production readiness."
 
-    def _calculate_risk_level(self, critical: int, high: int,
-                             medium: int, value_at_risk: float) -> str:
+    def _calculate_risk_level(
+        self, critical: int, high: int, medium: int, value_at_risk: float
+    ) -> str:
         """Calculate overall risk level"""
         if critical > 0:
             return "CRITICAL"

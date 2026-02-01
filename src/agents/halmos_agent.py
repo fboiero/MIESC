@@ -33,9 +33,9 @@ class HalmosAgent(BaseAgent):
                 "property_based_testing",
                 "path_exploration",
                 "constraint_solving",
-                "foundry_integration"
+                "foundry_integration",
             ],
-            agent_type="symbolic"
+            agent_type="symbolic",
         )
         self.halmos_path = self._find_halmos()
 
@@ -48,16 +48,13 @@ class HalmosAgent(BaseAgent):
         locations = [
             "halmos",  # PATH
             os.path.expanduser("~/.local/bin/halmos"),
-            "/usr/local/bin/halmos"
+            "/usr/local/bin/halmos",
         ]
 
         for location in locations:
             try:
                 result = subprocess.run(
-                    [location, "--version"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
+                    [location, "--version"], capture_output=True, text=True, timeout=5
                 )
                 if result.returncode == 0:
                     return location
@@ -74,7 +71,9 @@ class HalmosAgent(BaseAgent):
         """Return list of context types this agent publishes"""
         return ["symbolic_findings", "halmos_results"]
 
-    def analyze(self, contract_path: str, test_path: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    def analyze(
+        self, contract_path: str, test_path: Optional[str] = None, **kwargs
+    ) -> Dict[str, Any]:
         """
         Run Halmos symbolic testing on contracts
 
@@ -89,7 +88,7 @@ class HalmosAgent(BaseAgent):
         if not self.is_available():
             return {
                 "error": "Halmos not installed",
-                "suggestion": "Install with: pip install halmos"
+                "suggestion": "Install with: pip install halmos",
             }
 
         try:
@@ -132,7 +131,7 @@ class HalmosAgent(BaseAgent):
                 capture_output=True,
                 text=True,
                 timeout=180,  # 3 minutes timeout
-                cwd=str(project_root)
+                cwd=str(project_root),
             )
 
             # Parse output
@@ -142,7 +141,7 @@ class HalmosAgent(BaseAgent):
             findings["execution"] = {
                 "returncode": result.returncode,
                 "project_root": str(project_root),
-                "command": " ".join(cmd)
+                "command": " ".join(cmd),
             }
 
             # Publish to MCP bus
@@ -152,7 +151,7 @@ class HalmosAgent(BaseAgent):
                 "tool": "Halmos",
                 "version": self._get_version(),
                 "status": "success" if result.returncode == 0 else "completed_with_findings",
-                "findings": findings
+                "findings": findings,
             }
 
         except subprocess.TimeoutExpired:
@@ -164,10 +163,7 @@ class HalmosAgent(BaseAgent):
         """Get Halmos version"""
         try:
             result = subprocess.run(
-                [self.halmos_path, "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5
+                [self.halmos_path, "--version"], capture_output=True, text=True, timeout=5
             )
             return result.stdout.strip()
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
@@ -175,14 +171,9 @@ class HalmosAgent(BaseAgent):
 
     def _parse_halmos_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """Parse Halmos output"""
-        findings = {
-            "passed": [],
-            "failed": [],
-            "warnings": [],
-            "stats": {}
-        }
+        findings = {"passed": [], "failed": [], "warnings": [], "stats": {}}
 
-        lines = stdout.split('\n') + stderr.split('\n')
+        lines = stdout.split("\n") + stderr.split("\n")
 
         for line in lines:
             line = line.strip()
@@ -190,17 +181,10 @@ class HalmosAgent(BaseAgent):
             # Parse test results
             if "[PASS]" in line:
                 test_name = line.split("[PASS]")[1].strip()
-                findings["passed"].append({
-                    "test": test_name,
-                    "status": "pass"
-                })
+                findings["passed"].append({"test": test_name, "status": "pass"})
             elif "[FAIL]" in line:
                 test_name = line.split("[FAIL]")[1].strip()
-                findings["failed"].append({
-                    "test": test_name,
-                    "status": "fail",
-                    "severity": "high"
-                })
+                findings["failed"].append({"test": test_name, "status": "fail", "severity": "high"})
 
             # Parse warnings
             if "WARNING" in line or "Warning" in line:
@@ -234,9 +218,13 @@ class HalmosAgent(BaseAgent):
                 findings={
                     "tool": "Halmos",
                     "findings": findings,
-                    "timestamp": str(Path(contract).stat().st_mtime) if Path(contract).exists() else "unknown"
+                    "timestamp": (
+                        str(Path(contract).stat().st_mtime)
+                        if Path(contract).exists()
+                        else "unknown"
+                    ),
                 },
-                metadata={"tool_version": self._get_version()}
+                metadata={"tool_version": self._get_version()},
             )
         except Exception as e:
             # Non-critical, just log
@@ -253,9 +241,7 @@ class HalmosAgent(BaseAgent):
             Summary of findings
         """
         result = self.analyze(
-            contract_path,
-            solver_timeout=10000,  # 10 seconds
-            loop_bound=1  # Minimal loop bound
+            contract_path, solver_timeout=10000, loop_bound=1  # 10 seconds  # Minimal loop bound
         )
 
         if "error" in result:
@@ -271,7 +257,7 @@ class HalmosAgent(BaseAgent):
             "failed_tests": len(failed),
             "passed_tests": len(passed),
             "status": "pass" if len(failed) == 0 else "fail",
-            "critical_failures": failed[:3]  # Top 3
+            "critical_failures": failed[:3],  # Top 3
         }
 
     def get_capabilities(self) -> List[str]:
@@ -282,7 +268,7 @@ class HalmosAgent(BaseAgent):
             "Path exploration",
             "Constraint solving with z3",
             "No fuzzing required",
-            "Exhaustive testing"
+            "Exhaustive testing",
         ]
 
     def handle_message(self, message):
@@ -296,5 +282,5 @@ class HalmosAgent(BaseAgent):
                 self.publish_findings(
                     context_type="audit_response",
                     findings=result,
-                    metadata={"request_source": message.agent}
+                    metadata={"request_source": message.agent},
                 )

@@ -22,18 +22,23 @@ Version: 1.0.0
 Paper: Computer Networks, ScienceDirect (February 2024)
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional, Tuple
-import subprocess
-import logging
-import json
-import time
-import re
 import hashlib
+import json
+import logging
+import re
+import subprocess
 import tempfile
+import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,38 +74,38 @@ class DAGNNAdapter(ToolAdapter):
         "reentrancy": {
             "swc_id": "SWC-107",
             "severity": "Critical",
-            "description": "Reentrancy vulnerability allowing state manipulation"
+            "description": "Reentrancy vulnerability allowing state manipulation",
         },
         "integer_overflow": {
             "swc_id": "SWC-101",
             "severity": "High",
-            "description": "Integer overflow/underflow vulnerability"
+            "description": "Integer overflow/underflow vulnerability",
         },
         "unchecked_call": {
             "swc_id": "SWC-104",
             "severity": "Medium",
-            "description": "Unchecked external call return value"
+            "description": "Unchecked external call return value",
         },
         "timestamp_dependence": {
             "swc_id": "SWC-116",
             "severity": "Medium",
-            "description": "Dangerous use of block.timestamp"
+            "description": "Dangerous use of block.timestamp",
         },
         "delegatecall": {
             "swc_id": "SWC-112",
             "severity": "High",
-            "description": "Delegatecall to untrusted callee"
+            "description": "Delegatecall to untrusted callee",
         },
         "unprotected_ether": {
             "swc_id": "SWC-105",
             "severity": "Critical",
-            "description": "Unprotected ether withdrawal"
+            "description": "Unprotected ether withdrawal",
         },
         "access_control": {
             "swc_id": "SWC-115",
             "severity": "High",
-            "description": "Missing or inadequate access control"
-        }
+            "description": "Missing or inadequate access control",
+        },
     }
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -148,42 +153,39 @@ class DAGNNAdapter(ToolAdapter):
                         "timestamp_dependence",
                         "delegatecall",
                         "unprotected_ether",
-                        "access_control"
-                    ]
+                        "access_control",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if DA-GNN dependencies are available."""
         try:
             # Check Python ML libraries
-            import torch
-            import torch_geometric
-            import sklearn
-            import networkx as nx
+            import networkx as nx  # noqa: F401
+            import sklearn  # noqa: F401
+            import torch  # noqa: F401
+            import torch_geometric  # noqa: F401
 
             # Check if Slither is available (for graph extraction)
             if self.graph_backend == "slither":
-                result = subprocess.run(
-                    ["slither", "--version"],
-                    capture_output=True,
-                    timeout=5
-                )
+                result = subprocess.run(["slither", "--version"], capture_output=True, timeout=5)
                 if result.returncode != 0:
                     logger.warning("Slither not available for graph extraction")
                     return ToolStatus.NOT_INSTALLED
 
-            if hasattr(self, 'model_path'):
+            if hasattr(self, "model_path"):
                 from pathlib import Path as _Path
+
                 if self.model_path and not _Path(self.model_path).exists():
                     logger.warning(
                         "DA-GNN: Pre-trained model not found at %s. "
                         "Heuristic fallback will be used (reduced accuracy).",
-                        self.model_path
+                        self.model_path,
                     )
 
             return ToolStatus.AVAILABLE
@@ -217,7 +219,7 @@ class DAGNNAdapter(ToolAdapter):
 
         try:
             # Read contract source
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 contract_source = f.read()
 
             # Step 1: Extract graph representation (CFG + DFG)
@@ -230,10 +232,7 @@ class DAGNNAdapter(ToolAdapter):
 
             # Step 3: Generate findings from predictions
             findings = self._generate_findings_from_predictions(
-                predictions,
-                contract_path,
-                contract_source,
-                graph_data
+                predictions, contract_path, contract_source, graph_data
             )
 
             # Step 4: Calculate graph statistics
@@ -252,9 +251,9 @@ class DAGNNAdapter(ToolAdapter):
                     "graph_backend": self.graph_backend,
                     "graph_stats": graph_stats,
                     "confidence_threshold": self.confidence_threshold,
-                    "num_vulnerabilities_detected": len(findings)
+                    "num_vulnerabilities_detected": len(findings),
                 },
-                "execution_time": round(execution_time, 2)
+                "execution_time": round(execution_time, 2),
             }
 
             # Save graph if requested
@@ -271,7 +270,7 @@ class DAGNNAdapter(ToolAdapter):
                 "status": "error",
                 "error": f"Contract file not found: {contract_path}",
                 "findings": [],
-                "execution_time": time.time() - start_time
+                "execution_time": time.time() - start_time,
             }
         except Exception as e:
             logger.error(f"DA-GNN analysis failed: {e}")
@@ -281,7 +280,7 @@ class DAGNNAdapter(ToolAdapter):
                 "status": "error",
                 "error": str(e),
                 "findings": [],
-                "execution_time": time.time() - start_time
+                "execution_time": time.time() - start_time,
             }
 
     def _extract_graph_representation(self, contract_path: str, source_code: str) -> Dict[str, Any]:
@@ -310,7 +309,7 @@ class DAGNNAdapter(ToolAdapter):
                 ["slither", contract_path, "--print", "cfg"],
                 capture_output=True,
                 timeout=60,
-                text=True
+                text=True,
             )
 
             # Parse Slither output to extract graph structure
@@ -325,7 +324,7 @@ class DAGNNAdapter(ToolAdapter):
                 "edges": edges,
                 "node_features": node_features,
                 "edge_types": self._classify_edge_types(edges),
-                "backend": "slither"
+                "backend": "slither",
             }
 
         except Exception as e:
@@ -339,39 +338,43 @@ class DAGNNAdapter(ToolAdapter):
         node_features = []
 
         # Extract functions as graph nodes
-        function_pattern = r'function\s+(\w+)\s*\(([^)]*)\)\s*([^{]*)\s*\{([^}]*)\}'
+        function_pattern = r"function\s+(\w+)\s*\(([^)]*)\)\s*([^{]*)\s*\{([^}]*)\}"
         functions = re.finditer(function_pattern, source_code, re.DOTALL)
 
         node_id = 0
         for match in functions:
             func_name = match.group(1)
-            func_params = match.group(2)
-            func_modifiers = match.group(3)
+            match.group(2)
+            match.group(3)
             func_body = match.group(4)
 
             # Create node
-            nodes.append({
-                "id": node_id,
-                "type": "function",
-                "name": func_name,
-                "code": match.group(0),
-                "start_line": source_code[:match.start()].count('\n') + 1
-            })
+            nodes.append(
+                {
+                    "id": node_id,
+                    "type": "function",
+                    "name": func_name,
+                    "code": match.group(0),
+                    "start_line": source_code[: match.start()].count("\n") + 1,
+                }
+            )
 
             # Extract features for this node
             features = self._extract_node_features_from_code(func_body)
             node_features.append(features)
 
             # Detect calls to other functions (edges)
-            call_pattern = r'(\w+)\s*\('
+            call_pattern = r"(\w+)\s*\("
             for call_match in re.finditer(call_pattern, func_body):
                 called_func = call_match.group(1)
                 # Add edge if called function exists
-                edges.append({
-                    "from": node_id,
-                    "to": called_func,  # Would resolve to node ID in production
-                    "type": "call"
-                })
+                edges.append(
+                    {
+                        "from": node_id,
+                        "to": called_func,  # Would resolve to node ID in production
+                        "type": "call",
+                    }
+                )
 
             node_id += 1
 
@@ -380,7 +383,7 @@ class DAGNNAdapter(ToolAdapter):
             "edges": edges,
             "node_features": node_features,
             "edge_types": [e["type"] for e in edges],
-            "backend": "manual"
+            "backend": "manual",
         }
 
     def _parse_slither_output(self, output: str) -> Tuple[List[Dict], List[Dict]]:
@@ -428,7 +431,7 @@ class DAGNNAdapter(ToolAdapter):
 
         # Complexity metrics
         complexity = {
-            "loc": len(code.split('\n')),
+            "loc": len(code.split("\n")),
             "num_if": code.count("if "),
             "num_loops": code.count("for ") + code.count("while "),
             "num_requires": code.count("require("),
@@ -439,7 +442,9 @@ class DAGNNAdapter(ToolAdapter):
 
         # Vulnerability patterns
         patterns = {
-            "state_change_after_call": 1.0 if ".call(" in code and "=" in code.split(".call(")[-1] else 0.0,
+            "state_change_after_call": (
+                1.0 if ".call(" in code and "=" in code.split(".call(")[-1] else 0.0
+            ),
             "unchecked_call": 1.0 if ".call(" in code and "require(" not in code else 0.0,
             "timestamp_use": 1.0 if "block.timestamp" in code or "now" in code else 0.0,
             "delegatecall_use": 1.0 if "delegatecall" in code else 0.0,
@@ -478,7 +483,6 @@ class DAGNNAdapter(ToolAdapter):
         """Load and run pre-trained DA-GNN model."""
         try:
             import torch
-            import torch_geometric
 
             # Load model
             model = torch.load(self.model_path)
@@ -570,12 +574,12 @@ class DAGNNAdapter(ToolAdapter):
 
     def _detect_unchecked_call_pattern(self, source: str) -> bool:
         """Detect unchecked external call return value."""
-        call_pattern = r'\.(call|send)\([^)]*\)'
+        call_pattern = r"\.(call|send)\([^)]*\)"
         matches = re.finditer(call_pattern, source)
 
         for match in matches:
             # Check if return value is checked
-            context = source[max(0, match.start()-50):min(len(source), match.end()+50)]
+            context = source[max(0, match.start() - 50) : min(len(source), match.end() + 50)]
             if "require(" not in context and "assert(" not in context and "if" not in context:
                 return True
         return False
@@ -583,13 +587,13 @@ class DAGNNAdapter(ToolAdapter):
     def _detect_unprotected_ether_pattern(self, source: str) -> bool:
         """Detect unprotected ether withdrawal."""
         # Look for transfer/send without access control
-        transfer_pattern = r'\.transfer\([^)]*\)|\.send\([^)]*\)'
+        transfer_pattern = r"\.transfer\([^)]*\)|\.send\([^)]*\)"
         matches = re.finditer(transfer_pattern, source)
 
         for match in matches:
             # Check for access control modifiers
             func_start = source.rfind("function ", 0, match.start())
-            func_context = source[func_start:match.end()]
+            func_context = source[func_start : match.end()]
 
             has_modifier = "onlyOwner" in func_context or "require(msg.sender ==" in func_context
             if not has_modifier:
@@ -604,7 +608,9 @@ class DAGNNAdapter(ToolAdapter):
         for pattern in privileged_patterns:
             if pattern in source:
                 # Check if function has access control
-                func_match = re.search(rf'function\s+\w*{pattern}\w*[^{{]*{{', source, re.IGNORECASE)
+                func_match = re.search(
+                    rf"function\s+\w*{pattern}\w*[^{{]*{{", source, re.IGNORECASE
+                )
                 if func_match:
                     func_def = func_match.group(0)
                     if "onlyOwner" not in func_def and "require(msg.sender" not in func_def:
@@ -616,16 +622,13 @@ class DAGNNAdapter(ToolAdapter):
         return {
             "num_nodes": len(graph_data.get("nodes", [])),
             "num_edges": len(graph_data.get("edges", [])),
-            "avg_node_degree": len(graph_data.get("edges", [])) / max(1, len(graph_data.get("nodes", []))),
-            "graph_backend": graph_data.get("backend", "unknown")
+            "avg_node_degree": len(graph_data.get("edges", []))
+            / max(1, len(graph_data.get("nodes", []))),
+            "graph_backend": graph_data.get("backend", "unknown"),
         }
 
     def _generate_findings_from_predictions(
-        self,
-        predictions: Dict[str, float],
-        contract_path: str,
-        source_code: str,
-        graph_data: Dict
+        self, predictions: Dict[str, float], contract_path: str, source_code: str, graph_data: Dict
     ) -> List[Dict[str, Any]]:
         """Convert GNN predictions to MIESC findings format."""
         findings = []
@@ -643,14 +646,14 @@ class DAGNNAdapter(ToolAdapter):
                     "location": {
                         "file": Path(contract_path).name,
                         "line": 0,  # Would be extracted from graph nodes in production
-                        "code_snippet": ""
+                        "code_snippet": "",
                     },
                     "message": f"DA-GNN detected potential {vuln_class.replace('_', ' ')}",
                     "description": vuln_info.get("description", ""),
                     "swc_id": vuln_info.get("swc_id", ""),
                     "recommendation": self._get_recommendation(vuln_class),
                     "ml_model": "DA-GNN (Computer Networks 2024)",
-                    "detection_method": "graph_neural_network"
+                    "detection_method": "graph_neural_network",
                 }
                 findings.append(finding)
 
@@ -665,14 +668,14 @@ class DAGNNAdapter(ToolAdapter):
             "timestamp_dependence": "Avoid using block.timestamp for critical logic; use block.number or external oracle",
             "delegatecall": "Whitelist delegatecall targets and validate callee address",
             "unprotected_ether": "Add access control modifiers (e.g., onlyOwner) to ether withdrawal functions",
-            "access_control": "Implement proper access control using modifiers or OpenZeppelin AccessControl"
+            "access_control": "Implement proper access control using modifiers or OpenZeppelin AccessControl",
         }
         return recommendations.get(vuln_class, "Review and fix vulnerability")
 
     def _save_graph(self, graph_data: Dict, output_path: str):
         """Save graph representation to file (JSON format)."""
         try:
-            with open(output_path, 'w') as f:
+            with open(output_path, "w") as f:
                 json.dump(graph_data, f, indent=2)
             logger.info(f"Graph saved to {output_path}")
         except Exception as e:
@@ -686,7 +689,7 @@ class DAGNNAdapter(ToolAdapter):
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if file is a Solidity contract."""
-        return contract_path.endswith('.sol')
+        return contract_path.endswith(".sol")
 
     def get_default_config(self) -> Dict[str, Any]:
         """Return default configuration."""
@@ -694,14 +697,11 @@ class DAGNNAdapter(ToolAdapter):
             "model_path": None,  # Path to pre-trained model (optional)
             "confidence_threshold": 0.7,
             "graph_backend": "slither",  # or "manual"
-            "enable_attention_viz": False
+            "enable_attention_viz": False,
         }
 
 
 # Adapter registration
 def register_adapter():
     """Register DA-GNN adapter with MIESC."""
-    return {
-        "adapter_class": DAGNNAdapter,
-        "metadata": DAGNNAdapter().get_metadata()
-    }
+    return {"adapter_class": DAGNNAdapter, "metadata": DAGNNAdapter().get_metadata()}

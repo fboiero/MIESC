@@ -97,24 +97,20 @@ class TestV500AdapterMetadata:
         metadata = adapter.get_metadata()
 
         # name must be a non-empty string
-        assert isinstance(metadata.name, str) and len(metadata.name) > 0, (
-            f"{class_name}.get_metadata().name is empty or not a string"
-        )
+        assert (
+            isinstance(metadata.name, str) and len(metadata.name) > 0
+        ), f"{class_name}.get_metadata().name is empty or not a string"
 
         # category must be set
-        assert metadata.category is not None, (
-            f"{class_name}.get_metadata().category is None"
-        )
+        assert metadata.category is not None, f"{class_name}.get_metadata().category is None"
 
         # at least one capability
-        assert len(metadata.capabilities) >= 1, (
-            f"{class_name}.get_metadata().capabilities is empty"
-        )
+        assert len(metadata.capabilities) >= 1, f"{class_name}.get_metadata().capabilities is empty"
 
         # all v5.0.0 adapters are optional (no vendor lock-in)
-        assert metadata.is_optional is True, (
-            f"{class_name}.get_metadata().is_optional should be True"
-        )
+        assert (
+            metadata.is_optional is True
+        ), f"{class_name}.get_metadata().is_optional should be True"
 
 
 # ---------------------------------------------------------------------------
@@ -138,9 +134,7 @@ class TestV500AdapterAnalyze:
         result = adapter.analyze(NONEXISTENT_PATH, **kwargs)
 
         # Must return a dict
-        assert isinstance(result, dict), (
-            f"{class_name}.analyze() did not return a dict"
-        )
+        assert isinstance(result, dict), f"{class_name}.analyze() did not return a dict"
 
         # Must contain a "status" key (success, error, skipped, etc.)
         assert "status" in result, (

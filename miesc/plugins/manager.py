@@ -244,11 +244,15 @@ class PluginManager:
             cmp = compare_versions(self._miesc_version, constraint.min_version)
             if constraint.min_inclusive and cmp < 0:
                 info.status = CompatibilityStatus.INCOMPATIBLE
-                info.message = f"Requires MIESC {constraint.min_version}+, current is {self._miesc_version}"
+                info.message = (
+                    f"Requires MIESC {constraint.min_version}+, current is {self._miesc_version}"
+                )
                 return info
             elif not constraint.min_inclusive and cmp <= 0:
                 info.status = CompatibilityStatus.INCOMPATIBLE
-                info.message = f"Requires MIESC >{constraint.min_version}, current is {self._miesc_version}"
+                info.message = (
+                    f"Requires MIESC >{constraint.min_version}, current is {self._miesc_version}"
+                )
                 return info
 
         # Check maximum version
@@ -256,11 +260,15 @@ class PluginManager:
             cmp = compare_versions(self._miesc_version, constraint.max_version)
             if constraint.max_inclusive and cmp > 0:
                 info.status = CompatibilityStatus.INCOMPATIBLE
-                info.message = f"Requires MIESC <={constraint.max_version}, current is {self._miesc_version}"
+                info.message = (
+                    f"Requires MIESC <={constraint.max_version}, current is {self._miesc_version}"
+                )
                 return info
             elif not constraint.max_inclusive and cmp >= 0:
                 info.status = CompatibilityStatus.INCOMPATIBLE
-                info.message = f"Requires MIESC <{constraint.max_version}, current is {self._miesc_version}"
+                info.message = (
+                    f"Requires MIESC <{constraint.max_version}, current is {self._miesc_version}"
+                )
                 return info
 
         # Check Python version if specified
@@ -272,7 +280,9 @@ class PluginManager:
                 cmp = compare_versions(python_version, py_constraint.min_version)
                 if cmp < 0:
                     info.status = CompatibilityStatus.WARNING
-                    info.message = f"Recommends Python {py_constraint.min_version}+, using {python_version}"
+                    info.message = (
+                        f"Recommends Python {py_constraint.min_version}+, using {python_version}"
+                    )
                     return info
 
         # All checks passed
@@ -302,7 +312,10 @@ class PluginManager:
             url = f"https://pypi.org/pypi/{normalized_name}/json"
             req = urllib.request.Request(
                 url,
-                headers={"Accept": "application/json", "User-Agent": f"MIESC/{self._miesc_version}"},
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": f"MIESC/{self._miesc_version}",
+                },
             )
 
             with urllib.request.urlopen(req, timeout=timeout) as response:
@@ -593,7 +606,7 @@ class PluginManager:
                 continue
 
             # Skip hidden directories and __pycache__
-            if plugin_dir.name.startswith('.') or plugin_dir.name == '__pycache__':
+            if plugin_dir.name.startswith(".") or plugin_dir.name == "__pycache__":
                 continue
 
             # Try to load plugin info
@@ -612,9 +625,7 @@ class PluginManager:
         Returns:
             PluginInfo or None if not a valid plugin
         """
-        import importlib.util
         import tomllib
-        import inspect
 
         plugin_name = plugin_dir.name
         version = "local"
@@ -633,7 +644,11 @@ class PluginManager:
                     description = project.get("description", "")
                     authors = project.get("authors", [])
                     if authors and isinstance(authors, list):
-                        author = authors[0].get("name", "") if isinstance(authors[0], dict) else str(authors[0])
+                        author = (
+                            authors[0].get("name", "")
+                            if isinstance(authors[0], dict)
+                            else str(authors[0])
+                        )
             except Exception:
                 pass
 
@@ -647,7 +662,7 @@ class PluginManager:
         has_subpackage = any(
             (plugin_dir / d / "detectors.py").exists()
             for d in plugin_dir.iterdir()
-            if d.is_dir() and not d.name.startswith('.')
+            if d.is_dir() and not d.name.startswith(".")
         )
 
         if not (detectors or has_detectors_file or has_init or has_subpackage):
@@ -700,7 +715,7 @@ class PluginManager:
 
         # Check subpackages (e.g., my_plugin/detectors.py)
         for subdir in plugin_dir.iterdir():
-            if subdir.is_dir() and not subdir.name.startswith('.') and subdir.name != '__pycache__':
+            if subdir.is_dir() and not subdir.name.startswith(".") and subdir.name != "__pycache__":
                 if (subdir / "detectors.py").exists():
                     files_to_check.append(subdir / "detectors.py")
                 if (subdir / "__init__.py").exists():
@@ -725,11 +740,13 @@ class PluginManager:
                     continue
 
                 # Find detector classes
-                for name, obj in inspect.getmembers(module, inspect.isclass):
-                    if (obj is not BaseDetector and
-                        issubclass(obj, BaseDetector) and
-                        hasattr(obj, 'name') and
-                        hasattr(obj, 'analyze')):
+                for _name, obj in inspect.getmembers(module, inspect.isclass):
+                    if (
+                        obj is not BaseDetector
+                        and issubclass(obj, BaseDetector)
+                        and hasattr(obj, "name")
+                        and hasattr(obj, "analyze")
+                    ):
                         detector_classes.append(obj)
 
             except Exception:
@@ -761,7 +778,7 @@ class PluginManager:
             plugin_dir = self.LOCAL_PLUGINS_DIR / plugin.name
             if plugin_dir.exists():
                 for detector_class in self._find_detector_classes_in_dir(plugin_dir):
-                    detector_name = getattr(detector_class, 'name', detector_class.__name__)
+                    detector_name = getattr(detector_class, "name", detector_class.__name__)
                     detectors.append((detector_name, detector_class))
 
         return detectors
@@ -887,9 +904,9 @@ class PluginManager:
         Returns:
             List of package info dicts with keys: name, version, description, url
         """
-        import urllib.request
-        import urllib.error
         import json
+        import urllib.error
+        import urllib.request
 
         results = []
         checked_packages = set()
@@ -929,8 +946,7 @@ class PluginManager:
                 # Query PyPI JSON API
                 url = f"https://pypi.org/pypi/{package_name}/json"
                 req = urllib.request.Request(
-                    url,
-                    headers={"Accept": "application/json", "User-Agent": "MIESC/4.3.3"}
+                    url, headers={"Accept": "application/json", "User-Agent": "MIESC/4.3.3"}
                 )
 
                 with urllib.request.urlopen(req, timeout=timeout) as response:
@@ -941,23 +957,29 @@ class PluginManager:
                         name = info.get("name", package_name)
                         version = info.get("version", "unknown")
                         description = info.get("summary", "")
-                        project_url = info.get("project_url", f"https://pypi.org/project/{package_name}/")
+                        project_url = info.get(
+                            "project_url", f"https://pypi.org/project/{package_name}/"
+                        )
 
                         # Filter by query - check if query matches name or description
                         name_lower = name.lower()
                         desc_lower = description.lower()
 
-                        if (query_lower in name_lower or
-                            query_lower in desc_lower or
-                            any(word in name_lower for word in query_lower.split()) or
-                            any(word in desc_lower for word in query_lower.split())):
+                        if (
+                            query_lower in name_lower
+                            or query_lower in desc_lower
+                            or any(word in name_lower for word in query_lower.split())
+                            or any(word in desc_lower for word in query_lower.split())
+                        ):
 
-                            results.append({
-                                "name": name,
-                                "version": version,
-                                "description": description,
-                                "url": project_url,
-                            })
+                            results.append(
+                                {
+                                    "name": name,
+                                    "version": version,
+                                    "description": description,
+                                    "url": project_url,
+                                }
+                            )
 
             except urllib.error.HTTPError:
                 # Package doesn't exist, skip

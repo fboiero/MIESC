@@ -20,7 +20,7 @@ import asyncio
 import json
 import logging
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Remediation:
     """A remediation suggestion for a vulnerability."""
+
     finding_id: str
     vulnerability_type: str
     severity: str
@@ -45,6 +46,7 @@ class Remediation:
 @dataclass
 class RemediationResult:
     """Result from remediation generation."""
+
     remediations: List[Remediation]
     success_count: int
     failure_count: int
@@ -55,7 +57,9 @@ class RemediationResult:
 REMEDIATION_PATTERNS = {
     "reentrancy": {
         "pattern_name": "ReentrancyGuard + CEI",
-        "imports": ["import {ReentrancyGuard} from '@openzeppelin/contracts/utils/ReentrancyGuard.sol';"],
+        "imports": [
+            "import {ReentrancyGuard} from '@openzeppelin/contracts/utils/ReentrancyGuard.sol';"
+        ],
         "inheritance": "ReentrancyGuard",
         "modifier": "nonReentrant",
         "description": "Use OpenZeppelin ReentrancyGuard and Checks-Effects-Interactions pattern",
@@ -73,7 +77,9 @@ REMEDIATION_PATTERNS = {
     },
     "unchecked-call": {
         "pattern_name": "SafeERC20",
-        "imports": ["import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';"],
+        "imports": [
+            "import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';"
+        ],
         "using": "using SafeERC20 for IERC20;",
         "methods": ["safeTransfer", "safeTransferFrom", "safeApprove"],
         "description": "Use SafeERC20 wrapper for all ERC20 operations",
@@ -247,6 +253,7 @@ class RemediationGenerator:
             RemediationResult with all remediations
         """
         import time
+
         start_time = time.time()
 
         remediations = []
@@ -320,9 +327,7 @@ class RemediationGenerator:
             if "nonReentrant" not in fixed:
                 # Find function declaration and add modifier
                 fixed = re.sub(
-                    r'(function\s+\w+\s*\([^)]*\)\s*(?:external|public))',
-                    r'\1 nonReentrant',
-                    fixed
+                    r"(function\s+\w+\s*\([^)]*\)\s*(?:external|public))", r"\1 nonReentrant", fixed
                 )
                 changes.append("Added nonReentrant modifier")
 
@@ -330,17 +335,15 @@ class RemediationGenerator:
             # Add onlyOwner modifier
             if "onlyOwner" not in fixed and "onlyRole" not in fixed:
                 fixed = re.sub(
-                    r'(function\s+\w+\s*\([^)]*\)\s*(?:external|public))',
-                    r'\1 onlyOwner',
-                    fixed
+                    r"(function\s+\w+\s*\([^)]*\)\s*(?:external|public))", r"\1 onlyOwner", fixed
                 )
                 changes.append("Added onlyOwner modifier")
 
         elif vuln_type.lower() == "unchecked-call":
             # Replace transfer with safeTransfer
             if "safeTransfer" not in fixed:
-                fixed = re.sub(r'\.transfer\s*\(', '.safeTransfer(', fixed)
-                fixed = re.sub(r'\.transferFrom\s*\(', '.safeTransferFrom(', fixed)
+                fixed = re.sub(r"\.transfer\s*\(", ".safeTransfer(", fixed)
+                fixed = re.sub(r"\.transferFrom\s*\(", ".safeTransferFrom(", fixed)
                 changes.append("Replaced transfer with safeTransfer")
 
         explanation = pattern.get("description", "")
@@ -407,8 +410,8 @@ class RemediationGenerator:
     def _parse_json_response(self, content: str) -> Dict[str, Any]:
         """Parse JSON from LLM response."""
         try:
-            json_start = content.find('{')
-            json_end = content.rfind('}') + 1
+            json_start = content.find("{")
+            json_end = content.rfind("}") + 1
 
             if json_start >= 0 and json_end > json_start:
                 return json.loads(content[json_start:json_end])
@@ -432,7 +435,7 @@ class RemediationGenerator:
         # Try to extract by function name
         func_name = location.get("function")
         if func_name:
-            pattern = rf'function\s+{re.escape(func_name)}\s*\([^)]*\)[^{{]*\{{[^}}]*\}}'
+            pattern = rf"function\s+{re.escape(func_name)}\s*\([^)]*\)[^{{]*\{{[^}}]*\}}"
             match = re.search(pattern, full_code, re.DOTALL)
             if match:
                 return match.group(0)
@@ -440,14 +443,14 @@ class RemediationGenerator:
         # Try to extract by line number
         line = location.get("line")
         if line and isinstance(line, int):
-            lines = full_code.split('\n')
+            lines = full_code.split("\n")
             start = max(0, line - 5)
             end = min(len(lines), line + 10)
-            return '\n'.join(lines[start:end])
+            return "\n".join(lines[start:end])
 
         # Return a relevant section (first 50 lines or contract definition)
-        lines = full_code.split('\n')
-        return '\n'.join(lines[:min(50, len(lines))])
+        lines = full_code.split("\n")
+        return "\n".join(lines[: min(50, len(lines))])
 
     def _get_pattern_info(self, vuln_type: str) -> str:
         """Get pattern information for the vulnerability type."""
@@ -471,6 +474,7 @@ class RemediationGenerator:
 
 
 # Convenience functions
+
 
 async def generate_fix(
     finding: Dict[str, Any],

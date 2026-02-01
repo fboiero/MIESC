@@ -10,22 +10,23 @@ License: AGPL-3.0
 """
 
 import os
-import sys
-import subprocess
 import platform
-from typing import Dict, List, Tuple, Optional
+import subprocess
+import sys
+from typing import Dict, Tuple
+
 
 # Color codes for terminal output
 class Colors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
 
 
 def print_banner():
@@ -52,11 +53,7 @@ def detect_os() -> Tuple[str, str]:
 def check_command(command: str) -> bool:
     """Check if a command is available"""
     try:
-        subprocess.run(
-            [command, "--version"],
-            capture_output=True,
-            timeout=5
-        )
+        subprocess.run([command, "--version"], capture_output=True, timeout=5)
         return True
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return False
@@ -70,7 +67,7 @@ def run_command(command: str, shell: bool = False) -> Tuple[bool, str]:
             capture_output=True,
             text=True,
             shell=shell,
-            timeout=600
+            timeout=600,
         )
         return result.returncode == 0, result.stdout + result.stderr
     except Exception as e:
@@ -89,7 +86,7 @@ TOOLS = {
         "dpga_compliant": True,
         "layer": 1,
         "dependencies": ["python3", "pip3"],
-        "optional": True
+        "optional": True,
     },
     "aderyn": {
         "name": "Aderyn",
@@ -99,7 +96,7 @@ TOOLS = {
         "dpga_compliant": True,
         "layer": 1,
         "dependencies": ["cargo"],
-        "optional": True
+        "optional": True,
     },
     "solhint": {
         "name": "Solhint",
@@ -109,7 +106,7 @@ TOOLS = {
         "dpga_compliant": True,
         "layer": 1,
         "dependencies": ["npm"],
-        "optional": True
+        "optional": True,
     },
     "semgrep": {
         "name": "Semgrep",
@@ -119,7 +116,7 @@ TOOLS = {
         "dpga_compliant": True,
         "layer": 1,
         "dependencies": ["python3", "pip3"],
-        "optional": True
+        "optional": True,
     },
     "mythx": {
         "name": "MythX",
@@ -130,22 +127,21 @@ TOOLS = {
         "layer": 1,
         "dependencies": ["python3", "pip3"],
         "optional": True,
-        "note": "Requires MythX API credentials"
+        "note": "Requires MythX API credentials",
     },
-
     # Layer 2: Dynamic Testing
     "echidna": {
         "name": "Echidna",
         "description": "Trail of Bits property-based fuzzer",
         "install_cmd": {
             "Darwin": "brew install echidna",
-            "Linux": "wget https://github.com/crytic/echidna/releases/latest/download/echidna-test-$(uname -s)-$(uname -m) -O echidna-test && chmod +x echidna-test && sudo mv echidna-test /usr/local/bin/echidna"
+            "Linux": "wget https://github.com/crytic/echidna/releases/latest/download/echidna-test-$(uname -s)-$(uname -m) -O echidna-test && chmod +x echidna-test && sudo mv echidna-test /usr/local/bin/echidna",
         },
         "check_cmd": "echidna",
         "dpga_compliant": True,
         "layer": 2,
         "dependencies": [],
-        "optional": True
+        "optional": True,
     },
     "medusa": {
         "name": "Medusa",
@@ -155,7 +151,7 @@ TOOLS = {
         "dpga_compliant": True,
         "layer": 2,
         "dependencies": ["go"],
-        "optional": True
+        "optional": True,
     },
     "foundry": {
         "name": "Foundry",
@@ -166,7 +162,7 @@ TOOLS = {
         "layer": 2,
         "dependencies": [],
         "optional": True,
-        "shell": True
+        "shell": True,
     },
     "hardhat": {
         "name": "Hardhat",
@@ -176,9 +172,8 @@ TOOLS = {
         "dpga_compliant": True,
         "layer": 2,
         "dependencies": ["npm"],
-        "optional": True
+        "optional": True,
     },
-
     # Layer 3: Symbolic Execution
     "mythril": {
         "name": "Mythril",
@@ -188,7 +183,7 @@ TOOLS = {
         "dpga_compliant": True,
         "layer": 3,
         "dependencies": ["python3", "pip3"],
-        "optional": True
+        "optional": True,
     },
     "manticore": {
         "name": "Manticore",
@@ -198,7 +193,7 @@ TOOLS = {
         "dpga_compliant": True,
         "layer": 3,
         "dependencies": ["python3", "pip3"],
-        "optional": True
+        "optional": True,
     },
     "halmos": {
         "name": "Halmos",
@@ -208,9 +203,8 @@ TOOLS = {
         "dpga_compliant": True,
         "layer": 3,
         "dependencies": ["python3", "pip3"],
-        "optional": True
+        "optional": True,
     },
-
     # Layer 4: Formal Verification
     "certora": {
         "name": "Certora Prover",
@@ -221,7 +215,7 @@ TOOLS = {
         "layer": 4,
         "dependencies": ["python3", "pip3"],
         "optional": True,
-        "note": "Requires Certora API key"
+        "note": "Requires Certora API key",
     },
     "smtchecker": {
         "name": "SMTChecker",
@@ -232,7 +226,7 @@ TOOLS = {
         "layer": 4,
         "dependencies": ["solc"],
         "optional": True,
-        "shell": True
+        "shell": True,
     },
     "wake": {
         "name": "Wake",
@@ -242,37 +236,36 @@ TOOLS = {
         "dpga_compliant": True,
         "layer": 4,
         "dependencies": ["python3", "pip3"],
-        "optional": True
+        "optional": True,
     },
     "propertygpt": {
         "name": "PropertyGPT",
         "description": "LLM-driven formal property generation (NDSS 2025)",
         "install_cmd": {
             "Darwin": "brew install ollama && ollama pull openhermes",
-            "Linux": "curl https://ollama.ai/install.sh | sh && ollama pull openhermes"
+            "Linux": "curl https://ollama.ai/install.sh | sh && ollama pull openhermes",
         },
         "check_cmd": "ollama",
         "dpga_compliant": True,
         "layer": 4,
         "dependencies": [],
         "optional": True,
-        "note": "Uses local Ollama for property generation (80% recall on CVL specs)"
+        "note": "Uses local Ollama for property generation (80% recall on CVL specs)",
     },
-
     # Layer 5: AI-Powered Analysis
     "smartllm": {
         "name": "SmartLLM",
         "description": "Local LLM via Ollama (deepseek-coder)",
         "install_cmd": {
             "Darwin": "brew install ollama && ollama pull deepseek-coder",
-            "Linux": "curl -fsSL https://ollama.com/install.sh | sh && ollama pull deepseek-coder"
+            "Linux": "curl -fsSL https://ollama.com/install.sh | sh && ollama pull deepseek-coder",
         },
         "check_cmd": "ollama",
         "dpga_compliant": True,
         "layer": 5,
         "dependencies": [],
         "optional": True,
-        "shell": True
+        "shell": True,
     },
     "gptscan": {
         "name": "GPTScan",
@@ -283,7 +276,7 @@ TOOLS = {
         "layer": 5,
         "dependencies": ["python3", "pip3"],
         "optional": True,
-        "note": "Requires OPENAI_API_KEY environment variable"
+        "note": "Requires OPENAI_API_KEY environment variable",
     },
     "llm_smartaudit": {
         "name": "LLM-SmartAudit",
@@ -294,9 +287,8 @@ TOOLS = {
         "layer": 5,
         "dependencies": ["python3"],
         "optional": True,
-        "shell": True
+        "shell": True,
     },
-
     # Layer 6: ML-Based Detection
     "dagnn": {
         "name": "DA-GNN",
@@ -307,7 +299,7 @@ TOOLS = {
         "layer": 6,
         "dependencies": ["python3", "pip3", "slither"],
         "optional": True,
-        "note": "GNN-based vulnerability detection with CFG+DFG analysis"
+        "note": "GNN-based vulnerability detection with CFG+DFG analysis",
     },
     "lightgbm": {
         "name": "LightGBM",
@@ -317,7 +309,7 @@ TOOLS = {
         "dpga_compliant": True,
         "layer": 6,
         "dependencies": ["python3", "pip3"],
-        "optional": True
+        "optional": True,
     },
     "prophet": {
         "name": "Prophet",
@@ -327,9 +319,8 @@ TOOLS = {
         "dpga_compliant": True,
         "layer": 6,
         "dependencies": ["python3", "pip3"],
-        "optional": True
+        "optional": True,
     },
-
     # Layer 7: Policy & Compliance
     "swc_registry": {
         "name": "SWC Registry",
@@ -340,7 +331,7 @@ TOOLS = {
         "layer": 7,
         "dependencies": ["python3"],
         "optional": True,
-        "shell": True
+        "shell": True,
     },
     "eip_checker": {
         "name": "EIP Checker",
@@ -351,38 +342,37 @@ TOOLS = {
         "layer": 7,
         "dependencies": ["python3"],
         "optional": True,
-        "shell": True
+        "shell": True,
     },
-
     # Dependencies
     "solc": {
         "name": "Solidity Compiler",
         "description": "Official Solidity compiler (includes SMTChecker)",
         "install_cmd": {
             "Darwin": "brew install solidity",
-            "Linux": "sudo add-apt-repository ppa:ethereum/ethereum && sudo apt-get update && sudo apt-get install solc"
+            "Linux": "sudo add-apt-repository ppa:ethereum/ethereum && sudo apt-get update && sudo apt-get install solc",
         },
         "check_cmd": "solc",
         "dpga_compliant": True,
         "layer": 0,
         "dependencies": [],
         "optional": False,
-        "shell": True
+        "shell": True,
     },
     "docker": {
         "name": "Docker",
         "description": "Container runtime for isolated analysis",
         "install_cmd": {
             "Darwin": "brew install --cask docker",
-            "Linux": "curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh"
+            "Linux": "curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh",
         },
         "check_cmd": "docker",
         "dpga_compliant": True,
         "layer": 0,
         "dependencies": [],
         "optional": True,
-        "shell": True
-    }
+        "shell": True,
+    },
 }
 
 
@@ -435,7 +425,7 @@ def print_tool_list():
         4: "Formal Verification",
         5: "AI-Powered Analysis",
         6: "ML-Based Detection",
-        7: "Policy & Compliance"
+        7: "Policy & Compliance",
     }
 
     for layer_num in sorted(layers.keys()):
@@ -448,7 +438,9 @@ def print_tool_list():
                 optional = "(Optional)" if tool_info["optional"] else "(Required)"
 
                 color = Colors.OKGREEN if status == "✓" else Colors.FAIL
-                print(f"  {color}[{status}]{Colors.ENDC} {tool_key:15} - {tool_info['name']:30} {dpga:10} {optional}")
+                print(
+                    f"  {color}[{status}]{Colors.ENDC} {tool_key:15} - {tool_info['name']:30} {dpga:10} {optional}"
+                )
 
                 if "note" in tool_info:
                     print(f"      {Colors.WARNING}Note: {tool_info['note']}{Colors.ENDC}")
@@ -501,7 +493,9 @@ def install_dpga_tools(os_type: str):
 def install_all_tools(os_type: str):
     """Install all tools"""
     print(f"\n{Colors.HEADER}Installing all tools...{Colors.ENDC}")
-    print(f"{Colors.WARNING}Warning: This includes non-DPGA-compliant tools that may require licenses{Colors.ENDC}")
+    print(
+        f"{Colors.WARNING}Warning: This includes non-DPGA-compliant tools that may require licenses{Colors.ENDC}"
+    )
 
     confirm = input("Continue? (y/n): ").strip().lower()
     if confirm != "y":
@@ -522,7 +516,7 @@ def install_by_layer(os_type: str):
         4: "Formal Verification",
         5: "AI-Powered Analysis",
         6: "ML-Based Detection",
-        7: "Policy & Compliance"
+        7: "Policy & Compliance",
     }
 
     print(f"\n{Colors.BOLD}Select Layer:{Colors.ENDC}")
@@ -601,7 +595,8 @@ def main():
     print(f"\n{Colors.BOLD}Final Installation Status:{Colors.ENDC}")
     print_tool_list()
 
-    print(f"""
+    print(
+        f"""
 {Colors.OKGREEN}Installation complete.{Colors.ENDC}
 
 All tools are optional per DPGA compliance requirements.
@@ -613,7 +608,8 @@ Usage:
   python3 -m miesc.cli analyze <contract.sol>    # CLI
 
 Documentation: ./docs/
-""")
+"""
+    )
 
 
 if __name__ == "__main__":

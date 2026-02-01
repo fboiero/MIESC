@@ -11,38 +11,34 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
-import json
-import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from src.plugins import (
+    AdapterPlugin,
+    DetectorPlugin,
+    DiscoveryResult,
+    LoadedPlugin,
+    MIESCPlugin,
+    PluginContext,
+    PluginEntry,
+    # Loader
+    PluginLoader,
+    PluginMetadata,
+    # Registry
+    PluginRegistry,
+    PluginResult,
+    PluginState,
     # Protocol
     PluginType,
-    PluginState,
-    PluginMetadata,
-    PluginContext,
-    PluginResult,
-    MIESCPlugin,
-    DetectorPlugin,
-    AdapterPlugin,
     ReporterPlugin,
     TransformerPlugin,
     is_plugin_class,
-    get_plugin_classes,
-    # Loader
-    PluginLoader,
-    LoadedPlugin,
-    DiscoveryResult,
-    # Registry
-    PluginRegistry,
-    PluginEntry,
 )
-
 
 # ============================================================================
 # Test Fixtures
@@ -79,12 +75,14 @@ class SampleDetector(DetectorPlugin):
     ) -> List[Dict[str, Any]]:
         findings = []
         if "vulnerable" in code.lower():
-            findings.append({
-                "type": "test-vulnerability",
-                "severity": "high",
-                "line": 1,
-                "message": "Test vulnerability found",
-            })
+            findings.append(
+                {
+                    "type": "test-vulnerability",
+                    "severity": "high",
+                    "line": 1,
+                    "message": "Test vulnerability found",
+                }
+            )
         return findings
 
 
@@ -528,7 +526,7 @@ class TestPluginLoader:
     def test_load_plugin_file(self, tmp_path):
         """Should load plugin from file."""
         # Create a plugin file
-        plugin_code = '''
+        plugin_code = """
 from src.plugins import DetectorPlugin, PluginContext
 from typing import Any, Dict, List, Optional
 
@@ -546,7 +544,7 @@ class TestFileDetector(DetectorPlugin):
 
     def detect(self, code: str, filename: str = "", options: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         return []
-'''
+"""
         plugin_file = tmp_path / "test_plugin.py"
         plugin_file.write_text(plugin_code)
 
@@ -950,7 +948,7 @@ class TestPluginSystemIntegration:
     def test_full_lifecycle(self, tmp_path, plugin_context):
         """Test complete plugin lifecycle."""
         # 1. Create plugin file
-        plugin_code = '''
+        plugin_code = """
 from src.plugins import DetectorPlugin, PluginContext, PluginResult
 from typing import Any, Dict, List, Optional
 
@@ -973,7 +971,7 @@ class IntegrationTestDetector(DetectorPlugin):
 
     def detect(self, code: str, filename: str = "", options: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         return [{"type": "test", "severity": "low"}] if "test" in code else []
-'''
+"""
         plugin_file = tmp_path / "integration_plugin.py"
         plugin_file.write_text(plugin_code)
 

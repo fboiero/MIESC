@@ -5,11 +5,12 @@ Wraps Layer 1 tools: Slither, Solhint, Surya
 Enhanced with Tool Adapters: GasAnalyzer, MEVDetector
 Publishes static analysis findings to Context Bus
 """
+
 import json
 import logging
 import subprocess
-from typing import Dict, Any, List
-from pathlib import Path
+from typing import Any, Dict, List
+
 from src.agents.base_agent import BaseAgent
 from src.integration.adapter_integration import integrate_static_analysis
 
@@ -39,9 +40,9 @@ class StaticAgent(BaseAgent):
                 "static_analysis",
                 "pattern_detection",
                 "code_quality",
-                "architecture_analysis"
+                "architecture_analysis",
             ],
-            agent_type="static"
+            agent_type="static",
         )
 
     def get_context_types(self) -> List[str]:
@@ -51,7 +52,7 @@ class StaticAgent(BaseAgent):
             "solhint_results",
             "surya_results",
             "gas_analysis_results",  # From GasAnalyzer adapter
-            "mev_detection_results"  # From MEVDetector adapter
+            "mev_detection_results",  # From MEVDetector adapter
         ]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
@@ -72,11 +73,11 @@ class StaticAgent(BaseAgent):
             "static_findings": [],
             "slither_results": {},
             "solhint_results": {},
-            "surya_results": {}
+            "surya_results": {},
         }
 
         solc_version = kwargs.get("solc_version", "0.8.0")
-        output_dir = kwargs.get("output_dir", "outputs/evidence")
+        kwargs.get("output_dir", "outputs/evidence")
 
         # Run Slither
         logger.info(f"StaticAgent: Running Slither on {contract_path}")
@@ -119,10 +120,12 @@ class StaticAgent(BaseAgent):
 
                 # Add aggregate metadata
                 results["adapter_metadata"] = {
-                    "total_gas_savings": adapter_results.get("metadata", {}).get("total_gas_savings", 0),
+                    "total_gas_savings": adapter_results.get("metadata", {}).get(
+                        "total_gas_savings", 0
+                    ),
                     "mev_risk_score": adapter_results.get("metadata", {}).get("mev_risk_score", 0),
                     "adapters_executed": adapter_results.get("successful", 0),
-                    "adapters_failed": adapter_results.get("failed", 0)
+                    "adapters_failed": adapter_results.get("failed", 0),
                 }
 
                 logger.info(
@@ -135,10 +138,7 @@ class StaticAgent(BaseAgent):
         except Exception as e:
             # Graceful degradation: Agent works even if adapters fail
             logger.warning(f"StaticAgent: Enhanced adapters failed (non-critical): {e}")
-            results["adapter_metadata"] = {
-                "error": str(e),
-                "adapters_executed": 0
-            }
+            results["adapter_metadata"] = {"error": str(e), "adapters_executed": 0}
 
         return results
 
@@ -154,16 +154,13 @@ class StaticAgent(BaseAgent):
             cmd = [
                 "slither",
                 contract_path,
-                "--solc-remaps", "@openzeppelin=node_modules/@openzeppelin",
-                "--json", "-"
+                "--solc-remaps",
+                "@openzeppelin=node_modules/@openzeppelin",
+                "--json",
+                "-",
             ]
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=300
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
 
             if result.returncode != 0 and not result.stdout:
                 logger.warning(f"Slither failed: {result.stderr}")
@@ -176,14 +173,16 @@ class StaticAgent(BaseAgent):
             vulnerabilities = []
             if "results" in data and "detectors" in data["results"]:
                 for finding in data["results"]["detectors"]:
-                    vulnerabilities.append({
-                        "id": finding.get("check", "UNKNOWN"),
-                        "severity": finding.get("impact", "Unknown"),
-                        "confidence": finding.get("confidence", "Unknown"),
-                        "description": finding.get("description", ""),
-                        "location": self._extract_location(finding),
-                        "tool": "Slither"
-                    })
+                    vulnerabilities.append(
+                        {
+                            "id": finding.get("check", "UNKNOWN"),
+                            "severity": finding.get("impact", "Unknown"),
+                            "confidence": finding.get("confidence", "Unknown"),
+                            "description": finding.get("description", ""),
+                            "location": self._extract_location(finding),
+                            "tool": "Slither",
+                        }
+                    )
 
             return {
                 "tool": "Slither",
@@ -191,8 +190,8 @@ class StaticAgent(BaseAgent):
                 "total_findings": len(vulnerabilities),
                 "metadata": {
                     "detectors_run": data.get("success", True),
-                    "solc_version": solc_version
-                }
+                    "solc_version": solc_version,
+                },
             }
 
         except subprocess.TimeoutExpired:
@@ -213,40 +212,31 @@ class StaticAgent(BaseAgent):
             Dictionary with linting issues
         """
         try:
-            cmd = [
-                "solhint",
-                contract_path,
-                "--formatter", "json"
-            ]
+            cmd = ["solhint", contract_path, "--formatter", "json"]
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=60
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
             # Solhint returns issues in JSON
             issues = json.loads(result.stdout) if result.stdout else []
 
             findings = []
             for issue in issues:
-                findings.append({
-                    "rule": issue.get("ruleId", "UNKNOWN"),
-                    "severity": issue.get("severity", "warning"),
-                    "message": issue.get("message", ""),
-                    "line": issue.get("line", 0),
-                    "column": issue.get("column", 0),
-                    "tool": "Solhint"
-                })
+                findings.append(
+                    {
+                        "rule": issue.get("ruleId", "UNKNOWN"),
+                        "severity": issue.get("severity", "warning"),
+                        "message": issue.get("message", ""),
+                        "line": issue.get("line", 0),
+                        "column": issue.get("column", 0),
+                        "tool": "Solhint",
+                    }
+                )
 
             return {
                 "tool": "Solhint",
                 "issues": findings,
                 "total_issues": len(findings),
-                "metadata": {
-                    "rules_applied": True
-                }
+                "metadata": {"rules_applied": True},
             }
 
         except subprocess.TimeoutExpired:
@@ -265,18 +255,9 @@ class StaticAgent(BaseAgent):
         """
         try:
             # Run Surya describe
-            cmd = [
-                "surya",
-                "describe",
-                contract_path
-            ]
+            cmd = ["surya", "describe", contract_path]
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=60
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
             # Parse Surya output (text-based)
             output = result.stdout
@@ -284,9 +265,7 @@ class StaticAgent(BaseAgent):
             return {
                 "tool": "Surya",
                 "description": output,
-                "metadata": {
-                    "analysis_type": "architecture"
-                }
+                "metadata": {"analysis_type": "architecture"},
             }
 
         except subprocess.TimeoutExpired:
@@ -306,11 +285,7 @@ class StaticAgent(BaseAgent):
         Returns:
             Dictionary with file, line, function
         """
-        location = {
-            "file": "unknown",
-            "line": 0,
-            "function": "unknown"
-        }
+        location = {"file": "unknown", "line": 0, "function": "unknown"}
 
         if "elements" in finding and len(finding["elements"]) > 0:
             element = finding["elements"][0]
@@ -323,8 +298,9 @@ class StaticAgent(BaseAgent):
 
         return location
 
-    def _aggregate_findings(self, slither_data: Dict, solhint_data: Dict,
-                           surya_data: Dict) -> List[Dict[str, Any]]:
+    def _aggregate_findings(
+        self, slither_data: Dict, solhint_data: Dict, surya_data: Dict
+    ) -> List[Dict[str, Any]]:
         """
         Aggregate findings from all tools into unified format
 
@@ -335,35 +311,35 @@ class StaticAgent(BaseAgent):
 
         # Add Slither vulnerabilities with SWC/CWE/OWASP compliance mapping
         for vuln in slither_data.get("vulnerabilities", []):
-            unified.append({
-                "source": "Slither",
-                "type": "vulnerability",
-                "id": vuln["id"],
-                "severity": vuln["severity"],
-                "confidence": vuln["confidence"],
-                "description": vuln["description"],
-                "location": vuln["location"],
-                "layer": "static",
-                "swc_id": self._map_to_swc(vuln["id"]),
-                "cwe_id": self._map_to_cwe(vuln["id"]),
-                "owasp_category": self._map_to_owasp(vuln["id"])
-            })
+            unified.append(
+                {
+                    "source": "Slither",
+                    "type": "vulnerability",
+                    "id": vuln["id"],
+                    "severity": vuln["severity"],
+                    "confidence": vuln["confidence"],
+                    "description": vuln["description"],
+                    "location": vuln["location"],
+                    "layer": "static",
+                    "swc_id": self._map_to_swc(vuln["id"]),
+                    "cwe_id": self._map_to_cwe(vuln["id"]),
+                    "owasp_category": self._map_to_owasp(vuln["id"]),
+                }
+            )
 
         # Add Solhint issues (lower severity)
         for issue in solhint_data.get("issues", []):
-            unified.append({
-                "source": "Solhint",
-                "type": "code_quality",
-                "id": issue["rule"],
-                "severity": "Info",
-                "description": issue["message"],
-                "location": {
-                    "file": "unknown",
-                    "line": issue["line"],
-                    "function": "unknown"
-                },
-                "layer": "static"
-            })
+            unified.append(
+                {
+                    "source": "Solhint",
+                    "type": "code_quality",
+                    "id": issue["rule"],
+                    "severity": "Info",
+                    "description": issue["message"],
+                    "location": {"file": "unknown", "line": issue["line"], "function": "unknown"},
+                    "layer": "static",
+                }
+            )
 
         return unified
 

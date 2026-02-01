@@ -14,9 +14,9 @@ Reference: https://modelcontextprotocol.io/specification
 
 from src.mcp.context_bus import ContextBus, MCPMessage, get_context_bus
 from src.mcp.tool_registry import (
-    MCPToolRegistry,
     MCPTool,
     MCPToolParameter,
+    MCPToolRegistry,
     ToolCategory,
     get_tool_registry,
     reset_tool_registry,
@@ -24,15 +24,15 @@ from src.mcp.tool_registry import (
 
 __all__ = [
     # Context Bus
-    'ContextBus',
-    'MCPMessage',
-    'get_context_bus',
+    "ContextBus",
+    "MCPMessage",
+    "get_context_bus",
     # Tool Registry
-    'MCPToolRegistry',
-    'MCPTool',
-    'MCPToolParameter',
-    'ToolCategory',
-    'get_tool_registry',
-    'reset_tool_registry',
+    "MCPToolRegistry",
+    "MCPTool",
+    "MCPToolParameter",
+    "ToolCategory",
+    "get_tool_registry",
+    "reset_tool_registry",
 ]
-__version__ = '2.0.0'
+__version__ = "2.0.0"

@@ -3,19 +3,18 @@ Gestor de licencias para MIESC.
 Maneja la validación, creación y gestión de licencias.
 """
 
-import os
-import uuid
 import logging
+import uuid
 from datetime import datetime, timedelta
-from typing import Optional, List
 from pathlib import Path
+from typing import List, Optional
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 
-from .models import Base, LicenseDB, UsageRecordDB, License, LicenseStatus, PlanType
-from .plans import get_plan_config, PLANS
 from .key_generator import generate_license_key, normalize_key
+from .models import Base, License, LicenseDB, LicenseStatus, PlanType
+from .plans import get_plan_config
 
 logger = logging.getLogger(__name__)
 
@@ -121,9 +120,9 @@ class LicenseManager:
 
         session = self._get_session()
         try:
-            db_license = session.query(LicenseDB).filter(
-                LicenseDB.license_key == normalized_key
-            ).first()
+            db_license = (
+                session.query(LicenseDB).filter(LicenseDB.license_key == normalized_key).first()
+            )
 
             if not db_license:
                 logger.warning(f"Licencia no encontrada: {normalized_key}")
@@ -174,9 +173,9 @@ class LicenseManager:
 
         session = self._get_session()
         try:
-            db_license = session.query(LicenseDB).filter(
-                LicenseDB.license_key == normalized_key
-            ).first()
+            db_license = (
+                session.query(LicenseDB).filter(LicenseDB.license_key == normalized_key).first()
+            )
 
             if not db_license:
                 return None
@@ -254,9 +253,9 @@ class LicenseManager:
 
         session = self._get_session()
         try:
-            db_license = session.query(LicenseDB).filter(
-                LicenseDB.license_key == normalized_key
-            ).first()
+            db_license = (
+                session.query(LicenseDB).filter(LicenseDB.license_key == normalized_key).first()
+            )
 
             if not db_license:
                 return None
@@ -344,25 +343,23 @@ class LicenseManager:
         session = self._get_session()
         try:
             total = session.query(LicenseDB).count()
-            active = session.query(LicenseDB).filter(
-                LicenseDB.status == LicenseStatus.ACTIVE
-            ).count()
-            expired = session.query(LicenseDB).filter(
-                LicenseDB.status == LicenseStatus.EXPIRED
-            ).count()
-            suspended = session.query(LicenseDB).filter(
-                LicenseDB.status == LicenseStatus.SUSPENDED
-            ).count()
-            revoked = session.query(LicenseDB).filter(
-                LicenseDB.status == LicenseStatus.REVOKED
-            ).count()
+            active = (
+                session.query(LicenseDB).filter(LicenseDB.status == LicenseStatus.ACTIVE).count()
+            )
+            expired = (
+                session.query(LicenseDB).filter(LicenseDB.status == LicenseStatus.EXPIRED).count()
+            )
+            suspended = (
+                session.query(LicenseDB).filter(LicenseDB.status == LicenseStatus.SUSPENDED).count()
+            )
+            revoked = (
+                session.query(LicenseDB).filter(LicenseDB.status == LicenseStatus.REVOKED).count()
+            )
 
             # Por plan
             by_plan = {}
             for plan_type in PlanType:
-                count = session.query(LicenseDB).filter(
-                    LicenseDB.plan == plan_type
-                ).count()
+                count = session.query(LicenseDB).filter(LicenseDB.plan == plan_type).count()
                 by_plan[plan_type.value] = count
 
             return {

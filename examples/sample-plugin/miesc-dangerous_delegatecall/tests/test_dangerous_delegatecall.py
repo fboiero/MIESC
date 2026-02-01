@@ -1,6 +1,5 @@
 """Tests for dangerous_delegatecall detector."""
 
-import pytest
 from dangerous_delegatecall.detectors import DangerousDelegatecallDetector
 
 

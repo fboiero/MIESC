@@ -4,17 +4,19 @@ Interpretation Agent for MCP Architecture
 Advanced LLM-based agent that intelligently interprets outputs from security tools
 Provides context-aware analysis, semantic understanding, and cross-tool correlation
 """
+
 import json
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 try:
     import openai
+
     OPENAI_AVAILABLE = True
 except ImportError:
     openai = None  # type: ignore
     OPENAI_AVAILABLE = False
-from datetime import datetime
+
 from src.agents.base_agent import BaseAgent
 from src.mcp.context_bus import MCPMessage
 
@@ -53,9 +55,9 @@ class InterpretationAgent(BaseAgent):
                 "confidence_scoring",
                 "duplicate_detection",
                 "severity_normalization",
-                "pattern_recognition"
+                "pattern_recognition",
             ],
-            agent_type="interpretation"
+            agent_type="interpretation",
         )
 
         self.model = model  # GPT-4o for better reasoning
@@ -73,17 +75,13 @@ class InterpretationAgent(BaseAgent):
                 "dynamic_findings",
                 "symbolic_findings",
                 "formal_findings",
-                "runtime_findings"
+                "runtime_findings",
             ],
-            callback=self._handle_findings
+            callback=self._handle_findings,
         )
 
     def get_context_types(self) -> List[str]:
-        return [
-            "interpreted_findings",
-            "correlation_analysis",
-            "confidence_scores"
-        ]
+        return ["interpreted_findings", "correlation_analysis", "confidence_scores"]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -104,7 +102,7 @@ class InterpretationAgent(BaseAgent):
             "correlation_analysis": {},
             "confidence_scores": {},
             "duplicate_groups": [],
-            "normalized_severity": {}
+            "normalized_severity": {},
         }
 
         # Collect raw findings
@@ -122,7 +120,7 @@ class InterpretationAgent(BaseAgent):
         contract_source = kwargs.get("contract_source")
         if not contract_source:
             try:
-                with open(contract_path, 'r') as f:
+                with open(contract_path, "r") as f:
                     contract_source = f.read()
             except Exception as e:
                 logger.error(f"InterpretationAgent: Could not read contract: {e}")
@@ -141,10 +139,7 @@ class InterpretationAgent(BaseAgent):
         results["duplicate_groups"] = duplicates
 
         # Phase 4: Confidence scoring
-        confidence_scores = self._calculate_confidence_scores(
-            interpreted,
-            correlation
-        )
+        confidence_scores = self._calculate_confidence_scores(interpreted, correlation)
         results["confidence_scores"] = confidence_scores
 
         # Phase 5: Severity normalization
@@ -161,8 +156,7 @@ class InterpretationAgent(BaseAgent):
     def _handle_findings(self, message: MCPMessage) -> None:
         """Handle incoming findings from detection agents"""
         logger.info(
-            f"InterpretationAgent: Received {message.context_type} "
-            f"from {message.agent}"
+            f"InterpretationAgent: Received {message.context_type} " f"from {message.agent}"
         )
 
     def _collect_all_findings(self) -> List[Dict[str, Any]]:
@@ -172,7 +166,7 @@ class InterpretationAgent(BaseAgent):
             "dynamic_findings",
             "symbolic_findings",
             "formal_findings",
-            "runtime_findings"
+            "runtime_findings",
         ]
 
         all_contexts = self.aggregate_contexts(context_types)
@@ -190,8 +184,9 @@ class InterpretationAgent(BaseAgent):
 
         return all_findings
 
-    def _interpret_findings(self, findings: List[Dict[str, Any]],
-                           contract_source: str) -> List[Dict[str, Any]]:
+    def _interpret_findings(
+        self, findings: List[Dict[str, Any]], contract_source: str
+    ) -> List[Dict[str, Any]]:
         """
         Perform semantic interpretation of findings using LLM
 
@@ -203,7 +198,9 @@ class InterpretationAgent(BaseAgent):
             List of interpreted findings with enhanced context
         """
         if not OPENAI_AVAILABLE or not self.api_key:
-            logger.warning("InterpretationAgent: openai not available or no API key, returning raw findings")
+            logger.warning(
+                "InterpretationAgent: openai not available or no API key, returning raw findings"
+            )
             return findings
 
         interpreted_findings = []
@@ -211,7 +208,7 @@ class InterpretationAgent(BaseAgent):
         # Batch process findings for efficiency
         batch_size = 5
         for i in range(0, len(findings), batch_size):
-            batch = findings[i:i + batch_size]
+            batch = findings[i : i + batch_size]
 
             try:
                 batch_interpreted = self._interpret_batch(batch, contract_source)
@@ -223,8 +220,9 @@ class InterpretationAgent(BaseAgent):
 
         return interpreted_findings
 
-    def _interpret_batch(self, findings: List[Dict[str, Any]],
-                        contract_source: str) -> List[Dict[str, Any]]:
+    def _interpret_batch(
+        self, findings: List[Dict[str, Any]], contract_source: str
+    ) -> List[Dict[str, Any]]:
         """Interpret a batch of findings using GPT-4o"""
 
         # Truncate source if too long
@@ -284,19 +282,19 @@ Respond in JSON format:
                         "You are an expert smart contract security analyst with deep knowledge "
                         "of Solidity, EVM, and historical vulnerabilities. You interpret tool "
                         "outputs and provide actionable insights."
-                    )
+                    ),
                 },
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
             temperature=0.2,  # Low temperature for consistent analysis
-            max_tokens=4000
+            max_tokens=4000,
         )
 
         result = json.loads(response.choices[0].message.content)
 
         # Merge interpretation with original findings
         interpreted = []
-        for original, interp in zip(findings, result["interpreted_findings"]):
+        for original, interp in zip(findings, result["interpreted_findings"], strict=False):
             merged = {**original, **interp}
             interpreted.append(merged)
 
@@ -316,7 +314,7 @@ Respond in JSON format:
             "high_confidence_findings": [],
             "single_tool_findings": [],
             "conflicting_findings": [],
-            "consensus_level": {}
+            "consensus_level": {},
         }
 
         # Group findings by location (file, function, line)
@@ -338,29 +336,31 @@ Respond in JSON format:
                     "detection_count": len(group_findings),
                     "sources": sources,
                     "severities": severities,
-                    "consensus_strength": len(set(sources)) / len(sources)
+                    "consensus_strength": len(set(sources)) / len(sources),
                 }
 
                 # High confidence if multiple tools agree
                 if len(set(sources)) >= 2:
-                    correlation["high_confidence_findings"].append({
-                        "location": location,
-                        "findings": group_findings,
-                        "consensus": "strong"
-                    })
+                    correlation["high_confidence_findings"].append(
+                        {"location": location, "findings": group_findings, "consensus": "strong"}
+                    )
                 else:
-                    correlation["conflicting_findings"].append({
-                        "location": location,
-                        "findings": group_findings,
-                        "conflict_reason": "severity_mismatch"
-                    })
+                    correlation["conflicting_findings"].append(
+                        {
+                            "location": location,
+                            "findings": group_findings,
+                            "conflict_reason": "severity_mismatch",
+                        }
+                    )
             else:
                 # Single tool detection
-                correlation["single_tool_findings"].append({
-                    "location": location,
-                    "finding": group_findings[0],
-                    "note": "requires_validation"
-                })
+                correlation["single_tool_findings"].append(
+                    {
+                        "location": location,
+                        "finding": group_findings[0],
+                        "note": "requires_validation",
+                    }
+                )
 
         return correlation
 
@@ -383,7 +383,7 @@ Respond in JSON format:
 
             duplicate_group = [finding1]
 
-            for j, finding2 in enumerate(findings[i+1:], start=i+1):
+            for j, finding2 in enumerate(findings[i + 1 :], start=i + 1):
                 if j in processed:
                     continue
 
@@ -393,19 +393,20 @@ Respond in JSON format:
                     processed.add(j)
 
             if len(duplicate_group) > 1:
-                duplicates.append({
-                    "group_id": f"dup_{len(duplicates)}",
-                    "findings": duplicate_group,
-                    "canonical": duplicate_group[0],  # Use first as canonical
-                    "redundant_count": len(duplicate_group) - 1
-                })
+                duplicates.append(
+                    {
+                        "group_id": f"dup_{len(duplicates)}",
+                        "findings": duplicate_group,
+                        "canonical": duplicate_group[0],  # Use first as canonical
+                        "redundant_count": len(duplicate_group) - 1,
+                    }
+                )
 
             processed.add(i)
 
         return duplicates
 
-    def _is_duplicate(self, finding1: Dict[str, Any],
-                     finding2: Dict[str, Any]) -> bool:
+    def _is_duplicate(self, finding1: Dict[str, Any], finding2: Dict[str, Any]) -> bool:
         """Check if two findings are duplicates"""
         # Same location
         loc1 = self._get_location_key(finding1)
@@ -425,8 +426,9 @@ Respond in JSON format:
 
         return False
 
-    def _calculate_confidence_scores(self, findings: List[Dict[str, Any]],
-                                     correlation: Dict[str, Any]) -> Dict[str, float]:
+    def _calculate_confidence_scores(
+        self, findings: List[Dict[str, Any]], correlation: Dict[str, Any]
+    ) -> Dict[str, float]:
         """
         Calculate confidence scores for each finding
 
@@ -461,8 +463,9 @@ Respond in JSON format:
 
         return confidence_scores
 
-    def _normalize_severity(self, findings: List[Dict[str, Any]],
-                           confidence_scores: Dict[str, float]) -> Dict[str, str]:
+    def _normalize_severity(
+        self, findings: List[Dict[str, Any]], confidence_scores: Dict[str, float]
+    ) -> Dict[str, str]:
         """
         Normalize severity levels across different tools
 
@@ -481,7 +484,7 @@ Respond in JSON format:
             "medium": 3,
             "low": 2,
             "info": 1,
-            "informational": 1
+            "informational": 1,
         }
 
         for finding in findings:
@@ -534,18 +537,18 @@ Respond in JSON format:
                 "keywords": ["reentrancy", "external call", "state change"],
                 "severity": "Critical",
                 "historical_incidents": ["The DAO 2016"],
-                "swc_id": "SWC-107"
+                "swc_id": "SWC-107",
             },
             "integer_overflow": {
                 "keywords": ["overflow", "underflow", "arithmetic"],
                 "severity": "High",
                 "historical_incidents": ["BeautyChain 2018"],
-                "swc_id": "SWC-101"
+                "swc_id": "SWC-101",
             },
             "unchecked_return": {
                 "keywords": ["unchecked", "return value", "call"],
                 "severity": "Medium",
-                "swc_id": "SWC-104"
-            }
+                "swc_id": "SWC-104",
+            },
             # Add more patterns as needed
         }

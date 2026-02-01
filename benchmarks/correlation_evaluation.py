@@ -22,8 +22,8 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 # Direct imports to avoid __init__.py conflicts
-from detectors.smartbugs_detectors import SmartBugsDetectorEngine
-from ml.correlation_engine import SmartCorrelationEngine
+from detectors.smartbugs_detectors import SmartBugsDetectorEngine  # noqa: E402
+from ml.correlation_engine import SmartCorrelationEngine  # noqa: E402
 
 # Inline import of correlation API to avoid circular imports
 sys.path.insert(0, str(PROJECT_ROOT))

@@ -244,7 +244,7 @@ class FeatureExtractor:
             ContractFeatures with extracted metrics
         """
         features = ContractFeatures()
-        code_lower = contract_code.lower()
+        contract_code.lower()
 
         # Basic metrics
         features.line_count = len(contract_code.split("\n"))
@@ -259,9 +259,7 @@ class FeatureExtractor:
         features.external_call_count = len(
             re.findall(self.PATTERNS["external_call"], contract_code)
         )
-        features.delegatecall_count = len(
-            re.findall(self.PATTERNS["delegatecall"], contract_code)
-        )
+        features.delegatecall_count = len(re.findall(self.PATTERNS["delegatecall"], contract_code))
         features.selfdestruct_present = bool(
             re.search(self.PATTERNS["selfdestruct"], contract_code)
         )
@@ -278,46 +276,39 @@ class FeatureExtractor:
 
         # Function types
         features.payable_functions = len(
-            re.findall(
-                r"function\s+\w+[^{]*\bpayable\b", contract_code, re.IGNORECASE
-            )
+            re.findall(r"function\s+\w+[^{]*\bpayable\b", contract_code, re.IGNORECASE)
         )
         features.view_functions = len(
-            re.findall(
-                r"function\s+\w+[^{]*\bview\b", contract_code, re.IGNORECASE
-            )
+            re.findall(r"function\s+\w+[^{]*\bview\b", contract_code, re.IGNORECASE)
         )
         features.pure_functions = len(
-            re.findall(
-                r"function\s+\w+[^{]*\bpure\b", contract_code, re.IGNORECASE
-            )
+            re.findall(r"function\s+\w+[^{]*\bpure\b", contract_code, re.IGNORECASE)
         )
 
         # Contract type detection
         for type_name, patterns in self.TYPE_PATTERNS.items():
             if any(re.search(p, contract_code, re.IGNORECASE) for p in patterns):
-                setattr(features, f"is_{type_name}" if type_name.startswith("erc") else f"has_{type_name}", True)
+                setattr(
+                    features,
+                    f"is_{type_name}" if type_name.startswith("erc") else f"has_{type_name}",
+                    True,
+                )
 
         # Special handling for boolean attributes
         features.is_erc20 = any(
-            re.search(p, contract_code, re.IGNORECASE)
-            for p in self.TYPE_PATTERNS["erc20"]
+            re.search(p, contract_code, re.IGNORECASE) for p in self.TYPE_PATTERNS["erc20"]
         )
         features.is_erc721 = any(
-            re.search(p, contract_code, re.IGNORECASE)
-            for p in self.TYPE_PATTERNS["erc721"]
+            re.search(p, contract_code, re.IGNORECASE) for p in self.TYPE_PATTERNS["erc721"]
         )
         features.is_erc4626 = any(
-            re.search(p, contract_code, re.IGNORECASE)
-            for p in self.TYPE_PATTERNS["erc4626"]
+            re.search(p, contract_code, re.IGNORECASE) for p in self.TYPE_PATTERNS["erc4626"]
         )
         features.is_upgradeable = any(
-            re.search(p, contract_code, re.IGNORECASE)
-            for p in self.TYPE_PATTERNS["upgradeable"]
+            re.search(p, contract_code, re.IGNORECASE) for p in self.TYPE_PATTERNS["upgradeable"]
         )
         features.has_access_control = any(
-            re.search(p, contract_code, re.IGNORECASE)
-            for p in self.TYPE_PATTERNS["access_control"]
+            re.search(p, contract_code, re.IGNORECASE) for p in self.TYPE_PATTERNS["access_control"]
         )
         features.has_reentrancy_guard = any(
             re.search(p, contract_code, re.IGNORECASE)
@@ -326,9 +317,7 @@ class FeatureExtractor:
 
         # DeFi patterns
         for defi_type, patterns in self.DEFI_PATTERNS.items():
-            has_pattern = any(
-                re.search(p, contract_code, re.IGNORECASE) for p in patterns
-            )
+            has_pattern = any(re.search(p, contract_code, re.IGNORECASE) for p in patterns)
             setattr(features, f"has_{defi_type}", has_pattern)
 
         return features
@@ -412,7 +401,7 @@ class InvariantPredictor:
         feature_dict = features.to_dict()
 
         # Calculate category relevance scores
-        category_scores: Dict[InvariantCategory, float] = {cat: 0.0 for cat in InvariantCategory}
+        category_scores: Dict[InvariantCategory, float] = dict.fromkeys(InvariantCategory, 0.0)
 
         for feature_name, category_weights in self.RELEVANCE_WEIGHTS.items():
             feature_value = feature_dict.get(feature_name, 0)
@@ -442,9 +431,7 @@ class InvariantPredictor:
                             template_name=template,
                             confidence=confidence,
                             relevance_score=score,
-                            feature_importance=self._get_feature_importance(
-                                features, category
-                            ),
+                            feature_importance=self._get_feature_importance(features, category),
                         )
                     )
 
@@ -540,8 +527,7 @@ class MLInvariantSynthesizer:
             self._load_training_data()
 
         logger.info(
-            f"MLInvariantSynthesizer initialized "
-            f"(training_mode={collect_training_data})"
+            f"MLInvariantSynthesizer initialized " f"(training_mode={collect_training_data})"
         )
 
     def synthesize(
@@ -572,8 +558,10 @@ class MLInvariantSynthesizer:
 
         # Extract features
         features = self.feature_extractor.extract(contract_code)
-        logger.info(f"Extracted features: {features.function_count} functions, "
-                   f"ERC20={features.is_erc20}, ERC4626={features.is_erc4626}")
+        logger.info(
+            f"Extracted features: {features.function_count} functions, "
+            f"ERC20={features.is_erc20}, ERC4626={features.is_erc4626}"
+        )
 
         # Get ML predictions
         predictions = []
@@ -745,12 +733,9 @@ class MLInvariantSynthesizer:
             return {"total_examples": 0}
 
         total_invariants = sum(len(ex.invariants) for ex in self.training_examples)
-        validated_count = sum(
-            len(ex.validation_results) for ex in self.training_examples
-        )
+        validated_count = sum(len(ex.validation_results) for ex in self.training_examples)
         passed_count = sum(
-            sum(1 for v in ex.validation_results.values() if v)
-            for ex in self.training_examples
+            sum(1 for v in ex.validation_results.values() if v) for ex in self.training_examples
         )
 
         # Category distribution

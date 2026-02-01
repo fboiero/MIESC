@@ -10,13 +10,18 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-01-09
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional
-import re
 import logging
+import re
 from pathlib import Path
+from typing import Any, Dict, List
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +49,7 @@ class MEVDetectorAdapter(ToolAdapter):
             "severity": "High",
             "message": "Public function updates price/rate without front-running protection",
             "impact": "Front-running",
-            "recommendation": "Add commit-reveal scheme or use flashbots/private mempool"
+            "recommendation": "Add commit-reveal scheme or use flashbots/private mempool",
         },
         # Sandwich attack: swap sin slippage protection
         "sandwich_swap": {
@@ -52,7 +57,7 @@ class MEVDetectorAdapter(ToolAdapter):
             "severity": "Critical",
             "message": "Swap function without slippage protection",
             "impact": "Sandwich attack",
-            "recommendation": "Add minAmountOut parameter and validate against slippage"
+            "recommendation": "Add minAmountOut parameter and validate against slippage",
         },
         # Timestamp dependence (manipulable por mineros)
         "timestamp_dependence": {
@@ -60,7 +65,7 @@ class MEVDetectorAdapter(ToolAdapter):
             "severity": "Medium",
             "message": "Logic depends on block.timestamp (miner manipulable)",
             "impact": "Timestamp manipulation",
-            "recommendation": "Use block.number or oracle-based time if critical"
+            "recommendation": "Use block.number or oracle-based time if critical",
         },
         # Oracle sin validación de freshness
         "stale_oracle": {
@@ -68,7 +73,7 @@ class MEVDetectorAdapter(ToolAdapter):
             "severity": "High",
             "message": "Oracle price used without freshness validation",
             "impact": "Oracle manipulation/stale data",
-            "recommendation": "Validate oracle timestamp and add staleness check"
+            "recommendation": "Validate oracle timestamp and add staleness check",
         },
         # Flash loan sin protección reentrancy
         "flashloan_reentrancy": {
@@ -76,7 +81,7 @@ class MEVDetectorAdapter(ToolAdapter):
             "severity": "Critical",
             "message": "Flash loan function without reentrancy protection",
             "impact": "Flash loan + reentrancy attack",
-            "recommendation": "Add nonReentrant modifier or ReentrancyGuard"
+            "recommendation": "Add nonReentrant modifier or ReentrancyGuard",
         },
         # Arbitraje: diferencia de precio sin límite
         "arbitrage_opportunity": {
@@ -84,7 +89,7 @@ class MEVDetectorAdapter(ToolAdapter):
             "severity": "Medium",
             "message": "Price-dependent function without arbitrage protection",
             "impact": "Arbitrage exploitation",
-            "recommendation": "Add price deviation limits and TWAP (Time-Weighted Average Price)"
+            "recommendation": "Add price deviation limits and TWAP (Time-Weighted Average Price)",
         },
         # Ordering dependence: resultado depende del orden de transacciones
         "tx_ordering_dependence": {
@@ -92,7 +97,7 @@ class MEVDetectorAdapter(ToolAdapter):
             "severity": "Medium",
             "message": "Logic depends on contract balance (transaction order dependent)",
             "impact": "Transaction ordering manipulation",
-            "recommendation": "Use internal accounting instead of balance checks"
+            "recommendation": "Use internal accounting instead of balance checks",
         },
         # Unbounded loop (gas griefing for MEV)
         "unbounded_loop_mev": {
@@ -100,7 +105,7 @@ class MEVDetectorAdapter(ToolAdapter):
             "severity": "High",
             "message": "Unbounded loop with external calls (MEV + DoS risk)",
             "impact": "Gas griefing + MEV extraction",
-            "recommendation": "Add loop bounds, use pull pattern, or batch processing"
+            "recommendation": "Add loop bounds, use pull pattern, or batch processing",
         },
         # Public liquidation sin delay
         "instant_liquidation": {
@@ -108,7 +113,7 @@ class MEVDetectorAdapter(ToolAdapter):
             "severity": "Medium",
             "message": "Public liquidation without delay mechanism",
             "impact": "MEV extraction via instant liquidation",
-            "recommendation": "Add grace period or Dutch auction for liquidations"
+            "recommendation": "Add grace period or Dutch auction for liquidations",
         },
         # Oracle precio único (no TWAP)
         "single_price_oracle": {
@@ -116,7 +121,7 @@ class MEVDetectorAdapter(ToolAdapter):
             "severity": "Medium",
             "message": "Using single-point oracle price instead of TWAP",
             "impact": "Price manipulation via MEV",
-            "recommendation": "Use TWAP (Time-Weighted Average Price) or Chainlink"
+            "recommendation": "Use TWAP (Time-Weighted Average Price) or Chainlink",
         },
         # Auction sin commit-reveal
         "public_auction": {
@@ -124,7 +129,7 @@ class MEVDetectorAdapter(ToolAdapter):
             "severity": "High",
             "message": "Public auction without commit-reveal scheme",
             "impact": "Front-running of bids",
-            "recommendation": "Implement commit-reveal pattern or sealed-bid auction"
+            "recommendation": "Implement commit-reveal pattern or sealed-bid auction",
         },
         # DEX sin MEV protection
         "dex_no_mev_protection": {
@@ -132,8 +137,8 @@ class MEVDetectorAdapter(ToolAdapter):
             "severity": "Medium",
             "message": "Liquidity function without deadline parameter",
             "impact": "MEV via delayed execution",
-            "recommendation": "Add deadline parameter to prevent stale transactions"
-        }
+            "recommendation": "Add deadline parameter to prevent stale transactions",
+        },
     }
 
     def get_metadata(self) -> ToolMetadata:
@@ -160,13 +165,13 @@ class MEVDetectorAdapter(ToolAdapter):
                         "flash_loan_attacks",
                         "arbitrage_risks",
                         "transaction_ordering",
-                        "liquidation_mev"
-                    ]
+                        "liquidation_mev",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True  # DPGA compliance
+            is_optional=True,  # DPGA compliance
         )
 
     def is_available(self) -> ToolStatus:
@@ -187,11 +192,12 @@ class MEVDetectorAdapter(ToolAdapter):
             Resultados normalizados
         """
         import time
+
         start = time.time()
 
         try:
             # Leer contrato
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 source_code = f.read()
 
             # Verificar si es contrato DeFi (opcional)
@@ -203,7 +209,7 @@ class MEVDetectorAdapter(ToolAdapter):
                         "status": "skipped",
                         "reason": "Not a DeFi contract",
                         "findings": [],
-                        "execution_time": time.time() - start
+                        "execution_time": time.time() - start,
                     }
 
             # Analizar patrones MEV
@@ -212,8 +218,11 @@ class MEVDetectorAdapter(ToolAdapter):
             # Filtrar por severidad si se especifica
             min_severity = kwargs.get("min_severity")
             if min_severity:
-                findings = [f for f in findings if self._severity_level(f["severity"]) >=
-                           self._severity_level(min_severity)]
+                findings = [
+                    f
+                    for f in findings
+                    if self._severity_level(f["severity"]) >= self._severity_level(min_severity)
+                ]
 
             # Calcular métricas de MEV
             mev_risk_score = self._calculate_mev_risk(findings)
@@ -228,9 +237,9 @@ class MEVDetectorAdapter(ToolAdapter):
                     "mev_risk_score": mev_risk_score,
                     "risk_level": self._risk_level(mev_risk_score),
                     "severity_breakdown": self._severity_breakdown(findings),
-                    "attack_vectors": self._extract_attack_vectors(findings)
+                    "attack_vectors": self._extract_attack_vectors(findings),
                 },
-                "execution_time": time.time() - start
+                "execution_time": time.time() - start,
             }
 
         except Exception as e:
@@ -241,7 +250,7 @@ class MEVDetectorAdapter(ToolAdapter):
                 "status": "error",
                 "error": str(e),
                 "findings": [],
-                "execution_time": time.time() - start
+                "execution_time": time.time() - start,
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -258,7 +267,7 @@ class MEVDetectorAdapter(ToolAdapter):
     def _analyze_mev_patterns(self, source_code: str, contract_path: str) -> List[Dict[str, Any]]:
         """Analiza código buscando vulnerabilidades MEV"""
         findings = []
-        lines = source_code.split('\n')
+        lines = source_code.split("\n")
 
         for pattern_name, pattern_info in self.MEV_PATTERNS.items():
             regex = re.compile(pattern_info["regex"], re.MULTILINE | re.DOTALL)
@@ -278,7 +287,7 @@ class MEVDetectorAdapter(ToolAdapter):
                             "file": str(Path(contract_path).name),
                             "line": line_num,
                             "column": match.start(),
-                            "code_snippet": line.strip()
+                            "code_snippet": line.strip(),
                         },
                         "message": pattern_info["message"],
                         "description": f"MEV vulnerability detected: {pattern_info['message']}",
@@ -287,7 +296,7 @@ class MEVDetectorAdapter(ToolAdapter):
                         "cwe_id": None,
                         "owasp_category": "A10:2021-Cryptographic Failures",  # Closest match
                         "mev_impact": pattern_info["impact"],
-                        "attack_vector": pattern_name
+                        "attack_vector": pattern_name,
                     }
                     findings.append(finding)
 
@@ -296,9 +305,22 @@ class MEVDetectorAdapter(ToolAdapter):
     def _is_defi_contract(self, source_code: str) -> bool:
         """Detecta si es un contrato DeFi basado en keywords"""
         defi_keywords = [
-            "swap", "liquidity", "pool", "vault", "lending", "borrow",
-            "flashLoan", "oracle", "price", "stake", "yield", "farm",
-            "DEX", "AMM", "TWAP", "liquidate"
+            "swap",
+            "liquidity",
+            "pool",
+            "vault",
+            "lending",
+            "borrow",
+            "flashLoan",
+            "oracle",
+            "price",
+            "stake",
+            "yield",
+            "farm",
+            "DEX",
+            "AMM",
+            "TWAP",
+            "liquidate",
         ]
         return any(keyword in source_code for keyword in defi_keywords)
 
@@ -351,16 +373,12 @@ class MEVDetectorAdapter(ToolAdapter):
             vector = finding.get("mev_impact", "")
             if vector:
                 vectors.add(vector)
-        return sorted(list(vectors))
+        return sorted(vectors)
 
     def can_analyze(self, contract_path: str) -> bool:
         """Verifica si el archivo es un contrato Solidity"""
-        return contract_path.endswith('.sol')
+        return contract_path.endswith(".sol")
 
     def get_default_config(self) -> Dict[str, Any]:
         """Configuración por defecto"""
-        return {
-            "min_severity": "Low",
-            "include_defi_only": False,
-            "enable_all_patterns": True
-        }
+        return {"min_severity": "Low", "include_defi_only": False, "enable_all_patterns": True}

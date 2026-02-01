@@ -164,7 +164,7 @@ class TestFalsePositiveFilter:
         fp_prob, explanation = self.filter.predict_false_positive(finding)
 
         # Test files should increase FP probability
-        assert explanation["features"]["in_test"] == True
+        assert explanation["features"]["in_test"]
         assert any("test file" in r.lower() for r in explanation["reasons"])
 
     def test_predict_fp_near_require(self):
@@ -180,7 +180,7 @@ class TestFalsePositiveFilter:
             finding, code_context=code_context
         )
 
-        assert explanation["features"]["near_require"] == True
+        assert explanation["features"]["near_require"]
 
     def test_predict_fp_with_modifier(self):
         """Test FP detection with security modifiers."""
@@ -195,7 +195,7 @@ class TestFalsePositiveFilter:
             finding, code_context=code_context
         )
 
-        assert explanation["features"]["near_modifier"] == True
+        assert explanation["features"]["near_modifier"]
 
     def test_predict_fp_multiple_confirmations(self):
         """Test FP reduction with multiple tool confirmations."""
@@ -524,7 +524,7 @@ class TestFalsePositiveFilter:
         # Should have loaded feedback
         assert len(filter_with_valid._feedback) == 1
         assert filter_with_valid._feedback[0].finding_hash == "abc123"
-        assert filter_with_valid._feedback[0].is_true_positive == True
+        assert filter_with_valid._feedback[0].is_true_positive
         assert filter_with_valid._learned_weights == {"reentrancy": 0.1}
 
 
@@ -761,7 +761,7 @@ class TestSeverityPredictor:
         assert prediction.predicted in ["low", "informational", "medium"]
         # The original was 'info', so if changed, it should be adjusted
         if prediction.predicted != "info":
-            assert prediction.adjusted == True
+            assert prediction.adjusted
 
     def test_predict_safeerc20_mitigation(self):
         """Test severity reduction with SafeERC20."""
@@ -848,7 +848,7 @@ class TestSeverityPredictor:
 
         # Should be adjusted down
         if prediction_low.predicted != "high":
-            assert prediction_low.adjusted == True
+            assert prediction_low.adjusted
 
         # Case 2: No change expected
         finding_match = {
@@ -859,7 +859,7 @@ class TestSeverityPredictor:
         prediction_match = self.predictor.predict(finding_match)
 
         if prediction_match.predicted == "high":
-            assert prediction_match.adjusted == False
+            assert not prediction_match.adjusted
 
 
 class TestVulnerabilityClusterer:
@@ -1460,7 +1460,7 @@ class TestFeedbackLoopCoverageCompletion:
         retrainer.queue_training_sample(finding2, feedback2)
 
         # First check should pass
-        assert retrainer.should_retrain() == True
+        assert retrainer.should_retrain()
 
         # Mark as retrained
         retrainer.mark_retrained()
@@ -1470,7 +1470,7 @@ class TestFeedbackLoopCoverageCompletion:
         retrainer.queue_training_sample(finding2, feedback2)
 
         # Should not retrain within 24 hours
-        assert retrainer.should_retrain() == False
+        assert not retrainer.should_retrain()
 
     def test_retrainer_get_training_data(self):
         """Test Retrainer.get_training_data (lines 233-240)."""

@@ -3,161 +3,163 @@ MIESC Machine Learning Module
 Componentes ML para mejora de análisis de smart contracts.
 """
 
-from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from .false_positive_filter import FalsePositiveFilter, FindingFeatures
-from .severity_predictor import SeverityPredictor, SeverityPrediction, SeverityLevel
-from .vulnerability_clusterer import VulnerabilityClusterer, VulnerabilityCluster
-from .code_embeddings import CodeEmbedder, CodeEmbedding, VulnerabilityPatternDB
-from .feedback_loop import FeedbackLoop, FeedbackType, UserFeedback
-
-# v4.2.0+ Enhanced modules
-from .fp_filter import (
-    FalsePositiveFilter as EnhancedFPFilter,
-    FilterResult,
-    FPMatch,
-    FPCategory,
-    filter_false_positives,
+# v4.6.0+ New Analysis Modules
+from .call_graph import (
+    CallEdge,
+    CallGraph,
+    CallGraphBuilder,
+    CallPath,
+    FunctionNode,
+    Mutability,
+    Visibility,
+    analyze_reentrancy_risk,
+    build_call_graph,
 )
+
+# v4.6.0+ Classic Pattern enhancements
+from .classic_patterns import (
+    CLASSIC_PATTERNS,
+    AccessControlFinding,
+    AccessControlSemanticDetector,
+    ClassicPatternDetector,
+    ClassicVulnType,
+    DoSCrossFunctionDetector,
+    DoSFinding,
+    PatternConfig,
+    detect_classic_vulnerabilities,
+    detect_semantic_vulnerabilities,
+)
+from .classic_patterns import (
+    PatternMatch as ClassicPatternMatch,
+)
+from .code_embeddings import CodeEmbedder, CodeEmbedding, VulnerabilityPatternDB
 from .correlation_engine import (
-    SmartCorrelationEngine,
     CorrelatedFinding,
-    ExploitChainAnalyzer,
     ExploitChain,
+    ExploitChainAnalyzer,
+    SmartCorrelationEngine,
     correlate_findings,
 )
 
 # v4.3.0+ New ML Components (2025-2026 Improvements)
 from .defi_patterns import (
-    DeFiVulnType,
-    DeFiVulnerabilityPattern,
-    DeFiPatternMatch,
-    DeFiPatternDetector,
     DEFI_VULNERABILITY_PATTERNS,
+    DeFiPatternDetector,
+    DeFiPatternMatch,
+    DeFiVulnerabilityPattern,
+    DeFiVulnType,
     detect_defi_vulnerabilities,
-)
-
-from .severity_classifier import (
-    MLSeverityClassifier,
-    SeverityLevel as MLSeverityLevel,
-    SeverityFactors,
-    SeverityPrediction as MLSeverityPrediction,
-    ContractContext,
-    ImpactLevel,
-    ExploitabilityLevel,
-    ScopeLevel,
-    classify_severity,
-)
-
-from .classic_patterns import (
-    ClassicVulnType,
-    ClassicPatternDetector,
-    PatternMatch as ClassicPatternMatch,
-    PatternConfig,
-    CLASSIC_PATTERNS,
-    detect_classic_vulnerabilities,
-)
-
-# v4.5.0+ ML Invariant Synthesis (Sprint 4)
-from .ml_invariant_synthesizer import (
-    MLInvariantSynthesizer,
-    FeatureExtractor,
-    InvariantPredictor,
-    ContractFeatures,
-    InvariantPrediction,
-    TrainingExample,
-    extract_contract_features,
-    predict_invariants,
-    synthesize_with_ml,
-)
-
-from .invariant_validator import (
-    InvariantValidator,
-    InvariantTestGenerator,
-    InvariantTestResult,
-    ValidationReport,
-    validate_invariants,
-    quick_validate,
-)
-
-# v4.6.0+ New Analysis Modules
-from .call_graph import (
-    Visibility,
-    Mutability,
-    FunctionNode,
-    CallEdge,
-    CallPath,
-    CallGraph,
-    CallGraphBuilder,
-    build_call_graph,
-    analyze_reentrancy_risk,
-)
-
-from .taint_analysis import (
-    TaintSource,
-    TaintSink,
-    SanitizerType,
-    TaintedVariable,
-    TaintedPath,
-    TaintAnalyzer,
-    analyze_taint,
-    find_tainted_sinks,
-)
-
-from .slither_ir_parser import (
-    IROpcode,
-    IRVariable,
-    IRInstruction,
-    StateTransition,
-    Call as IRCall,
-    FunctionIR,
-    SlitherIRParser,
-    parse_slither_ir,
-    get_function_state_transitions,
-    get_external_calls,
 )
 
 # v4.6.0+ Enhanced FP Filter exports
 from .false_positive_filter import (
     SLITHER_DETECTOR_FP_RATES,
+    FalsePositiveFilter,
     SemanticContextAnalyzer,
 )
+from .feedback_loop import FeedbackLoop, FeedbackType, UserFeedback
 
-# v4.6.0+ Classic Pattern enhancements
-from .classic_patterns import (
-    AccessControlFinding,
-    AccessControlSemanticDetector,
-    DoSFinding,
-    DoSCrossFunctionDetector,
-    detect_semantic_vulnerabilities,
+# v4.7.0+ ML-based False Positive Classifier
+from .fp_classifier import (
+    FeatureCategory,
+    FindingFeatures,
+    FPClassifier,
+    FPPrediction,
+    classify_false_positives,
+    filter_likely_fps,
+)
+
+# v4.2.0+ Enhanced modules
+from .fp_filter import (
+    FalsePositiveFilter as EnhancedFPFilter,
+)
+from .fp_filter import (
+    FilterResult,
+    FPCategory,
+    FPMatch,
+    filter_false_positives,
+)
+from .invariant_validator import (
+    InvariantTestGenerator,
+    InvariantTestResult,
+    InvariantValidator,
+    ValidationReport,
+    quick_validate,
+    validate_invariants,
+)
+
+# v4.5.0+ ML Invariant Synthesis (Sprint 4)
+from .ml_invariant_synthesizer import (
+    ContractFeatures,
+    FeatureExtractor,
+    InvariantPrediction,
+    InvariantPredictor,
+    MLInvariantSynthesizer,
+    TrainingExample,
+    extract_contract_features,
+    predict_invariants,
+    synthesize_with_ml,
+)
+from .severity_classifier import (
+    ContractContext,
+    ExploitabilityLevel,
+    ImpactLevel,
+    MLSeverityClassifier,
+    ScopeLevel,
+    SeverityFactors,
+    classify_severity,
+)
+from .severity_classifier import (
+    SeverityLevel as MLSeverityLevel,
+)
+from .severity_classifier import (
+    SeverityPrediction as MLSeverityPrediction,
+)
+from .severity_predictor import SeverityLevel, SeverityPrediction, SeverityPredictor
+from .slither_ir_parser import (
+    Call as IRCall,
+)
+from .slither_ir_parser import (
+    FunctionIR,
+    IRInstruction,
+    IROpcode,
+    IRVariable,
+    SlitherIRParser,
+    StateTransition,
+    get_external_calls,
+    get_function_state_transitions,
+    parse_slither_ir,
 )
 
 # v4.6.0+ Slither Validator for cross-validation
 from .slither_validator import (
-    SlitherValidator,
     SlitherFinding,
+    SlitherValidator,
     ValidationResult,
-    validate_with_slither,
     filter_unconfirmed,
+    validate_with_slither,
 )
-
-# v4.7.0+ ML-based False Positive Classifier
-from .fp_classifier import (
-    FPClassifier,
-    FeatureExtractor,
-    FindingFeatures,
-    FPPrediction,
-    FeatureCategory,
-    classify_false_positives,
-    filter_likely_fps,
+from .taint_analysis import (
+    SanitizerType,
+    TaintAnalyzer,
+    TaintedPath,
+    TaintedVariable,
+    TaintSink,
+    TaintSource,
+    analyze_taint,
+    find_tainted_sinks,
 )
+from .vulnerability_clusterer import VulnerabilityCluster, VulnerabilityClusterer
 
 
 @dataclass
 class MLEnhancedResult:
     """Resultado de análisis mejorado con ML."""
+
     original_findings: List[Dict[str, Any]]
     filtered_findings: List[Dict[str, Any]]
     filtered_out: List[Dict[str, Any]]
@@ -171,17 +173,17 @@ class MLEnhancedResult:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'original_count': len(self.original_findings),
-            'filtered_count': len(self.filtered_findings),
-            'filtered_out_count': len(self.filtered_out),
-            'cluster_count': len(self.clusters),
-            'severity_adjustments': self.severity_adjustments,
-            'fp_filtered': self.fp_filtered,
-            'clusters': [c.to_dict() for c in self.clusters],
-            'remediation_plan': self.remediation_plan,
-            'pattern_matches': self.pattern_matches[:10],  # Top 10
-            'processing_time_ms': round(self.processing_time_ms, 2),
-            'timestamp': self.timestamp.isoformat(),
+            "original_count": len(self.original_findings),
+            "filtered_count": len(self.filtered_findings),
+            "filtered_out_count": len(self.filtered_out),
+            "cluster_count": len(self.clusters),
+            "severity_adjustments": self.severity_adjustments,
+            "fp_filtered": self.fp_filtered,
+            "clusters": [c.to_dict() for c in self.clusters],
+            "remediation_plan": self.remediation_plan,
+            "pattern_matches": self.pattern_matches[:10],  # Top 10
+            "processing_time_ms": round(self.processing_time_ms, 2),
+            "timestamp": self.timestamp.isoformat(),
         }
 
 
@@ -241,6 +243,7 @@ class MLPipeline:
             MLEnhancedResult con hallazgos mejorados
         """
         import time
+
         start_time = time.time()
 
         code_context_map = code_context_map or {}
@@ -250,7 +253,7 @@ class MLPipeline:
             classic_findings = self._detect_classic_patterns(contract_source)
             findings = self._merge_findings(findings, classic_findings)
 
-        original_count = len(findings)
+        len(findings)
 
         # 1. Filtrar falsos positivos
         true_positives, filtered_fps = self.fp_filter.filter_findings(
@@ -272,12 +275,12 @@ class MLPipeline:
             if prediction.adjusted:
                 severity_adjusted += 1
                 finding = finding.copy()
-                finding['severity'] = prediction.predicted
-                finding['_severity_prediction'] = {
-                    'original': prediction.original,
-                    'predicted': prediction.predicted,
-                    'confidence': prediction.confidence,
-                    'reasons': prediction.reasons,
+                finding["severity"] = prediction.predicted
+                finding["_severity_prediction"] = {
+                    "original": prediction.original,
+                    "predicted": prediction.predicted,
+                    "confidence": prediction.confidence,
+                    "reasons": prediction.reasons,
                 }
 
             # Aplicar ajuste de feedback si disponible
@@ -327,22 +330,24 @@ class MLPipeline:
         findings = []
 
         for match in matches:
-            findings.append({
-                'id': f"pattern-{match.vuln_type.value}-{match.line}",
-                'type': match.vuln_type.value,
-                'severity': match.severity.capitalize(),
-                'confidence': match.confidence,
-                'location': {
-                    'file': 'contract.sol',
-                    'line': match.line,
-                },
-                'message': match.description,
-                'description': match.description,
-                'recommendation': match.recommendation,
-                'swc_id': match.swc_id,
-                'tool': 'classic-pattern-detector',
-                '_pattern_match': True,
-            })
+            findings.append(
+                {
+                    "id": f"pattern-{match.vuln_type.value}-{match.line}",
+                    "type": match.vuln_type.value,
+                    "severity": match.severity.capitalize(),
+                    "confidence": match.confidence,
+                    "location": {
+                        "file": "contract.sol",
+                        "line": match.line,
+                    },
+                    "message": match.description,
+                    "description": match.description,
+                    "recommendation": match.recommendation,
+                    "swc_id": match.swc_id,
+                    "tool": "classic-pattern-detector",
+                    "_pattern_match": True,
+                }
+            )
 
         return findings
 
@@ -360,20 +365,20 @@ class MLPipeline:
 
         # Index existing findings by location+type
         for f in tool_findings:
-            loc = f.get('location', {})
-            line = loc.get('line', 0)
-            ftype = f.get('type', '').lower()
+            loc = f.get("location", {})
+            line = loc.get("line", 0)
+            ftype = f.get("type", "").lower()
             existing_locations.add((line, ftype))
 
         # Add pattern findings that don't overlap
         for pf in pattern_findings:
-            loc = pf.get('location', {})
-            line = loc.get('line', 0)
-            ftype = pf.get('type', '').lower()
+            loc = pf.get("location", {})
+            line = loc.get("line", 0)
+            ftype = pf.get("type", "").lower()
 
             # Check for overlap (within 5 lines and same category)
             is_duplicate = False
-            for (el, et) in existing_locations:
+            for el, et in existing_locations:
                 # Skip if either line is None
                 if el is None or line is None:
                     continue
@@ -390,19 +395,19 @@ class MLPipeline:
     def _types_similar(self, type1: str, type2: str) -> bool:
         """Check if two vulnerability types are similar."""
         # Normalize types
-        t1 = type1.lower().replace('-', '_').replace(' ', '_')
-        t2 = type2.lower().replace('-', '_').replace(' ', '_')
+        t1 = type1.lower().replace("-", "_").replace(" ", "_")
+        t2 = type2.lower().replace("-", "_").replace(" ", "_")
 
         if t1 == t2:
             return True
 
         # Similar categories
         similar_groups = [
-            {'reentrancy', 'reentrancy_eth', 'reentrancy_no_eth'},
-            {'access_control', 'unprotected', 'arbitrary_send'},
-            {'arithmetic', 'overflow', 'underflow', 'integer_overflow'},
-            {'unchecked', 'unchecked_low_level_calls', 'unchecked_call'},
-            {'timestamp', 'timestamp_dependence', 'block_timestamp'},
+            {"reentrancy", "reentrancy_eth", "reentrancy_no_eth"},
+            {"access_control", "unprotected", "arbitrary_send"},
+            {"arithmetic", "overflow", "underflow", "integer_overflow"},
+            {"unchecked", "unchecked_low_level_calls", "unchecked_call"},
+            {"timestamp", "timestamp_dependence", "block_timestamp"},
         ]
 
         for group in similar_groups:
@@ -420,21 +425,19 @@ class MLPipeline:
     ) -> Dict[str, Any]:
         """Registra feedback de usuario sobre un hallazgo."""
         if self.feedback_loop:
-            return self.feedback_loop.submit_feedback(
-                finding, feedback_type, user_id, notes
-            )
-        return {'status': 'feedback_disabled'}
+            return self.feedback_loop.submit_feedback(finding, feedback_type, user_id, notes)
+        return {"status": "feedback_disabled"}
 
     def get_ml_report(self) -> Dict[str, Any]:
         """Genera reporte del estado del módulo ML."""
         report = {
-            'fp_filter': self.fp_filter.get_statistics(),
-            'clusterer': self.clusterer.get_summary(),
+            "fp_filter": self.fp_filter.get_statistics(),
+            "clusterer": self.clusterer.get_summary(),
         }
 
         if self.feedback_loop:
-            report['feedback'] = self.feedback_loop.generate_report()
-            report['recommendations'] = self.feedback_loop.get_recommendations()
+            report["feedback"] = self.feedback_loop.generate_report()
+            report["recommendations"] = self.feedback_loop.get_recommendations()
 
         return report
 
@@ -453,131 +456,131 @@ def get_ml_pipeline() -> MLPipeline:
 
 __all__ = [
     # False Positive Filter
-    'FalsePositiveFilter',
-    'FindingFeatures',
+    "FalsePositiveFilter",
+    "FindingFeatures",
     # Severity Predictor
-    'SeverityPredictor',
-    'SeverityPrediction',
-    'SeverityLevel',
+    "SeverityPredictor",
+    "SeverityPrediction",
+    "SeverityLevel",
     # Vulnerability Clusterer
-    'VulnerabilityClusterer',
-    'VulnerabilityCluster',
+    "VulnerabilityClusterer",
+    "VulnerabilityCluster",
     # Code Embeddings
-    'CodeEmbedder',
-    'CodeEmbedding',
-    'VulnerabilityPatternDB',
+    "CodeEmbedder",
+    "CodeEmbedding",
+    "VulnerabilityPatternDB",
     # Feedback Loop
-    'FeedbackLoop',
-    'FeedbackType',
-    'UserFeedback',
+    "FeedbackLoop",
+    "FeedbackType",
+    "UserFeedback",
     # Pipeline
-    'MLPipeline',
-    'MLEnhancedResult',
-    'get_ml_pipeline',
+    "MLPipeline",
+    "MLEnhancedResult",
+    "get_ml_pipeline",
     # v4.2.0+ Enhanced FP Filter
-    'EnhancedFPFilter',
-    'FilterResult',
-    'FPMatch',
-    'FPCategory',
-    'filter_false_positives',
+    "EnhancedFPFilter",
+    "FilterResult",
+    "FPMatch",
+    "FPCategory",
+    "filter_false_positives",
     # v4.2.0+ Smart Correlation Engine
-    'SmartCorrelationEngine',
-    'CorrelatedFinding',
-    'ExploitChainAnalyzer',
-    'ExploitChain',
-    'correlate_findings',
+    "SmartCorrelationEngine",
+    "CorrelatedFinding",
+    "ExploitChainAnalyzer",
+    "ExploitChain",
+    "correlate_findings",
     # v4.3.0+ DeFi Pattern Detector
-    'DeFiVulnType',
-    'DeFiVulnerabilityPattern',
-    'DeFiPatternMatch',
-    'DeFiPatternDetector',
-    'DEFI_VULNERABILITY_PATTERNS',
-    'detect_defi_vulnerabilities',
+    "DeFiVulnType",
+    "DeFiVulnerabilityPattern",
+    "DeFiPatternMatch",
+    "DeFiPatternDetector",
+    "DEFI_VULNERABILITY_PATTERNS",
+    "detect_defi_vulnerabilities",
     # v4.3.0+ ML Severity Classifier
-    'MLSeverityClassifier',
-    'MLSeverityLevel',
-    'SeverityFactors',
-    'MLSeverityPrediction',
-    'ContractContext',
-    'ImpactLevel',
-    'ExploitabilityLevel',
-    'ScopeLevel',
-    'classify_severity',
+    "MLSeverityClassifier",
+    "MLSeverityLevel",
+    "SeverityFactors",
+    "MLSeverityPrediction",
+    "ContractContext",
+    "ImpactLevel",
+    "ExploitabilityLevel",
+    "ScopeLevel",
+    "classify_severity",
     # v4.3.0+ Classic Pattern Detector (81.2% recall)
-    'ClassicVulnType',
-    'ClassicPatternDetector',
-    'ClassicPatternMatch',
-    'PatternConfig',
-    'CLASSIC_PATTERNS',
-    'detect_classic_vulnerabilities',
+    "ClassicVulnType",
+    "ClassicPatternDetector",
+    "ClassicPatternMatch",
+    "PatternConfig",
+    "CLASSIC_PATTERNS",
+    "detect_classic_vulnerabilities",
     # v4.5.0+ ML Invariant Synthesis
-    'MLInvariantSynthesizer',
-    'FeatureExtractor',
-    'InvariantPredictor',
-    'ContractFeatures',
-    'InvariantPrediction',
-    'TrainingExample',
-    'extract_contract_features',
-    'predict_invariants',
-    'synthesize_with_ml',
+    "MLInvariantSynthesizer",
+    "FeatureExtractor",
+    "InvariantPredictor",
+    "ContractFeatures",
+    "InvariantPrediction",
+    "TrainingExample",
+    "extract_contract_features",
+    "predict_invariants",
+    "synthesize_with_ml",
     # v4.5.0+ Invariant Validator
-    'InvariantValidator',
-    'InvariantTestGenerator',
-    'InvariantTestResult',
-    'ValidationReport',
-    'validate_invariants',
-    'quick_validate',
+    "InvariantValidator",
+    "InvariantTestGenerator",
+    "InvariantTestResult",
+    "ValidationReport",
+    "validate_invariants",
+    "quick_validate",
     # v4.6.0+ Call Graph
-    'Visibility',
-    'Mutability',
-    'FunctionNode',
-    'CallEdge',
-    'CallPath',
-    'CallGraph',
-    'CallGraphBuilder',
-    'build_call_graph',
-    'analyze_reentrancy_risk',
+    "Visibility",
+    "Mutability",
+    "FunctionNode",
+    "CallEdge",
+    "CallPath",
+    "CallGraph",
+    "CallGraphBuilder",
+    "build_call_graph",
+    "analyze_reentrancy_risk",
     # v4.6.0+ Taint Analysis
-    'TaintSource',
-    'TaintSink',
-    'SanitizerType',
-    'TaintedVariable',
-    'TaintedPath',
-    'TaintAnalyzer',
-    'analyze_taint',
-    'find_tainted_sinks',
+    "TaintSource",
+    "TaintSink",
+    "SanitizerType",
+    "TaintedVariable",
+    "TaintedPath",
+    "TaintAnalyzer",
+    "analyze_taint",
+    "find_tainted_sinks",
     # v4.6.0+ Slither IR Parser
-    'IROpcode',
-    'IRVariable',
-    'IRInstruction',
-    'StateTransition',
-    'IRCall',
-    'FunctionIR',
-    'SlitherIRParser',
-    'parse_slither_ir',
-    'get_function_state_transitions',
-    'get_external_calls',
+    "IROpcode",
+    "IRVariable",
+    "IRInstruction",
+    "StateTransition",
+    "IRCall",
+    "FunctionIR",
+    "SlitherIRParser",
+    "parse_slither_ir",
+    "get_function_state_transitions",
+    "get_external_calls",
     # v4.6.0+ Enhanced FP Filter
-    'SLITHER_DETECTOR_FP_RATES',
-    'SemanticContextAnalyzer',
+    "SLITHER_DETECTOR_FP_RATES",
+    "SemanticContextAnalyzer",
     # v4.6.0+ Semantic Detectors
-    'AccessControlFinding',
-    'AccessControlSemanticDetector',
-    'DoSFinding',
-    'DoSCrossFunctionDetector',
-    'detect_semantic_vulnerabilities',
+    "AccessControlFinding",
+    "AccessControlSemanticDetector",
+    "DoSFinding",
+    "DoSCrossFunctionDetector",
+    "detect_semantic_vulnerabilities",
     # v4.6.0+ Slither Validator
-    'SlitherValidator',
-    'SlitherFinding',
-    'ValidationResult',
-    'validate_with_slither',
-    'filter_unconfirmed',
+    "SlitherValidator",
+    "SlitherFinding",
+    "ValidationResult",
+    "validate_with_slither",
+    "filter_unconfirmed",
     # v4.7.0+ ML-based FP Classifier
-    'FPClassifier',
-    'FeatureExtractor',
-    'FindingFeatures',
-    'FPPrediction',
-    'FeatureCategory',
-    'classify_false_positives',
-    'filter_likely_fps',
+    "FPClassifier",
+    "FeatureExtractor",
+    "FindingFeatures",
+    "FPPrediction",
+    "FeatureCategory",
+    "classify_false_positives",
+    "filter_likely_fps",
 ]

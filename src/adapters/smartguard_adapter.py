@@ -15,23 +15,24 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-12-03
 """
 
+import hashlib
+import json
+import logging
+import re
+import subprocess
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
 from src.core.llm_config import get_default_model
 from src.core.tool_protocol import (
     ToolAdapter,
+    ToolCapability,
+    ToolCategory,
     ToolMetadata,
     ToolStatus,
-    ToolCategory,
-    ToolCapability
 )
-from typing import Dict, Any, List, Optional, Tuple
-import logging
-import subprocess
-import json
-import hashlib
-import time
-import re
-from pathlib import Path
-from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class VulnerabilityExample:
     """A vulnerable code example with CoT reasoning."""
+
     vuln_type: str
     code_snippet: str
     chain_of_thought: str
@@ -65,7 +67,7 @@ Step 4: Confirm vulnerability - External call before state update = REENTRANCY
 Conclusion: HIGH severity reentrancy vulnerability. State must be updated before external calls.
 """,
         fix_suggestion="Use Checks-Effects-Interactions pattern: update balances[msg.sender] = 0 BEFORE the call",
-        severity="HIGH"
+        severity="HIGH",
     ),
     VulnerabilityExample(
         vuln_type="integer_overflow",
@@ -81,7 +83,7 @@ Step 4: Check for SafeMath - No SafeMath library used
 Conclusion: MEDIUM severity for Solidity < 0.8.0. Use SafeMath or upgrade to 0.8.0+.
 """,
         fix_suggestion="Use SafeMath library or Solidity >= 0.8.0 for automatic overflow checks",
-        severity="MEDIUM"
+        severity="MEDIUM",
     ),
     VulnerabilityExample(
         vuln_type="unchecked_return_value",
@@ -97,7 +99,7 @@ Step 4: Assess impact - Funds may appear sent but never received
 Conclusion: MEDIUM severity. Always check return values of send/call.
 """,
         fix_suggestion="Use transfer() which reverts on failure, or check send() return value",
-        severity="MEDIUM"
+        severity="MEDIUM",
     ),
     VulnerabilityExample(
         vuln_type="access_control",
@@ -113,7 +115,7 @@ Step 4: Assess impact - Complete contract takeover possible
 Conclusion: CRITICAL severity. Add require(msg.sender == owner) or onlyOwner modifier.
 """,
         fix_suggestion="Add onlyOwner modifier or require(msg.sender == owner)",
-        severity="CRITICAL"
+        severity="CRITICAL",
     ),
     VulnerabilityExample(
         vuln_type="timestamp_dependence",
@@ -131,7 +133,7 @@ Step 4: Assess exploitability - Miner can wait for favorable timestamp
 Conclusion: MEDIUM severity. Don't use block.timestamp for randomness/critical decisions.
 """,
         fix_suggestion="Use Chainlink VRF or commit-reveal scheme for randomness",
-        severity="MEDIUM"
+        severity="MEDIUM",
     ),
     VulnerabilityExample(
         vuln_type="delegatecall_injection",
@@ -147,7 +149,7 @@ Step 4: Assess impact - Complete storage manipulation, ownership theft
 Conclusion: CRITICAL severity. Never allow user-controlled delegatecall targets.
 """,
         fix_suggestion="Whitelist allowed targets or remove arbitrary delegatecall functionality",
-        severity="CRITICAL"
+        severity="CRITICAL",
     ),
     VulnerabilityExample(
         vuln_type="front_running",
@@ -165,7 +167,7 @@ Step 4: Assess impact - Users may receive worse prices than expected
 Conclusion: MEDIUM severity. Add slippage protection and commit-reveal if needed.
 """,
         fix_suggestion="Add slippage protection (minReceived parameter) and consider commit-reveal",
-        severity="MEDIUM"
+        severity="MEDIUM",
     ),
     VulnerabilityExample(
         vuln_type="denial_of_service",
@@ -183,7 +185,7 @@ Step 4: Assess gas limits - Large user arrays may hit gas limit
 Conclusion: HIGH severity DoS. Use pull-over-push pattern for withdrawals.
 """,
         fix_suggestion="Use pull pattern: let users withdraw individually instead of push refunds",
-        severity="HIGH"
+        severity="HIGH",
     ),
 ]
 
@@ -233,36 +235,31 @@ class SmartGuardAdapter(ToolAdapter):
                         "delegatecall_injection",
                         "timestamp_dependence",
                         "front_running",
-                        "denial_of_service"
-                    ]
+                        "denial_of_service",
+                    ],
                 ),
                 ToolCapability(
                     name="semantic_retrieval",
                     description="Retrieves similar vulnerable code patterns for in-context learning",
                     supported_languages=["solidity"],
-                    detection_types=["pattern_matching", "code_similarity"]
+                    detection_types=["pattern_matching", "code_similarity"],
                 ),
                 ToolCapability(
                     name="icl_detection",
                     description="In-Context Learning with few-shot vulnerability examples",
                     supported_languages=["solidity"],
-                    detection_types=["few_shot_classification"]
-                )
+                    detection_types=["few_shot_classification"],
+                ),
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if Ollama and required model are available."""
         try:
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                timeout=5,
-                text=True
-            )
+            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5, text=True)
 
             if result.returncode != 0:
                 return ToolStatus.CONFIGURATION_ERROR
@@ -295,18 +292,14 @@ class SmartGuardAdapter(ToolAdapter):
 
         if self.is_available() != ToolStatus.AVAILABLE:
             return self._error_result(
-                "SmartGuard not available. Ensure Ollama is installed.",
-                start_time
+                "SmartGuard not available. Ensure Ollama is installed.", start_time
             )
 
         try:
             # Read contract
             contract_code = self._read_contract(contract_path)
             if not contract_code:
-                return self._error_result(
-                    f"Could not read contract: {contract_path}",
-                    start_time
-                )
+                return self._error_result(f"Could not read contract: {contract_path}", start_time)
 
             # Check cache
             cache_key = hashlib.sha256(contract_code.encode()).hexdigest()
@@ -331,10 +324,7 @@ class SmartGuardAdapter(ToolAdapter):
 
                 # Step 2: Generate CoT analysis with in-context examples
                 findings = self._analyze_with_cot(
-                    func_name,
-                    func_code,
-                    similar_vulns,
-                    contract_path
+                    func_name, func_code, similar_vulns, contract_path
                 )
 
                 all_findings.extend(findings)
@@ -353,10 +343,10 @@ class SmartGuardAdapter(ToolAdapter):
                     "paper_reference": "Expert Systems with Applications, 2025",
                     "functions_analyzed": len(functions),
                     "sovereign": True,
-                    "dpga_compliant": True
+                    "dpga_compliant": True,
                 },
                 "execution_time": time.time() - start_time,
-                "from_cache": False
+                "from_cache": False,
             }
 
             self._cache_result(cache_key, result)
@@ -371,7 +361,7 @@ class SmartGuardAdapter(ToolAdapter):
         functions = []
 
         # Regex to match function definitions
-        func_pattern = r'function\s+(\w+)\s*\([^)]*\)[^{]*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}'
+        func_pattern = r"function\s+(\w+)\s*\([^)]*\)[^{]*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}"
 
         for match in re.finditer(func_pattern, code, re.DOTALL):
             func_name = match.group(1)
@@ -379,7 +369,7 @@ class SmartGuardAdapter(ToolAdapter):
             functions.append((func_name, func_body))
 
         # Also extract modifiers
-        modifier_pattern = r'modifier\s+(\w+)\s*\([^)]*\)[^{]*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}'
+        modifier_pattern = r"modifier\s+(\w+)\s*\([^)]*\)[^{]*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}"
         for match in re.finditer(modifier_pattern, code, re.DOTALL):
             mod_name = match.group(1)
             mod_body = match.group(0)
@@ -387,10 +377,7 @@ class SmartGuardAdapter(ToolAdapter):
 
         return functions
 
-    def _retrieve_similar_vulnerabilities(
-        self,
-        func_code: str
-    ) -> List[VulnerabilityExample]:
+    def _retrieve_similar_vulnerabilities(self, func_code: str) -> List[VulnerabilityExample]:
         """
         Retrieve similar vulnerability patterns from knowledge base.
 
@@ -439,7 +426,7 @@ class SmartGuardAdapter(ToolAdapter):
         func_name: str,
         func_code: str,
         similar_vulns: List[VulnerabilityExample],
-        contract_path: str
+        contract_path: str,
     ) -> List[Dict[str, Any]]:
         """
         Analyze function using Chain-of-Thought with in-context examples.
@@ -486,18 +473,11 @@ Output JSON only:"""
 
         try:
             result = subprocess.run(
-                ["ollama", "run", self._model, prompt],
-                capture_output=True,
-                timeout=180,
-                text=True
+                ["ollama", "run", self._model, prompt], capture_output=True, timeout=180, text=True
             )
 
             if result.returncode == 0 and result.stdout:
-                findings = self._parse_cot_response(
-                    result.stdout,
-                    func_name,
-                    contract_path
-                )
+                findings = self._parse_cot_response(result.stdout, func_name, contract_path)
 
         except subprocess.TimeoutExpired:
             logger.warning(f"SmartGuard timeout analyzing {func_name}")
@@ -528,18 +508,15 @@ Fix: {vuln.fix_suggestion}
         return examples
 
     def _parse_cot_response(
-        self,
-        response: str,
-        func_name: str,
-        contract_path: str
+        self, response: str, func_name: str, contract_path: str
     ) -> List[Dict[str, Any]]:
         """Parse Chain-of-Thought response from LLM."""
         findings = []
 
         try:
             # Extract JSON
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
+            json_start = response.find("{")
+            json_end = response.rfind("}") + 1
 
             if json_start == -1:
                 return []
@@ -562,14 +539,12 @@ Fix: {vuln.fix_suggestion}
                     "location": {
                         "file": contract_path,
                         "function": func_name,
-                        "details": vuln.get("location", func_name)
+                        "details": vuln.get("location", func_name),
                     },
                     "recommendation": vuln.get("fix", "Review and fix the identified issue"),
                     "chain_of_thought": cot,
                     "methodology": "SmartGuard RAG+CoT",
-                    "references": [
-                        "SmartGuard: Expert Systems with Applications (2025)"
-                    ]
+                    "references": ["SmartGuard: Expert Systems with Applications (2025)"],
                 }
                 findings.append(finding)
 
@@ -580,10 +555,7 @@ Fix: {vuln.fix_suggestion}
 
         return findings
 
-    def _deduplicate_findings(
-        self,
-        findings: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    def _deduplicate_findings(self, findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Remove duplicate findings based on type and location."""
         seen = set()
         unique = []
@@ -592,7 +564,7 @@ Fix: {vuln.fix_suggestion}
             key = (
                 f.get("category", ""),
                 f.get("location", {}).get("function", ""),
-                f.get("severity", "")
+                f.get("severity", ""),
             )
             if key not in seen:
                 seen.add(key)
@@ -603,7 +575,7 @@ Fix: {vuln.fix_suggestion}
     def _read_contract(self, path: str) -> Optional[str]:
         """Read contract file."""
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Error reading contract: {e}")
@@ -617,7 +589,7 @@ Fix: {vuln.fix_suggestion}
             "status": "error",
             "findings": [],
             "error": error,
-            "execution_time": time.time() - start_time
+            "execution_time": time.time() - start_time,
         }
 
     def _get_cached(self, cache_key: str) -> Optional[Dict[str, Any]]:
@@ -633,7 +605,7 @@ Fix: {vuln.fix_suggestion}
                 cache_file.unlink()
                 return None
 
-            with open(cache_file, 'r') as f:
+            with open(cache_file, "r") as f:
                 return json.load(f)
         except Exception:
             return None
@@ -643,7 +615,7 @@ Fix: {vuln.fix_suggestion}
         cache_file = self._cache_dir / f"{cache_key}.json"
 
         try:
-            with open(cache_file, 'w') as f:
+            with open(cache_file, "w") as f:
                 json.dump(result, f, indent=2)
         except Exception as e:
             logger.error(f"Cache write error: {e}")
@@ -654,7 +626,7 @@ Fix: {vuln.fix_suggestion}
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if adapter can analyze the contract."""
-        return Path(contract_path).suffix == '.sol'
+        return Path(contract_path).suffix == ".sol"
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
@@ -662,7 +634,7 @@ Fix: {vuln.fix_suggestion}
             "timeout": 600,
             "model": "deepseek-coder",
             "max_tokens": 8000,
-            "similarity_threshold": 0.6
+            "similarity_threshold": 0.6,
         }
 
 

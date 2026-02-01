@@ -20,26 +20,26 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-01-15
 """
 
+import logging
+import time
+from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from src.core.tool_protocol import (
     ToolAdapter,
+    ToolCapability,
+    ToolCategory,
     ToolMetadata,
     ToolStatus,
-    ToolCategory,
-    ToolCapability
 )
-from typing import Dict, Any, List, Optional, Set, Tuple
-import logging
-import re
-import time
-from pathlib import Path
-from dataclasses import dataclass
-from enum import Enum
 
 logger = logging.getLogger(__name__)
 
 
 class BridgeType(Enum):
     """Types of cross-chain bridges."""
+
     LOCK_MINT = "lock_mint"  # Lock on source, mint on destination
     BURN_MINT = "burn_mint"  # Burn on source, mint on destination
     LIQUIDITY_POOL = "liquidity_pool"  # Liquidity-based swaps
@@ -58,19 +58,15 @@ CROSSCHAIN_VULNERABILITY_PATTERNS = {
         "examples": [
             "Missing signature verification",
             "Weak merkle proof validation",
-            "Insufficient multi-sig checks"
-        ]
+            "Insufficient multi-sig checks",
+        ],
     },
     "replay_attack": {
         "severity": "CRITICAL",
         "description": "Cross-chain transaction can be replayed on different chain or multiple times",
         "cwe": "CWE-294",
         "impact": "Double-spending, fund drainage",
-        "examples": [
-            "Missing nonce tracking",
-            "Reusable signatures",
-            "No chain ID validation"
-        ]
+        "examples": ["Missing nonce tracking", "Reusable signatures", "No chain ID validation"],
     },
     "state_inconsistency": {
         "severity": "HIGH",
@@ -80,8 +76,8 @@ CROSSCHAIN_VULNERABILITY_PATTERNS = {
         "examples": [
             "Race conditions in deposits/withdrawals",
             "Incomplete finality checks",
-            "Missing rollback handling"
-        ]
+            "Missing rollback handling",
+        ],
     },
     "oracle_manipulation": {
         "severity": "HIGH",
@@ -91,30 +87,22 @@ CROSSCHAIN_VULNERABILITY_PATTERNS = {
         "examples": [
             "Single oracle dependency",
             "Insufficient oracle consensus",
-            "Stale oracle data"
-        ]
+            "Stale oracle data",
+        ],
     },
     "bridge_fund_drainage": {
         "severity": "CRITICAL",
         "description": "Bridge contract funds can be drained",
         "cwe": "CWE-284",
         "impact": "Complete loss of bridged assets",
-        "examples": [
-            "Unauthorized withdrawals",
-            "Infinite minting",
-            "Arbitrary token transfers"
-        ]
+        "examples": ["Unauthorized withdrawals", "Infinite minting", "Arbitrary token transfers"],
     },
     "token_mismatch": {
         "severity": "HIGH",
         "description": "Token accounting mismatch between chains",
         "cwe": "CWE-682",
         "impact": "Token inflation, protocol insolvency",
-        "examples": [
-            "Decimal mismatch",
-            "Fee calculation errors",
-            "Supply desync"
-        ]
+        "examples": ["Decimal mismatch", "Fee calculation errors", "Supply desync"],
     },
     "cross_chain_mev": {
         "severity": "MEDIUM",
@@ -124,8 +112,8 @@ CROSSCHAIN_VULNERABILITY_PATTERNS = {
         "examples": [
             "Front-running bridge transactions",
             "Sandwich attacks across chains",
-            "Delayed finality exploitation"
-        ]
+            "Delayed finality exploitation",
+        ],
     },
     "relayer_trust": {
         "severity": "HIGH",
@@ -135,31 +123,23 @@ CROSSCHAIN_VULNERABILITY_PATTERNS = {
         "examples": [
             "Single trusted relayer",
             "No slashing mechanism",
-            "Insufficient stake requirements"
-        ]
+            "Insufficient stake requirements",
+        ],
     },
     "finality_assumption": {
         "severity": "HIGH",
         "description": "Incorrect assumptions about transaction finality",
         "cwe": "CWE-682",
         "impact": "Reorganization attacks, double-spending",
-        "examples": [
-            "Insufficient confirmations",
-            "No reorg handling",
-            "Optimistic acceptance"
-        ]
+        "examples": ["Insufficient confirmations", "No reorg handling", "Optimistic acceptance"],
     },
     "emergency_withdrawal": {
         "severity": "MEDIUM",
         "description": "Missing or vulnerable emergency withdrawal mechanism",
         "cwe": "CWE-693",
         "impact": "Fund lock or unauthorized emergency access",
-        "examples": [
-            "No pause mechanism",
-            "Weak emergency access control",
-            "Missing timelock"
-        ]
-    }
+        "examples": ["No pause mechanism", "Weak emergency access control", "Missing timelock"],
+    },
 }
 
 # Known bridge patterns (for detection)
@@ -168,7 +148,7 @@ BRIDGE_PATTERNS = {
     "withdraw": ["withdraw", "unlock", "claim", "redeem", "mint"],
     "verify": ["verify", "validate", "checkProof", "attestation"],
     "relay": ["relay", "execute", "fulfill", "process"],
-    "oracle": ["oracle", "validator", "attestor", "relayer", "messenger"]
+    "oracle": ["oracle", "validator", "attestor", "relayer", "messenger"],
 }
 
 
@@ -186,8 +166,17 @@ class CrossChainAdapter(ToolAdapter):
     def __init__(self):
         super().__init__()
         self._supported_chains = {
-            "ethereum", "polygon", "arbitrum", "optimism", "avalanche",
-            "bsc", "fantom", "base", "zksync", "linea", "scroll"
+            "ethereum",
+            "polygon",
+            "arbitrum",
+            "optimism",
+            "avalanche",
+            "bsc",
+            "fantom",
+            "base",
+            "zksync",
+            "linea",
+            "scroll",
         }
 
     def get_metadata(self) -> ToolMetadata:
@@ -210,29 +199,25 @@ class CrossChainAdapter(ToolAdapter):
                         "insufficient_verification",
                         "replay_attack",
                         "fund_drainage",
-                        "token_mismatch"
-                    ]
+                        "token_mismatch",
+                    ],
                 ),
                 ToolCapability(
                     name="message_passing_security",
                     description="Analyze cross-chain message passing security",
                     supported_languages=["solidity"],
-                    detection_types=[
-                        "oracle_manipulation",
-                        "relayer_trust",
-                        "finality_assumption"
-                    ]
+                    detection_types=["oracle_manipulation", "relayer_trust", "finality_assumption"],
                 ),
                 ToolCapability(
                     name="crosschain_mev",
                     description="Detect cross-chain MEV and arbitrage vectors",
                     supported_languages=["solidity"],
-                    detection_types=["cross_chain_mev", "state_inconsistency"]
-                )
+                    detection_types=["cross_chain_mev", "state_inconsistency"],
+                ),
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
@@ -292,9 +277,9 @@ class CrossChainAdapter(ToolAdapter):
                     "is_bridge_contract": is_bridge,
                     "bridge_type": bridge_type.value,
                     "chain_references": self._find_chain_references(code),
-                    "bridge_patterns_found": self._count_bridge_patterns(code)
+                    "bridge_patterns_found": self._count_bridge_patterns(code),
                 },
-                "execution_time": time.time() - start_time
+                "execution_time": time.time() - start_time,
             }
 
         except Exception as e:
@@ -307,15 +292,11 @@ class CrossChainAdapter(ToolAdapter):
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if this adapter can analyze the file."""
-        return Path(contract_path).suffix == '.sol'
+        return Path(contract_path).suffix == ".sol"
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
-        return {
-            "timeout": 120,
-            "detect_bridge_type": True,
-            "deep_analysis": True
-        }
+        return {"timeout": 120, "detect_bridge_type": True, "deep_analysis": True}
 
     # ============================================================================
     # PRIVATE METHODS
@@ -329,13 +310,13 @@ class CrossChainAdapter(ToolAdapter):
             "status": "error",
             "findings": [],
             "execution_time": time.time() - start_time,
-            "error": error
+            "error": error,
         }
 
     def _read_file(self, path: str) -> Optional[str]:
         """Read file content."""
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Error reading file: {e}")
@@ -347,11 +328,24 @@ class CrossChainAdapter(ToolAdapter):
 
         # Bridge indicators
         indicators = [
-            "bridge", "crosschain", "cross-chain", "multichain",
-            "layerzero", "axelar", "wormhole", "chainlink ccip",
-            "arbitrum bridge", "optimism portal", "polygon bridge",
-            "deposit(", "withdraw(", "relay(", "execute(",
-            "sourcechain", "destchain", "targetchain"
+            "bridge",
+            "crosschain",
+            "cross-chain",
+            "multichain",
+            "layerzero",
+            "axelar",
+            "wormhole",
+            "chainlink ccip",
+            "arbitrum bridge",
+            "optimism portal",
+            "polygon bridge",
+            "deposit(",
+            "withdraw(",
+            "relay(",
+            "execute(",
+            "sourcechain",
+            "destchain",
+            "targetchain",
         ]
 
         matches = sum(1 for ind in indicators if ind in code_lower)
@@ -391,10 +385,7 @@ class CrossChainAdapter(ToolAdapter):
         counts = {}
 
         for category, patterns in BRIDGE_PATTERNS.items():
-            counts[category] = sum(
-                1 for pattern in patterns
-                if pattern.lower() in code_lower
-            )
+            counts[category] = sum(1 for pattern in patterns if pattern.lower() in code_lower)
 
         return counts
 
@@ -405,41 +396,44 @@ class CrossChainAdapter(ToolAdapter):
 
         # Check for signature verification
         has_signature_check = any(
-            kw in code.lower() for kw in
-            ["ecrecover", "verify", "checksignature", "eip712", "ecdsa"]
+            kw in code.lower()
+            for kw in ["ecrecover", "verify", "checksignature", "eip712", "ecdsa"]
         )
 
         # Check for merkle proof
         has_merkle_proof = "merkle" in code.lower() or "proof" in code.lower()
 
         # Check for multisig
-        has_multisig = any(
-            kw in code.lower() for kw in
-            ["multisig", "threshold", "required", "confirmations"]
-        )
+        any(kw in code.lower() for kw in ["multisig", "threshold", "required", "confirmations"])
 
         # Vulnerability: No verification mechanism
         if not has_signature_check and not has_merkle_proof:
-            findings.append(self._create_finding(
-                "insufficient_verification",
-                "No signature or proof verification detected",
-                contract_path,
-                "Critical functions should verify cross-chain messages with signatures or proofs"
-            ))
+            findings.append(
+                self._create_finding(
+                    "insufficient_verification",
+                    "No signature or proof verification detected",
+                    contract_path,
+                    "Critical functions should verify cross-chain messages with signatures or proofs",
+                )
+            )
 
         # Check for weak verification patterns
         for i, line in enumerate(lines, 1):
             # Direct trust of msg.sender in bridge context
-            if "msg.sender" in line and any(p in line.lower() for p in ["bridge", "relay", "execute"]):
+            if "msg.sender" in line and any(
+                p in line.lower() for p in ["bridge", "relay", "execute"]
+            ):
                 if "require" not in line and "onlyowner" not in line.lower():
-                    findings.append(self._create_finding(
-                        "insufficient_verification",
-                        "Bridge function may trust msg.sender without verification",
-                        contract_path,
-                        "Verify the origin of cross-chain messages",
-                        line_number=i,
-                        line_content=line.strip()
-                    ))
+                    findings.append(
+                        self._create_finding(
+                            "insufficient_verification",
+                            "Bridge function may trust msg.sender without verification",
+                            contract_path,
+                            "Verify the origin of cross-chain messages",
+                            line_number=i,
+                            line_content=line.strip(),
+                        )
+                    )
 
         return findings
 
@@ -457,27 +451,31 @@ class CrossChainAdapter(ToolAdapter):
 
         # Check for message hash tracking
         has_message_tracking = any(
-            kw in code_lower for kw in
-            ["processed", "executed", "completed", "usedmessages", "usedhashes"]
+            kw in code_lower
+            for kw in ["processed", "executed", "completed", "usedmessages", "usedhashes"]
         )
 
         # Vulnerability: No replay protection
         if not has_nonce and not has_message_tracking:
-            findings.append(self._create_finding(
-                "replay_attack",
-                "No nonce or message tracking for replay protection",
-                contract_path,
-                "Implement nonce tracking or message hash storage to prevent replays"
-            ))
+            findings.append(
+                self._create_finding(
+                    "replay_attack",
+                    "No nonce or message tracking for replay protection",
+                    contract_path,
+                    "Implement nonce tracking or message hash storage to prevent replays",
+                )
+            )
 
         # Vulnerability: No chain ID validation
         if not has_chainid:
-            findings.append(self._create_finding(
-                "replay_attack",
-                "No chain ID validation detected",
-                contract_path,
-                "Include chain ID in message hashes to prevent cross-chain replays"
-            ))
+            findings.append(
+                self._create_finding(
+                    "replay_attack",
+                    "No chain ID validation detected",
+                    contract_path,
+                    "Include chain ID in message hashes to prevent cross-chain replays",
+                )
+            )
 
         return findings
 
@@ -488,14 +486,12 @@ class CrossChainAdapter(ToolAdapter):
 
         # Check for atomic operations
         has_reentrancy_guard = any(
-            kw in code.lower() for kw in
-            ["nonreentrant", "reentrancyguard", "mutex", "_status"]
+            kw in code.lower() for kw in ["nonreentrant", "reentrancyguard", "mutex", "_status"]
         )
 
         # Check for finality considerations
         has_finality_check = any(
-            kw in code.lower() for kw in
-            ["finalized", "confirmations", "finality", "blocknumber"]
+            kw in code.lower() for kw in ["finalized", "confirmations", "finality", "blocknumber"]
         )
 
         # Look for state updates before external calls
@@ -504,26 +500,32 @@ class CrossChainAdapter(ToolAdapter):
             if any(call in line_lower for call in [".call(", ".send(", ".transfer("]):
                 # Check if there's a state update after
                 if i < len(lines) - 1:
-                    next_lines = " ".join(lines[i:min(i+5, len(lines))]).lower()
-                    if any(update in next_lines for update in ["mapping[", "balance", "amount", "="]):
+                    next_lines = " ".join(lines[i : min(i + 5, len(lines))]).lower()
+                    if any(
+                        update in next_lines for update in ["mapping[", "balance", "amount", "="]
+                    ):
                         if not has_reentrancy_guard:
-                            findings.append(self._create_finding(
-                                "state_inconsistency",
-                                "State update after external call without reentrancy guard",
-                                contract_path,
-                                "Use reentrancy guards or checks-effects-interactions pattern",
-                                line_number=i,
-                                line_content=line.strip()
-                            ))
+                            findings.append(
+                                self._create_finding(
+                                    "state_inconsistency",
+                                    "State update after external call without reentrancy guard",
+                                    contract_path,
+                                    "Use reentrancy guards or checks-effects-interactions pattern",
+                                    line_number=i,
+                                    line_content=line.strip(),
+                                )
+                            )
 
         # Vulnerability: No finality check
         if not has_finality_check and "withdraw" in code.lower():
-            findings.append(self._create_finding(
-                "finality_assumption",
-                "No finality check before allowing withdrawals",
-                contract_path,
-                "Consider requiring minimum confirmations before processing withdrawals"
-            ))
+            findings.append(
+                self._create_finding(
+                    "finality_assumption",
+                    "No finality check before allowing withdrawals",
+                    contract_path,
+                    "Consider requiring minimum confirmations before processing withdrawals",
+                )
+            )
 
         return findings
 
@@ -539,28 +541,31 @@ class CrossChainAdapter(ToolAdapter):
         if has_oracle:
             # Check for multi-oracle consensus
             has_consensus = any(
-                kw in code_lower for kw in
-                ["threshold", "quorum", "majority", "required"]
+                kw in code_lower for kw in ["threshold", "quorum", "majority", "required"]
             )
 
             if not has_consensus:
-                findings.append(self._create_finding(
-                    "oracle_manipulation",
-                    "Single oracle/relayer dependency detected",
-                    contract_path,
-                    "Implement multi-oracle consensus with threshold voting"
-                ))
+                findings.append(
+                    self._create_finding(
+                        "oracle_manipulation",
+                        "Single oracle/relayer dependency detected",
+                        contract_path,
+                        "Implement multi-oracle consensus with threshold voting",
+                    )
+                )
 
             # Check for oracle staking/slashing
             has_staking = "stake" in code_lower or "slash" in code_lower
 
             if not has_staking:
-                findings.append(self._create_finding(
-                    "relayer_trust",
-                    "No staking/slashing mechanism for validators",
-                    contract_path,
-                    "Consider requiring validator stake with slashing for misbehavior"
-                ))
+                findings.append(
+                    self._create_finding(
+                        "relayer_trust",
+                        "No staking/slashing mechanism for validators",
+                        contract_path,
+                        "Consider requiring validator stake with slashing for misbehavior",
+                    )
+                )
 
         return findings
 
@@ -571,32 +576,36 @@ class CrossChainAdapter(ToolAdapter):
 
         # Look for dangerous patterns
         for i, line in enumerate(lines, 1):
-            line_lower = line.lower()
+            line.lower()
 
             # Arbitrary external calls with value
             if ".call{value:" in line or "transfer(" in line or "send(" in line:
                 # Check if amount is user-controlled
                 if "msg.value" in line or "amount" in line:
                     if "require" not in line and "assert" not in line:
-                        findings.append(self._create_finding(
-                            "bridge_fund_drainage",
-                            "Value transfer without validation",
-                            contract_path,
-                            "Validate transfer amounts against internal accounting",
-                            line_number=i,
-                            line_content=line.strip()
-                        ))
+                        findings.append(
+                            self._create_finding(
+                                "bridge_fund_drainage",
+                                "Value transfer without validation",
+                                contract_path,
+                                "Validate transfer amounts against internal accounting",
+                                line_number=i,
+                                line_content=line.strip(),
+                            )
+                        )
 
             # Arbitrary minting
             if "_mint(" in line.lower() and "only" not in line.lower():
-                findings.append(self._create_finding(
-                    "bridge_fund_drainage",
-                    "Minting without apparent access control",
-                    contract_path,
-                    "Ensure minting is restricted to verified bridge operations",
-                    line_number=i,
-                    line_content=line.strip()
-                ))
+                findings.append(
+                    self._create_finding(
+                        "bridge_fund_drainage",
+                        "Minting without apparent access control",
+                        contract_path,
+                        "Ensure minting is restricted to verified bridge operations",
+                        line_number=i,
+                        line_content=line.strip(),
+                    )
+                )
 
         return findings
 
@@ -612,12 +621,14 @@ class CrossChainAdapter(ToolAdapter):
         if has_decimal_handling:
             # Check for proper normalization
             if "10 **" not in code and "10**" not in code:
-                findings.append(self._create_finding(
-                    "token_mismatch",
-                    "Decimal handling without proper normalization",
-                    contract_path,
-                    "Ensure proper decimal scaling between chains (e.g., 10**decimals)"
-                ))
+                findings.append(
+                    self._create_finding(
+                        "token_mismatch",
+                        "Decimal handling without proper normalization",
+                        contract_path,
+                        "Ensure proper decimal scaling between chains (e.g., 10**decimals)",
+                    )
+                )
 
         # Check for fee calculation
         has_fee = "fee" in code_lower
@@ -625,12 +636,14 @@ class CrossChainAdapter(ToolAdapter):
             # Look for potential fee issues
             if "/ 100" in code or "/100" in code:
                 if "round" not in code_lower:
-                    findings.append(self._create_finding(
-                        "token_mismatch",
-                        "Fee calculation may have rounding issues",
-                        contract_path,
-                        "Consider rounding direction and dust amounts in fee calculations"
-                    ))
+                    findings.append(
+                        self._create_finding(
+                            "token_mismatch",
+                            "Fee calculation may have rounding issues",
+                            contract_path,
+                            "Consider rounding direction and dust amounts in fee calculations",
+                        )
+                    )
 
         return findings
 
@@ -650,28 +663,34 @@ class CrossChainAdapter(ToolAdapter):
         has_timelock = any(kw in code_lower for kw in ["timelock", "delay", "waiting"])
 
         if not has_pause:
-            findings.append(self._create_finding(
-                "emergency_withdrawal",
-                "No pause mechanism detected",
-                contract_path,
-                "Implement pausable functionality for emergency situations"
-            ))
+            findings.append(
+                self._create_finding(
+                    "emergency_withdrawal",
+                    "No pause mechanism detected",
+                    contract_path,
+                    "Implement pausable functionality for emergency situations",
+                )
+            )
 
         if not has_emergency:
-            findings.append(self._create_finding(
-                "emergency_withdrawal",
-                "No emergency withdrawal mechanism",
-                contract_path,
-                "Consider adding emergency fund recovery for stuck assets"
-            ))
+            findings.append(
+                self._create_finding(
+                    "emergency_withdrawal",
+                    "No emergency withdrawal mechanism",
+                    contract_path,
+                    "Consider adding emergency fund recovery for stuck assets",
+                )
+            )
 
         if has_emergency and not has_timelock:
-            findings.append(self._create_finding(
-                "emergency_withdrawal",
-                "Emergency mechanism without timelock",
-                contract_path,
-                "Add timelock to emergency functions to prevent abuse"
-            ))
+            findings.append(
+                self._create_finding(
+                    "emergency_withdrawal",
+                    "Emergency mechanism without timelock",
+                    contract_path,
+                    "Add timelock to emergency functions to prevent abuse",
+                )
+            )
 
         return findings
 
@@ -684,12 +703,14 @@ class CrossChainAdapter(ToolAdapter):
         # Check for callback handling
         if "callback" in code_lower or "receive" in code_lower:
             if "verify" not in code_lower:
-                findings.append(self._create_finding(
-                    "insufficient_verification",
-                    "Cross-chain callback without source verification",
-                    contract_path,
-                    "Verify the source of cross-chain callbacks"
-                ))
+                findings.append(
+                    self._create_finding(
+                        "insufficient_verification",
+                        "Cross-chain callback without source verification",
+                        contract_path,
+                        "Verify the source of cross-chain callbacks",
+                    )
+                )
 
         return findings
 
@@ -700,7 +721,7 @@ class CrossChainAdapter(ToolAdapter):
         contract_path: str,
         recommendation: str,
         line_number: Optional[int] = None,
-        line_content: Optional[str] = None
+        line_content: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create a finding dictionary."""
         vuln_info = CROSSCHAIN_VULNERABILITY_PATTERNS.get(category, {})
@@ -722,7 +743,7 @@ class CrossChainAdapter(ToolAdapter):
             "location": location,
             "impact": vuln_info.get("impact", ""),
             "recommendation": recommendation,
-            "source": "crosschain_analyzer"
+            "source": "crosschain_analyzer",
         }
 
     def _deduplicate_findings(self, findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

@@ -6,19 +6,17 @@ End-to-end tests for chain detection, adapter selection, analysis, and reporting
 import pytest
 
 from src.core.chain_abstraction import (
-    ChainType,
-    ContractLanguage,
-    ChainRegistry,
+    VULNERABILITY_MAPPINGS,
     AbstractChainAnalyzer,
     AbstractContract,
-    VulnerabilityMapping,
-    VULNERABILITY_MAPPINGS,
+    ChainRegistry,
+    ChainType,
+    ContractLanguage,
+    Location,
+    SecurityProperty,
     get_vulnerability_mapping,
     normalize_vulnerability_type,
-    SecurityProperty,
-    Location,
 )
-
 
 # ============================================================================
 # TestMultichainPipeline - Chain detection -> analysis -> report
@@ -71,6 +69,7 @@ class TestMultichainPipeline:
 
     def test_cardano_aiken_analysis(self):
         """Aiken contract should map to Cardano adapter and produce findings."""
+
         class MockCardanoAnalyzer(AbstractChainAnalyzer):
             @property
             def name(self):
@@ -105,15 +104,16 @@ class TestMultichainPipeline:
         analyzer = MockCardanoAnalyzer(ChainType.CARDANO, ContractLanguage.AIKEN)
         result = analyzer.analyze("validator.ak")
 
-        assert result['status'] == 'success'
-        assert result['chain_type'] == 'cardano'
-        assert result['language'] == 'aiken'
-        assert len(result['findings']) >= 1
+        assert result["status"] == "success"
+        assert result["chain_type"] == "cardano"
+        assert result["language"] == "aiken"
+        assert len(result["findings"]) >= 1
         # missing-datum-check maps to access_control in VULNERABILITY_MAPPINGS
-        assert result['findings'][0]['type'] == 'access_control'
+        assert result["findings"][0]["type"] == "access_control"
 
     def test_solana_anchor_analysis(self):
         """Anchor program should map to Solana adapter and produce findings."""
+
         class MockSolanaAnalyzer(AbstractChainAnalyzer):
             @property
             def name(self):
@@ -148,14 +148,14 @@ class TestMultichainPipeline:
         analyzer = MockSolanaAnalyzer(ChainType.SOLANA, ContractLanguage.RUST)
         result = analyzer.analyze("program.rs")
 
-        assert result['status'] == 'success'
-        assert result['chain_type'] == 'solana'
-        assert result['language'] == 'rust'
-        assert len(result['findings']) >= 1
+        assert result["status"] == "success"
+        assert result["chain_type"] == "solana"
+        assert result["language"] == "rust"
+        assert len(result["findings"]) >= 1
 
-        finding = result['findings'][0]
-        assert finding['type'] == 'access_control'
-        assert finding['severity'] == 'Critical'
+        finding = result["findings"][0]
+        assert finding["type"] == "access_control"
+        assert finding["severity"] == "Critical"
 
     def test_chain_registry_returns_correct_analyzer(self):
         """Registry should map chain type to correct analyzer."""
@@ -212,6 +212,7 @@ class TestMultichainPipeline:
 
     def test_multichain_findings_normalized(self):
         """Findings from different chains should share a common format."""
+
         class MockAnalyzer(AbstractChainAnalyzer):
             @property
             def name(self):
@@ -255,45 +256,41 @@ class TestMultichainPipeline:
         )
 
         # Both should share the same schema keys
-        common_keys = {'id', 'type', 'severity', 'location', 'message', 'chain_type', 'language'}
+        common_keys = {"id", "type", "severity", "location", "message", "chain_type", "language"}
         assert common_keys.issubset(evm_finding.keys())
         assert common_keys.issubset(sol_finding.keys())
 
         # Location should have consistent sub-keys
-        assert 'file' in evm_finding['location']
-        assert 'line' in evm_finding['location']
-        assert 'file' in sol_finding['location']
-        assert 'line' in sol_finding['location']
+        assert "file" in evm_finding["location"]
+        assert "line" in evm_finding["location"]
+        assert "file" in sol_finding["location"]
+        assert "line" in sol_finding["location"]
 
     def test_vulnerability_mapping_cross_chain(self):
         """Same vulnerability type should map correctly across chains."""
         # Test access_control mapping
-        ac_mapping = get_vulnerability_mapping('access_control')
+        ac_mapping = get_vulnerability_mapping("access_control")
         assert ac_mapping is not None
-        assert ac_mapping.canonical_name == 'access_control'
+        assert ac_mapping.canonical_name == "access_control"
         assert len(ac_mapping.solidity_names) > 0
         assert len(ac_mapping.solana_names) > 0
         assert len(ac_mapping.cardano_names) > 0
 
         # Test reentrancy mapping
-        re_mapping = get_vulnerability_mapping('reentrancy')
+        re_mapping = get_vulnerability_mapping("reentrancy")
         assert re_mapping is not None
-        assert re_mapping.canonical_name == 'reentrancy'
-        assert 'reentrancy-eth' in re_mapping.solidity_names
-        assert 'cpi-reentrancy' in re_mapping.solana_names
-        assert 'double-satisfaction' in re_mapping.cardano_names
+        assert re_mapping.canonical_name == "reentrancy"
+        assert "reentrancy-eth" in re_mapping.solidity_names
+        assert "cpi-reentrancy" in re_mapping.solana_names
+        assert "double-satisfaction" in re_mapping.cardano_names
 
         # Test normalization across chains
-        evm_normalized = normalize_vulnerability_type(
-            'reentrancy-eth', ChainType.ETHEREUM
-        )
-        solana_normalized = normalize_vulnerability_type(
-            'cpi-reentrancy', ChainType.SOLANA
-        )
-        assert evm_normalized == solana_normalized == 'reentrancy'
+        evm_normalized = normalize_vulnerability_type("reentrancy-eth", ChainType.ETHEREUM)
+        solana_normalized = normalize_vulnerability_type("cpi-reentrancy", ChainType.SOLANA)
+        assert evm_normalized == solana_normalized == "reentrancy"
 
         # Arithmetic mapping
-        arith_mapping = get_vulnerability_mapping('arithmetic')
+        arith_mapping = get_vulnerability_mapping("arithmetic")
         assert arith_mapping is not None
         assert arith_mapping.security_property == SecurityProperty.ARITHMETIC
 
@@ -329,7 +326,11 @@ class TestChainTypeHelpers:
             assert isinstance(mapping.description, str)
             assert len(mapping.description) > 0
             assert mapping.severity_default in [
-                'Critical', 'High', 'Medium', 'Low', 'Informational'
+                "Critical",
+                "High",
+                "Medium",
+                "Low",
+                "Informational",
             ]
             assert isinstance(mapping.security_property, SecurityProperty)
 
@@ -344,13 +345,13 @@ class TestChainTypeHelpers:
         )
 
         d = contract.to_dict()
-        assert d['name'] == 'TestContract'
-        assert d['chain_type'] == 'ethereum'
-        assert d['language'] == 'solidity'
-        assert 'content_hash' in d
-        assert 'functions' in d
-        assert 'variables' in d
+        assert d["name"] == "TestContract"
+        assert d["chain_type"] == "ethereum"
+        assert d["language"] == "solidity"
+        assert "content_hash" in d
+        assert "functions" in d
+        assert "variables" in d
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '--tb=short'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])

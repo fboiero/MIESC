@@ -3,22 +3,20 @@ MIESC ML-Enhanced Orchestrator
 Orquestador con integración completa del pipeline ML.
 """
 
-import os
-import time
 import logging
-from pathlib import Path
-from typing import Dict, Any, List, Optional, Callable, TYPE_CHECKING
-from dataclasses import dataclass, field
-from datetime import datetime
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from ..ml import MLPipeline, VulnerabilityCluster
+    pass
 
-from .config_loader import get_config, MIESCConfig
+from .config_loader import MIESCConfig, get_config
+from .optimized_orchestrator import ResultCache
 from .result_aggregator import ResultAggregator
 from .tool_discovery import get_tool_discovery
-from .optimized_orchestrator import OptimizedOrchestrator, AnalysisResult, ResultCache
 
 # ML components imported lazily to avoid circular imports
 # from ..ml import MLPipeline, MLEnhancedResult, FeedbackType, VulnerabilityCluster, get_ml_pipeline
@@ -29,6 +27,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MLAnalysisResult:
     """Resultado de análisis con mejoras ML."""
+
     # Base analysis
     contract_path: str
     contract_source: str
@@ -66,72 +65,71 @@ class MLAnalysisResult:
     def to_dict(self) -> Dict[str, Any]:
         """Convierte resultado a diccionario."""
         return {
-            'contract_path': self.contract_path,
-            'tools_run': self.tools_run,
-            'tools_success': self.tools_success,
-            'tools_failed': self.tools_failed,
-            'raw_findings': {
-                'total': self.total_raw_findings,
-                'findings': self.raw_findings[:20],  # Limit for output
+            "contract_path": self.contract_path,
+            "tools_run": self.tools_run,
+            "tools_success": self.tools_success,
+            "tools_failed": self.tools_failed,
+            "raw_findings": {
+                "total": self.total_raw_findings,
+                "findings": self.raw_findings[:20],  # Limit for output
             },
-            'ml_enhanced': {
-                'filtered_count': len(self.ml_filtered_findings),
-                'findings': self.ml_filtered_findings,
-                'false_positives_removed': self.false_positives_removed,
-                'severity_adjustments': self.severity_adjustments,
-                'top_findings': self.ml_filtered_findings[:10],
+            "ml_enhanced": {
+                "filtered_count": len(self.ml_filtered_findings),
+                "findings": self.ml_filtered_findings,
+                "false_positives_removed": self.false_positives_removed,
+                "severity_adjustments": self.severity_adjustments,
+                "top_findings": self.ml_filtered_findings[:10],
             },
-            'clusters': {
-                'count': self.cluster_count,
-                'clusters': [c.to_dict() for c in self.clusters],
+            "clusters": {
+                "count": self.cluster_count,
+                "clusters": [c.to_dict() for c in self.clusters],
             },
-            'remediation_plan': self.remediation_plan[:10],
-            'pattern_matches': self.pattern_matches[:5],
-            'metrics': {
-                'severity_distribution': self.severity_distribution,
-                'cross_validated': self.cross_validated,
-                'execution_time_ms': round(self.execution_time_ms, 2),
-                'ml_processing_time_ms': round(self.ml_processing_time_ms, 2),
+            "remediation_plan": self.remediation_plan[:10],
+            "pattern_matches": self.pattern_matches[:5],
+            "metrics": {
+                "severity_distribution": self.severity_distribution,
+                "cross_validated": self.cross_validated,
+                "execution_time_ms": round(self.execution_time_ms, 2),
+                "ml_processing_time_ms": round(self.ml_processing_time_ms, 2),
             },
-            'timestamp': self.timestamp.isoformat(),
+            "timestamp": self.timestamp.isoformat(),
         }
 
     def get_summary(self) -> Dict[str, Any]:
         """Obtiene resumen ejecutivo del análisis."""
-        critical_count = self.severity_distribution.get('critical', 0)
-        high_count = self.severity_distribution.get('high', 0)
+        critical_count = self.severity_distribution.get("critical", 0)
+        high_count = self.severity_distribution.get("high", 0)
 
         return {
-            'risk_level': self._calculate_risk_level(),
-            'total_findings': len(self.ml_filtered_findings),
-            'critical': critical_count,
-            'high': high_count,
-            'medium': self.severity_distribution.get('medium', 0),
-            'low': self.severity_distribution.get('low', 0),
-            'clusters': self.cluster_count,
-            'fp_removed': self.false_positives_removed,
-            'reduction_rate': round(
+            "risk_level": self._calculate_risk_level(),
+            "total_findings": len(self.ml_filtered_findings),
+            "critical": critical_count,
+            "high": high_count,
+            "medium": self.severity_distribution.get("medium", 0),
+            "low": self.severity_distribution.get("low", 0),
+            "clusters": self.cluster_count,
+            "fp_removed": self.false_positives_removed,
+            "reduction_rate": round(
                 self.false_positives_removed / max(self.total_raw_findings, 1) * 100, 1
             ),
-            'priority_actions': len([
-                p for p in self.remediation_plan
-                if p.get('severity') in ['critical', 'high']
-            ]),
+            "priority_actions": len(
+                [p for p in self.remediation_plan if p.get("severity") in ["critical", "high"]]
+            ),
         }
 
     def _calculate_risk_level(self) -> str:
         """Calcula nivel de riesgo global."""
-        critical = self.severity_distribution.get('critical', 0)
-        high = self.severity_distribution.get('high', 0)
+        critical = self.severity_distribution.get("critical", 0)
+        high = self.severity_distribution.get("high", 0)
 
         if critical > 0:
-            return 'CRITICAL'
+            return "CRITICAL"
         elif high > 2:
-            return 'HIGH'
+            return "HIGH"
         elif high > 0:
-            return 'MEDIUM'
+            return "MEDIUM"
         else:
-            return 'LOW'
+            return "LOW"
 
 
 class MLOrchestrator:
@@ -173,6 +171,7 @@ class MLOrchestrator:
         self.ml_pipeline = None
         if ml_enabled:
             from ..ml import MLPipeline
+
             self.ml_pipeline = MLPipeline(
                 fp_threshold=fp_threshold,
                 enable_feedback=True,
@@ -181,7 +180,7 @@ class MLOrchestrator:
     def _read_contract_source(self, contract_path: str) -> str:
         """Lee código fuente del contrato."""
         try:
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             logger.warning(f"Could not read contract source: {e}")
@@ -194,12 +193,12 @@ class MLOrchestrator:
     ) -> Dict[str, str]:
         """Construye mapa de contexto de código para cada hallazgo."""
         context_map = {}
-        lines = contract_source.split('\n')
+        lines = contract_source.split("\n")
 
         for finding in findings:
-            loc = finding.get('location', {})
-            file_path = loc.get('file', '')
-            line_num = loc.get('line') or 0  # Handle None values
+            loc = finding.get("location", {})
+            file_path = loc.get("file", "")
+            line_num = loc.get("line") or 0  # Handle None values
 
             # Ensure line_num is an integer
             if not isinstance(line_num, int):
@@ -212,7 +211,7 @@ class MLOrchestrator:
                 # Extraer contexto (5 líneas antes y después)
                 start = max(0, line_num - 6)
                 end = min(len(lines), line_num + 5)
-                context = '\n'.join(lines[start:end])
+                context = "\n".join(lines[start:end])
 
                 key = f"{file_path}:{line_num}"
                 context_map[key] = context
@@ -240,17 +239,17 @@ class MLOrchestrator:
 
             result = adapter.analyze(contract_path, timeout=effective_timeout)
 
-            if self.cache and result.get('status') != 'error':
+            if self.cache and result.get("status") != "error":
                 self.cache.set(tool_name, contract_path, result)
 
             return result
 
         except Exception as e:
             return {
-                'tool': tool_name,
-                'status': 'error',
-                'error': str(e),
-                'findings': [],
+                "tool": tool_name,
+                "status": "error",
+                "error": str(e),
+                "findings": [],
             }
 
     def analyze(
@@ -286,7 +285,7 @@ class MLOrchestrator:
             return self._empty_result(contract_path, contract_source)
 
         if progress_callback:
-            progress_callback('init', f"Running {len(tools_to_run)} tools", 0.0)
+            progress_callback("init", f"Running {len(tools_to_run)} tools", 0.0)
 
         # Execute tools in parallel
         raw_results: Dict[str, Dict[str, Any]] = {}
@@ -309,32 +308,32 @@ class MLOrchestrator:
                     result = future.result(timeout=timeout + 30)
                     raw_results[tool] = result
 
-                    if result.get('status') == 'error':
+                    if result.get("status") == "error":
                         tools_failed.append(tool)
                     else:
                         tools_success.append(tool)
                         # Collect findings
-                        for finding in result.get('findings', []):
-                            finding['tool'] = tool
+                        for finding in result.get("findings", []):
+                            finding["tool"] = tool
                             all_findings.append(finding)
 
                     if progress_callback:
                         progress = completed / len(tools_to_run) * 0.5
-                        progress_callback('tools', f"Completed {tool}", progress)
+                        progress_callback("tools", f"Completed {tool}", progress)
 
                 except Exception as e:
                     tools_failed.append(tool)
                     raw_results[tool] = {
-                        'tool': tool,
-                        'status': 'error',
-                        'error': str(e),
-                        'findings': [],
+                        "tool": tool,
+                        "status": "error",
+                        "error": str(e),
+                        "findings": [],
                     }
 
-        tool_execution_time = (time.time() - start_time) * 1000
+        (time.time() - start_time) * 1000
 
         if progress_callback:
-            progress_callback('ml', "Applying ML pipeline", 0.5)
+            progress_callback("ml", "Applying ML pipeline", 0.5)
 
         # Apply ML pipeline
         ml_start = time.time()
@@ -365,23 +364,23 @@ class MLOrchestrator:
         ml_processing_time = (time.time() - ml_start) * 1000
 
         if progress_callback:
-            progress_callback('aggregation', "Aggregating results", 0.8)
+            progress_callback("aggregation", "Aggregating results", 0.8)
 
         # Calculate severity distribution
         severity_dist = self._calculate_severity_distribution(ml_filtered_findings)
 
         # Count cross-validated
         cross_validated = sum(
-            1 for f in ml_filtered_findings
-            if f.get('_cross_validated', False) or
-            len(set(ff.get('tool', '') for ff in all_findings
-                   if self._is_same_location(f, ff))) > 1
+            1
+            for f in ml_filtered_findings
+            if f.get("_cross_validated", False)
+            or len({ff.get("tool", "") for ff in all_findings if self._is_same_location(f, ff)}) > 1
         )
 
         total_time = (time.time() - start_time) * 1000
 
         if progress_callback:
-            progress_callback('complete', "Analysis complete", 1.0)
+            progress_callback("complete", "Analysis complete", 1.0)
 
         return MLAnalysisResult(
             contract_path=contract_path,
@@ -408,29 +407,26 @@ class MLOrchestrator:
 
     def _is_same_location(self, f1: Dict[str, Any], f2: Dict[str, Any]) -> bool:
         """Verifica si dos hallazgos están en la misma ubicación."""
-        loc1 = f1.get('location', {})
-        loc2 = f2.get('location', {})
-        line1 = loc1.get('line') or 0
-        line2 = loc2.get('line') or 0
-        return (
-            loc1.get('file') == loc2.get('file') and
-            abs(line1 - line2) <= 3
-        )
+        loc1 = f1.get("location", {})
+        loc2 = f2.get("location", {})
+        line1 = loc1.get("line") or 0
+        line2 = loc2.get("line") or 0
+        return loc1.get("file") == loc2.get("file") and abs(line1 - line2) <= 3
 
     def _calculate_severity_distribution(
         self,
         findings: List[Dict[str, Any]],
     ) -> Dict[str, int]:
         """Calcula distribución de severidad."""
-        dist = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'informational': 0}
+        dist = {"critical": 0, "high": 0, "medium": 0, "low": 0, "informational": 0}
         for f in findings:
-            sev = f.get('severity', 'medium').lower()
+            sev = f.get("severity", "medium").lower()
             if sev in dist:
                 dist[sev] += 1
-            elif sev == 'info':
-                dist['informational'] += 1
+            elif sev == "info":
+                dist["informational"] += 1
             else:
-                dist['medium'] += 1
+                dist["medium"] += 1
         return dist
 
     def _determine_tools(
@@ -495,22 +491,20 @@ class MLOrchestrator:
     ) -> Dict[str, Any]:
         """Registra feedback de usuario."""
         if self.ml_pipeline:
-            return self.ml_pipeline.submit_feedback(
-                finding, feedback_type, user_id, notes
-            )
-        return {'status': 'ml_disabled'}
+            return self.ml_pipeline.submit_feedback(finding, feedback_type, user_id, notes)
+        return {"status": "ml_disabled"}
 
     def get_ml_report(self) -> Dict[str, Any]:
         """Obtiene reporte del estado ML."""
         if self.ml_pipeline:
             return self.ml_pipeline.get_ml_report()
-        return {'status': 'ml_disabled'}
+        return {"status": "ml_disabled"}
 
     def quick_scan(self, contract_path: str, timeout: int = 60) -> MLAnalysisResult:
         """Escaneo rápido usando solo análisis estático."""
         return self.analyze(
             contract_path=contract_path,
-            layers=['static_analysis'],
+            layers=["static_analysis"],
             timeout=timeout,
         )
 

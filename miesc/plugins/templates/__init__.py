@@ -5,7 +5,7 @@ Provides functionality to create new MIESC detector plugin projects.
 
 from pathlib import Path
 
-PYPROJECT_TEMPLATE = '''[project]
+PYPROJECT_TEMPLATE = """[project]
 name = "miesc-{name}"
 version = "0.1.0"
 description = "{description}"
@@ -28,7 +28,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-'''
+"""
 
 DETECTOR_TEMPLATE = '''"""MIESC Detector Plugin: {description}
 
@@ -124,7 +124,7 @@ class Test{class_name}:
     #     assert len(findings) > 0
 '''
 
-README_TEMPLATE = '''# miesc-{name}
+README_TEMPLATE = """# miesc-{name}
 
 {description}
 
@@ -166,7 +166,7 @@ pytest
 ## License
 
 MIT License
-'''
+"""
 
 
 def create_plugin_scaffold(

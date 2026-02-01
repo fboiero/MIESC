@@ -7,7 +7,6 @@ import pytest
 
 from src.ml.correlation_engine import SmartCorrelationEngine
 
-
 # ============================================================================
 # Inline helpers to avoid importing solidifi_benchmark.py directly
 # (it uses direct module imports that would require special path setup)
@@ -18,11 +17,7 @@ def calculate_metrics(tp, fp, fn):
     """Calculate precision, recall, F1 from TP/FP/FN counts."""
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    f1 = (
-        2 * precision * recall / (precision + recall)
-        if (precision + recall) > 0
-        else 0.0
-    )
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
     return precision, recall, f1
 
 
@@ -41,7 +36,7 @@ def match_ground_truth(detections, ground_truth, tolerance=10):
         for i, gt in enumerate(ground_truth):
             if i in matched_gt:
                 continue
-            if abs(det['line'] - gt['line']) <= tolerance:
+            if abs(det["line"] - gt["line"]) <= tolerance:
                 true_positives += 1
                 matched_gt.add(i)
                 matched = True
@@ -67,7 +62,7 @@ class TestBenchmarkPipeline:
         # Simulate a single contract analysis result
         from src.ml.classic_patterns import ClassicPatternDetector
 
-        source_code = '''
+        source_code = """
         // SPDX-License-Identifier: MIT
         pragma solidity ^0.4.24;
 
@@ -86,7 +81,7 @@ class TestBenchmarkPipeline:
                 balances[msg.sender] = 0;
             }
         }
-        '''
+        """
 
         detector = ClassicPatternDetector()
         matches = detector.detect(source_code)
@@ -96,10 +91,10 @@ class TestBenchmarkPipeline:
 
         # Each match should have expected attributes
         for match in matches:
-            assert hasattr(match, 'line')
-            assert hasattr(match, 'vuln_type')
-            assert hasattr(match, 'severity')
-            assert hasattr(match, 'confidence')
+            assert hasattr(match, "line")
+            assert hasattr(match, "vuln_type")
+            assert hasattr(match, "severity")
+            assert hasattr(match, "confidence")
             assert match.confidence >= 0.0
             assert match.confidence <= 1.0
 
@@ -107,15 +102,15 @@ class TestBenchmarkPipeline:
         """Ground truth comparison should produce TP/FP/FN counts."""
         # Simulated ground truth (from BugLog CSV)
         ground_truth = [
-            {'line': 15, 'type': 'reentrancy'},
-            {'line': 17, 'type': 'unchecked-send'},
+            {"line": 15, "type": "reentrancy"},
+            {"line": 17, "type": "unchecked-send"},
         ]
 
         # Simulated detections
         detections = [
-            {'line': 15, 'type': 'reentrancy', 'confidence': 0.9},
-            {'line': 16, 'type': 'reentrancy', 'confidence': 0.7},  # Near match to line 17
-            {'line': 30, 'type': 'access-control', 'confidence': 0.6},  # FP
+            {"line": 15, "type": "reentrancy", "confidence": 0.9},
+            {"line": 16, "type": "reentrancy", "confidence": 0.7},  # Near match to line 17
+            {"line": 30, "type": "access-control", "confidence": 0.6},  # FP
         ]
 
         tp, fp, fn = match_ground_truth(detections, ground_truth, tolerance=3)
@@ -130,18 +125,18 @@ class TestBenchmarkPipeline:
     def test_benchmark_category_breakdown(self):
         """Results should be broken down by vulnerability category."""
         categories = {
-            'Re-entrancy': {'tp': 5, 'fp': 2, 'fn': 1},
-            'Overflow-Underflow': {'tp': 3, 'fp': 1, 'fn': 2},
-            'TOD': {'tp': 1, 'fp': 0, 'fn': 3},
-            'Timestamp-Dependency': {'tp': 2, 'fp': 1, 'fn': 1},
-            'Unchecked-Send': {'tp': 4, 'fp': 3, 'fn': 0},
+            "Re-entrancy": {"tp": 5, "fp": 2, "fn": 1},
+            "Overflow-Underflow": {"tp": 3, "fp": 1, "fn": 2},
+            "TOD": {"tp": 1, "fp": 0, "fn": 3},
+            "Timestamp-Dependency": {"tp": 2, "fp": 1, "fn": 1},
+            "Unchecked-Send": {"tp": 4, "fp": 3, "fn": 0},
         }
 
         # Each category should have valid metrics
-        for cat_name, counts in categories.items():
-            tp = counts['tp']
-            fp = counts['fp']
-            fn = counts['fn']
+        for _cat_name, counts in categories.items():
+            tp = counts["tp"]
+            fp = counts["fp"]
+            fn = counts["fn"]
 
             precision, recall, f1 = calculate_metrics(tp, fp, fn)
 
@@ -191,15 +186,18 @@ class TestBenchmarkPipeline:
         engine = SmartCorrelationEngine()
 
         # Finding from pattern detector only (single tool)
-        engine.add_findings('classic-pattern-detector', [
-            {
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'Reentrancy vulnerability in withdraw()',
-                'location': {'file': 'test.sol', 'line': 15, 'function': 'withdraw'},
-                'confidence': 0.85,
-            },
-        ])
+        engine.add_findings(
+            "classic-pattern-detector",
+            [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "message": "Reentrancy vulnerability in withdraw()",
+                    "location": {"file": "test.sol", "line": 15, "function": "withdraw"},
+                    "confidence": 0.85,
+                },
+            ],
+        )
 
         correlated_single = engine.correlate()
         assert len(correlated_single) >= 1
@@ -210,32 +208,36 @@ class TestBenchmarkPipeline:
 
         # Now add confirming tool
         engine.clear()
-        engine.add_findings('classic-pattern-detector', [
-            {
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'Reentrancy vulnerability in withdraw()',
-                'location': {'file': 'test.sol', 'line': 15, 'function': 'withdraw'},
-                'confidence': 0.85,
-            },
-        ])
-        engine.add_findings('slither', [
-            {
-                'type': 'reentrancy-eth',
-                'severity': 'high',
-                'message': 'Reentrancy in withdraw() detected by Slither',
-                'location': {'file': 'test.sol', 'line': 15, 'function': 'withdraw'},
-                'confidence': 0.9,
-            },
-        ])
+        engine.add_findings(
+            "classic-pattern-detector",
+            [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "message": "Reentrancy vulnerability in withdraw()",
+                    "location": {"file": "test.sol", "line": 15, "function": "withdraw"},
+                    "confidence": 0.85,
+                },
+            ],
+        )
+        engine.add_findings(
+            "slither",
+            [
+                {
+                    "type": "reentrancy-eth",
+                    "severity": "high",
+                    "message": "Reentrancy in withdraw() detected by Slither",
+                    "location": {"file": "test.sol", "line": 15, "function": "withdraw"},
+                    "confidence": 0.9,
+                },
+            ],
+        )
 
         correlated_multi = engine.correlate()
         assert len(correlated_multi) >= 1
 
         # Find the reentrancy finding
-        reentrancy = [
-            f for f in correlated_multi if f.canonical_type == 'reentrancy'
-        ]
+        reentrancy = [f for f in correlated_multi if f.canonical_type == "reentrancy"]
         assert len(reentrancy) >= 1
 
         multi_conf = reentrancy[0].final_confidence
@@ -256,8 +258,8 @@ class TestBenchmarkGroundTruthEdgeCases:
     def test_no_detections_all_false_negatives(self):
         """No detections should produce all false negatives."""
         ground_truth = [
-            {'line': 10, 'type': 'reentrancy'},
-            {'line': 20, 'type': 'overflow'},
+            {"line": 10, "type": "reentrancy"},
+            {"line": 20, "type": "overflow"},
         ]
         detections = []
 
@@ -270,8 +272,8 @@ class TestBenchmarkGroundTruthEdgeCases:
         """Detections with no ground truth should all be FP."""
         ground_truth = []
         detections = [
-            {'line': 10, 'type': 'reentrancy', 'confidence': 0.8},
-            {'line': 20, 'type': 'overflow', 'confidence': 0.7},
+            {"line": 10, "type": "reentrancy", "confidence": 0.8},
+            {"line": 20, "type": "overflow", "confidence": 0.7},
         ]
 
         tp, fp, fn = match_ground_truth(detections, ground_truth)
@@ -282,11 +284,11 @@ class TestBenchmarkGroundTruthEdgeCases:
     def test_duplicate_detections_same_line(self):
         """Multiple detections at same line should only match once."""
         ground_truth = [
-            {'line': 15, 'type': 'reentrancy'},
+            {"line": 15, "type": "reentrancy"},
         ]
         detections = [
-            {'line': 15, 'type': 'reentrancy', 'confidence': 0.9},
-            {'line': 15, 'type': 'reentrancy-eth', 'confidence': 0.8},
+            {"line": 15, "type": "reentrancy", "confidence": 0.9},
+            {"line": 15, "type": "reentrancy-eth", "confidence": 0.8},
         ]
 
         tp, fp, fn = match_ground_truth(detections, ground_truth)
@@ -300,33 +302,39 @@ class TestBenchmarkGroundTruthEdgeCases:
         engine = SmartCorrelationEngine()
 
         # Add same finding from two tools
-        engine.add_findings('slither', [
-            {
-                'type': 'reentrancy-eth',
-                'severity': 'high',
-                'message': 'Reentrancy in withdraw()',
-                'location': {'file': 'test.sol', 'line': 15, 'function': 'withdraw'},
-                'confidence': 0.9,
-            }
-        ])
-        engine.add_findings('mythril', [
-            {
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'State change after external call in withdraw',
-                'location': {'file': 'test.sol', 'line': 15, 'function': 'withdraw'},
-                'confidence': 0.85,
-            }
-        ])
+        engine.add_findings(
+            "slither",
+            [
+                {
+                    "type": "reentrancy-eth",
+                    "severity": "high",
+                    "message": "Reentrancy in withdraw()",
+                    "location": {"file": "test.sol", "line": 15, "function": "withdraw"},
+                    "confidence": 0.9,
+                }
+            ],
+        )
+        engine.add_findings(
+            "mythril",
+            [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "message": "State change after external call in withdraw",
+                    "location": {"file": "test.sol", "line": 15, "function": "withdraw"},
+                    "confidence": 0.85,
+                }
+            ],
+        )
 
         correlated = engine.correlate()
 
         # Should deduplicate into single finding confirmed by both tools
-        reentrancy = [f for f in correlated if f.canonical_type == 'reentrancy']
+        reentrancy = [f for f in correlated if f.canonical_type == "reentrancy"]
         assert len(reentrancy) == 1
         assert len(reentrancy[0].confirming_tools) == 2
         assert reentrancy[0].is_cross_validated
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '--tb=short'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])

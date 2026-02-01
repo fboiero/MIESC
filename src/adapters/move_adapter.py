@@ -24,13 +24,12 @@ Date: January 2026
 Version: 1.0.0
 """
 
-import json
 import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from src.core.chain_abstraction import (
     AbstractChainAnalyzer,
@@ -265,14 +264,16 @@ class MovePatternDetector:
             for pattern, pattern_name in patterns:
                 for i, line in enumerate(lines, 1):
                     if re.search(pattern, line, re.IGNORECASE):
-                        findings.append({
-                            "pattern": pattern_name,
-                            "category": category,
-                            "severity": severity,
-                            "line": i,
-                            "file": file_path,
-                            "code": line.strip(),
-                        })
+                        findings.append(
+                            {
+                                "pattern": pattern_name,
+                                "category": category,
+                                "severity": severity,
+                                "line": i,
+                                "file": file_path,
+                                "code": line.strip(),
+                            }
+                        )
 
         return findings
 
@@ -337,17 +338,17 @@ class MoveAnalyzer(AbstractChainAnalyzer):
         )
 
         # Extract module info
-        module_match = re.search(r'module\s+(\w+)::(\w+)\s*\{', source_code)
+        module_match = re.search(r"module\s+(\w+)::(\w+)\s*\{", source_code)
         if module_match:
             contract.name = module_match.group(2)
             contract.compiler_version = module_match.group(1)  # Using address as version
 
         # Extract uses/imports
-        use_pattern = r'use\s+([\w:]+)'
+        use_pattern = r"use\s+([\w:]+)"
         contract.imports = re.findall(use_pattern, source_code)
 
         # Extract friend declarations
-        friend_pattern = r'friend\s+([\w:]+)'
+        friend_pattern = r"friend\s+([\w:]+)"
         friends = re.findall(friend_pattern, source_code)
         if friends:
             contract.inherits_from = friends  # Using inherits_from for friends
@@ -368,19 +369,19 @@ class MoveAnalyzer(AbstractChainAnalyzer):
         variables = []
 
         # Pattern for struct extraction
-        struct_pattern = r'''
+        struct_pattern = r"""
             struct\s+(\w+)                    # Struct name
             (?:<([^>]+)>)?                    # Optional type params
             \s+has\s+([^{]+)                  # Abilities
             \s*\{([^}]*)\}                    # Fields
-        '''
+        """
 
         for match in re.finditer(struct_pattern, source_code, re.VERBOSE):
             name = match.group(1)
             type_params = match.group(2) or ""
             abilities_str = match.group(3)
             fields_str = match.group(4)
-            line = source_code[:match.start()].count("\n") + 1
+            line = source_code[: match.start()].count("\n") + 1
 
             # Parse abilities
             abilities = abilities_str.lower().split(",")
@@ -399,11 +400,13 @@ class MoveAnalyzer(AbstractChainAnalyzer):
 
             # Parse fields
             fields = []
-            for field_match in re.finditer(r'(\w+)\s*:\s*([^,\n}]+)', fields_str):
-                fields.append({
-                    "name": field_match.group(1),
-                    "type": field_match.group(2).strip(),
-                })
+            for field_match in re.finditer(r"(\w+)\s*:\s*([^,\n}]+)", fields_str):
+                fields.append(
+                    {
+                        "name": field_match.group(1),
+                        "type": field_match.group(2).strip(),
+                    }
+                )
             metadata["fields"] = fields
 
             var = AbstractVariable(
@@ -422,7 +425,7 @@ class MoveAnalyzer(AbstractChainAnalyzer):
         functions = []
 
         # Pattern for function extraction
-        func_pattern = r'''
+        func_pattern = r"""
             (?P<vis>public(?:\s*\(\s*friend\s*\))?\s+)?  # Visibility
             (?P<entry>entry\s+)?                         # Entry modifier
             fun\s+(?P<name>\w+)                          # Function name
@@ -431,7 +434,7 @@ class MoveAnalyzer(AbstractChainAnalyzer):
             (?:\s*:\s*(?P<ret>[^{]+))?                   # Return type
             (?:\s+acquires\s+(?P<acq>[^{]+))?           # Acquires
             \s*\{                                        # Body start
-        '''
+        """
 
         for match in re.finditer(func_pattern, source_code, re.VERBOSE):
             vis = match.group("vis") or ""
@@ -440,7 +443,7 @@ class MoveAnalyzer(AbstractChainAnalyzer):
             params_str = match.group("params") or ""
             ret_type = match.group("ret")
             acquires = match.group("acq")
-            line = source_code[:match.start()].count("\n") + 1
+            line = source_code[: match.start()].count("\n") + 1
 
             # Determine visibility
             if "public(friend)" in vis:
@@ -452,13 +455,15 @@ class MoveAnalyzer(AbstractChainAnalyzer):
 
             # Parse parameters
             parameters = []
-            for param_match in re.finditer(r'(\w+)\s*:\s*([^,]+)', params_str):
+            for param_match in re.finditer(r"(\w+)\s*:\s*([^,]+)", params_str):
                 param_name = param_match.group(1)
                 param_type = param_match.group(2).strip()
-                parameters.append(Parameter(
-                    name=param_name,
-                    type_info=TypeInfo(name=param_type),
-                ))
+                parameters.append(
+                    Parameter(
+                        name=param_name,
+                        type_info=TypeInfo(name=param_type),
+                    )
+                )
 
             func = AbstractFunction(
                 name=name,
@@ -484,15 +489,17 @@ class MoveAnalyzer(AbstractChainAnalyzer):
         events = []
 
         # Sui events use emit
-        event_pattern = r'event::emit\s*\(\s*(\w+)\s*\{'
+        event_pattern = r"event::emit\s*\(\s*(\w+)\s*\{"
         for match in re.finditer(event_pattern, source_code):
             event_name = match.group(1)
-            line = source_code[:match.start()].count("\n") + 1
+            line = source_code[: match.start()].count("\n") + 1
 
-            events.append(AbstractEvent(
-                name=event_name,
-                location=Location(file=file_path, line=line),
-            ))
+            events.append(
+                AbstractEvent(
+                    name=event_name,
+                    location=Location(file=file_path, line=line),
+                )
+            )
 
         return events
 
@@ -520,9 +527,7 @@ class MoveAnalyzer(AbstractChainAnalyzer):
         properties = properties or list(SecurityProperty)
 
         # Run pattern detector
-        pattern_matches = self.pattern_detector.detect_patterns(
-            source_code, contract.source_path
-        )
+        pattern_matches = self.pattern_detector.detect_patterns(source_code, contract.source_path)
 
         # Convert patterns to findings
         for match in pattern_matches:
@@ -608,7 +613,6 @@ class MoveAnalyzer(AbstractChainAnalyzer):
             return findings
 
         # Check if capabilities are properly protected
-        source = contract.source_code
 
         for func in contract.functions:
             if func.visibility != Visibility.PUBLIC:
@@ -619,20 +623,22 @@ class MoveAnalyzer(AbstractChainAnalyzer):
                 param_type = str(param.type_info)
                 for cap in cap_structs:
                     if cap in param_type and "&mut" in param_type:
-                        findings.append(self.normalize_finding(
-                            vuln_type=MoveVulnerability.CAPABILITY_LEAK.value,
-                            severity="High",
-                            message=f"Public function '{func.name}' takes mutable capability reference",
-                            location=func.location,
-                            description=(
-                                f"The function '{func.name}' accepts a mutable reference to "
-                                f"capability '{cap}', which could allow unauthorized modifications."
-                            ),
-                            recommendation=(
-                                "Use immutable references for capabilities or restrict "
-                                "function visibility with friend declarations."
-                            ),
-                        ))
+                        findings.append(
+                            self.normalize_finding(
+                                vuln_type=MoveVulnerability.CAPABILITY_LEAK.value,
+                                severity="High",
+                                message=f"Public function '{func.name}' takes mutable capability reference",
+                                location=func.location,
+                                description=(
+                                    f"The function '{func.name}' accepts a mutable reference to "
+                                    f"capability '{cap}', which could allow unauthorized modifications."
+                                ),
+                                recommendation=(
+                                    "Use immutable references for capabilities or restrict "
+                                    "function visibility with friend declarations."
+                                ),
+                            )
+                        )
 
         return findings
 
@@ -670,21 +676,26 @@ class MoveAnalyzer(AbstractChainAnalyzer):
                         func_body = source[brace_start:end]
 
                         # Check for shared object access
-                        if "&mut" in func_body and "shared" in source[func_start:brace_start].lower():
-                            findings.append(self.normalize_finding(
-                                vuln_type=MoveVulnerability.OBJECT_OWNERSHIP.value,
-                                severity="Medium",
-                                message=f"Entry function '{func.name}' mutates shared object",
-                                location=func.location,
-                                description=(
-                                    "Entry functions that mutate shared objects need careful "
-                                    "consideration for concurrent access."
-                                ),
-                                recommendation=(
-                                    "Ensure proper access control and consider using "
-                                    "owned objects where possible."
-                                ),
-                            ))
+                        if (
+                            "&mut" in func_body
+                            and "shared" in source[func_start:brace_start].lower()
+                        ):
+                            findings.append(
+                                self.normalize_finding(
+                                    vuln_type=MoveVulnerability.OBJECT_OWNERSHIP.value,
+                                    severity="Medium",
+                                    message=f"Entry function '{func.name}' mutates shared object",
+                                    location=func.location,
+                                    description=(
+                                        "Entry functions that mutate shared objects need careful "
+                                        "consideration for concurrent access."
+                                    ),
+                                    recommendation=(
+                                        "Ensure proper access control and consider using "
+                                        "owned objects where possible."
+                                    ),
+                                )
+                            )
 
         return findings
 

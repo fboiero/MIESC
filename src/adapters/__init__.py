@@ -19,71 +19,36 @@ import logging
 
 # Layer 1 - Static Analysis (6 tools)
 from src.adapters.aderyn_adapter import AderynAdapter
-from src.adapters.slither_adapter import SlitherAdapter
-from src.adapters.solhint_adapter import SolhintAdapter
-from src.adapters.semgrep_adapter import SemgrepAdapter
-from src.adapters.wake_adapter import WakeAdapter
-from src.adapters.fouranalyzer_adapter import FourAnalyzerAdapter
-
-# Layer 2 - Dynamic Testing (6 tools)
-from src.adapters.echidna_adapter import EchidnaAdapter
-from src.adapters.medusa_adapter import MedusaAdapter
-from src.adapters.foundry_adapter import FoundryAdapter
-from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
-from src.adapters.hardhat_adapter import HardhatAdapter
-from src.adapters.vertigo_adapter import VertigoAdapter
-
-# Layer 3 - Symbolic Execution (5 tools)
-from src.adapters.mythril_adapter import MythrilAdapter
-from src.adapters.manticore_adapter import ManticoreAdapter
-from src.adapters.halmos_adapter import HalmosAdapter
-from src.adapters.oyente_adapter import OyenteAdapter
-from src.adapters.pakala_adapter import PakalaAdapter
+from src.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
+from src.adapters.audit_consensus_adapter import AuditConsensusAdapter
+from src.adapters.bridge_monitor_adapter import BridgeMonitorAdapter
 
 # Layer 4 - Formal Verification (5 tools)
 from src.adapters.certora_adapter import CertoraAdapter
-from src.adapters.smtchecker_adapter import SMTCheckerAdapter
-from src.adapters.propertygpt_adapter import PropertyGPTAdapter
-from src.adapters.scribble_adapter import ScribbleAdapter
-from src.adapters.solcmc_adapter import SolCMCAdapter
-
-# Layer 5 - AI Analysis (6 tools)
-from src.adapters.smartllm_adapter import SmartLLMAdapter
-from src.adapters.gptscan_adapter import GPTScanAdapter
-from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
-from src.adapters.gptlens_adapter import GPTLensAdapter
-from src.adapters.llamaaudit_adapter import LlamaAuditAdapter
-from src.adapters.iaudit_adapter import IAuditAdapter
-
-# Layer 6 - ML Detection (5 tools)
-from src.adapters.dagnn_adapter import DAGNNAdapter
-from src.adapters.smartguard_adapter import SmartGuardAdapter
-from src.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter
-from src.adapters.smartbugs_detector_adapter import SmartBugsDetectorAdapter
-from src.adapters.peculiar_adapter import PeculiarAdapter
-
-# Layer 7 - Specialized Analysis (7 tools)
-from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
-from src.adapters.mev_detector_adapter import MEVDetectorAdapter
-from src.adapters.threat_model_adapter import ThreatModelAdapter
+from src.adapters.circom_analyzer_adapter import CircomAnalyzerAdapter
 from src.adapters.contract_clone_detector_adapter import ContractCloneDetectorAdapter
-from src.adapters.defi_adapter import DeFiAdapter
-from src.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
-from src.adapters.upgradability_checker_adapter import UpgradabilityCheckerAdapter
 
 # Layer 8 - Cross-Chain & ZK Security (5 tools)
 from src.adapters.crosschain_adapter import CrossChainAdapter
-from src.adapters.zk_circuit_adapter import ZKCircuitAdapter
-from src.adapters.bridge_monitor_adapter import BridgeMonitorAdapter
-from src.adapters.l2_validator_adapter import L2ValidatorAdapter
-from src.adapters.circom_analyzer_adapter import CircomAnalyzerAdapter
 
-# Layer 9 - Advanced AI Ensemble (5 tools)
-from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
-from src.adapters.audit_consensus_adapter import AuditConsensusAdapter
+# Layer 6 - ML Detection (5 tools)
+from src.adapters.dagnn_adapter import DAGNNAdapter
+from src.adapters.defi_adapter import DeFiAdapter
+from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
+
+# Layer 2 - Dynamic Testing (6 tools)
+from src.adapters.echidna_adapter import EchidnaAdapter
 from src.adapters.exploit_synthesizer_adapter import ExploitSynthesizerAdapter
-from src.adapters.vuln_verifier_adapter import VulnVerifierAdapter
-from src.adapters.remediation_validator_adapter import RemediationValidatorAdapter
+from src.adapters.foundry_adapter import FoundryAdapter
+from src.adapters.fouranalyzer_adapter import FourAnalyzerAdapter
+
+# Layer 7 - Specialized Analysis (7 tools)
+from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
+from src.adapters.gptlens_adapter import GPTLensAdapter
+from src.adapters.gptscan_adapter import GPTScanAdapter
+from src.adapters.halmos_adapter import HalmosAdapter
+from src.adapters.hardhat_adapter import HardhatAdapter
+from src.adapters.iaudit_adapter import IAuditAdapter
 
 # Invariant Synthesis (v4.2.3)
 from src.adapters.invariant_synthesizer import (
@@ -93,6 +58,41 @@ from src.adapters.invariant_synthesizer import (
     SynthesizedInvariant,
     synthesize_invariants,
 )
+from src.adapters.l2_validator_adapter import L2ValidatorAdapter
+from src.adapters.llamaaudit_adapter import LlamaAuditAdapter
+
+# Layer 9 - Advanced AI Ensemble (5 tools)
+from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
+from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
+from src.adapters.manticore_adapter import ManticoreAdapter
+from src.adapters.medusa_adapter import MedusaAdapter
+from src.adapters.mev_detector_adapter import MEVDetectorAdapter
+
+# Layer 3 - Symbolic Execution (5 tools)
+from src.adapters.mythril_adapter import MythrilAdapter
+from src.adapters.oyente_adapter import OyenteAdapter
+from src.adapters.pakala_adapter import PakalaAdapter
+from src.adapters.peculiar_adapter import PeculiarAdapter
+from src.adapters.propertygpt_adapter import PropertyGPTAdapter
+from src.adapters.remediation_validator_adapter import RemediationValidatorAdapter
+from src.adapters.scribble_adapter import ScribbleAdapter
+from src.adapters.semgrep_adapter import SemgrepAdapter
+from src.adapters.slither_adapter import SlitherAdapter
+from src.adapters.smartbugs_detector_adapter import SmartBugsDetectorAdapter
+from src.adapters.smartbugs_ml_adapter import SmartBugsMLAdapter
+from src.adapters.smartguard_adapter import SmartGuardAdapter
+
+# Layer 5 - AI Analysis (6 tools)
+from src.adapters.smartllm_adapter import SmartLLMAdapter
+from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+from src.adapters.solcmc_adapter import SolCMCAdapter
+from src.adapters.solhint_adapter import SolhintAdapter
+from src.adapters.threat_model_adapter import ThreatModelAdapter
+from src.adapters.upgradability_checker_adapter import UpgradabilityCheckerAdapter
+from src.adapters.vertigo_adapter import VertigoAdapter
+from src.adapters.vuln_verifier_adapter import VulnVerifierAdapter
+from src.adapters.wake_adapter import WakeAdapter
+from src.adapters.zk_circuit_adapter import ZKCircuitAdapter
 from src.core.tool_protocol import ToolStatus, get_tool_registry
 
 logger = logging.getLogger(__name__)

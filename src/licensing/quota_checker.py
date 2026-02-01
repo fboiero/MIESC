@@ -4,16 +4,21 @@ Controla límites de uso según el plan de licencia.
 """
 
 import logging
-from datetime import datetime
-from typing import Optional
 import uuid
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from pathlib import Path
+from sqlalchemy.orm import Session, sessionmaker
 
-from .models import Base, LicenseDB, UsageRecordDB, License, LicenseStatus
-from .plans import get_plan_config, get_max_audits, get_max_contract_size, is_tool_allowed, is_ai_enabled
+from .models import Base, License, UsageRecordDB
+from .plans import (
+    get_max_audits,
+    get_max_contract_size,
+    is_ai_enabled,
+    is_tool_allowed,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,10 +63,11 @@ class QuotaChecker:
         """
         month = self._get_current_month()
 
-        usage = session.query(UsageRecordDB).filter(
-            UsageRecordDB.license_id == license_id,
-            UsageRecordDB.month == month
-        ).first()
+        usage = (
+            session.query(UsageRecordDB)
+            .filter(UsageRecordDB.license_id == license_id, UsageRecordDB.month == month)
+            .first()
+        )
 
         if not usage:
             usage = UsageRecordDB(
@@ -277,9 +283,6 @@ class QuotaChecker:
             if is_tool_allowed(license.plan, tool):
                 allowed.append(tool)
             else:
-                logger.debug(
-                    f"Herramienta no permitida: {tool} "
-                    f"(plan: {license.plan.value})"
-                )
+                logger.debug(f"Herramienta no permitida: {tool} " f"(plan: {license.plan.value})")
 
         return allowed

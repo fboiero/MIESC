@@ -2,11 +2,10 @@
 Tests for the False Positive Classifier v4.7.0
 """
 
-import pytest
 from src.ml.fp_classifier import (
-    FPClassifier,
     FeatureExtractor,
     FindingFeatures,
+    FPClassifier,
     FPPrediction,
     classify_false_positives,
     filter_likely_fps,
@@ -69,9 +68,7 @@ contract Safe is ReentrancyGuard {
     }
 }
 """
-        features = extractor.extract_features(
-            {"confidence": 0.5}, source_with_guard
-        )
+        features = extractor.extract_features({"confidence": 0.5}, source_with_guard)
         assert features.has_reentrancy_guard is True
 
         source_without_guard = """
@@ -81,9 +78,7 @@ contract Unsafe {
     }
 }
 """
-        features = extractor.extract_features(
-            {"confidence": 0.5}, source_without_guard
-        )
+        features = extractor.extract_features({"confidence": 0.5}, source_without_guard)
         assert features.has_reentrancy_guard is False
 
     def test_detect_access_control(self):
@@ -104,9 +99,7 @@ contract Owned {
     }
 }
 """
-        features = extractor.extract_features(
-            {"confidence": 0.5}, source_with_ac
-        )
+        features = extractor.extract_features({"confidence": 0.5}, source_with_ac)
         assert features.has_access_control is True
 
     def test_detect_solidity_version(self):
@@ -134,9 +127,7 @@ contract Token {
     }
 }
 """
-        features = extractor.extract_features(
-            {"confidence": 0.5}, source_safemath
-        )
+        features = extractor.extract_features({"confidence": 0.5}, source_safemath)
         assert features.uses_safemath is True
 
 

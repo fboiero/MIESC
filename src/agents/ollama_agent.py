@@ -18,11 +18,10 @@ Installation:
     ollama pull codellama:13b
 """
 
-import subprocess
 import json
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+import subprocess
+from typing import Any, Dict, List, Optional
 
 from src.agents.base_agent import BaseAgent
 
@@ -77,7 +76,7 @@ Respond in JSON format with this structure:
         model: str = "codellama:13b",
         temperature: float = 0.1,
         max_tokens: int = 2000,
-        ollama_host: str = "http://localhost:11434"
+        ollama_host: str = "http://localhost:11434",
     ):
         """
         Initialize Ollama agent
@@ -95,9 +94,9 @@ Respond in JSON format with this structure:
                 "privacy_preserving",
                 "unlimited_usage",
                 "multi_model_support",
-                "offline_capable"
+                "offline_capable",
             ],
-            agent_type="ai"
+            agent_type="ai",
         )
 
         self.model = model
@@ -111,12 +110,7 @@ Respond in JSON format with this structure:
     def _check_ollama_available(self) -> bool:
         """Check if Ollama is installed and running"""
         try:
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
+            result = subprocess.run(["ollama", "list"], capture_output=True, text=True, timeout=5)
 
             if result.returncode == 0:
                 logger.info("Ollama is available")
@@ -124,8 +118,7 @@ Respond in JSON format with this structure:
                 # Check if model is downloaded
                 if self.model not in result.stdout:
                     logger.warning(
-                        f"Model {self.model} not found. Download with: "
-                        f"ollama pull {self.model}"
+                        f"Model {self.model} not found. Download with: " f"ollama pull {self.model}"
                     )
                     return False
 
@@ -135,10 +128,7 @@ Respond in JSON format with this structure:
                 return False
 
         except FileNotFoundError:
-            logger.error(
-                "Ollama not installed. Install from: "
-                "https://ollama.ai/download"
-            )
+            logger.error("Ollama not installed. Install from: " "https://ollama.ai/download")
             return False
         except subprocess.TimeoutExpired:
             logger.error("Ollama server not responding")
@@ -148,11 +138,7 @@ Respond in JSON format with this structure:
             return False
 
     def get_context_types(self) -> List[str]:
-        return [
-            "ollama_findings",
-            "ollama_analysis",
-            "ollama_recommendations"
-        ]
+        return ["ollama_findings", "ollama_analysis", "ollama_recommendations"]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -168,25 +154,26 @@ Respond in JSON format with this structure:
             Dict with findings and analysis
         """
         import time
+
         start_time = time.time()
 
-        print(f"\n🤖 Ollama Analysis Starting...")
+        print("\n🤖 Ollama Analysis Starting...")
         print(f"   Model: {self.model}")
         print(f"   Contract: {contract_path}")
 
         # Read contract
         try:
-            with open(contract_path, 'r') as f:
+            with open(contract_path, "r") as f:
                 contract_code = f.read()
         except Exception as e:
             logger.error(f"Error reading contract: {e}")
             return {"error": str(e)}
 
         # Truncate if too long
-        max_lines = kwargs.get('max_lines', 500)
-        lines = contract_code.split('\n')
+        max_lines = kwargs.get("max_lines", 500)
+        lines = contract_code.split("\n")
         if len(lines) > max_lines:
-            contract_code = '\n'.join(lines[:max_lines])
+            contract_code = "\n".join(lines[:max_lines])
             logger.warning(f"Contract truncated to {max_lines} lines")
 
         # Build prompt
@@ -200,7 +187,7 @@ Respond in JSON format with this structure:
             return {
                 "ollama_findings": [],
                 "ollama_analysis": {"error": "Ollama request failed"},
-                "ollama_recommendations": []
+                "ollama_recommendations": [],
             }
 
         # Parse response
@@ -219,16 +206,16 @@ Respond in JSON format with this structure:
                 "model": self.model,
                 "execution_time": execution_time,
                 "raw_response": response[:500] + "..." if len(response) > 500 else response,
-                "total_findings": len(findings)
+                "total_findings": len(findings),
             },
             "ollama_recommendations": self._generate_recommendations(findings),
-            "execution_time": execution_time
+            "execution_time": execution_time,
         }
 
     def _build_analysis_prompt(self, contract_code: str, **kwargs) -> str:
         """Build analysis prompt for LLM"""
 
-        focus_functions = kwargs.get('focus_functions')
+        focus_functions = kwargs.get("focus_functions")
         focus_note = ""
         if focus_functions:
             focus_note = f"\nPay special attention to these functions: {', '.join(focus_functions)}"
@@ -257,7 +244,7 @@ Focus on real vulnerabilities, not style issues."""
                 input=prompt,
                 capture_output=True,
                 text=True,
-                timeout=120  # 2 minutes timeout
+                timeout=120,  # 2 minutes timeout
             )
 
             if result.returncode == 0:
@@ -273,11 +260,7 @@ Focus on real vulnerabilities, not style issues."""
             logger.error(f"Error calling Ollama: {e}")
             return None
 
-    def _parse_ollama_response(
-        self,
-        response: str,
-        contract_path: str
-    ) -> List[Dict[str, Any]]:
+    def _parse_ollama_response(self, response: str, contract_path: str) -> List[Dict[str, Any]]:
         """Parse LLM response into structured findings"""
 
         findings = []
@@ -285,71 +268,74 @@ Focus on real vulnerabilities, not style issues."""
         try:
             # Try to extract JSON from response
             # LLM might wrap JSON in markdown code blocks
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
+            json_start = response.find("{")
+            json_end = response.rfind("}") + 1
 
             if json_start != -1 and json_end > json_start:
                 json_str = response[json_start:json_end]
                 data = json.loads(json_str)
 
-                vulnerabilities = data.get('vulnerabilities', [])
+                vulnerabilities = data.get("vulnerabilities", [])
 
                 for idx, vuln in enumerate(vulnerabilities):
                     finding = {
-                        "id": vuln.get('id', f"OLL-{idx+1:03d}"),
+                        "id": vuln.get("id", f"OLL-{idx+1:03d}"),
                         "source": "Ollama",
                         "model": self.model,
-                        "severity": vuln.get('severity', 'Medium'),
-                        "category": vuln.get('category', 'Unknown'),
-                        "description": vuln.get('description', ''),
-                        "location": vuln.get('location', 'Unknown'),
-                        "recommendation": vuln.get('recommendation', ''),
-                        "confidence": vuln.get('confidence', 0.7),
+                        "severity": vuln.get("severity", "Medium"),
+                        "category": vuln.get("category", "Unknown"),
+                        "description": vuln.get("description", ""),
+                        "location": vuln.get("location", "Unknown"),
+                        "recommendation": vuln.get("recommendation", ""),
+                        "confidence": vuln.get("confidence", 0.7),
                         "contract": contract_path,
-                        "swc_id": self._map_to_swc(vuln.get('category', '')),
-                        "owasp_category": self._map_to_owasp(vuln.get('category', ''))
+                        "swc_id": self._map_to_swc(vuln.get("category", "")),
+                        "owasp_category": self._map_to_owasp(vuln.get("category", "")),
                     }
                     findings.append(finding)
 
                 # Add risk score to metadata
-                risk_score = data.get('risk_score', 0)
-                summary = data.get('summary', '')
+                risk_score = data.get("risk_score", 0)
+                data.get("summary", "")
 
                 logger.info(
-                    f"Parsed {len(findings)} findings from Ollama "
-                    f"(risk score: {risk_score})"
+                    f"Parsed {len(findings)} findings from Ollama " f"(risk score: {risk_score})"
                 )
 
             else:
                 # Fallback: treat as unstructured text
                 logger.warning("Could not parse JSON from Ollama response")
-                findings.append({
-                    "id": "OLL-001",
-                    "source": "Ollama",
-                    "model": self.model,
-                    "severity": "Info",
-                    "category": "Analysis",
-                    "description": response[:500],
-                    "location": "Full contract",
-                    "recommendation": "Manual review recommended",
-                    "confidence": 0.5,
-                    "contract": contract_path
-                })
+                findings.append(
+                    {
+                        "id": "OLL-001",
+                        "source": "Ollama",
+                        "model": self.model,
+                        "severity": "Info",
+                        "category": "Analysis",
+                        "description": response[:500],
+                        "location": "Full contract",
+                        "recommendation": "Manual review recommended",
+                        "confidence": 0.5,
+                        "contract": contract_path,
+                    }
+                )
 
         except json.JSONDecodeError as e:
             logger.error(f"JSON parsing error: {e}")
             # Return raw response as finding
-            findings.append({
-                "id": "OLL-ERROR",
-                "source": "Ollama",
-                "severity": "Info",
-                "category": "Parse Error",
-                "description": f"Could not parse response: {response[:200]}",
-                "location": "N/A",
-                "recommendation": "Check Ollama output format",
-                "confidence": 0.0,
-                "contract": contract_path
-            })
+            findings.append(
+                {
+                    "id": "OLL-ERROR",
+                    "source": "Ollama",
+                    "severity": "Info",
+                    "category": "Parse Error",
+                    "description": f"Could not parse response: {response[:200]}",
+                    "location": "N/A",
+                    "recommendation": "Check Ollama output format",
+                    "confidence": 0.0,
+                    "contract": contract_path,
+                }
+            )
 
         return findings
 
@@ -357,14 +343,13 @@ Focus on real vulnerabilities, not style issues."""
         """Generate high-level recommendations from findings"""
         recommendations = []
 
-        critical_count = len([f for f in findings if f.get('severity') == 'Critical'])
-        high_count = len([f for f in findings if f.get('severity') == 'High'])
-        medium_count = len([f for f in findings if f.get('severity') == 'Medium'])
+        critical_count = len([f for f in findings if f.get("severity") == "Critical"])
+        high_count = len([f for f in findings if f.get("severity") == "High"])
+        medium_count = len([f for f in findings if f.get("severity") == "Medium"])
 
         if critical_count > 0:
             recommendations.append(
-                f"⚠️ CRITICAL: {critical_count} critical issues found. "
-                "Do not deploy to mainnet."
+                f"⚠️ CRITICAL: {critical_count} critical issues found. " "Do not deploy to mainnet."
             )
 
         if high_count > 0:
@@ -379,13 +364,9 @@ Focus on real vulnerabilities, not style issues."""
             )
 
         if not findings:
-            recommendations.append(
-                "✅ No vulnerabilities detected by LLM analysis."
-            )
+            recommendations.append("✅ No vulnerabilities detected by LLM analysis.")
 
-        recommendations.append(
-            f"🤖 Analysis performed by {self.model} (local, private, cost-free)"
-        )
+        recommendations.append(f"🤖 Analysis performed by {self.model} (local, private, cost-free)")
 
         return recommendations
 
@@ -399,7 +380,7 @@ Focus on real vulnerabilities, not style issues."""
             "delegatecall": "SWC-112",
             "tx.origin": "SWC-115",
             "timestamp": "SWC-116",
-            "denial of service": "SWC-128"
+            "denial of service": "SWC-128",
         }
 
         category_lower = category.lower()
@@ -421,7 +402,7 @@ Focus on real vulnerabilities, not style issues."""
             "SWC-112": "SC02-Access-Control",
             "SWC-115": "SC02-Access-Control",
             "SWC-116": "SC08-Time-Manipulation",
-            "SWC-128": "SC06-Denial-of-Service"
+            "SWC-128": "SC06-Denial-of-Service",
         }
 
         return swc_to_owasp.get(swc_id, "SC10-Unknown")
@@ -430,16 +411,11 @@ Focus on real vulnerabilities, not style issues."""
     def get_available_models() -> List[str]:
         """Get list of downloaded Ollama models"""
         try:
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
+            result = subprocess.run(["ollama", "list"], capture_output=True, text=True, timeout=5)
 
             if result.returncode == 0:
                 # Parse output
-                lines = result.stdout.strip().split('\n')[1:]  # Skip header
+                lines = result.stdout.strip().split("\n")[1:]  # Skip header
                 models = [line.split()[0] for line in lines if line.strip()]
                 return models
             else:
@@ -496,7 +472,7 @@ if __name__ == "__main__":
     findings = results.get("ollama_findings", [])
     analysis = results.get("ollama_analysis", {})
 
-    print(f"\n📊 Analysis Summary:")
+    print("\n📊 Analysis Summary:")
     print(f"   Model: {analysis.get('model', 'unknown')}")
     print(f"   Execution Time: {analysis.get('execution_time', 0):.2f}s")
     print(f"   Total Findings: {analysis.get('total_findings', 0)}")
@@ -514,7 +490,7 @@ if __name__ == "__main__":
 
     recommendations = results.get("ollama_recommendations", [])
     if recommendations:
-        print(f"\n📋 Recommendations:")
+        print("\n📋 Recommendations:")
         for rec in recommendations:
             print(f"   • {rec}")
 

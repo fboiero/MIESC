@@ -8,17 +8,18 @@ Author: Fernando Boiero
 License: GPL-3.0
 """
 
-import json
 import hashlib
+import json
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
-from dataclasses import dataclass, asdict
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
 class Finding:
     """Represents a security finding."""
+
     id: str
     type: str
     severity: str
@@ -66,7 +67,7 @@ class SARIFExporter:
         sarif = {
             "$schema": self.SARIF_SCHEMA,
             "version": self.SARIF_VERSION,
-            "runs": [self._create_run(findings)]
+            "runs": [self._create_run(findings)],
         }
 
         sarif_json = json.dumps(sarif, indent=2)
@@ -97,16 +98,18 @@ class SARIFExporter:
                             "formal-verification",
                             "ai-analysis",
                             "ml-detection",
-                            "correlation"
-                        ]
-                    }
+                            "correlation",
+                        ],
+                    },
                 }
             },
             "results": [self._finding_to_result(f) for f in findings],
-            "invocations": [{
-                "executionSuccessful": True,
-                "endTimeUtc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-            }]
+            "invocations": [
+                {
+                    "executionSuccessful": True,
+                    "endTimeUtc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                }
+            ],
         }
 
     def _extract_rules(self, findings: List[Finding]) -> List[Dict[str, Any]]:
@@ -129,23 +132,13 @@ class SARIFExporter:
         rule = {
             "id": self._get_rule_id(finding),
             "name": finding.type.replace("_", " ").title(),
-            "shortDescription": {
-                "text": finding.title
-            },
-            "fullDescription": {
-                "text": finding.description
-            },
-            "defaultConfiguration": {
-                "level": self._severity_to_level(finding.severity)
-            },
+            "shortDescription": {"text": finding.title},
+            "fullDescription": {"text": finding.description},
+            "defaultConfiguration": {"level": self._severity_to_level(finding.severity)},
             "properties": {
-                "tags": [
-                    "security",
-                    "smart-contract",
-                    f"layer-{finding.layer}"
-                ],
-                "precision": "high" if finding.confidence > 0.8 else "medium"
-            }
+                "tags": ["security", "smart-contract", f"layer-{finding.layer}"],
+                "precision": "high" if finding.confidence > 0.8 else "medium",
+            },
         }
 
         # Add CWE reference if available
@@ -160,7 +153,7 @@ class SARIFExporter:
         if finding.remediation:
             rule["help"] = {
                 "text": finding.remediation,
-                "markdown": f"## Remediation\n\n{finding.remediation}"
+                "markdown": f"## Remediation\n\n{finding.remediation}",
             }
 
         return rule
@@ -170,26 +163,21 @@ class SARIFExporter:
         result = {
             "ruleId": self._get_rule_id(finding),
             "level": self._severity_to_level(finding.severity),
-            "message": {
-                "text": finding.description
-            },
-            "locations": [{
-                "physicalLocation": {
-                    "artifactLocation": {
-                        "uri": finding.file_path,
-                        "uriBaseId": "%SRCROOT%"
-                    },
-                    "region": self._create_region(finding)
+            "message": {"text": finding.description},
+            "locations": [
+                {
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": finding.file_path, "uriBaseId": "%SRCROOT%"},
+                        "region": self._create_region(finding),
+                    }
                 }
-            }],
-            "fingerprints": {
-                "primaryLocationLineHash": self._create_fingerprint(finding)
-            },
+            ],
+            "fingerprints": {"primaryLocationLineHash": self._create_fingerprint(finding)},
             "properties": {
                 "confidence": finding.confidence,
                 "tool": finding.tool,
-                "layer": finding.layer
-            }
+                "layer": finding.layer,
+            },
         }
 
         # Add partial fingerprints for deduplication
@@ -201,9 +189,7 @@ class SARIFExporter:
 
     def _create_region(self, finding: Finding) -> Dict[str, int]:
         """Create a SARIF region object."""
-        region = {
-            "startLine": finding.line_start
-        }
+        region = {"startLine": finding.line_start}
 
         if finding.line_end:
             region["endLine"] = finding.line_end
@@ -223,7 +209,7 @@ class SARIFExporter:
             "high": "error",
             "medium": "warning",
             "low": "note",
-            "info": "note"
+            "info": "note",
         }
         return mapping.get(severity.lower(), "warning")
 
@@ -242,9 +228,7 @@ class SonarQubeExporter:
 
     def export(self, findings: List[Finding], output_path: Optional[str] = None) -> str:
         """Export findings to SonarQube format."""
-        issues = {
-            "issues": [self._finding_to_issue(f) for f in findings]
-        }
+        issues = {"issues": [self._finding_to_issue(f) for f in findings]}
 
         json_str = json.dumps(issues, indent=2)
 
@@ -267,10 +251,10 @@ class SonarQubeExporter:
                     "startLine": finding.line_start,
                     "endLine": finding.line_end or finding.line_start,
                     "startColumn": finding.column_start or 0,
-                    "endColumn": finding.column_end or 0
-                }
+                    "endColumn": finding.column_end or 0,
+                },
             },
-            "effortMinutes": self._estimate_effort(finding.severity)
+            "effortMinutes": self._estimate_effort(finding.severity),
         }
 
     def _severity_to_sonar(self, severity: str) -> str:
@@ -280,19 +264,13 @@ class SonarQubeExporter:
             "high": "CRITICAL",
             "medium": "MAJOR",
             "low": "MINOR",
-            "info": "INFO"
+            "info": "INFO",
         }
         return mapping.get(severity.lower(), "MAJOR")
 
     def _estimate_effort(self, severity: str) -> int:
         """Estimate remediation effort in minutes."""
-        efforts = {
-            "critical": 120,
-            "high": 60,
-            "medium": 30,
-            "low": 15,
-            "info": 5
-        }
+        efforts = {"critical": 120, "high": 60, "medium": 30, "low": 15, "info": 5}
         return efforts.get(severity.lower(), 30)
 
 
@@ -342,7 +320,7 @@ class MarkdownExporter:
         self,
         findings: List[Finding],
         output_path: Optional[str] = None,
-        include_remediation: bool = True
+        include_remediation: bool = True,
     ) -> str:
         """Export findings to Markdown format."""
         lines = [
@@ -355,7 +333,7 @@ class MarkdownExporter:
             self._create_summary_table(findings),
             "",
             "## Findings",
-            ""
+            "",
         ]
 
         # Group by severity
@@ -412,7 +390,9 @@ class MarkdownExporter:
         ]
 
         if finding.cwe:
-            lines.append(f"**CWE:** [{finding.cwe}](https://cwe.mitre.org/data/definitions/{finding.cwe.replace('CWE-', '')}.html)  ")
+            lines.append(
+                f"**CWE:** [{finding.cwe}](https://cwe.mitre.org/data/definitions/{finding.cwe.replace('CWE-', '')}.html)  "
+            )
 
         if finding.swc:
             lines.append(f"**SWC:** [{finding.swc}](https://swcregistry.io/{finding.swc})  ")
@@ -420,12 +400,7 @@ class MarkdownExporter:
         lines.extend(["", finding.description, ""])
 
         if include_remediation and finding.remediation:
-            lines.extend([
-                "**Remediation:**",
-                "",
-                finding.remediation,
-                ""
-            ])
+            lines.extend(["**Remediation:**", "", finding.remediation, ""])
 
         return lines
 
@@ -437,12 +412,10 @@ class JSONExporter:
         self,
         findings: List[Finding],
         output_path: Optional[str] = None,
-        include_metadata: bool = True
+        include_metadata: bool = True,
     ) -> str:
         """Export findings to JSON format."""
-        data = {
-            "findings": [asdict(f) for f in findings]
-        }
+        data = {"findings": [asdict(f) for f in findings]}
 
         if include_metadata:
             data["metadata"] = {
@@ -450,7 +423,7 @@ class JSONExporter:
                 "version": "4.1.0",
                 "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 "total_findings": len(findings),
-                "severity_counts": self._count_severities(findings)
+                "severity_counts": self._count_severities(findings),
             }
 
         json_str = json.dumps(data, indent=2)
@@ -486,15 +459,11 @@ class ReportExporter:
             "sonarqube": SonarQubeExporter(),
             "checkmarx": CheckmarxExporter(),
             "markdown": MarkdownExporter(),
-            "json": JSONExporter()
+            "json": JSONExporter(),
         }
 
     def export(
-        self,
-        findings: List[Finding],
-        format: str,
-        output_path: Optional[str] = None,
-        **kwargs
+        self, findings: List[Finding], format: str, output_path: Optional[str] = None, **kwargs
     ) -> str:
         """
         Export findings in the specified format.
@@ -521,10 +490,7 @@ class ReportExporter:
         return exporter.export(findings, output_path, **kwargs)
 
     def export_all(
-        self,
-        findings: List[Finding],
-        output_dir: str,
-        base_name: str = "report"
+        self, findings: List[Finding], output_dir: str, base_name: str = "report"
     ) -> Dict[str, str]:
         """
         Export findings in all supported formats.
@@ -545,7 +511,7 @@ class ReportExporter:
             "sonarqube": ".sonarqube.json",
             "checkmarx": ".checkmarx.xml",
             "markdown": ".md",
-            "json": ".json"
+            "json": ".json",
         }
 
         results = {}

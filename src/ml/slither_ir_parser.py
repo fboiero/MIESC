@@ -22,13 +22,14 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 
 class IROpcode(Enum):
     """SlithIR opcodes."""
+
     # Assignments
     ASSIGNMENT = "ASSIGNMENT"
     BINARY = "BINARY"
@@ -74,6 +75,7 @@ class IROpcode(Enum):
 @dataclass
 class IRVariable:
     """Represents a variable in SlithIR."""
+
     name: str
     var_type: str = ""
     is_state: bool = False
@@ -82,11 +84,11 @@ class IRVariable:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'name': self.name,
-            'type': self.var_type,
-            'is_state': self.is_state,
-            'is_constant': self.is_constant,
-            'is_temporary': self.is_temporary,
+            "name": self.name,
+            "type": self.var_type,
+            "is_state": self.is_state,
+            "is_constant": self.is_constant,
+            "is_temporary": self.is_temporary,
         }
 
 
@@ -99,6 +101,7 @@ class IRInstruction:
     - "REF_0(uint256) = balance(mapping(address => uint256)) (msg.sender)"
     - "TMP_0(bool) = LOW_LEVEL_CALL, dest:victim, ..."
     """
+
     opcode: IROpcode
     lvalue: Optional[IRVariable] = None
     operands: List[IRVariable] = field(default_factory=list)
@@ -109,13 +112,13 @@ class IRInstruction:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'opcode': self.opcode.value,
-            'lvalue': self.lvalue.to_dict() if self.lvalue else None,
-            'operands': [o.to_dict() for o in self.operands],
-            'call_target': self.call_target,
-            'call_type': self.call_type,
-            'line': self.line,
-            'raw': self.raw[:100] if self.raw else "",
+            "opcode": self.opcode.value,
+            "lvalue": self.lvalue.to_dict() if self.lvalue else None,
+            "operands": [o.to_dict() for o in self.operands],
+            "call_target": self.call_target,
+            "call_type": self.call_type,
+            "line": self.line,
+            "raw": self.raw[:100] if self.raw else "",
         }
 
 
@@ -127,6 +130,7 @@ class StateTransition:
     Tracks which state variables are modified, by which function,
     and under what conditions.
     """
+
     state_var: str
     function: str
     old_value: Optional[str] = None
@@ -136,18 +140,19 @@ class StateTransition:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'state_var': self.state_var,
-            'function': self.function,
-            'old_value': self.old_value,
-            'new_value': self.new_value,
-            'condition': self.condition,
-            'line': self.line,
+            "state_var": self.state_var,
+            "function": self.function,
+            "old_value": self.old_value,
+            "new_value": self.new_value,
+            "condition": self.condition,
+            "line": self.line,
         }
 
 
 @dataclass
 class Call:
     """Represents a function call (internal or external)."""
+
     function: str
     call_type: str  # "internal", "external", "library", "high_level", "low_level"
     target: Optional[str] = None
@@ -159,20 +164,21 @@ class Call:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'function': self.function,
-            'type': self.call_type,
-            'target': self.target,
-            'arguments': self.arguments,
-            'value': self.value,
-            'gas': self.gas,
-            'return_value': self.return_value,
-            'line': self.line,
+            "function": self.function,
+            "type": self.call_type,
+            "target": self.target,
+            "arguments": self.arguments,
+            "value": self.value,
+            "gas": self.gas,
+            "return_value": self.return_value,
+            "line": self.line,
         }
 
 
 @dataclass
 class FunctionIR:
     """SlithIR representation of a function."""
+
     name: str
     instructions: List[IRInstruction] = field(default_factory=list)
     state_reads: Set[str] = field(default_factory=set)
@@ -183,13 +189,13 @@ class FunctionIR:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'name': self.name,
-            'instruction_count': len(self.instructions),
-            'state_reads': list(self.state_reads),
-            'state_writes': list(self.state_writes),
-            'internal_calls': [c.to_dict() for c in self.internal_calls],
-            'external_calls': [c.to_dict() for c in self.external_calls],
-            'state_transitions': [t.to_dict() for t in self.state_transitions],
+            "name": self.name,
+            "instruction_count": len(self.instructions),
+            "state_reads": list(self.state_reads),
+            "state_writes": list(self.state_writes),
+            "internal_calls": [c.to_dict() for c in self.internal_calls],
+            "external_calls": [c.to_dict() for c in self.external_calls],
+            "state_transitions": [t.to_dict() for t in self.state_transitions],
         }
 
 
@@ -209,45 +215,42 @@ class SlitherIRParser:
 
     # Pattern to match SlithIR instructions
     IR_INSTRUCTION_PATTERN = re.compile(
-        r'(?:(\w+)\s*[=]\s*)?'  # Optional lvalue assignment
-        r'(\w+)'                # Opcode
-        r'(?:\s*,\s*(.*))?'     # Optional arguments
+        r"(?:(\w+)\s*[=]\s*)?"  # Optional lvalue assignment
+        r"(\w+)"  # Opcode
+        r"(?:\s*,\s*(.*))?"  # Optional arguments
     )
 
     # Pattern to match function IR sections
-    FUNCTION_IR_PATTERN = re.compile(
-        r'Function\s+(\w+)[^:]*:?\s*\n((?:\s+.*\n)*)',
-        re.MULTILINE
-    )
+    FUNCTION_IR_PATTERN = re.compile(r"Function\s+(\w+)[^:]*:?\s*\n((?:\s+.*\n)*)", re.MULTILINE)
 
     # Opcode mapping from string to enum
     OPCODE_MAP = {
-        'ASSIGNMENT': IROpcode.ASSIGNMENT,
-        'BINARY': IROpcode.BINARY,
-        'UNARY': IROpcode.UNARY,
-        'INDEX': IROpcode.INDEX,
-        'MEMBER': IROpcode.MEMBER,
-        'HIGH_LEVEL_CALL': IROpcode.HIGH_LEVEL_CALL,
-        'LOW_LEVEL_CALL': IROpcode.LOW_LEVEL_CALL,
-        'INTERNAL_CALL': IROpcode.INTERNAL_CALL,
-        'INTERNAL_DYNAMIC_CALL': IROpcode.INTERNAL_DYNAMIC_CALL,
-        'LIBRARY_CALL': IROpcode.LIBRARY_CALL,
-        'SOLIDITY_CALL': IROpcode.SOLIDITY_CALL,
-        'EVENT_CALL': IROpcode.EVENT_CALL,
-        'SEND': IROpcode.SEND,
-        'TRANSFER': IROpcode.TRANSFER,
-        'CONDITION': IROpcode.CONDITION,
-        'RETURN': IROpcode.RETURN,
-        'NEW_CONTRACT': IROpcode.NEW_CONTRACT,
-        'NEW_ARRAY': IROpcode.NEW_ARRAY,
-        'NEW_STRUCTURE': IROpcode.NEW_STRUCTURE,
-        'CONVERT': IROpcode.CONVERT,
-        'UNPACK': IROpcode.UNPACK,
-        'TYPE_CONVERSION': IROpcode.TYPE_CONVERSION,
-        'PHI': IROpcode.PHI,
-        'PUSH': IROpcode.PUSH,
-        'DELETE': IROpcode.DELETE,
-        'LENGTH': IROpcode.LENGTH,
+        "ASSIGNMENT": IROpcode.ASSIGNMENT,
+        "BINARY": IROpcode.BINARY,
+        "UNARY": IROpcode.UNARY,
+        "INDEX": IROpcode.INDEX,
+        "MEMBER": IROpcode.MEMBER,
+        "HIGH_LEVEL_CALL": IROpcode.HIGH_LEVEL_CALL,
+        "LOW_LEVEL_CALL": IROpcode.LOW_LEVEL_CALL,
+        "INTERNAL_CALL": IROpcode.INTERNAL_CALL,
+        "INTERNAL_DYNAMIC_CALL": IROpcode.INTERNAL_DYNAMIC_CALL,
+        "LIBRARY_CALL": IROpcode.LIBRARY_CALL,
+        "SOLIDITY_CALL": IROpcode.SOLIDITY_CALL,
+        "EVENT_CALL": IROpcode.EVENT_CALL,
+        "SEND": IROpcode.SEND,
+        "TRANSFER": IROpcode.TRANSFER,
+        "CONDITION": IROpcode.CONDITION,
+        "RETURN": IROpcode.RETURN,
+        "NEW_CONTRACT": IROpcode.NEW_CONTRACT,
+        "NEW_ARRAY": IROpcode.NEW_ARRAY,
+        "NEW_STRUCTURE": IROpcode.NEW_STRUCTURE,
+        "CONVERT": IROpcode.CONVERT,
+        "UNPACK": IROpcode.UNPACK,
+        "TYPE_CONVERSION": IROpcode.TYPE_CONVERSION,
+        "PHI": IROpcode.PHI,
+        "PUSH": IROpcode.PUSH,
+        "DELETE": IROpcode.DELETE,
+        "LENGTH": IROpcode.LENGTH,
     }
 
     def __init__(self):
@@ -270,17 +273,17 @@ class SlitherIRParser:
         self._functions = {}
 
         # Extract from printers
-        results = slither_json.get('results', {})
-        printers = results.get('printers', [])
+        results = slither_json.get("results", {})
+        printers = results.get("printers", [])
 
         for printer in printers:
-            printer_name = printer.get('printer', '')
+            printer_name = printer.get("printer", "")
 
-            if printer_name == 'slithir':
+            if printer_name == "slithir":
                 self._parse_slithir_printer(printer)
-            elif printer_name == 'function-summary':
+            elif printer_name == "function-summary":
                 self._parse_function_summary(printer)
-            elif printer_name == 'data-dependency':
+            elif printer_name == "data-dependency":
                 self._parse_data_dependency(printer)
 
         # Also extract from detectors
@@ -305,10 +308,10 @@ class SlitherIRParser:
         """
         func_ir = FunctionIR(name=function_name)
 
-        lines = ir_text.strip().split('\n')
+        lines = ir_text.strip().split("\n")
         for line_num, line in enumerate(lines, 1):
             line = line.strip()
-            if not line or line.startswith('#'):
+            if not line or line.startswith("#"):
                 continue
 
             instruction = self._parse_instruction(line, line_num)
@@ -338,13 +341,13 @@ class SlitherIRParser:
 
         # Check for call patterns
         call_patterns = [
-            (r'HIGH_LEVEL_CALL', IROpcode.HIGH_LEVEL_CALL),
-            (r'LOW_LEVEL_CALL', IROpcode.LOW_LEVEL_CALL),
-            (r'INTERNAL_CALL', IROpcode.INTERNAL_CALL),
-            (r'LIBRARY_CALL', IROpcode.LIBRARY_CALL),
-            (r'SOLIDITY_CALL', IROpcode.SOLIDITY_CALL),
-            (r'SEND', IROpcode.SEND),
-            (r'TRANSFER', IROpcode.TRANSFER),
+            (r"HIGH_LEVEL_CALL", IROpcode.HIGH_LEVEL_CALL),
+            (r"LOW_LEVEL_CALL", IROpcode.LOW_LEVEL_CALL),
+            (r"INTERNAL_CALL", IROpcode.INTERNAL_CALL),
+            (r"LIBRARY_CALL", IROpcode.LIBRARY_CALL),
+            (r"SOLIDITY_CALL", IROpcode.SOLIDITY_CALL),
+            (r"SEND", IROpcode.SEND),
+            (r"TRANSFER", IROpcode.TRANSFER),
         ]
 
         for pattern, opcode in call_patterns:
@@ -352,35 +355,35 @@ class SlitherIRParser:
                 instruction.opcode = opcode
 
                 # Extract call target
-                dest_match = re.search(r'dest:(\w+)', line)
+                dest_match = re.search(r"dest:(\w+)", line)
                 if dest_match:
                     instruction.call_target = dest_match.group(1)
 
                 # Extract function name
-                func_match = re.search(r'function:(\w+)', line)
+                func_match = re.search(r"function:(\w+)", line)
                 if func_match:
                     instruction.call_type = func_match.group(1)
 
                 return instruction
 
         # Check for assignment patterns
-        if '=' in line and 'CALL' not in line:
+        if "=" in line and "CALL" not in line:
             instruction.opcode = IROpcode.ASSIGNMENT
 
             # Extract lvalue
-            lvalue_match = re.match(r'(\w+)\s*[=]', line)
+            lvalue_match = re.match(r"(\w+)\s*[=]", line)
             if lvalue_match:
                 instruction.lvalue = IRVariable(name=lvalue_match.group(1))
 
             return instruction
 
         # Check for return
-        if line.startswith('RETURN'):
+        if line.startswith("RETURN"):
             instruction.opcode = IROpcode.RETURN
             return instruction
 
         # Check for condition
-        if 'CONDITION' in line or line.startswith('IF'):
+        if "CONDITION" in line or line.startswith("IF"):
             instruction.opcode = IROpcode.CONDITION
             return instruction
 
@@ -396,17 +399,17 @@ class SlitherIRParser:
         raw = instruction.raw
 
         # Pattern for state variable read: varName(type)
-        state_read_pattern = r'\b(\w+)\s*\([^)]+\)\s*\[|REF_\d+\([^)]+\)\s*=\s*(\w+)'
+        state_read_pattern = r"\b(\w+)\s*\([^)]+\)\s*\[|REF_\d+\([^)]+\)\s*=\s*(\w+)"
         for match in re.finditer(state_read_pattern, raw):
             var_name = match.group(1) or match.group(2)
-            if var_name and not var_name.startswith(('TMP_', 'REF_')):
+            if var_name and not var_name.startswith(("TMP_", "REF_")):
                 func_ir.state_reads.add(var_name)
 
         # Pattern for state variable write
-        state_write_pattern = r'(\w+)\s*\([^)]+\)\s*\[.*\]\s*='
+        state_write_pattern = r"(\w+)\s*\([^)]+\)\s*\[.*\]\s*="
         for match in re.finditer(state_write_pattern, raw):
             var_name = match.group(1)
-            if var_name and not var_name.startswith(('TMP_', 'REF_')):
+            if var_name and not var_name.startswith(("TMP_", "REF_")):
                 func_ir.state_writes.add(var_name)
 
     def _track_calls(
@@ -422,8 +425,8 @@ class SlitherIRParser:
             IROpcode.TRANSFER,
         ]:
             call = Call(
-                function=instruction.call_type or 'unknown',
-                call_type='external',
+                function=instruction.call_type or "unknown",
+                call_type="external",
                 target=instruction.call_target,
                 line=instruction.line,
             )
@@ -434,8 +437,8 @@ class SlitherIRParser:
             IROpcode.LIBRARY_CALL,
         ]:
             call = Call(
-                function=instruction.call_type or 'unknown',
-                call_type='internal',
+                function=instruction.call_type or "unknown",
+                call_type="internal",
                 target=instruction.call_target,
                 line=instruction.line,
             )
@@ -446,12 +449,12 @@ class SlitherIRParser:
         printer: Dict[str, Any],
     ) -> None:
         """Parse slithir printer output."""
-        elements = printer.get('elements', [])
+        elements = printer.get("elements", [])
 
         for element in elements:
-            if element.get('type') == 'function':
-                func_name = element.get('name', 'unknown')
-                ir_text = element.get('description', '')
+            if element.get("type") == "function":
+                func_name = element.get("name", "unknown")
+                ir_text = element.get("description", "")
 
                 if ir_text:
                     func_ir = self.parse_function_ir(ir_text, func_name)
@@ -462,12 +465,12 @@ class SlitherIRParser:
         printer: Dict[str, Any],
     ) -> None:
         """Parse function-summary printer output."""
-        elements = printer.get('elements', [])
+        elements = printer.get("elements", [])
 
         for element in elements:
-            if element.get('type') == 'table':
+            if element.get("type") == "table":
                 # Extract function info from table rows
-                rows = element.get('rows', [])
+                rows = element.get("rows", [])
                 for row in rows:
                     if len(row) >= 2:
                         func_name = row[0]
@@ -479,11 +482,11 @@ class SlitherIRParser:
         printer: Dict[str, Any],
     ) -> None:
         """Parse data-dependency printer output."""
-        elements = printer.get('elements', [])
+        elements = printer.get("elements", [])
 
         for element in elements:
-            func_name = element.get('function', '')
-            dependencies = element.get('dependencies', {})
+            func_name = element.get("function", "")
+            dependencies = element.get("dependencies", {})
 
             if func_name in self._functions:
                 func_ir = self._functions[func_name]
@@ -497,36 +500,36 @@ class SlitherIRParser:
         slither_json: Dict[str, Any],
     ) -> None:
         """Extract IR-relevant information from detector results."""
-        detectors = slither_json.get('results', {}).get('detectors', [])
+        detectors = slither_json.get("results", {}).get("detectors", [])
 
         for detector in detectors:
-            elements = detector.get('elements', [])
+            elements = detector.get("elements", [])
 
             for element in elements:
-                if element.get('type') == 'function':
-                    func_name = element.get('name', '')
+                if element.get("type") == "function":
+                    func_name = element.get("name", "")
 
                     if func_name and func_name not in self._functions:
                         self._functions[func_name] = FunctionIR(name=func_name)
 
                     # Extract type-specific fields
-                    type_fields = element.get('type_specific_fields', {})
+                    type_fields = element.get("type_specific_fields", {})
 
                     if func_name in self._functions:
                         func_ir = self._functions[func_name]
 
                         # Extract state variables if available
-                        state_vars = type_fields.get('state_variables_read', [])
+                        state_vars = type_fields.get("state_variables_read", [])
                         for var in state_vars:
                             if isinstance(var, dict):
-                                func_ir.state_reads.add(var.get('name', ''))
+                                func_ir.state_reads.add(var.get("name", ""))
                             else:
                                 func_ir.state_reads.add(str(var))
 
-                        state_writes = type_fields.get('state_variables_written', [])
+                        state_writes = type_fields.get("state_variables_written", [])
                         for var in state_writes:
                             if isinstance(var, dict):
-                                func_ir.state_writes.add(var.get('name', ''))
+                                func_ir.state_writes.add(var.get("name", ""))
                             else:
                                 func_ir.state_writes.add(str(var))
 
@@ -584,39 +587,27 @@ class SlitherIRParser:
 
     def get_summary(self) -> Dict[str, Any]:
         """Generate summary of parsed IR."""
-        total_instructions = sum(
-            len(f.instructions) for f in self._functions.values()
-        )
-        total_external_calls = sum(
-            len(f.external_calls) for f in self._functions.values()
-        )
-        total_internal_calls = sum(
-            len(f.internal_calls) for f in self._functions.values()
-        )
-        total_state_reads = sum(
-            len(f.state_reads) for f in self._functions.values()
-        )
-        total_state_writes = sum(
-            len(f.state_writes) for f in self._functions.values()
-        )
+        total_instructions = sum(len(f.instructions) for f in self._functions.values())
+        total_external_calls = sum(len(f.external_calls) for f in self._functions.values())
+        total_internal_calls = sum(len(f.internal_calls) for f in self._functions.values())
+        total_state_reads = sum(len(f.state_reads) for f in self._functions.values())
+        total_state_writes = sum(len(f.state_writes) for f in self._functions.values())
 
         return {
-            'functions_parsed': len(self._functions),
-            'total_instructions': total_instructions,
-            'total_external_calls': total_external_calls,
-            'total_internal_calls': total_internal_calls,
-            'total_state_reads': total_state_reads,
-            'total_state_writes': total_state_writes,
-            'functions': {
-                name: func.to_dict()
-                for name, func in self._functions.items()
-            },
+            "functions_parsed": len(self._functions),
+            "total_instructions": total_instructions,
+            "total_external_calls": total_external_calls,
+            "total_internal_calls": total_internal_calls,
+            "total_state_reads": total_state_reads,
+            "total_state_writes": total_state_writes,
+            "functions": {name: func.to_dict() for name, func in self._functions.items()},
         }
 
 
 # =============================================================================
 # CONVENIENCE FUNCTIONS
 # =============================================================================
+
 
 def parse_slither_ir(
     slither_json: Dict[str, Any],
@@ -679,7 +670,7 @@ def get_external_calls(
         if function_name is None or name == function_name:
             for call in func_ir.external_calls:
                 call_dict = call.to_dict()
-                call_dict['caller_function'] = name
+                call_dict["caller_function"] = name
                 calls.append(call_dict)
 
     return calls

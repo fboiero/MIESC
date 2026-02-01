@@ -8,6 +8,6 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
-from .foundry_runner import FoundryRunner, FoundryResult
+from .foundry_runner import FoundryResult, FoundryRunner
 
 __all__ = ["FoundryRunner", "FoundryResult"]

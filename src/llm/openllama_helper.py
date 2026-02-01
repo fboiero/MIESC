@@ -18,12 +18,12 @@ Date: November 11, 2025
 Version: 1.0.0
 """
 
-from typing import Dict, Any, List, Optional
-import subprocess
-import logging
 import json
+import logging
+import subprocess
 import time
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LLMConfig:
     """Configuration for LLM calls."""
+
     model: str = "deepseek-coder"
     temperature: float = 0.1  # Low for precise technical analysis
     max_tokens: int = 4000
@@ -59,12 +60,7 @@ class OpenLLaMAHelper:
             return self._available
 
         try:
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                timeout=5,
-                text=True
-            )
+            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5, text=True)
 
             if result.returncode == 0 and self.config.model in result.stdout:
                 self._available = True
@@ -80,10 +76,7 @@ class OpenLLaMAHelper:
         return self._available
 
     def enhance_findings(
-        self,
-        findings: List[Dict[str, Any]],
-        context: str,
-        adapter_name: str
+        self, findings: List[Dict[str, Any]], context: str, adapter_name: str
     ) -> List[Dict[str, Any]]:
         """
         Enhance findings with LLM-generated insights.
@@ -102,10 +95,10 @@ class OpenLLaMAHelper:
         try:
             # Select top findings to process (avoid overwhelming LLM)
             top_findings = sorted(
-                findings,
-                key=lambda f: self._severity_score(f.get("severity", "LOW")),
-                reverse=True
-            )[:5]  # Top 5 most severe
+                findings, key=lambda f: self._severity_score(f.get("severity", "LOW")), reverse=True
+            )[
+                :5
+            ]  # Top 5 most severe
 
             for finding in top_findings:
                 insights = self._generate_insights(finding, context, adapter_name)
@@ -119,11 +112,7 @@ class OpenLLaMAHelper:
             logger.error(f"Error enhancing findings: {e}")
             return findings
 
-    def explain_technical_output(
-        self,
-        technical_output: str,
-        adapter_name: str
-    ) -> str:
+    def explain_technical_output(self, technical_output: str, adapter_name: str) -> str:
         """
         Explain technical tool output in accessible language.
 
@@ -154,9 +143,7 @@ OUTPUT (plain text):"""
         return response if response else technical_output
 
     def prioritize_findings(
-        self,
-        findings: List[Dict[str, Any]],
-        contract_code: str
+        self, findings: List[Dict[str, Any]], contract_code: str
     ) -> List[Dict[str, Any]]:
         """
         Use LLM to intelligently prioritize findings based on context.
@@ -211,11 +198,7 @@ OUTPUT (JSON only):
             logger.error(f"Error prioritizing findings: {e}")
             return findings
 
-    def generate_remediation_advice(
-        self,
-        finding: Dict[str, Any],
-        contract_code: str
-    ) -> str:
+    def generate_remediation_advice(self, finding: Dict[str, Any], contract_code: str) -> str:
         """
         Generate specific remediation advice for a finding.
 
@@ -264,7 +247,7 @@ REMEDIATION ADVICE:"""
                     ["ollama", "run", self.config.model, prompt],
                     capture_output=True,
                     timeout=self.config.timeout,
-                    text=True
+                    text=True,
                 )
 
                 if result.returncode == 0 and result.stdout:
@@ -283,10 +266,7 @@ REMEDIATION ADVICE:"""
         return None
 
     def _generate_insights(
-        self,
-        finding: Dict[str, Any],
-        context: str,
-        adapter_name: str
+        self, finding: Dict[str, Any], context: str, adapter_name: str
     ) -> Optional[str]:
         """Generate insights for a single finding."""
         prompt = f"""Analyze this security finding from {adapter_name} and provide expert insights.
@@ -308,13 +288,7 @@ INSIGHTS:"""
 
     def _severity_score(self, severity: str) -> int:
         """Convert severity string to numeric score."""
-        severity_map = {
-            "CRITICAL": 4,
-            "HIGH": 3,
-            "MEDIUM": 2,
-            "LOW": 1,
-            "INFO": 0
-        }
+        severity_map = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
         return severity_map.get(severity.upper(), 0)
 
     def _create_findings_summary(self, findings: List[Dict[str, Any]]) -> str:
@@ -329,8 +303,8 @@ INSIGHTS:"""
         """Parse priority assignments from LLM response."""
         try:
             # Extract JSON from response
-            json_start = llm_response.find('{')
-            json_end = llm_response.rfind('}') + 1
+            json_start = llm_response.find("{")
+            json_end = llm_response.rfind("}") + 1
 
             if json_start == -1 or json_end == 0:
                 return {}
@@ -344,7 +318,7 @@ INSIGHTS:"""
                 if idx is not None:
                     priorities[idx] = {
                         "priority": item.get("priority", 5),
-                        "reason": item.get("reason", "")
+                        "reason": item.get("reason", ""),
                     }
 
             return priorities
@@ -358,11 +332,12 @@ INSIGHTS:"""
 # CONVENIENCE FUNCTIONS
 # ============================================================================
 
+
 def enhance_findings_with_llm(
     findings: List[Dict[str, Any]],
     contract_code: str,
     adapter_name: str,
-    config: Optional[LLMConfig] = None
+    config: Optional[LLMConfig] = None,
 ) -> List[Dict[str, Any]]:
     """
     Convenience function to enhance findings with LLM.
@@ -375,9 +350,7 @@ def enhance_findings_with_llm(
 
 
 def explain_technical_output(
-    output: str,
-    adapter_name: str,
-    config: Optional[LLMConfig] = None
+    output: str, adapter_name: str, config: Optional[LLMConfig] = None
 ) -> str:
     """
     Convenience function to explain technical output.
@@ -390,9 +363,7 @@ def explain_technical_output(
 
 
 def prioritize_findings(
-    findings: List[Dict[str, Any]],
-    contract_code: str,
-    config: Optional[LLMConfig] = None
+    findings: List[Dict[str, Any]], contract_code: str, config: Optional[LLMConfig] = None
 ) -> List[Dict[str, Any]]:
     """
     Convenience function to prioritize findings.
@@ -405,9 +376,7 @@ def prioritize_findings(
 
 
 def generate_remediation_advice(
-    finding: Dict[str, Any],
-    contract_code: str,
-    config: Optional[LLMConfig] = None
+    finding: Dict[str, Any], contract_code: str, config: Optional[LLMConfig] = None
 ) -> str:
     """
     Convenience function to generate remediation advice.
@@ -425,5 +394,5 @@ __all__ = [
     "enhance_findings_with_llm",
     "explain_technical_output",
     "prioritize_findings",
-    "generate_remediation_advice"
+    "generate_remediation_advice",
 ]

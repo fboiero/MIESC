@@ -229,7 +229,8 @@ class BridgeMonitorAdapter(ToolAdapter):
         findings = []
         relay_funcs = re.findall(
             r"function\s+(\w*(?:receive|process|handle|execute|relay)\w*)\s*\(",
-            source, re.IGNORECASE,
+            source,
+            re.IGNORECASE,
         )
         for func_name in relay_funcs:
             func_match = re.search(
@@ -249,34 +250,43 @@ class BridgeMonitorAdapter(ToolAdapter):
                         if depth == 0:
                             break
                 body = source[start:pos]
-                has_verify = bool(re.search(
-                    r"verify|ecrecover|keccak256|merkle|proof|signature|abi\.decode.*bytes32",
-                    body, re.IGNORECASE,
-                ))
+                has_verify = bool(
+                    re.search(
+                        r"verify|ecrecover|keccak256|merkle|proof|signature|abi\.decode.*bytes32",
+                        body,
+                        re.IGNORECASE,
+                    )
+                )
                 if not has_verify:
-                    line_num = source[:func_match.start()].count("\n") + 1
-                    findings.append({
-                        "type": "unverified_relay_message",
-                        "line": line_num,
-                        "file": path,
-                        "code": f"Function {func_name} processes messages without verification",
-                    })
+                    line_num = source[: func_match.start()].count("\n") + 1
+                    findings.append(
+                        {
+                            "type": "unverified_relay_message",
+                            "line": line_num,
+                            "file": path,
+                            "code": f"Function {func_name} processes messages without verification",
+                        }
+                    )
         return findings
 
     def _check_nonce_tracking(self, source: str, lines: List[str], path: str) -> List[Dict]:
         findings = []
-        has_nonce = bool(re.search(r"nonce|messageId|processedMessages|usedHashes", source, re.IGNORECASE))
+        has_nonce = bool(
+            re.search(r"nonce|messageId|processedMessages|usedHashes", source, re.IGNORECASE)
+        )
         has_relay = bool(re.search(r"relay|receive|process.*message", source, re.IGNORECASE))
 
         if has_relay and not has_nonce:
             for i, line in enumerate(lines, 1):
                 if re.search(r"function\s+\w*(?:relay|receive|process)\w*", line, re.IGNORECASE):
-                    findings.append({
-                        "type": "missing_nonce_tracking",
-                        "line": i,
-                        "file": path,
-                        "code": "Message processing without nonce/ID tracking",
-                    })
+                    findings.append(
+                        {
+                            "type": "missing_nonce_tracking",
+                            "line": i,
+                            "file": path,
+                            "code": "Message processing without nonce/ID tracking",
+                        }
+                    )
                     break
         return findings
 
@@ -284,49 +294,62 @@ class BridgeMonitorAdapter(ToolAdapter):
         findings = []
         for i, line in enumerate(lines, 1):
             if re.search(r"function\s+\w*mint\w*\s*\(", line, re.IGNORECASE):
-                context = "\n".join(lines[max(0, i - 3):min(len(lines), i + 15)])
-                has_protection = bool(re.search(
-                    r"onlyBridge|onlyRelayer|onlyRole|require\s*\(\s*msg\.sender\s*==\s*bridge",
-                    context, re.IGNORECASE,
-                ))
+                context = "\n".join(lines[max(0, i - 3) : min(len(lines), i + 15)])
+                has_protection = bool(
+                    re.search(
+                        r"onlyBridge|onlyRelayer|onlyRole|require\s*\(\s*msg\.sender\s*==\s*bridge",
+                        context,
+                        re.IGNORECASE,
+                    )
+                )
                 if not has_protection:
-                    findings.append({
-                        "type": "unprotected_mint",
-                        "line": i,
-                        "file": path,
-                        "code": line.strip(),
-                    })
+                    findings.append(
+                        {
+                            "type": "unprotected_mint",
+                            "line": i,
+                            "file": path,
+                            "code": line.strip(),
+                        }
+                    )
         return findings
 
     def _check_pause_mechanism(self, source: str, lines: List[str], path: str) -> List[Dict]:
         findings = []
-        has_pause = bool(re.search(r"Pausable|pause|whenNotPaused|_pause\(\)", source, re.IGNORECASE))
+        has_pause = bool(
+            re.search(r"Pausable|pause|whenNotPaused|_pause\(\)", source, re.IGNORECASE)
+        )
         if not has_pause:
             for i, line in enumerate(lines, 1):
                 if re.search(r"contract\s+\w+", line):
-                    findings.append({
-                        "type": "missing_pause_mechanism",
-                        "line": i,
-                        "file": path,
-                        "code": "Bridge contract without emergency pause mechanism",
-                    })
+                    findings.append(
+                        {
+                            "type": "missing_pause_mechanism",
+                            "line": i,
+                            "file": path,
+                            "code": "Bridge contract without emergency pause mechanism",
+                        }
+                    )
                     break
         return findings
 
     def _check_relayer_trust(self, source: str, lines: List[str], path: str) -> List[Dict]:
         findings = []
         has_single_relayer = bool(re.search(r"address\s+(public\s+)?relayer\b", source))
-        has_multisig = bool(re.search(r"multisig|threshold|quorum|signatures\.length", source, re.IGNORECASE))
+        has_multisig = bool(
+            re.search(r"multisig|threshold|quorum|signatures\.length", source, re.IGNORECASE)
+        )
 
         if has_single_relayer and not has_multisig:
             for i, line in enumerate(lines, 1):
                 if re.search(r"address\s+(public\s+)?relayer", line):
-                    findings.append({
-                        "type": "single_relayer_trust",
-                        "line": i,
-                        "file": path,
-                        "code": line.strip(),
-                    })
+                    findings.append(
+                        {
+                            "type": "single_relayer_trust",
+                            "line": i,
+                            "file": path,
+                            "code": line.strip(),
+                        }
+                    )
                     break
         return findings
 
@@ -339,32 +362,41 @@ class BridgeMonitorAdapter(ToolAdapter):
         if has_deposit and has_withdraw and not has_balance_tracking:
             for i, line in enumerate(lines, 1):
                 if re.search(r"function\s+\w*deposit\w*", line, re.IGNORECASE):
-                    findings.append({
-                        "type": "deposit_withdrawal_imbalance",
-                        "line": i,
-                        "file": path,
-                        "code": "Deposit/withdrawal without balance invariant tracking",
-                    })
+                    findings.append(
+                        {
+                            "type": "deposit_withdrawal_imbalance",
+                            "line": i,
+                            "file": path,
+                            "code": "Deposit/withdrawal without balance invariant tracking",
+                        }
+                    )
                     break
         return findings
 
     def _check_finality(self, source: str, lines: List[str], path: str) -> List[Dict]:
         findings = []
-        has_finality = bool(re.search(
-            r"finality|confirmations|blockConfirmations|minConfirmations|finalized",
-            source, re.IGNORECASE,
-        ))
-        has_cross_chain = bool(re.search(r"sourceChain|fromChain|originChain", source, re.IGNORECASE))
+        has_finality = bool(
+            re.search(
+                r"finality|confirmations|blockConfirmations|minConfirmations|finalized",
+                source,
+                re.IGNORECASE,
+            )
+        )
+        has_cross_chain = bool(
+            re.search(r"sourceChain|fromChain|originChain", source, re.IGNORECASE)
+        )
 
         if has_cross_chain and not has_finality:
             for i, line in enumerate(lines, 1):
                 if re.search(r"sourceChain|fromChain|originChain", line, re.IGNORECASE):
-                    findings.append({
-                        "type": "insufficient_finality_check",
-                        "line": i,
-                        "file": path,
-                        "code": "Cross-chain operation without finality verification",
-                    })
+                    findings.append(
+                        {
+                            "type": "insufficient_finality_check",
+                            "line": i,
+                            "file": path,
+                            "code": "Cross-chain operation without finality verification",
+                        }
+                    )
                     break
         return findings
 
@@ -378,35 +410,40 @@ class BridgeMonitorAdapter(ToolAdapter):
                 continue
 
             vuln_type = item.get("type", "unknown")
-            config = BRIDGE_VULNERABILITIES.get(vuln_type, {
-                "severity": "Medium",
-                "confidence": 0.70,
-                "swc_id": None,
-                "cwe_id": None,
-                "description": vuln_type,
-                "recommendation": "Review bridge security",
-            })
+            config = BRIDGE_VULNERABILITIES.get(
+                vuln_type,
+                {
+                    "severity": "Medium",
+                    "confidence": 0.70,
+                    "swc_id": None,
+                    "cwe_id": None,
+                    "description": vuln_type,
+                    "recommendation": "Review bridge security",
+                },
+            )
 
             finding_id = hashlib.md5(
                 f"bridge:{vuln_type}:{item.get('file', '')}:{item.get('line', 0)}".encode()
             ).hexdigest()[:12]
 
-            findings.append({
-                "id": f"BRG-{finding_id}",
-                "type": vuln_type,
-                "severity": config["severity"],
-                "confidence": config["confidence"],
-                "location": {
-                    "file": item.get("file", ""),
-                    "line": item.get("line", 0),
-                    "function": "",
-                },
-                "message": f"{config['description']}: {item.get('code', '')}",
-                "description": config["description"],
-                "recommendation": config["recommendation"],
-                "swc_id": config.get("swc_id"),
-                "cwe_id": config.get("cwe_id"),
-                "tool": "bridge_monitor",
-            })
+            findings.append(
+                {
+                    "id": f"BRG-{finding_id}",
+                    "type": vuln_type,
+                    "severity": config["severity"],
+                    "confidence": config["confidence"],
+                    "location": {
+                        "file": item.get("file", ""),
+                        "line": item.get("line", 0),
+                        "function": "",
+                    },
+                    "message": f"{config['description']}: {item.get('code', '')}",
+                    "description": config["description"],
+                    "recommendation": config["recommendation"],
+                    "swc_id": config.get("swc_id"),
+                    "cwe_id": config.get("cwe_id"),
+                    "tool": "bridge_monitor",
+                }
+            )
 
         return findings

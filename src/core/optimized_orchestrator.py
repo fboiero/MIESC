@@ -3,21 +3,20 @@ MIESC Optimized Orchestrator
 Orquestador optimizado con caché, paralelismo mejorado y agregación inteligente.
 """
 
-import os
-import time
 import hashlib
 import json
 import logging
-from pathlib import Path
-from typing import Dict, Any, List, Optional, Set, Callable
+import os
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
-from functools import lru_cache
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
-from .config_loader import get_config, MIESCConfig
+from .config_loader import MIESCConfig, get_config
 from .result_aggregator import ResultAggregator
-from .tool_discovery import get_tool_discovery, ToolDiscovery
+from .tool_discovery import get_tool_discovery
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CacheEntry:
     """Entrada de caché para resultados de análisis."""
+
     tool: str
     contract_hash: str
     results: Dict[str, Any]
@@ -40,6 +40,7 @@ class CacheEntry:
 @dataclass
 class AnalysisResult:
     """Resultado de un análisis completo."""
+
     contract_path: str
     tools_run: List[str]
     tools_success: List[str]
@@ -55,16 +56,16 @@ class AnalysisResult:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'contract_path': self.contract_path,
-            'tools_run': self.tools_run,
-            'tools_success': self.tools_success,
-            'tools_failed': self.tools_failed,
-            'total_findings': self.total_findings,
-            'aggregated_findings': self.aggregated_findings,
-            'cross_validated': self.cross_validated,
-            'severity_counts': self.severity_counts,
-            'execution_time_ms': round(self.execution_time_ms, 2),
-            'timestamp': self.timestamp.isoformat(),
+            "contract_path": self.contract_path,
+            "tools_run": self.tools_run,
+            "tools_success": self.tools_success,
+            "tools_failed": self.tools_failed,
+            "total_findings": self.total_findings,
+            "aggregated_findings": self.aggregated_findings,
+            "cross_validated": self.cross_validated,
+            "severity_counts": self.severity_counts,
+            "execution_time_ms": round(self.execution_time_ms, 2),
+            "timestamp": self.timestamp.isoformat(),
         }
 
 
@@ -80,7 +81,7 @@ class ResultCache:
     def _compute_hash(self, contract_path: str) -> str:
         """Computa hash del contrato."""
         try:
-            with open(contract_path, 'rb') as f:
+            with open(contract_path, "rb") as f:
                 content = f.read()
             return hashlib.sha256(content).hexdigest()[:16]
         except Exception:
@@ -109,11 +110,11 @@ class ResultCache:
             try:
                 with open(cache_file) as f:
                     data = json.load(f)
-                timestamp = datetime.fromisoformat(data['timestamp'])
+                timestamp = datetime.fromisoformat(data["timestamp"])
                 entry = CacheEntry(
                     tool=tool,
                     contract_hash=self._compute_hash(contract_path),
-                    results=data['results'],
+                    results=data["results"],
                     timestamp=timestamp,
                     ttl_seconds=self.ttl_seconds,
                 )
@@ -144,12 +145,15 @@ class ResultCache:
         # Guardar en disco
         cache_file = self.cache_dir / f"{key}.json"
         try:
-            with open(cache_file, 'w') as f:
-                json.dump({
-                    'tool': tool,
-                    'results': results,
-                    'timestamp': entry.timestamp.isoformat(),
-                }, f)
+            with open(cache_file, "w") as f:
+                json.dump(
+                    {
+                        "tool": tool,
+                        "results": results,
+                        "timestamp": entry.timestamp.isoformat(),
+                    },
+                    f,
+                )
         except Exception as e:
             logger.warning(f"Failed to persist cache: {e}")
 
@@ -213,17 +217,17 @@ class OptimizedOrchestrator:
             result = adapter.analyze(contract_path, timeout=effective_timeout)
 
             # Guardar en caché
-            if self.cache and result.get('status') != 'error':
+            if self.cache and result.get("status") != "error":
                 self.cache.set(tool_name, contract_path, result)
 
             return result
 
         except Exception as e:
             return {
-                'tool': tool_name,
-                'status': 'error',
-                'error': str(e),
-                'findings': [],
+                "tool": tool_name,
+                "status": "error",
+                "error": str(e),
+                "findings": [],
             }
 
     def analyze(
@@ -283,32 +287,32 @@ class OptimizedOrchestrator:
                     result = future.result(timeout=timeout + 30)
                     raw_results[tool] = result
 
-                    if result.get('status') == 'error':
+                    if result.get("status") == "error":
                         tools_failed.append(tool)
                     else:
                         tools_success.append(tool)
 
                     if progress_callback:
-                        status = 'success' if tool in tools_success else 'failed'
+                        status = "success" if tool in tools_success else "failed"
                         progress_callback(tool, status)
 
                 except Exception as e:
                     tools_failed.append(tool)
                     raw_results[tool] = {
-                        'tool': tool,
-                        'status': 'error',
-                        'error': str(e),
-                        'findings': [],
+                        "tool": tool,
+                        "status": "error",
+                        "error": str(e),
+                        "findings": [],
                     }
                     if progress_callback:
-                        progress_callback(tool, 'failed')
+                        progress_callback(tool, "failed")
 
         # Agregar resultados
         self.aggregator.clear()
         total_findings = 0
 
         for tool, result in raw_results.items():
-            if result.get('status') != 'error':
+            if result.get("status") != "error":
                 count = self.aggregator.add_tool_results(tool, result)
                 total_findings += count
 
@@ -324,8 +328,8 @@ class OptimizedOrchestrator:
             tools_failed=tools_failed,
             total_findings=total_findings,
             aggregated_findings=len(aggregated),
-            cross_validated=stats.get('cross_validated', 0),
-            severity_counts=stats.get('severity_distribution', {}),
+            cross_validated=stats.get("cross_validated", 0),
+            severity_counts=stats.get("severity_distribution", {}),
             execution_time_ms=execution_time,
             timestamp=datetime.now(),
             raw_results=raw_results,
@@ -384,6 +388,7 @@ class OptimizedOrchestrator:
 
         def analyze_contract(contract_path: str) -> tuple:
             """Wrapper para análisis de contrato individual."""
+
             def wrapped_callback(tool: str, status: str) -> None:
                 if progress_callback:
                     progress_callback(contract_path, tool, status)
@@ -398,23 +403,20 @@ class OptimizedOrchestrator:
 
         # Procesar contratos en paralelo
         with ThreadPoolExecutor(max_workers=parallel_contracts) as executor:
-            futures = [
-                executor.submit(analyze_contract, path)
-                for path in contract_paths
-            ]
+            futures = [executor.submit(analyze_contract, path) for path in contract_paths]
 
             for future in as_completed(futures):
                 try:
                     contract_path, result = future.result(timeout=timeout * len(tools or []) + 60)
                     results[contract_path] = result
-                except Exception as e:
+                except Exception:
                     # Si falla, crear resultado de error
                     contract_path = contract_paths[futures.index(future)]
                     results[contract_path] = AnalysisResult(
                         contract_path=contract_path,
                         tools_run=[],
                         tools_success=[],
-                        tools_failed=['batch_error'],
+                        tools_failed=["batch_error"],
                         total_findings=0,
                         aggregated_findings=0,
                         cross_validated=0,
@@ -431,7 +433,7 @@ class OptimizedOrchestrator:
         """
         return self.analyze(
             contract_path=contract_path,
-            layers=['static_analysis'],
+            layers=["static_analysis"],
             timeout=timeout,
         )
 
@@ -457,16 +459,16 @@ class OptimizedOrchestrator:
             Dict con métricas de caché y ejecución
         """
         metrics = {
-            'max_workers': self.max_workers,
-            'cache_enabled': self.cache is not None,
-            'available_tools': len(self.discovery.get_available_tools()),
+            "max_workers": self.max_workers,
+            "cache_enabled": self.cache is not None,
+            "available_tools": len(self.discovery.get_available_tools()),
         }
 
         if self.cache:
-            metrics['cache'] = {
-                'memory_entries': len(self.cache._memory_cache),
-                'cache_dir': str(self.cache.cache_dir),
-                'ttl_seconds': self.cache.ttl_seconds,
+            metrics["cache"] = {
+                "memory_entries": len(self.cache._memory_cache),
+                "cache_dir": str(self.cache.cache_dir),
+                "ttl_seconds": self.cache.ttl_seconds,
             }
 
         return metrics
@@ -486,7 +488,7 @@ class OptimizedOrchestrator:
             return 0
 
         # Por defecto, solo calentar con análisis estático (rápido)
-        target_tools = tools or ['slither', 'aderyn', 'solhint']
+        target_tools = tools or ["slither", "aderyn", "solhint"]
         available = {t.name for t in self.discovery.get_available_tools()}
         tools_to_run = [t for t in target_tools if t in available]
 
@@ -494,7 +496,7 @@ class OptimizedOrchestrator:
         for tool in tools_to_run:
             if self.cache.get(tool, contract_path) is None:
                 result = self._run_tool(tool, contract_path, timeout=30)
-                if result.get('status') != 'error':
+                if result.get("status") != "error":
                     cached += 1
 
         return cached

@@ -26,20 +26,20 @@ Example:
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 """
 
-from enum import Enum
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Type
-from abc import ABC, abstractmethod
-from pathlib import Path
-import logging
 import importlib
+import logging
 import pkgutil
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional, Type
 
 logger = logging.getLogger(__name__)
 
 
 class Severity(Enum):
     """Severity levels for security findings."""
+
     CRITICAL = "Critical"
     HIGH = "High"
     MEDIUM = "Medium"
@@ -49,6 +49,7 @@ class Severity(Enum):
 
 class Confidence(Enum):
     """Confidence levels for findings."""
+
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
@@ -57,6 +58,7 @@ class Confidence(Enum):
 @dataclass
 class Location:
     """Location of a finding in the source code."""
+
     file: str
     line: int
     column: int = 0
@@ -82,6 +84,7 @@ class Finding:
         references: Links to relevant documentation
         metadata: Additional detector-specific data
     """
+
     detector: str
     title: str
     description: str
@@ -221,7 +224,7 @@ class BaseDetector(ABC):
         function: str = "",
         contract: str = "",
         recommendation: str = "",
-        **kwargs
+        **kwargs,
     ) -> Finding:
         """
         Helper method to create a Finding with common defaults.
@@ -330,7 +333,9 @@ def list_detectors() -> List[Dict[str, Any]]:
     return result
 
 
-def run_detector(name: str, source_code: str, file_path: str = None, config: Dict = None) -> List[Finding]:
+def run_detector(
+    name: str, source_code: str, file_path: str = None, config: Dict = None
+) -> List[Finding]:
     """
     Run a specific detector on source code.
 
@@ -354,7 +359,9 @@ def run_detector(name: str, source_code: str, file_path: str = None, config: Dic
     return detector.analyze(source_code, file_path)
 
 
-def run_all_detectors(source_code: str, file_path: str = None, categories: List[str] = None) -> List[Finding]:
+def run_all_detectors(
+    source_code: str, file_path: str = None, categories: List[str] = None
+) -> List[Finding]:
     """
     Run all registered detectors on source code.
 
@@ -412,9 +419,11 @@ def load_detectors_from_package(package_name: str) -> int:
 
                 for attr_name in dir(module):
                     attr = getattr(module, attr_name)
-                    if (isinstance(attr, type) and
-                        issubclass(attr, BaseDetector) and
-                        attr is not BaseDetector):
+                    if (
+                        isinstance(attr, type)
+                        and issubclass(attr, BaseDetector)
+                        and attr is not BaseDetector
+                    ):
                         register_detector(attr)
                         loaded += 1
 

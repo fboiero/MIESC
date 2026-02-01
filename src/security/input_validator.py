@@ -7,24 +7,25 @@ Provides security validation for all user inputs to prevent:
 - Invalid parameter exploitation
 """
 
+import logging
 import os
 import re
 from pathlib import Path
-from typing import Optional, List
-import logging
+from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class SecurityError(Exception):
     """Raised when a security validation fails"""
+
     pass
 
 
 def validate_contract_path(
     contract_path: str,
     allowed_extensions: Optional[List[str]] = None,
-    allowed_base_dirs: Optional[List[str]] = None
+    allowed_base_dirs: Optional[List[str]] = None,
 ) -> str:
     """
     Validate and sanitize contract file path to prevent path traversal attacks.
@@ -55,20 +56,20 @@ def validate_contract_path(
         SecurityError: Path traversal attempt detected
     """
     if allowed_extensions is None:
-        allowed_extensions = ['.sol']
+        allowed_extensions = [".sol"]
 
     if allowed_base_dirs is None:
         # Default: allow current working directory and examples/
         cwd = os.getcwd()
         allowed_base_dirs = [
             cwd,
-            os.path.join(cwd, 'examples'),
-            os.path.join(cwd, 'contracts'),
-            os.path.join(cwd, 'src', 'contracts'),
-            os.path.join(cwd, 'tests'),
-            '/app/examples',  # Docker path
-            '/app/contracts',
-            '/app/tests'
+            os.path.join(cwd, "examples"),
+            os.path.join(cwd, "contracts"),
+            os.path.join(cwd, "src", "contracts"),
+            os.path.join(cwd, "tests"),
+            "/app/examples",  # Docker path
+            "/app/contracts",
+            "/app/tests",
         ]
 
     try:
@@ -124,7 +125,7 @@ def validate_contract_path(
         raise
     except Exception as e:
         logger.error(f"Unexpected error during path validation: {e}")
-        raise SecurityError(f"Path validation failed: {str(e)}")
+        raise SecurityError(f"Path validation failed: {str(e)}") from e
 
 
 def validate_solc_version(version: str) -> str:
@@ -151,13 +152,12 @@ def validate_solc_version(version: str) -> str:
     """
     # Solidity versions follow format: 0.X.Y or 0.X.Y+commit.hash
     # We allow: 0.4.0 through 0.8.99, optionally with build metadata
-    pattern = r'^0\.[4-8]\.\d{1,2}(\+commit\.[a-f0-9]{8})?$'
+    pattern = r"^0\.[4-8]\.\d{1,2}(\+commit\.[a-f0-9]{8})?$"
 
     if not re.match(pattern, version):
         logger.error(f"Invalid Solidity version format: {version}")
         raise SecurityError(
-            f"Invalid Solidity version format: {version}. "
-            f"Expected format: 0.X.Y (e.g., 0.8.20)"
+            f"Invalid Solidity version format: {version}. " f"Expected format: 0.X.Y (e.g., 0.8.20)"
         )
 
     logger.debug(f"Solidity version validated: {version}")
@@ -187,7 +187,7 @@ def validate_function_name(function_name: str) -> str:
         SecurityError: Invalid function name
     """
     # Solidity function names: alphanumeric + underscore, start with letter or underscore
-    pattern = r'^[a-zA-Z_][a-zA-Z0-9_]*$'
+    pattern = r"^[a-zA-Z_][a-zA-Z0-9_]*$"
 
     if not re.match(pattern, function_name):
         logger.error(f"Invalid function name: {function_name}")
@@ -223,8 +223,8 @@ def validate_timeout(timeout: int, min_value: int = 1, max_value: int = 3600) ->
     """
     try:
         timeout_int = int(timeout)
-    except (TypeError, ValueError):
-        raise SecurityError(f"Invalid timeout value: {timeout}. Must be an integer.")
+    except (TypeError, ValueError) as e:
+        raise SecurityError(f"Invalid timeout value: {timeout}. Must be an integer.") from e
 
     if timeout_int < min_value or timeout_int > max_value:
         raise SecurityError(
@@ -250,10 +250,10 @@ def sanitize_command_args(args: List[str], allowed_args: Optional[List[str]] = N
         SecurityError: If dangerous patterns detected
     """
     dangerous_patterns = [
-        r'[;&|`$]',  # Shell metacharacters
-        r'\$\(',      # Command substitution
-        r'>\s*/',     # Redirect to absolute path
-        r'<\s*/',     # Read from absolute path
+        r"[;&|`$]",  # Shell metacharacters
+        r"\$\(",  # Command substitution
+        r">\s*/",  # Redirect to absolute path
+        r"<\s*/",  # Read from absolute path
     ]
 
     sanitized = []
@@ -262,13 +262,14 @@ def sanitize_command_args(args: List[str], allowed_args: Optional[List[str]] = N
         for pattern in dangerous_patterns:
             if re.search(pattern, arg):
                 raise SecurityError(
-                    f"Dangerous pattern detected in argument: {arg}. "
-                    f"Pattern: {pattern}"
+                    f"Dangerous pattern detected in argument: {arg}. " f"Pattern: {pattern}"
                 )
 
         # If whitelist provided, check against it
         if allowed_args is not None:
-            if arg not in allowed_args and not any(arg.startswith(allowed) for allowed in allowed_args):
+            if arg not in allowed_args and not any(
+                arg.startswith(allowed) for allowed in allowed_args
+            ):
                 logger.warning(f"Argument not in whitelist: {arg}")
                 # Don't raise error, just log warning
 
@@ -282,7 +283,7 @@ def validate_analysis_inputs(
     contract_path: str,
     solc_version: Optional[str] = None,
     timeout: Optional[int] = None,
-    functions: Optional[List[str]] = None
+    functions: Optional[List[str]] = None,
 ) -> dict:
     """
     Validate all common analysis inputs in one call.
@@ -302,16 +303,16 @@ def validate_analysis_inputs(
     validated = {}
 
     # Always validate contract path
-    validated['contract_path'] = validate_contract_path(contract_path)
+    validated["contract_path"] = validate_contract_path(contract_path)
 
     # Validate optional parameters
     if solc_version:
-        validated['solc_version'] = validate_solc_version(solc_version)
+        validated["solc_version"] = validate_solc_version(solc_version)
 
     if timeout:
-        validated['timeout'] = validate_timeout(timeout)
+        validated["timeout"] = validate_timeout(timeout)
 
     if functions:
-        validated['functions'] = [validate_function_name(fn) for fn in functions]
+        validated["functions"] = [validate_function_name(fn) for fn in functions]
 
     return validated

@@ -19,17 +19,21 @@ Date: January 2026
 Version: 1.0.0
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from src.llm import enhance_findings_with_llm
-from typing import Dict, Any, List, Optional
-import subprocess
-import json
-import time
 import logging
 import re
+import subprocess
+import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
+from src.llm import enhance_findings_with_llm
 
 logger = logging.getLogger(__name__)
 
@@ -60,16 +64,12 @@ class HardhatAdapter(ToolAdapter):
             "gas_issues",
             "contract_size",
             "coverage_gaps",
-            "security_issues"
-        ]
+            "security_issues",
+        ],
     }
 
     # Severity mapping for compilation warnings
-    SEVERITY_MAP = {
-        "error": "critical",
-        "warning": "medium",
-        "info": "low"
-    }
+    SEVERITY_MAP = {"error": "critical", "warning": "medium", "info": "low"}
 
     # Common compilation warning patterns
     WARNING_PATTERNS = {
@@ -125,30 +125,30 @@ class HardhatAdapter(ToolAdapter):
                     name="compilation_analysis",
                     description="Analyze compilation warnings and errors",
                     supported_languages=["solidity"],
-                    detection_types=["compilation_warnings", "security_issues"]
+                    detection_types=["compilation_warnings", "security_issues"],
                 ),
                 ToolCapability(
                     name="gas_analysis",
                     description="Gas usage analysis with hardhat-gas-reporter",
                     supported_languages=["solidity"],
-                    detection_types=["gas_issues"]
+                    detection_types=["gas_issues"],
                 ),
                 ToolCapability(
                     name="coverage_analysis",
                     description="Code coverage with solidity-coverage",
                     supported_languages=["solidity"],
-                    detection_types=["coverage_gaps"]
+                    detection_types=["coverage_gaps"],
                 ),
                 ToolCapability(
                     name="size_analysis",
                     description="Contract size analysis with hardhat-contract-sizer",
                     supported_languages=["solidity"],
-                    detection_types=["contract_size"]
-                )
+                    detection_types=["contract_size"],
+                ),
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
@@ -156,10 +156,7 @@ class HardhatAdapter(ToolAdapter):
         try:
             # Check if npx is available
             result = subprocess.run(
-                ["npx", "--version"],
-                capture_output=True,
-                timeout=10,
-                text=True
+                ["npx", "--version"], capture_output=True, timeout=10, text=True
             )
             if result.returncode != 0:
                 return ToolStatus.NOT_INSTALLED
@@ -170,7 +167,7 @@ class HardhatAdapter(ToolAdapter):
                 capture_output=True,
                 timeout=15,
                 text=True,
-                cwd=self.project_path or "."
+                cwd=self.project_path or ".",
             )
             if result.returncode == 0:
                 version = result.stdout.strip()
@@ -217,7 +214,7 @@ class HardhatAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "Hardhat not available"
+                "error": "Hardhat not available",
             }
 
         try:
@@ -234,7 +231,7 @@ class HardhatAdapter(ToolAdapter):
                     "status": "error",
                     "findings": [],
                     "execution_time": time.time() - start_time,
-                    "error": "No Hardhat project found (missing hardhat.config.js)"
+                    "error": "No Hardhat project found (missing hardhat.config.js)",
                 }
 
             verbose = kwargs.get("verbose", True)
@@ -243,7 +240,7 @@ class HardhatAdapter(ToolAdapter):
 
             # Run compilation
             if verbose:
-                print(f"  [Hardhat] Compiling contracts...")
+                print("  [Hardhat] Compiling contracts...")
 
             compile_result = self._run_compile(project_dir)
             findings.extend(compile_result.get("findings", []))
@@ -252,14 +249,14 @@ class HardhatAdapter(ToolAdapter):
             # Run gas reporter if enabled
             if self.run_gas_reporter and kwargs.get("run_gas_reporter", False):
                 if verbose:
-                    print(f"  [Hardhat] Running gas reporter...")
+                    print("  [Hardhat] Running gas reporter...")
                 gas_result = self._run_gas_reporter(project_dir)
                 findings.extend(gas_result.get("findings", []))
 
             # Run coverage if enabled
             if self.run_coverage and kwargs.get("run_coverage", False):
                 if verbose:
-                    print(f"  [Hardhat] Running coverage...")
+                    print("  [Hardhat] Running coverage...")
                 coverage_result = self._run_coverage(project_dir)
                 findings.extend(coverage_result.get("findings", []))
 
@@ -271,15 +268,11 @@ class HardhatAdapter(ToolAdapter):
             # Enhance findings with LLM
             try:
                 if path.is_file():
-                    with open(contract_path, 'r') as f:
+                    with open(contract_path, "r") as f:
                         contract_code = f.read()
 
                     if findings:
-                        findings = enhance_findings_with_llm(
-                            findings[:5],
-                            contract_code,
-                            "hardhat"
-                        )
+                        findings = enhance_findings_with_llm(findings[:5], contract_code, "hardhat")
             except Exception as e:
                 logger.debug(f"LLM enhancement failed: {e}")
 
@@ -291,7 +284,7 @@ class HardhatAdapter(ToolAdapter):
                 "execution_time": round(duration, 2),
                 "total_findings": len(findings),
                 "compilation_info": compilation_info,
-                "dpga_compliant": True
+                "dpga_compliant": True,
             }
 
         except subprocess.TimeoutExpired:
@@ -301,7 +294,7 @@ class HardhatAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": self.timeout,
-                "error": f"Analysis timeout after {self.timeout}s"
+                "error": f"Analysis timeout after {self.timeout}s",
             }
         except Exception as e:
             logger.error(f"Hardhat analysis failed: {str(e)}")
@@ -310,7 +303,7 @@ class HardhatAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def _find_hardhat_project(self, start_path: Path) -> Optional[Path]:
@@ -335,11 +328,7 @@ class HardhatAdapter(ToolAdapter):
             cmd.append("--force")
 
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            timeout=self.timeout,
-            text=True,
-            cwd=project_dir
+            cmd, capture_output=True, timeout=self.timeout, text=True, cwd=project_dir
         )
 
         findings = []
@@ -366,7 +355,7 @@ class HardhatAdapter(ToolAdapter):
         findings = []
 
         # Pattern for Solidity warnings: ContractName.sol:line:col: Warning: message
-        warning_pattern = r'([^:\s]+\.sol):(\d+):(\d+):\s+(Warning|Error):\s+(.+?)(?=\n[^\s]|\Z)'
+        warning_pattern = r"([^:\s]+\.sol):(\d+):(\d+):\s+(Warning|Error):\s+(.+?)(?=\n[^\s]|\Z)"
 
         for match in re.finditer(warning_pattern, output, re.MULTILINE | re.DOTALL):
             file_name, line, col, level, message = match.groups()
@@ -382,15 +371,17 @@ class HardhatAdapter(ToolAdapter):
                     severity = sev
                     break
 
-            findings.append({
-                "type": finding_type,
-                "severity": severity,
-                "description": message,
-                "file": file_name,
-                "line": int(line),
-                "column": int(col),
-                "recommendation": self._get_recommendation(finding_type)
-            })
+            findings.append(
+                {
+                    "type": finding_type,
+                    "severity": severity,
+                    "description": message,
+                    "file": file_name,
+                    "line": int(line),
+                    "column": int(col),
+                    "recommendation": self._get_recommendation(finding_type),
+                }
+            )
 
         return findings
 
@@ -407,12 +398,12 @@ class HardhatAdapter(ToolAdapter):
                 timeout=self.timeout,
                 text=True,
                 cwd=project_dir,
-                env={**subprocess.os.environ, **env}
+                env={**subprocess.os.environ, **env},
             )
 
             # Parse gas report output
             # Look for high gas usage patterns
-            gas_pattern = r'(\w+)\s+·\s+(\d+)\s+·\s+(\d+)\s+·\s+(\d+)\s+·'
+            gas_pattern = r"(\w+)\s+·\s+(\d+)\s+·\s+(\d+)\s+·\s+(\d+)\s+·"
 
             for match in re.finditer(gas_pattern, result.stdout):
                 method, min_gas, max_gas, avg_gas = match.groups()
@@ -420,16 +411,18 @@ class HardhatAdapter(ToolAdapter):
 
                 # Flag functions with high gas usage
                 if avg > 100000:
-                    findings.append({
-                        "type": "high_gas_usage",
-                        "severity": "low" if avg < 500000 else "medium",
-                        "description": f"Function '{method}' has high gas usage (avg: {avg:,})",
-                        "function": method,
-                        "gas_avg": avg,
-                        "gas_min": int(min_gas),
-                        "gas_max": int(max_gas),
-                        "recommendation": "Consider optimizing this function to reduce gas costs"
-                    })
+                    findings.append(
+                        {
+                            "type": "high_gas_usage",
+                            "severity": "low" if avg < 500000 else "medium",
+                            "description": f"Function '{method}' has high gas usage (avg: {avg:,})",
+                            "function": method,
+                            "gas_avg": avg,
+                            "gas_min": int(min_gas),
+                            "gas_max": int(max_gas),
+                            "recommendation": "Consider optimizing this function to reduce gas costs",
+                        }
+                    )
 
         except Exception as e:
             logger.debug(f"Gas reporter failed: {e}")
@@ -446,12 +439,14 @@ class HardhatAdapter(ToolAdapter):
                 capture_output=True,
                 timeout=self.timeout * 2,  # Coverage takes longer
                 text=True,
-                cwd=project_dir
+                cwd=project_dir,
             )
 
             # Parse coverage output
             # Look for low coverage files
-            coverage_pattern = r'(\S+\.sol)\s+\|\s+(\d+(?:\.\d+)?)\s+\|\s+(\d+(?:\.\d+)?)\s+\|\s+(\d+(?:\.\d+)?)'
+            coverage_pattern = (
+                r"(\S+\.sol)\s+\|\s+(\d+(?:\.\d+)?)\s+\|\s+(\d+(?:\.\d+)?)\s+\|\s+(\d+(?:\.\d+)?)"
+            )
 
             for match in re.finditer(coverage_pattern, result.stdout):
                 file_name, stmt_cov, branch_cov, func_cov = match.groups()
@@ -461,16 +456,18 @@ class HardhatAdapter(ToolAdapter):
 
                 # Flag files with low coverage
                 if stmt < 80 or branch < 70 or func < 80:
-                    findings.append({
-                        "type": "low_coverage",
-                        "severity": "low",
-                        "description": f"Low test coverage in '{file_name}'",
-                        "file": file_name,
-                        "statement_coverage": stmt,
-                        "branch_coverage": branch,
-                        "function_coverage": func,
-                        "recommendation": "Increase test coverage to improve confidence"
-                    })
+                    findings.append(
+                        {
+                            "type": "low_coverage",
+                            "severity": "low",
+                            "description": f"Low test coverage in '{file_name}'",
+                            "file": file_name,
+                            "statement_coverage": stmt,
+                            "branch_coverage": branch,
+                            "function_coverage": func,
+                            "recommendation": "Increase test coverage to improve confidence",
+                        }
+                    )
 
         except Exception as e:
             logger.debug(f"Coverage analysis failed: {e}")
@@ -494,10 +491,7 @@ class HardhatAdapter(ToolAdapter):
             "low_coverage": "Add more tests to increase code coverage",
         }
 
-        return recommendations.get(
-            finding_type,
-            f"Review and fix issue: {finding_type}"
-        )
+        return recommendations.get(finding_type, f"Review and fix issue: {finding_type}")
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         """
@@ -515,7 +509,7 @@ class HardhatAdapter(ToolAdapter):
         path = Path(contract_path)
 
         # Can analyze .sol files
-        if path.is_file() and path.suffix == '.sol':
+        if path.is_file() and path.suffix == ".sol":
             return self._find_hardhat_project(path.parent) is not None
 
         # Can analyze directories with hardhat.config
@@ -531,17 +525,14 @@ class HardhatAdapter(ToolAdapter):
             "compile_force": True,
             "run_gas_reporter": False,
             "run_coverage": False,
-            "timeout": 180
+            "timeout": 180,
         }
 
 
 # Adapter registration
 def register_adapter():
     """Register Hardhat adapter with MIESC"""
-    return {
-        "adapter_class": HardhatAdapter,
-        "metadata": HardhatAdapter.METADATA
-    }
+    return {"adapter_class": HardhatAdapter, "metadata": HardhatAdapter.METADATA}
 
 
 __all__ = ["HardhatAdapter", "register_adapter"]

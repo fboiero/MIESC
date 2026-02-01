@@ -12,16 +12,16 @@
 repos:
   # Code Formatting
   - repo: https://github.com/psf/black
-    rev: 24.1.1
+    rev: 26.1.0
     hooks:
       - id: black
         name: Black Code Formatter
-        language_version: python3.9
+        language_version: python3.12
         args: ['--line-length=100']
 
   # Fast Linting (Ruff)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.14
+    rev: v0.14.14
     hooks:
       - id: ruff
         name: Ruff Linter
@@ -29,7 +29,7 @@ repos:
 
   # Traditional Linting (Flake8)
   - repo: https://github.com/PyCQA/flake8
-    rev: 7.0.0
+    rev: 7.3.0
     hooks:
       - id: flake8
         name: Flake8 Style Checker
@@ -37,7 +37,7 @@ repos:
 
   # Security Scanning (Bandit)
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.6
+    rev: 1.9.3
     hooks:
       - id: bandit
         name: Bandit Security Scanner
@@ -46,7 +46,7 @@ repos:
 
   # Secret Scanning
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: detect-secrets
         name: Detect Hardcoded Secrets
@@ -55,7 +55,7 @@ repos:
 
   # YAML Validation
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
       - id: check-yaml
         name: Check YAML Syntax
@@ -77,7 +77,7 @@ repos:
 
   # Python-specific checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
       - id: check-ast
         name: Check Python AST
@@ -91,7 +91,7 @@ repos:
 
   # Type Checking (MyPy)
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
+    rev: v1.19.1
     hooks:
       - id: mypy
         name: MyPy Type Checker
@@ -104,7 +104,7 @@ repos:
 
   # Markdown Linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.38.0
+    rev: v0.47.0
     hooks:
       - id: markdownlint
         name: Markdown Linter
@@ -112,7 +112,7 @@ repos:
 
   # Commit Message Validation
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v3.13.0
+    rev: v4.12.1
     hooks:
       - id: commitizen
         name: Check Commit Message Format
@@ -120,7 +120,7 @@ repos:
 
 # Configuration
 default_language_version:
-  python: python3.9
+  python: python3.12
 
 fail_fast: false  # Run all hooks even if one fails
 minimum_pre_commit_version: '3.0.0'

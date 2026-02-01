@@ -24,11 +24,10 @@ Fecha: 2025-01-10
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from src.core.tool_protocol import get_tool_registry, ToolStatus
 from src.adapters import register_all_adapters
+from src.core.tool_protocol import ToolStatus, get_tool_registry
 
 logger = logging.getLogger(__name__)
 
@@ -126,10 +125,7 @@ class AdapterIntegration:
             return None
 
     def run_multiple_adapters(
-        self,
-        adapter_names: List[str],
-        contract_path: str,
-        **kwargs
+        self, adapter_names: List[str], contract_path: str, **kwargs
     ) -> Dict[str, Any]:
         """
         Run multiple adapters and aggregate results
@@ -147,7 +143,7 @@ class AdapterIntegration:
             "successful": 0,
             "failed": 0,
             "findings": [],
-            "adapter_results": {}
+            "adapter_results": {},
         }
 
         for name in adapter_names:
@@ -179,6 +175,7 @@ class AdapterIntegration:
 # ============================================================================
 # Layer-Specific Integration Functions
 # ============================================================================
+
 
 def integrate_static_analysis(contract_path: str, **kwargs) -> Dict[str, Any]:
     """
@@ -212,7 +209,7 @@ def integrate_static_analysis(contract_path: str, **kwargs) -> Dict[str, Any]:
     results["metadata"] = {
         "total_gas_savings": total_gas_savings,
         "mev_risk_score": mev_risk_score,
-        "total_findings": len(results["findings"])
+        "total_findings": len(results["findings"]),
     }
 
     return results
@@ -247,7 +244,7 @@ def integrate_dynamic_testing(contract_path: str, **kwargs) -> Dict[str, Any]:
 
     results["metadata"] = {
         "mutation_score": mutation_score,
-        "total_findings": len(results["findings"])
+        "total_findings": len(results["findings"]),
     }
 
     return results
@@ -281,7 +278,7 @@ def integrate_symbolic_execution(contract_path: str, **kwargs) -> Dict[str, Any]
 
     results["metadata"] = {
         "vulnerability_types": list(vuln_types),
-        "total_findings": len(results["findings"])
+        "total_findings": len(results["findings"]),
     }
 
     return results
@@ -323,7 +320,7 @@ def integrate_threat_modeling(contract_path: str, **kwargs) -> Dict[str, Any]:
         "stride_breakdown": stride_breakdown,
         "audit_readiness_score": audit_readiness_score,
         "average_dread_score": avg_dread,
-        "total_threats": len(results["findings"])
+        "total_threats": len(results["findings"]),
     }
 
     return results
@@ -332,6 +329,7 @@ def integrate_threat_modeling(contract_path: str, **kwargs) -> Dict[str, Any]:
 # ============================================================================
 # Convenience Function: Run All Available Adapters
 # ============================================================================
+
 
 def run_all_adapters(contract_path: str, **kwargs) -> Dict[str, Any]:
     """
@@ -364,10 +362,10 @@ def run_all_adapters(contract_path: str, **kwargs) -> Dict[str, Any]:
 
     # Aggregate all results
     all_findings = (
-        static_results["findings"] +
-        dynamic_results["findings"] +
-        symbolic_results["findings"] +
-        threat_results["findings"]
+        static_results["findings"]
+        + dynamic_results["findings"]
+        + symbolic_results["findings"]
+        + threat_results["findings"]
     )
 
     complete_results = {
@@ -378,7 +376,7 @@ def run_all_adapters(contract_path: str, **kwargs) -> Dict[str, Any]:
             "layer_1_static": static_results,
             "layer_2_dynamic": dynamic_results,
             "layer_3_symbolic": symbolic_results,
-            "layer_7_threat": threat_results
+            "layer_7_threat": threat_results,
         },
         "summary": {
             "total_gas_savings": static_results["metadata"].get("total_gas_savings", 0),
@@ -386,12 +384,12 @@ def run_all_adapters(contract_path: str, **kwargs) -> Dict[str, Any]:
             "mutation_score": dynamic_results["metadata"].get("mutation_score", 0),
             "audit_readiness_score": threat_results["metadata"].get("audit_readiness_score", 0),
             "total_adapters_run": (
-                static_results["successful"] +
-                dynamic_results["successful"] +
-                symbolic_results["successful"] +
-                threat_results["successful"]
-            )
-        }
+                static_results["successful"]
+                + dynamic_results["successful"]
+                + symbolic_results["successful"]
+                + threat_results["successful"]
+            ),
+        },
     }
 
     logger.info(

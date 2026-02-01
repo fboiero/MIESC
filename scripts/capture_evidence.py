@@ -6,15 +6,13 @@ Captures screenshots and outputs for thesis documentation.
 Author: Fernando Boiero
 """
 
-import os
-import sys
 import json
-import time
 import subprocess
-import shutil
-from pathlib import Path
+import sys
+import time
 from datetime import datetime
-from typing import Optional, Tuple
+from pathlib import Path
+from typing import Tuple
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -30,6 +28,7 @@ EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 # UTILITY FUNCTIONS
 # =============================================================================
 
+
 def log(msg: str, level: str = "INFO"):
     """Print log message with timestamp."""
     timestamp = datetime.now().strftime("%H:%M:%S")
@@ -42,11 +41,7 @@ def run_command(cmd: list, timeout: int = 120) -> Tuple[int, str, str]:
     """Run command and return exit code, stdout, stderr."""
     try:
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=PROJECT_ROOT
+            cmd, capture_output=True, text=True, timeout=timeout, cwd=PROJECT_ROOT
         )
         return result.returncode, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
@@ -77,6 +72,7 @@ def save_json_evidence(data: dict, filename: str, subdir: str = "api"):
 # CLI EVIDENCE CAPTURE
 # =============================================================================
 
+
 def capture_cli_evidence():
     """Capture CLI command outputs."""
     log("Capturing CLI evidence...", "RUN")
@@ -106,18 +102,32 @@ def capture_cli_evidence():
 
     # 4. miesc scan (vulnerable contract)
     log("Capturing: miesc scan VulnerableBank.sol")
-    code, stdout, stderr = run_command([
-        "miesc", "scan",
-        "contracts/audit/VulnerableBank.sol",
-        "--verbose"
-    ], timeout=180)
+    code, stdout, stderr = run_command(
+        ["miesc", "scan", "contracts/audit/VulnerableBank.sol", "--verbose"], timeout=180
+    )
     content = f"$ miesc scan contracts/audit/VulnerableBank.sol --verbose\n{stdout}{stderr}"
     save_text_evidence(content, "04_miesc_scan.txt")
     cli_evidence.append(("miesc scan", True))  # May have warnings but that's OK
 
     # 5. Project structure
     log("Capturing: Project structure")
-    code, stdout, stderr = run_command(["find", ".", "-type", "d", "-name", "__pycache__", "-prune", "-o", "-type", "f", "-name", "*.py", "-print"])
+    code, stdout, stderr = run_command(
+        [
+            "find",
+            ".",
+            "-type",
+            "d",
+            "-name",
+            "__pycache__",
+            "-prune",
+            "-o",
+            "-type",
+            "f",
+            "-name",
+            "*.py",
+            "-print",
+        ]
+    )
 
     # Better tree-like structure
     tree_output = """MIESC Project Structure
@@ -201,6 +211,7 @@ contracts/audit/          # Example Contracts
 # API EVIDENCE CAPTURE
 # =============================================================================
 
+
 def capture_api_evidence():
     """Capture API responses."""
     log("Capturing API evidence...", "RUN")
@@ -215,12 +226,12 @@ def capture_api_evidence():
             ["python3", "src/miesc_mcp_rest.py", "--port", "5002"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=PROJECT_ROOT
+            cwd=PROJECT_ROOT,
         )
         time.sleep(3)  # Wait for server to start
 
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         # 1. Root endpoint
         log("Capturing: GET /")
@@ -236,7 +247,9 @@ def capture_api_evidence():
         # 2. Capabilities
         log("Capturing: GET /mcp/capabilities")
         try:
-            with urllib.request.urlopen("http://localhost:5002/mcp/capabilities", timeout=10) as response:
+            with urllib.request.urlopen(
+                "http://localhost:5002/mcp/capabilities", timeout=10
+            ) as response:
                 data = json.loads(response.read().decode())
                 save_json_evidence(data, "02_api_capabilities.json")
                 api_evidence.append(("GET /mcp/capabilities", True))
@@ -258,7 +271,9 @@ def capture_api_evidence():
         # 4. Metrics
         log("Capturing: GET /mcp/get_metrics")
         try:
-            with urllib.request.urlopen("http://localhost:5002/mcp/get_metrics", timeout=10) as response:
+            with urllib.request.urlopen(
+                "http://localhost:5002/mcp/get_metrics", timeout=10
+            ) as response:
                 data = json.loads(response.read().decode())
                 save_json_evidence(data, "04_api_metrics.json")
                 api_evidence.append(("GET /mcp/get_metrics", True))
@@ -273,7 +288,7 @@ def capture_api_evidence():
                 "http://localhost:5002/mcp/run_audit",
                 data=json.dumps({"contract": "contracts/audit/VulnerableBank.sol"}).encode(),
                 headers={"Content-Type": "application/json"},
-                method="POST"
+                method="POST",
             )
             with urllib.request.urlopen(req, timeout=30) as response:
                 data = json.loads(response.read().decode())
@@ -297,6 +312,7 @@ def capture_api_evidence():
 # ML PIPELINE EVIDENCE CAPTURE
 # =============================================================================
 
+
 def capture_ml_evidence():
     """Capture ML pipeline evidence."""
     log("Capturing ML pipeline evidence...", "RUN")
@@ -304,8 +320,10 @@ def capture_ml_evidence():
     ml_evidence = []
 
     try:
-        from ml import MLPipeline, FalsePositiveFilter, SeverityPredictor
-        from ml import VulnerabilityClusterer, CodeEmbedder
+        from ml import (
+            FalsePositiveFilter,
+            MLPipeline,
+        )
 
         # Sample findings for demonstration
         sample_findings = [
@@ -316,7 +334,7 @@ def capture_ml_evidence():
                 "description": "External call to user-controlled address before state update",
                 "location": {"file": "VulnerableBank.sol", "line": 35},
                 "swc": "SWC-107",
-                "cwe": "CWE-841"
+                "cwe": "CWE-841",
             },
             {
                 "title": "Unchecked Return Value",
@@ -325,7 +343,7 @@ def capture_ml_evidence():
                 "description": "Return value of external call not checked",
                 "location": {"file": "VulnerableBank.sol", "line": 52},
                 "swc": "SWC-104",
-                "cwe": "CWE-252"
+                "cwe": "CWE-252",
             },
             {
                 "title": "Missing Zero Address Check",
@@ -334,8 +352,8 @@ def capture_ml_evidence():
                 "description": "Function does not validate against zero address",
                 "location": {"file": "VulnerableBank.sol", "line": 19},
                 "swc": "SWC-123",
-                "cwe": "CWE-20"
-            }
+                "cwe": "CWE-20",
+            },
         ]
 
         # 1. ML Pipeline processing
@@ -344,21 +362,18 @@ def capture_ml_evidence():
         result = pipeline.process(sample_findings)
 
         pipeline_output = {
-            "input": {
-                "findings_count": len(sample_findings),
-                "findings": sample_findings
-            },
+            "input": {"findings_count": len(sample_findings), "findings": sample_findings},
             "output": {
                 "original_count": len(result.original_findings),
                 "filtered_count": len(result.filtered_findings),
                 "fp_filtered": result.fp_filtered,
                 "severity_adjustments": result.severity_adjustments,
                 "cluster_count": len(result.clusters),
-                "processing_time_ms": round(result.processing_time_ms, 2)
+                "processing_time_ms": round(result.processing_time_ms, 2),
             },
             "filtered_findings": result.filtered_findings,
             "clusters": [c.to_dict() for c in result.clusters] if result.clusters else [],
-            "remediation_plan": result.remediation_plan
+            "remediation_plan": result.remediation_plan,
         }
         save_json_evidence(pipeline_output, "01_ml_pipeline_output.json", "ml")
         ml_evidence.append(("ML Pipeline", True))
@@ -416,6 +431,7 @@ Validation Metrics:
 # TEST EVIDENCE CAPTURE
 # =============================================================================
 
+
 def capture_test_evidence():
     """Capture test suite evidence."""
     log("Capturing test evidence...", "RUN")
@@ -424,12 +440,21 @@ def capture_test_evidence():
 
     # Run pytest with coverage
     log("Running test suite...")
-    code, stdout, stderr = run_command([
-        "python3", "-m", "pytest", "tests/",
-        "-v", "--tb=short", "-q",
-        "--cov=src", "--cov=miesc",
-        "--cov-report=term"
-    ], timeout=300)
+    code, stdout, stderr = run_command(
+        [
+            "python3",
+            "-m",
+            "pytest",
+            "tests/",
+            "-v",
+            "--tb=short",
+            "-q",
+            "--cov=src",
+            "--cov=miesc",
+            "--cov-report=term",
+        ],
+        timeout=300,
+    )
 
     content = f"""MIESC Test Suite Evidence
 =========================
@@ -444,9 +469,9 @@ Command: pytest tests/ -v --tb=short --cov=src --cov=miesc
     test_evidence.append(("pytest", code == 0))
 
     # Extract summary
-    lines = stdout.split('\n')
+    lines = stdout.split("\n")
     for line in lines:
-        if 'passed' in line.lower() or 'failed' in line.lower():
+        if "passed" in line.lower() or "failed" in line.lower():
             summary_line = line
             break
     else:
@@ -476,6 +501,7 @@ Coverage Target: 87.5%
 # WEB DASHBOARD EVIDENCE (SELENIUM)
 # =============================================================================
 
+
 def capture_web_evidence():
     """Capture web dashboard screenshots using Selenium."""
     log("Capturing web dashboard evidence...", "RUN")
@@ -486,22 +512,28 @@ def capture_web_evidence():
 
     try:
         from selenium import webdriver
-        from selenium.webdriver.chrome.service import Service
         from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.chrome.service import Service
         from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
         from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import WebDriverWait
         from webdriver_manager.chrome import ChromeDriverManager
 
         # Start Streamlit server
         log("Starting Streamlit server...")
         streamlit_process = subprocess.Popen(
-            ["streamlit", "run", "webapp/app.py",
-             "--server.port", "8502",
-             "--server.headless", "true"],
+            [
+                "streamlit",
+                "run",
+                "webapp/app.py",
+                "--server.port",
+                "8502",
+                "--server.headless",
+                "true",
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=PROJECT_ROOT
+            cwd=PROJECT_ROOT,
         )
         time.sleep(8)  # Wait for Streamlit to start
 
@@ -522,7 +554,7 @@ def capture_web_evidence():
             try:
                 driver = webdriver.Safari()
                 driver.set_window_size(1920, 1080)
-            except:
+            except Exception:
                 log("No suitable WebDriver found", "ERROR")
                 return [("WebDriver", False)]
 
@@ -547,9 +579,7 @@ def capture_web_evidence():
         # Try to interact with dashboard
         try:
             # Wait for page load
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
-            )
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
             time.sleep(2)
 
             # Scroll and capture more
@@ -576,7 +606,7 @@ def capture_web_evidence():
             streamlit_process.terminate()
             try:
                 streamlit_process.wait(timeout=5)
-            except:
+            except Exception:
                 streamlit_process.kill()
             log("Streamlit server stopped", "OK")
 
@@ -586,6 +616,7 @@ def capture_web_evidence():
 # =============================================================================
 # GENERATE EVIDENCE REPORT
 # =============================================================================
+
 
 def generate_evidence_report(all_evidence: dict):
     """Generate final evidence report."""
@@ -606,7 +637,7 @@ This document contains evidence of MIESC tool functionality for thesis documenta
 |------|--------|
 """
 
-    for name, status in all_evidence.get('cli', []):
+    for name, status in all_evidence.get("cli", []):
         icon = "✓" if status else "✗"
         report += f"| {name} | {icon} |\n"
 
@@ -617,7 +648,7 @@ This document contains evidence of MIESC tool functionality for thesis documenta
 |----------|--------|
 """
 
-    for name, status in all_evidence.get('api', []):
+    for name, status in all_evidence.get("api", []):
         icon = "✓" if status else "✗"
         report += f"| {name} | {icon} |\n"
 
@@ -628,7 +659,7 @@ This document contains evidence of MIESC tool functionality for thesis documenta
 |-----------|--------|
 """
 
-    for name, status in all_evidence.get('ml', []):
+    for name, status in all_evidence.get("ml", []):
         icon = "✓" if status else "✗"
         report += f"| {name} | {icon} |\n"
 
@@ -639,7 +670,7 @@ This document contains evidence of MIESC tool functionality for thesis documenta
 |------------|--------|
 """
 
-    for name, status in all_evidence.get('tests', []):
+    for name, status in all_evidence.get("tests", []):
         icon = "✓" if status else "✗"
         report += f"| {name} | {icon} |\n"
 
@@ -650,18 +681,18 @@ This document contains evidence of MIESC tool functionality for thesis documenta
 |------------|--------|
 """
 
-    for name, status in all_evidence.get('web', []):
+    for name, status in all_evidence.get("web", []):
         icon = "✓" if status else "✗"
         report += f"| {name} | {icon} |\n"
 
-    report += f"""
+    report += """
 
 ## Files Generated
 
 """
 
     # List all files
-    for subdir in ['cli', 'api', 'ml', 'tests', 'web']:
+    for subdir in ["cli", "api", "ml", "tests", "web"]:
         subpath = EVIDENCE_DIR / subdir
         if subpath.exists():
             files = list(subpath.iterdir())
@@ -700,43 +731,44 @@ This document contains evidence of MIESC tool functionality for thesis documenta
 # MAIN
 # =============================================================================
 
+
 def main():
     """Main entry point."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("  MIESC v4.0.0 - Evidence Capture Script")
     print("  Generating documentation evidence for thesis")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     all_evidence = {}
 
     # 1. CLI Evidence
-    print("\n" + "-"*50)
-    all_evidence['cli'] = capture_cli_evidence()
+    print("\n" + "-" * 50)
+    all_evidence["cli"] = capture_cli_evidence()
 
     # 2. API Evidence
-    print("\n" + "-"*50)
-    all_evidence['api'] = capture_api_evidence()
+    print("\n" + "-" * 50)
+    all_evidence["api"] = capture_api_evidence()
 
     # 3. ML Evidence
-    print("\n" + "-"*50)
-    all_evidence['ml'] = capture_ml_evidence()
+    print("\n" + "-" * 50)
+    all_evidence["ml"] = capture_ml_evidence()
 
     # 4. Test Evidence
-    print("\n" + "-"*50)
-    all_evidence['tests'] = capture_test_evidence()
+    print("\n" + "-" * 50)
+    all_evidence["tests"] = capture_test_evidence()
 
     # 5. Web Evidence (optional - may fail without Chrome)
-    print("\n" + "-"*50)
-    all_evidence['web'] = capture_web_evidence()
+    print("\n" + "-" * 50)
+    all_evidence["web"] = capture_web_evidence()
 
     # Generate report
-    print("\n" + "-"*50)
+    print("\n" + "-" * 50)
     report_path = generate_evidence_report(all_evidence)
 
     # Summary
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("  EVIDENCE CAPTURE COMPLETE")
-    print("="*70)
+    print("=" * 70)
 
     total_tests = sum(len(v) for v in all_evidence.values())
     passed_tests = sum(1 for v in all_evidence.values() for _, s in v if s)

@@ -20,31 +20,30 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-01-13
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter,
-    ToolMetadata,
-    ToolStatus,
-    ToolCategory,
-    ToolCapability
-)
-from typing import Dict, Any, List, Optional, Set, Tuple
-import logging
-import subprocess
-import json
-import time
-import os
-import tempfile
 import hashlib
-from pathlib import Path
+import logging
+import random
+import subprocess
+import time
 from dataclasses import dataclass
 from enum import Enum
-import random
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class CoverageMetric(Enum):
     """Coverage metrics for fuzzing prioritization."""
+
     STATEMENT = "statement"
     BRANCH = "branch"
     FUNCTION = "function"
@@ -54,6 +53,7 @@ class CoverageMetric(Enum):
 @dataclass
 class FuzzInput:
     """Represents a fuzz input with metadata."""
+
     seed: bytes
     coverage_score: float
     energy: int  # Fuzzing energy allocation
@@ -69,6 +69,7 @@ class FuzzInput:
 @dataclass
 class CoverageData:
     """Coverage tracking data."""
+
     statements_covered: Set[str]
     branches_covered: Set[str]
     functions_covered: Set[str]
@@ -109,7 +110,7 @@ class DogeFuzzAdapter(ToolAdapter):
             functions_covered=set(),
             total_statements=0,
             total_branches=0,
-            total_functions=0
+            total_functions=0,
         )
         self._enable_symbolic = True  # Hybrid mode enabled
         self._mutation_rate = 0.05
@@ -137,31 +138,31 @@ class DogeFuzzAdapter(ToolAdapter):
                         "unexpected_reverts",
                         "gas_issues",
                         "reentrancy",
-                        "overflow"
-                    ]
+                        "overflow",
+                    ],
                 ),
                 ToolCapability(
                     name="hybrid_testing",
                     description="Combines fuzzing with selective symbolic execution",
                     supported_languages=["solidity"],
-                    detection_types=["deep_path_exploration", "constraint_solving"]
+                    detection_types=["deep_path_exploration", "constraint_solving"],
                 ),
                 ToolCapability(
                     name="parallel_execution",
                     description="Multi-worker parallel fuzzing (3x faster)",
                     supported_languages=["solidity"],
-                    detection_types=["performance_optimization"]
+                    detection_types=["performance_optimization"],
                 ),
                 ToolCapability(
                     name="custom_invariants",
                     description="Property-based testing with custom invariants",
                     supported_languages=["solidity"],
-                    detection_types=["property_violations", "state_invariants"]
-                )
+                    detection_types=["property_violations", "state_invariants"],
+                ),
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
@@ -170,10 +171,7 @@ class DogeFuzzAdapter(ToolAdapter):
         # Check if Python and dependencies are available
         try:
             result = subprocess.run(
-                ["python3", "--version"],
-                capture_output=True,
-                timeout=5,
-                text=True
+                ["python3", "--version"], capture_output=True, timeout=5, text=True
             )
             if result.returncode == 0:
                 logger.info("DogeFuzz: Using built-in hybrid fuzzer (Python-based)")
@@ -213,7 +211,7 @@ class DogeFuzzAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "DogeFuzz not available (Python3 required)"
+                "error": "DogeFuzz not available (Python3 required)",
             }
 
         # Configuration
@@ -233,7 +231,7 @@ class DogeFuzzAdapter(ToolAdapter):
                     "status": "error",
                     "findings": [],
                     "execution_time": time.time() - start_time,
-                    "error": f"Could not read contract: {contract_path}"
+                    "error": f"Could not read contract: {contract_path}",
                 }
 
             logger.info(f"DogeFuzz: Starting hybrid fuzzing on {contract_path}")
@@ -245,11 +243,7 @@ class DogeFuzzAdapter(ToolAdapter):
             self._initialize_seed_pool(contract_code)
 
             # Run hybrid fuzzing campaign
-            findings = self._run_fuzzing_campaign(
-                contract_path,
-                contract_code,
-                invariants
-            )
+            findings = self._run_fuzzing_campaign(contract_path, contract_code, invariants)
 
             # Calculate coverage
             coverage_pct = self._global_coverage.get_coverage_percentage()
@@ -268,15 +262,17 @@ class DogeFuzzAdapter(ToolAdapter):
                         "overall_percentage": round(coverage_pct, 2),
                         "statements": len(self._global_coverage.statements_covered),
                         "branches": len(self._global_coverage.branches_covered),
-                        "functions": len(self._global_coverage.functions_covered)
+                        "functions": len(self._global_coverage.functions_covered),
                     },
                     "seed_pool_size": len(self._seed_pool),
-                    "custom_invariants": len(invariants)
+                    "custom_invariants": len(invariants),
                 },
-                "execution_time": time.time() - start_time
+                "execution_time": time.time() - start_time,
             }
 
-            logger.info(f"DogeFuzz: Completed - {len(findings)} findings, {coverage_pct:.1f}% coverage")
+            logger.info(
+                f"DogeFuzz: Completed - {len(findings)} findings, {coverage_pct:.1f}% coverage"
+            )
 
             return result
 
@@ -288,7 +284,7 @@ class DogeFuzzAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -297,7 +293,7 @@ class DogeFuzzAdapter(ToolAdapter):
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if this adapter can analyze the given contract."""
-        return Path(contract_path).suffix == '.sol'
+        return Path(contract_path).suffix == ".sol"
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
@@ -308,7 +304,7 @@ class DogeFuzzAdapter(ToolAdapter):
             "enable_symbolic": True,
             "mutation_rate": 0.05,
             "crossover_rate": 0.10,
-            "coverage_metric": "branch"
+            "coverage_metric": "branch",
         }
 
     # ============================================================================
@@ -318,7 +314,7 @@ class DogeFuzzAdapter(ToolAdapter):
     def _read_contract(self, contract_path: str) -> Optional[str]:
         """Read contract file content."""
         try:
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Error reading contract: {e}")
@@ -329,43 +325,31 @@ class DogeFuzzAdapter(ToolAdapter):
         logger.info("DogeFuzz: Initializing seed pool")
 
         # Seed 1: Zero values
-        self._seed_pool.append(FuzzInput(
-            seed=b'\x00' * 32,
-            coverage_score=0.0,
-            energy=1,
-            timestamp=time.time()
-        ))
+        self._seed_pool.append(
+            FuzzInput(seed=b"\x00" * 32, coverage_score=0.0, energy=1, timestamp=time.time())
+        )
 
         # Seed 2: Max uint256
-        self._seed_pool.append(FuzzInput(
-            seed=b'\xff' * 32,
-            coverage_score=0.0,
-            energy=1,
-            timestamp=time.time()
-        ))
+        self._seed_pool.append(
+            FuzzInput(seed=b"\xff" * 32, coverage_score=0.0, energy=1, timestamp=time.time())
+        )
 
         # Seed 3: Common values (1, 100, 1000)
         for val in [1, 100, 1000]:
-            seed_bytes = val.to_bytes(32, byteorder='big')
-            self._seed_pool.append(FuzzInput(
-                seed=seed_bytes,
-                coverage_score=0.0,
-                energy=1,
-                timestamp=time.time()
-            ))
+            seed_bytes = val.to_bytes(32, byteorder="big")
+            self._seed_pool.append(
+                FuzzInput(seed=seed_bytes, coverage_score=0.0, energy=1, timestamp=time.time())
+            )
 
         # Seed 4: Extract constants from contract code
         constants = self._extract_constants(contract_code)
         for const in constants[:5]:  # Top 5 constants
             try:
-                seed_bytes = int(const).to_bytes(32, byteorder='big')
-                self._seed_pool.append(FuzzInput(
-                    seed=seed_bytes,
-                    coverage_score=0.0,
-                    energy=1,
-                    timestamp=time.time()
-                ))
-            except:
+                seed_bytes = int(const).to_bytes(32, byteorder="big")
+                self._seed_pool.append(
+                    FuzzInput(seed=seed_bytes, coverage_score=0.0, energy=1, timestamp=time.time())
+                )
+            except Exception:
                 pass
 
         logger.info(f"DogeFuzz: Initialized {len(self._seed_pool)} seeds")
@@ -373,16 +357,14 @@ class DogeFuzzAdapter(ToolAdapter):
     def _extract_constants(self, contract_code: str) -> List[str]:
         """Extract numerical constants from contract code."""
         import re
+
         # Simple regex to find decimal numbers
-        numbers = re.findall(r'\b\d+\b', contract_code)
+        numbers = re.findall(r"\b\d+\b", contract_code)
         # Return unique sorted numbers
         return sorted(set(numbers), key=lambda x: int(x))
 
     def _run_fuzzing_campaign(
-        self,
-        contract_path: str,
-        contract_code: str,
-        invariants: List[Any]
+        self, contract_path: str, contract_code: str, invariants: List[Any]
     ) -> List[Dict[str, Any]]:
         """
         Run main fuzzing campaign with power scheduling.
@@ -419,19 +401,12 @@ class DogeFuzzAdapter(ToolAdapter):
             for mutated in mutated_inputs:
                 # Execute input (simplified - would actually execute on EVM)
                 execution_result = self._execute_input(
-                    contract_path,
-                    contract_code,
-                    mutated,
-                    invariants
+                    contract_path, contract_code, mutated, invariants
                 )
 
                 # Check for crashes/violations
                 if execution_result["crashed"] or execution_result["violated_invariant"]:
-                    finding = self._create_finding(
-                        execution_result,
-                        mutated,
-                        contract_path
-                    )
+                    finding = self._create_finding(execution_result, mutated, contract_path)
                     findings.append(finding)
                     logger.info(f"DogeFuzz: Found issue - {finding['title']}")
 
@@ -458,22 +433,26 @@ class DogeFuzzAdapter(ToolAdapter):
             if self._enable_symbolic and len(findings) > 0 and iterations % 500 == 0:
                 logger.info("DogeFuzz: Running symbolic execution phase")
                 symbolic_findings = self._symbolic_execution_phase(
-                    contract_path,
-                    contract_code,
-                    findings[-1]  # Focus on last finding
+                    contract_path, contract_code, findings[-1]  # Focus on last finding
                 )
                 findings.extend(symbolic_findings)
 
-        logger.info(f"DogeFuzz: Campaign complete - {iterations} iterations, {len(findings)} findings")
+        logger.info(
+            f"DogeFuzz: Campaign complete - {iterations} iterations, {len(findings)} findings"
+        )
 
         return findings
 
     def _estimate_coverage_targets(self, contract_code: str):
         """Estimate coverage targets from source code (simplified)."""
-        lines = contract_code.split('\n')
-        self._global_coverage.total_statements = len([l for l in lines if l.strip() and not l.strip().startswith('//')])
-        self._global_coverage.total_functions = contract_code.count('function ')
-        self._global_coverage.total_branches = contract_code.count('if (') + contract_code.count('require(')
+        lines = contract_code.split("\n")
+        self._global_coverage.total_statements = len(
+            [ln for ln in lines if ln.strip() and not ln.strip().startswith("//")]
+        )
+        self._global_coverage.total_functions = contract_code.count("function ")
+        self._global_coverage.total_branches = contract_code.count("if (") + contract_code.count(
+            "require("
+        )
 
     def _select_seed_with_power_schedule(self) -> Optional[FuzzInput]:
         """
@@ -502,7 +481,9 @@ class DogeFuzzAdapter(ToolAdapter):
             mutation_factor = 1.0 / (seed.mutations + 1.0)
             coverage_factor = seed.coverage_score / 100.0
 
-            power_score = (coverage_factor * 0.5 + age_factor * 0.3 + mutation_factor * 0.2) * seed.energy
+            power_score = (
+                coverage_factor * 0.5 + age_factor * 0.3 + mutation_factor * 0.2
+            ) * seed.energy
 
             scored_seeds.append((seed, power_score))
 
@@ -536,32 +517,36 @@ class DogeFuzzAdapter(ToolAdapter):
             bit_pos = random.randint(0, len(mutated) * 8 - 1)
             byte_pos = bit_pos // 8
             bit_offset = bit_pos % 8
-            mutated[byte_pos] ^= (1 << bit_offset)
+            mutated[byte_pos] ^= 1 << bit_offset
 
-            mutated_inputs.append(FuzzInput(
-                seed=bytes(mutated),
-                coverage_score=0.0,
-                energy=1,
-                timestamp=time.time(),
-                parent_id=seed_input.get_id(),
-                mutations=seed_input.mutations + 1
-            ))
+            mutated_inputs.append(
+                FuzzInput(
+                    seed=bytes(mutated),
+                    coverage_score=0.0,
+                    energy=1,
+                    timestamp=time.time(),
+                    parent_id=seed_input.get_id(),
+                    mutations=seed_input.mutations + 1,
+                )
+            )
 
         # Strategy 2: Arithmetic mutation
         if random.random() < self._mutation_rate:
-            value = int.from_bytes(seed_input.seed, byteorder='big')
+            value = int.from_bytes(seed_input.seed, byteorder="big")
             delta = random.randint(-100, 100)
             new_value = max(0, value + delta)
-            mutated_bytes = new_value.to_bytes(32, byteorder='big')
+            mutated_bytes = new_value.to_bytes(32, byteorder="big")
 
-            mutated_inputs.append(FuzzInput(
-                seed=mutated_bytes,
-                coverage_score=0.0,
-                energy=1,
-                timestamp=time.time(),
-                parent_id=seed_input.get_id(),
-                mutations=seed_input.mutations + 1
-            ))
+            mutated_inputs.append(
+                FuzzInput(
+                    seed=mutated_bytes,
+                    coverage_score=0.0,
+                    energy=1,
+                    timestamp=time.time(),
+                    parent_id=seed_input.get_id(),
+                    mutations=seed_input.mutations + 1,
+                )
+            )
 
         # Strategy 3: Crossover (if pool has multiple seeds)
         if len(self._seed_pool) > 1 and random.random() < self._crossover_rate:
@@ -569,14 +554,16 @@ class DogeFuzzAdapter(ToolAdapter):
             crossover_point = random.randint(1, 31)
             mutated_bytes = seed_input.seed[:crossover_point] + other_seed.seed[crossover_point:]
 
-            mutated_inputs.append(FuzzInput(
-                seed=mutated_bytes,
-                coverage_score=0.0,
-                energy=1,
-                timestamp=time.time(),
-                parent_id=seed_input.get_id(),
-                mutations=seed_input.mutations + 1
-            ))
+            mutated_inputs.append(
+                FuzzInput(
+                    seed=mutated_bytes,
+                    coverage_score=0.0,
+                    energy=1,
+                    timestamp=time.time(),
+                    parent_id=seed_input.get_id(),
+                    mutations=seed_input.mutations + 1,
+                )
+            )
 
         # At least one mutation
         if not mutated_inputs:
@@ -585,11 +572,7 @@ class DogeFuzzAdapter(ToolAdapter):
         return mutated_inputs[:3]  # Limit to 3 mutations per seed
 
     def _execute_input(
-        self,
-        contract_path: str,
-        contract_code: str,
-        input_data: FuzzInput,
-        invariants: List[Any]
+        self, contract_path: str, contract_code: str, input_data: FuzzInput, invariants: List[Any]
     ) -> Dict[str, Any]:
         """
         Execute fuzz input on contract (simplified simulation).
@@ -609,12 +592,8 @@ class DogeFuzzAdapter(ToolAdapter):
             "violated_invariant": False,
             "gas_used": random.randint(21000, 500000),
             "reverted": False,
-            "coverage": {
-                "statements": set(),
-                "branches": set(),
-                "functions": set()
-            },
-            "error_message": None
+            "coverage": {"statements": set(), "branches": set(), "functions": set()},
+            "error_message": None,
         }
 
         # Simulate coverage (random for demonstration)
@@ -646,10 +625,7 @@ class DogeFuzzAdapter(ToolAdapter):
         return new_coverage > initial_coverage
 
     def _symbolic_execution_phase(
-        self,
-        contract_path: str,
-        contract_code: str,
-        reference_finding: Dict[str, Any]
+        self, contract_path: str, contract_code: str, reference_finding: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """
         Run symbolic execution on interesting paths.
@@ -675,22 +651,17 @@ class DogeFuzzAdapter(ToolAdapter):
                 "category": "symbolic_finding",
                 "location": {
                     "file": contract_path,
-                    "details": "Identified through constraint solving"
+                    "details": "Identified through constraint solving",
                 },
                 "recommendation": "Review path constraints and state transitions",
-                "references": [
-                    "DogeFuzz hybrid fuzzing (arXiv:2409.01788)"
-                ]
+                "references": ["DogeFuzz hybrid fuzzing (arXiv:2409.01788)"],
             }
             findings.append(finding)
 
         return findings
 
     def _create_finding(
-        self,
-        execution_result: Dict[str, Any],
-        input_data: FuzzInput,
-        contract_path: str
+        self, execution_result: Dict[str, Any], input_data: FuzzInput, contract_path: str
     ) -> Dict[str, Any]:
         """Create normalized finding from execution result."""
         severity = "HIGH" if execution_result["crashed"] else "MEDIUM"
@@ -704,18 +675,18 @@ class DogeFuzzAdapter(ToolAdapter):
             "category": "fuzzing_crash" if execution_result["crashed"] else "invariant_violation",
             "location": {
                 "file": contract_path,
-                "details": f"Discovered via coverage-guided fuzzing (iteration {input_data.mutations})"
+                "details": f"Discovered via coverage-guided fuzzing (iteration {input_data.mutations})",
             },
             "recommendation": "Investigate input causing failure and add regression test",
             "references": [
                 "DogeFuzz: arXiv:2409.01788",
-                f"Input seed: {input_data.seed.hex()[:64]}"
+                f"Input seed: {input_data.seed.hex()[:64]}",
             ],
             "metadata": {
                 "gas_used": execution_result["gas_used"],
                 "coverage_at_discovery": input_data.coverage_score,
-                "mutation_depth": input_data.mutations
-            }
+                "mutation_depth": input_data.mutations,
+            },
         }
 
 

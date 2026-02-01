@@ -23,12 +23,12 @@ from typing import Any, Dict, List
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from detectors.smartbugs_detectors import SmartBugsDetectorEngine, SmartBugsFinding
-from src.core.tool_protocol import (
+from detectors.smartbugs_detectors import SmartBugsDetectorEngine, SmartBugsFinding  # noqa: E402
+from src.core.tool_protocol import (  # noqa: E402
+    ToolCapability,
+    ToolCategory,
     ToolMetadata,
     ToolStatus,
-    ToolCategory,
-    ToolCapability,
 )
 
 
@@ -62,7 +62,7 @@ class SmartBugsDetectorAdapter:
     def is_available(self) -> ToolStatus:
         """Check if SmartBugs detector engine is available."""
         try:
-            from detectors.smartbugs_detectors import SmartBugsDetectorEngine
+            from detectors.smartbugs_detectors import SmartBugsDetectorEngine  # noqa: F401
 
             return ToolStatus.AVAILABLE
         except ImportError:
@@ -85,7 +85,12 @@ class SmartBugsDetectorAdapter:
                     name="smartbugs_vulnerability_detection",
                     description="SmartBugs-specific vulnerability detection",
                     supported_languages=["solidity"],
-                    detection_types=["arithmetic", "bad_randomness", "denial_of_service", "front_running"],
+                    detection_types=[
+                        "arithmetic",
+                        "bad_randomness",
+                        "denial_of_service",
+                        "front_running",
+                    ],
                 )
             ],
             is_optional=True,

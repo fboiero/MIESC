@@ -5,9 +5,9 @@ Provides security-aware logging that automatically redacts sensitive information
 from logs to prevent credential leakage and data exposure.
 """
 
-import re
 import logging
-from typing import List, Tuple, Optional
+import re
+from typing import List, Optional, Tuple
 
 
 class SecureFormatter(logging.Formatter):
@@ -34,70 +34,57 @@ class SecureFormatter(logging.Formatter):
     # Pattern definitions: (regex_pattern, replacement)
     SENSITIVE_PATTERNS: List[Tuple[str, str]] = [
         # OpenAI API keys (sk-...)
-        (r'(sk-[a-zA-Z0-9]{48})', r'sk-***REDACTED***'),
-
+        (r"(sk-[a-zA-Z0-9]{48})", r"sk-***REDACTED***"),
         # Generic API key patterns
-        (r'(["\']?api[_-]?key["\']?\s*[:=]\s*["\']?)([a-zA-Z0-9_\-]{20,})', r'\1***REDACTED***'),
-        (r'(["\']?apikey["\']?\s*[:=]\s*["\']?)([a-zA-Z0-9_\-]{20,})', r'\1***REDACTED***'),
-
+        (r'(["\']?api[_-]?key["\']?\s*[:=]\s*["\']?)([a-zA-Z0-9_\-]{20,})', r"\1***REDACTED***"),
+        (r'(["\']?apikey["\']?\s*[:=]\s*["\']?)([a-zA-Z0-9_\-]{20,})', r"\1***REDACTED***"),
         # OpenAI organization IDs
-        (r'(org-[a-zA-Z0-9]{24})', r'org-***REDACTED***'),
-
+        (r"(org-[a-zA-Z0-9]{24})", r"org-***REDACTED***"),
         # Anthropic API keys (typically start with sk-ant-)
-        (r'(sk-ant-[a-zA-Z0-9_\-]{20,})', r'sk-ant-***REDACTED***'),
-
+        (r"(sk-ant-[a-zA-Z0-9_\-]{20,})", r"sk-ant-***REDACTED***"),
         # HuggingFace tokens
-        (r'(hf_[a-zA-Z0-9]{20,})', r'hf_***REDACTED***'),
-
+        (r"(hf_[a-zA-Z0-9]{20,})", r"hf_***REDACTED***"),
         # Generic secret/token patterns
-        (r'(["\']?secret["\']?\s*[:=]\s*["\']?)([a-zA-Z0-9_\-]{16,})', r'\1***REDACTED***'),
-        (r'(["\']?token["\']?\s*[:=]\s*["\']?)([a-zA-Z0-9_\-]{16,})', r'\1***REDACTED***'),
-
+        (r'(["\']?secret["\']?\s*[:=]\s*["\']?)([a-zA-Z0-9_\-]{16,})', r"\1***REDACTED***"),
+        (r'(["\']?token["\']?\s*[:=]\s*["\']?)([a-zA-Z0-9_\-]{16,})', r"\1***REDACTED***"),
         # Password patterns
-        (r'(["\']?password["\']?\s*[:=]\s*["\']?)([^\s"\']{6,})', r'\1***REDACTED***'),
-        (r'(["\']?passwd["\']?\s*[:=]\s*["\']?)([^\s"\']{6,})', r'\1***REDACTED***'),
-        (r'(["\']?pwd["\']?\s*[:=]\s*["\']?)([^\s"\']{6,})', r'\1***REDACTED***'),
-
+        (r'(["\']?password["\']?\s*[:=]\s*["\']?)([^\s"\']{6,})', r"\1***REDACTED***"),
+        (r'(["\']?passwd["\']?\s*[:=]\s*["\']?)([^\s"\']{6,})', r"\1***REDACTED***"),
+        (r'(["\']?pwd["\']?\s*[:=]\s*["\']?)([^\s"\']{6,})', r"\1***REDACTED***"),
         # JWT tokens (header.payload.signature)
-        (r'(eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+)', r'eyJ***REDACTED_JWT***'),
-
+        (r"(eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+)", r"eyJ***REDACTED_JWT***"),
         # Private keys (BEGIN PRIVATE KEY)
-        (r'(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)(.*?)(-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)',
-         r'\1\n***REDACTED PRIVATE KEY***\n\3'),
-
+        (
+            r"(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)(.*?)(-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)",
+            r"\1\n***REDACTED PRIVATE KEY***\n\3",
+        ),
         # Credit card numbers (basic pattern, supports spaces/dashes)
-        (r'\b(\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4})\b', r'****-****-****-****'),
-
+        (r"\b(\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4})\b", r"****-****-****-****"),
         # Email addresses (optional - might want to keep for debugging)
         # (r'\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b', r'***@***.***'),
-
         # Bearer tokens in Authorization headers
-        (r'(Authorization:\s*Bearer\s+)([a-zA-Z0-9_\-\.]+)', r'\1***REDACTED***'),
-
+        (r"(Authorization:\s*Bearer\s+)([a-zA-Z0-9_\-\.]+)", r"\1***REDACTED***"),
         # Database connection strings (Postgres, MySQL, MongoDB)
-        (r'(postgres(?:ql)?://[^:]+:)([^@]+)(@)', r'\1***REDACTED***\3'),
-        (r'(mysql://[^:]+:)([^@]+)(@)', r'\1***REDACTED***\3'),
-        (r'(mongodb(?:\+srv)?://[^:]+:)([^@]+)(@)', r'\1***REDACTED***\3'),
-
+        (r"(postgres(?:ql)?://[^:]+:)([^@]+)(@)", r"\1***REDACTED***\3"),
+        (r"(mysql://[^:]+:)([^@]+)(@)", r"\1***REDACTED***\3"),
+        (r"(mongodb(?:\+srv)?://[^:]+:)([^@]+)(@)", r"\1***REDACTED***\3"),
         # AWS credentials
-        (r'(AKIA[0-9A-Z]{16})', r'AKIA***REDACTED***'),
-        (r'(aws_secret_access_key[\s=:]+)([a-zA-Z0-9/+=]{40})', r'\1***REDACTED***'),
-
+        (r"(AKIA[0-9A-Z]{16})", r"AKIA***REDACTED***"),
+        (r"(aws_secret_access_key[\s=:]+)([a-zA-Z0-9/+=]{40})", r"\1***REDACTED***"),
         # GitHub tokens
-        (r'(gh[pousr]_[a-zA-Z0-9]{36,})', r'gh*_***REDACTED***'),
-
+        (r"(gh[pousr]_[a-zA-Z0-9]{36,})", r"gh*_***REDACTED***"),
         # Slack tokens
-        (r'(xox[baprs]-[a-zA-Z0-9-]{10,})', r'xox*-***REDACTED***'),
+        (r"(xox[baprs]-[a-zA-Z0-9-]{10,})", r"xox*-***REDACTED***"),
     ]
 
     def __init__(
         self,
         fmt: Optional[str] = None,
         datefmt: Optional[str] = None,
-        style: str = '%',
+        style: str = "%",
         redact_emails: bool = False,
         redact_ips: bool = False,
-        custom_patterns: Optional[List[Tuple[str, str]]] = None
+        custom_patterns: Optional[List[Tuple[str, str]]] = None,
     ):
         """
         Initialize secure formatter.
@@ -118,17 +105,15 @@ class SecureFormatter(logging.Formatter):
         # Add optional patterns
         if redact_emails:
             self.patterns.append(
-                (r'\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b', r'***@***.***')
+                (r"\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b", r"***@***.***")
             )
 
         if redact_ips:
             # IPv4
-            self.patterns.append(
-                (r'\b(?:\d{1,3}\.){3}\d{1,3}\b', r'***.***.***.***')
-            )
+            self.patterns.append((r"\b(?:\d{1,3}\.){3}\d{1,3}\b", r"***.***.***.***"))
             # IPv6 (simplified)
             self.patterns.append(
-                (r'\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b', r'****:****:****:****')
+                (r"\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b", r"****:****:****:****")
             )
 
         # Add custom patterns
@@ -189,7 +174,7 @@ def setup_secure_logging(
     log_file: Optional[str] = None,
     format_string: Optional[str] = None,
     redact_emails: bool = False,
-    redact_ips: bool = False
+    redact_ips: bool = False,
 ) -> logging.Logger:
     """
     Setup a logger with secure formatting.
@@ -220,13 +205,11 @@ def setup_secure_logging(
 
     # Default format
     if format_string is None:
-        format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format_string = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
     # Create secure formatter
     secure_formatter = SecureFormatter(
-        fmt=format_string,
-        redact_emails=redact_emails,
-        redact_ips=redact_ips
+        fmt=format_string, redact_emails=redact_emails, redact_ips=redact_ips
     )
 
     # Console handler
@@ -248,7 +231,7 @@ def setup_secure_logging(
 # Example usage and testing
 if __name__ == "__main__":
     # Setup secure logging
-    logger = setup_secure_logging('test', level=logging.DEBUG)
+    logger = setup_secure_logging("test", level=logging.DEBUG)
 
     # Test various sensitive patterns
     test_cases = [
@@ -259,7 +242,7 @@ if __name__ == "__main__":
         "Database: postgresql://user:password123@localhost:5432/db",
         "Card: 4532-1234-5678-9010",
         "Anthropic key: sk-ant-api03-test123456789012345",
-        "Bearer Authorization: Bearer abc123.def456.ghi789"
+        "Bearer Authorization: Bearer abc123.def456.ghi789",
     ]
 
     print("Testing Secure Logging:\n")

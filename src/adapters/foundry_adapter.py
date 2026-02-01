@@ -19,19 +19,22 @@ Date: November 11, 2025
 Version: 1.0.0
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from src.llm import enhance_findings_with_llm
-from typing import Dict, Any, List, Optional
-import subprocess
 import json
-import tempfile
-import os
-import time
 import logging
 import re
+import subprocess
+import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
+from src.llm import enhance_findings_with_llm
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +66,8 @@ class FoundryAdapter(ToolAdapter):
             "assertion_violations",
             "fuzz_failures",
             "invariant_violations",
-            "gas_inefficiencies"
-        ]
+            "gas_inefficiencies",
+        ],
     }
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -104,34 +107,31 @@ class FoundryAdapter(ToolAdapter):
                     name="unit_testing",
                     description="Fast Solidity unit testing",
                     supported_languages=["solidity"],
-                    detection_types=["test_failures", "assertion_violations"]
+                    detection_types=["test_failures", "assertion_violations"],
                 ),
                 ToolCapability(
                     name="fuzz_testing",
                     description="Property-based fuzz testing",
                     supported_languages=["solidity"],
-                    detection_types=["fuzz_failures", "invariant_violations"]
+                    detection_types=["fuzz_failures", "invariant_violations"],
                 ),
                 ToolCapability(
                     name="gas_profiling",
                     description="Gas usage profiling and optimization",
                     supported_languages=["solidity"],
-                    detection_types=["gas_inefficiencies"]
-                )
+                    detection_types=["gas_inefficiencies"],
+                ),
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if Foundry is installed and available"""
         try:
             result = subprocess.run(
-                ["forge", "--version"],
-                capture_output=True,
-                timeout=5,
-                text=True
+                ["forge", "--version"], capture_output=True, timeout=5, text=True
             )
             if result.returncode == 0:
                 logger.debug(f"Foundry available: {result.stdout.strip()}")
@@ -180,7 +180,7 @@ class FoundryAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "Foundry not available"
+                "error": "Foundry not available",
             }
 
         try:
@@ -223,11 +223,7 @@ class FoundryAdapter(ToolAdapter):
 
             # Run forge test
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                timeout=self.timeout,
-                text=True,
-                cwd=project_root
+                cmd, capture_output=True, timeout=self.timeout, text=True, cwd=project_root
             )
 
             duration = time.time() - start_time
@@ -237,15 +233,13 @@ class FoundryAdapter(ToolAdapter):
 
             # Enhance findings with OpenLLaMA (optional)
             try:
-                with open(contract_path, 'r') as f:
+                with open(contract_path, "r") as f:
                     contract_code = f.read()
 
                 # Enhance top findings with LLM insights
                 if findings:
                     findings = enhance_findings_with_llm(
-                        findings[:5],  # Top 5 findings
-                        contract_code,
-                        "foundry"
+                        findings[:5], contract_code, "foundry"  # Top 5 findings
                     )
             except Exception as e:
                 logger.debug(f"LLM enhancement failed: {e}")
@@ -264,7 +258,7 @@ class FoundryAdapter(ToolAdapter):
                 "tests_failed": test_stats.get("failed", 0),
                 "gas_report": gas_report,
                 "fuzz_runs": self.fuzz_runs,
-                "dpga_compliant": True
+                "dpga_compliant": True,
             }
 
         except subprocess.TimeoutExpired:
@@ -274,7 +268,7 @@ class FoundryAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": self.timeout,
-                "error": f"Test timeout after {self.timeout}s"
+                "error": f"Test timeout after {self.timeout}s",
             }
         except FileNotFoundError:
             return {
@@ -282,7 +276,7 @@ class FoundryAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": f"Project root not found for: {contract_path}"
+                "error": f"Project root not found for: {contract_path}",
             }
         except Exception as e:
             logger.error(f"Foundry analysis failed: {str(e)}")
@@ -291,7 +285,7 @@ class FoundryAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def _find_project_root(self, contract_path: str) -> str:
@@ -347,8 +341,8 @@ class FoundryAdapter(ToolAdapter):
         # Try to parse JSON output first
         try:
             # Foundry outputs multiple JSON lines, find the test results
-            for line in stdout.split('\n'):
-                if line.strip().startswith('{'):
+            for line in stdout.split("\n"):
+                if line.strip().startswith("{"):
                     try:
                         data = json.loads(line)
                         if "test_results" in data:
@@ -383,16 +377,18 @@ class FoundryAdapter(ToolAdapter):
 
                     # Create finding for failed test
                     reason = result.get("reason", "Test failed")
-                    findings.append({
-                        "type": "test_failure",
-                        "severity": "high",
-                        "contract": contract_name,
-                        "test": test_name,
-                        "description": f"Test {test_name} failed: {reason}",
-                        "recommendation": "Review test failure and fix contract logic",
-                        "counterexample": result.get("counterexample"),
-                        "decoded_logs": result.get("decoded_logs", [])
-                    })
+                    findings.append(
+                        {
+                            "type": "test_failure",
+                            "severity": "high",
+                            "contract": contract_name,
+                            "test": test_name,
+                            "description": f"Test {test_name} failed: {reason}",
+                            "recommendation": "Review test failure and fix contract logic",
+                            "counterexample": result.get("counterexample"),
+                            "decoded_logs": result.get("decoded_logs", []),
+                        }
+                    )
 
         return findings, test_stats
 
@@ -401,39 +397,40 @@ class FoundryAdapter(ToolAdapter):
         findings = []
         test_stats = {"total": 0, "passed": 0, "failed": 0}
 
-        lines = stdout.split('\n')
-        current_contract = None
+        lines = stdout.split("\n")
 
         for line in lines:
             line = line.strip()
 
             # Detect contract name
-            if line.startswith('[PASS]') or line.startswith('[FAIL]'):
+            if line.startswith("[PASS]") or line.startswith("[FAIL]"):
                 # Extract test result
-                if '[FAIL]' in line:
+                if "[FAIL]" in line:
                     test_stats["total"] += 1
                     test_stats["failed"] += 1
 
                     # Extract test name
-                    match = re.search(r'\[FAIL.*?\]\s+(\w+)\(\)', line)
+                    match = re.search(r"\[FAIL.*?\]\s+(\w+)\(\)", line)
                     if match:
                         test_name = match.group(1)
-                        findings.append({
-                            "type": "test_failure",
-                            "severity": "high",
-                            "test": test_name,
-                            "description": f"Test {test_name} failed",
-                            "recommendation": "Review test failure and fix contract logic"
-                        })
-                elif '[PASS]' in line:
+                        findings.append(
+                            {
+                                "type": "test_failure",
+                                "severity": "high",
+                                "test": test_name,
+                                "description": f"Test {test_name} failed",
+                                "recommendation": "Review test failure and fix contract logic",
+                            }
+                        )
+                elif "[PASS]" in line:
                     test_stats["total"] += 1
                     test_stats["passed"] += 1
 
             # Extract summary statistics
-            elif 'passing' in line.lower() and 'failing' in line.lower():
+            elif "passing" in line.lower() and "failing" in line.lower():
                 # Pattern: "Test result: ok. X passed; Y failed; ..."
-                passed_match = re.search(r'(\d+)\s+passed', line)
-                failed_match = re.search(r'(\d+)\s+failed', line)
+                passed_match = re.search(r"(\d+)\s+passed", line)
+                failed_match = re.search(r"(\d+)\s+failed", line)
 
                 if passed_match:
                     test_stats["passed"] = int(passed_match.group(1))
@@ -460,23 +457,22 @@ class FoundryAdapter(ToolAdapter):
 
             # Try to extract some basic stats
             gas_functions = []
-            lines = stdout.split('\n')
+            lines = stdout.split("\n")
             in_table = False
 
             for line in lines:
-                if '|' in line and 'Function' in line:
+                if "|" in line and "Function" in line:
                     in_table = True
                     continue
 
-                if in_table and '|' in line:
+                if in_table and "|" in line:
                     # Parse table row
-                    parts = [p.strip() for p in line.split('|')]
+                    parts = [p.strip() for p in line.split("|")]
                     if len(parts) >= 5 and parts[1]:  # Has function name
                         try:
-                            gas_functions.append({
-                                "function": parts[1],
-                                "avg_gas": int(parts[3].replace(',', ''))
-                            })
+                            gas_functions.append(
+                                {"function": parts[1], "avg_gas": int(parts[3].replace(",", ""))}
+                            )
                         except (ValueError, IndexError):
                             pass
 
@@ -511,7 +507,7 @@ class FoundryAdapter(ToolAdapter):
         path = Path(contract_path)
 
         # Can analyze if it's a .sol file
-        if path.is_file() and path.suffix == '.sol':
+        if path.is_file() and path.suffix == ".sol":
             return True
 
         # Can analyze if it's a directory with foundry.toml
@@ -528,17 +524,14 @@ class FoundryAdapter(ToolAdapter):
             "gas_report": True,
             "coverage": False,
             "timeout": 300,
-            "verbosity": 2
+            "verbosity": 2,
         }
 
 
 # Adapter registration
 def register_adapter():
     """Register Foundry adapter with MIESC"""
-    return {
-        "adapter_class": FoundryAdapter,
-        "metadata": FoundryAdapter.METADATA
-    }
+    return {"adapter_class": FoundryAdapter, "metadata": FoundryAdapter.METADATA}
 
 
 __all__ = ["FoundryAdapter", "register_adapter"]

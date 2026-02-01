@@ -4,16 +4,17 @@ Tests for MIESC WebSocket API Module
 Tests event types, event creation, and connection manager logic.
 """
 
-import pytest
 import json
 from datetime import datetime
 
+import pytest
+
 from src.core.websocket_api import (
+    WEBSOCKET_AVAILABLE,
+    AuditProgressTracker,
+    ConnectionManager,
     EventType,
     WebSocketEvent,
-    ConnectionManager,
-    AuditProgressTracker,
-    WEBSOCKET_AVAILABLE,
 )
 
 
@@ -213,6 +214,7 @@ class TestWebSocketAvailability:
         """Test module imports without error."""
         # If we got here, the module imported successfully
         from src.core.websocket_api import EventType, WebSocketEvent
+
         assert EventType is not None
         assert WebSocketEvent is not None
 
@@ -221,8 +223,8 @@ class TestWebSocketAvailability:
 # Extended Tests for ConnectionManager
 # =============================================================================
 
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch
+import asyncio  # noqa: E402
+from unittest.mock import AsyncMock, Mock  # noqa: E402
 
 
 class TestConnectionManagerAsync:
@@ -370,6 +372,7 @@ class TestConnectionManagerAsync:
 # Extended Tests for AuditProgressTracker
 # =============================================================================
 
+
 class TestAuditProgressTrackerAsync:
     """Async tests for AuditProgressTracker using asyncio.run()."""
 
@@ -508,6 +511,7 @@ class TestAuditProgressTrackerAsync:
 # Test Global Functions
 # =============================================================================
 
+
 class TestGlobalFunctions:
     """Tests for module-level functions."""
 
@@ -531,6 +535,7 @@ class TestGlobalFunctions:
 # =============================================================================
 # Test WebSocket App (requires FastAPI)
 # =============================================================================
+
 
 @pytest.mark.skipif(not WEBSOCKET_AVAILABLE, reason="FastAPI not installed")
 class TestWebSocketApp:

@@ -18,10 +18,9 @@ License: AGPL-3.0
 import hashlib
 import logging
 import math
-import re
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -142,7 +141,7 @@ class AuditConsensusAdapter(ToolAdapter):
 
         # Apply Bayesian scoring
         consensus_findings = []
-        for key, group in grouped.items():
+        for _key, group in grouped.items():
             consensus = self._compute_consensus(group)
             if consensus["posterior_confidence"] >= 0.30:
                 consensus_findings.append(consensus)
@@ -287,15 +286,27 @@ class AuditConsensusAdapter(ToolAdapter):
     def _get_tool_layers(self, tools: set) -> set:
         """Map tools to their layer numbers."""
         tool_layer_map = {
-            "smartllm": 5, "gptscan": 5, "llmsmartaudit": 5,
-            "gptlens": 5, "llamaaudit": 5, "iaudit": 5,
-            "dagnn": 6, "smartbugs_ml": 6, "smartbugs_detector": 6,
-            "smartguard": 6, "peculiar": 6,
-            "llmbugscanner": 9, "exploit_synthesizer": 9,
-            "vuln_verifier": 9, "remediation_validator": 9,
-            "slither": 1, "aderyn": 1,
-            "mythril": 3, "manticore": 3,
-            "certora": 4, "smtchecker": 4,
+            "smartllm": 5,
+            "gptscan": 5,
+            "llmsmartaudit": 5,
+            "gptlens": 5,
+            "llamaaudit": 5,
+            "iaudit": 5,
+            "dagnn": 6,
+            "smartbugs_ml": 6,
+            "smartbugs_detector": 6,
+            "smartguard": 6,
+            "peculiar": 6,
+            "llmbugscanner": 9,
+            "exploit_synthesizer": 9,
+            "vuln_verifier": 9,
+            "remediation_validator": 9,
+            "slither": 1,
+            "aderyn": 1,
+            "mythril": 3,
+            "manticore": 3,
+            "certora": 4,
+            "smtchecker": 4,
         }
         return {tool_layer_map.get(t, 0) for t in tools if tool_layer_map.get(t, 0) > 0}
 
@@ -332,28 +343,32 @@ class AuditConsensusAdapter(ToolAdapter):
             severity = best.get("severity", "Medium")
             tools_str = ", ".join(item.get("confirming_tools", []))
 
-            findings.append({
-                "id": f"CON-{finding_id}",
-                "type": f"consensus_{item.get('vuln_type', 'unknown')}",
-                "severity": severity,
-                "confidence": item["posterior_confidence"],
-                "location": {
-                    "file": item.get("file", best.get("location", {}).get("file", "")),
-                    "line": item.get("line", best.get("location", {}).get("line", 0)),
-                    "function": best.get("location", {}).get("function", ""),
-                },
-                "message": (
-                    f"Consensus finding ({item['tool_count']} tools, "
-                    f"{item['layer_count']} layers): {best.get('message', best.get('description', ''))}"
-                ),
-                "description": (
-                    f"Bayesian consensus (posterior={item['posterior_confidence']:.2f}) "
-                    f"confirmed by: {tools_str}"
-                ),
-                "recommendation": best.get("recommendation", "Review finding confirmed by multiple tools"),
-                "swc_id": best.get("swc_id"),
-                "cwe_id": best.get("cwe_id"),
-                "tool": "audit_consensus",
-            })
+            findings.append(
+                {
+                    "id": f"CON-{finding_id}",
+                    "type": f"consensus_{item.get('vuln_type', 'unknown')}",
+                    "severity": severity,
+                    "confidence": item["posterior_confidence"],
+                    "location": {
+                        "file": item.get("file", best.get("location", {}).get("file", "")),
+                        "line": item.get("line", best.get("location", {}).get("line", 0)),
+                        "function": best.get("location", {}).get("function", ""),
+                    },
+                    "message": (
+                        f"Consensus finding ({item['tool_count']} tools, "
+                        f"{item['layer_count']} layers): {best.get('message', best.get('description', ''))}"
+                    ),
+                    "description": (
+                        f"Bayesian consensus (posterior={item['posterior_confidence']:.2f}) "
+                        f"confirmed by: {tools_str}"
+                    ),
+                    "recommendation": best.get(
+                        "recommendation", "Review finding confirmed by multiple tools"
+                    ),
+                    "swc_id": best.get("swc_id"),
+                    "cwe_id": best.get("cwe_id"),
+                    "tool": "audit_consensus",
+                }
+            )
 
         return findings

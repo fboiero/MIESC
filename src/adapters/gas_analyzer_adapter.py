@@ -10,13 +10,18 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-01-09
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional
-import re
 import logging
+import re
 from pathlib import Path
+from typing import Any, Dict, List
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +46,7 @@ class GasAnalyzerAdapter(ToolAdapter):
             "severity": "Medium",
             "message": "Storage array access in loop - cache to memory",
             "gas_impact": 2100,  # ~2100 gas por SLOAD
-            "recommendation": "Cache array length to memory variable before loop"
+            "recommendation": "Cache array length to memory variable before loop",
         },
         # Variable de estado sin immutable/constant
         "missing_immutable": {
@@ -49,7 +54,7 @@ class GasAnalyzerAdapter(ToolAdapter):
             "severity": "Low",
             "message": "State variable could be immutable or constant",
             "gas_impact": 2000,  # Deployment gas savings
-            "recommendation": "Add 'immutable' or 'constant' if value doesn't change"
+            "recommendation": "Add 'immutable' or 'constant' if value doesn't change",
         },
         # String en storage (debería ser en calldata o memory)
         "string_storage": {
@@ -57,7 +62,7 @@ class GasAnalyzerAdapter(ToolAdapter):
             "severity": "High",
             "message": "String parameter using storage - use calldata",
             "gas_impact": 3000,
-            "recommendation": "Change 'string storage' to 'string calldata' or 'string memory'"
+            "recommendation": "Change 'string storage' to 'string calldata' or 'string memory'",
         },
         # ++i vs i++
         "postfix_increment": {
@@ -65,7 +70,7 @@ class GasAnalyzerAdapter(ToolAdapter):
             "severity": "Low",
             "message": "Post-increment (i++) costs more gas than pre-increment (++i)",
             "gas_impact": 5,
-            "recommendation": "Use ++i instead of i++ in loops"
+            "recommendation": "Use ++i instead of i++ in loops",
         },
         # Repeated external calls
         "repeated_external_call": {
@@ -73,7 +78,7 @@ class GasAnalyzerAdapter(ToolAdapter):
             "severity": "Medium",
             "message": "Repeated external call - cache result",
             "gas_impact": 2600,  # CALL opcode base cost
-            "recommendation": "Store result in variable and reuse"
+            "recommendation": "Store result in variable and reuse",
         },
         # Public function that could be external
         "public_not_external": {
@@ -81,7 +86,7 @@ class GasAnalyzerAdapter(ToolAdapter):
             "severity": "Low",
             "message": "Public function that could be external",
             "gas_impact": 200,
-            "recommendation": "Change 'public' to 'external' if not called internally"
+            "recommendation": "Change 'public' to 'external' if not called internally",
         },
         # Unnecessary zero initialization
         "zero_init": {
@@ -89,7 +94,7 @@ class GasAnalyzerAdapter(ToolAdapter):
             "severity": "Low",
             "message": "Unnecessary zero initialization",
             "gas_impact": 3,
-            "recommendation": "Remove '= 0' (variables are zero-initialized by default)"
+            "recommendation": "Remove '= 0' (variables are zero-initialized by default)",
         },
         # Array length in loop condition
         "array_length_loop": {
@@ -97,8 +102,8 @@ class GasAnalyzerAdapter(ToolAdapter):
             "severity": "Medium",
             "message": "Reading .length in every loop iteration",
             "gas_impact": 100,  # per iteration
-            "recommendation": "Cache array.length before loop: uint len = array.length"
-        }
+            "recommendation": "Cache array.length before loop: uint len = array.length",
+        },
     }
 
     def get_metadata(self) -> ToolMetadata:
@@ -122,13 +127,13 @@ class GasAnalyzerAdapter(ToolAdapter):
                         "loop_optimization",
                         "storage_packing",
                         "function_visibility",
-                        "unnecessary_operations"
-                    ]
+                        "unnecessary_operations",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True  # DPGA compliance
+            is_optional=True,  # DPGA compliance
         )
 
     def is_available(self) -> ToolStatus:
@@ -148,11 +153,12 @@ class GasAnalyzerAdapter(ToolAdapter):
             Resultados normalizados
         """
         import time
+
         start = time.time()
 
         try:
             # Leer contrato
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 source_code = f.read()
 
             # Analizar patrones
@@ -161,8 +167,11 @@ class GasAnalyzerAdapter(ToolAdapter):
             # Filtrar por severidad si se especifica
             min_severity = kwargs.get("min_severity")
             if min_severity:
-                findings = [f for f in findings if self._severity_level(f["severity"]) >=
-                           self._severity_level(min_severity)]
+                findings = [
+                    f
+                    for f in findings
+                    if self._severity_level(f["severity"]) >= self._severity_level(min_severity)
+                ]
 
             # Calcular gas total ahorrable
             total_gas_savings = sum(f.get("gas_saved", 0) for f in findings)
@@ -175,9 +184,9 @@ class GasAnalyzerAdapter(ToolAdapter):
                 "metadata": {
                     "total_issues": len(findings),
                     "total_gas_savings": total_gas_savings,
-                    "severity_breakdown": self._severity_breakdown(findings)
+                    "severity_breakdown": self._severity_breakdown(findings),
                 },
-                "execution_time": time.time() - start
+                "execution_time": time.time() - start,
             }
 
         except Exception as e:
@@ -188,7 +197,7 @@ class GasAnalyzerAdapter(ToolAdapter):
                 "status": "error",
                 "error": str(e),
                 "findings": [],
-                "execution_time": time.time() - start
+                "execution_time": time.time() - start,
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -205,7 +214,7 @@ class GasAnalyzerAdapter(ToolAdapter):
     def _analyze_patterns(self, source_code: str, contract_path: str) -> List[Dict[str, Any]]:
         """Analiza código buscando anti-patrones de gas"""
         findings = []
-        lines = source_code.split('\n')
+        lines = source_code.split("\n")
 
         for pattern_name, pattern_info in self.GAS_PATTERNS.items():
             regex = re.compile(pattern_info["regex"], re.MULTILINE)
@@ -223,7 +232,7 @@ class GasAnalyzerAdapter(ToolAdapter):
                             "file": str(Path(contract_path).name),
                             "line": line_num,
                             "column": match.start(),
-                            "code_snippet": line.strip()
+                            "code_snippet": line.strip(),
                         },
                         "message": pattern_info["message"],
                         "description": f"Gas optimization opportunity detected: {pattern_info['message']}",
@@ -232,7 +241,7 @@ class GasAnalyzerAdapter(ToolAdapter):
                         "cwe_id": None,
                         "owasp_category": None,
                         "gas_saved": pattern_info["gas_impact"],
-                        "pattern": pattern_name
+                        "pattern": pattern_name,
                     }
                     findings.append(finding)
 
@@ -253,11 +262,8 @@ class GasAnalyzerAdapter(ToolAdapter):
 
     def can_analyze(self, contract_path: str) -> bool:
         """Verifica si el archivo es un contrato Solidity"""
-        return contract_path.endswith('.sol')
+        return contract_path.endswith(".sol")
 
     def get_default_config(self) -> Dict[str, Any]:
         """Configuración por defecto"""
-        return {
-            "min_severity": "Low",
-            "enable_all_patterns": True
-        }
+        return {"min_severity": "Low", "enable_all_patterns": True}

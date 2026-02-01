@@ -21,37 +21,37 @@ Date: November 11, 2025
 License: AGPL v3
 """
 
+import os
+import random
 import sys
 import time
-import random
-import os
 import webbrowser
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Any
+from pathlib import Path
+from typing import Any, Dict
 
 # Add MIESC to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import MIESC adapter registry
-from src.adapters import register_all_adapters, get_adapter_status_report
-from src.core.tool_protocol import ToolStatus
+from src.adapters import register_all_adapters
 
 
 class NeonColors:
     """Cyberpunk neon color palette"""
-    NEON_PINK = '\033[95m\033[1m'
-    NEON_CYAN = '\033[96m\033[1m'
-    NEON_GREEN = '\033[92m\033[1m'
-    NEON_YELLOW = '\033[93m\033[1m'
-    NEON_RED = '\033[91m\033[1m'
-    NEON_BLUE = '\033[94m\033[1m'
-    NEON_PURPLE = '\033[35m\033[1m'
-    DIM_CYAN = '\033[36m'
-    DIM_PINK = '\033[35m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    BLINK = '\033[5m'
+
+    NEON_PINK = "\033[95m\033[1m"
+    NEON_CYAN = "\033[96m\033[1m"
+    NEON_GREEN = "\033[92m\033[1m"
+    NEON_YELLOW = "\033[93m\033[1m"
+    NEON_RED = "\033[91m\033[1m"
+    NEON_BLUE = "\033[94m\033[1m"
+    NEON_PURPLE = "\033[35m\033[1m"
+    DIM_CYAN = "\033[36m"
+    DIM_PINK = "\033[35m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    BLINK = "\033[5m"
 
 
 def typing_effect(text: str, delay: float = 0.015, color: str = NeonColors.NEON_CYAN):
@@ -67,7 +67,7 @@ def matrix_rain(lines: int = 5, duration: float = 1.0):
     """Matrix-style digital rain effect"""
     chars = "01アイウエオカキクケコサシスセソタチツテト"
     for _ in range(lines):
-        line = ''.join(random.choice(chars) for _ in range(80))
+        line = "".join(random.choice(chars) for _ in range(80))
         print(f"{NeonColors.NEON_GREEN}{line}{NeonColors.ENDC}")
         time.sleep(duration / lines)
 
@@ -151,73 +151,69 @@ def display_7_layer_architecture(adapter_report: Dict[str, Any]):
             "tools": [
                 ("Slither", "0.10.3", "🔍", "installable"),
                 ("Aderyn", "0.6.4", "🦀", "adapter"),
-                ("Solhint", "4.1.1", "📋", "installable")
+                ("Solhint", "4.1.1", "📋", "installable"),
             ],
             "color": NeonColors.NEON_BLUE,
             "speed": "⚡ 2-5s",
-            "fp_rate": "🟡 20-30%"
+            "fp_rate": "🟡 20-30%",
         },
         "Layer 2: Dynamic Testing": {
             "tools": [
                 ("Echidna", "2.2.4", "🦎", "installable"),
                 ("Medusa", "1.3.1", "🐍", "adapter"),
-                ("Foundry", "0.2.0", "⚒️", "installable")
+                ("Foundry", "0.2.0", "⚒️", "installable"),
             ],
             "color": NeonColors.NEON_PINK,
             "speed": "🐢 5-10m",
-            "fp_rate": "🟢 5-10%"
+            "fp_rate": "🟢 5-10%",
         },
         "Layer 3: Symbolic Execution": {
             "tools": [
                 ("Mythril", "0.24.2", "🔮", "installable"),
                 ("Manticore", "0.3.7", "🦂", "installable"),
-                ("Halmos", "0.1.13", "🎯", "installable")
+                ("Halmos", "0.1.13", "🎯", "installable"),
             ],
             "color": NeonColors.NEON_PURPLE,
             "speed": "🐌 10-30m",
-            "fp_rate": "🟡 15-25%"
+            "fp_rate": "🟡 15-25%",
         },
         "Layer 4: Formal Verification": {
             "tools": [
                 ("Certora", "2024.12", "✨", "license"),
                 ("SMTChecker", "0.8.20+", "🧮", "builtin"),
-                ("Wake", "4.20.1", "⚡", "installable")
+                ("Wake", "4.20.1", "⚡", "installable"),
             ],
             "color": NeonColors.NEON_GREEN,
             "speed": "🦥 1-4h",
-            "fp_rate": "🟢 1-5%"
+            "fp_rate": "🟢 1-5%",
         },
         "Layer 5: AI-Powered Analysis": {
             "tools": [
                 ("GPTScan", "1.0.0", "🤖", "api_key"),
                 ("LLM-SmartAudit", "1.0.0", "🧠", "api_key"),
-                ("SmartLLM", "1.0.0", "💡", "ollama")
+                ("SmartLLM", "1.0.0", "💡", "ollama"),
             ],
             "color": NeonColors.NEON_CYAN,
             "speed": "🚀 1-2m",
-            "fp_rate": "🟡 Varies"
+            "fp_rate": "🟡 Varies",
         },
         "Layer 6: Policy Compliance": {
-            "tools": [
-                ("PolicyAgent", "v2.2", "📊", "builtin")
-            ],
+            "tools": [("PolicyAgent", "v2.2", "📊", "builtin")],
             "color": NeonColors.NEON_YELLOW,
             "speed": "⚡ Instant",
-            "fp_rate": "🟢 None"
+            "fp_rate": "🟢 None",
         },
         "Layer 7: Audit Readiness": {
-            "tools": [
-                ("Layer7Agent", "OpenZeppelin", "📝", "builtin")
-            ],
+            "tools": [("Layer7Agent", "OpenZeppelin", "📝", "builtin")],
             "color": NeonColors.NEON_PINK,
             "speed": "⚡ 2-5s",
-            "fp_rate": "🟢 None"
-        }
+            "fp_rate": "🟢 None",
+        },
     }
 
     # Get adapter status
-    adapter_names = {a['name'] for a in adapter_report['adapters']}
-    adapter_status = {a['name']: a['status'] for a in adapter_report['adapters']}
+    adapter_names = {a["name"] for a in adapter_report["adapters"]}
+    adapter_status = {a["name"]: a["status"] for a in adapter_report["adapters"]}
 
     # Status legend mapping
     status_icons = {
@@ -228,42 +224,42 @@ def display_7_layer_architecture(adapter_report: Dict[str, Any]):
         "license": f"{NeonColors.NEON_PURPLE}🔑{NeonColors.ENDC}",
         "api_key": f"{NeonColors.NEON_BLUE}🔐{NeonColors.ENDC}",
         "ollama": f"{NeonColors.NEON_GREEN}🦙{NeonColors.ENDC}",
-        "adapter": f"{NeonColors.NEON_GREEN}✅{NeonColors.ENDC}"
+        "adapter": f"{NeonColors.NEON_GREEN}✅{NeonColors.ENDC}",
     }
 
     for layer_name, layer_info in architecture.items():
-        color = layer_info['color']
+        color = layer_info["color"]
         print(f"{color}┌─ {layer_name} ─────────────────────────────────────┐{NeonColors.ENDC}")
         print(f"{color}│ {layer_info['speed']} | {layer_info['fp_rate']} │{NeonColors.ENDC}")
         print(f"{color}├────────────────────────────────────────────────────┤{NeonColors.ENDC}")
 
-        for tool_name, version, icon, tool_type in layer_info['tools']:
+        for tool_name, version, icon, tool_type in layer_info["tools"]:
             # Check if adapter exists and is available
             adapter_key = tool_name.lower().replace(" ", "_").replace("-", "_")
 
             if adapter_key in adapter_names:
                 status = adapter_status[adapter_key]
-                if status == 'available':
-                    status_icon = status_icons['available']
-                    status_text = "Ready"
+                if status == "available":
+                    status_icon = status_icons["available"]
                 else:
-                    status_icon = status_icons['not_installed']
-                    status_text = "Optional"
+                    status_icon = status_icons["not_installed"]
             else:
                 # Show all tools with appropriate indicators
-                status_icon = status_icons.get(tool_type, status_icons['installable'])
+                status_icon = status_icons.get(tool_type, status_icons["installable"])
                 if tool_type == "builtin":
-                    status_text = "Built-in"
+                    pass
                 elif tool_type == "license":
-                    status_text = "License"
+                    pass
                 elif tool_type == "api_key":
-                    status_text = "API Key"
+                    pass
                 elif tool_type == "ollama":
-                    status_text = "Ollama"
+                    pass
                 else:
-                    status_text = "Install"
+                    pass
 
-            print(f"{color}│ {status_icon} {icon} {tool_name:<20} v{version:<10} │{NeonColors.ENDC}")
+            print(
+                f"{color}│ {status_icon} {icon} {tool_name:<20} v{version:<10} │{NeonColors.ENDC}"
+            )
 
         print(f"{color}└────────────────────────────────────────────────────┘{NeonColors.ENDC}\n")
         time.sleep(0.3)
@@ -274,7 +270,9 @@ def display_7_layer_architecture(adapter_report: Dict[str, Any]):
     print(f"  {status_icons['installable']} Install  - Free/open-source, can be installed")
     print(f"  {status_icons['builtin']} Built-in - Included with MIESC")
     print(f"  {status_icons['license']} License  - Requires commercial license (Certora)")
-    print(f"  {status_icons['api_key']} API Key  - Requires OpenAI/API key (GPTScan, LLM-SmartAudit)")
+    print(
+        f"  {status_icons['api_key']} API Key  - Requires OpenAI/API key (GPTScan, LLM-SmartAudit)"
+    )
     print(f"  {status_icons['ollama']} Ollama   - Requires local Ollama setup (SmartLLM)")
     print()
 
@@ -283,43 +281,77 @@ def display_adapter_statistics(adapter_report: Dict[str, Any]):
     """Display real adapter statistics"""
     print_section_header("ADAPTER REGISTRY STATISTICS", "📊")
 
-    available = [a for a in adapter_report['adapters'] if a['status'] == 'available']
-    not_installed = [a for a in adapter_report['adapters'] if a['status'] == 'not_installed']
+    available = [a for a in adapter_report["adapters"] if a["status"] == "available"]
+    not_installed = [a for a in adapter_report["adapters"] if a["status"] == "not_installed"]
 
-    print(f"{NeonColors.NEON_CYAN}╔══════════════════════════════════════════════════════════╗{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_CYAN}║                 ADAPTER STATUS REPORT                    ║{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_CYAN}╠══════════════════════════════════════════════════════════╣{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_GREEN}║  ✅ Available Tools:      {len(available):<30}║{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_YELLOW}║  ⚠️  Not Installed:       {len(not_installed):<30}║{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_CYAN}║  📦 Total Registered:     {adapter_report['total_adapters']:<30}║{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_CYAN}╚══════════════════════════════════════════════════════════╝{NeonColors.ENDC}\n")
+    print(
+        f"{NeonColors.NEON_CYAN}╔══════════════════════════════════════════════════════════╗{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_CYAN}║                 ADAPTER STATUS REPORT                    ║{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_CYAN}╠══════════════════════════════════════════════════════════╣{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_GREEN}║  ✅ Available Tools:      {len(available):<30}║{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_YELLOW}║  ⚠️  Not Installed:       {len(not_installed):<30}║{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_CYAN}║  📦 Total Registered:     {adapter_report['total_adapters']:<30}║{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_CYAN}╚══════════════════════════════════════════════════════════╝{NeonColors.ENDC}\n"
+    )
 
     # DPGA Compliance
-    all_optional = all(a.get('optional', False) for a in adapter_report['adapters'])
+    all_optional = all(a.get("optional", False) for a in adapter_report["adapters"])
 
-    print(f"{NeonColors.NEON_PINK}╔══════════════════════════════════════════════════════════╗{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_PINK}║                  DPGA COMPLIANCE                         ║{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_PINK}╠══════════════════════════════════════════════════════════╣{NeonColors.ENDC}")
+    print(
+        f"{NeonColors.NEON_PINK}╔══════════════════════════════════════════════════════════╗{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_PINK}║                  DPGA COMPLIANCE                         ║{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_PINK}╠══════════════════════════════════════════════════════════╣{NeonColors.ENDC}"
+    )
 
     if all_optional:
-        print(f"{NeonColors.NEON_GREEN}║  ✅ PASS: 100% Tools Optional                           ║{NeonColors.ENDC}")
-        print(f"{NeonColors.NEON_GREEN}║  ✅ PASS: Zero Vendor Lock-in                           ║{NeonColors.ENDC}")
-        print(f"{NeonColors.NEON_GREEN}║  ✅ PASS: Community Extensible                          ║{NeonColors.ENDC}")
+        print(
+            f"{NeonColors.NEON_GREEN}║  ✅ PASS: 100% Tools Optional                           ║{NeonColors.ENDC}"
+        )
+        print(
+            f"{NeonColors.NEON_GREEN}║  ✅ PASS: Zero Vendor Lock-in                           ║{NeonColors.ENDC}"
+        )
+        print(
+            f"{NeonColors.NEON_GREEN}║  ✅ PASS: Community Extensible                          ║{NeonColors.ENDC}"
+        )
     else:
-        print(f"{NeonColors.NEON_RED}║  ❌ FAIL: Some tools are mandatory                      ║{NeonColors.ENDC}")
+        print(
+            f"{NeonColors.NEON_RED}║  ❌ FAIL: Some tools are mandatory                      ║{NeonColors.ENDC}"
+        )
 
-    print(f"{NeonColors.NEON_PINK}╚══════════════════════════════════════════════════════════╝{NeonColors.ENDC}\n")
+    print(
+        f"{NeonColors.NEON_PINK}╚══════════════════════════════════════════════════════════╝{NeonColors.ENDC}\n"
+    )
 
     # List all adapters
     print(f"{NeonColors.NEON_YELLOW}Detailed Adapter List:{NeonColors.ENDC}\n")
 
-    for adapter in adapter_report['adapters']:
-        status_color = NeonColors.NEON_GREEN if adapter['status'] == 'available' else NeonColors.NEON_YELLOW
-        status_icon = "✅" if adapter['status'] == 'available' else "⚠️"
+    for adapter in adapter_report["adapters"]:
+        status_color = (
+            NeonColors.NEON_GREEN if adapter["status"] == "available" else NeonColors.NEON_YELLOW
+        )
+        status_icon = "✅" if adapter["status"] == "available" else "⚠️"
 
-        print(f"  {status_icon} {adapter['name']:<20} v{adapter['version']:<10} "
-              f"{status_color}[{adapter['status']}]{NeonColors.ENDC} "
-              f"{NeonColors.DIM_CYAN}({adapter['category']}){NeonColors.ENDC}")
+        print(
+            f"  {status_icon} {adapter['name']:<20} v{adapter['version']:<10} "
+            f"{status_color}[{adapter['status']}]{NeonColors.ENDC} "
+            f"{NeonColors.DIM_CYAN}({adapter['category']}){NeonColors.ENDC}"
+        )
 
     print()
 
@@ -328,16 +360,36 @@ def display_scientific_metrics():
     """Display validated scientific metrics"""
     print_section_header("SCIENTIFIC VALIDATION METRICS", "🔬")
 
-    print(f"{NeonColors.NEON_PURPLE}╔══════════════════════════════════════════════════════════╗{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_PURPLE}║            PEER-REVIEWED PERFORMANCE METRICS             ║{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_PURPLE}╠══════════════════════════════════════════════════════════╣{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_CYAN}║  Dataset:             5,127 Smart Contracts              ║{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_GREEN}║  Precision:           89.47%                             ║{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_GREEN}║  Recall:              86.2%                              ║{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_GREEN}║  Cohen's Kappa:       0.847 (Almost Perfect Agreement)  ║{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_YELLOW}║  False Positive Cut:  -73.6%                             ║{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_YELLOW}║  Execution Speed:     90% faster than manual             ║{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_PURPLE}╚══════════════════════════════════════════════════════════╝{NeonColors.ENDC}\n")
+    print(
+        f"{NeonColors.NEON_PURPLE}╔══════════════════════════════════════════════════════════╗{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_PURPLE}║            PEER-REVIEWED PERFORMANCE METRICS             ║{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_PURPLE}╠══════════════════════════════════════════════════════════╣{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_CYAN}║  Dataset:             5,127 Smart Contracts              ║{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_GREEN}║  Precision:           89.47%                             ║{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_GREEN}║  Recall:              86.2%                              ║{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_GREEN}║  Cohen's Kappa:       0.847 (Almost Perfect Agreement)  ║{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_YELLOW}║  False Positive Cut:  -73.6%                             ║{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_YELLOW}║  Execution Speed:     90% faster than manual             ║{NeonColors.ENDC}"
+    )
+    print(
+        f"{NeonColors.NEON_PURPLE}╚══════════════════════════════════════════════════════════╝{NeonColors.ENDC}\n"
+    )
 
 
 def analyze_contract_demo(contract_path: str, adapter_report: Dict[str, Any]):
@@ -345,7 +397,9 @@ def analyze_contract_demo(contract_path: str, adapter_report: Dict[str, Any]):
     print_section_header("LIVE CONTRACT ANALYSIS DEMO", "🔥")
 
     print(f"{NeonColors.NEON_PINK}[*] TARGET: {contract_path}{NeonColors.ENDC}")
-    print(f"{NeonColors.DIM_CYAN}[*] Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{NeonColors.ENDC}\n")
+    print(
+        f"{NeonColors.DIM_CYAN}[*] Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{NeonColors.ENDC}\n"
+    )
     time.sleep(0.5)
 
     # Layer 1: Static Analysis
@@ -368,7 +422,9 @@ def analyze_contract_demo(contract_path: str, adapter_report: Dict[str, Any]):
     typing_effect("  → Activating Layer 3: Symbolic Execution...", 0.02, NeonColors.NEON_PURPLE)
     time.sleep(0.8)
     loading_bar("  Exploring paths with Mythril + Manticore + Halmos", 40, NeonColors.NEON_PURPLE)
-    print(f"{NeonColors.NEON_RED}    ✗ [SWC-107] Reentrancy Attack (HIGH confidence){NeonColors.ENDC}\n")
+    print(
+        f"{NeonColors.NEON_RED}    ✗ [SWC-107] Reentrancy Attack (HIGH confidence){NeonColors.ENDC}\n"
+    )
     time.sleep(0.5)
 
     # Layer 4: Formal Verification
@@ -381,7 +437,9 @@ def analyze_contract_demo(contract_path: str, adapter_report: Dict[str, Any]):
     # Layer 5: AI Analysis
     typing_effect("  → Deploying Layer 5: AI-Powered Analysis...", 0.02, NeonColors.NEON_CYAN)
     time.sleep(1.0)
-    loading_bar("  Cross-correlating with GPTScan + LLM-SmartAudit + SmartLLM", 50, NeonColors.NEON_CYAN)
+    loading_bar(
+        "  Cross-correlating with GPTScan + LLM-SmartAudit + SmartLLM", 50, NeonColors.NEON_CYAN
+    )
     print(f"\n{NeonColors.NEON_PINK}    🤖 AI VERDICT:{NeonColors.ENDC}")
     print(f"{NeonColors.NEON_CYAN}    All 4 layers confirmed: CRITICAL REENTRANCY{NeonColors.ENDC}")
     print(f"{NeonColors.NEON_CYAN}    Confidence: 99.8% | NOT a false positive{NeonColors.ENDC}\n")
@@ -390,7 +448,9 @@ def analyze_contract_demo(contract_path: str, adapter_report: Dict[str, Any]):
     # Layer 6: Policy Compliance
     typing_effect("  → Running Layer 6: Policy Compliance...", 0.02, NeonColors.NEON_YELLOW)
     time.sleep(0.5)
-    print(f"{NeonColors.NEON_PURPLE}    ► OWASP SC Top 10: SC01 - Reentrancy Attacks{NeonColors.ENDC}")
+    print(
+        f"{NeonColors.NEON_PURPLE}    ► OWASP SC Top 10: SC01 - Reentrancy Attacks{NeonColors.ENDC}"
+    )
     print(f"{NeonColors.NEON_PURPLE}    ► SWC Registry:    SWC-107{NeonColors.ENDC}")
     print(f"{NeonColors.NEON_PURPLE}    ► CWE:             CWE-841{NeonColors.ENDC}\n")
     time.sleep(0.5)
@@ -406,9 +466,10 @@ def display_final_summary(adapter_report: Dict[str, Any]):
     """Final summary with real statistics"""
     print_section_header("ANALYSIS COMPLETE", "✓")
 
-    available_count = len([a for a in adapter_report['adapters'] if a['status'] == 'available'])
+    available_count = len([a for a in adapter_report["adapters"] if a["status"] == "available"])
 
-    print(f"""
+    print(
+        f"""
 {NeonColors.NEON_PINK}    ╔═══════════════════════════════════════════════════════════════╗
     ║                     THREAT ASSESSMENT                         ║
     ╠═══════════════════════════════════════════════════════════════╣{NeonColors.ENDC}
@@ -438,13 +499,14 @@ def display_final_summary(adapter_report: Dict[str, Any]):
     ║  3. Add comprehensive test coverage                          ║
     ║  4. Re-run MIESC verification                                ║{NeonColors.ENDC}
 {NeonColors.NEON_PINK}    ╚═══════════════════════════════════════════════════════════════╝{NeonColors.ENDC}
-""")
+"""
+    )
 
 
 def generate_html_dashboard(adapter_report: Dict[str, Any], contract_path: str):
     """Generate interactive HTML dashboard with real data"""
 
-    available_count = len([a for a in adapter_report['adapters'] if a['status'] == 'available'])
+    available_count = len([a for a in adapter_report["adapters"] if a["status"] == "available"])
     total_tools = 17  # From README architecture
 
     html = f"""<!DOCTYPE html>
@@ -653,7 +715,7 @@ def generate_html_dashboard(adapter_report: Dict[str, Any], contract_path: str):
 """
 
     output_file = "/tmp/miesc_demo_dashboard_2025.html"
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         f.write(html)
 
     return output_file
@@ -661,7 +723,7 @@ def generate_html_dashboard(adapter_report: Dict[str, Any], contract_path: str):
 
 def main():
     """Main execution"""
-    os.system('clear')
+    os.system("clear")
 
     print_cyberpunk_banner()
     time.sleep(1)
@@ -681,7 +743,9 @@ def main():
     # Contract analysis demo
     if len(sys.argv) < 2:
         contract_path = "examples/vulnerable/EtherStore.sol"
-        print(f"{NeonColors.NEON_YELLOW}[!] No contract specified, using demo: {contract_path}{NeonColors.ENDC}\n")
+        print(
+            f"{NeonColors.NEON_YELLOW}[!] No contract specified, using demo: {contract_path}{NeonColors.ENDC}\n"
+        )
     else:
         contract_path = sys.argv[1]
 
@@ -700,9 +764,10 @@ def main():
     time.sleep(1)
 
     # Open in browser
-    webbrowser.open(f'file://{html_file}')
+    webbrowser.open(f"file://{html_file}")
 
-    print(f"""
+    print(
+        f"""
 {NeonColors.NEON_PINK}    ╔═══════════════════════════════════════════════════════════════╗
     ║                 DEMO SESSION COMPLETE                         ║
     ╠═══════════════════════════════════════════════════════════════╣{NeonColors.ENDC}
@@ -719,8 +784,9 @@ def main():
 {NeonColors.NEON_PINK}    ╠═══════════════════════════════════════════════════════════════╣
     ║        Thank you for exploring MIESC v3.4.0! 🚀              ║
     ╚═══════════════════════════════════════════════════════════════╝{NeonColors.ENDC}
-""")
+"""
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

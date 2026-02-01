@@ -226,53 +226,69 @@ class L2ValidatorAdapter(ToolAdapter):
 
         if has_messenger:
             for i, line in enumerate(lines, 1):
-                if re.search(r"function\s+\w*(?:receive|handle|process|finalize)\w*\s*\(", line, re.IGNORECASE):
-                    context = "\n".join(lines[max(0, i - 2):min(len(lines), i + 15)])
-                    has_sender_check = bool(re.search(
-                        r"xDomainMessageSender|require\s*\(\s*msg\.sender\s*==\s*messenger",
-                        context,
-                    ))
+                if re.search(
+                    r"function\s+\w*(?:receive|handle|process|finalize)\w*\s*\(",
+                    line,
+                    re.IGNORECASE,
+                ):
+                    context = "\n".join(lines[max(0, i - 2) : min(len(lines), i + 15)])
+                    has_sender_check = bool(
+                        re.search(
+                            r"xDomainMessageSender|require\s*\(\s*msg\.sender\s*==\s*messenger",
+                            context,
+                        )
+                    )
                     if not has_sender_check:
-                        findings.append({
-                            "type": "unsafe_cross_domain_message",
-                            "line": i,
-                            "file": path,
-                            "code": line.strip(),
-                        })
+                        findings.append(
+                            {
+                                "type": "unsafe_cross_domain_message",
+                                "line": i,
+                                "file": path,
+                                "code": line.strip(),
+                            }
+                        )
 
         return findings
 
     def _check_withdrawal_safety(self, source: str, lines: List[str], path: str) -> List[Dict]:
         findings = []
-        has_withdrawal = bool(re.search(r"function\s+\w*withdraw\w*|finalizeWithdrawal", source, re.IGNORECASE))
+        has_withdrawal = bool(
+            re.search(r"function\s+\w*withdraw\w*|finalizeWithdrawal", source, re.IGNORECASE)
+        )
 
         if has_withdrawal:
-            has_delay = bool(re.search(
-                r"withdrawalDelay|FINALIZATION_PERIOD|challengePeriod|block\.timestamp\s*>=?\s*\w+\s*\+",
-                source,
-            ))
+            has_delay = bool(
+                re.search(
+                    r"withdrawalDelay|FINALIZATION_PERIOD|challengePeriod|block\.timestamp\s*>=?\s*\w+\s*\+",
+                    source,
+                )
+            )
             has_proof = bool(re.search(r"proveWithdrawal|merkleProof|stateRoot|outputRoot", source))
 
             if not has_delay:
                 for i, line in enumerate(lines, 1):
                     if re.search(r"function\s+\w*withdraw\w*", line, re.IGNORECASE):
-                        findings.append({
-                            "type": "withdrawal_delay_bypass",
-                            "line": i,
-                            "file": path,
-                            "code": "Withdrawal without timelock delay enforcement",
-                        })
+                        findings.append(
+                            {
+                                "type": "withdrawal_delay_bypass",
+                                "line": i,
+                                "file": path,
+                                "code": "Withdrawal without timelock delay enforcement",
+                            }
+                        )
                         break
 
             if not has_proof:
                 for i, line in enumerate(lines, 1):
                     if re.search(r"function\s+\w*finalize\w*withdraw\w*", line, re.IGNORECASE):
-                        findings.append({
-                            "type": "l2_to_l1_verification_gap",
-                            "line": i,
-                            "file": path,
-                            "code": "L2-to-L1 withdrawal without state proof verification",
-                        })
+                        findings.append(
+                            {
+                                "type": "l2_to_l1_verification_gap",
+                                "line": i,
+                                "file": path,
+                                "code": "L2-to-L1 withdrawal without state proof verification",
+                            }
+                        )
                         break
 
         return findings
@@ -282,54 +298,70 @@ class L2ValidatorAdapter(ToolAdapter):
         has_sequencer = bool(re.search(r"sequencer|Sequencer", source))
 
         if has_sequencer:
-            has_forced_inclusion = bool(re.search(
-                r"forceInclude|forcedInclusion|enqueueL2|appendSequencerBatch|delayedInbox",
-                source, re.IGNORECASE,
-            ))
+            has_forced_inclusion = bool(
+                re.search(
+                    r"forceInclude|forcedInclusion|enqueueL2|appendSequencerBatch|delayedInbox",
+                    source,
+                    re.IGNORECASE,
+                )
+            )
             if not has_forced_inclusion:
                 for i, line in enumerate(lines, 1):
                     if re.search(r"sequencer", line, re.IGNORECASE):
-                        findings.append({
-                            "type": "missing_forced_inclusion",
-                            "line": i,
-                            "file": path,
-                            "code": "Sequencer dependency without forced inclusion mechanism",
-                        })
+                        findings.append(
+                            {
+                                "type": "missing_forced_inclusion",
+                                "line": i,
+                                "file": path,
+                                "code": "Sequencer dependency without forced inclusion mechanism",
+                            }
+                        )
                         break
 
             has_single_sequencer = bool(re.search(r"address\s+(public\s+)?sequencer\b", source))
-            has_decentralization = bool(re.search(r"sequencerSet|validators|committee", source, re.IGNORECASE))
+            has_decentralization = bool(
+                re.search(r"sequencerSet|validators|committee", source, re.IGNORECASE)
+            )
             if has_single_sequencer and not has_decentralization:
                 for i, line in enumerate(lines, 1):
                     if re.search(r"address\s+(public\s+)?sequencer", line):
-                        findings.append({
-                            "type": "centralized_sequencer_risk",
-                            "line": i,
-                            "file": path,
-                            "code": line.strip(),
-                        })
+                        findings.append(
+                            {
+                                "type": "centralized_sequencer_risk",
+                                "line": i,
+                                "file": path,
+                                "code": line.strip(),
+                            }
+                        )
                         break
 
         return findings
 
     def _check_dispute_mechanism(self, source: str, lines: List[str], path: str) -> List[Dict]:
         findings = []
-        is_optimistic = bool(re.search(r"optimistic|challenge|fraud|dispute", source, re.IGNORECASE))
+        is_optimistic = bool(
+            re.search(r"optimistic|challenge|fraud|dispute", source, re.IGNORECASE)
+        )
 
         if is_optimistic:
-            has_dispute = bool(re.search(
-                r"challengeState|submitFraudProof|disputeGame|bisect|challenge\s*\(",
-                source, re.IGNORECASE,
-            ))
+            has_dispute = bool(
+                re.search(
+                    r"challengeState|submitFraudProof|disputeGame|bisect|challenge\s*\(",
+                    source,
+                    re.IGNORECASE,
+                )
+            )
             if not has_dispute:
                 for i, line in enumerate(lines, 1):
                     if re.search(r"optimistic|stateCommitment", line, re.IGNORECASE):
-                        findings.append({
-                            "type": "missing_dispute_mechanism",
-                            "line": i,
-                            "file": path,
-                            "code": "Optimistic system without fraud proof mechanism",
-                        })
+                        findings.append(
+                            {
+                                "type": "missing_dispute_mechanism",
+                                "line": i,
+                                "file": path,
+                                "code": "Optimistic system without fraud proof mechanism",
+                            }
+                        )
                         break
 
         return findings
@@ -337,17 +369,21 @@ class L2ValidatorAdapter(ToolAdapter):
     def _check_l2_gas(self, source: str, lines: List[str], path: str) -> List[Dict]:
         findings = []
         has_l1_data_cost = bool(re.search(r"l1DataFee|l1GasCost|getL1Fee|L1_FEE_OVERHEAD", source))
-        has_gas_estimation = bool(re.search(r"gasEstimate|estimateGas|gasLimit", source, re.IGNORECASE))
+        has_gas_estimation = bool(
+            re.search(r"gasEstimate|estimateGas|gasLimit", source, re.IGNORECASE)
+        )
 
         if has_gas_estimation and not has_l1_data_cost:
             for i, line in enumerate(lines, 1):
                 if re.search(r"gasEstimate|estimateGas|gasLimit", line, re.IGNORECASE):
-                    findings.append({
-                        "type": "unsafe_l2_gas_estimation",
-                        "line": i,
-                        "file": path,
-                        "code": "Gas estimation without L1 data cost consideration",
-                    })
+                    findings.append(
+                        {
+                            "type": "unsafe_l2_gas_estimation",
+                            "line": i,
+                            "file": path,
+                            "code": "Gas estimation without L1 data cost consideration",
+                        }
+                    )
                     break
 
         return findings
@@ -362,32 +398,40 @@ class L2ValidatorAdapter(ToolAdapter):
                 continue
 
             vuln_type = item.get("type", "unknown")
-            config = L2_VULNERABILITIES.get(vuln_type, {
-                "severity": "Medium", "confidence": 0.70,
-                "swc_id": None, "cwe_id": None,
-                "description": vuln_type, "recommendation": "Review L2 security",
-            })
+            config = L2_VULNERABILITIES.get(
+                vuln_type,
+                {
+                    "severity": "Medium",
+                    "confidence": 0.70,
+                    "swc_id": None,
+                    "cwe_id": None,
+                    "description": vuln_type,
+                    "recommendation": "Review L2 security",
+                },
+            )
 
             finding_id = hashlib.md5(
                 f"l2:{vuln_type}:{item.get('file', '')}:{item.get('line', 0)}".encode()
             ).hexdigest()[:12]
 
-            findings.append({
-                "id": f"L2V-{finding_id}",
-                "type": vuln_type,
-                "severity": config["severity"],
-                "confidence": config["confidence"],
-                "location": {
-                    "file": item.get("file", ""),
-                    "line": item.get("line", 0),
-                    "function": "",
-                },
-                "message": f"{config['description']}: {item.get('code', '')}",
-                "description": config["description"],
-                "recommendation": config["recommendation"],
-                "swc_id": config.get("swc_id"),
-                "cwe_id": config.get("cwe_id"),
-                "tool": "l2_validator",
-            })
+            findings.append(
+                {
+                    "id": f"L2V-{finding_id}",
+                    "type": vuln_type,
+                    "severity": config["severity"],
+                    "confidence": config["confidence"],
+                    "location": {
+                        "file": item.get("file", ""),
+                        "line": item.get("line", 0),
+                        "function": "",
+                    },
+                    "message": f"{config['description']}: {item.get('code', '')}",
+                    "description": config["description"],
+                    "recommendation": config["recommendation"],
+                    "swc_id": config.get("swc_id"),
+                    "cwe_id": config.get("cwe_id"),
+                    "tool": "l2_validator",
+                }
+            )
 
         return findings

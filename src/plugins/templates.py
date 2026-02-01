@@ -24,7 +24,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from .protocol import PluginType
 
@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PluginTemplate:
     """Template for plugin generation."""
+
     name: str
     plugin_type: PluginType
     description: str = ""
@@ -155,7 +156,7 @@ class PluginTemplateGenerator:
         class_name = self._to_class_name(template.name)
         plugin_class = f"{class_name}{template.plugin_type.value.title()}"
 
-        content = f'''[build-system]
+        content = f"""[build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
@@ -207,7 +208,7 @@ where = ["."]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
-'''
+"""
         (plugin_dir / "pyproject.toml").write_text(content)
 
     def _create_init_file(
@@ -941,9 +942,9 @@ class Test{plugin_class}:
 
     def _create_readme(self, plugin_dir: Path, template: PluginTemplate) -> None:
         """Create README.md file."""
-        class_name = self._to_class_name(template.name)
+        self._to_class_name(template.name)
 
-        content = f'''# miesc-{template.name}
+        content = f"""# miesc-{template.name}
 
 {template.description}
 
@@ -1010,15 +1011,15 @@ pytest --cov={template.name.replace("-", "_")}
 ## Author
 
 {template.author} {f"<{template.email}>" if template.email else ""}
-'''
+"""
         (plugin_dir / "README.md").write_text(content)
 
     def _create_manifest(self, plugin_dir: Path, template: PluginTemplate) -> None:
         """Create MANIFEST.in file."""
-        content = '''include README.md
+        content = """include README.md
 include LICENSE
 recursive-include tests *.py
-'''
+"""
         (plugin_dir / "MANIFEST.in").write_text(content)
 
     def _to_class_name(self, name: str) -> str:

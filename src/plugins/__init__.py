@@ -30,44 +30,41 @@ Date: January 2026
 Version: 1.0.0
 """
 
+from .loader import (
+    DEFAULT_PLUGIN_DIRS,
+    ENTRY_POINT_GROUP,
+    DiscoveryResult,
+    LoadedPlugin,
+    PluginLoader,
+)
 from .protocol import (
-    # Enums
-    PluginType,
-    PluginState,
-    # Data classes
-    PluginMetadata,
-    PluginContext,
-    PluginResult,
+    AdapterPlugin,
+    DetectorPlugin,
     # Base classes
     MIESCPlugin,
-    DetectorPlugin,
-    AdapterPlugin,
+    PluginContext,
+    # Data classes
+    PluginMetadata,
+    PluginResult,
+    PluginState,
+    # Enums
+    PluginType,
     ReporterPlugin,
     TransformerPlugin,
+    get_plugin_classes,
     # Helpers
     is_plugin_class,
-    get_plugin_classes,
 )
-
-from .loader import (
-    PluginLoader,
-    LoadedPlugin,
-    DiscoveryResult,
-    ENTRY_POINT_GROUP,
-    DEFAULT_PLUGIN_DIRS,
-)
-
 from .registry import (
-    PluginRegistry,
-    PluginEntry,
     DEFAULT_REGISTRY_PATH,
+    PluginEntry,
+    PluginRegistry,
     get_registry,
     set_registry,
 )
-
 from .templates import (
-    PluginTemplateGenerator,
     PluginTemplate,
+    PluginTemplateGenerator,
 )
 
 __all__ = [

@@ -18,8 +18,8 @@ Usage:
     )
 """
 
-from typing import List, Optional, Dict, Any
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class ErrorCode(str, Enum):
@@ -73,54 +73,33 @@ class ErrorCode(str, Enum):
 TOOL_INSTALL_SUGGESTIONS: Dict[str, List[str]] = {
     "slither": [
         "pip install slither-analyzer",
-        "See: https://github.com/crytic/slither#how-to-install"
+        "See: https://github.com/crytic/slither#how-to-install",
     ],
     "mythril": [
         "pip install mythril",
         "Note: mythril may conflict with slither-analyzer",
-        "Alternative: docker run -it mythril/myth analyze <contract.sol>"
+        "Alternative: docker run -it mythril/myth analyze <contract.sol>",
     ],
     "echidna": [
         "brew install echidna (macOS)",
-        "See: https://github.com/crytic/echidna#installation"
+        "See: https://github.com/crytic/echidna#installation",
     ],
-    "medusa": [
-        "go install github.com/crytic/medusa@latest",
-        "Requires Go 1.19+"
-    ],
+    "medusa": ["go install github.com/crytic/medusa@latest", "Requires Go 1.19+"],
     "foundry": [
         "curl -L https://foundry.paradigm.xyz | bash && foundryup",
-        "See: https://book.getfoundry.sh/getting-started/installation"
+        "See: https://book.getfoundry.sh/getting-started/installation",
     ],
-    "halmos": [
-        "pip install halmos",
-        "See: https://github.com/a16z/halmos"
-    ],
-    "certora": [
-        "pip install certora-cli",
-        "Requires CERTORA_KEY environment variable"
-    ],
-    "aderyn": [
-        "cargo install aderyn",
-        "Requires Rust 1.70+"
-    ],
-    "solhint": [
-        "npm install -g solhint",
-        "Requires Node.js 14+"
-    ],
-    "wake": [
-        "pip install eth-wake",
-        "See: https://github.com/Ackee-Blockchain/wake"
-    ],
-    "manticore": [
-        "pip install manticore[native]",
-        "Note: Requires Python 3.11 or earlier"
-    ],
+    "halmos": ["pip install halmos", "See: https://github.com/a16z/halmos"],
+    "certora": ["pip install certora-cli", "Requires CERTORA_KEY environment variable"],
+    "aderyn": ["cargo install aderyn", "Requires Rust 1.70+"],
+    "solhint": ["npm install -g solhint", "Requires Node.js 14+"],
+    "wake": ["pip install eth-wake", "See: https://github.com/Ackee-Blockchain/wake"],
+    "manticore": ["pip install manticore[native]", "Note: Requires Python 3.11 or earlier"],
     "ollama": [
         "brew install ollama (macOS)",
         "curl -fsSL https://ollama.com/install.sh | sh (Linux)",
-        "Then: ollama pull deepseek-coder"
-    ]
+        "Then: ollama pull deepseek-coder",
+    ],
 }
 
 
@@ -146,7 +125,7 @@ class MIESCException(Exception):
         message: str,
         error_code: str | ErrorCode = ErrorCode.UNKNOWN_ERROR,
         suggestions: Optional[List[str]] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ):
         self.message = message
         self.error_code = error_code.value if isinstance(error_code, ErrorCode) else error_code
@@ -170,7 +149,7 @@ class MIESCException(Exception):
             "error_code": self.error_code,
             "message": self.message,
             "suggestions": self.suggestions,
-            "context": self.context
+            "context": self.context,
         }
 
 
@@ -192,28 +171,25 @@ class ToolAdapterError(MIESCException):
         error_code: str | ErrorCode = ErrorCode.TOOL_EXECUTION_FAILED,
         tool_version: Optional[str] = None,
         suggestions: Optional[List[str]] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ):
         self.tool_name = tool_name
         self.tool_version = tool_version
 
         # Auto-add installation suggestions if tool not found
-        if error_code in (ErrorCode.TOOL_NOT_FOUND, ErrorCode.TOOL_NOT_AVAILABLE,
-                          ErrorCode.TOOL_DEPENDENCY_MISSING):
+        if error_code in (
+            ErrorCode.TOOL_NOT_FOUND,
+            ErrorCode.TOOL_NOT_AVAILABLE,
+            ErrorCode.TOOL_DEPENDENCY_MISSING,
+        ):
             tool_suggestions = TOOL_INSTALL_SUGGESTIONS.get(tool_name.lower(), [])
             suggestions = (suggestions or []) + tool_suggestions
 
         context = context or {}
-        context.update({
-            "tool_name": tool_name,
-            "tool_version": tool_version
-        })
+        context.update({"tool_name": tool_name, "tool_version": tool_version})
 
         super().__init__(
-            message=message,
-            error_code=error_code,
-            suggestions=suggestions,
-            context=context
+            message=message, error_code=error_code, suggestions=suggestions, context=context
         )
 
 
@@ -235,7 +211,7 @@ class AnalysisError(MIESCException):
         layer: Optional[int] = None,
         error_code: str | ErrorCode = ErrorCode.ANALYSIS_FAILED,
         suggestions: Optional[List[str]] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ):
         self.contract_path = contract_path
         self.layer = layer
@@ -247,10 +223,7 @@ class AnalysisError(MIESCException):
             context["layer"] = layer
 
         super().__init__(
-            message=message,
-            error_code=error_code,
-            suggestions=suggestions,
-            context=context
+            message=message, error_code=error_code, suggestions=suggestions, context=context
         )
 
 
@@ -272,22 +245,21 @@ class AnalysisTimeoutError(AnalysisError):
         layer: Optional[int] = None,
         tool_name: Optional[str] = None,
         suggestions: Optional[List[str]] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ):
         self.timeout_seconds = timeout_seconds
 
         suggestions = suggestions or []
-        suggestions.extend([
-            f"Increase timeout: --timeout {timeout_seconds * 2}",
-            "Try analyzing a smaller contract or specific functions",
-            "Use --layers quick for faster analysis"
-        ])
+        suggestions.extend(
+            [
+                f"Increase timeout: --timeout {timeout_seconds * 2}",
+                "Try analyzing a smaller contract or specific functions",
+                "Use --layers quick for faster analysis",
+            ]
+        )
 
         context = context or {}
-        context.update({
-            "timeout_seconds": timeout_seconds,
-            "tool_name": tool_name
-        })
+        context.update({"timeout_seconds": timeout_seconds, "tool_name": tool_name})
 
         super().__init__(
             message=message,
@@ -295,7 +267,7 @@ class AnalysisTimeoutError(AnalysisError):
             layer=layer,
             error_code=ErrorCode.ANALYSIS_TIMEOUT,
             suggestions=suggestions,
-            context=context
+            context=context,
         )
 
 
@@ -317,7 +289,7 @@ class ConfigurationError(MIESCException):
         config_file: Optional[str] = None,
         error_code: str | ErrorCode = ErrorCode.CONFIG_INVALID,
         suggestions: Optional[List[str]] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ):
         self.config_key = config_key
         self.config_file = config_file
@@ -334,10 +306,7 @@ class ConfigurationError(MIESCException):
             context["config_file"] = config_file
 
         super().__init__(
-            message=message,
-            error_code=error_code,
-            suggestions=suggestions,
-            context=context
+            message=message, error_code=error_code, suggestions=suggestions, context=context
         )
 
 
@@ -353,13 +322,10 @@ class SecurityError(MIESCException):
         message: str,
         error_code: str | ErrorCode = ErrorCode.SECURITY_VALIDATION_FAILED,
         suggestions: Optional[List[str]] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(
-            message=message,
-            error_code=error_code,
-            suggestions=suggestions,
-            context=context
+            message=message, error_code=error_code, suggestions=suggestions, context=context
         )
 
 
@@ -376,21 +342,23 @@ class ContractError(AnalysisError):
         contract_path: str,
         error_code: str | ErrorCode = ErrorCode.CONTRACT_NOT_FOUND,
         suggestions: Optional[List[str]] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ):
         suggestions = suggestions or []
-        suggestions.extend([
-            f"Verify file exists: ls -la {contract_path}",
-            "Ensure file has .sol extension",
-            "Check file permissions"
-        ])
+        suggestions.extend(
+            [
+                f"Verify file exists: ls -la {contract_path}",
+                "Ensure file has .sol extension",
+                "Check file permissions",
+            ]
+        )
 
         super().__init__(
             message=message,
             contract_path=contract_path,
             error_code=error_code,
             suggestions=suggestions,
-            context=context
+            context=context,
         )
 
 
@@ -412,7 +380,7 @@ class APIError(MIESCException):
         endpoint: Optional[str] = None,
         error_code: str | ErrorCode = ErrorCode.API_REQUEST_FAILED,
         suggestions: Optional[List[str]] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ):
         self.status_code = status_code
         self.endpoint = endpoint
@@ -424,10 +392,7 @@ class APIError(MIESCException):
             context["endpoint"] = endpoint
 
         super().__init__(
-            message=message,
-            error_code=error_code,
-            suggestions=suggestions,
-            context=context
+            message=message, error_code=error_code, suggestions=suggestions, context=context
         )
 
 
@@ -447,27 +412,26 @@ class ModelError(MIESCException):
         model_name: Optional[str] = None,
         error_code: str | ErrorCode = ErrorCode.MODEL_INFERENCE_FAILED,
         suggestions: Optional[List[str]] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ):
         self.model_name = model_name
 
         suggestions = suggestions or []
         if model_name and "ollama" in model_name.lower():
-            suggestions.extend([
-                "Ensure Ollama is running: ollama serve",
-                f"Pull the model: ollama pull {model_name}",
-                "Check Ollama logs: ollama logs"
-            ])
+            suggestions.extend(
+                [
+                    "Ensure Ollama is running: ollama serve",
+                    f"Pull the model: ollama pull {model_name}",
+                    "Check Ollama logs: ollama logs",
+                ]
+            )
 
         context = context or {}
         if model_name:
             context["model_name"] = model_name
 
         super().__init__(
-            message=message,
-            error_code=error_code,
-            suggestions=suggestions,
-            context=context
+            message=message, error_code=error_code, suggestions=suggestions, context=context
         )
 
 
@@ -478,9 +442,7 @@ def tool_not_available(tool_name: str, reason: Optional[str] = None) -> ToolAdap
     if reason:
         message += f": {reason}"
     return ToolAdapterError(
-        message=message,
-        tool_name=tool_name,
-        error_code=ErrorCode.TOOL_NOT_AVAILABLE
+        message=message, tool_name=tool_name, error_code=ErrorCode.TOOL_NOT_AVAILABLE
     )
 
 
@@ -489,21 +451,19 @@ def contract_not_found(path: str) -> ContractError:
     return ContractError(
         message=f"Contract file not found: {path}",
         contract_path=path,
-        error_code=ErrorCode.CONTRACT_NOT_FOUND
+        error_code=ErrorCode.CONTRACT_NOT_FOUND,
     )
 
 
 def analysis_timeout(
-    tool_name: str,
-    timeout_seconds: int,
-    contract_path: Optional[str] = None
+    tool_name: str, timeout_seconds: int, contract_path: Optional[str] = None
 ) -> AnalysisTimeoutError:
     """Create an AnalysisTimeoutError for when analysis times out."""
     return AnalysisTimeoutError(
         message=f"Analysis with {tool_name} timed out after {timeout_seconds}s",
         timeout_seconds=timeout_seconds,
         contract_path=contract_path,
-        tool_name=tool_name
+        tool_name=tool_name,
     )
 
 

@@ -16,23 +16,26 @@ Author: Fernando Boiero
 Institution: UNDEF - IUA Córdoba
 """
 
-import os
-import sys
 import json
+import os
 import subprocess
-import tempfile
-from pathlib import Path
+import sys
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, asdict
-import hashlib
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # Add src to path for remediations module
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Try to import remediations database
 try:
-    from security.remediations import get_remediation_by_swc, get_remediation_by_type, get_security_checklist
+    from security.remediations import (
+        get_remediation_by_swc,
+        get_remediation_by_type,
+        get_security_checklist,
+    )
+
     REMEDIATIONS_AVAILABLE = True
 except ImportError:
     REMEDIATIONS_AVAILABLE = False
@@ -40,6 +43,7 @@ except ImportError:
 # Try to import Smart Correlation Engine
 try:
     from ml.correlation_engine import SmartCorrelationEngine
+
     CORRELATION_ENGINE_AVAILABLE = True
 except ImportError:
     CORRELATION_ENGINE_AVAILABLE = False
@@ -49,9 +53,11 @@ CONTRACTS_DIR = Path(__file__).parent / "contracts" / "audit"
 OUTPUT_DIR = Path(__file__).parent / "audit_results"
 VENV_BIN = Path(__file__).parent / "venv" / "bin"
 
+
 @dataclass
 class Finding:
     """Normalized finding structure"""
+
     tool: str
     layer: int
     layer_name: str
@@ -65,6 +71,7 @@ class Finding:
 
     def to_dict(self):
         return asdict(self)
+
 
 class MultiLayerAuditor:
     """Complete multi-layer security auditor"""
@@ -108,7 +115,7 @@ class MultiLayerAuditor:
 
     def _run_layer_1_static(self):
         """Layer 1: Static Analysis Tools"""
-        print(f"\n📊 Layer 1: Static Analysis")
+        print("\n📊 Layer 1: Static Analysis")
         print("-" * 40)
 
         # 1.1 Slither
@@ -132,21 +139,23 @@ class MultiLayerAuditor:
                 detectors = data.get("results", {}).get("detectors", [])
 
                 for d in detectors:
-                    self.findings.append(Finding(
-                        tool="Slither",
-                        layer=1,
-                        layer_name="Static Analysis",
-                        severity=d.get("impact", "Medium"),
-                        title=d.get("check", "Unknown"),
-                        description=d.get("description", "")[:200],
-                        location={"elements": len(d.get("elements", []))},
-                        confidence=d.get("confidence", "Medium")
-                    ))
+                    self.findings.append(
+                        Finding(
+                            tool="Slither",
+                            layer=1,
+                            layer_name="Static Analysis",
+                            severity=d.get("impact", "Medium"),
+                            title=d.get("check", "Unknown"),
+                            description=d.get("description", "")[:200],
+                            location={"elements": len(d.get("elements", []))},
+                            confidence=d.get("confidence", "Medium"),
+                        )
+                    )
 
                 self.layer_results["slither"] = {
                     "status": "success",
                     "findings": len(detectors),
-                    "detectors": [d.get("check") for d in detectors[:10]]
+                    "detectors": [d.get("check") for d in detectors[:10]],
                 }
                 print(f"      ✓ {len(detectors)} findings")
             else:
@@ -164,25 +173,33 @@ class MultiLayerAuditor:
             print("   → Aderyn...")
             # Aderyn needs to run from project root with foundry structure
             cmd = ["aderyn", str(self.contract_path), "--output", "json"]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, cwd=str(self.contract_path.parent))
+            subprocess.run(
+                cmd, capture_output=True, text=True, timeout=120, cwd=str(self.contract_path.parent)
+            )
 
             # Aderyn outputs to report.json by default
             report_path = self.contract_path.parent / "report.json"
             if report_path.exists():
                 with open(report_path) as f:
                     data = json.load(f)
-                findings = data.get("high_issues", []) + data.get("medium_issues", []) + data.get("low_issues", [])
+                findings = (
+                    data.get("high_issues", [])
+                    + data.get("medium_issues", [])
+                    + data.get("low_issues", [])
+                )
 
                 for issue in findings[:20]:
-                    self.findings.append(Finding(
-                        tool="Aderyn",
-                        layer=1,
-                        layer_name="Static Analysis",
-                        severity=issue.get("severity", "Medium"),
-                        title=issue.get("title", "Unknown"),
-                        description=issue.get("description", "")[:200],
-                        location={"instances": issue.get("instances", [])}
-                    ))
+                    self.findings.append(
+                        Finding(
+                            tool="Aderyn",
+                            layer=1,
+                            layer_name="Static Analysis",
+                            severity=issue.get("severity", "Medium"),
+                            title=issue.get("title", "Unknown"),
+                            description=issue.get("description", "")[:200],
+                            location={"instances": issue.get("instances", [])},
+                        )
+                    )
 
                 self.layer_results["aderyn"] = {"status": "success", "findings": len(findings)}
                 print(f"      ✓ {len(findings)} findings")
@@ -209,15 +226,17 @@ class MultiLayerAuditor:
                     if isinstance(data, list):
                         for file_result in data:
                             for msg in file_result.get("messages", [])[:10]:
-                                self.findings.append(Finding(
-                                    tool="Solhint",
-                                    layer=1,
-                                    layer_name="Static Analysis",
-                                    severity="Low" if msg.get("severity") == 1 else "Medium",
-                                    title=msg.get("ruleId", "Unknown"),
-                                    description=msg.get("message", ""),
-                                    location={"line": msg.get("line", 0)}
-                                ))
+                                self.findings.append(
+                                    Finding(
+                                        tool="Solhint",
+                                        layer=1,
+                                        layer_name="Static Analysis",
+                                        severity="Low" if msg.get("severity") == 1 else "Medium",
+                                        title=msg.get("ruleId", "Unknown"),
+                                        description=msg.get("message", ""),
+                                        location={"line": msg.get("line", 0)},
+                                    )
+                                )
                         total = sum(len(f.get("messages", [])) for f in data)
                         self.layer_results["solhint"] = {"status": "success", "findings": total}
                         print(f"      ✓ {total} findings")
@@ -235,7 +254,7 @@ class MultiLayerAuditor:
 
     def _run_layer_2_fuzzing(self):
         """Layer 2: Fuzzing Tools"""
-        print(f"\n🎲 Layer 2: Fuzzing")
+        print("\n🎲 Layer 2: Fuzzing")
         print("-" * 40)
 
         # 2.1 Echidna
@@ -249,28 +268,38 @@ class MultiLayerAuditor:
         try:
             print("   → Echidna...")
             # Echidna needs test contract with properties
-            cmd = ["echidna", str(self.contract_path), "--test-mode", "assertion",
-                   "--test-limit", "1000", "--format", "json"]
+            cmd = [
+                "echidna",
+                str(self.contract_path),
+                "--test-mode",
+                "assertion",
+                "--test-limit",
+                "1000",
+                "--format",
+                "json",
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
             if result.returncode == 0:
                 self.layer_results["echidna"] = {
                     "status": "success",
-                    "message": "Fuzzing completed - no property violations"
+                    "message": "Fuzzing completed - no property violations",
                 }
                 print("      ✓ Fuzzing passed")
             else:
                 # Check for violations
                 if "failed" in result.stdout.lower() or "failed" in result.stderr.lower():
-                    self.findings.append(Finding(
-                        tool="Echidna",
-                        layer=2,
-                        layer_name="Fuzzing",
-                        severity="High",
-                        title="Property Violation",
-                        description="Echidna found a property violation during fuzzing",
-                        location={"output": result.stdout[:200]}
-                    ))
+                    self.findings.append(
+                        Finding(
+                            tool="Echidna",
+                            layer=2,
+                            layer_name="Fuzzing",
+                            severity="High",
+                            title="Property Violation",
+                            description="Echidna found a property violation during fuzzing",
+                            location={"output": result.stdout[:200]},
+                        )
+                    )
                     self.layer_results["echidna"] = {"status": "violation_found", "findings": 1}
                     print("      ⚠ Property violation found!")
                 else:
@@ -293,13 +322,20 @@ class MultiLayerAuditor:
             foundry_toml = self.contract_path.parent.parent / "foundry.toml"
             if foundry_toml.exists():
                 cmd = ["forge", "test", "--fuzz-runs", "256", "--json"]
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=180,
-                                       cwd=str(self.contract_path.parent.parent))
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=180,
+                    cwd=str(self.contract_path.parent.parent),
+                )
                 self.layer_results["foundry_fuzz"] = {
                     "status": "success" if result.returncode == 0 else "test_failures",
-                    "output": result.stdout[:500] if result.stdout else "No output"
+                    "output": result.stdout[:500] if result.stdout else "No output",
                 }
-                print(f"      ✓ Fuzz tests {'passed' if result.returncode == 0 else 'completed with failures'}")
+                print(
+                    f"      ✓ Fuzz tests {'passed' if result.returncode == 0 else 'completed with failures'}"
+                )
             else:
                 self.layer_results["foundry_fuzz"] = {"status": "no_foundry_project"}
                 print("      ⚠ No foundry.toml found")
@@ -311,7 +347,7 @@ class MultiLayerAuditor:
 
     def _run_layer_3_symbolic(self):
         """Layer 3: Symbolic Execution"""
-        print(f"\n🔬 Layer 3: Symbolic Execution")
+        print("\n🔬 Layer 3: Symbolic Execution")
         print("-" * 40)
 
         # 3.1 Mythril
@@ -327,8 +363,15 @@ class MultiLayerAuditor:
         """Run Mythril symbolic analyzer"""
         try:
             print("   → Mythril...")
-            cmd = [str(VENV_BIN / "myth"), "analyze", str(self.contract_path),
-                   "-o", "json", "--execution-timeout", "60"]
+            cmd = [
+                str(VENV_BIN / "myth"),
+                "analyze",
+                str(self.contract_path),
+                "-o",
+                "json",
+                "--execution-timeout",
+                "60",
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
 
             if result.stdout:
@@ -337,16 +380,18 @@ class MultiLayerAuditor:
                     issues = data.get("issues", [])
 
                     for issue in issues:
-                        self.findings.append(Finding(
-                            tool="Mythril",
-                            layer=3,
-                            layer_name="Symbolic Execution",
-                            severity=issue.get("severity", "Medium"),
-                            title=issue.get("title", "Unknown"),
-                            description=issue.get("description", "")[:200],
-                            location={"address": issue.get("address", "")},
-                            swc_id=issue.get("swc-id", "")
-                        ))
+                        self.findings.append(
+                            Finding(
+                                tool="Mythril",
+                                layer=3,
+                                layer_name="Symbolic Execution",
+                                severity=issue.get("severity", "Medium"),
+                                title=issue.get("title", "Unknown"),
+                                description=issue.get("description", "")[:200],
+                                location={"address": issue.get("address", "")},
+                                swc_id=issue.get("swc-id", ""),
+                            )
+                        )
 
                     self.layer_results["mythril"] = {"status": "success", "findings": len(issues)}
                     print(f"      ✓ {len(issues)} findings")
@@ -373,20 +418,27 @@ class MultiLayerAuditor:
             env = os.environ.copy()
             env["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
-            cmd = [str(VENV_BIN / "manticore"), str(self.contract_path),
-                   "--quick-mode", "--contract", self.contract_name]
+            cmd = [
+                str(VENV_BIN / "manticore"),
+                str(self.contract_path),
+                "--quick-mode",
+                "--contract",
+                self.contract_name,
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=300, env=env)
 
             if "vulnerability" in result.stdout.lower() or "bug" in result.stdout.lower():
-                self.findings.append(Finding(
-                    tool="Manticore",
-                    layer=3,
-                    layer_name="Symbolic Execution",
-                    severity="High",
-                    title="Potential Vulnerability",
-                    description="Manticore detected potential vulnerability",
-                    location={"output": result.stdout[:200]}
-                ))
+                self.findings.append(
+                    Finding(
+                        tool="Manticore",
+                        layer=3,
+                        layer_name="Symbolic Execution",
+                        severity="High",
+                        title="Potential Vulnerability",
+                        description="Manticore detected potential vulnerability",
+                        location={"output": result.stdout[:200]},
+                    )
+                )
                 self.layer_results["manticore"] = {"status": "success", "findings": 1}
                 print("      ✓ Vulnerability found")
             else:
@@ -414,8 +466,14 @@ class MultiLayerAuditor:
 
             # Run Oyente container
             cmd = [
-                "docker", "run", "--rm", "-v", f"{self.contract_path.parent}:/contracts",
-                "luongnguyen/oyente", "-s", f"/contracts/{self.contract_path.name}"
+                "docker",
+                "run",
+                "--rm",
+                "-v",
+                f"{self.contract_path.parent}:/contracts",
+                "luongnguyen/oyente",
+                "-s",
+                f"/contracts/{self.contract_path.name}",
             ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
@@ -425,15 +483,17 @@ class MultiLayerAuditor:
             for keyword in vuln_keywords:
                 if keyword in result.stdout.lower():
                     findings_count += 1
-                    self.findings.append(Finding(
-                        tool="Oyente",
-                        layer=3,
-                        layer_name="Symbolic Execution",
-                        severity="Medium",
-                        title=f"Potential {keyword.title()} Issue",
-                        description=f"Oyente detected potential {keyword} vulnerability",
-                        location={}
-                    ))
+                    self.findings.append(
+                        Finding(
+                            tool="Oyente",
+                            layer=3,
+                            layer_name="Symbolic Execution",
+                            severity="Medium",
+                            title=f"Potential {keyword.title()} Issue",
+                            description=f"Oyente detected potential {keyword} vulnerability",
+                            location={},
+                        )
+                    )
 
             self.layer_results["oyente"] = {"status": "success", "findings": findings_count}
             print(f"      ✓ {findings_count} potential issues")
@@ -448,7 +508,7 @@ class MultiLayerAuditor:
 
     def _run_layer_4_invariants(self):
         """Layer 4: Invariant Testing"""
-        print(f"\n🔒 Layer 4: Invariant Testing")
+        print("\n🔒 Layer 4: Invariant Testing")
         print("-" * 40)
 
         # Foundry Invariants
@@ -457,12 +517,19 @@ class MultiLayerAuditor:
             foundry_toml = self.contract_path.parent.parent / "foundry.toml"
             if foundry_toml.exists():
                 cmd = ["forge", "test", "--match-test", "invariant", "--json"]
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=180,
-                                       cwd=str(self.contract_path.parent.parent))
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=180,
+                    cwd=str(self.contract_path.parent.parent),
+                )
                 self.layer_results["foundry_invariants"] = {
                     "status": "success" if result.returncode == 0 else "failures",
                 }
-                print(f"      ✓ Invariant tests {'passed' if result.returncode == 0 else 'completed'}")
+                print(
+                    f"      ✓ Invariant tests {'passed' if result.returncode == 0 else 'completed'}"
+                )
             else:
                 self.layer_results["foundry_invariants"] = {"status": "no_project"}
                 print("      ⚠ No foundry project")
@@ -472,7 +539,7 @@ class MultiLayerAuditor:
 
     def _run_layer_5_formal(self):
         """Layer 5: Formal Verification"""
-        print(f"\n📐 Layer 5: Formal Verification")
+        print("\n📐 Layer 5: Formal Verification")
         print("-" * 40)
 
         # 5.1 Certora
@@ -499,23 +566,29 @@ class MultiLayerAuditor:
                 return
 
             # Run Certora
-            cmd = [str(VENV_BIN / "certoraRun"), str(self.contract_path),
-                   "--verify", f"{self.contract_name}:{spec_file}"]
+            cmd = [
+                str(VENV_BIN / "certoraRun"),
+                str(self.contract_path),
+                "--verify",
+                f"{self.contract_name}:{spec_file}",
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
 
             if "PASSED" in result.stdout:
                 self.layer_results["certora"] = {"status": "verified"}
                 print("      ✓ Verification passed")
             elif "FAILED" in result.stdout:
-                self.findings.append(Finding(
-                    tool="Certora",
-                    layer=5,
-                    layer_name="Formal Verification",
-                    severity="Critical",
-                    title="Specification Violation",
-                    description="Certora found specification violation",
-                    location={}
-                ))
+                self.findings.append(
+                    Finding(
+                        tool="Certora",
+                        layer=5,
+                        layer_name="Formal Verification",
+                        severity="Critical",
+                        title="Specification Violation",
+                        description="Certora found specification violation",
+                        location={},
+                    )
+                )
                 self.layer_results["certora"] = {"status": "violation", "findings": 1}
                 print("      ⚠ Specification violation found!")
             else:
@@ -531,28 +604,36 @@ class MultiLayerAuditor:
         """Run Solidity SMTChecker"""
         try:
             print("   → SMTChecker...")
-            cmd = ["solc", str(self.contract_path), "--model-checker-engine", "all",
-                   "--model-checker-timeout", "60000"]
+            cmd = [
+                "solc",
+                str(self.contract_path),
+                "--model-checker-engine",
+                "all",
+                "--model-checker-timeout",
+                "60000",
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
             warnings = result.stderr.count("Warning")
             errors = result.stderr.count("Error")
 
             if warnings > 0 or errors > 0:
-                self.findings.append(Finding(
-                    tool="SMTChecker",
-                    layer=5,
-                    layer_name="Formal Verification",
-                    severity="Medium" if warnings > 0 else "High",
-                    title="SMT Analysis Warning",
-                    description=f"SMTChecker found {warnings} warnings, {errors} errors",
-                    location={}
-                ))
+                self.findings.append(
+                    Finding(
+                        tool="SMTChecker",
+                        layer=5,
+                        layer_name="Formal Verification",
+                        severity="Medium" if warnings > 0 else "High",
+                        title="SMT Analysis Warning",
+                        description=f"SMTChecker found {warnings} warnings, {errors} errors",
+                        location={},
+                    )
+                )
 
             self.layer_results["smtchecker"] = {
                 "status": "success",
                 "warnings": warnings,
-                "errors": errors
+                "errors": errors,
             }
             print(f"      ✓ {warnings} warnings, {errors} errors")
 
@@ -563,7 +644,7 @@ class MultiLayerAuditor:
 
     def _run_layer_6_property(self):
         """Layer 6: Property-Based Testing (PropertyGPT simulation)"""
-        print(f"\n🧪 Layer 6: Property-Based Testing")
+        print("\n🧪 Layer 6: Property-Based Testing")
         print("-" * 40)
 
         try:
@@ -586,25 +667,28 @@ class MultiLayerAuditor:
             }
 
             import re
+
             for name, pattern in patterns.items():
                 if re.search(pattern, code):
                     properties_found.append(name)
 
             if properties_found:
                 for prop in properties_found:
-                    self.findings.append(Finding(
-                        tool="PropertyGPT",
-                        layer=6,
-                        layer_name="Property-Based Testing",
-                        severity="Medium",
-                        title=f"Property Check: {prop}",
-                        description=f"Contract uses pattern that requires property verification: {prop}",
-                        location={}
-                    ))
+                    self.findings.append(
+                        Finding(
+                            tool="PropertyGPT",
+                            layer=6,
+                            layer_name="Property-Based Testing",
+                            severity="Medium",
+                            title=f"Property Check: {prop}",
+                            description=f"Contract uses pattern that requires property verification: {prop}",
+                            location={},
+                        )
+                    )
 
             self.layer_results["propertygpt"] = {
                 "status": "success",
-                "properties_identified": properties_found
+                "properties_identified": properties_found,
             }
             print(f"      ✓ {len(properties_found)} properties identified")
 
@@ -614,7 +698,7 @@ class MultiLayerAuditor:
 
     def _run_layer_7_ai(self):
         """Layer 7: AI Correlation & Threat Modeling"""
-        print(f"\n🤖 Layer 7: AI Correlation & Risk Engine")
+        print("\n🤖 Layer 7: AI Correlation & Risk Engine")
         print("-" * 40)
 
         # 7.1 SmartLLM (Ollama)
@@ -659,27 +743,36 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
                 try:
                     # Find JSON in response
                     import re
-                    json_match = re.search(r'\{.*\}', result.stdout, re.DOTALL)
+
+                    json_match = re.search(r"\{.*\}", result.stdout, re.DOTALL)
                     if json_match:
                         data = json.loads(json_match.group())
                         vulns = data.get("vulnerabilities", [])
                         for v in vulns[:3]:
-                            self.findings.append(Finding(
-                                tool="SmartLLM",
-                                layer=7,
-                                layer_name="AI Correlation",
-                                severity=v.get("severity", "Medium"),
-                                title=v.get("name", "AI-Detected Issue"),
-                                description=v.get("description", "")[:200],
-                                location={},
-                                confidence="Medium"
-                            ))
-                        self.layer_results["smartllm"] = {"status": "success", "findings": len(vulns)}
+                            self.findings.append(
+                                Finding(
+                                    tool="SmartLLM",
+                                    layer=7,
+                                    layer_name="AI Correlation",
+                                    severity=v.get("severity", "Medium"),
+                                    title=v.get("name", "AI-Detected Issue"),
+                                    description=v.get("description", "")[:200],
+                                    location={},
+                                    confidence="Medium",
+                                )
+                            )
+                        self.layer_results["smartllm"] = {
+                            "status": "success",
+                            "findings": len(vulns),
+                        }
                         print(f"      ✓ {len(vulns)} AI-detected issues")
                     else:
-                        self.layer_results["smartllm"] = {"status": "no_json", "raw": result.stdout[:200]}
+                        self.layer_results["smartllm"] = {
+                            "status": "no_json",
+                            "raw": result.stdout[:200],
+                        }
                         print("      ✓ Analysis complete (unstructured)")
-                except:
+                except Exception:
                     self.layer_results["smartllm"] = {"status": "parse_error"}
                     print("      ✓ Analysis complete")
             else:
@@ -708,7 +801,7 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
                 "Repudiation": ["emit", "event"],
                 "Information Disclosure": ["public", "view", "pure"],
                 "Denial of Service": ["loop", "while", "for", "require"],
-                "Elevation of Privilege": ["onlyOwner", "admin", "owner", "require"]
+                "Elevation of Privilege": ["onlyOwner", "admin", "owner", "require"],
             }
 
             threats_found = {}
@@ -720,19 +813,21 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
                         threats_found[threat].append(pattern)
 
             for threat, patterns in threats_found.items():
-                self.findings.append(Finding(
-                    tool="ThreatModel",
-                    layer=7,
-                    layer_name="AI Correlation",
-                    severity="Medium",
-                    title=f"STRIDE: {threat}",
-                    description=f"Potential {threat} threat vectors: {', '.join(patterns[:3])}",
-                    location={}
-                ))
+                self.findings.append(
+                    Finding(
+                        tool="ThreatModel",
+                        layer=7,
+                        layer_name="AI Correlation",
+                        severity="Medium",
+                        title=f"STRIDE: {threat}",
+                        description=f"Potential {threat} threat vectors: {', '.join(patterns[:3])}",
+                        location={},
+                    )
+                )
 
             self.layer_results["threat_model"] = {
                 "status": "success",
-                "stride_analysis": threats_found
+                "stride_analysis": threats_found,
             }
             print(f"      ✓ {len(threats_found)} STRIDE categories identified")
 
@@ -768,14 +863,20 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
             tool = finding.tool
             if tool not in findings_by_tool:
                 findings_by_tool[tool] = []
-            findings_by_tool[tool].append({
-                'type': finding.title,
-                'severity': finding.severity,
-                'message': finding.description,
-                'location': finding.location,
-                'swc_id': finding.swc_id,
-                'confidence': 0.7 if finding.confidence == "Medium" else (0.9 if finding.confidence == "High" else 0.5),
-            })
+            findings_by_tool[tool].append(
+                {
+                    "type": finding.title,
+                    "severity": finding.severity,
+                    "message": finding.description,
+                    "location": finding.location,
+                    "swc_id": finding.swc_id,
+                    "confidence": (
+                        0.7
+                        if finding.confidence == "Medium"
+                        else (0.9 if finding.confidence == "High" else 0.5)
+                    ),
+                }
+            )
 
         # Add findings to correlation engine
         for tool, tool_findings in findings_by_tool.items():
@@ -825,12 +926,14 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
                 "deduplication_rate": stats.get("deduplication_rate", 0),
                 "cross_validated": stats.get("cross_validated", 0),
                 "avg_confidence": stats.get("average_confidence", 0),
-            }
+            },
         }
 
         dedup_rate = stats.get("deduplication_rate", 0) * 100
         print(f"      ✓ Risk Score: {risk_score:.1f}/100 ({risk_level})")
-        print(f"      ✓ Correlated: {len(correlated)}/{len(self.findings)} findings ({dedup_rate:.1f}% dedup)")
+        print(
+            f"      ✓ Correlated: {len(correlated)}/{len(self.findings)} findings ({dedup_rate:.1f}% dedup)"
+        )
         print(f"      ✓ Cross-validated: {stats.get('cross_validated', 0)}")
 
     def _run_basic_correlation(self):
@@ -863,7 +966,7 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
             "engine": "basic",
             "risk_score": round(risk_score, 1),
             "risk_level": risk_level,
-            "severity_breakdown": severity_counts
+            "severity_breakdown": severity_counts,
         }
         print(f"      ✓ Risk Score: {risk_score:.1f}/100 ({risk_level})")
 
@@ -911,13 +1014,15 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
                         "title": remediation.title,
                         "fix": remediation.fix,
                         "example": remediation.example if remediation.example else None,
-                        "references": remediation.references
+                        "references": remediation.references,
                     }
 
             findings_with_remediations.append(finding_dict)
 
         # Get correlation stats
-        correlation_stats = self.layer_results.get("risk_correlation", {}).get("correlation_stats", {})
+        correlation_stats = self.layer_results.get("risk_correlation", {}).get(
+            "correlation_stats", {}
+        )
 
         report = {
             "audit_info": {
@@ -927,23 +1032,29 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
                 "miesc_version": "4.2.0",
                 "total_layers_executed": 7,
                 "remediations_enabled": REMEDIATIONS_AVAILABLE,
-                "correlation_engine_enabled": CORRELATION_ENGINE_AVAILABLE
+                "correlation_engine_enabled": CORRELATION_ENGINE_AVAILABLE,
             },
             "summary": {
                 "total_findings": len(self.findings),
-                "correlated_findings": correlation_stats.get("correlated_findings", len(self.findings)),
+                "correlated_findings": correlation_stats.get(
+                    "correlated_findings", len(self.findings)
+                ),
                 "deduplication_rate": correlation_stats.get("deduplication_rate", 0),
                 "cross_validated": correlation_stats.get("cross_validated", 0),
                 "by_severity": severity_counts,
                 "by_layer": findings_by_layer,
                 "by_tool": findings_by_tool,
-                "risk_level": self.layer_results.get("risk_correlation", {}).get("risk_level", "UNKNOWN"),
-                "risk_score": self.layer_results.get("risk_correlation", {}).get("risk_score", 0)
+                "risk_level": self.layer_results.get("risk_correlation", {}).get(
+                    "risk_level", "UNKNOWN"
+                ),
+                "risk_score": self.layer_results.get("risk_correlation", {}).get("risk_score", 0),
             },
             "layer_results": self.layer_results,
             "findings": findings_with_remediations,
-            "correlated_findings": [f.to_dict() for f in self.correlated_findings] if self.correlated_findings else [],
-            "errors": self.errors
+            "correlated_findings": (
+                [f.to_dict() for f in self.correlated_findings] if self.correlated_findings else []
+            ),
+            "errors": self.errors,
         }
 
         # Add security checklist if available
@@ -954,7 +1065,8 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
 
 
 def main():
-    print("""
+    print(
+        """
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║            MIESC v4.0.0 - Complete Multi-Layer Security Audit              ║
 ║          Multi-layer Intelligent Evaluation for Smart Contracts            ║
@@ -962,7 +1074,8 @@ def main():
 ║  7 Defense Layers | 15+ Security Tools | AI-Powered Correlation            ║
 ║  Author: Fernando Boiero | UNDEF - IUA Córdoba                             ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-    """)
+    """
+    )
 
     # Create output directory
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -1009,22 +1122,23 @@ def main():
             "timestamp": datetime.now().isoformat(),
             "miesc_version": "4.0.0",
             "contracts_audited": len(all_results),
-            "total_layers": 7
+            "total_layers": 7,
         },
         "summary": {
             "total_findings": total_findings,
             "by_severity": total_by_severity,
             "by_layer": total_by_layer,
-            "by_tool": total_by_tool
+            "by_tool": total_by_tool,
         },
-        "contracts": all_results
+        "contracts": all_results,
     }
 
     consolidated_file = OUTPUT_DIR / "consolidated_multilayer_report.json"
     with open(consolidated_file, "w") as f:
         json.dump(consolidated, f, indent=2)
 
-    print(f"""
+    print(
+        f"""
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║                        MULTI-LAYER AUDIT COMPLETE                          ║
 ╠════════════════════════════════════════════════════════════════════════════╣
@@ -1035,21 +1149,26 @@ def main():
 ║     Critical: {total_by_severity['Critical']:>3}    High: {total_by_severity['High']:>3}    Medium: {total_by_severity['Medium']:>3}                       ║
 ║     Low:      {total_by_severity['Low']:>3}    Info: {total_by_severity['Info']:>3}                                       ║
 ║                                                                            ║
-║  🏗️  By Layer:                                                              ║""")
+║  🏗️  By Layer:                                                              ║"""
+    )
 
     for layer, count in sorted(total_by_layer.items()):
         print(f"║     {layer:<30}: {count:>3}                            ║")
 
-    print(f"""║                                                                            ║
-║  🔧 By Tool:                                                               ║""")
+    print(
+        """║                                                                            ║
+║  🔧 By Tool:                                                               ║"""
+    )
 
     for tool, count in sorted(total_by_tool.items(), key=lambda x: -x[1])[:8]:
         print(f"║     {tool:<20}: {count:>3}                                        ║")
 
-    print(f"""╠════════════════════════════════════════════════════════════════════════════╣
+    print(
+        f"""╠════════════════════════════════════════════════════════════════════════════╣
 ║  📂 Results: {str(OUTPUT_DIR):<59} ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-    """)
+    """
+    )
 
     return consolidated
 

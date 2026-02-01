@@ -253,9 +253,7 @@ class SlitherAdapter(ToolAdapter):
 
             # If contract has external imports, set up workspace with dependencies
             if external_imports and not force_solc:
-                workspace_result = self._setup_workspace_with_deps(
-                    contract_path, external_imports
-                )
+                workspace_result = self._setup_workspace_with_deps(contract_path, external_imports)
                 if workspace_result:
                     temp_workspace, actual_contract_path = workspace_result
                     logger.info(f"Using workspace with dependencies: {temp_workspace}")
@@ -283,7 +281,7 @@ class SlitherAdapter(ToolAdapter):
             # Show progress message
             verbose = kwargs.get("verbose", True)
             if verbose:
-                print(f"  [Slither] Running static analysis...")
+                print("  [Slither] Running static analysis...")
 
             # Execute Slither
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
@@ -669,13 +667,13 @@ class SlitherAdapter(ToolAdapter):
 
         # Create minimal foundry.toml
         try:
-            config = f'''[profile.default]
+            config = f"""[profile.default]
 src = "."
 out = "out"
 libs = []
 solc = "{solc_version}"
 auto_detect_solc = false
-'''
+"""
             foundry_toml.write_text(config)
             logger.info(f"Created minimal foundry.toml at {foundry_toml}")
             return str(foundry_toml)
@@ -754,30 +752,21 @@ auto_detect_solc = false
         """
         # Known dependencies mapping: import_name -> (forge_install_target, remapping)
         KNOWN_DEPS = {
-            "forge-std": (
-                "foundry-rs/forge-std",
-                "forge-std/=lib/forge-std/src/"
-            ),
+            "forge-std": ("foundry-rs/forge-std", "forge-std/=lib/forge-std/src/"),
             "@openzeppelin/contracts": (
                 "OpenZeppelin/openzeppelin-contracts",
-                "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/"
+                "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
             ),
             "@openzeppelin/contracts-upgradeable": (
                 "OpenZeppelin/openzeppelin-contracts-upgradeable",
-                "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/"
+                "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
             ),
             "@chainlink/contracts": (
                 "smartcontractkit/chainlink",
-                "@chainlink/contracts/=lib/chainlink/contracts/"
+                "@chainlink/contracts/=lib/chainlink/contracts/",
             ),
-            "solmate": (
-                "transmissions11/solmate",
-                "solmate/=lib/solmate/src/"
-            ),
-            "solady": (
-                "Vectorized/solady",
-                "solady/=lib/solady/src/"
-            ),
+            "solmate": ("transmissions11/solmate", "solmate/=lib/solmate/src/"),
+            "solady": ("Vectorized/solady", "solady/=lib/solady/src/"),
         }
 
         return KNOWN_DEPS.get(import_name, (None, None))
@@ -825,13 +814,13 @@ auto_detect_solc = false
                     logger.warning(f"Unknown dependency: {imp} - may fail to compile")
 
             # Create foundry.toml
-            foundry_config = f'''[profile.default]
+            foundry_config = f"""[profile.default]
 src = "."
 out = "out"
 libs = ["lib"]
 solc = "{solc_version}"
 auto_detect_solc = false
-'''
+"""
             if remappings:
                 foundry_config += "\nremappings = [\n"
                 for r in remappings:
@@ -890,7 +879,7 @@ auto_detect_solc = false
                 out_dir = Path(foundry_toml_path).parent / "out"
                 if out_dir.exists():
                     shutil.rmtree(out_dir, ignore_errors=True)
-                logger.debug(f"Cleaned up temporary Foundry files")
+                logger.debug("Cleaned up temporary Foundry files")
             except Exception as e:
                 logger.warning(f"Failed to cleanup Foundry files: {e}")
 

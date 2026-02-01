@@ -306,7 +306,7 @@ class ContractCloneDetectorAdapter:
         try:
             with open(contract2_path, "r", encoding="utf-8") as f:
                 code2 = f.read()
-        except:
+        except Exception:
             return 0.0
 
         # Normalize both contracts

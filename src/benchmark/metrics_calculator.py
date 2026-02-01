@@ -13,10 +13,10 @@ Usage:
 """
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from .benchmark_runner import BenchmarkResult, DetectionMetrics
 
@@ -47,7 +47,9 @@ class ConfusionMatrix:
 
     @property
     def accuracy(self) -> float:
-        total = self.true_positives + self.true_negatives + self.false_positives + self.false_negatives
+        total = (
+            self.true_positives + self.true_negatives + self.false_positives + self.false_negatives
+        )
         return (self.true_positives + self.true_negatives) / total if total > 0 else 0.0
 
     @property
@@ -88,7 +90,7 @@ class MetricsDelta:
     @property
     def relative_change(self) -> float:
         if self.before == 0:
-            return float('inf') if self.after > 0 else 0.0
+            return float("inf") if self.after > 0 else 0.0
         return (self.after - self.before) / self.before
 
     @property
@@ -137,7 +139,11 @@ class ComparisonResult:
 
         for name, delta in self.overall_delta.items():
             arrow = "↑" if delta.improved else "↓" if delta.absolute_change != 0 else "→"
-            color_indicator = "+" if delta.improved else "-" if not delta.improved and delta.absolute_change != 0 else " "
+            color_indicator = (
+                "+"
+                if delta.improved
+                else "-" if not delta.improved and delta.absolute_change != 0 else " "
+            )
             lines.append(
                 f"  {name:20} {delta.before*100:6.2f}% → {delta.after*100:6.2f}% "
                 f"({color_indicator}{delta.absolute_change*100:+.2f}%) {arrow}"
@@ -225,7 +231,9 @@ class MetricsCalculator:
 
         # Calculate category deltas
         category_deltas = {}
-        all_categories = set(before.metrics_by_category.keys()) | set(after.metrics_by_category.keys())
+        all_categories = set(before.metrics_by_category.keys()) | set(
+            after.metrics_by_category.keys()
+        )
 
         for cat in all_categories:
             before_metrics = before.metrics_by_category.get(cat, DetectionMetrics(category=cat))

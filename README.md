@@ -5,7 +5,7 @@ Multi-layer security analysis framework for smart contracts with **multi-chain s
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/pypi/v/miesc)](https://pypi.org/project/miesc/)
-[![Version](https://img.shields.io/badge/version-5.0.1-green)](https://github.com/fboiero/MIESC/releases)
+[![Version](https://img.shields.io/badge/version-5.0.2-green)](https://github.com/fboiero/MIESC/releases)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/fboiero/MIESC/badge)](https://securityscorecards.dev/viewer/?uri=github.com/fboiero/MIESC)
 [![Security Audit](https://github.com/fboiero/MIESC/actions/workflows/miesc-security.yml/badge.svg)](https://github.com/fboiero/MIESC/actions/workflows/miesc-security.yml)
 [![codecov](https://codecov.io/gh/fboiero/MIESC/graph/badge.svg)](https://codecov.io/gh/fboiero/MIESC)

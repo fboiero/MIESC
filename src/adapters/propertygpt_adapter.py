@@ -21,18 +21,22 @@ Version: 1.0.0
 Paper: NDSS Symposium 2025, arXiv:2405.02580
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional
-import subprocess
-import logging
 import json
-import time
-import re
+import logging
 import os
-from pathlib import Path
+import re
+import subprocess
 import tempfile
+import time
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,16 +66,16 @@ class PropertyGPTAdapter(ToolAdapter):
     PROPERTY_TEMPLATES = {
         "invariant": {
             "pattern": "invariant {name}()\n    {condition};",
-            "description": "State invariant that must hold across all transactions"
+            "description": "State invariant that must hold across all transactions",
         },
         "rule": {
             "pattern": "rule {name}(method f) {\n    {precondition}\n    env e;\n    calldataarg args;\n    f(e, args);\n    {postcondition}\n}",
-            "description": "Pre/post condition property for function correctness"
+            "description": "Pre/post condition property for function correctness",
         },
         "parametric": {
             "pattern": "rule {name}(method f, method g) filtered {{ f -> f.selector != g.selector }} {\n    {body}\n}",
-            "description": "Parametric rule checking multiple function interactions"
-        }
+            "description": "Parametric rule checking multiple function interactions",
+        },
     }
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -116,13 +120,13 @@ class PropertyGPTAdapter(ToolAdapter):
                         "postcondition_synthesis",
                         "state_machine_properties",
                         "access_control_properties",
-                        "economic_properties"
-                    ]
+                        "economic_properties",
+                    ],
                 )
             ],
             cost=0.0,  # Using local Ollama by default
             requires_api_key=False,  # Optional for cloud LLMs
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
@@ -131,10 +135,7 @@ class PropertyGPTAdapter(ToolAdapter):
             if self.llm_backend == "ollama":
                 # Check if Ollama is running
                 result = subprocess.run(
-                    ["ollama", "list"],
-                    capture_output=True,
-                    timeout=5,
-                    text=True
+                    ["ollama", "list"], capture_output=True, timeout=5, text=True
                 )
 
                 if result.returncode == 0:
@@ -142,7 +143,9 @@ class PropertyGPTAdapter(ToolAdapter):
                     if self.ollama_model in result.stdout:
                         return ToolStatus.AVAILABLE
                     else:
-                        logger.warning(f"Ollama model '{self.ollama_model}' not found. Run: ollama pull {self.ollama_model}")
+                        logger.warning(
+                            f"Ollama model '{self.ollama_model}' not found. Run: ollama pull {self.ollama_model}"
+                        )
                         return ToolStatus.NOT_INSTALLED
                 else:
                     logger.warning("Ollama not responding")
@@ -198,7 +201,7 @@ class PropertyGPTAdapter(ToolAdapter):
 
         try:
             # Read contract source
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 contract_source = f.read()
 
             # Extract contract metadata
@@ -210,9 +213,8 @@ class PropertyGPTAdapter(ToolAdapter):
 
             # Filter by confidence threshold
             high_confidence_properties = [
-                p for p in properties
-                if p.get("confidence", 0) >= self.min_confidence
-            ][:self.max_properties]
+                p for p in properties if p.get("confidence", 0) >= self.min_confidence
+            ][: self.max_properties]
 
             # Build complete CVL specification
             cvl_spec = self._build_cvl_spec(contract_info, high_confidence_properties)
@@ -225,7 +227,7 @@ class PropertyGPTAdapter(ToolAdapter):
             # Save to file if requested
             output_file = kwargs.get("output_cvl_file")
             if output_file:
-                with open(output_file, 'w') as f:
+                with open(output_file, "w") as f:
                     f.write(cvl_spec)
                 logger.info(f"CVL specification saved to {output_file}")
 
@@ -243,9 +245,9 @@ class PropertyGPTAdapter(ToolAdapter):
                     "state_vars_analyzed": len(contract_info.get("state_vars", [])),
                     "properties_generated": len(high_confidence_properties),
                     "llm_backend": self.llm_backend,
-                    "validation": validation_result
+                    "validation": validation_result,
                 },
-                "execution_time": round(execution_time, 2)
+                "execution_time": round(execution_time, 2),
             }
 
             return result
@@ -257,7 +259,7 @@ class PropertyGPTAdapter(ToolAdapter):
                 "status": "error",
                 "error": f"Contract file not found: {contract_path}",
                 "properties": [],
-                "execution_time": time.time() - start_time
+                "execution_time": time.time() - start_time,
             }
         except Exception as e:
             logger.error(f"PropertyGPT analysis failed: {e}")
@@ -267,7 +269,7 @@ class PropertyGPTAdapter(ToolAdapter):
                 "status": "error",
                 "error": str(e),
                 "properties": [],
-                "execution_time": time.time() - start_time
+                "execution_time": time.time() - start_time,
             }
 
     def _analyze_contract_structure(self, source_code: str) -> Dict[str, Any]:
@@ -282,52 +284,48 @@ class PropertyGPTAdapter(ToolAdapter):
             "functions": [],
             "state_vars": [],
             "events": [],
-            "modifiers": []
+            "modifiers": [],
         }
 
         # Extract contract name
-        contract_match = re.search(r'contract\s+(\w+)', source_code)
+        contract_match = re.search(r"contract\s+(\w+)", source_code)
         if contract_match:
             info["name"] = contract_match.group(1)
 
         # Extract functions
-        function_pattern = r'function\s+(\w+)\s*\(([^)]*)\)\s*(public|external|internal|private)?\s*(view|pure|payable|nonpayable)?'
+        function_pattern = r"function\s+(\w+)\s*\(([^)]*)\)\s*(public|external|internal|private)?\s*(view|pure|payable|nonpayable)?"
         for match in re.finditer(function_pattern, source_code):
-            info["functions"].append({
-                "name": match.group(1),
-                "params": match.group(2),
-                "visibility": match.group(3) or "public",
-                "mutability": match.group(4) or "nonpayable"
-            })
+            info["functions"].append(
+                {
+                    "name": match.group(1),
+                    "params": match.group(2),
+                    "visibility": match.group(3) or "public",
+                    "mutability": match.group(4) or "nonpayable",
+                }
+            )
 
         # Extract state variables
-        state_var_pattern = r'(public|private|internal)\s+(\w+)\s+(\w+)\s*;'
+        state_var_pattern = r"(public|private|internal)\s+(\w+)\s+(\w+)\s*;"
         for match in re.finditer(state_var_pattern, source_code):
-            info["state_vars"].append({
-                "visibility": match.group(1),
-                "type": match.group(2),
-                "name": match.group(3)
-            })
+            info["state_vars"].append(
+                {"visibility": match.group(1), "type": match.group(2), "name": match.group(3)}
+            )
 
         # Extract events
-        event_pattern = r'event\s+(\w+)\s*\(([^)]*)\)'
+        event_pattern = r"event\s+(\w+)\s*\(([^)]*)\)"
         for match in re.finditer(event_pattern, source_code):
-            info["events"].append({
-                "name": match.group(1),
-                "params": match.group(2)
-            })
+            info["events"].append({"name": match.group(1), "params": match.group(2)})
 
         # Extract modifiers
-        modifier_pattern = r'modifier\s+(\w+)\s*\(([^)]*)\)'
+        modifier_pattern = r"modifier\s+(\w+)\s*\(([^)]*)\)"
         for match in re.finditer(modifier_pattern, source_code):
-            info["modifiers"].append({
-                "name": match.group(1),
-                "params": match.group(2)
-            })
+            info["modifiers"].append({"name": match.group(1), "params": match.group(2)})
 
         return info
 
-    def _generate_properties_llm(self, contract_source: str, contract_info: Dict) -> List[Dict[str, Any]]:
+    def _generate_properties_llm(
+        self, contract_source: str, contract_info: Dict
+    ) -> List[Dict[str, Any]]:
         """
         Generate formal properties using LLM backend.
 
@@ -392,7 +390,7 @@ Generate {self.max_properties} high-quality properties.
         """Generate properties using local Ollama."""
         try:
             # Create a temp file for the prompt
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
                 f.write(prompt)
                 prompt_file = f.name
 
@@ -402,7 +400,7 @@ Generate {self.max_properties} high-quality properties.
                 input=prompt,
                 capture_output=True,
                 timeout=120,
-                text=True
+                text=True,
             )
 
             os.unlink(prompt_file)
@@ -412,7 +410,7 @@ Generate {self.max_properties} high-quality properties.
                 response_text = result.stdout.strip()
 
                 # Extract JSON array (may be embedded in markdown)
-                json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
+                json_match = re.search(r"\[.*\]", response_text, re.DOTALL)
                 if json_match:
                     properties = json.loads(json_match.group(0))
                     return properties
@@ -451,34 +449,34 @@ Generate {self.max_properties} high-quality properties.
                 "name": "totalSupplyIntegrity",
                 "cvl_code": "invariant totalSupplyMatchesBalances()\n    totalSupply() == sumOfBalances();",
                 "description": "Total token supply equals sum of all balances",
-                "confidence": 0.85
+                "confidence": 0.85,
             },
             {
                 "type": "rule",
                 "name": "transferPreservesSupply",
                 "cvl_code": "rule transferPreservesSupply(address to, uint256 amount) {\n    env e;\n    uint256 supplyBefore = totalSupply();\n    transfer(e, to, amount);\n    uint256 supplyAfter = totalSupply();\n    assert supplyBefore == supplyAfter;\n}",
                 "description": "Transfers do not change total supply",
-                "confidence": 0.90
+                "confidence": 0.90,
             },
             {
                 "type": "rule",
                 "name": "onlyOwnerCanMint",
                 "cvl_code": "rule onlyOwnerCanMint(uint256 amount) {\n    env e;\n    require e.msg.sender != owner();\n    mint@withrevert(e, amount);\n    assert lastReverted;\n}",
                 "description": "Only owner can mint new tokens",
-                "confidence": 0.80
-            }
+                "confidence": 0.80,
+            },
         ]
-        return properties[:self.max_properties]
+        return properties[: self.max_properties]
 
     def _build_cvl_spec(self, contract_info: Dict, properties: List[Dict]) -> str:
         """Build complete CVL specification file."""
         cvl_lines = [
             f"// CVL Specification for {contract_info['name']}",
-            f"// Generated by PropertyGPT (MIESC)",
+            "// Generated by PropertyGPT (MIESC)",
             f"// Date: {time.strftime('%Y-%m-%d %H:%M:%S')}",
             "",
-            f"methods {{",
-            f"    // Contract: {contract_info['name']}"
+            "methods {",
+            f"    // Contract: {contract_info['name']}",
         ]
 
         # Add function signatures
@@ -504,18 +502,14 @@ Generate {self.max_properties} high-quality properties.
 
         Note: Full validation requires Certora Prover.
         """
-        validation = {
-            "valid": True,
-            "errors": [],
-            "warnings": []
-        }
+        validation = {"valid": True, "errors": [], "warnings": []}
 
         # Basic syntax checks
         if "invariant" not in cvl_spec and "rule" not in cvl_spec:
             validation["warnings"].append("No properties found in CVL spec")
 
         # Check for balanced braces
-        if cvl_spec.count('{') != cvl_spec.count('}'):
+        if cvl_spec.count("{") != cvl_spec.count("}"):
             validation["valid"] = False
             validation["errors"].append("Unbalanced braces in CVL spec")
 
@@ -539,15 +533,12 @@ Generate {self.max_properties} high-quality properties.
                     "type": "formal_property_recommendation",
                     "severity": "Info",
                     "confidence": prop.get("confidence", 0.0),
-                    "location": {
-                        "file": "Generated CVL",
-                        "line": 0
-                    },
+                    "location": {"file": "Generated CVL", "line": 0},
                     "message": f"Generated formal property: {prop.get('name')}",
                     "description": prop.get("description", ""),
                     "recommendation": f"Add this property to Certora verification:\n{prop.get('cvl_code', '')}",
                     "cvl_code": prop.get("cvl_code", ""),
-                    "property_type": prop.get("type", "unknown")
+                    "property_type": prop.get("type", "unknown"),
                 }
                 findings.append(finding)
             return findings
@@ -555,7 +546,7 @@ Generate {self.max_properties} high-quality properties.
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if file is a Solidity contract."""
-        return contract_path.endswith('.sol')
+        return contract_path.endswith(".sol")
 
     def get_default_config(self) -> Dict[str, Any]:
         """Return default configuration."""
@@ -564,14 +555,11 @@ Generate {self.max_properties} high-quality properties.
             "ollama_model": "openhermes",
             "max_properties": 10,
             "min_confidence": 0.7,
-            "enable_validation": True
+            "enable_validation": True,
         }
 
 
 # Adapter registration
 def register_adapter():
     """Register PropertyGPT adapter with MIESC."""
-    return {
-        "adapter_class": PropertyGPTAdapter,
-        "metadata": PropertyGPTAdapter().get_metadata()
-    }
+    return {"adapter_class": PropertyGPTAdapter, "metadata": PropertyGPTAdapter().get_metadata()}

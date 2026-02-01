@@ -10,13 +10,18 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-01-09
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional
-import re
 import logging
+import re
 from pathlib import Path
+from typing import Any, Dict, List
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +55,13 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "tx.origin can be spoofed via phishing attack",
             "impact": "Attacker can impersonate authorized user",
             "mitigation": "Use msg.sender instead of tx.origin for authorization",
-            "dread": {"damage": 8, "reproducibility": 9, "exploitability": 7, "affected_users": 8, "discoverability": 6}
+            "dread": {
+                "damage": 8,
+                "reproducibility": 9,
+                "exploitability": 7,
+                "affected_users": 8,
+                "discoverability": 6,
+            },
         },
         "spoofing_no_auth": {
             "regex": r"function\s+\w+\([^)]*\)\s+external\s+(?!.*onlyOwner)(?!.*require\(msg\.sender)",
@@ -58,9 +69,14 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "External function without authentication",
             "impact": "Anyone can call privileged function",
             "mitigation": "Add access control modifiers (onlyOwner, onlyRole, etc.)",
-            "dread": {"damage": 9, "reproducibility": 10, "exploitability": 10, "affected_users": 10, "discoverability": 9}
+            "dread": {
+                "damage": 9,
+                "reproducibility": 10,
+                "exploitability": 10,
+                "affected_users": 10,
+                "discoverability": 9,
+            },
         },
-
         # TAMPERING: Manipulación de datos
         "tampering_public_state": {
             "regex": r"(uint|address|bool|mapping)\s+public\s+\w+\s*;",
@@ -68,7 +84,13 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "Public state variable without setter protection",
             "impact": "State can be read by attackers for manipulation timing",
             "mitigation": "Use internal/private visibility and controlled setters",
-            "dread": {"damage": 6, "reproducibility": 10, "exploitability": 5, "affected_users": 7, "discoverability": 10}
+            "dread": {
+                "damage": 6,
+                "reproducibility": 10,
+                "exploitability": 5,
+                "affected_users": 7,
+                "discoverability": 10,
+            },
         },
         "tampering_no_validation": {
             "regex": r"function\s+set\w+\([^)]*\)\s+[^{]*\{(?![^}]*require)",
@@ -76,9 +98,14 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "Setter function without input validation",
             "impact": "Invalid data can corrupt contract state",
             "mitigation": "Add require() statements to validate inputs",
-            "dread": {"damage": 7, "reproducibility": 9, "exploitability": 8, "affected_users": 8, "discoverability": 7}
+            "dread": {
+                "damage": 7,
+                "reproducibility": 9,
+                "exploitability": 8,
+                "affected_users": 8,
+                "discoverability": 7,
+            },
         },
-
         # REPUDIATION: No-repudio
         "repudiation_no_events": {
             "regex": r"function\s+\w+\([^)]*\)\s+external\s+[^{]*\{(?![^}]*emit)",
@@ -86,9 +113,14 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "State-changing function without event emission",
             "impact": "Actions cannot be audited or proven",
             "mitigation": "Emit events for all state changes",
-            "dread": {"damage": 5, "reproducibility": 10, "exploitability": 3, "affected_users": 6, "discoverability": 8}
+            "dread": {
+                "damage": 5,
+                "reproducibility": 10,
+                "exploitability": 3,
+                "affected_users": 6,
+                "discoverability": 8,
+            },
         },
-
         # INFORMATION DISCLOSURE: Divulgación de información
         "disclosure_private_data": {
             "regex": r"(private|internal)\s+(bytes32|string|uint)\s+\w*(secret|password|key|seed)",
@@ -96,7 +128,13 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "Sensitive data stored on-chain",
             "impact": "Private data is visible to everyone on blockchain",
             "mitigation": "Never store secrets on-chain, use off-chain or encryption",
-            "dread": {"damage": 9, "reproducibility": 10, "exploitability": 1, "affected_users": 10, "discoverability": 5}
+            "dread": {
+                "damage": 9,
+                "reproducibility": 10,
+                "exploitability": 1,
+                "affected_users": 10,
+                "discoverability": 5,
+            },
         },
         "disclosure_balance_leak": {
             "regex": r"this\.balance",
@@ -104,9 +142,14 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "Contract balance exposed in logic",
             "impact": "Attackers can time attacks based on contract balance",
             "mitigation": "Use internal accounting instead of relying on balance",
-            "dread": {"damage": 6, "reproducibility": 10, "exploitability": 6, "affected_users": 7, "discoverability": 9}
+            "dread": {
+                "damage": 6,
+                "reproducibility": 10,
+                "exploitability": 6,
+                "affected_users": 7,
+                "discoverability": 9,
+            },
         },
-
         # DENIAL OF SERVICE: Denegación de servicio
         "dos_unbounded_loop": {
             "regex": r"for\s*\([^)]*;\s*\w+\s*<\s*\w+\.length",
@@ -114,7 +157,13 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "Unbounded loop over dynamic array",
             "impact": "Gas limit can prevent function execution",
             "mitigation": "Add array size limits or use pull pattern",
-            "dread": {"damage": 7, "reproducibility": 8, "exploitability": 7, "affected_users": 10, "discoverability": 6}
+            "dread": {
+                "damage": 7,
+                "reproducibility": 8,
+                "exploitability": 7,
+                "affected_users": 10,
+                "discoverability": 6,
+            },
         },
         "dos_external_call_loop": {
             "regex": r"for\s*\([^)]*\)\s*\{[^}]*(\.call|\.transfer|\.send)",
@@ -122,7 +171,13 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "External calls in loop",
             "impact": "Single failing call can block entire operation",
             "mitigation": "Use pull pattern instead of push",
-            "dread": {"damage": 8, "reproducibility": 9, "exploitability": 8, "affected_users": 10, "discoverability": 7}
+            "dread": {
+                "damage": 8,
+                "reproducibility": 9,
+                "exploitability": 8,
+                "affected_users": 10,
+                "discoverability": 7,
+            },
         },
         "dos_block_gas_limit": {
             "regex": r"while\s*\(true\)|while\s*\(\w+\s*>\s*0\)",
@@ -130,9 +185,14 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "Potentially infinite loop",
             "impact": "Contract can become unusable",
             "mitigation": "Add iteration limits and break conditions",
-            "dread": {"damage": 9, "reproducibility": 6, "exploitability": 5, "affected_users": 10, "discoverability": 4}
+            "dread": {
+                "damage": 9,
+                "reproducibility": 6,
+                "exploitability": 5,
+                "affected_users": 10,
+                "discoverability": 4,
+            },
         },
-
         # ELEVATION OF PRIVILEGE: Elevación de privilegios
         "privilege_delegatecall": {
             "regex": r"delegatecall\(",
@@ -140,7 +200,13 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "Delegatecall to potentially malicious contract",
             "impact": "Caller can execute code in context of this contract",
             "mitigation": "Validate delegatecall target or use library pattern",
-            "dread": {"damage": 10, "reproducibility": 7, "exploitability": 8, "affected_users": 10, "discoverability": 6}
+            "dread": {
+                "damage": 10,
+                "reproducibility": 7,
+                "exploitability": 8,
+                "affected_users": 10,
+                "discoverability": 6,
+            },
         },
         "privilege_selfdestruct": {
             "regex": r"selfdestruct\(",
@@ -148,7 +214,13 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "Selfdestruct without proper authorization",
             "impact": "Contract and funds can be destroyed",
             "mitigation": "Add multi-sig or timelock for selfdestruct",
-            "dread": {"damage": 10, "reproducibility": 8, "exploitability": 9, "affected_users": 10, "discoverability": 8}
+            "dread": {
+                "damage": 10,
+                "reproducibility": 8,
+                "exploitability": 9,
+                "affected_users": 10,
+                "discoverability": 8,
+            },
         },
         "privilege_upgrade_no_check": {
             "regex": r"function\s+upgrade\w*\([^)]*\)\s+[^{]*\{(?![^}]*onlyOwner)",
@@ -156,8 +228,14 @@ class ThreatModelAdapter(ToolAdapter):
             "threat": "Upgrade function without access control",
             "impact": "Anyone can upgrade contract to malicious implementation",
             "mitigation": "Add onlyOwner or multi-sig requirement",
-            "dread": {"damage": 10, "reproducibility": 10, "exploitability": 10, "affected_users": 10, "discoverability": 9}
-        }
+            "dread": {
+                "damage": 10,
+                "reproducibility": 10,
+                "exploitability": 10,
+                "affected_users": 10,
+                "discoverability": 9,
+            },
+        },
     }
 
     def get_metadata(self) -> ToolMetadata:
@@ -182,13 +260,13 @@ class ThreatModelAdapter(ToolAdapter):
                         "repudiation",
                         "information_disclosure",
                         "denial_of_service",
-                        "elevation_of_privilege"
-                    ]
+                        "elevation_of_privilege",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True  # DPGA compliance
+            is_optional=True,  # DPGA compliance
         )
 
     def is_available(self) -> ToolStatus:
@@ -209,11 +287,12 @@ class ThreatModelAdapter(ToolAdapter):
             Resultados normalizados con threat model
         """
         import time
+
         start = time.time()
 
         try:
             # Leer contrato
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 source_code = f.read()
 
             # Analizar amenazas STRIDE
@@ -238,9 +317,9 @@ class ThreatModelAdapter(ToolAdapter):
                     "average_dread_score": threat_summary["avg_dread"],
                     "highest_risk_category": threat_summary["highest_risk"],
                     "audit_readiness_score": threat_summary["audit_readiness"],
-                    "framework": "STRIDE/DREAD"
+                    "framework": "STRIDE/DREAD",
                 },
-                "execution_time": time.time() - start
+                "execution_time": time.time() - start,
             }
 
         except Exception as e:
@@ -251,7 +330,7 @@ class ThreatModelAdapter(ToolAdapter):
                 "status": "error",
                 "error": str(e),
                 "findings": [],
-                "execution_time": time.time() - start
+                "execution_time": time.time() - start,
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -265,9 +344,9 @@ class ThreatModelAdapter(ToolAdapter):
     def _analyze_stride_threats(self, source_code: str, contract_path: str) -> List[Dict[str, Any]]:
         """Analiza amenazas usando framework STRIDE"""
         threats = []
-        lines = source_code.split('\n')
+        lines = source_code.split("\n")
 
-        for pattern_name, pattern_info in self.STRIDE_PATTERNS.items():
+        for _pattern_name, pattern_info in self.STRIDE_PATTERNS.items():
             regex = re.compile(pattern_info["regex"], re.MULTILINE)
 
             for line_num, line in enumerate(lines, 1):
@@ -290,7 +369,7 @@ class ThreatModelAdapter(ToolAdapter):
                             "file": str(Path(contract_path).name),
                             "line": line_num,
                             "column": match.start(),
-                            "code_snippet": line.strip()
+                            "code_snippet": line.strip(),
                         },
                         "message": f"[{pattern_info['stride_category']}] {pattern_info['threat']}",
                         "description": (
@@ -306,7 +385,7 @@ class ThreatModelAdapter(ToolAdapter):
                         "stride_category": pattern_info["stride_category"],
                         "dread_score": round(dread_score, 2),
                         "dread_breakdown": dread_scores,
-                        "impact": pattern_info["impact"]
+                        "impact": pattern_info["impact"],
                     }
                     threats.append(threat)
 
@@ -331,7 +410,7 @@ class ThreatModelAdapter(ToolAdapter):
                 "stride_breakdown": {},
                 "avg_dread": 0.0,
                 "highest_risk": "None",
-                "audit_readiness": 100.0
+                "audit_readiness": 100.0,
             }
 
         # Breakdown por categoría STRIDE
@@ -349,10 +428,12 @@ class ThreatModelAdapter(ToolAdapter):
         # Audit readiness score (100 - penalización por amenazas)
         # Cada amenaza Critical -10, High -5, Medium -2, Low -1
         penalty = sum(
-            10 if t["severity"] == "Critical" else
-            5 if t["severity"] == "High" else
-            2 if t["severity"] == "Medium" else
-            1 for t in threats
+            (
+                10
+                if t["severity"] == "Critical"
+                else 5 if t["severity"] == "High" else 2 if t["severity"] == "Medium" else 1
+            )
+            for t in threats
         )
         audit_readiness = max(0, 100 - penalty)
 
@@ -360,17 +441,13 @@ class ThreatModelAdapter(ToolAdapter):
             "stride_breakdown": stride_breakdown,
             "avg_dread": round(avg_dread, 2),
             "highest_risk": highest_risk,
-            "audit_readiness": round(audit_readiness, 2)
+            "audit_readiness": round(audit_readiness, 2),
         }
 
     def can_analyze(self, contract_path: str) -> bool:
         """Verifica si el archivo es un contrato Solidity"""
-        return contract_path.endswith('.sol')
+        return contract_path.endswith(".sol")
 
     def get_default_config(self) -> Dict[str, Any]:
         """Configuración por defecto"""
-        return {
-            "framework": "STRIDE",
-            "min_dread_score": 0.0,
-            "include_all_categories": True
-        }
+        return {"framework": "STRIDE", "min_dread_score": 0.0, "include_all_categories": True}

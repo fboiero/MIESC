@@ -5,11 +5,13 @@ Wraps Layer 4 tools: Mythril, Manticore
 Enhanced with Tool Adapters: OyenteAdapter
 Publishes symbolic analysis results and execution paths to Context Bus
 """
+
 import json
 import logging
 import subprocess
-from typing import Dict, Any, List
 from pathlib import Path
+from typing import Any, Dict, List
+
 from src.agents.base_agent import BaseAgent
 from src.integration.adapter_integration import integrate_symbolic_execution
 
@@ -39,9 +41,9 @@ class SymbolicAgent(BaseAgent):
                 "symbolic_execution",
                 "path_exploration",
                 "constraint_solving",
-                "exploit_generation"
+                "exploit_generation",
             ],
-            agent_type="symbolic"
+            agent_type="symbolic",
         )
 
     def get_context_types(self) -> List[str]:
@@ -49,7 +51,7 @@ class SymbolicAgent(BaseAgent):
             "symbolic_findings",
             "mythril_results",
             "manticore_results",
-            "oyente_results"  # From OyenteAdapter (symbolic execution)
+            "oyente_results",  # From OyenteAdapter (symbolic execution)
         ]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
@@ -66,11 +68,7 @@ class SymbolicAgent(BaseAgent):
         Returns:
             Dictionary with results from symbolic tools
         """
-        results = {
-            "symbolic_findings": [],
-            "mythril_results": {},
-            "manticore_results": {}
-        }
+        results = {"symbolic_findings": [], "mythril_results": {}, "manticore_results": {}}
 
         max_depth = kwargs.get("max_depth", 128)
         timeout = kwargs.get("timeout", 900)  # 15 minutes default
@@ -87,9 +85,7 @@ class SymbolicAgent(BaseAgent):
         results["manticore_results"] = manticore_data
 
         # Aggregate findings from traditional tools
-        results["symbolic_findings"] = self._aggregate_findings(
-            mythril_data, manticore_data
-        )
+        results["symbolic_findings"] = self._aggregate_findings(mythril_data, manticore_data)
 
         # === ENHANCED: Integrate Tool Adapters (Layer 4 Enhancement) ===
         # Run OyenteAdapter for symbolic execution via Integration Layer
@@ -109,9 +105,11 @@ class SymbolicAgent(BaseAgent):
 
                 # Add symbolic execution metadata
                 results["adapter_metadata"] = {
-                    "vulnerability_types": adapter_results.get("metadata", {}).get("vulnerability_types", []),
+                    "vulnerability_types": adapter_results.get("metadata", {}).get(
+                        "vulnerability_types", []
+                    ),
                     "adapters_executed": adapter_results.get("successful", 0),
-                    "adapters_failed": adapter_results.get("failed", 0)
+                    "adapters_failed": adapter_results.get("failed", 0),
                 }
 
                 logger.info(
@@ -122,15 +120,11 @@ class SymbolicAgent(BaseAgent):
         except Exception as e:
             # Graceful degradation: Agent works even if adapter fails
             logger.warning(f"SymbolicAgent: Oyente adapter failed (non-critical): {e}")
-            results["adapter_metadata"] = {
-                "error": str(e),
-                "adapters_executed": 0
-            }
+            results["adapter_metadata"] = {"error": str(e), "adapters_executed": 0}
 
         return results
 
-    def _run_mythril(self, contract_path: str, timeout: int,
-                     solc_version: str) -> Dict[str, Any]:
+    def _run_mythril(self, contract_path: str, timeout: int, solc_version: str) -> Dict[str, Any]:
         """
         Execute Mythril symbolic analysis
 
@@ -138,20 +132,9 @@ class SymbolicAgent(BaseAgent):
             Dictionary with vulnerabilities found
         """
         try:
-            cmd = [
-                "myth",
-                "analyze",
-                contract_path,
-                "--solv", solc_version,
-                "-o", "json"
-            ]
+            cmd = ["myth", "analyze", contract_path, "--solv", solc_version, "-o", "json"]
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
             # Parse JSON output
             vulnerabilities = []
@@ -160,18 +143,20 @@ class SymbolicAgent(BaseAgent):
 
                 if "issues" in data:
                     for issue in data["issues"]:
-                        vulnerabilities.append({
-                            "swc_id": issue.get("swc-id", "UNKNOWN"),
-                            "title": issue.get("title", ""),
-                            "severity": issue.get("severity", "Unknown"),
-                            "description": issue.get("description", ""),
-                            "location": {
-                                "file": issue.get("filename", "unknown"),
-                                "line": issue.get("lineno", 0),
-                                "function": issue.get("function", "unknown")
-                            },
-                            "transaction_sequence": issue.get("debug", "")
-                        })
+                        vulnerabilities.append(
+                            {
+                                "swc_id": issue.get("swc-id", "UNKNOWN"),
+                                "title": issue.get("title", ""),
+                                "severity": issue.get("severity", "Unknown"),
+                                "description": issue.get("description", ""),
+                                "location": {
+                                    "file": issue.get("filename", "unknown"),
+                                    "line": issue.get("lineno", 0),
+                                    "function": issue.get("function", "unknown"),
+                                },
+                                "transaction_sequence": issue.get("debug", ""),
+                            }
+                        )
 
             except json.JSONDecodeError:
                 logger.warning("Failed to parse Mythril JSON output")
@@ -183,8 +168,8 @@ class SymbolicAgent(BaseAgent):
                 "metadata": {
                     "exit_code": result.returncode,
                     "solc_version": solc_version,
-                    "analysis_type": "symbolic_execution"
-                }
+                    "analysis_type": "symbolic_execution",
+                },
             }
 
         except subprocess.TimeoutExpired:
@@ -197,8 +182,7 @@ class SymbolicAgent(BaseAgent):
             logger.error(f"Mythril execution error: {e}")
             return {"error": str(e), "vulnerabilities": []}
 
-    def _run_manticore(self, contract_path: str, max_depth: int,
-                       timeout: int) -> Dict[str, Any]:
+    def _run_manticore(self, contract_path: str, max_depth: int, timeout: int) -> Dict[str, Any]:
         """
         Execute Manticore symbolic execution with enhanced exploit generation
 
@@ -210,17 +194,13 @@ class SymbolicAgent(BaseAgent):
             cmd = [
                 "manticore",
                 contract_path,
-                "--max-depth", str(max_depth),
+                "--max-depth",
+                str(max_depth),
                 "--quick-mode",
-                "--verbose-trace"
+                "--verbose-trace",
             ]
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
             # Parse output with enhanced extraction
             output = result.stdout if result.stdout else result.stderr
@@ -230,46 +210,52 @@ class SymbolicAgent(BaseAgent):
             states_explored = 0
 
             # Extract information from output
-            for line in output.split('\n'):
+            for line in output.split("\n"):
                 line_lower = line.lower()
 
                 # Extract paths/states explored
-                if 'explored' in line_lower:
+                if "explored" in line_lower:
                     try:
-                        if 'states' in line_lower:
-                            states_explored = int(''.join(filter(str.isdigit, line)))
-                        elif 'paths' in line_lower:
-                            paths_explored = int(''.join(filter(str.isdigit, line)))
+                        if "states" in line_lower:
+                            states_explored = int("".join(filter(str.isdigit, line)))
+                        elif "paths" in line_lower:
+                            paths_explored = int("".join(filter(str.isdigit, line)))
                     except ValueError:
                         pass
 
                 # Detect vulnerabilities
-                if 'integer overflow' in line_lower or 'integer underflow' in line_lower:
-                    vulnerabilities.append({
-                        "type": "integer_overflow",
-                        "severity": "High",
-                        "description": line.strip(),
-                        "swc_id": "SWC-101",
-                        "exploitable": True
-                    })
+                if "integer overflow" in line_lower or "integer underflow" in line_lower:
+                    vulnerabilities.append(
+                        {
+                            "type": "integer_overflow",
+                            "severity": "High",
+                            "description": line.strip(),
+                            "swc_id": "SWC-101",
+                            "exploitable": True,
+                        }
+                    )
 
-                if 'reentrancy' in line_lower:
-                    vulnerabilities.append({
-                        "type": "reentrancy",
-                        "severity": "Critical",
-                        "description": line.strip(),
-                        "swc_id": "SWC-107",
-                        "exploitable": True
-                    })
+                if "reentrancy" in line_lower:
+                    vulnerabilities.append(
+                        {
+                            "type": "reentrancy",
+                            "severity": "Critical",
+                            "description": line.strip(),
+                            "swc_id": "SWC-107",
+                            "exploitable": True,
+                        }
+                    )
 
-                if 'unchecked call' in line_lower:
-                    vulnerabilities.append({
-                        "type": "unchecked_call",
-                        "severity": "Medium",
-                        "description": line.strip(),
-                        "swc_id": "SWC-104",
-                        "exploitable": False
-                    })
+                if "unchecked call" in line_lower:
+                    vulnerabilities.append(
+                        {
+                            "type": "unchecked_call",
+                            "severity": "Medium",
+                            "description": line.strip(),
+                            "swc_id": "SWC-104",
+                            "exploitable": False,
+                        }
+                    )
 
             # Extract findings from Manticore workspace
             workspace_findings = self._extract_workspace_findings(contract_path)
@@ -279,17 +265,17 @@ class SymbolicAgent(BaseAgent):
             for vuln in vulnerabilities:
                 if vuln.get("exploitable", False):
                     exploit_code = self._generate_exploit(
-                        contract_path,
-                        vuln.get("type", "unknown"),
-                        vuln.get("description", "")
+                        contract_path, vuln.get("type", "unknown"), vuln.get("description", "")
                     )
                     if exploit_code:
-                        exploits.append({
-                            "vulnerability_type": vuln.get("type"),
-                            "severity": vuln.get("severity"),
-                            "exploit_contract": exploit_code,
-                            "swc_id": vuln.get("swc_id")
-                        })
+                        exploits.append(
+                            {
+                                "vulnerability_type": vuln.get("type"),
+                                "severity": vuln.get("severity"),
+                                "exploit_contract": exploit_code,
+                                "swc_id": vuln.get("swc_id"),
+                            }
+                        )
 
             return {
                 "tool": "Manticore",
@@ -302,34 +288,21 @@ class SymbolicAgent(BaseAgent):
                     "exit_code": result.returncode,
                     "max_depth": max_depth,
                     "analysis_type": "symbolic_execution",
-                    "exploit_generation": "enabled"
-                }
+                    "exploit_generation": "enabled",
+                },
             }
 
         except subprocess.TimeoutExpired:
             logger.error(f"Manticore timeout after {timeout} seconds")
-            return {
-                "error": "timeout",
-                "vulnerabilities": [],
-                "exploits": []
-            }
+            return {"error": "timeout", "vulnerabilities": [], "exploits": []}
         except FileNotFoundError:
             logger.warning("Manticore not installed, skipping")
-            return {
-                "error": "not_installed",
-                "vulnerabilities": [],
-                "exploits": []
-            }
+            return {"error": "not_installed", "vulnerabilities": [], "exploits": []}
         except Exception as e:
             logger.error(f"Manticore execution error: {e}")
-            return {
-                "error": str(e),
-                "vulnerabilities": [],
-                "exploits": []
-            }
+            return {"error": str(e), "vulnerabilities": [], "exploits": []}
 
-    def _aggregate_findings(self, mythril_data: Dict,
-                           manticore_data: Dict) -> List[Dict[str, Any]]:
+    def _aggregate_findings(self, mythril_data: Dict, manticore_data: Dict) -> List[Dict[str, Any]]:
         """
         Aggregate findings from symbolic tools into unified format
 
@@ -340,51 +313,57 @@ class SymbolicAgent(BaseAgent):
 
         # Add Mythril vulnerabilities
         for vuln in mythril_data.get("vulnerabilities", []):
-            unified.append({
-                "source": "Mythril",
-                "type": "symbolic_vulnerability",
-                "id": vuln.get("swc_id", "UNKNOWN"),
-                "title": vuln.get("title"),
-                "severity": vuln.get("severity"),
-                "description": vuln.get("description"),
-                "location": vuln.get("location"),
-                "transaction_sequence": vuln.get("transaction_sequence"),
-                "layer": "symbolic",
-                "swc_id": vuln.get("swc_id"),
-                "owasp_category": self._map_swc_to_owasp(vuln.get("swc_id")),
-                "confidence": "High"  # Mythril has high confidence
-            })
+            unified.append(
+                {
+                    "source": "Mythril",
+                    "type": "symbolic_vulnerability",
+                    "id": vuln.get("swc_id", "UNKNOWN"),
+                    "title": vuln.get("title"),
+                    "severity": vuln.get("severity"),
+                    "description": vuln.get("description"),
+                    "location": vuln.get("location"),
+                    "transaction_sequence": vuln.get("transaction_sequence"),
+                    "layer": "symbolic",
+                    "swc_id": vuln.get("swc_id"),
+                    "owasp_category": self._map_swc_to_owasp(vuln.get("swc_id")),
+                    "confidence": "High",  # Mythril has high confidence
+                }
+            )
 
         # Add Manticore vulnerabilities
         for vuln in manticore_data.get("vulnerabilities", []):
-            unified.append({
-                "source": "Manticore",
-                "type": vuln.get("type", "symbolic_vulnerability"),
-                "id": vuln.get("swc_id", "UNKNOWN"),
-                "severity": vuln.get("severity", "Medium"),
-                "description": vuln.get("description"),
-                "layer": "symbolic",
-                "swc_id": vuln.get("swc_id"),
-                "owasp_category": self._map_swc_to_owasp(vuln.get("swc_id", "")),
-                "confidence": "High",
-                "exploitable": vuln.get("exploitable", False)
-            })
+            unified.append(
+                {
+                    "source": "Manticore",
+                    "type": vuln.get("type", "symbolic_vulnerability"),
+                    "id": vuln.get("swc_id", "UNKNOWN"),
+                    "severity": vuln.get("severity", "Medium"),
+                    "description": vuln.get("description"),
+                    "layer": "symbolic",
+                    "swc_id": vuln.get("swc_id"),
+                    "owasp_category": self._map_swc_to_owasp(vuln.get("swc_id", "")),
+                    "confidence": "High",
+                    "exploitable": vuln.get("exploitable", False),
+                }
+            )
 
         # Add Manticore exploits as separate findings
         for exploit in manticore_data.get("exploits", []):
-            unified.append({
-                "source": "Manticore",
-                "type": "exploit_poc",
-                "id": exploit.get("swc_id", "UNKNOWN"),
-                "severity": exploit.get("severity", "Critical"),
-                "description": f"Exploit PoC generated for {exploit.get('vulnerability_type')}",
-                "layer": "symbolic",
-                "swc_id": exploit.get("swc_id"),
-                "owasp_category": self._map_swc_to_owasp(exploit.get("swc_id", "")),
-                "confidence": "High",
-                "exploitable": True,
-                "exploit_contract": exploit.get("exploit_contract", "")
-            })
+            unified.append(
+                {
+                    "source": "Manticore",
+                    "type": "exploit_poc",
+                    "id": exploit.get("swc_id", "UNKNOWN"),
+                    "severity": exploit.get("severity", "Critical"),
+                    "description": f"Exploit PoC generated for {exploit.get('vulnerability_type')}",
+                    "layer": "symbolic",
+                    "swc_id": exploit.get("swc_id"),
+                    "owasp_category": self._map_swc_to_owasp(exploit.get("swc_id", "")),
+                    "confidence": "High",
+                    "exploitable": True,
+                    "exploit_contract": exploit.get("exploit_contract", ""),
+                }
+            )
 
         return unified
 
@@ -404,7 +383,7 @@ class SymbolicAgent(BaseAgent):
 
         try:
             # Find Manticore workspace (created in current directory)
-            workspaces = list(Path('.').glob(workspace_pattern))
+            workspaces = list(Path(".").glob(workspace_pattern))
 
             if not workspaces:
                 logger.debug(f"No Manticore workspace found for {contract_name}")
@@ -416,17 +395,19 @@ class SymbolicAgent(BaseAgent):
             # Read global.findings file
             global_findings = workspace / "global.findings"
             if global_findings.exists():
-                with open(global_findings, 'r') as f:
+                with open(global_findings, "r") as f:
                     for line in f:
                         line = line.strip()
-                        if line and not line.startswith('#'):
-                            findings.append({
-                                "type": "workspace_finding",
-                                "severity": "Medium",
-                                "description": line,
-                                "source": "manticore_workspace",
-                                "exploitable": False
-                            })
+                        if line and not line.startswith("#"):
+                            findings.append(
+                                {
+                                    "type": "workspace_finding",
+                                    "severity": "Medium",
+                                    "description": line,
+                                    "source": "manticore_workspace",
+                                    "exploitable": False,
+                                }
+                            )
 
             # Count explored states
             state_dirs = list(workspace.glob("test_*"))
@@ -437,8 +418,7 @@ class SymbolicAgent(BaseAgent):
 
         return findings
 
-    def _generate_exploit(self, contract_path: str, vuln_type: str,
-                         description: str) -> str:
+    def _generate_exploit(self, contract_path: str, vuln_type: str, description: str) -> str:
         """
         Generate exploit contract code for detected vulnerability
 
@@ -618,6 +598,6 @@ contract IntegerOverflowExploit {{
             "SWC-115": "SC02-Access-Control",
             "SWC-116": "SC08-Time-Manipulation",
             "SWC-120": "SC06-Bad-Randomness",
-            "SWC-128": "SC05-DoS"
+            "SWC-128": "SC05-DoS",
         }
         return mapping.get(swc_id, "SC10-Unknown-Unknowns")

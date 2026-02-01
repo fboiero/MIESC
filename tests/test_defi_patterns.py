@@ -12,18 +12,18 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
-import pytest
 import re
 from dataclasses import asdict
 
+import pytest
+
 from src.ml.defi_patterns import (
-    DeFiVulnType,
-    DeFiVulnerabilityPattern,
-    DeFiPatternMatch,
     DEFI_VULNERABILITY_PATTERNS,
     DeFiPatternDetector,
+    DeFiPatternMatch,
+    DeFiVulnerabilityPattern,
+    DeFiVulnType,
 )
-
 
 # =============================================================================
 # Fixtures
@@ -395,26 +395,28 @@ class TestDeFiVulnerabilityPatternsDB:
     def test_patterns_count(self):
         """Test that patterns database has expected count."""
         # Should have at least 12 original + some v4.4.0 patterns
-        assert len(DEFI_VULNERABILITY_PATTERNS) >= 12, \
-            f"Expected at least 12 patterns, got {len(DEFI_VULNERABILITY_PATTERNS)}"
+        assert (
+            len(DEFI_VULNERABILITY_PATTERNS) >= 12
+        ), f"Expected at least 12 patterns, got {len(DEFI_VULNERABILITY_PATTERNS)}"
 
     def test_all_values_are_patterns(self):
         """Test that all values are DeFiVulnerabilityPattern instances."""
         for vuln_type, pattern in DEFI_VULNERABILITY_PATTERNS.items():
-            assert isinstance(pattern, DeFiVulnerabilityPattern), \
-                f"{vuln_type} is not a DeFiVulnerabilityPattern"
+            assert isinstance(
+                pattern, DeFiVulnerabilityPattern
+            ), f"{vuln_type} is not a DeFiVulnerabilityPattern"
 
     def test_keys_match_vuln_types(self):
         """Test that keys match pattern vuln_type fields."""
         for key, pattern in DEFI_VULNERABILITY_PATTERNS.items():
-            assert key == pattern.vuln_type, \
-                f"Key {key} doesn't match pattern vuln_type {pattern.vuln_type}"
+            assert (
+                key == pattern.vuln_type
+            ), f"Key {key} doesn't match pattern vuln_type {pattern.vuln_type}"
 
     def test_all_patterns_have_indicators(self):
         """Test that all patterns have at least one indicator."""
         for vuln_type, pattern in DEFI_VULNERABILITY_PATTERNS.items():
-            assert len(pattern.indicators) > 0, \
-                f"{vuln_type} has no indicators"
+            assert len(pattern.indicators) > 0, f"{vuln_type} has no indicators"
 
     def test_indicators_are_valid_regex(self):
         """Test that all indicators are valid regex patterns."""
@@ -438,27 +440,27 @@ class TestDeFiVulnerabilityPatternsDB:
         """Test that all severities are valid values."""
         valid_severities = {"critical", "high", "medium", "low"}
         for vuln_type, pattern in DEFI_VULNERABILITY_PATTERNS.items():
-            assert pattern.severity.lower() in valid_severities, \
-                f"{vuln_type} has invalid severity: {pattern.severity}"
+            assert (
+                pattern.severity.lower() in valid_severities
+            ), f"{vuln_type} has invalid severity: {pattern.severity}"
 
     def test_critical_patterns_have_real_exploits(self):
         """Test that critical severity patterns have real exploit examples."""
         for vuln_type, pattern in DEFI_VULNERABILITY_PATTERNS.items():
             if pattern.severity == "critical":
-                assert len(pattern.real_exploits) > 0, \
-                    f"Critical pattern {vuln_type} should have real_exploits"
+                assert (
+                    len(pattern.real_exploits) > 0
+                ), f"Critical pattern {vuln_type} should have real_exploits"
 
     def test_all_patterns_have_descriptions(self):
         """Test that all patterns have meaningful descriptions."""
         for vuln_type, pattern in DEFI_VULNERABILITY_PATTERNS.items():
-            assert len(pattern.description) >= 50, \
-                f"{vuln_type} has too short description"
+            assert len(pattern.description) >= 50, f"{vuln_type} has too short description"
 
     def test_all_patterns_have_remediation(self):
         """Test that all patterns have remediation guidance."""
         for vuln_type, pattern in DEFI_VULNERABILITY_PATTERNS.items():
-            assert len(pattern.remediation) >= 20, \
-                f"{vuln_type} has too short remediation"
+            assert len(pattern.remediation) >= 20, f"{vuln_type} has too short remediation"
 
 
 # =============================================================================
@@ -491,7 +493,7 @@ class TestDeFiPatternDetectorInit:
         detector = DeFiPatternDetector()
         assert len(detector._compiled_patterns) > 0
         # Check that compiled patterns have the expected structure
-        for vuln_type, compiled in detector._compiled_patterns.items():
+        for _vuln_type, compiled in detector._compiled_patterns.items():
             assert "indicators" in compiled
             assert "anti_patterns" in compiled
             assert all(isinstance(p, re.Pattern) for p in compiled["indicators"])
@@ -506,7 +508,9 @@ class TestDeFiPatternDetectorAnalyze:
         assert len(matches) > 0
 
         # Should detect flash loan attack pattern
-        flash_loan_matches = [m for m in matches if m.pattern.vuln_type == DeFiVulnType.FLASH_LOAN_ATTACK]
+        flash_loan_matches = [
+            m for m in matches if m.pattern.vuln_type == DeFiVulnType.FLASH_LOAN_ATTACK
+        ]
         assert len(flash_loan_matches) > 0
 
         match = flash_loan_matches[0]
@@ -517,14 +521,18 @@ class TestDeFiPatternDetectorAnalyze:
         """Test detection of sandwich attack vulnerability."""
         matches = detector.analyze_code(sandwich_vulnerable_code)
 
-        sandwich_matches = [m for m in matches if m.pattern.vuln_type == DeFiVulnType.SANDWICH_ATTACK]
+        sandwich_matches = [
+            m for m in matches if m.pattern.vuln_type == DeFiVulnType.SANDWICH_ATTACK
+        ]
         assert len(sandwich_matches) > 0
 
     def test_detect_oracle_manipulation(self, detector, oracle_manipulation_code):
         """Test detection of oracle manipulation vulnerability."""
         matches = detector.analyze_code(oracle_manipulation_code)
 
-        oracle_matches = [m for m in matches if m.pattern.vuln_type == DeFiVulnType.ORACLE_MANIPULATION]
+        oracle_matches = [
+            m for m in matches if m.pattern.vuln_type == DeFiVulnType.ORACLE_MANIPULATION
+        ]
         assert len(oracle_matches) > 0
 
     def test_safe_code_fewer_matches(self, detector, safe_oracle_code):
@@ -532,7 +540,9 @@ class TestDeFiPatternDetectorAnalyze:
         matches = detector.analyze_code(safe_oracle_code)
 
         # Should either have no oracle manipulation matches or low confidence
-        oracle_matches = [m for m in matches if m.pattern.vuln_type == DeFiVulnType.ORACLE_MANIPULATION]
+        oracle_matches = [
+            m for m in matches if m.pattern.vuln_type == DeFiVulnType.ORACLE_MANIPULATION
+        ]
 
         if oracle_matches:
             # If matched, should have anti-patterns reducing confidence
@@ -613,11 +623,16 @@ class TestDeFiPatternDetectorAnalyze:
 
         # Both might match flash loan pattern, but protected should have lower confidence
         fl_with = [m for m in matches_with if m.pattern.vuln_type == DeFiVulnType.FLASH_LOAN_ATTACK]
-        fl_without = [m for m in matches_without if m.pattern.vuln_type == DeFiVulnType.FLASH_LOAN_ATTACK]
+        fl_without = [
+            m for m in matches_without if m.pattern.vuln_type == DeFiVulnType.FLASH_LOAN_ATTACK
+        ]
 
         if fl_with and fl_without:
             # Protected code should have more anti-patterns matched
-            assert fl_with[0].matched_anti_patterns or fl_with[0].confidence <= fl_without[0].confidence
+            assert (
+                fl_with[0].matched_anti_patterns
+                or fl_with[0].confidence <= fl_without[0].confidence
+            )
 
 
 class TestDeFiPatternDetectorSpecificPatterns:
@@ -632,7 +647,7 @@ class TestDeFiPatternDetectorSpecificPatterns:
         }
         """
         matches = detector.analyze_code(code)
-        precision_matches = [m for m in matches if m.pattern.vuln_type == DeFiVulnType.PRECISION_LOSS]
+        [m for m in matches if m.pattern.vuln_type == DeFiVulnType.PRECISION_LOSS]
         # May or may not match depending on pattern specifics
         assert isinstance(matches, list)
 
@@ -650,7 +665,7 @@ class TestDeFiPatternDetectorSpecificPatterns:
         }
         """
         matches = detector.analyze_code(code)
-        sig_matches = [m for m in matches if m.pattern.vuln_type == DeFiVulnType.SIGNATURE_REPLAY]
+        [m for m in matches if m.pattern.vuln_type == DeFiVulnType.SIGNATURE_REPLAY]
         # Should potentially match signature replay pattern
         assert isinstance(matches, list)
 
@@ -665,7 +680,7 @@ class TestDeFiPatternDetectorSpecificPatterns:
             DeFiVulnType.DONATION_ATTACK,
             DeFiVulnType.INFLATION_ATTACK,
         }
-        relevant_matches = [m for m in matches if m.pattern.vuln_type in relevant_types]
+        [m for m in matches if m.pattern.vuln_type in relevant_types]
         # At least one related pattern should match
         # (exact matching depends on pattern definitions)
         assert isinstance(matches, list)
@@ -696,11 +711,12 @@ class TestDeFiPatternDetectorSpecificPatterns:
         }
         """
         matches = detector.analyze_code(code)
-        storage_matches = [m for m in matches
-                          if m.pattern.vuln_type in {
-                              DeFiVulnType.STORAGE_COLLISION,
-                              DeFiVulnType.ARBITRARY_EXTERNAL_CALL
-                          }]
+        [
+            m
+            for m in matches
+            if m.pattern.vuln_type
+            in {DeFiVulnType.STORAGE_COLLISION, DeFiVulnType.ARBITRARY_EXTERNAL_CALL}
+        ]
         assert isinstance(matches, list)
 
 
@@ -710,13 +726,13 @@ class TestDeFiPatternDetectorFiltering:
     def test_filter_by_enabled_patterns(self, flash_loan_vulnerable_code):
         """Test that only enabled patterns are checked."""
         # Only enable sandwich attack
-        detector = DeFiPatternDetector(
-            enabled_patterns={DeFiVulnType.SANDWICH_ATTACK}
-        )
+        detector = DeFiPatternDetector(enabled_patterns={DeFiVulnType.SANDWICH_ATTACK})
         matches = detector.analyze_code(flash_loan_vulnerable_code)
 
         # Should not find flash loan (not enabled)
-        flash_loan_matches = [m for m in matches if m.pattern.vuln_type == DeFiVulnType.FLASH_LOAN_ATTACK]
+        flash_loan_matches = [
+            m for m in matches if m.pattern.vuln_type == DeFiVulnType.FLASH_LOAN_ATTACK
+        ]
         assert len(flash_loan_matches) == 0
 
     def test_filter_by_confidence(self, flash_loan_vulnerable_code):
@@ -739,8 +755,7 @@ class TestDeFiPatternDetectorIntegration:
     def test_full_analysis_workflow(self, detector, flash_loan_vulnerable_code):
         """Test complete analysis workflow."""
         matches = detector.analyze_code(
-            flash_loan_vulnerable_code,
-            file_path="contracts/VulnerablePriceOracle.sol"
+            flash_loan_vulnerable_code, file_path="contracts/VulnerablePriceOracle.sol"
         )
 
         # Should find vulnerabilities
@@ -796,7 +811,7 @@ class TestDeFiPatternDetectorIntegration:
 
         assert len(matches1) == len(matches2)
 
-        for m1, m2 in zip(matches1, matches2):
+        for m1, m2 in zip(matches1, matches2, strict=False):
             assert m1.pattern.vuln_type == m2.pattern.vuln_type
             assert m1.confidence == m2.confidence
 
@@ -806,21 +821,22 @@ class TestDeFiPatternDetectorIntegration:
 # =============================================================================
 
 
-@pytest.mark.parametrize("vuln_type,indicator_pattern", [
-    (DeFiVulnType.FLASH_LOAN_ATTACK, r"getReserves"),
-    (DeFiVulnType.SANDWICH_ATTACK, r"amountOutMin"),
-    (DeFiVulnType.GOVERNANCE_ATTACK, r"castVote"),
-    (DeFiVulnType.ORACLE_MANIPULATION, r"latestAnswer"),
-])
+@pytest.mark.parametrize(
+    "vuln_type,indicator_pattern",
+    [
+        (DeFiVulnType.FLASH_LOAN_ATTACK, r"getReserves"),
+        (DeFiVulnType.SANDWICH_ATTACK, r"amountOutMin"),
+        (DeFiVulnType.GOVERNANCE_ATTACK, r"castVote"),
+        (DeFiVulnType.ORACLE_MANIPULATION, r"latestAnswer"),
+    ],
+)
 def test_indicator_patterns_match_expected_code(detector, vuln_type, indicator_pattern):
     """Test that indicator patterns match expected vulnerable code."""
     pattern = DEFI_VULNERABILITY_PATTERNS.get(vuln_type)
     if pattern:
         # At least one indicator should match the expected pattern
-        found = False
         for indicator in pattern.indicators:
             if indicator_pattern.lower() in indicator.lower():
-                found = True
                 break
         # Pattern might use different naming, so this is a soft check
         assert pattern.indicators  # At least has some indicators
@@ -830,8 +846,7 @@ def test_indicator_patterns_match_expected_code(detector, vuln_type, indicator_p
 def test_patterns_by_severity(severity):
     """Test that patterns of each severity exist."""
     patterns_of_severity = [
-        p for p in DEFI_VULNERABILITY_PATTERNS.values()
-        if p.severity == severity
+        p for p in DEFI_VULNERABILITY_PATTERNS.values() if p.severity == severity
     ]
     # At least some severities should have patterns
     # (not all severities necessarily have patterns)

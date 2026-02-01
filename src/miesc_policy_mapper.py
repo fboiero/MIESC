@@ -28,9 +28,9 @@ class PolicyMapper:
         """
         mapped = self.mapper.map_findings(findings)
         return {
-            'policies': mapped.get('mappings', []),
-            'compliance_score': mapped.get('score', 0),
-            'standards': ['OWASP', 'SWC', 'CWE', 'ISO27001']
+            "policies": mapped.get("mappings", []),
+            "compliance_score": mapped.get("score", 0),
+            "standards": ["OWASP", "SWC", "CWE", "ISO27001"],
         }
 
     def get_compliance_report(self, findings: list) -> dict:

@@ -11,10 +11,10 @@ Fecha: 2025-01-10
 
 from src.integration.adapter_integration import (
     AdapterIntegration,
-    integrate_static_analysis,
     integrate_dynamic_testing,
+    integrate_static_analysis,
     integrate_symbolic_execution,
-    integrate_threat_modeling
+    integrate_threat_modeling,
 )
 
 __all__ = [

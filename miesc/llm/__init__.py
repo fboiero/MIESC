@@ -7,23 +7,23 @@ Provides multi-backend LLM orchestration for security analysis.
 
 try:
     from src.llm import (
-        # Legacy helpers
-        OpenLLaMAHelper,
-        enhance_findings_with_llm,
-        explain_technical_output,
-        prioritize_findings,
-        generate_remediation_advice,
+        AnthropicBackend,
+        LLMBackend,
+        LLMConfig,
+        LLMOrchestrator,
         # New LLM Orchestrator
         LLMProvider,
-        LLMConfig,
         LLMResponse,
-        VulnerabilityAnalysis,
-        LLMBackend,
         OllamaBackend,
         OpenAIBackend,
-        AnthropicBackend,
-        LLMOrchestrator,
+        # Legacy helpers
+        OpenLLaMAHelper,
+        VulnerabilityAnalysis,
         analyze_solidity,
+        enhance_findings_with_llm,
+        explain_technical_output,
+        generate_remediation_advice,
+        prioritize_findings,
     )
 except ImportError:
     OpenLLaMAHelper = None

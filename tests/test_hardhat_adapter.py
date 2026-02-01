@@ -9,19 +9,18 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
-import pytest
-import json
 import subprocess
-from pathlib import Path
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from src.adapters.hardhat_adapter import HardhatAdapter, register_adapter
-from src.core.tool_protocol import ToolStatus, ToolCategory, ToolMetadata
-
+from src.core.tool_protocol import ToolCategory, ToolMetadata, ToolStatus
 
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def adapter():
@@ -38,7 +37,7 @@ def adapter_with_config():
         "compile_force": False,
         "run_gas_reporter": True,
         "run_coverage": True,
-        "timeout": 300
+        "timeout": 300,
     }
     return HardhatAdapter(config=config)
 
@@ -111,11 +110,13 @@ def hardhat_project_dir(tmp_path):
 
     # Create hardhat.config.js
     config_file = project / "hardhat.config.js"
-    config_file.write_text("""
+    config_file.write_text(
+        """
 module.exports = {
   solidity: "0.8.20",
 };
-""")
+"""
+    )
 
     # Create contracts directory
     contracts = project / "contracts"
@@ -123,7 +124,8 @@ module.exports = {
 
     # Create a sample contract
     token = contracts / "Token.sol"
-    token.write_text("""
+    token.write_text(
+        """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -136,7 +138,8 @@ contract Token {
         balances[to] += amount;
     }
 }
-""")
+"""
+    )
 
     return project
 
@@ -144,6 +147,7 @@ contract Token {
 # =============================================================================
 # Class Attributes Tests
 # =============================================================================
+
 
 class TestClassAttributes:
     """Test HardhatAdapter class attributes."""
@@ -211,6 +215,7 @@ class TestClassAttributes:
 # Initialization Tests
 # =============================================================================
 
+
 class TestInitialization:
     """Test HardhatAdapter initialization."""
 
@@ -249,6 +254,7 @@ class TestInitialization:
 # =============================================================================
 # Metadata Tests
 # =============================================================================
+
 
 class TestGetMetadata:
     """Test get_metadata method."""
@@ -304,6 +310,7 @@ class TestGetMetadata:
 # Availability Tests
 # =============================================================================
 
+
 class TestIsAvailable:
     """Test is_available method."""
 
@@ -317,14 +324,14 @@ class TestIsAvailable:
         mock_hardhat.returncode = 0
         mock_hardhat.stdout = "2.19.0"
 
-        with patch('subprocess.run', side_effect=[mock_npx, mock_hardhat]) as mock_run:
+        with patch("subprocess.run", side_effect=[mock_npx, mock_hardhat]) as mock_run:
             status = adapter.is_available()
             assert status == ToolStatus.AVAILABLE
             assert mock_run.call_count == 2
 
     def test_not_installed_npx_missing(self, adapter):
         """Test returns NOT_INSTALLED when npx not found."""
-        with patch('subprocess.run', side_effect=FileNotFoundError):
+        with patch("subprocess.run", side_effect=FileNotFoundError):
             status = adapter.is_available()
             assert status == ToolStatus.NOT_INSTALLED
 
@@ -333,7 +340,7 @@ class TestIsAvailable:
         mock_npx = MagicMock()
         mock_npx.returncode = 1
 
-        with patch('subprocess.run', return_value=mock_npx):
+        with patch("subprocess.run", return_value=mock_npx):
             status = adapter.is_available()
             assert status == ToolStatus.NOT_INSTALLED
 
@@ -346,13 +353,13 @@ class TestIsAvailable:
         mock_hardhat = MagicMock()
         mock_hardhat.returncode = 1
 
-        with patch('subprocess.run', side_effect=[mock_npx, mock_hardhat]):
+        with patch("subprocess.run", side_effect=[mock_npx, mock_hardhat]):
             status = adapter.is_available()
             assert status == ToolStatus.CONFIGURATION_ERROR
 
     def test_configuration_error_on_timeout(self, adapter):
         """Test returns CONFIGURATION_ERROR on timeout."""
-        with patch('subprocess.run', side_effect=subprocess.TimeoutExpired("npx", 10)):
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("npx", 10)):
             status = adapter.is_available()
             assert status == ToolStatus.CONFIGURATION_ERROR
 
@@ -361,7 +368,7 @@ class TestIsAvailable:
         mock_npx = MagicMock()
         mock_npx.returncode = 0
 
-        with patch('subprocess.run', side_effect=[mock_npx, Exception("Unknown error")]):
+        with patch("subprocess.run", side_effect=[mock_npx, Exception("Unknown error")]):
             status = adapter.is_available()
             assert status == ToolStatus.CONFIGURATION_ERROR
 
@@ -369,6 +376,7 @@ class TestIsAvailable:
 # =============================================================================
 # Find Hardhat Project Tests
 # =============================================================================
+
 
 class TestFindHardhatProject:
     """Test _find_hardhat_project method."""
@@ -406,6 +414,7 @@ class TestFindHardhatProject:
 # Compile Tests
 # =============================================================================
 
+
 class TestRunCompile:
     """Test _run_compile method."""
 
@@ -416,7 +425,7 @@ class TestRunCompile:
         mock_result.stdout = sample_compilation_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             result = adapter._run_compile(hardhat_project_dir)
 
         assert result["info"]["success"] is True
@@ -430,7 +439,7 @@ class TestRunCompile:
         mock_result.stdout = "Compiled 1 Solidity file(s)"
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             adapter._run_compile(hardhat_project_dir)
 
         cmd = mock_run.call_args[0][0]
@@ -445,7 +454,7 @@ class TestRunCompile:
         mock_result.stdout = "Nothing to compile"
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             adapter._run_compile(hardhat_project_dir)
 
         cmd = mock_run.call_args[0][0]
@@ -458,7 +467,7 @@ class TestRunCompile:
         mock_result.stdout = "Compiled 42 Solidity files"
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             result = adapter._run_compile(hardhat_project_dir)
 
         assert result["info"]["contracts_compiled"] == 42
@@ -467,6 +476,7 @@ class TestRunCompile:
 # =============================================================================
 # Parse Compilation Output Tests
 # =============================================================================
+
 
 class TestParseCompilationOutput:
     """Test _parse_compilation_output method."""
@@ -502,10 +512,16 @@ class TestParseCompilationOutput:
         test_cases = [
             ("Warning: This is an unused variable warning.", "unused_variable"),
             ("Warning: This is an unused function warning.", "unused_function"),
-            ("Warning: visibility for constructor should not be specified.", "constructor_visibility"),
+            (
+                "Warning: visibility for constructor should not be specified.",
+                "constructor_visibility",
+            ),
             ("Warning: Function state mutability can be restricted to pure.", "state_mutability"),
             ("Warning: SPDX license identifier not provided.", "missing_license"),
-            ("Warning: This declaration shadows an existing declaration (shadowing).", "variable_shadowing"),
+            (
+                "Warning: This declaration shadows an existing declaration (shadowing).",
+                "variable_shadowing",
+            ),
         ]
 
         for message, expected_type in test_cases:
@@ -537,6 +553,7 @@ class TestParseCompilationOutput:
 # Gas Reporter Tests
 # =============================================================================
 
+
 class TestRunGasReporter:
     """Test _run_gas_reporter method."""
 
@@ -547,7 +564,7 @@ class TestRunGasReporter:
         mock_result.stdout = sample_gas_report
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             result = adapter._run_gas_reporter(hardhat_project_dir)
 
         findings = result["findings"]
@@ -562,7 +579,7 @@ class TestRunGasReporter:
         mock_result.stdout = ""
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             adapter._run_gas_reporter(hardhat_project_dir)
 
         call_kwargs = mock_run.call_args[1]
@@ -571,7 +588,7 @@ class TestRunGasReporter:
 
     def test_gas_reporter_handles_exception(self, adapter, hardhat_project_dir):
         """Test gas reporter handles exceptions gracefully."""
-        with patch('subprocess.run', side_effect=Exception("Network error")):
+        with patch("subprocess.run", side_effect=Exception("Network error")):
             result = adapter._run_gas_reporter(hardhat_project_dir)
 
         assert result["findings"] == []
@@ -581,17 +598,20 @@ class TestRunGasReporter:
 # Coverage Tests
 # =============================================================================
 
+
 class TestRunCoverage:
     """Test _run_coverage method."""
 
-    def test_coverage_detects_low_coverage(self, adapter, hardhat_project_dir, sample_coverage_output):
+    def test_coverage_detects_low_coverage(
+        self, adapter, hardhat_project_dir, sample_coverage_output
+    ):
         """Test coverage detects low coverage files."""
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = sample_coverage_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             result = adapter._run_coverage(hardhat_project_dir)
 
         findings = result["findings"]
@@ -606,7 +626,7 @@ class TestRunCoverage:
         mock_result.stdout = ""
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             adapter._run_coverage(hardhat_project_dir)
 
         call_kwargs = mock_run.call_args[1]
@@ -614,7 +634,7 @@ class TestRunCoverage:
 
     def test_coverage_handles_exception(self, adapter, hardhat_project_dir):
         """Test coverage handles exceptions gracefully."""
-        with patch('subprocess.run', side_effect=Exception("Coverage error")):
+        with patch("subprocess.run", side_effect=Exception("Coverage error")):
             result = adapter._run_coverage(hardhat_project_dir)
 
         assert result["findings"] == []
@@ -623,6 +643,7 @@ class TestRunCoverage:
 # =============================================================================
 # Analyze Tests
 # =============================================================================
+
 
 class TestAnalyze:
     """Test analyze method."""
@@ -634,9 +655,11 @@ class TestAnalyze:
         mock_result.stdout = "Compiled 1 Solidity file(s)"
         mock_result.stderr = ""
 
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch('subprocess.run', return_value=mock_result):
-                with patch('src.adapters.hardhat_adapter.enhance_findings_with_llm', return_value=[]):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch("subprocess.run", return_value=mock_result):
+                with patch(
+                    "src.adapters.hardhat_adapter.enhance_findings_with_llm", return_value=[]
+                ):
                     result = adapter.analyze(str(hardhat_project_dir), verbose=False)
 
         assert "tool" in result
@@ -647,7 +670,7 @@ class TestAnalyze:
 
     def test_analyze_not_available(self, adapter, hardhat_project_dir):
         """Test analyze returns error when hardhat not available."""
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.NOT_INSTALLED):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.NOT_INSTALLED):
             result = adapter.analyze(str(hardhat_project_dir))
 
         assert result["status"] == "error"
@@ -659,22 +682,30 @@ class TestAnalyze:
         no_project = tmp_path / "no_project"
         no_project.mkdir()
 
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
             result = adapter.analyze(str(no_project), verbose=False)
 
         assert result["status"] == "error"
-        assert "hardhat project" in result["error"].lower() or "hardhat.config" in result["error"].lower()
+        assert (
+            "hardhat project" in result["error"].lower()
+            or "hardhat.config" in result["error"].lower()
+        )
 
-    def test_analyze_success_with_findings(self, adapter, hardhat_project_dir, sample_compilation_output):
+    def test_analyze_success_with_findings(
+        self, adapter, hardhat_project_dir, sample_compilation_output
+    ):
         """Test analyze parses findings correctly."""
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = sample_compilation_output
         mock_result.stderr = ""
 
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch('subprocess.run', return_value=mock_result):
-                with patch('src.adapters.hardhat_adapter.enhance_findings_with_llm', side_effect=lambda f, c, t: f):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch("subprocess.run", return_value=mock_result):
+                with patch(
+                    "src.adapters.hardhat_adapter.enhance_findings_with_llm",
+                    side_effect=lambda f, c, t: f,
+                ):
                     result = adapter.analyze(str(hardhat_project_dir), verbose=False)
 
         assert result["status"] == "success"
@@ -683,9 +714,11 @@ class TestAnalyze:
 
     def test_analyze_timeout(self, adapter, hardhat_project_dir):
         """Test analyze handles timeout correctly."""
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch.object(adapter, '_find_hardhat_project', return_value=hardhat_project_dir):
-                with patch.object(adapter, '_run_compile', side_effect=subprocess.TimeoutExpired("npx", 180)):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch.object(adapter, "_find_hardhat_project", return_value=hardhat_project_dir):
+                with patch.object(
+                    adapter, "_run_compile", side_effect=subprocess.TimeoutExpired("npx", 180)
+                ):
                     result = adapter.analyze(str(hardhat_project_dir), verbose=False)
 
         assert result["status"] == "error"
@@ -698,9 +731,11 @@ class TestAnalyze:
         mock_result.stdout = "Compiled 1 Solidity file(s)"
         mock_result.stderr = ""
 
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch('subprocess.run', return_value=mock_result):
-                with patch('src.adapters.hardhat_adapter.enhance_findings_with_llm', return_value=[]):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch("subprocess.run", return_value=mock_result):
+                with patch(
+                    "src.adapters.hardhat_adapter.enhance_findings_with_llm", return_value=[]
+                ):
                     result = adapter.analyze(str(hardhat_project_dir), verbose=False)
 
         assert result.get("dpga_compliant") is True
@@ -714,9 +749,11 @@ class TestAnalyze:
         mock_result.stdout = "Compiled 1 Solidity file(s)"
         mock_result.stderr = ""
 
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch('subprocess.run', return_value=mock_result):
-                with patch('src.adapters.hardhat_adapter.enhance_findings_with_llm', return_value=[]):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch("subprocess.run", return_value=mock_result):
+                with patch(
+                    "src.adapters.hardhat_adapter.enhance_findings_with_llm", return_value=[]
+                ):
                     result = adapter.analyze(str(contract), verbose=False)
 
         assert result["status"] == "success"
@@ -725,6 +762,7 @@ class TestAnalyze:
 # =============================================================================
 # Recommendation Tests
 # =============================================================================
+
 
 class TestGetRecommendation:
     """Test _get_recommendation method."""
@@ -795,14 +833,13 @@ class TestGetRecommendation:
 # Normalize Findings Tests
 # =============================================================================
 
+
 class TestNormalizeFindings:
     """Test normalize_findings method."""
 
     def test_normalize_dict_with_findings(self, adapter):
         """Test normalizing dict with findings key."""
-        input_data = {
-            "findings": [{"type": "reentrancy"}, {"type": "overflow"}]
-        }
+        input_data = {"findings": [{"type": "reentrancy"}, {"type": "overflow"}]}
         result = adapter.normalize_findings(input_data)
         assert len(result) == 2
 
@@ -822,6 +859,7 @@ class TestNormalizeFindings:
 # =============================================================================
 # Can Analyze Tests
 # =============================================================================
+
 
 class TestCanAnalyze:
     """Test can_analyze method."""
@@ -858,6 +896,7 @@ class TestCanAnalyze:
 # =============================================================================
 # Default Config Tests
 # =============================================================================
+
 
 class TestGetDefaultConfig:
     """Test get_default_config method."""
@@ -902,6 +941,7 @@ class TestGetDefaultConfig:
 # Register Adapter Tests
 # =============================================================================
 
+
 class TestRegisterAdapter:
     """Test register_adapter function."""
 
@@ -927,6 +967,7 @@ class TestRegisterAdapter:
 # Integration Tests
 # =============================================================================
 
+
 class TestIntegration:
     """Integration tests for HardhatAdapter."""
 
@@ -937,9 +978,12 @@ class TestIntegration:
         mock_result.stdout = sample_compilation_output
         mock_result.stderr = ""
 
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch('subprocess.run', return_value=mock_result):
-                with patch('src.adapters.hardhat_adapter.enhance_findings_with_llm', side_effect=lambda f, c, t: f):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch("subprocess.run", return_value=mock_result):
+                with patch(
+                    "src.adapters.hardhat_adapter.enhance_findings_with_llm",
+                    side_effect=lambda f, c, t: f,
+                ):
                     result = adapter.analyze(str(hardhat_project_dir), verbose=False)
 
         assert result["status"] == "success"
@@ -962,22 +1006,26 @@ class TestIntegration:
         ]
 
         for status, expected_msg in error_cases:
-            with patch.object(adapter, 'is_available', return_value=status):
+            with patch.object(adapter, "is_available", return_value=status):
                 result = adapter.analyze(str(hardhat_project_dir))
 
             assert result["status"] == "error"
             assert expected_msg.lower() in result["error"].lower()
 
-    def test_compilation_info_included(self, adapter, hardhat_project_dir, sample_compilation_output):
+    def test_compilation_info_included(
+        self, adapter, hardhat_project_dir, sample_compilation_output
+    ):
         """Test compilation info is included in result."""
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = sample_compilation_output
         mock_result.stderr = ""
 
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch('subprocess.run', return_value=mock_result):
-                with patch('src.adapters.hardhat_adapter.enhance_findings_with_llm', return_value=[]):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch("subprocess.run", return_value=mock_result):
+                with patch(
+                    "src.adapters.hardhat_adapter.enhance_findings_with_llm", return_value=[]
+                ):
                     result = adapter.analyze(str(hardhat_project_dir), verbose=False)
 
         assert "compilation_info" in result

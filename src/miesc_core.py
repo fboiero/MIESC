@@ -31,31 +31,34 @@ class MIESCCore:
         try:
             result = self.orchestrator.run_audit(contract_path)
             return {
-                'findings': result.get('findings', []),
-                'metadata': {
-                    'contract': contract_path,
-                    'tools_used': tools or ['slither', 'mythril', 'aderyn'],
-                    'layers_executed': 7,
-                    'version': '4.2.0'
+                "findings": result.get("findings", []),
+                "metadata": {
+                    "contract": contract_path,
+                    "tools_used": tools or ["slither", "mythril", "aderyn"],
+                    "layers_executed": 7,
+                    "version": "4.2.0",
                 },
-                'summary': result.get('summary', {}),
-                'success': True
+                "summary": result.get("summary", {}),
+                "success": True,
             }
         except Exception as e:
-            return {
-                'findings': [],
-                'metadata': {'error': str(e)},
-                'success': False
-            }
+            return {"findings": [], "metadata": {"error": str(e)}, "success": False}
 
     def get_available_tools(self) -> list:
         """Return list of available security tools."""
         return [
-            'slither', 'mythril', 'aderyn', 'solhint',
-            'echidna', 'medusa', 'halmos', 'certora',
-            'smartllm', 'gptscan'
+            "slither",
+            "mythril",
+            "aderyn",
+            "solhint",
+            "echidna",
+            "medusa",
+            "halmos",
+            "certora",
+            "smartllm",
+            "gptscan",
         ]
 
     def get_version(self) -> str:
         """Return MIESC version."""
-        return '4.2.0'
+        return "4.2.0"

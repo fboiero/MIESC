@@ -10,16 +10,21 @@ Date: November 2025
 Version: 3.0.0 (Ollama Backend)
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional
-import subprocess
-import logging
-import json
-import time
 import hashlib
+import json
+import logging
+import subprocess
+import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,24 +102,19 @@ Respond ONLY with valid JSON."""
                         "design_patterns",
                         "code_smells",
                         "maintainability_issues",
-                        "gas_optimization"
-                    ]
+                        "gas_optimization",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if Ollama is running with a suitable model."""
         try:
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                timeout=10,
-                text=True
-            )
+            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=10, text=True)
 
             if result.returncode != 0:
                 logger.warning("Ollama not running")
@@ -159,7 +159,7 @@ Respond ONLY with valid JSON."""
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "Ollama not available. Install from https://ollama.ai"
+                "error": "Ollama not available. Install from https://ollama.ai",
             }
 
         try:
@@ -172,7 +172,7 @@ Respond ONLY with valid JSON."""
                     "status": "error",
                     "findings": [],
                     "execution_time": time.time() - start_time,
-                    "error": f"Could not read contract file: {contract_path}"
+                    "error": f"Could not read contract file: {contract_path}",
                 }
 
             # Check cache
@@ -189,11 +189,7 @@ Respond ONLY with valid JSON."""
             model = kwargs.get("model", self._detect_best_model())
 
             # Run Ollama analysis
-            raw_output = self._run_ollama_audit(
-                contract_code,
-                model=model,
-                timeout=timeout
-            )
+            raw_output = self._run_ollama_audit(contract_code, model=model, timeout=timeout)
 
             # Parse findings
             findings = self._parse_llmsmartaudit_output(raw_output, contract_path)
@@ -203,12 +199,9 @@ Respond ONLY with valid JSON."""
                 "version": "3.0.0",
                 "status": "success",
                 "findings": findings,
-                "metadata": {
-                    "model": model,
-                    "backend": "ollama"
-                },
+                "metadata": {"model": model, "backend": "ollama"},
                 "execution_time": time.time() - start_time,
-                "from_cache": False
+                "from_cache": False,
             }
 
             # Cache result
@@ -223,7 +216,7 @@ Respond ONLY with valid JSON."""
                 "status": "timeout",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": f"Analysis exceeded {timeout}s timeout"
+                "error": f"Analysis exceeded {timeout}s timeout",
             }
         except Exception as e:
             logger.error(f"LLM-SmartAudit analysis error: {e}", exc_info=True)
@@ -233,7 +226,7 @@ Respond ONLY with valid JSON."""
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -242,15 +235,11 @@ Respond ONLY with valid JSON."""
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if adapter can analyze the contract."""
-        return Path(contract_path).suffix == '.sol'
+        return Path(contract_path).suffix == ".sol"
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
-        return {
-            "timeout": 300,
-            "model": "default",
-            "max_findings": 50
-        }
+        return {"timeout": 300, "model": "default", "max_findings": 50}
 
     # ============================================================================
     # PRIVATE HELPER METHODS
@@ -259,7 +248,7 @@ Respond ONLY with valid JSON."""
     def _read_contract(self, contract_path: str) -> Optional[str]:
         """Read contract file content."""
         try:
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Error reading contract: {e}")
@@ -268,12 +257,7 @@ Respond ONLY with valid JSON."""
     def _detect_best_model(self) -> str:
         """Detect the best available Ollama model."""
         try:
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                timeout=5,
-                text=True
-            )
+            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5, text=True)
             models = result.stdout.lower()
 
             # Priority order
@@ -292,10 +276,7 @@ Respond ONLY with valid JSON."""
             return "codellama:7b"
 
     def _run_ollama_audit(
-        self,
-        contract_code: str,
-        model: str = "codellama:7b",
-        timeout: int = 120
+        self, contract_code: str, model: str = "codellama:7b", timeout: int = 120
     ) -> str:
         """Execute audit using Ollama."""
 
@@ -304,10 +285,7 @@ Respond ONLY with valid JSON."""
         logger.info(f"LLM-SmartAudit: Running Ollama audit with {model}")
 
         result = subprocess.run(
-            ["ollama", "run", model, prompt],
-            capture_output=True,
-            timeout=timeout,
-            text=True
+            ["ollama", "run", model, prompt], capture_output=True, timeout=timeout, text=True
         )
 
         if result.returncode != 0:
@@ -315,18 +293,14 @@ Respond ONLY with valid JSON."""
 
         return result.stdout
 
-    def _parse_llmsmartaudit_output(
-        self,
-        output: str,
-        contract_path: str
-    ) -> List[Dict[str, Any]]:
+    def _parse_llmsmartaudit_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
         """Parse LLM-SmartAudit output and extract findings."""
         findings = []
 
         try:
             # Try to parse JSON output
-            json_start = output.find('{')
-            json_end = output.rfind('}') + 1
+            json_start = output.find("{")
+            json_end = output.rfind("}") + 1
 
             if json_start != -1 and json_end > json_start:
                 json_str = output[json_start:json_end]
@@ -346,13 +320,15 @@ Respond ONLY with valid JSON."""
                         "location": {
                             "file": contract_path,
                             "line": issue.get("line", 0),
-                            "function": issue.get("function", "")
+                            "function": issue.get("function", ""),
                         },
-                        "recommendation": issue.get("recommendation", "Review and address the LLM-detected issue"),
+                        "recommendation": issue.get(
+                            "recommendation", "Review and address the LLM-detected issue"
+                        ),
                         "references": [
                             "https://github.com/Smart-Audit/LLM-SmartAudit",
-                            issue.get("reference", "")
-                        ]
+                            issue.get("reference", ""),
+                        ],
                     }
                     findings.append(finding)
 
@@ -381,24 +357,26 @@ Respond ONLY with valid JSON."""
             "semantic issue": ("HIGH", "semantic_issue"),
             "maintainability": ("LOW", "maintainability_issue"),
             "readability": ("LOW", "readability_issue"),
-            "design pattern": ("MEDIUM", "design_pattern_issue")
+            "design pattern": ("MEDIUM", "design_pattern_issue"),
         }
 
-        lines = output.split('\n')
-        for i, line in enumerate(lines):
+        lines = output.split("\n")
+        for _i, line in enumerate(lines):
             for pattern, (severity, category) in patterns.items():
                 if pattern.lower() in line.lower():
-                    findings.append({
-                        "id": f"llmsmartaudit-text-{len(findings)+1}",
-                        "title": f"LLM-detected: {pattern.title()}",
-                        "description": line.strip(),
-                        "severity": severity,
-                        "confidence": 0.65,  # Lower confidence for text parsing
-                        "category": category,
-                        "location": {"file": contract_path},
-                        "recommendation": f"Review potential {pattern} detected by LLM",
-                        "references": ["https://github.com/Smart-Audit/LLM-SmartAudit"]
-                    })
+                    findings.append(
+                        {
+                            "id": f"llmsmartaudit-text-{len(findings)+1}",
+                            "title": f"LLM-detected: {pattern.title()}",
+                            "description": line.strip(),
+                            "severity": severity,
+                            "confidence": 0.65,  # Lower confidence for text parsing
+                            "category": category,
+                            "location": {"file": contract_path},
+                            "recommendation": f"Review potential {pattern} detected by LLM",
+                            "references": ["https://github.com/Smart-Audit/LLM-SmartAudit"],
+                        }
+                    )
 
         return findings
 
@@ -421,7 +399,7 @@ Respond ONLY with valid JSON."""
                 cache_file.unlink()
                 return None
 
-            with open(cache_file, 'r') as f:
+            with open(cache_file, "r") as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Error reading cache: {e}")
@@ -432,7 +410,7 @@ Respond ONLY with valid JSON."""
         cache_file = self._cache_dir / f"{cache_key}.json"
 
         try:
-            with open(cache_file, 'w') as f:
+            with open(cache_file, "w") as f:
                 json.dump(result, f, indent=2)
             logger.info(f"Cached result for {cache_key}")
         except Exception as e:

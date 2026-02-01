@@ -37,8 +37,9 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Union
 
+from .loader import LoadedPlugin
 from .protocol import (
     MIESCPlugin,
     PluginContext,
@@ -46,7 +47,6 @@ from .protocol import (
     PluginState,
     PluginType,
 )
-from .loader import LoadedPlugin, PluginLoader
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +58,7 @@ DEFAULT_REGISTRY_PATH = Path.home() / ".miesc" / "plugin_registry.json"
 @dataclass
 class PluginEntry:
     """Registry entry for a plugin."""
+
     name: str
     version: str
     plugin_type: PluginType
@@ -113,10 +114,12 @@ class PluginEntry:
             plugin_type=plugin_type,
             enabled=data.get("enabled", True),
             source=data.get("source", ""),
-            installed_at=datetime.fromisoformat(data["installed_at"])
-                if data.get("installed_at") else datetime.now(),
-            last_used=datetime.fromisoformat(data["last_used"])
-                if data.get("last_used") else None,
+            installed_at=(
+                datetime.fromisoformat(data["installed_at"])
+                if data.get("installed_at")
+                else datetime.now()
+            ),
+            last_used=datetime.fromisoformat(data["last_used"]) if data.get("last_used") else None,
             config=data.get("config", {}),
             metadata=metadata,
         )
@@ -372,24 +375,15 @@ class PluginRegistry:
         Returns:
             List of matching PluginEntry objects
         """
-        return [
-            entry for entry in self._plugins.values()
-            if entry.plugin_type == plugin_type
-        ]
+        return [entry for entry in self._plugins.values() if entry.plugin_type == plugin_type]
 
     def list_enabled(self) -> List[PluginEntry]:
         """List all enabled plugins."""
-        return [
-            entry for entry in self._plugins.values()
-            if entry.enabled
-        ]
+        return [entry for entry in self._plugins.values() if entry.enabled]
 
     def list_disabled(self) -> List[PluginEntry]:
         """List all disabled plugins."""
-        return [
-            entry for entry in self._plugins.values()
-            if not entry.enabled
-        ]
+        return [entry for entry in self._plugins.values() if not entry.enabled]
 
     def list_by_tag(self, tag: str) -> List[PluginEntry]:
         """
@@ -402,7 +396,8 @@ class PluginRegistry:
             List of matching PluginEntry objects
         """
         return [
-            entry for entry in self._plugins.values()
+            entry
+            for entry in self._plugins.values()
             if entry.metadata and tag in entry.metadata.tags
         ]
 
@@ -470,10 +465,7 @@ class PluginRegistry:
 
         data = {
             "version": "1.0",
-            "plugins": {
-                name: entry.to_dict()
-                for name, entry in self._plugins.items()
-            },
+            "plugins": {name: entry.to_dict() for name, entry in self._plugins.items()},
             "saved_at": datetime.now().isoformat(),
         }
 
@@ -495,9 +487,7 @@ class PluginRegistry:
                 entry = PluginEntry.from_dict(entry_data)
                 self._plugins[name] = entry
 
-            logger.debug(
-                f"Loaded {len(self._plugins)} plugins from {self.registry_path}"
-            )
+            logger.debug(f"Loaded {len(self._plugins)} plugins from {self.registry_path}")
         except Exception as e:
             logger.error(f"Error loading registry: {e}")
 

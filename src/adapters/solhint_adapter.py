@@ -18,17 +18,22 @@ Date: November 11, 2025
 Version: 1.0.0
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from src.llm import enhance_findings_with_llm
-from typing import Dict, Any, List, Optional
-import subprocess
 import json
-import time
 import logging
 import re
+import subprocess
+import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
+from src.llm import enhance_findings_with_llm
 
 logger = logging.getLogger(__name__)
 
@@ -59,16 +64,12 @@ class SolhintAdapter(ToolAdapter):
             "security_issues",
             "best_practice_violations",
             "naming_convention_violations",
-            "gas_optimization_issues"
-        ]
+            "gas_optimization_issues",
+        ],
     }
 
     # Severity mapping from Solhint to MIESC
-    SEVERITY_MAP = {
-        "error": "high",
-        "warning": "medium",
-        "info": "low"
-    }
+    SEVERITY_MAP = {"error": "high", "warning": "medium", "info": "low"}
 
     # Common security rules in Solhint
     SECURITY_RULES = [
@@ -85,7 +86,7 @@ class SolhintAdapter(ToolAdapter):
         "not-rely-on-block-hash",
         "not-rely-on-time",
         "reentrancy",
-        "state-visibility"
+        "state-visibility",
     ]
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -125,34 +126,31 @@ class SolhintAdapter(ToolAdapter):
                     name="security_linting",
                     description="Security rule validation",
                     supported_languages=["solidity"],
-                    detection_types=["security_issues", "best_practice_violations"]
+                    detection_types=["security_issues", "best_practice_violations"],
                 ),
                 ToolCapability(
                     name="style_linting",
                     description="Style guide enforcement",
                     supported_languages=["solidity"],
-                    detection_types=["style_violations", "naming_convention_violations"]
+                    detection_types=["style_violations", "naming_convention_violations"],
                 ),
                 ToolCapability(
                     name="gas_optimization",
                     description="Gas optimization suggestions",
                     supported_languages=["solidity"],
-                    detection_types=["gas_optimization_issues"]
-                )
+                    detection_types=["gas_optimization_issues"],
+                ),
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if Solhint is installed and available"""
         try:
             result = subprocess.run(
-                ["solhint", "--version"],
-                capture_output=True,
-                timeout=5,
-                text=True
+                ["solhint", "--version"], capture_output=True, timeout=5, text=True
             )
             if result.returncode == 0:
                 logger.debug(f"Solhint available: {result.stdout.strip()}")
@@ -198,7 +196,7 @@ class SolhintAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "Solhint not available"
+                "error": "Solhint not available",
             }
 
         try:
@@ -233,15 +231,10 @@ class SolhintAdapter(ToolAdapter):
             # Show progress message
             verbose = kwargs.get("verbose", True)
             if verbose:
-                print(f"  [Solhint] Running linting analysis...")
+                print("  [Solhint] Running linting analysis...")
 
             # Run solhint
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                timeout=self.timeout,
-                text=True
-            )
+            result = subprocess.run(cmd, capture_output=True, timeout=self.timeout, text=True)
 
             duration = time.time() - start_time
 
@@ -253,15 +246,13 @@ class SolhintAdapter(ToolAdapter):
 
             # Enhance findings with OpenLLaMA (optional)
             try:
-                with open(contract_path, 'r') as f:
+                with open(contract_path, "r") as f:
                     contract_code = f.read()
 
                 # Enhance top findings with LLM insights
                 if findings:
                     findings = enhance_findings_with_llm(
-                        findings[:5],  # Top 5 findings
-                        contract_code,
-                        "solhint"
+                        findings[:5], contract_code, "solhint"  # Top 5 findings
                     )
             except Exception as e:
                 logger.debug(f"LLM enhancement failed: {e}")
@@ -279,7 +270,7 @@ class SolhintAdapter(ToolAdapter):
                 "total_issues": len(findings),
                 "errors": errors,
                 "warnings": warnings,
-                "dpga_compliant": True
+                "dpga_compliant": True,
             }
 
         except subprocess.TimeoutExpired:
@@ -289,7 +280,7 @@ class SolhintAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": self.timeout,
-                "error": f"Analysis timeout after {self.timeout}s"
+                "error": f"Analysis timeout after {self.timeout}s",
             }
         except FileNotFoundError:
             return {
@@ -297,7 +288,7 @@ class SolhintAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": f"Contract file not found: {contract_path}"
+                "error": f"Contract file not found: {contract_path}",
             }
         except Exception as e:
             logger.error(f"Solhint analysis failed: {str(e)}")
@@ -306,7 +297,7 @@ class SolhintAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def _parse_output(self, stdout: str, stderr: str) -> List[Dict[str, Any]]:
@@ -362,7 +353,7 @@ class SolhintAdapter(ToolAdapter):
             "file": issue.get("filePath", ""),
             "line": issue.get("line"),
             "column": issue.get("column"),
-            "recommendation": self._get_recommendation(rule_id)
+            "recommendation": self._get_recommendation(rule_id),
         }
 
         # Add fix suggestion if available
@@ -376,23 +367,29 @@ class SolhintAdapter(ToolAdapter):
         findings = []
 
         # Solhint text format: filepath:line:column: [error/warning] message (rule-id)
-        pattern = r'(.+?):(\d+):(\d+):\s+\[(error|warning|info)\]\s+(.+?)\s+\(([^)]+)\)'
+        pattern = r"(.+?):(\d+):(\d+):\s+\[(error|warning|info)\]\s+(.+?)\s+\(([^)]+)\)"
 
-        for line in stdout.split('\n'):
+        for line in stdout.split("\n"):
             match = re.search(pattern, line)
             if match:
                 filepath, line_num, col_num, severity, message, rule_id = match.groups()
 
-                findings.append({
-                    "type": "security_issue" if rule_id in self.SECURITY_RULES else "style_violation",
-                    "severity": self.SEVERITY_MAP.get(severity, "medium"),
-                    "rule": rule_id,
-                    "description": message,
-                    "file": filepath,
-                    "line": int(line_num),
-                    "column": int(col_num),
-                    "recommendation": self._get_recommendation(rule_id)
-                })
+                findings.append(
+                    {
+                        "type": (
+                            "security_issue"
+                            if rule_id in self.SECURITY_RULES
+                            else "style_violation"
+                        ),
+                        "severity": self.SEVERITY_MAP.get(severity, "medium"),
+                        "rule": rule_id,
+                        "description": message,
+                        "file": filepath,
+                        "line": int(line_num),
+                        "column": int(col_num),
+                        "recommendation": self._get_recommendation(rule_id),
+                    }
+                )
 
         return findings
 
@@ -412,13 +409,10 @@ class SolhintAdapter(ToolAdapter):
             "not-rely-on-block-hash": "Don't rely on blockhash for randomness",
             "not-rely-on-time": "Don't rely on block.timestamp for critical logic",
             "reentrancy": "Follow checks-effects-interactions pattern to prevent reentrancy",
-            "state-visibility": "Explicitly specify state variable visibility"
+            "state-visibility": "Explicitly specify state variable visibility",
         }
 
-        return recommendations.get(
-            rule_id,
-            f"Follow Solhint rule '{rule_id}' recommendations"
-        )
+        return recommendations.get(rule_id, f"Follow Solhint rule '{rule_id}' recommendations")
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         """
@@ -442,7 +436,7 @@ class SolhintAdapter(ToolAdapter):
         path = Path(contract_path)
 
         # Can analyze .sol files
-        if path.is_file() and path.suffix == '.sol':
+        if path.is_file() and path.suffix == ".sol":
             return True
 
         # Can analyze directories containing .sol files
@@ -467,18 +461,15 @@ class SolhintAdapter(ToolAdapter):
                 "check-send-result": True,
                 "func-visibility": True,
                 "reentrancy": True,
-                "state-visibility": True
-            }
+                "state-visibility": True,
+            },
         }
 
 
 # Adapter registration
 def register_adapter():
     """Register Solhint adapter with MIESC"""
-    return {
-        "adapter_class": SolhintAdapter,
-        "metadata": SolhintAdapter.METADATA
-    }
+    return {"adapter_class": SolhintAdapter, "metadata": SolhintAdapter.METADATA}
 
 
 __all__ = ["SolhintAdapter", "register_adapter"]

@@ -457,7 +457,7 @@ class TestPersistence:
     def test_vacuum(self, temp_db):
         """Test database vacuum operation."""
         # Create and delete some data
-        audit_id = temp_db.create_audit("/tmp/Test.sol", ["slither"])
+        temp_db.create_audit("/tmp/Test.sol", ["slither"])
         temp_db.cleanup_old_audits(days=0)
 
         # Vacuum should not raise
@@ -539,7 +539,7 @@ class TestPersistenceSingleton:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "reset_test.db")
 
-            db1 = get_database(db_path)
+            get_database(db_path)
             reset_database()
 
             # New call should create new instance

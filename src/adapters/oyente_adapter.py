@@ -176,7 +176,7 @@ class OyenteAdapter(ToolAdapter):
                 "execution_time": time.time() - start_time,
                 "error": "Oyente analysis timeout",
             }
-        except Exception as e:
+        except Exception:
             raise
 
         return self._run_pattern_analysis(path, start_time)
@@ -207,42 +207,50 @@ class OyenteAdapter(ToolAdapter):
             # Integer overflow/underflow (pre-0.8)
             if not is_08_plus:
                 if re.search(r"unchecked\s*\{", line):
-                    raw_findings.append({
-                        "type": "integer_overflow",
-                        "line": i,
-                        "file": path,
-                        "code": line.strip(),
-                    })
+                    raw_findings.append(
+                        {
+                            "type": "integer_overflow",
+                            "line": i,
+                            "file": path,
+                            "code": line.strip(),
+                        }
+                    )
 
             # Reentrancy: external call before state change
             if re.search(r"\.call\{value:", line) or re.search(r"\.transfer\(", line):
                 # Check if state is modified after external call
-                context_after = "\n".join(lines[i:min(len(lines), i + 10)])
+                context_after = "\n".join(lines[i : min(len(lines), i + 10)])
                 if re.search(r"balances?\s*\[", context_after):
-                    raw_findings.append({
-                        "type": "reentrancy",
-                        "line": i,
-                        "file": path,
-                        "code": line.strip(),
-                    })
+                    raw_findings.append(
+                        {
+                            "type": "reentrancy",
+                            "line": i,
+                            "file": path,
+                            "code": line.strip(),
+                        }
+                    )
 
             # Timestamp dependency
             if "block.timestamp" in line and not line.strip().startswith("//"):
-                raw_findings.append({
-                    "type": "time_dependency",
-                    "line": i,
-                    "file": path,
-                    "code": line.strip(),
-                })
+                raw_findings.append(
+                    {
+                        "type": "time_dependency",
+                        "line": i,
+                        "file": path,
+                        "code": line.strip(),
+                    }
+                )
 
             # tx.origin usage
             if "tx.origin" in line and not line.strip().startswith("//"):
-                raw_findings.append({
-                    "type": "tx_origin",
-                    "line": i,
-                    "file": path,
-                    "code": line.strip(),
-                })
+                raw_findings.append(
+                    {
+                        "type": "tx_origin",
+                        "line": i,
+                        "file": path,
+                        "code": line.strip(),
+                    }
+                )
 
         findings = self.normalize_findings(raw_findings)
 
@@ -267,36 +275,41 @@ class OyenteAdapter(ToolAdapter):
 
         for item in issues:
             vuln_type = item.get("type", "unknown").lower().replace(" ", "_")
-            config = OYENTE_VULNERABILITIES.get(vuln_type, {
-                "severity": "Medium",
-                "confidence": 0.60,
-                "swc_id": None,
-                "cwe_id": None,
-                "description": vuln_type,
-                "recommendation": "Review finding",
-            })
+            config = OYENTE_VULNERABILITIES.get(
+                vuln_type,
+                {
+                    "severity": "Medium",
+                    "confidence": 0.60,
+                    "swc_id": None,
+                    "cwe_id": None,
+                    "description": vuln_type,
+                    "recommendation": "Review finding",
+                },
+            )
 
             finding_id = hashlib.md5(
                 f"oyente:{vuln_type}:{path}:{item.get('line', 0)}".encode()
             ).hexdigest()[:12]
 
-            findings.append({
-                "id": f"OYE-{finding_id}",
-                "type": vuln_type,
-                "severity": config["severity"],
-                "confidence": config["confidence"],
-                "location": {
-                    "file": item.get("file", path),
-                    "line": item.get("line", 0),
-                    "function": item.get("function", ""),
-                },
-                "message": item.get("message", config["description"]),
-                "description": config["description"],
-                "recommendation": config["recommendation"],
-                "swc_id": config.get("swc_id"),
-                "cwe_id": config.get("cwe_id"),
-                "tool": "oyente",
-            })
+            findings.append(
+                {
+                    "id": f"OYE-{finding_id}",
+                    "type": vuln_type,
+                    "severity": config["severity"],
+                    "confidence": config["confidence"],
+                    "location": {
+                        "file": item.get("file", path),
+                        "line": item.get("line", 0),
+                        "function": item.get("function", ""),
+                    },
+                    "message": item.get("message", config["description"]),
+                    "description": config["description"],
+                    "recommendation": config["recommendation"],
+                    "swc_id": config.get("swc_id"),
+                    "cwe_id": config.get("cwe_id"),
+                    "tool": "oyente",
+                }
+            )
 
         return findings
 
@@ -310,35 +323,40 @@ class OyenteAdapter(ToolAdapter):
                 continue
 
             vuln_type = item.get("type", "unknown")
-            config = OYENTE_VULNERABILITIES.get(vuln_type, {
-                "severity": "Medium",
-                "confidence": 0.60,
-                "swc_id": None,
-                "cwe_id": None,
-                "description": vuln_type,
-                "recommendation": "Review finding",
-            })
+            config = OYENTE_VULNERABILITIES.get(
+                vuln_type,
+                {
+                    "severity": "Medium",
+                    "confidence": 0.60,
+                    "swc_id": None,
+                    "cwe_id": None,
+                    "description": vuln_type,
+                    "recommendation": "Review finding",
+                },
+            )
 
             finding_id = hashlib.md5(
                 f"oyente:{vuln_type}:{item.get('file', '')}:{item.get('line', 0)}".encode()
             ).hexdigest()[:12]
 
-            findings.append({
-                "id": f"OYE-{finding_id}",
-                "type": vuln_type,
-                "severity": config["severity"],
-                "confidence": config["confidence"],
-                "location": {
-                    "file": item.get("file", ""),
-                    "line": item.get("line", 0),
-                    "function": "",
-                },
-                "message": f"{config['description']}: {item.get('code', '')}",
-                "description": config["description"],
-                "recommendation": config["recommendation"],
-                "swc_id": config.get("swc_id"),
-                "cwe_id": config.get("cwe_id"),
-                "tool": "oyente",
-            })
+            findings.append(
+                {
+                    "id": f"OYE-{finding_id}",
+                    "type": vuln_type,
+                    "severity": config["severity"],
+                    "confidence": config["confidence"],
+                    "location": {
+                        "file": item.get("file", ""),
+                        "line": item.get("line", 0),
+                        "function": "",
+                    },
+                    "message": f"{config['description']}: {item.get('code', '')}",
+                    "description": config["description"],
+                    "recommendation": config["recommendation"],
+                    "swc_id": config.get("swc_id"),
+                    "cwe_id": config.get("cwe_id"),
+                    "tool": "oyente",
+                }
+            )
 
         return findings

@@ -16,21 +16,22 @@ Date: January 2026
 Version: 1.0.0
 """
 
-import logging
-import subprocess
-import re
 import json
+import logging
+import re
+import subprocess
 import time
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
-from enum import Enum
 
 logger = logging.getLogger(__name__)
 
 
 class TestStatus(Enum):
     """Test execution status."""
+
     PASSED = "passed"
     FAILED = "failed"
     SKIPPED = "skipped"
@@ -41,6 +42,7 @@ class TestStatus(Enum):
 @dataclass
 class TestResult:
     """Result of a single test."""
+
     name: str
     status: TestStatus
     gas_used: Optional[int] = None
@@ -53,6 +55,7 @@ class TestResult:
 @dataclass
 class FoundryResult:
     """Result of running Foundry tests."""
+
     success: bool
     tests: List[TestResult]
     total_tests: int
@@ -113,10 +116,10 @@ class FoundryRunner:
                 logger.debug(f"Foundry version: {result.stdout.strip()}")
             else:
                 logger.warning("Foundry may not be properly installed")
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             raise RuntimeError(
                 "Foundry not installed. Install with: curl -L https://foundry.paradigm.xyz | bash"
-            )
+            ) from e
         except subprocess.TimeoutExpired:
             logger.warning("Foundry version check timed out")
 
@@ -371,9 +374,9 @@ class FoundryRunner:
         # Try to parse JSON output
         try:
             # Forge JSON output can be multiple JSON objects
-            for line in stdout.split('\n'):
+            for line in stdout.split("\n"):
                 line = line.strip()
-                if line.startswith('{'):
+                if line.startswith("{"):
                     try:
                         data = json.loads(line)
                         tests.extend(self._parse_test_results(data))
@@ -393,7 +396,7 @@ class FoundryRunner:
         total_gas = sum(t.gas_used or 0 for t in tests)
 
         # Get forge version
-        version_match = re.search(r'forge (\d+\.\d+\.\d+)', stdout + stderr)
+        version_match = re.search(r"forge (\d+\.\d+\.\d+)", stdout + stderr)
         forge_version = version_match.group(1) if version_match else None
 
         return FoundryResult(
@@ -419,12 +422,14 @@ class FoundryRunner:
             for contract, results in data["test_results"].items():
                 for test_name, result in results.items():
                     status = TestStatus.PASSED if result.get("success") else TestStatus.FAILED
-                    tests.append(TestResult(
-                        name=f"{contract}::{test_name}",
-                        status=status,
-                        gas_used=result.get("gas"),
-                        logs=result.get("logs", []),
-                    ))
+                    tests.append(
+                        TestResult(
+                            name=f"{contract}::{test_name}",
+                            status=status,
+                            gas_used=result.get("gas"),
+                            logs=result.get("logs", []),
+                        )
+                    )
 
         return tests
 
@@ -433,7 +438,7 @@ class FoundryRunner:
         tests = []
 
         # Pattern for test results: [PASS] testName() (gas: 12345)
-        pattern = r'\[(PASS|FAIL|SKIP)\]\s+(\w+)\(\)\s*(?:\(gas:\s*(\d+)\))?'
+        pattern = r"\[(PASS|FAIL|SKIP)\]\s+(\w+)\(\)\s*(?:\(gas:\s*(\d+)\))?"
 
         for match in re.finditer(pattern, output):
             status_str, name, gas = match.groups()
@@ -445,11 +450,13 @@ class FoundryRunner:
             else:
                 status = TestStatus.SKIPPED
 
-            tests.append(TestResult(
-                name=name,
-                status=status,
-                gas_used=int(gas) if gas else None,
-            ))
+            tests.append(
+                TestResult(
+                    name=name,
+                    status=status,
+                    gas_used=int(gas) if gas else None,
+                )
+            )
 
         return tests
 
@@ -477,8 +484,8 @@ class FoundryRunner:
             }
 
             # Extract gas data from output
-            for line in result.stdout.split('\n'):
-                if line.strip().startswith('{'):
+            for line in result.stdout.split("\n"):
+                if line.strip().startswith("{"):
                     try:
                         data = json.loads(line)
                         if "gas_report" in data:

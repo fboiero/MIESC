@@ -20,15 +20,16 @@ import asyncio
 import json
 import logging
 import uuid
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Dict, Set, Optional, Any, Callable
-from dataclasses import dataclass, field, asdict
 from enum import Enum
 from pathlib import Path
+from typing import Any, Callable, Dict, Optional, Set
 
 try:
     import websockets
     from websockets.server import WebSocketServerProtocol
+
     WEBSOCKETS_AVAILABLE = True
 except ImportError:
     WEBSOCKETS_AVAILABLE = False
@@ -41,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 class EventType(Enum):
     """Types of events that can be streamed to clients."""
+
     # Connection events
     CONNECTED = "connected"
     DISCONNECTED = "disconnected"
@@ -75,6 +77,7 @@ class EventType(Enum):
 @dataclass
 class AuditSession:
     """Represents an active audit session."""
+
     session_id: str
     contract_path: str
     layers: list
@@ -95,25 +98,28 @@ class AuditSession:
             "current_layer": self.current_layer,
             "current_tool": self.current_tool,
             "findings_count": self.findings_count,
-            "progress_percent": self.progress_percent
+            "progress_percent": self.progress_percent,
         }
 
 
 @dataclass
 class StreamEvent:
     """Represents an event to be streamed to clients."""
+
     event_type: EventType
     session_id: str
     timestamp: datetime
     data: Dict[str, Any] = field(default_factory=dict)
 
     def to_json(self) -> str:
-        return json.dumps({
-            "event": self.event_type.value,
-            "session_id": self.session_id,
-            "timestamp": self.timestamp.isoformat(),
-            "data": self.data
-        })
+        return json.dumps(
+            {
+                "event": self.event_type.value,
+                "session_id": self.session_id,
+                "timestamp": self.timestamp.isoformat(),
+                "data": self.data,
+            }
+        )
 
 
 class MIESCWebSocketServer:
@@ -125,16 +131,10 @@ class MIESCWebSocketServer:
         await server.start()
     """
 
-    def __init__(
-        self,
-        host: str = "localhost",
-        port: int = 8765,
-        heartbeat_interval: int = 30
-    ):
+    def __init__(self, host: str = "localhost", port: int = 8765, heartbeat_interval: int = 30):
         if not WEBSOCKETS_AVAILABLE:
             raise ImportError(
-                "websockets package not installed. "
-                "Install with: pip install websockets"
+                "websockets package not installed. " "Install with: pip install websockets"
             )
 
         self.host = host
@@ -159,11 +159,7 @@ class MIESCWebSocketServer:
     async def start(self) -> None:
         """Start the WebSocket server."""
         self._server = await websockets.serve(
-            self._handle_client,
-            self.host,
-            self.port,
-            ping_interval=20,
-            ping_timeout=10
+            self._handle_client, self.host, self.port, ping_interval=20, ping_timeout=10
         )
 
         # Start heartbeat task
@@ -182,11 +178,7 @@ class MIESCWebSocketServer:
 
         logger.info("MIESC WebSocket server stopped")
 
-    async def _handle_client(
-        self,
-        websocket: WebSocketServerProtocol,
-        path: str
-    ) -> None:
+    async def _handle_client(self, websocket: WebSocketServerProtocol, path: str) -> None:
         """Handle a new WebSocket client connection."""
         self._clients.add(websocket)
         self._subscriptions[websocket] = set()
@@ -195,22 +187,25 @@ class MIESCWebSocketServer:
         logger.info(f"Client {client_id} connected from {websocket.remote_address}")
 
         # Send welcome message
-        await self._send_event(websocket, StreamEvent(
-            event_type=EventType.CONNECTED,
-            session_id="system",
-            timestamp=datetime.now(timezone.utc),
-            data={
-                "client_id": client_id,
-                "server_version": "4.2.0",
-                "available_commands": [
-                    "start_audit",
-                    "subscribe",
-                    "unsubscribe",
-                    "get_sessions",
-                    "get_status"
-                ]
-            }
-        ))
+        await self._send_event(
+            websocket,
+            StreamEvent(
+                event_type=EventType.CONNECTED,
+                session_id="system",
+                timestamp=datetime.now(timezone.utc),
+                data={
+                    "client_id": client_id,
+                    "server_version": "4.2.0",
+                    "available_commands": [
+                        "start_audit",
+                        "subscribe",
+                        "unsubscribe",
+                        "get_sessions",
+                        "get_status",
+                    ],
+                },
+            ),
+        )
 
         try:
             async for message in websocket:
@@ -222,11 +217,7 @@ class MIESCWebSocketServer:
             self._subscriptions.pop(websocket, None)
             logger.info(f"Client {client_id} disconnected")
 
-    async def _handle_message(
-        self,
-        websocket: WebSocketServerProtocol,
-        message: str
-    ) -> None:
+    async def _handle_message(self, websocket: WebSocketServerProtocol, message: str) -> None:
         """Handle incoming message from client."""
         try:
             data = json.loads(message)
@@ -238,12 +229,15 @@ class MIESCWebSocketServer:
                 session_id = data.get("session_id")
                 if session_id:
                     self._subscriptions[websocket].add(session_id)
-                    await self._send_event(websocket, StreamEvent(
-                        event_type=EventType.PROGRESS_UPDATE,
-                        session_id=session_id,
-                        timestamp=datetime.now(timezone.utc),
-                        data={"subscribed": True}
-                    ))
+                    await self._send_event(
+                        websocket,
+                        StreamEvent(
+                            event_type=EventType.PROGRESS_UPDATE,
+                            session_id=session_id,
+                            timestamp=datetime.now(timezone.utc),
+                            data={"subscribed": True},
+                        ),
+                    )
             elif command == "unsubscribe":
                 session_id = data.get("session_id")
                 if session_id:
@@ -254,12 +248,15 @@ class MIESCWebSocketServer:
                 session_id = data.get("session_id")
                 if session_id and session_id in self._sessions:
                     session = self._sessions[session_id]
-                    await self._send_event(websocket, StreamEvent(
-                        event_type=EventType.PROGRESS_UPDATE,
-                        session_id=session_id,
-                        timestamp=datetime.now(timezone.utc),
-                        data=session.to_dict()
-                    ))
+                    await self._send_event(
+                        websocket,
+                        StreamEvent(
+                            event_type=EventType.PROGRESS_UPDATE,
+                            session_id=session_id,
+                            timestamp=datetime.now(timezone.utc),
+                            data=session.to_dict(),
+                        ),
+                    )
             else:
                 await self._send_error(websocket, f"Unknown command: {command}")
 
@@ -269,9 +266,7 @@ class MIESCWebSocketServer:
             await self._send_error(websocket, str(e))
 
     async def _handle_start_audit(
-        self,
-        websocket: WebSocketServerProtocol,
-        data: Dict[str, Any]
+        self, websocket: WebSocketServerProtocol, data: Dict[str, Any]
     ) -> None:
         """Handle start_audit command."""
         contract_path = data.get("contract_path")
@@ -287,23 +282,26 @@ class MIESCWebSocketServer:
             session_id=session_id,
             contract_path=contract_path,
             layers=layers,
-            started_at=datetime.now(timezone.utc)
+            started_at=datetime.now(timezone.utc),
         )
 
         self._sessions[session_id] = session
         self._subscriptions[websocket].add(session_id)
 
         # Broadcast audit started
-        await self._broadcast_event(session_id, StreamEvent(
-            event_type=EventType.AUDIT_STARTED,
-            session_id=session_id,
-            timestamp=datetime.now(timezone.utc),
-            data={
-                "contract_path": contract_path,
-                "layers": layers,
-                "session": session.to_dict()
-            }
-        ))
+        await self._broadcast_event(
+            session_id,
+            StreamEvent(
+                event_type=EventType.AUDIT_STARTED,
+                session_id=session_id,
+                timestamp=datetime.now(timezone.utc),
+                data={
+                    "contract_path": contract_path,
+                    "layers": layers,
+                    "session": session.to_dict(),
+                },
+            ),
+        )
 
         # Start audit in background
         asyncio.create_task(self._run_audit(session_id))
@@ -317,6 +315,7 @@ class MIESCWebSocketServer:
         try:
             # Import MIESC components
             import sys
+
             sys.path.insert(0, str(Path(__file__).parent.parent))
             from detectors.smartbugs_detectors import SmartBugsDetectorEngine
 
@@ -330,16 +329,19 @@ class MIESCWebSocketServer:
                 session.progress_percent = (i / total_layers) * 100
 
                 # Broadcast layer started
-                await self._broadcast_event(session_id, StreamEvent(
-                    event_type=EventType.LAYER_STARTED,
-                    session_id=session_id,
-                    timestamp=datetime.now(timezone.utc),
-                    data={
-                        "layer": layer,
-                        "layer_name": self._get_layer_name(layer),
-                        "progress_percent": session.progress_percent
-                    }
-                ))
+                await self._broadcast_event(
+                    session_id,
+                    StreamEvent(
+                        event_type=EventType.LAYER_STARTED,
+                        session_id=session_id,
+                        timestamp=datetime.now(timezone.utc),
+                        data={
+                            "layer": layer,
+                            "layer_name": self._get_layer_name(layer),
+                            "progress_percent": session.progress_percent,
+                        },
+                    ),
+                )
 
                 # Simulate tool execution (in real implementation, run actual tools)
                 await asyncio.sleep(0.5)  # Simulate work
@@ -354,57 +356,72 @@ class MIESCWebSocketServer:
                         session.findings_count += 1
                         all_findings.append(finding)
 
-                        await self._broadcast_event(session_id, StreamEvent(
-                            event_type=EventType.FINDING_DISCOVERED,
-                            session_id=session_id,
-                            timestamp=datetime.now(timezone.utc),
-                            data={
-                                "finding": finding,
-                                "layer": layer,
-                                "total_findings": session.findings_count
-                            }
-                        ))
+                        await self._broadcast_event(
+                            session_id,
+                            StreamEvent(
+                                event_type=EventType.FINDING_DISCOVERED,
+                                session_id=session_id,
+                                timestamp=datetime.now(timezone.utc),
+                                data={
+                                    "finding": finding,
+                                    "layer": layer,
+                                    "total_findings": session.findings_count,
+                                },
+                            ),
+                        )
 
                 except Exception as e:
                     logger.error(f"Layer {layer} failed: {e}")
 
                 # Broadcast layer completed
-                await self._broadcast_event(session_id, StreamEvent(
-                    event_type=EventType.LAYER_COMPLETED,
-                    session_id=session_id,
-                    timestamp=datetime.now(timezone.utc),
-                    data={
-                        "layer": layer,
-                        "findings_in_layer": len(layer_findings) if 'layer_findings' in dir() else 0,
-                        "total_findings": session.findings_count
-                    }
-                ))
+                await self._broadcast_event(
+                    session_id,
+                    StreamEvent(
+                        event_type=EventType.LAYER_COMPLETED,
+                        session_id=session_id,
+                        timestamp=datetime.now(timezone.utc),
+                        data={
+                            "layer": layer,
+                            "findings_in_layer": (
+                                len(layer_findings) if "layer_findings" in dir() else 0
+                            ),
+                            "total_findings": session.findings_count,
+                        },
+                    ),
+                )
 
             # Audit completed
             session.status = "completed"
             session.progress_percent = 100.0
 
-            await self._broadcast_event(session_id, StreamEvent(
-                event_type=EventType.AUDIT_COMPLETED,
-                session_id=session_id,
-                timestamp=datetime.now(timezone.utc),
-                data={
-                    "total_findings": session.findings_count,
-                    "execution_time_ms": (
-                        datetime.now(timezone.utc) - session.started_at
-                    ).total_seconds() * 1000,
-                    "session": session.to_dict()
-                }
-            ))
+            await self._broadcast_event(
+                session_id,
+                StreamEvent(
+                    event_type=EventType.AUDIT_COMPLETED,
+                    session_id=session_id,
+                    timestamp=datetime.now(timezone.utc),
+                    data={
+                        "total_findings": session.findings_count,
+                        "execution_time_ms": (
+                            datetime.now(timezone.utc) - session.started_at
+                        ).total_seconds()
+                        * 1000,
+                        "session": session.to_dict(),
+                    },
+                ),
+            )
 
         except Exception as e:
             session.status = "failed"
-            await self._broadcast_event(session_id, StreamEvent(
-                event_type=EventType.AUDIT_FAILED,
-                session_id=session_id,
-                timestamp=datetime.now(timezone.utc),
-                data={"error": str(e)}
-            ))
+            await self._broadcast_event(
+                session_id,
+                StreamEvent(
+                    event_type=EventType.AUDIT_FAILED,
+                    session_id=session_id,
+                    timestamp=datetime.now(timezone.utc),
+                    data={"error": str(e)},
+                ),
+            )
 
     def _get_layer_name(self, layer: int) -> str:
         """Get human-readable layer name."""
@@ -415,15 +432,11 @@ class MIESCWebSocketServer:
             4: "Invariant Testing",
             5: "Formal Verification",
             6: "Property Testing",
-            7: "AI Analysis"
+            7: "AI Analysis",
         }
         return names.get(layer, f"Layer {layer}")
 
-    async def _broadcast_event(
-        self,
-        session_id: str,
-        event: StreamEvent
-    ) -> None:
+    async def _broadcast_event(self, session_id: str, event: StreamEvent) -> None:
         """Broadcast event to all clients subscribed to the session."""
         message = event.to_json()
 
@@ -434,42 +447,37 @@ class MIESCWebSocketServer:
                 except Exception:
                     pass
 
-    async def _send_event(
-        self,
-        websocket: WebSocketServerProtocol,
-        event: StreamEvent
-    ) -> None:
+    async def _send_event(self, websocket: WebSocketServerProtocol, event: StreamEvent) -> None:
         """Send event to specific client."""
         try:
             await websocket.send(event.to_json())
         except Exception:
             pass
 
-    async def _send_error(
-        self,
-        websocket: WebSocketServerProtocol,
-        error_message: str
-    ) -> None:
+    async def _send_error(self, websocket: WebSocketServerProtocol, error_message: str) -> None:
         """Send error to specific client."""
-        await self._send_event(websocket, StreamEvent(
-            event_type=EventType.ERROR,
-            session_id="system",
-            timestamp=datetime.now(timezone.utc),
-            data={"error": error_message}
-        ))
+        await self._send_event(
+            websocket,
+            StreamEvent(
+                event_type=EventType.ERROR,
+                session_id="system",
+                timestamp=datetime.now(timezone.utc),
+                data={"error": error_message},
+            ),
+        )
 
-    async def _send_sessions_list(
-        self,
-        websocket: WebSocketServerProtocol
-    ) -> None:
+    async def _send_sessions_list(self, websocket: WebSocketServerProtocol) -> None:
         """Send list of all sessions to client."""
         sessions = [s.to_dict() for s in self._sessions.values()]
-        await self._send_event(websocket, StreamEvent(
-            event_type=EventType.PROGRESS_UPDATE,
-            session_id="system",
-            timestamp=datetime.now(timezone.utc),
-            data={"sessions": sessions}
-        ))
+        await self._send_event(
+            websocket,
+            StreamEvent(
+                event_type=EventType.PROGRESS_UPDATE,
+                session_id="system",
+                timestamp=datetime.now(timezone.utc),
+                data={"sessions": sessions},
+            ),
+        )
 
     async def _heartbeat_loop(self) -> None:
         """Send periodic heartbeat to all clients."""
@@ -483,8 +491,8 @@ class MIESCWebSocketServer:
                     timestamp=datetime.now(timezone.utc),
                     data={
                         "active_sessions": len(self._sessions),
-                        "connected_clients": len(self._clients)
-                    }
+                        "connected_clients": len(self._clients),
+                    },
                 )
 
                 message = event.to_json()

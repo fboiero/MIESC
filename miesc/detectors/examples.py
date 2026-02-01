@@ -427,8 +427,7 @@ class SlippageProtectionDetector(BaseDetector):
                     context = "\n".join(lines[ctx_start:ctx_end])
 
                     has_protection = any(
-                        re.search(p, context, re.IGNORECASE)
-                        for p in self.PROTECTION_PATTERNS
+                        re.search(p, context, re.IGNORECASE) for p in self.PROTECTION_PATTERNS
                     )
 
                     # Check for hardcoded 0 as min amount
@@ -525,9 +524,7 @@ class RugPullDetector(BaseDetector):
                     ctx_end = min(len(lines), i + 10)
                     context = "\n".join(lines[ctx_start:ctx_end])
 
-                    has_cap = re.search(
-                        r"maxSupply|MAX_SUPPLY|totalSupply\s*<|cap", context
-                    )
+                    has_cap = re.search(r"maxSupply|MAX_SUPPLY|totalSupply\s*<|cap", context)
                     if not has_cap:
                         findings.append(
                             self.create_finding(
@@ -641,13 +638,9 @@ class ApprovalRaceDetector(BaseDetector):
         findings = []
         lines = source_code.split("\n")
 
-        has_approve = False
-        has_safe_approve = False
-
         for i, line in enumerate(lines, 1):
             # Check for standard approve
             if re.search(r"\.approve\s*\(", line):
-                has_approve = True
 
                 # Check if it's setting to 0 first (safe pattern)
                 ctx_start = max(0, i - 3)
@@ -669,7 +662,7 @@ class ApprovalRaceDetector(BaseDetector):
 
             # Check for safe alternatives
             if re.search(r"increaseAllowance|decreaseAllowance|safeApprove", line):
-                has_safe_approve = True
+                pass
 
         return findings
 
@@ -800,7 +793,7 @@ class HardcodedAddressDetector(BaseDetector):
                     findings.append(
                         self.create_finding(
                             title="Hardcoded Address",
-                            description=f"Non-constant hardcoded address detected.",
+                            description="Non-constant hardcoded address detected.",
                             line=i,
                             file_path=file_path or "",
                             recommendation="Use immutable variables set in "
@@ -967,9 +960,7 @@ class SelfdestructDetector(BaseDetector):
                 ctx_start = max(0, i - 10)
                 context = "\n".join(lines[ctx_start:i])
 
-                has_protection = re.search(
-                    r"onlyOwner|require.*msg\.sender|onlyAdmin", context
-                )
+                has_protection = re.search(r"onlyOwner|require.*msg\.sender|onlyAdmin", context)
 
                 if not has_protection:
                     findings.append(

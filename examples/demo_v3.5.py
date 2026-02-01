@@ -53,7 +53,7 @@ def print_section(title: str, emoji: str = "📋"):
     """Print section header."""
     print(f"\n{'=' * 80}")
     print(f"{emoji} {title}")
-    print('=' * 80)
+    print("=" * 80)
 
 
 def create_vulnerable_contract():
@@ -153,11 +153,15 @@ def run_demo():
 
     report = register_all_adapters()
 
-    print(f"📊 Adapter Registry Status:")
+    print("📊 Adapter Registry Status:")
     print(f"   Total adapters: {report['total_adapters']}")
     print(f"   Successfully registered: {report['registered']}")
-    print(f"   Available tools: {len([a for a in report['adapters'] if a['status'] == 'available'])}")
-    print(f"   DPGA Compliance: {'✅ PASS (100%)' if all(a.get('optional', False) for a in report['adapters']) else '❌ FAIL'}")
+    print(
+        f"   Available tools: {len([a for a in report['adapters'] if a['status'] == 'available'])}"
+    )
+    print(
+        f"   DPGA Compliance: {'✅ PASS (100%)' if all(a.get('optional', False) for a in report['adapters']) else '❌ FAIL'}"
+    )
 
     time.sleep(1)
 
@@ -172,7 +176,7 @@ def run_demo():
     # Show contract snippet
     print("\n📋 Contract Preview (first 15 lines):")
     print("-" * 80)
-    with open(contract_path, 'r') as f:
+    with open(contract_path, "r") as f:
         for i, line in enumerate(f.readlines()[:15], 1):
             print(f"{i:3d} │ {line.rstrip()}")
     print("-" * 80)
@@ -192,15 +196,15 @@ def run_demo():
             print("✅ Slither is available")
             result = slither.analyze(contract_path)
 
-            findings = result.get('findings', [])
-            print(f"\n📊 Static Analysis Results:")
+            findings = result.get("findings", [])
+            print("\n📊 Static Analysis Results:")
             print(f"   Total findings: {len(findings)}")
 
             # Count by severity
-            critical = len([f for f in findings if f.get('severity') == 'CRITICAL'])
-            high = len([f for f in findings if f.get('severity') == 'HIGH'])
-            medium = len([f for f in findings if f.get('severity') == 'MEDIUM'])
-            low = len([f for f in findings if f.get('severity') == 'LOW'])
+            critical = len([f for f in findings if f.get("severity") == "CRITICAL"])
+            high = len([f for f in findings if f.get("severity") == "HIGH"])
+            medium = len([f for f in findings if f.get("severity") == "MEDIUM"])
+            low = len([f for f in findings if f.get("severity") == "LOW"])
 
             print(f"   🔴 Critical: {critical}")
             print(f"   🟠 High: {high}")
@@ -209,17 +213,22 @@ def run_demo():
 
             # Show top 3 findings
             if findings:
-                print(f"\n🎯 Top Findings:")
+                print("\n🎯 Top Findings:")
                 for i, finding in enumerate(findings[:3], 1):
-                    severity_emoji = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢"}.get(
-                        finding.get('severity', 'MEDIUM'), '⚪'
-                    )
+                    severity_emoji = {
+                        "CRITICAL": "🔴",
+                        "HIGH": "🟠",
+                        "MEDIUM": "🟡",
+                        "LOW": "🟢",
+                    }.get(finding.get("severity", "MEDIUM"), "⚪")
                     print(f"\n   {severity_emoji} Finding #{i}: {finding.get('title', 'Unknown')}")
                     print(f"      Severity: {finding.get('severity', 'N/A')}")
                     print(f"      Confidence: {finding.get('confidence', 'N/A')}")
-                    if finding.get('location'):
-                        loc = finding['location']
-                        print(f"      Location: {loc.get('function', 'N/A')} (line {loc.get('line', '?')})")
+                    if finding.get("location"):
+                        loc = finding["location"]
+                        print(
+                            f"      Location: {loc.get('function', 'N/A')} (line {loc.get('line', '?')})"
+                        )
         else:
             print("⚠️  Slither not available - skipping Layer 1")
 
@@ -233,7 +242,6 @@ def run_demo():
     print("Enhancing findings with sovereign LLM intelligence...\n")
 
     try:
-        from src.llm import enhance_findings_with_llm
 
         print("🔧 OpenLLaMA Configuration:")
         print("   Model: deepseek-coder (via Ollama)")
@@ -263,7 +271,8 @@ def run_demo():
     # Step 5: Summary
     print_section("Step 5: Analysis Summary", "📊")
 
-    print("""
+    print(
+        """
 ✅ Demo Complete!
 
 🎯 MIESC v3.5.0 Capabilities Demonstrated:
@@ -289,7 +298,8 @@ def run_demo():
 🐛 Issues: https://github.com/fboiero/MIESC/issues
 ⭐ Star on GitHub: https://github.com/fboiero/MIESC
 
-""")
+"""
+    )
 
     print("=" * 80)
     print("Thank you for trying MIESC v3.5.0! 🎉")
@@ -305,5 +315,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\n❌ Demo error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

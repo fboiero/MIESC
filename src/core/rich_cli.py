@@ -9,36 +9,34 @@ License: GPL-3.0
 """
 
 import sys
-import time
-import asyncio
+from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
-from datetime import datetime
-from enum import Enum
 
 # Try to import Rich
 try:
-    from rich.console import Console, Group
+    from rich import box
+    from rich.console import Console, Group  # noqa: F401
+    from rich.layout import Layout  # noqa: F401
+    from rich.live import Live  # noqa: F401
+    from rich.markdown import Markdown  # noqa: F401
+    from rich.panel import Panel
     from rich.progress import (
+        BarColumn,
         Progress,
         SpinnerColumn,
-        TextColumn,
-        BarColumn,
         TaskProgressColumn,
-        TimeRemainingColumn,
+        TextColumn,
         TimeElapsedColumn,
+        TimeRemainingColumn,
     )
-    from rich.panel import Panel
-    from rich.table import Table
-    from rich.tree import Tree
-    from rich.live import Live
-    from rich.layout import Layout
-    from rich.text import Text
-    from rich.markdown import Markdown
-    from rich.syntax import Syntax
-    from rich.prompt import Prompt, Confirm
+    from rich.prompt import Confirm, Prompt
     from rich.rule import Rule
-    from rich import box
+    from rich.syntax import Syntax
+    from rich.table import Table
+    from rich.text import Text
+    from rich.tree import Tree
+
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
@@ -46,6 +44,7 @@ except ImportError:
 
 class SeverityStyle(str, Enum):
     """Styling for severity levels."""
+
     CRITICAL = "bold red"
     HIGH = "red"
     MEDIUM = "yellow"
@@ -85,8 +84,9 @@ class MIESCRichCLI:
     def show_banner(self) -> None:
         """Display the MIESC banner."""
         banner_text = Text(self.BANNER, style="bold blue")
-        version_text = Text("v4.2.0 - Multi-layer Intelligent Evaluation for Smart Contracts\n",
-                           style="italic cyan")
+        version_text = Text(
+            "v4.2.0 - Multi-layer Intelligent Evaluation for Smart Contracts\n", style="italic cyan"
+        )
         self.console.print(banner_text)
         self.console.print(version_text, justify="center")
         self.console.print(Rule(style="blue"))
@@ -146,7 +146,9 @@ class MIESCRichCLI:
             lines = len(code.splitlines())
             info_table.add_row("Lines", str(lines))
 
-        self.console.print(Panel(info_table, title="[bold]Contract Info[/bold]", border_style="cyan"))
+        self.console.print(
+            Panel(info_table, title="[bold]Contract Info[/bold]", border_style="cyan")
+        )
 
         # Show code preview if verbose
         if self.verbose and code:
@@ -171,9 +173,7 @@ class MIESCRichCLI:
         )
 
     def run_with_progress(
-        self,
-        tasks: List[Dict[str, Any]],
-        executor: Callable[[str, Callable], Any]
+        self, tasks: List[Dict[str, Any]], executor: Callable[[str, Callable], Any]
     ) -> List[Any]:
         """
         Run tasks with progress tracking.
@@ -192,10 +192,7 @@ class MIESCRichCLI:
 
             # Add all tasks
             for task in tasks:
-                task_id = progress.add_task(
-                    task["description"],
-                    total=task.get("total", 100)
-                )
+                task_id = progress.add_task(task["description"], total=task.get("total", 100))
                 task_ids[task["name"]] = task_id
 
             # Execute tasks
@@ -203,10 +200,10 @@ class MIESCRichCLI:
                 task_name = task["name"]
                 task_id = task_ids[task_name]
 
-                def update_progress(completed: float, description: str = None):
-                    progress.update(task_id, completed=completed)
+                def update_progress(completed: float, description: str = None, _tid=task_id):
+                    progress.update(_tid, completed=completed)
                     if description:
-                        progress.update(task_id, description=description)
+                        progress.update(_tid, description=description)
 
                 try:
                     result = executor(task_name, update_progress)
@@ -219,10 +216,7 @@ class MIESCRichCLI:
         return results
 
     def run_audit_with_progress(
-        self,
-        contract_path: str,
-        layers: List[Dict[str, Any]],
-        audit_func: Callable
+        self, contract_path: str, layers: List[Dict[str, Any]], audit_func: Callable
     ) -> Dict[str, Any]:
         """
         Run audit with visual progress for each layer.
@@ -245,10 +239,7 @@ class MIESCRichCLI:
         completed_tools = 0
 
         with self.create_progress() as progress:
-            overall_task = progress.add_task(
-                "[bold green]Overall Progress",
-                total=total_tools
-            )
+            overall_task = progress.add_task("[bold green]Overall Progress", total=total_tools)
 
             for layer in layers:
                 layer_num = layer.get("number", 0)
@@ -258,20 +249,15 @@ class MIESCRichCLI:
                 self.console.print(f"\n[bold cyan]Layer {layer_num}:[/bold cyan] {layer_name}")
 
                 layer_findings = []
-                layer_task = progress.add_task(
-                    f"  {layer_name}",
-                    total=len(tools)
-                )
+                layer_task = progress.add_task(f"  {layer_name}", total=len(tools))
 
                 for i, tool in enumerate(tools):
-                    tool_task = progress.add_task(
-                        f"    Running {tool}...",
-                        total=100
-                    )
+                    tool_task = progress.add_task(f"    Running {tool}...", total=100)
 
                     try:
-                        def tool_progress(pct: float):
-                            progress.update(tool_task, completed=pct)
+
+                        def tool_progress(pct: float, _tt=tool_task):
+                            progress.update(_tt, completed=pct)
 
                         findings = audit_func(layer_num, tool, tool_progress)
                         layer_findings.extend(findings)
@@ -280,14 +266,11 @@ class MIESCRichCLI:
                         finding_count = len(findings)
                         progress.update(
                             tool_task,
-                            description=f"    [green]{tool}[/green]: {finding_count} findings"
+                            description=f"    [green]{tool}[/green]: {finding_count} findings",
                         )
 
-                    except Exception as e:
-                        progress.update(
-                            tool_task,
-                            description=f"    [red]{tool}: Error[/red]"
-                        )
+                    except Exception:
+                        progress.update(tool_task, description=f"    [red]{tool}: Error[/red]")
 
                     completed_tools += 1
                     progress.update(overall_task, completed=completed_tools)
@@ -296,11 +279,7 @@ class MIESCRichCLI:
                 layer_results[layer_num] = layer_findings
                 all_findings.extend(layer_findings)
 
-        return {
-            "findings": all_findings,
-            "by_layer": layer_results,
-            "total": len(all_findings)
-        }
+        return {"findings": all_findings, "by_layer": layer_results, "total": len(all_findings)}
 
     def show_findings_summary(self, findings: List[Dict[str, Any]]) -> None:
         """Display a summary of findings."""
@@ -329,11 +308,13 @@ class MIESCRichCLI:
     def show_findings_detail(self, findings: List[Dict[str, Any]]) -> None:
         """Display detailed findings."""
         if not findings:
-            self.console.print(Panel(
-                "[green]No vulnerabilities found![/green]",
-                title="Results",
-                border_style="green"
-            ))
+            self.console.print(
+                Panel(
+                    "[green]No vulnerabilities found![/green]",
+                    title="Results",
+                    border_style="green",
+                )
+            )
             return
 
         # Group by severity
@@ -383,11 +364,13 @@ class MIESCRichCLI:
             content.add_row("", "")
             content.add_row("Remediation", Text(finding["remediation"], style="green"))
 
-        self.console.print(Panel(
-            content,
-            title=f"[{style}]{title}[/{style}]",
-            border_style=style.split()[-1] if style else "white"
-        ))
+        self.console.print(
+            Panel(
+                content,
+                title=f"[{style}]{title}[/{style}]",
+                border_style=style.split()[-1] if style else "white",
+            )
+        )
 
     def show_findings_tree(self, findings: List[Dict[str, Any]]) -> None:
         """Display findings as a tree structure."""
@@ -413,7 +396,9 @@ class MIESCRichCLI:
                 by_tool[tool].append(f)
 
             for tool, tool_findings in by_tool.items():
-                tool_branch = layer_branch.add(f"[blue]{tool}[/blue] ({len(tool_findings)} findings)")
+                tool_branch = layer_branch.add(
+                    f"[blue]{tool}[/blue] ({len(tool_findings)} findings)"
+                )
 
                 for f in tool_findings:
                     severity = f.get("severity", "info").lower()
@@ -425,10 +410,7 @@ class MIESCRichCLI:
 
     def prompt_contract(self, default: str = "") -> str:
         """Prompt for contract path."""
-        return Prompt.ask(
-            "[cyan]Enter contract path[/cyan]",
-            default=default
-        )
+        return Prompt.ask("[cyan]Enter contract path[/cyan]", default=default)
 
     def prompt_tools(self, available: List[str]) -> List[str]:
         """Prompt for tool selection."""
@@ -437,8 +419,7 @@ class MIESCRichCLI:
             self.console.print(f"  {i}. {tool}")
 
         selection = Prompt.ask(
-            "\n[cyan]Select tools (comma-separated numbers or 'all')[/cyan]",
-            default="all"
+            "\n[cyan]Select tools (comma-separated numbers or 'all')[/cyan]", default="all"
         )
 
         if selection.lower() == "all":
@@ -474,10 +455,7 @@ class MIESCRichCLI:
 
         self.console.print(table)
 
-        selection = Prompt.ask(
-            "[cyan]Select format (1-5)[/cyan]",
-            default="1"
-        )
+        selection = Prompt.ask("[cyan]Select format (1-5)[/cyan]", default="1")
 
         try:
             idx = int(selection) - 1
@@ -485,7 +463,9 @@ class MIESCRichCLI:
         except ValueError:
             return "sarif"
 
-    def show_completion(self, duration: float, findings_count: int, output_path: str = None) -> None:
+    def show_completion(
+        self, duration: float, findings_count: int, output_path: str = None
+    ) -> None:
         """Show audit completion message."""
         content = Table(show_header=False, box=None)
         content.add_column("", style="cyan")
@@ -496,19 +476,15 @@ class MIESCRichCLI:
         if output_path:
             content.add_row("Report", output_path)
 
-        self.console.print(Panel(
-            content,
-            title="[bold green]Audit Complete[/bold green]",
-            border_style="green"
-        ))
+        self.console.print(
+            Panel(content, title="[bold green]Audit Complete[/bold green]", border_style="green")
+        )
 
     def error(self, message: str) -> None:
         """Display error message."""
-        self.console.print(Panel(
-            f"[red]{message}[/red]",
-            title="[bold red]Error[/bold red]",
-            border_style="red"
-        ))
+        self.console.print(
+            Panel(f"[red]{message}[/red]", title="[bold red]Error[/bold red]", border_style="red")
+        )
 
     def warning(self, message: str) -> None:
         """Display warning message."""
@@ -550,7 +526,7 @@ if __name__ == "__main__":
             "location": "VulnerableBank.sol:25",
             "cwe": "CWE-841",
             "swc": "SWC-107",
-            "remediation": "Use checks-effects-interactions pattern or ReentrancyGuard."
+            "remediation": "Use checks-effects-interactions pattern or ReentrancyGuard.",
         },
         {
             "title": "Unchecked Return Value",

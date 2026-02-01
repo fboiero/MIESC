@@ -25,7 +25,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -47,7 +47,10 @@ MULTI_TX_PATTERNS = {
         "description": "Reentrancy exploitable across multiple transactions - state not properly locked between calls",
         "recommendation": "Use reentrancy guard and ensure state updates before external calls across all entry points",
         "patterns": [
-            (r"function\s+(\w+)[^{]*\{[^}]*\.call\{", r"function\s+(\w+)[^{]*\{[^}]*balances?\s*\["),
+            (
+                r"function\s+(\w+)[^{]*\{[^}]*\.call\{",
+                r"function\s+(\w+)[^{]*\{[^}]*balances?\s*\[",
+            ),
         ],
     },
     "state_manipulation": {
@@ -260,40 +263,44 @@ class PakalaAdapter(ToolAdapter):
                     confidence *= 0.5  # Reduce confidence if guards found
 
                 if confidence >= 0.35:
-                    raw_findings.append({
-                        "type": pattern_name,
-                        "line": matched_lines[0][0],
-                        "file": contract_path,
-                        "code": matched_lines[0][1],
-                        "related_lines": [m[0] for m in matched_lines[1:]],
-                        "has_guard": has_guard,
-                        "config": config,
-                        "confidence_override": confidence,
-                    })
+                    raw_findings.append(
+                        {
+                            "type": pattern_name,
+                            "line": matched_lines[0][0],
+                            "file": contract_path,
+                            "code": matched_lines[0][1],
+                            "related_lines": [m[0] for m in matched_lines[1:]],
+                            "has_guard": has_guard,
+                            "config": config,
+                            "confidence_override": confidence,
+                        }
+                    )
 
             # Check paired patterns
             if "patterns" in config:
                 for pattern_pair in config["patterns"]:
                     if isinstance(pattern_pair, tuple) and len(pattern_pair) == 2:
                         matches_a = [
-                            (i, l.strip())
-                            for i, l in enumerate(lines, 1)
-                            if re.search(pattern_pair[0], l)
+                            (i, ln.strip())
+                            for i, ln in enumerate(lines, 1)
+                            if re.search(pattern_pair[0], ln)
                         ]
                         matches_b = [
-                            (i, l.strip())
-                            for i, l in enumerate(lines, 1)
-                            if re.search(pattern_pair[1], l)
+                            (i, ln.strip())
+                            for i, ln in enumerate(lines, 1)
+                            if re.search(pattern_pair[1], ln)
                         ]
                         if matches_a and matches_b:
-                            raw_findings.append({
-                                "type": pattern_name,
-                                "line": matches_a[0][0],
-                                "file": contract_path,
-                                "code": matches_a[0][1],
-                                "related_lines": [m[0] for m in matches_b],
-                                "config": config,
-                            })
+                            raw_findings.append(
+                                {
+                                    "type": pattern_name,
+                                    "line": matches_a[0][0],
+                                    "file": contract_path,
+                                    "code": matches_a[0][1],
+                                    "related_lines": [m[0] for m in matches_b],
+                                    "config": config,
+                                }
+                            )
 
         # Cross-function analysis
         cross_func_findings = self._analyze_cross_function(functions, contract_path)
@@ -344,14 +351,12 @@ class PakalaAdapter(ToolAdapter):
                     depth -= 1
                     if depth == 0:
                         break
-            body = source_code[body_start:pos + 1]
+            body = source_code[body_start : pos + 1]
             line_num = source_code[:start].count("\n") + 1
             functions[name] = {"body": body, "params": params, "line": line_num}
         return functions
 
-    def _analyze_cross_function(
-        self, functions: Dict, contract_path: str
-    ) -> List[Dict[str, Any]]:
+    def _analyze_cross_function(self, functions: Dict, contract_path: str) -> List[Dict[str, Any]]:
         """Analyze cross-function vulnerabilities."""
         findings = []
 
@@ -360,7 +365,9 @@ class PakalaAdapter(ToolAdapter):
 
         if deposit_funcs and withdraw_funcs:
             for wname, wfunc in withdraw_funcs.items():
-                has_external_call = bool(re.search(r"\.call\{|\.transfer\(|\.send\(", wfunc["body"]))
+                has_external_call = bool(
+                    re.search(r"\.call\{|\.transfer\(|\.send\(", wfunc["body"])
+                )
                 has_state_update = bool(re.search(r"balances?\s*\[.*\]\s*[-=]", wfunc["body"]))
 
                 if has_external_call and has_state_update:
@@ -369,13 +376,15 @@ class PakalaAdapter(ToolAdapter):
                     state_pos = re.search(r"balances?\s*\[.*\]\s*[-=]", wfunc["body"])
 
                     if call_pos and state_pos and call_pos.start() < state_pos.start():
-                        findings.append({
-                            "type": "cross_function_vulnerability",
-                            "line": wfunc["line"],
-                            "file": contract_path,
-                            "code": f"Function {wname}: external call before state update",
-                            "config": MULTI_TX_PATTERNS["cross_function_vulnerability"],
-                        })
+                        findings.append(
+                            {
+                                "type": "cross_function_vulnerability",
+                                "line": wfunc["line"],
+                                "file": contract_path,
+                                "code": f"Function {wname}: external call before state update",
+                                "config": MULTI_TX_PATTERNS["cross_function_vulnerability"],
+                            }
+                        )
 
         return findings
 
@@ -395,24 +404,26 @@ class PakalaAdapter(ToolAdapter):
                 related = item.get("related_lines", [])
                 desc = config["description"]
                 if related:
-                    desc += f" (related lines: {', '.join(str(l) for l in related[:5])})"
+                    desc += f" (related lines: {', '.join(str(ln) for ln in related[:5])})"
 
-                findings.append({
-                    "id": f"PKL-{finding_id}",
-                    "type": item["type"],
-                    "severity": config["severity"],
-                    "confidence": confidence,
-                    "location": {
-                        "file": item.get("file", ""),
-                        "line": item.get("line", 0),
-                        "function": "",
-                    },
-                    "message": desc,
-                    "description": config["description"],
-                    "recommendation": config["recommendation"],
-                    "swc_id": config.get("swc_id"),
-                    "cwe_id": config.get("cwe_id"),
-                    "tool": "pakala",
-                })
+                findings.append(
+                    {
+                        "id": f"PKL-{finding_id}",
+                        "type": item["type"],
+                        "severity": config["severity"],
+                        "confidence": confidence,
+                        "location": {
+                            "file": item.get("file", ""),
+                            "line": item.get("line", 0),
+                            "function": "",
+                        },
+                        "message": desc,
+                        "description": config["description"],
+                        "recommendation": config["recommendation"],
+                        "swc_id": config.get("swc_id"),
+                        "cwe_id": config.get("cwe_id"),
+                        "tool": "pakala",
+                    }
+                )
 
         return findings

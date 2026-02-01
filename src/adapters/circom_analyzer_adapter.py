@@ -252,12 +252,14 @@ class CircomAnalyzerAdapter(ToolAdapter):
         # Check for unused signals
         for sig in signals:
             if sig not in constrained:
-                raw_findings.append({
-                    "type": "unused_signal",
-                    "line": signal_lines.get(sig, 0),
-                    "file": path,
-                    "code": f"Signal '{sig}' declared but never used in constraints",
-                })
+                raw_findings.append(
+                    {
+                        "type": "unused_signal",
+                        "line": signal_lines.get(sig, 0),
+                        "file": path,
+                        "code": f"Signal '{sig}' declared but never used in constraints",
+                    }
+                )
 
         # Check for output signals not in LHS of constraints
         for i, line in enumerate(lines, 1):
@@ -265,12 +267,14 @@ class CircomAnalyzerAdapter(ToolAdapter):
             if out_match:
                 out_name = out_match.group(1)
                 if out_name not in constrained:
-                    raw_findings.append({
-                        "type": "unconstrained_output",
-                        "line": i,
-                        "file": path,
-                        "code": f"Output signal '{out_name}' not constrained",
-                    })
+                    raw_findings.append(
+                        {
+                            "type": "unconstrained_output",
+                            "line": i,
+                            "file": path,
+                            "code": f"Output signal '{out_name}' not constrained",
+                        }
+                    )
 
         findings = self.normalize_findings(raw_findings)
 
@@ -279,7 +283,11 @@ class CircomAnalyzerAdapter(ToolAdapter):
             "version": "1.0.0",
             "status": "success",
             "findings": findings,
-            "metadata": {"mode": "pattern_analysis", "contract": path, "signals_found": len(signals)},
+            "metadata": {
+                "mode": "pattern_analysis",
+                "contract": path,
+                "signals_found": len(signals),
+            },
             "execution_time": time.time() - start_time,
             "error": None,
         }
@@ -300,10 +308,13 @@ class CircomAnalyzerAdapter(ToolAdapter):
             }
 
         lines = source.split("\n")
-        is_zk = bool(re.search(
-            r"verif|proof|snark|groth16|plonk|nullifier|commitment|merkleRoot",
-            source, re.IGNORECASE,
-        ))
+        is_zk = bool(
+            re.search(
+                r"verif|proof|snark|groth16|plonk|nullifier|commitment|merkleRoot",
+                source,
+                re.IGNORECASE,
+            )
+        )
 
         if not is_zk:
             return {
@@ -322,18 +333,23 @@ class CircomAnalyzerAdapter(ToolAdapter):
             for pattern in config["patterns"]:
                 for i, line in enumerate(lines, 1):
                     if re.search(pattern, line, re.IGNORECASE):
-                        context = "\n".join(lines[max(0, i - 2):min(len(lines), i + 15)])
+                        context = "\n".join(lines[max(0, i - 2) : min(len(lines), i + 15)])
                         has_guard = any(
-                            re.search(g, context) for g in config.get("verification_patterns", config.get("guard_patterns", []))
+                            re.search(g, context)
+                            for g in config.get(
+                                "verification_patterns", config.get("guard_patterns", [])
+                            )
                         )
                         if not has_guard:
-                            raw_findings.append({
-                                "type": vuln_name,
-                                "line": i,
-                                "file": path,
-                                "code": line.strip(),
-                                "config": config,
-                            })
+                            raw_findings.append(
+                                {
+                                    "type": vuln_name,
+                                    "line": i,
+                                    "file": path,
+                                    "code": line.strip(),
+                                    "config": config,
+                                }
+                            )
 
         findings = self.normalize_findings(raw_findings)
 
@@ -353,34 +369,41 @@ class CircomAnalyzerAdapter(ToolAdapter):
         for item in issues:
             severity_map = {"error": "Critical", "warning": "High", "info": "Medium", "hint": "Low"}
             vuln_type = item.get("type", "unknown").lower().replace(" ", "_")
-            config = CIRCOM_VULNERABILITIES.get(vuln_type, {
-                "severity": "Medium", "confidence": 0.70,
-                "swc_id": None, "cwe_id": None,
-                "description": item.get("message", ""),
-                "recommendation": "Review circuit constraint",
-            })
+            config = CIRCOM_VULNERABILITIES.get(
+                vuln_type,
+                {
+                    "severity": "Medium",
+                    "confidence": 0.70,
+                    "swc_id": None,
+                    "cwe_id": None,
+                    "description": item.get("message", ""),
+                    "recommendation": "Review circuit constraint",
+                },
+            )
 
             finding_id = hashlib.md5(
                 f"circom:{vuln_type}:{path}:{item.get('line', 0)}".encode()
             ).hexdigest()[:12]
 
-            findings.append({
-                "id": f"CRC-{finding_id}",
-                "type": vuln_type,
-                "severity": severity_map.get(item.get("level", "warning"), "Medium"),
-                "confidence": config["confidence"],
-                "location": {
-                    "file": item.get("file", path),
-                    "line": item.get("line", 0),
-                    "function": item.get("template", ""),
-                },
-                "message": item.get("message", config["description"]),
-                "description": config["description"],
-                "recommendation": config["recommendation"],
-                "swc_id": config.get("swc_id"),
-                "cwe_id": config.get("cwe_id"),
-                "tool": "circom_analyzer",
-            })
+            findings.append(
+                {
+                    "id": f"CRC-{finding_id}",
+                    "type": vuln_type,
+                    "severity": severity_map.get(item.get("level", "warning"), "Medium"),
+                    "confidence": config["confidence"],
+                    "location": {
+                        "file": item.get("file", path),
+                        "line": item.get("line", 0),
+                        "function": item.get("template", ""),
+                    },
+                    "message": item.get("message", config["description"]),
+                    "description": config["description"],
+                    "recommendation": config["recommendation"],
+                    "swc_id": config.get("swc_id"),
+                    "cwe_id": config.get("cwe_id"),
+                    "tool": "circom_analyzer",
+                }
+            )
         return findings
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -393,32 +416,40 @@ class CircomAnalyzerAdapter(ToolAdapter):
                 continue
 
             vuln_type = item.get("type", "unknown")
-            config = item.get("config") or CIRCOM_VULNERABILITIES.get(vuln_type, {
-                "severity": "Medium", "confidence": 0.70,
-                "swc_id": None, "cwe_id": None,
-                "description": vuln_type, "recommendation": "Review ZK security",
-            })
+            config = item.get("config") or CIRCOM_VULNERABILITIES.get(
+                vuln_type,
+                {
+                    "severity": "Medium",
+                    "confidence": 0.70,
+                    "swc_id": None,
+                    "cwe_id": None,
+                    "description": vuln_type,
+                    "recommendation": "Review ZK security",
+                },
+            )
 
             finding_id = hashlib.md5(
                 f"circom:{vuln_type}:{item.get('file', '')}:{item.get('line', 0)}".encode()
             ).hexdigest()[:12]
 
-            findings.append({
-                "id": f"CRC-{finding_id}",
-                "type": vuln_type,
-                "severity": config["severity"],
-                "confidence": config["confidence"],
-                "location": {
-                    "file": item.get("file", ""),
-                    "line": item.get("line", 0),
-                    "function": "",
-                },
-                "message": f"{config['description']}: {item.get('code', '')}",
-                "description": config["description"],
-                "recommendation": config["recommendation"],
-                "swc_id": config.get("swc_id"),
-                "cwe_id": config.get("cwe_id"),
-                "tool": "circom_analyzer",
-            })
+            findings.append(
+                {
+                    "id": f"CRC-{finding_id}",
+                    "type": vuln_type,
+                    "severity": config["severity"],
+                    "confidence": config["confidence"],
+                    "location": {
+                        "file": item.get("file", ""),
+                        "line": item.get("line", 0),
+                        "function": "",
+                    },
+                    "message": f"{config['description']}: {item.get('code', '')}",
+                    "description": config["description"],
+                    "recommendation": config["recommendation"],
+                    "swc_id": config.get("swc_id"),
+                    "cwe_id": config.get("cwe_id"),
+                    "tool": "circom_analyzer",
+                }
+            )
 
         return findings

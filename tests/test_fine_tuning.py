@@ -169,7 +169,7 @@ class TestSoliditySecurityDatasetGenerator:
     def test_output_dir_created(self, tmp_path):
         """Test output directory is created."""
         output_path = tmp_path / "new_datasets"
-        generator = SoliditySecurityDatasetGenerator(output_dir=str(output_path))
+        SoliditySecurityDatasetGenerator(output_dir=str(output_path))
 
         assert output_path.exists()
 
@@ -515,7 +515,7 @@ class TestIntegration:
 # Test Fine-Tuning Trainer Module
 # =============================================================================
 
-from src.ml.fine_tuning.fine_tuning_trainer import (
+from src.ml.fine_tuning.fine_tuning_trainer import (  # noqa: E402
     SoliditySecurityTrainer,
     TrainingConfig,
 )
@@ -1020,9 +1020,9 @@ class TestTrainerLoadDatasetReal:
         # Mock the datasets import and load_dataset function
         mock_dataset = Mock()
         with patch.dict("sys.modules", {"datasets": Mock()}):
-            with patch("datasets.load_dataset", return_value=mock_dataset) as mock_load:
+            with patch("datasets.load_dataset", return_value=mock_dataset):
                 try:
-                    result = trainer.load_dataset(str(jsonl_file))
+                    trainer.load_dataset(str(jsonl_file))
                 except ImportError:
                     # If datasets not installed, that's expected
                     pytest.skip("datasets package not installed")
@@ -1038,9 +1038,9 @@ class TestTrainerLoadDatasetReal:
 
         mock_dataset = Mock()
         with patch.dict("sys.modules", {"datasets": Mock()}):
-            with patch("datasets.load_dataset", return_value=mock_dataset) as mock_load:
+            with patch("datasets.load_dataset", return_value=mock_dataset):
                 try:
-                    result = trainer.load_dataset(str(json_file))
+                    trainer.load_dataset(str(json_file))
                 except ImportError:
                     pytest.skip("datasets package not installed")
 

@@ -12,58 +12,60 @@ Uso:
     python demo_defensa_grabacion.py --silencioso # Sin pausas
 """
 
-import sys
 import os
+import sys
 import time
-import json
-from pathlib import Path
-from datetime import datetime
+
 
 # =============================================================================
 # COLORES ANSI
 # =============================================================================
 class C:
     # Colores base
-    RESET = '\033[0m'
-    BOLD = '\033[1m'
-    DIM = '\033[2m'
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
 
     # Colores
-    BLACK = '\033[30m'
-    RED = '\033[31m'
-    GREEN = '\033[32m'
-    YELLOW = '\033[33m'
-    BLUE = '\033[34m'
-    MAGENTA = '\033[35m'
-    CYAN = '\033[36m'
-    WHITE = '\033[37m'
+    BLACK = "\033[30m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+    WHITE = "\033[37m"
 
     # Colores brillantes
-    BRED = '\033[91m'
-    BGREEN = '\033[92m'
-    BYELLOW = '\033[93m'
-    BBLUE = '\033[94m'
-    BMAGENTA = '\033[95m'
-    BCYAN = '\033[96m'
-    BWHITE = '\033[97m'
+    BRED = "\033[91m"
+    BGREEN = "\033[92m"
+    BYELLOW = "\033[93m"
+    BBLUE = "\033[94m"
+    BMAGENTA = "\033[95m"
+    BCYAN = "\033[96m"
+    BWHITE = "\033[97m"
 
     # Fondos
-    BG_BLACK = '\033[40m'
-    BG_RED = '\033[41m'
-    BG_GREEN = '\033[42m'
-    BG_BLUE = '\033[44m'
+    BG_BLACK = "\033[40m"
+    BG_RED = "\033[41m"
+    BG_GREEN = "\033[42m"
+    BG_BLUE = "\033[44m"
+
 
 # =============================================================================
 # UTILIDADES DE DISPLAY
 # =============================================================================
 
+
 def clear():
     """Limpiar pantalla"""
-    os.system('clear' if os.name != 'nt' else 'cls')
+    os.system("clear" if os.name != "nt" else "cls")
+
 
 def pause(segundos=1.5):
     """Pausa dramatica"""
     time.sleep(segundos)
+
 
 def typing(texto, delay=0.02, color=""):
     """Efecto de escritura"""
@@ -73,6 +75,7 @@ def typing(texto, delay=0.02, color=""):
         time.sleep(delay)
     print()
 
+
 def titulo(texto, color=C.BCYAN):
     """Titulo con borde"""
     ancho = len(texto) + 4
@@ -80,45 +83,66 @@ def titulo(texto, color=C.BCYAN):
     print(f"║ {texto} ║")
     print(f"{'═' * ancho}{C.RESET}\n")
 
+
 def subtitulo(texto, color=C.BGREEN):
     """Subtitulo"""
     print(f"\n{color}▶ {texto}{C.RESET}")
     print(f"{C.DIM}{'─' * 60}{C.RESET}")
 
+
 def exito(texto):
     print(f"  {C.BGREEN}✓{C.RESET} {texto}")
+
 
 def info(texto):
     print(f"  {C.BCYAN}ℹ{C.RESET} {texto}")
 
+
 def alerta(texto):
     print(f"  {C.BYELLOW}⚠{C.RESET} {texto}")
 
+
 def critico(texto):
     print(f"  {C.BRED}✗{C.RESET} {C.BOLD}{texto}{C.RESET}")
+
 
 def barra_progreso(actual, total, ancho=50, prefijo="", sufijo=""):
     """Barra de progreso animada"""
     porcentaje = actual / total
     lleno = int(ancho * porcentaje)
     barra = "█" * lleno + "░" * (ancho - lleno)
-    print(f"\r  {C.BCYAN}{prefijo}{C.RESET} [{C.BGREEN}{barra}{C.RESET}] {int(porcentaje*100):3d}% {sufijo}", end="", flush=True)
+    print(
+        f"\r  {C.BCYAN}{prefijo}{C.RESET} [{C.BGREEN}{barra}{C.RESET}] {int(porcentaje*100):3d}% {sufijo}",
+        end="",
+        flush=True,
+    )
     if actual == total:
         print()
+
 
 def codigo(texto, lenguaje="solidity"):
     """Mostrar bloque de codigo"""
     print(f"\n{C.DIM}┌{'─' * 70}┐{C.RESET}")
-    for linea in texto.strip().split('\n'):
+    for linea in texto.strip().split("\n"):
         # Resaltar keywords
         linea_color = linea
         if lenguaje == "solidity":
-            for kw in ['function', 'public', 'private', 'require', 'uint256', 'address', 'mapping', 'bool']:
+            for kw in [
+                "function",
+                "public",
+                "private",
+                "require",
+                "uint256",
+                "address",
+                "mapping",
+                "bool",
+            ]:
                 linea_color = linea_color.replace(kw, f"{C.BMAGENTA}{kw}{C.RESET}")
-            for kw in ['msg.sender', 'msg.value', 'call', 'transfer']:
+            for kw in ["msg.sender", "msg.value", "call", "transfer"]:
                 linea_color = linea_color.replace(kw, f"{C.BCYAN}{kw}{C.RESET}")
         print(f"{C.DIM}│{C.RESET} {linea_color}")
     print(f"{C.DIM}└{'─' * 70}┘{C.RESET}\n")
+
 
 # =============================================================================
 # BANNERS ASCII ART
@@ -204,7 +228,7 @@ VULNERABILIDADES_DETECTADAS = [
         "linea": 35,
         "capas": ["Capa 1", "Capa 3", "Capa 7"],
         "herramientas": ["Slither", "Mythril", "SmartLLM"],
-        "descripcion": "External call before state update allows reentrancy attack"
+        "descripcion": "External call before state update allows reentrancy attack",
     },
     {
         "id": "MIESC-002",
@@ -215,7 +239,7 @@ VULNERABILIDADES_DETECTADAS = [
         "linea": 52,
         "capas": ["Capa 1", "Capa 3"],
         "herramientas": ["Slither", "Mythril"],
-        "descripcion": "Same reentrancy pattern in withdrawAmount function"
+        "descripcion": "Same reentrancy pattern in withdrawAmount function",
     },
     {
         "id": "MIESC-003",
@@ -226,7 +250,7 @@ VULNERABILIDADES_DETECTADAS = [
         "linea": 19,
         "capas": ["Capa 1", "Capa 6"],
         "herramientas": ["Solhint", "Aderyn"],
-        "descripcion": "No validation for zero address in deposit"
+        "descripcion": "No validation for zero address in deposit",
     },
     {
         "id": "MIESC-004",
@@ -237,8 +261,8 @@ VULNERABILIDADES_DETECTADAS = [
         "linea": 36,
         "capas": ["Capa 1"],
         "herramientas": ["Slither"],
-        "descripcion": "Return value of call not properly handled"
-    }
+        "descripcion": "Return value of call not properly handled",
+    },
 ]
 
 CONTRATO_VULNERABLE = """
@@ -270,6 +294,7 @@ contract VulnerableBank {
 # FUNCIONES DE DEMO
 # =============================================================================
 
+
 def mostrar_intro():
     """Pantalla de introduccion"""
     clear()
@@ -297,6 +322,7 @@ def mostrar_intro():
 
     pause(2)  # Pausa para ver todos los componentes
 
+
 def mostrar_arquitectura():
     """Mostrar arquitectura de 7 capas"""
     titulo("ARQUITECTURA DEFENSE-IN-DEPTH")
@@ -310,6 +336,7 @@ def mostrar_arquitectura():
     info("Ninguna herramienta individual detecta mas del 70%")
     print()
     pause(2)
+
 
 def mostrar_herramientas():
     """Mostrar verificacion de herramientas"""
@@ -332,6 +359,7 @@ def mostrar_herramientas():
     print(f"\n\n  {C.BGREEN}✓ 25/25 herramientas operativas (100%){C.RESET}")
     pause(3)  # Mas tiempo para ver el resultado
 
+
 def mostrar_contrato():
     """Mostrar contrato vulnerable"""
     titulo("CONTRATO A ANALIZAR: VulnerableBank.sol")
@@ -344,13 +372,14 @@ def mostrar_contrato():
     codigo(CONTRATO_VULNERABLE)
     pause(4)  # Tiempo para leer el codigo
 
-    alerta("Linea 17: msg.sender.call{value: balance}(\"\") - LLAMADA EXTERNA")
+    alerta('Linea 17: msg.sender.call{value: balance}("") - LLAMADA EXTERNA')
     pause(1.5)
     alerta("Linea 20: balances[msg.sender] = 0 - ACTUALIZACION DE ESTADO")
     pause(1.5)
     critico("Orden incorrecto permite RE-ENTRANCY!")
 
     pause(3)  # Tiempo para entender el problema
+
 
 def ejecutar_analisis():
     """Simular ejecucion del analisis"""
@@ -387,11 +416,14 @@ def ejecutar_analisis():
             pause(0.5)
             for h in hallazgos_capa:
                 sev_color = C.BRED if h["severidad"] == "CRITICAL" else C.BYELLOW
-                print(f"    {sev_color}⚠ {h['severidad']}: {h['titulo']} (linea {h['linea']}){C.RESET}")
+                print(
+                    f"    {sev_color}⚠ {h['severidad']}: {h['titulo']} (linea {h['linea']}){C.RESET}"
+                )
                 pause(0.8)  # Tiempo para leer cada hallazgo
 
     print(f"\n\n  {C.BGREEN}✓ Analisis de 7 capas completado{C.RESET}")
     pause(3)  # Pausa al final del analisis
+
 
 def mostrar_resultados():
     """Mostrar resultados del analisis"""
@@ -404,8 +436,14 @@ def mostrar_resultados():
     pause(1)
 
     for v in VULNERABILIDADES_DETECTADAS:
-        sev_color = C.BRED if v["severidad"] == "CRITICAL" else (C.BYELLOW if v["severidad"] == "MEDIUM" else C.BGREEN)
-        print(f"  {C.BCYAN}{v['id']:<12}{C.RESET} {v['titulo']:<35} {sev_color}{v['severidad']:<10}{C.RESET} {v['swc']:<10}")
+        sev_color = (
+            C.BRED
+            if v["severidad"] == "CRITICAL"
+            else (C.BYELLOW if v["severidad"] == "MEDIUM" else C.BGREEN)
+        )
+        print(
+            f"  {C.BCYAN}{v['id']:<12}{C.RESET} {v['titulo']:<35} {sev_color}{v['severidad']:<10}{C.RESET} {v['swc']:<10}"
+        )
         pause(0.8)  # Tiempo para leer cada fila
 
     print()
@@ -415,7 +453,8 @@ def mostrar_resultados():
     subtitulo("DETALLE: Vulnerabilidad Principal")
     v = VULNERABILIDADES_DETECTADAS[0]
 
-    print(f"""
+    print(
+        f"""
   {C.BOLD}ID:{C.RESET}           {v['id']}
   {C.BOLD}Titulo:{C.RESET}       {v['titulo']}
   {C.BOLD}Severidad:{C.RESET}    {C.BRED}{v['severidad']}{C.RESET}
@@ -429,8 +468,10 @@ def mostrar_resultados():
       - Herramientas: {', '.join(v['herramientas'])}
   {C.BOLD}Descripcion:{C.RESET}
       {v['descripcion']}
-""")
+"""
+    )
     pause(2)
+
 
 def mostrar_correlacion():
     """Mostrar proceso de correlacion y deduplicacion"""
@@ -458,7 +499,7 @@ def mostrar_correlacion():
         time.sleep(0.4)
 
     print(f"    {'─' * 26}")
-    print(f"    TOTAL:      47 hallazgos brutos")
+    print("    TOTAL:      47 hallazgos brutos")
     pause(2)  # Tiempo para ver el total
 
     typing("  Aplicando algoritmo de deduplicacion...", delay=0.03, color=C.DIM)
@@ -475,11 +516,11 @@ def mostrar_correlacion():
     pause(0.5)
 
     # Mostrar resultados uno por uno
-    print(f"    Hallazgos brutos:    47")
+    print("    Hallazgos brutos:    47")
     pause(0.6)
-    print(f"    Hallazgos unicos:    16")
+    print("    Hallazgos unicos:    16")
     pause(0.6)
-    print(f"    Duplicados:          31")
+    print("    Duplicados:          31")
     pause(0.6)
     print(f"    {'─' * 24}")
     print(f"    {C.BGREEN}Reduccion: 66%{C.RESET}")
@@ -488,40 +529,41 @@ def mostrar_correlacion():
     print(f"\n  {C.BCYAN}Precision de mapeo SWC/CWE: 97.1%{C.RESET}\n")
     pause(2.5)  # Tiempo para ver la metrica final
 
+
 def mostrar_metricas():
     """Mostrar metricas finales"""
     titulo("METRICAS DE RENDIMIENTO")
     pause(1)
 
     # Mostrar cada metrica una por una con pausa
-    print(f"\n  ┌────────────────────────────────────────────────────────────┐")
-    print(f"  │                                                            │")
+    print("\n  ┌────────────────────────────────────────────────────────────┐")
+    print("  │                                                            │")
     pause(0.5)
 
     print(f"  │   {C.BGREEN}█████████████████████████████████████████{C.RESET}  RECALL      │")
     print(f"  │   {C.BGREEN}100%{C.RESET} - Todas las vulnerabilidades detectadas       │")
-    print(f"  │                                                            │")
+    print("  │                                                            │")
     pause(1.5)
 
     print(f"  │   {C.BCYAN}████████████████████████████████████████ {C.RESET}  PRECISION   │")
     print(f"  │   {C.BCYAN}94.5%{C.RESET} - Alta precision, pocos falsos positivos     │")
-    print(f"  │                                                            │")
+    print("  │                                                            │")
     pause(1.5)
 
     print(f"  │   {C.BYELLOW}███████████████████████████████████████  {C.RESET}  F1-SCORE    │")
     print(f"  │   {C.BYELLOW}0.936{C.RESET} - Balance optimo precision/recall          │")
-    print(f"  │                                                            │")
+    print("  │                                                            │")
     pause(1.5)
 
     print(f"  │   {C.BMAGENTA}█████████████████████████████████████████{C.RESET}  MEJORA      │")
     print(f"  │   {C.BMAGENTA}+40.8%{C.RESET} vs mejor herramienta individual          │")
-    print(f"  │                                                            │")
+    print("  │                                                            │")
     pause(1.5)
 
     print(f"  │   {C.BGREEN}█████████████████████████████████████████{C.RESET}  COSTO       │")
     print(f"  │   {C.BGREEN}$0.00{C.RESET} - IA soberana, sin APIs comerciales         │")
-    print(f"  │                                                            │")
-    print(f"  └────────────────────────────────────────────────────────────┘")
+    print("  │                                                            │")
+    print("  └────────────────────────────────────────────────────────────┘")
     pause(3)  # Tiempo para ver todas las metricas
 
     # Comparativa
@@ -550,6 +592,7 @@ def mostrar_metricas():
     pause(1)
     print(f"  {C.BGREEN}► MIESC supera a todas las herramientas individuales{C.RESET}\n")
     pause(2.5)
+
 
 def mostrar_soberania():
     """Mostrar concepto de IA soberana"""
@@ -610,6 +653,7 @@ def mostrar_soberania():
     print(f"  {C.BGREEN}╚════════════════════════════════════════════════════════════╝{C.RESET}\n")
     pause(3)  # Tiempo para asimilar la comparacion
 
+
 def mostrar_mcp_integracion():
     """Mostrar integracion MCP y como usar desde clientes"""
     titulo("INTEGRACION MCP - Model Context Protocol")
@@ -619,12 +663,14 @@ def mostrar_mcp_integracion():
     subtitulo("Que es MCP?")
     pause(0.5)
 
-    print(f"""
+    print(
+        f"""
   {C.BCYAN}MCP (Model Context Protocol){C.RESET} es un protocolo estandar que permite
   a agentes de IA (Claude, GPT, etc.) usar herramientas externas.
 
   MIESC expone sus capacidades como {C.BGREEN}MCP Tools{C.RESET}:
-""")
+"""
+    )
     pause(2)
 
     # Mostrar herramientas MCP disponibles
@@ -650,7 +696,7 @@ def mostrar_mcp_integracion():
     subtitulo("Configuracion en Claude Desktop")
     pause(1)
 
-    config_claude = '''{
+    config_claude = """{
   "mcpServers": {
     "miesc": {
       "command": "python",
@@ -658,7 +704,7 @@ def mostrar_mcp_integracion():
       "cwd": "/path/to/MIESC"
     }
   }
-}'''
+}"""
 
     print(f"\n  {C.BOLD}Archivo:{C.RESET} ~/.config/claude/claude_desktop_config.json\n")
     pause(0.5)
@@ -702,7 +748,9 @@ def mostrar_mcp_integracion():
         else:
             color = C.BYELLOW
         timestamp = "14:32:" + str(10 + logs_inicio.index((level, module, msg)) % 50).zfill(2)
-        print(f"  {C.DIM}[{timestamp}]{C.RESET} {color}{level:5}{C.RESET} {C.BCYAN}{module}{C.RESET}: {msg}")
+        print(
+            f"  {C.DIM}[{timestamp}]{C.RESET} {color}{level:5}{C.RESET} {C.BCYAN}{module}{C.RESET}: {msg}"
+        )
         time.sleep(0.2)
 
     pause(1)
@@ -740,6 +788,7 @@ def mostrar_mcp_integracion():
 
     pause(2)
 
+
 def mostrar_api_llamada():
     """Mostrar ejemplo de llamada API real"""
     titulo("EJEMPLO: Llamada desde un Cliente MCP")
@@ -752,7 +801,7 @@ def mostrar_api_llamada():
     print(f"\n  {C.BYELLOW}◄── REQUEST (tools/call){C.RESET}\n")
     pause(0.5)
 
-    request_json = '''{
+    request_json = """{
   "jsonrpc": "2.0",
   "id": "req-001",
   "method": "tools/call",
@@ -764,7 +813,7 @@ def mostrar_api_llamada():
       "timeout": 120
     }
   }
-}'''
+}"""
     codigo(request_json, lenguaje="json")
     pause(2)
 
@@ -775,7 +824,9 @@ def mostrar_api_llamada():
     # Logs de ejecucion detallados
     print(f"\n  {C.DIM}[14:35:22]{C.RESET} {C.BYELLOW}◄── tools/call{C.RESET} miesc_run_audit")
     pause(0.3)
-    print(f"  {C.DIM}[14:35:22]{C.RESET} {C.BGREEN}INFO {C.RESET} Iniciando auditoria: VulnerableBank.sol")
+    print(
+        f"  {C.DIM}[14:35:22]{C.RESET} {C.BGREEN}INFO {C.RESET} Iniciando auditoria: VulnerableBank.sol"
+    )
     pause(0.3)
     print(f"  {C.DIM}[14:35:22]{C.RESET} {C.DIM}DEBUG{C.RESET} Capas solicitadas: [1, 3, 7]")
     pause(0.5)
@@ -802,7 +853,9 @@ def mostrar_api_llamada():
             color = C.BGREEN
         else:
             color = C.DIM
-        print(f"  {C.DIM}[{ts}]{C.RESET} {color}{level:5}{C.RESET} {C.BCYAN}[{tool}]{C.RESET} {msg}")
+        print(
+            f"  {C.DIM}[{ts}]{C.RESET} {color}{level:5}{C.RESET} {C.BCYAN}[{tool}]{C.RESET} {msg}"
+        )
         time.sleep(0.15)
 
     pause(0.5)
@@ -830,13 +883,17 @@ def mostrar_api_llamada():
             color = C.BGREEN
         else:
             color = C.DIM
-        print(f"  {C.DIM}[{ts}]{C.RESET} {color}{level:5}{C.RESET} {C.BCYAN}[{tool}]{C.RESET} {msg}")
+        print(
+            f"  {C.DIM}[{ts}]{C.RESET} {color}{level:5}{C.RESET} {C.BCYAN}[{tool}]{C.RESET} {msg}"
+        )
         time.sleep(0.15)
 
     pause(0.5)
 
     # Capa 7 - IA con Ollama
-    print(f"\n  {C.DIM}[14:35:36]{C.RESET} {C.BCYAN}═══ CAPA 7: Analisis con IA (Ollama) ═══{C.RESET}")
+    print(
+        f"\n  {C.DIM}[14:35:36]{C.RESET} {C.BCYAN}═══ CAPA 7: Analisis con IA (Ollama) ═══{C.RESET}"
+    )
     pause(0.3)
 
     layer7_logs = [
@@ -856,7 +913,9 @@ def mostrar_api_llamada():
             color = C.BGREEN
         else:
             color = C.DIM
-        print(f"  {C.DIM}[{ts}]{C.RESET} {color}{level:5}{C.RESET} {C.BCYAN}[{tool}]{C.RESET} {msg}")
+        print(
+            f"  {C.DIM}[{ts}]{C.RESET} {color}{level:5}{C.RESET} {C.BCYAN}[{tool}]{C.RESET} {msg}"
+        )
         time.sleep(0.15)
 
     pause(0.5)
@@ -880,13 +939,17 @@ def mostrar_api_llamada():
             color = C.BGREEN
         else:
             color = C.DIM
-        print(f"  {C.DIM}[{ts}]{C.RESET} {color}{level:5}{C.RESET} {C.BCYAN}[{tool}]{C.RESET} {msg}")
+        print(
+            f"  {C.DIM}[{ts}]{C.RESET} {color}{level:5}{C.RESET} {C.BCYAN}[{tool}]{C.RESET} {msg}"
+        )
         time.sleep(0.15)
 
     pause(1)
 
     # Resultado final
-    print(f"\n  {C.DIM}[14:35:44]{C.RESET} {C.BGREEN}INFO {C.RESET} Auditoria completada en {C.BCYAN}12.3s{C.RESET}")
+    print(
+        f"\n  {C.DIM}[14:35:44]{C.RESET} {C.BGREEN}INFO {C.RESET} Auditoria completada en {C.BCYAN}12.3s{C.RESET}"
+    )
     print(f"  {C.DIM}[14:35:44]{C.RESET} {C.BGREEN}──► {C.RESET}Enviando respuesta al cliente...")
     pause(2)
 
@@ -894,7 +957,7 @@ def mostrar_api_llamada():
     subtitulo("Respuesta MCP al cliente")
     pause(0.5)
 
-    response_json = '''{
+    response_json = """{
   "jsonrpc": "2.0",
   "id": "req-001",
   "result": {
@@ -923,7 +986,7 @@ def mostrar_api_llamada():
       "medium": 1
     }
   }
-}'''
+}"""
     codigo(response_json, lenguaje="json")
     pause(3)
 
@@ -931,7 +994,8 @@ def mostrar_api_llamada():
     subtitulo("Como lo ve el usuario en Claude Desktop")
     pause(1)
 
-    print(f"""
+    print(
+        f"""
   {C.DIM}┌──────────────────────────────────────────────────────────────┐
   │ {C.RESET}{C.BOLD}Claude Desktop{C.RESET}{C.DIM}                                               │
   ├──────────────────────────────────────────────────────────────┤{C.RESET}
@@ -955,19 +1019,23 @@ def mostrar_api_llamada():
   │  un modificador ReentrancyGuard de OpenZeppelin.            │
   │                                                              │
   {C.DIM}└──────────────────────────────────────────────────────────────┘{C.RESET}
-""")
+"""
+    )
     pause(4)
 
     # Destacar el valor
-    print(f"""
+    print(
+        f"""
   {C.BMAGENTA}╔═══════════════════════════════════════════════════════════╗
   ║  El usuario interactua en LENGUAJE NATURAL                 ║
   ║  MIESC ejecuta 3 capas con 5 herramientas en paralelo      ║
   ║  Ollama corre 100% LOCAL - codigo nunca sale de tu PC      ║
   ║  Claude presenta resultados claros y accionables           ║
   ╚═══════════════════════════════════════════════════════════╝{C.RESET}
-""")
+"""
+    )
     pause(3)
+
 
 def mostrar_cierre():
     """Pantalla de cierre"""
@@ -1008,7 +1076,8 @@ def mostrar_cierre():
     pause(2)
 
     # Banner final
-    print(f"""
+    print(
+        f"""
 {C.BCYAN}
   ╔═══════════════════════════════════════════════════════════════╗
   ║                                                               ║
@@ -1023,29 +1092,37 @@ def mostrar_cierre():
   ║                                                               ║
   ╚═══════════════════════════════════════════════════════════════╝
 {C.RESET}
-""")
+"""
+    )
     pause(4)  # Tiempo para leer la cita final
+
 
 # =============================================================================
 # MAIN
 # =============================================================================
 
+
 def main():
     """Ejecutar demo completa"""
     import argparse
 
-    parser = argparse.ArgumentParser(description='Demo MIESC para grabacion')
-    parser.add_argument('--rapido', action='store_true', help='Demo rapida')
-    parser.add_argument('--silencioso', action='store_true', help='Sin pausas')
+    parser = argparse.ArgumentParser(description="Demo MIESC para grabacion")
+    parser.add_argument("--rapido", action="store_true", help="Demo rapida")
+    parser.add_argument("--silencioso", action="store_true", help="Sin pausas")
     args = parser.parse_args()
 
     # Ajustar pausas si es modo rapido
     if args.silencioso:
         global pause
-        pause = lambda x=0: None
+
+        def pause(x=0):
+            return None
+
     elif args.rapido:
         original_pause = pause
-        pause = lambda x=0: original_pause(x * 0.3)
+
+        def pause(x=0):
+            return original_pause(x * 0.3)
 
     try:
         # Secuencia de demo
@@ -1059,12 +1136,13 @@ def main():
         mostrar_metricas()
         mostrar_soberania()
         mostrar_mcp_integracion()  # Nueva seccion MCP
-        mostrar_api_llamada()       # Nueva seccion API call
+        mostrar_api_llamada()  # Nueva seccion API call
         mostrar_cierre()
 
     except KeyboardInterrupt:
         print(f"\n\n{C.BYELLOW}Demo interrumpida por el usuario{C.RESET}\n")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

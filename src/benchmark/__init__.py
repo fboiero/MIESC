@@ -14,38 +14,34 @@ Date: January 2026
 """
 
 from .benchmark_runner import (
-    BenchmarkRunner,
     BenchmarkResult,
+    BenchmarkRunner,
     ContractResult,
     DetectionMetrics,
     run_benchmark,
 )
-
 from .dataset_loader import (
     DatasetLoader,
-    VulnerableContract,
     GroundTruth,
-    load_smartbugs,
+    VulnerableContract,
     load_dvd,
+    load_smartbugs,
 )
-
 from .metrics_calculator import (
-    MetricsCalculator,
     ConfusionMatrix,
+    MetricsCalculator,
     calculate_metrics,
     compare_runs,
 )
-
+from .pattern_benchmark import (
+    PatternBenchmarkResult,
+    PatternBenchmarkRunner,
+    PatternMatch,
+    run_pattern_benchmark,
+)
 from .slither_benchmark import (
     SlitherBenchmarkRunner,
     run_slither_benchmark,
-)
-
-from .pattern_benchmark import (
-    PatternBenchmarkRunner,
-    PatternBenchmarkResult,
-    PatternMatch,
-    run_pattern_benchmark,
 )
 
 __all__ = [

@@ -10,16 +10,19 @@ Paper: https://arxiv.org/abs/2410.09381
 Repository: https://github.com/Marvinmw/LLM-SmartAudit (Not public yet as of Oct 2024)
 """
 
-from src.agents.base_agent import BaseAgent
-from typing import List, Dict, Any
 import os
 import time
+from typing import Any, Dict, List
+
+from src.agents.base_agent import BaseAgent
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()  # Load environment variables from .env
 except ImportError:
     pass  # dotenv not installed, environment variables must be set manually
+
 
 class LLMSmartAuditAgent(BaseAgent):
     """
@@ -43,9 +46,9 @@ class LLMSmartAuditAgent(BaseAgent):
                 "multi_agent_conversation",
                 "contract_analysis",
                 "vulnerability_identification",
-                "comprehensive_reporting"
+                "comprehensive_reporting",
             ],
-            agent_type="ai"
+            agent_type="ai",
         )
         self.openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
 
@@ -56,6 +59,7 @@ class LLMSmartAuditAgent(BaseAgent):
             self.llm_enabled = True
             try:
                 import openai
+
                 openai.api_key = self.openai_api_key
                 self.openai = openai
             except ImportError:
@@ -63,11 +67,7 @@ class LLMSmartAuditAgent(BaseAgent):
                 self.llm_enabled = False
 
     def get_context_types(self) -> List[str]:
-        return [
-            "llm_smartaudit_findings",
-            "llm_smartaudit_analysis",
-            "llm_smartaudit_report"
-        ]
+        return ["llm_smartaudit_findings", "llm_smartaudit_analysis", "llm_smartaudit_report"]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -83,12 +83,12 @@ class LLMSmartAuditAgent(BaseAgent):
         """
         start_time = time.time()
 
-        print(f"\n🔍 LLM-SmartAudit Analysis Starting...")
+        print("\n🔍 LLM-SmartAudit Analysis Starting...")
         print(f"   Contract: {contract_path}")
         print(f"   LLM Enabled: {self.llm_enabled}")
 
         # Read contract
-        with open(contract_path, 'r') as f:
+        with open(contract_path, "r") as f:
             contract_code = f.read()
 
         # Sub-agent 1: Contract Analysis
@@ -97,15 +97,11 @@ class LLMSmartAuditAgent(BaseAgent):
 
         # Sub-agent 2: Vulnerability Identification
         print("[2/3] Vulnerability Identification Agent...")
-        vulnerabilities = self._vulnerability_identification_agent(
-            contract_code, contract_analysis
-        )
+        vulnerabilities = self._vulnerability_identification_agent(contract_code, contract_analysis)
 
         # Sub-agent 3: Comprehensive Report
         print("[3/3] Comprehensive Report Agent...")
-        report = self._comprehensive_report_agent(
-            contract_code, contract_analysis, vulnerabilities
-        )
+        report = self._comprehensive_report_agent(contract_code, contract_analysis, vulnerabilities)
 
         print("\n✅ Analysis complete")
 
@@ -119,7 +115,7 @@ class LLMSmartAuditAgent(BaseAgent):
             "llm_smartaudit_analysis": contract_analysis,
             "llm_smartaudit_report": report,
             "execution_time": execution_time,
-            "tool_version": "llm-smartaudit-miesc-1.0"
+            "tool_version": "llm-smartaudit-miesc-1.0",
         }
 
     def _contract_analysis_agent(self, contract_code: str) -> Dict[str, Any]:
@@ -147,10 +143,10 @@ Be concise. Focus on security-relevant aspects.
                     model="gpt-4",
                     messages=[
                         {"role": "system", "content": "You are a smart contract security expert."},
-                        {"role": "user", "content": prompt}
+                        {"role": "user", "content": prompt},
                     ],
                     temperature=0.1,
-                    max_tokens=800
+                    max_tokens=800,
                 )
 
                 analysis_text = response.choices[0].message.content
@@ -161,7 +157,7 @@ Be concise. Focus on security-relevant aspects.
                     "state_variables": "Analyzed with LLM",
                     "patterns": "Analyzed with LLM",
                     "risk_areas": "Analyzed with LLM",
-                    "raw_analysis": analysis_text
+                    "raw_analysis": analysis_text,
                 }
             except Exception as e:
                 print(f"⚠️  LLM analysis failed: {e}")
@@ -176,19 +172,25 @@ Be concise. Focus on security-relevant aspects.
         has_reentrancy_pattern = "call{value:" in contract_code
         has_external_calls = ".call" in contract_code or ".delegatecall" in contract_code
         has_payable = "payable" in contract_code
-        has_onlyowner = "onlyOwner" in contract_code or "require(msg.sender == owner" in contract_code
+        has_onlyowner = (
+            "onlyOwner" in contract_code or "require(msg.sender == owner" in contract_code
+        )
 
         return {
             "structure": "Basic pattern analysis",
-            "key_functions": "Detected external calls" if has_external_calls else "No external calls",
+            "key_functions": (
+                "Detected external calls" if has_external_calls else "No external calls"
+            ),
             "state_variables": "Contract has state variables",
             "patterns": {
                 "reentrancy_risk": has_reentrancy_pattern,
                 "external_calls": has_external_calls,
                 "payable_functions": has_payable,
-                "access_control": has_onlyowner
+                "access_control": has_onlyowner,
             },
-            "risk_areas": ["External calls", "State changes"] if has_external_calls else ["State management"]
+            "risk_areas": (
+                ["External calls", "State changes"] if has_external_calls else ["State management"]
+            ),
         }
 
     def _vulnerability_identification_agent(self, contract_code: str, analysis: Dict) -> List[Dict]:
@@ -221,11 +223,14 @@ Format as a numbered list.
                 response = self.openai.ChatCompletion.create(
                     model="gpt-4",
                     messages=[
-                        {"role": "system", "content": "You are an expert in smart contract vulnerabilities."},
-                        {"role": "user", "content": prompt}
+                        {
+                            "role": "system",
+                            "content": "You are an expert in smart contract vulnerabilities.",
+                        },
+                        {"role": "user", "content": prompt},
                     ],
                     temperature=0.1,
-                    max_tokens=1200
+                    max_tokens=1200,
                 )
 
                 vuln_text = response.choices[0].message.content
@@ -235,13 +240,17 @@ Format as a numbered list.
 
             except Exception as e:
                 print(f"⚠️  Vulnerability identification failed: {e}")
-                vulnerabilities = self._fallback_vulnerability_identification(contract_code, analysis)
+                vulnerabilities = self._fallback_vulnerability_identification(
+                    contract_code, analysis
+                )
         else:
             vulnerabilities = self._fallback_vulnerability_identification(contract_code, analysis)
 
         return vulnerabilities
 
-    def _fallback_vulnerability_identification(self, contract_code: str, analysis: Dict) -> List[Dict]:
+    def _fallback_vulnerability_identification(
+        self, contract_code: str, analysis: Dict
+    ) -> List[Dict]:
         """Fallback: Pattern-based vulnerability detection"""
 
         vulnerabilities = []
@@ -250,37 +259,45 @@ Format as a numbered list.
 
         # Check for reentrancy
         if patterns.get("reentrancy_risk"):
-            vulnerabilities.append({
-                "type": "Reentrancy",
-                "severity": "High",
-                "location": "withdraw function (estimated)",
-                "description": "External call before state update",
-                "impact": "Attacker can drain contract funds"
-            })
+            vulnerabilities.append(
+                {
+                    "type": "Reentrancy",
+                    "severity": "High",
+                    "location": "withdraw function (estimated)",
+                    "description": "External call before state update",
+                    "impact": "Attacker can drain contract funds",
+                }
+            )
 
         # Check for missing access control
         if not patterns.get("access_control"):
-            vulnerabilities.append({
-                "type": "Missing Access Control",
-                "severity": "High",
-                "location": "Administrative functions",
-                "description": "Functions lack proper access control",
-                "impact": "Unauthorized users can call critical functions"
-            })
+            vulnerabilities.append(
+                {
+                    "type": "Missing Access Control",
+                    "severity": "High",
+                    "location": "Administrative functions",
+                    "description": "Functions lack proper access control",
+                    "impact": "Unauthorized users can call critical functions",
+                }
+            )
 
         # Check for unchecked external calls
         if patterns.get("external_calls"):
-            vulnerabilities.append({
-                "type": "Unchecked Call Return Value",
-                "severity": "Medium",
-                "location": "External call sites",
-                "description": "Return value of external calls not checked",
-                "impact": "Silent failures may lead to inconsistent state"
-            })
+            vulnerabilities.append(
+                {
+                    "type": "Unchecked Call Return Value",
+                    "severity": "Medium",
+                    "location": "External call sites",
+                    "description": "Return value of external calls not checked",
+                    "impact": "Silent failures may lead to inconsistent state",
+                }
+            )
 
         return vulnerabilities
 
-    def _comprehensive_report_agent(self, contract_code: str, analysis: Dict, vulnerabilities: List[Dict]) -> Dict[str, Any]:
+    def _comprehensive_report_agent(
+        self, contract_code: str, analysis: Dict, vulnerabilities: List[Dict]
+    ) -> Dict[str, Any]:
         """Sub-agent 3: Generate comprehensive audit report"""
 
         report = {
@@ -289,7 +306,7 @@ Format as a numbered list.
             "vulnerabilities": vulnerabilities,
             "recommendations": self._generate_recommendations(vulnerabilities),
             "audit_methodology": "LLM-SmartAudit Multi-Agent Framework",
-            "confidence": 0.85 if self.llm_enabled else 0.70
+            "confidence": 0.85 if self.llm_enabled else 0.70,
         }
 
         return report
@@ -303,11 +320,15 @@ Format as a numbered list.
             vuln_type = vuln.get("type", "Unknown")
 
             if "Reentrancy" in vuln_type:
-                recommendations.append("Use Checks-Effects-Interactions pattern: update state before external calls")
+                recommendations.append(
+                    "Use Checks-Effects-Interactions pattern: update state before external calls"
+                )
                 recommendations.append("Consider using OpenZeppelin's ReentrancyGuard")
 
             elif "Access Control" in vuln_type:
-                recommendations.append("Implement proper access control with modifiers (onlyOwner, onlyRole)")
+                recommendations.append(
+                    "Implement proper access control with modifiers (onlyOwner, onlyRole)"
+                )
                 recommendations.append("Consider using OpenZeppelin's Ownable or AccessControl")
 
             elif "Unchecked" in vuln_type:
@@ -372,7 +393,7 @@ Format as a numbered list.
                 "location": vuln.get("location", "Unknown"),
                 "description": vuln.get("description", ""),
                 "impact": vuln.get("impact", ""),
-                "recommendation": self._get_recommendation(vuln.get("type", ""))
+                "recommendation": self._get_recommendation(vuln.get("type", "")),
             }
             findings.append(finding)
 
@@ -389,7 +410,7 @@ Format as a numbered list.
             "Arithmetic": "SWC-101",
             "Integer Overflow": "SWC-101",
             "Timestamp Dependence": "SWC-116",
-            "Delegatecall": "SWC-112"
+            "Delegatecall": "SWC-112",
         }
         return mapping.get(vuln_type, "SWC-000")
 
@@ -402,7 +423,7 @@ Format as a numbered list.
             "SWC-104": "SC04-Unchecked-Calls",
             "SWC-101": "SC03-Arithmetic",
             "SWC-116": "SC08-Time-Manipulation",
-            "SWC-112": "SC02-Access-Control"
+            "SWC-112": "SC02-Access-Control",
         }
         return swc_to_owasp.get(swc_id, "SC10-Unknown")
 
@@ -417,7 +438,7 @@ Format as a numbered list.
             "Arithmetic": "Use SafeMath or Solidity 0.8+ with overflow checks",
             "Integer Overflow": "Upgrade to Solidity 0.8+ or use SafeMath",
             "Timestamp Dependence": "Avoid using block.timestamp for critical logic",
-            "Delegatecall": "Carefully validate delegatecall targets"
+            "Delegatecall": "Carefully validate delegatecall targets",
         }
         return recommendations.get(vuln_type, "Manual review recommended")
 
@@ -447,7 +468,7 @@ if __name__ == "__main__":
     analysis = results.get("llm_smartaudit_analysis", {})
     report = results.get("llm_smartaudit_report", {})
 
-    print(f"\n📊 Analysis Summary:")
+    print("\n📊 Analysis Summary:")
     print(f"   Contract Structure: {analysis.get('structure', 'N/A')}")
     print(f"   Risk Areas: {len(analysis.get('risk_areas', []))}")
     print(f"   Vulnerabilities: {len(findings)}")

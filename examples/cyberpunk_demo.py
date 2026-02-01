@@ -11,34 +11,35 @@ Example:
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 """
 
+import os
+import random
 import sys
 import time
-import random
-import os
 import webbrowser
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 
 class NeonColors:
     """Cyberpunk neon color palette"""
-    NEON_PINK = '\033[95m\033[1m'
-    NEON_CYAN = '\033[96m\033[1m'
-    NEON_GREEN = '\033[92m\033[1m'
-    NEON_YELLOW = '\033[93m\033[1m'
-    NEON_RED = '\033[91m\033[1m'
-    NEON_BLUE = '\033[94m\033[1m'
-    NEON_PURPLE = '\033[35m\033[1m'
-    DIM_CYAN = '\033[36m'
-    DIM_PINK = '\033[35m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    BLINK = '\033[5m'
+
+    NEON_PINK = "\033[95m\033[1m"
+    NEON_CYAN = "\033[96m\033[1m"
+    NEON_GREEN = "\033[92m\033[1m"
+    NEON_YELLOW = "\033[93m\033[1m"
+    NEON_RED = "\033[91m\033[1m"
+    NEON_BLUE = "\033[94m\033[1m"
+    NEON_PURPLE = "\033[35m\033[1m"
+    DIM_CYAN = "\033[36m"
+    DIM_PINK = "\033[35m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    BLINK = "\033[5m"
 
 
 def glitch_text(text: str, intensity: int = 3):
     """Create glitch effect on text"""
-    glitch_chars = ['█', '▓', '▒', '░', '▀', '▄', '▌', '▐']
+    glitch_chars = ["█", "▓", "▒", "░", "▀", "▄", "▌", "▐"]
     result = ""
     for char in text:
         if random.randint(0, 100) < intensity:
@@ -61,7 +62,7 @@ def matrix_rain(lines: int = 5, duration: float = 1.0):
     """Matrix-style digital rain effect"""
     chars = "01アイウエオカキクケコサシスセソタチツテト"
     for _ in range(lines):
-        line = ''.join(random.choice(chars) for _ in range(80))
+        line = "".join(random.choice(chars) for _ in range(80))
         print(f"{NeonColors.NEON_GREEN}{line}{NeonColors.ENDC}")
         time.sleep(duration / lines)
 
@@ -123,13 +124,15 @@ def analyze_contract(contract_path: str):
     print()
 
     print(f"{NeonColors.NEON_PINK}[*] TARGET: {contract_path}{NeonColors.ENDC}")
-    print(f"{NeonColors.DIM_CYAN}[*] Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{NeonColors.ENDC}\n")
+    print(
+        f"{NeonColors.DIM_CYAN}[*] Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{NeonColors.ENDC}\n"
+    )
     time.sleep(0.5)
 
     # Layer 1: Static Analysis
     print_section_header("LAYER 1: STATIC ANALYSIS", "⚡")
 
-    typing_effect(f"  → Deploying Slither scanner...", 0.02, NeonColors.NEON_CYAN)
+    typing_effect("  → Deploying Slither scanner...", 0.02, NeonColors.NEON_CYAN)
     time.sleep(0.8)
     loading_bar("  Analyzing bytecode", 35, NeonColors.NEON_BLUE)
     print(f"{NeonColors.NEON_YELLOW}    ⚠ REENTRANCY detected at line 42{NeonColors.ENDC}")
@@ -138,7 +141,7 @@ def analyze_contract(contract_path: str):
     print()
 
     time.sleep(0.5)
-    typing_effect(f"  → Aderyn Rust analyzer...", 0.02, NeonColors.NEON_CYAN)
+    typing_effect("  → Aderyn Rust analyzer...", 0.02, NeonColors.NEON_CYAN)
     time.sleep(0.8)
     loading_bar("  Deep pattern scan", 35, NeonColors.NEON_BLUE)
     print(f"{NeonColors.NEON_RED}    ✗ [HIGH] Reentrancy vulnerability{NeonColors.ENDC}")
@@ -148,19 +151,21 @@ def analyze_contract(contract_path: str):
     # Layer 2: Dynamic Analysis
     print_section_header("LAYER 2: DYNAMIC FUZZING", "🔥")
 
-    typing_effect(f"  → Launching Medusa fuzzer...", 0.02, NeonColors.NEON_CYAN)
+    typing_effect("  → Launching Medusa fuzzer...", 0.02, NeonColors.NEON_CYAN)
     time.sleep(0.8)
     loading_bar("  Generating attack vectors", 45, NeonColors.NEON_PINK)
 
     print(f"{NeonColors.NEON_RED}{NeonColors.BLINK}    ✗ [CRITICAL] EXPLOIT FOUND{NeonColors.ENDC}")
     print(f"{NeonColors.NEON_RED}    → Attack: Drain all ETH via reentrancy loop{NeonColors.ENDC}")
-    print(f"{NeonColors.DIM_CYAN}    → Sequence: deposit(1 ETH) → withdraw() → fallback() → drain{NeonColors.ENDC}")
+    print(
+        f"{NeonColors.DIM_CYAN}    → Sequence: deposit(1 ETH) → withdraw() → fallback() → drain{NeonColors.ENDC}"
+    )
     print()
 
     # Layer 3: Symbolic Execution
     print_section_header("LAYER 3: SYMBOLIC EXECUTION", "🧠")
 
-    typing_effect(f"  → Mythril engine online...", 0.02, NeonColors.NEON_CYAN)
+    typing_effect("  → Mythril engine online...", 0.02, NeonColors.NEON_CYAN)
     time.sleep(0.8)
     loading_bar("  Exploring state space", 40, NeonColors.NEON_PURPLE)
 
@@ -172,23 +177,28 @@ def analyze_contract(contract_path: str):
     # Layer 4: AI Analysis
     print_section_header("LAYER 5: AI NEURAL CORRELATION", "🤖")
 
-    typing_effect(f"  → GPT-4 analyzing findings...", 0.02, NeonColors.NEON_CYAN)
+    typing_effect("  → GPT-4 analyzing findings...", 0.02, NeonColors.NEON_CYAN)
     time.sleep(1)
     loading_bar("  Cross-layer correlation", 50, NeonColors.NEON_GREEN)
 
     print(f"\n{NeonColors.NEON_PINK}    🤖 AI VERDICT:{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_YELLOW}    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{NeonColors.ENDC}")
+    print(
+        f"{NeonColors.NEON_YELLOW}    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{NeonColors.ENDC}"
+    )
     print(f"{NeonColors.NEON_CYAN}    All 3 layers confirmed: CRITICAL REENTRANCY{NeonColors.ENDC}")
     print(f"{NeonColors.NEON_CYAN}    Probability: 99.8% | NOT a false positive{NeonColors.ENDC}")
-    print(f"{NeonColors.NEON_RED}    Priority: {NeonColors.BLINK}IMMEDIATE FIX REQUIRED{NeonColors.ENDC}")
+    print(
+        f"{NeonColors.NEON_RED}    Priority: {NeonColors.BLINK}IMMEDIATE FIX REQUIRED{NeonColors.ENDC}"
+    )
     print()
 
-    typing_effect(f"  → Generating remediation...", 0.02, NeonColors.NEON_CYAN)
+    typing_effect("  → Generating remediation...", 0.02, NeonColors.NEON_CYAN)
     time.sleep(0.8)
     loading_bar("  OpenZeppelin pattern match", 40, NeonColors.NEON_GREEN)
 
     print(f"\n{NeonColors.NEON_GREEN}    ✓ RECOMMENDED FIX (OpenZeppelin):{NeonColors.ENDC}")
-    print(f"""
+    print(
+        f"""
 {NeonColors.DIM_CYAN}    ╔════════════════════════════════════════════════════════════╗
     ║  import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
     ║
@@ -203,25 +213,33 @@ def analyze_contract(contract_path: str):
     ║      }}
     ║  }}
     ╚════════════════════════════════════════════════════════════╝{NeonColors.ENDC}
-""")
+"""
+    )
 
     # Layer 5: Standards Mapping
     print_section_header("LAYER 6: COMPLIANCE MAPPING", "📊")
 
-    typing_effect(f"  → Mapping to security standards...", 0.02, NeonColors.NEON_CYAN)
+    typing_effect("  → Mapping to security standards...", 0.02, NeonColors.NEON_CYAN)
     time.sleep(0.5)
 
-    print(f"{NeonColors.NEON_PURPLE}    ► OWASP SC Top 10:{NeonColors.ENDC} SC01 - Reentrancy Attacks")
+    print(
+        f"{NeonColors.NEON_PURPLE}    ► OWASP SC Top 10:{NeonColors.ENDC} SC01 - Reentrancy Attacks"
+    )
     print(f"{NeonColors.NEON_PURPLE}    ► SWC Registry:{NeonColors.ENDC}   SWC-107 - Reentrancy")
-    print(f"{NeonColors.NEON_PURPLE}    ► CWE:{NeonColors.ENDC}            CWE-841 - Behavioral Workflow")
+    print(
+        f"{NeonColors.NEON_PURPLE}    ► CWE:{NeonColors.ENDC}            CWE-841 - Behavioral Workflow"
+    )
     print(f"{NeonColors.NEON_PURPLE}    ► NIST SSDF:{NeonColors.ENDC}      PW.7 - Code Review")
-    print(f"{NeonColors.NEON_PURPLE}    ► ISO 27001:{NeonColors.ENDC}      A.14.2.5 - Secure Development")
+    print(
+        f"{NeonColors.NEON_PURPLE}    ► ISO 27001:{NeonColors.ENDC}      A.14.2.5 - Secure Development"
+    )
     print()
 
     # Final Summary
     print_section_header("ANALYSIS COMPLETE", "✓")
 
-    print(f"""
+    print(
+        f"""
 {NeonColors.NEON_PINK}    ╔═══════════════════════════════════════════════════════════════╗
     ║                     THREAT ASSESSMENT                         ║
     ╠═══════════════════════════════════════════════════════════════╣{NeonColors.ENDC}
@@ -247,31 +265,34 @@ def analyze_contract(contract_path: str):
     ║  ✓ Technical report (developers)                             ║
     ║  ✓ Compliance report (auditors/ISO 27001)                    ║{NeonColors.ENDC}
 {NeonColors.NEON_PINK}    ╚═══════════════════════════════════════════════════════════════╝{NeonColors.ENDC}
-""")
+"""
+    )
 
-    print(f"\n{NeonColors.NEON_CYAN}    ⏱  Analysis time: 3.2 minutes (vs 3 days manual){NeonColors.ENDC}")
+    print(
+        f"\n{NeonColors.NEON_CYAN}    ⏱  Analysis time: 3.2 minutes (vs 3 days manual){NeonColors.ENDC}"
+    )
     print(f"{NeonColors.NEON_GREEN}    ⚡ Effort reduction: 90%{NeonColors.ENDC}")
     print(f"{NeonColors.NEON_PINK}    📊 Generating dashboard...{NeonColors.ENDC}\n")
 
     # Generate statistics
     stats = {
-        'contract': contract_path,
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'critical': 1,
-        'high': 2,
-        'medium': 3,
-        'low': 4,
-        'total_warnings': 200,
-        'actionable_findings': 5,
-        'noise_filtered': 97.5,
-        'analysis_time': '3.2 minutes',
-        'effort_reduction': 90,
-        'agents_used': 17,
-        'tools_integrated': 15,
-        'standards_mapped': 12,
-        'precision': 89.47,
-        'recall': 86.2,
-        'cohens_kappa': 0.847
+        "contract": contract_path,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "critical": 1,
+        "high": 2,
+        "medium": 3,
+        "low": 4,
+        "total_warnings": 200,
+        "actionable_findings": 5,
+        "noise_filtered": 97.5,
+        "analysis_time": "3.2 minutes",
+        "effort_reduction": 90,
+        "agents_used": 17,
+        "tools_integrated": 15,
+        "standards_mapped": 12,
+        "precision": 89.47,
+        "recall": 86.2,
+        "cohens_kappa": 0.847,
     }
 
     return stats
@@ -619,7 +640,7 @@ def generate_landing_page(stats: dict):
 """
 
     output_file = "/tmp/miesc_cyberpunk_report.html"
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         f.write(html)
 
     return output_file
@@ -627,19 +648,23 @@ def generate_landing_page(stats: dict):
 
 def main():
     """Main execution"""
-    os.system('clear')
+    os.system("clear")
 
     print_cyberpunk_banner()
     time.sleep(1)
 
     if len(sys.argv) < 2:
-        print(f"{NeonColors.NEON_YELLOW}[!] Usage: python cyberpunk_demo.py <contract.sol>{NeonColors.ENDC}")
+        print(
+            f"{NeonColors.NEON_YELLOW}[!] Usage: python cyberpunk_demo.py <contract.sol>{NeonColors.ENDC}"
+        )
         print(f"{NeonColors.NEON_CYAN}[*] Running demo with sample contract...{NeonColors.ENDC}\n")
         contract_path = "examples/vulnerable/EtherStore.sol"
     else:
         contract_path = sys.argv[1]
         if not Path(contract_path).exists():
-            print(f"{NeonColors.NEON_RED}[✗] Contract not found: {contract_path}{NeonColors.ENDC}\n")
+            print(
+                f"{NeonColors.NEON_RED}[✗] Contract not found: {contract_path}{NeonColors.ENDC}\n"
+            )
             sys.exit(1)
 
     # Run analysis
@@ -655,17 +680,19 @@ def main():
     time.sleep(1)
 
     # Open in browser
-    webbrowser.open(f'file://{html_file}')
+    webbrowser.open(f"file://{html_file}")
 
-    print(f"""
+    print(
+        f"""
 {NeonColors.NEON_PINK}    ╔═══════════════════════════════════════════════════════════════╗
     ║                 SESSION TERMINATED                            ║
     ╠═══════════════════════════════════════════════════════════════╣{NeonColors.ENDC}
 {NeonColors.NEON_CYAN}    ║  Thank you for using MIESC Cyberpunk Edition                 ║
     ║  Stay secure. Stay vigilant. Keep hacking.                   ║{NeonColors.ENDC}
 {NeonColors.NEON_PINK}    ╚═══════════════════════════════════════════════════════════════╝{NeonColors.ENDC}
-""")
+"""
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -41,19 +41,20 @@ Supported Standards:
 
 Publishes compliance reports and standards mapping to Context Bus.
 """
+
 import logging
-from typing import Dict, Any, List
 from datetime import datetime
-from src.agents.base_agent import BaseAgent
-from src.mcp.context_bus import MCPMessage
+from typing import Any, Dict, List
 
 # Layer 7 - Audit Readiness Analyzers (OpenZeppelin Guide)
 from src.agents.audit_readiness import (
     DocumentationAnalyzer,
-    TestingAnalyzer,
     MaturityAnalyzer,
-    SecurityPracticesAnalyzer
+    SecurityPracticesAnalyzer,
+    TestingAnalyzer,
 )
+from src.agents.base_agent import BaseAgent
+from src.mcp.context_bus import MCPMessage
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +94,9 @@ class PolicyAgent(BaseAgent):
                 "compliance_checking",
                 "standards_mapping",
                 "coverage_analysis",
-                "report_generation"
+                "report_generation",
             ],
-            agent_type="policy"
+            agent_type="policy",
         )
 
         # Subscribe to all findings
@@ -105,9 +106,9 @@ class PolicyAgent(BaseAgent):
                 "dynamic_findings",
                 "symbolic_findings",
                 "formal_findings",
-                "ai_triage"
+                "ai_triage",
             ],
-            callback=self._handle_findings
+            callback=self._handle_findings,
         )
 
         # Initialize Layer 7 - Audit Readiness Analyzers
@@ -139,7 +140,7 @@ class PolicyAgent(BaseAgent):
             "defi_risk_assessment",
             "mica_compliance",
             "dora_resilience",
-            "audit_checklist"
+            "audit_checklist",
         ]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
@@ -165,7 +166,7 @@ class PolicyAgent(BaseAgent):
             "defi_risk_assessment": {},
             "mica_compliance": {},
             "dora_resilience": {},
-            "audit_checklist": {}
+            "audit_checklist": {},
         }
 
         # Aggregate all findings from Context Bus
@@ -204,36 +205,40 @@ class PolicyAgent(BaseAgent):
         try:
             # Get project root from contract path
             from pathlib import Path
+
             project_root = str(Path(contract_path).parent)
 
             # Run comprehensive assessment if analyzers are available
-            if self.documentation_analyzer and self.testing_analyzer and \
-               self.maturity_analyzer and self.security_practices_analyzer:
+            if (
+                self.documentation_analyzer
+                and self.testing_analyzer
+                and self.maturity_analyzer
+                and self.security_practices_analyzer
+            ):
                 results["audit_readiness"] = self._comprehensive_audit_readiness_assessment(
-                    all_findings,
-                    contract_path,
-                    project_root
+                    all_findings, contract_path, project_root
                 )
-                logger.info(f"Audit readiness: {results['audit_readiness'].get('readiness_status', 'unknown')}")
-                logger.info(f"OpenZeppelin compliance: {results['audit_readiness'].get('openzeppelin_compliance', 0):.1f}%")
+                logger.info(
+                    f"Audit readiness: {results['audit_readiness'].get('readiness_status', 'unknown')}"
+                )
+                logger.info(
+                    f"OpenZeppelin compliance: {results['audit_readiness'].get('openzeppelin_compliance', 0):.1f}%"
+                )
             else:
-                logger.warning("Audit readiness analyzers not available - skipping Layer 7 assessment")
+                logger.warning(
+                    "Audit readiness analyzers not available - skipping Layer 7 assessment"
+                )
                 results["audit_readiness"] = {
                     "status": "unavailable",
-                    "message": "Layer 7 analyzers not initialized"
+                    "message": "Layer 7 analyzers not initialized",
                 }
         except Exception as e:
             logger.error(f"Error in audit readiness assessment: {e}")
-            results["audit_readiness"] = {
-                "status": "error",
-                "message": str(e)
-            }
+            results["audit_readiness"] = {"status": "error", "message": str(e)}
 
         # Generate comprehensive compliance report
         results["compliance_report"] = self._generate_compliance_report(
-            contract_path,
-            all_findings,
-            results
+            contract_path, all_findings, results
         )
 
         return results
@@ -259,13 +264,13 @@ class PolicyAgent(BaseAgent):
             "dynamic_findings",
             "symbolic_findings",
             "formal_findings",
-            "ai_triage"
+            "ai_triage",
         ]
 
         aggregated_contexts = self.aggregate_contexts(context_types)
         all_findings = []
 
-        for context_type, messages in aggregated_contexts.items():
+        for _context_type, messages in aggregated_contexts.items():
             for message in messages:
                 if isinstance(message.data, list):
                     all_findings.extend(message.data)
@@ -286,32 +291,32 @@ class PolicyAgent(BaseAgent):
                 "name": "Management of technical vulnerabilities",
                 "status": "implemented",
                 "evidence": f"{len(findings)} vulnerabilities detected and tracked",
-                "compliant": True
+                "compliant": True,
             },
             "A.8.15": {
                 "name": "Logging",
                 "status": "implemented",
                 "evidence": "Complete audit trail via MCP Context Bus",
-                "compliant": True
+                "compliant": True,
             },
             "A.8.16": {
                 "name": "Monitoring activities",
                 "status": "implemented",
                 "evidence": "Real-time monitoring via CoordinatorAgent",
-                "compliant": True
+                "compliant": True,
             },
             "A.8.30": {
                 "name": "Testing",
                 "status": "implemented",
                 "evidence": "Multi-layer testing (static, dynamic, formal)",
-                "compliant": True
+                "compliant": True,
             },
             "A.14.2.5": {
                 "name": "Secure system engineering principles",
                 "status": "implemented",
                 "evidence": "Defense-in-Depth architecture",
-                "compliant": True
-            }
+                "compliant": True,
+            },
         }
 
         # Check if critical vulnerabilities exist
@@ -326,7 +331,7 @@ class PolicyAgent(BaseAgent):
             "total_controls": len(controls),
             "compliant_controls": sum(1 for c in controls.values() if c["compliant"]),
             "compliance_score": compliance_score,
-            "overall_status": "compliant" if compliance_score >= 0.8 else "partial"
+            "overall_status": "compliant" if compliance_score >= 0.8 else "partial",
         }
 
     def _check_nist_ssdf(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -341,32 +346,32 @@ class PolicyAgent(BaseAgent):
                 "name": "Ensure acquisition of genuine software",
                 "status": "implemented",
                 "evidence": "Tool verification via checksums",
-                "compliant": True
+                "compliant": True,
             },
             "PS.2": {
                 "name": "Review the software design",
                 "status": "implemented",
                 "evidence": "Architecture analysis via Surya and formal verification",
-                "compliant": True
+                "compliant": True,
             },
             "PW.8": {
                 "name": "Review and/or analyze developed code",
                 "status": "implemented",
                 "evidence": f"Multi-tool analysis: {len(findings)} findings",
-                "compliant": True
+                "compliant": True,
             },
             "RV.1.1": {
                 "name": "Identify publicly disclosed vulnerabilities",
                 "status": "implemented",
                 "evidence": "SWC/CWE mapping for all findings",
-                "compliant": True
+                "compliant": True,
             },
             "RV.3": {
                 "name": "Analyze vulnerabilities to determine root causes",
                 "status": "implemented",
                 "evidence": "AI-powered root cause analysis",
-                "compliant": True
-            }
+                "compliant": True,
+            },
         }
 
         compliance_score = sum(1 for p in practices.values() if p["compliant"]) / len(practices)
@@ -376,7 +381,7 @@ class PolicyAgent(BaseAgent):
             "total_practices": len(practices),
             "compliant_practices": sum(1 for p in practices.values() if p["compliant"]),
             "compliance_score": compliance_score,
-            "overall_status": "compliant" if compliance_score >= 0.8 else "partial"
+            "overall_status": "compliant" if compliance_score >= 0.8 else "partial",
         }
 
     def _check_owasp_coverage(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -396,7 +401,7 @@ class PolicyAgent(BaseAgent):
             "SC07-Front-Running": {"detected": 0, "tools": set()},
             "SC08-Time-Manipulation": {"detected": 0, "tools": set()},
             "SC09-Short-Address": {"detected": 0, "tools": set()},
-            "SC10-Unknown-Unknowns": {"detected": 0, "tools": set()}
+            "SC10-Unknown-Unknowns": {"detected": 0, "tools": set()},
         }
 
         # Count findings by OWASP category
@@ -418,7 +423,7 @@ class PolicyAgent(BaseAgent):
             "total_categories": len(categories),
             "covered_categories": sum(1 for c in categories.values() if c["detected"] > 0),
             "coverage_score": coverage_score,
-            "overall_status": "high" if coverage_score >= 0.7 else "medium"
+            "overall_status": "high" if coverage_score >= 0.7 else "medium",
         }
 
     # ========================================
@@ -456,7 +461,7 @@ class PolicyAgent(BaseAgent):
             "write_after_write": "SWC-124",
             "hash_collision": "SWC-133",
             "signature_malleability": "SWC-117",
-            "unencrypted_secrets": "SWC-136"
+            "unencrypted_secrets": "SWC-136",
         }
 
         classified = {}
@@ -475,20 +480,19 @@ class PolicyAgent(BaseAgent):
 
             if swc_id:
                 if swc_id not in classified:
-                    classified[swc_id] = {
-                        "count": 0,
-                        "severity_distribution": {},
-                        "findings": []
-                    }
+                    classified[swc_id] = {"count": 0, "severity_distribution": {}, "findings": []}
                 classified[swc_id]["count"] += 1
                 severity = finding.get("severity", "Unknown")
-                classified[swc_id]["severity_distribution"][severity] = \
+                classified[swc_id]["severity_distribution"][severity] = (
                     classified[swc_id]["severity_distribution"].get(severity, 0) + 1
-                classified[swc_id]["findings"].append({
-                    "source": finding.get("source", "unknown"),
-                    "severity": severity,
-                    "description": finding.get("description", "")[:100]
-                })
+                )
+                classified[swc_id]["findings"].append(
+                    {
+                        "source": finding.get("source", "unknown"),
+                        "severity": severity,
+                        "description": finding.get("description", "")[:100],
+                    }
+                )
             else:
                 unclassified.append(finding)
 
@@ -498,11 +502,11 @@ class PolicyAgent(BaseAgent):
             "total_classified": sum(data["count"] for data in classified.values()),
             "unclassified_count": len(unclassified),
             "coverage_score": len(classified) / 37.0,  # 37 SWC types
-            "most_common": sorted(
-                classified.items(),
-                key=lambda x: x[1]["count"],
-                reverse=True
-            )[:5] if classified else []
+            "most_common": (
+                sorted(classified.items(), key=lambda x: x[1]["count"], reverse=True)[:5]
+                if classified
+                else []
+            ),
         }
 
     def _check_dasp_top10(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -518,71 +522,71 @@ class PolicyAgent(BaseAgent):
                 "keywords": ["reentrancy", "reentrant", "callback"],
                 "detected": 0,
                 "tools": set(),
-                "severity_max": "Low"
+                "severity_max": "Low",
             },
             "DASP-02-Access-Control": {
                 "name": "Access Control",
                 "keywords": ["access control", "unauthorized", "permission", "onlyowner"],
                 "detected": 0,
                 "tools": set(),
-                "severity_max": "Low"
+                "severity_max": "Low",
             },
             "DASP-03-Arithmetic": {
                 "name": "Arithmetic Issues",
                 "keywords": ["overflow", "underflow", "arithmetic", "integer"],
                 "detected": 0,
                 "tools": set(),
-                "severity_max": "Low"
+                "severity_max": "Low",
             },
             "DASP-04-Unchecked-Calls": {
                 "name": "Unchecked Return Values",
                 "keywords": ["unchecked", "call", "return value", "low-level"],
                 "detected": 0,
                 "tools": set(),
-                "severity_max": "Low"
+                "severity_max": "Low",
             },
             "DASP-05-DoS": {
                 "name": "Denial of Service",
                 "keywords": ["dos", "denial of service", "gas limit", "loop"],
                 "detected": 0,
                 "tools": set(),
-                "severity_max": "Low"
+                "severity_max": "Low",
             },
             "DASP-06-Bad-Randomness": {
                 "name": "Bad Randomness",
                 "keywords": ["random", "blockhash", "timestamp", "predictable"],
                 "detected": 0,
                 "tools": set(),
-                "severity_max": "Low"
+                "severity_max": "Low",
             },
             "DASP-07-Front-Running": {
                 "name": "Front-Running",
                 "keywords": ["front-run", "frontrun", "transaction ordering", "mev"],
                 "detected": 0,
                 "tools": set(),
-                "severity_max": "Low"
+                "severity_max": "Low",
             },
             "DASP-08-Time-Manipulation": {
                 "name": "Time Manipulation",
                 "keywords": ["timestamp", "block.timestamp", "now", "time"],
                 "detected": 0,
                 "tools": set(),
-                "severity_max": "Low"
+                "severity_max": "Low",
             },
             "DASP-09-Short-Address": {
                 "name": "Short Address Attack",
                 "keywords": ["short address", "address length"],
                 "detected": 0,
                 "tools": set(),
-                "severity_max": "Low"
+                "severity_max": "Low",
             },
             "DASP-10-Unknown-Unknowns": {
                 "name": "Unknown Unknowns",
                 "keywords": ["logic", "business logic", "design flaw"],
                 "detected": 0,
                 "tools": set(),
-                "severity_max": "Low"
-            }
+                "severity_max": "Low",
+            },
         }
 
         severity_rank = {"Critical": 4, "High": 3, "Medium": 2, "Low": 1, "Info": 0}
@@ -593,7 +597,7 @@ class PolicyAgent(BaseAgent):
             combined = description + " " + check
             severity = finding.get("severity", "Low")
 
-            for dasp_id, category in dasp_categories.items():
+            for _dasp_id, category in dasp_categories.items():
                 if any(keyword in combined for keyword in category["keywords"]):
                     category["detected"] += 1
                     category["tools"].add(finding.get("source", "unknown"))
@@ -608,18 +612,25 @@ class PolicyAgent(BaseAgent):
         for category in dasp_categories.values():
             category["tools"] = list(category["tools"])
 
-        coverage_score = sum(1 for c in dasp_categories.values() if c["detected"] > 0) / len(dasp_categories)
+        coverage_score = sum(1 for c in dasp_categories.values() if c["detected"] > 0) / len(
+            dasp_categories
+        )
 
         return {
             "categories": dasp_categories,
             "total_categories": len(dasp_categories),
             "covered_categories": sum(1 for c in dasp_categories.values() if c["detected"] > 0),
             "coverage_score": coverage_score,
-            "overall_status": "excellent" if coverage_score >= 0.8 else "good" if coverage_score >= 0.5 else "needs_improvement",
+            "overall_status": (
+                "excellent"
+                if coverage_score >= 0.8
+                else "good" if coverage_score >= 0.5 else "needs_improvement"
+            ),
             "critical_areas": [
-                dasp_id for dasp_id, cat in dasp_categories.items()
+                dasp_id
+                for dasp_id, cat in dasp_categories.items()
                 if cat["detected"] > 0 and cat["severity_max"] in ["Critical", "High"]
-            ]
+            ],
         }
 
     def _check_consensys_practices(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -634,38 +645,38 @@ class PolicyAgent(BaseAgent):
                 "name": "Use security analysis tools",
                 "status": "implemented",
                 "evidence": "Multi-layer analysis framework active",
-                "compliant": True
+                "compliant": True,
             },
             "external_calls": {
                 "name": "Handle external call failures",
                 "status": "checking",
                 "evidence": "",
-                "compliant": False
+                "compliant": False,
             },
             "gas_limits": {
                 "name": "Be aware of gas limits",
                 "status": "checking",
                 "evidence": "",
-                "compliant": False
+                "compliant": False,
             },
             "integer_overflow": {
                 "name": "Protect against overflow/underflow",
                 "status": "checking",
                 "evidence": "",
-                "compliant": False
+                "compliant": False,
             },
             "reentrancy": {
                 "name": "Prevent reentrancy attacks",
                 "status": "checking",
                 "evidence": "",
-                "compliant": False
+                "compliant": False,
             },
             "access_control": {
                 "name": "Implement proper access controls",
                 "status": "checking",
                 "evidence": "",
-                "compliant": False
-            }
+                "compliant": False,
+            },
         }
 
         # Check findings for evidence of best practices
@@ -707,7 +718,7 @@ class PolicyAgent(BaseAgent):
             "total_practices": len(practices),
             "compliant_practices": sum(1 for p in practices.values() if p["compliant"]),
             "compliance_score": compliance_score,
-            "overall_status": "compliant" if compliance_score >= 0.8 else "partial"
+            "overall_status": "compliant" if compliance_score >= 0.8 else "partial",
         }
 
     # ========================================
@@ -732,10 +743,10 @@ class PolicyAgent(BaseAgent):
                 "requirements": [
                     "Static analysis performed",
                     "Common vulnerabilities checked",
-                    "Compiler warnings addressed"
+                    "Compiler warnings addressed",
                 ],
                 "met": 0,
-                "total": 3
+                "total": 3,
             },
             "L2": {
                 "name": "Level 2 - Standard Security",
@@ -743,10 +754,10 @@ class PolicyAgent(BaseAgent):
                     "Dynamic analysis performed",
                     "Business logic reviewed",
                     "Access controls verified",
-                    "Gas optimization checked"
+                    "Gas optimization checked",
                 ],
                 "met": 0,
-                "total": 4
+                "total": 4,
             },
             "L3": {
                 "name": "Level 3 - Advanced Security",
@@ -754,17 +765,19 @@ class PolicyAgent(BaseAgent):
                     "Formal verification performed",
                     "Symbolic execution completed",
                     "All invariants proven",
-                    "Security properties verified"
+                    "Security properties verified",
                 ],
                 "met": 0,
-                "total": 4
-            }
+                "total": 4,
+            },
         }
 
         # Check L1 requirements
         has_static = any(f.get("layer") == "static" for f in findings)
         has_common_checks = len(findings) > 0
-        level_checks["L1"]["met"] = sum([has_static, has_common_checks, True])  # Assume compiler warnings checked
+        level_checks["L1"]["met"] = sum(
+            [has_static, has_common_checks, True]
+        )  # Assume compiler warnings checked
 
         # Check L2 requirements
         has_dynamic = any(f.get("layer") == "dynamic" for f in findings)
@@ -791,7 +804,7 @@ class PolicyAgent(BaseAgent):
             "l1_score": level_checks["L1"]["met"] / level_checks["L1"]["total"],
             "l2_score": level_checks["L2"]["met"] / level_checks["L2"]["total"],
             "l3_score": level_checks["L3"]["met"] / level_checks["L3"]["total"],
-            "recommendation": self._scsvs_recommendation(achieved_level)
+            "recommendation": self._scsvs_recommendation(achieved_level),
         }
 
     def _scsvs_recommendation(self, achieved_level: str) -> str:
@@ -800,7 +813,7 @@ class PolicyAgent(BaseAgent):
             "None": "Start with Level 1 verification using automated static analysis tools",
             "L1": "Advance to Level 2 by adding manual code review and dynamic analysis",
             "L2": "Achieve Level 3 by implementing formal verification and symbolic execution",
-            "L3": "Maintain Level 3 compliance through continuous verification"
+            "L3": "Maintain Level 3 compliance through continuous verification",
         }
         return recommendations.get(achieved_level, "Unknown level")
 
@@ -821,62 +834,62 @@ class PolicyAgent(BaseAgent):
                 "name": "Cryptographic Key Generation",
                 "status": "not_applicable",
                 "evidence": "Contract-level analysis (not wallet level)",
-                "compliant": True
+                "compliant": True,
             },
             "key_usage": {
                 "name": "Key Usage and Storage",
                 "status": "checking",
                 "evidence": "",
-                "compliant": False
+                "compliant": False,
             },
             "wallet_security": {
                 "name": "Wallet Creation and Backup",
                 "status": "not_applicable",
                 "evidence": "Contract-level analysis (not wallet level)",
-                "compliant": True
+                "compliant": True,
             },
             "private_key_exposure": {
                 "name": "Private Key Non-Exposure",
                 "status": "checking",
                 "evidence": "",
-                "compliant": True
+                "compliant": True,
             },
             "signature_verification": {
                 "name": "Transaction Signature Verification",
                 "status": "checking",
                 "evidence": "",
-                "compliant": True
+                "compliant": True,
             },
             "secure_comms": {
                 "name": "Secure Communication",
                 "status": "not_applicable",
                 "evidence": "On-chain contracts (no direct comms)",
-                "compliant": True
+                "compliant": True,
             },
             "audit_logging": {
                 "name": "Audit and Logging",
                 "status": "implemented",
                 "evidence": "Events and state changes logged on-chain",
-                "compliant": True
+                "compliant": True,
             },
             "access_controls": {
                 "name": "Access Controls",
                 "status": "checking",
                 "evidence": "",
-                "compliant": False
+                "compliant": False,
             },
             "operator_security": {
                 "name": "Operator Security Training",
                 "status": "not_applicable",
                 "evidence": "Organizational requirement (not code)",
-                "compliant": True
+                "compliant": True,
             },
             "governance": {
                 "name": "Governance and Risk Management",
                 "status": "checking",
                 "evidence": "",
-                "compliant": False
-            }
+                "compliant": False,
+            },
         }
 
         # Analyze findings for CCSS-related issues
@@ -910,9 +923,14 @@ class PolicyAgent(BaseAgent):
                 aspect["evidence"] = "No issues detected"
                 aspect["compliant"] = True
 
-        applicable_aspects = {k: v for k, v in ccss_aspects.items()
-                             if v["status"] != "not_applicable"}
-        compliance_score = sum(1 for a in applicable_aspects.values() if a["compliant"]) / len(applicable_aspects) if applicable_aspects else 1.0
+        applicable_aspects = {
+            k: v for k, v in ccss_aspects.items() if v["status"] != "not_applicable"
+        }
+        compliance_score = (
+            sum(1 for a in applicable_aspects.values() if a["compliant"]) / len(applicable_aspects)
+            if applicable_aspects
+            else 1.0
+        )
 
         return {
             "aspects": ccss_aspects,
@@ -920,7 +938,7 @@ class PolicyAgent(BaseAgent):
             "applicable_aspects": len(applicable_aspects),
             "compliant_aspects": sum(1 for a in applicable_aspects.values() if a["compliant"]),
             "compliance_score": compliance_score,
-            "overall_status": "compliant" if compliance_score >= 0.8 else "partial"
+            "overall_status": "compliant" if compliance_score >= 0.8 else "partial",
         }
 
     # ========================================
@@ -958,50 +976,50 @@ class PolicyAgent(BaseAgent):
                 "name": "Access Control and Authorization",
                 "items_checked": 0,
                 "items_total": 8,
-                "findings": []
+                "findings": [],
             },
             "arithmetic": {
                 "name": "Arithmetic and Numeric Issues",
                 "items_checked": 0,
                 "items_total": 6,
-                "findings": []
+                "findings": [],
             },
             "reentrancy": {
                 "name": "Reentrancy Vulnerabilities",
                 "items_checked": 0,
                 "items_total": 4,
-                "findings": []
+                "findings": [],
             },
             "gas_optimization": {
                 "name": "Gas Usage and Optimization",
                 "items_checked": 0,
                 "items_total": 5,
-                "findings": []
+                "findings": [],
             },
             "code_quality": {
                 "name": "Code Quality and Maintainability",
                 "items_checked": 0,
                 "items_total": 7,
-                "findings": []
+                "findings": [],
             },
             "external_calls": {
                 "name": "External Calls and Interfaces",
                 "items_checked": 0,
                 "items_total": 5,
-                "findings": []
+                "findings": [],
             },
             "cryptography": {
                 "name": "Cryptographic Operations",
                 "items_checked": 0,
                 "items_total": 4,
-                "findings": []
+                "findings": [],
             },
             "upgradability": {
                 "name": "Upgradability and Governance",
                 "items_checked": 0,
                 "items_total": 3,
-                "findings": []
-            }
+                "findings": [],
+            },
         }
 
         # Map findings to checklist items
@@ -1011,27 +1029,39 @@ class PolicyAgent(BaseAgent):
 
             if "access" in desc or "authorization" in check or "permission" in desc:
                 checklist_categories["access_control"]["items_checked"] += 1
-                checklist_categories["access_control"]["findings"].append(finding.get("check", "unknown"))
+                checklist_categories["access_control"]["findings"].append(
+                    finding.get("check", "unknown")
+                )
 
             if "overflow" in desc or "underflow" in desc or "arithmetic" in check:
                 checklist_categories["arithmetic"]["items_checked"] += 1
-                checklist_categories["arithmetic"]["findings"].append(finding.get("check", "unknown"))
+                checklist_categories["arithmetic"]["findings"].append(
+                    finding.get("check", "unknown")
+                )
 
             if "reentrancy" in desc or "reentrant" in check:
                 checklist_categories["reentrancy"]["items_checked"] += 1
-                checklist_categories["reentrancy"]["findings"].append(finding.get("check", "unknown"))
+                checklist_categories["reentrancy"]["findings"].append(
+                    finding.get("check", "unknown")
+                )
 
             if "gas" in desc or "optimization" in check:
                 checklist_categories["gas_optimization"]["items_checked"] += 1
-                checklist_categories["gas_optimization"]["findings"].append(finding.get("check", "unknown"))
+                checklist_categories["gas_optimization"]["findings"].append(
+                    finding.get("check", "unknown")
+                )
 
             if "external" in desc or "call" in check:
                 checklist_categories["external_calls"]["items_checked"] += 1
-                checklist_categories["external_calls"]["findings"].append(finding.get("check", "unknown"))
+                checklist_categories["external_calls"]["findings"].append(
+                    finding.get("check", "unknown")
+                )
 
             if "crypto" in desc or "signature" in check or "hash" in check:
                 checklist_categories["cryptography"]["items_checked"] += 1
-                checklist_categories["cryptography"]["findings"].append(finding.get("check", "unknown"))
+                checklist_categories["cryptography"]["findings"].append(
+                    finding.get("check", "unknown")
+                )
 
         # Limit items_checked to items_total
         for category in checklist_categories.values():
@@ -1048,7 +1078,7 @@ class PolicyAgent(BaseAgent):
             "items_checked": total_checked,
             "completion_score": completion_score,
             "audit_readiness": "ready" if completion_score >= 0.7 else "in_progress",
-            "methodology": "Trail of Bits Smart Contract Audit Checklist"
+            "methodology": "Trail of Bits Smart Contract Audit Checklist",
         }
 
     # ========================================
@@ -1067,38 +1097,38 @@ class PolicyAgent(BaseAgent):
                 "name": "Smart Contract Technical Risk",
                 "level": "low",
                 "score": 0,
-                "factors": []
+                "factors": [],
             },
             "oracle_risk": {
                 "name": "Oracle and Data Feed Risk",
                 "level": "low",
                 "score": 0,
-                "factors": []
+                "factors": [],
             },
             "economic_risk": {
                 "name": "Economic and Game Theory Risk",
                 "level": "low",
                 "score": 0,
-                "factors": []
+                "factors": [],
             },
             "governance_risk": {
                 "name": "Governance and Admin Risk",
                 "level": "low",
                 "score": 0,
-                "factors": []
+                "factors": [],
             },
             "liquidity_risk": {
                 "name": "Liquidity and Market Risk",
                 "level": "low",
                 "score": 0,
-                "factors": []
+                "factors": [],
             },
             "composability_risk": {
                 "name": "DeFi Composability Risk",
                 "level": "low",
                 "score": 0,
-                "factors": []
-            }
+                "factors": [],
+            },
         }
 
         # Analyze findings for DeFi risks
@@ -1111,8 +1141,12 @@ class PolicyAgent(BaseAgent):
 
             # Smart contract risk
             if severity in ["Critical", "High"]:
-                risk_categories["smart_contract_risk"]["score"] += 10 if severity == "Critical" else 5
-                risk_categories["smart_contract_risk"]["factors"].append(finding.get("check", "unknown"))
+                risk_categories["smart_contract_risk"]["score"] += (
+                    10 if severity == "Critical" else 5
+                )
+                risk_categories["smart_contract_risk"]["factors"].append(
+                    finding.get("check", "unknown")
+                )
 
             # Oracle risk
             if "oracle" in desc or "price" in desc or "feed" in desc:
@@ -1150,8 +1184,10 @@ class PolicyAgent(BaseAgent):
             category["factors"] = list(set(category["factors"]))[:5]
 
         # Overall risk assessment
-        max_risk_level = max((c["level"] for c in risk_categories.values()),
-                            key=lambda x: {"low": 0, "medium": 1, "high": 2, "critical": 3}[x])
+        max_risk_level = max(
+            (c["level"] for c in risk_categories.values()),
+            key=lambda x: {"low": 0, "medium": 1, "high": 2, "critical": 3}[x],
+        )
 
         return {
             "risk_categories": risk_categories,
@@ -1159,7 +1195,7 @@ class PolicyAgent(BaseAgent):
             "critical_findings": critical_count,
             "high_findings": high_count,
             "recommendation": self._defi_risk_recommendation(max_risk_level),
-            "framework": "EEA DeFi Risk Assessment Guidelines v1.0"
+            "framework": "EEA DeFi Risk Assessment Guidelines v1.0",
         }
 
     def _defi_risk_recommendation(self, risk_level: str) -> str:
@@ -1168,7 +1204,7 @@ class PolicyAgent(BaseAgent):
             "low": "Risk profile acceptable for deployment with standard monitoring",
             "medium": "Address identified risks before mainnet deployment",
             "high": "Significant risks detected - comprehensive audit recommended",
-            "critical": "Critical risks present - do not deploy until resolved"
+            "critical": "Critical risks present - do not deploy until resolved",
         }
         return recommendations.get(risk_level, "Unknown risk level")
 
@@ -1191,36 +1227,36 @@ class PolicyAgent(BaseAgent):
                 "status": "checking",
                 "evidence": "",
                 "compliant": False,
-                "criticality": "high"
+                "criticality": "high",
             },
             "operational_resilience": {
                 "name": "Operational Resilience (Title IV)",
                 "status": "checking",
                 "evidence": "",
                 "compliant": False,
-                "criticality": "high"
+                "criticality": "high",
             },
             "governance": {
                 "name": "Governance Arrangements",
                 "status": "checking",
                 "evidence": "",
                 "compliant": False,
-                "criticality": "medium"
+                "criticality": "medium",
             },
             "risk_management": {
                 "name": "Risk Management Framework",
                 "status": "checking",
                 "evidence": "",
                 "compliant": False,
-                "criticality": "high"
+                "criticality": "high",
             },
             "consumer_protection": {
                 "name": "Consumer Protection Measures",
                 "status": "checking",
                 "evidence": "",
                 "compliant": False,
-                "criticality": "medium"
-            }
+                "criticality": "medium",
+            },
         }
 
         # Check findings for MiCA-related aspects
@@ -1228,10 +1264,14 @@ class PolicyAgent(BaseAgent):
 
         # Custody security
         if not critical_vulns:
-            mica_requirements["custody_security"]["evidence"] = "No critical vulnerabilities affecting asset custody"
+            mica_requirements["custody_security"][
+                "evidence"
+            ] = "No critical vulnerabilities affecting asset custody"
             mica_requirements["custody_security"]["compliant"] = True
         else:
-            mica_requirements["custody_security"]["evidence"] = f"{len(critical_vulns)} critical vulnerabilities detected"
+            mica_requirements["custody_security"][
+                "evidence"
+            ] = f"{len(critical_vulns)} critical vulnerabilities detected"
             mica_requirements["custody_security"]["compliant"] = False
 
         # Operational resilience (check for upgrade mechanisms, pause functionality)
@@ -1241,10 +1281,14 @@ class PolicyAgent(BaseAgent):
             for f in findings
         )
         if has_resilience:
-            mica_requirements["operational_resilience"]["evidence"] = "Resilience mechanisms detected"
+            mica_requirements["operational_resilience"][
+                "evidence"
+            ] = "Resilience mechanisms detected"
             mica_requirements["operational_resilience"]["compliant"] = True
         else:
-            mica_requirements["operational_resilience"]["evidence"] = "No emergency controls detected"
+            mica_requirements["operational_resilience"][
+                "evidence"
+            ] = "No emergency controls detected"
             mica_requirements["operational_resilience"]["compliant"] = False
 
         # Governance
@@ -1259,7 +1303,9 @@ class PolicyAgent(BaseAgent):
 
         # Risk management (presence of monitoring, access controls)
         if len(findings) > 0:
-            mica_requirements["risk_management"]["evidence"] = "Active risk monitoring via multi-layer analysis"
+            mica_requirements["risk_management"][
+                "evidence"
+            ] = "Active risk monitoring via multi-layer analysis"
             mica_requirements["risk_management"]["compliant"] = True
 
         # Set defaults
@@ -1269,7 +1315,11 @@ class PolicyAgent(BaseAgent):
                 req["status"] = "needs_review"
 
         high_priority = {k: v for k, v in mica_requirements.items() if v["criticality"] == "high"}
-        compliance_score = sum(1 for r in high_priority.values() if r["compliant"]) / len(high_priority) if high_priority else 0
+        compliance_score = (
+            sum(1 for r in high_priority.values() if r["compliant"]) / len(high_priority)
+            if high_priority
+            else 0
+        )
 
         return {
             "requirements": mica_requirements,
@@ -1279,7 +1329,7 @@ class PolicyAgent(BaseAgent):
             "overall_status": "compliant" if compliance_score >= 0.8 else "non_compliant",
             "regulation": "EU MiCA (Regulation 2023/1114)",
             "effective_date": "December 30, 2024",
-            "recommendation": "Consult legal counsel for full MiCA compliance assessment"
+            "recommendation": "Consult legal counsel for full MiCA compliance assessment",
         }
 
     def _check_dora_resilience(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -1303,51 +1353,53 @@ class PolicyAgent(BaseAgent):
                     "Risk identification and assessment",
                     "Protection and prevention measures",
                     "Detection mechanisms",
-                    "Response and recovery procedures"
+                    "Response and recovery procedures",
                 ],
                 "compliant": 0,
                 "total": 4,
-                "evidence": []
+                "evidence": [],
             },
             "incident_reporting": {
                 "name": "ICT Incident Reporting (Chapter III)",
                 "requirements": [
                     "Incident classification",
                     "Incident logging",
-                    "Escalation procedures"
+                    "Escalation procedures",
                 ],
                 "compliant": 0,
                 "total": 3,
-                "evidence": []
+                "evidence": [],
             },
             "resilience_testing": {
                 "name": "Operational Resilience Testing (Chapter IV)",
                 "requirements": [
                     "Regular testing programs",
                     "Threat-led penetration testing",
-                    "Red team exercises"
+                    "Red team exercises",
                 ],
                 "compliant": 0,
                 "total": 3,
-                "evidence": []
+                "evidence": [],
             },
             "third_party_risk": {
                 "name": "Third-Party ICT Risk (Chapter V)",
                 "requirements": [
                     "Due diligence on third parties",
                     "Contractual arrangements",
-                    "Exit strategies"
+                    "Exit strategies",
                 ],
                 "compliant": 0,
                 "total": 3,
-                "evidence": []
-            }
+                "evidence": [],
+            },
         }
 
         # ICT Risk Management assessment
         if len(findings) > 0:
             dora_pillars["ict_risk_management"]["compliant"] += 1  # Risk identification
-            dora_pillars["ict_risk_management"]["evidence"].append("Automated risk identification active")
+            dora_pillars["ict_risk_management"]["evidence"].append(
+                "Automated risk identification active"
+            )
 
         has_protection = any(f.get("severity") == "Critical" for f in findings)
         if not has_protection:
@@ -1393,12 +1445,12 @@ class PolicyAgent(BaseAgent):
             "overall_status": "compliant" if compliance_score >= 0.7 else "needs_improvement",
             "regulation": "EU DORA (Regulation 2022/2554)",
             "effective_date": "January 17, 2025",
-            "recommendation": "Document operational resilience procedures for DORA compliance"
+            "recommendation": "Document operational resilience procedures for DORA compliance",
         }
 
-    def _generate_compliance_report(self, contract_path: str,
-                                   findings: List[Dict[str, Any]],
-                                   all_results: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_compliance_report(
+        self, contract_path: str, findings: List[Dict[str, Any]], all_results: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Generate comprehensive compliance report covering all standards
 
@@ -1427,65 +1479,65 @@ class PolicyAgent(BaseAgent):
                 "critical_findings": len([f for f in findings if f.get("severity") == "Critical"]),
                 "high_findings": len([f for f in findings if f.get("severity") == "High"]),
                 "medium_findings": len([f for f in findings if f.get("severity") == "Medium"]),
-                "low_findings": len([f for f in findings if f.get("severity") == "Low"])
+                "low_findings": len([f for f in findings if f.get("severity") == "Low"]),
             },
             "standards_compliance": {
                 "ISO_IEC_27001_2022": {
                     "score": iso_status.get("compliance_score", 0),
                     "status": iso_status.get("overall_status", "unknown"),
                     "compliant_controls": iso_status.get("compliant_controls", 0),
-                    "total_controls": iso_status.get("total_controls", 0)
+                    "total_controls": iso_status.get("total_controls", 0),
                 },
                 "NIST_SSDF": {
                     "score": nist_status.get("compliance_score", 0),
                     "status": nist_status.get("overall_status", "unknown"),
                     "compliant_practices": nist_status.get("compliant_practices", 0),
-                    "total_practices": nist_status.get("total_practices", 0)
+                    "total_practices": nist_status.get("total_practices", 0),
                 },
                 "OWASP_SC_Top10": {
                     "score": owasp_coverage.get("coverage_score", 0),
                     "status": owasp_coverage.get("overall_status", "unknown"),
                     "covered_categories": owasp_coverage.get("covered_categories", 0),
-                    "total_categories": owasp_coverage.get("total_categories", 0)
+                    "total_categories": owasp_coverage.get("total_categories", 0),
                 },
                 "OWASP_SCSVS": {
                     "achieved_level": scsvs_status.get("achieved_level", "None"),
                     "l1_score": scsvs_status.get("l1_score", 0),
                     "l2_score": scsvs_status.get("l2_score", 0),
-                    "l3_score": scsvs_status.get("l3_score", 0)
+                    "l3_score": scsvs_status.get("l3_score", 0),
                 },
                 "CCSS_v9": {
                     "score": ccss_status.get("compliance_score", 0),
                     "status": ccss_status.get("overall_status", "unknown"),
                     "compliant_aspects": ccss_status.get("compliant_aspects", 0),
-                    "total_aspects": ccss_status.get("total_aspects", 0)
+                    "total_aspects": ccss_status.get("total_aspects", 0),
                 },
                 "EU_MiCA": {
                     "score": mica_compliance.get("high_priority_compliance", 0),
                     "status": mica_compliance.get("overall_status", "unknown"),
                     "regulation": "Regulation 2023/1114",
-                    "effective_date": "December 30, 2024"
+                    "effective_date": "December 30, 2024",
                 },
                 "EU_DORA": {
                     "score": dora_resilience.get("compliance_score", 0),
                     "status": dora_resilience.get("overall_status", "unknown"),
                     "regulation": "Regulation 2022/2554",
-                    "effective_date": "January 17, 2025"
-                }
+                    "effective_date": "January 17, 2025",
+                },
             },
             "vulnerability_classification": {
                 "SWC_Registry": {
                     "total_swc_types": swc_classification.get("total_swc_types", 0),
                     "total_classified": swc_classification.get("total_classified", 0),
                     "coverage_score": swc_classification.get("coverage_score", 0),
-                    "most_common": swc_classification.get("most_common", [])
+                    "most_common": swc_classification.get("most_common", []),
                 },
                 "DASP_Top10": {
                     "coverage_score": dasp_coverage.get("coverage_score", 0),
                     "status": dasp_coverage.get("overall_status", "unknown"),
                     "covered_categories": dasp_coverage.get("covered_categories", 0),
-                    "critical_areas": dasp_coverage.get("critical_areas", [])
-                }
+                    "critical_areas": dasp_coverage.get("critical_areas", []),
+                },
             },
             # [LAYER 7 - AUDIT READINESS] Trail of Bits checklist and audit assessment
             "audit_assessment": {
@@ -1493,24 +1545,24 @@ class PolicyAgent(BaseAgent):
                     "completion_score": audit_checklist.get("completion_score", 0),
                     "readiness": audit_checklist.get("audit_readiness", "unknown"),
                     "items_checked": audit_checklist.get("items_checked", 0),
-                    "total_items": audit_checklist.get("total_items", 0)
+                    "total_items": audit_checklist.get("total_items", 0),
                 },
                 "consensys_practices": {
                     "compliance_score": audit_checklist.get("compliance_score", 0),
-                    "status": audit_checklist.get("overall_status", "unknown")
-                }
+                    "status": audit_checklist.get("overall_status", "unknown"),
+                },
             },
             "risk_assessment": {
                 "defi_risks": {
                     "overall_risk_level": defi_risk.get("overall_risk_level", "unknown"),
                     "critical_findings": defi_risk.get("critical_findings", 0),
                     "high_findings": defi_risk.get("high_findings", 0),
-                    "framework": "EEA DeFi Risk Assessment Guidelines v1.0"
+                    "framework": "EEA DeFi Risk Assessment Guidelines v1.0",
                 }
             },
             "overall_compliance_index": self._calculate_overall_compliance(all_results),
             "recommendations": self._generate_recommendations(findings, all_results),
-            "audit_readiness": self._assess_audit_readiness(findings)
+            "audit_readiness": self._assess_audit_readiness(findings),
         }
 
     def _calculate_overall_compliance(self, all_results: Dict[str, Any]) -> float:
@@ -1539,8 +1591,9 @@ class PolicyAgent(BaseAgent):
 
         return sum(scores) / len(scores) if scores else 0.0
 
-    def _generate_recommendations(self, findings: List[Dict[str, Any]],
-                                 all_results: Dict[str, Any]) -> List[str]:
+    def _generate_recommendations(
+        self, findings: List[Dict[str, Any]], all_results: Dict[str, Any]
+    ) -> List[str]:
         """
         Generate comprehensive compliance recommendations across all standards
 
@@ -1567,7 +1620,8 @@ class PolicyAgent(BaseAgent):
         owasp_coverage = all_results.get("owasp_coverage", {})
         if owasp_coverage:
             uncovered = [
-                cat for cat, data in owasp_coverage.get("categories", {}).items()
+                cat
+                for cat, data in owasp_coverage.get("categories", {}).items()
                 if data.get("detected", 0) == 0
             ]
             if uncovered:
@@ -1580,18 +1634,14 @@ class PolicyAgent(BaseAgent):
         if scsvs_status:
             achieved = scsvs_status.get("achieved_level", "None")
             if achieved != "L3":
-                recommendations.append(
-                    f"SCSVS: {scsvs_status.get('recommendation', '')}"
-                )
+                recommendations.append(f"SCSVS: {scsvs_status.get('recommendation', '')}")
 
         # DeFi risk assessment
         defi_risk = all_results.get("defi_risk_assessment", {})
         if defi_risk:
             risk_level = defi_risk.get("overall_risk_level", "unknown")
             if risk_level in ["high", "critical"]:
-                recommendations.append(
-                    f"DeFi RISK: {defi_risk.get('recommendation', '')}"
-                )
+                recommendations.append(f"DeFi RISK: {defi_risk.get('recommendation', '')}")
 
         # EU MiCA compliance
         mica_compliance = all_results.get("mica_compliance", {})
@@ -1643,10 +1693,7 @@ class PolicyAgent(BaseAgent):
         return recommendations[:10]  # Limit to top 10 most important
 
     def _comprehensive_audit_readiness_assessment(
-        self,
-        findings: List[Dict[str, Any]],
-        contract_path: str = None,
-        project_root: str = None
+        self, findings: List[Dict[str, Any]], contract_path: str = None, project_root: str = None
     ) -> Dict[str, Any]:
         """
         [LAYER 7 - AUDIT READINESS - COMPREHENSIVE]
@@ -1681,93 +1728,92 @@ class PolicyAgent(BaseAgent):
         logger.info("Running comprehensive audit readiness assessment")
 
         result = {
-            'documentation': None,
-            'testing': None,
-            'maturity': None,
-            'security_practices': None,
-            'findings_severity': {},
-            'overall_score': 0.0,
-            'readiness_status': 'not_ready',
-            'openzeppelin_compliance': 0.0,
-            'recommendations': []
+            "documentation": None,
+            "testing": None,
+            "maturity": None,
+            "security_practices": None,
+            "findings_severity": {},
+            "overall_score": 0.0,
+            "readiness_status": "not_ready",
+            "openzeppelin_compliance": 0.0,
+            "recommendations": [],
         }
 
         # 1. Documentation Analysis
         if self.documentation_analyzer and contract_path:
             try:
                 logger.info("Analyzing documentation quality")
-                doc_result = self.documentation_analyzer.analyze_all(
-                    contract_path,
-                    project_root
-                )
-                result['documentation'] = doc_result
+                doc_result = self.documentation_analyzer.analyze_all(contract_path, project_root)
+                result["documentation"] = doc_result
 
-                if not doc_result.get('passes_audit_readiness', False):
-                    if doc_result.get('natspec', {}).get('coverage_percentage', 0) < 90:
-                        result['recommendations'].append(
+                if not doc_result.get("passes_audit_readiness", False):
+                    if doc_result.get("natspec", {}).get("coverage_percentage", 0) < 90:
+                        result["recommendations"].append(
                             f"Increase NatSpec coverage to ≥90% (current: {doc_result.get('natspec', {}).get('coverage_percentage', 0)}%)"
                         )
-                    if not doc_result.get('readme', {}).get('passes_threshold', False):
-                        missing = doc_result.get('readme', {}).get('sections_missing', [])
+                    if not doc_result.get("readme", {}).get("passes_threshold", False):
+                        missing = doc_result.get("readme", {}).get("sections_missing", [])
                         if missing:
-                            result['recommendations'].append(
+                            result["recommendations"].append(
                                 f"Add missing README sections: {', '.join(missing)}"
                             )
             except Exception as e:
                 logger.warning(f"Documentation analysis failed: {e}")
-                result['documentation'] = {'error': str(e), 'passes_audit_readiness': False}
+                result["documentation"] = {"error": str(e), "passes_audit_readiness": False}
 
         # 2. Testing Analysis
         if self.testing_analyzer and project_root:
             try:
                 logger.info("Analyzing test coverage and quality")
                 testing_result = self.testing_analyzer.analyze_all(project_root)
-                result['testing'] = testing_result
+                result["testing"] = testing_result
 
-                if not testing_result.get('passes_audit_readiness', False):
-                    coverage = testing_result.get('coverage', {}).get('line_coverage', 0)
+                if not testing_result.get("passes_audit_readiness", False):
+                    coverage = testing_result.get("coverage", {}).get("line_coverage", 0)
                     if coverage < 90:
-                        result['recommendations'].append(
+                        result["recommendations"].append(
                             f"Increase code coverage to ≥90% (current: {coverage}%)"
                         )
-                    if not testing_result.get('property_tests', {}).get('passes_threshold', False):
-                        result['recommendations'].append(
+                    if not testing_result.get("property_tests", {}).get("passes_threshold", False):
+                        result["recommendations"].append(
                             "Add property-based tests (Echidna/Medusa)"
                         )
             except Exception as e:
                 logger.warning(f"Testing analysis failed: {e}")
-                result['testing'] = {'error': str(e), 'passes_audit_readiness': False}
+                result["testing"] = {"error": str(e), "passes_audit_readiness": False}
 
         # 3. Code Maturity Analysis
         if self.maturity_analyzer and project_root:
             try:
                 logger.info("Analyzing code maturity")
                 maturity_result = self.maturity_analyzer.analyze_all(project_root)
-                result['maturity'] = maturity_result
+                result["maturity"] = maturity_result
 
-                if not maturity_result.get('passes_audit_readiness', False):
-                    score = maturity_result.get('maturity', {}).get('maturity_score', 0)
-                    level = maturity_result.get('maturity', {}).get('maturity_level', 'unknown')
-                    result['recommendations'].append(
+                if not maturity_result.get("passes_audit_readiness", False):
+                    score = maturity_result.get("maturity", {}).get("maturity_score", 0)
+                    level = maturity_result.get("maturity", {}).get("maturity_level", "unknown")
+                    result["recommendations"].append(
                         f"Code maturity is {level} (score: {score:.2f}). Consider more development time."
                     )
             except Exception as e:
                 logger.warning(f"Maturity analysis failed: {e}")
-                result['maturity'] = {'error': str(e), 'passes_audit_readiness': False}
+                result["maturity"] = {"error": str(e), "passes_audit_readiness": False}
 
         # 4. Security Practices Analysis
         if self.security_practices_analyzer and contract_path:
             try:
                 logger.info("Analyzing security practices")
                 security_result = self.security_practices_analyzer.analyze_all(contract_path)
-                result['security_practices'] = security_result
+                result["security_practices"] = security_result
 
-                if not security_result.get('passes_audit_readiness', False):
-                    recommendations = security_result.get('practices', {}).get('recommendations', [])
-                    result['recommendations'].extend(recommendations)
+                if not security_result.get("passes_audit_readiness", False):
+                    recommendations = security_result.get("practices", {}).get(
+                        "recommendations", []
+                    )
+                    result["recommendations"].extend(recommendations)
             except Exception as e:
                 logger.warning(f"Security practices analysis failed: {e}")
-                result['security_practices'] = {'error': str(e), 'passes_audit_readiness': False}
+                result["security_practices"] = {"error": str(e), "passes_audit_readiness": False}
 
         # 5. Findings Severity Analysis (Legacy)
         critical = len([f for f in findings if f.get("severity") == "Critical"])
@@ -1775,44 +1821,44 @@ class PolicyAgent(BaseAgent):
         medium = len([f for f in findings if f.get("severity") == "Medium"])
         low = len([f for f in findings if f.get("severity") == "Low"])
 
-        result['findings_severity'] = {
-            'critical': critical,
-            'high': high,
-            'medium': medium,
-            'low': low,
-            'total': len(findings)
+        result["findings_severity"] = {
+            "critical": critical,
+            "high": high,
+            "medium": medium,
+            "low": low,
+            "total": len(findings),
         }
 
         if critical > 0:
-            result['recommendations'].append(
+            result["recommendations"].append(
                 f"Fix {critical} critical severity issue(s) before audit"
             )
         if high > 5:
-            result['recommendations'].append(
-                f"Reduce high severity issues from {high} to ≤5"
-            )
+            result["recommendations"].append(f"Reduce high severity issues from {high} to ≤5")
 
         # Calculate Overall Score
         scores = []
         weights = []
 
-        if result['documentation']:
-            scores.append(result['documentation'].get('overall_score', 0))
+        if result["documentation"]:
+            scores.append(result["documentation"].get("overall_score", 0))
             weights.append(0.25)  # 25% weight
-        if result['testing']:
-            scores.append(result['testing'].get('overall_score', 0))
+        if result["testing"]:
+            scores.append(result["testing"].get("overall_score", 0))
             weights.append(0.30)  # 30% weight (most important per OpenZeppelin)
-        if result['maturity']:
-            scores.append(result['maturity'].get('overall_score', 0))
+        if result["maturity"]:
+            scores.append(result["maturity"].get("overall_score", 0))
             weights.append(0.20)  # 20% weight
-        if result['security_practices']:
-            scores.append(result['security_practices'].get('overall_score', 0))
+        if result["security_practices"]:
+            scores.append(result["security_practices"].get("overall_score", 0))
             weights.append(0.25)  # 25% weight
 
         if scores:
-            result['overall_score'] = sum(s * w for s, w in zip(scores, weights)) / sum(weights)
+            result["overall_score"] = sum(
+                s * w for s, w in zip(scores, weights, strict=False)
+            ) / sum(weights)
         else:
-            result['overall_score'] = 0.0
+            result["overall_score"] = 0.0
 
         # Penalize for critical/high findings
         severity_penalty = 0
@@ -1823,25 +1869,27 @@ class PolicyAgent(BaseAgent):
         elif high > 0:
             severity_penalty = 0.1  # 10% penalty for any high
 
-        result['overall_score'] = max(0, result['overall_score'] * (1 - severity_penalty))
+        result["overall_score"] = max(0, result["overall_score"] * (1 - severity_penalty))
 
         # OpenZeppelin Compliance Percentage
-        result['openzeppelin_compliance'] = result['overall_score'] * 100
+        result["openzeppelin_compliance"] = result["overall_score"] * 100
 
         # Determine Readiness Status
-        if result['overall_score'] >= 0.9 and critical == 0:
-            result['readiness_status'] = 'ready'
-        elif result['overall_score'] >= 0.75 and critical == 0 and high <= 2:
-            result['readiness_status'] = 'ready_with_notes'
-        elif result['overall_score'] >= 0.5 and critical == 0:
-            result['readiness_status'] = 'needs_review'
+        if result["overall_score"] >= 0.9 and critical == 0:
+            result["readiness_status"] = "ready"
+        elif result["overall_score"] >= 0.75 and critical == 0 and high <= 2:
+            result["readiness_status"] = "ready_with_notes"
+        elif result["overall_score"] >= 0.5 and critical == 0:
+            result["readiness_status"] = "needs_review"
         else:
-            result['readiness_status'] = 'not_ready'
+            result["readiness_status"] = "not_ready"
 
-        logger.info(f"Audit readiness: {result['readiness_status']} (score: {result['overall_score']:.2f}, OpenZeppelin compliance: {result['openzeppelin_compliance']:.1f}%)")
+        logger.info(
+            f"Audit readiness: {result['readiness_status']} (score: {result['overall_score']:.2f}, OpenZeppelin compliance: {result['openzeppelin_compliance']:.1f}%)"
+        )
 
         # Add disclaimer: This measures PRE-AUDIT MATURITY, not a replacement for professional audits
-        result['disclaimer'] = (
+        result["disclaimer"] = (
             "⚠️ IMPORTANT: This assessment measures PRE-AUDIT MATURITY, NOT security certification. "
             "It evaluates the contract's readiness level before undergoing professional audit. "
             "The compliance score indicates how well documentation, testing, and security practices "

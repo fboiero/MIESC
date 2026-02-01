@@ -11,15 +11,20 @@ Date: November 11, 2025
 Version: 1.0.0
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional
-import subprocess
 import json
 import logging
+import subprocess
 import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 # OpenLLaMA integration for intelligent post-processing
 from src.llm import enhance_findings_with_llm
@@ -47,11 +52,7 @@ class MythrilAdapter(ToolAdapter):
     """
 
     # Severity mapping from Mythril to MIESC standard
-    SEVERITY_MAP = {
-        "High": "High",
-        "Medium": "Medium",
-        "Low": "Low"
-    }
+    SEVERITY_MAP = {"High": "High", "Medium": "Medium", "Low": "Low"}
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -89,13 +90,13 @@ class MythrilAdapter(ToolAdapter):
                         "tx_origin_usage",
                         "uninitialized_storage_pointer",
                         "shadowing_state_variables",
-                        "requirements_violation"
-                    ]
+                        "requirements_violation",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True  # DPGA compliance - graceful degradation
+            is_optional=True,  # DPGA compliance - graceful degradation
         )
 
     def is_available(self) -> ToolStatus:
@@ -107,12 +108,7 @@ class MythrilAdapter(ToolAdapter):
             ToolStatus.NOT_INSTALLED otherwise
         """
         try:
-            result = subprocess.run(
-                ["myth", "version"],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
+            result = subprocess.run(["myth", "version"], capture_output=True, text=True, timeout=10)
 
             if result.returncode == 0:
                 version = result.stdout.strip()
@@ -169,12 +165,12 @@ class MythrilAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"tool_status": status.value},
                 "execution_time": time.time() - start_time,
-                "error": f"Mythril not available: {status.value}"
+                "error": f"Mythril not available: {status.value}",
             }
 
         try:
             # Prepare parameters
-            output_path = kwargs.get("output_path", "/tmp/mythril_output.json")
+            kwargs.get("output_path", "/tmp/mythril_output.json")
             timeout = kwargs.get("timeout", 600)
             execution_timeout = kwargs.get("execution_timeout", 300)
             max_depth = kwargs.get("max_depth", 22)
@@ -182,12 +178,17 @@ class MythrilAdapter(ToolAdapter):
 
             # Build command
             cmd = [
-                "myth", "analyze",
+                "myth",
+                "analyze",
                 contract_path,
-                "-o", "json",
-                "--execution-timeout", str(execution_timeout),
-                "--max-depth", str(max_depth),
-                "--solver-timeout", str(solver_timeout)
+                "-o",
+                "json",
+                "--execution-timeout",
+                str(execution_timeout),
+                "--max-depth",
+                str(max_depth),
+                "--solver-timeout",
+                str(solver_timeout),
             ]
 
             logger.info(f"Running Mythril analysis: {' '.join(cmd)}")
@@ -195,17 +196,15 @@ class MythrilAdapter(ToolAdapter):
             # Show progress message
             verbose = kwargs.get("verbose", True)
             if verbose:
-                print(f"  [Mythril] Starting symbolic execution analysis...")
-                print(f"  [Mythril] This may take 2-5 minutes for complex contracts")
-                print(f"  [Mythril] Parameters: max_depth={max_depth}, solver_timeout={solver_timeout}")
+                print("  [Mythril] Starting symbolic execution analysis...")
+                print("  [Mythril] This may take 2-5 minutes for complex contracts")
+                print(
+                    f"  [Mythril] Parameters: max_depth={max_depth}, solver_timeout={solver_timeout}"
+                )
 
             # Execute Mythril with streaming output
             process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1
             )
 
             stdout_data = []
@@ -215,6 +214,7 @@ class MythrilAdapter(ToolAdapter):
 
             # Read output while process runs
             import select
+
             while process.poll() is None:
                 # Check if we should show progress
                 if verbose and (time.time() - last_progress) >= progress_interval:
@@ -231,9 +231,12 @@ class MythrilAdapter(ToolAdapter):
                             line = process.stderr.readline()
                             if line:
                                 stderr_data.append(line)
-                                if verbose and any(kw in line.lower() for kw in ['analyzing', 'solving', 'checking', 'creating']):
+                                if verbose and any(
+                                    kw in line.lower()
+                                    for kw in ["analyzing", "solving", "checking", "creating"]
+                                ):
                                     print(f"  [Mythril] {line.strip()}")
-                    except:
+                    except Exception:
                         time.sleep(0.5)
 
                 # Check timeout
@@ -256,9 +259,9 @@ class MythrilAdapter(ToolAdapter):
                     self.returncode = returncode
 
             result = Result(
-                stdout=''.join(stdout_data),
-                stderr=''.join(stderr_data),
-                returncode=process.returncode
+                stdout="".join(stdout_data),
+                stderr="".join(stderr_data),
+                returncode=process.returncode,
             )
 
             execution_time = time.time() - start_time
@@ -283,7 +286,7 @@ class MythrilAdapter(ToolAdapter):
                     "findings": [],
                     "metadata": {"parse_error": "Invalid JSON"},
                     "execution_time": execution_time,
-                    "error": "Failed to parse Mythril output"
+                    "error": "Failed to parse Mythril output",
                 }
 
             # Normalize findings
@@ -291,7 +294,7 @@ class MythrilAdapter(ToolAdapter):
 
             # Read contract code for LLM context
             try:
-                with open(contract_path, 'r', encoding='utf-8') as f:
+                with open(contract_path, "r", encoding="utf-8") as f:
                     contract_code = f.read()
             except Exception as e:
                 logger.warning(f"Could not read contract for LLM enhancement: {e}")
@@ -301,11 +304,9 @@ class MythrilAdapter(ToolAdapter):
             if contract_code and findings:
                 try:
                     findings = enhance_findings_with_llm(
-                        findings=findings,
-                        contract_code=contract_code,
-                        adapter_name="mythril"
+                        findings=findings, contract_code=contract_code, adapter_name="mythril"
                     )
-                    logger.info(f"OpenLLaMA: Enhanced Mythril findings with AI insights")
+                    logger.info("OpenLLaMA: Enhanced Mythril findings with AI insights")
                 except Exception as e:
                     logger.debug(f"OpenLLaMA enhancement skipped: {e}")
 
@@ -315,7 +316,7 @@ class MythrilAdapter(ToolAdapter):
                 "normalized_findings_count": len(findings),
                 "execution_timeout": execution_timeout,
                 "max_depth": max_depth,
-                "solver_timeout": solver_timeout
+                "solver_timeout": solver_timeout,
             }
 
             logger.info(
@@ -328,7 +329,7 @@ class MythrilAdapter(ToolAdapter):
                 "status": "success",
                 "findings": findings,
                 "metadata": metadata,
-                "execution_time": execution_time
+                "execution_time": execution_time,
             }
 
         except subprocess.TimeoutExpired:
@@ -341,7 +342,7 @@ class MythrilAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"timeout": timeout},
                 "execution_time": execution_time,
-                "error": f"Analysis timed out after {timeout} seconds"
+                "error": f"Analysis timed out after {timeout} seconds",
             }
 
         except Exception as e:
@@ -354,7 +355,7 @@ class MythrilAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"exception": str(e)},
                 "execution_time": execution_time,
-                "error": f"Unexpected error: {e}"
+                "error": f"Unexpected error: {e}",
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -387,16 +388,12 @@ class MythrilAdapter(ToolAdapter):
                     first_location = locations[0]
                     source_map = first_location.get("sourceMap", "")
                     location_info = {
-                        "file": contract_path if 'contract_path' in locals() else "unknown",
+                        "file": first_location.get("filename", "unknown"),
                         "line": self._extract_line_from_sourcemap(source_map),
-                        "function": issue.get("function", "unknown")
+                        "function": issue.get("function", "unknown"),
                     }
                 else:
-                    location_info = {
-                        "file": "unknown",
-                        "line": 0,
-                        "function": "unknown"
-                    }
+                    location_info = {"file": "unknown", "line": 0, "function": "unknown"}
 
                 # Map severity
                 mapped_severity = self.SEVERITY_MAP.get(severity, "Medium")
@@ -413,7 +410,7 @@ class MythrilAdapter(ToolAdapter):
                     "recommendation": self._get_recommendation(swc_id),
                     "swc_id": f"SWC-{swc_id}" if swc_id else None,
                     "cwe_id": None,
-                    "owasp_category": self._map_to_owasp(swc_id)
+                    "owasp_category": self._map_to_owasp(swc_id),
                 }
 
                 normalized.append(normalized_finding)
@@ -430,7 +427,7 @@ class MythrilAdapter(ToolAdapter):
             parts = source_map.split(":")
             if len(parts) >= 1:
                 return int(parts[0])
-        except:
+        except Exception:
             pass
         return 0
 
@@ -445,7 +442,7 @@ class MythrilAdapter(ToolAdapter):
             "115": "Use msg.sender instead of tx.origin for authentication",
             "116": "Do not rely on block.timestamp for critical logic",
             "120": "Use Chainlink VRF for random number generation",
-            "104": "Check return values of external calls"
+            "104": "Check return values of external calls",
         }
         return recommendations.get(swc_id, "Review and fix the vulnerability")
 
@@ -460,7 +457,7 @@ class MythrilAdapter(ToolAdapter):
             "115": "SC08: Bad Randomness / Front-Running",
             "116": "SC08: Bad Randomness / Front-Running",
             "120": "SC08: Bad Randomness / Front-Running",
-            "104": "SC04: Unchecked Return Values"
+            "104": "SC04: Unchecked Return Values",
         }
         return owasp_mapping.get(swc_id, None)
 
@@ -470,7 +467,7 @@ class MythrilAdapter(ToolAdapter):
 
         # Mythril analyzes .sol files
         if path.is_file():
-            return path.suffix == '.sol'
+            return path.suffix == ".sol"
 
         return False
 
@@ -481,11 +478,10 @@ class MythrilAdapter(ToolAdapter):
             "execution_timeout": 300,
             "max_depth": 22,
             "solver_timeout": 100000,
-            "output_format": "json"
+            "output_format": "json",
         }
 
-
-# v4.7.0: Cross-validation support for precision improvement
+    # v4.7.0: Cross-validation support for precision improvement
     def validate_finding(
         self,
         source_code: str,
@@ -505,13 +501,11 @@ class MythrilAdapter(ToolAdapter):
         Returns:
             Tuple of (is_confirmed, matching_mythril_finding_or_None)
         """
-        import tempfile
         import os
+        import tempfile
 
         # Create temp file for analysis
-        with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.sol', delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
             f.write(source_code)
             temp_path = f.name
 
@@ -537,9 +531,7 @@ class MythrilAdapter(ToolAdapter):
                 "bad_randomness": ["120"],
             }
 
-            expected_swcs = type_to_swc.get(
-                finding_type.lower().replace("-", "_"), []
-            )
+            expected_swcs = type_to_swc.get(finding_type.lower().replace("-", "_"), [])
 
             # Find matching Mythril finding
             for mythril_finding in result.get("findings", []):

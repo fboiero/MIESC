@@ -14,9 +14,9 @@ Installation:
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 import os
+from datetime import datetime
+from typing import Any, Dict, List
 
 from src.agents.base_agent import BaseAgent
 
@@ -50,7 +50,7 @@ class CrewAICoordinator(BaseAgent):
         self,
         use_local_llm: bool = True,
         llm_model: str = "ollama/codellama:13b",
-        verbose: bool = True
+        verbose: bool = True,
     ):
         """
         Initialize CrewAI coordinator
@@ -67,9 +67,9 @@ class CrewAICoordinator(BaseAgent):
                 "role_based_agents",
                 "collaborative_analysis",
                 "automatic_delegation",
-                "result_synthesis"
+                "result_synthesis",
             ],
-            agent_type="coordinator"
+            agent_type="coordinator",
         )
 
         self.use_local_llm = use_local_llm
@@ -78,8 +78,9 @@ class CrewAICoordinator(BaseAgent):
 
         # Check if CrewAI is installed
         try:
-            from crewai import Agent, Task, Crew, Process
+            from crewai import Agent, Crew, Process, Task
             from crewai_tools import FileReadTool, tool
+
             self.crewai_available = True
             self.Agent = Agent
             self.Task = Task
@@ -88,10 +89,7 @@ class CrewAICoordinator(BaseAgent):
             self.FileReadTool = FileReadTool
             self.tool_decorator = tool
         except ImportError:
-            logger.warning(
-                "CrewAI not installed. Install with: "
-                "pip install crewai crewai-tools"
-            )
+            logger.warning("CrewAI not installed. Install with: " "pip install crewai crewai-tools")
             self.crewai_available = False
 
         # Initialize LLM
@@ -103,6 +101,7 @@ class CrewAICoordinator(BaseAgent):
         if self.use_local_llm:
             try:
                 from langchain_community.llms import Ollama
+
                 self.llm = Ollama(model=self.llm_model.replace("ollama/", ""))
                 logger.info(f"CrewAI using local LLM: {self.llm_model}")
             except ImportError:
@@ -113,25 +112,18 @@ class CrewAICoordinator(BaseAgent):
                 self.llm = None
         else:
             # Use OpenAI (requires API key)
-            api_key = os.getenv('OPENAI_API_KEY')
+            api_key = os.getenv("OPENAI_API_KEY")
             if api_key:
                 from langchain_openai import ChatOpenAI
-                self.llm = ChatOpenAI(
-                    model="gpt-4",
-                    temperature=0.1,
-                    api_key=api_key
-                )
+
+                self.llm = ChatOpenAI(model="gpt-4", temperature=0.1, api_key=api_key)
                 logger.info("CrewAI using OpenAI GPT-4")
             else:
                 logger.error("OPENAI_API_KEY not set")
                 self.llm = None
 
     def get_context_types(self) -> List[str]:
-        return [
-            "crew_audit_plan",
-            "crew_findings",
-            "crew_summary"
-        ]
+        return ["crew_audit_plan", "crew_findings", "crew_summary"]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -149,13 +141,14 @@ class CrewAICoordinator(BaseAgent):
         if not self.crewai_available:
             return {
                 "error": "CrewAI not installed",
-                "install_command": "pip install crewai crewai-tools"
+                "install_command": "pip install crewai crewai-tools",
             }
 
         import time
+
         start_time = time.time()
 
-        print(f"\n🎭 CrewAI Multi-Agent Coordination Starting...")
+        print("\n🎭 CrewAI Multi-Agent Coordination Starting...")
         print(f"   Contract: {contract_path}")
         print(f"   LLM: {self.llm_model}")
 
@@ -189,7 +182,7 @@ class CrewAICoordinator(BaseAgent):
             return {
                 "error": str(e),
                 "crew_findings": [],
-                "execution_time": time.time() - start_time
+                "execution_time": time.time() - start_time,
             }
 
     def _create_agents(self, contract_path: str) -> Dict[str, Any]:
@@ -197,71 +190,66 @@ class CrewAICoordinator(BaseAgent):
 
         # Senior Security Auditor
         senior_auditor = self.Agent(
-            role='Senior Smart Contract Security Auditor',
-            goal='Identify all security vulnerabilities in the smart contract',
+            role="Senior Smart Contract Security Auditor",
+            goal="Identify all security vulnerabilities in the smart contract",
             backstory="""You are a veteran smart contract security auditor with 10+ years
             of experience. You've audited hundreds of DeFi protocols and have an exceptional
             track record of finding critical vulnerabilities. You use tools like Slither,
             Mythril, and your deep knowledge of Solidity to perform thorough audits.""",
             verbose=self.verbose,
             allow_delegation=True,
-            llm=self.llm
+            llm=self.llm,
         )
 
         # Security Critic
         security_critic = self.Agent(
-            role='Security Validation Specialist',
-            goal='Validate findings and eliminate false positives',
+            role="Security Validation Specialist",
+            goal="Validate findings and eliminate false positives",
             backstory="""You are a meticulous security critic who validates audit findings.
             You have extensive experience in distinguishing real vulnerabilities from false
             positives. You challenge every finding with rigorous analysis and demand proof.""",
             verbose=self.verbose,
             allow_delegation=False,
-            llm=self.llm
+            llm=self.llm,
         )
 
         # Compliance Officer
         compliance_officer = self.Agent(
-            role='Security Compliance Officer',
-            goal='Map findings to security standards and compliance frameworks',
+            role="Security Compliance Officer",
+            goal="Map findings to security standards and compliance frameworks",
             backstory="""You are a compliance expert specializing in blockchain security
             standards. You know ISO 27001, OWASP, NIST, and all relevant smart contract
             security frameworks. You excel at mapping vulnerabilities to compliance requirements.""",
             verbose=self.verbose,
             allow_delegation=False,
-            llm=self.llm
+            llm=self.llm,
         )
 
         # Report Writer
         report_writer = self.Agent(
-            role='Technical Report Writer',
-            goal='Synthesize findings into clear, actionable security reports',
+            role="Technical Report Writer",
+            goal="Synthesize findings into clear, actionable security reports",
             backstory="""You are an expert technical writer who specializes in security
             reports. You transform complex technical findings into clear, actionable
             recommendations for developers and stakeholders.""",
             verbose=self.verbose,
             allow_delegation=False,
-            llm=self.llm
+            llm=self.llm,
         )
 
         return {
-            'senior_auditor': senior_auditor,
-            'security_critic': security_critic,
-            'compliance_officer': compliance_officer,
-            'report_writer': report_writer
+            "senior_auditor": senior_auditor,
+            "security_critic": security_critic,
+            "compliance_officer": compliance_officer,
+            "report_writer": report_writer,
         }
 
-    def _create_tasks(
-        self,
-        agents: Dict,
-        contract_path: str,
-        **kwargs
-    ) -> List:
+    def _create_tasks(self, agents: Dict, contract_path: str, **kwargs) -> List:
         """Create tasks for the crew"""
 
         # Read contract
         try:
-            with open(contract_path, 'r') as f:
+            with open(contract_path, "r") as f:
                 contract_code = f.read()
         except Exception as e:
             logger.error(f"Error reading contract: {e}")
@@ -287,8 +275,8 @@ Provide a detailed list of vulnerabilities with:
 - Location in code
 - Description
 - Potential exploit scenario""",
-            agent=agents['senior_auditor'],
-            expected_output="Detailed list of vulnerabilities with severity, location, and descriptions"
+            agent=agents["senior_auditor"],
+            expected_output="Detailed list of vulnerabilities with severity, location, and descriptions",
         )
 
         # Task 2: Validation
@@ -302,9 +290,9 @@ For each finding:
 4. Provide confidence score (0-100%)
 
 Remove any false positives and only report confirmed vulnerabilities.""",
-            agent=agents['security_critic'],
+            agent=agents["security_critic"],
             expected_output="Validated list of vulnerabilities with confidence scores",
-            context=[audit_task]  # Depends on audit_task
+            context=[audit_task],  # Depends on audit_task
         )
 
         # Task 3: Compliance Mapping
@@ -318,9 +306,9 @@ For each vulnerability:
 4. Map to NIST recommendations
 
 Provide compliance impact assessment.""",
-            agent=agents['compliance_officer'],
+            agent=agents["compliance_officer"],
             expected_output="Compliance mapping for each vulnerability",
-            context=[validation_task]
+            context=[validation_task],
         )
 
         # Task 4: Final Report
@@ -340,9 +328,9 @@ Include:
 5. Actionable recommendations
 
 Make it clear and actionable for developers.""",
-            agent=agents['report_writer'],
+            agent=agents["report_writer"],
             expected_output="Comprehensive security audit report",
-            context=[validation_task, compliance_task]
+            context=[validation_task, compliance_task],
         )
 
         return [audit_task, validation_task, compliance_task, report_task]
@@ -354,7 +342,7 @@ Make it clear and actionable for developers.""",
             agents=list(agents.values()),
             tasks=tasks,
             process=self.Process.sequential,  # Sequential execution
-            verbose=self.verbose
+            verbose=self.verbose,
         )
 
         return crew
@@ -369,18 +357,23 @@ Make it clear and actionable for developers.""",
 
         return {
             "crew_audit_plan": {
-                "agents": ["Senior Auditor", "Security Critic", "Compliance Officer", "Report Writer"],
+                "agents": [
+                    "Senior Auditor",
+                    "Security Critic",
+                    "Compliance Officer",
+                    "Report Writer",
+                ],
                 "workflow": "sequential",
-                "timestamp": datetime.utcnow().isoformat() + "Z"
+                "timestamp": datetime.utcnow().isoformat() + "Z",
             },
             "crew_findings": findings,
             "crew_summary": {
                 "total_findings": len(findings),
                 "execution_time": execution_time,
                 "llm_model": self.llm_model,
-                "raw_output": raw_result[:500] + "..." if len(raw_result) > 500 else raw_result
+                "raw_output": raw_result[:500] + "..." if len(raw_result) > 500 else raw_result,
             },
-            "execution_time": execution_time
+            "execution_time": execution_time,
         }
 
     def _parse_findings_from_text(self, text: str) -> List[Dict[str, Any]]:
@@ -389,39 +382,39 @@ Make it clear and actionable for developers.""",
         findings = []
 
         # Simple parsing - look for severity indicators
-        lines = text.split('\n')
+        lines = text.split("\n")
 
         current_finding = {}
         for line in lines:
             line = line.strip()
 
             # Look for severity indicators
-            if 'critical' in line.lower():
+            if "critical" in line.lower():
                 if current_finding:
                     findings.append(current_finding)
-                current_finding = {'severity': 'Critical', 'description': line}
-            elif 'high' in line.lower() and 'severity' in line.lower():
+                current_finding = {"severity": "Critical", "description": line}
+            elif "high" in line.lower() and "severity" in line.lower():
                 if current_finding:
                     findings.append(current_finding)
-                current_finding = {'severity': 'High', 'description': line}
-            elif 'medium' in line.lower() and 'severity' in line.lower():
+                current_finding = {"severity": "High", "description": line}
+            elif "medium" in line.lower() and "severity" in line.lower():
                 if current_finding:
                     findings.append(current_finding)
-                current_finding = {'severity': 'Medium', 'description': line}
+                current_finding = {"severity": "Medium", "description": line}
             elif current_finding:
                 # Add to current finding description
-                current_finding['description'] = current_finding.get('description', '') + ' ' + line
+                current_finding["description"] = current_finding.get("description", "") + " " + line
 
         if current_finding:
             findings.append(current_finding)
 
         # Add metadata to each finding
         for idx, finding in enumerate(findings):
-            finding['id'] = f"CREW-{idx+1:03d}"
-            finding['source'] = 'CrewAI'
-            finding['category'] = 'Multi-Agent Analysis'
-            finding.setdefault('severity', 'Medium')
-            finding.setdefault('description', 'Finding detected by multi-agent crew')
+            finding["id"] = f"CREW-{idx+1:03d}"
+            finding["source"] = "CrewAI"
+            finding["category"] = "Multi-Agent Analysis"
+            finding.setdefault("severity", "Medium")
+            finding.setdefault("description", "Finding detected by multi-agent crew")
 
         return findings
 
@@ -442,9 +435,7 @@ if __name__ == "__main__":
 
     # Create coordinator
     coordinator = CrewAICoordinator(
-        use_local_llm=True,
-        llm_model="ollama/codellama:13b",
-        verbose=True
+        use_local_llm=True, llm_model="ollama/codellama:13b", verbose=True
     )
 
     # Run analysis
@@ -458,13 +449,13 @@ if __name__ == "__main__":
     findings = results.get("crew_findings", [])
     summary = results.get("crew_summary", {})
 
-    print(f"\n📊 Summary:")
+    print("\n📊 Summary:")
     print(f"   Total Findings: {summary.get('total_findings', 0)}")
     print(f"   Execution Time: {summary.get('execution_time', 0):.2f}s")
     print(f"   LLM Model: {summary.get('llm_model', 'unknown')}")
 
     if findings:
-        print(f"\n🚨 Findings:")
+        print("\n🚨 Findings:")
         for finding in findings:
             print(f"\n   [{finding['id']}] {finding['severity']}")
             print(f"   {finding['description'][:100]}...")

@@ -20,15 +20,16 @@ Version: 4.1.0
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Set, Tuple
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class ComplianceFramework(Enum):
     """Supported compliance frameworks."""
+
     SWC = "SWC"  # Smart Contract Weakness Classification
     CWE = "CWE"  # Common Weakness Enumeration
     ISO27001 = "ISO27001"  # ISO/IEC 27001:2022
@@ -40,6 +41,7 @@ class ComplianceFramework(Enum):
 @dataclass
 class ComplianceMapping:
     """Mapping of a finding to compliance frameworks."""
+
     swc_id: Optional[str] = None
     swc_title: Optional[str] = None
     cwe_ids: List[str] = field(default_factory=list)
@@ -56,6 +58,7 @@ class ComplianceMapping:
 @dataclass
 class ComplianceReport:
     """Compliance assessment report."""
+
     total_findings: int
     mapped_findings: int
     frameworks_covered: List[str]
@@ -268,13 +271,11 @@ class ComplianceMapper:
         "reentrancy-benign": "SWC-107",
         "reentrancy-events": "SWC-107",
         "reentrancy-unlimited-gas": "SWC-107",
-
         # Integer issues
         "integer-overflow": "SWC-101",
         "integer-underflow": "SWC-101",
         "arithmetic": "SWC-101",
         "unchecked-math": "SWC-101",
-
         # Access control
         "unprotected-upgrade": "SWC-105",
         "suicidal": "SWC-106",
@@ -283,62 +284,50 @@ class ComplianceMapper:
         "tx.origin": "SWC-115",
         "missing-access-control": "SWC-105",
         "access-control": "SWC-105",
-
         # External calls
         "unchecked-call": "SWC-104",
         "unchecked-lowlevel": "SWC-104",
         "unchecked-send": "SWC-104",
         "unchecked-return": "SWC-104",
         "low-level-calls": "SWC-104",
-
         # Delegatecall
         "delegatecall": "SWC-112",
         "delegatecall-loop": "SWC-112",
         "controlled-delegatecall": "SWC-112",
-
         # DoS
         "dos": "SWC-113",
         "dos-with-block-gas-limit": "SWC-128",
         "gas-limit": "SWC-128",
-
         # Randomness
         "weak-randomness": "SWC-120",
         "bad-randomness": "SWC-120",
         "block-timestamp": "SWC-116",
         "timestamp": "SWC-116",
-
         # Front-running
         "front-running": "SWC-114",
         "transaction-order-dependence": "SWC-114",
         "tod": "SWC-114",
-
         # Signature
         "signature-malleability": "SWC-117",
         "missing-signature-verification": "SWC-122",
         "signature-replay": "SWC-121",
-
         # Visibility
         "function-visibility": "SWC-100",
         "state-visibility": "SWC-108",
-
         # Compiler
         "outdated-compiler": "SWC-102",
         "floating-pragma": "SWC-103",
         "pragma": "SWC-103",
-
         # Storage
         "uninitialized-storage": "SWC-109",
         "arbitrary-storage": "SWC-124",
         "storage-pointer": "SWC-109",
-
         # Assert
         "assert-violation": "SWC-110",
         "require-violation": "SWC-123",
-
         # Shadowing
         "shadowing": "SWC-119",
         "shadowing-state": "SWC-119",
-
         # Other
         "deprecated-functions": "SWC-111",
         "incorrect-constructor": "SWC-118",
@@ -405,12 +394,14 @@ class ComplianceMapper:
 
         # Calculate compliance score (based on coverage)
         total_possible = 4  # SWC, CWE, ISO, NIST
-        covered = sum([
-            1 if swc_id else 0,
-            1 if cwe_ids else 0,
-            1 if iso_controls else 0,
-            1 if nist_functions else 0,
-        ])
+        covered = sum(
+            [
+                1 if swc_id else 0,
+                1 if cwe_ids else 0,
+                1 if iso_controls else 0,
+                1 if nist_functions else 0,
+            ]
+        )
         compliance_score = covered / total_possible
 
         # Get SWC title
@@ -462,9 +453,9 @@ class ComplianceMapper:
             swc_id=swc_id,
             swc_title=swc_title,
             cwe_ids=list(cwe_ids),
-            iso27001_controls=sorted(list(iso_controls)),
-            nist_csf_functions=sorted(list(nist_functions)),
-            owasp_sc_categories=sorted(list(owasp_categories)),
+            iso27001_controls=sorted(iso_controls),
+            nist_csf_functions=sorted(nist_functions),
+            owasp_sc_categories=sorted(owasp_categories),
             compliance_score=compliance_score,
         )
 
@@ -512,7 +503,9 @@ class ComplianceMapper:
 
         coverage = {
             "ISO27001": len(all_iso_controls) / total_iso_controls if total_iso_controls else 0,
-            "NIST_CSF": len(all_nist_functions) / 23 if all_nist_functions else 0,  # ~23 subcategories
+            "NIST_CSF": (
+                len(all_nist_functions) / 23 if all_nist_functions else 0
+            ),  # ~23 subcategories
             "OWASP_SC": len(all_owasp_categories) / total_owasp if total_owasp else 0,
         }
 
@@ -537,9 +530,7 @@ class ComplianceMapper:
                 "Consider additional security controls to improve ISO 27001 compliance coverage"
             )
         if not all_nist_functions or len(all_nist_functions) < 5:
-            recommendations.append(
-                "Expand monitoring to cover more NIST CSF functions"
-            )
+            recommendations.append("Expand monitoring to cover more NIST CSF functions")
         if mapped_count < len(findings):
             recommendations.append(
                 f"{len(findings) - mapped_count} findings could not be mapped to standards - review for custom categorization"

@@ -1132,7 +1132,7 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
 
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = FileNotFoundError()
-            result = adapter.is_available()
+            adapter.is_available()
             # Should handle gracefully
 
     def test_is_available_configuration_error(self):
@@ -1143,7 +1143,7 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
 
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = Exception("Config error")
-            result = adapter.is_available()
+            adapter.is_available()
 
     def test_analyze_tool_not_available(self, temp_contract):
         """Test analyze when tool is not available."""
@@ -1221,14 +1221,14 @@ class TestDogeFuzzAdapterCoverage(TestAdapterBase):
         from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
-        assert adapter.can_analyze(temp_contract) == True
+        assert adapter.can_analyze(temp_contract)
 
     def test_can_analyze_non_sol_file(self):
         """Test can_analyze with non-.sol file."""
         from src.adapters.dogefuzz_adapter import DogeFuzzAdapter
 
         adapter = DogeFuzzAdapter()
-        assert adapter.can_analyze("/path/to/file.txt") == False
+        assert not adapter.can_analyze("/path/to/file.txt")
 
     def test_get_default_config(self):
         """Test get_default_config returns expected keys."""
@@ -1361,14 +1361,14 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
         from src.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
-        assert adapter.can_analyze(temp_contract) == True
+        assert adapter.can_analyze(temp_contract)
 
     def test_can_analyze_non_sol_file(self):
         """Test can_analyze with non-.sol file."""
         from src.adapters.slither_adapter import SlitherAdapter
 
         adapter = SlitherAdapter()
-        assert adapter.can_analyze("/path/to/file.txt") == False
+        assert not adapter.can_analyze("/path/to/file.txt")
 
     def test_can_analyze_directory(self):
         """Test can_analyze with directory."""
@@ -1380,7 +1380,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
         with tempfile.TemporaryDirectory() as tmpdir:
             # Empty dir should return False
             result = adapter.can_analyze(tmpdir)
-            assert result == False
+            assert not result
 
     def test_get_default_config(self):
         """Test get_default_config returns expected keys."""
@@ -1467,7 +1467,7 @@ class TestSlitherAdapterCoverage(TestAdapterBase):
             with open(sol_file, "w") as f:
                 f.write("pragma solidity ^0.8.0; contract Test {}")
             result = adapter.can_analyze(tmpdir)
-            assert result == True
+            assert result
 
 
 class TestEchidnaAdapterCoverage(TestAdapterBase):
@@ -2156,7 +2156,7 @@ class TestManticoreAdapterExtended(TestAdapterBase):
         from src.adapters.manticore_adapter import ManticoreAdapter
 
         adapter = ManticoreAdapter()
-        assert adapter.can_analyze("/path/to/file.txt") == False
+        assert not adapter.can_analyze("/path/to/file.txt")
 
     def test_normalize_findings_list(self):
         """Test normalize_findings with list input."""
@@ -2214,10 +2214,10 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
         adapter = MEVDetectorAdapter()
         # DeFi contract
         defi_code = "contract Test { function swap() {} function liquidity() {} }"
-        assert adapter._is_defi_contract(defi_code) == True
+        assert adapter._is_defi_contract(defi_code)
         # Non-DeFi contract
         regular_code = "contract Test { function transfer() {} }"
-        assert adapter._is_defi_contract(regular_code) == False
+        assert not adapter._is_defi_contract(regular_code)
 
     def test_calculate_mev_risk_empty(self):
         """Test _calculate_mev_risk with empty findings."""
@@ -2329,8 +2329,8 @@ class TestMEVDetectorAdapterExtended(TestAdapterBase):
         from src.adapters.mev_detector_adapter import MEVDetectorAdapter
 
         adapter = MEVDetectorAdapter()
-        assert adapter.can_analyze("/path/to/contract.sol") == True
-        assert adapter.can_analyze("/path/to/contract.txt") == False
+        assert adapter.can_analyze("/path/to/contract.sol")
+        assert not adapter.can_analyze("/path/to/contract.txt")
 
     def test_normalize_findings_empty(self):
         """Test normalize_findings with empty dict."""
@@ -2573,7 +2573,7 @@ class TestEchidnaAdapterExtended(TestAdapterBase):
         adapter = EchidnaAdapter()
         # Non-existent file
         result = adapter.can_analyze("/nonexistent/file.sol")
-        assert result == False
+        assert not result
 
     def test_get_default_config_keys(self):
         """Test get_default_config returns expected keys."""
@@ -2603,7 +2603,7 @@ class TestSolhintAdapterExtended(TestAdapterBase):
         adapter = SolhintAdapter(config=config)
         assert adapter.formatter == "stylish"
         assert adapter.max_warnings == 10
-        assert adapter.quiet == True
+        assert adapter.quiet
         assert adapter.timeout == 120
 
     def test_is_available_config_error_exception(self):
@@ -2898,19 +2898,19 @@ class TestSolhintAdapterExtended(TestAdapterBase):
         adapter = SolhintAdapter()
         with tempfile.TemporaryDirectory() as tmpdir:
             # Empty dir
-            assert adapter.can_analyze(tmpdir) == False
+            assert not adapter.can_analyze(tmpdir)
             # Dir with .sol file
             sol_file = os.path.join(tmpdir, "test.sol")
             with open(sol_file, "w") as f:
                 f.write("pragma solidity ^0.8.0;")
-            assert adapter.can_analyze(tmpdir) == True
+            assert adapter.can_analyze(tmpdir)
 
     def test_can_analyze_non_sol(self):
         """Test can_analyze with non-.sol file."""
         from src.adapters.solhint_adapter import SolhintAdapter
 
         adapter = SolhintAdapter()
-        assert adapter.can_analyze("/path/to/file.txt") == False
+        assert not adapter.can_analyze("/path/to/file.txt")
 
     def test_get_default_config_keys(self):
         """Test get_default_config returns expected keys."""
@@ -3404,7 +3404,7 @@ class TestOpenLLaMAHelper:
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = FileNotFoundError()
             result = helper.is_available()
-            assert result == False
+            assert not result
 
     def test_is_available_timeout(self):
         """Test is_available when timeout."""
@@ -3415,7 +3415,7 @@ class TestOpenLLaMAHelper:
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.TimeoutExpired(cmd="ollama", timeout=5)
             result = helper.is_available()
-            assert result == False
+            assert not result
 
     def test_is_available_model_not_found(self):
         """Test is_available when model not found."""
@@ -3426,7 +3426,7 @@ class TestOpenLLaMAHelper:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout="llama2")
             result = helper.is_available()
-            assert result == False
+            assert not result
 
     def test_is_available_model_found(self):
         """Test is_available when model found."""
@@ -3437,7 +3437,7 @@ class TestOpenLLaMAHelper:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout="deepseek-coder")
             result = helper.is_available()
-            assert result == True
+            assert result
 
     def test_enhance_findings_not_available(self):
         """Test enhance_findings when LLM not available."""
@@ -3673,7 +3673,7 @@ class TestCorrelationAPI:
         )
         assert api.confidence_threshold == 0.6
         assert api.fp_threshold == 0.7
-        assert api.enable_clustering == False
+        assert not api.enable_clustering
 
     def test_add_tool_results(self):
         """Test add_tool_results method."""
@@ -3908,12 +3908,12 @@ class TestHealthChecker:
         )
 
         assert health.name == "slither"
-        assert health.available == True
+        assert health.available
 
         d = health.to_dict()
         assert d["name"] == "slither"
         assert d["status"] == "healthy"
-        assert d["available"] == True
+        assert d["available"]
         assert d["version"] == "0.10.0"
         assert "last_check" in d
 
@@ -3970,7 +3970,7 @@ class TestHealthChecker:
         health = checker.check_tool("nonexistent_tool")
 
         assert health.status == HealthStatus.UNKNOWN
-        assert health.available == False
+        assert not health.available
         assert "not found" in health.error_message.lower()
 
     def test_health_checker_check_tool_with_cache(self):
@@ -3988,7 +3988,7 @@ class TestHealthChecker:
         # Should return cached result
         result = checker.check_tool("test_tool", use_cache=True)
         assert result.name == "test_tool"
-        assert result.available == True
+        assert result.available
 
     def test_health_checker_clear_cache(self):
         """Test clear_cache method."""
@@ -4027,7 +4027,7 @@ class TestToolDiscovery:
         d = info.to_dict()
         assert d["name"] == "slither"
         assert d["layer"] == "static_analysis"
-        assert d["available"] == True
+        assert d["available"]
 
     def test_tool_discovery_init(self):
         """Test ToolDiscovery initialization."""
@@ -4035,7 +4035,7 @@ class TestToolDiscovery:
 
         discovery = ToolDiscovery()
         assert discovery._tools == {}
-        assert discovery._discovered == False
+        assert not discovery._discovered
 
     def test_tool_discovery_name_mapping(self):
         """Test ToolDiscovery has name mappings."""
@@ -4061,7 +4061,7 @@ class TestToolDiscovery:
 
         assert isinstance(tools, dict)
         # Should find at least some tools
-        assert discovery._discovered == True
+        assert discovery._discovered
 
     def test_tool_discovery_get_tool(self):
         """Test get_tool method."""
@@ -4165,7 +4165,7 @@ class TestResultAggregator:
 
         d = agg.to_dict()
         assert d["id"] == "AGG-1"
-        assert d["cross_validated"] == True
+        assert d["cross_validated"]
         assert len(d["confirmed_by"]) == 2
 
     def test_result_aggregator_init(self):
@@ -4422,7 +4422,7 @@ class TestAdaptersRegistry:
         register_all_adapters()
 
         # Try to get an adapter
-        adapter = get_adapter_by_name("slither")
+        get_adapter_by_name("slither")
         # May or may not be found depending on environment
         # The important thing is it doesn't raise an error
 

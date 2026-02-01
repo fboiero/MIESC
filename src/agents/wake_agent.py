@@ -33,9 +33,9 @@ class WakeAgent(BaseAgent):
                 "property_fuzzing",
                 "static_analysis",
                 "vulnerability_detection",
-                "deployment_scripting"
+                "deployment_scripting",
             ],
-            agent_type="hybrid"  # Can do both static and dynamic
+            agent_type="hybrid",  # Can do both static and dynamic
         )
         self.wake_path = self._find_wake()
 
@@ -48,16 +48,13 @@ class WakeAgent(BaseAgent):
         locations = [
             "wake",  # PATH (usually venv)
             os.path.expanduser("~/.local/bin/wake"),
-            "/usr/local/bin/wake"
+            "/usr/local/bin/wake",
         ]
 
         for location in locations:
             try:
                 result = subprocess.run(
-                    [location, "--version"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
+                    [location, "--version"], capture_output=True, text=True, timeout=5
                 )
                 if result.returncode == 0:
                     return location
@@ -89,7 +86,7 @@ class WakeAgent(BaseAgent):
         if not self.is_available():
             return {
                 "error": "Wake not installed",
-                "suggestion": "Install with: pip install eth-wake"
+                "suggestion": "Install with: pip install eth-wake",
             }
 
         try:
@@ -137,11 +134,7 @@ class WakeAgent(BaseAgent):
             cmd.extend(paths)
 
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=60,
-            cwd=str(project_root)
+            cmd, capture_output=True, text=True, timeout=60, cwd=str(project_root)
         )
 
         # Parse output
@@ -155,7 +148,7 @@ class WakeAgent(BaseAgent):
             "mode": "detect",
             "version": self._get_version(),
             "status": "success" if result.returncode == 0 else "completed_with_findings",
-            "findings": findings
+            "findings": findings,
         }
 
     def _run_test(self, project_root: Path, **kwargs) -> Dict[str, Any]:
@@ -172,7 +165,7 @@ class WakeAgent(BaseAgent):
             capture_output=True,
             text=True,
             timeout=300,  # 5 minutes for fuzzing
-            cwd=str(project_root)
+            cwd=str(project_root),
         )
 
         # Parse output
@@ -186,7 +179,7 @@ class WakeAgent(BaseAgent):
             "mode": "test",
             "version": self._get_version(),
             "status": "success" if result.returncode == 0 else "completed_with_findings",
-            "findings": findings
+            "findings": findings,
         }
 
     def _run_compile(self, project_root: Path, **kwargs) -> Dict[str, Any]:
@@ -194,11 +187,7 @@ class WakeAgent(BaseAgent):
         cmd = [self.wake_path, "compile"]
 
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=60,
-            cwd=str(project_root)
+            cmd, capture_output=True, text=True, timeout=60, cwd=str(project_root)
         )
 
         return {
@@ -207,17 +196,14 @@ class WakeAgent(BaseAgent):
             "version": self._get_version(),
             "status": "success" if result.returncode == 0 else "failed",
             "stdout": result.stdout,
-            "stderr": result.stderr
+            "stderr": result.stderr,
         }
 
     def _get_version(self) -> str:
         """Get Wake version"""
         try:
             result = subprocess.run(
-                [self.wake_path, "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5
+                [self.wake_path, "--version"], capture_output=True, text=True, timeout=5
             )
             return result.stdout.strip()
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
@@ -225,13 +211,9 @@ class WakeAgent(BaseAgent):
 
     def _parse_detect_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """Parse Wake detect output"""
-        findings = {
-            "vulnerabilities": [],
-            "warnings": [],
-            "stats": {}
-        }
+        findings = {"vulnerabilities": [], "warnings": [], "stats": {}}
 
-        lines = (stdout + "\n" + stderr).split('\n')
+        lines = (stdout + "\n" + stderr).split("\n")
 
         vuln_count = 0
         warning_count = 0
@@ -242,10 +224,7 @@ class WakeAgent(BaseAgent):
             # Parse vulnerability reports
             if "Vulnerability:" in line or "vulnerability" in line.lower():
                 vuln_count += 1
-                findings["vulnerabilities"].append({
-                    "description": line,
-                    "severity": "high"
-                })
+                findings["vulnerabilities"].append({"description": line, "severity": "high"})
             elif "Warning:" in line or "warning" in line.lower():
                 warning_count += 1
                 findings["warnings"].append(line)
@@ -257,29 +236,18 @@ class WakeAgent(BaseAgent):
 
     def _parse_test_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """Parse Wake test output"""
-        findings = {
-            "passed": [],
-            "failed": [],
-            "stats": {}
-        }
+        findings = {"passed": [], "failed": [], "stats": {}}
 
-        lines = (stdout + "\n" + stderr).split('\n')
+        lines = (stdout + "\n" + stderr).split("\n")
 
         for line in lines:
             line = line.strip()
 
             # Parse test results
             if "PASSED" in line or "passed" in line:
-                findings["passed"].append({
-                    "test": line,
-                    "status": "pass"
-                })
+                findings["passed"].append({"test": line, "status": "pass"})
             elif "FAILED" in line or "failed" in line:
-                findings["failed"].append({
-                    "test": line,
-                    "status": "fail",
-                    "severity": "high"
-                })
+                findings["failed"].append({"test": line, "status": "fail", "severity": "high"})
 
         findings["stats"]["passed"] = len(findings["passed"])
         findings["stats"]["failed"] = len(findings["failed"])
@@ -297,9 +265,13 @@ class WakeAgent(BaseAgent):
                 findings={
                     "tool": "Wake",
                     "findings": findings,
-                    "timestamp": str(Path(contract).stat().st_mtime) if Path(contract).exists() else "unknown"
+                    "timestamp": (
+                        str(Path(contract).stat().st_mtime)
+                        if Path(contract).exists()
+                        else "unknown"
+                    ),
                 },
-                metadata={"tool_version": self._get_version(), "analysis_type": analysis_type}
+                metadata={"tool_version": self._get_version(), "analysis_type": analysis_type},
             )
         except Exception as e:
             # Non-critical, just log
@@ -330,7 +302,7 @@ class WakeAgent(BaseAgent):
             "vulnerabilities": len(vulns),
             "warnings": len(warnings),
             "status": "pass" if len(vulns) == 0 else "fail",
-            "critical_vulns": vulns[:3]  # Top 3
+            "critical_vulns": vulns[:3],  # Top 3
         }
 
     def get_capabilities(self) -> List[str]:
@@ -341,7 +313,7 @@ class WakeAgent(BaseAgent):
             "Vulnerability detection",
             "Static analysis",
             "Deployment scripting",
-            "LSP server integration"
+            "LSP server integration",
         ]
 
     def handle_message(self, message):
@@ -355,5 +327,5 @@ class WakeAgent(BaseAgent):
                 self.publish_findings(
                     context_type="audit_response",
                     findings=result,
-                    metadata={"request_source": message.agent}
+                    metadata={"request_source": message.agent},
                 )

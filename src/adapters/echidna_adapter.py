@@ -17,18 +17,21 @@ Date: November 11, 2025
 Version: 1.0.0
 """
 
+import logging
+import os
+import subprocess
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
 )
 from src.llm import enhance_findings_with_llm
-from typing import Dict, Any, List, Optional
-import subprocess
-import json
-import tempfile
-import os
-import time
-import logging
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +62,8 @@ class EchidnaAdapter(ToolAdapter):
             "invariant_violations",
             "assertion_failures",
             "property_violations",
-            "state_inconsistencies"
-        ]
+            "state_inconsistencies",
+        ],
     }
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -98,23 +101,23 @@ class EchidnaAdapter(ToolAdapter):
                     name="property_based_fuzzing",
                     description="Property-based fuzzing for invariant testing",
                     supported_languages=["solidity"],
-                    detection_types=["invariant_violations", "assertion_failures",
-                                   "property_violations"]
+                    detection_types=[
+                        "invariant_violations",
+                        "assertion_failures",
+                        "property_violations",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if Echidna is installed and available"""
         try:
             result = subprocess.run(
-                ["echidna", "--version"],
-                capture_output=True,
-                timeout=5,
-                text=True
+                ["echidna", "--version"], capture_output=True, timeout=5, text=True
             )
             if result.returncode == 0:
                 logger.debug(f"Echidna available: {result.stdout.strip()}")
@@ -160,7 +163,7 @@ class EchidnaAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "Echidna not available"
+                "error": "Echidna not available",
             }
 
         try:
@@ -197,7 +200,7 @@ class EchidnaAdapter(ToolAdapter):
                 capture_output=True,
                 timeout=self.timeout,
                 text=True,
-                cwd=os.path.dirname(contract_path) or "."
+                cwd=os.path.dirname(contract_path) or ".",
             )
 
             duration = time.time() - start_time
@@ -207,15 +210,13 @@ class EchidnaAdapter(ToolAdapter):
 
             # Enhance findings with OpenLLaMA (optional)
             try:
-                with open(contract_path, 'r') as f:
+                with open(contract_path, "r") as f:
                     contract_code = f.read()
 
                 # Enhance top findings with LLM insights
                 if findings:
                     findings = enhance_findings_with_llm(
-                        findings[:5],  # Top 5 findings
-                        contract_code,
-                        "echidna"
+                        findings[:5], contract_code, "echidna"  # Top 5 findings
                     )
             except Exception as e:
                 logger.debug(f"LLM enhancement failed: {e}")
@@ -233,7 +234,7 @@ class EchidnaAdapter(ToolAdapter):
                 "tests_run": tests_run,
                 "coverage": coverage_info,
                 "test_limit": self.test_limit,
-                "dpga_compliant": True
+                "dpga_compliant": True,
             }
 
         except subprocess.TimeoutExpired:
@@ -243,7 +244,7 @@ class EchidnaAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": self.timeout,
-                "error": f"Analysis timeout after {self.timeout}s"
+                "error": f"Analysis timeout after {self.timeout}s",
             }
         except FileNotFoundError:
             return {
@@ -251,7 +252,7 @@ class EchidnaAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": f"Contract file not found: {contract_path}"
+                "error": f"Contract file not found: {contract_path}",
             }
         except Exception as e:
             logger.error(f"Echidna analysis failed: {str(e)}")
@@ -260,7 +261,7 @@ class EchidnaAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def _parse_output(self, stdout: str, stderr: str) -> List[Dict[str, Any]]:
@@ -275,7 +276,7 @@ class EchidnaAdapter(ToolAdapter):
         """
         findings = []
 
-        lines = stdout.split('\n')
+        lines = stdout.split("\n")
         current_finding = None
         call_sequence = []
 
@@ -283,7 +284,7 @@ class EchidnaAdapter(ToolAdapter):
             line = line.strip()
 
             # Detect failed property
-            if 'failed' in line.lower() and ':' in line:
+            if "failed" in line.lower() and ":" in line:
                 if current_finding:
                     # Save previous finding
                     current_finding["call_sequence"] = call_sequence
@@ -291,28 +292,30 @@ class EchidnaAdapter(ToolAdapter):
                     call_sequence = []
 
                 # Start new finding
-                property_name = line.split(':')[0].strip()
+                property_name = line.split(":")[0].strip()
                 current_finding = {
                     "type": "property_violation",
                     "severity": "high",
                     "property": property_name,
                     "description": f"Property {property_name} violated during fuzzing",
-                    "recommendation": "Review the property definition and fix the contract logic"
+                    "recommendation": "Review the property definition and fix the contract logic",
                 }
 
             # Detect assertion failures
-            elif 'assertion' in line.lower() and 'failed' in line.lower():
-                findings.append({
-                    "type": "assertion_failure",
-                    "severity": "critical",
-                    "description": line,
-                    "recommendation": "Fix the assertion failure in the contract"
-                })
+            elif "assertion" in line.lower() and "failed" in line.lower():
+                findings.append(
+                    {
+                        "type": "assertion_failure",
+                        "severity": "critical",
+                        "description": line,
+                        "recommendation": "Fix the assertion failure in the contract",
+                    }
+                )
 
             # Extract call sequence
-            elif line.startswith(tuple('0123456789')) and '.' in line:
+            elif line.startswith(tuple("0123456789")) and "." in line:
                 # Extract function call from numbered line
-                parts = line.split('.', 1)
+                parts = line.split(".", 1)
                 if len(parts) == 2:
                     call_sequence.append(parts[1].strip())
 
@@ -327,7 +330,8 @@ class EchidnaAdapter(ToolAdapter):
         """Extract number of tests run from output"""
         # Look for patterns like "Ran 50000 tests"
         import re
-        match = re.search(r'(\d+)\s+tests?', output, re.IGNORECASE)
+
+        match = re.search(r"(\d+)\s+tests?", output, re.IGNORECASE)
         if match:
             return int(match.group(1))
         return 0
@@ -336,10 +340,7 @@ class EchidnaAdapter(ToolAdapter):
         """Extract coverage information from output"""
         # Echidna doesn't always provide detailed coverage
         # Return basic coverage info if available
-        return {
-            "available": False,
-            "note": "Enable coverage with --coverage in config"
-        }
+        return {"available": False, "note": "Enable coverage with --coverage in config"}
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         """
@@ -361,7 +362,7 @@ class EchidnaAdapter(ToolAdapter):
     def can_analyze(self, contract_path: str) -> bool:
         """Check if file can be analyzed"""
         path = Path(contract_path)
-        return path.suffix == '.sol' and path.exists()
+        return path.suffix == ".sol" and path.exists()
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration for Echidna"""
@@ -370,17 +371,14 @@ class EchidnaAdapter(ToolAdapter):
             "timeout": 600,
             "test_mode": "property",
             "format": "text",
-            "coverage": False
+            "coverage": False,
         }
 
 
 # Adapter registration
 def register_adapter():
     """Register Echidna adapter with MIESC"""
-    return {
-        "adapter_class": EchidnaAdapter,
-        "metadata": EchidnaAdapter.METADATA
-    }
+    return {"adapter_class": EchidnaAdapter, "metadata": EchidnaAdapter.METADATA}
 
 
 __all__ = ["EchidnaAdapter", "register_adapter"]

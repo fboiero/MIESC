@@ -3,22 +3,23 @@ MIESC Feedback Loop System
 Sistema de mejora continua basado en feedback de usuarios y métricas.
 """
 
-import os
-import json
 import hashlib
+import json
 import logging
-from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple, Callable
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timedelta
+import os
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class FeedbackType(Enum):
     """Tipos de feedback."""
+
     TRUE_POSITIVE = "true_positive"
     FALSE_POSITIVE = "false_positive"
     SEVERITY_CORRECT = "severity_correct"
@@ -31,6 +32,7 @@ class FeedbackType(Enum):
 @dataclass
 class UserFeedback:
     """Feedback de usuario sobre un hallazgo."""
+
     finding_id: str
     feedback_type: FeedbackType
     timestamp: datetime
@@ -40,29 +42,30 @@ class UserFeedback:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'finding_id': self.finding_id,
-            'feedback_type': self.feedback_type.value,
-            'timestamp': self.timestamp.isoformat(),
-            'user_id': self.user_id,
-            'notes': self.notes,
-            'context': self.context,
+            "finding_id": self.finding_id,
+            "feedback_type": self.feedback_type.value,
+            "timestamp": self.timestamp.isoformat(),
+            "user_id": self.user_id,
+            "notes": self.notes,
+            "context": self.context,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'UserFeedback':
+    def from_dict(cls, data: Dict[str, Any]) -> "UserFeedback":
         return cls(
-            finding_id=data['finding_id'],
-            feedback_type=FeedbackType(data['feedback_type']),
-            timestamp=datetime.fromisoformat(data['timestamp']),
-            user_id=data.get('user_id', 'anonymous'),
-            notes=data.get('notes', ''),
-            context=data.get('context', {}),
+            finding_id=data["finding_id"],
+            feedback_type=FeedbackType(data["feedback_type"]),
+            timestamp=datetime.fromisoformat(data["timestamp"]),
+            user_id=data.get("user_id", "anonymous"),
+            notes=data.get("notes", ""),
+            context=data.get("context", {}),
         )
 
 
 @dataclass
 class ToolPerformanceMetrics:
     """Métricas de rendimiento por herramienta."""
+
     tool_name: str
     total_findings: int = 0
     true_positives: int = 0
@@ -84,7 +87,9 @@ class ToolPerformanceMetrics:
 
         # F1 score (asumiendo recall = precision por simplicidad sin ground truth completo)
         if self.precision > 0:
-            self.f1_score = 2 * (self.precision * self.precision) / (self.precision + self.precision)
+            self.f1_score = (
+                2 * (self.precision * self.precision) / (self.precision + self.precision)
+            )
         else:
             self.f1_score = 0.0
 
@@ -92,21 +97,22 @@ class ToolPerformanceMetrics:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'tool_name': self.tool_name,
-            'total_findings': self.total_findings,
-            'true_positives': self.true_positives,
-            'false_positives': self.false_positives,
-            'severity_accuracy': round(self.severity_accuracy, 3),
-            'avg_confidence': round(self.avg_confidence, 3),
-            'precision': round(self.precision, 3),
-            'f1_score': round(self.f1_score, 3),
-            'last_updated': self.last_updated.isoformat() if self.last_updated else None,
+            "tool_name": self.tool_name,
+            "total_findings": self.total_findings,
+            "true_positives": self.true_positives,
+            "false_positives": self.false_positives,
+            "severity_accuracy": round(self.severity_accuracy, 3),
+            "avg_confidence": round(self.avg_confidence, 3),
+            "precision": round(self.precision, 3),
+            "f1_score": round(self.f1_score, 3),
+            "last_updated": self.last_updated.isoformat() if self.last_updated else None,
         }
 
 
 @dataclass
 class VulnerabilityTypeStats:
     """Estadísticas por tipo de vulnerabilidad."""
+
     vuln_type: str
     occurrences: int = 0
     confirmed: int = 0
@@ -165,15 +171,17 @@ class FeedbackStore:
         metrics = {}
         for name, m in data.items():
             metrics[name] = ToolPerformanceMetrics(
-                tool_name=m['tool_name'],
-                total_findings=m.get('total_findings', 0),
-                true_positives=m.get('true_positives', 0),
-                false_positives=m.get('false_positives', 0),
-                severity_accuracy=m.get('severity_accuracy', 0.0),
-                avg_confidence=m.get('avg_confidence', 0.0),
-                precision=m.get('precision', 0.0),
-                f1_score=m.get('f1_score', 0.0),
-                last_updated=datetime.fromisoformat(m['last_updated']) if m.get('last_updated') else None,
+                tool_name=m["tool_name"],
+                total_findings=m.get("total_findings", 0),
+                true_positives=m.get("true_positives", 0),
+                false_positives=m.get("false_positives", 0),
+                severity_accuracy=m.get("severity_accuracy", 0.0),
+                avg_confidence=m.get("avg_confidence", 0.0),
+                precision=m.get("precision", 0.0),
+                f1_score=m.get("f1_score", 0.0),
+                last_updated=(
+                    datetime.fromisoformat(m["last_updated"]) if m.get("last_updated") else None
+                ),
             )
         return metrics
 
@@ -185,7 +193,7 @@ class FeedbackStore:
 
     def _save_json(self, path: Path, data: Any) -> None:
         """Guarda JSON a disco."""
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(data, f, indent=2)
 
     def _load_json(self, path: Path) -> Any:
@@ -209,9 +217,9 @@ class ModelRetrainer:
     ) -> None:
         """Añade muestra a cola de entrenamiento."""
         sample = {
-            'finding': finding,
-            'label': feedback.feedback_type.value,
-            'timestamp': feedback.timestamp.isoformat(),
+            "finding": finding,
+            "label": feedback.feedback_type.value,
+            "timestamp": feedback.timestamp.isoformat(),
         }
         self._training_queue.append(sample)
 
@@ -234,8 +242,8 @@ class ModelRetrainer:
         labels = []
 
         for sample in self._training_queue:
-            features.append(sample['finding'])
-            labels.append(sample['label'])
+            features.append(sample["finding"])
+            labels.append(sample["label"])
 
         return features, labels
 
@@ -310,10 +318,10 @@ class FeedbackLoop:
             user_id=user_id,
             notes=notes,
             context={
-                'tool': finding.get('tool', 'unknown'),
-                'type': finding.get('type', ''),
-                'severity': finding.get('severity', ''),
-                'location': finding.get('location', {}),
+                "tool": finding.get("tool", "unknown"),
+                "type": finding.get("type", ""),
+                "severity": finding.get("severity", ""),
+                "location": finding.get("location", {}),
             },
         )
 
@@ -338,28 +346,28 @@ class FeedbackLoop:
             self._auto_adjust_confidence(finding, feedback)
 
         return {
-            'status': 'success',
-            'finding_id': finding_id,
-            'feedback_type': feedback_type.value,
-            'metrics_updated': True,
-            'retrain_recommended': self.retrainer.should_retrain(),
+            "status": "success",
+            "finding_id": finding_id,
+            "feedback_type": feedback_type.value,
+            "metrics_updated": True,
+            "retrain_recommended": self.retrainer.should_retrain(),
         }
 
     def _compute_finding_id(self, finding: Dict[str, Any]) -> str:
         """Genera ID único para un hallazgo."""
         parts = [
-            finding.get('tool', ''),
-            finding.get('type', ''),
-            str(finding.get('location', {}).get('file', '')),
-            str(finding.get('location', {}).get('line', 0)),
-            finding.get('message', '')[:100],
+            finding.get("tool", ""),
+            finding.get("type", ""),
+            str(finding.get("location", {}).get("file", "")),
+            str(finding.get("location", {}).get("line", 0)),
+            finding.get("message", "")[:100],
         ]
-        return hashlib.sha256('|'.join(parts).encode()).hexdigest()[:16]
+        return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
 
     def _update_metrics(self, finding: Dict[str, Any], feedback: UserFeedback) -> None:
         """Actualiza métricas basadas en feedback."""
-        tool = finding.get('tool', 'unknown')
-        vuln_type = finding.get('type', 'unknown')
+        tool = finding.get("tool", "unknown")
+        vuln_type = finding.get("type", "unknown")
 
         # Métricas por herramienta
         if tool not in self._tool_metrics:
@@ -376,16 +384,15 @@ class FeedbackLoop:
             # Incrementar accuracy de severidad
             total = metrics.true_positives + metrics.false_positives
             if total > 0:
-                metrics.severity_accuracy = (
-                    metrics.severity_accuracy * (total - 1) + 1.0
-                ) / total
-        elif feedback.feedback_type in [FeedbackType.SEVERITY_TOO_HIGH, FeedbackType.SEVERITY_TOO_LOW]:
+                metrics.severity_accuracy = (metrics.severity_accuracy * (total - 1) + 1.0) / total
+        elif feedback.feedback_type in [
+            FeedbackType.SEVERITY_TOO_HIGH,
+            FeedbackType.SEVERITY_TOO_LOW,
+        ]:
             # Decrementar accuracy de severidad
             total = metrics.true_positives + metrics.false_positives
             if total > 0:
-                metrics.severity_accuracy = (
-                    metrics.severity_accuracy * (total - 1) + 0.0
-                ) / total
+                metrics.severity_accuracy = (metrics.severity_accuracy * (total - 1) + 0.0) / total
 
         metrics.update_metrics()
 
@@ -415,21 +422,17 @@ class FeedbackLoop:
         feedback: UserFeedback,
     ) -> None:
         """Ajusta automáticamente confianza basada en feedback."""
-        tool = finding.get('tool', 'unknown')
-        vuln_type = finding.get('type', 'unknown')
+        tool = finding.get("tool", "unknown")
+        vuln_type = finding.get("type", "unknown")
         key = f"{tool}:{vuln_type}"
 
         if key not in self._confidence_adjustments:
             self._confidence_adjustments[key] = 0.0
 
         if feedback.feedback_type == FeedbackType.TRUE_POSITIVE:
-            self._confidence_adjustments[key] = min(
-                self._confidence_adjustments[key] + 0.02, 0.2
-            )
+            self._confidence_adjustments[key] = min(self._confidence_adjustments[key] + 0.02, 0.2)
         elif feedback.feedback_type == FeedbackType.FALSE_POSITIVE:
-            self._confidence_adjustments[key] = max(
-                self._confidence_adjustments[key] - 0.05, -0.3
-            )
+            self._confidence_adjustments[key] = max(self._confidence_adjustments[key] - 0.05, -0.3)
 
     def get_confidence_adjustment(self, tool: str, vuln_type: str) -> float:
         """Obtiene ajuste de confianza para combinación tool/tipo."""
@@ -438,17 +441,17 @@ class FeedbackLoop:
 
     def adjust_finding_confidence(self, finding: Dict[str, Any]) -> Dict[str, Any]:
         """Ajusta confianza de un hallazgo basado en feedback histórico."""
-        tool = finding.get('tool', 'unknown')
-        vuln_type = finding.get('type', 'unknown')
+        tool = finding.get("tool", "unknown")
+        vuln_type = finding.get("type", "unknown")
 
         adjustment = self.get_confidence_adjustment(tool, vuln_type)
-        original_confidence = finding.get('confidence', 0.7)
+        original_confidence = finding.get("confidence", 0.7)
         new_confidence = max(0.1, min(0.95, original_confidence + adjustment))
 
         adjusted = finding.copy()
-        adjusted['confidence'] = round(new_confidence, 3)
-        adjusted['_confidence_adjusted'] = True
-        adjusted['_adjustment'] = round(adjustment, 3)
+        adjusted["confidence"] = round(new_confidence, 3)
+        adjusted["_confidence_adjusted"] = True
+        adjusted["_adjustment"] = round(adjustment, 3)
 
         return adjusted
 
@@ -463,9 +466,9 @@ class FeedbackLoop:
     def get_vulnerability_insights(self) -> Dict[str, Any]:
         """Obtiene insights sobre tipos de vulnerabilidad."""
         insights = {
-            'most_common': [],
-            'most_disputed': [],
-            'tool_specializations': {},
+            "most_common": [],
+            "most_disputed": [],
+            "tool_specializations": {},
         }
 
         # Tipos más comunes
@@ -474,9 +477,8 @@ class FeedbackLoop:
             key=lambda x: x.occurrences,
             reverse=True,
         )
-        insights['most_common'] = [
-            {'type': s.vuln_type, 'count': s.occurrences}
-            for s in sorted_by_occurrence[:10]
+        insights["most_common"] = [
+            {"type": s.vuln_type, "count": s.occurrences} for s in sorted_by_occurrence[:10]
         ]
 
         # Tipos más disputados (alto ratio FP)
@@ -485,21 +487,23 @@ class FeedbackLoop:
             if total >= 5:  # Mínimo de muestras
                 dispute_rate = stats.disputed / total
                 if dispute_rate > 0.3:
-                    insights['most_disputed'].append({
-                        'type': stats.vuln_type,
-                        'dispute_rate': round(dispute_rate, 2),
-                        'total': total,
-                    })
+                    insights["most_disputed"].append(
+                        {
+                            "type": stats.vuln_type,
+                            "dispute_rate": round(dispute_rate, 2),
+                            "total": total,
+                        }
+                    )
 
-        insights['most_disputed'].sort(key=lambda x: -x['dispute_rate'])
+        insights["most_disputed"].sort(key=lambda x: -x["dispute_rate"])
 
         # Especialización de herramientas
         for stats in self._vuln_stats.values():
             if stats.detection_tools:
                 best_tool = max(stats.detection_tools.items(), key=lambda x: x[1])
-                if best_tool[0] not in insights['tool_specializations']:
-                    insights['tool_specializations'][best_tool[0]] = []
-                insights['tool_specializations'][best_tool[0]].append(stats.vuln_type)
+                if best_tool[0] not in insights["tool_specializations"]:
+                    insights["tool_specializations"][best_tool[0]] = []
+                insights["tool_specializations"][best_tool[0]].append(stats.vuln_type)
 
         return insights
 
@@ -510,22 +514,26 @@ class FeedbackLoop:
         # Recomendar desactivar herramientas con baja precisión
         for name, metrics in self._tool_metrics.items():
             if metrics.precision < 0.3 and metrics.total_findings >= 20:
-                recommendations.append({
-                    'type': 'tool_performance',
-                    'severity': 'warning',
-                    'tool': name,
-                    'message': f"Tool '{name}' has low precision ({metrics.precision:.1%}). Consider reducing weight or reviewing configuration.",
-                    'action': 'reduce_weight',
-                })
+                recommendations.append(
+                    {
+                        "type": "tool_performance",
+                        "severity": "warning",
+                        "tool": name,
+                        "message": f"Tool '{name}' has low precision ({metrics.precision:.1%}). Consider reducing weight or reviewing configuration.",
+                        "action": "reduce_weight",
+                    }
+                )
 
         # Recomendar reentrenamiento
         if self.retrainer.should_retrain():
-            recommendations.append({
-                'type': 'retrain',
-                'severity': 'info',
-                'message': f"Sufficient feedback collected ({len(self.retrainer._training_queue)} samples). Consider retraining ML models.",
-                'action': 'retrain_models',
-            })
+            recommendations.append(
+                {
+                    "type": "retrain",
+                    "severity": "info",
+                    "message": f"Sufficient feedback collected ({len(self.retrainer._training_queue)} samples). Consider retraining ML models.",
+                    "action": "retrain_models",
+                }
+            )
 
         # Tipos de vulnerabilidad problemáticos
         for stats in self._vuln_stats.values():
@@ -533,13 +541,15 @@ class FeedbackLoop:
             if total >= 10:
                 dispute_rate = stats.disputed / total
                 if dispute_rate > 0.5:
-                    recommendations.append({
-                        'type': 'vuln_type',
-                        'severity': 'warning',
-                        'vuln_type': stats.vuln_type,
-                        'message': f"Vulnerability type '{stats.vuln_type}' has high false positive rate ({dispute_rate:.1%}).",
-                        'action': 'add_to_fp_filter',
-                    })
+                    recommendations.append(
+                        {
+                            "type": "vuln_type",
+                            "severity": "warning",
+                            "vuln_type": stats.vuln_type,
+                            "message": f"Vulnerability type '{stats.vuln_type}' has high false positive rate ({dispute_rate:.1%}).",
+                            "action": "add_to_fp_filter",
+                        }
+                    )
 
         return recommendations
 
@@ -548,15 +558,14 @@ class FeedbackLoop:
         features, labels = self.retrainer.get_training_data()
 
         data = {
-            'samples': [
-                {'features': f, 'label': l}
-                for f, l in zip(features, labels)
+            "samples": [
+                {"features": f, "label": lbl} for f, lbl in zip(features, labels, strict=False)
             ],
-            'exported_at': datetime.now().isoformat(),
-            'total_samples': len(features),
+            "exported_at": datetime.now().isoformat(),
+            "total_samples": len(features),
         }
 
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             json.dump(data, f, indent=2)
 
         return len(features)
@@ -571,19 +580,19 @@ class FeedbackLoop:
             feedback_counts[fb.feedback_type.value] += 1
 
         return {
-            'summary': {
-                'total_feedback_30d': len(feedback_history),
-                'feedback_by_type': dict(feedback_counts),
-                'tools_tracked': len(self._tool_metrics),
-                'vuln_types_tracked': len(self._vuln_stats),
+            "summary": {
+                "total_feedback_30d": len(feedback_history),
+                "feedback_by_type": dict(feedback_counts),
+                "tools_tracked": len(self._tool_metrics),
+                "vuln_types_tracked": len(self._vuln_stats),
             },
-            'tool_metrics': self.get_all_tool_metrics(),
-            'insights': self.get_vulnerability_insights(),
-            'recommendations': self.get_recommendations(),
-            'retrain_status': {
-                'samples_queued': len(self.retrainer._training_queue),
-                'min_samples': self.retrainer.min_samples,
-                'should_retrain': self.retrainer.should_retrain(),
+            "tool_metrics": self.get_all_tool_metrics(),
+            "insights": self.get_vulnerability_insights(),
+            "recommendations": self.get_recommendations(),
+            "retrain_status": {
+                "samples_queued": len(self.retrainer._training_queue),
+                "min_samples": self.retrainer.min_samples,
+                "should_retrain": self.retrainer.should_retrain(),
             },
-            'generated_at': datetime.now().isoformat(),
+            "generated_at": datetime.now().isoformat(),
         }

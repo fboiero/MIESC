@@ -12,17 +12,18 @@ import asyncio
 import json
 import logging
 import os
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
-import time
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class LLMProvider(Enum):
     """Supported LLM providers."""
+
     OLLAMA = "ollama"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -32,6 +33,7 @@ class LLMProvider(Enum):
 @dataclass
 class LLMConfig:
     """Configuration for LLM backend."""
+
     provider: LLMProvider
     model: str
     api_key: Optional[str] = None
@@ -46,6 +48,7 @@ class LLMConfig:
 @dataclass
 class LLMResponse:
     """Response from LLM analysis."""
+
     content: str
     provider: str
     model: str
@@ -58,6 +61,7 @@ class LLMResponse:
 @dataclass
 class VulnerabilityAnalysis:
     """Structured vulnerability analysis result."""
+
     vulnerabilities: List[Dict[str, Any]]
     severity_assessment: Dict[str, int]
     recommendations: List[str]
@@ -128,6 +132,7 @@ class OllamaBackend(LLMBackend):
         """Check if Ollama is running."""
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(f"{self.base_url}/api/tags", timeout=5) as resp:
                     if resp.status == 200:
@@ -155,20 +160,20 @@ class OllamaBackend(LLMBackend):
             "model": self.config.model,
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
             "stream": False,
             "options": {
                 "temperature": self.config.temperature,
-                "num_predict": self.config.max_tokens
-            }
+                "num_predict": self.config.max_tokens,
+            },
         }
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{self.base_url}/api/chat",
                 json=payload,
-                timeout=aiohttp.ClientTimeout(total=self.config.timeout)
+                timeout=aiohttp.ClientTimeout(total=self.config.timeout),
             ) as resp:
                 if resp.status != 200:
                     raise Exception(f"Ollama error: {await resp.text()}")
@@ -182,7 +187,7 @@ class OllamaBackend(LLMBackend):
             provider="ollama",
             model=self.config.model,
             tokens_used=tokens,
-            latency_ms=(time.time() - start_time) * 1000
+            latency_ms=(time.time() - start_time) * 1000,
         )
 
 
@@ -202,8 +207,8 @@ class OpenAIBackend(LLMBackend):
         """Run analysis with OpenAI."""
         try:
             import openai
-        except ImportError:
-            raise ImportError("openai package not installed. Run: pip install openai")
+        except ImportError as e:
+            raise ImportError("openai package not installed. Run: pip install openai") from e
 
         start_time = time.time()
         client = openai.AsyncOpenAI(api_key=self.api_key)
@@ -216,10 +221,10 @@ class OpenAIBackend(LLMBackend):
             model=self.config.model,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
             temperature=self.config.temperature,
-            max_tokens=self.config.max_tokens
+            max_tokens=self.config.max_tokens,
         )
 
         return LLMResponse(
@@ -227,7 +232,7 @@ class OpenAIBackend(LLMBackend):
             provider="openai",
             model=self.config.model,
             tokens_used=response.usage.total_tokens if response.usage else 0,
-            latency_ms=(time.time() - start_time) * 1000
+            latency_ms=(time.time() - start_time) * 1000,
         )
 
 
@@ -247,8 +252,8 @@ class AnthropicBackend(LLMBackend):
         """Run analysis with Anthropic."""
         try:
             import anthropic
-        except ImportError:
-            raise ImportError("anthropic package not installed. Run: pip install anthropic")
+        except ImportError as e:
+            raise ImportError("anthropic package not installed. Run: pip install anthropic") from e
 
         start_time = time.time()
         client = anthropic.AsyncAnthropic(api_key=self.api_key)
@@ -261,7 +266,7 @@ class AnthropicBackend(LLMBackend):
             model=self.config.model,
             max_tokens=self.config.max_tokens,
             system=system_prompt,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
         )
 
         content = response.content[0].text if response.content else ""
@@ -272,7 +277,7 @@ class AnthropicBackend(LLMBackend):
             provider="anthropic",
             model=self.config.model,
             tokens_used=tokens,
-            latency_ms=(time.time() - start_time) * 1000
+            latency_ms=(time.time() - start_time) * 1000,
         )
 
 
@@ -300,7 +305,7 @@ class LLMOrchestrator:
                 LLMConfig(
                     provider=LLMProvider.OLLAMA,
                     model="deepseek-coder:6.7b",
-                    base_url="http://localhost:11434"
+                    base_url="http://localhost:11434",
                 ),
             ]
 
@@ -344,10 +349,7 @@ class LLMOrchestrator:
         return status
 
     async def analyze_contract(
-        self,
-        code: str,
-        context: Optional[Dict] = None,
-        provider: Optional[str] = None
+        self, code: str, context: Optional[Dict] = None, provider: Optional[str] = None
     ) -> VulnerabilityAnalysis:
         """
         Analyze a smart contract for vulnerabilities.
@@ -375,10 +377,7 @@ Provide a comprehensive security analysis in JSON format."""
         return self._parse_analysis(response)
 
     async def query(
-        self,
-        prompt: str,
-        context: Optional[Dict] = None,
-        provider: Optional[str] = None
+        self, prompt: str, context: Optional[Dict] = None, provider: Optional[str] = None
     ) -> LLMResponse:
         """
         Send a query to the LLM with automatic fallback.
@@ -405,9 +404,7 @@ Provide a comprehensive security analysis in JSON format."""
 
         # Try with fallback
         errors = []
-        backends_to_try = [backend_key] + [
-            k for k in self.backends.keys() if k != backend_key
-        ]
+        backends_to_try = [backend_key] + [k for k in self.backends.keys() if k != backend_key]
 
         for key in backends_to_try:
             backend = self.backends.get(key)
@@ -429,6 +426,7 @@ Provide a comprehensive security analysis in JSON format."""
     def _get_cache_key(self, prompt: str, context: Optional[Dict]) -> str:
         """Generate cache key from prompt and context."""
         import hashlib
+
         content = prompt + json.dumps(context or {}, sort_keys=True)
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 
@@ -437,8 +435,8 @@ Provide a comprehensive security analysis in JSON format."""
         try:
             # Try to extract JSON from response
             content = response.content
-            json_start = content.find('{')
-            json_end = content.rfind('}') + 1
+            json_start = content.find("{")
+            json_end = content.rfind("}") + 1
 
             if json_start >= 0 and json_end > json_start:
                 json_str = content[json_start:json_end]
@@ -458,10 +456,13 @@ Provide a comprehensive security analysis in JSON format."""
             return VulnerabilityAnalysis(
                 vulnerabilities=vulnerabilities,
                 severity_assessment=severity_assessment,
-                recommendations=[v.get("remediation", "") for v in vulnerabilities if v.get("remediation")],
-                confidence_score=sum(v.get("confidence", 0.5) for v in vulnerabilities) / max(len(vulnerabilities), 1),
+                recommendations=[
+                    v.get("remediation", "") for v in vulnerabilities if v.get("remediation")
+                ],
+                confidence_score=sum(v.get("confidence", 0.5) for v in vulnerabilities)
+                / max(len(vulnerabilities), 1),
                 analysis_summary=data.get("summary", "Analysis completed"),
-                raw_response=response.content
+                raw_response=response.content,
             )
 
         except json.JSONDecodeError:
@@ -472,7 +473,7 @@ Provide a comprehensive security analysis in JSON format."""
                 recommendations=[],
                 confidence_score=0.5,
                 analysis_summary=response.content[:500],
-                raw_response=response.content
+                raw_response=response.content,
             )
 
     def select_model_for_task(self, task: str) -> str:
@@ -522,7 +523,7 @@ async def analyze_solidity(code: str, model: str = "deepseek-coder:6.7b") -> Vul
 if __name__ == "__main__":
     # Example usage
     async def main():
-        code = '''
+        code = """
         pragma solidity ^0.8.0;
 
         contract Vulnerable {
@@ -535,7 +536,7 @@ if __name__ == "__main__":
                 balances[msg.sender] -= amount;
             }
         }
-        '''
+        """
 
         result = await analyze_solidity(code)
         print(f"Found {len(result.vulnerabilities)} vulnerabilities")

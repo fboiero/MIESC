@@ -22,7 +22,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -315,13 +315,15 @@ class FourAnalyzerAdapter(ToolAdapter):
                                 excluded = True
                                 break
                         if not excluded:
-                            raw_findings.append({
-                                "type": pattern_name,
-                                "line": i,
-                                "file": contract_path,
-                                "code": line.strip(),
-                                "pattern_config": pattern_config,
-                            })
+                            raw_findings.append(
+                                {
+                                    "type": pattern_name,
+                                    "line": i,
+                                    "file": contract_path,
+                                    "code": line.strip(),
+                                    "pattern_config": pattern_config,
+                                }
+                            )
 
         # Deduplicate by type+line
         seen = set()
@@ -361,23 +363,25 @@ class FourAnalyzerAdapter(ToolAdapter):
                     f"4naly3er:{item['type']}:{item.get('file', '')}:{item.get('line', 0)}".encode()
                 ).hexdigest()[:12]
 
-                findings.append({
-                    "id": f"4NALY-{finding_id}",
-                    "type": item["type"],
-                    "severity": config["severity"],
-                    "confidence": config["confidence"],
-                    "location": {
-                        "file": item.get("file", ""),
-                        "line": item.get("line", 0),
-                        "function": "",
-                    },
-                    "message": f"{config['description']}: {item.get('code', '')}",
-                    "description": config["description"],
-                    "recommendation": config["recommendation"],
-                    "swc_id": config.get("swc_id"),
-                    "cwe_id": config.get("cwe_id"),
-                    "tool": "fouranalyzer",
-                })
+                findings.append(
+                    {
+                        "id": f"4NALY-{finding_id}",
+                        "type": item["type"],
+                        "severity": config["severity"],
+                        "confidence": config["confidence"],
+                        "location": {
+                            "file": item.get("file", ""),
+                            "line": item.get("line", 0),
+                            "function": "",
+                        },
+                        "message": f"{config['description']}: {item.get('code', '')}",
+                        "description": config["description"],
+                        "recommendation": config["recommendation"],
+                        "swc_id": config.get("swc_id"),
+                        "cwe_id": config.get("cwe_id"),
+                        "tool": "fouranalyzer",
+                    }
+                )
             elif isinstance(item, dict):
                 # CLI output format
                 finding_id = hashlib.md5(
@@ -385,22 +389,24 @@ class FourAnalyzerAdapter(ToolAdapter):
                 ).hexdigest()[:12]
 
                 severity_map = {"H": "High", "M": "Medium", "L": "Low", "G": "Info", "NC": "Info"}
-                findings.append({
-                    "id": f"4NALY-{finding_id}",
-                    "type": item.get("title", "unknown"),
-                    "severity": severity_map.get(item.get("severity", "L"), "Low"),
-                    "confidence": 0.70,
-                    "location": {
-                        "file": item.get("file", ""),
-                        "line": item.get("line", 0),
-                        "function": item.get("function", ""),
-                    },
-                    "message": item.get("description", ""),
-                    "description": item.get("description", ""),
-                    "recommendation": item.get("recommendation", ""),
-                    "swc_id": item.get("swc_id"),
-                    "cwe_id": item.get("cwe_id"),
-                    "tool": "fouranalyzer",
-                })
+                findings.append(
+                    {
+                        "id": f"4NALY-{finding_id}",
+                        "type": item.get("title", "unknown"),
+                        "severity": severity_map.get(item.get("severity", "L"), "Low"),
+                        "confidence": 0.70,
+                        "location": {
+                            "file": item.get("file", ""),
+                            "line": item.get("line", 0),
+                            "function": item.get("function", ""),
+                        },
+                        "message": item.get("description", ""),
+                        "description": item.get("description", ""),
+                        "recommendation": item.get("recommendation", ""),
+                        "swc_id": item.get("swc_id"),
+                        "cwe_id": item.get("cwe_id"),
+                        "tool": "fouranalyzer",
+                    }
+                )
 
         return findings

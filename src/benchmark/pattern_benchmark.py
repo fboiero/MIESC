@@ -16,17 +16,17 @@ Much faster than full MIESC audit - useful for ML iteration.
 
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
-from .dataset_loader import VulnerableContract, VulnerabilityCategory, GroundTruth
+from .dataset_loader import VulnerableContract
 
 
 @dataclass
 class PatternMatch:
     """A matched pattern in code."""
+
     pattern_name: str
     category: str
     line: int
@@ -37,6 +37,7 @@ class PatternMatch:
 @dataclass
 class PatternBenchmarkResult:
     """Results of pattern benchmark."""
+
     total_contracts: int
     total_ground_truth: int
     patterns_tested: List[str]
@@ -63,11 +64,13 @@ class PatternBenchmarkResult:
         for cat, rate in sorted(self.detection_rate_by_category.items()):
             lines.append(f"  {cat:30} {rate*100:5.1f}%")
 
-        lines.extend([
-            "",
-            f"Processing time: {self.processing_time_ms:.2f}ms",
-            "=" * 60,
-        ])
+        lines.extend(
+            [
+                "",
+                f"Processing time: {self.processing_time_ms:.2f}ms",
+                "=" * 60,
+            ]
+        )
         return "\n".join(lines)
 
 
@@ -119,12 +122,12 @@ class PatternBenchmarkRunner:
         },
         "arithmetic": {
             "patterns": [
-                r"\+\+|\-\-",                     # Increment/decrement
-                r"\+\s*=|\-\s*=|\*\s*=",         # Compound assignment
-                r"[^/]/\s*[^/]",                 # Division (not comments)
-                r"=\s*\w+\s*\*\s*\w+",           # Multiplication: a = b * c
-                r"=\s*\w+\s*-\s*\w+",            # Subtraction: a = b - c
-                r"=\s*\w+\s*\+\s*\w+",           # Addition: a = b + c
+                r"\+\+|\-\-",  # Increment/decrement
+                r"\+\s*=|\-\s*=|\*\s*=",  # Compound assignment
+                r"[^/]/\s*[^/]",  # Division (not comments)
+                r"=\s*\w+\s*\*\s*\w+",  # Multiplication: a = b * c
+                r"=\s*\w+\s*-\s*\w+",  # Subtraction: a = b - c
+                r"=\s*\w+\s*\+\s*\w+",  # Addition: a = b + c
             ],
             "anti_patterns": [
                 r"SafeMath",
@@ -136,15 +139,15 @@ class PatternBenchmarkRunner:
         "unchecked_low_level_calls": {
             "patterns": [
                 # .call patterns - detect ANY call usage
-                r"\w+\.call\s*\(",                              # addr.call(
-                r"\w+\.call\.value\s*\([^)]*\)\s*\(",           # addr.call.value(x)(
-                r"\w+\.call\.value\s*\([^)]*\)\s*;",            # addr.call.value(x); (no function call)
-                r"\w+\.call\.value\s*\([^)]*\)\.gas\s*\(",      # addr.call.value(x).gas(y)
-                r"\w+\.call\.gas\s*\(",                         # addr.call.gas(x)
+                r"\w+\.call\s*\(",  # addr.call(
+                r"\w+\.call\.value\s*\([^)]*\)\s*\(",  # addr.call.value(x)(
+                r"\w+\.call\.value\s*\([^)]*\)\s*;",  # addr.call.value(x); (no function call)
+                r"\w+\.call\.value\s*\([^)]*\)\.gas\s*\(",  # addr.call.value(x).gas(y)
+                r"\w+\.call\.gas\s*\(",  # addr.call.gas(x)
                 # .send patterns
-                r"\w+\.send\s*\(",                              # addr.send(
+                r"\w+\.send\s*\(",  # addr.send(
                 # .delegatecall patterns
-                r"\w+\.delegatecall\s*\(",                      # addr.delegatecall(
+                r"\w+\.delegatecall\s*\(",  # addr.delegatecall(
             ],
             # NO global anti-patterns - each call must be checked individually
             # A contract might have both protected and unprotected calls
@@ -168,11 +171,11 @@ class PatternBenchmarkRunner:
                 r"block\.timestamp\s*%",
                 r"blockhash\s*\(",
                 r"block\.number\s*%",
-                r"block\.number\s*[;=]",           # block.number assignment (for later use)
-                r"block\.coinbase",                 # Miner address - predictable
-                r"block\.difficulty",               # Predictable in PoS
-                r"block\.prevrandao",               # Alias for difficulty in PoS
-                r"keccak256\s*\([^)]*block",       # keccak with block data
+                r"block\.number\s*[;=]",  # block.number assignment (for later use)
+                r"block\.coinbase",  # Miner address - predictable
+                r"block\.difficulty",  # Predictable in PoS
+                r"block\.prevrandao",  # Alias for difficulty in PoS
+                r"keccak256\s*\([^)]*block",  # keccak with block data
             ],
         },
         "denial_of_service": {
@@ -184,8 +187,8 @@ class PatternBenchmarkRunner:
                 r"address\s*\[\]",  # Dynamic address array
                 # Push payment DoS (external call in require/if can block entire function)
                 r"require\s*\([^)]*\.send\s*\(",  # require(x.send()) - blocks if fails
-                r"require\s*\([^)]*\.call",       # require(x.call()) - blocks if fails
-                r"require\s*\([^)]*\.transfer",   # require(x.transfer()) - blocks if fails
+                r"require\s*\([^)]*\.call",  # require(x.call()) - blocks if fails
+                r"require\s*\([^)]*\.transfer",  # require(x.transfer()) - blocks if fails
             ],
             # No context_check - both loop-based and push-payment DoS are valid
         },
@@ -231,15 +234,15 @@ class PatternBenchmarkRunner:
     @staticmethod
     def _check_state_after_call(code: str, call_line: int) -> bool:
         """Check if state update happens after external call (reentrancy pattern)."""
-        lines = code.split('\n')
+        lines = code.split("\n")
         if call_line >= len(lines):
             return False
 
         # Look for state updates (= assignment to storage) after the call line
         state_patterns = [
-            r'\b\w+\s*\[.*\]\s*=',  # mapping assignment
-            r'\b\w+\s*=\s*[^=]',    # variable assignment
-            r'\-=|\+=',             # compound assignment
+            r"\b\w+\s*\[.*\]\s*=",  # mapping assignment
+            r"\b\w+\s*=\s*[^=]",  # variable assignment
+            r"\-=|\+=",  # compound assignment
         ]
 
         for i in range(call_line, min(call_line + 10, len(lines))):
@@ -319,7 +322,7 @@ class PatternBenchmarkRunner:
         patterns = config.get("patterns", [])
         anti_patterns = config.get("anti_patterns", [])
 
-        lines = code.split('\n')
+        lines = code.split("\n")
 
         # Check anti-patterns first (if present, skip detection)
         for anti in anti_patterns:
@@ -340,13 +343,15 @@ class PatternBenchmarkRunner:
                     if context_check and not context_check(code, i):
                         continue
 
-                    matches.append(PatternMatch(
-                        pattern_name=pattern[:30],
-                        category=category,
-                        line=i,
-                        confidence=0.7,
-                        code_snippet=line.strip()[:100],
-                    ))
+                    matches.append(
+                        PatternMatch(
+                            pattern_name=pattern[:30],
+                            category=category,
+                            line=i,
+                            confidence=0.7,
+                            code_snippet=line.strip()[:100],
+                        )
+                    )
 
         return matches
 

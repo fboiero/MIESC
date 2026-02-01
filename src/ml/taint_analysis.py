@@ -21,13 +21,14 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class TaintSource(Enum):
     """Sources of user-controlled (tainted) data."""
+
     MSG_SENDER = "msg.sender"
     MSG_VALUE = "msg.value"
     MSG_DATA = "msg.data"
@@ -42,6 +43,7 @@ class TaintSource(Enum):
 
 class TaintSink(Enum):
     """Dangerous operations (sinks) that should not receive untrusted data."""
+
     CALL = "call"
     DELEGATECALL = "delegatecall"
     STATICCALL = "staticcall"
@@ -55,6 +57,7 @@ class TaintSink(Enum):
 
 class SanitizerType(Enum):
     """Types of sanitizers that validate/constrain tainted data."""
+
     REQUIRE = "require"
     ASSERT = "assert"
     IF_CHECK = "if_check"
@@ -67,6 +70,7 @@ class SanitizerType(Enum):
 @dataclass
 class TaintedVariable:
     """A variable that holds tainted (user-controlled) data."""
+
     name: str
     source: TaintSource
     line: int = 0
@@ -75,11 +79,11 @@ class TaintedVariable:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'name': self.name,
-            'source': self.source.value,
-            'line': self.line,
-            'is_sanitized': self.is_sanitized,
-            'sanitizers': [s.value for s in self.sanitizers],
+            "name": self.name,
+            "source": self.source.value,
+            "line": self.line,
+            "is_sanitized": self.is_sanitized,
+            "sanitizers": [s.value for s in self.sanitizers],
         }
 
 
@@ -91,6 +95,7 @@ class TaintedPath:
     Represents a potential vulnerability where user-controlled
     data flows to a dangerous operation without proper validation.
     """
+
     source: TaintedVariable
     sink: TaintSink
     sink_line: int
@@ -107,15 +112,15 @@ class TaintedPath:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'source': self.source.to_dict(),
-            'sink': self.sink.value,
-            'sink_line': self.sink_line,
-            'path_variables': self.path_variables,
-            'is_sanitized': self.is_sanitized,
-            'sanitizers': [s.value for s in self.sanitizers],
-            'is_vulnerable': self.is_vulnerable,
-            'severity': self.severity,
-            'code_snippet': self.code_snippet[:200] if self.code_snippet else "",
+            "source": self.source.to_dict(),
+            "sink": self.sink.value,
+            "sink_line": self.sink_line,
+            "path_variables": self.path_variables,
+            "is_sanitized": self.is_sanitized,
+            "sanitizers": [s.value for s in self.sanitizers],
+            "is_vulnerable": self.is_vulnerable,
+            "severity": self.severity,
+            "code_snippet": self.code_snippet[:200] if self.code_snippet else "",
         }
 
 
@@ -130,33 +135,33 @@ class TaintAnalyzer:
 
     # Patterns for identifying taint sources
     SOURCE_PATTERNS = {
-        TaintSource.MSG_SENDER: r'\bmsg\.sender\b',
-        TaintSource.MSG_VALUE: r'\bmsg\.value\b',
-        TaintSource.MSG_DATA: r'\bmsg\.data\b',
-        TaintSource.TX_ORIGIN: r'\btx\.origin\b',
-        TaintSource.BLOCK_TIMESTAMP: r'\bblock\.timestamp\b|\bnow\b',
-        TaintSource.BLOCK_NUMBER: r'\bblock\.number\b',
-        TaintSource.BLOCK_COINBASE: r'\bblock\.coinbase\b',
+        TaintSource.MSG_SENDER: r"\bmsg\.sender\b",
+        TaintSource.MSG_VALUE: r"\bmsg\.value\b",
+        TaintSource.MSG_DATA: r"\bmsg\.data\b",
+        TaintSource.TX_ORIGIN: r"\btx\.origin\b",
+        TaintSource.BLOCK_TIMESTAMP: r"\bblock\.timestamp\b|\bnow\b",
+        TaintSource.BLOCK_NUMBER: r"\bblock\.number\b",
+        TaintSource.BLOCK_COINBASE: r"\bblock\.coinbase\b",
     }
 
     # Patterns for identifying sinks
     SINK_PATTERNS = {
-        TaintSink.CALL: r'\.call\s*[\{(]',
-        TaintSink.DELEGATECALL: r'\.delegatecall\s*\(',
-        TaintSink.STATICCALL: r'\.staticcall\s*\(',
-        TaintSink.TRANSFER: r'\.transfer\s*\(',
-        TaintSink.SEND: r'\.send\s*\(',
-        TaintSink.SELFDESTRUCT: r'\bselfdestruct\s*\(|\bsuicide\s*\(',
+        TaintSink.CALL: r"\.call\s*[\{(]",
+        TaintSink.DELEGATECALL: r"\.delegatecall\s*\(",
+        TaintSink.STATICCALL: r"\.staticcall\s*\(",
+        TaintSink.TRANSFER: r"\.transfer\s*\(",
+        TaintSink.SEND: r"\.send\s*\(",
+        TaintSink.SELFDESTRUCT: r"\bselfdestruct\s*\(|\bsuicide\s*\(",
     }
 
     # Patterns for identifying sanitizers
     SANITIZER_PATTERNS = {
-        SanitizerType.REQUIRE: r'\brequire\s*\(',
-        SanitizerType.ASSERT: r'\bassert\s*\(',
-        SanitizerType.IF_CHECK: r'\bif\s*\([^)]*(?:==|!=|>=|<=|>|<)[^)]*\)',
-        SanitizerType.OWNER_CHECK: r'require\s*\(\s*msg\.sender\s*==\s*owner',
-        SanitizerType.ZERO_CHECK: r'require\s*\([^)]*!=\s*(?:0|address\(0\))',
-        SanitizerType.BOUNDS_CHECK: r'require\s*\([^)]*[<>=]\s*\d+',
+        SanitizerType.REQUIRE: r"\brequire\s*\(",
+        SanitizerType.ASSERT: r"\bassert\s*\(",
+        SanitizerType.IF_CHECK: r"\bif\s*\([^)]*(?:==|!=|>=|<=|>|<)[^)]*\)",
+        SanitizerType.OWNER_CHECK: r"require\s*\(\s*msg\.sender\s*==\s*owner",
+        SanitizerType.ZERO_CHECK: r"require\s*\([^)]*!=\s*(?:0|address\(0\))",
+        SanitizerType.BOUNDS_CHECK: r"require\s*\([^)]*[<>=]\s*\d+",
     }
 
     # High severity sink patterns
@@ -216,7 +221,7 @@ class TaintAnalyzer:
 
     def _find_taint_sources(self, source_code: str) -> None:
         """Identify taint sources in the code."""
-        lines = source_code.split('\n')
+        lines = source_code.split("\n")
 
         for line_num, line in enumerate(lines, 1):
             for source, pattern in self.SOURCE_PATTERNS.items():
@@ -248,7 +253,9 @@ class TaintAnalyzer:
         """Extract variable name from an assignment statement."""
         # Pattern: type varName = source;
         # Or: varName = source;
-        assignment_pattern = r'(?:(?:uint|int|address|bytes|bool)\d*\s+)?(\w+)\s*=\s*.*' + source_pattern
+        assignment_pattern = (
+            r"(?:(?:uint|int|address|bytes|bool)\d*\s+)?(\w+)\s*=\s*.*" + source_pattern
+        )
 
         match = re.search(assignment_pattern, line)
         if match:
@@ -259,12 +266,12 @@ class TaintAnalyzer:
     def _find_function_parameters(self, source_code: str) -> None:
         """Find and mark function parameters as tainted."""
         # Match function definitions with parameters
-        func_pattern = r'function\s+\w+\s*\(([^)]+)\)'
+        func_pattern = r"function\s+\w+\s*\(([^)]+)\)"
 
         for match in re.finditer(func_pattern, source_code):
             params_str = match.group(1)
             # Parse parameters
-            params = params_str.split(',')
+            params = params_str.split(",")
 
             for param in params:
                 param = param.strip()
@@ -274,7 +281,7 @@ class TaintAnalyzer:
                 # Extract parameter name (last word before any array brackets)
                 parts = param.split()
                 if parts:
-                    param_name = parts[-1].strip('[]')
+                    param_name = parts[-1].strip("[]")
                     if param_name:
                         # Mark parameter as tainted
                         self._tainted_vars[param_name] = TaintedVariable(
@@ -290,7 +297,7 @@ class TaintAnalyzer:
         If a tainted variable is assigned to another variable,
         that variable also becomes tainted.
         """
-        lines = source_code.split('\n')
+        lines = source_code.split("\n")
         iterations = 0
         max_iterations = 10  # Prevent infinite loops
 
@@ -301,10 +308,7 @@ class TaintAnalyzer:
 
             for line_num, line in enumerate(lines, 1):
                 # Pattern: varName = expression
-                assignment_match = re.search(
-                    r'(\w+)\s*=\s*([^;]+);',
-                    line
-                )
+                assignment_match = re.search(r"(\w+)\s*=\s*([^;]+);", line)
 
                 if assignment_match:
                     target_var = assignment_match.group(1)
@@ -312,7 +316,7 @@ class TaintAnalyzer:
 
                     # Check if any tainted variable is in the expression
                     for tainted_name, tainted_var in list(self._tainted_vars.items()):
-                        if re.search(rf'\b{re.escape(tainted_name)}\b', expression):
+                        if re.search(rf"\b{re.escape(tainted_name)}\b", expression):
                             if target_var not in self._tainted_vars:
                                 self._tainted_vars[target_var] = TaintedVariable(
                                     name=target_var,
@@ -323,7 +327,7 @@ class TaintAnalyzer:
 
     def _find_tainted_paths(self, source_code: str) -> None:
         """Find paths from tainted sources to sinks."""
-        lines = source_code.split('\n')
+        lines = source_code.split("\n")
 
         for line_num, line in enumerate(lines, 1):
             for sink, pattern in self.SINK_PATTERNS.items():
@@ -332,16 +336,14 @@ class TaintAnalyzer:
                     # Check if any tainted variable is used in this line
                     for tainted_name, tainted_var in self._tainted_vars.items():
                         # Skip internal tracking variables
-                        if tainted_name.startswith('_direct_'):
+                        if tainted_name.startswith("_direct_"):
                             actual_name = tainted_var.name
                         else:
                             actual_name = tainted_name
 
-                        if re.search(rf'\b{re.escape(actual_name)}\b', line):
+                        if re.search(rf"\b{re.escape(actual_name)}\b", line):
                             # Found tainted data reaching a sink
-                            severity = self._calculate_severity(
-                                tainted_var.source, sink
-                            )
+                            severity = self._calculate_severity(tainted_var.source, sink)
 
                             path = TaintedPath(
                                 source=tainted_var,
@@ -362,10 +364,10 @@ class TaintAnalyzer:
             sink_line = path.sink_line
 
             # Get lines between source and sink
-            lines = source_code.split('\n')
+            lines = source_code.split("\n")
             start = max(0, min(source_line, sink_line) - 1)
             end = max(source_line, sink_line)
-            code_between = '\n'.join(lines[start:end])
+            code_between = "\n".join(lines[start:end])
 
             # Check for each sanitizer type
             sanitizers_found = []
@@ -377,9 +379,9 @@ class TaintAnalyzer:
                         var_name = path.source.name
                         # Get surrounding context
                         match_start = sanitizer_match.start()
-                        context = code_between[match_start:match_start + 100]
+                        context = code_between[match_start : match_start + 100]
 
-                        if re.search(rf'\b{re.escape(var_name)}\b', context):
+                        if re.search(rf"\b{re.escape(var_name)}\b", context):
                             sanitizers_found.append(sanitizer)
 
             if sanitizers_found:
@@ -414,7 +416,7 @@ class TaintAnalyzer:
     ) -> str:
         """Extract a specific function's code."""
         # Find function definition
-        func_pattern = rf'function\s+{re.escape(function_name)}\s*\([^)]*\)[^{{]*\{{'
+        func_pattern = rf"function\s+{re.escape(function_name)}\s*\([^)]*\)[^{{]*\{{"
 
         match = re.search(func_pattern, source_code)
         if not match:
@@ -426,15 +428,15 @@ class TaintAnalyzer:
         end = start
 
         for i, char in enumerate(source_code[start:], start):
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
                 if brace_count == 0:
                     end = i + 1
                     break
 
-        return source_code[match.start():end]
+        return source_code[match.start() : end]
 
     def get_vulnerable_paths(self) -> List[TaintedPath]:
         """Get only paths that are not sanitized (potentially vulnerable)."""
@@ -445,10 +447,10 @@ class TaintAnalyzer:
         vulnerable = self.get_vulnerable_paths()
 
         severity_counts = {
-            'critical': sum(1 for p in vulnerable if p.severity == 'critical'),
-            'high': sum(1 for p in vulnerable if p.severity == 'high'),
-            'medium': sum(1 for p in vulnerable if p.severity == 'medium'),
-            'low': sum(1 for p in vulnerable if p.severity == 'low'),
+            "critical": sum(1 for p in vulnerable if p.severity == "critical"),
+            "high": sum(1 for p in vulnerable if p.severity == "high"),
+            "medium": sum(1 for p in vulnerable if p.severity == "medium"),
+            "low": sum(1 for p in vulnerable if p.severity == "low"),
         }
 
         sink_counts = {}
@@ -462,13 +464,13 @@ class TaintAnalyzer:
             source_counts[source_name] = source_counts.get(source_name, 0) + 1
 
         return {
-            'total_tainted_variables': len(self._tainted_vars),
-            'total_paths': len(self._paths),
-            'vulnerable_paths': len(vulnerable),
-            'sanitized_paths': len(self._paths) - len(vulnerable),
-            'by_severity': severity_counts,
-            'by_sink': sink_counts,
-            'by_source': source_counts,
+            "total_tainted_variables": len(self._tainted_vars),
+            "total_paths": len(self._paths),
+            "vulnerable_paths": len(vulnerable),
+            "sanitized_paths": len(self._paths) - len(vulnerable),
+            "by_severity": severity_counts,
+            "by_sink": sink_counts,
+            "by_source": source_counts,
         }
 
     def to_findings(self) -> List[Dict[str, Any]]:
@@ -477,19 +479,19 @@ class TaintAnalyzer:
 
         for path in self.get_vulnerable_paths():
             finding = {
-                'type': f'tainted-{path.sink.value}',
-                'severity': path.severity.capitalize(),
-                'confidence': 0.75,
-                'location': {
-                    'line': path.sink_line,
-                    'function': '',
+                "type": f"tainted-{path.sink.value}",
+                "severity": path.severity.capitalize(),
+                "confidence": 0.75,
+                "location": {
+                    "line": path.sink_line,
+                    "function": "",
                 },
-                'message': f'User-controlled data ({path.source.source.value}) flows to {path.sink.value} without sanitization',
-                'description': f'Tainted data from {path.source.source.value} reaches dangerous sink {path.sink.value}',
-                'recommendation': self._get_recommendation(path.sink),
-                'swc_id': self._get_swc_id(path.sink),
-                'tool': 'taint-analyzer',
-                '_taint_analysis': path.to_dict(),
+                "message": f"User-controlled data ({path.source.source.value}) flows to {path.sink.value} without sanitization",
+                "description": f"Tainted data from {path.source.source.value} reaches dangerous sink {path.sink.value}",
+                "recommendation": self._get_recommendation(path.sink),
+                "swc_id": self._get_swc_id(path.sink),
+                "tool": "taint-analyzer",
+                "_taint_analysis": path.to_dict(),
             }
             findings.append(finding)
 
@@ -525,6 +527,7 @@ class TaintAnalyzer:
 # CONVENIENCE FUNCTIONS
 # =============================================================================
 
+
 def analyze_taint(
     source_code: str,
     function_name: Optional[str] = None,
@@ -543,10 +546,10 @@ def analyze_taint(
     paths = analyzer.analyze(source_code, function_name)
 
     return {
-        'paths': [p.to_dict() for p in paths],
-        'vulnerable_paths': [p.to_dict() for p in analyzer.get_vulnerable_paths()],
-        'findings': analyzer.to_findings(),
-        'summary': analyzer.get_summary(),
+        "paths": [p.to_dict() for p in paths],
+        "vulnerable_paths": [p.to_dict() for p in analyzer.get_vulnerable_paths()],
+        "findings": analyzer.to_findings(),
+        "summary": analyzer.get_summary(),
     }
 
 

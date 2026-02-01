@@ -30,9 +30,7 @@ License: AGPL-3.0
 
 import json
 import logging
-import os
 import sys
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -51,7 +49,7 @@ except ImportError:
     )
     sys.exit(1)
 
-from miesc import __version__
+from miesc import __version__  # noqa: E402
 
 logger = logging.getLogger("miesc.mcp_server")
 
@@ -70,33 +68,39 @@ mcp = FastMCP(
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _get_adapter_loader():
     """Lazy import of AdapterLoader to avoid circular imports."""
     from miesc.cli.main import AdapterLoader
+
     return AdapterLoader
 
 
 def _get_layers():
     """Get LAYERS configuration."""
     from miesc.cli.main import LAYERS
+
     return LAYERS
 
 
 def _get_adapter_map():
     """Get ADAPTER_MAP configuration."""
     from miesc.cli.main import ADAPTER_MAP
+
     return ADAPTER_MAP
 
 
 def _run_tool_internal(tool: str, contract: str, timeout: int = 300, **kwargs) -> Dict[str, Any]:
     """Run a single tool via its adapter."""
     from miesc.cli.main import _run_tool
+
     return _run_tool(tool, contract, timeout, **kwargs)
 
 
 def _run_layer_internal(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
     """Run all tools in a specific layer."""
     from miesc.cli.main import _run_layer
+
     return _run_layer(layer, contract, timeout)
 
 
@@ -105,7 +109,7 @@ def _validate_contract_path(contract_path: str) -> str:
     path = Path(contract_path).resolve()
     if not path.exists():
         raise FileNotFoundError(f"Contract not found: {contract_path}")
-    if not path.suffix in (".sol", ".circom"):
+    if path.suffix not in (".sol", ".circom"):
         raise ValueError(f"Unsupported file type: {path.suffix}. Expected .sol or .circom")
     return str(path)
 
@@ -142,6 +146,7 @@ def _summarize_results(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 # MCP Tools - Analysis
 # ===========================================================================
 
+
 @mcp.tool()
 async def miesc_quick_scan(contract_path: str, timeout: int = 60) -> str:
     """
@@ -153,13 +158,17 @@ async def miesc_quick_scan(contract_path: str, timeout: int = 60) -> str:
     results = _run_layer_internal(1, contract_path, timeout)
     summary = _summarize_results(results)
 
-    return json.dumps({
-        "scan_type": "quick",
-        "contract": contract_path,
-        "summary": summary,
-        "results": results,
-        "timestamp": datetime.now().isoformat(),
-    }, indent=2, default=str)
+    return json.dumps(
+        {
+            "scan_type": "quick",
+            "contract": contract_path,
+            "summary": summary,
+            "results": results,
+            "timestamp": datetime.now().isoformat(),
+        },
+        indent=2,
+        default=str,
+    )
 
 
 @mcp.tool()
@@ -180,14 +189,18 @@ async def miesc_deep_scan(contract_path: str, timeout: int = 300) -> str:
 
     summary = _summarize_results(all_results)
 
-    return json.dumps({
-        "scan_type": "deep",
-        "contract": contract_path,
-        "layers_scanned": len(LAYERS),
-        "summary": summary,
-        "results": all_results,
-        "timestamp": datetime.now().isoformat(),
-    }, indent=2, default=str)
+    return json.dumps(
+        {
+            "scan_type": "deep",
+            "contract": contract_path,
+            "layers_scanned": len(LAYERS),
+            "summary": summary,
+            "results": all_results,
+            "timestamp": datetime.now().isoformat(),
+        },
+        indent=2,
+        default=str,
+    )
 
 
 @mcp.tool()
@@ -202,10 +215,12 @@ async def miesc_run_tool(tool_name: str, contract_path: str, timeout: int = 300)
     ADAPTER_MAP = _get_adapter_map()
 
     if tool_name not in ADAPTER_MAP:
-        return json.dumps({
-            "error": f"Unknown tool: {tool_name}",
-            "available_tools": sorted(ADAPTER_MAP.keys()),
-        })
+        return json.dumps(
+            {
+                "error": f"Unknown tool: {tool_name}",
+                "available_tools": sorted(ADAPTER_MAP.keys()),
+            }
+        )
 
     result = _run_tool_internal(tool_name, contract_path, timeout)
     return json.dumps(result, indent=2, default=str)
@@ -222,22 +237,28 @@ async def miesc_run_layer(layer: int, contract_path: str, timeout: int = 300) ->
     LAYERS = _get_layers()
 
     if layer not in LAYERS:
-        return json.dumps({
-            "error": f"Invalid layer: {layer}. Valid layers: 1-{max(LAYERS.keys())}",
-            "layers": {k: v["name"] for k, v in LAYERS.items()},
-        })
+        return json.dumps(
+            {
+                "error": f"Invalid layer: {layer}. Valid layers: 1-{max(LAYERS.keys())}",
+                "layers": {k: v["name"] for k, v in LAYERS.items()},
+            }
+        )
 
     results = _run_layer_internal(layer, contract_path, timeout)
     summary = _summarize_results(results)
 
-    return json.dumps({
-        "layer": layer,
-        "layer_name": LAYERS[layer]["name"],
-        "contract": contract_path,
-        "summary": summary,
-        "results": results,
-        "timestamp": datetime.now().isoformat(),
-    }, indent=2, default=str)
+    return json.dumps(
+        {
+            "layer": layer,
+            "layer_name": LAYERS[layer]["name"],
+            "contract": contract_path,
+            "summary": summary,
+            "results": results,
+            "timestamp": datetime.now().isoformat(),
+        },
+        indent=2,
+        default=str,
+    )
 
 
 @mcp.tool()
@@ -262,14 +283,18 @@ async def miesc_analyze_defi(
 
     summary = _summarize_results(results)
 
-    return json.dumps({
-        "scan_type": "defi",
-        "protocol_type": protocol_type,
-        "contract": contract_path,
-        "summary": summary,
-        "results": results,
-        "timestamp": datetime.now().isoformat(),
-    }, indent=2, default=str)
+    return json.dumps(
+        {
+            "scan_type": "defi",
+            "protocol_type": protocol_type,
+            "contract": contract_path,
+            "summary": summary,
+            "results": results,
+            "timestamp": datetime.now().isoformat(),
+        },
+        indent=2,
+        default=str,
+    )
 
 
 @mcp.tool()
@@ -295,10 +320,12 @@ async def miesc_profile_scan(
     }
 
     if profile not in profiles:
-        return json.dumps({
-            "error": f"Unknown profile: {profile}",
-            "available_profiles": list(profiles.keys()),
-        })
+        return json.dumps(
+            {
+                "error": f"Unknown profile: {profile}",
+                "available_profiles": list(profiles.keys()),
+            }
+        )
 
     all_results = []
     for layer_num in profiles[profile]:
@@ -308,23 +335,30 @@ async def miesc_profile_scan(
 
     summary = _summarize_results(all_results)
 
-    return json.dumps({
-        "scan_type": "profile",
-        "profile": profile,
-        "layers_scanned": profiles[profile],
-        "contract": contract_path,
-        "summary": summary,
-        "results": all_results,
-        "timestamp": datetime.now().isoformat(),
-    }, indent=2, default=str)
+    return json.dumps(
+        {
+            "scan_type": "profile",
+            "profile": profile,
+            "layers_scanned": profiles[profile],
+            "contract": contract_path,
+            "summary": summary,
+            "results": all_results,
+            "timestamp": datetime.now().isoformat(),
+        },
+        indent=2,
+        default=str,
+    )
 
 
 # ===========================================================================
 # MCP Tools - Correlation
 # ===========================================================================
 
+
 @mcp.tool()
-async def miesc_correlate(findings_json: str, min_tools: int = 2, confidence_threshold: float = 0.5) -> str:
+async def miesc_correlate(
+    findings_json: str, min_tools: int = 2, confidence_threshold: float = 0.5
+) -> str:
     """
     Correlate findings from multiple tools using the Smart Correlation Engine.
     Applies cross-validation, deduplication, and false positive filtering.
@@ -337,6 +371,7 @@ async def miesc_correlate(findings_json: str, min_tools: int = 2, confidence_thr
 
     try:
         from src.core.correlation_api import SmartCorrelationEngine
+
         engine = SmartCorrelationEngine()
         correlated = engine.correlate(
             findings_map,
@@ -345,10 +380,12 @@ async def miesc_correlate(findings_json: str, min_tools: int = 2, confidence_thr
         )
         return json.dumps(correlated, indent=2, default=str)
     except ImportError:
-        return json.dumps({
-            "error": "Correlation engine not available",
-            "hint": "Ensure src.core.correlation_api is installed",
-        })
+        return json.dumps(
+            {
+                "error": "Correlation engine not available",
+                "hint": "Ensure src.core.correlation_api is installed",
+            }
+        )
 
 
 @mcp.tool()
@@ -365,13 +402,18 @@ async def miesc_filter_fp(findings_json: str, threshold: float = 0.50) -> str:
 
     try:
         from src.ml.false_positive_filter import FalsePositiveFilter
+
         fp_filter = FalsePositiveFilter()
         filtered = fp_filter.filter_findings(findings, fp_threshold=threshold)
-        return json.dumps({
-            "original_count": len(findings) if isinstance(findings, list) else 0,
-            "filtered_count": len(filtered) if isinstance(filtered, list) else 0,
-            "findings": filtered,
-        }, indent=2, default=str)
+        return json.dumps(
+            {
+                "original_count": len(findings) if isinstance(findings, list) else 0,
+                "filtered_count": len(filtered) if isinstance(filtered, list) else 0,
+                "findings": filtered,
+            },
+            indent=2,
+            default=str,
+        )
     except ImportError:
         return json.dumps({"error": "FalsePositiveFilter not available"})
 
@@ -422,17 +464,23 @@ async def miesc_detect_exploit_chains(findings_json: str) -> str:
         types_str = " ".join(str(f.get("type", "")) for f in file_findings).lower()
         for pattern in chain_patterns:
             if all(req in types_str for req in pattern["requires"]):
-                chains.append({
-                    "chain": pattern["name"],
-                    "severity": pattern["severity"],
-                    "file": file_path,
-                    "contributing_findings": len(file_findings),
-                })
+                chains.append(
+                    {
+                        "chain": pattern["name"],
+                        "severity": pattern["severity"],
+                        "file": file_path,
+                        "contributing_findings": len(file_findings),
+                    }
+                )
 
-    return json.dumps({
-        "chains_detected": len(chains),
-        "chains": chains,
-    }, indent=2, default=str)
+    return json.dumps(
+        {
+            "chains_detected": len(chains),
+            "chains": chains,
+        },
+        indent=2,
+        default=str,
+    )
 
 
 @mcp.tool()
@@ -451,15 +499,14 @@ async def miesc_verify_finding(
     except json.JSONDecodeError:
         return json.dumps({"error": "Invalid JSON input for finding"})
 
-    result = _run_tool_internal(
-        "vuln_verifier", contract_path, 120, findings=[finding]
-    )
+    result = _run_tool_internal("vuln_verifier", contract_path, 120, findings=[finding])
     return json.dumps(result, indent=2, default=str)
 
 
 # ===========================================================================
 # MCP Tools - Reports
 # ===========================================================================
+
 
 @mcp.tool()
 async def miesc_generate_report(
@@ -483,6 +530,7 @@ async def miesc_generate_report(
     if format == "sarif":
         try:
             from miesc.cli.main import _to_sarif
+
             results = audit_results.get("results", [])
             sarif = _to_sarif(results)
             return json.dumps(sarif, indent=2, default=str)
@@ -528,6 +576,7 @@ async def miesc_map_compliance(findings_json: str, frameworks: Optional[str] = N
 
     try:
         from src.security.compliance_mapper import ComplianceMapper
+
         mapper = ComplianceMapper()
         framework_list = frameworks.split(",") if frameworks else None
         mapping = mapper.map_findings(findings, frameworks=framework_list)
@@ -550,6 +599,7 @@ async def miesc_remediate(findings_json: str, contract_name: str = "") -> str:
 
     try:
         from src.security.remediation_engine import RemediationEngine
+
         engine = RemediationEngine()
         remediated = engine.enrich_findings(findings, contract_name=contract_name)
         return json.dumps(remediated, indent=2, default=str)
@@ -576,38 +626,42 @@ async def miesc_get_metrics() -> str:
     Returns precision, recall, F1-score from thesis experiments
     (analysis of 5,127 smart contracts).
     """
-    return json.dumps({
-        "framework": "MIESC",
-        "version": __version__,
-        "layers": 9,
-        "tools": 50,
-        "validation": {
-            "contracts_analyzed": 5127,
-            "dataset": "SmartBugs Curated + Real-world DeFi",
-            "metrics": {
-                "precision": 0.89,
-                "recall": 0.84,
-                "f1_score": 0.86,
-                "cohens_kappa": 0.72,
-                "false_positive_rate": 0.11,
+    return json.dumps(
+        {
+            "framework": "MIESC",
+            "version": __version__,
+            "layers": 9,
+            "tools": 50,
+            "validation": {
+                "contracts_analyzed": 5127,
+                "dataset": "SmartBugs Curated + Real-world DeFi",
+                "metrics": {
+                    "precision": 0.89,
+                    "recall": 0.84,
+                    "f1_score": 0.86,
+                    "cohens_kappa": 0.72,
+                    "false_positive_rate": 0.11,
+                },
+                "cross_validation_improvement": {
+                    "precision_delta": "+12%",
+                    "fp_reduction": "-45%",
+                },
             },
-            "cross_validation_improvement": {
-                "precision_delta": "+12%",
-                "fp_reduction": "-45%",
+            "thesis": {
+                "title": "Multi-layer Intelligent Evaluation for Smart Contracts",
+                "institution": "UNDEF - IUA Cordoba",
+                "author": "Fernando Boiero",
+                "degree": "Master's in Cyberdefense",
             },
         },
-        "thesis": {
-            "title": "Multi-layer Intelligent Evaluation for Smart Contracts",
-            "institution": "UNDEF - IUA Cordoba",
-            "author": "Fernando Boiero",
-            "degree": "Master's in Cyberdefense",
-        },
-    }, indent=2)
+        indent=2,
+    )
 
 
 # ===========================================================================
 # MCP Tools - System
 # ===========================================================================
+
 
 @mcp.tool()
 async def miesc_get_status() -> str:
@@ -632,18 +686,21 @@ async def miesc_get_status() -> str:
             "tools": layer_tools,
         }
 
-    return json.dumps({
-        "name": "MIESC",
-        "version": __version__,
-        "status": "operational",
-        "architecture": {
-            "layers": 9,
-            "total_tools": len(ADAPTER_MAP),
-            "available_tools": len(available_tools),
+    return json.dumps(
+        {
+            "name": "MIESC",
+            "version": __version__,
+            "status": "operational",
+            "architecture": {
+                "layers": 9,
+                "total_tools": len(ADAPTER_MAP),
+                "available_tools": len(available_tools),
+            },
+            "layers": layer_info,
+            "timestamp": datetime.now().isoformat(),
         },
-        "layers": layer_info,
-        "timestamp": datetime.now().isoformat(),
-    }, indent=2)
+        indent=2,
+    )
 
 
 @mcp.tool()
@@ -654,7 +711,7 @@ async def miesc_list_tools(layer: Optional[int] = None) -> str:
     Returns tool names, categories, and availability status.
     """
     LAYERS = _get_layers()
-    ADAPTER_MAP = _get_adapter_map()
+    _get_adapter_map()
     AdapterLoader = _get_adapter_loader()
 
     available = set(AdapterLoader.get_available_tools())
@@ -665,27 +722,34 @@ async def miesc_list_tools(layer: Optional[int] = None) -> str:
             return json.dumps({"error": f"Invalid layer: {layer}"})
         layer_tools = LAYERS[layer]["tools"]
         for t in layer_tools:
-            tools.append({
-                "name": t,
-                "layer": layer,
-                "layer_name": LAYERS[layer]["name"],
-                "available": t in available,
-            })
+            tools.append(
+                {
+                    "name": t,
+                    "layer": layer,
+                    "layer_name": LAYERS[layer]["name"],
+                    "available": t in available,
+                }
+            )
     else:
         for num, layer_info in sorted(LAYERS.items()):
             for t in layer_info["tools"]:
-                tools.append({
-                    "name": t,
-                    "layer": num,
-                    "layer_name": layer_info["name"],
-                    "available": t in available,
-                })
+                tools.append(
+                    {
+                        "name": t,
+                        "layer": num,
+                        "layer_name": layer_info["name"],
+                        "available": t in available,
+                    }
+                )
 
-    return json.dumps({
-        "total": len(tools),
-        "available": sum(1 for t in tools if t["available"]),
-        "tools": tools,
-    }, indent=2)
+    return json.dumps(
+        {
+            "total": len(tools),
+            "available": sum(1 for t in tools if t["available"]),
+            "tools": tools,
+        },
+        indent=2,
+    )
 
 
 @mcp.tool()
@@ -698,43 +762,51 @@ async def miesc_get_tool_info(tool_name: str) -> str:
     AdapterLoader = _get_adapter_loader()
 
     if tool_name not in ADAPTER_MAP:
-        return json.dumps({
-            "error": f"Unknown tool: {tool_name}",
-            "available_tools": sorted(ADAPTER_MAP.keys()),
-        })
+        return json.dumps(
+            {
+                "error": f"Unknown tool: {tool_name}",
+                "available_tools": sorted(ADAPTER_MAP.keys()),
+            }
+        )
 
     adapter = AdapterLoader.get_adapter(tool_name)
     if not adapter:
-        return json.dumps({
-            "name": tool_name,
-            "status": "adapter_not_loaded",
-            "class": ADAPTER_MAP[tool_name],
-        })
+        return json.dumps(
+            {
+                "name": tool_name,
+                "status": "adapter_not_loaded",
+                "class": ADAPTER_MAP[tool_name],
+            }
+        )
 
     try:
         metadata = adapter.get_metadata()
         status = adapter.is_available()
-        return json.dumps({
-            "name": metadata.name,
-            "version": metadata.version,
-            "category": metadata.category.value,
-            "author": metadata.author,
-            "license": metadata.license,
-            "homepage": metadata.homepage,
-            "installation": metadata.installation_cmd,
-            "status": status.value,
-            "capabilities": [
-                {
-                    "name": c.name,
-                    "description": c.description,
-                    "languages": c.supported_languages,
-                    "detection_types": c.detection_types,
-                }
-                for c in metadata.capabilities
-            ],
-            "is_optional": metadata.is_optional,
-            "cost": metadata.cost,
-        }, indent=2, default=str)
+        return json.dumps(
+            {
+                "name": metadata.name,
+                "version": metadata.version,
+                "category": metadata.category.value,
+                "author": metadata.author,
+                "license": metadata.license,
+                "homepage": metadata.homepage,
+                "installation": metadata.installation_cmd,
+                "status": status.value,
+                "capabilities": [
+                    {
+                        "name": c.name,
+                        "description": c.description,
+                        "languages": c.supported_languages,
+                        "detection_types": c.detection_types,
+                    }
+                    for c in metadata.capabilities
+                ],
+                "is_optional": metadata.is_optional,
+                "cost": metadata.cost,
+            },
+            indent=2,
+            default=str,
+        )
     except Exception as e:
         return json.dumps({"name": tool_name, "error": str(e)})
 
@@ -756,6 +828,7 @@ async def miesc_read_contract(contract_path: str) -> str:
     pragma_match = None
     contract_names = []
     import re
+
     for line in lines:
         if not pragma_match:
             m = re.search(r"pragma\s+solidity\s+([^;]+)", line)
@@ -765,19 +838,24 @@ async def miesc_read_contract(contract_path: str) -> str:
         if m:
             contract_names.append(m.group(1))
 
-    return json.dumps({
-        "path": contract_path,
-        "lines": len(lines),
-        "size_bytes": len(source),
-        "solidity_version": pragma_match,
-        "contracts": contract_names,
-        "source": source[:50000],  # Cap at 50KB
-    }, indent=2, default=str)
+    return json.dumps(
+        {
+            "path": contract_path,
+            "lines": len(lines),
+            "size_bytes": len(source),
+            "solidity_version": pragma_match,
+            "contracts": contract_names,
+            "source": source[:50000],  # Cap at 50KB
+        },
+        indent=2,
+        default=str,
+    )
 
 
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main():
     """Run MIESC MCP server via stdio transport."""

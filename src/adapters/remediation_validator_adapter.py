@@ -20,7 +20,7 @@ import logging
 import re
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -205,10 +205,18 @@ class RemediationValidatorAdapter(ToolAdapter):
             "metadata": {
                 "contract": contract_path,
                 "original_findings": len(original_findings),
-                "confirmed_fixes": sum(1 for r in validation_results if r.get("status") == "fix_confirmed"),
-                "partial_fixes": sum(1 for r in validation_results if r.get("status") == "fix_partial"),
-                "failed_fixes": sum(1 for r in validation_results if r.get("status") == "fix_failed"),
-                "regressions": sum(1 for r in validation_results if r.get("status") == "regression_detected"),
+                "confirmed_fixes": sum(
+                    1 for r in validation_results if r.get("status") == "fix_confirmed"
+                ),
+                "partial_fixes": sum(
+                    1 for r in validation_results if r.get("status") == "fix_partial"
+                ),
+                "failed_fixes": sum(
+                    1 for r in validation_results if r.get("status") == "fix_failed"
+                ),
+                "regressions": sum(
+                    1 for r in validation_results if r.get("status") == "regression_detected"
+                ),
             },
             "execution_time": time.time() - start_time,
             "error": None,
@@ -303,14 +311,16 @@ class RemediationValidatorAdapter(ToolAdapter):
                 # Find where it was removed
                 for i, line in enumerate(patched_code.split("\n"), 1):
                     if re.search(r"function\s+\w+", line):
-                        regressions.append({
-                            "status": "regression_detected",
-                            "vuln_type": "regression",
-                            "original_finding": {},
-                            "reason": f"Removed {description} ({original_count} -> {patched_count})",
-                            "file": path,
-                            "line": i,
-                        })
+                        regressions.append(
+                            {
+                                "status": "regression_detected",
+                                "vuln_type": "regression",
+                                "original_finding": {},
+                                "reason": f"Removed {description} ({original_count} -> {patched_count})",
+                                "file": path,
+                                "line": i,
+                            }
+                        )
                         break
 
         return regressions
@@ -371,10 +381,14 @@ class RemediationValidatorAdapter(ToolAdapter):
 
             status = item.get("status", "unknown")
             original = item.get("original_finding", {})
-            status_config = REMEDIATION_STATUS.get(status, {
-                "severity": "Medium", "confidence": 0.60,
-                "description": f"Remediation status: {status}",
-            })
+            status_config = REMEDIATION_STATUS.get(
+                status,
+                {
+                    "severity": "Medium",
+                    "confidence": 0.60,
+                    "description": f"Remediation status: {status}",
+                },
+            )
 
             finding_id = hashlib.md5(
                 f"remediation:{status}:{item.get('file', '')}:{item.get('line', 0)}".encode()
@@ -387,25 +401,28 @@ class RemediationValidatorAdapter(ToolAdapter):
             if item.get("reason"):
                 msg += f" - {item['reason']}"
 
-            findings.append({
-                "id": f"REM-{finding_id}",
-                "type": status,
-                "severity": status_config["severity"],
-                "confidence": status_config["confidence"],
-                "location": {
-                    "file": item.get("file", original.get("location", {}).get("file", "")),
-                    "line": item.get("line", original.get("location", {}).get("line", 0)),
-                    "function": original.get("location", {}).get("function", ""),
-                },
-                "message": msg,
-                "description": status_config["description"],
-                "recommendation": (
-                    "No action needed" if status == "fix_confirmed"
-                    else "Review and improve the remediation"
-                ),
-                "swc_id": original.get("swc_id"),
-                "cwe_id": original.get("cwe_id"),
-                "tool": "remediation_validator",
-            })
+            findings.append(
+                {
+                    "id": f"REM-{finding_id}",
+                    "type": status,
+                    "severity": status_config["severity"],
+                    "confidence": status_config["confidence"],
+                    "location": {
+                        "file": item.get("file", original.get("location", {}).get("file", "")),
+                        "line": item.get("line", original.get("location", {}).get("line", 0)),
+                        "function": original.get("location", {}).get("function", ""),
+                    },
+                    "message": msg,
+                    "description": status_config["description"],
+                    "recommendation": (
+                        "No action needed"
+                        if status == "fix_confirmed"
+                        else "Review and improve the remediation"
+                    ),
+                    "swc_id": original.get("swc_id"),
+                    "cwe_id": original.get("cwe_id"),
+                    "tool": "remediation_validator",
+                }
+            )
 
         return findings

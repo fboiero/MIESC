@@ -18,17 +18,18 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
-import re
 import logging
+import re
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional, Tuple
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class ClassicVulnType(Enum):
     """Classic vulnerability categories (DASP/SWC)."""
+
     REENTRANCY = "reentrancy"
     ACCESS_CONTROL = "access_control"
     ARITHMETIC = "arithmetic"
@@ -50,6 +51,7 @@ class ClassicVulnType(Enum):
 @dataclass
 class PatternMatch:
     """A detected vulnerability pattern match."""
+
     vuln_type: ClassicVulnType
     line: int
     code_snippet: str
@@ -64,6 +66,7 @@ class PatternMatch:
 @dataclass
 class PatternConfig:
     """Configuration for a vulnerability pattern."""
+
     vuln_type: ClassicVulnType
     patterns: List[str]
     anti_patterns: List[str] = field(default_factory=list)
@@ -86,11 +89,11 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
     ClassicVulnType.REENTRANCY: PatternConfig(
         vuln_type=ClassicVulnType.REENTRANCY,
         patterns=[
-            r"\.call\s*\{?\s*value\s*:",        # call{value: x}
-            r"\.call\.value\s*\(",              # .call.value(x)
-            r"msg\.sender\.call",               # msg.sender.call
-            r"\.send\s*\(",                     # .send()
-            r"\.transfer\s*\(",                 # .transfer()
+            r"\.call\s*\{?\s*value\s*:",  # call{value: x}
+            r"\.call\.value\s*\(",  # .call.value(x)
+            r"msg\.sender\.call",  # msg.sender.call
+            r"\.send\s*\(",  # .send()
+            r"\.transfer\s*\(",  # .transfer()
         ],
         anti_patterns=[
             r"nonReentrant",
@@ -103,22 +106,21 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         description="External call before state update allows reentrancy",
         recommendation="Use ReentrancyGuard or checks-effects-interactions pattern",
     ),
-
     # =========================================================================
     # ACCESS CONTROL (SWC-105/106) - 90.5% recall
     # =========================================================================
     ClassicVulnType.ACCESS_CONTROL: PatternConfig(
         vuln_type=ClassicVulnType.ACCESS_CONTROL,
         patterns=[
-            r"tx\.origin",                                      # tx.origin auth
-            r"selfdestruct\s*\(",                              # Unprotected selfdestruct
-            r"suicide\s*\(",                                   # Deprecated selfdestruct
-            r"delegatecall\s*\(",                              # Arbitrary delegatecall
+            r"tx\.origin",  # tx.origin auth
+            r"selfdestruct\s*\(",  # Unprotected selfdestruct
+            r"suicide\s*\(",  # Deprecated selfdestruct
+            r"delegatecall\s*\(",  # Arbitrary delegatecall
             r"function\s+[A-Z]\w*\s*\(\s*\)\s*(public|external)",  # Fake constructor
             r"function\s+(Constructor|Init|Initialize)\s*\(",  # Common mistakes
-            r"owner\s*=\s*msg\.sender",                        # Owner assignment
-            r"\.length\s*--",                                  # Array underflow
-            r"\.length\s*-=",                                  # Array underflow
+            r"owner\s*=\s*msg\.sender",  # Owner assignment
+            r"\.length\s*--",  # Array underflow
+            r"\.length\s*-=",  # Array underflow
         ],
         anti_patterns=[],  # No global anti-patterns - context matters
         severity="critical",
@@ -126,23 +128,22 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         description="Missing or insufficient access controls",
         recommendation="Add onlyOwner/onlyRole modifiers or require(msg.sender == owner)",
     ),
-
     # =========================================================================
     # ARITHMETIC (SWC-101) - improved patterns
     # =========================================================================
     ClassicVulnType.ARITHMETIC: PatternConfig(
         vuln_type=ClassicVulnType.ARITHMETIC,
         patterns=[
-            r"\+\+|\-\-",                       # Increment/decrement
-            r"\+\s*=|\-\s*=|\*\s*=",           # Compound assignment
-            r"[^/]/\s*[^/\*]",                 # Division
-            r"=\s*\w+\s*\*\s*\w+",             # Multiplication: a = b * c
-            r"=\s*\w+\s*-\s*\w+",              # Subtraction: a = b - c
-            r"=\s*\w+\s*\+\s*\w+",             # Addition: a = b + c
+            r"\+\+|\-\-",  # Increment/decrement
+            r"\+\s*=|\-\s*=|\*\s*=",  # Compound assignment
+            r"[^/]/\s*[^/\*]",  # Division
+            r"=\s*\w+\s*\*\s*\w+",  # Multiplication: a = b * c
+            r"=\s*\w+\s*-\s*\w+",  # Subtraction: a = b - c
+            r"=\s*\w+\s*\+\s*\w+",  # Addition: a = b + c
         ],
         anti_patterns=[
             r"SafeMath",
-            r"unchecked\s*\{",                 # Explicit unchecked (0.8+)
+            r"unchecked\s*\{",  # Explicit unchecked (0.8+)
             r"pragma\s+solidity\s+[>=^]*0\.[89]",  # 0.8+ has checks
         ],
         severity="high",
@@ -150,7 +151,6 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         description="Integer overflow or underflow",
         recommendation="Use Solidity 0.8+ or SafeMath library",
     ),
-
     # =========================================================================
     # UNCHECKED CALLS (SWC-104) - improved patterns
     # =========================================================================
@@ -158,15 +158,15 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         vuln_type=ClassicVulnType.UNCHECKED_CALLS,
         patterns=[
             # .call patterns - detect ANY call usage
-            r"\w+\.call\s*\(",                              # addr.call(
-            r"\w+\.call\.value\s*\([^)]*\)\s*\(",           # addr.call.value(x)(
-            r"\w+\.call\.value\s*\([^)]*\)\s*;",            # addr.call.value(x); (no function call)
-            r"\w+\.call\.value\s*\([^)]*\)\.gas\s*\(",      # addr.call.value(x).gas(y)
-            r"\w+\.call\.gas\s*\(",                         # addr.call.gas(x)
+            r"\w+\.call\s*\(",  # addr.call(
+            r"\w+\.call\.value\s*\([^)]*\)\s*\(",  # addr.call.value(x)(
+            r"\w+\.call\.value\s*\([^)]*\)\s*;",  # addr.call.value(x); (no function call)
+            r"\w+\.call\.value\s*\([^)]*\)\.gas\s*\(",  # addr.call.value(x).gas(y)
+            r"\w+\.call\.gas\s*\(",  # addr.call.gas(x)
             # .send patterns
-            r"\w+\.send\s*\(",                              # addr.send(
+            r"\w+\.send\s*\(",  # addr.send(
             # .delegatecall patterns
-            r"\w+\.delegatecall\s*\(",                      # addr.delegatecall(
+            r"\w+\.delegatecall\s*\(",  # addr.delegatecall(
         ],
         # NO global anti-patterns - a contract may have both protected AND unprotected calls
         # Each call must be analyzed individually by the context validator
@@ -176,7 +176,6 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         description="Return value of low-level call not checked",
         recommendation="Check return value: require(success, 'call failed')",
     ),
-
     # =========================================================================
     # TIMESTAMP (SWC-116) - 100% recall
     # =========================================================================
@@ -192,21 +191,20 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         description="Block timestamp used for critical logic",
         recommendation="Avoid using block.timestamp for randomness or critical decisions",
     ),
-
     # =========================================================================
     # BAD RANDOMNESS (SWC-120) - improved patterns
     # =========================================================================
     ClassicVulnType.BAD_RANDOMNESS: PatternConfig(
         vuln_type=ClassicVulnType.BAD_RANDOMNESS,
         patterns=[
-            r"block\.timestamp\s*%",           # timestamp mod
-            r"blockhash\s*\(",                 # blockhash
-            r"block\.number\s*%",              # block number mod
-            r"block\.number\s*[;=]",           # block.number assignment (for later use)
-            r"block\.coinbase",                # Miner address - predictable
-            r"block\.difficulty",              # Predictable in PoS
-            r"block\.prevrandao",              # Alias for difficulty in PoS
-            r"keccak256\s*\([^)]*block",       # keccak with block data
+            r"block\.timestamp\s*%",  # timestamp mod
+            r"blockhash\s*\(",  # blockhash
+            r"block\.number\s*%",  # block number mod
+            r"block\.number\s*[;=]",  # block.number assignment (for later use)
+            r"block\.coinbase",  # Miner address - predictable
+            r"block\.difficulty",  # Predictable in PoS
+            r"block\.prevrandao",  # Alias for difficulty in PoS
+            r"keccak256\s*\([^)]*block",  # keccak with block data
         ],
         anti_patterns=[
             r"chainlink",
@@ -218,22 +216,21 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         description="Weak randomness from blockchain data",
         recommendation="Use Chainlink VRF or commit-reveal scheme",
     ),
-
     # =========================================================================
     # FRONT RUNNING (SWC-114) - 100% recall
     # =========================================================================
     ClassicVulnType.FRONT_RUNNING: PatternConfig(
         vuln_type=ClassicVulnType.FRONT_RUNNING,
         patterns=[
-            r"function\s+approve\s*\(",                # ERC20 approve
-            r"_allowed\s*\[.*\]\s*\[.*\]\s*=",        # Direct allowance
-            r"sha3\s*\(\s*\w+\s*\)",                  # Hash puzzle
-            r"keccak256\s*\(\s*\w+\s*\)",             # Hash puzzle
-            r"\.transfer\s*\(\s*reward",              # Reward transfer
-            r"reward\s*=\s*msg\.value",               # Reward assignment
-            r"function\s+play\s*\(",                  # Game
-            r"function\s+bet\s*\(",                   # Betting
-            r"function\s+guess\s*\(",                 # Guessing
+            r"function\s+approve\s*\(",  # ERC20 approve
+            r"_allowed\s*\[.*\]\s*\[.*\]\s*=",  # Direct allowance
+            r"sha3\s*\(\s*\w+\s*\)",  # Hash puzzle
+            r"keccak256\s*\(\s*\w+\s*\)",  # Hash puzzle
+            r"\.transfer\s*\(\s*reward",  # Reward transfer
+            r"reward\s*=\s*msg\.value",  # Reward assignment
+            r"function\s+play\s*\(",  # Game
+            r"function\s+bet\s*\(",  # Betting
+            r"function\s+guess\s*\(",  # Guessing
         ],
         anti_patterns=[
             r"increaseAllowance",
@@ -245,7 +242,6 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         description="Transaction ordering dependency exploitable",
         recommendation="Use commit-reveal, increaseAllowance, or private mempool",
     ),
-
     # =========================================================================
     # UNCHECKED SEND (SWC-104) - v4.6.0 specific .send() and .transfer() patterns
     # Note: SolidiFI uses .transfer() for "Unchecked-Send" category
@@ -254,27 +250,26 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         vuln_type=ClassicVulnType.UNCHECKED_SEND,
         patterns=[
             # .send() patterns (returns bool, needs check)
-            r"\w+\.send\s*\(",                 # any .send() call
+            r"\w+\.send\s*\(",  # any .send() call
             r"msg\.sender\.send\s*\(",
             # .transfer() patterns (reverts on failure, but 2300 gas limit issue)
-            r"msg\.sender\.transfer\s*\(",     # msg.sender.transfer()
+            r"msg\.sender\.transfer\s*\(",  # msg.sender.transfer()
             r"\w+\.transfer\s*\(\s*\d+\s*(ether|wei|gwei)",  # .transfer(amount)
-            r"\.transfer\s*\(\s*\w+\s*\)",     # .transfer(var)
+            r"\.transfer\s*\(\s*\w+\s*\)",  # .transfer(var)
             # Dangerous patterns - transfer in public payable without checks
             r"function\s+\w+\s*\(\s*\)\s*(external|public)\s*payable[^}]*\.transfer",
         ],
         anti_patterns=[
-            r"require\s*\(\s*\w+\.send",       # require(x.send())
-            r"if\s*\(\s*!\s*\w+\.send",        # if (!x.send())
-            r"assert\s*\(\s*\w+\.send",        # assert(x.send())
-            r"bool\s+\w+\s*=\s*\w+\.send",     # bool success = x.send()
+            r"require\s*\(\s*\w+\.send",  # require(x.send())
+            r"if\s*\(\s*!\s*\w+\.send",  # if (!x.send())
+            r"assert\s*\(\s*\w+\.send",  # assert(x.send())
+            r"bool\s+\w+\s*=\s*\w+\.send",  # bool success = x.send()
         ],
         severity="medium",
         swc_id="SWC-104",
         description="Unchecked external call - .send()/.transfer() may fail silently or with 2300 gas limit",
         recommendation="Use .call{value: x}('') with proper checks, or verify contract receivers",
     ),
-
     # =========================================================================
     # INTEGER OVERFLOW (SWC-101) - v4.6.0 specific overflow patterns
     # More selective patterns to reduce FP while maintaining recall
@@ -283,29 +278,28 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         vuln_type=ClassicVulnType.INTEGER_OVERFLOW,
         patterns=[
             # Compound assignment (high confidence - storage modification)
-            r"\w+\s*\+=\s*\w+",               # a += b
-            r"\w+\s*\*=\s*\w+",               # a *= b
+            r"\w+\s*\+=\s*\w+",  # a += b
+            r"\w+\s*\*=\s*\w+",  # a *= b
             # Increment operators
-            r"\+\+\w+|\w+\+\+",               # ++a or a++
+            r"\+\+\w+|\w+\+\+",  # ++a or a++
             # Storage/mapping operations with addition
-            r"balances?\s*\[[^\]]+\]\s*\+",   # balances[x] + y
-            r"mapping.*\+=",                   # mapping modification
+            r"balances?\s*\[[^\]]+\]\s*\+",  # balances[x] + y
+            r"mapping.*\+=",  # mapping modification
             # Specific overflow-prone patterns from SolidiFI
-            r"lockTime\w*\s*\+=",             # lockTime += x (common overflow)
+            r"lockTime\w*\s*\+=",  # lockTime += x (common overflow)
         ],
         anti_patterns=[
-            r"\.add\s*\(",                    # SafeMath.add() usage
-            r"\.mul\s*\(",                    # SafeMath.mul() usage
+            r"\.add\s*\(",  # SafeMath.add() usage
+            r"\.mul\s*\(",  # SafeMath.mul() usage
             r"pragma\s+solidity\s*[\^>=]*\s*0\.8",
             r"unchecked\s*\{",
-            r"require\s*\([^)]*<=",           # Overflow check before
+            r"require\s*\([^)]*<=",  # Overflow check before
         ],
         severity="high",
         swc_id="SWC-101",
         description="Integer overflow - arithmetic operation exceeds max value",
         recommendation="Use Solidity 0.8+ or SafeMath library for safe arithmetic",
     ),
-
     # =========================================================================
     # INTEGER UNDERFLOW (SWC-101) - v4.6.0 specific underflow patterns
     # =========================================================================
@@ -313,30 +307,29 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         vuln_type=ClassicVulnType.INTEGER_UNDERFLOW,
         patterns=[
             # Compound subtraction (high confidence)
-            r"\w+\s*-=\s*\w+",               # a -= b
+            r"\w+\s*-=\s*\w+",  # a -= b
             # Decrement operators
-            r"--\w+|\w+--",                  # --a or a--
+            r"--\w+|\w+--",  # --a or a--
             # Balance/storage subtraction patterns
             r"balance\w*\s*-=",
             r"balances\s*\[[^\]]+\]\s*-=",
             r"_balances\s*\[[^\]]+\]\s*-=",
             # Direct subtraction in assignments
-            r"=\s*\w+\s*-\s*\w+\s*;",        # x = a - b;
+            r"=\s*\w+\s*-\s*\w+\s*;",  # x = a - b;
             # Underflow pattern from SolidiFI
-            r"vundflw\s*=.*-",               # vundflw = x - y
+            r"vundflw\s*=.*-",  # vundflw = x - y
         ],
         anti_patterns=[
-            r"\.sub\s*\(",                    # SafeMath.sub() usage
+            r"\.sub\s*\(",  # SafeMath.sub() usage
             r"pragma\s+solidity\s*[\^>=]*\s*0\.8",
             r"unchecked\s*\{",
-            r"require\s*\([^)]*>=",           # Underflow check before
+            r"require\s*\([^)]*>=",  # Underflow check before
         ],
         severity="high",
         swc_id="SWC-101",
         description="Integer underflow - subtraction results in negative value wrapping",
         recommendation="Use Solidity 0.8+ or SafeMath library, check value before subtraction",
     ),
-
     # =========================================================================
     # DOS (SWC-128) - improved patterns
     # =========================================================================
@@ -344,14 +337,14 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         vuln_type=ClassicVulnType.DOS,
         patterns=[
             # Loop-based gas exhaustion (unbounded iteration)
-            r"for\s*\([^)]*\)\s*\{",            # Loop
-            r"while\s*\(",                      # While loop
-            r"\.length\s*[<>]",                 # Array length check
-            r"address\s*\[\]",                  # Dynamic address array
+            r"for\s*\([^)]*\)\s*\{",  # Loop
+            r"while\s*\(",  # While loop
+            r"\.length\s*[<>]",  # Array length check
+            r"address\s*\[\]",  # Dynamic address array
             # Push payment DoS (external call in require/if can block entire function)
-            r"require\s*\([^)]*\.send\s*\(",   # require(x.send()) - blocks if fails
-            r"require\s*\([^)]*\.call",        # require(x.call()) - blocks if fails
-            r"require\s*\([^)]*\.transfer",    # require(x.transfer()) - blocks if fails
+            r"require\s*\([^)]*\.send\s*\(",  # require(x.send()) - blocks if fails
+            r"require\s*\([^)]*\.call",  # require(x.call()) - blocks if fails
+            r"require\s*\([^)]*\.transfer",  # require(x.transfer()) - blocks if fails
         ],
         anti_patterns=[],
         severity="medium",
@@ -360,7 +353,6 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         recommendation="Limit loop iterations or use pull payment pattern",
         # No context_validator - both loop-based and push-payment DoS are valid
     ),
-
     # =========================================================================
     # SHORT ADDRESS - 100% recall
     # =========================================================================
@@ -380,7 +372,6 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         description="Short address attack in token transfer",
         recommendation="Use Solidity 0.5+ or validate input length",
     ),
-
     # =========================================================================
     # VYPER REENTRANCY (v4.4.0) - Vyper compiler bug
     # =========================================================================
@@ -416,7 +407,6 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
             "Consider redeploying affected contracts."
         ),
     ),
-
     # =========================================================================
     # PERMIT FRONT-RUNNING (v4.4.0) - ERC20 permit attack
     # =========================================================================
@@ -492,7 +482,7 @@ class ClassicPatternDetector:
             List of PatternMatch objects
         """
         matches = []
-        lines = source_code.split('\n')
+        lines = source_code.split("\n")
 
         categories_to_check = categories or list(self.patterns.keys())
 
@@ -552,25 +542,29 @@ class ClassicPatternDetector:
                         if not config.context_validator(line, i):
                             continue
 
-                    matches.append(PatternMatch(
-                        vuln_type=config.vuln_type,
-                        line=i,
-                        code_snippet=line.strip()[:100],
-                        pattern_matched=pattern[:50],
-                        confidence=0.7,
-                        severity=config.severity,
-                        swc_id=config.swc_id,
-                        description=config.description,
-                        recommendation=config.recommendation,
-                    ))
+                    matches.append(
+                        PatternMatch(
+                            vuln_type=config.vuln_type,
+                            line=i,
+                            code_snippet=line.strip()[:100],
+                            pattern_matched=pattern[:50],
+                            confidence=0.7,
+                            severity=config.severity,
+                            swc_id=config.swc_id,
+                            description=config.description,
+                            recommendation=config.recommendation,
+                        )
+                    )
 
         return matches
 
-    def _get_function_context(self, lines: List[str], line_num: int, context_lines: int = 20) -> str:
+    def _get_function_context(
+        self, lines: List[str], line_num: int, context_lines: int = 20
+    ) -> str:
         """Get function context around a line for local anti-pattern checking."""
         start = max(0, line_num - context_lines)
         end = min(len(lines), line_num + context_lines)
-        return '\n'.join(lines[start:end])
+        return "\n".join(lines[start:end])
 
     def detect_with_context(
         self,
@@ -582,20 +576,20 @@ class ClassicPatternDetector:
 
         Useful for validating/enhancing findings from Slither, Mythril, etc.
         """
-        finding_type = finding.get('type', '').lower()
+        finding_type = finding.get("type", "").lower()
 
         # Map finding types to our categories
         type_map = {
-            'reentrancy': ClassicVulnType.REENTRANCY,
-            'reentrancy-eth': ClassicVulnType.REENTRANCY,
-            'access-control': ClassicVulnType.ACCESS_CONTROL,
-            'unprotected': ClassicVulnType.ACCESS_CONTROL,
-            'arithmetic': ClassicVulnType.ARITHMETIC,
-            'overflow': ClassicVulnType.ARITHMETIC,
-            'underflow': ClassicVulnType.ARITHMETIC,
-            'unchecked': ClassicVulnType.UNCHECKED_CALLS,
-            'timestamp': ClassicVulnType.TIMESTAMP,
-            'randomness': ClassicVulnType.BAD_RANDOMNESS,
+            "reentrancy": ClassicVulnType.REENTRANCY,
+            "reentrancy-eth": ClassicVulnType.REENTRANCY,
+            "access-control": ClassicVulnType.ACCESS_CONTROL,
+            "unprotected": ClassicVulnType.ACCESS_CONTROL,
+            "arithmetic": ClassicVulnType.ARITHMETIC,
+            "overflow": ClassicVulnType.ARITHMETIC,
+            "underflow": ClassicVulnType.ARITHMETIC,
+            "unchecked": ClassicVulnType.UNCHECKED_CALLS,
+            "timestamp": ClassicVulnType.TIMESTAMP,
+            "randomness": ClassicVulnType.BAD_RANDOMNESS,
         }
 
         vuln_type = None
@@ -611,7 +605,7 @@ class ClassicPatternDetector:
         matches = self.detect(source_code, [vuln_type])
 
         # Find closest match to finding location
-        finding_line = finding.get('location', {}).get('line', 0)
+        finding_line = finding.get("location", {}).get("line", 0)
         for match in matches:
             if abs(match.line - finding_line) <= 10:
                 return match
@@ -638,8 +632,7 @@ def detect_classic_vulnerabilities(
     cat_enums = None
     if categories:
         cat_enums = [
-            ClassicVulnType(c) for c in categories
-            if c in [e.value for e in ClassicVulnType]
+            ClassicVulnType(c) for c in categories if c in [e.value for e in ClassicVulnType]
         ]
 
     matches = detector.detect(source_code, cat_enums)
@@ -663,9 +656,11 @@ def detect_classic_vulnerabilities(
 # v4.6.0: ACCESS CONTROL SEMANTIC DETECTOR
 # =============================================================================
 
+
 @dataclass
 class AccessControlFinding:
     """Finding from access control semantic analysis."""
+
     vuln_type: str
     severity: str
     line: int
@@ -776,16 +771,16 @@ class AccessControlSemanticDetector:
     ) -> List[AccessControlFinding]:
         """Find privileged operations in public/external functions without access control."""
         findings = []
-        lines = source_code.split('\n')
+        source_code.split("\n")
 
         # Extract functions
         func_pattern = re.compile(
-            r'function\s+(\w+)\s*\([^)]*\)\s*'
-            r'((?:public|external)\s*)?'
-            r'((?:view|pure|payable)\s*)?'
-            r'([^{]*)'  # Modifiers
-            r'\{',
-            re.MULTILINE | re.DOTALL
+            r"function\s+(\w+)\s*\([^)]*\)\s*"
+            r"((?:public|external)\s*)?"
+            r"((?:view|pure|payable)\s*)?"
+            r"([^{]*)"  # Modifiers
+            r"\{",
+            re.MULTILINE | re.DOTALL,
         )
 
         for match in func_pattern.finditer(source_code):
@@ -795,11 +790,11 @@ class AccessControlSemanticDetector:
             modifiers = match.group(4) or ""
 
             # Skip view/pure functions
-            if 'view' in mutability or 'pure' in mutability:
+            if "view" in mutability or "pure" in mutability:
                 continue
 
             # Skip internal/private functions
-            if 'public' not in visibility and 'external' not in visibility:
+            if "public" not in visibility and "external" not in visibility:
                 continue
 
             # Check if function has access control
@@ -815,22 +810,23 @@ class AccessControlSemanticDetector:
                     if re.search(op_pattern, func_body, re.IGNORECASE):
                         # Check if there's require-based access control in body
                         has_require_ac = any(
-                            re.search(p, func_body)
-                            for p in self.REQUIRE_ACCESS_PATTERNS
+                            re.search(p, func_body) for p in self.REQUIRE_ACCESS_PATTERNS
                         )
 
                         if not has_require_ac:
-                            line_num = source_code[:match.start()].count('\n') + 1
+                            line_num = source_code[: match.start()].count("\n") + 1
 
-                            findings.append(AccessControlFinding(
-                                vuln_type="unprotected-privileged-function",
-                                severity="high",
-                                line=line_num,
-                                function=func_name,
-                                description=f"Function {func_name} performs privileged operation without access control",
-                                recommendation="Add access control modifier (onlyOwner) or require(msg.sender == owner)",
-                                confidence=0.80,
-                            ))
+                            findings.append(
+                                AccessControlFinding(
+                                    vuln_type="unprotected-privileged-function",
+                                    severity="high",
+                                    line=line_num,
+                                    function=func_name,
+                                    description=f"Function {func_name} performs privileged operation without access control",
+                                    recommendation="Add access control modifier (onlyOwner) or require(msg.sender == owner)",
+                                    confidence=0.80,
+                                )
+                            )
                             break
 
         return findings
@@ -848,9 +844,9 @@ class AccessControlSemanticDetector:
         end = 0
 
         for i, char in enumerate(code_from_brace):
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
                 if brace_count == 0:
                     end = i
@@ -858,49 +854,48 @@ class AccessControlSemanticDetector:
 
         return code_from_brace[:end]
 
-    def _check_uninitialized_owner(
-        self, source_code: str
-    ) -> List[AccessControlFinding]:
+    def _check_uninitialized_owner(self, source_code: str) -> List[AccessControlFinding]:
         """Check for owner variables that are not initialized."""
         findings = []
 
         # Pattern for owner state variable declaration
-        owner_decl_pattern = r'address\s+(?:public\s+)?owner\s*;'
+        owner_decl_pattern = r"address\s+(?:public\s+)?owner\s*;"
 
         if re.search(owner_decl_pattern, source_code):
             # Check if owner is set in constructor
-            constructor_pattern = r'constructor\s*\([^)]*\)[^{]*\{[^}]*owner\s*=\s*msg\.sender'
+            constructor_pattern = r"constructor\s*\([^)]*\)[^{]*\{[^}]*owner\s*=\s*msg\.sender"
 
             if not re.search(constructor_pattern, source_code, re.DOTALL):
                 # Check for initialize function
-                init_pattern = r'function\s+initialize\s*\([^)]*\)[^{]*\{[^}]*owner\s*=\s*msg\.sender'
+                init_pattern = (
+                    r"function\s+initialize\s*\([^)]*\)[^{]*\{[^}]*owner\s*=\s*msg\.sender"
+                )
 
                 if not re.search(init_pattern, source_code, re.DOTALL):
                     match = re.search(owner_decl_pattern, source_code)
-                    line_num = source_code[:match.start()].count('\n') + 1
+                    line_num = source_code[: match.start()].count("\n") + 1
 
-                    findings.append(AccessControlFinding(
-                        vuln_type="uninitialized-owner",
-                        severity="critical",
-                        line=line_num,
-                        function="",
-                        description="Owner variable declared but not initialized in constructor",
-                        recommendation="Initialize owner in constructor: owner = msg.sender",
-                        confidence=0.85,
-                    ))
+                    findings.append(
+                        AccessControlFinding(
+                            vuln_type="uninitialized-owner",
+                            severity="critical",
+                            line=line_num,
+                            function="",
+                            description="Owner variable declared but not initialized in constructor",
+                            recommendation="Initialize owner in constructor: owner = msg.sender",
+                            confidence=0.85,
+                        )
+                    )
 
         return findings
 
-    def _check_missing_access_control(
-        self, source_code: str
-    ) -> List[AccessControlFinding]:
+    def _check_missing_access_control(self, source_code: str) -> List[AccessControlFinding]:
         """Check for external functions that modify state without access control."""
         findings = []
 
         # Find external functions
         external_func_pattern = re.compile(
-            r'function\s+(\w+)\s*\([^)]*\)\s*external\s*([^{]*)\{',
-            re.MULTILINE
+            r"function\s+(\w+)\s*\([^)]*\)\s*external\s*([^{]*)\{", re.MULTILINE
         )
 
         for match in external_func_pattern.finditer(source_code):
@@ -912,7 +907,7 @@ class AccessControlSemanticDetector:
                 continue
 
             # Skip view/pure
-            if 'view' in modifiers or 'pure' in modifiers:
+            if "view" in modifiers or "pure" in modifiers:
                 continue
 
             # Get function body
@@ -921,36 +916,32 @@ class AccessControlSemanticDetector:
 
             # Check for state modifications
             state_mod_patterns = [
-                r'\w+\s*=\s*[^=]',  # Assignment
-                r'\.push\s*\(',
-                r'\.pop\s*\(',
-                r'delete\s+',
+                r"\w+\s*=\s*[^=]",  # Assignment
+                r"\.push\s*\(",
+                r"\.pop\s*\(",
+                r"delete\s+",
             ]
 
-            has_state_mod = any(
-                re.search(p, func_body)
-                for p in state_mod_patterns
-            )
+            has_state_mod = any(re.search(p, func_body) for p in state_mod_patterns)
 
             if has_state_mod:
                 # Check for require-based access control
-                has_require_ac = any(
-                    re.search(p, func_body)
-                    for p in self.REQUIRE_ACCESS_PATTERNS
-                )
+                has_require_ac = any(re.search(p, func_body) for p in self.REQUIRE_ACCESS_PATTERNS)
 
                 if not has_require_ac:
-                    line_num = source_code[:match.start()].count('\n') + 1
+                    line_num = source_code[: match.start()].count("\n") + 1
 
-                    findings.append(AccessControlFinding(
-                        vuln_type="missing-access-control",
-                        severity="medium",
-                        line=line_num,
-                        function=func_name,
-                        description=f"External function {func_name} modifies state without access control",
-                        recommendation="Add access control if this is a privileged operation",
-                        confidence=0.65,
-                    ))
+                    findings.append(
+                        AccessControlFinding(
+                            vuln_type="missing-access-control",
+                            severity="medium",
+                            line=line_num,
+                            function=func_name,
+                            description=f"External function {func_name} modifies state without access control",
+                            recommendation="Add access control if this is a privileged operation",
+                            confidence=0.65,
+                        )
+                    )
 
         return findings
 
@@ -979,9 +970,11 @@ class AccessControlSemanticDetector:
 # v4.6.0: DoS CROSS-FUNCTION DETECTOR
 # =============================================================================
 
+
 @dataclass
 class DoSFinding:
     """Finding from DoS cross-function analysis."""
+
     vuln_type: str
     severity: str
     line: int
@@ -1006,32 +999,32 @@ class DoSCrossFunctionDetector:
 
     # Patterns for unbounded loops
     UNBOUNDED_LOOP_PATTERNS = [
-        r'for\s*\(\s*\w+\s+\w+\s*=\s*0\s*;\s*\w+\s*<\s*(\w+)\.length\s*;',
-        r'for\s*\(\s*\w+\s+\w+\s*=\s*0\s*;\s*\w+\s*<\s*(\w+)\s*;',
-        r'while\s*\(\s*\w+\s*<\s*(\w+)\.length\s*\)',
+        r"for\s*\(\s*\w+\s+\w+\s*=\s*0\s*;\s*\w+\s*<\s*(\w+)\.length\s*;",
+        r"for\s*\(\s*\w+\s+\w+\s*=\s*0\s*;\s*\w+\s*<\s*(\w+)\s*;",
+        r"while\s*\(\s*\w+\s*<\s*(\w+)\.length\s*\)",
     ]
 
     # Patterns for arrays that grow from user input
     USER_GROWING_ARRAY_PATTERNS = [
-        r'(\w+)\.push\s*\([^)]*(?:msg\.sender|_\w+|param)',
-        r'function\s+\w+[^}]*(\w+)\.push\s*\(',
+        r"(\w+)\.push\s*\([^)]*(?:msg\.sender|_\w+|param)",
+        r"function\s+\w+[^}]*(\w+)\.push\s*\(",
     ]
 
     # Patterns for push payments (external calls in loops)
     PUSH_PAYMENT_PATTERNS = [
-        r'\.transfer\s*\([^)]*\)',
-        r'\.send\s*\([^)]*\)',
-        r'\.call\s*\{[^}]*value[^}]*\}',
+        r"\.transfer\s*\([^)]*\)",
+        r"\.send\s*\([^)]*\)",
+        r"\.call\s*\{[^}]*value[^}]*\}",
     ]
 
     # Patterns for gas-heavy operations
     GAS_HEAVY_OPERATIONS = [
-        r'\.call\s*\(',
-        r'\.delegatecall\s*\(',
-        r'\.staticcall\s*\(',
-        r'new\s+\w+\(',
-        r'keccak256\s*\(',
-        r'ecrecover\s*\(',
+        r"\.call\s*\(",
+        r"\.delegatecall\s*\(",
+        r"\.staticcall\s*\(",
+        r"new\s+\w+\(",
+        r"keccak256\s*\(",
+        r"ecrecover\s*\(",
     ]
 
     def __init__(self):
@@ -1072,21 +1065,23 @@ class DoSCrossFunctionDetector:
         self._arrays = {}
 
         # Find array declarations
-        array_decl_pattern = r'(\w+)\s*\[\s*\]\s*(?:public|private|internal)?\s*(\w+)\s*;'
+        array_decl_pattern = r"(\w+)\s*\[\s*\]\s*(?:public|private|internal)?\s*(\w+)\s*;"
 
         for match in re.finditer(array_decl_pattern, source_code):
-            array_type = match.group(1)
+            match.group(1)
             array_name = match.group(2)
-            line = source_code[:match.start()].count('\n') + 1
+            line = source_code[: match.start()].count("\n") + 1
 
             self._arrays[array_name] = line
 
         # Find mapping to arrays
-        mapping_array_pattern = r'mapping\s*\([^)]+\s*=>\s*\w+\s*\[\s*\]\s*\)\s*(?:public|private)?\s*(\w+)'
+        mapping_array_pattern = (
+            r"mapping\s*\([^)]+\s*=>\s*\w+\s*\[\s*\]\s*\)\s*(?:public|private)?\s*(\w+)"
+        )
 
         for match in re.finditer(mapping_array_pattern, source_code):
             array_name = match.group(1)
-            line = source_code[:match.start()].count('\n') + 1
+            line = source_code[: match.start()].count("\n") + 1
             self._arrays[array_name] = line
 
     def _find_unbounded_loops(self, source_code: str) -> List[DoSFinding]:
@@ -1099,20 +1094,22 @@ class DoSCrossFunctionDetector:
 
                 # Check if loop variable is a state array
                 if loop_var in self._arrays:
-                    line = source_code[:match.start()].count('\n') + 1
+                    line = source_code[: match.start()].count("\n") + 1
 
                     # Get function name
                     func_name = self._get_containing_function(source_code, match.start())
 
-                    findings.append(DoSFinding(
-                        vuln_type="unbounded-loop-dos",
-                        severity="medium",
-                        line=line,
-                        function=func_name,
-                        description=f"Loop iterates over unbounded array '{loop_var}' which can cause gas exhaustion",
-                        recommendation="Add pagination or limit iterations. Consider using pull pattern.",
-                        confidence=0.75,
-                    ))
+                    findings.append(
+                        DoSFinding(
+                            vuln_type="unbounded-loop-dos",
+                            severity="medium",
+                            line=line,
+                            function=func_name,
+                            description=f"Loop iterates over unbounded array '{loop_var}' which can cause gas exhaustion",
+                            recommendation="Add pagination or limit iterations. Consider using pull pattern.",
+                            confidence=0.75,
+                        )
+                    )
 
         return findings
 
@@ -1121,7 +1118,7 @@ class DoSCrossFunctionDetector:
         findings = []
 
         # Find loops with transfers inside
-        loop_pattern = r'(for|while)\s*\([^)]+\)\s*\{'
+        loop_pattern = r"(for|while)\s*\([^)]+\)\s*\{"
 
         for loop_match in re.finditer(loop_pattern, source_code):
             # Extract loop body
@@ -1131,18 +1128,20 @@ class DoSCrossFunctionDetector:
             # Check for payment patterns inside loop
             for payment_pattern in self.PUSH_PAYMENT_PATTERNS:
                 if re.search(payment_pattern, loop_body):
-                    line = source_code[:loop_match.start()].count('\n') + 1
+                    line = source_code[: loop_match.start()].count("\n") + 1
                     func_name = self._get_containing_function(source_code, loop_match.start())
 
-                    findings.append(DoSFinding(
-                        vuln_type="push-payment-dos-risk",
-                        severity="medium",
-                        line=line,
-                        function=func_name,
-                        description="Push payment pattern inside loop can be blocked by malicious recipient",
-                        recommendation="Use pull payment pattern. Store pending payments and let recipients withdraw.",
-                        confidence=0.70,
-                    ))
+                    findings.append(
+                        DoSFinding(
+                            vuln_type="push-payment-dos-risk",
+                            severity="medium",
+                            line=line,
+                            function=func_name,
+                            description="Push payment pattern inside loop can be blocked by malicious recipient",
+                            recommendation="Use pull payment pattern. Store pending payments and let recipients withdraw.",
+                            confidence=0.70,
+                        )
+                    )
                     break
 
         return findings
@@ -1151,7 +1150,7 @@ class DoSCrossFunctionDetector:
         """Find external calls inside loops."""
         findings = []
 
-        loop_pattern = r'(for|while)\s*\([^)]+\)\s*\{'
+        loop_pattern = r"(for|while)\s*\([^)]+\)\s*\{"
 
         for loop_match in re.finditer(loop_pattern, source_code):
             loop_start = loop_match.end()
@@ -1160,7 +1159,7 @@ class DoSCrossFunctionDetector:
             # Check for external calls
             for call_pattern in self.GAS_HEAVY_OPERATIONS:
                 if re.search(call_pattern, loop_body):
-                    line = source_code[:loop_match.start()].count('\n') + 1
+                    line = source_code[: loop_match.start()].count("\n") + 1
                     func_name = self._get_containing_function(source_code, loop_match.start())
 
                     # Determine severity based on call type
@@ -1168,15 +1167,17 @@ class DoSCrossFunctionDetector:
                     if ".call" in call_pattern or ".delegatecall" in call_pattern:
                         severity = "medium"
 
-                    findings.append(DoSFinding(
-                        vuln_type="calls-in-loop",
-                        severity=severity,
-                        line=line,
-                        function=func_name,
-                        description="Gas-heavy operation inside loop may cause DoS due to gas exhaustion",
-                        recommendation="Move operation outside loop or limit iterations",
-                        confidence=0.65,
-                    ))
+                    findings.append(
+                        DoSFinding(
+                            vuln_type="calls-in-loop",
+                            severity=severity,
+                            line=line,
+                            function=func_name,
+                            description="Gas-heavy operation inside loop may cause DoS due to gas exhaustion",
+                            recommendation="Move operation outside loop or limit iterations",
+                            confidence=0.65,
+                        )
+                    )
                     break
 
         return findings
@@ -1187,9 +1188,9 @@ class DoSCrossFunctionDetector:
         end = 0
 
         for i, char in enumerate(code_from_brace):
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
                 if brace_count == 0:
                     end = i
@@ -1202,7 +1203,7 @@ class DoSCrossFunctionDetector:
         code_before = source_code[:position]
 
         # Find last function declaration
-        func_pattern = r'function\s+(\w+)\s*\([^)]*\)'
+        func_pattern = r"function\s+(\w+)\s*\([^)]*\)"
         matches = list(re.finditer(func_pattern, code_before))
 
         if matches:
@@ -1235,6 +1236,7 @@ class DoSCrossFunctionDetector:
 # COMBINED DETECTION FUNCTION
 # =============================================================================
 
+
 def detect_semantic_vulnerabilities(
     source_code: str,
 ) -> Dict[str, Any]:
@@ -1248,23 +1250,23 @@ def detect_semantic_vulnerabilities(
         Combined findings from all semantic detectors
     """
     results = {
-        'access_control': [],
-        'dos': [],
-        'classic': [],
+        "access_control": [],
+        "dos": [],
+        "classic": [],
     }
 
     # Access control detector
     ac_detector = AccessControlSemanticDetector()
     ac_findings = ac_detector.analyze(source_code)
-    results['access_control'] = ac_detector.to_findings(ac_findings)
+    results["access_control"] = ac_detector.to_findings(ac_findings)
 
     # DoS detector
     dos_detector = DoSCrossFunctionDetector()
     dos_findings = dos_detector.analyze(source_code)
-    results['dos'] = dos_detector.to_findings(dos_findings)
+    results["dos"] = dos_detector.to_findings(dos_findings)
 
     # Classic patterns
     classic_findings = detect_classic_vulnerabilities(source_code)
-    results['classic'] = classic_findings
+    results["classic"] = classic_findings
 
     return results

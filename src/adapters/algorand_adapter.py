@@ -31,14 +31,12 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from src.core.chain_abstraction import (
     AbstractChainAnalyzer,
     AbstractContract,
-    AbstractEvent,
     AbstractFunction,
-    AbstractVariable,
     ChainType,
     ContractLanguage,
     Location,
@@ -233,7 +231,7 @@ class TealParser:
             if "//" in line:
                 comment_match = re.search(self.COMMENT_PATTERN, line)
                 if comment_match:
-                    comment = comment_match.group().strip("// ")
+                    comment = comment_match.group().removeprefix("// ").removesuffix("// ")
                 line = re.sub(self.COMMENT_PATTERN, "", line)
 
             line = line.strip()
@@ -300,8 +298,12 @@ class PyTealParser:
 
     # OnComplete types
     ON_COMPLETE_TYPES = [
-        "NoOp", "OptIn", "CloseOut", "UpdateApplication",
-        "DeleteApplication", "ClearState"
+        "NoOp",
+        "OptIn",
+        "CloseOut",
+        "UpdateApplication",
+        "DeleteApplication",
+        "ClearState",
     ]
 
     def parse(self, source_path: Union[str, Path]) -> AlgorandContract:
@@ -334,9 +336,7 @@ class PyTealParser:
                 imports.append(line.strip())
         return imports
 
-    def _parse_functions(
-        self, content: str, lines: List[str]
-    ) -> List[PyTealFunction]:
+    def _parse_functions(self, content: str, lines: List[str]) -> List[PyTealFunction]:
         """Parse PyTeal functions."""
         functions = []
 
@@ -435,7 +435,7 @@ class PyTealParser:
         # Look for schema definitions
         global_match = re.search(
             r"GlobalStateSchema\s*\(\s*num_uints\s*=\s*(\d+)\s*,\s*num_byte_slices\s*=\s*(\d+)",
-            content
+            content,
         )
         if global_match:
             global_schema["uints"] = int(global_match.group(1))
@@ -443,7 +443,7 @@ class PyTealParser:
 
         local_match = re.search(
             r"LocalStateSchema\s*\(\s*num_uints\s*=\s*(\d+)\s*,\s*num_byte_slices\s*=\s*(\d+)",
-            content
+            content,
         )
         if local_match:
             local_schema["uints"] = int(local_match.group(1))
@@ -466,20 +466,16 @@ class AlgorandPatternDetector:
         "sender_check": r"txn\s+Sender|Txn\.sender",
         "creator_check": r"global\s+CreatorAddress|Global\.creator_address",
         "app_id_check": r"txn\s+ApplicationID|Txn\.application_id",
-
         # Dangerous operations
         "rekey_to": r"txn\s+RekeyTo|Txn\.rekey_to",
         "close_remainder_to": r"txn\s+CloseRemainderTo|Txn\.close_remainder_to",
         "asset_close_to": r"txn\s+AssetCloseTo|Txn\.asset_close_to",
-
         # Inner transactions
         "itxn_begin": r"itxn_begin|InnerTxnBuilder\.Begin",
         "itxn_submit": r"itxn_submit|InnerTxnBuilder\.Submit",
-
         # Group transactions
         "group_size": r"global\s+GroupSize|Global\.group_size",
         "gtxn": r"gtxn\s+\d+|Gtxn\[",
-
         # Update/Delete
         "on_complete": r"txn\s+OnCompletion|Txn\.on_completion",
         "update_app": r"UpdateApplication|OnComplete\.UpdateApplication",
@@ -520,13 +516,15 @@ class AlgorandPatternDetector:
         )
 
         if not has_sender_check:
-            findings.append({
-                "type": AlgorandVulnerability.MISSING_SENDER_CHECK.value,
-                "line": 1,
-                "message": "No transaction sender validation found",
-                "severity": "High",
-                "recommendation": "Add sender validation using 'txn Sender' comparison",
-            })
+            findings.append(
+                {
+                    "type": AlgorandVulnerability.MISSING_SENDER_CHECK.value,
+                    "line": 1,
+                    "message": "No transaction sender validation found",
+                    "severity": "High",
+                    "recommendation": "Add sender validation using 'txn Sender' comparison",
+                }
+            )
 
         # Check for rekey vulnerability
         has_rekey_check = False
@@ -539,13 +537,15 @@ class AlgorandPatternDetector:
         if not has_rekey_check and any(
             instr.opcode in ("txn", "gtxn") for instr in program.instructions
         ):
-            findings.append({
-                "type": AlgorandVulnerability.REKEY_ATTACK.value,
-                "line": 1,
-                "message": "No RekeyTo validation - potential rekey attack",
-                "severity": "Critical",
-                "recommendation": "Verify RekeyTo is ZeroAddress: txn RekeyTo; global ZeroAddress; ==",
-            })
+            findings.append(
+                {
+                    "type": AlgorandVulnerability.REKEY_ATTACK.value,
+                    "line": 1,
+                    "message": "No RekeyTo validation - potential rekey attack",
+                    "severity": "Critical",
+                    "recommendation": "Verify RekeyTo is ZeroAddress: txn RekeyTo; global ZeroAddress; ==",
+                }
+            )
 
         # Check for CloseRemainderTo vulnerability
         has_close_check = any(
@@ -553,49 +553,54 @@ class AlgorandPatternDetector:
             for instr in program.instructions
         )
 
-        if not has_close_check and any(
-            instr.opcode == "txn" for instr in program.instructions
-        ):
-            findings.append({
-                "type": AlgorandVulnerability.CLOSE_TO_ATTACK.value,
-                "line": 1,
-                "message": "No CloseRemainderTo validation - potential close-to attack",
-                "severity": "High",
-                "recommendation": "Verify CloseRemainderTo is ZeroAddress",
-            })
+        if not has_close_check and any(instr.opcode == "txn" for instr in program.instructions):
+            findings.append(
+                {
+                    "type": AlgorandVulnerability.CLOSE_TO_ATTACK.value,
+                    "line": 1,
+                    "message": "No CloseRemainderTo validation - potential close-to attack",
+                    "severity": "High",
+                    "recommendation": "Verify CloseRemainderTo is ZeroAddress",
+                }
+            )
 
         # Check inner transaction safety
-        itxn_begin_count = sum(
-            1 for instr in program.instructions if instr.opcode == "itxn_begin"
-        )
+        itxn_begin_count = sum(1 for instr in program.instructions if instr.opcode == "itxn_begin")
         itxn_submit_count = sum(
             1 for instr in program.instructions if instr.opcode == "itxn_submit"
         )
 
         if itxn_begin_count > 0:
             # Check if there's proper validation before submit
-            findings.append({
-                "type": AlgorandVulnerability.INNER_TXN_UNSAFE.value,
-                "line": 1,
-                "message": f"Inner transactions detected ({itxn_begin_count} begin, {itxn_submit_count} submit) - verify authorization",
-                "severity": "Medium",
-                "recommendation": "Ensure proper authorization before inner transaction submission",
-            })
+            findings.append(
+                {
+                    "type": AlgorandVulnerability.INNER_TXN_UNSAFE.value,
+                    "line": 1,
+                    "message": f"Inner transactions detected ({itxn_begin_count} begin, {itxn_submit_count} submit) - verify authorization",
+                    "severity": "Medium",
+                    "recommendation": "Ensure proper authorization before inner transaction submission",
+                }
+            )
 
         # Check for unchecked OnCompletion
         on_completion_checks = [
-            instr for instr in program.instructions
-            if "OnCompletion" in " ".join(instr.args) or instr.opcode == "txn" and "OnCompletion" in " ".join(instr.args)
+            instr
+            for instr in program.instructions
+            if "OnCompletion" in " ".join(instr.args)
+            or instr.opcode == "txn"
+            and "OnCompletion" in " ".join(instr.args)
         ]
 
         if not on_completion_checks:
-            findings.append({
-                "type": AlgorandVulnerability.UNCHECKED_TXN_TYPE.value,
-                "line": 1,
-                "message": "No OnCompletion check - contract may accept unexpected calls",
-                "severity": "Medium",
-                "recommendation": "Check txn OnCompletion for expected values",
-            })
+            findings.append(
+                {
+                    "type": AlgorandVulnerability.UNCHECKED_TXN_TYPE.value,
+                    "line": 1,
+                    "message": "No OnCompletion check - contract may accept unexpected calls",
+                    "severity": "Medium",
+                    "recommendation": "Check txn OnCompletion for expected values",
+                }
+            )
 
         return findings
 
@@ -615,18 +620,23 @@ class AlgorandPatternDetector:
                 )
 
                 if not has_sender_check and func.on_complete in (
-                    "UpdateApplication", "DeleteApplication"
+                    "UpdateApplication",
+                    "DeleteApplication",
                 ):
-                    findings.append({
-                        "type": AlgorandVulnerability.UNRESTRICTED_UPDATE.value
-                        if func.on_complete == "UpdateApplication"
-                        else AlgorandVulnerability.UNRESTRICTED_DELETE.value,
-                        "function": func.name,
-                        "line": func.location.line if func.location else 0,
-                        "message": f"Function '{func.name}' handles {func.on_complete} without sender check",
-                        "severity": "Critical",
-                        "recommendation": "Add Txn.sender() == Global.creator_address() check",
-                    })
+                    findings.append(
+                        {
+                            "type": (
+                                AlgorandVulnerability.UNRESTRICTED_UPDATE.value
+                                if func.on_complete == "UpdateApplication"
+                                else AlgorandVulnerability.UNRESTRICTED_DELETE.value
+                            ),
+                            "function": func.name,
+                            "line": func.location.line if func.location else 0,
+                            "message": f"Function '{func.name}' handles {func.on_complete} without sender check",
+                            "severity": "Critical",
+                            "recommendation": "Add Txn.sender() == Global.creator_address() check",
+                        }
+                    )
 
         # Check for approve-all patterns
         for i, line in enumerate(lines, 1):
@@ -635,60 +645,76 @@ class AlgorandPatternDetector:
                 context_start = max(0, i - 10)
                 context = "\n".join(lines[context_start:i])
                 if not re.search(r"Txn\.sender|Assert|Cond|If", context):
-                    findings.append({
-                        "type": AlgorandVulnerability.MISSING_SENDER_CHECK.value,
-                        "line": i,
-                        "message": "Return Int(1) without visible authorization check",
-                        "severity": "High",
-                        "recommendation": "Add authorization check before approval",
-                    })
+                    findings.append(
+                        {
+                            "type": AlgorandVulnerability.MISSING_SENDER_CHECK.value,
+                            "line": i,
+                            "message": "Return Int(1) without visible authorization check",
+                            "severity": "High",
+                            "recommendation": "Add authorization check before approval",
+                        }
+                    )
 
         # Check for RekeyTo validation
-        if not re.search(r"Txn\.rekey_to.*ZeroAddress|RekeyTo.*==.*ZeroAddress", content, re.IGNORECASE):
-            findings.append({
-                "type": AlgorandVulnerability.REKEY_ATTACK.value,
-                "line": 1,
-                "message": "No RekeyTo validation found",
-                "severity": "Critical",
-                "recommendation": "Add Assert(Txn.rekey_to() == Global.zero_address())",
-            })
+        if not re.search(
+            r"Txn\.rekey_to.*ZeroAddress|RekeyTo.*==.*ZeroAddress", content, re.IGNORECASE
+        ):
+            findings.append(
+                {
+                    "type": AlgorandVulnerability.REKEY_ATTACK.value,
+                    "line": 1,
+                    "message": "No RekeyTo validation found",
+                    "severity": "Critical",
+                    "recommendation": "Add Assert(Txn.rekey_to() == Global.zero_address())",
+                }
+            )
 
         # Check for CloseRemainderTo validation
-        if not re.search(r"close_remainder_to.*ZeroAddress|CloseRemainderTo.*==.*ZeroAddress", content, re.IGNORECASE):
-            findings.append({
-                "type": AlgorandVulnerability.CLOSE_TO_ATTACK.value,
-                "line": 1,
-                "message": "No CloseRemainderTo validation found",
-                "severity": "High",
-                "recommendation": "Add Assert(Txn.close_remainder_to() == Global.zero_address())",
-            })
+        if not re.search(
+            r"close_remainder_to.*ZeroAddress|CloseRemainderTo.*==.*ZeroAddress",
+            content,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                {
+                    "type": AlgorandVulnerability.CLOSE_TO_ATTACK.value,
+                    "line": 1,
+                    "message": "No CloseRemainderTo validation found",
+                    "severity": "High",
+                    "recommendation": "Add Assert(Txn.close_remainder_to() == Global.zero_address())",
+                }
+            )
 
         # Check for inner transaction safety
         inner_txn_matches = list(re.finditer(r"InnerTxnBuilder", content))
         for match in inner_txn_matches:
-            line_no = content[:match.start()].count("\n") + 1
+            line_no = content[: match.start()].count("\n") + 1
             # Check for authorization before inner txn
             context_start = max(0, match.start() - 500)
-            context = content[context_start:match.start()]
+            context = content[context_start : match.start()]
             if not re.search(r"Assert|sender|creator", context, re.IGNORECASE):
-                findings.append({
-                    "type": AlgorandVulnerability.INNER_TXN_UNSAFE.value,
-                    "line": line_no,
-                    "message": "Inner transaction without visible authorization",
-                    "severity": "High",
-                    "recommendation": "Add authorization check before InnerTxnBuilder",
-                })
+                findings.append(
+                    {
+                        "type": AlgorandVulnerability.INNER_TXN_UNSAFE.value,
+                        "line": line_no,
+                        "message": "Inner transaction without visible authorization",
+                        "severity": "High",
+                        "recommendation": "Add authorization check before InnerTxnBuilder",
+                    }
+                )
 
         # Check for group transaction validation
         if re.search(r"Gtxn\[|gtxn", content, re.IGNORECASE):
             if not re.search(r"Global\.group_size|GroupSize", content, re.IGNORECASE):
-                findings.append({
-                    "type": AlgorandVulnerability.GROUP_TXN_VALIDATION.value,
-                    "line": 1,
-                    "message": "Group transaction access without group size validation",
-                    "severity": "Medium",
-                    "recommendation": "Validate Global.group_size() before accessing Gtxn",
-                })
+                findings.append(
+                    {
+                        "type": AlgorandVulnerability.GROUP_TXN_VALIDATION.value,
+                        "line": 1,
+                        "message": "Group transaction access without group size validation",
+                        "severity": "Medium",
+                        "recommendation": "Validate Global.group_size() before accessing Gtxn",
+                    }
+                )
 
         return findings
 
@@ -759,13 +785,15 @@ class AlgorandAnalyzer(AbstractChainAnalyzer):
             functions.append(func)
 
         # Add main entry point
-        functions.append(AbstractFunction(
-            name="main",
-            visibility=Visibility.PUBLIC,
-            mutability=Mutability.MUTABLE,
-            location=Location(file=str(path), line=1),
-            chain_metadata={"is_entry_point": True, "teal_version": program.version},
-        ))
+        functions.append(
+            AbstractFunction(
+                name="main",
+                visibility=Visibility.PUBLIC,
+                mutability=Mutability.MUTABLE,
+                location=Location(file=str(path), line=1),
+                chain_metadata={"is_entry_point": True, "teal_version": program.version},
+            )
+        )
 
         return AbstractContract(
             name=path.stem,
@@ -835,20 +863,20 @@ class AlgorandAnalyzer(AbstractChainAnalyzer):
 
         if contract.language == ContractLanguage.TEAL:
             program = self.teal_parser.parse(contract.source_path)
-            teal_findings = AlgorandPatternDetector.detect_teal_vulnerabilities(
-                program, content
-            )
+            teal_findings = AlgorandPatternDetector.detect_teal_vulnerabilities(program, content)
             for f in teal_findings:
-                findings.append(self.normalize_finding(
-                    vuln_type=f["type"],
-                    severity=f["severity"],
-                    message=f["message"],
-                    location=Location(
-                        file=contract.source_path,
-                        line=f.get("line", 0),
-                    ),
-                    recommendation=f.get("recommendation"),
-                ))
+                findings.append(
+                    self.normalize_finding(
+                        vuln_type=f["type"],
+                        severity=f["severity"],
+                        message=f["message"],
+                        location=Location(
+                            file=contract.source_path,
+                            line=f.get("line", 0),
+                        ),
+                        recommendation=f.get("recommendation"),
+                    )
+                )
 
         elif contract.language == ContractLanguage.PYTEAL:
             pyteal_contract = self.pyteal_parser.parse(contract.source_path)
@@ -856,17 +884,19 @@ class AlgorandAnalyzer(AbstractChainAnalyzer):
                 pyteal_contract, content
             )
             for f in pyteal_findings:
-                findings.append(self.normalize_finding(
-                    vuln_type=f["type"],
-                    severity=f["severity"],
-                    message=f["message"],
-                    location=Location(
-                        file=contract.source_path,
-                        line=f.get("line", 0),
-                    ),
-                    function=f.get("function"),
-                    recommendation=f.get("recommendation"),
-                ))
+                findings.append(
+                    self.normalize_finding(
+                        vuln_type=f["type"],
+                        severity=f["severity"],
+                        message=f["message"],
+                        location=Location(
+                            file=contract.source_path,
+                            line=f.get("line", 0),
+                        ),
+                        function=f.get("function"),
+                        recommendation=f.get("recommendation"),
+                    )
+                )
 
         return findings
 

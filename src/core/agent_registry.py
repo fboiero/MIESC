@@ -8,13 +8,13 @@ Supports dynamic loading from multiple sources.
 
 import importlib
 import importlib.util
+import inspect
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Set
-import inspect
+from typing import Dict, List, Optional
 
-from src.core.agent_protocol import SecurityAgent, AgentMetadata
+from src.core.agent_protocol import AgentMetadata, SecurityAgent
 
 logger = logging.getLogger(__name__)
 
@@ -38,17 +38,17 @@ class AgentRegistry:
     def _init_plugin_dirs(self):
         """Initialize plugin directory paths"""
         # User plugin directory
-        user_dir = Path.home() / '.miesc' / 'agents'
+        user_dir = Path.home() / ".miesc" / "agents"
         user_dir.mkdir(parents=True, exist_ok=True)
         self._plugin_dirs.append(user_dir)
 
         # Project plugin directory
-        project_dir = Path.cwd() / 'plugins' / 'agents'
+        project_dir = Path.cwd() / "plugins" / "agents"
         if project_dir.exists():
             self._plugin_dirs.append(project_dir)
 
         # Built-in agents directory
-        builtin_dir = Path(__file__).parent.parent / 'agents'
+        builtin_dir = Path(__file__).parent.parent / "agents"
         if builtin_dir.exists():
             self._plugin_dirs.append(builtin_dir)
 
@@ -76,7 +76,9 @@ class AgentRegistry:
 
         # Check for duplicates
         if agent.name in self.agents and not force:
-            raise ValueError(f"Agent '{agent.name}' is already registered. Use force=True to overwrite.")
+            raise ValueError(
+                f"Agent '{agent.name}' is already registered. Use force=True to overwrite."
+            )
 
         self.agents[agent.name] = agent
         logger.info(f"Registered agent: {agent.name} v{agent.version}")
@@ -159,10 +161,10 @@ class AgentRegistry:
         discovered = {}
 
         # Find all Python files
-        for agent_file in directory.glob('*_agent.py'):
+        for agent_file in directory.glob("*_agent.py"):
             try:
                 # Skip __init__.py and non-agent files
-                if agent_file.name == '__init__.py':
+                if agent_file.name == "__init__.py":
                     continue
 
                 logger.debug(f"Loading module: {agent_file}")
@@ -207,9 +209,11 @@ class AgentRegistry:
             # Find SecurityAgent subclasses
             for name, obj in inspect.getmembers(module, inspect.isclass):
                 # Check if it's a SecurityAgent subclass (but not SecurityAgent itself)
-                if (issubclass(obj, SecurityAgent) and
-                    obj is not SecurityAgent and
-                    obj.__module__ == module_name):
+                if (
+                    issubclass(obj, SecurityAgent)
+                    and obj is not SecurityAgent
+                    and obj.__module__ == module_name
+                ):
 
                     try:
                         # Instantiate the agent
@@ -224,12 +228,14 @@ class AgentRegistry:
 
         return agents
 
-    def filter_agents(self,
-                     language: Optional[str] = None,
-                     capability: Optional[str] = None,
-                     free_only: bool = False,
-                     available_only: bool = True,
-                     max_speed: Optional[str] = None) -> List[SecurityAgent]:
+    def filter_agents(
+        self,
+        language: Optional[str] = None,
+        capability: Optional[str] = None,
+        free_only: bool = False,
+        available_only: bool = True,
+        max_speed: Optional[str] = None,
+    ) -> List[SecurityAgent]:
         """
         Filter agents by criteria.
 
@@ -251,12 +257,16 @@ class AgentRegistry:
 
         # Filter by language
         if language:
-            filtered = [a for a in filtered if language.lower() in
-                       [lang.lower() for lang in a.supported_languages]]
+            filtered = [
+                a
+                for a in filtered
+                if language.lower() in [lang.lower() for lang in a.supported_languages]
+            ]
 
         # Filter by capability
         if capability:
             from src.core.agent_protocol import AgentCapability
+
             try:
                 cap = AgentCapability(capability.lower())
                 filtered = [a for a in filtered if cap in a.capabilities]
@@ -270,12 +280,12 @@ class AgentRegistry:
         # Filter by speed
         if max_speed:
             from src.core.agent_protocol import AgentSpeed
+
             speed_order = {AgentSpeed.FAST: 0, AgentSpeed.MEDIUM: 1, AgentSpeed.SLOW: 2}
             try:
                 max_speed_enum = AgentSpeed(max_speed.lower())
                 max_speed_value = speed_order[max_speed_enum]
-                filtered = [a for a in filtered
-                           if speed_order[a.speed] <= max_speed_value]
+                filtered = [a for a in filtered if speed_order[a.speed] <= max_speed_value]
             except (ValueError, KeyError):
                 logger.warning(f"Unknown speed: {max_speed}")
 
@@ -294,6 +304,7 @@ class AgentRegistry:
 
         # Count by capability
         from src.core.agent_protocol import AgentCapability
+
         capabilities = {}
         for cap in AgentCapability:
             count = len([a for a in self.agents.values() if cap in a.capabilities])
@@ -307,12 +318,12 @@ class AgentRegistry:
                 languages[lang] = languages.get(lang, 0) + 1
 
         return {
-            'total_agents': total,
-            'available_agents': available,
-            'free_agents': free,
-            'paid_agents': total - free,
-            'capabilities': capabilities,
-            'languages': languages
+            "total_agents": total,
+            "available_agents": available,
+            "free_agents": free,
+            "paid_agents": total - free,
+            "capabilities": capabilities,
+            "languages": languages,
         }
 
     def validate_all(self) -> Dict[str, bool]:

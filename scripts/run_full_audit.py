@@ -4,13 +4,12 @@ MIESC Full Audit Script
 Ejecuta auditoría completa en múltiples contratos con todas las herramientas disponibles
 """
 
-import os
-import sys
 import json
 import subprocess
-from pathlib import Path
+import sys
 from datetime import datetime
-from typing import Dict, List, Any
+from pathlib import Path
+from typing import Any, Dict, List
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -24,16 +23,20 @@ CONTRACTS_DIR = Path(__file__).parent / "contracts" / "audit"
 OUTPUT_DIR = Path(__file__).parent / "audit_results"
 TOOLS = ["slither", "mythril"]  # Core tools that are installed
 
+
 def print_banner():
     """Print MIESC banner"""
-    print("""
+    print(
+        """
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║                    MIESC v4.0.0 - Full Security Audit                      ║
 ║          Multi-layer Intelligent Evaluation for Smart Contracts            ║
 ╠════════════════════════════════════════════════════════════════════════════╣
 ║  Author: Fernando Boiero | Institution: UNDEF - IUA Córdoba                ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-    """)
+    """
+    )
+
 
 def audit_contract(contract_path: Path, tools: List[str]) -> Dict[str, Any]:
     """
@@ -49,13 +52,7 @@ def audit_contract(contract_path: Path, tools: List[str]) -> Dict[str, Any]:
         "timestamp": datetime.now().isoformat(),
         "findings": [],
         "tool_results": {},
-        "summary": {
-            "Critical": 0,
-            "High": 0,
-            "Medium": 0,
-            "Low": 0,
-            "Info": 0
-        }
+        "summary": {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Info": 0},
     }
 
     # Run MIESC core analysis
@@ -75,12 +72,12 @@ def audit_contract(contract_path: Path, tools: List[str]) -> Dict[str, Any]:
 
     # Run Slither directly for detailed output
     try:
-        print(f"   → Running Slither...")
+        print("   → Running Slither...")
         slither_result = subprocess.run(
             ["slither", str(contract_path), "--json", "-"],
             capture_output=True,
             text=True,
-            timeout=120
+            timeout=120,
         )
 
         if slither_result.stdout:
@@ -88,15 +85,15 @@ def audit_contract(contract_path: Path, tools: List[str]) -> Dict[str, Any]:
             detectors = slither_json.get("results", {}).get("detectors", [])
             results["tool_results"]["slither_detailed"] = {
                 "detectors_count": len(detectors),
-                "detectors": detectors[:20]  # First 20 for brevity
+                "detectors": detectors[:20],  # First 20 for brevity
             }
             print(f"   ✓ Slither: {len(detectors)} detectors triggered")
         else:
             results["tool_results"]["slither_detailed"] = {"detectors_count": 0}
-            print(f"   ✓ Slither: No issues detected")
+            print("   ✓ Slither: No issues detected")
 
     except subprocess.TimeoutExpired:
-        print(f"   ✗ Slither: Timeout")
+        print("   ✗ Slither: Timeout")
         results["tool_results"]["slither_detailed"] = {"error": "timeout"}
     except Exception as e:
         print(f"   ✗ Slither error: {str(e)}")
@@ -104,12 +101,12 @@ def audit_contract(contract_path: Path, tools: List[str]) -> Dict[str, Any]:
 
     # Run Mythril for symbolic execution
     try:
-        print(f"   → Running Mythril...")
+        print("   → Running Mythril...")
         myth_result = subprocess.run(
             ["myth", "analyze", str(contract_path), "-o", "json", "--execution-timeout", "60"],
             capture_output=True,
             text=True,
-            timeout=180
+            timeout=180,
         )
 
         if myth_result.stdout:
@@ -117,15 +114,15 @@ def audit_contract(contract_path: Path, tools: List[str]) -> Dict[str, Any]:
             issues = myth_json.get("issues", [])
             results["tool_results"]["mythril_detailed"] = {
                 "issues_count": len(issues),
-                "issues": issues
+                "issues": issues,
             }
             print(f"   ✓ Mythril: {len(issues)} issues found")
         else:
             results["tool_results"]["mythril_detailed"] = {"issues_count": 0}
-            print(f"   ✓ Mythril: No issues detected")
+            print("   ✓ Mythril: No issues detected")
 
     except subprocess.TimeoutExpired:
-        print(f"   ⚠ Mythril: Timeout (symbolic execution can be slow)")
+        print("   ⚠ Mythril: Timeout (symbolic execution can be slow)")
         results["tool_results"]["mythril_detailed"] = {"error": "timeout"}
     except Exception as e:
         print(f"   ✗ Mythril error: {str(e)}")
@@ -159,16 +156,11 @@ def audit_contract(contract_path: Path, tools: List[str]) -> Dict[str, Any]:
 
     return results
 
+
 def generate_consolidated_report(all_results: List[Dict]) -> Dict:
     """Generate consolidated audit report"""
 
-    total_findings = {
-        "Critical": 0,
-        "High": 0,
-        "Medium": 0,
-        "Low": 0,
-        "Info": 0
-    }
+    total_findings = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Info": 0}
 
     for result in all_results:
         for severity, count in result.get("summary", {}).items():
@@ -180,20 +172,30 @@ def generate_consolidated_report(all_results: List[Dict]) -> Dict:
             "tool": "MIESC v4.0.0",
             "timestamp": datetime.now().isoformat(),
             "contracts_audited": len(all_results),
-            "tools_used": TOOLS
+            "tools_used": TOOLS,
         },
         "summary": {
             "total_findings": sum(total_findings.values()),
             "by_severity": total_findings,
-            "risk_level": "CRITICAL" if total_findings["Critical"] > 0 else
-                         "HIGH" if total_findings["High"] > 0 else
-                         "MEDIUM" if total_findings["Medium"] > 0 else
-                         "LOW" if total_findings["Low"] > 0 else "CLEAN"
+            "risk_level": (
+                "CRITICAL"
+                if total_findings["Critical"] > 0
+                else (
+                    "HIGH"
+                    if total_findings["High"] > 0
+                    else (
+                        "MEDIUM"
+                        if total_findings["Medium"] > 0
+                        else "LOW" if total_findings["Low"] > 0 else "CLEAN"
+                    )
+                )
+            ),
         },
-        "contracts": all_results
+        "contracts": all_results,
     }
 
     return report
+
 
 def main():
     print_banner()
@@ -240,7 +242,8 @@ def main():
         json.dump(consolidated, f, indent=2, default=str)
 
     # Print final summary
-    print(f"""
+    print(
+        f"""
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║                           AUDIT COMPLETE                                    ║
 ╠════════════════════════════════════════════════════════════════════════════╣
@@ -257,9 +260,11 @@ def main():
 ╠════════════════════════════════════════════════════════════════════════════╣
 ║  📂 Results saved to: {str(OUTPUT_DIR):<51} ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-    """)
+    """
+    )
 
     return consolidated
+
 
 if __name__ == "__main__":
     main()

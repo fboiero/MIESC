@@ -3,18 +3,19 @@ MIESC Test Configuration
 Shared fixtures and configuration for pytest.
 """
 
-import pytest
 import os
 import sys
 import tempfile
 from pathlib import Path
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 # Sample contracts for testing
-SIMPLE_CONTRACT = '''
+SIMPLE_CONTRACT = """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -29,9 +30,9 @@ contract SimpleStorage {
         return value;
     }
 }
-'''
+"""
 
-VULNERABLE_CONTRACT = '''
+VULNERABLE_CONTRACT = """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -57,9 +58,9 @@ contract VulnerableBank {
         return address(this).balance;
     }
 }
-'''
+"""
 
-TOKEN_CONTRACT = '''
+TOKEN_CONTRACT = """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -103,15 +104,13 @@ contract SimpleToken {
         return true;
     }
 }
-'''
+"""
 
 
 @pytest.fixture
 def simple_contract():
     """Create a temporary simple contract file."""
-    with tempfile.NamedTemporaryFile(
-        mode='w', suffix='.sol', delete=False
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
         f.write(SIMPLE_CONTRACT)
         yield f.name
     os.unlink(f.name)
@@ -120,9 +119,7 @@ def simple_contract():
 @pytest.fixture
 def vulnerable_contract():
     """Create a temporary vulnerable contract file."""
-    with tempfile.NamedTemporaryFile(
-        mode='w', suffix='.sol', delete=False
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
         f.write(VULNERABLE_CONTRACT)
         yield f.name
     os.unlink(f.name)
@@ -131,9 +128,7 @@ def vulnerable_contract():
 @pytest.fixture
 def token_contract():
     """Create a temporary token contract file."""
-    with tempfile.NamedTemporaryFile(
-        mode='w', suffix='.sol', delete=False
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
         f.write(TOKEN_CONTRACT)
         yield f.name
     os.unlink(f.name)
@@ -146,14 +141,14 @@ def contracts_directory():
 
     tmpdir = tempfile.mkdtemp()
     contracts = [
-        ('Simple.sol', SIMPLE_CONTRACT),
-        ('Vulnerable.sol', VULNERABLE_CONTRACT),
-        ('Token.sol', TOKEN_CONTRACT),
+        ("Simple.sol", SIMPLE_CONTRACT),
+        ("Vulnerable.sol", VULNERABLE_CONTRACT),
+        ("Token.sol", TOKEN_CONTRACT),
     ]
 
     for name, content in contracts:
         path = os.path.join(tmpdir, name)
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             f.write(content)
 
     yield tmpdir
@@ -163,7 +158,7 @@ def contracts_directory():
 @pytest.fixture
 def nonexistent_file():
     """Return path to a non-existent file."""
-    return '/tmp/miesc_test_nonexistent_12345.sol'
+    return "/tmp/miesc_test_nonexistent_12345.sol"
 
 
 @pytest.fixture
@@ -171,42 +166,42 @@ def sample_findings():
     """Return sample findings for testing."""
     return [
         {
-            '_id': 'f1',
-            'type': 'reentrancy',
-            'severity': 'high',
-            'message': 'Reentrancy vulnerability in withdraw function',
-            'location': {'file': 'VulnerableBank.sol', 'line': 15},
-            'tool': 'slither',
-            'swc_id': 'SWC-107',
-            'cwe_id': 'CWE-841',
+            "_id": "f1",
+            "type": "reentrancy",
+            "severity": "high",
+            "message": "Reentrancy vulnerability in withdraw function",
+            "location": {"file": "VulnerableBank.sol", "line": 15},
+            "tool": "slither",
+            "swc_id": "SWC-107",
+            "cwe_id": "CWE-841",
         },
         {
-            '_id': 'f2',
-            'type': 'unchecked-call',
-            'severity': 'medium',
-            'message': 'Unchecked return value from external call',
-            'location': {'file': 'VulnerableBank.sol', 'line': 18},
-            'tool': 'slither',
-            'swc_id': 'SWC-104',
-            'cwe_id': 'CWE-252',
+            "_id": "f2",
+            "type": "unchecked-call",
+            "severity": "medium",
+            "message": "Unchecked return value from external call",
+            "location": {"file": "VulnerableBank.sol", "line": 18},
+            "tool": "slither",
+            "swc_id": "SWC-104",
+            "cwe_id": "CWE-252",
         },
         {
-            '_id': 'f3',
-            'type': 'floating-pragma',
-            'severity': 'informational',
-            'message': 'Floating pragma version',
-            'location': {'file': 'VulnerableBank.sol', 'line': 2},
-            'tool': 'solhint',
+            "_id": "f3",
+            "type": "floating-pragma",
+            "severity": "informational",
+            "message": "Floating pragma version",
+            "location": {"file": "VulnerableBank.sol", "line": 2},
+            "tool": "solhint",
         },
         {
-            '_id': 'f4',
-            'type': 'integer-overflow',
-            'severity': 'high',
-            'message': 'Integer overflow possible',
-            'location': {'file': 'Token.sol', 'line': 25},
-            'tool': 'mythril',
-            'swc_id': 'SWC-101',
-            'cwe_id': 'CWE-190',
+            "_id": "f4",
+            "type": "integer-overflow",
+            "severity": "high",
+            "message": "Integer overflow possible",
+            "location": {"file": "Token.sol", "line": 25},
+            "tool": "mythril",
+            "swc_id": "SWC-101",
+            "cwe_id": "CWE-190",
         },
     ]
 
@@ -215,16 +210,16 @@ def sample_findings():
 def sample_tool_result():
     """Return sample tool result for testing."""
     return {
-        'tool': 'slither',
-        'version': '0.9.0',
-        'status': 'success',
-        'execution_time_ms': 1500,
-        'findings': [
+        "tool": "slither",
+        "version": "0.9.0",
+        "status": "success",
+        "execution_time_ms": 1500,
+        "findings": [
             {
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'Reentrancy vulnerability detected',
-                'location': {'file': 'test.sol', 'line': 10},
+                "type": "reentrancy",
+                "severity": "high",
+                "message": "Reentrancy vulnerability detected",
+                "location": {"file": "test.sol", "line": 10},
             }
         ],
     }
@@ -234,6 +229,7 @@ def sample_tool_result():
 def cli_runner():
     """Click CLI test runner."""
     from click.testing import CliRunner
+
     return CliRunner()
 
 
@@ -241,58 +237,58 @@ def cli_runner():
 def multi_tool_findings():
     """Findings from multiple tools for the same contract."""
     return {
-        'slither': [
+        "slither": [
             {
-                'type': 'reentrancy-eth',
-                'severity': 'high',
-                'message': 'Reentrancy in VulnerableBank.withdraw()',
-                'location': {'file': 'VulnerableBank.sol', 'line': 15, 'function': 'withdraw'},
-                'confidence': 'high',
-                'swc_id': 'SWC-107',
-                'cwe_id': 'CWE-841',
+                "type": "reentrancy-eth",
+                "severity": "high",
+                "message": "Reentrancy in VulnerableBank.withdraw()",
+                "location": {"file": "VulnerableBank.sol", "line": 15, "function": "withdraw"},
+                "confidence": "high",
+                "swc_id": "SWC-107",
+                "cwe_id": "CWE-841",
             },
             {
-                'type': 'unchecked-lowlevel',
-                'severity': 'medium',
-                'message': 'Low level call in withdraw()',
-                'location': {'file': 'VulnerableBank.sol', 'line': 18, 'function': 'withdraw'},
-                'confidence': 'medium',
-                'swc_id': 'SWC-104',
-            },
-        ],
-        'mythril': [
-            {
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'State change after external call in function withdraw',
-                'location': {'file': 'VulnerableBank.sol', 'line': 15, 'function': 'withdraw'},
-                'confidence': 'high',
-                'swc_id': 'SWC-107',
-            },
-            {
-                'type': 'integer-overflow',
-                'severity': 'high',
-                'message': 'Integer overflow possible in deposit()',
-                'location': {'file': 'VulnerableBank.sol', 'line': 8, 'function': 'deposit'},
-                'confidence': 'medium',
-                'swc_id': 'SWC-101',
-                'cwe_id': 'CWE-190',
+                "type": "unchecked-lowlevel",
+                "severity": "medium",
+                "message": "Low level call in withdraw()",
+                "location": {"file": "VulnerableBank.sol", "line": 18, "function": "withdraw"},
+                "confidence": "medium",
+                "swc_id": "SWC-104",
             },
         ],
-        'solhint': [
+        "mythril": [
             {
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'Possible reentrancy vulnerability detected',
-                'location': {'file': 'VulnerableBank.sol', 'line': 14, 'function': 'withdraw'},
-                'confidence': 'medium',
+                "type": "reentrancy",
+                "severity": "high",
+                "message": "State change after external call in function withdraw",
+                "location": {"file": "VulnerableBank.sol", "line": 15, "function": "withdraw"},
+                "confidence": "high",
+                "swc_id": "SWC-107",
             },
             {
-                'type': 'pragma',
-                'severity': 'informational',
-                'message': 'Floating pragma version detected',
-                'location': {'file': 'VulnerableBank.sol', 'line': 2},
-                'confidence': 'high',
+                "type": "integer-overflow",
+                "severity": "high",
+                "message": "Integer overflow possible in deposit()",
+                "location": {"file": "VulnerableBank.sol", "line": 8, "function": "deposit"},
+                "confidence": "medium",
+                "swc_id": "SWC-101",
+                "cwe_id": "CWE-190",
+            },
+        ],
+        "solhint": [
+            {
+                "type": "reentrancy",
+                "severity": "high",
+                "message": "Possible reentrancy vulnerability detected",
+                "location": {"file": "VulnerableBank.sol", "line": 14, "function": "withdraw"},
+                "confidence": "medium",
+            },
+            {
+                "type": "pragma",
+                "severity": "informational",
+                "message": "Floating pragma version detected",
+                "location": {"file": "VulnerableBank.sol", "line": 2},
+                "confidence": "high",
             },
         ],
     }
@@ -302,6 +298,7 @@ def multi_tool_findings():
 def correlation_engine():
     """Pre-configured correlation engine."""
     from src.ml.correlation_engine import SmartCorrelationEngine
+
     return SmartCorrelationEngine(min_tools_for_validation=2)
 
 
@@ -309,44 +306,45 @@ def correlation_engine():
 def report_findings():
     """Findings suitable for report generation (using audit_report.Finding)."""
     from src.reports.audit_report import Finding
+
     return [
         Finding(
-            id='MIESC-001',
-            title='Reentrancy Vulnerability in withdraw()',
-            severity='Critical',
-            category='Reentrancy',
-            description='The withdraw function makes an external call before updating state.',
-            location='VulnerableBank.sol:15',
+            id="MIESC-001",
+            title="Reentrancy Vulnerability in withdraw()",
+            severity="Critical",
+            category="Reentrancy",
+            description="The withdraw function makes an external call before updating state.",
+            location="VulnerableBank.sol:15",
             line_number=15,
-            tool='slither',
+            tool="slither",
             layer=1,
-            swc_id='SWC-107',
-            cwe_id='CWE-841',
-            remediation='Apply checks-effects-interactions pattern.',
+            swc_id="SWC-107",
+            cwe_id="CWE-841",
+            remediation="Apply checks-effects-interactions pattern.",
         ),
         Finding(
-            id='MIESC-002',
-            title='Unchecked Return Value',
-            severity='High',
-            category='Unchecked Calls',
-            description='Return value of external call is not checked.',
-            location='VulnerableBank.sol:18',
+            id="MIESC-002",
+            title="Unchecked Return Value",
+            severity="High",
+            category="Unchecked Calls",
+            description="Return value of external call is not checked.",
+            location="VulnerableBank.sol:18",
             line_number=18,
-            tool='slither',
+            tool="slither",
             layer=1,
-            swc_id='SWC-104',
-            cwe_id='CWE-252',
-            remediation='Check the return value of low-level calls.',
+            swc_id="SWC-104",
+            cwe_id="CWE-252",
+            remediation="Check the return value of low-level calls.",
         ),
         Finding(
-            id='MIESC-003',
-            title='Floating Pragma',
-            severity='Informational',
-            category='Best Practices',
-            description='Contract uses a floating pragma version.',
-            location='VulnerableBank.sol:2',
+            id="MIESC-003",
+            title="Floating Pragma",
+            severity="Informational",
+            category="Best Practices",
+            description="Contract uses a floating pragma version.",
+            location="VulnerableBank.sol:2",
             line_number=2,
-            tool='solhint',
+            tool="solhint",
             layer=1,
         ),
     ]
@@ -356,16 +354,17 @@ def report_findings():
 def report_metadata():
     """Pre-configured audit metadata for report tests."""
     from src.reports.audit_report import AuditMetadata
+
     return AuditMetadata(
-        project_name='Test Project',
-        contract_name='VulnerableBank.sol',
-        version='1.0.0',
-        auditor='Test Auditor',
-        organization='MIESC Testing',
-        audit_date='2026-01-27',
-        report_id='TEST-20260127-001',
-        contract_hash='abc123def456',
-        solidity_version='0.8.0',
+        project_name="Test Project",
+        contract_name="VulnerableBank.sol",
+        version="1.0.0",
+        auditor="Test Auditor",
+        organization="MIESC Testing",
+        audit_date="2026-01-27",
+        report_id="TEST-20260127-001",
+        contract_hash="abc123def456",
+        solidity_version="0.8.0",
         lines_of_code=30,
     )
 
@@ -383,17 +382,17 @@ def mock_orchestrator():
         execution_time_ms=100,
         ml_processing_time_ms=50,
         get_summary=lambda: {
-            'total_findings': 0,
-            'risk_level': 'LOW',
-            'critical': 0,
-            'high': 0,
-            'medium': 0,
-            'low': 0,
-            'fp_removed': 0,
-            'reduction_rate': 0,
-            'clusters': 0,
-            'priority_actions': 0,
-        }
+            "total_findings": 0,
+            "risk_level": "LOW",
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "fp_removed": 0,
+            "reduction_rate": 0,
+            "clusters": 0,
+            "priority_actions": 0,
+        },
     )
     return orchestrator
 
@@ -404,17 +403,14 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
     )
-    config.addinivalue_line(
-        "markers", "integration: marks tests as integration tests"
-    )
-    config.addinivalue_line(
-        "markers", "requires_tools: marks tests that require external tools"
-    )
+    config.addinivalue_line("markers", "integration: marks tests as integration tests")
+    config.addinivalue_line("markers", "requires_tools: marks tests that require external tools")
 
 
 def _check_foundry_available():
     """Check if Foundry (forge) is available."""
     import shutil
+
     return shutil.which("forge") is not None
 
 

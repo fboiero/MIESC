@@ -19,8 +19,8 @@ from typing import Any, Dict, List, Tuple
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from detectors.smartbugs_detectors import SmartBugsDetectorEngine
-from ml.correlation_engine import SmartCorrelationEngine
+from detectors.smartbugs_detectors import SmartBugsDetectorEngine  # noqa: E402
+from ml.correlation_engine import SmartCorrelationEngine  # noqa: E402
 
 # Configuration
 DATASET_PATH = PROJECT_ROOT / "benchmarks" / "datasets" / "smartbugs-curated" / "dataset"

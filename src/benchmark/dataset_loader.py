@@ -11,12 +11,11 @@ Supported formats:
 """
 
 import json
-import os
-from dataclasses import dataclass, field
+import re
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
-import re
+from typing import Dict, List, Optional, Set
 
 
 class VulnerabilityCategory(Enum):
@@ -196,58 +195,118 @@ class DatasetLoader:
         # Challenge -> vulnerability type mapping
         challenge_vulns = {
             "unstoppable": [
-                GroundTruth(VulnerabilityCategory.DENIAL_OF_SERVICE, [50], "high", "Flash loan griefing")
+                GroundTruth(
+                    VulnerabilityCategory.DENIAL_OF_SERVICE, [50], "high", "Flash loan griefing"
+                )
             ],
             "naive-receiver": [
-                GroundTruth(VulnerabilityCategory.ACCESS_CONTROL, [40], "high", "Missing caller validation")
+                GroundTruth(
+                    VulnerabilityCategory.ACCESS_CONTROL, [40], "high", "Missing caller validation"
+                )
             ],
             "truster": [
-                GroundTruth(VulnerabilityCategory.ACCESS_CONTROL, [28], "critical", "Arbitrary external call")
+                GroundTruth(
+                    VulnerabilityCategory.ACCESS_CONTROL,
+                    [28],
+                    "critical",
+                    "Arbitrary external call",
+                )
             ],
             "side-entrance": [
-                GroundTruth(VulnerabilityCategory.REENTRANCY, [30], "critical", "Flash loan + deposit reentrancy")
+                GroundTruth(
+                    VulnerabilityCategory.REENTRANCY,
+                    [30],
+                    "critical",
+                    "Flash loan + deposit reentrancy",
+                )
             ],
             "the-rewarder": [
-                GroundTruth(VulnerabilityCategory.FLASH_LOAN, [45], "high", "Flash loan reward manipulation")
+                GroundTruth(
+                    VulnerabilityCategory.FLASH_LOAN, [45], "high", "Flash loan reward manipulation"
+                )
             ],
             "selfie": [
-                GroundTruth(VulnerabilityCategory.GOVERNANCE, [55], "critical", "Flash loan governance attack")
+                GroundTruth(
+                    VulnerabilityCategory.GOVERNANCE,
+                    [55],
+                    "critical",
+                    "Flash loan governance attack",
+                )
             ],
             "compromised": [
-                GroundTruth(VulnerabilityCategory.ORACLE_MANIPULATION, [35], "critical", "Oracle price manipulation")
+                GroundTruth(
+                    VulnerabilityCategory.ORACLE_MANIPULATION,
+                    [35],
+                    "critical",
+                    "Oracle price manipulation",
+                )
             ],
             "puppet": [
-                GroundTruth(VulnerabilityCategory.ORACLE_MANIPULATION, [60], "critical", "Spot price oracle manipulation")
+                GroundTruth(
+                    VulnerabilityCategory.ORACLE_MANIPULATION,
+                    [60],
+                    "critical",
+                    "Spot price oracle manipulation",
+                )
             ],
             "puppet-v2": [
-                GroundTruth(VulnerabilityCategory.ORACLE_MANIPULATION, [45], "critical", "Uniswap V2 oracle manipulation")
+                GroundTruth(
+                    VulnerabilityCategory.ORACLE_MANIPULATION,
+                    [45],
+                    "critical",
+                    "Uniswap V2 oracle manipulation",
+                )
             ],
             "puppet-v3": [
-                GroundTruth(VulnerabilityCategory.ORACLE_MANIPULATION, [50], "high", "TWAP manipulation")
+                GroundTruth(
+                    VulnerabilityCategory.ORACLE_MANIPULATION, [50], "high", "TWAP manipulation"
+                )
             ],
             "free-rider": [
-                GroundTruth(VulnerabilityCategory.REENTRANCY, [70], "critical", "NFT flash loan exploit")
+                GroundTruth(
+                    VulnerabilityCategory.REENTRANCY, [70], "critical", "NFT flash loan exploit"
+                )
             ],
             "backdoor": [
-                GroundTruth(VulnerabilityCategory.ACCESS_CONTROL, [25], "critical", "Gnosis Safe callback exploit")
+                GroundTruth(
+                    VulnerabilityCategory.ACCESS_CONTROL,
+                    [25],
+                    "critical",
+                    "Gnosis Safe callback exploit",
+                )
             ],
             "climber": [
-                GroundTruth(VulnerabilityCategory.ACCESS_CONTROL, [80], "critical", "Timelock execution before validation")
+                GroundTruth(
+                    VulnerabilityCategory.ACCESS_CONTROL,
+                    [80],
+                    "critical",
+                    "Timelock execution before validation",
+                )
             ],
             "wallet-mining": [
-                GroundTruth(VulnerabilityCategory.ACCESS_CONTROL, [40], "high", "Create2 address prediction")
+                GroundTruth(
+                    VulnerabilityCategory.ACCESS_CONTROL, [40], "high", "Create2 address prediction"
+                )
             ],
             "abi-smuggling": [
-                GroundTruth(VulnerabilityCategory.ACCESS_CONTROL, [55], "critical", "ABI encoding exploit")
+                GroundTruth(
+                    VulnerabilityCategory.ACCESS_CONTROL, [55], "critical", "ABI encoding exploit"
+                )
             ],
             "shards": [
-                GroundTruth(VulnerabilityCategory.ARITHMETIC, [65], "high", "Rounding error exploit")
+                GroundTruth(
+                    VulnerabilityCategory.ARITHMETIC, [65], "high", "Rounding error exploit"
+                )
             ],
             "curvy-puppet": [
-                GroundTruth(VulnerabilityCategory.FLASH_LOAN, [90], "critical", "Curve pool manipulation")
+                GroundTruth(
+                    VulnerabilityCategory.FLASH_LOAN, [90], "critical", "Curve pool manipulation"
+                )
             ],
             "withdrawal": [
-                GroundTruth(VulnerabilityCategory.REENTRANCY, [50], "critical", "L1->L2 withdrawal exploit")
+                GroundTruth(
+                    VulnerabilityCategory.REENTRANCY, [50], "critical", "L1->L2 withdrawal exploit"
+                )
             ],
         }
 
@@ -268,9 +327,10 @@ class DatasetLoader:
             main_file = max(sol_files, key=lambda f: f.stat().st_size)
             source_code = main_file.read_text()
 
-            vulns = challenge_vulns.get(challenge_dir.name, [
-                GroundTruth(VulnerabilityCategory.OTHER, [1], "unknown", "Unknown vulnerability")
-            ])
+            vulns = challenge_vulns.get(
+                challenge_dir.name,
+                [GroundTruth(VulnerabilityCategory.OTHER, [1], "unknown", "Unknown vulnerability")],
+            )
 
             contract = VulnerableContract(
                 name=main_file.name,
@@ -304,10 +364,7 @@ class DatasetLoader:
 
     def get_by_category(self, category: VulnerabilityCategory) -> List[VulnerableContract]:
         """Get contracts with specific vulnerability category."""
-        return [
-            c for c in self._contracts
-            if category in c.categories
-        ]
+        return [c for c in self._contracts if category in c.categories]
 
     def get_statistics(self) -> Dict:
         """Get dataset statistics."""

@@ -91,6 +91,7 @@ def configure_logging(debug: bool = False, quiet: bool = False):
     if LOGGING_AVAILABLE is None:
         try:
             from src.core.logging_config import setup_logging
+
             _setup_logging = setup_logging
             LOGGING_AVAILABLE = True
         except ImportError:
@@ -111,6 +112,7 @@ def get_ml_orchestrator():
     if ML_ORCHESTRATOR_AVAILABLE is None:
         try:
             from src.core.ml_orchestrator import MLOrchestrator
+
             _MLOrchestrator = MLOrchestrator
             ML_ORCHESTRATOR_AVAILABLE = True
             logger.debug("MLOrchestrator loaded successfully")
@@ -130,6 +132,7 @@ def get_correlation_api():
     if _MIESCCorrelationAPI is None:
         try:
             from src.core.correlation_api import MIESCCorrelationAPI
+
             _MIESCCorrelationAPI = MIESCCorrelationAPI
             logger.debug("MIESCCorrelationAPI loaded successfully")
         except ImportError as e:
@@ -760,12 +763,12 @@ def cli(ctx, version, no_banner, debug, quiet):
     """
     MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
-    A comprehensive blockchain security framework with 29 integrated tools
-    across 7 defense layers.
+    A comprehensive blockchain security framework with 50 security tools
+    across 9 defense layers.
 
     Quick Start:
       miesc audit quick contract.sol    # Fast 4-tool scan
-      miesc audit full contract.sol     # Complete 7-layer audit
+      miesc audit full contract.sol     # Complete 9-layer audit
       miesc tools list                  # Show available tools
       miesc doctor                      # Check tool availability
 
@@ -1022,10 +1025,12 @@ def audit_quick(contract, output, fmt, ci, timeout):
 )
 @click.option("--timeout", "-t", type=int, default=600, help="Timeout per tool in seconds")
 @click.option("--skip-unavailable", is_flag=True, default=True, help="Skip unavailable tools")
-@click.option("--ml/--no-ml", default=True, help="Enable ML pipeline for FP filtering and correlation")
+@click.option(
+    "--ml/--no-ml", default=True, help="Enable ML pipeline for FP filtering and correlation"
+)
 @click.option("--correlate/--no-correlate", default=True, help="Enable cross-tool correlation")
 def audit_full(contract, output, fmt, layers, timeout, skip_unavailable, ml, correlate):
-    """Complete 7-layer security audit with all 29 tools.
+    """Complete 9-layer security audit with all 50 tools.
 
     By default uses ML pipeline for false positive filtering and
     cross-tool correlation for improved accuracy.
@@ -1047,14 +1052,20 @@ def audit_full(contract, output, fmt, layers, timeout, skip_unavailable, ml, cor
     correlation_api = get_correlation_api() if correlate and not ml_orchestrator else None
 
     if ml_orchestrator:
-        info("[bold green]ML Pipeline enabled[/bold green] - FP filtering active" if RICH_AVAILABLE else "ML Pipeline enabled - FP filtering active")
-        _run_full_audit_with_ml(
-            contract, output, fmt, layer_list, timeout, ml_orchestrator
+        info(
+            "[bold green]ML Pipeline enabled[/bold green] - FP filtering active"
+            if RICH_AVAILABLE
+            else "ML Pipeline enabled - FP filtering active"
         )
+        _run_full_audit_with_ml(contract, output, fmt, layer_list, timeout, ml_orchestrator)
         return
 
     if correlation_api:
-        info("[cyan]Correlation enabled[/cyan] - Cross-tool validation active" if RICH_AVAILABLE else "Correlation enabled - Cross-tool validation active")
+        info(
+            "[cyan]Correlation enabled[/cyan] - Cross-tool validation active"
+            if RICH_AVAILABLE
+            else "Correlation enabled - Cross-tool validation active"
+        )
         _run_full_audit_with_correlation(
             contract, output, fmt, layer_list, timeout, correlation_api
         )
@@ -1102,8 +1113,11 @@ def _run_full_audit_with_ml(contract, output, fmt, layer_list, timeout, orchestr
             table.add_column("Metric", style="bold")
             table.add_column("Value", justify="right")
 
-            table.add_row("Risk Level", f"[{'red' if summary_data['risk_level'] in ['CRITICAL', 'HIGH'] else 'yellow'}]{summary_data['risk_level']}[/]")
-            table.add_row("Total Findings", str(summary_data['total_findings']))
+            table.add_row(
+                "Risk Level",
+                f"[{'red' if summary_data['risk_level'] in ['CRITICAL', 'HIGH'] else 'yellow'}]{summary_data['risk_level']}[/]",
+            )
+            table.add_row("Total Findings", str(summary_data["total_findings"]))
             table.add_row("Critical", f"[red]{summary_data['critical']}[/red]")
             table.add_row("High", f"[red]{summary_data['high']}[/red]")
             table.add_row("Medium", f"[yellow]{summary_data['medium']}[/yellow]")
@@ -1116,7 +1130,9 @@ def _run_full_audit_with_ml(contract, output, fmt, layer_list, timeout, orchestr
             ml_table.add_column("Value", justify="right")
 
             ml_table.add_row("Raw Findings", str(result.total_raw_findings))
-            ml_table.add_row("False Positives Removed", f"[green]{result.false_positives_removed}[/green]")
+            ml_table.add_row(
+                "False Positives Removed", f"[green]{result.false_positives_removed}[/green]"
+            )
             ml_table.add_row("Reduction Rate", f"{summary_data['reduction_rate']:.1f}%")
             ml_table.add_row("Severity Adjustments", str(result.severity_adjustments))
             ml_table.add_row("Vulnerability Clusters", str(result.cluster_count))
@@ -1124,16 +1140,24 @@ def _run_full_audit_with_ml(contract, output, fmt, layer_list, timeout, orchestr
             console.print(ml_table)
 
             # Tools summary
-            console.print(f"\n[dim]Tools: {len(result.tools_success)}/{len(result.tools_run)} successful[/dim]")
+            console.print(
+                f"\n[dim]Tools: {len(result.tools_success)}/{len(result.tools_run)} successful[/dim]"
+            )
             if result.tools_failed:
                 console.print(f"[yellow]Failed: {', '.join(result.tools_failed)}[/yellow]")
 
-            console.print(f"[dim]Execution time: {result.execution_time_ms/1000:.1f}s (ML: {result.ml_processing_time_ms/1000:.1f}s)[/dim]")
+            console.print(
+                f"[dim]Execution time: {result.execution_time_ms/1000:.1f}s (ML: {result.ml_processing_time_ms/1000:.1f}s)[/dim]"
+            )
         else:
             print("\n=== ML-Enhanced Audit Summary ===")
             print(f"Risk Level: {summary_data['risk_level']}")
-            print(f"Total: {summary_data['total_findings']} (Critical: {summary_data['critical']}, High: {summary_data['high']})")
-            print(f"FPs Removed: {result.false_positives_removed} ({summary_data['reduction_rate']:.1f}% reduction)")
+            print(
+                f"Total: {summary_data['total_findings']} (Critical: {summary_data['critical']}, High: {summary_data['high']})"
+            )
+            print(
+                f"FPs Removed: {result.false_positives_removed} ({summary_data['reduction_rate']:.1f}% reduction)"
+            )
 
         # Save output
         if output:
@@ -1147,8 +1171,10 @@ def _run_full_audit_with_ml(contract, output, fmt, layer_list, timeout, orchestr
                     f.write(data)
             elif fmt == "sarif":
                 # Convert ML result to SARIF format
-                all_results = [{"tool": t, "findings": result.ml_filtered_findings, "status": "success"}
-                              for t in result.tools_success[:1]]  # Use first tool as source
+                all_results = [
+                    {"tool": t, "findings": result.ml_filtered_findings, "status": "success"}
+                    for t in result.tools_success[:1]
+                ]  # Use first tool as source
                 data = _to_sarif(all_results)
                 with open(output, "w") as f:
                     json.dump(data, f, indent=2)
@@ -1169,7 +1195,9 @@ def _run_full_audit_with_correlation(contract, output, fmt, layer_list, timeout,
         if layer in LAYERS:
             layer_info = LAYERS[layer]
             if RICH_AVAILABLE:
-                console.print(f"\n[bold cyan]=== Layer {layer}: {layer_info['name']} ===[/bold cyan]")
+                console.print(
+                    f"\n[bold cyan]=== Layer {layer}: {layer_info['name']} ===[/bold cyan]"
+                )
             else:
                 print(f"\n=== Layer {layer}: {layer_info['name']} ===")
 
@@ -1209,7 +1237,9 @@ def _run_full_audit_with_correlation(contract, output, fmt, layer_list, timeout,
             for f in actionable[:5]:
                 sev = f.get("severity", "unknown").upper()
                 color = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow"}.get(sev, "white")
-                console.print(f"  [{color}][{sev}][/{color}] {f.get('type', 'unknown')} - {f.get('location', {}).get('file', '')}:{f.get('location', {}).get('line', 0)}")
+                console.print(
+                    f"  [{color}][{sev}][/{color}] {f.get('type', 'unknown')} - {f.get('location', {}).get('file', '')}:{f.get('location', {}).get('line', 0)}"
+                )
     else:
         print("\n=== Correlated Summary ===")
         print(f"Total: {summary.get('total_correlated', 0)}")
@@ -1264,7 +1294,9 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
         # Execution summary
         successful = len([r for r in all_results if r.get("status") == "success"])
         console.print(f"\n[dim]Tools executed: {successful}/{len(all_results)}[/dim]")
-        console.print("[yellow]Note: ML filtering disabled. Results may contain false positives.[/yellow]")
+        console.print(
+            "[yellow]Note: ML filtering disabled. Results may contain false positives.[/yellow]"
+        )
     else:
         print("\n=== Full Audit Summary (Basic Mode) ===")
         for sev, count in summary.items():
@@ -1355,7 +1387,7 @@ def _ml_result_to_markdown(result, contract: str) -> str:
     if result.cluster_count > 0:
         md += "## Vulnerability Clusters\n\n"
         for i, cluster in enumerate(result.clusters[:5], 1):
-            cluster_dict = cluster.to_dict() if hasattr(cluster, 'to_dict') else {}
+            cluster_dict = cluster.to_dict() if hasattr(cluster, "to_dict") else {}
             md += f"### Cluster {i}: {cluster_dict.get('primary_type', 'Unknown')}\n"
             md += f"- Findings: {cluster_dict.get('count', 0)}\n"
             md += f"- Severity: {cluster_dict.get('max_severity', 'unknown')}\n\n"
@@ -1418,11 +1450,11 @@ def audit_layer(layer_num, contract, output, timeout):
 @audit.command("smart")
 @click.argument("contract", type=click.Path(exists=True))
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-@click.option(
-    "--format", "-f", "fmt", type=click.Choice(["json", "markdown"]), default="json"
-)
+@click.option("--format", "-f", "fmt", type=click.Choice(["json", "markdown"]), default="json")
 @click.option("--timeout", "-t", type=int, default=300, help="Timeout per tool in seconds")
-@click.option("--llm-validate/--no-llm-validate", default=False, help="Use LLM to validate findings")
+@click.option(
+    "--llm-validate/--no-llm-validate", default=False, help="Use LLM to validate findings"
+)
 def audit_smart(contract, output, fmt, timeout, llm_validate):
     """Smart audit with ML filtering, correlation, and optional LLM validation.
 
@@ -1530,11 +1562,13 @@ def audit_smart(contract, output, fmt, timeout, llm_validate):
         # Risk badge
         risk_colors = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow", "LOW": "green"}
         risk_color = risk_colors.get(summary["risk_level"], "white")
-        console.print(Panel(
-            f"[bold {risk_color}]{summary['risk_level']}[/bold {risk_color}]",
-            title="Risk Level",
-            border_style=risk_color,
-        ))
+        console.print(
+            Panel(
+                f"[bold {risk_color}]{summary['risk_level']}[/bold {risk_color}]",
+                title="Risk Level",
+                border_style=risk_color,
+            )
+        )
 
         # Summary table
         table = Table(title="Smart Audit Results", box=box.ROUNDED)
@@ -1550,7 +1584,9 @@ def audit_smart(contract, output, fmt, timeout, llm_validate):
 
         # Effectiveness metrics
         console.print(f"\n[dim]Raw findings: {result.total_raw_findings}[/dim]")
-        console.print(f"[green]FPs removed: {result.false_positives_removed} ({summary['reduction_rate']:.1f}% reduction)[/green]")
+        console.print(
+            f"[green]FPs removed: {result.false_positives_removed} ({summary['reduction_rate']:.1f}% reduction)[/green]"
+        )
         console.print(f"[dim]Cross-validated: {result.cross_validated}[/dim]")
 
         # Top findings
@@ -1561,9 +1597,11 @@ def audit_smart(contract, output, fmt, timeout, llm_validate):
                 color = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow"}.get(sev, "cyan")
                 vtype = f.get("type", f.get("title", "unknown"))
                 loc = f.get("location", {})
-                console.print(f"  [{color}][{sev}][/{color}] {vtype} - {loc.get('file', '')}:{loc.get('line', 0)}")
+                console.print(
+                    f"  [{color}][{sev}][/{color}] {vtype} - {loc.get('file', '')}:{loc.get('line', 0)}"
+                )
     else:
-        print(f"\n=== Smart Audit Results ===")
+        print("\n=== Smart Audit Results ===")
         print(f"Risk Level: {summary['risk_level']}")
         print(f"Total: {summary['total_findings']}")
         print(f"Critical: {summary['critical']}, High: {summary['high']}")
@@ -2896,6 +2934,7 @@ def detectors_list(verbose):
             list_detectors,
             load_local_plugins,
         )
+
         # Load local plugins from ~/.miesc/plugins/
         load_local_plugins()
     except ImportError as e:
@@ -2970,6 +3009,7 @@ def detectors_run(contract, detector, output, severity):
             run_all_detectors,
             run_detector,
         )
+
         # Load local plugins from ~/.miesc/plugins/
         load_local_plugins()
     except ImportError as e:
@@ -3155,7 +3195,7 @@ def plugins_list(show_all):
     print_banner()
 
     try:
-        from miesc.plugins import PluginManager, CompatibilityStatus
+        from miesc.plugins import CompatibilityStatus, PluginManager
     except ImportError:
         error("Plugin system not available")
         return
@@ -3213,7 +3253,11 @@ def plugins_list(show_all):
                 status,
                 compat_str,
                 str(plugin.detector_count),
-                plugin.description[:30] + "..." if len(plugin.description) > 30 else plugin.description,
+                (
+                    plugin.description[:30] + "..."
+                    if len(plugin.description) > 30
+                    else plugin.description
+                ),
             )
         console.print(table)
 
@@ -3221,7 +3265,9 @@ def plugins_list(show_all):
             info(f"Local plugins directory: {manager.LOCAL_PLUGINS_DIR}")
 
         if incompatible_count > 0:
-            warning(f"{incompatible_count} plugin(s) may be incompatible with MIESC {manager._miesc_version}")
+            warning(
+                f"{incompatible_count} plugin(s) may be incompatible with MIESC {manager._miesc_version}"
+            )
             info("Run 'miesc plugins info <name>' for compatibility details")
     else:
         print("\nInstalled Plugins:")
@@ -3229,19 +3275,30 @@ def plugins_list(show_all):
             status = "enabled" if plugin.enabled else "disabled"
             local_marker = " (local)" if plugin.local else ""
             compat_marker = ""
-            if plugin.compatibility and plugin.compatibility.status == CompatibilityStatus.INCOMPATIBLE:
+            if (
+                plugin.compatibility
+                and plugin.compatibility.status == CompatibilityStatus.INCOMPATIBLE
+            ):
                 compat_marker = " [INCOMPATIBLE]"
-            elif plugin.compatibility and plugin.compatibility.status == CompatibilityStatus.WARNING:
+            elif (
+                plugin.compatibility and plugin.compatibility.status == CompatibilityStatus.WARNING
+            ):
                 compat_marker = " [warning]"
-            print(f"  {plugin.package} v{plugin.version}{local_marker}{compat_marker} - {status} ({plugin.detector_count} detectors)")
+            print(
+                f"  {plugin.package} v{plugin.version}{local_marker}{compat_marker} - {status} ({plugin.detector_count} detectors)"
+            )
 
         if local_plugins:
             print(f"\nLocal plugins directory: {manager.LOCAL_PLUGINS_DIR}")
 
         if incompatible_count > 0:
-            print(f"\nWarning: {incompatible_count} plugin(s) may be incompatible with MIESC {manager._miesc_version}")
+            print(
+                f"\nWarning: {incompatible_count} plugin(s) may be incompatible with MIESC {manager._miesc_version}"
+            )
 
-    success(f"{len(installed_plugins)} plugins installed ({len(local_plugins)} local, {len(pypi_plugins)} PyPI)")
+    success(
+        f"{len(installed_plugins)} plugins installed ({len(local_plugins)} local, {len(pypi_plugins)} PyPI)"
+    )
 
 
 @plugins.command("install")
@@ -3268,10 +3325,10 @@ def plugins_install(package, upgrade, force, no_check):
     print_banner()
 
     try:
-        from miesc.plugins import PluginManager, CompatibilityStatus
-    except ImportError:
+        from miesc.plugins import CompatibilityStatus, PluginManager
+    except ImportError as e:
         error("Plugin system not available")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     manager = PluginManager()
 
@@ -3321,9 +3378,9 @@ def plugins_uninstall(package, yes):
 
     try:
         from miesc.plugins import PluginManager
-    except ImportError:
+    except ImportError as e:
         error("Plugin system not available")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     if not yes:
         if not click.confirm(f"Uninstall {package}?"):
@@ -3356,9 +3413,9 @@ def plugins_enable(plugin_name):
 
     try:
         from miesc.plugins import PluginManager
-    except ImportError:
+    except ImportError as e:
         error("Plugin system not available")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     manager = PluginManager()
     ok, message = manager.enable(plugin_name)
@@ -3383,9 +3440,9 @@ def plugins_disable(plugin_name):
 
     try:
         from miesc.plugins import PluginManager
-    except ImportError:
+    except ImportError as e:
         error("Plugin system not available")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     manager = PluginManager()
     ok, message = manager.disable(plugin_name)
@@ -3409,10 +3466,10 @@ def plugins_info(plugin_name):
     print_banner()
 
     try:
-        from miesc.plugins import PluginManager, CompatibilityStatus
-    except ImportError:
+        from miesc.plugins import CompatibilityStatus, PluginManager
+    except ImportError as e:
         error("Plugin system not available")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     manager = PluginManager()
     plugin = manager.get_plugin_info(plugin_name)
@@ -3471,7 +3528,7 @@ def plugins_info(plugin_name):
         print(f"Status: {'Enabled' if plugin.enabled else 'Disabled'}")
         print(f"Author: {plugin.author or 'N/A'}")
         print(f"Detectors: {plugin.detector_count}")
-        print(f"\nVersion Requirements:")
+        print("\nVersion Requirements:")
         print(f"  MIESC: {requires_miesc}")
         print(f"  Python: {requires_python}")
         print(f"\nCompatibility: {compat_plain}")
@@ -3506,9 +3563,9 @@ def plugins_create(name, output, description, author):
 
     try:
         from miesc.plugins import PluginManager
-    except ImportError:
+    except ImportError as e:
         error("Plugin system not available")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     from pathlib import Path
 
@@ -3532,7 +3589,7 @@ def plugins_create(name, output, description, author):
         info("  miesc plugins list  # Verify plugin is registered")
     except Exception as e:
         error(f"Failed to create plugin: {e}")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @plugins.command("search")
@@ -3556,9 +3613,9 @@ def plugins_search(query, timeout):
 
     try:
         from miesc.plugins import PluginManager
-    except ImportError:
+    except ImportError as e:
         error("Plugin system not available")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     manager = PluginManager()
 
@@ -3621,9 +3678,9 @@ def plugins_path(create):
 
     try:
         from miesc.plugins import PluginManager
-    except ImportError:
+    except ImportError as e:
         error("Plugin system not available")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     manager = PluginManager()
     plugins_dir = manager.LOCAL_PLUGINS_DIR
@@ -3636,7 +3693,9 @@ def plugins_path(create):
         if plugins_dir.exists():
             success("Directory exists")
             # Count plugins
-            plugin_count = sum(1 for d in plugins_dir.iterdir() if d.is_dir() and not d.name.startswith('.'))
+            plugin_count = sum(
+                1 for d in plugins_dir.iterdir() if d.is_dir() and not d.name.startswith(".")
+            )
             if plugin_count:
                 info(f"Contains {plugin_count} plugin(s)")
         else:
@@ -3652,7 +3711,14 @@ def plugins_path(create):
 
 @plugins.command("new")
 @click.argument("name")
-@click.option("--type", "-t", "plugin_type", type=click.Choice(["detector", "adapter", "reporter", "transformer"]), default="detector", help="Plugin type")
+@click.option(
+    "--type",
+    "-t",
+    "plugin_type",
+    type=click.Choice(["detector", "adapter", "reporter", "transformer"]),
+    default="detector",
+    help="Plugin type",
+)
 @click.option("--output", "-o", type=click.Path(), default=".", help="Output directory")
 @click.option("--description", "-d", type=str, default="", help="Plugin description")
 @click.option("--author", "-a", type=str, default="", help="Author name")
@@ -3676,9 +3742,9 @@ def plugins_new(name, plugin_type, output, description, author, email):
 
     try:
         from src.plugins import PluginTemplateGenerator, PluginType
-    except ImportError:
+    except ImportError as e:
         error("Plugin template system not available")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     # Map type string to enum
     type_map = {
@@ -3706,6 +3772,7 @@ def plugins_new(name, plugin_type, output, description, author, email):
 
         if RICH_AVAILABLE:
             from rich.tree import Tree
+
             tree = Tree(f"[bold cyan]{plugin_path.name}[/bold cyan]")
             for item in sorted(plugin_path.iterdir()):
                 if item.is_dir():
@@ -3716,7 +3783,7 @@ def plugins_new(name, plugin_type, output, description, author, email):
                     tree.add(item.name)
             console.print(tree)
         else:
-            print(f"\nFiles created:")
+            print("\nFiles created:")
             for f in sorted(plugin_path.rglob("*")):
                 if f.is_file():
                     print(f"  {f.relative_to(plugin_path)}")
@@ -3731,7 +3798,7 @@ def plugins_new(name, plugin_type, output, description, author, email):
 
     except Exception as e:
         error(f"Failed to create plugin: {e}")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @plugins.command("runtime")
@@ -3750,10 +3817,10 @@ def plugins_runtime(verbose):
     print_banner()
 
     try:
-        from src.plugins import get_registry, PluginType
-    except ImportError:
+        from src.plugins import PluginType, get_registry
+    except ImportError as e:
         error("Plugin runtime system not available")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     registry = get_registry()
     plugins = registry.list_plugins()
@@ -3813,11 +3880,13 @@ def plugins_load(plugin_path, enable):
 
     try:
         from src.plugins import (
-            PluginLoader, get_registry, PluginContext,
+            PluginContext,
+            PluginLoader,
+            get_registry,
         )
-    except ImportError:
+    except ImportError as e:
         error("Plugin runtime system not available")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     info(f"Loading plugin from: {plugin_path}")
 
@@ -3852,7 +3921,7 @@ def plugins_load(plugin_path, enable):
     except Exception as e:
         error(f"Failed to load plugin: {e}")
         logger.exception("Plugin load error")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 # ============================================================================
@@ -3872,46 +3941,45 @@ def _get_impact_description(severity: str) -> str:
     return impacts.get(severity, "Impact assessment pending.")
 
 
-
 def _interactive_wizard(variables: dict, console) -> dict:
     """
     Interactive wizard for report metadata.
     Only asks for client and auditor info - everything else comes from audit data.
     """
     from rich.prompt import Prompt
-    
+
     def is_missing(value):
         if value is None:
             return True
         if isinstance(value, str):
             return value.strip() == "" or value.lower() in ("n/a", "unknown", "none")
         return False
-    
+
     fields_to_ask = []
-    
+
     if is_missing(variables.get("client_name")):
         fields_to_ask.append(("client_name", "Client/Project Name"))
-    
+
     if is_missing(variables.get("auditor_name")):
         fields_to_ask.append(("auditor_name", "Auditor Name"))
-    
+
     if not fields_to_ask:
         console.print("[green]✓ Report metadata complete.[/green]")
         return variables
-    
+
     console.print("\n[bold cyan]MIESC Report Wizard[/bold cyan]")
     console.print("[dim]Press Enter to skip.[/dim]\n")
-    
+
     changes = 0
     for key, label in fields_to_ask:
         value = Prompt.ask(f"[yellow]{label}[/yellow]", default="")
         if value.strip():
             variables[key] = value.strip()
             changes += 1
-    
+
     if changes:
         console.print(f"[green]✓ {changes} field(s) updated.[/green]\n")
-    
+
     return variables
 
 
@@ -3920,7 +3988,9 @@ def _interactive_wizard(variables: dict, console) -> dict:
 @click.option(
     "--template",
     "-t",
-    type=click.Choice(["professional", "executive", "technical", "github-pr", "simple", "profesional", "premium"]),
+    type=click.Choice(
+        ["professional", "executive", "technical", "github-pr", "simple", "profesional", "premium"]
+    ),
     default="simple",
     help="Report template to use (premium/profesional include CVSS scores, attack scenarios, and deployment recommendations)",
 )
@@ -3939,8 +4009,18 @@ def _interactive_wizard(variables: dict, console) -> dict:
 @click.option("--contract-name", type=str, help="Contract name (overrides auto-detected)")
 @click.option("--repository", type=str, help="Repository URL or path")
 @click.option("--commit", type=str, help="Commit hash for the audited code")
-@click.option("--network", type=str, default="Ethereum Mainnet", help="Target network (e.g., Ethereum Mainnet, Polygon)")
-@click.option("--classification", type=str, default="CONFIDENTIAL", help="Report classification (CONFIDENTIAL, PUBLIC, etc.)")
+@click.option(
+    "--network",
+    type=str,
+    default="Ethereum Mainnet",
+    help="Target network (e.g., Ethereum Mainnet, Polygon)",
+)
+@click.option(
+    "--classification",
+    type=str,
+    default="CONFIDENTIAL",
+    help="Report classification (CONFIDENTIAL, PUBLIC, etc.)",
+)
 @click.option(
     "--llm-interpret",
     is_flag=True,
@@ -3954,7 +4034,22 @@ def _interactive_wizard(variables: dict, console) -> dict:
     default=False,
     help="Interactive wizard mode: prompt for missing/unknown values before generating report",
 )
-def report(results_file, template, output, output_format, client, auditor, title, contract_name, repository, commit, network, classification, llm_interpret, interactive):
+def report(
+    results_file,
+    template,
+    output,
+    output_format,
+    client,
+    auditor,
+    title,
+    contract_name,
+    repository,
+    commit,
+    network,
+    classification,
+    llm_interpret,
+    interactive,
+):
     """Generate formatted security reports from audit results.
 
     Takes JSON audit results and applies a template to generate
@@ -4014,9 +4109,17 @@ def report(results_file, template, output, output_format, client, auditor, title
     # Smart audit format: prefer ML-enhanced findings (adjusted severities) over raw
     if not findings:
         ml_enhanced = results.get("ml_enhanced", {})
-        if isinstance(ml_enhanced, dict) and isinstance(ml_enhanced.get("findings"), list) and ml_enhanced["findings"]:
+        if (
+            isinstance(ml_enhanced, dict)
+            and isinstance(ml_enhanced.get("findings"), list)
+            and ml_enhanced["findings"]
+        ):
             findings = ml_enhanced["findings"]
-        elif isinstance(ml_enhanced, dict) and isinstance(ml_enhanced.get("top_findings"), list) and ml_enhanced["top_findings"]:
+        elif (
+            isinstance(ml_enhanced, dict)
+            and isinstance(ml_enhanced.get("top_findings"), list)
+            and ml_enhanced["top_findings"]
+        ):
             findings = ml_enhanced["top_findings"]
         elif "raw_findings" in results and results["raw_findings"].get("findings"):
             findings = results["raw_findings"]["findings"]
@@ -4057,7 +4160,9 @@ def report(results_file, template, output, output_format, client, auditor, title
         high_count = sum(1 for f in findings if f.get("severity", "").lower() == "high")
         medium_count = sum(1 for f in findings if f.get("severity", "").lower() == "medium")
         low_count = sum(1 for f in findings if f.get("severity", "").lower() == "low")
-        info_count = sum(1 for f in findings if f.get("severity", "").lower() in ("info", "informational"))
+        info_count = sum(
+            1 for f in findings if f.get("severity", "").lower() in ("info", "informational")
+        )
 
     def get_status(count, severity):
         if count == 0:
@@ -4078,17 +4183,14 @@ def report(results_file, template, output, output_format, client, auditor, title
         "HIGH": "**HIGH RISK**: Significant security issues were identified that could result in substantial financial loss or contract compromise. These issues should be addressed before deployment.",
         "MEDIUM": "**MEDIUM RISK**: Several security concerns were found that could potentially be exploited under certain conditions. Recommended to address before deployment.",
         "LOW": "**LOW RISK**: Minor issues were identified that should be addressed to improve code quality and security posture.",
-        "MINIMAL": "**MINIMAL RISK**: No significant security issues were identified. The contract follows security best practices."
+        "MINIMAL": "**MINIMAL RISK**: No significant security issues were identified. The contract follows security best practices.",
     }
 
     # Prepare template variables
     # CLI parameters override auto-detected values from results
     # Support multiple JSON formats: contract, contract_path, path
     detected_contract = (
-        results.get("contract") or
-        results.get("contract_path") or
-        results.get("path") or
-        "Unknown"
+        results.get("contract") or results.get("contract_path") or results.get("path") or "Unknown"
     )
     # Extract just the filename from path
     if "/" in detected_contract:
@@ -4123,15 +4225,27 @@ def report(results_file, template, output, output_format, client, auditor, title
         "info_status": get_status(info_count, "info"),
         "risk_summary": risk_summaries.get(overall_risk, "Risk assessment pending."),
         # Layer tools
-        "layer1_tools": ", ".join(tools_by_layer.get("static_analysis", ["slither", "aderyn", "solhint"])),
-        "layer2_tools": ", ".join(tools_by_layer.get("dynamic_testing", ["echidna", "medusa", "foundry"])),
-        "layer3_tools": ", ".join(tools_by_layer.get("symbolic_execution", ["mythril", "manticore", "halmos"])),
-        "layer4_tools": ", ".join(tools_by_layer.get("formal_verification", ["certora", "smtchecker"])),
+        "layer1_tools": ", ".join(
+            tools_by_layer.get("static_analysis", ["slither", "aderyn", "solhint"])
+        ),
+        "layer2_tools": ", ".join(
+            tools_by_layer.get("dynamic_testing", ["echidna", "medusa", "foundry"])
+        ),
+        "layer3_tools": ", ".join(
+            tools_by_layer.get("symbolic_execution", ["mythril", "manticore", "halmos"])
+        ),
+        "layer4_tools": ", ".join(
+            tools_by_layer.get("formal_verification", ["certora", "smtchecker"])
+        ),
         "layer5_tools": ", ".join(tools_by_layer.get("property_testing", ["propertygpt"])),
-        "layer6_tools": ", ".join(tools_by_layer.get("ai_analysis", ["smartllm", "gptscan", "llmsmartaudit"])),
+        "layer6_tools": ", ".join(
+            tools_by_layer.get("ai_analysis", ["smartllm", "gptscan", "llmsmartaudit"])
+        ),
         "layer7_tools": ", ".join(tools_by_layer.get("ml_detection", ["dagnn", "smartbugs_ml"])),
         "layer8_tools": ", ".join(tools_by_layer.get("defi", ["defi", "mev_detector"])),
-        "layer9_tools": ", ".join(tools_by_layer.get("specialized", ["gas_analyzer", "threat_model"])),
+        "layer9_tools": ", ".join(
+            tools_by_layer.get("specialized", ["gas_analyzer", "threat_model"])
+        ),
         # Empty lists for optional sections
         "swc_mappings": [],
         "owasp_mappings": [],
@@ -4179,33 +4293,37 @@ def report(results_file, template, output, output_format, client, auditor, title
     if "contracts" in results:
         for idx, contract_data in enumerate(results.get("contracts", []), 1):
             contract_path = contract_data.get("contract", "Unknown")
-            contract_name_short = Path(contract_path).name if contract_path != "Unknown" else f"Contract {idx}"
+            contract_name_short = (
+                Path(contract_path).name if contract_path != "Unknown" else f"Contract {idx}"
+            )
             contract_findings = contract_data.get("total_findings", 0)
 
             # Try to get lines of code
             lines = "N/A"
             try:
                 if contract_path and Path(contract_path).exists():
-                    with open(contract_path, 'r') as f:
+                    with open(contract_path, "r") as f:
                         lines = len(f.readlines())
                         total_lines += lines
             except Exception:
                 pass
 
-            files_analyzed.append({
-                "path": contract_name_short,
-                "full_path": contract_path,
-                "lines": lines,
-                "findings": contract_findings,
-            })
-            files_in_scope.append({
-                "path": contract_name_short,
-                "lines": lines,
-                "description": "Smart Contract"
-            })
+            files_analyzed.append(
+                {
+                    "path": contract_name_short,
+                    "full_path": contract_path,
+                    "lines": lines,
+                    "findings": contract_findings,
+                }
+            )
+            files_in_scope.append(
+                {"path": contract_name_short, "lines": lines, "description": "Smart Contract"}
+            )
     else:
         # Single contract - try multiple sources for contract path
-        contract_path = results.get("contract", results.get("contract_path", results.get("path", "Unknown")))
+        contract_path = results.get(
+            "contract", results.get("contract_path", results.get("path", "Unknown"))
+        )
 
         # If not found at root level, try to get from first result
         if contract_path == "Unknown" and results.get("results"):
@@ -4214,35 +4332,42 @@ def report(results_file, template, output, output_format, client, auditor, title
                     contract_path = r.get("contract")
                     break
 
-        contract_name_short = Path(contract_path).name if contract_path and contract_path != "Unknown" else "Contract"
+        contract_name_short = (
+            Path(contract_path).name if contract_path and contract_path != "Unknown" else "Contract"
+        )
 
         lines = 0
         functions_count = 0
         try:
             if contract_path and contract_path != "Unknown" and Path(contract_path).exists():
-                with open(contract_path, 'r') as f:
+                with open(contract_path, "r") as f:
                     content = f.read()
                     lines = len(content.splitlines())
                     total_lines = lines
                     # Count functions
                     import re
-                    functions_count = len(re.findall(r'\bfunction\s+\w+\s*\(', content))
+
+                    functions_count = len(re.findall(r"\bfunction\s+\w+\s*\(", content))
         except Exception:
             lines = "N/A"
 
-        files_analyzed.append({
-            "path": contract_name_short,
-            "full_path": contract_path,
-            "lines": lines,
-            "functions": functions_count,
-            "findings": len(findings),
-        })
-        files_in_scope.append({
-            "path": contract_name_short,
-            "lines": lines,
-            "functions": functions_count,
-            "description": "Smart Contract"
-        })
+        files_analyzed.append(
+            {
+                "path": contract_name_short,
+                "full_path": contract_path,
+                "lines": lines,
+                "functions": functions_count,
+                "findings": len(findings),
+            }
+        )
+        files_in_scope.append(
+            {
+                "path": contract_name_short,
+                "lines": lines,
+                "functions": functions_count,
+                "description": "Smart Contract",
+            }
+        )
 
     variables["files_analyzed"] = files_analyzed
     variables["files_in_scope"] = files_in_scope
@@ -4286,12 +4411,14 @@ def report(results_file, template, output, output_format, client, auditor, title
                 status = "failed"
             else:
                 status = "unknown"
-            tool_results.append({
-                "tool": tool,
-                "status": status,
-                "findings": tool_findings,
-                "duration": "N/A",
-            })
+            tool_results.append(
+                {
+                    "tool": tool,
+                    "status": status,
+                    "findings": tool_findings,
+                    "duration": "N/A",
+                }
+            )
     tools_execution_summary = []
     layer_summary = {}
 
@@ -4376,17 +4503,29 @@ def report(results_file, template, output, output_format, client, auditor, title
             "timeout": "Timeout",
             "error": "Error",
         }
-        display_status = status_map.get(tool_status, tool_status.capitalize() if isinstance(tool_status, str) else "Unknown")
+        display_status = status_map.get(
+            tool_status, tool_status.capitalize() if isinstance(tool_status, str) else "Unknown"
+        )
 
-        tools_execution_summary.append({
-            "name": tool_name,
-            "status": display_status,
-            "status_icon": "✅" if tool_status == "success" else ("⚠️" if tool_status in ("failed", "error", "timeout") else "⏭️"),
-            "duration": f"{tool_duration}s" if isinstance(tool_duration, (int, float)) else str(tool_duration),
-            "findings_count": len(tool_findings),
-            "layer": layer_names.get(tool_layer, tool_layer),
-            "error": tool_error[:100] if tool_error else "",
-        })
+        tools_execution_summary.append(
+            {
+                "name": tool_name,
+                "status": display_status,
+                "status_icon": (
+                    "✅"
+                    if tool_status == "success"
+                    else ("⚠️" if tool_status in ("failed", "error", "timeout") else "⏭️")
+                ),
+                "duration": (
+                    f"{tool_duration}s"
+                    if isinstance(tool_duration, (int, float))
+                    else str(tool_duration)
+                ),
+                "findings_count": len(tool_findings),
+                "layer": layer_names.get(tool_layer, tool_layer),
+                "error": tool_error[:100] if tool_error else "",
+            }
+        )
 
         # Aggregate by layer
         layer_key = tool_layer if tool_layer else "unknown"
@@ -4406,23 +4545,35 @@ def report(results_file, template, output, output_format, client, auditor, title
             layer_summary[layer_key]["tools_failed"] += 1
 
     # Convert layer_summary to list sorted by layer order
-    layer_order = ["static_analysis", "dynamic_testing", "symbolic_execution",
-                   "formal_verification", "property_testing", "ai_analysis",
-                   "ml_detection", "defi", "specialized"]
+    layer_order = [
+        "static_analysis",
+        "dynamic_testing",
+        "symbolic_execution",
+        "formal_verification",
+        "property_testing",
+        "ai_analysis",
+        "ml_detection",
+        "defi",
+        "specialized",
+    ]
     layer_summary_list = []
     for layer_key in layer_order:
         if layer_key in layer_summary:
             ls = layer_summary[layer_key]
-            layer_summary_list.append({
-                "name": ls["name"],
-                "tools": ", ".join(ls["tools_executed"]) if ls["tools_executed"] else "None",
-                "success_count": ls["tools_success"],
-                "failed_count": ls["tools_failed"],
-                "findings_count": ls["findings_count"],
-                "coverage_status": "✅ Complete" if ls["tools_success"] > 0 and ls["tools_failed"] == 0 else (
-                    "⚠️ Partial" if ls["tools_success"] > 0 else "❌ Not Executed"
-                ),
-            })
+            layer_summary_list.append(
+                {
+                    "name": ls["name"],
+                    "tools": ", ".join(ls["tools_executed"]) if ls["tools_executed"] else "None",
+                    "success_count": ls["tools_success"],
+                    "failed_count": ls["tools_failed"],
+                    "findings_count": ls["findings_count"],
+                    "coverage_status": (
+                        "✅ Complete"
+                        if ls["tools_success"] > 0 and ls["tools_failed"] == 0
+                        else ("⚠️ Partial" if ls["tools_success"] > 0 else "❌ Not Executed")
+                    ),
+                }
+            )
 
     variables["tools_execution_summary"] = tools_execution_summary
     variables["layer_summary"] = layer_summary_list
@@ -4441,7 +4592,7 @@ def report(results_file, template, output, output_format, client, auditor, title
         # Build output summary
         output_lines = []
         if tool_status == "success":
-            output_lines.append(f"Analysis completed successfully.")
+            output_lines.append("Analysis completed successfully.")
             output_lines.append(f"Findings detected: {len(tool_findings)}")
             if tool_findings:
                 output_lines.append("")
@@ -4459,21 +4610,31 @@ def report(results_file, template, output, output_format, client, auditor, title
         else:
             output_lines.append(f"Status: {tool_status}")
 
-        tool_outputs.append({
-            "name": tool_name,
-            "duration": f"{tool_duration}s" if isinstance(tool_duration, (int, float)) else str(tool_duration),
-            "exit_code": 0 if tool_status == "success" else 1,
-            "findings_count": len(tool_findings),
-            "output": "\n".join(output_lines),
-        })
+        tool_outputs.append(
+            {
+                "name": tool_name,
+                "duration": (
+                    f"{tool_duration}s"
+                    if isinstance(tool_duration, (int, float))
+                    else str(tool_duration)
+                ),
+                "exit_code": 0 if tool_status == "success" else 1,
+                "findings_count": len(tool_findings),
+                "output": "\n".join(output_lines),
+            }
+        )
 
     variables["tool_outputs"] = tool_outputs
 
     # Interactive wizard mode
     if interactive and RICH_AVAILABLE:
         variables = _interactive_wizard(variables, console)
-    variables["tools_success_count"] = sum(1 for t in tools_execution_summary if t["status"] == "Success")
-    variables["tools_failed_count"] = sum(1 for t in tools_execution_summary if t["status"] in ("Failed", "Error", "Timeout"))
+    variables["tools_success_count"] = sum(
+        1 for t in tools_execution_summary if t["status"] == "Success"
+    )
+    variables["tools_failed_count"] = sum(
+        1 for t in tools_execution_summary if t["status"] in ("Failed", "Error", "Timeout")
+    )
 
     # =========================================================================
     # LLM Interpretation (if enabled)
@@ -4505,25 +4666,25 @@ def report(results_file, template, output, output_format, client, auditor, title
                 exec_summary = interpreter.generate_executive_interpretation(
                     findings=findings,
                     summary=summary,
-                    contract_name=results.get("contract", "Unknown")
+                    contract_name=results.get("contract", "Unknown"),
                 )
                 variables["llm_executive_summary"] = exec_summary
 
                 # Generate risk narrative
                 info("Generating risk narrative...")
                 risk_narrative = interpreter.generate_risk_narrative(
-                    summary=summary,
-                    findings=findings
+                    summary=summary, findings=findings
                 )
                 variables["llm_risk_narrative"] = risk_narrative
 
                 # Interpret critical findings
-                critical_high = [f for f in findings if f.get("severity", "").lower() in ("critical", "high")]
+                critical_high = [
+                    f for f in findings if f.get("severity", "").lower() in ("critical", "high")
+                ]
                 if critical_high:
                     info(f"Interpreting {len(critical_high[:5])} critical/high findings...")
                     interpreted = interpreter.interpret_critical_findings(
-                        critical_findings=critical_high[:5],  # Top 5
-                        contract_code=contract_code
+                        critical_findings=critical_high[:5], contract_code=contract_code  # Top 5
                     )
                     variables["llm_critical_interpretations"] = interpreted
 
@@ -4557,22 +4718,30 @@ def report(results_file, template, output, output_format, client, auditor, title
             risk_data = calculate_premium_risk_data(findings)
 
             # Update variables with risk data
-            variables.update({
-                "cvss_scores": risk_data.get("cvss_scores", []),
-                "risk_matrix": risk_data.get("risk_matrix", {}),
-                "overall_risk_score": risk_data.get("overall_risk_score", 0),
-                "deployment_recommendation": risk_data.get("deployment_recommendation", "CONDITIONAL"),
-                "deployment_justification": risk_data.get("deployment_justification", ""),
-                "deployment_recommendation_color": risk_data.get("deployment_recommendation_color", "#ff9800"),
-                "deployment_recommendation_bg": risk_data.get("deployment_recommendation_bg", "#fff8e1"),
-                "quick_wins": risk_data.get("quick_wins", []),
-                "effort_impact_matrix": risk_data.get("effort_impact_matrix", {}),
-                "critical_percent": risk_data.get("critical_percent", 0),
-                "high_percent": risk_data.get("high_percent", 0),
-                "medium_percent": risk_data.get("medium_percent", 0),
-                "low_percent": risk_data.get("low_percent", 0),
-                "info_percent": risk_data.get("info_percent", 0),
-            })
+            variables.update(
+                {
+                    "cvss_scores": risk_data.get("cvss_scores", []),
+                    "risk_matrix": risk_data.get("risk_matrix", {}),
+                    "overall_risk_score": risk_data.get("overall_risk_score", 0),
+                    "deployment_recommendation": risk_data.get(
+                        "deployment_recommendation", "CONDITIONAL"
+                    ),
+                    "deployment_justification": risk_data.get("deployment_justification", ""),
+                    "deployment_recommendation_color": risk_data.get(
+                        "deployment_recommendation_color", "#ff9800"
+                    ),
+                    "deployment_recommendation_bg": risk_data.get(
+                        "deployment_recommendation_bg", "#fff8e1"
+                    ),
+                    "quick_wins": risk_data.get("quick_wins", []),
+                    "effort_impact_matrix": risk_data.get("effort_impact_matrix", {}),
+                    "critical_percent": risk_data.get("critical_percent", 0),
+                    "high_percent": risk_data.get("high_percent", 0),
+                    "medium_percent": risk_data.get("medium_percent", 0),
+                    "low_percent": risk_data.get("low_percent", 0),
+                    "info_percent": risk_data.get("info_percent", 0),
+                }
+            )
 
             # Calculate category summary
             categories = {}
@@ -4589,11 +4758,13 @@ def report(results_file, template, output, output_format, client, auditor, title
                 for s in data["severities"]:
                     sev_counts[s] = sev_counts.get(s, 0) + 1
                 breakdown = ", ".join([f"{v} {k}" for k, v in sorted(sev_counts.items())])
-                category_summary.append({
-                    "name": cat,
-                    "count": data["count"],
-                    "breakdown": breakdown,
-                })
+                category_summary.append(
+                    {
+                        "name": cat,
+                        "count": data["count"],
+                        "breakdown": breakdown,
+                    }
+                )
             variables["category_summary"] = category_summary
 
             # =================================================================
@@ -4627,16 +4798,30 @@ def report(results_file, template, output, output_format, client, auditor, title
 
             swc_found = {}
             for f in findings:
-                f_type = (f.get("type") or f.get("check") or f.get("category") or "").lower().replace("_", "-").replace(" ", "-")
+                f_type = (
+                    (f.get("type") or f.get("check") or f.get("category") or "")
+                    .lower()
+                    .replace("_", "-")
+                    .replace(" ", "-")
+                )
                 f_title = (f.get("title") or f.get("name") or "").lower()
 
                 # Try to match by type or title
                 for key, (swc_id, swc_title) in SWC_MAPPING.items():
                     if key in f_type or key in f_title:
                         if swc_id not in swc_found:
-                            swc_found[swc_id] = {"id": swc_id, "title": swc_title, "count": 0, "status": "Found", "status_icon": "⚠️", "finding_ids": []}
+                            swc_found[swc_id] = {
+                                "id": swc_id,
+                                "title": swc_title,
+                                "count": 0,
+                                "status": "Found",
+                                "status_icon": "⚠️",
+                                "finding_ids": [],
+                            }
                         swc_found[swc_id]["count"] += 1
-                        swc_found[swc_id]["finding_ids"].append(f"F{len(swc_found[swc_id]['finding_ids'])+1}")
+                        swc_found[swc_id]["finding_ids"].append(
+                            f"F{len(swc_found[swc_id]['finding_ids'])+1}"
+                        )
                         break
 
             # Add common SWC entries that were checked but not found
@@ -4650,12 +4835,21 @@ def report(results_file, template, output, output_format, client, auditor, title
             ]
             for swc_id, swc_title in common_swc:
                 if swc_id not in swc_found:
-                    swc_found[swc_id] = {"id": swc_id, "title": swc_title, "count": 0, "status": "Not Found", "status_icon": "✅", "finding_ids": "--"}
+                    swc_found[swc_id] = {
+                        "id": swc_id,
+                        "title": swc_title,
+                        "count": 0,
+                        "status": "Not Found",
+                        "status_icon": "✅",
+                        "finding_ids": "--",
+                    }
 
             # Convert finding_ids list to string
             for swc in swc_found.values():
                 if isinstance(swc["finding_ids"], list):
-                    swc["finding_ids"] = ", ".join(swc["finding_ids"]) if swc["finding_ids"] else "--"
+                    swc["finding_ids"] = (
+                        ", ".join(swc["finding_ids"]) if swc["finding_ids"] else "--"
+                    )
 
             variables["swc_mappings"] = sorted(swc_found.values(), key=lambda x: x["id"])
 
@@ -4679,13 +4873,24 @@ def report(results_file, template, output, output_format, client, auditor, title
 
             owasp_found = {}
             for f in findings:
-                f_type = (f.get("type") or f.get("check") or f.get("category") or "").lower().replace("_", "-")
+                f_type = (
+                    (f.get("type") or f.get("check") or f.get("category") or "")
+                    .lower()
+                    .replace("_", "-")
+                )
                 f_title = (f.get("title") or f.get("name") or "").lower()
 
                 for key, (rank, owasp_id, owasp_category) in OWASP_MAPPING.items():
                     if key in f_type or key in f_title:
                         if owasp_id not in owasp_found:
-                            owasp_found[owasp_id] = {"rank": rank, "id": owasp_id, "category": owasp_category, "count": 0, "status": "Found", "status_icon": "⚠️"}
+                            owasp_found[owasp_id] = {
+                                "rank": rank,
+                                "id": owasp_id,
+                                "category": owasp_category,
+                                "count": 0,
+                                "status": "Found",
+                                "status_icon": "⚠️",
+                            }
                         owasp_found[owasp_id]["count"] += 1
                         break
 
@@ -4699,7 +4904,14 @@ def report(results_file, template, output, output_format, client, auditor, title
             ]
             for rank, owasp_id, owasp_category in top_owasp:
                 if owasp_id not in owasp_found:
-                    owasp_found[owasp_id] = {"rank": rank, "id": owasp_id, "category": owasp_category, "count": 0, "status": "Not Found", "status_icon": "✅"}
+                    owasp_found[owasp_id] = {
+                        "rank": rank,
+                        "id": owasp_id,
+                        "category": owasp_category,
+                        "count": 0,
+                        "status": "Not Found",
+                        "status_icon": "✅",
+                    }
 
             variables["owasp_mappings"] = sorted(owasp_found.values(), key=lambda x: x["rank"])
 
@@ -4720,7 +4932,9 @@ def report(results_file, template, output, output_format, client, auditor, title
                 try:
                     from src.reports.llm_interpreter import generate_premium_report_insights
 
-                    info("Generating premium LLM insights (attack scenarios, deployment recommendation)...")
+                    info(
+                        "Generating premium LLM insights (attack scenarios, deployment recommendation)..."
+                    )
 
                     # Get contract code if available
                     contract_path = results.get("contract_path") or results.get("contract")
@@ -4737,7 +4951,7 @@ def report(results_file, template, output, output_format, client, auditor, title
                         findings=findings,
                         summary=summary,
                         contract_name=results.get("contract", "Unknown"),
-                        contract_code=contract_code
+                        contract_code=contract_code,
                     )
 
                     if premium_insights.get("available"):
@@ -4754,7 +4968,9 @@ def report(results_file, template, output, output_format, client, auditor, title
 
                             if llm_severity >= calc_severity:
                                 variables["deployment_recommendation"] = llm_rec
-                                variables["deployment_justification"] = premium_insights.get("deployment_justification", "")
+                                variables["deployment_justification"] = premium_insights.get(
+                                    "deployment_justification", ""
+                                )
                             else:
                                 # Keep calculated recommendation, but add LLM justification as note
                                 existing_just = variables.get("deployment_justification", "")
@@ -4771,7 +4987,9 @@ def report(results_file, template, output, output_format, client, auditor, title
 
                         # Update remediation priority with effort
                         if premium_insights.get("remediation_priority"):
-                            variables["llm_remediation_priority"] = premium_insights["remediation_priority"]
+                            variables["llm_remediation_priority"] = premium_insights[
+                                "remediation_priority"
+                            ]
 
                         success("Profesional LLM insights generated!")
 
@@ -4804,13 +5022,15 @@ def report(results_file, template, output, output_format, client, auditor, title
                 contract_name_for_poc = "Unknown"
 
             critical_high_for_poc = [
-                f for f in findings
-                if f.get("severity", "").lower() in ("critical", "high")
-                and f.get("type")
+                f
+                for f in findings
+                if f.get("severity", "").lower() in ("critical", "high") and f.get("type")
             ]
 
             if critical_high_for_poc:
-                info(f"Generating PoC exploits for {len(critical_high_for_poc)} critical/high findings...")
+                info(
+                    f"Generating PoC exploits for {len(critical_high_for_poc)} critical/high findings..."
+                )
                 for finding in critical_high_for_poc:
                     try:
                         # Use per-finding source_contract (batch) or global contract name
@@ -4845,10 +5065,17 @@ def report(results_file, template, output, output_format, client, auditor, title
             loc_str = str(location) if location else "unknown"
 
         # Get title from various possible fields
-        title = finding.get("title") or finding.get("type") or finding.get("message", "Unknown")[:50]
+        title = (
+            finding.get("title") or finding.get("type") or finding.get("message", "Unknown")[:50]
+        )
 
         # Get category from swc_id, owasp_category, or type
-        category = finding.get("category") or finding.get("owasp_category") or finding.get("swc_id") or finding.get("type", "general")
+        category = (
+            finding.get("category")
+            or finding.get("owasp_category")
+            or finding.get("swc_id")
+            or finding.get("type", "general")
+        )
 
         # Severity display helpers for premium template
         severity_lower = finding.get("severity", "unknown").lower()
@@ -4906,12 +5133,16 @@ def report(results_file, template, output, output_format, client, auditor, title
                 "category": category,
                 "location": loc_str,
                 "description": finding.get("description", finding.get("message", "")),
-                "recommendation": finding.get("recommendation", "Review and fix the vulnerability."),
+                "recommendation": finding.get(
+                    "recommendation", "Review and fix the vulnerability."
+                ),
                 "tool": finding.get("tool", "unknown"),
                 "status": finding.get("status", "open"),
                 "impact": finding.get("impact", _get_impact_description(severity_lower)),
                 "poc": finding.get("poc", "// No PoC provided"),
-                "vulnerable_code": finding.get("vulnerable_code", finding.get("poc", "// No code snippet")),
+                "vulnerable_code": finding.get(
+                    "vulnerable_code", finding.get("poc", "// No code snippet")
+                ),
                 "references": finding.get("references", []),
                 # Premium fields
                 "cvss_score": cvss_score,
@@ -4953,7 +5184,7 @@ def report(results_file, template, output, output_format, client, auditor, title
 
             # Try weasyprint first (available in Docker image)
             try:
-                from weasyprint import HTML, CSS
+                from weasyprint import CSS, HTML
                 from weasyprint.text.fonts import FontConfiguration
 
                 info("Generating PDF with WeasyPrint...")
@@ -4986,7 +5217,13 @@ def report(results_file, template, output, output_format, client, auditor, title
                     temp_html = output_path.with_suffix(".tmp.html")
                     temp_html.write_text(html_content)
                     subprocess.run(
-                        ["pandoc", str(temp_html), "-o", str(output_path), "--pdf-engine=wkhtmltopdf"],
+                        [
+                            "pandoc",
+                            str(temp_html),
+                            "-o",
+                            str(output_path),
+                            "--pdf-engine=wkhtmltopdf",
+                        ],
                         check=True,
                         capture_output=True,
                     )
@@ -5039,7 +5276,7 @@ def _calculate_risk_level(summary: dict) -> str:
 def _render_template(template: str, variables: dict) -> str:
     """Render template using Jinja2 if available, otherwise simple replacement."""
     try:
-        from jinja2 import Template, Environment, BaseLoader
+        from jinja2 import BaseLoader, Environment, Template
 
         # Create Jinja2 environment with proper settings
         env = Environment(loader=BaseLoader())
@@ -5053,6 +5290,7 @@ def _render_template(template: str, variables: dict) -> str:
 def _simple_render_template(template: str, variables: dict) -> str:
     """Simple template rendering fallback without Jinja2."""
     import re
+
     output = template
 
     # Replace simple variables {{ var }}
@@ -5105,10 +5343,7 @@ def _markdown_to_html(markdown: str, title: str, use_premium_css: bool = True) -
     try:
         import markdown as md
 
-        html_body = md.markdown(
-            markdown,
-            extensions=["tables", "fenced_code", "toc", "attr_list"]
-        )
+        html_body = md.markdown(markdown, extensions=["tables", "fenced_code", "toc", "attr_list"])
     except ImportError:
         # Fallback: wrap in pre tag
         html_body = f"<pre>{markdown}</pre>"
@@ -5169,18 +5404,16 @@ def _enhance_html_severity(html: str) -> str:
     """Add CSS classes to severity indicators in HTML."""
     import re
 
-    for sev in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']:
+    for sev in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]:
         # Wrap **SEVERITY** in spans
         html = re.sub(
-            rf'\*\*({sev})\*\*',
-            rf'<span class="severity-{sev.lower()}">{sev}</span>',
-            html
+            rf"\*\*({sev})\*\*", rf'<span class="severity-{sev.lower()}">{sev}</span>', html
         )
         # Also handle plain text in tables
         html = re.sub(
-            rf'<td>({sev})</td>',
+            rf"<td>({sev})</td>",
             rf'<td><span class="severity-{sev.lower()}">{sev}</span></td>',
-            html
+            html,
         )
 
     return html
@@ -5484,7 +5717,9 @@ def init():
 @init.command("foundry")
 @click.option("--profile", default="default", help="Foundry profile to configure")
 @click.option("--fail-on", default="high", type=click.Choice(["critical", "high", "medium", "low"]))
-@click.option("--hook-script", is_flag=True, help="Create full hook script instead of inline command")
+@click.option(
+    "--hook-script", is_flag=True, help="Create full hook script instead of inline command"
+)
 def init_foundry(profile, fail_on, hook_script):
     """Initialize MIESC integration for Foundry projects.
 
@@ -5505,7 +5740,7 @@ def init_foundry(profile, fail_on, hook_script):
         info("Run this command from your Foundry project root")
         sys.exit(1)
 
-    info(f"Configuring MIESC for Foundry project...")
+    info("Configuring MIESC for Foundry project...")
 
     # Read current config
     content = foundry_toml.read_text()
@@ -5522,7 +5757,7 @@ def init_foundry(profile, fail_on, hook_script):
         scripts_dir.mkdir(exist_ok=True)
 
         hook_path = scripts_dir / "miesc-hook.sh"
-        hook_content = f'''#!/bin/bash
+        hook_content = f"""#!/bin/bash
 # =============================================================================
 # MIESC Foundry Post-Build Hook
 # Generated by: miesc init foundry --hook-script
@@ -5598,12 +5833,12 @@ if command -v jq &> /dev/null && [ -f "$REPORT_FILE" ]; then
 
     log_success "Audit passed (threshold: $FAIL_ON)"
 fi
-'''
+"""
         hook_path.write_text(hook_content)
         hook_path.chmod(0o755)
         success(f"Created {hook_path}")
 
-        post_build_cmd = f"./scripts/miesc-hook.sh"
+        post_build_cmd = "./scripts/miesc-hook.sh"
     else:
         post_build_cmd = f"miesc audit quick ./src --ci --fail-on {fail_on}"
 
@@ -5644,7 +5879,7 @@ post_build_hook = "{post_build_cmd}"
 """
 
     foundry_toml.write_text(content)
-    success(f"Updated foundry.toml with MIESC post-build hook")
+    success("Updated foundry.toml with MIESC post-build hook")
 
     # Summary
     print("")
@@ -5654,7 +5889,7 @@ post_build_hook = "{post_build_cmd}"
     print(f"  Hook: {post_build_cmd}")
     print("")
     info("Usage:")
-    print(f"  forge build                  # Triggers MIESC audit")
+    print("  forge build                  # Triggers MIESC audit")
     print(f"  forge build --profile {profile}  # Uses configured profile")
 
 
@@ -5684,14 +5919,14 @@ def init_hardhat(fail_on):
         info("Run this command from your Hardhat project root")
         sys.exit(1)
 
-    info(f"Configuring MIESC for Hardhat project...")
+    info("Configuring MIESC for Hardhat project...")
 
     # Create miesc task file
     tasks_dir = Path("tasks")
     tasks_dir.mkdir(exist_ok=True)
 
     task_file = tasks_dir / "miesc.js"
-    task_content = f'''// MIESC Security Audit Task for Hardhat
+    task_content = f"""// MIESC Security Audit Task for Hardhat
 // Generated by: miesc init hardhat
 
 const {{ task }} = require("hardhat/config");
@@ -5749,7 +5984,7 @@ task("compile")
   }});
 
 module.exports = {{}};
-'''
+"""
     task_file.write_text(task_content)
     success(f"Created {task_file}")
 
@@ -5785,7 +6020,7 @@ def init_github(workflow_name):
 
     workflow_file = workflows_dir / f"{workflow_name}.yml"
 
-    workflow_content = '''# MIESC Security Audit Workflow
+    workflow_content = """# MIESC Security Audit Workflow
 # Generated by: miesc init github
 
 name: Security Audit
@@ -5855,7 +6090,7 @@ jobs:
           path: |
             miesc.json
             miesc.sarif
-'''
+"""
 
     workflow_file.write_text(workflow_content)
     success(f"Created {workflow_file}")
@@ -5887,6 +6122,7 @@ def get_poc_generator():
     if POC_AVAILABLE is None:
         try:
             from src.poc import PoCGenerator
+
             _PoCGenerator = PoCGenerator
             POC_AVAILABLE = True
             logger.debug("PoCGenerator loaded successfully")
@@ -5906,6 +6142,7 @@ def get_foundry_runner(project_dir: str):
     if _FoundryRunner is None:
         try:
             from src.poc.validators import FoundryRunner
+
             _FoundryRunner = FoundryRunner
             logger.debug("FoundryRunner loaded successfully")
         except ImportError as e:
@@ -5926,7 +6163,9 @@ def poc():
 @poc.command("generate")
 @click.argument("finding_file", type=click.Path(exists=True), required=False)
 @click.option("--type", "-t", "vuln_type", help="Vulnerability type (e.g., reentrancy, flash_loan)")
-@click.option("--contract", "-c", "target_contract", required=True, help="Target contract name or path")
+@click.option(
+    "--contract", "-c", "target_contract", required=True, help="Target contract name or path"
+)
 @click.option("--function", "-f", "target_function", help="Target function name")
 @click.option("--output", "-o", type=click.Path(), default="test/exploits", help="Output directory")
 @click.option("--json-input", "-j", "json_input", help="Inline JSON finding (instead of file)")
@@ -5934,8 +6173,15 @@ def poc():
 @click.option("--fork-block", type=int, help="Block number for forking")
 @click.option("--attacker-balance", default="100 ether", help="Attacker initial balance")
 def poc_generate(
-    finding_file, vuln_type, target_contract, target_function, output,
-    json_input, fork_url, fork_block, attacker_balance
+    finding_file,
+    vuln_type,
+    target_contract,
+    target_function,
+    output,
+    json_input,
+    fork_url,
+    fork_block,
+    attacker_balance,
 ):
     """Generate a PoC exploit from a vulnerability finding.
 
@@ -5957,7 +6203,7 @@ def poc_generate(
     # Build finding dict
     if finding_file:
         info(f"Loading finding from {finding_file}")
-        with open(finding_file, 'r') as f:
+        with open(finding_file, "r") as f:
             finding = json.load(f)
     elif json_input:
         info("Parsing inline JSON finding")
@@ -5979,6 +6225,7 @@ def poc_generate(
 
     # Configure options
     from src.poc import GenerationOptions
+
     options = GenerationOptions(
         fork_url=fork_url,
         fork_block=fork_block,
@@ -6029,7 +6276,9 @@ def poc_generate(
 
 @poc.command("run")
 @click.argument("poc_path", type=click.Path(exists=True))
-@click.option("--project", "-p", type=click.Path(exists=True), default=".", help="Foundry project directory")
+@click.option(
+    "--project", "-p", type=click.Path(exists=True), default=".", help="Foundry project directory"
+)
 @click.option("--verbosity", "-v", type=int, default=3, help="Verbosity level (1-5)")
 @click.option("--gas-report", is_flag=True, default=True, help="Include gas report")
 @click.option("--fork-url", help="RPC URL for forking")
@@ -6053,7 +6302,9 @@ def poc_run(poc_path, project, verbosity, gas_report, fork_url, fork_block, time
         sys.exit(1)
 
     if not runner:
-        error("Foundry Runner not available. Install Foundry: curl -L https://foundry.paradigm.xyz | bash")
+        error(
+            "Foundry Runner not available. Install Foundry: curl -L https://foundry.paradigm.xyz | bash"
+        )
         sys.exit(1)
 
     # Override runner settings
@@ -6080,7 +6331,7 @@ def poc_run(poc_path, project, verbosity, gas_report, fork_url, fork_block, time
 
     # Display results
     if result.success:
-        success(f"PoC executed successfully!")
+        success("PoC executed successfully!")
     else:
         if result.error:
             error(f"PoC failed: {result.error}")
@@ -6112,14 +6363,11 @@ def poc_run(poc_path, project, verbosity, gas_report, fork_url, fork_block, time
                 status_style = "green" if test.status.value == "passed" else "red"
                 gas_str = f"{test.gas_used:,}" if test.gas_used else "-"
                 test_table.add_row(
-                    test.name,
-                    test.status.value.upper(),
-                    gas_str,
-                    style=status_style
+                    test.name, test.status.value.upper(), gas_str, style=status_style
                 )
             console.print(test_table)
     else:
-        print(f"\n=== Results ===")
+        print("\n=== Results ===")
         print(f"Tests: {result.passed}/{result.total_tests} passed")
         print(f"Gas: {result.total_gas:,}")
         print(f"Time: {result.execution_time_ms:.1f}ms")
@@ -6217,7 +6465,9 @@ def poc_list(verbose):
 
 @poc.command("validate")
 @click.argument("poc_path", type=click.Path(exists=True))
-@click.option("--project", "-p", type=click.Path(exists=True), default=".", help="Foundry project directory")
+@click.option(
+    "--project", "-p", type=click.Path(exists=True), default=".", help="Foundry project directory"
+)
 @click.option("--expected-profit", is_flag=True, default=True, help="Expect profit demonstration")
 def poc_validate(poc_path, project, expected_profit):
     """Validate a PoC without full execution output.

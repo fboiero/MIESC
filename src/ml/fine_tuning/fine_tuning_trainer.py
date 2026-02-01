@@ -8,14 +8,12 @@ Author: Fernando Boiero
 License: GPL-3.0
 """
 
-import json
-import os
+import logging
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict, Any, Optional
-import logging
+from typing import Any, Dict, List, Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TrainingConfig:
     """Configuration for fine-tuning training."""
+
     # Model settings
     base_model: str = "deepseek-ai/deepseek-coder-6.7b-instruct"
     output_dir: str = "models/solidity-security-llm"
@@ -42,10 +41,17 @@ class TrainingConfig:
     lora_r: int = 16
     lora_alpha: int = 32
     lora_dropout: float = 0.05
-    lora_target_modules: List[str] = field(default_factory=lambda: [
-        "q_proj", "k_proj", "v_proj", "o_proj",
-        "gate_proj", "up_proj", "down_proj"
-    ])
+    lora_target_modules: List[str] = field(
+        default_factory=lambda: [
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
+        ]
+    )
 
     # Quantization
     use_4bit: bool = True
@@ -89,7 +95,7 @@ class SoliditySecurityTrainer:
             "bitsandbytes": False,
             "datasets": False,
             "trl": False,
-            "accelerate": False
+            "accelerate": False,
         }
 
         for dep in dependencies:
@@ -112,26 +118,20 @@ class SoliditySecurityTrainer:
             "trl>=0.7.0",
             "accelerate>=0.25.0",
             "scipy",
-            "sentencepiece"
+            "sentencepiece",
         ]
 
         logger.info("Installing dependencies...")
-        subprocess.run([
-            sys.executable, "-m", "pip", "install", *packages
-        ], check=True)
+        subprocess.run([sys.executable, "-m", "pip", "install", *packages], check=True)
 
     def prepare_model(self) -> None:
         """Load and prepare the base model for fine-tuning."""
         try:
             import torch
-            from transformers import (
-                AutoModelForCausalLM,
-                AutoTokenizer,
-                BitsAndBytesConfig
-            )
-            from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model
+            from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
         except ImportError as e:
-            raise ImportError(f"Missing dependency: {e}. Run install_dependencies() first.")
+            raise ImportError(f"Missing dependency: {e}. Run install_dependencies() first.") from e
 
         logger.info(f"Loading base model: {self.config.base_model}")
 
@@ -141,15 +141,14 @@ class SoliditySecurityTrainer:
                 load_in_4bit=True,
                 bnb_4bit_compute_dtype=getattr(torch, self.config.bnb_4bit_compute_dtype),
                 bnb_4bit_quant_type=self.config.bnb_4bit_quant_type,
-                bnb_4bit_use_double_quant=True
+                bnb_4bit_use_double_quant=True,
             )
         else:
             bnb_config = None
 
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.config.base_model,
-            trust_remote_code=True
+            self.config.base_model, trust_remote_code=True
         )
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.padding_side = "right"
@@ -160,7 +159,7 @@ class SoliditySecurityTrainer:
             quantization_config=bnb_config,
             device_map="auto",
             trust_remote_code=True,
-            torch_dtype=torch.float16 if self.config.fp16 else torch.bfloat16
+            torch_dtype=torch.float16 if self.config.fp16 else torch.bfloat16,
         )
 
         # Enable gradient checkpointing
@@ -179,7 +178,7 @@ class SoliditySecurityTrainer:
                 lora_dropout=self.config.lora_dropout,
                 target_modules=self.config.lora_target_modules,
                 bias="none",
-                task_type="CAUSAL_LM"
+                task_type="CAUSAL_LM",
             )
             self.model = get_peft_model(self.model, lora_config)
 
@@ -190,8 +189,8 @@ class SoliditySecurityTrainer:
         """Load and preprocess the training dataset."""
         try:
             from datasets import load_dataset
-        except ImportError:
-            raise ImportError("datasets package not installed")
+        except ImportError as e:
+            raise ImportError("datasets package not installed") from e
 
         logger.info(f"Loading dataset from: {dataset_path}")
 
@@ -237,7 +236,7 @@ class SoliditySecurityTrainer:
             from transformers import TrainingArguments
             from trl import SFTTrainer
         except ImportError as e:
-            raise ImportError(f"Missing dependency: {e}")
+            raise ImportError(f"Missing dependency: {e}") from e
 
         if self.model is None:
             self.prepare_model()
@@ -264,7 +263,7 @@ class SoliditySecurityTrainer:
             lr_scheduler_type="cosine",
             report_to="tensorboard",
             save_total_limit=3,
-            push_to_hub=False
+            push_to_hub=False,
         )
 
         # Initialize trainer
@@ -275,7 +274,7 @@ class SoliditySecurityTrainer:
             args=training_args,
             max_seq_length=self.config.max_seq_length,
             formatting_func=self.format_instruction,
-            packing=True
+            packing=True,
         )
 
         logger.info("Starting training...")
@@ -294,15 +293,13 @@ class SoliditySecurityTrainer:
             from peft import PeftModel
             from transformers import AutoModelForCausalLM, AutoTokenizer
         except ImportError as e:
-            raise ImportError(f"Missing dependency: {e}")
+            raise ImportError(f"Missing dependency: {e}") from e
 
         logger.info("Merging LoRA weights with base model...")
 
         # Load base model
         base_model = AutoModelForCausalLM.from_pretrained(
-            self.config.base_model,
-            device_map="auto",
-            trust_remote_code=True
+            self.config.base_model, device_map="auto", trust_remote_code=True
         )
 
         # Load LoRA weights
@@ -377,7 +374,7 @@ TEMPLATE """{{{{if .System}}}}{{{{.System}}}}{{{{end}}}}
             result = subprocess.run(
                 ["ollama", "create", model_name, "-f", modelfile_path],
                 capture_output=True,
-                text=True
+                text=True,
             )
             if result.returncode == 0:
                 logger.info(f"Ollama model '{model_name}' created successfully")
@@ -397,33 +394,22 @@ TEMPLATE """{{{{if .System}}}}{{{{.System}}}}{{{{end}}}}
             "tokenizer_type": "AutoTokenizer",
             "is_llama_derived_model": False,
             "trust_remote_code": True,
-
             "load_in_8bit": False,
             "load_in_4bit": self.config.use_4bit,
             "strict": False,
-
-            "datasets": [
-                {
-                    "path": dataset_path,
-                    "type": "alpaca"
-                }
-            ],
+            "datasets": [{"path": dataset_path, "type": "alpaca"}],
             "dataset_prepared_path": "last_run_prepared",
-
             "val_set_size": 0.05,
             "output_dir": self.config.output_dir,
-
             "sequence_len": self.config.max_seq_length,
             "sample_packing": True,
             "pad_to_sequence_len": True,
-
             "adapter": "lora" if self.config.use_lora else None,
             "lora_r": self.config.lora_r,
             "lora_alpha": self.config.lora_alpha,
             "lora_dropout": self.config.lora_dropout,
             "lora_target_modules": self.config.lora_target_modules,
             "lora_target_linear": True,
-
             "gradient_accumulation_steps": self.config.gradient_accumulation_steps,
             "micro_batch_size": self.config.batch_size,
             "num_epochs": self.config.num_epochs,
@@ -432,30 +418,25 @@ TEMPLATE """{{{{if .System}}}}{{{{.System}}}}{{{{end}}}}
             "learning_rate": self.config.learning_rate,
             "warmup_ratio": self.config.warmup_ratio,
             "weight_decay": self.config.weight_decay,
-
             "train_on_inputs": False,
             "group_by_length": False,
             "bf16": self.config.bf16,
             "fp16": self.config.fp16,
             "tf32": False,
-
             "gradient_checkpointing": self.config.gradient_checkpointing,
             "flash_attention": self.config.flash_attention,
-
             "logging_steps": self.config.logging_steps,
             "save_steps": self.config.save_steps,
             "eval_steps": self.config.eval_steps,
             "save_total_limit": 3,
-
-            "special_tokens": {
-                "pad_token": "<|pad|>"
-            }
+            "special_tokens": {"pad_token": "<|pad|>"},
         }
 
         config_path = Path(self.config.output_dir) / "axolotl_config.yml"
         config_path.parent.mkdir(parents=True, exist_ok=True)
 
         import yaml
+
         with open(config_path, "w") as f:
             yaml.dump(config, f, default_flow_style=False)
 
@@ -472,7 +453,7 @@ def main():
         num_epochs=3,
         batch_size=4,
         use_lora=True,
-        use_4bit=True
+        use_4bit=True,
     )
 
     # Initialize trainer
@@ -486,11 +467,15 @@ def main():
         print(f"  {dep}: {status}")
 
     # Generate Axolotl config (for reference)
-    axolotl_config = trainer.generate_axolotl_config("data/fine_tuning/solidity_security_alpaca.json")
+    axolotl_config = trainer.generate_axolotl_config(
+        "data/fine_tuning/solidity_security_alpaca.json"
+    )
     print(f"\nAxolotl config: {axolotl_config}")
 
     print("\nTo train the model, run:")
-    print("  python -m src.ml.fine_tuning.fine_tuning_trainer --train data/fine_tuning/solidity_security_chatml.jsonl")
+    print(
+        "  python -m src.ml.fine_tuning.fine_tuning_trainer --train data/fine_tuning/solidity_security_chatml.jsonl"
+    )
 
 
 if __name__ == "__main__":

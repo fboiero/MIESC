@@ -26,9 +26,9 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Callable, Awaitable
 from enum import Enum
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 from src.agents.base_agent import BaseAgent
 
@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 class AuditStep(Enum):
     """Audit workflow steps."""
+
     UNDERSTAND_CONTRACT = "understand_contract"
     IDENTIFY_ENTRY_POINTS = "identify_entry_points"
     TRACE_VALUE_FLOWS = "trace_value_flows"
@@ -49,6 +50,7 @@ class AuditStep(Enum):
 
 class ContractType(Enum):
     """Types of smart contracts."""
+
     UNKNOWN = "unknown"
     ERC20 = "erc20"
     ERC721 = "erc721"
@@ -66,6 +68,7 @@ class ContractType(Enum):
 @dataclass
 class FunctionInfo:
     """Information about a contract function."""
+
     name: str
     visibility: str  # public, external, internal, private
     modifiers: List[str]
@@ -82,6 +85,7 @@ class FunctionInfo:
 @dataclass
 class ValueFlow:
     """Representation of a value flow in the contract."""
+
     source: str  # Function or address
     destination: str
     asset_type: str  # ETH, ERC20, etc.
@@ -92,6 +96,7 @@ class ValueFlow:
 @dataclass
 class AuditFinding:
     """A finding from the audit."""
+
     id: str
     step: AuditStep
     type: str
@@ -110,6 +115,7 @@ class AuditFinding:
 @dataclass
 class AuditContext:
     """Context accumulated during audit."""
+
     contract_path: str
     contract_code: str
     contract_name: Optional[str] = None
@@ -133,6 +139,7 @@ class AuditContext:
 @dataclass
 class AuditReport:
     """Final audit report."""
+
     contract_path: str
     contract_name: str
     contract_type: str
@@ -181,7 +188,6 @@ Contract code:
 {code}
 ```
 """,
-
     AuditStep.IDENTIFY_ENTRY_POINTS: """
 Identify all entry points in this smart contract:
 
@@ -215,7 +221,6 @@ Contract code:
 {code}
 ```
 """,
-
     AuditStep.TRACE_VALUE_FLOWS: """
 Trace all value flows (ETH and tokens) in this contract:
 
@@ -250,7 +255,6 @@ Contract code:
 {code}
 ```
 """,
-
     AuditStep.CHECK_ACCESS_CONTROL: """
 Analyze access control mechanisms in this contract:
 
@@ -281,7 +285,6 @@ Contract code:
 {code}
 ```
 """,
-
     AuditStep.ANALYZE_STATE_CHANGES: """
 Analyze state changes in critical functions:
 
@@ -315,7 +318,6 @@ Contract code:
 {code}
 ```
 """,
-
     AuditStep.DETECT_VULNERABILITIES: """
 Detect security vulnerabilities in this contract:
 
@@ -362,7 +364,6 @@ Contract code:
 {code}
 ```
 """,
-
     AuditStep.VALIDATE_FINDINGS: """
 Validate the following security findings for false positives:
 
@@ -396,7 +397,6 @@ Contract code for reference:
 {code}
 ```
 """,
-
     AuditStep.GENERATE_RECOMMENDATIONS: """
 Generate remediation recommendations for these validated findings:
 
@@ -555,7 +555,7 @@ class AutonomousAuditorAgent(BaseAgent):
 
         if self.verbose:
             print(f"\n{'='*60}")
-            print(f"MIESC Autonomous Auditor - Starting Audit")
+            print("MIESC Autonomous Auditor - Starting Audit")
             print(f"Contract: {contract_path}")
             print(f"{'='*60}\n")
 
@@ -602,7 +602,7 @@ class AutonomousAuditorAgent(BaseAgent):
 
         if self.verbose:
             print(f"\n{'='*60}")
-            print(f"Audit Complete!")
+            print("Audit Complete!")
             print(f"Findings: {sum(report.findings_by_severity.values())}")
             print(f"Risk Score: {report.risk_score:.1f}/100")
             print(f"Time: {report.execution_time_ms/1000:.1f}s")
@@ -633,7 +633,7 @@ class AutonomousAuditorAgent(BaseAgent):
             metadata={
                 "audit_started": datetime.utcnow().isoformat(),
                 "file_size": len(code),
-                "line_count": code.count('\n') + 1,
+                "line_count": code.count("\n") + 1,
             },
         )
 
@@ -682,8 +682,8 @@ class AutonomousAuditorAgent(BaseAgent):
         """Parse JSON from LLM response."""
         try:
             # Find JSON in response
-            json_start = content.find('{')
-            json_end = content.rfind('}') + 1
+            json_start = content.find("{")
+            json_end = content.rfind("}") + 1
 
             if json_start >= 0 and json_end > json_start:
                 return json.loads(content[json_start:json_end])
@@ -746,13 +746,15 @@ class AutonomousAuditorAgent(BaseAgent):
         result = await self._query_llm(prompt)
 
         for vf in result.get("value_flows", []):
-            context.value_flows.append(ValueFlow(
-                source=vf.get("source", "unknown"),
-                destination=vf.get("destination", "unknown"),
-                asset_type=vf.get("asset_type", "unknown"),
-                conditions=[vf.get("protection", "none")],
-                risk_level=vf.get("risk_level", "medium"),
-            ))
+            context.value_flows.append(
+                ValueFlow(
+                    source=vf.get("source", "unknown"),
+                    destination=vf.get("destination", "unknown"),
+                    asset_type=vf.get("asset_type", "unknown"),
+                    conditions=[vf.get("protection", "none")],
+                    risk_level=vf.get("risk_level", "medium"),
+                )
+            )
 
         context.metadata["total_value_risk"] = result.get("total_value_risk", "unknown")
 
@@ -766,21 +768,25 @@ class AutonomousAuditorAgent(BaseAgent):
         context.access_control_patterns = result.get("patterns_used", [])
         context.metadata["protected_functions"] = result.get("protected_functions", [])
         context.metadata["unprotected_critical"] = result.get("unprotected_critical_functions", [])
-        context.metadata["privilege_escalation_risks"] = result.get("privilege_escalation_risks", [])
+        context.metadata["privilege_escalation_risks"] = result.get(
+            "privilege_escalation_risks", []
+        )
         context.metadata["access_control_assessment"] = result.get("overall_assessment", "unknown")
 
         # Create findings for unprotected functions
         for func in result.get("unprotected_critical_functions", []):
-            context.findings.append(AuditFinding(
-                id=f"access-{len(context.findings)}",
-                step=AuditStep.CHECK_ACCESS_CONTROL,
-                type="access-control",
-                severity="high",
-                title=f"Missing access control on {func}",
-                description=f"Function {func} appears to be a critical function without proper access control.",
-                location={"function": func},
-                confidence=0.7,
-            ))
+            context.findings.append(
+                AuditFinding(
+                    id=f"access-{len(context.findings)}",
+                    step=AuditStep.CHECK_ACCESS_CONTROL,
+                    type="access-control",
+                    severity="high",
+                    title=f"Missing access control on {func}",
+                    description=f"Function {func} appears to be a critical function without proper access control.",
+                    location={"function": func},
+                    confidence=0.7,
+                )
+            )
 
         return context
 
@@ -794,29 +800,33 @@ class AutonomousAuditorAgent(BaseAgent):
 
         # Create findings for CEI violations
         for violation in result.get("cei_violations", []):
-            context.findings.append(AuditFinding(
-                id=f"cei-{len(context.findings)}",
-                step=AuditStep.ANALYZE_STATE_CHANGES,
-                type="reentrancy",
-                severity="high",
-                title="Checks-Effects-Interactions violation",
-                description=violation,
-                location={},
-                confidence=0.8,
-            ))
+            context.findings.append(
+                AuditFinding(
+                    id=f"cei-{len(context.findings)}",
+                    step=AuditStep.ANALYZE_STATE_CHANGES,
+                    type="reentrancy",
+                    severity="high",
+                    title="Checks-Effects-Interactions violation",
+                    description=violation,
+                    location={},
+                    confidence=0.8,
+                )
+            )
 
         # Create findings for race conditions
         for race in result.get("race_conditions", []):
-            context.findings.append(AuditFinding(
-                id=f"race-{len(context.findings)}",
-                step=AuditStep.ANALYZE_STATE_CHANGES,
-                type="race-condition",
-                severity="medium",
-                title="Potential race condition",
-                description=race,
-                location={},
-                confidence=0.6,
-            ))
+            context.findings.append(
+                AuditFinding(
+                    id=f"race-{len(context.findings)}",
+                    step=AuditStep.ANALYZE_STATE_CHANGES,
+                    type="race-condition",
+                    severity="medium",
+                    title="Potential race condition",
+                    description=race,
+                    location={},
+                    confidence=0.6,
+                )
+            )
 
         return context
 
@@ -826,18 +836,20 @@ class AutonomousAuditorAgent(BaseAgent):
         result = await self._query_llm(prompt)
 
         for vuln in result.get("vulnerabilities", []):
-            context.findings.append(AuditFinding(
-                id=f"vuln-{len(context.findings)}",
-                step=AuditStep.DETECT_VULNERABILITIES,
-                type=vuln.get("type", "unknown"),
-                severity=vuln.get("severity", "medium"),
-                title=vuln.get("title", "Unknown vulnerability"),
-                description=vuln.get("description", ""),
-                location=vuln.get("location", {}),
-                attack_vector=vuln.get("attack_vector"),
-                impact=vuln.get("impact"),
-                confidence=vuln.get("confidence", 0.7),
-            ))
+            context.findings.append(
+                AuditFinding(
+                    id=f"vuln-{len(context.findings)}",
+                    step=AuditStep.DETECT_VULNERABILITIES,
+                    type=vuln.get("type", "unknown"),
+                    severity=vuln.get("severity", "medium"),
+                    title=vuln.get("title", "Unknown vulnerability"),
+                    description=vuln.get("description", ""),
+                    location=vuln.get("location", {}),
+                    attack_vector=vuln.get("attack_vector"),
+                    impact=vuln.get("impact"),
+                    confidence=vuln.get("confidence", 0.7),
+                )
+            )
 
         return context
 
@@ -846,16 +858,19 @@ class AutonomousAuditorAgent(BaseAgent):
         if not context.findings:
             return context
 
-        findings_json = json.dumps([
-            {
-                "id": f.id,
-                "type": f.type,
-                "severity": f.severity,
-                "title": f.title,
-                "description": f.description,
-            }
-            for f in context.findings
-        ], indent=2)
+        findings_json = json.dumps(
+            [
+                {
+                    "id": f.id,
+                    "type": f.type,
+                    "severity": f.severity,
+                    "title": f.title,
+                    "description": f.description,
+                }
+                for f in context.findings
+            ],
+            indent=2,
+        )
 
         prompt = COT_PROMPTS[AuditStep.VALIDATE_FINDINGS].format(
             code=context.contract_code,
@@ -867,10 +882,7 @@ class AutonomousAuditorAgent(BaseAgent):
         result = await self._query_llm(prompt)
 
         # Update findings based on validation
-        validation_map = {
-            v["id"]: v
-            for v in result.get("validated_findings", [])
-        }
+        validation_map = {v["id"]: v for v in result.get("validated_findings", [])}
 
         for finding in context.findings:
             validation = validation_map.get(finding.id, {})
@@ -890,15 +902,18 @@ class AutonomousAuditorAgent(BaseAgent):
         if not context.validated_findings:
             return context
 
-        findings_json = json.dumps([
-            {
-                "id": f.id,
-                "type": f.type,
-                "severity": f.severity,
-                "title": f.title,
-            }
-            for f in context.validated_findings
-        ], indent=2)
+        findings_json = json.dumps(
+            [
+                {
+                    "id": f.id,
+                    "type": f.type,
+                    "severity": f.severity,
+                    "title": f.title,
+                }
+                for f in context.validated_findings
+            ],
+            indent=2,
+        )
 
         prompt = COT_PROMPTS[AuditStep.GENERATE_RECOMMENDATIONS].format(
             findings=findings_json,
@@ -907,10 +922,7 @@ class AutonomousAuditorAgent(BaseAgent):
         result = await self._query_llm(prompt)
 
         # Update findings with remediations
-        remediation_map = {
-            r["finding_id"]: r
-            for r in result.get("finding_remediations", [])
-        }
+        remediation_map = {r["finding_id"]: r for r in result.get("finding_remediations", [])}
 
         for finding in context.validated_findings:
             remediation = remediation_map.get(finding.id, {})
@@ -928,18 +940,21 @@ class AutonomousAuditorAgent(BaseAgent):
     def _extract_contract_name(self, code: str) -> Optional[str]:
         """Extract main contract name from code."""
         import re
-        match = re.search(r'contract\s+(\w+)', code)
+
+        match = re.search(r"contract\s+(\w+)", code)
         return match.group(1) if match else None
 
     def _extract_solidity_version(self, code: str) -> Optional[str]:
         """Extract Solidity version from pragma."""
         import re
-        match = re.search(r'pragma\s+solidity\s*[\^~>=<]*\s*([\d.]+)', code)
+
+        match = re.search(r"pragma\s+solidity\s*[\^~>=<]*\s*([\d.]+)", code)
         return match.group(1) if match else None
 
     def _extract_imports(self, code: str) -> List[str]:
         """Extract import statements."""
         import re
+
         matches = re.findall(r'import\s+["\']([^"\']+)["\']', code)
         return matches
 
@@ -954,11 +969,11 @@ class AutonomousAuditorAgent(BaseAgent):
 
         # Calculate risk score
         risk_score = (
-            severity_counts["critical"] * 25 +
-            severity_counts["high"] * 15 +
-            severity_counts["medium"] * 8 +
-            severity_counts["low"] * 3 +
-            severity_counts["info"] * 1
+            severity_counts["critical"] * 25
+            + severity_counts["high"] * 15
+            + severity_counts["medium"] * 8
+            + severity_counts["low"] * 3
+            + severity_counts["info"] * 1
         )
         risk_score = min(100, risk_score)
 
@@ -982,7 +997,9 @@ class AutonomousAuditorAgent(BaseAgent):
         if not self.checkpoint_dir:
             return
 
-        checkpoint_file = self.checkpoint_dir / f"checkpoint_{context.contract_name or 'unknown'}.json"
+        checkpoint_file = (
+            self.checkpoint_dir / f"checkpoint_{context.contract_name or 'unknown'}.json"
+        )
 
         checkpoint_data = {
             "contract_path": context.contract_path,

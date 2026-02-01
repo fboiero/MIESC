@@ -3,8 +3,6 @@
 import tempfile
 from pathlib import Path
 
-import pytest
-
 
 class TestPluginConfig:
     """Tests for PluginConfig dataclass."""
@@ -22,9 +20,7 @@ class TestPluginConfig:
         """Test converting config to dictionary."""
         from miesc.plugins import PluginConfig
 
-        config = PluginConfig(
-            name="test", enabled=False, version="2.0", package="miesc-test"
-        )
+        config = PluginConfig(name="test", enabled=False, version="2.0", package="miesc-test")
         data = config.to_dict()
         assert data["enabled"] is False
         assert data["version"] == "2.0"
@@ -220,7 +216,7 @@ class TestPluginScaffold:
 
             content = (path / "pyproject.toml").read_text()
             assert 'name = "miesc-flash_loan"' in content
-            assert 'miesc.detectors' in content
+            assert "miesc.detectors" in content
             assert "flash_loan.detectors:FlashLoanDetector" in content
 
     def test_scaffold_detector_content(self):
@@ -244,7 +240,7 @@ class TestPluginIntegration:
 
     def test_full_workflow(self):
         """Test complete plugin workflow."""
-        from miesc.plugins import PluginManager, PluginConfigManager
+        from miesc.plugins import PluginConfigManager, PluginManager
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config_manager = PluginConfigManager(config_dir=Path(tmpdir))
@@ -260,7 +256,7 @@ class TestPluginIntegration:
 
             # List installed (should not include new plugin yet - not installed)
             plugins = manager.list_installed()
-            initial_count = len(plugins)
+            len(plugins)
 
             # Enable/disable through config (even without pip install)
             config_manager.enable_plugin("miesc-integration-test")

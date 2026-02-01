@@ -7,22 +7,22 @@ Author: Fernando Boiero
 Institution: UNDEF - IUA Cordoba
 """
 
-import streamlit as st
-import sys
 import json
+import sys
 import tempfile
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
+import streamlit as st
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Licensing system
+from src.licensing import LicenseManager, QuotaChecker
 from src.miesc_core import MIESCCore
 from src.miesc_policy_mapper import PolicyMapper
 from src.miesc_risk_engine import RiskEngine
-
-# Licensing system
-from src.licensing import LicenseManager, QuotaChecker, License
 
 # =============================================================================
 # INTERNATIONALIZATION (i18n) - English default, Spanish available
@@ -33,7 +33,6 @@ TRANSLATIONS = {
         # Header
         "main_title": "MIESC v4.0.0",
         "subtitle": "Multi-layer Intelligent Evaluation for Smart Contracts",
-
         # Sidebar
         "configuration": "Configuration",
         "security_tools": "Security Tools",
@@ -47,14 +46,12 @@ TRANSLATIONS = {
         "defense_layers": "Defense Layers",
         "precision": "Precision",
         "language": "Language",
-
         # Tabs
         "tab_upload": "Upload & Analyze",
         "tab_results": "Results",
         "tab_report": "Report",
         "tab_status": "System Status",
         "tab_thesis": "Thesis",
-
         # Upload tab
         "upload_contract": "Upload Smart Contract",
         "choose_file": "Choose a Solidity file",
@@ -69,7 +66,6 @@ TRANSLATIONS = {
         "analyzing": "Analyzing contract...",
         "analysis_complete": "Analysis complete! Go to Results tab.",
         "analysis_error": "Error during analysis",
-
         # Results tab
         "summary": "Summary",
         "total_findings": "Total Findings",
@@ -90,14 +86,12 @@ TRANSLATIONS = {
         "risk_assessment": "Risk Assessment",
         "risk_level": "Risk Level",
         "upload_first": "Upload and analyze a contract first to see results here.",
-
         # Report tab
         "export_report": "Export Report",
         "download_json": "Download JSON Report",
         "download_md": "Download Markdown Report",
         "report_preview": "Report Preview",
         "generate_report_first": "Upload and analyze a contract first to generate a report.",
-
         # System status tab
         "system_status": "System Status",
         "security_tools_status": "Security Tools",
@@ -110,7 +104,6 @@ TRANSLATIONS = {
         "adapters": "Adapters",
         "layers": "Layers",
         "recall": "Recall",
-
         # Thesis tab
         "thesis_title": "Master's Thesis",
         "thesis_subtitle": "MIESC: Multi-layer Intelligent Evaluation for Smart Contracts",
@@ -127,10 +120,8 @@ TRANSLATIONS = {
         "chapter_6": "6. AI and Sovereign LLM Justification",
         "chapter_7": "7. MCP Justification",
         "chapter_8": "8. Future Work",
-
         # Footer
         "footer": "MIESC v4.0.0 | Fernando Boiero | UNDEF - IUA Cordoba",
-
         # License activation
         "license_activation": "License Activation",
         "enter_license_key": "Enter your license key to access MIESC",
@@ -155,7 +146,6 @@ TRANSLATIONS = {
         # Header
         "main_title": "MIESC v4.0.0",
         "subtitle": "Evaluacion Inteligente Multi-capa para Contratos Inteligentes",
-
         # Sidebar
         "configuration": "Configuracion",
         "security_tools": "Herramientas de Seguridad",
@@ -169,14 +159,12 @@ TRANSLATIONS = {
         "defense_layers": "Capas de Defensa",
         "precision": "Precision",
         "language": "Idioma",
-
         # Tabs
         "tab_upload": "Subir y Analizar",
         "tab_results": "Resultados",
         "tab_report": "Informe",
         "tab_status": "Estado del Sistema",
         "tab_thesis": "Tesis",
-
         # Upload tab
         "upload_contract": "Subir Contrato Inteligente",
         "choose_file": "Elegir archivo Solidity",
@@ -191,7 +179,6 @@ TRANSLATIONS = {
         "analyzing": "Analizando contrato...",
         "analysis_complete": "Analisis completado! Ve a la pestana Resultados.",
         "analysis_error": "Error durante el analisis",
-
         # Results tab
         "summary": "Resumen",
         "total_findings": "Total de Hallazgos",
@@ -212,14 +199,12 @@ TRANSLATIONS = {
         "risk_assessment": "Evaluacion de Riesgo",
         "risk_level": "Nivel de Riesgo",
         "upload_first": "Sube y analiza un contrato primero para ver resultados aqui.",
-
         # Report tab
         "export_report": "Exportar Informe",
         "download_json": "Descargar Informe JSON",
         "download_md": "Descargar Informe Markdown",
         "report_preview": "Vista Previa del Informe",
         "generate_report_first": "Sube y analiza un contrato primero para generar un informe.",
-
         # System status tab
         "system_status": "Estado del Sistema",
         "security_tools_status": "Herramientas de Seguridad",
@@ -232,7 +217,6 @@ TRANSLATIONS = {
         "adapters": "Adaptadores",
         "layers": "Capas",
         "recall": "Recall",
-
         # Thesis tab
         "thesis_title": "Tesis de Maestria",
         "thesis_subtitle": "MIESC: Evaluacion Inteligente Multi-capa para Contratos Inteligentes",
@@ -249,10 +233,8 @@ TRANSLATIONS = {
         "chapter_6": "6. Justificacion IA y LLM Soberano",
         "chapter_7": "7. Justificacion MCP",
         "chapter_8": "8. Trabajos Futuros",
-
         # Footer
         "footer": "MIESC v4.0.0 | Fernando Boiero | UNDEF - IUA Cordoba",
-
         # License activation
         "license_activation": "Activacion de Licencia",
         "enter_license_key": "Ingresa tu clave de licencia para acceder a MIESC",
@@ -272,7 +254,7 @@ TRANSLATIONS = {
         "tool_not_allowed": "Herramienta no disponible en tu plan",
         "ai_not_allowed": "Funciones de IA no disponibles en tu plan",
         "logout_license": "Cerrar Sesion",
-    }
+    },
 }
 
 # Thesis chapter file mappings
@@ -296,21 +278,24 @@ THESIS_CHAPTERS = {
         "chapter_6": "docs/tesis/CAPITULO_JUSTIFICACION_IA_LLM_SOBERANO.md",
         "chapter_7": "docs/tesis/CAPITULO_JUSTIFICACION_MCP.md",
         "chapter_8": "docs/tesis/CAPITULO_TRABAJOS_FUTUROS.md",
-    }
+    },
 }
+
 
 def t(key: str) -> str:
     """Get translation for current language."""
-    lang = st.session_state.get('language', 'en')
-    return TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
+    lang = st.session_state.get("language", "en")
+    return TRANSLATIONS.get(lang, TRANSLATIONS["en"]).get(key, key)
+
 
 def get_base_path() -> Path:
     """Get the base path of the MIESC project."""
     return Path(__file__).parent.parent
 
+
 def load_chapter(chapter_key: str) -> str:
     """Load a thesis chapter file."""
-    lang = st.session_state.get('language', 'en')
+    lang = st.session_state.get("language", "en")
     chapter_path = THESIS_CHAPTERS.get(lang, {}).get(chapter_key)
 
     if not chapter_path:
@@ -319,13 +304,15 @@ def load_chapter(chapter_key: str) -> str:
     full_path = get_base_path() / chapter_path
 
     if full_path.exists():
-        return full_path.read_text(encoding='utf-8')
+        return full_path.read_text(encoding="utf-8")
     else:
         return t("chapter_not_found")
+
 
 # =============================================================================
 # LICENSE MANAGEMENT
 # =============================================================================
+
 
 # Initialize license managers (cached for performance)
 @st.cache_resource
@@ -333,10 +320,12 @@ def get_license_manager():
     """Get cached LicenseManager instance."""
     return LicenseManager()
 
+
 @st.cache_resource
 def get_quota_checker():
     """Get cached QuotaChecker instance."""
     return QuotaChecker()
+
 
 def show_activation_screen():
     """Display license activation screen."""
@@ -345,17 +334,15 @@ def show_activation_screen():
 
     st.markdown("---")
     st.markdown(f"### {t('license_activation')}")
-    st.markdown(t('enter_license_key'))
+    st.markdown(t("enter_license_key"))
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         license_key = st.text_input(
-            "License Key",
-            placeholder=t('license_key_placeholder'),
-            label_visibility="collapsed"
+            "License Key", placeholder=t("license_key_placeholder"), label_visibility="collapsed"
         )
 
-        if st.button(t('activate_button'), type="primary", use_container_width=True):
+        if st.button(t("activate_button"), type="primary", use_container_width=True):
             if license_key:
                 manager = get_license_manager()
                 license_obj = manager.validate(license_key)
@@ -363,16 +350,17 @@ def show_activation_screen():
                 if license_obj:
                     st.session_state.license = license_obj
                     st.session_state.license_key = license_key
-                    st.success(t('license_valid'))
+                    st.success(t("license_valid"))
                     st.rerun()
                 else:
-                    st.error(t('invalid_license'))
+                    st.error(t("invalid_license"))
             else:
-                st.warning(t('enter_license_key'))
+                st.warning(t("enter_license_key"))
+
 
 def show_license_info_sidebar():
     """Display license information in sidebar."""
-    license_obj = st.session_state.get('license')
+    license_obj = st.session_state.get("license")
     if not license_obj:
         return
 
@@ -395,67 +383,70 @@ def show_license_info_sidebar():
         st.markdown(f"**{t('usage_this_month')}:** {remaining} {t('audits_remaining')}")
 
     # Logout button
-    if st.button(t('logout_license'), use_container_width=True):
+    if st.button(t("logout_license"), use_container_width=True):
         del st.session_state.license
         del st.session_state.license_key
         st.rerun()
 
+
 def get_allowed_tools_for_license(all_tools: list) -> list:
     """Filter tools based on license plan."""
-    license_obj = st.session_state.get('license')
+    license_obj = st.session_state.get("license")
     if not license_obj:
         return []
 
     quota = get_quota_checker()
     return quota.filter_tools(license_obj, all_tools)
 
+
 def can_use_ai_features() -> bool:
     """Check if AI features are allowed for current license."""
-    license_obj = st.session_state.get('license')
+    license_obj = st.session_state.get("license")
     if not license_obj:
         return False
 
     quota = get_quota_checker()
     return quota.can_use_ai(license_obj)
 
+
 def can_run_analysis() -> bool:
     """Check if user can run another analysis."""
-    license_obj = st.session_state.get('license')
+    license_obj = st.session_state.get("license")
     if not license_obj:
         return False
 
     quota = get_quota_checker()
     return quota.can_analyze(license_obj)
 
+
 def record_analysis():
     """Record an analysis execution."""
-    license_obj = st.session_state.get('license')
+    license_obj = st.session_state.get("license")
     if license_obj:
         quota = get_quota_checker()
         quota.record_audit(license_obj)
 
+
 # Page configuration
 st.set_page_config(
-    page_title="MIESC v4.0.0",
-    page_icon="",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="MIESC v4.0.0", page_icon="", layout="wide", initial_sidebar_state="expanded"
 )
 
 # Initialize session state
-if 'language' not in st.session_state:
-    st.session_state.language = 'en'  # English as default
-if 'results' not in st.session_state:
+if "language" not in st.session_state:
+    st.session_state.language = "en"  # English as default
+if "results" not in st.session_state:
     st.session_state.results = None
-if 'contract_code' not in st.session_state:
+if "contract_code" not in st.session_state:
     st.session_state.contract_code = None
-if 'license' not in st.session_state:
+if "license" not in st.session_state:
     st.session_state.license = None
-if 'license_key' not in st.session_state:
+if "license_key" not in st.session_state:
     st.session_state.license_key = None
 
 # Custom CSS
-st.markdown("""
+st.markdown(
+    """
 <style>
     .main-header {
         font-size: 2.5rem;
@@ -498,7 +489,9 @@ st.markdown("""
         margin-bottom: 20px;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # Check license activation
 if not st.session_state.license:
@@ -515,14 +508,20 @@ with st.sidebar:
 
     lang_col1, lang_col2 = st.columns(2)
     with lang_col1:
-        if st.button("English", use_container_width=True,
-                     type="primary" if st.session_state.language == 'en' else "secondary"):
-            st.session_state.language = 'en'
+        if st.button(
+            "English",
+            use_container_width=True,
+            type="primary" if st.session_state.language == "en" else "secondary",
+        ):
+            st.session_state.language = "en"
             st.rerun()
     with lang_col2:
-        if st.button("Espanol", use_container_width=True,
-                     type="primary" if st.session_state.language == 'es' else "secondary"):
-            st.session_state.language = 'es'
+        if st.button(
+            "Espanol",
+            use_container_width=True,
+            type="primary" if st.session_state.language == "es" else "secondary",
+        ):
+            st.session_state.language = "es"
             st.rerun()
 
     st.markdown("---")
@@ -540,7 +539,7 @@ with st.sidebar:
     selected_tools = st.multiselect(
         t("security_tools"),
         available_tools,
-        default=[available_tools[0]] if available_tools else []
+        default=[available_tools[0]] if available_tools else [],
     )
 
     # AI options - disabled if not allowed by plan
@@ -559,7 +558,8 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(f"### {t('about')}")
-    st.markdown(f"""
+    st.markdown(
+        f"""
     **{t('author')}:** Fernando Boiero
     **{t('institution')}:** UNDEF - IUA Cordoba
     **{t('license')}:** GPL-3.0
@@ -567,20 +567,23 @@ with st.sidebar:
     **25** {t('security_adapters')}
     **7** {t('defense_layers')}
     **94.5%** {t('precision')}
-    """)
+    """
+    )
 
 # Header
 st.markdown(f'<p class="main-header">{t("main_title")}</p>', unsafe_allow_html=True)
 st.markdown(f'<p class="sub-header">{t("subtitle")}</p>', unsafe_allow_html=True)
 
 # Main content with tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    f"{t('tab_upload')}",
-    f"{t('tab_results')}",
-    f"{t('tab_report')}",
-    f"{t('tab_status')}",
-    f"{t('tab_thesis')}"
-])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    [
+        f"{t('tab_upload')}",
+        f"{t('tab_results')}",
+        f"{t('tab_report')}",
+        f"{t('tab_status')}",
+        f"{t('tab_thesis')}",
+    ]
+)
 
 with tab1:
     st.markdown(f"### {t('upload_contract')}")
@@ -588,14 +591,10 @@ with tab1:
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        uploaded_file = st.file_uploader(
-            t("choose_file"),
-            type=['sol'],
-            help=t("upload_help")
-        )
+        uploaded_file = st.file_uploader(t("choose_file"), type=["sol"], help=t("upload_help"))
 
         if uploaded_file:
-            st.session_state.contract_code = uploaded_file.read().decode('utf-8')
+            st.session_state.contract_code = uploaded_file.read().decode("utf-8")
             st.success(f"{t('loaded')}: {uploaded_file.name}")
 
     with col2:
@@ -603,7 +602,7 @@ with tab1:
         code_input = st.text_area(
             t("solidity_code"),
             height=200,
-            placeholder="// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract MyContract {\n    // ...\n}"
+            placeholder="// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract MyContract {\n    // ...\n}",
         )
         if code_input:
             st.session_state.contract_code = code_input
@@ -613,7 +612,7 @@ with tab1:
     st.markdown(f"### {t('demo_contracts')}")
 
     demo_contracts = {
-        "Reentrancy Vulnerable": '''// SPDX-License-Identifier: MIT
+        "Reentrancy Vulnerable": """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract VulnerableBank {
@@ -633,8 +632,8 @@ contract VulnerableBank {
 
         balances[msg.sender] = 0;  // State updated after external call!
     }
-}''',
-        "Integer Overflow": '''// SPDX-License-Identifier: MIT
+}""",
+        "Integer Overflow": """// SPDX-License-Identifier: MIT
 pragma solidity ^0.7.0;  // Old version without SafeMath
 
 contract TokenSale {
@@ -647,8 +646,8 @@ contract TokenSale {
         require(msg.value >= cost, "Not enough ETH");
         balances[msg.sender] += amount;
     }
-}''',
-        "Access Control Missing": '''// SPDX-License-Identifier: MIT
+}""",
+        "Access Control Missing": """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract Vault {
@@ -667,7 +666,7 @@ contract Vault {
         require(msg.sender == owner, "Not owner");
         payable(owner).transfer(address(this).balance);
     }
-}'''
+}""",
     }
 
     demo_cols = st.columns(len(demo_contracts))
@@ -681,19 +680,28 @@ contract Vault {
     st.markdown("---")
     if st.session_state.contract_code:
         st.markdown(f"### {t('contract_preview')}")
-        st.code(st.session_state.contract_code[:1000] + ("..." if len(st.session_state.contract_code) > 1000 else ""), language="solidity")
+        st.code(
+            st.session_state.contract_code[:1000]
+            + ("..." if len(st.session_state.contract_code) > 1000 else ""),
+            language="solidity",
+        )
 
         # Check quota before showing button
         can_analyze = can_run_analysis()
 
         if not can_analyze:
-            st.error(t('quota_exceeded'))
+            st.error(t("quota_exceeded"))
 
-        if st.button(f"{t('run_analysis')}", type="primary", use_container_width=True, disabled=not can_analyze):
+        if st.button(
+            f"{t('run_analysis')}",
+            type="primary",
+            use_container_width=True,
+            disabled=not can_analyze,
+        ):
             with st.spinner(t("analyzing")):
                 try:
                     # Save to temp file
-                    with tempfile.NamedTemporaryFile(mode='w', suffix='.sol', delete=False) as f:
+                    with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
                         f.write(st.session_state.contract_code)
                         temp_path = f.name
 
@@ -705,19 +713,19 @@ contract Vault {
                     record_analysis()
 
                     # Add metadata
-                    results['metadata'] = {
-                        'timestamp': datetime.now().isoformat(),
-                        'tools_used': selected_tools,
-                        'ai_enabled': enable_ai
+                    results["metadata"] = {
+                        "timestamp": datetime.now().isoformat(),
+                        "tools_used": selected_tools,
+                        "ai_enabled": enable_ai,
                     }
 
                     # Policy mapping
                     mapper = PolicyMapper()
-                    results['compliance'] = mapper.map_to_policies(results.get('findings', []))
+                    results["compliance"] = mapper.map_to_policies(results.get("findings", []))
 
                     # Risk assessment
                     risk_engine = RiskEngine()
-                    results['risk'] = risk_engine.assess(results.get('findings', []))
+                    results["risk"] = risk_engine.assess(results.get("findings", []))
 
                     st.session_state.results = results
                     st.success(t("analysis_complete"))
@@ -731,47 +739,50 @@ contract Vault {
 with tab2:
     if st.session_state.results:
         results = st.session_state.results
-        findings = results.get('findings', [])
+        findings = results.get("findings", [])
 
         # Summary metrics
         st.markdown(f"### {t('summary')}")
         col1, col2, col3, col4, col5 = st.columns(5)
 
-        severity_counts = results.get('summary', {})
+        severity_counts = results.get("summary", {})
 
         with col1:
             st.metric(t("total_findings"), len(findings))
         with col2:
-            st.metric(t("critical"), severity_counts.get('Critical', 0), delta_color="inverse")
+            st.metric(t("critical"), severity_counts.get("Critical", 0), delta_color="inverse")
         with col3:
-            st.metric(t("high"), severity_counts.get('High', 0), delta_color="inverse")
+            st.metric(t("high"), severity_counts.get("High", 0), delta_color="inverse")
         with col4:
-            st.metric(t("medium"), severity_counts.get('Medium', 0))
+            st.metric(t("medium"), severity_counts.get("Medium", 0))
         with col5:
-            st.metric(t("low_info"), severity_counts.get('Low', 0) + severity_counts.get('Info', 0))
+            st.metric(t("low_info"), severity_counts.get("Low", 0) + severity_counts.get("Info", 0))
 
         # Findings table
         st.markdown("---")
         st.markdown(f"### {t('detailed_findings')}")
 
         if findings:
-            for i, finding in enumerate(findings):
-                severity = finding.get('severity', 'Info')
+            for _i, finding in enumerate(findings):
+                severity = finding.get("severity", "Info")
                 severity_color = {
-                    'Critical': '',
-                    'High': '',
-                    'Medium': '',
-                    'Low': '',
-                    'Info': ''
-                }.get(severity, '')
+                    "Critical": "",
+                    "High": "",
+                    "Medium": "",
+                    "Low": "",
+                    "Info": "",
+                }.get(severity, "")
 
-                with st.expander(f"{severity_color} {finding.get('title', 'Finding')} [{severity}]", expanded=(severity in ['Critical', 'High'])):
+                with st.expander(
+                    f"{severity_color} {finding.get('title', 'Finding')} [{severity}]",
+                    expanded=(severity in ["Critical", "High"]),
+                ):
                     st.markdown(f"**{t('tool')}:** {finding.get('tool', 'Unknown')}")
                     st.markdown(f"**{t('severity')}:** {severity}")
                     st.markdown(f"**{t('description')}:** {finding.get('description', 'N/A')}")
-                    if finding.get('location'):
+                    if finding.get("location"):
                         st.markdown(f"**{t('location')}:** {finding.get('location')}")
-                    if finding.get('recommendation'):
+                    if finding.get("recommendation"):
                         st.info(f"**{t('recommendation')}:** {finding.get('recommendation')}")
         else:
             st.success(t("no_vulnerabilities"))
@@ -779,28 +790,32 @@ with tab2:
         # Compliance
         st.markdown("---")
         st.markdown(f"### {t('compliance_status')}")
-        compliance = results.get('compliance', {})
+        compliance = results.get("compliance", {})
 
         if compliance:
             comp_col1, comp_col2 = st.columns(2)
             with comp_col1:
-                score = compliance.get('score', 100)
+                score = compliance.get("score", 100)
                 st.metric(t("compliance_score"), f"{score}/100")
             with comp_col2:
-                policies = compliance.get('mapped_policies', [])
+                policies = compliance.get("mapped_policies", [])
                 st.metric(t("policies_checked"), len(policies))
 
         # Risk assessment
         st.markdown("---")
         st.markdown(f"### {t('risk_assessment')}")
-        risk = results.get('risk', {})
+        risk = results.get("risk", {})
 
         if risk:
-            risk_score = risk.get('total_score', 0)
+            risk_score = risk.get("total_score", 0)
             risk_level = "Low" if risk_score < 30 else "Medium" if risk_score < 70 else "High"
-            risk_color = "green" if risk_level == "Low" else "orange" if risk_level == "Medium" else "red"
+            risk_color = (
+                "green" if risk_level == "Low" else "orange" if risk_level == "Medium" else "red"
+            )
 
-            st.markdown(f"**{t('risk_level')}:** :{risk_color}[{risk_level}] (Score: {risk_score}/100)")
+            st.markdown(
+                f"**{t('risk_level')}:** :{risk_color}[{risk_level}] (Score: {risk_score}/100)"
+            )
 
     else:
         st.info(t("upload_first"))
@@ -818,12 +833,12 @@ with tab3:
                 label=t("download_json"),
                 data=json_report,
                 file_name=f"miesc_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                mime="application/json"
+                mime="application/json",
             )
 
         with col2:
             # Markdown export
-            findings = st.session_state.results.get('findings', [])
+            findings = st.session_state.results.get("findings", [])
             md_report = f"""# MIESC Security Audit Report
 
 **Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
@@ -852,7 +867,7 @@ with tab3:
                 label=t("download_md"),
                 data=md_report,
                 file_name=f"miesc_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
-                mime="text/markdown"
+                mime="text/markdown",
             )
 
         # Preview
@@ -878,25 +893,29 @@ with tab4:
 
         # Slither
         try:
-            result = subprocess.run(['slither', '--version'], capture_output=True, text=True, timeout=5)
-            tools_status['Slither'] = ('', result.stdout.strip() or result.stderr.strip())
-        except:
-            tools_status['Slither'] = ('', t('not_installed'))
+            result = subprocess.run(
+                ["slither", "--version"], capture_output=True, text=True, timeout=5
+            )
+            tools_status["Slither"] = ("", result.stdout.strip() or result.stderr.strip())
+        except Exception:
+            tools_status["Slither"] = ("", t("not_installed"))
 
         # Mythril
         try:
-            result = subprocess.run(['myth', 'version'], capture_output=True, text=True, timeout=5)
-            tools_status['Mythril'] = ('', result.stdout.strip())
-        except:
-            tools_status['Mythril'] = ('', t('not_installed'))
+            result = subprocess.run(["myth", "version"], capture_output=True, text=True, timeout=5)
+            tools_status["Mythril"] = ("", result.stdout.strip())
+        except Exception:
+            tools_status["Mythril"] = ("", t("not_installed"))
 
         # Solc
         try:
-            result = subprocess.run(['solc', '--version'], capture_output=True, text=True, timeout=5)
-            version = result.stdout.split('\n')[1] if result.stdout else 'Unknown'
-            tools_status['Solc'] = ('', version)
-        except:
-            tools_status['Solc'] = ('', t('not_installed'))
+            result = subprocess.run(
+                ["solc", "--version"], capture_output=True, text=True, timeout=5
+            )
+            version = result.stdout.split("\n")[1] if result.stdout else "Unknown"
+            tools_status["Solc"] = ("", version)
+        except Exception:
+            tools_status["Solc"] = ("", t("not_installed"))
 
         for tool, (status, version) in tools_status.items():
             st.markdown(f"{status} **{tool}:** {version}")
@@ -906,21 +925,23 @@ with tab4:
 
         # Ollama
         try:
-            result = subprocess.run(['ollama', 'list'], capture_output=True, text=True, timeout=5)
-            model_count = len(result.stdout.strip().split('\n')) - 1
+            result = subprocess.run(["ollama", "list"], capture_output=True, text=True, timeout=5)
+            model_count = len(result.stdout.strip().split("\n")) - 1
             st.markdown(f"**Ollama:** {model_count} {t('models_available')}")
-        except:
+        except Exception:
             st.markdown(f"**Ollama:** {t('not_running')}")
 
         st.markdown("---")
         st.markdown(f"#### {t('miesc_info')}")
-        st.markdown(f"""
+        st.markdown(
+            f"""
         - **{t('version')}:** 4.0.0
         - **{t('adapters')}:** 25
         - **{t('layers')}:** 7
         - **{t('precision')}:** 94.5%
         - **{t('recall')}:** 92.8%
-        """)
+        """
+        )
 
 # Thesis tab
 with tab5:
@@ -947,7 +968,7 @@ with tab5:
     selected_chapter = st.selectbox(
         t("select_chapter"),
         options=list(chapter_options.keys()),
-        format_func=lambda x: chapter_options[x]
+        format_func=lambda x: chapter_options[x],
     )
 
     st.markdown("---")
@@ -959,6 +980,5 @@ with tab5:
 # Footer
 st.markdown("---")
 st.markdown(
-    f'<p style="text-align: center; color: #666;">{t("footer")}</p>',
-    unsafe_allow_html=True
+    f'<p style="text-align: center; color: #666;">{t("footer")}</p>', unsafe_allow_html=True
 )

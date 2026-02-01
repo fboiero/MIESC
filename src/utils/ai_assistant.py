@@ -7,18 +7,19 @@ Processes findings from static analyzers and provides intelligent classification
 import argparse
 import json
 import os
-import sys
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     pass  # dotenv not installed, environment variables must be set manually
 
 try:
     import openai
+
     OPENAI_AVAILABLE = True
 except ImportError:
     openai = None  # type: ignore
@@ -75,28 +76,31 @@ Output as JSON:
             response = openai.ChatCompletion.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an expert smart contract security auditor."},
-                    {"role": "user", "content": prompt}
+                    {
+                        "role": "system",
+                        "content": "You are an expert smart contract security auditor.",
+                    },
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
-                max_tokens=500
+                max_tokens=500,
             )
 
             ai_response = response.choices[0].message.content
             # Extract JSON from response
             ai_data = json.loads(ai_response.strip().replace("```json", "").replace("```", ""))
 
-            finding['ai_classification'] = ai_data
+            finding["ai_classification"] = ai_data
             return finding
 
         except Exception as e:
             print(f"Warning: AI classification failed: {e}")
-            finding['ai_classification'] = {
+            finding["ai_classification"] = {
                 "classification": "UNKNOWN",
                 "risk_score": 0,
                 "justification": f"AI processing error: {str(e)}",
                 "poc_hint": "N/A",
-                "mitigation": "Manual review required"
+                "mitigation": "Manual review required",
             }
             return finding
 
@@ -107,8 +111,8 @@ Output as JSON:
 
         for finding in findings:
             key = (
-                finding.get('check'),
-                str(finding.get('elements', []))[:100]  # First 100 chars of location
+                finding.get("check"),
+                str(finding.get("elements", []))[:100],  # First 100 chars of location
             )
             if key not in seen:
                 seen.add(key)
@@ -118,11 +122,12 @@ Output as JSON:
 
     def prioritize_findings(self, findings: List[Dict]) -> List[Dict]:
         """Sort findings by AI risk score and severity."""
+
         def get_priority(f):
-            ai_class = f.get('ai_classification', {})
-            risk = ai_class.get('risk_score', 0)
-            severity_map = {'High': 3, 'Medium': 2, 'Low': 1, 'Informational': 0}
-            severity = severity_map.get(f.get('impact', 'Low'), 0)
+            ai_class = f.get("ai_classification", {})
+            risk = ai_class.get("risk_score", 0)
+            severity_map = {"High": 3, "Medium": 2, "Low": 1, "Informational": 0}
+            severity = severity_map.get(f.get("impact", "Low"), 0)
             return (risk, severity)
 
         return sorted(findings, key=get_priority, reverse=True)
@@ -130,11 +135,25 @@ Output as JSON:
     def generate_summary(self, findings: List[Dict]) -> str:
         """Generate markdown summary of audit findings."""
         total = len(findings)
-        critical = sum(1 for f in findings if f.get('ai_classification', {}).get('classification') == 'CRITICAL')
-        high = sum(1 for f in findings if f.get('ai_classification', {}).get('classification') == 'HIGH')
-        medium = sum(1 for f in findings if f.get('ai_classification', {}).get('classification') == 'MEDIUM')
-        low = sum(1 for f in findings if f.get('ai_classification', {}).get('classification') == 'LOW')
-        fp = sum(1 for f in findings if f.get('ai_classification', {}).get('classification') == 'FALSE_POSITIVE')
+        critical = sum(
+            1
+            for f in findings
+            if f.get("ai_classification", {}).get("classification") == "CRITICAL"
+        )
+        high = sum(
+            1 for f in findings if f.get("ai_classification", {}).get("classification") == "HIGH"
+        )
+        medium = sum(
+            1 for f in findings if f.get("ai_classification", {}).get("classification") == "MEDIUM"
+        )
+        low = sum(
+            1 for f in findings if f.get("ai_classification", {}).get("classification") == "LOW"
+        )
+        fp = sum(
+            1
+            for f in findings
+            if f.get("ai_classification", {}).get("classification") == "FALSE_POSITIVE"
+        )
 
         summary = f"""# Smart Contract Audit Report (AI-Enhanced)
 
@@ -154,7 +173,7 @@ Output as JSON:
         # Add top 5 issues
         top_issues = self.prioritize_findings(findings)[:5]
         for i, finding in enumerate(top_issues, 1):
-            ai_class = finding.get('ai_classification', {})
+            ai_class = finding.get("ai_classification", {})
             summary += f"""
 ### {i}. {finding.get('check', 'Unknown Issue')}
 
@@ -173,7 +192,9 @@ Output as JSON:
 
 def main():
     parser = argparse.ArgumentParser(description="AI Assistant for Smart Contract Audit Triage")
-    parser.add_argument("--findings", required=True, help="Path to findings JSON file (e.g., from Slither)")
+    parser.add_argument(
+        "--findings", required=True, help="Path to findings JSON file (e.g., from Slither)"
+    )
     parser.add_argument("--output", default="analysis/ai_report.md", help="Output report path")
     parser.add_argument("--model", default="gpt-4o-mini", help="OpenAI model to use")
 
@@ -181,10 +202,10 @@ def main():
 
     # Load findings
     print(f"Loading findings from {args.findings}...")
-    with open(args.findings, 'r') as f:
+    with open(args.findings, "r") as f:
         data = json.load(f)
 
-    findings = data.get('results', {}).get('detectors', [])
+    findings = data.get("results", {}).get("detectors", [])
     print(f"Found {len(findings)} findings")
 
     # Initialize AI assistant
@@ -214,25 +235,49 @@ def main():
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         f.write(summary)
 
     # Save detailed JSON
-    json_output = output_path.with_suffix('.json')
-    with open(json_output, 'w') as f:
-        json.dump({
-            'summary': {
-                'total': len(classified),
-                'critical': sum(1 for f in classified if f.get('ai_classification', {}).get('classification') == 'CRITICAL'),
-                'high': sum(1 for f in classified if f.get('ai_classification', {}).get('classification') == 'HIGH'),
-                'medium': sum(1 for f in classified if f.get('ai_classification', {}).get('classification') == 'MEDIUM'),
-                'low': sum(1 for f in classified if f.get('ai_classification', {}).get('classification') == 'LOW'),
-                'false_positives': sum(1 for f in classified if f.get('ai_classification', {}).get('classification') == 'FALSE_POSITIVE'),
+    json_output = output_path.with_suffix(".json")
+    with open(json_output, "w") as f:
+        json.dump(
+            {
+                "summary": {
+                    "total": len(classified),
+                    "critical": sum(
+                        1
+                        for f in classified
+                        if f.get("ai_classification", {}).get("classification") == "CRITICAL"
+                    ),
+                    "high": sum(
+                        1
+                        for f in classified
+                        if f.get("ai_classification", {}).get("classification") == "HIGH"
+                    ),
+                    "medium": sum(
+                        1
+                        for f in classified
+                        if f.get("ai_classification", {}).get("classification") == "MEDIUM"
+                    ),
+                    "low": sum(
+                        1
+                        for f in classified
+                        if f.get("ai_classification", {}).get("classification") == "LOW"
+                    ),
+                    "false_positives": sum(
+                        1
+                        for f in classified
+                        if f.get("ai_classification", {}).get("classification") == "FALSE_POSITIVE"
+                    ),
+                },
+                "findings": classified,
             },
-            'findings': classified
-        }, f, indent=2)
+            f,
+            indent=2,
+        )
 
-    print(f"\n✅ Report generated:")
+    print("\n✅ Report generated:")
     print(f"   - Markdown: {output_path}")
     print(f"   - JSON: {json_output}")
 

@@ -62,7 +62,7 @@ except ImportError:
 # Configuration
 # ============================================================================
 
-VERSION = "5.0.1"
+from miesc import __version__ as VERSION  # noqa: E402
 
 # Layer definitions (same as CLI)
 LAYERS = {

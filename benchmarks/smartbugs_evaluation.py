@@ -27,7 +27,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 # Import SmartBugs-specific detectors
-from detectors.smartbugs_detectors import SmartBugsDetectorEngine
+from detectors.smartbugs_detectors import SmartBugsDetectorEngine  # noqa: E402
 
 # Configuration
 DATASET_PATH = PROJECT_ROOT / "benchmarks" / "datasets" / "smartbugs-curated"
@@ -138,7 +138,7 @@ def get_solc_version_from_file(contract_path: Path) -> Optional[str]:
             elif version.startswith("0.8"):
                 return "0.8.20"
         return None
-    except:
+    except Exception:
         return None
 
 

@@ -8,9 +8,7 @@ Uso:
     # Abre presentation.html en el navegador
 """
 
-import os
 from pathlib import Path
-from datetime import datetime
 
 # Configuracion
 OUTPUT_FILE = "presentation.html"
@@ -430,27 +428,26 @@ SLIDES_CONTENT = """
 </section>
 """
 
+
 def generate_presentation():
     """Genera la presentacion HTML"""
-    html_content = HTML_TEMPLATE.format(
-        title=TITLE,
-        slides=SLIDES_CONTENT
-    )
+    html_content = HTML_TEMPLATE.format(title=TITLE, slides=SLIDES_CONTENT)
 
     output_path = Path(__file__).parent / OUTPUT_FILE
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
     print(f"Presentacion generada: {output_path}")
-    print(f"\nPara ver la presentacion:")
+    print("\nPara ver la presentacion:")
     print(f"  open {OUTPUT_FILE}")
-    print(f"\nControles:")
-    print(f"  - Flechas: Navegar slides")
-    print(f"  - ESC: Vista general")
-    print(f"  - F: Pantalla completa")
-    print(f"  - S: Vista presentador")
+    print("\nControles:")
+    print("  - Flechas: Navegar slides")
+    print("  - ESC: Vista general")
+    print("  - F: Pantalla completa")
+    print("  - S: Vista presentador")
 
     return output_path
+
 
 if __name__ == "__main__":
     generate_presentation()

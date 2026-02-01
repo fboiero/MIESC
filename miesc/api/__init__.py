@@ -17,7 +17,7 @@ Institution: UNDEF - IUA Cordoba
 License: AGPL-3.0
 """
 
-from miesc import __version__  # Use centralized version
+from miesc import __version__ as __version__  # noqa: F401 - re-export
 
 # Export main components - these are intentional re-exports for the public API
 try:

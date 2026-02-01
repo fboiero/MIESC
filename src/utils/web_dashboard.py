@@ -6,10 +6,9 @@ Integrates all 10 analysis tools with dynamic visualizations
 
 import json
 import sys
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Any, Optional
-import re
+from pathlib import Path
+from typing import Any, Dict, List
 
 
 class WebDashboardGenerator:
@@ -22,372 +21,379 @@ class WebDashboardGenerator:
     def _collect_all_metrics(self) -> Dict[str, Any]:
         """Collect metrics from all 10 tools."""
         return {
-            'timestamp': datetime.now().isoformat(),
-            'tools': {
-                'solhint': self._parse_solhint(),
-                'slither': self._parse_slither(),
-                'surya': self._parse_surya(),
-                'mythril': self._parse_mythril(),
-                'manticore': self._parse_manticore(),
-                'echidna': self._parse_echidna(),
-                'medusa': self._parse_medusa(),
-                'foundry_fuzz': self._parse_foundry_fuzz(),
-                'foundry_invariants': self._parse_foundry_invariants(),
-                'certora': self._parse_certora()
+            "timestamp": datetime.now().isoformat(),
+            "tools": {
+                "solhint": self._parse_solhint(),
+                "slither": self._parse_slither(),
+                "surya": self._parse_surya(),
+                "mythril": self._parse_mythril(),
+                "manticore": self._parse_manticore(),
+                "echidna": self._parse_echidna(),
+                "medusa": self._parse_medusa(),
+                "foundry_fuzz": self._parse_foundry_fuzz(),
+                "foundry_invariants": self._parse_foundry_invariants(),
+                "certora": self._parse_certora(),
             },
-            'summary': {}
+            "summary": {},
         }
 
     def _parse_solhint(self) -> Dict[str, Any]:
         """Parse Solhint linting results."""
-        solhint_dir = self.results_dir / 'solhint'
+        solhint_dir = self.results_dir / "solhint"
         if not solhint_dir.exists():
-            return {'executed': False, 'issues': []}
+            return {"executed": False, "issues": []}
 
         issues = []
-        for json_file in solhint_dir.glob('*.json'):
+        for json_file in solhint_dir.glob("*.json"):
             try:
                 with open(json_file) as f:
                     data = json.load(f)
                     for item in data:
-                        issues.append({
-                            'file': item.get('filePath', 'unknown'),
-                            'line': item.get('line', 0),
-                            'severity': item.get('severity', 'info'),
-                            'message': item.get('message', ''),
-                            'ruleId': item.get('ruleId', '')
-                        })
-            except:
+                        issues.append(
+                            {
+                                "file": item.get("filePath", "unknown"),
+                                "line": item.get("line", 0),
+                                "severity": item.get("severity", "info"),
+                                "message": item.get("message", ""),
+                                "ruleId": item.get("ruleId", ""),
+                            }
+                        )
+            except Exception:
                 pass
 
         return {
-            'executed': True,
-            'total_issues': len(issues),
-            'issues': issues,
-            'by_severity': self._group_by_severity(issues, 'severity')
+            "executed": True,
+            "total_issues": len(issues),
+            "issues": issues,
+            "by_severity": self._group_by_severity(issues, "severity"),
         }
 
     def _parse_slither(self) -> Dict[str, Any]:
         """Parse Slither static analysis results."""
-        slither_dir = self.results_dir / 'slither'
+        slither_dir = self.results_dir / "slither"
         if not slither_dir.exists():
-            return {'executed': False, 'detectors': []}
+            return {"executed": False, "detectors": []}
 
         detectors = []
-        for json_file in slither_dir.glob('*.json'):
+        for json_file in slither_dir.glob("*.json"):
             try:
                 with open(json_file) as f:
                     data = json.load(f)
-                    for det in data.get('results', {}).get('detectors', []):
-                        detectors.append({
-                            'check': det.get('check', 'unknown'),
-                            'impact': det.get('impact', 'Informational'),
-                            'confidence': det.get('confidence', 'Medium'),
-                            'description': det.get('description', ''),
-                            'elements': len(det.get('elements', []))
-                        })
-            except:
+                    for det in data.get("results", {}).get("detectors", []):
+                        detectors.append(
+                            {
+                                "check": det.get("check", "unknown"),
+                                "impact": det.get("impact", "Informational"),
+                                "confidence": det.get("confidence", "Medium"),
+                                "description": det.get("description", ""),
+                                "elements": len(det.get("elements", [])),
+                            }
+                        )
+            except Exception:
                 pass
 
         return {
-            'executed': True,
-            'total_detectors': len(detectors),
-            'detectors': detectors,
-            'by_impact': self._group_by_severity(detectors, 'impact')
+            "executed": True,
+            "total_detectors": len(detectors),
+            "detectors": detectors,
+            "by_impact": self._group_by_severity(detectors, "impact"),
         }
 
     def _parse_surya(self) -> Dict[str, Any]:
         """Parse Surya visualization and analysis."""
-        surya_dir = self.results_dir / 'surya'
+        surya_dir = self.results_dir / "surya"
         if not surya_dir.exists():
-            return {'executed': False}
+            return {"executed": False}
 
         # Count generated artifacts
-        graphs = list(surya_dir.glob('*.dot')) + list(surya_dir.glob('*.png'))
-        reports = list(surya_dir.glob('*.md')) + list(surya_dir.glob('*.txt'))
+        graphs = list(surya_dir.glob("*.dot")) + list(surya_dir.glob("*.png"))
+        reports = list(surya_dir.glob("*.md")) + list(surya_dir.glob("*.txt"))
 
         return {
-            'executed': True,
-            'graphs_generated': len(graphs),
-            'reports_generated': len(reports),
-            'artifacts': [f.name for f in graphs + reports]
+            "executed": True,
+            "graphs_generated": len(graphs),
+            "reports_generated": len(reports),
+            "artifacts": [f.name for f in graphs + reports],
         }
 
     def _parse_mythril(self) -> Dict[str, Any]:
         """Parse Mythril symbolic execution results."""
-        mythril_dir = self.results_dir / 'mythril'
+        mythril_dir = self.results_dir / "mythril"
         if not mythril_dir.exists():
-            return {'executed': False, 'issues': []}
+            return {"executed": False, "issues": []}
 
         issues = []
-        for json_file in mythril_dir.glob('*.json'):
+        for json_file in mythril_dir.glob("*.json"):
             try:
                 with open(json_file) as f:
                     data = json.load(f)
-                    for issue in data.get('issues', []):
-                        issues.append({
-                            'title': issue.get('title', ''),
-                            'severity': issue.get('severity', 'Low'),
-                            'swc_id': issue.get('swc-id', ''),
-                            'description': issue.get('description', {}).get('head', ''),
-                            'address': issue.get('address', 0)
-                        })
-            except:
+                    for issue in data.get("issues", []):
+                        issues.append(
+                            {
+                                "title": issue.get("title", ""),
+                                "severity": issue.get("severity", "Low"),
+                                "swc_id": issue.get("swc-id", ""),
+                                "description": issue.get("description", {}).get("head", ""),
+                                "address": issue.get("address", 0),
+                            }
+                        )
+            except Exception:
                 pass
 
         return {
-            'executed': True,
-            'total_issues': len(issues),
-            'issues': issues,
-            'by_severity': self._group_by_severity(issues, 'severity')
+            "executed": True,
+            "total_issues": len(issues),
+            "issues": issues,
+            "by_severity": self._group_by_severity(issues, "severity"),
         }
 
     def _parse_manticore(self) -> Dict[str, Any]:
         """Parse Manticore symbolic execution and exploit generation."""
-        manticore_dir = self.results_dir / 'manticore'
+        manticore_dir = self.results_dir / "manticore"
         if not manticore_dir.exists():
-            return {'executed': False, 'exploits': 0}
+            return {"executed": False, "exploits": 0}
 
         # Count test cases and exploits
-        test_cases = list(manticore_dir.glob('**/test_*.txt'))
-        exploits = list(manticore_dir.glob('**/exploit_*.py'))
+        test_cases = list(manticore_dir.glob("**/test_*.txt"))
+        exploits = list(manticore_dir.glob("**/exploit_*.py"))
 
         return {
-            'executed': True,
-            'test_cases': len(test_cases),
-            'exploits_generated': len(exploits),
-            'paths_explored': len(list(manticore_dir.glob('**/state_*')))
+            "executed": True,
+            "test_cases": len(test_cases),
+            "exploits_generated": len(exploits),
+            "paths_explored": len(list(manticore_dir.glob("**/state_*"))),
         }
 
     def _parse_echidna(self) -> Dict[str, Any]:
         """Parse Echidna fuzzing results."""
-        echidna_dir = self.results_dir / 'echidna'
+        echidna_dir = self.results_dir / "echidna"
         if not echidna_dir.exists():
-            return {'executed': False, 'properties': []}
+            return {"executed": False, "properties": []}
 
         properties = []
-        for txt_file in echidna_dir.glob('*.txt'):
+        for txt_file in echidna_dir.glob("*.txt"):
             try:
                 content = txt_file.read_text()
                 # Parse property results
-                for line in content.split('\n'):
-                    if 'echidna_' in line:
-                        parts = line.split(':')
+                for line in content.split("\n"):
+                    if "echidna_" in line:
+                        parts = line.split(":")
                         if len(parts) >= 2:
                             prop_name = parts[0].strip()
-                            result = 'passed' if 'passed!' in line else 'failed'
-                            properties.append({
-                                'name': prop_name,
-                                'status': result
-                            })
-            except:
+                            result = "passed" if "passed!" in line else "failed"
+                            properties.append({"name": prop_name, "status": result})
+            except Exception:
                 pass
 
-        passed = sum(1 for p in properties if p['status'] == 'passed')
-        failed = sum(1 for p in properties if p['status'] == 'failed')
+        passed = sum(1 for p in properties if p["status"] == "passed")
+        failed = sum(1 for p in properties if p["status"] == "failed")
 
         return {
-            'executed': True,
-            'total_properties': len(properties),
-            'passed': passed,
-            'failed': failed,
-            'properties': properties
+            "executed": True,
+            "total_properties": len(properties),
+            "passed": passed,
+            "failed": failed,
+            "properties": properties,
         }
 
     def _parse_medusa(self) -> Dict[str, Any]:
         """Parse Medusa fuzzing results."""
-        medusa_dir = self.results_dir / 'medusa'
+        medusa_dir = self.results_dir / "medusa"
         if not medusa_dir.exists():
-            return {'executed': False, 'tests': []}
+            return {"executed": False, "tests": []}
 
         tests = []
-        for json_file in medusa_dir.glob('*.json'):
+        for json_file in medusa_dir.glob("*.json"):
             try:
                 with open(json_file) as f:
                     data = json.load(f)
-                    for test in data.get('testResults', []):
-                        tests.append({
-                            'name': test.get('name', ''),
-                            'status': test.get('status', ''),
-                            'coverage': test.get('coverage', 0)
-                        })
-            except:
+                    for test in data.get("testResults", []):
+                        tests.append(
+                            {
+                                "name": test.get("name", ""),
+                                "status": test.get("status", ""),
+                                "coverage": test.get("coverage", 0),
+                            }
+                        )
+            except Exception:
                 pass
 
         return {
-            'executed': True,
-            'total_tests': len(tests),
-            'passed': sum(1 for t in tests if t['status'] == 'passed'),
-            'failed': sum(1 for t in tests if t['status'] == 'failed'),
-            'tests': tests
+            "executed": True,
+            "total_tests": len(tests),
+            "passed": sum(1 for t in tests if t["status"] == "passed"),
+            "failed": sum(1 for t in tests if t["status"] == "failed"),
+            "tests": tests,
         }
 
     def _parse_foundry_fuzz(self) -> Dict[str, Any]:
         """Parse Foundry fuzz testing results."""
-        foundry_dir = self.results_dir / 'foundry' / 'fuzz'
+        foundry_dir = self.results_dir / "foundry" / "fuzz"
         if not foundry_dir.exists():
-            return {'executed': False, 'tests': []}
+            return {"executed": False, "tests": []}
 
         tests = []
-        for txt_file in foundry_dir.glob('*.txt'):
+        for txt_file in foundry_dir.glob("*.txt"):
             try:
                 content = txt_file.read_text()
-                passed = content.count('[PASS]')
-                failed = content.count('[FAIL]')
-                tests.append({
-                    'file': txt_file.stem,
-                    'passed': passed,
-                    'failed': failed
-                })
-            except:
+                passed = content.count("[PASS]")
+                failed = content.count("[FAIL]")
+                tests.append({"file": txt_file.stem, "passed": passed, "failed": failed})
+            except Exception:
                 pass
 
-        total_passed = sum(t['passed'] for t in tests)
-        total_failed = sum(t['failed'] for t in tests)
+        total_passed = sum(t["passed"] for t in tests)
+        total_failed = sum(t["failed"] for t in tests)
 
         return {
-            'executed': True,
-            'total_tests': total_passed + total_failed,
-            'passed': total_passed,
-            'failed': total_failed,
-            'tests': tests
+            "executed": True,
+            "total_tests": total_passed + total_failed,
+            "passed": total_passed,
+            "failed": total_failed,
+            "tests": tests,
         }
 
     def _parse_foundry_invariants(self) -> Dict[str, Any]:
         """Parse Foundry invariant testing results."""
-        foundry_dir = self.results_dir / 'foundry' / 'invariants'
+        foundry_dir = self.results_dir / "foundry" / "invariants"
         if not foundry_dir.exists():
-            return {'executed': False, 'invariants': []}
+            return {"executed": False, "invariants": []}
 
         invariants = []
-        for txt_file in foundry_dir.glob('*.txt'):
+        for txt_file in foundry_dir.glob("*.txt"):
             try:
                 content = txt_file.read_text()
                 # Parse invariant results
-                for line in content.split('\n'):
-                    if 'invariant_' in line:
-                        status = 'passed' if '[PASS]' in line else 'failed'
-                        invariants.append({
-                            'name': line.split()[0],
-                            'status': status
-                        })
-            except:
+                for line in content.split("\n"):
+                    if "invariant_" in line:
+                        status = "passed" if "[PASS]" in line else "failed"
+                        invariants.append({"name": line.split()[0], "status": status})
+            except Exception:
                 pass
 
         return {
-            'executed': True,
-            'total_invariants': len(invariants),
-            'passed': sum(1 for i in invariants if i['status'] == 'passed'),
-            'failed': sum(1 for i in invariants if i['status'] == 'failed'),
-            'invariants': invariants
+            "executed": True,
+            "total_invariants": len(invariants),
+            "passed": sum(1 for i in invariants if i["status"] == "passed"),
+            "failed": sum(1 for i in invariants if i["status"] == "failed"),
+            "invariants": invariants,
         }
 
     def _parse_certora(self) -> Dict[str, Any]:
         """Parse Certora formal verification results."""
-        certora_dir = self.results_dir / 'certora'
+        certora_dir = self.results_dir / "certora"
         if not certora_dir.exists():
-            return {'executed': False, 'rules': []}
+            return {"executed": False, "rules": []}
 
         rules = []
-        for json_file in certora_dir.glob('*.json'):
+        for json_file in certora_dir.glob("*.json"):
             try:
                 with open(json_file) as f:
                     data = json.load(f)
-                    for rule in data.get('results', []):
-                        rules.append({
-                            'name': rule.get('ruleName', ''),
-                            'status': rule.get('status', ''),
-                            'verified': rule.get('status') == 'verified'
-                        })
-            except:
+                    for rule in data.get("results", []):
+                        rules.append(
+                            {
+                                "name": rule.get("ruleName", ""),
+                                "status": rule.get("status", ""),
+                                "verified": rule.get("status") == "verified",
+                            }
+                        )
+            except Exception:
                 pass
 
         return {
-            'executed': True,
-            'total_rules': len(rules),
-            'verified': sum(1 for r in rules if r.get('verified', False)),
-            'violated': sum(1 for r in rules if not r.get('verified', False)),
-            'rules': rules
+            "executed": True,
+            "total_rules": len(rules),
+            "verified": sum(1 for r in rules if r.get("verified", False)),
+            "violated": sum(1 for r in rules if not r.get("verified", False)),
+            "rules": rules,
         }
 
     def _group_by_severity(self, items: List[Dict], key: str) -> Dict[str, int]:
         """Group items by severity level."""
         severity_map = {}
         for item in items:
-            severity = item.get(key, 'unknown').lower()
+            severity = item.get(key, "unknown").lower()
             severity_map[severity] = severity_map.get(severity, 0) + 1
         return severity_map
 
     def _calculate_summary(self) -> Dict[str, Any]:
         """Calculate overall summary statistics."""
-        tools = self.metrics['tools']
+        tools = self.metrics["tools"]
 
         # Count executed tools
-        executed_tools = sum(1 for tool in tools.values() if tool.get('executed', False))
+        executed_tools = sum(1 for tool in tools.values() if tool.get("executed", False))
 
         # Aggregate findings
         total_issues = 0
         critical = high = medium = low = info = 0
 
         # Slither
-        if tools['slither'].get('executed'):
-            by_impact = tools['slither'].get('by_impact', {})
-            critical += by_impact.get('critical', 0)
-            high += by_impact.get('high', 0)
-            medium += by_impact.get('medium', 0)
-            low += by_impact.get('low', 0)
-            info += by_impact.get('informational', 0)
+        if tools["slither"].get("executed"):
+            by_impact = tools["slither"].get("by_impact", {})
+            critical += by_impact.get("critical", 0)
+            high += by_impact.get("high", 0)
+            medium += by_impact.get("medium", 0)
+            low += by_impact.get("low", 0)
+            info += by_impact.get("informational", 0)
 
         # Mythril
-        if tools['mythril'].get('executed'):
-            by_sev = tools['mythril'].get('by_severity', {})
-            high += by_sev.get('high', 0)
-            medium += by_sev.get('medium', 0)
-            low += by_sev.get('low', 0)
+        if tools["mythril"].get("executed"):
+            by_sev = tools["mythril"].get("by_severity", {})
+            high += by_sev.get("high", 0)
+            medium += by_sev.get("medium", 0)
+            low += by_sev.get("low", 0)
 
         # Solhint
-        if tools['solhint'].get('executed'):
-            by_sev = tools['solhint'].get('by_severity', {})
-            critical += by_sev.get('error', 0)
-            medium += by_sev.get('warning', 0)
-            info += by_sev.get('info', 0)
+        if tools["solhint"].get("executed"):
+            by_sev = tools["solhint"].get("by_severity", {})
+            critical += by_sev.get("error", 0)
+            medium += by_sev.get("warning", 0)
+            info += by_sev.get("info", 0)
 
         total_issues = critical + high + medium + low + info
 
         # Testing metrics
-        fuzz_passed = tools['foundry_fuzz'].get('passed', 0)
-        fuzz_failed = tools['foundry_fuzz'].get('failed', 0)
-        invariants_passed = tools['foundry_invariants'].get('passed', 0)
-        invariants_failed = tools['foundry_invariants'].get('failed', 0)
-        echidna_passed = tools['echidna'].get('passed', 0)
-        echidna_failed = tools['echidna'].get('failed', 0)
+        fuzz_passed = tools["foundry_fuzz"].get("passed", 0)
+        fuzz_failed = tools["foundry_fuzz"].get("failed", 0)
+        invariants_passed = tools["foundry_invariants"].get("passed", 0)
+        invariants_failed = tools["foundry_invariants"].get("failed", 0)
+        echidna_passed = tools["echidna"].get("passed", 0)
+        echidna_failed = tools["echidna"].get("failed", 0)
 
-        total_tests = fuzz_passed + fuzz_failed + invariants_passed + invariants_failed + echidna_passed + echidna_failed
+        total_tests = (
+            fuzz_passed
+            + fuzz_failed
+            + invariants_passed
+            + invariants_failed
+            + echidna_passed
+            + echidna_failed
+        )
         tests_passed = fuzz_passed + invariants_passed + echidna_passed
         tests_failed = fuzz_failed + invariants_failed + echidna_failed
 
         return {
-            'tools_executed': executed_tools,
-            'total_tools': 10,
-            'total_issues': total_issues,
-            'critical': critical,
-            'high': high,
-            'medium': medium,
-            'low': low,
-            'informational': info,
-            'total_tests': total_tests,
-            'tests_passed': tests_passed,
-            'tests_failed': tests_failed,
-            'test_pass_rate': round(tests_passed / total_tests * 100, 2) if total_tests > 0 else 0,
-            'exploits_generated': tools['manticore'].get('exploits_generated', 0),
-            'formal_rules_verified': tools['certora'].get('verified', 0),
-            'coverage_artifacts': tools['surya'].get('graphs_generated', 0)
+            "tools_executed": executed_tools,
+            "total_tools": 10,
+            "total_issues": total_issues,
+            "critical": critical,
+            "high": high,
+            "medium": medium,
+            "low": low,
+            "informational": info,
+            "total_tests": total_tests,
+            "tests_passed": tests_passed,
+            "tests_failed": tests_failed,
+            "test_pass_rate": round(tests_passed / total_tests * 100, 2) if total_tests > 0 else 0,
+            "exploits_generated": tools["manticore"].get("exploits_generated", 0),
+            "formal_rules_verified": tools["certora"].get("verified", 0),
+            "coverage_artifacts": tools["surya"].get("graphs_generated", 0),
         }
 
     def generate_html_dashboard(self, output_file: Path):
         """Generate modern interactive HTML dashboard."""
         summary = self._calculate_summary()
-        self.metrics['summary'] = summary
+        self.metrics["summary"] = summary
 
         html = f"""<!DOCTYPE html>
 <html lang="es">
@@ -825,23 +831,23 @@ class WebDashboardGenerator:
     def _generate_tool_badges(self) -> str:
         """Generate HTML for tool status badges."""
         tools_info = [
-            ('Solhint', 'solhint'),
-            ('Slither', 'slither'),
-            ('Surya', 'surya'),
-            ('Mythril', 'mythril'),
-            ('Manticore', 'manticore'),
-            ('Echidna', 'echidna'),
-            ('Medusa', 'medusa'),
-            ('Foundry Fuzz', 'foundry_fuzz'),
-            ('Foundry Invariants', 'foundry_invariants'),
-            ('Certora', 'certora')
+            ("Solhint", "solhint"),
+            ("Slither", "slither"),
+            ("Surya", "surya"),
+            ("Mythril", "mythril"),
+            ("Manticore", "manticore"),
+            ("Echidna", "echidna"),
+            ("Medusa", "medusa"),
+            ("Foundry Fuzz", "foundry_fuzz"),
+            ("Foundry Invariants", "foundry_invariants"),
+            ("Certora", "certora"),
         ]
 
         badges_html = ""
         for name, key in tools_info:
-            executed = self.metrics['tools'][key].get('executed', False)
-            status_class = 'status-executed' if executed else 'status-skipped'
-            status_text = 'Ejecutada' if executed else 'No ejecutada'
+            executed = self.metrics["tools"][key].get("executed", False)
+            status_class = "status-executed" if executed else "status-skipped"
+            status_text = "Ejecutada" if executed else "No ejecutada"
             badges_html += f"""
             <div class="tool-badge">
                 <span class="status-dot {status_class}"></span>
@@ -853,17 +859,17 @@ class WebDashboardGenerator:
 
     def _generate_static_analysis_table(self) -> str:
         """Generate HTML table for static analysis results."""
-        slither = self.metrics['tools']['slither']
-        solhint = self.metrics['tools']['solhint']
+        slither = self.metrics["tools"]["slither"]
+        solhint = self.metrics["tools"]["solhint"]
 
         html = "<h3>Análisis Estático (Slither, Solhint, Surya)</h3>"
 
-        if slither.get('executed'):
+        if slither.get("executed"):
             html += f"<p><strong>Slither:</strong> {slither['total_detectors']} detectores activados</p>"
-            if slither['detectors']:
+            if slither["detectors"]:
                 html += "<table><thead><tr><th>Detector</th><th>Impacto</th><th>Confianza</th><th>Elementos</th></tr></thead><tbody>"
-                for det in slither['detectors'][:10]:  # Primeros 10
-                    impact_class = det['impact'].lower()
+                for det in slither["detectors"][:10]:  # Primeros 10
+                    impact_class = det["impact"].lower()
                     html += f"""<tr>
                         <td>{det['check']}</td>
                         <td><span class="badge badge-{impact_class}">{det['impact']}</span></td>
@@ -872,24 +878,24 @@ class WebDashboardGenerator:
                     </tr>"""
                 html += "</tbody></table>"
 
-        if solhint.get('executed'):
+        if solhint.get("executed"):
             html += f"<p style='margin-top: 20px'><strong>Solhint:</strong> {solhint['total_issues']} issues encontrados</p>"
 
         return html
 
     def _generate_symbolic_analysis_table(self) -> str:
         """Generate HTML table for symbolic execution results."""
-        mythril = self.metrics['tools']['mythril']
-        manticore = self.metrics['tools']['manticore']
+        mythril = self.metrics["tools"]["mythril"]
+        manticore = self.metrics["tools"]["manticore"]
 
         html = "<h3>Ejecución Simbólica (Mythril, Manticore)</h3>"
 
-        if mythril.get('executed'):
+        if mythril.get("executed"):
             html += f"<p><strong>Mythril:</strong> {mythril['total_issues']} vulnerabilidades detectadas</p>"
-            if mythril['issues']:
+            if mythril["issues"]:
                 html += "<table><thead><tr><th>Título</th><th>Severidad</th><th>SWC ID</th><th>Descripción</th></tr></thead><tbody>"
-                for issue in mythril['issues'][:10]:
-                    sev_class = issue['severity'].lower()
+                for issue in mythril["issues"][:10]:
+                    sev_class = issue["severity"].lower()
                     html += f"""<tr>
                         <td>{issue['title']}</td>
                         <td><span class="badge badge-{sev_class}">{issue['severity']}</span></td>
@@ -898,7 +904,7 @@ class WebDashboardGenerator:
                     </tr>"""
                 html += "</tbody></table>"
 
-        if manticore.get('executed'):
+        if manticore.get("executed"):
             html += f"""<p style='margin-top: 20px'><strong>Manticore:</strong>
                 {manticore['exploits_generated']} exploits generados |
                 {manticore['test_cases']} casos de prueba |
@@ -908,52 +914,54 @@ class WebDashboardGenerator:
 
     def _generate_fuzzing_table(self) -> str:
         """Generate HTML table for fuzzing results."""
-        echidna = self.metrics['tools']['echidna']
-        medusa = self.metrics['tools']['medusa']
-        foundry_fuzz = self.metrics['tools']['foundry_fuzz']
+        echidna = self.metrics["tools"]["echidna"]
+        medusa = self.metrics["tools"]["medusa"]
+        foundry_fuzz = self.metrics["tools"]["foundry_fuzz"]
 
         html = "<h3>Fuzzing (Echidna, Medusa, Foundry)</h3>"
 
-        if echidna.get('executed'):
+        if echidna.get("executed"):
             html += f"<p><strong>Echidna:</strong> {echidna['total_properties']} propiedades testeadas</p>"
-            if echidna['properties']:
+            if echidna["properties"]:
                 html += "<table><thead><tr><th>Propiedad</th><th>Estado</th></tr></thead><tbody>"
-                for prop in echidna['properties']:
-                    badge_class = 'badge-success' if prop['status'] == 'passed' else 'badge-critical'
+                for prop in echidna["properties"]:
+                    badge_class = (
+                        "badge-success" if prop["status"] == "passed" else "badge-critical"
+                    )
                     html += f"""<tr>
                         <td>{prop['name']}</td>
                         <td><span class="badge {badge_class}">{prop['status'].upper()}</span></td>
                     </tr>"""
                 html += "</tbody></table>"
 
-        if foundry_fuzz.get('executed'):
+        if foundry_fuzz.get("executed"):
             html += f"<p style='margin-top: 20px'><strong>Foundry Fuzz:</strong> {foundry_fuzz['passed']} pasados, {foundry_fuzz['failed']} fallidos</p>"
 
-        if medusa.get('executed'):
+        if medusa.get("executed"):
             html += f"<p style='margin-top: 20px'><strong>Medusa:</strong> {medusa['passed']} pasados, {medusa['failed']} fallidos</p>"
 
         return html
 
     def _generate_formal_verification_table(self) -> str:
         """Generate HTML table for formal verification results."""
-        certora = self.metrics['tools']['certora']
-        foundry_inv = self.metrics['tools']['foundry_invariants']
+        certora = self.metrics["tools"]["certora"]
+        foundry_inv = self.metrics["tools"]["foundry_invariants"]
 
         html = "<h3>Verificación Formal (Certora, Foundry Invariants)</h3>"
 
-        if certora.get('executed'):
+        if certora.get("executed"):
             html += f"<p><strong>Certora:</strong> {certora['verified']} reglas verificadas, {certora['violated']} violadas</p>"
-            if certora['rules']:
+            if certora["rules"]:
                 html += "<table><thead><tr><th>Regla</th><th>Estado</th></tr></thead><tbody>"
-                for rule in certora['rules']:
-                    badge_class = 'badge-success' if rule.get('verified') else 'badge-critical'
+                for rule in certora["rules"]:
+                    badge_class = "badge-success" if rule.get("verified") else "badge-critical"
                     html += f"""<tr>
                         <td>{rule['name']}</td>
                         <td><span class="badge {badge_class}">{rule['status'].upper()}</span></td>
                     </tr>"""
                 html += "</tbody></table>"
 
-        if foundry_inv.get('executed'):
+        if foundry_inv.get("executed"):
             html += f"<p style='margin-top: 20px'><strong>Foundry Invariants:</strong> {foundry_inv['passed']} pasados, {foundry_inv['failed']} fallidos</p>"
 
         return html
@@ -961,14 +969,17 @@ class WebDashboardGenerator:
     def save_metrics_json(self, output_file: Path):
         """Save complete metrics as JSON."""
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(self.metrics, f, indent=2, ensure_ascii=False)
         print(f"✅ Métricas JSON guardadas: {output_file}")
 
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Generate interactive web dashboard for Xaudit v2.0")
+
+    parser = argparse.ArgumentParser(
+        description="Generate interactive web dashboard for Xaudit v2.0"
+    )
     parser.add_argument("--results", required=True, help="Directory with analysis results")
     parser.add_argument("--output", default="analysis/dashboard", help="Output directory")
 
@@ -989,7 +1000,7 @@ def main():
     dashboard.generate_html_dashboard(output_dir / "index.html")
     dashboard.save_metrics_json(output_dir / "metrics.json")
 
-    print(f"\n✅ Dashboard generated successfully!")
+    print("\n✅ Dashboard generated successfully!")
     print(f"\n📊 Open in browser: file://{(output_dir / 'index.html').absolute()}")
 
 

@@ -3,14 +3,14 @@ CLI para administración de licencias MIESC.
 Uso: python -m src.licensing.cli [comando] [opciones]
 """
 
-import click
 from datetime import datetime
+
+import click
 from tabulate import tabulate
 
 from .license_manager import LicenseManager
-from .quota_checker import QuotaChecker
 from .models import LicenseStatus, PlanType
-from .key_generator import generate_license_key
+from .quota_checker import QuotaChecker
 
 
 @click.group()
@@ -29,7 +29,7 @@ def cli(ctx):
     "-p",
     type=click.Choice(["FREE", "STARTER", "PRO", "ENTERPRISE"]),
     default="FREE",
-    help="Tipo de plan"
+    help="Tipo de plan",
 )
 @click.option("--organization", "-o", help="Organización")
 @click.option("--expires", "-x", type=int, help="Días hasta expiración (vacío = perpetua)")
@@ -85,14 +85,16 @@ def validate(ctx, key):
 
 @cli.command("list")
 @click.option(
-    "--status", "-s",
+    "--status",
+    "-s",
     type=click.Choice(["active", "expired", "suspended", "revoked"]),
-    help="Filtrar por estado"
+    help="Filtrar por estado",
 )
 @click.option(
-    "--plan", "-p",
+    "--plan",
+    "-p",
     type=click.Choice(["FREE", "STARTER", "PRO", "ENTERPRISE"]),
-    help="Filtrar por plan"
+    help="Filtrar por plan",
 )
 @click.option("--email", "-e", help="Filtrar por email")
 @click.pass_context
@@ -117,13 +119,15 @@ def list_licenses(ctx, status, plan, email):
     for lic in licenses:
         expires = lic.expires_at.strftime("%Y-%m-%d") if lic.expires_at else "Perpetua"
         status_color = "green" if lic.is_active else "red"
-        table_data.append([
-            lic.license_key[:20] + "...",
-            lic.email[:25],
-            lic.plan.value,
-            click.style(lic.status.value, fg=status_color),
-            expires,
-        ])
+        table_data.append(
+            [
+                lic.license_key[:20] + "...",
+                lic.email[:25],
+                lic.plan.value,
+                click.style(lic.status.value, fg=status_color),
+                expires,
+            ]
+        )
 
     headers = ["Clave", "Email", "Plan", "Estado", "Expira"]
     click.echo("\n" + tabulate(table_data, headers=headers, tablefmt="simple"))
@@ -140,7 +144,7 @@ def revoke(ctx, key):
     if manager.revoke_license(key):
         click.echo(click.style(f"\nLicencia revocada: {key}", fg="yellow"))
     else:
-        click.echo(click.style(f"\nError: No se pudo revocar la licencia", fg="red"))
+        click.echo(click.style("\nError: No se pudo revocar la licencia", fg="red"))
 
 
 @cli.command()
@@ -153,7 +157,7 @@ def suspend(ctx, key):
     if manager.suspend_license(key):
         click.echo(click.style(f"\nLicencia suspendida: {key}", fg="yellow"))
     else:
-        click.echo(click.style(f"\nError: No se pudo suspender la licencia", fg="red"))
+        click.echo(click.style("\nError: No se pudo suspender la licencia", fg="red"))
 
 
 @cli.command()
@@ -166,7 +170,7 @@ def reactivate(ctx, key):
     if manager.reactivate_license(key):
         click.echo(click.style(f"\nLicencia reactivada: {key}", fg="green"))
     else:
-        click.echo(click.style(f"\nError: No se pudo reactivar la licencia", fg="red"))
+        click.echo(click.style("\nError: No se pudo reactivar la licencia", fg="red"))
 
 
 @cli.command()
@@ -192,10 +196,10 @@ def usage(ctx, key):
     click.echo(f"Auditorías usadas: {usage_info['audits_used']}")
     click.echo(f"Límite: {usage_info['audits_limit']}")
     click.echo(f"Restantes: {usage_info['audits_remaining']}")
-    if usage_info['last_audit_at']:
+    if usage_info["last_audit_at"]:
         click.echo(f"Última auditoría: {usage_info['last_audit_at']}")
-    click.echo(f"\nHerramientas permitidas:")
-    for tool in usage_info['allowed_tools']:
+    click.echo("\nHerramientas permitidas:")
+    for tool in usage_info["allowed_tools"]:
         click.echo(f"  - {tool}")
     click.echo(f"\nIA habilitada: {'Sí' if usage_info['ai_enabled'] else 'No'}")
     click.echo(f"Tamaño máx contrato: {usage_info['max_contract_size_kb']}KB")
@@ -218,7 +222,7 @@ def stats(ctx):
     click.echo(f"Suspendidas: {click.style(str(stats['suspended']), fg='yellow')}")
     click.echo(f"Revocadas: {click.style(str(stats['revoked']), fg='red')}")
     click.echo("\nPor plan:")
-    for plan, count in stats['by_plan'].items():
+    for plan, count in stats["by_plan"].items():
         click.echo(f"  {plan}: {count}")
     click.echo("=" * 60)
 
@@ -226,9 +230,7 @@ def stats(ctx):
 @cli.command()
 @click.argument("key")
 @click.option(
-    "--plan", "-p",
-    type=click.Choice(["FREE", "STARTER", "PRO", "ENTERPRISE"]),
-    help="Nuevo plan"
+    "--plan", "-p", type=click.Choice(["FREE", "STARTER", "PRO", "ENTERPRISE"]), help="Nuevo plan"
 )
 @click.option("--extend-days", "-x", type=int, help="Extender días")
 @click.pass_context
@@ -245,6 +247,7 @@ def update(ctx, key, plan, extend_days):
     new_expires = None
     if extend_days:
         from datetime import timedelta
+
         base = license.expires_at or datetime.utcnow()
         new_expires = base + timedelta(days=extend_days)
 
@@ -261,7 +264,7 @@ def update(ctx, key, plan, extend_days):
         if new_expires:
             click.echo(f"Nueva expiración: {new_expires.strftime('%Y-%m-%d')}")
     else:
-        click.echo(click.style(f"\nError actualizando licencia", fg="red"))
+        click.echo(click.style("\nError actualizando licencia", fg="red"))
 
 
 if __name__ == "__main__":

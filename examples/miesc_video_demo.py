@@ -39,18 +39,19 @@ sys.path.insert(0, str(project_root))
 try:
     from rich import box
     from rich.console import Console
-    from rich.layout import Layout
-    from rich.live import Live
+    from rich.layout import Layout  # noqa: F401
+    from rich.live import Live  # noqa: F401
     from rich.markdown import Markdown
     from rich.panel import Panel
     from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
     from rich.syntax import Syntax
     from rich.table import Table
-    from rich.text import Text
+    from rich.text import Text  # noqa: F401
     from rich.tree import Tree
 except ImportError:
     print("Installing rich for beautiful CLI output...")
     import subprocess
+
     subprocess.check_call([sys.executable, "-m", "pip", "install", "rich", "-q"])
     from rich import box
     from rich.console import Console
@@ -72,7 +73,7 @@ DEMO_CONFIG = {
 }
 
 # Sample vulnerable contract for demo
-SAMPLE_CONTRACT = '''// SPDX-License-Identifier: MIT
+SAMPLE_CONTRACT = """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract VulnerableVault {
@@ -104,7 +105,7 @@ contract VulnerableVault {
         return block.timestamp > 1700000000;  // Manipulable
     }
 }
-'''
+"""
 
 # Simulated findings for demo
 DEMO_FINDINGS = [
@@ -173,7 +174,11 @@ LAYERS = {
     2: {"name": "Pattern Detection", "tools": ["SmartBugsDetector"], "color": "purple"},
     3: {"name": "Symbolic Execution", "tools": ["Mythril", "Manticore"], "color": "magenta"},
     4: {"name": "Fuzzing", "tools": ["Echidna", "Medusa", "DogeFuzz"], "color": "yellow"},
-    5: {"name": "Formal Verification", "tools": ["Certora", "Halmos", "SMTChecker"], "color": "green"},
+    5: {
+        "name": "Formal Verification",
+        "tools": ["Certora", "Halmos", "SMTChecker"],
+        "color": "green",
+    },
     6: {"name": "ML Detection", "tools": ["DA-GNN", "SmartGuard"], "color": "cyan"},
     7: {"name": "AI Analysis", "tools": ["SmartLLM", "PropertyGPT"], "color": "bright_blue"},
     8: {"name": "DeFi Security", "tools": ["DeFiDetector", "MEVAnalyzer"], "color": "red"},
@@ -216,11 +221,17 @@ def print_banner():
 def section_header(title: str, subtitle: str = ""):
     """Print section header with pause"""
     console.print()
-    console.print(Panel(
-        f"[bold white]{title}[/bold white]\n[dim]{subtitle}[/dim]" if subtitle else f"[bold white]{title}[/bold white]",
-        border_style="cyan",
-        box=box.ROUNDED
-    ))
+    console.print(
+        Panel(
+            (
+                f"[bold white]{title}[/bold white]\n[dim]{subtitle}[/dim]"
+                if subtitle
+                else f"[bold white]{title}[/bold white]"
+            ),
+            border_style="cyan",
+            box=box.ROUNDED,
+        )
+    )
     short_pause()
 
 
@@ -256,8 +267,10 @@ def demo_architecture():
     tree = Tree("[bold blue]MIESC Security Layers[/bold blue]")
 
     for layer_num, layer_info in LAYERS.items():
-        layer_node = tree.add(f"[bold {layer_info['color']}]Layer {layer_num}: {layer_info['name']}[/bold {layer_info['color']}]")
-        for tool in layer_info['tools']:
+        layer_node = tree.add(
+            f"[bold {layer_info['color']}]Layer {layer_num}: {layer_info['name']}[/bold {layer_info['color']}]"
+        )
+        for tool in layer_info["tools"]:
             layer_node.add(f"[dim]• {tool}[/dim]")
         sleep(0.3)  # Animate tree building
 
@@ -267,10 +280,14 @@ def demo_architecture():
 
 def demo_contract_input():
     """Show contract being analyzed"""
-    section_header("Input: Smart Contract", "VulnerableVault.sol - Demo Contract with Known Vulnerabilities")
+    section_header(
+        "Input: Smart Contract", "VulnerableVault.sol - Demo Contract with Known Vulnerabilities"
+    )
 
     syntax = Syntax(SAMPLE_CONTRACT, "solidity", theme="monokai", line_numbers=True)
-    console.print(Panel(syntax, title="[bold red]VulnerableVault.sol[/bold red]", border_style="red"))
+    console.print(
+        Panel(syntax, title="[bold red]VulnerableVault.sol[/bold red]", border_style="red")
+    )
     pause()
 
 
@@ -292,7 +309,7 @@ def demo_analysis_progress():
         for layer_num, layer_info in LAYERS.items():
             task_id = progress.add_task(
                 f"[{layer_info['color']}]Layer {layer_num}: {layer_info['name']}[/{layer_info['color']}]",
-                total=100
+                total=100,
             )
             layer_tasks[layer_num] = task_id
 
@@ -305,7 +322,9 @@ def demo_analysis_progress():
             time.sleep(DEMO_CONFIG["progress_step_delay"])
 
     console.print()
-    console.print("[bold green]✓ Analysis complete! 5 vulnerabilities detected across 3 layers.[/bold green]")
+    console.print(
+        "[bold green]✓ Analysis complete! 5 vulnerabilities detected across 3 layers.[/bold green]"
+    )
     pause()
 
 
@@ -323,9 +342,15 @@ def demo_findings_display():
     summary_table.add_column("Count", justify="center", width=8)
     summary_table.add_column("Risk Level", justify="center", width=20)
 
-    summary_table.add_row("Critical", str(severity_counts["Critical"]), "[bold red]██████████████[/bold red]")
-    summary_table.add_row("High", str(severity_counts["High"]), "[bold orange1]██████████[/bold orange1]")
-    summary_table.add_row("Medium", str(severity_counts["Medium"]), "[bold yellow]██████[/bold yellow]")
+    summary_table.add_row(
+        "Critical", str(severity_counts["Critical"]), "[bold red]██████████████[/bold red]"
+    )
+    summary_table.add_row(
+        "High", str(severity_counts["High"]), "[bold orange1]██████████[/bold orange1]"
+    )
+    summary_table.add_row(
+        "Medium", str(severity_counts["Medium"]), "[bold yellow]██████[/bold yellow]"
+    )
     summary_table.add_row("Low", str(severity_counts["Low"]), "[bold green]███[/bold green]")
 
     console.print(summary_table)
@@ -333,7 +358,9 @@ def demo_findings_display():
 
     # Detailed findings
     console.print()
-    findings_table = Table(title="Detailed Vulnerability Findings", box=box.ROUNDED, show_lines=True)
+    findings_table = Table(
+        title="Detailed Vulnerability Findings", box=box.ROUNDED, show_lines=True
+    )
     findings_table.add_column("ID", style="cyan", width=12)
     findings_table.add_column("Severity", width=10)
     findings_table.add_column("Title", width=38)
@@ -414,7 +441,9 @@ function withdraw(uint256 amount) external nonReentrant {{
 
 def demo_report_generation():
     """Demonstrate report generation"""
-    section_header("Professional Audit Report Generation", "Creating HTML & PDF reports with full evidence...")
+    section_header(
+        "Professional Audit Report Generation", "Creating HTML & PDF reports with full evidence..."
+    )
 
     with console.status("[bold green]Generating comprehensive audit report...", spinner="dots"):
         sleep(3)
@@ -458,21 +487,24 @@ def demo_report_generation():
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 """.format(
-        date=datetime.now().strftime("%Y-%m-%d"),
-        report_id=datetime.now().strftime("%Y%m%d-001")
+        date=datetime.now().strftime("%Y-%m-%d"), report_id=datetime.now().strftime("%Y%m%d-001")
     )
 
-    console.print(Panel(
-        report_preview,
-        title="[bold blue]Audit Report Preview[/bold blue]",
-        border_style="blue"
-    ))
+    console.print(
+        Panel(
+            report_preview, title="[bold blue]Audit Report Preview[/bold blue]", border_style="blue"
+        )
+    )
 
     short_pause()
 
     console.print("\n[bold green]✓[/bold green] Report files generated:")
-    console.print("  [cyan]→[/cyan] reports/audit_report.html  [dim](Interactive HTML report)[/dim]")
-    console.print("  [cyan]→[/cyan] reports/audit_report.pdf   [dim](Professional PDF document)[/dim]")
+    console.print(
+        "  [cyan]→[/cyan] reports/audit_report.html  [dim](Interactive HTML report)[/dim]"
+    )
+    console.print(
+        "  [cyan]→[/cyan] reports/audit_report.pdf   [dim](Professional PDF document)[/dim]"
+    )
     console.print("  [cyan]→[/cyan] reports/audit_report.json  [dim](Machine-readable data)[/dim]")
 
     pause()
@@ -480,20 +512,32 @@ def demo_report_generation():
 
 def demo_metrics():
     """Show performance metrics"""
-    section_header("Scientific Validation", "Benchmark results on SmartBugs Curated dataset (143 contracts)")
+    section_header(
+        "Scientific Validation", "Benchmark results on SmartBugs Curated dataset (143 contracts)"
+    )
 
     metrics_table = Table(title="MIESC v4.2.1 Performance Metrics", box=box.ROUNDED)
     metrics_table.add_column("Metric", style="bold", width=25)
     metrics_table.add_column("Value", justify="right", width=18)
     metrics_table.add_column("Context", style="dim", width=35)
 
-    metrics_table.add_row("Recall", "[bold green]84.3%[/bold green]", "+27.3% vs literature baseline")
-    metrics_table.add_row("F1-Score", "[bold green]80.0%[/bold green]", "Slither adapter validation")
-    metrics_table.add_row("Pattern Detection", "[bold green]100%[/bold green]", "SmartBugsDetector coverage")
+    metrics_table.add_row(
+        "Recall", "[bold green]84.3%[/bold green]", "+27.3% vs literature baseline"
+    )
+    metrics_table.add_row(
+        "F1-Score", "[bold green]80.0%[/bold green]", "Slither adapter validation"
+    )
+    metrics_table.add_row(
+        "Pattern Detection", "[bold green]100%[/bold green]", "SmartBugsDetector coverage"
+    )
     metrics_table.add_row("Contracts Tested", "143", "SmartBugs Curated benchmark")
-    metrics_table.add_row("Vulnerability Categories", "10", "Reentrancy, overflow, access control...")
+    metrics_table.add_row(
+        "Vulnerability Categories", "10", "Reentrancy, overflow, access control..."
+    )
     metrics_table.add_row("Analysis Speed", "346 contracts/min", "Parallel 4-worker execution")
-    metrics_table.add_row("False Positive Rate", "[bold green]<5%[/bold green]", "ML-based filtering")
+    metrics_table.add_row(
+        "False Positive Rate", "[bold green]<5%[/bold green]", "ML-based filtering"
+    )
 
     console.print(metrics_table)
     pause()
@@ -501,7 +545,9 @@ def demo_metrics():
 
 def demo_developer_workflow():
     """Show developer integration workflow"""
-    section_header("Developer Integration", "Seamlessly integrate MIESC into your development workflow")
+    section_header(
+        "Developer Integration", "Seamlessly integrate MIESC into your development workflow"
+    )
 
     workflow = """
 ## Command Line Interface
@@ -615,7 +661,9 @@ Generate reports in your firm's format:
 
 def demo_conclusion():
     """Conclusion and call to action"""
-    section_header("Get Started with MIESC", "Open Source • Community Driven • Scientifically Validated")
+    section_header(
+        "Get Started with MIESC", "Open Source • Community Driven • Scientifically Validated"
+    )
 
     conclusion = """
 ## Quick Installation
@@ -655,18 +703,22 @@ cd MIESC && pip install -e .
     console.print(Markdown(conclusion))
 
     console.print()
-    console.print(Panel(
-        "[bold green]Thank you for watching![/bold green]\n\n"
-        "[cyan]Star us on GitHub:[/cyan] https://github.com/fboiero/MIESC\n"
-        "[cyan]Follow for updates:[/cyan] @fboiero",
-        border_style="green",
-        box=box.DOUBLE
-    ))
+    console.print(
+        Panel(
+            "[bold green]Thank you for watching![/bold green]\n\n"
+            "[cyan]Star us on GitHub:[/cyan] https://github.com/fboiero/MIESC\n"
+            "[cyan]Follow for updates:[/cyan] @fboiero",
+            border_style="green",
+            box=box.DOUBLE,
+        )
+    )
 
 
 def generate_real_report(open_browser: bool = True):
     """Generate a real sample report using the report generator"""
-    section_header("Generating Real Audit Report", "Creating actual HTML report with full evidence...")
+    section_header(
+        "Generating Real Audit Report", "Creating actual HTML report with full evidence..."
+    )
 
     try:
         from src.reports.audit_report import AuditMetadata, AuditReportGenerator, Finding
@@ -710,24 +762,20 @@ def generate_real_report(open_browser: bool = True):
                     "version": "0.10.0",
                     "findings_count": 2,
                     "detectors_run": 92,
-                    "execution_time": "0.8s"
+                    "execution_time": "0.8s",
                 },
                 "Mythril": {
                     "version": "0.24.7",
                     "findings_count": 1,
-                    "symbolic_execution_time": "12.3s"
+                    "symbolic_execution_time": "12.3s",
                 },
                 "SmartBugsDetector": {
                     "version": "1.0.0",
                     "patterns_matched": 1,
-                    "patterns_checked": 47
+                    "patterns_checked": 47,
                 },
-                "Aderyn": {
-                    "version": "0.1.0",
-                    "findings_count": 1,
-                    "ast_analysis": True
-                }
-            }
+                "Aderyn": {"version": "0.1.0", "findings_count": 1, "ast_analysis": True},
+            },
         )
 
         output_dir = project_root / "reports"
@@ -801,25 +849,37 @@ Examples:
   python demo/miesc_video_demo.py --speed 0.5        # Medium speed
   python demo/miesc_video_demo.py --no-browser       # Don't open browser at end
   python demo/miesc_video_demo.py --section findings # Only show findings section
-        """
+        """,
     )
     parser.add_argument(
-        "--speed", type=float, default=0.4,
-        help="Animation speed (0.3=slow for video, 0.5=medium, 1.0=fast). Default: 0.4"
+        "--speed",
+        type=float,
+        default=0.4,
+        help="Animation speed (0.3=slow for video, 0.5=medium, 1.0=fast). Default: 0.4",
     )
     parser.add_argument(
-        "--no-report", action="store_true",
-        help="Skip generating real report at the end"
+        "--no-report", action="store_true", help="Skip generating real report at the end"
     )
     parser.add_argument(
-        "--no-browser", action="store_true",
-        help="Don't open HTML report in browser"
+        "--no-browser", action="store_true", help="Don't open HTML report in browser"
     )
     parser.add_argument(
         "--section",
-        choices=["intro", "arch", "contract", "analysis", "findings", "detail", "report", "metrics", "dev", "researcher", "all"],
+        choices=[
+            "intro",
+            "arch",
+            "contract",
+            "analysis",
+            "findings",
+            "detail",
+            "report",
+            "metrics",
+            "dev",
+            "researcher",
+            "all",
+        ],
         default="all",
-        help="Run only a specific section"
+        help="Run only a specific section",
     )
 
     args = parser.parse_args()

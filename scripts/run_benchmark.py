@@ -26,25 +26,25 @@ ROOT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT_DIR / "src"))
 sys.path.insert(0, str(ROOT_DIR))
 
-from src.benchmark import (
+from src.benchmark import (  # noqa: E402
     BenchmarkRunner,
     DatasetLoader,
     MetricsCalculator,
-    load_smartbugs,
-    load_dvd,
 )
 
 
 def print_banner():
     """Print benchmark banner."""
-    print("""
+    print(
+        """
 ╔══════════════════════════════════════════════════════════════╗
 ║           MIESC Detection Accuracy Benchmark                 ║
 ║                                                              ║
 ║  Datasets: SmartBugs Curated, Damn Vulnerable DeFi           ║
 ║  Metrics: Precision, Recall, F1 Score by category            ║
 ╚══════════════════════════════════════════════════════════════╝
-""")
+"""
+    )
 
 
 def run_full_benchmark(args):
@@ -77,19 +77,22 @@ def run_full_benchmark(args):
 
     if not contracts:
         print("\n[!] No contracts loaded. Please ensure datasets are downloaded.")
-        print("    Run: git clone --depth 1 https://github.com/smartbugs/smartbugs-curated.git data/benchmarks/smartbugs-curated")
+        print(
+            "    Run: git clone --depth 1 https://github.com/smartbugs/smartbugs-curated.git data/benchmarks/smartbugs-curated"
+        )
         sys.exit(1)
 
     # Quick mode - sample only
     if args.quick:
         import random
+
         sample_size = min(20, len(contracts))
         contracts = random.sample(contracts, sample_size)
         print(f"\n[*] Quick mode: sampling {sample_size} contracts")
 
     # Show stats
     stats = loader.get_statistics()
-    print(f"\n[*] Dataset Statistics:")
+    print("\n[*] Dataset Statistics:")
     print(f"    Total contracts: {stats['total_contracts']}")
     print(f"    Total vulnerabilities: {stats['total_vulnerabilities']}")
     print(f"    Categories: {', '.join(stats['by_category'].keys())}")
@@ -131,7 +134,7 @@ def compare_results(args):
 
     calc = MetricsCalculator()
 
-    print(f"\n[*] Loading results...")
+    print("\n[*] Loading results...")
     before = calc.load_result(Path(args.before))
     after = calc.load_result(Path(args.after))
 
@@ -173,7 +176,9 @@ def list_history(args):
             run_id = f.stem.replace("benchmark_", "")
             contracts = data["summary"]["analyzed_contracts"]
             metrics = data["overall_metrics"]
-            print(f"{run_id:<25} {contracts:<12} {metrics['f1_score']*100:>6.1f}%    {metrics['precision']*100:>6.1f}%    {metrics['recall']*100:>6.1f}%")
+            print(
+                f"{run_id:<25} {contracts:<12} {metrics['f1_score']*100:>6.1f}%    {metrics['precision']*100:>6.1f}%    {metrics['recall']*100:>6.1f}%"
+            )
         except Exception as e:
             print(f"{f.stem:<25} Error: {e}")
 
@@ -190,58 +195,42 @@ Examples:
   python scripts/run_benchmark.py --mode full         # Use full audit mode
   python scripts/run_benchmark.py --compare a.json b.json
   python scripts/run_benchmark.py --history
-        """
+        """,
     )
 
     parser.add_argument(
-        "--dataset", "-d",
+        "--dataset",
+        "-d",
         choices=["all", "smartbugs", "dvd"],
         default="all",
-        help="Dataset to benchmark (default: all)"
+        help="Dataset to benchmark (default: all)",
     )
     parser.add_argument(
-        "--mode", "-m",
+        "--mode",
+        "-m",
         choices=["quick", "smart", "full"],
         default="smart",
-        help="MIESC audit mode (default: smart)"
+        help="MIESC audit mode (default: smart)",
+    )
+    parser.add_argument("--output", "-o", help="Output file for results JSON")
+    parser.add_argument(
+        "--quick", "-q", action="store_true", help="Quick mode: sample 20 contracts only"
+    )
+    parser.add_argument("--sequential", action="store_true", help="Run sequentially (no parallel)")
+    parser.add_argument(
+        "--workers", "-w", type=int, default=4, help="Number of parallel workers (default: 4)"
     )
     parser.add_argument(
-        "--output", "-o",
-        help="Output file for results JSON"
-    )
-    parser.add_argument(
-        "--quick", "-q",
-        action="store_true",
-        help="Quick mode: sample 20 contracts only"
-    )
-    parser.add_argument(
-        "--sequential",
-        action="store_true",
-        help="Run sequentially (no parallel)"
-    )
-    parser.add_argument(
-        "--workers", "-w",
-        type=int,
-        default=4,
-        help="Number of parallel workers (default: 4)"
-    )
-    parser.add_argument(
-        "--timeout", "-t",
+        "--timeout",
+        "-t",
         type=int,
         default=120,
-        help="Timeout per contract in seconds (default: 120)"
+        help="Timeout per contract in seconds (default: 120)",
     )
     parser.add_argument(
-        "--compare",
-        nargs=2,
-        metavar=("BEFORE", "AFTER"),
-        help="Compare two benchmark results"
+        "--compare", nargs=2, metavar=("BEFORE", "AFTER"), help="Compare two benchmark results"
     )
-    parser.add_argument(
-        "--history",
-        action="store_true",
-        help="Show benchmark history"
-    )
+    parser.add_argument("--history", action="store_true", help="Show benchmark history")
 
     args = parser.parse_args()
 

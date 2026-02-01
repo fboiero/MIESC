@@ -1,4 +1,4 @@
-# MIESC v5.0.1 - Docker Compose Configuration
+# MIESC v5.0.2 - Docker Compose Configuration
 # Multi-layer Intelligent Evaluation for Smart Contracts
 # Now with ML Pipeline: FP filtering, severity prediction, clustering
 # Plus: Ollama LLM integration for AI-powered report interpretation
@@ -34,10 +34,10 @@ services:
       dockerfile: Dockerfile
       args:
         - BUILDKIT_INLINE_CACHE=1
-    image: miesc:5.0.1
+    image: miesc:5.0.2
     container_name: miesc-main
     environment:
-      - MIESC_VERSION=5.0.1
+      - MIESC_VERSION=5.0.2
       - MIESC_ENV=docker
       - PYTHONUNBUFFERED=1
       # Ollama configuration (when using LLM features)
@@ -65,10 +65,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:5.0.1
+    image: miesc:5.0.2
     container_name: miesc-ml
     environment:
-      - MIESC_VERSION=5.0.1
+      - MIESC_VERSION=5.0.2
       - MIESC_ENV=docker-ml
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
@@ -87,14 +87,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:5.0.1
+    image: miesc:5.0.2
     container_name: miesc-test
     environment:
-      - MIESC_VERSION=5.0.1
+      - MIESC_VERSION=5.0.2
       - MIESC_ENV=docker-test
       - PYTHONUNBUFFERED=1
     command: >
-      sh -c "echo '=== MIESC v5.0.1 - Test Suite ===' &&
+      sh -c "echo '=== MIESC v5.0.2 - Test Suite ===' &&
              echo 'Running comprehensive tests including ML pipeline...' &&
              python -m pytest tests/ -v --tb=short --maxfail=5 --cov=src --cov-report=term-missing"
     volumes:
@@ -109,10 +109,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:5.0.1
+    image: miesc:5.0.2
     container_name: miesc-api
     environment:
-      - MIESC_VERSION=5.0.1
+      - MIESC_VERSION=5.0.2
       - MIESC_ENV=docker-api
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
@@ -139,10 +139,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:5.0.1
+    image: miesc:5.0.2
     container_name: miesc-shell
     environment:
-      - MIESC_VERSION=5.0.1
+      - MIESC_VERSION=5.0.2
       - MIESC_ENV=docker-shell
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
@@ -169,10 +169,10 @@ services:
       dockerfile: Dockerfile.full
       args:
         - BUILDKIT_INLINE_CACHE=1
-    image: miesc:5.0.1-full
+    image: miesc:5.0.2-full
     container_name: miesc-full
     environment:
-      - MIESC_VERSION=5.0.1-full
+      - MIESC_VERSION=5.0.2-full
       - MIESC_ENV=docker-full
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
@@ -193,17 +193,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: miesc:5.0.1
+    image: miesc:5.0.2
     container_name: miesc-analyzer
     environment:
-      - MIESC_VERSION=5.0.1
+      - MIESC_VERSION=5.0.2
       - MIESC_ENV=docker-analyzer
       - PYTHONUNBUFFERED=1
       - CONTRACT_PATH=${CONTRACT_PATH:-/app/contracts/example.sol}
       - OLLAMA_HOST=http://ollama:11434
       - MIESC_LLM_MODEL=mistral:latest
     command: >
-      sh -c "echo '=== MIESC v5.0.1 - Contract Analyzer ===' &&
+      sh -c "echo '=== MIESC v5.0.2 - Contract Analyzer ===' &&
              echo 'Analyzing: ${CONTRACT_PATH}' &&
              python -m src.cli.miesc_cli analyze ${CONTRACT_PATH} --output /data/report.json"
     volumes:
@@ -343,4 +343,4 @@ volumes:
 #
 # 8. Clean up:
 #    docker-compose down -v
-#    docker rmi miesc:5.0.1
+#    docker rmi miesc:5.0.2

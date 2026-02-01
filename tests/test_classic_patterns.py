@@ -12,18 +12,17 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
-import pytest
 import re
-from dataclasses import asdict
+
+import pytest
 
 from src.ml.classic_patterns import (
-    ClassicVulnType,
-    PatternMatch,
-    PatternConfig,
     CLASSIC_PATTERNS,
     ClassicPatternDetector,
+    ClassicVulnType,
+    PatternConfig,
+    PatternMatch,
 )
-
 
 # =============================================================================
 # Fixtures
@@ -373,12 +372,11 @@ class TestClassicPatternsDB:
     def test_all_enum_types_have_patterns(self):
         """Test that all enum types have pattern configs."""
         for vuln_type in ClassicVulnType:
-            assert vuln_type in CLASSIC_PATTERNS, \
-                f"{vuln_type} missing from CLASSIC_PATTERNS"
+            assert vuln_type in CLASSIC_PATTERNS, f"{vuln_type} missing from CLASSIC_PATTERNS"
 
     def test_all_values_are_configs(self):
         """Test that all values are PatternConfig instances."""
-        for vuln_type, config in CLASSIC_PATTERNS.items():
+        for _vuln_type, config in CLASSIC_PATTERNS.items():
             assert isinstance(config, PatternConfig)
 
     def test_keys_match_config_types(self):
@@ -389,8 +387,7 @@ class TestClassicPatternsDB:
     def test_all_patterns_have_at_least_one_pattern(self):
         """Test that all configs have at least one pattern."""
         for vuln_type, config in CLASSIC_PATTERNS.items():
-            assert len(config.patterns) > 0, \
-                f"{vuln_type} has no patterns"
+            assert len(config.patterns) > 0, f"{vuln_type} has no patterns"
 
     def test_patterns_are_valid_regex(self):
         """Test that all patterns are valid regex."""
@@ -414,15 +411,15 @@ class TestClassicPatternsDB:
         """Test that severities are valid values."""
         valid_severities = {"critical", "high", "medium", "low"}
         for vuln_type, config in CLASSIC_PATTERNS.items():
-            assert config.severity in valid_severities, \
-                f"{vuln_type} has invalid severity: {config.severity}"
+            assert (
+                config.severity in valid_severities
+            ), f"{vuln_type} has invalid severity: {config.severity}"
 
     def test_critical_patterns_have_swc(self):
         """Test that critical severity patterns have SWC IDs."""
         for vuln_type, config in CLASSIC_PATTERNS.items():
             if config.severity == "critical":
-                assert config.swc_id is not None, \
-                    f"Critical pattern {vuln_type} should have swc_id"
+                assert config.swc_id is not None, f"Critical pattern {vuln_type} should have swc_id"
 
     def test_reentrancy_patterns(self):
         """Test reentrancy pattern specifics."""
@@ -534,7 +531,7 @@ class TestClassicPatternDetectorDetect:
         matches = detector.detect(reentrancy_safe_code)
 
         # Should either have no reentrancy or low confidence
-        reentrancy_matches = [m for m in matches if m.vuln_type == ClassicVulnType.REENTRANCY]
+        [m for m in matches if m.vuln_type == ClassicVulnType.REENTRANCY]
 
         # If there are matches, confidence should be reduced by anti-patterns
         # (exact behavior depends on implementation)
@@ -549,8 +546,7 @@ class TestClassicPatternDetectorDetect:
         """Test filtering by specific categories."""
         # Only check for TIMESTAMP (not present in this code)
         matches = detector.detect(
-            reentrancy_vulnerable_code,
-            categories=[ClassicVulnType.TIMESTAMP]
+            reentrancy_vulnerable_code, categories=[ClassicVulnType.TIMESTAMP]
         )
 
         # Should not find reentrancy (filtered out)
@@ -676,7 +672,7 @@ class TestClassicPatternDetectorIntegration:
         matches2 = detector.detect(reentrancy_vulnerable_code)
 
         assert len(matches1) == len(matches2)
-        for m1, m2 in zip(matches1, matches2):
+        for m1, m2 in zip(matches1, matches2, strict=False):
             assert m1.vuln_type == m2.vuln_type
             assert m1.line == m2.line
 
@@ -721,15 +717,18 @@ class TestClassicPatternDetectorIntegration:
 # =============================================================================
 
 
-@pytest.mark.parametrize("vuln_type,swc_id", [
-    (ClassicVulnType.REENTRANCY, "SWC-107"),
-    (ClassicVulnType.ACCESS_CONTROL, "SWC-105"),
-    (ClassicVulnType.ARITHMETIC, "SWC-101"),
-    (ClassicVulnType.UNCHECKED_CALLS, "SWC-104"),
-    (ClassicVulnType.TIMESTAMP, "SWC-116"),
-    (ClassicVulnType.BAD_RANDOMNESS, "SWC-120"),
-    (ClassicVulnType.FRONT_RUNNING, "SWC-114"),
-])
+@pytest.mark.parametrize(
+    "vuln_type,swc_id",
+    [
+        (ClassicVulnType.REENTRANCY, "SWC-107"),
+        (ClassicVulnType.ACCESS_CONTROL, "SWC-105"),
+        (ClassicVulnType.ARITHMETIC, "SWC-101"),
+        (ClassicVulnType.UNCHECKED_CALLS, "SWC-104"),
+        (ClassicVulnType.TIMESTAMP, "SWC-116"),
+        (ClassicVulnType.BAD_RANDOMNESS, "SWC-120"),
+        (ClassicVulnType.FRONT_RUNNING, "SWC-114"),
+    ],
+)
 def test_swc_id_mapping(vuln_type, swc_id):
     """Test that vulnerability types map to correct SWC IDs."""
     config = CLASSIC_PATTERNS.get(vuln_type)
@@ -737,28 +736,34 @@ def test_swc_id_mapping(vuln_type, swc_id):
     assert config.swc_id == swc_id
 
 
-@pytest.mark.parametrize("pattern_str,expected_match", [
-    (r"\.call\s*\{?\s*value\s*:", "msg.sender.call{value: balance}"),
-    (r"tx\.origin", "require(tx.origin == owner)"),
-    (r"block\.timestamp", "if (block.timestamp > deadline)"),
-    (r"blockhash\s*\(", "blockhash(block.number - 1)"),
-])
+@pytest.mark.parametrize(
+    "pattern_str,expected_match",
+    [
+        (r"\.call\s*\{?\s*value\s*:", "msg.sender.call{value: balance}"),
+        (r"tx\.origin", "require(tx.origin == owner)"),
+        (r"block\.timestamp", "if (block.timestamp > deadline)"),
+        (r"blockhash\s*\(", "blockhash(block.number - 1)"),
+    ],
+)
 def test_pattern_matches_expected_code(pattern_str, expected_match):
     """Test that patterns match expected code snippets."""
     regex = re.compile(pattern_str, re.IGNORECASE)
-    assert regex.search(expected_match), \
-        f"Pattern '{pattern_str}' should match '{expected_match}'"
+    assert regex.search(expected_match), f"Pattern '{pattern_str}' should match '{expected_match}'"
 
 
-@pytest.mark.parametrize("severity,count_range", [
-    ("critical", (2, 5)),    # 2-5 critical patterns expected
-    ("high", (1, 5)),        # 1-5 high patterns
-    ("medium", (2, 5)),      # 2-5 medium patterns
-    ("low", (1, 3)),         # 1-3 low patterns
-])
+@pytest.mark.parametrize(
+    "severity,count_range",
+    [
+        ("critical", (2, 5)),  # 2-5 critical patterns expected
+        ("high", (1, 5)),  # 1-5 high patterns
+        ("medium", (2, 5)),  # 2-5 medium patterns
+        ("low", (1, 3)),  # 1-3 low patterns
+    ],
+)
 def test_severity_distribution(severity, count_range):
     """Test that severity distribution is reasonable."""
     count = sum(1 for config in CLASSIC_PATTERNS.values() if config.severity == severity)
     min_count, max_count = count_range
-    assert min_count <= count <= max_count, \
-        f"Expected {min_count}-{max_count} {severity} patterns, got {count}"
+    assert (
+        min_count <= count <= max_count
+    ), f"Expected {min_count}-{max_count} {severity} patterns, got {count}"

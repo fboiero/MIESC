@@ -15,7 +15,6 @@ Date: January 2026
 
 import json
 import tempfile
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -23,8 +22,13 @@ import pytest
 
 from src.adapters.invariant_synthesizer import (
     InvariantCategory,
-    InvariantFormat,
     SynthesizedInvariant,
+)
+from src.ml.invariant_validator import (
+    InvariantTestGenerator,
+    InvariantTestResult,
+    InvariantValidator,
+    ValidationReport,
 )
 from src.ml.ml_invariant_synthesizer import (
     ContractFeatures,
@@ -35,22 +39,12 @@ from src.ml.ml_invariant_synthesizer import (
     TrainingExample,
     extract_contract_features,
     predict_invariants,
-    synthesize_with_ml,
-)
-from src.ml.invariant_validator import (
-    InvariantTestGenerator,
-    InvariantTestResult,
-    InvariantValidator,
-    ValidationReport,
-    validate_invariants,
-    quick_validate,
 )
 from src.poc.validators.foundry_runner import (
     FoundryResult,
     TestResult,
     TestStatus,
 )
-
 
 # ============================================================================
 # Test Fixtures
@@ -60,7 +54,7 @@ from src.poc.validators.foundry_runner import (
 @pytest.fixture
 def sample_erc20_code():
     """Sample ERC20 contract code."""
-    return '''
+    return """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -90,13 +84,13 @@ contract MyToken is ERC20, Ownable {
         return super.balanceOf(account);
     }
 }
-'''
+"""
 
 
 @pytest.fixture
 def sample_erc4626_code():
     """Sample ERC4626 vault contract code."""
-    return '''
+    return """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -128,13 +122,13 @@ contract MyVault is ERC4626, ReentrancyGuard {
         return supply == 0 ? shares : shares * totalAssets() / supply;
     }
 }
-'''
+"""
 
 
 @pytest.fixture
 def sample_defi_code():
     """Sample DeFi contract with flash loans."""
-    return '''
+    return """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -159,7 +153,7 @@ contract FlashLender {
         return oracle.latestAnswer();
     }
 }
-'''
+"""
 
 
 @pytest.fixture
@@ -332,12 +326,12 @@ class TestFeatureExtractor:
 
     def test_detect_external_calls(self):
         """Test external call detection."""
-        code = '''
+        code = """
         function risky() external {
             (bool success,) = target.call{value: 1 ether}("");
             target.delegatecall(data);
         }
-        '''
+        """
         extractor = FeatureExtractor()
         features = extractor.extract(code)
 
@@ -346,7 +340,7 @@ class TestFeatureExtractor:
 
     def test_detect_security_patterns(self):
         """Test security pattern detection."""
-        code = '''
+        code = """
         contract Unsafe {
             function destroy() external {
                 selfdestruct(payable(msg.sender));
@@ -364,7 +358,7 @@ class TestFeatureExtractor:
                 }
             }
         }
-        '''
+        """
         extractor = FeatureExtractor()
         features = extractor.extract(code)
 
@@ -1211,7 +1205,7 @@ class TestEdgeCases:
             assert data_file.exists()
 
             # Create new instance and load
-            synth2 = MLInvariantSynthesizer(
+            MLInvariantSynthesizer(
                 data_dir=Path(tmpdir),
                 collect_training_data=True,
             )

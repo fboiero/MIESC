@@ -18,17 +18,18 @@ Institution: UNDEF - IUA
 Date: January 2026
 """
 
-import re
 import logging
-from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional, Set, Tuple
+import re
+from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class DeFiVulnType(Enum):
     """DeFi-specific vulnerability types."""
+
     FLASH_LOAN_ATTACK = "flash_loan_attack"
     SANDWICH_ATTACK = "sandwich_attack"
     GOVERNANCE_ATTACK = "governance_attack"
@@ -55,6 +56,7 @@ class DeFiVulnType(Enum):
 @dataclass
 class DeFiVulnerabilityPattern:
     """Pattern definition for DeFi vulnerabilities."""
+
     vuln_type: DeFiVulnType
     name: str
     severity: str  # critical, high, medium, low
@@ -71,6 +73,7 @@ class DeFiVulnerabilityPattern:
 @dataclass
 class DeFiPatternMatch:
     """Result of a DeFi pattern match."""
+
     pattern: DeFiVulnerabilityPattern
     matched_indicators: List[Tuple[str, str]]  # (pattern, matched_text)
     matched_anti_patterns: List[Tuple[str, str]]
@@ -134,7 +137,11 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
             "4. Swap back\n"
             "5. Repay flash loan + profit"
         ),
-        real_exploits=["bZx ($8M, 2020)", "Harvest Finance ($34M, 2020)", "Warp Finance ($7.7M, 2020)"],
+        real_exploits=[
+            "bZx ($8M, 2020)",
+            "Harvest Finance ($34M, 2020)",
+            "Warp Finance ($7.7M, 2020)",
+        ],
         remediation=(
             "Use time-weighted average prices (TWAP) from Uniswap V3 or "
             "Chainlink oracles. Implement price deviation checks. "
@@ -143,7 +150,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id="SWC-133",
         estimated_loss_usd="$100M+",
     ),
-
     # =========================================================================
     # SANDWICH ATTACK
     # =========================================================================
@@ -198,7 +204,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id="SWC-114",
         estimated_loss_usd="$1M+/day network-wide",
     ),
-
     # =========================================================================
     # GOVERNANCE ATTACK
     # =========================================================================
@@ -261,7 +266,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id=None,
         estimated_loss_usd="$200M+",
     ),
-
     # =========================================================================
     # BRIDGE VULNERABILITY
     # =========================================================================
@@ -322,7 +326,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id=None,
         estimated_loss_usd="$2B+",
     ),
-
     # =========================================================================
     # ORACLE MANIPULATION
     # =========================================================================
@@ -380,7 +383,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id="SWC-133",
         estimated_loss_usd="$400M+",
     ),
-
     # =========================================================================
     # LIQUIDITY DRAIN
     # =========================================================================
@@ -434,7 +436,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id=None,
         estimated_loss_usd="$100M+",
     ),
-
     # =========================================================================
     # REWARD MANIPULATION (Token Distribution Attack)
     # =========================================================================
@@ -489,7 +490,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id=None,
         estimated_loss_usd="$50M+",
     ),
-
     # =========================================================================
     # DONATION ATTACK (ERC4626 Vault Attack)
     # =========================================================================
@@ -543,7 +543,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id=None,
         estimated_loss_usd="$10M+",
     ),
-
     # =========================================================================
     # INFLATION ATTACK
     # =========================================================================
@@ -599,7 +598,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id=None,
         estimated_loss_usd="$200M+",
     ),
-
     # =========================================================================
     # READ-ONLY REENTRANCY (v4.4.0)
     # =========================================================================
@@ -661,7 +659,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id="SWC-107",
         estimated_loss_usd="$100M+",
     ),
-
     # =========================================================================
     # ERC4626 INFLATION ATTACK (v4.4.0)
     # =========================================================================
@@ -725,7 +722,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id=None,
         estimated_loss_usd="$50M+",
     ),
-
     # =========================================================================
     # ARBITRARY EXTERNAL CALL (v4.4.0)
     # =========================================================================
@@ -789,7 +785,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id="SWC-112",
         estimated_loss_usd="$20M+",
     ),
-
     # =========================================================================
     # PRECISION LOSS (v4.4.0)
     # =========================================================================
@@ -851,7 +846,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id="SWC-101",
         estimated_loss_usd="$50M+",
     ),
-
     # =========================================================================
     # CROSS-FUNCTION REENTRANCY (v4.4.0)
     # =========================================================================
@@ -910,7 +904,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id="SWC-107",
         estimated_loss_usd="$150M+",
     ),
-
     # =========================================================================
     # SIGNATURE REPLAY (v4.4.0)
     # =========================================================================
@@ -968,7 +961,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id="SWC-121",
         estimated_loss_usd="$30M+",
     ),
-
     # =========================================================================
     # FIRST DEPOSITOR ATTACK (v4.4.0)
     # =========================================================================
@@ -1028,7 +1020,6 @@ DEFI_VULNERABILITY_PATTERNS: Dict[DeFiVulnType, DeFiVulnerabilityPattern] = {
         swc_id=None,
         estimated_loss_usd="$20M+",
     ),
-
     # =========================================================================
     # STORAGE COLLISION (v4.4.0)
     # =========================================================================
@@ -1124,9 +1115,7 @@ class DeFiPatternDetector:
         self._compiled_patterns: Dict[DeFiVulnType, Dict[str, List[re.Pattern]]] = {}
         self._compile_patterns()
 
-        logger.info(
-            f"DeFiPatternDetector initialized with {len(self.enabled_patterns)} patterns"
-        )
+        logger.info(f"DeFiPatternDetector initialized with {len(self.enabled_patterns)} patterns")
 
     def _compile_patterns(self) -> None:
         """Pre-compile regex patterns for performance."""
@@ -1136,12 +1125,10 @@ class DeFiPatternDetector:
 
             self._compiled_patterns[vuln_type] = {
                 "indicators": [
-                    re.compile(p, re.IGNORECASE | re.MULTILINE)
-                    for p in pattern.indicators
+                    re.compile(p, re.IGNORECASE | re.MULTILINE) for p in pattern.indicators
                 ],
                 "anti_patterns": [
-                    re.compile(p, re.IGNORECASE | re.MULTILINE)
-                    for p in pattern.anti_patterns
+                    re.compile(p, re.IGNORECASE | re.MULTILINE) for p in pattern.anti_patterns
                 ],
             }
 
@@ -1181,9 +1168,7 @@ class DeFiPatternDetector:
                     anti_matches.append((regex.pattern, match.group(0)))
 
             # Calculate confidence
-            confidence = self._calculate_confidence(
-                indicator_matches, anti_matches, pattern_def
-            )
+            confidence = self._calculate_confidence(indicator_matches, anti_matches, pattern_def)
 
             if confidence < self.min_confidence:
                 continue
@@ -1198,20 +1183,22 @@ class DeFiPatternDetector:
             # Extract code snippet around the match
             snippet = self._extract_snippet(code, first_match_text)
 
-            matches.append(DeFiPatternMatch(
-                pattern=pattern_def,
-                matched_indicators=indicator_matches,
-                matched_anti_patterns=anti_matches,
-                confidence=confidence,
-                location={
-                    "file": file_path or "unknown",
-                    "line": line_number,
-                    "pattern_type": vuln_type.value,
-                },
-                code_snippet=snippet,
-                is_vulnerable=is_vulnerable,
-                recommendation=pattern_def.remediation,
-            ))
+            matches.append(
+                DeFiPatternMatch(
+                    pattern=pattern_def,
+                    matched_indicators=indicator_matches,
+                    matched_anti_patterns=anti_matches,
+                    confidence=confidence,
+                    location={
+                        "file": file_path or "unknown",
+                        "line": line_number,
+                        "pattern_type": vuln_type.value,
+                    },
+                    code_snippet=snippet,
+                    is_vulnerable=is_vulnerable,
+                    recommendation=pattern_def.remediation,
+                )
+            )
 
         # Sort by confidence (highest first)
         matches.sort(key=lambda m: -m.confidence)
@@ -1256,7 +1243,7 @@ class DeFiPatternDetector:
         try:
             pos = code.find(match_text)
             if pos >= 0:
-                return code[:pos].count('\n') + 1
+                return code[:pos].count("\n") + 1
         except Exception:
             pass
         return 0
@@ -1264,13 +1251,13 @@ class DeFiPatternDetector:
     def _extract_snippet(self, code: str, match_text: str, context_lines: int = 3) -> str:
         """Extract code snippet around the match."""
         try:
-            lines = code.split('\n')
+            lines = code.split("\n")
             pos = code.find(match_text)
             if pos >= 0:
-                line_num = code[:pos].count('\n')
+                line_num = code[:pos].count("\n")
                 start = max(0, line_num - context_lines)
                 end = min(len(lines), line_num + context_lines + 1)
-                return '\n'.join(lines[start:end])
+                return "\n".join(lines[start:end])
         except Exception:
             pass
         return match_text

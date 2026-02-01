@@ -30,16 +30,21 @@ Paper: ICSE 2023 - Peculiar: Smart Contract Vulnerability Detection via
        Heterogeneous Graph Neural Network
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional, Tuple, Set
-import logging
-import json
-import time
-import re
 import hashlib
+import json
+import logging
+import re
+import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -164,9 +169,9 @@ class PeculiarAdapter(ToolAdapter):
     NODE_TYPE_MODIFIER = "modifier"
 
     # Edge type constants for the heterogeneous graph
-    EDGE_TYPE_AST = "ast"       # Abstract syntax tree edges
-    EDGE_TYPE_CFG = "cfg"       # Control flow graph edges
-    EDGE_TYPE_DFG = "dfg"       # Data flow graph edges
+    EDGE_TYPE_AST = "ast"  # Abstract syntax tree edges
+    EDGE_TYPE_CFG = "cfg"  # Control flow graph edges
+    EDGE_TYPE_DFG = "dfg"  # Data flow graph edges
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """
@@ -181,9 +186,7 @@ class PeculiarAdapter(ToolAdapter):
         """
         super().__init__()
         self.config = config or {}
-        self.model_dir = Path(
-            self.config.get("model_dir", str(DEFAULT_MODEL_DIR))
-        )
+        self.model_dir = Path(self.config.get("model_dir", str(DEFAULT_MODEL_DIR)))
         self.confidence_threshold = self.config.get("confidence_threshold", 0.65)
         self.enable_taint_analysis = self.config.get("enable_taint_analysis", True)
         self.max_graph_nodes = self.config.get("max_graph_nodes", 5000)
@@ -200,12 +203,10 @@ class PeculiarAdapter(ToolAdapter):
             homepage="https://github.com/fboiero/MIESC",
             repository="https://github.com/fboiero/MIESC",
             documentation=(
-                "https://github.com/fboiero/MIESC/blob/main/"
-                "docs/TOOL_INTEGRATION_GUIDE.md"
+                "https://github.com/fboiero/MIESC/blob/main/" "docs/TOOL_INTEGRATION_GUIDE.md"
             ),
             installation_cmd=(
-                "pip install torch torch-geometric networkx && "
-                "miesc models download peculiar"
+                "pip install torch torch-geometric networkx && " "miesc models download peculiar"
             ),
             capabilities=[
                 ToolCapability(
@@ -233,15 +234,14 @@ class PeculiarAdapter(ToolAdapter):
         """
         model_available = self._check_model_files()
         if model_available:
-            logger.info(
-                "Peculiar: Pre-trained GNN model found at %s", self.model_dir
-            )
+            logger.info("Peculiar: Pre-trained GNN model found at %s", self.model_dir)
         else:
             logger.warning(
                 "Peculiar: No GNN model found at %s. Using pattern-based fallback "
                 "(reduced accuracy). To enable full GNN inference, place model files "
                 "in %s/",
-                self.model_dir, self.model_dir,
+                self.model_dir,
+                self.model_dir,
             )
         return ToolStatus.AVAILABLE
 
@@ -262,7 +262,7 @@ class PeculiarAdapter(ToolAdapter):
             Normalized result dict with tool name, status, findings, and metadata.
         """
         start_time = time.time()
-        timeout = kwargs.get("timeout", 120)
+        kwargs.get("timeout", 120)
 
         try:
             source_code = self._read_source(contract_path)
@@ -286,15 +286,11 @@ class PeculiarAdapter(ToolAdapter):
                 raw_predictions = self._run_gnn_inference(graph)
                 analysis_mode = "gnn_model"
             else:
-                raw_predictions = self._run_pattern_analysis(
-                    graph, source_code
-                )
+                raw_predictions = self._run_pattern_analysis(graph, source_code)
                 analysis_mode = "pattern_fallback"
 
             # Step 3: Convert predictions to normalized findings
-            findings = self._predictions_to_findings(
-                raw_predictions, contract_path, source_code
-            )
+            findings = self._predictions_to_findings(raw_predictions, contract_path, source_code)
 
             execution_time = round(time.time() - start_time, 3)
 
@@ -348,33 +344,33 @@ class PeculiarAdapter(ToolAdapter):
                 confidence = entry.get("confidence", 0.0)
                 if confidence < self.confidence_threshold:
                     continue
-                normalized.append({
-                    "id": entry.get(
-                        "id",
-                        f"PECULIAR-{vuln_type.upper()}-{idx:04d}",
-                    ),
-                    "type": vuln_type,
-                    "severity": entry.get(
-                        "severity", vuln_meta.get("severity", "Medium")
-                    ),
-                    "confidence": round(confidence, 3),
-                    "location": entry.get("location", {}),
-                    "message": entry.get(
-                        "message",
-                        vuln_meta.get("description", "Vulnerability detected"),
-                    ),
-                    "description": entry.get(
-                        "description",
-                        vuln_meta.get("description", ""),
-                    ),
-                    "recommendation": entry.get(
-                        "recommendation",
-                        vuln_meta.get("recommendation", "Review code"),
-                    ),
-                    "swc_id": vuln_meta.get("swc_id"),
-                    "cwe_id": vuln_meta.get("cwe_id"),
-                    "owasp_category": vuln_meta.get("owasp_category"),
-                })
+                normalized.append(
+                    {
+                        "id": entry.get(
+                            "id",
+                            f"PECULIAR-{vuln_type.upper()}-{idx:04d}",
+                        ),
+                        "type": vuln_type,
+                        "severity": entry.get("severity", vuln_meta.get("severity", "Medium")),
+                        "confidence": round(confidence, 3),
+                        "location": entry.get("location", {}),
+                        "message": entry.get(
+                            "message",
+                            vuln_meta.get("description", "Vulnerability detected"),
+                        ),
+                        "description": entry.get(
+                            "description",
+                            vuln_meta.get("description", ""),
+                        ),
+                        "recommendation": entry.get(
+                            "recommendation",
+                            vuln_meta.get("recommendation", "Review code"),
+                        ),
+                        "swc_id": vuln_meta.get("swc_id"),
+                        "cwe_id": vuln_meta.get("cwe_id"),
+                        "owasp_category": vuln_meta.get("owasp_category"),
+                    }
+                )
             return normalized
 
         return []
@@ -421,9 +417,7 @@ class PeculiarAdapter(ToolAdapter):
     # Heterogeneous code graph construction
     # =========================================================================
 
-    def _build_code_graph(
-        self, source_code: str, contract_path: str
-    ) -> Dict[str, Any]:
+    def _build_code_graph(self, source_code: str, contract_path: str) -> Dict[str, Any]:
         """
         Build a heterogeneous code property graph from Solidity source.
 
@@ -443,14 +437,16 @@ class PeculiarAdapter(ToolAdapter):
         # Parse state variables at the contract level
         state_variables = self._extract_state_variables(source_code)
         for sv in state_variables:
-            nodes.append({
-                "id": len(nodes),
-                "type": self.NODE_TYPE_VARIABLE,
-                "name": sv["name"],
-                "line": sv["line"],
-                "data_type": sv["data_type"],
-                "visibility": sv.get("visibility", "internal"),
-            })
+            nodes.append(
+                {
+                    "id": len(nodes),
+                    "type": self.NODE_TYPE_VARIABLE,
+                    "name": sv["name"],
+                    "line": sv["line"],
+                    "data_type": sv["data_type"],
+                    "visibility": sv.get("visibility", "internal"),
+                }
+            )
 
         # Parse functions and modifiers
         func_entries = self._extract_functions(source_code)
@@ -459,15 +455,17 @@ class PeculiarAdapter(ToolAdapter):
             func["node_id"] = func_node_id
             functions.append(func)
 
-            nodes.append({
-                "id": func_node_id,
-                "type": self.NODE_TYPE_FUNCTION,
-                "name": func["name"],
-                "line": func["start_line"],
-                "visibility": func.get("visibility", "public"),
-                "modifiers": func.get("modifiers", []),
-                "is_payable": func.get("is_payable", False),
-            })
+            nodes.append(
+                {
+                    "id": func_node_id,
+                    "type": self.NODE_TYPE_FUNCTION,
+                    "name": func["name"],
+                    "line": func["start_line"],
+                    "visibility": func.get("visibility", "public"),
+                    "modifiers": func.get("modifiers", []),
+                    "is_payable": func.get("is_payable", False),
+                }
+            )
 
             # Build AST-like, CFG, and DFG edges within the function body
             body_nodes, body_edges = self._parse_function_body(
@@ -477,23 +475,18 @@ class PeculiarAdapter(ToolAdapter):
             edges.extend(body_edges)
 
         # Build inter-function call edges (CFG)
-        edges.extend(
-            self._build_inter_function_edges(functions, source_code)
-        )
+        edges.extend(self._build_inter_function_edges(functions, source_code))
 
         # Build taint-based DFG edges if enabled
         if self.enable_taint_analysis:
-            edges.extend(
-                self._build_taint_edges(
-                    nodes, functions, state_variables, source_code
-                )
-            )
+            edges.extend(self._build_taint_edges(nodes, functions, state_variables, source_code))
 
         # Truncate if graph is too large
         if len(nodes) > self.max_graph_nodes:
             logger.warning(
                 "Graph has %d nodes, truncating to %d",
-                len(nodes), self.max_graph_nodes,
+                len(nodes),
+                self.max_graph_nodes,
             )
             nodes = nodes[: self.max_graph_nodes]
 
@@ -504,9 +497,7 @@ class PeculiarAdapter(ToolAdapter):
             "state_variables": state_variables,
         }
 
-    def _extract_state_variables(
-        self, source_code: str
-    ) -> List[Dict[str, Any]]:
+    def _extract_state_variables(self, source_code: str) -> List[Dict[str, Any]]:
         """Extract contract-level state variable declarations."""
         variables: List[Dict[str, Any]] = []
         # Match common state variable declarations
@@ -520,17 +511,17 @@ class PeculiarAdapter(ToolAdapter):
         )
         for match in pattern.finditer(source_code):
             line_num = source_code[: match.start()].count("\n") + 1
-            variables.append({
-                "name": match.group(3),
-                "data_type": match.group(1).strip(),
-                "visibility": match.group(2) or "internal",
-                "line": line_num,
-            })
+            variables.append(
+                {
+                    "name": match.group(3),
+                    "data_type": match.group(1).strip(),
+                    "visibility": match.group(2) or "internal",
+                    "line": line_num,
+                }
+            )
         return variables
 
-    def _extract_functions(
-        self, source_code: str
-    ) -> List[Dict[str, Any]]:
+    def _extract_functions(self, source_code: str) -> List[Dict[str, Any]]:
         """
         Extract function definitions with metadata.
 
@@ -566,28 +557,35 @@ class PeculiarAdapter(ToolAdapter):
 
             # Determine modifiers (words in qualifiers that are not keywords)
             sol_keywords = {
-                "public", "private", "internal", "external",
-                "view", "pure", "payable", "virtual", "override",
+                "public",
+                "private",
+                "internal",
+                "external",
+                "view",
+                "pure",
+                "payable",
+                "virtual",
+                "override",
                 "returns",
             }
             modifier_tokens = re.findall(r"(\w+)", qualifiers_raw)
-            modifiers = [
-                m for m in modifier_tokens if m not in sol_keywords
-            ]
+            modifiers = [m for m in modifier_tokens if m not in sol_keywords]
 
             is_payable = "payable" in qualifiers_raw
 
-            functions.append({
-                "name": name,
-                "params": params,
-                "visibility": visibility,
-                "modifiers": modifiers,
-                "is_payable": is_payable,
-                "start_line": start_line,
-                "body": body,
-                "body_start_offset": body_start,
-                "body_end_offset": body_end,
-            })
+            functions.append(
+                {
+                    "name": name,
+                    "params": params,
+                    "visibility": visibility,
+                    "modifiers": modifiers,
+                    "is_payable": is_payable,
+                    "start_line": start_line,
+                    "body": body,
+                    "body_start_offset": body_start,
+                    "body_end_offset": body_end,
+                }
+            )
 
         return functions
 
@@ -602,7 +600,7 @@ class PeculiarAdapter(ToolAdapter):
             elif ch == "}":
                 depth -= 1
             pos += 1
-        return source[start: pos - 1] if depth == 0 else source[start:]
+        return source[start : pos - 1] if depth == 0 else source[start:]
 
     def _parse_function_body(
         self,
@@ -649,19 +647,23 @@ class PeculiarAdapter(ToolAdapter):
             nodes.append(stmt_node)
 
             # AST edge: function -> statement
-            edges.append({
-                "from": func_node_id,
-                "to": current_id,
-                "type": self.EDGE_TYPE_AST,
-            })
+            edges.append(
+                {
+                    "from": func_node_id,
+                    "to": current_id,
+                    "type": self.EDGE_TYPE_AST,
+                }
+            )
 
             # CFG edge: sequential flow between statements
             if prev_stmt_id is not None:
-                edges.append({
-                    "from": prev_stmt_id,
-                    "to": current_id,
-                    "type": self.EDGE_TYPE_CFG,
-                })
+                edges.append(
+                    {
+                        "from": prev_stmt_id,
+                        "to": current_id,
+                        "type": self.EDGE_TYPE_CFG,
+                    }
+                )
 
             prev_stmt_id = current_id
             current_id += 1
@@ -719,20 +721,20 @@ class PeculiarAdapter(ToolAdapter):
     ) -> List[Dict[str, Any]]:
         """Build CFG edges between functions based on call relationships."""
         edges: List[Dict[str, Any]] = []
-        func_name_to_id = {
-            f["name"]: f["node_id"] for f in functions
-        }
+        func_name_to_id = {f["name"]: f["node_id"] for f in functions}
 
         for func in functions:
             body = func.get("body", "")
             for called in re.findall(r"(\w+)\s*\(", body):
                 if called in func_name_to_id and called != func["name"]:
-                    edges.append({
-                        "from": func["node_id"],
-                        "to": func_name_to_id[called],
-                        "type": self.EDGE_TYPE_CFG,
-                        "subtype": "function_call",
-                    })
+                    edges.append(
+                        {
+                            "from": func["node_id"],
+                            "to": func_name_to_id[called],
+                            "type": self.EDGE_TYPE_CFG,
+                            "subtype": "function_call",
+                        }
+                    )
         return edges
 
     def _build_taint_edges(
@@ -753,8 +755,12 @@ class PeculiarAdapter(ToolAdapter):
         state_var_names: Set[str] = {sv["name"] for sv in state_variables}
 
         taint_sources = {
-            "msg.sender", "msg.value", "tx.origin",
-            "block.timestamp", "block.number", "now",
+            "msg.sender",
+            "msg.value",
+            "tx.origin",
+            "block.timestamp",
+            "block.number",
+            "now",
         }
 
         for func in functions:
@@ -782,20 +788,20 @@ class PeculiarAdapter(ToolAdapter):
                 for src in taint_sources:
                     if src in stmt:
                         # If this is an assignment, taint the left-hand side
-                        assign_match = re.match(
-                            r"(\w+)\s*=\s*.*" + re.escape(src), stmt
-                        )
+                        assign_match = re.match(r"(\w+)\s*=\s*.*" + re.escape(src), stmt)
                         if assign_match:
                             tainted_vars.add(assign_match.group(1))
 
                         # DFG edge: taint source -> function
-                        edges.append({
-                            "from": func_id,
-                            "to": func_id,
-                            "type": self.EDGE_TYPE_DFG,
-                            "subtype": "taint_source",
-                            "taint": src,
-                        })
+                        edges.append(
+                            {
+                                "from": func_id,
+                                "to": func_id,
+                                "type": self.EDGE_TYPE_DFG,
+                                "subtype": "taint_source",
+                                "taint": src,
+                            }
+                        )
 
                 # Check if a tainted variable flows into a state change
                 for tv in tainted_vars:
@@ -803,28 +809,28 @@ class PeculiarAdapter(ToolAdapter):
                         # Check for state variable write
                         for sv_name in state_var_names:
                             if sv_name in stmt and "=" in stmt and "==" not in stmt:
-                                edges.append({
+                                edges.append(
+                                    {
+                                        "from": func_id,
+                                        "to": func_id,
+                                        "type": self.EDGE_TYPE_DFG,
+                                        "subtype": "taint_sink_state_write",
+                                        "tainted_var": tv,
+                                        "state_var": sv_name,
+                                    }
+                                )
+
+                        # Check for flow into external call
+                        if ".call(" in stmt or ".send(" in stmt or ".transfer(" in stmt:
+                            edges.append(
+                                {
                                     "from": func_id,
                                     "to": func_id,
                                     "type": self.EDGE_TYPE_DFG,
-                                    "subtype": "taint_sink_state_write",
+                                    "subtype": "taint_sink_external_call",
                                     "tainted_var": tv,
-                                    "state_var": sv_name,
-                                })
-
-                        # Check for flow into external call
-                        if (
-                            ".call(" in stmt
-                            or ".send(" in stmt
-                            or ".transfer(" in stmt
-                        ):
-                            edges.append({
-                                "from": func_id,
-                                "to": func_id,
-                                "type": self.EDGE_TYPE_DFG,
-                                "subtype": "taint_sink_external_call",
-                                "tainted_var": tv,
-                            })
+                                }
+                            )
 
         return edges
 
@@ -832,9 +838,7 @@ class PeculiarAdapter(ToolAdapter):
     # GNN inference (requires model files)
     # =========================================================================
 
-    def _run_gnn_inference(
-        self, graph: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+    def _run_gnn_inference(self, graph: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Run the pre-trained Peculiar GNN model on the code graph.
 
@@ -850,9 +854,7 @@ class PeculiarAdapter(ToolAdapter):
             with open(config_path, "r", encoding="utf-8") as fh:
                 model_config = json.load(fh)
 
-            state_dict = torch.load(
-                weights_path, map_location=torch.device("cpu")
-            )
+            state_dict = torch.load(weights_path, map_location=torch.device("cpu"))
             logger.info(
                 "Loaded Peculiar model: %d parameters",
                 sum(p.numel() for p in state_dict.values()),
@@ -862,15 +864,9 @@ class PeculiarAdapter(ToolAdapter):
             node_features = self._graph_to_tensor(graph, model_config)
 
             # Build adjacency info per edge type
-            edge_index_ast = self._edge_index_for_type(
-                graph["edges"], self.EDGE_TYPE_AST
-            )
-            edge_index_cfg = self._edge_index_for_type(
-                graph["edges"], self.EDGE_TYPE_CFG
-            )
-            edge_index_dfg = self._edge_index_for_type(
-                graph["edges"], self.EDGE_TYPE_DFG
-            )
+            edge_index_ast = self._edge_index_for_type(graph["edges"], self.EDGE_TYPE_AST)
+            edge_index_cfg = self._edge_index_for_type(graph["edges"], self.EDGE_TYPE_CFG)
+            edge_index_dfg = self._edge_index_for_type(graph["edges"], self.EDGE_TYPE_DFG)
 
             # Perform message passing (simplified forward pass)
             # In production, this would instantiate the heterogeneous GNN
@@ -889,14 +885,10 @@ class PeculiarAdapter(ToolAdapter):
             return predictions
 
         except Exception as exc:
-            logger.warning(
-                "GNN inference failed (%s), falling back to patterns", exc
-            )
+            logger.warning("GNN inference failed (%s), falling back to patterns", exc)
             return self._run_pattern_analysis(graph, "")
 
-    def _graph_to_tensor(
-        self, graph: Dict[str, Any], model_config: Dict[str, Any]
-    ) -> Any:
+    def _graph_to_tensor(self, graph: Dict[str, Any], model_config: Dict[str, Any]) -> Any:
         """Convert graph node features to a torch tensor."""
         import torch
 
@@ -970,7 +962,7 @@ class PeculiarAdapter(ToolAdapter):
         import torch
 
         predictions: List[Dict[str, Any]] = []
-        num_classes = len(self.VULNERABILITY_TYPES)
+        len(self.VULNERABILITY_TYPES)
         vuln_types = list(self.VULNERABILITY_TYPES.keys())
 
         # Use first linear layer from state dict if available
@@ -1001,11 +993,13 @@ class PeculiarAdapter(ToolAdapter):
                 else:
                     prob = 0.0
                 if prob >= self.confidence_threshold:
-                    predictions.append({
-                        "type": vuln_type,
-                        "confidence": round(prob, 4),
-                        "source": "gnn_model",
-                    })
+                    predictions.append(
+                        {
+                            "type": vuln_type,
+                            "confidence": round(prob, 4),
+                            "source": "gnn_model",
+                        }
+                    )
         else:
             logger.warning("No classifier weights found in model, using heuristic scoring")
             # Fall through to pattern analysis via caller
@@ -1064,9 +1058,7 @@ class PeculiarAdapter(ToolAdapter):
 
         return predictions
 
-    def _pattern_reentrancy(
-        self, graph: Dict[str, Any], source: str
-    ) -> List[Dict[str, Any]]:
+    def _pattern_reentrancy(self, graph: Dict[str, Any], source: str) -> List[Dict[str, Any]]:
         """
         Detect reentrancy via graph structure: external call followed by
         state variable assignment in the same function.
@@ -1093,9 +1085,7 @@ class PeculiarAdapter(ToolAdapter):
 
                 # After an external call, detect state changes
                 if found_external_call and "=" in stmt_stripped and "==" not in stmt_stripped:
-                    state_var_names = {
-                        sv["name"] for sv in graph.get("state_variables", [])
-                    }
+                    state_var_names = {sv["name"] for sv in graph.get("state_variables", [])}
                     for sv in state_var_names:
                         if sv in stmt_stripped:
                             confidence = 0.90
@@ -1105,31 +1095,29 @@ class PeculiarAdapter(ToolAdapter):
                                 for m in func.get("modifiers", [])
                             ):
                                 confidence = 0.95
-                            findings.append({
-                                "type": "reentrancy",
-                                "confidence": confidence,
-                                "function": func["name"],
-                                "line": call_line,
-                                "detail": (
-                                    f"State variable '{sv}' modified after "
-                                    f"external call in {func['name']}()"
-                                ),
-                                "source": "pattern_analysis",
-                            })
+                            findings.append(
+                                {
+                                    "type": "reentrancy",
+                                    "confidence": confidence,
+                                    "function": func["name"],
+                                    "line": call_line,
+                                    "detail": (
+                                        f"State variable '{sv}' modified after "
+                                        f"external call in {func['name']}()"
+                                    ),
+                                    "source": "pattern_analysis",
+                                }
+                            )
                             break
 
         return findings
 
-    def _pattern_integer_overflow(
-        self, source: str
-    ) -> List[Dict[str, Any]]:
+    def _pattern_integer_overflow(self, source: str) -> List[Dict[str, Any]]:
         """Detect integer overflow in pre-0.8.0 contracts without SafeMath."""
         findings: List[Dict[str, Any]] = []
 
         # Check pragma for Solidity version
-        version_match = re.search(
-            r"pragma\s+solidity\s+[\^~>=<]*\s*(0\.(\d+)\.\d+)", source
-        )
+        version_match = re.search(r"pragma\s+solidity\s+[\^~>=<]*\s*(0\.(\d+)\.\d+)", source)
         if version_match:
             minor = int(version_match.group(2))
             if minor >= 8:
@@ -1140,22 +1128,22 @@ class PeculiarAdapter(ToolAdapter):
             return findings
 
         # Look for arithmetic operations
-        arith_pattern = re.compile(
-            r"(\w+)\s*=\s*(\w+)\s*([+\-*])\s*(\w+)", re.MULTILINE
-        )
+        arith_pattern = re.compile(r"(\w+)\s*=\s*(\w+)\s*([+\-*])\s*(\w+)", re.MULTILINE)
         for match in arith_pattern.finditer(source):
             line_num = source[: match.start()].count("\n") + 1
             operator = match.group(3)
-            findings.append({
-                "type": "integer_overflow",
-                "confidence": 0.80,
-                "line": line_num,
-                "detail": (
-                    f"Unchecked arithmetic '{operator}' at line {line_num} "
-                    f"in pre-0.8 contract without SafeMath"
-                ),
-                "source": "pattern_analysis",
-            })
+            findings.append(
+                {
+                    "type": "integer_overflow",
+                    "confidence": 0.80,
+                    "line": line_num,
+                    "detail": (
+                        f"Unchecked arithmetic '{operator}' at line {line_num} "
+                        f"in pre-0.8 contract without SafeMath"
+                    ),
+                    "source": "pattern_analysis",
+                }
+            )
 
         # Deduplicate: keep highest confidence per type
         if len(findings) > 1:
@@ -1163,9 +1151,7 @@ class PeculiarAdapter(ToolAdapter):
 
         return findings
 
-    def _pattern_access_control(
-        self, graph: Dict[str, Any], source: str
-    ) -> List[Dict[str, Any]]:
+    def _pattern_access_control(self, graph: Dict[str, Any], source: str) -> List[Dict[str, Any]]:
         """
         Detect missing access control on privileged operations.
 
@@ -1174,23 +1160,33 @@ class PeculiarAdapter(ToolAdapter):
         """
         findings: List[Dict[str, Any]] = []
         privileged_keywords = [
-            "selfdestruct", "suicide", "mint", "burn", "pause",
-            "unpause", "setOwner", "transferOwnership", "withdraw",
-            "upgradeTo", "setAdmin", "setPrice",
+            "selfdestruct",
+            "suicide",
+            "mint",
+            "burn",
+            "pause",
+            "unpause",
+            "setOwner",
+            "transferOwnership",
+            "withdraw",
+            "upgradeTo",
+            "setAdmin",
+            "setPrice",
         ]
         access_modifiers = {
-            "onlyowner", "onlyadmin", "onlyrole", "onlyminter",
-            "onlypauser", "onlygovernance", "nonreentrant",
+            "onlyowner",
+            "onlyadmin",
+            "onlyrole",
+            "onlyminter",
+            "onlypauser",
+            "onlygovernance",
+            "nonreentrant",
         }
 
         for func in graph.get("functions", []):
             body = func.get("body", "")
-            func_modifiers_lower = {
-                m.lower() for m in func.get("modifiers", [])
-            }
-            has_access_control = bool(
-                func_modifiers_lower & access_modifiers
-            )
+            func_modifiers_lower = {m.lower() for m in func.get("modifiers", [])}
+            has_access_control = bool(func_modifiers_lower & access_modifiers)
 
             # Check for require(msg.sender == ...) in body as inline guard
             if "require(msg.sender" in body or "require(msg.sender ==" in body:
@@ -1201,38 +1197,34 @@ class PeculiarAdapter(ToolAdapter):
 
             for keyword in privileged_keywords:
                 if keyword.lower() in body.lower() or keyword.lower() in func["name"].lower():
-                    findings.append({
-                        "type": "access_control",
-                        "confidence": 0.85,
-                        "function": func["name"],
-                        "line": func["start_line"],
-                        "detail": (
-                            f"Function {func['name']}() contains "
-                            f"privileged operation '{keyword}' without "
-                            f"access control modifier"
-                        ),
-                        "source": "pattern_analysis",
-                    })
+                    findings.append(
+                        {
+                            "type": "access_control",
+                            "confidence": 0.85,
+                            "function": func["name"],
+                            "line": func["start_line"],
+                            "detail": (
+                                f"Function {func['name']}() contains "
+                                f"privileged operation '{keyword}' without "
+                                f"access control modifier"
+                            ),
+                            "source": "pattern_analysis",
+                        }
+                    )
                     break  # One finding per function
 
         return findings
 
-    def _pattern_unchecked_return(
-        self, graph: Dict[str, Any], source: str
-    ) -> List[Dict[str, Any]]:
+    def _pattern_unchecked_return(self, graph: Dict[str, Any], source: str) -> List[Dict[str, Any]]:
         """Detect unchecked return values from low-level calls."""
         findings: List[Dict[str, Any]] = []
 
         for func in graph.get("functions", []):
             body = func.get("body", "")
             # Find .call( patterns
-            for call_match in re.finditer(
-                r"\.call[({]", body
-            ):
+            for call_match in re.finditer(r"\.call[({]", body):
                 context_start = max(0, call_match.start() - 80)
-                context_end = min(
-                    len(body), call_match.end() + 120
-                )
+                context_end = min(len(body), call_match.end() + 120)
                 context = body[context_start:context_end]
 
                 # Check if return value is captured and checked
@@ -1246,17 +1238,18 @@ class PeculiarAdapter(ToolAdapter):
                 )
                 if not is_checked:
                     line_offset = body[: call_match.start()].count("\n")
-                    findings.append({
-                        "type": "unchecked_return",
-                        "confidence": 0.82,
-                        "function": func["name"],
-                        "line": func["start_line"] + line_offset + 1,
-                        "detail": (
-                            f"Unchecked return value of .call() in "
-                            f"{func['name']}()"
-                        ),
-                        "source": "pattern_analysis",
-                    })
+                    findings.append(
+                        {
+                            "type": "unchecked_return",
+                            "confidence": 0.82,
+                            "function": func["name"],
+                            "line": func["start_line"] + line_offset + 1,
+                            "detail": (
+                                f"Unchecked return value of .call() in " f"{func['name']}()"
+                            ),
+                            "source": "pattern_analysis",
+                        }
+                    )
 
         return findings
 
@@ -1273,30 +1266,28 @@ class PeculiarAdapter(ToolAdapter):
                 if ref in body:
                     # Check if used in conditional or comparison
                     for cond_match in re.finditer(
-                        r"(if|require|assert)\s*\([^)]*"
-                        + re.escape(ref)
-                        + r"[^)]*\)",
+                        r"(if|require|assert)\s*\([^)]*" + re.escape(ref) + r"[^)]*\)",
                         body,
                     ):
                         line_offset = body[: cond_match.start()].count("\n")
-                        findings.append({
-                            "type": "timestamp_dependence",
-                            "confidence": 0.78,
-                            "function": func["name"],
-                            "line": func["start_line"] + line_offset + 1,
-                            "detail": (
-                                f"'{ref}' used in conditional logic in "
-                                f"{func['name']}(). Miners can manipulate "
-                                f"block timestamps by ~15 seconds."
-                            ),
-                            "source": "pattern_analysis",
-                        })
+                        findings.append(
+                            {
+                                "type": "timestamp_dependence",
+                                "confidence": 0.78,
+                                "function": func["name"],
+                                "line": func["start_line"] + line_offset + 1,
+                                "detail": (
+                                    f"'{ref}' used in conditional logic in "
+                                    f"{func['name']}(). Miners can manipulate "
+                                    f"block timestamps by ~15 seconds."
+                                ),
+                                "source": "pattern_analysis",
+                            }
+                        )
 
         return findings
 
-    def _pattern_tx_origin(
-        self, graph: Dict[str, Any], source: str
-    ) -> List[Dict[str, Any]]:
+    def _pattern_tx_origin(self, graph: Dict[str, Any], source: str) -> List[Dict[str, Any]]:
         """Detect tx.origin used for authentication."""
         findings: List[Dict[str, Any]] = []
 
@@ -1304,25 +1295,27 @@ class PeculiarAdapter(ToolAdapter):
             body = func.get("body", "")
             for match in re.finditer(r"tx\.origin", body):
                 line_offset = body[: match.start()].count("\n")
-                context = body[
-                    max(0, match.start() - 40): match.end() + 40
-                ]
+                context = body[max(0, match.start() - 40) : match.end() + 40]
                 # Higher confidence if used in require/if
-                conf = 0.88 if (
-                    "require(" in context or "if(" in context or "if (" in context
-                ) else 0.75
-                findings.append({
-                    "type": "tx_origin",
-                    "confidence": conf,
-                    "function": func["name"],
-                    "line": func["start_line"] + line_offset + 1,
-                    "detail": (
-                        f"tx.origin used in {func['name']}(). "
-                        f"This is vulnerable to phishing attacks via "
-                        f"intermediary contracts."
-                    ),
-                    "source": "pattern_analysis",
-                })
+                conf = (
+                    0.88
+                    if ("require(" in context or "if(" in context or "if (" in context)
+                    else 0.75
+                )
+                findings.append(
+                    {
+                        "type": "tx_origin",
+                        "confidence": conf,
+                        "function": func["name"],
+                        "line": func["start_line"] + line_offset + 1,
+                        "detail": (
+                            f"tx.origin used in {func['name']}(). "
+                            f"This is vulnerable to phishing attacks via "
+                            f"intermediary contracts."
+                        ),
+                        "source": "pattern_analysis",
+                    }
+                )
 
         return findings
 
@@ -1338,9 +1331,7 @@ class PeculiarAdapter(ToolAdapter):
                 line_offset = body[: dc_match.start()].count("\n")
 
                 # Check if the target is a state variable or hardcoded
-                pre_context = body[
-                    max(0, dc_match.start() - 100): dc_match.start()
-                ]
+                pre_context = body[max(0, dc_match.start() - 100) : dc_match.start()]
                 # Look for address parameter origin
                 param_names = set()
                 if func.get("params"):
@@ -1350,26 +1341,26 @@ class PeculiarAdapter(ToolAdapter):
                             param_names.add(parts[-1])
 
                 # If delegatecall target comes from function parameter, high risk
-                is_param_derived = any(
-                    pn in pre_context for pn in param_names
-                )
+                is_param_derived = any(pn in pre_context for pn in param_names)
                 confidence = 0.92 if is_param_derived else 0.75
 
-                findings.append({
-                    "type": "delegatecall_injection",
-                    "confidence": confidence,
-                    "function": func["name"],
-                    "line": func["start_line"] + line_offset + 1,
-                    "detail": (
-                        f"delegatecall in {func['name']}() "
-                        + (
-                            "with parameter-derived target address"
-                            if is_param_derived
-                            else "detected; verify target is trusted"
-                        )
-                    ),
-                    "source": "pattern_analysis",
-                })
+                findings.append(
+                    {
+                        "type": "delegatecall_injection",
+                        "confidence": confidence,
+                        "function": func["name"],
+                        "line": func["start_line"] + line_offset + 1,
+                        "detail": (
+                            f"delegatecall in {func['name']}() "
+                            + (
+                                "with parameter-derived target address"
+                                if is_param_derived
+                                else "detected; verify target is trusted"
+                            )
+                        ),
+                        "source": "pattern_analysis",
+                    }
+                )
 
         return findings
 
@@ -1385,9 +1376,7 @@ class PeculiarAdapter(ToolAdapter):
     ) -> List[Dict[str, Any]]:
         """Convert raw predictions to MIESC-normalized findings."""
         findings: List[Dict[str, Any]] = []
-        contract_hash = hashlib.sha256(
-            contract_path.encode()
-        ).hexdigest()[:8]
+        contract_hash = hashlib.sha256(contract_path.encode()).hexdigest()[:8]
 
         for idx, pred in enumerate(predictions):
             vuln_type = pred.get("type", "unknown")
@@ -1407,10 +1396,7 @@ class PeculiarAdapter(ToolAdapter):
                 end = min(len(lines), line + 2)
                 snippet = "\n".join(lines[start:end])
 
-            finding_id = (
-                f"PECULIAR-{vuln_type.upper()}-"
-                f"{contract_hash}-{idx:04d}"
-            )
+            finding_id = f"PECULIAR-{vuln_type.upper()}-" f"{contract_hash}-{idx:04d}"
 
             finding = {
                 "id": finding_id,
@@ -1445,9 +1431,7 @@ class PeculiarAdapter(ToolAdapter):
     # Graph statistics and export
     # =========================================================================
 
-    def _compute_graph_stats(
-        self, graph: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _compute_graph_stats(self, graph: Dict[str, Any]) -> Dict[str, Any]:
         """Compute summary statistics for the constructed code graph."""
         nodes = graph.get("nodes", [])
         edges = graph.get("edges", [])
@@ -1470,14 +1454,10 @@ class PeculiarAdapter(ToolAdapter):
             "node_type_distribution": node_type_counts,
             "num_functions": len(graph.get("functions", [])),
             "num_state_variables": len(graph.get("state_variables", [])),
-            "avg_degree": (
-                round(len(edges) / max(len(nodes), 1), 2)
-            ),
+            "avg_degree": (round(len(edges) / max(len(nodes), 1), 2)),
         }
 
-    def _export_graph(
-        self, graph: Dict[str, Any], output_path: str
-    ) -> None:
+    def _export_graph(self, graph: Dict[str, Any], output_path: str) -> None:
         """Export the heterogeneous code graph to a JSON file."""
         try:
             export_data = {
@@ -1495,9 +1475,7 @@ class PeculiarAdapter(ToolAdapter):
         except Exception as exc:
             logger.warning("Failed to export graph: %s", exc)
 
-    def _reconstruct_source_from_graph(
-        self, graph: Dict[str, Any]
-    ) -> str:
+    def _reconstruct_source_from_graph(self, graph: Dict[str, Any]) -> str:
         """Reconstruct approximate source text from graph nodes (fallback)."""
         parts: List[str] = []
         for func in graph.get("functions", []):
@@ -1508,9 +1486,7 @@ class PeculiarAdapter(ToolAdapter):
     # Error result helper
     # =========================================================================
 
-    def _error_result(
-        self, message: str, start_time: float
-    ) -> Dict[str, Any]:
+    def _error_result(self, message: str, start_time: float) -> Dict[str, Any]:
         """Build a standardized error result dict."""
         return {
             "tool": "peculiar",
@@ -1526,6 +1502,7 @@ class PeculiarAdapter(ToolAdapter):
 # =============================================================================
 # Module-level adapter registration
 # =============================================================================
+
 
 def register_adapter():
     """Register Peculiar adapter with MIESC tool registry."""

@@ -4,22 +4,21 @@ Tests for LLM Orchestrator Module
 Tests the multi-backend LLM orchestration for security analysis.
 """
 
-import pytest
 import asyncio
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
-from dataclasses import asdict
+
+import pytest
 
 from src.llm.llm_orchestrator import (
-    LLMProvider,
-    LLMConfig,
-    LLMResponse,
-    VulnerabilityAnalysis,
+    AnthropicBackend,
     LLMBackend,
+    LLMConfig,
+    LLMOrchestrator,
+    LLMProvider,
+    LLMResponse,
     OllamaBackend,
     OpenAIBackend,
-    AnthropicBackend,
-    LLMOrchestrator,
+    VulnerabilityAnalysis,
     analyze_solidity,
 )
 
@@ -45,10 +44,7 @@ class TestLLMConfig:
 
     def test_default_config(self):
         """Test default configuration values."""
-        config = LLMConfig(
-            provider=LLMProvider.OLLAMA,
-            model="test-model"
-        )
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="test-model")
         assert config.provider == LLMProvider.OLLAMA
         assert config.model == "test-model"
         assert config.api_key is None
@@ -68,7 +64,7 @@ class TestLLMConfig:
             temperature=0.5,
             max_tokens=2048,
             timeout=60,
-            retry_attempts=5
+            retry_attempts=5,
         )
         assert config.api_key == "test-key"
         assert config.temperature == 0.5
@@ -82,11 +78,7 @@ class TestLLMResponse:
 
     def test_default_response(self):
         """Test default response values."""
-        response = LLMResponse(
-            content="test content",
-            provider="ollama",
-            model="test-model"
-        )
+        response = LLMResponse(content="test content", provider="ollama", model="test-model")
         assert response.content == "test content"
         assert response.provider == "ollama"
         assert response.model == "test-model"
@@ -104,7 +96,7 @@ class TestLLMResponse:
             tokens_used=1500,
             latency_ms=2500.5,
             cached=True,
-            metadata={"request_id": "123"}
+            metadata={"request_id": "123"},
         )
         assert response.tokens_used == 1500
         assert response.latency_ms == 2500.5
@@ -122,7 +114,7 @@ class TestVulnerabilityAnalysis:
                 "type": "reentrancy",
                 "severity": "high",
                 "title": "Reentrancy in withdraw",
-                "confidence": 0.9
+                "confidence": 0.9,
             }
         ]
         analysis = VulnerabilityAnalysis(
@@ -131,7 +123,7 @@ class TestVulnerabilityAnalysis:
             recommendations=["Use ReentrancyGuard"],
             confidence_score=0.9,
             analysis_summary="Found 1 high severity vulnerability",
-            raw_response='{"vulnerabilities": []}'
+            raw_response='{"vulnerabilities": []}',
         )
         assert len(analysis.vulnerabilities) == 1
         assert analysis.severity_assessment["high"] == 1
@@ -189,9 +181,7 @@ class TestOllamaBackend:
     def test_init_custom_url(self):
         """Test custom base URL."""
         config = LLMConfig(
-            provider=LLMProvider.OLLAMA,
-            model="codellama",
-            base_url="http://custom:8080"
+            provider=LLMProvider.OLLAMA, model="codellama", base_url="http://custom:8080"
         )
         backend = OllamaBackend(config)
         assert backend.base_url == "http://custom:8080"
@@ -199,9 +189,7 @@ class TestOllamaBackend:
     def test_health_check_unavailable(self):
         """Test health check when server unavailable."""
         config = LLMConfig(
-            provider=LLMProvider.OLLAMA,
-            model="codellama",
-            base_url="http://nonexistent:11434"
+            provider=LLMProvider.OLLAMA, model="codellama", base_url="http://nonexistent:11434"
         )
         backend = OllamaBackend(config)
         result = asyncio.run(backend.health_check())
@@ -212,15 +200,15 @@ class TestOllamaBackend:
         """Test health check method structure."""
         config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
         backend = OllamaBackend(config)
-        assert hasattr(backend, 'health_check')
+        assert hasattr(backend, "health_check")
         assert backend.config.model == "codellama"
 
     def test_analyze_structure(self):
         """Test analyze method structure."""
         config = LLMConfig(provider=LLMProvider.OLLAMA, model="codellama")
         backend = OllamaBackend(config)
-        assert hasattr(backend, 'analyze')
-        assert hasattr(backend, 'config')
+        assert hasattr(backend, "analyze")
+        assert hasattr(backend, "config")
 
 
 class TestOpenAIBackend:
@@ -230,27 +218,19 @@ class TestOpenAIBackend:
         """Test initialization with environment key."""
         config = LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4")
 
-        with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key'}):
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
             backend = OpenAIBackend(config)
-            assert backend.api_key == 'test-key'
+            assert backend.api_key == "test-key"
 
     def test_init_with_config_key(self):
         """Test initialization with config key."""
-        config = LLMConfig(
-            provider=LLMProvider.OPENAI,
-            model="gpt-4",
-            api_key="config-key"
-        )
+        config = LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="config-key")
         backend = OpenAIBackend(config)
         assert backend.api_key == "config-key"
 
     def test_health_check_with_key(self):
         """Test health check with API key."""
-        config = LLMConfig(
-            provider=LLMProvider.OPENAI,
-            model="gpt-4",
-            api_key="test-key"
-        )
+        config = LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="test-key")
         backend = OpenAIBackend(config)
         result = asyncio.run(backend.health_check())
         assert result is True
@@ -272,16 +252,14 @@ class TestAnthropicBackend:
         """Test initialization with environment key."""
         config = LLMConfig(provider=LLMProvider.ANTHROPIC, model="claude-3-opus")
 
-        with patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'test-key'}):
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
             backend = AnthropicBackend(config)
-            assert backend.api_key == 'test-key'
+            assert backend.api_key == "test-key"
 
     def test_init_with_config_key(self):
         """Test initialization with config key."""
         config = LLMConfig(
-            provider=LLMProvider.ANTHROPIC,
-            model="claude-3-opus",
-            api_key="config-key"
+            provider=LLMProvider.ANTHROPIC, model="claude-3-opus", api_key="config-key"
         )
         backend = AnthropicBackend(config)
         assert backend.api_key == "config-key"
@@ -289,9 +267,7 @@ class TestAnthropicBackend:
     def test_health_check_with_key(self):
         """Test health check with API key."""
         config = LLMConfig(
-            provider=LLMProvider.ANTHROPIC,
-            model="claude-3-opus",
-            api_key="test-key"
+            provider=LLMProvider.ANTHROPIC, model="claude-3-opus", api_key="test-key"
         )
         backend = AnthropicBackend(config)
         result = asyncio.run(backend.health_check())
@@ -320,7 +296,7 @@ class TestLLMOrchestrator:
         """Test custom initialization."""
         configs = [
             LLMConfig(provider=LLMProvider.OLLAMA, model="codellama"),
-            LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="key")
+            LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="key"),
         ]
         orchestrator = LLMOrchestrator(configs)
         assert len(orchestrator.backends) == 2
@@ -347,11 +323,7 @@ class TestLLMOrchestrator:
 
     def test_initialize(self):
         """Test backend initialization."""
-        config = LLMConfig(
-            provider=LLMProvider.OPENAI,
-            model="gpt-4",
-            api_key="test-key"
-        )
+        config = LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="test-key")
         orchestrator = LLMOrchestrator([config])
         status = asyncio.run(orchestrator.initialize())
 
@@ -377,7 +349,7 @@ class TestLLMOrchestrator:
         response = LLMResponse(
             content='{"vulnerabilities": [{"type": "reentrancy", "severity": "high", "confidence": 0.9}], "summary": "Found issues"}',
             provider="test",
-            model="test"
+            model="test",
         )
 
         analysis = orchestrator._parse_analysis(response)
@@ -393,7 +365,7 @@ class TestLLMOrchestrator:
         response = LLMResponse(
             content='Here is the analysis:\n{"vulnerabilities": [], "summary": "No issues"}\nEnd of analysis.',
             provider="test",
-            model="test"
+            model="test",
         )
 
         analysis = orchestrator._parse_analysis(response)
@@ -403,11 +375,7 @@ class TestLLMOrchestrator:
     def test_parse_analysis_invalid_json(self):
         """Test parsing invalid JSON response."""
         orchestrator = LLMOrchestrator([])
-        response = LLMResponse(
-            content='This is not JSON at all',
-            provider="test",
-            model="test"
-        )
+        response = LLMResponse(content="This is not JSON at all", provider="test", model="test")
 
         analysis = orchestrator._parse_analysis(response)
         assert analysis.vulnerabilities == []
@@ -420,7 +388,7 @@ class TestLLMOrchestrator:
         response = LLMResponse(
             content='{"vulnerabilities": [{"severity": "critical"}, {"severity": "high"}, {"severity": "high"}, {"severity": "medium"}, {"severity": "low"}, {"severity": "info"}]}',
             provider="test",
-            model="test"
+            model="test",
         )
 
         analysis = orchestrator._parse_analysis(response)
@@ -434,7 +402,7 @@ class TestLLMOrchestrator:
         """Test model selection for tasks."""
         configs = [
             LLMConfig(provider=LLMProvider.OLLAMA, model="deepseek-coder:6.7b"),
-            LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="key")
+            LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="key"),
         ]
         orchestrator = LLMOrchestrator(configs)
 
@@ -458,7 +426,7 @@ class TestLLMOrchestrator:
         """Test getting available providers."""
         configs = [
             LLMConfig(provider=LLMProvider.OLLAMA, model="test1"),
-            LLMConfig(provider=LLMProvider.OPENAI, model="test2", api_key="key")
+            LLMConfig(provider=LLMProvider.OPENAI, model="test2", api_key="key"),
         ]
         orchestrator = LLMOrchestrator(configs)
 
@@ -491,11 +459,7 @@ class TestLLMOrchestrator:
         """Test query returns cached response."""
         orchestrator = LLMOrchestrator([])
 
-        cached_response = LLMResponse(
-            content="cached content",
-            provider="cache",
-            model="cache"
-        )
+        cached_response = LLMResponse(content="cached content", provider="cache", model="cache")
         cache_key = orchestrator._get_cache_key("test prompt", None)
         orchestrator.cache[cache_key] = cached_response
 
@@ -505,18 +469,12 @@ class TestLLMOrchestrator:
 
     def test_analyze_contract_structure(self):
         """Test analyze_contract method structure."""
-        config = LLMConfig(
-            provider=LLMProvider.OPENAI,
-            model="gpt-4",
-            api_key="test-key"
-        )
+        config = LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="test-key")
         orchestrator = LLMOrchestrator([config])
 
         # Mock the query method
         mock_response = LLMResponse(
-            content='{"vulnerabilities": [], "summary": "Safe"}',
-            provider="openai",
-            model="gpt-4"
+            content='{"vulnerabilities": [], "summary": "Safe"}', provider="openai", model="gpt-4"
         )
 
         async def mock_query(*args, **kwargs):
@@ -540,16 +498,24 @@ class TestAnalyzeSolidity:
     def test_analyze_solidity_structure(self):
         """Test analyze_solidity function structure with mock."""
         # We just test that the function exists and has the right signature
-        with patch.object(LLMOrchestrator, 'initialize', new_callable=AsyncMock) as mock_init:
-            with patch.object(LLMOrchestrator, 'analyze_contract', new_callable=AsyncMock) as mock_analyze:
+        with patch.object(LLMOrchestrator, "initialize", new_callable=AsyncMock) as mock_init:
+            with patch.object(
+                LLMOrchestrator, "analyze_contract", new_callable=AsyncMock
+            ) as mock_analyze:
                 mock_init.return_value = {"ollama:deepseek-coder:6.7b": False}
                 mock_analyze.return_value = VulnerabilityAnalysis(
                     vulnerabilities=[],
-                    severity_assessment={"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+                    severity_assessment={
+                        "critical": 0,
+                        "high": 0,
+                        "medium": 0,
+                        "low": 0,
+                        "info": 0,
+                    },
                     recommendations=[],
                     confidence_score=1.0,
                     analysis_summary="No issues",
-                    raw_response=""
+                    raw_response="",
                 )
 
                 # This should not raise
@@ -565,7 +531,7 @@ class TestIntegration:
         configs = [
             LLMConfig(provider=LLMProvider.OLLAMA, model="codellama"),
             LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="test"),
-            LLMConfig(provider=LLMProvider.ANTHROPIC, model="claude-3", api_key="test")
+            LLMConfig(provider=LLMProvider.ANTHROPIC, model="claude-3", api_key="test"),
         ]
 
         orchestrator = LLMOrchestrator(configs)
@@ -580,7 +546,7 @@ class TestIntegration:
         """Test backend fallback ordering."""
         configs = [
             LLMConfig(provider=LLMProvider.OLLAMA, model="primary"),
-            LLMConfig(provider=LLMProvider.OPENAI, model="fallback", api_key="key")
+            LLMConfig(provider=LLMProvider.OPENAI, model="fallback", api_key="key"),
         ]
 
         orchestrator = LLMOrchestrator(configs)
@@ -596,7 +562,7 @@ class TestIntegration:
         response = LLMResponse(
             content='{"vulnerabilities": [{"confidence": 0.8}, {"confidence": 0.6}, {"confidence": 1.0}]}',
             provider="test",
-            model="test"
+            model="test",
         )
 
         analysis = orchestrator._parse_analysis(response)
@@ -610,7 +576,7 @@ class TestIntegration:
         response = LLMResponse(
             content='{"vulnerabilities": [{"remediation": "Fix A"}, {"remediation": "Fix B"}, {}]}',
             provider="test",
-            model="test"
+            model="test",
         )
 
         analysis = orchestrator._parse_analysis(response)

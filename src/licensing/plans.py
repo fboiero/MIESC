@@ -3,11 +3,12 @@ Definición de planes de licencia para MIESC SaaS.
 """
 
 from enum import Enum
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 
 class PlanType(str, Enum):
     """Tipos de planes disponibles."""
+
     FREE = "FREE"
     STARTER = "STARTER"
     PRO = "PRO"
@@ -24,8 +25,13 @@ TOOLS_LAYER_6 = ["dagnn", "policyagent"]  # ML Detection
 TOOLS_LAYER_7 = ["layer7agent"]  # Audit Readiness
 
 ALL_TOOLS = (
-    TOOLS_LAYER_1 + TOOLS_LAYER_2 + TOOLS_LAYER_3 +
-    TOOLS_LAYER_4 + TOOLS_LAYER_5 + TOOLS_LAYER_6 + TOOLS_LAYER_7
+    TOOLS_LAYER_1
+    + TOOLS_LAYER_2
+    + TOOLS_LAYER_3
+    + TOOLS_LAYER_4
+    + TOOLS_LAYER_5
+    + TOOLS_LAYER_6
+    + TOOLS_LAYER_7
 )
 
 

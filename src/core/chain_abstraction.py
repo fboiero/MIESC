@@ -29,9 +29,9 @@ import hashlib
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -357,8 +357,7 @@ class AbstractContract:
     def get_public_functions(self) -> List[AbstractFunction]:
         """Get all public/external functions."""
         return [
-            f for f in self.functions
-            if f.visibility in (Visibility.PUBLIC, Visibility.EXTERNAL)
+            f for f in self.functions if f.visibility in (Visibility.PUBLIC, Visibility.EXTERNAL)
         ]
 
     def get_state_variables(self) -> List[AbstractVariable]:
@@ -444,7 +443,12 @@ VULNERABILITY_MAPPINGS: Dict[str, VulnerabilityMapping] = {
         description="Reentrancy vulnerability allowing recursive calls",
         severity_default="Critical",
         security_property=SecurityProperty.REENTRANCY,
-        solidity_names=["reentrancy", "reentrancy-eth", "reentrancy-no-eth", "cross-function-reentrancy"],
+        solidity_names=[
+            "reentrancy",
+            "reentrancy-eth",
+            "reentrancy-no-eth",
+            "cross-function-reentrancy",
+        ],
         solana_names=["cpi-reentrancy", "cross-program-reentrancy"],
         near_names=["cross-contract-reentrancy"],
         move_names=["reentrancy"],  # Move prevents most reentrancy by design
@@ -512,13 +516,13 @@ def get_vulnerability_mapping(vuln_type: str) -> Optional[VulnerabilityMapping]:
     vuln_lower = vuln_type.lower().replace("-", "_").replace(" ", "_")
     for mapping in VULNERABILITY_MAPPINGS.values():
         all_names = (
-            mapping.solidity_names +
-            mapping.solana_names +
-            mapping.near_names +
-            mapping.move_names +
-            mapping.stellar_names +
-            mapping.algorand_names +
-            mapping.cardano_names
+            mapping.solidity_names
+            + mapping.solana_names
+            + mapping.near_names
+            + mapping.move_names
+            + mapping.stellar_names
+            + mapping.algorand_names
+            + mapping.cardano_names
         )
         for name in all_names:
             if name.lower().replace("-", "_") == vuln_lower:
@@ -630,6 +634,7 @@ class AbstractChainAnalyzer(ABC):
             Analysis result with contract info and findings
         """
         import time
+
         start_time = time.time()
 
         try:

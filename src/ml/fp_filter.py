@@ -17,18 +17,18 @@ Date: January 2026
 Version: 1.0.0
 """
 
-import re
 import logging
+import re
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional, Set, Tuple
-from pathlib import Path
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class FPCategory(Enum):
     """Categories of false positive patterns."""
+
     LIBRARY_SAFE = "library_safe"  # Known safe libraries
     PATTERN_SAFE = "pattern_safe"  # Safe code patterns
     CONTEXT_SAFE = "context_safe"  # Safe based on context
@@ -41,6 +41,7 @@ class FPCategory(Enum):
 @dataclass
 class FPMatch:
     """Represents a false positive match."""
+
     category: FPCategory
     pattern: str
     confidence: float  # 0.0 - 1.0, how confident we are this is FP
@@ -51,6 +52,7 @@ class FPMatch:
 @dataclass
 class FilterResult:
     """Result of false positive filtering."""
+
     is_likely_fp: bool
     fp_probability: float
     matches: List[FPMatch] = field(default_factory=list)
@@ -82,40 +84,31 @@ class FalsePositiveFilter:
         r"@openzeppelin/contracts-upgradeable",
         r"openzeppelin-contracts/",
         r"openzeppelin-solidity/",
-
         # Solmate (gas-optimized library by Transmissions11)
         r"solmate/",
         r"rari-capital/solmate",
-
         # Solady (ultra gas-optimized by Vectorized)
         r"solady/",
         r"Vectorized/solady",
-
         # Chainlink
         r"@chainlink/contracts",
         r"smartcontractkit/chainlink",
-
         # Uniswap
         r"@uniswap/v2-core",
         r"@uniswap/v3-core",
         r"@uniswap/v2-periphery",
         r"@uniswap/v3-periphery",
-
         # Compound
         r"compound-finance/compound-protocol",
-
         # Aave
         r"@aave/protocol-v2",
         r"@aave/core-v3",
-
         # Safe (formerly Gnosis Safe)
         r"@gnosis.pm/safe-contracts",
         r"safe-global/safe-contracts",
-
         # Forge/Foundry standard library
         r"forge-std/",
         r"foundry-rs/forge-std",
-
         # Other well-audited libraries
         r"@prb/math",
         r"@ensdomains/ens-contracts",
@@ -131,23 +124,19 @@ class FalsePositiveFilter:
         r"nonReentrant",
         r"_nonReentrant",
         r"ReentrancyGuardUpgradeable",
-
         # Solmate ReentrancyGuard
         r"import\s*{\s*ReentrancyGuard\s*}",
-
         # Manual reentrancy lock patterns
         r"require\s*\(\s*!locked\s*\)",
         r"require\s*\(\s*!_locked\s*\)",
         r"require\s*\(\s*!reentrancyLock\s*\)",
         r"if\s*\(\s*locked\s*\)\s*revert",
         r"if\s*\(\s*_locked\s*\)\s*revert",
-
         # Mutex patterns
         r"mutex\s*=\s*true",
         r"_mutex\s*=\s*true",
         r"locked\s*=\s*true",
         r"_locked\s*=\s*true",
-
         # Checks-Effects-Interactions confirmed
         r"// CEI pattern",
         r"// Checks-Effects-Interactions",
@@ -165,7 +154,6 @@ class FalsePositiveFilter:
         r"OwnableUpgradeable",
         r"onlyOwner",
         r"_checkOwner\s*\(\s*\)",
-
         # OpenZeppelin AccessControl
         r"AccessControl",
         r"AccessControlUpgradeable",
@@ -176,7 +164,6 @@ class FalsePositiveFilter:
         r"grantRole\s*\(",
         r"revokeRole\s*\(",
         r"DEFAULT_ADMIN_ROLE",
-
         # Custom access modifiers (common patterns)
         r"onlyAdmin",
         r"onlyOperator",
@@ -187,7 +174,6 @@ class FalsePositiveFilter:
         r"onlyKeeper",
         r"onlyWhitelisted",
         r"onlyAuthorized",
-
         # Multi-sig patterns
         r"require\s*\(\s*confirmations\s*>=\s*required\s*\)",
         r"multisig",
@@ -206,19 +192,15 @@ class FalsePositiveFilter:
         r"\.sub\s*\(",
         r"\.mul\s*\(",
         r"\.div\s*\(",
-
         # Solidity 0.8+ built-in overflow checks
         r"pragma\s+solidity\s*[\^~>=<]*\s*0\.8",
-
         # Unchecked blocks (explicit, developer is aware)
         r"unchecked\s*{",
-
         # PRBMath
         r"@prb/math",
         r"PRBMath",
         r"UD60x18",
         r"SD59x18",
-
         # FixedPointMathLib (Solmate)
         r"FixedPointMathLib",
         r"mulWadDown",
@@ -236,10 +218,8 @@ class FalsePositiveFilter:
         r"safeIncreaseAllowance\s*\(",
         r"safeDecreaseAllowance\s*\(",
         r"using\s+SafeERC20\s+for",
-
         # SafeTransferLib (Solmate)
         r"SafeTransferLib",
-
         # Safe ETH transfer patterns
         r"Address\.sendValue\s*\(",
         r"payable\s*\([^)]+\)\.call\s*{\s*value:",  # Low-level with value check
@@ -255,14 +235,11 @@ class FalsePositiveFilter:
         r"require\s*\([^)]*!=\s*address\s*\(0x0+\)",
         r"if\s*\([^)]*==\s*address\s*\(\s*0\s*\)\s*\)\s*revert",
         r"_checkNonZeroAddress\s*\(",
-
         # Require with message (proper validation)
         r"require\s*\([^)]+,\s*['\"][^'\"]+['\"]\s*\)",
-
         # Custom errors with revert
         r"if\s*\([^)]+\)\s*revert\s+\w+\s*\(",
         r"if\s*\([^)]+\)\s*revert\s+\w+;",
-
         # Bounds checking
         r"require\s*\([^)]*<=\s*[^)]+\)",
         r"require\s*\([^)]*>=\s*[^)]+\)",
@@ -282,7 +259,6 @@ class FalsePositiveFilter:
         r"_pause\s*\(\s*\)",
         r"_unpause\s*\(\s*\)",
         r"paused\s*\(\s*\)",
-
         # Emergency patterns
         r"emergencyWithdraw",
         r"emergencyStop",
@@ -302,7 +278,6 @@ class FalsePositiveFilter:
         r"initializer\s+modifier",
         r"onlyInitializing",
         r"_disableInitializers\s*\(\s*\)",
-
         # Safe storage patterns
         r"@custom:storage-location",
         r"StorageSlot",
@@ -459,8 +434,7 @@ class FalsePositiveFilter:
 
         for name, patterns in pattern_groups.items():
             self._compiled_patterns[name] = [
-                re.compile(p, re.IGNORECASE | re.MULTILINE)
-                for p in patterns
+                re.compile(p, re.IGNORECASE | re.MULTILINE) for p in patterns
             ]
 
     def filter_finding(
@@ -541,38 +515,44 @@ class FalsePositiveFilter:
         if self.filter_test_files:
             for pattern in self._compiled_patterns.get("test_file", []):
                 if pattern.search(file_path):
-                    matches.append(FPMatch(
-                        category=FPCategory.TEST_FILE,
-                        pattern=pattern.pattern,
-                        confidence=0.50,
-                        reason="File appears to be a test file",
-                        matched_text=file_path,
-                    ))
+                    matches.append(
+                        FPMatch(
+                            category=FPCategory.TEST_FILE,
+                            pattern=pattern.pattern,
+                            confidence=0.50,
+                            reason="File appears to be a test file",
+                            matched_text=file_path,
+                        )
+                    )
                     break
 
         # Mock contracts
         for pattern in self._compiled_patterns.get("mock", []):
             if pattern.search(file_path):
-                matches.append(FPMatch(
-                    category=FPCategory.MOCK_CONTRACT,
-                    pattern=pattern.pattern,
-                    confidence=0.45,
-                    reason="File appears to be a mock contract",
-                    matched_text=file_path,
-                ))
+                matches.append(
+                    FPMatch(
+                        category=FPCategory.MOCK_CONTRACT,
+                        pattern=pattern.pattern,
+                        confidence=0.45,
+                        reason="File appears to be a mock contract",
+                        matched_text=file_path,
+                    )
+                )
                 break
 
         # Interfaces
         if self.filter_interfaces:
             for pattern in self._compiled_patterns.get("interface", []):
                 if pattern.search(file_path):
-                    matches.append(FPMatch(
-                        category=FPCategory.INTERFACE,
-                        pattern=pattern.pattern,
-                        confidence=0.40,
-                        reason="File appears to be an interface",
-                        matched_text=file_path,
-                    ))
+                    matches.append(
+                        FPMatch(
+                            category=FPCategory.INTERFACE,
+                            pattern=pattern.pattern,
+                            confidence=0.40,
+                            reason="File appears to be an interface",
+                            matched_text=file_path,
+                        )
+                    )
                     break
 
         return matches
@@ -597,13 +577,15 @@ class FalsePositiveFilter:
             for pattern in self._compiled_patterns.get(group_name, []):
                 match = pattern.search(code)
                 if match:
-                    matches.append(FPMatch(
-                        category=category,
-                        pattern=pattern.pattern,
-                        confidence=self.PATTERN_CONFIDENCE_BOOST.get(category, 0.20),
-                        reason=reason,
-                        matched_text=match.group(0)[:50],
-                    ))
+                    matches.append(
+                        FPMatch(
+                            category=category,
+                            pattern=pattern.pattern,
+                            confidence=self.PATTERN_CONFIDENCE_BOOST.get(category, 0.20),
+                            reason=reason,
+                            matched_text=match.group(0)[:50],
+                        )
+                    )
                     break  # One match per group is enough
 
         # Check vulnerability-specific safe patterns
@@ -612,13 +594,15 @@ class FalsePositiveFilter:
                 pattern = re.compile(pattern_str, re.IGNORECASE)
                 match = pattern.search(code)
                 if match:
-                    matches.append(FPMatch(
-                        category=FPCategory.PATTERN_SAFE,
-                        pattern=pattern_str,
-                        confidence=0.30,  # Strong confidence for vuln-specific
-                        reason=f"Has protection against {vuln_type}",
-                        matched_text=match.group(0)[:50],
-                    ))
+                    matches.append(
+                        FPMatch(
+                            category=FPCategory.PATTERN_SAFE,
+                            pattern=pattern_str,
+                            confidence=0.30,  # Strong confidence for vuln-specific
+                            reason=f"Has protection against {vuln_type}",
+                            matched_text=match.group(0)[:50],
+                        )
+                    )
                     break
 
         return matches
@@ -630,13 +614,15 @@ class FalsePositiveFilter:
         for pattern in self._compiled_patterns.get("library", []):
             match = pattern.search(text)
             if match:
-                matches.append(FPMatch(
-                    category=FPCategory.LIBRARY_SAFE,
-                    pattern=pattern.pattern,
-                    confidence=0.40,
-                    reason="Uses audited library code",
-                    matched_text=match.group(0)[:50],
-                ))
+                matches.append(
+                    FPMatch(
+                        category=FPCategory.LIBRARY_SAFE,
+                        pattern=pattern.pattern,
+                        confidence=0.40,
+                        reason="Uses audited library code",
+                        matched_text=match.group(0)[:50],
+                    )
+                )
                 # Only report first library match
                 break
 

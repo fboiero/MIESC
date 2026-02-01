@@ -18,7 +18,6 @@ License: AGPL-3.0
 """
 
 import hashlib
-import json
 import logging
 import re
 import shutil
@@ -185,9 +184,12 @@ class SolCMCAdapter(ToolAdapter):
 
         cmd = [
             solc,
-            "--model-checker-engine", "chc",
-            "--model-checker-targets", targets,
-            "--model-checker-timeout", str(timeout * 1000),
+            "--model-checker-engine",
+            "chc",
+            "--model-checker-targets",
+            targets,
+            "--model-checker-timeout",
+            str(timeout * 1000),
             contract_path,
         ]
 
@@ -262,12 +264,14 @@ class SolCMCAdapter(ToolAdapter):
                 else:
                     target_type = "assert"  # Default
 
-            findings.append({
-                "target": target_type,
-                "file": file_ref.strip(),
-                "line": line,
-                "raw_message": match.group(0).strip(),
-            })
+            findings.append(
+                {
+                    "target": target_type,
+                    "file": file_ref.strip(),
+                    "line": line,
+                    "raw_message": match.group(0).strip(),
+                }
+            )
 
         # Also parse counterexample info
         ce_pattern = re.compile(
@@ -305,7 +309,7 @@ class SolCMCAdapter(ToolAdapter):
         # Check for unchecked blocks with arithmetic
         unchecked_pattern = re.compile(r"unchecked\s*\{", re.MULTILINE)
         for match in unchecked_pattern.finditer(source_code):
-            line_num = source_code[:match.start()].count("\n") + 1
+            line_num = source_code[: match.start()].count("\n") + 1
             # Check if arithmetic operations inside
             depth = 0
             pos = match.start() + match.end() - match.start()
@@ -320,44 +324,54 @@ class SolCMCAdapter(ToolAdapter):
 
             block = source_code[block_start:pos]
             if re.search(r"[+\-\*]", block):
-                raw_findings.append({
-                    "target": "overflow",
-                    "file": contract_path,
-                    "line": line_num,
-                    "raw_message": "Unchecked arithmetic block - potential overflow/underflow",
-                })
+                raw_findings.append(
+                    {
+                        "target": "overflow",
+                        "file": contract_path,
+                        "line": line_num,
+                        "raw_message": "Unchecked arithmetic block - potential overflow/underflow",
+                    }
+                )
 
         # Check for assert statements
         for i, line in enumerate(lines, 1):
             if re.search(r"\bassert\s*\(", line):
-                raw_findings.append({
-                    "target": "assert",
-                    "file": contract_path,
-                    "line": i,
-                    "raw_message": f"Assert statement - verify condition always holds: {line.strip()}",
-                })
+                raw_findings.append(
+                    {
+                        "target": "assert",
+                        "file": contract_path,
+                        "line": i,
+                        "raw_message": f"Assert statement - verify condition always holds: {line.strip()}",
+                    }
+                )
 
         # Check for division without zero check
         for i, line in enumerate(lines, 1):
-            if re.search(r"\s/\s", line) and not re.search(r"require.*!=\s*0", "\n".join(lines[max(0, i - 3):i])):
-                raw_findings.append({
-                    "target": "divByZero",
-                    "file": contract_path,
-                    "line": i,
-                    "raw_message": f"Division without zero check: {line.strip()}",
-                })
+            if re.search(r"\s/\s", line) and not re.search(
+                r"require.*!=\s*0", "\n".join(lines[max(0, i - 3) : i])
+            ):
+                raw_findings.append(
+                    {
+                        "target": "divByZero",
+                        "file": contract_path,
+                        "line": i,
+                        "raw_message": f"Division without zero check: {line.strip()}",
+                    }
+                )
 
         # Check for array access without bounds check
         for i, line in enumerate(lines, 1):
             if re.search(r"\w+\[\w+\]", line) and re.search(r"(delete|=)", line):
-                context = "\n".join(lines[max(0, i - 5):i])
+                context = "\n".join(lines[max(0, i - 5) : i])
                 if not re.search(r"require.*length|require.*<", context):
-                    raw_findings.append({
-                        "target": "outOfBounds",
-                        "file": contract_path,
-                        "line": i,
-                        "raw_message": f"Array access without bounds check: {line.strip()}",
-                    })
+                    raw_findings.append(
+                        {
+                            "target": "outOfBounds",
+                            "file": contract_path,
+                            "line": i,
+                            "raw_message": f"Array access without bounds check: {line.strip()}",
+                        }
+                    )
 
         findings = self.normalize_findings(raw_findings)
 
@@ -396,22 +410,24 @@ class SolCMCAdapter(ToolAdapter):
             if ce:
                 message += f"\nCounterexample: {ce}"
 
-            findings.append({
-                "id": f"CMC-{finding_id}",
-                "type": f"solcmc_{target}",
-                "severity": target_config["severity"],
-                "confidence": 0.85,
-                "location": {
-                    "file": item.get("file", ""),
-                    "line": item.get("line", 0),
-                    "function": "",
-                },
-                "message": message,
-                "description": target_config["description"],
-                "recommendation": target_config["recommendation"],
-                "swc_id": target_config.get("swc_id"),
-                "cwe_id": target_config.get("cwe_id"),
-                "tool": "solcmc",
-            })
+            findings.append(
+                {
+                    "id": f"CMC-{finding_id}",
+                    "type": f"solcmc_{target}",
+                    "severity": target_config["severity"],
+                    "confidence": 0.85,
+                    "location": {
+                        "file": item.get("file", ""),
+                        "line": item.get("line", 0),
+                        "function": "",
+                    },
+                    "message": message,
+                    "description": target_config["description"],
+                    "recommendation": target_config["recommendation"],
+                    "swc_id": target_config.get("swc_id"),
+                    "cwe_id": target_config.get("cwe_id"),
+                    "tool": "solcmc",
+                }
+            )
 
         return findings

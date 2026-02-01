@@ -23,9 +23,9 @@ import json
 import logging
 import os
 import re
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
 
@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 class ValidationResult(Enum):
     """Result of LLM validation."""
+
     VALID = "valid"  # Confirmed vulnerability
     LIKELY_VALID = "likely_valid"  # Probably real but needs review
     UNCERTAIN = "uncertain"  # Cannot determine
@@ -44,6 +45,7 @@ class ValidationResult(Enum):
 @dataclass
 class LLMValidation:
     """Result of LLM validation for a finding."""
+
     finding_id: str
     result: ValidationResult
     confidence: float  # 0.0 - 1.0
@@ -57,6 +59,7 @@ class LLMValidation:
 @dataclass
 class ValidatorConfig:
     """Configuration for the LLM validator."""
+
     ollama_host: str = "http://localhost:11434"
     model: str = "deepseek-coder:6.7b"
     temperature: float = 0.1
@@ -215,6 +218,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             LLMValidation result
         """
         import time
+
         start_time = time.time()
 
         finding_id = finding.get("id", "unknown")
@@ -289,7 +293,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         """Parse LLM response into LLMValidation."""
         try:
             # Try to extract JSON from response
-            json_match = re.search(r'\{[^{}]*\}', response, re.DOTALL)
+            json_match = re.search(r"\{[^{}]*\}", response, re.DOTALL)
             if not json_match:
                 raise ValueError("No JSON found in response")
 
@@ -377,7 +381,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
         # Process in batches
         for i in range(0, len(to_validate), self.config.batch_size):
-            batch = to_validate[i:i + self.config.batch_size]
+            batch = to_validate[i : i + self.config.batch_size]
 
             # Validate batch concurrently
             tasks = []
@@ -393,15 +397,17 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
             batch_validations = await asyncio.gather(*tasks, return_exceptions=True)
 
-            for finding, validation in zip(batch, batch_validations):
+            for finding, validation in zip(batch, batch_validations, strict=False):
                 if isinstance(validation, Exception):
                     logger.warning(f"Validation exception: {validation}")
-                    validations.append(LLMValidation(
-                        finding_id=finding.get("id", "unknown"),
-                        result=ValidationResult.UNCERTAIN,
-                        confidence=0.5,
-                        reasoning=f"Exception: {validation}",
-                    ))
+                    validations.append(
+                        LLMValidation(
+                            finding_id=finding.get("id", "unknown"),
+                            result=ValidationResult.UNCERTAIN,
+                            confidence=0.5,
+                            reasoning=f"Exception: {validation}",
+                        )
+                    )
                     validated_findings.append(finding)
                 else:
                     validations.append(validation)
@@ -469,9 +475,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             suggested = validation.suggested_severity.lower()
             current = finding.get("severity", "").lower()
             if suggested != current:
-                logger.debug(
-                    f"Severity adjustment suggested: {current} -> {suggested}"
-                )
+                logger.debug(f"Severity adjustment suggested: {current} -> {suggested}")
                 updated["_llm_validation"]["severity_adjusted"] = True
                 # Don't auto-adjust severity, just note it
 
@@ -482,9 +486,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         return {
             "validated_count": self._validated_count,
             "fp_detected_count": self._fp_detected_count,
-            "fp_rate": (
-                self._fp_detected_count / max(self._validated_count, 1)
-            ),
+            "fp_rate": (self._fp_detected_count / max(self._validated_count, 1)),
             "config": {
                 "model": self.config.model,
                 "min_severity": self.config.min_severity_to_validate,

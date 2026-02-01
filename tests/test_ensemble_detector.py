@@ -15,21 +15,20 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
-import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from dataclasses import asdict
+
+import pytest
 
 from src.llm.ensemble_detector import (
-    LLMProvider,
-    VotingStrategy,
+    AllProvidersUnavailable,
     EnsembleFinding,
     EnsembleResult,
     LLMEnsembleDetector,
+    LLMProvider,
     ProviderUnavailable,
-    AllProvidersUnavailable,
+    VotingStrategy,
 )
-
 
 # =============================================================================
 # Fixtures
@@ -316,9 +315,7 @@ class TestLLMEnsembleDetectorInit:
 
     def test_custom_voting_strategy(self):
         """Test initialization with custom voting strategy."""
-        detector = LLMEnsembleDetector(
-            voting_strategy=VotingStrategy.MAJORITY
-        )
+        detector = LLMEnsembleDetector(voting_strategy=VotingStrategy.MAJORITY)
         assert detector.voting_strategy == VotingStrategy.MAJORITY
 
     def test_multi_provider_init(self, multi_provider_detector):
@@ -329,13 +326,14 @@ class TestLLMEnsembleDetectorInit:
 
     def test_env_api_keys(self):
         """Test API keys from environment variables."""
-        with patch.dict('os.environ', {
-            'OPENAI_API_KEY': 'env-openai-key',
-            'ANTHROPIC_API_KEY': 'env-anthropic-key',
-        }):
-            detector = LLMEnsembleDetector(
-                providers=[LLMProvider.OPENAI, LLMProvider.ANTHROPIC]
-            )
+        with patch.dict(
+            "os.environ",
+            {
+                "OPENAI_API_KEY": "env-openai-key",
+                "ANTHROPIC_API_KEY": "env-anthropic-key",
+            },
+        ):
+            detector = LLMEnsembleDetector(providers=[LLMProvider.OPENAI, LLMProvider.ANTHROPIC])
             assert detector.openai_api_key == "env-openai-key"
             assert detector.anthropic_api_key == "env-anthropic-key"
 
@@ -400,17 +398,22 @@ class TestLLMEnsembleDetectorInitialize:
 
     def test_initialize_ollama(self, detector):
         """Test initialization with Ollama."""
+
         async def run_test():
-            with patch('aiohttp.ClientSession') as mock_session:
+            with patch("aiohttp.ClientSession") as mock_session:
                 mock_response = AsyncMock()
                 mock_response.status = 200
-                mock_response.json = AsyncMock(return_value={
-                    "models": [
-                        {"name": "deepseek-coder:6.7b"},
-                        {"name": "codellama:7b"},
-                    ]
-                })
-                mock_session.return_value.__aenter__.return_value.get.return_value.__aenter__.return_value = mock_response
+                mock_response.json = AsyncMock(
+                    return_value={
+                        "models": [
+                            {"name": "deepseek-coder:6.7b"},
+                            {"name": "codellama:7b"},
+                        ]
+                    }
+                )
+                mock_session.return_value.__aenter__.return_value.get.return_value.__aenter__.return_value = (
+                    mock_response
+                )
 
                 status = await detector.initialize()
 
@@ -421,14 +424,17 @@ class TestLLMEnsembleDetectorInitialize:
 
     def test_initialize_no_models(self, detector):
         """Test initialization when no models available."""
+
         async def run_test():
-            with patch('aiohttp.ClientSession') as mock_session:
+            with patch("aiohttp.ClientSession") as mock_session:
                 mock_response = AsyncMock()
                 mock_response.status = 200
                 mock_response.json = AsyncMock(return_value={"models": []})
-                mock_session.return_value.__aenter__.return_value.get.return_value.__aenter__.return_value = mock_response
+                mock_session.return_value.__aenter__.return_value.get.return_value.__aenter__.return_value = (
+                    mock_response
+                )
 
-                status = await detector.initialize()
+                await detector.initialize()
 
                 assert detector._initialized
                 # Should still initialize even with no models
@@ -437,12 +443,15 @@ class TestLLMEnsembleDetectorInitialize:
 
     def test_initialize_connection_error(self, detector):
         """Test initialization with connection error."""
+
         async def run_test():
-            with patch('aiohttp.ClientSession') as mock_session:
-                mock_session.return_value.__aenter__.return_value.get.side_effect = Exception("Connection refused")
+            with patch("aiohttp.ClientSession") as mock_session:
+                mock_session.return_value.__aenter__.return_value.get.side_effect = Exception(
+                    "Connection refused"
+                )
 
                 # Should not raise, just log warning
-                status = await detector.initialize()
+                await detector.initialize()
                 assert detector._initialized
 
         asyncio.run(run_test())
@@ -453,13 +462,12 @@ class TestLLMEnsembleDetectorProviderAvailability:
 
     def test_check_ollama_available(self, detector):
         """Test checking Ollama availability."""
+
         async def run_test():
             # Create proper async context manager mocks
             mock_response = MagicMock()
             mock_response.status = 200
-            mock_response.json = AsyncMock(return_value={
-                "models": [{"name": "test-model"}]
-            })
+            mock_response.json = AsyncMock(return_value={"models": [{"name": "test-model"}]})
 
             mock_get = MagicMock()
             mock_get.__aenter__ = AsyncMock(return_value=mock_response)
@@ -472,7 +480,7 @@ class TestLLMEnsembleDetectorProviderAvailability:
             mock_session.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session.__aexit__ = AsyncMock(return_value=None)
 
-            with patch('aiohttp.ClientSession', return_value=mock_session):
+            with patch("aiohttp.ClientSession", return_value=mock_session):
                 models = await detector._check_provider_availability(LLMProvider.OLLAMA)
                 assert "test-model" in models
 
@@ -480,6 +488,7 @@ class TestLLMEnsembleDetectorProviderAvailability:
 
     def test_check_openai_with_key(self, multi_provider_detector):
         """Test checking OpenAI availability with API key."""
+
         async def run_test():
             models = await multi_provider_detector._check_provider_availability(LLMProvider.OPENAI)
             assert len(models) > 0
@@ -488,6 +497,7 @@ class TestLLMEnsembleDetectorProviderAvailability:
 
     def test_check_openai_without_key(self, detector):
         """Test checking OpenAI availability without API key."""
+
         async def run_test():
             detector.openai_api_key = None
             models = await detector._check_provider_availability(LLMProvider.OPENAI)
@@ -497,8 +507,11 @@ class TestLLMEnsembleDetectorProviderAvailability:
 
     def test_check_anthropic_with_key(self, multi_provider_detector):
         """Test checking Anthropic availability with API key."""
+
         async def run_test():
-            models = await multi_provider_detector._check_provider_availability(LLMProvider.ANTHROPIC)
+            models = await multi_provider_detector._check_provider_availability(
+                LLMProvider.ANTHROPIC
+            )
             assert len(models) > 0
 
         asyncio.run(run_test())
@@ -509,6 +522,7 @@ class TestLLMEnsembleDetectorDetectWithFallback:
 
     def test_fallback_first_provider_success(self, multi_provider_detector, vulnerable_code):
         """Test that first successful provider is used."""
+
         async def run_test():
             # Mock initialize
             multi_provider_detector._initialized = True
@@ -518,7 +532,9 @@ class TestLLMEnsembleDetectorDetectWithFallback:
             }
 
             # Mock _detect_with_provider to succeed on first try
-            with patch.object(multi_provider_detector, '_detect_with_provider', new_callable=AsyncMock) as mock_detect:
+            with patch.object(
+                multi_provider_detector, "_detect_with_provider", new_callable=AsyncMock
+            ) as mock_detect:
                 mock_detect.return_value = [
                     EnsembleFinding(
                         type="reentrancy",
@@ -542,6 +558,7 @@ class TestLLMEnsembleDetectorDetectWithFallback:
 
     def test_fallback_to_second_provider(self, multi_provider_detector, vulnerable_code):
         """Test fallback to second provider when first fails."""
+
         async def run_test():
             multi_provider_detector._initialized = True
             multi_provider_detector._available_providers = {
@@ -570,7 +587,9 @@ class TestLLMEnsembleDetectorDetectWithFallback:
                     )
                 ]
 
-            with patch.object(multi_provider_detector, '_detect_with_provider', side_effect=mock_detect):
+            with patch.object(
+                multi_provider_detector, "_detect_with_provider", side_effect=mock_detect
+            ):
                 results = await multi_provider_detector.detect_with_fallback(vulnerable_code)
 
                 assert len(results) == 1
@@ -580,13 +599,16 @@ class TestLLMEnsembleDetectorDetectWithFallback:
 
     def test_all_providers_fail(self, multi_provider_detector, vulnerable_code):
         """Test exception when all providers fail."""
+
         async def run_test():
             multi_provider_detector._initialized = True
             multi_provider_detector._available_providers = {
                 LLMProvider.OLLAMA: ["test-model"],
             }
 
-            with patch.object(multi_provider_detector, '_detect_with_provider', new_callable=AsyncMock) as mock_detect:
+            with patch.object(
+                multi_provider_detector, "_detect_with_provider", new_callable=AsyncMock
+            ) as mock_detect:
                 mock_detect.side_effect = ProviderUnavailable("All failed")
 
                 with pytest.raises(AllProvidersUnavailable):
@@ -614,8 +636,26 @@ class TestLLMEnsembleDetectorVoting:
         detector.consensus_threshold = 3
 
         findings = {
-            "model1": [{"type": "reentrancy", "severity": "high", "title": "R1", "description": "D1", "location": {}, "confidence": 0.9}],
-            "model2": [{"type": "access-control", "severity": "medium", "title": "A1", "description": "D2", "location": {}, "confidence": 0.8}],
+            "model1": [
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "title": "R1",
+                    "description": "D1",
+                    "location": {},
+                    "confidence": 0.9,
+                }
+            ],
+            "model2": [
+                {
+                    "type": "access-control",
+                    "severity": "medium",
+                    "title": "A1",
+                    "description": "D2",
+                    "location": {},
+                    "confidence": 0.8,
+                }
+            ],
         }
 
         results = detector._ensemble_vote(findings)
@@ -634,7 +674,16 @@ class TestLLMEnsembleDetectorVoting:
         detector.consensus_threshold = 1
 
         findings = {
-            "model1": [{"type": "test", "severity": "low", "title": "T1", "description": "D1", "location": {}, "confidence": 0.5}],
+            "model1": [
+                {
+                    "type": "test",
+                    "severity": "low",
+                    "title": "T1",
+                    "description": "D1",
+                    "location": {},
+                    "confidence": 0.5,
+                }
+            ],
         }
 
         results = detector._ensemble_vote(findings)
@@ -647,12 +696,11 @@ class TestLLMEnsembleDetectorQueryMethods:
 
     def test_query_model_success(self, detector, llm_response_json):
         """Test successful model query."""
+
         async def run_test():
             mock_response = MagicMock()
             mock_response.status = 200
-            mock_response.json = AsyncMock(return_value={
-                "message": {"content": llm_response_json}
-            })
+            mock_response.json = AsyncMock(return_value={"message": {"content": llm_response_json}})
 
             mock_post = MagicMock()
             mock_post.__aenter__ = AsyncMock(return_value=mock_response)
@@ -665,7 +713,7 @@ class TestLLMEnsembleDetectorQueryMethods:
             mock_session.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session.__aexit__ = AsyncMock(return_value=None)
 
-            with patch('aiohttp.ClientSession', return_value=mock_session):
+            with patch("aiohttp.ClientSession", return_value=mock_session):
                 results = await detector._query_model("test-model", "contract code")
                 assert isinstance(results, list)
 
@@ -673,12 +721,13 @@ class TestLLMEnsembleDetectorQueryMethods:
 
     def test_query_openai_success(self, multi_provider_detector, llm_response_json):
         """Test successful OpenAI query."""
+
         async def run_test():
             mock_response = MagicMock()
             mock_response.status = 200
-            mock_response.json = AsyncMock(return_value={
-                "choices": [{"message": {"content": llm_response_json}}]
-            })
+            mock_response.json = AsyncMock(
+                return_value={"choices": [{"message": {"content": llm_response_json}}]}
+            )
 
             mock_post = MagicMock()
             mock_post.__aenter__ = AsyncMock(return_value=mock_response)
@@ -691,7 +740,7 @@ class TestLLMEnsembleDetectorQueryMethods:
             mock_session.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session.__aexit__ = AsyncMock(return_value=None)
 
-            with patch('aiohttp.ClientSession', return_value=mock_session):
+            with patch("aiohttp.ClientSession", return_value=mock_session):
                 results = await multi_provider_detector._query_openai("gpt-4", "contract code")
                 assert isinstance(results, list)
 
@@ -699,6 +748,7 @@ class TestLLMEnsembleDetectorQueryMethods:
 
     def test_query_openai_no_key(self, detector):
         """Test OpenAI query without API key."""
+
         async def run_test():
             detector.openai_api_key = None
 
@@ -709,12 +759,11 @@ class TestLLMEnsembleDetectorQueryMethods:
 
     def test_query_anthropic_success(self, multi_provider_detector, llm_response_json):
         """Test successful Anthropic query."""
+
         async def run_test():
             mock_response = MagicMock()
             mock_response.status = 200
-            mock_response.json = AsyncMock(return_value={
-                "content": [{"text": llm_response_json}]
-            })
+            mock_response.json = AsyncMock(return_value={"content": [{"text": llm_response_json}]})
 
             mock_post = MagicMock()
             mock_post.__aenter__ = AsyncMock(return_value=mock_response)
@@ -727,8 +776,10 @@ class TestLLMEnsembleDetectorQueryMethods:
             mock_session.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session.__aexit__ = AsyncMock(return_value=None)
 
-            with patch('aiohttp.ClientSession', return_value=mock_session):
-                results = await multi_provider_detector._query_anthropic("claude-3-sonnet", "contract code")
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                results = await multi_provider_detector._query_anthropic(
+                    "claude-3-sonnet", "contract code"
+                )
                 assert isinstance(results, list)
 
         asyncio.run(run_test())
@@ -787,6 +838,7 @@ class TestLLMEnsembleDetectorIntegration:
 
     def test_full_workflow_mocked(self, detector, vulnerable_code, sample_model_findings):
         """Test full detection workflow with mocked responses."""
+
         async def run_test():
             # Mock initialize
             detector._initialized = True
@@ -794,7 +846,9 @@ class TestLLMEnsembleDetectorIntegration:
             detector._available_providers = {LLMProvider.OLLAMA: ["model1", "model2", "model3"]}
 
             # Mock _detect_with_provider
-            with patch.object(detector, '_detect_with_provider', new_callable=AsyncMock) as mock_detect:
+            with patch.object(
+                detector, "_detect_with_provider", new_callable=AsyncMock
+            ) as mock_detect:
                 finding = EnsembleFinding(
                     type="reentrancy",
                     severity="high",
@@ -818,6 +872,7 @@ class TestLLMEnsembleDetectorIntegration:
 
     def test_provider_priority_order(self, multi_provider_detector):
         """Test that providers are tried in order."""
+
         async def run_test():
             multi_provider_detector._initialized = True
             multi_provider_detector._available_providers = {
@@ -836,7 +891,9 @@ class TestLLMEnsembleDetectorIntegration:
                     raise ProviderUnavailable("OpenAI down")
                 return []
 
-            with patch.object(multi_provider_detector, '_detect_with_provider', side_effect=mock_detect):
+            with patch.object(
+                multi_provider_detector, "_detect_with_provider", side_effect=mock_detect
+            ):
                 try:
                     await multi_provider_detector.detect_with_fallback("code")
                 except AllProvidersUnavailable:
@@ -855,11 +912,14 @@ class TestLLMEnsembleDetectorIntegration:
 # =============================================================================
 
 
-@pytest.mark.parametrize("strategy,threshold,expected_pass", [
-    (VotingStrategy.THRESHOLD, 2, True),   # 3 votes >= 2
-    (VotingStrategy.THRESHOLD, 4, False),  # 3 votes < 4
-    (VotingStrategy.MAJORITY, 2, True),    # 3/3 > 50%
-])
+@pytest.mark.parametrize(
+    "strategy,threshold,expected_pass",
+    [
+        (VotingStrategy.THRESHOLD, 2, True),  # 3 votes >= 2
+        (VotingStrategy.THRESHOLD, 4, False),  # 3 votes < 4
+        (VotingStrategy.MAJORITY, 2, True),  # 3/3 > 50%
+    ],
+)
 def test_voting_strategies(strategy, threshold, expected_pass):
     """Test different voting strategies."""
     detector = LLMEnsembleDetector(
@@ -868,9 +928,36 @@ def test_voting_strategies(strategy, threshold, expected_pass):
     )
 
     findings = {
-        "model1": [{"type": "test", "severity": "high", "title": "T", "description": "D", "location": {"line": 1}, "confidence": 0.9}],
-        "model2": [{"type": "test", "severity": "high", "title": "T", "description": "D", "location": {"line": 1}, "confidence": 0.9}],
-        "model3": [{"type": "test", "severity": "high", "title": "T", "description": "D", "location": {"line": 1}, "confidence": 0.9}],
+        "model1": [
+            {
+                "type": "test",
+                "severity": "high",
+                "title": "T",
+                "description": "D",
+                "location": {"line": 1},
+                "confidence": 0.9,
+            }
+        ],
+        "model2": [
+            {
+                "type": "test",
+                "severity": "high",
+                "title": "T",
+                "description": "D",
+                "location": {"line": 1},
+                "confidence": 0.9,
+            }
+        ],
+        "model3": [
+            {
+                "type": "test",
+                "severity": "high",
+                "title": "T",
+                "description": "D",
+                "location": {"line": 1},
+                "confidence": 0.9,
+            }
+        ],
     }
 
     results = detector._ensemble_vote(findings)
@@ -880,10 +967,13 @@ def test_voting_strategies(strategy, threshold, expected_pass):
     # Note: may still pass with threshold=4 depending on implementation
 
 
-@pytest.mark.parametrize("provider,expected_models", [
-    (LLMProvider.OLLAMA, ["deepseek-coder:6.7b", "codellama:7b", "llama3.1:8b"]),
-    (LLMProvider.OPENAI, ["gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"]),
-])
+@pytest.mark.parametrize(
+    "provider,expected_models",
+    [
+        (LLMProvider.OLLAMA, ["deepseek-coder:6.7b", "codellama:7b", "llama3.1:8b"]),
+        (LLMProvider.OPENAI, ["gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"]),
+    ],
+)
 def test_provider_model_lists(provider, expected_models):
     """Test that provider model lists contain expected models."""
     models = LLMEnsembleDetector.PROVIDER_MODELS[provider]

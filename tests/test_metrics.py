@@ -414,7 +414,7 @@ class TestMIESCMetricsHTTPServer:
         # Mock PROMETHEUS_AVAILABLE as False
         with patch("src.core.metrics.PROMETHEUS_AVAILABLE", False):
             # Should log warning but not raise
-            with patch.object(logging.getLogger("src.core.metrics"), "warning") as mock_warn:
+            with patch.object(logging.getLogger("src.core.metrics"), "warning"):
                 metrics.start_http_server(9999)
 
     def test_start_http_server_with_prometheus(self):

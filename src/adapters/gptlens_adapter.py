@@ -32,8 +32,8 @@ import json
 import logging
 import re
 import time
-import urllib.request
 import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -90,43 +90,80 @@ SEVERITY_ORDER = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3, "Info": 4}
 # Pattern-based detection keywords for fallback analysis
 PATTERN_KEYWORDS = {
     "reentrancy": [
-        ".call{value:", ".call(", "transfer(", "send(",
-        "external call", "re-entrancy", "reentrant",
+        ".call{value:",
+        ".call(",
+        "transfer(",
+        "send(",
+        "external call",
+        "re-entrancy",
+        "reentrant",
     ],
     "access_control": [
-        "onlyOwner", "require(msg.sender", "admin", "auth",
-        "modifier", "role", "permission",
+        "onlyOwner",
+        "require(msg.sender",
+        "admin",
+        "auth",
+        "modifier",
+        "role",
+        "permission",
     ],
     "logic_error": [
-        "logic", "business logic", "incorrect", "wrong calculation",
-        "invariant", "assertion",
+        "logic",
+        "business logic",
+        "incorrect",
+        "wrong calculation",
+        "invariant",
+        "assertion",
     ],
     "oracle_manipulation": [
-        "oracle", "price feed", "chainlink", "getPrice",
-        "latestRoundData", "twap",
+        "oracle",
+        "price feed",
+        "chainlink",
+        "getPrice",
+        "latestRoundData",
+        "twap",
     ],
     "front_running": [
-        "front-run", "frontrun", "sandwich", "mev",
-        "slippage", "deadline",
+        "front-run",
+        "frontrun",
+        "sandwich",
+        "mev",
+        "slippage",
+        "deadline",
     ],
     "integer_overflow": [
-        "overflow", "underflow", "SafeMath", "unchecked {",
-        "uint256", "uint8",
+        "overflow",
+        "underflow",
+        "SafeMath",
+        "unchecked {",
+        "uint256",
+        "uint8",
     ],
     "unchecked_return": [
-        "unchecked", "return value", "low-level call",
-        "(bool success", "require(success",
+        "unchecked",
+        "return value",
+        "low-level call",
+        "(bool success",
+        "require(success",
     ],
     "tx_origin": [
-        "tx.origin", "phishing", "origin",
+        "tx.origin",
+        "phishing",
+        "origin",
     ],
     "delegatecall": [
-        "delegatecall", "proxy", "storage collision",
-        "implementation", "upgradeable",
+        "delegatecall",
+        "proxy",
+        "storage collision",
+        "implementation",
+        "upgradeable",
     ],
     "timestamp_dependence": [
-        "block.timestamp", "block.number", "now",
-        "timestamp", "time-dependent",
+        "block.timestamp",
+        "block.number",
+        "now",
+        "timestamp",
+        "time-dependent",
     ],
 }
 
@@ -364,9 +401,7 @@ class GPTLensAdapter(ToolAdapter):
                     logger.info("GPTLens: Ollama is available at %s", self._ollama_url)
                     return ToolStatus.AVAILABLE
                 else:
-                    logger.warning(
-                        "GPTLens: Ollama returned status %d", resp.status
-                    )
+                    logger.warning("GPTLens: Ollama returned status %d", resp.status)
                     return ToolStatus.CONFIGURATION_ERROR
         except urllib.error.URLError as e:
             logger.info("GPTLens: Ollama not reachable at %s: %s", self._ollama_url, e)
@@ -407,7 +442,11 @@ class GPTLensAdapter(ToolAdapter):
         status = self.is_available()
         if status != ToolStatus.AVAILABLE:
             return self._build_result(
-                tool_name, version, "error", [], start_time,
+                tool_name,
+                version,
+                "error",
+                [],
+                start_time,
                 error=(
                     "Ollama not available. Install from https://ollama.com "
                     "and ensure it is running. Then pull models: "
@@ -420,7 +459,11 @@ class GPTLensAdapter(ToolAdapter):
             contract_code = self._read_contract(contract_path)
             if not contract_code:
                 return self._build_result(
-                    tool_name, version, "error", [], start_time,
+                    tool_name,
+                    version,
+                    "error",
+                    [],
+                    start_time,
                     error=f"Could not read contract file: {contract_path}",
                 )
 
@@ -446,7 +489,8 @@ class GPTLensAdapter(ToolAdapter):
             # ==============================================================
             logger.info(
                 "GPTLens Phase 1/2: Auditor (%s) scanning %s",
-                auditor_model, contract_path,
+                auditor_model,
+                contract_path,
             )
             auditor_prompt = AUDITOR_PROMPT_TEMPLATE.format(
                 contract_code=contract_code,
@@ -460,7 +504,8 @@ class GPTLensAdapter(ToolAdapter):
             # Parse auditor findings
             if auditor_response:
                 raw_findings = self._parse_auditor_response(
-                    auditor_response, contract_path,
+                    auditor_response,
+                    contract_path,
                 )
             else:
                 logger.warning(
@@ -468,7 +513,8 @@ class GPTLensAdapter(ToolAdapter):
                     "falling back to pattern-based analysis"
                 )
                 raw_findings = self._pattern_based_analysis(
-                    contract_code, contract_path,
+                    contract_code,
+                    contract_path,
                 )
 
             logger.info(
@@ -488,7 +534,8 @@ class GPTLensAdapter(ToolAdapter):
             else:
                 logger.info(
                     "GPTLens Phase 2/2: Critic (%s) evaluating %d findings",
-                    critic_model, len(raw_findings),
+                    critic_model,
+                    len(raw_findings),
                 )
                 final_findings, critic_stats = self._critic_evaluate(
                     contract_code=contract_code,
@@ -497,7 +544,8 @@ class GPTLensAdapter(ToolAdapter):
                 )
                 logger.info(
                     "GPTLens Phase 2 complete: %d/%d findings confirmed as TP",
-                    len(final_findings), len(raw_findings),
+                    len(final_findings),
+                    len(raw_findings),
                 )
 
             # Sort findings by severity then confidence
@@ -514,7 +562,11 @@ class GPTLensAdapter(ToolAdapter):
 
             # Build result
             result = self._build_result(
-                tool_name, version, "success", final_findings, start_time,
+                tool_name,
+                version,
+                "success",
+                final_findings,
+                start_time,
                 metadata={
                     "auditor_model": auditor_model,
                     "critic_model": critic_model,
@@ -537,7 +589,11 @@ class GPTLensAdapter(ToolAdapter):
         except Exception as e:
             logger.error("GPTLens analysis error: %s", e, exc_info=True)
             return self._build_result(
-                tool_name, version, "error", [], start_time,
+                tool_name,
+                version,
+                "error",
+                [],
+                start_time,
                 error=str(e),
             )
 
@@ -579,9 +635,7 @@ class GPTLensAdapter(ToolAdapter):
     # Phase 1: Auditor Methods
     # ========================================================================
 
-    def _parse_auditor_response(
-        self, response: str, contract_path: str
-    ) -> List[Dict[str, Any]]:
+    def _parse_auditor_response(self, response: str, contract_path: str) -> List[Dict[str, Any]]:
         """
         Parse the Auditor LLM response into structured findings.
 
@@ -616,16 +670,12 @@ class GPTLensAdapter(ToolAdapter):
 
         # Strategy 2: If no JSON found, try regex extraction
         if not findings:
-            logger.warning(
-                "GPTLens Auditor: JSON parsing failed, trying regex extraction"
-            )
+            logger.warning("GPTLens Auditor: JSON parsing failed, trying regex extraction")
             findings = self._extract_findings_from_text(response, contract_path)
 
         # Strategy 3: If still nothing, use keyword-based text analysis
         if not findings:
-            logger.warning(
-                "GPTLens Auditor: Regex extraction failed, using text analysis"
-            )
+            logger.warning("GPTLens Auditor: Regex extraction failed, using text analysis")
             findings = self._extract_findings_from_keywords(response, contract_path)
 
         logger.info("GPTLens Auditor: Extracted %d findings", len(findings))
@@ -718,8 +768,7 @@ class GPTLensAdapter(ToolAdapter):
             Normalized vulnerability type string
         """
         combined_text = (
-            f"{raw.get('type', '')} {raw.get('title', '')} "
-            f"{raw.get('description', '')}"
+            f"{raw.get('type', '')} {raw.get('title', '')} " f"{raw.get('description', '')}"
         ).lower()
 
         for vuln_type, keywords in PATTERN_KEYWORDS.items():
@@ -914,9 +963,10 @@ class GPTLensAdapter(ToolAdapter):
         if any(word in response_upper for word in ["VALID", "CONFIRMED", "EXPLOITABLE"]):
             return "TRUE_POSITIVE", response_clean[:300]
 
-        if any(word in response_upper for word in [
-            "INVALID", "NOT EXPLOITABLE", "NOT VULNERABLE", "NO VULNERABILITY"
-        ]):
+        if any(
+            word in response_upper
+            for word in ["INVALID", "NOT EXPLOITABLE", "NOT VULNERABLE", "NO VULNERABILITY"]
+        ):
             return "FALSE_POSITIVE", response_clean[:300]
 
         # Ambiguous response
@@ -938,7 +988,7 @@ class GPTLensAdapter(ToolAdapter):
         if idx == -1:
             return ""
 
-        after_marker = response[idx + len(marker):].strip()
+        after_marker = response[idx + len(marker) :].strip()
         # Remove common separators
         for sep in [":", "-", ".", "\n"]:
             if after_marker.startswith(sep):
@@ -978,21 +1028,25 @@ class GPTLensAdapter(ToolAdapter):
         Returns:
             Complete response text or None on failure
         """
-        payload = json.dumps({
-            "model": model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.1,
-                "num_ctx": 8192,
-            },
-        }).encode("utf-8")
+        payload = json.dumps(
+            {
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "num_ctx": 8192,
+                },
+            }
+        ).encode("utf-8")
 
         for attempt in range(1, self._max_retries + 1):
             try:
                 logger.debug(
                     "GPTLens: Calling Ollama %s (attempt %d/%d)",
-                    model, attempt, self._max_retries,
+                    model,
+                    attempt,
+                    self._max_retries,
                 )
 
                 req = urllib.request.Request(
@@ -1010,38 +1064,47 @@ class GPTLensAdapter(ToolAdapter):
                         if response_text:
                             logger.debug(
                                 "GPTLens: Got response from %s (%d chars)",
-                                model, len(response_text),
+                                model,
+                                len(response_text),
                             )
                             return response_text
                         else:
-                            logger.warning(
-                                "GPTLens: Empty response from %s", model
-                            )
+                            logger.warning("GPTLens: Empty response from %s", model)
                     else:
                         logger.warning(
                             "GPTLens: Ollama returned status %d for %s",
-                            resp.status, model,
+                            resp.status,
+                            model,
                         )
 
             except urllib.error.HTTPError as e:
                 logger.warning(
                     "GPTLens: HTTP error %d from Ollama for %s (attempt %d): %s",
-                    e.code, model, attempt, e.reason,
+                    e.code,
+                    model,
+                    attempt,
+                    e.reason,
                 )
             except urllib.error.URLError as e:
                 logger.warning(
                     "GPTLens: URL error calling Ollama for %s (attempt %d): %s",
-                    model, attempt, e.reason,
+                    model,
+                    attempt,
+                    e.reason,
                 )
             except json.JSONDecodeError as e:
                 logger.warning(
                     "GPTLens: Invalid JSON from Ollama for %s (attempt %d): %s",
-                    model, attempt, e,
+                    model,
+                    attempt,
+                    e,
                 )
             except Exception as e:
                 logger.error(
                     "GPTLens: Unexpected error calling Ollama for %s (attempt %d): %s",
-                    model, attempt, e,
+                    model,
+                    attempt,
+                    e,
                 )
 
             # Wait before retry
@@ -1050,7 +1113,8 @@ class GPTLensAdapter(ToolAdapter):
 
         logger.error(
             "GPTLens: All %d attempts failed for model %s",
-            self._max_retries, model,
+            self._max_retries,
+            model,
         )
         return None
 
@@ -1093,7 +1157,7 @@ class GPTLensAdapter(ToolAdapter):
                     depth -= 1
                     if depth == 0:
                         try:
-                            return json.loads(response[start:start + i + 1])
+                            return json.loads(response[start : start + i + 1])
                         except json.JSONDecodeError:
                             break
 
@@ -1192,11 +1256,23 @@ class GPTLensAdapter(ToolAdapter):
         # Regex patterns for common vulnerability mentions
         regex_patterns = [
             (r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Rr]eentrancy[^\n]{10,})", "Critical", "reentrancy"),
-            (r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Aa]ccess\s+[Cc]ontrol[^\n]{10,})", "High", "access_control"),
+            (
+                r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Aa]ccess\s+[Cc]ontrol[^\n]{10,})",
+                "High",
+                "access_control",
+            ),
             (r"(?:HIGH|MEDIUM)\s*[:\-]?\s*([Ll]ogic\s+[Ee]rror[^\n]{10,})", "High", "logic_error"),
             (r"(?:HIGH|MEDIUM)\s*[:\-]?\s*([Oo]racle[^\n]{10,})", "High", "oracle_manipulation"),
-            (r"(?:MEDIUM)\s*[:\-]?\s*([Ff]ront[\s-]*[Rr]unning[^\n]{10,})", "Medium", "front_running"),
-            (r"(?:HIGH|MEDIUM)\s*[:\-]?\s*([Ii]nteger\s+[Oo]verflow[^\n]{10,})", "High", "integer_overflow"),
+            (
+                r"(?:MEDIUM)\s*[:\-]?\s*([Ff]ront[\s-]*[Rr]unning[^\n]{10,})",
+                "Medium",
+                "front_running",
+            ),
+            (
+                r"(?:HIGH|MEDIUM)\s*[:\-]?\s*([Ii]nteger\s+[Oo]verflow[^\n]{10,})",
+                "High",
+                "integer_overflow",
+            ),
             (r"(?:MEDIUM)\s*[:\-]?\s*([Uu]nchecked[^\n]{10,})", "Medium", "unchecked_return"),
             (r"(?:MEDIUM)\s*[:\-]?\s*([Tt]x\.origin[^\n]{10,})", "Medium", "tx_origin"),
             (r"(?:HIGH)\s*[:\-]?\s*([Dd]elegatecall[^\n]{10,})", "High", "delegatecall"),
@@ -1215,26 +1291,28 @@ class GPTLensAdapter(ToolAdapter):
             for match in matches:
                 if vuln_type not in seen_types and len(match.strip()) > 10:
                     swc_info = VULNERABILITY_SWC_MAP.get(vuln_type, {})
-                    findings.append({
-                        "id": "",
-                        "type": vuln_type,
-                        "severity": severity,
-                        "confidence": 0.60,
-                        "title": f"{vuln_type.replace('_', ' ').title()} Vulnerability",
-                        "description": match.strip()[:500],
-                        "location": {
-                            "file": contract_path,
-                            "line": 0,
-                            "function": "",
-                        },
-                        "message": match.strip()[:500],
-                        "recommendation": f"Review {vuln_type.replace('_', ' ')} issue.",
-                        "swc_id": swc_info.get("swc", ""),
-                        "cwe_id": swc_info.get("cwe", ""),
-                        "owasp_category": swc_info.get("owasp", ""),
-                        "source": "gptlens_auditor_text",
-                        "critic_verdict": None,
-                    })
+                    findings.append(
+                        {
+                            "id": "",
+                            "type": vuln_type,
+                            "severity": severity,
+                            "confidence": 0.60,
+                            "title": f"{vuln_type.replace('_', ' ').title()} Vulnerability",
+                            "description": match.strip()[:500],
+                            "location": {
+                                "file": contract_path,
+                                "line": 0,
+                                "function": "",
+                            },
+                            "message": match.strip()[:500],
+                            "recommendation": f"Review {vuln_type.replace('_', ' ')} issue.",
+                            "swc_id": swc_info.get("swc", ""),
+                            "cwe_id": swc_info.get("cwe", ""),
+                            "owasp_category": swc_info.get("owasp", ""),
+                            "source": "gptlens_auditor_text",
+                            "critic_verdict": None,
+                        }
+                    )
                     seen_types.add(vuln_type)
 
         return findings
@@ -1263,32 +1341,34 @@ class GPTLensAdapter(ToolAdapter):
                 if keyword.lower() in response_lower:
                     swc_info = VULNERABILITY_SWC_MAP.get(vuln_type, {})
                     severity = DEFAULT_SEVERITY_MAP.get(vuln_type, "Medium")
-                    findings.append({
-                        "id": "",
-                        "type": vuln_type,
-                        "severity": severity,
-                        "confidence": 0.50,
-                        "title": f"Potential {vuln_type.replace('_', ' ').title()}",
-                        "description": (
-                            f"LLM analysis mentions '{keyword}' pattern. "
-                            f"Manual review recommended."
-                        ),
-                        "location": {
-                            "file": contract_path,
-                            "line": 0,
-                            "function": "",
-                        },
-                        "message": f"Keyword '{keyword}' detected in LLM analysis output.",
-                        "recommendation": (
-                            f"Review contract for {vuln_type.replace('_', ' ')} "
-                            f"vulnerability patterns."
-                        ),
-                        "swc_id": swc_info.get("swc", ""),
-                        "cwe_id": swc_info.get("cwe", ""),
-                        "owasp_category": swc_info.get("owasp", ""),
-                        "source": "gptlens_keyword_fallback",
-                        "critic_verdict": None,
-                    })
+                    findings.append(
+                        {
+                            "id": "",
+                            "type": vuln_type,
+                            "severity": severity,
+                            "confidence": 0.50,
+                            "title": f"Potential {vuln_type.replace('_', ' ').title()}",
+                            "description": (
+                                f"LLM analysis mentions '{keyword}' pattern. "
+                                f"Manual review recommended."
+                            ),
+                            "location": {
+                                "file": contract_path,
+                                "line": 0,
+                                "function": "",
+                            },
+                            "message": f"Keyword '{keyword}' detected in LLM analysis output.",
+                            "recommendation": (
+                                f"Review contract for {vuln_type.replace('_', ' ')} "
+                                f"vulnerability patterns."
+                            ),
+                            "swc_id": swc_info.get("swc", ""),
+                            "cwe_id": swc_info.get("cwe", ""),
+                            "owasp_category": swc_info.get("owasp", ""),
+                            "source": "gptlens_keyword_fallback",
+                            "critic_verdict": None,
+                        }
+                    )
                     break  # One finding per vulnerability type
 
         return findings
@@ -1314,7 +1394,7 @@ class GPTLensAdapter(ToolAdapter):
             List of pattern-matched findings
         """
         findings = []
-        code_lower = contract_code.lower()
+        contract_code.lower()
         lines = contract_code.split("\n")
 
         # Pattern detectors - each returns a finding or None
@@ -1381,19 +1461,25 @@ class GPTLensAdapter(ToolAdapter):
         """Detect missing access control on sensitive functions."""
         # Find functions that transfer funds or change ownership without modifiers
         sensitive_patterns = [
-            (r"function\s+(\w*[Ww]ithdraw\w*)\s*\([^)]*\)\s*(?:public|external)(?!\s+only)",
-             "Withdrawal function without access control modifier"),
-            (r"function\s+(\w*[Ss]elfdestruct\w*)\s*\([^)]*\)\s*(?:public|external)(?!\s+only)",
-             "Self-destruct function without access control modifier"),
-            (r"function\s+(\w*[Ss]et[Oo]wner\w*)\s*\([^)]*\)\s*(?:public|external)(?!\s+only)",
-             "Owner change function without access control modifier"),
+            (
+                r"function\s+(\w*[Ww]ithdraw\w*)\s*\([^)]*\)\s*(?:public|external)(?!\s+only)",
+                "Withdrawal function without access control modifier",
+            ),
+            (
+                r"function\s+(\w*[Ss]elfdestruct\w*)\s*\([^)]*\)\s*(?:public|external)(?!\s+only)",
+                "Self-destruct function without access control modifier",
+            ),
+            (
+                r"function\s+(\w*[Ss]et[Oo]wner\w*)\s*\([^)]*\)\s*(?:public|external)(?!\s+only)",
+                "Owner change function without access control modifier",
+            ),
         ]
 
         for pattern, description in sensitive_patterns:
             match = re.search(pattern, code)
             if match:
                 func_name = match.group(1)
-                line_num = code[:match.start()].count("\n") + 1
+                line_num = code[: match.start()].count("\n") + 1
                 return self._make_pattern_finding(
                     vuln_type="access_control",
                     title=f"Missing Access Control on {func_name}",
@@ -1423,7 +1509,7 @@ class GPTLensAdapter(ToolAdapter):
             if "SafeMath" not in code and "unchecked" not in code:
                 match = re.search(r"uint\d*\s+\w+\s*=\s*\w+\s*[+\-*]", code)
                 if match:
-                    line_num = code[:match.start()].count("\n") + 1
+                    line_num = code[: match.start()].count("\n") + 1
                     func_name = self._find_enclosing_function(code, match.start())
                     return self._make_pattern_finding(
                         vuln_type="integer_overflow",
@@ -1451,9 +1537,9 @@ class GPTLensAdapter(ToolAdapter):
         match = pattern.search(code)
         if match:
             # Verify return value is not captured
-            before_call = code[max(0, match.start() - 50):match.start()]
+            before_call = code[max(0, match.start() - 50) : match.start()]
             if "bool" not in before_call and "(" not in before_call.split("\n")[-1]:
-                line_num = code[:match.start()].count("\n") + 1
+                line_num = code[: match.start()].count("\n") + 1
                 func_name = self._find_enclosing_function(code, match.start())
                 return self._make_pattern_finding(
                     vuln_type="unchecked_return",
@@ -1478,7 +1564,7 @@ class GPTLensAdapter(ToolAdapter):
         if not match:
             match = re.search(r"if\s*\(\s*tx\.origin\s*==", code)
         if match:
-            line_num = code[:match.start()].count("\n") + 1
+            line_num = code[: match.start()].count("\n") + 1
             func_name = self._find_enclosing_function(code, match.start())
             return self._make_pattern_finding(
                 vuln_type="tx_origin",
@@ -1502,10 +1588,10 @@ class GPTLensAdapter(ToolAdapter):
         """Detect potentially unsafe delegatecall usage."""
         match = re.search(r"\.delegatecall\(", code)
         if match:
-            line_num = code[:match.start()].count("\n") + 1
+            line_num = code[: match.start()].count("\n") + 1
             func_name = self._find_enclosing_function(code, match.start())
             # Check if the target is user-controlled
-            before = code[max(0, match.start() - 200):match.start()]
+            before = code[max(0, match.start() - 200) : match.start()]
             if "function" in before.lower() and ("address" in before or "bytes" in before):
                 return self._make_pattern_finding(
                     vuln_type="delegatecall",
@@ -1537,7 +1623,7 @@ class GPTLensAdapter(ToolAdapter):
         for pat in timestamp_patterns:
             match = re.search(pat, code)
             if match:
-                line_num = code[:match.start()].count("\n") + 1
+                line_num = code[: match.start()].count("\n") + 1
                 func_name = self._find_enclosing_function(code, match.start())
                 return self._make_pattern_finding(
                     vuln_type="timestamp_dependence",
@@ -1569,12 +1655,15 @@ class GPTLensAdapter(ToolAdapter):
             match = re.search(pat, code)
             if match:
                 # Check if staleness check exists
-                has_staleness = bool(re.search(
-                    r"updatedAt|answeredInRound|staleness|stale",
-                    code, re.IGNORECASE,
-                ))
+                has_staleness = bool(
+                    re.search(
+                        r"updatedAt|answeredInRound|staleness|stale",
+                        code,
+                        re.IGNORECASE,
+                    )
+                )
                 if not has_staleness:
-                    line_num = code[:match.start()].count("\n") + 1
+                    line_num = code[: match.start()].count("\n") + 1
                     func_name = self._find_enclosing_function(code, match.start())
                     return self._make_pattern_finding(
                         vuln_type="oracle_manipulation",
@@ -1617,7 +1706,7 @@ class GPTLensAdapter(ToolAdapter):
                 func_body = code[func_body_start:pos]
 
                 if "deadline" not in func_body.lower() and "slippage" not in func_body.lower():
-                    line_num = code[:swap_match.start()].count("\n") + 1
+                    line_num = code[: swap_match.start()].count("\n") + 1
                     return self._make_pattern_finding(
                         vuln_type="front_running",
                         title=f"Front-Running Risk in {func_name}",
@@ -1752,7 +1841,8 @@ class GPTLensAdapter(ToolAdapter):
 
         logger.warning(
             "GPTLens: Contract truncated from %d to %d chars",
-            len(code), MAX_CONTRACT_SIZE,
+            len(code),
+            MAX_CONTRACT_SIZE,
         )
         return code[:MAX_CONTRACT_SIZE] + "\n// ... (truncated for analysis)"
 
@@ -1815,11 +1905,7 @@ class GPTLensAdapter(ToolAdapter):
         Returns:
             SHA-256 hex digest as cache key
         """
-        key_data = (
-            f"{contract_code}:"
-            f"{self._auditor_model}:"
-            f"{self._critic_model}"
-        )
+        key_data = f"{contract_code}:" f"{self._auditor_model}:" f"{self._critic_model}"
         return hashlib.sha256(key_data.encode("utf-8")).hexdigest()
 
     def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:

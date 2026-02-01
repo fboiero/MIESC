@@ -4,15 +4,13 @@ MIESC Orchestrator
 Coordinates execution of security analysis tools across 7 defense layers.
 """
 
-import os
-import sys
 import json
-import subprocess
 import logging
-from pathlib import Path
+import os
+import subprocess
 from datetime import datetime
-from typing import Dict, List, Any, Optional
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -64,13 +62,14 @@ class MIESCOrchestrator:
             try:
                 result = subprocess.run(cmd, capture_output=True, timeout=10)
                 tools[tool] = result.returncode == 0
-            except:
+            except Exception:
                 tools[tool] = False
 
         return tools
 
-    def analyze(self, contract_path: str, layers: List[str] = None,
-                tools: List[str] = None) -> Dict[str, Any]:
+    def analyze(
+        self, contract_path: str, layers: List[str] = None, tools: List[str] = None
+    ) -> Dict[str, Any]:
         """
         Analyze a contract using specified layers/tools.
 
@@ -84,9 +83,14 @@ class MIESCOrchestrator:
         """
         return self.audit(contract_path, layers=layers, tools=tools)
 
-    def audit(self, contract_path: str, layers: List[int] = None,
-              tools: List[str] = None, timeout: int = 600,
-              verbose: bool = False) -> Dict[str, Any]:
+    def audit(
+        self,
+        contract_path: str,
+        layers: List[int] = None,
+        tools: List[str] = None,
+        timeout: int = 600,
+        verbose: bool = False,
+    ) -> Dict[str, Any]:
         """
         Perform full security audit.
 
@@ -139,8 +143,15 @@ class MIESCOrchestrator:
 
         return results
 
-    def _run_layer(self, layer_num: int, layer_info: Dict, contract_path: str,
-                   tools: List[str], timeout: int, verbose: bool) -> Dict:
+    def _run_layer(
+        self,
+        layer_num: int,
+        layer_info: Dict,
+        contract_path: str,
+        tools: List[str],
+        timeout: int,
+        verbose: bool,
+    ) -> Dict:
         """Run a specific layer's tools."""
         layer_results = {
             "layer": layer_num,
@@ -186,7 +197,7 @@ class MIESCOrchestrator:
                 ["slither", contract_path, "--json", "-"],
                 capture_output=True,
                 text=True,
-                timeout=timeout
+                timeout=timeout,
             )
 
             findings = []
@@ -194,13 +205,15 @@ class MIESCOrchestrator:
                 try:
                     data = json.loads(result.stdout)
                     for detector in data.get("results", {}).get("detectors", []):
-                        findings.append({
-                            "tool": "slither",
-                            "type": detector.get("check"),
-                            "severity": detector.get("impact", "info").lower(),
-                            "description": detector.get("description", ""),
-                            "locations": detector.get("elements", []),
-                        })
+                        findings.append(
+                            {
+                                "tool": "slither",
+                                "type": detector.get("check"),
+                                "severity": detector.get("impact", "info").lower(),
+                                "description": detector.get("description", ""),
+                                "locations": detector.get("elements", []),
+                            }
+                        )
                 except json.JSONDecodeError:
                     pass
 
@@ -217,7 +230,7 @@ class MIESCOrchestrator:
                 ["myth", "analyze", contract_path, "-o", "json"],
                 capture_output=True,
                 text=True,
-                timeout=timeout
+                timeout=timeout,
             )
 
             findings = []
@@ -225,13 +238,15 @@ class MIESCOrchestrator:
                 try:
                     data = json.loads(result.stdout)
                     for issue in data.get("issues", []):
-                        findings.append({
-                            "tool": "mythril",
-                            "type": issue.get("title"),
-                            "severity": issue.get("severity", "info").lower(),
-                            "description": issue.get("description", ""),
-                            "swc_id": issue.get("swc-id"),
-                        })
+                        findings.append(
+                            {
+                                "tool": "mythril",
+                                "type": issue.get("title"),
+                                "severity": issue.get("severity", "info").lower(),
+                                "description": issue.get("description", ""),
+                                "swc_id": issue.get("swc-id"),
+                            }
+                        )
                 except json.JSONDecodeError:
                     pass
 

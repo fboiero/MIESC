@@ -17,11 +17,13 @@ from typing import Any, Dict, List
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()  # Load environment variables from .env
 except ImportError:
     pass  # dotenv not installed, environment variables must be set manually
 
 from src.agents.base_agent import BaseAgent
+
 
 class GPTScanAgent(BaseAgent):
     """
@@ -45,9 +47,9 @@ class GPTScanAgent(BaseAgent):
                 "logic_vulnerability_detection",
                 "gpt_assisted_analysis",
                 "combined_static_ai",
-                "token_contract_specialization"
+                "token_contract_specialization",
             ],
-            agent_type="ai"
+            agent_type="ai",
         )
         self.openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
 
@@ -58,6 +60,7 @@ class GPTScanAgent(BaseAgent):
             self.gpt_enabled = True
             try:
                 import openai
+
                 openai.api_key = self.openai_api_key
                 self.openai = openai
             except ImportError:
@@ -65,11 +68,7 @@ class GPTScanAgent(BaseAgent):
                 self.gpt_enabled = False
 
     def get_context_types(self) -> List[str]:
-        return [
-            "gptscan_findings",
-            "gptscan_logic_vulnerabilities",
-            "gptscan_analysis"
-        ]
+        return ["gptscan_findings", "gptscan_logic_vulnerabilities", "gptscan_analysis"]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -85,6 +84,7 @@ class GPTScanAgent(BaseAgent):
             Dict with findings and analysis
         """
         import time
+
         start_time = time.time()
 
         print("\n🔍 GPTScan Analysis Starting...")
@@ -120,10 +120,10 @@ class GPTScanAgent(BaseAgent):
                 "static_issues": len(static_results.get("issues", [])),
                 "patterns_extracted": len(patterns),
                 "gpt_analyzed": len(gpt_analysis.get("analyses", [])) if self.gpt_enabled else 0,
-                "final_findings": len(findings)
+                "final_findings": len(findings),
             },
             "execution_time": execution_time,
-            "tool_version": "gptscan-miesc-1.0"
+            "tool_version": "gptscan-miesc-1.0",
         }
 
     def _run_static_analysis(self, contract_path: str, **kwargs) -> Dict[str, Any]:
@@ -135,17 +135,15 @@ class GPTScanAgent(BaseAgent):
             cmd = [
                 "slither",
                 contract_path,
-                "--json", "-",
-                "--solc", solc_version,
-                "--exclude", "naming-convention,solc-version"  # Reduce noise
+                "--json",
+                "-",
+                "--solc",
+                solc_version,
+                "--exclude",
+                "naming-convention,solc-version",  # Reduce noise
             ]
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
             if result.stdout:
                 data = json.loads(result.stdout)
@@ -160,15 +158,17 @@ class GPTScanAgent(BaseAgent):
                         "controlled-delegatecall",
                         "tx-origin",
                         "suicidal",
-                        "unprotected-upgrade"
+                        "unprotected-upgrade",
                     ]:
-                        issues.append({
-                            "check": detector["check"],
-                            "impact": detector["impact"],
-                            "confidence": detector["confidence"],
-                            "description": detector["description"],
-                            "elements": detector.get("elements", [])
-                        })
+                        issues.append(
+                            {
+                                "check": detector["check"],
+                                "impact": detector["impact"],
+                                "confidence": detector["confidence"],
+                                "description": detector["description"],
+                                "elements": detector.get("elements", []),
+                            }
+                        )
 
                 return {"issues": issues, "success": True}
             else:
@@ -177,7 +177,11 @@ class GPTScanAgent(BaseAgent):
         except subprocess.TimeoutExpired:
             return {"issues": [], "success": False, "error": "Timeout"}
         except FileNotFoundError:
-            return {"issues": [], "success": False, "error": "Slither not found. Install with: pip install slither-analyzer"}
+            return {
+                "issues": [],
+                "success": False,
+                "error": "Slither not found. Install with: pip install slither-analyzer",
+            }
         except Exception as e:
             return {"issues": [], "success": False, "error": str(e)}
 
@@ -186,7 +190,7 @@ class GPTScanAgent(BaseAgent):
         patterns = []
 
         try:
-            with open(contract_path, 'r') as f:
+            with open(contract_path, "r") as f:
                 code_lines = f.readlines()
         except (FileNotFoundError, IOError, PermissionError):
             return patterns
@@ -195,23 +199,25 @@ class GPTScanAgent(BaseAgent):
             # Extract code context around issue
             for element in issue.get("elements", []):
                 if element.get("type") == "function":
-                    start_line = element.get("source_mapping", {}).get("start", 0)
+                    element.get("source_mapping", {}).get("start", 0)
                     lines = element.get("source_mapping", {}).get("lines", [])
 
                     if lines:
                         # Extract function context
                         snippet_start = max(0, min(lines) - 2)
                         snippet_end = min(len(code_lines), max(lines) + 2)
-                        code_snippet = ''.join(code_lines[snippet_start:snippet_end])
+                        code_snippet = "".join(code_lines[snippet_start:snippet_end])
 
-                        patterns.append({
-                            "type": issue["check"],
-                            "impact": issue["impact"],
-                            "function": element.get("name", "unknown"),
-                            "code_snippet": code_snippet,
-                            "lines": lines,
-                            "description": issue["description"]
-                        })
+                        patterns.append(
+                            {
+                                "type": issue["check"],
+                                "impact": issue["impact"],
+                                "function": element.get("name", "unknown"),
+                                "code_snippet": code_snippet,
+                                "lines": lines,
+                                "description": issue["description"],
+                            }
+                        )
 
         return patterns
 
@@ -229,11 +235,14 @@ class GPTScanAgent(BaseAgent):
                 response = self.openai.ChatCompletion.create(
                     model="gpt-4",
                     messages=[
-                        {"role": "system", "content": "You are a smart contract security expert specializing in logic vulnerability detection."},
-                        {"role": "user", "content": prompt}
+                        {
+                            "role": "system",
+                            "content": "You are a smart contract security expert specializing in logic vulnerability detection.",
+                        },
+                        {"role": "user", "content": prompt},
                     ],
                     temperature=0.1,
-                    max_tokens=800
+                    max_tokens=800,
                 )
 
                 gpt_response = response.choices[0].message.content
@@ -244,11 +253,9 @@ class GPTScanAgent(BaseAgent):
 
             except Exception as e:
                 print(f"⚠️  GPT analysis failed for pattern: {e}")
-                analyses.append({
-                    "pattern": pattern["type"],
-                    "error": str(e),
-                    "is_vulnerability": None
-                })
+                analyses.append(
+                    {"pattern": pattern["type"], "error": str(e), "is_vulnerability": None}
+                )
 
         return {"analyses": analyses, "gpt_enabled": True}
 
@@ -300,44 +307,50 @@ Be concise but thorough.
             "is_vulnerability": is_vuln,
             "severity": severity if is_vuln else None,
             "gpt_analysis": gpt_response,
-            "confidence": 0.90 if is_vuln else 0.85  # GPTScan reports >90% precision
+            "confidence": 0.90 if is_vuln else 0.85,  # GPTScan reports >90% precision
         }
 
-    def _combine_results(self, static_results: Dict, patterns: List[Dict], gpt_analysis: Dict) -> List[Dict]:
+    def _combine_results(
+        self, static_results: Dict, patterns: List[Dict], gpt_analysis: Dict
+    ) -> List[Dict]:
         """Combine static + GPT into unified findings"""
         findings = []
 
         # If GPT is enabled, use GPT analysis
         if gpt_analysis.get("gpt_enabled") and gpt_analysis.get("analyses"):
-            for idx, analysis in enumerate(gpt_analysis["analyses"]):
+            for _idx, analysis in enumerate(gpt_analysis["analyses"]):
                 if analysis.get("is_vulnerability"):
-                    findings.append({
-                        "id": f"GPTSCAN-{len(findings)+1:03d}",
-                        "source": "GPTScan",
-                        "category": "logic",
-                        "swc_id": self._map_to_swc(analysis["pattern_type"]),
-                        "owasp_category": self._map_to_owasp(analysis["pattern_type"]),
-                        "severity": analysis["severity"],
-                        "confidence": analysis["confidence"],
-                        "function": analysis["function"],
-                        "description": f"Logic vulnerability: {analysis['pattern_type']}",
-                        "gpt_reasoning": analysis["gpt_analysis"][:200] + "...",
-                        "recommendation": "Review GPT analysis and apply recommended fix"
-                    })
+                    findings.append(
+                        {
+                            "id": f"GPTSCAN-{len(findings)+1:03d}",
+                            "source": "GPTScan",
+                            "category": "logic",
+                            "swc_id": self._map_to_swc(analysis["pattern_type"]),
+                            "owasp_category": self._map_to_owasp(analysis["pattern_type"]),
+                            "severity": analysis["severity"],
+                            "confidence": analysis["confidence"],
+                            "function": analysis["function"],
+                            "description": f"Logic vulnerability: {analysis['pattern_type']}",
+                            "gpt_reasoning": analysis["gpt_analysis"][:200] + "...",
+                            "recommendation": "Review GPT analysis and apply recommended fix",
+                        }
+                    )
         else:
             # Fallback: Use static analysis only
-            for idx, issue in enumerate(static_results.get("issues", [])):
-                findings.append({
-                    "id": f"GPTSCAN-{len(findings)+1:03d}",
-                    "source": "GPTScan (Static Only)",
-                    "category": "static",
-                    "swc_id": self._map_to_swc(issue["check"]),
-                    "owasp_category": self._map_to_owasp(issue["check"]),
-                    "severity": self._map_severity(issue["impact"]),
-                    "confidence": self._map_confidence(issue["confidence"]),
-                    "description": issue["description"],
-                    "recommendation": "Manual review recommended (GPT analysis not available)"
-                })
+            for _idx, issue in enumerate(static_results.get("issues", [])):
+                findings.append(
+                    {
+                        "id": f"GPTSCAN-{len(findings)+1:03d}",
+                        "source": "GPTScan (Static Only)",
+                        "category": "static",
+                        "swc_id": self._map_to_swc(issue["check"]),
+                        "owasp_category": self._map_to_owasp(issue["check"]),
+                        "severity": self._map_severity(issue["impact"]),
+                        "confidence": self._map_confidence(issue["confidence"]),
+                        "description": issue["description"],
+                        "recommendation": "Manual review recommended (GPT analysis not available)",
+                    }
+                )
 
         return findings
 
@@ -349,7 +362,7 @@ Be concise but thorough.
             "controlled-delegatecall": "SWC-112",
             "tx-origin": "SWC-115",
             "suicidal": "SWC-106",
-            "unprotected-upgrade": "SWC-105"
+            "unprotected-upgrade": "SWC-105",
         }
         return mapping.get(check_type, "SWC-000")
 
@@ -361,7 +374,7 @@ Be concise but thorough.
             "SWC-105": "SC02-Access-Control",
             "SWC-112": "SC02-Access-Control",
             "SWC-115": "SC02-Access-Control",
-            "SWC-106": "SC02-Access-Control"
+            "SWC-106": "SC02-Access-Control",
         }
         return swc_to_owasp.get(swc_id, "SC10-Unknown")
 
@@ -371,17 +384,13 @@ Be concise but thorough.
             "High": "High",
             "Medium": "Medium",
             "Low": "Low",
-            "Informational": "Informational"
+            "Informational": "Informational",
         }
         return mapping.get(impact, "Medium")
 
     def _map_confidence(self, confidence: str) -> float:
         """Map Slither confidence to numeric"""
-        mapping = {
-            "High": 0.90,
-            "Medium": 0.70,
-            "Low": 0.50
-        }
+        mapping = {"High": 0.90, "Medium": 0.70, "Low": 0.50}
         return mapping.get(confidence, 0.70)
 
 
@@ -422,7 +431,7 @@ if __name__ == "__main__":
             print(f"\n   [{finding['id']}] {finding['severity']}")
             print(f"   SWC: {finding['swc_id']} | OWASP: {finding['owasp_category']}")
             print(f"   {finding['description'][:80]}...")
-            if 'gpt_reasoning' in finding:
+            if "gpt_reasoning" in finding:
                 print(f"   GPT: {finding['gpt_reasoning'][:80]}...")
     else:
         print("\n✅ No vulnerabilities detected")

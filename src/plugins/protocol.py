@@ -43,24 +43,25 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Type, Union
-from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 logger = logging.getLogger(__name__)
 
 
 class PluginType(Enum):
     """Types of MIESC plugins."""
-    DETECTOR = "detector"       # Custom vulnerability detectors
-    ADAPTER = "adapter"         # Tool adapters for external tools
-    REPORTER = "reporter"       # Custom report format generators
-    TRANSFORMER = "transformer" # Code transformers and fixers
-    ANALYZER = "analyzer"       # Additional analysis modules
-    HOOK = "hook"               # Lifecycle hooks
+
+    DETECTOR = "detector"  # Custom vulnerability detectors
+    ADAPTER = "adapter"  # Tool adapters for external tools
+    REPORTER = "reporter"  # Custom report format generators
+    TRANSFORMER = "transformer"  # Code transformers and fixers
+    ANALYZER = "analyzer"  # Additional analysis modules
+    HOOK = "hook"  # Lifecycle hooks
 
 
 class PluginState(Enum):
     """Plugin lifecycle states."""
+
     UNLOADED = "unloaded"
     LOADED = "loaded"
     INITIALIZED = "initialized"
@@ -72,6 +73,7 @@ class PluginState(Enum):
 @dataclass
 class PluginMetadata:
     """Metadata describing a plugin."""
+
     name: str
     version: str
     plugin_type: PluginType
@@ -132,6 +134,7 @@ class PluginMetadata:
 @dataclass
 class PluginContext:
     """Context provided to plugins during initialization."""
+
     miesc_version: str
     config: Dict[str, Any]
     data_dir: Path
@@ -170,6 +173,7 @@ class PluginContext:
 @dataclass
 class PluginResult:
     """Result from plugin execution."""
+
     success: bool
     data: Any = None
     error: Optional[str] = None
@@ -278,7 +282,7 @@ class MIESCPlugin(ABC):
         """
         ...
 
-    def cleanup(self) -> None:
+    def cleanup(self) -> None:  # noqa: B027
         """
         Clean up plugin resources.
 

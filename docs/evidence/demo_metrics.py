@@ -14,16 +14,16 @@ License: GPL-3.0
 
 import sys
 import time
-sys.path.insert(0, '/Users/fboiero/Documents/GitHub/MIESC')
+
+sys.path.insert(0, "/Users/fboiero/Documents/GitHub/MIESC")
 
 from src.core.metrics import (
-    MIESCMetrics,
+    PROMETHEUS_AVAILABLE,
     InternalMetricsCollector,
     MetricValue,
     get_metrics,
     reset_metrics,
     timed,
-    PROMETHEUS_AVAILABLE,
 )
 
 
@@ -49,7 +49,9 @@ def demo_internal_collector():
     # Gauge operations
     print("\nGauge Operations:")
     collector.set_gauge("active_connections", 42, {"service": "api"})
-    print(f"  active_connections{{service=api}} = {collector.gauges.get('active_connections{service=api}', 0)}")
+    print(
+        f"  active_connections{{service=api}} = {collector.gauges.get('active_connections{service=api}', 0)}"
+    )
 
     # Histogram observations
     print("\nHistogram Operations:")
@@ -97,7 +99,7 @@ def demo_miesc_metrics():
     ]
 
     print("\n  [2] Running tools...")
-    for tool, layer, duration, success, findings in tools_data:
+    for tool, layer, duration, success, _findings in tools_data:
         metrics.record_tool_execution(tool, layer, duration, success)
         status = "OK" if success else "FAIL"
         print(f"      {tool:12} Layer {layer} - {duration:6.1f}s [{status}]")
@@ -132,15 +134,15 @@ def demo_miesc_metrics():
     internal_metrics = metrics.internal.get_metrics()
 
     print("\n      Counters:")
-    for key, value in internal_metrics['counters'].items():
+    for key, value in internal_metrics["counters"].items():
         print(f"        {key} = {value}")
 
     print("\n      Gauges:")
-    for key, value in internal_metrics['gauges'].items():
+    for key, value in internal_metrics["gauges"].items():
         print(f"        {key} = {value}")
 
     print("\n      Histograms:")
-    for key, data in internal_metrics['histograms'].items():
+    for key, data in internal_metrics["histograms"].items():
         print(f"        {key}:")
         print(f"          count={data['count']}, sum={data['sum']:.2f}")
 
@@ -185,7 +187,7 @@ def demo_metric_value():
         name="miesc_findings_total",
         type="counter",
         value=42.0,
-        labels={"severity": "critical", "layer": "1"}
+        labels={"severity": "critical", "layer": "1"},
     )
 
     print(f"Name: {metric.name}")

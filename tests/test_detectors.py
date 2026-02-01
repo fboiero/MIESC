@@ -4,12 +4,11 @@ Tests for DeFi and Advanced vulnerability detectors.
 """
 
 import pytest
-from pathlib import Path
-
 
 # =============================================================================
 # DEFI DETECTORS TESTS
 # =============================================================================
+
 
 class TestSeverityEnum:
     """Tests for Severity enum."""
@@ -46,7 +45,7 @@ class TestDeFiFinding:
 
     def test_defi_finding_creation(self):
         """Test creating a DeFi finding."""
-        from src.detectors.defi_detectors import DeFiFinding, Severity, DeFiCategory
+        from src.detectors.defi_detectors import DeFiCategory, DeFiFinding, Severity
 
         finding = DeFiFinding(
             title="Test Finding",
@@ -57,7 +56,7 @@ class TestDeFiFinding:
             code_snippet="test code",
             recommendation="Fix it",
             references=["https://example.com"],
-            confidence="high"
+            confidence="high",
         )
 
         assert finding.title == "Test Finding"
@@ -68,13 +67,10 @@ class TestDeFiFinding:
 
     def test_defi_finding_defaults(self):
         """Test DeFiFinding default values."""
-        from src.detectors.defi_detectors import DeFiFinding, Severity, DeFiCategory
+        from src.detectors.defi_detectors import DeFiCategory, DeFiFinding, Severity
 
         finding = DeFiFinding(
-            title="Test",
-            description="Test",
-            severity=Severity.LOW,
-            category=DeFiCategory.SLIPPAGE
+            title="Test", description="Test", severity=Severity.LOW, category=DeFiCategory.SLIPPAGE
         )
 
         assert finding.line is None
@@ -89,7 +85,7 @@ class TestFlashLoanDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.defi_detectors import FlashLoanDetector, DeFiCategory
+        from src.detectors.defi_detectors import DeFiCategory, FlashLoanDetector
 
         detector = FlashLoanDetector()
         assert detector.name == "flash-loan-detector"
@@ -154,7 +150,7 @@ class TestOracleManipulationDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.defi_detectors import OracleManipulationDetector, DeFiCategory
+        from src.detectors.defi_detectors import DeFiCategory, OracleManipulationDetector
 
         detector = OracleManipulationDetector()
         assert detector.name == "oracle-manipulation-detector"
@@ -215,7 +211,7 @@ class TestSandwichAttackDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.defi_detectors import SandwichAttackDetector, DeFiCategory
+        from src.detectors.defi_detectors import DeFiCategory, SandwichAttackDetector
 
         detector = SandwichAttackDetector()
         assert detector.name == "sandwich-attack-detector"
@@ -275,7 +271,7 @@ class TestMEVExposureDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.defi_detectors import MEVExposureDetector, DeFiCategory
+        from src.detectors.defi_detectors import DeFiCategory, MEVExposureDetector
 
         detector = MEVExposureDetector()
         assert detector.name == "mev-exposure-detector"
@@ -335,7 +331,7 @@ class TestPriceManipulationDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.defi_detectors import PriceManipulationDetector, DeFiCategory
+        from src.detectors.defi_detectors import DeFiCategory, PriceManipulationDetector
 
         detector = PriceManipulationDetector()
         assert detector.name == "price-manipulation-detector"
@@ -365,7 +361,7 @@ class TestPriceManipulationDetector:
             return balanceOf(address(this)) / totalSupply;
         }
         """
-        findings = detector.detect(source)
+        detector.detect(source)
         # Pattern might not match exactly - test basic functionality
         assert detector.name == "price-manipulation-detector"
 
@@ -397,10 +393,10 @@ class TestDeFiDetectorEngine:
     def test_engine_get_summary(self):
         """Test engine generates summary."""
         from src.detectors.defi_detectors import (
+            DeFiCategory,
             DeFiDetectorEngine,
             DeFiFinding,
             Severity,
-            DeFiCategory
         )
 
         engine = DeFiDetectorEngine()
@@ -412,15 +408,16 @@ class TestDeFiDetectorEngine:
 
         summary = engine.get_summary(findings)
 
-        assert summary['total'] == 3
-        assert summary['by_severity']['high'] == 2
-        assert summary['by_severity']['critical'] == 1
-        assert summary['by_category']['flash_loan'] == 2
+        assert summary["total"] == 3
+        assert summary["by_severity"]["high"] == 2
+        assert summary["by_severity"]["critical"] == 1
+        assert summary["by_category"]["flash_loan"] == 2
 
 
 # =============================================================================
 # ADVANCED DETECTORS TESTS
 # =============================================================================
+
 
 class TestAttackCategory:
     """Tests for AttackCategory enum."""
@@ -442,7 +439,7 @@ class TestAdvancedFinding:
 
     def test_advanced_finding_creation(self):
         """Test creating an advanced finding."""
-        from src.detectors.advanced_detectors import AdvancedFinding, Severity, AttackCategory
+        from src.detectors.advanced_detectors import AdvancedFinding, AttackCategory, Severity
 
         finding = AdvancedFinding(
             title="Rug Pull Risk",
@@ -453,7 +450,7 @@ class TestAdvancedFinding:
             code_snippet="withdrawAll()",
             recommendation="Review ownership",
             references=["https://example.com"],
-            confidence="high"
+            confidence="high",
         )
 
         assert finding.title == "Rug Pull Risk"
@@ -467,7 +464,7 @@ class TestRugPullDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.advanced_detectors import RugPullDetector, AttackCategory
+        from src.detectors.advanced_detectors import AttackCategory, RugPullDetector
 
         detector = RugPullDetector()
         assert detector.name == "rug-pull-detector"
@@ -475,7 +472,7 @@ class TestRugPullDetector:
 
     def test_detect_owner_drain_function(self):
         """Test detecting owner drain function."""
-        from src.detectors.advanced_detectors import RugPullDetector, Severity
+        from src.detectors.advanced_detectors import RugPullDetector
 
         detector = RugPullDetector()
         source = """
@@ -542,7 +539,7 @@ class TestGovernanceDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.advanced_detectors import GovernanceDetector, AttackCategory
+        from src.detectors.advanced_detectors import AttackCategory, GovernanceDetector
 
         detector = GovernanceDetector()
         assert detector.name == "governance-detector"
@@ -603,7 +600,7 @@ class TestTokenSecurityDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.advanced_detectors import TokenSecurityDetector, AttackCategory
+        from src.detectors.advanced_detectors import AttackCategory, TokenSecurityDetector
 
         detector = TokenSecurityDetector()
         assert detector.name == "token-security-detector"
@@ -683,7 +680,7 @@ class TestProxyUpgradeDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.advanced_detectors import ProxyUpgradeDetector, AttackCategory
+        from src.detectors.advanced_detectors import AttackCategory, ProxyUpgradeDetector
 
         detector = ProxyUpgradeDetector()
         assert detector.name == "proxy-upgrade-detector"
@@ -705,7 +702,7 @@ class TestProxyUpgradeDetector:
 
     def test_detect_unprotected_upgrade(self):
         """Test detecting unprotected upgrade function."""
-        from src.detectors.advanced_detectors import ProxyUpgradeDetector, Severity
+        from src.detectors.advanced_detectors import ProxyUpgradeDetector
 
         detector = ProxyUpgradeDetector()
         # Test with delegatecall which is always detected
@@ -736,7 +733,7 @@ class TestProxyUpgradeDetector:
 
     def test_detect_missing_initializer_modifier(self):
         """Test detecting missing initializer modifier."""
-        from src.detectors.advanced_detectors import ProxyUpgradeDetector, Severity
+        from src.detectors.advanced_detectors import ProxyUpgradeDetector
 
         detector = ProxyUpgradeDetector()
         # The detector checks for Proxy/Upgradeable keywords and initialize function
@@ -763,7 +760,7 @@ class TestCentralizationDetector:
 
     def test_detector_attributes(self):
         """Test detector has correct attributes."""
-        from src.detectors.advanced_detectors import CentralizationDetector, AttackCategory
+        from src.detectors.advanced_detectors import AttackCategory, CentralizationDetector
 
         detector = CentralizationDetector()
         assert detector.name == "centralization-detector"
@@ -856,8 +853,8 @@ class TestAdvancedDetectorEngine:
         from src.detectors.advanced_detectors import (
             AdvancedDetectorEngine,
             AdvancedFinding,
+            AttackCategory,
             Severity,
-            AttackCategory
         )
 
         engine = AdvancedDetectorEngine()
@@ -869,24 +866,25 @@ class TestAdvancedDetectorEngine:
 
         summary = engine.get_summary(findings)
 
-        assert summary['total'] == 3
-        assert summary['by_severity']['high'] == 1
-        assert summary['by_severity']['critical'] == 1
-        assert summary['by_severity']['medium'] == 1
-        assert summary['by_category']['rug_pull'] == 1
+        assert summary["total"] == 3
+        assert summary["by_severity"]["high"] == 1
+        assert summary["by_severity"]["critical"] == 1
+        assert summary["by_severity"]["medium"] == 1
+        assert summary["by_category"]["rug_pull"] == 1
 
 
 # =============================================================================
 # INTEGRATION TESTS
 # =============================================================================
 
+
 class TestDetectorIntegration:
     """Integration tests for detector modules."""
 
     def test_combined_analysis(self):
         """Test running both DeFi and Advanced detectors."""
-        from src.detectors.defi_detectors import DeFiDetectorEngine
         from src.detectors.advanced_detectors import AdvancedDetectorEngine
+        from src.detectors.defi_detectors import DeFiDetectorEngine
 
         source = """
         contract VulnerableDeFiToken is ERC20, Ownable {
@@ -914,5 +912,5 @@ class TestDetectorIntegration:
         assert len(advanced_findings) >= 1
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '--tb=short'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])

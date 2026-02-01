@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class FeatureCategory(Enum):
     """Categories of features for FP classification."""
+
     FINDING_METADATA = "finding_metadata"
     CODE_CONTEXT = "code_context"
     SEMANTIC_GUARDS = "semantic_guards"
@@ -33,6 +34,7 @@ class FeatureCategory(Enum):
 @dataclass
 class FindingFeatures:
     """Feature vector for a finding."""
+
     # Finding metadata
     confidence: float = 0.5
     severity_score: float = 0.5  # 0=info, 0.25=low, 0.5=medium, 0.75=high, 1=critical
@@ -115,6 +117,7 @@ class FindingFeatures:
 @dataclass
 class FPPrediction:
     """Prediction result from the FP classifier."""
+
     is_false_positive: bool
     fp_probability: float
     confidence: float
@@ -151,9 +154,8 @@ class FeatureExtractor:
     ]
 
     CEI_VIOLATION_PATTERN = re.compile(
-        r"\.call\{[^}]*\}\s*\([^)]*\)[^;]*;[^}]*"
-        r"(?:balances|_balances|balance)\s*\[",
-        re.MULTILINE | re.DOTALL
+        r"\.call\{[^}]*\}\s*\([^)]*\)[^;]*;[^}]*" r"(?:balances|_balances|balance)\s*\[",
+        re.MULTILINE | re.DOTALL,
     )
 
     EXTERNAL_CALL_PATTERNS = [
@@ -197,17 +199,14 @@ class FeatureExtractor:
 
         # Extract finding metadata
         features.confidence = finding.get("confidence", 0.5)
-        features.severity_score = self._severity_to_score(
-            finding.get("severity", "medium")
-        )
+        features.severity_score = self._severity_to_score(finding.get("severity", "medium"))
         features.tool_count = len(finding.get("_tools", [finding.get("tool", "unknown")]))
         features.has_swc_id = bool(finding.get("swc_id"))
 
         # Get function context
         if not function_code:
             function_code = self._extract_function_context(
-                source_code,
-                finding.get("location", {}).get("line", 0)
+                source_code, finding.get("location", {}).get("line", 0)
             )
 
         # Extract code context features
@@ -223,21 +222,17 @@ class FeatureExtractor:
             features.has_ether_transfer = bool(
                 re.search(r"\.transfer\(|\.send\(|\.call\{value:", function_code)
             )
-            features.has_require_check = bool(
-                re.search(r"require\s*\(|assert\s*\(", function_code)
-            )
+            features.has_require_check = bool(re.search(r"require\s*\(|assert\s*\(", function_code))
             features.has_modifier = bool(
                 re.search(r"modifier\s+\w+|function\s+\w+[^{]*\)\s+\w+", function_code)
             )
 
         # Extract semantic guard features from full source
         features.has_reentrancy_guard = any(
-            re.search(p, source_code, re.IGNORECASE)
-            for p in self.REENTRANCY_GUARD_PATTERNS
+            re.search(p, source_code, re.IGNORECASE) for p in self.REENTRANCY_GUARD_PATTERNS
         )
         features.has_access_control = any(
-            re.search(p, source_code)
-            for p in self.ACCESS_CONTROL_PATTERNS
+            re.search(p, source_code) for p in self.ACCESS_CONTROL_PATTERNS
         )
         features.follows_cei_pattern = not bool(
             self.CEI_VIOLATION_PATTERN.search(function_code or source_code)
@@ -362,22 +357,18 @@ class FPClassifier:
     FEATURE_WEIGHTS = {
         # Strong guards that INCREASE FP probability (code is protected)
         "has_reentrancy_guard": 0.35,  # Strong indicator - actual guard present
-
         # Moderate guards - less reliable indicators
         "has_access_control": 0.1,  # May still have vulns elsewhere
         "follows_cei_pattern": 0.05,  # CEI detection can be unreliable
         "is_solidity_08_plus": 0.1,  # Only affects arithmetic, not reentrancy
         "uses_safemath": 0.15,
-
         # Weak indicators - don't heavily weight these
         "has_require_check": 0.02,  # Almost all code has requires
         "has_modifier": 0.02,  # Common pattern
-
         # Indicators that also increase FP probability
         "is_proxy_contract": 0.1,  # Proxy patterns often flagged incorrectly
         "is_upgradeable": 0.05,
         "has_initializer": 0.02,
-
         # Context indicators
         "high_confidence": -0.1,  # High confidence -> less likely FP
         "low_confidence": 0.05,  # Low confidence -> more likely FP
@@ -443,9 +434,7 @@ class FPClassifier:
             FPPrediction with probability and contributing factors
         """
         # Extract features
-        features = self.extractor.extract_features(
-            finding, source_code, function_code
-        )
+        features = self.extractor.extract_features(finding, source_code, function_code)
 
         # Calculate base FP probability
         # Start at 0.3 (slightly below neutral) - most findings start as likely TPs
@@ -484,16 +473,13 @@ class FPClassifier:
             if is_present:
                 # Get weight (with vuln-specific override if available)
                 weight = vuln_adjustments.get(
-                    feature_name,
-                    self.FEATURE_WEIGHTS.get(feature_name, 0)
+                    feature_name, self.FEATURE_WEIGHTS.get(feature_name, 0)
                 )
 
                 if weight != 0:
                     fp_score += weight
                     direction = "reduces" if weight < 0 else "increases"
-                    contributing_factors.append(
-                        f"{feature_name} ({direction} FP probability)"
-                    )
+                    contributing_factors.append(f"{feature_name} ({direction} FP probability)")
 
         # Clamp to valid probability range
         fp_probability = max(0.0, min(1.0, fp_score))

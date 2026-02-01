@@ -10,15 +10,20 @@ Autor: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Fecha: 2025-01-09
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional
-import subprocess
 import json
 import logging
-from pathlib import Path
 import os
+import subprocess
+from pathlib import Path
+from typing import Any, Dict, List
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,13 +65,13 @@ class VertigoAdapter(ToolAdapter):
                         "missing_test_cases",
                         "boundary_conditions",
                         "logic_coverage",
-                        "assertion_quality"
-                    ]
+                        "assertion_quality",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True  # DPGA compliance
+            is_optional=True,  # DPGA compliance
         )
 
     def is_available(self) -> ToolStatus:
@@ -74,17 +79,16 @@ class VertigoAdapter(ToolAdapter):
         try:
             # Vertigo requires Foundry for running tests
             result = subprocess.run(
-                ["forge", "--version"],
-                capture_output=True,
-                timeout=5,
-                text=True
+                ["forge", "--version"], capture_output=True, timeout=5, text=True
             )
             if result.returncode == 0:
                 logger.info("Vertigo: Foundry available for mutation testing")
                 return ToolStatus.AVAILABLE
             return ToolStatus.NOT_INSTALLED
         except FileNotFoundError:
-            logger.info("Vertigo requires Foundry. Install: curl -L https://foundry.paradigm.xyz | bash")
+            logger.info(
+                "Vertigo requires Foundry. Install: curl -L https://foundry.paradigm.xyz | bash"
+            )
             return ToolStatus.NOT_INSTALLED
         except Exception as e:
             logger.error(f"Error checking Vertigo availability: {e}")
@@ -107,6 +111,7 @@ class VertigoAdapter(ToolAdapter):
             Resultados normalizados con mutation score y findings
         """
         import time
+
         start = time.time()
 
         try:
@@ -127,13 +132,20 @@ class VertigoAdapter(ToolAdapter):
             cmd = [
                 "vertigo",
                 "run",
-                "--project-dir", project_dir,
-                "--test-command", test_command,
-                "--sample-ratio", str(sample_ratio),
-                "--mutation-count", str(mutation_count),
-                "--timeout", str(timeout),
-                "--output", output_dir,
-                "--format", "json"
+                "--project-dir",
+                project_dir,
+                "--test-command",
+                test_command,
+                "--sample-ratio",
+                str(sample_ratio),
+                "--mutation-count",
+                str(mutation_count),
+                "--timeout",
+                str(timeout),
+                "--output",
+                output_dir,
+                "--format",
+                "json",
             ]
 
             logger.info(f"Running Vertigo: {' '.join(cmd)}")
@@ -143,7 +155,7 @@ class VertigoAdapter(ToolAdapter):
                 capture_output=True,
                 text=True,
                 timeout=timeout * mutation_count + 60,  # Buffer adicional
-                cwd=project_dir
+                cwd=project_dir,
             )
 
             if result.returncode != 0:
@@ -154,7 +166,7 @@ class VertigoAdapter(ToolAdapter):
             # Parsear output JSON
             output_file = os.path.join(output_dir, "vertigo_results.json")
             if os.path.exists(output_file):
-                with open(output_file, 'r') as f:
+                with open(output_file, "r") as f:
                     raw_output = json.load(f)
             else:
                 # Si no hay archivo JSON, intentar parsear stdout
@@ -167,7 +179,7 @@ class VertigoAdapter(ToolAdapter):
                         "status": "error",
                         "error": f"No JSON output found. stderr: {result.stderr}",
                         "findings": [],
-                        "execution_time": time.time() - start
+                        "execution_time": time.time() - start,
                     }
 
             # Normalizar findings
@@ -188,9 +200,9 @@ class VertigoAdapter(ToolAdapter):
                     "survived_mutants": raw_output.get("survived_mutants", 0),
                     "timeout_mutants": raw_output.get("timeout_mutants", 0),
                     "test_quality": self._test_quality_level(mutation_score),
-                    "project_dir": project_dir
+                    "project_dir": project_dir,
                 },
-                "execution_time": time.time() - start
+                "execution_time": time.time() - start,
             }
 
         except subprocess.TimeoutExpired:
@@ -201,7 +213,7 @@ class VertigoAdapter(ToolAdapter):
                 "status": "error",
                 "error": "Execution timeout - tests may be too slow",
                 "findings": [],
-                "execution_time": time.time() - start
+                "execution_time": time.time() - start,
             }
         except Exception as e:
             logger.error(f"Vertigo execution error: {e}")
@@ -211,7 +223,7 @@ class VertigoAdapter(ToolAdapter):
                 "status": "error",
                 "error": str(e),
                 "findings": [],
-                "execution_time": time.time() - start
+                "execution_time": time.time() - start,
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -239,7 +251,7 @@ class VertigoAdapter(ToolAdapter):
                     "file": mutant.get("file", "unknown"),
                     "line": mutant.get("line", 0),
                     "function": mutant.get("function", "unknown"),
-                    "code_snippet": mutant.get("original_code", "")
+                    "code_snippet": mutant.get("original_code", ""),
                 },
                 "message": f"Test suite did not catch {mutation_type} mutation",
                 "description": (
@@ -258,7 +270,7 @@ class VertigoAdapter(ToolAdapter):
                 "mutation_type": mutation_type,
                 "original_code": mutant.get("original_code", ""),
                 "mutated_code": mutant.get("mutated_code", ""),
-                "test_command": mutant.get("test_command", "")
+                "test_command": mutant.get("test_command", ""),
             }
             findings.append(finding)
 
@@ -301,14 +313,10 @@ class VertigoAdapter(ToolAdapter):
             "require_removal",
             "assert_removal",
             "revert_removal",
-            "access_control_removal"
+            "access_control_removal",
         ]
 
-        high_mutations = [
-            "boundary_mutation",
-            "logical_operator",
-            "arithmetic_operator"
-        ]
+        high_mutations = ["boundary_mutation", "logical_operator", "arithmetic_operator"]
 
         if mutation_type in critical_mutations:
             return "High"
@@ -328,7 +336,7 @@ class VertigoAdapter(ToolAdapter):
             return has_foundry or has_hardhat
 
         # Si es archivo .sol, verificar que el directorio padre tenga config
-        if contract_path.endswith('.sol'):
+        if contract_path.endswith(".sol"):
             parent = Path(contract_path).parent
             has_foundry = (parent / "foundry.toml").exists()
             has_hardhat = (parent / "hardhat.config.js").exists()
@@ -343,7 +351,7 @@ class VertigoAdapter(ToolAdapter):
             "mutation_count": 10,
             "sample_ratio": 0.1,
             "timeout": 30,
-            "min_mutation_score": 75.0  # Score mínimo aceptable
+            "min_mutation_score": 75.0,  # Score mínimo aceptable
         }
 
     def validate_config(self, config: Dict[str, Any]) -> bool:

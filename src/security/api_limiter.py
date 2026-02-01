@@ -8,19 +8,20 @@ to prevent:
 - Cost overruns
 """
 
-import time
+import logging
 import threading
-from functools import wraps
-from typing import Callable, Dict, Optional
+import time
 from collections import deque
 from datetime import datetime, timedelta
-import logging
+from functools import wraps
+from typing import Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class RateLimitExceeded(Exception):
     """Raised when API rate limit is exceeded"""
+
     pass
 
 
@@ -72,10 +73,12 @@ class RateLimiter:
         Returns:
             Wrapped function with rate limiting
         """
+
         @wraps(func)
         def wrapper(*args, **kwargs):
             self._check_rate_limit()
             return func(*args, **kwargs)
+
         return wrapper
 
     def _check_rate_limit(self):
@@ -110,9 +113,7 @@ class RateLimiter:
 
             # Record this call
             self.calls.append(now)
-            logger.debug(
-                f"Rate limit check passed: {len(self.calls)}/{self.max_calls} calls used"
-            )
+            logger.debug(f"Rate limit check passed: {len(self.calls)}/{self.max_calls} calls used")
 
     def get_stats(self) -> Dict:
         """
@@ -139,12 +140,12 @@ class RateLimiter:
                 time_until_reset = 0
 
             return {
-                'calls_used': calls_used,
-                'calls_remaining': calls_remaining,
-                'max_calls': self.max_calls,
-                'period': self.period,
-                'time_until_reset': time_until_reset,
-                'reset_at': datetime.fromtimestamp(now + time_until_reset).isoformat()
+                "calls_used": calls_used,
+                "calls_remaining": calls_remaining,
+                "max_calls": self.max_calls,
+                "period": self.period,
+                "time_until_reset": time_until_reset,
+                "reset_at": datetime.fromtimestamp(now + time_until_reset).isoformat(),
             }
 
     def reset(self):
@@ -177,7 +178,7 @@ class APIQuotaManager:
         daily_limit: Optional[int] = None,
         monthly_limit: Optional[int] = None,
         cost_per_call: Optional[Dict[str, float]] = None,
-        daily_cost_limit: Optional[float] = None
+        daily_cost_limit: Optional[float] = None,
     ):
         """
         Initialize quota manager.
@@ -308,26 +309,28 @@ class APIQuotaManager:
             daily_cost = self.daily_costs.get(today, 0)
 
             return {
-                'daily': {
-                    'calls': daily_calls,
-                    'limit': self.daily_limit,
-                    'remaining': self.daily_limit - daily_calls if self.daily_limit else None,
-                    'cost': daily_cost,
-                    'cost_limit': self.daily_cost_limit,
-                    'cost_remaining': self.daily_cost_limit - daily_cost if self.daily_cost_limit else None
+                "daily": {
+                    "calls": daily_calls,
+                    "limit": self.daily_limit,
+                    "remaining": self.daily_limit - daily_calls if self.daily_limit else None,
+                    "cost": daily_cost,
+                    "cost_limit": self.daily_cost_limit,
+                    "cost_remaining": (
+                        self.daily_cost_limit - daily_cost if self.daily_cost_limit else None
+                    ),
                 },
-                'monthly': {
-                    'calls': monthly_calls,
-                    'limit': self.monthly_limit,
-                    'remaining': self.monthly_limit - monthly_calls if self.monthly_limit else None
+                "monthly": {
+                    "calls": monthly_calls,
+                    "limit": self.monthly_limit,
+                    "remaining": self.monthly_limit - monthly_calls if self.monthly_limit else None,
                 },
-                'by_model': {
+                "by_model": {
                     model: {
-                        'calls': self.model_calls.get(model, 0),
-                        'cost': self.model_costs.get(model, 0)
+                        "calls": self.model_calls.get(model, 0),
+                        "cost": self.model_costs.get(model, 0),
                     }
                     for model in set(list(self.model_calls.keys()) + list(self.model_costs.keys()))
-                }
+                },
             }
 
     def reset_daily(self):
@@ -341,7 +344,9 @@ class APIQuotaManager:
             self.daily_calls = {k: v for k, v in self.daily_calls.items() if k >= cutoff}
             self.daily_costs = {k: v for k, v in self.daily_costs.items() if k >= cutoff}
 
-            logger.info(f"Daily quota reset. Yesterday's usage: {self.daily_calls.get(yesterday, 0)} calls")
+            logger.info(
+                f"Daily quota reset. Yesterday's usage: {self.daily_calls.get(yesterday, 0)} calls"
+            )
 
 
 # Global instances for common use cases
@@ -357,11 +362,11 @@ openai_quota = APIQuotaManager(
     daily_limit=1000,  # 1000 API calls per day
     monthly_limit=30000,  # 30k per month
     cost_per_call={
-        'gpt-4': 0.03,  # Approximate per call
-        'gpt-4-turbo': 0.01,
-        'gpt-3.5-turbo': 0.002
+        "gpt-4": 0.03,  # Approximate per call
+        "gpt-4-turbo": 0.01,
+        "gpt-3.5-turbo": 0.002,
     },
-    daily_cost_limit=100.0  # $100 per day max
+    daily_cost_limit=100.0,  # $100 per day max
 )
 
 
@@ -377,10 +382,11 @@ def rate_limited_openai_call(func: Callable) -> Callable:
         ...         messages=[...]
         ...     )
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         # Check quota before making call
-        model = kwargs.get('model', 'gpt-4')
+        model = kwargs.get("model", "gpt-4")
         openai_quota.check_quota(model)
 
         # Apply rate limiting

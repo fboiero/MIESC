@@ -2,6 +2,7 @@
 MIESC MCP Server Tests
 Unit tests for mcp_server helper functions and MCP tool endpoints.
 """
+
 import asyncio
 import json
 import sys
@@ -21,11 +22,15 @@ sys.modules.setdefault("mcp.server", _fake_mcp_mod.server)
 sys.modules.setdefault("mcp.server.fastmcp", _fake_mcp_mod.server.fastmcp)
 
 from miesc.mcp_server import (  # noqa: E402
-    _summarize_results, _validate_contract_path,
-    miesc_get_status, miesc_get_tool_info, miesc_list_tools,
+    _summarize_results,
+    _validate_contract_path,
+    miesc_get_status,
+    miesc_get_tool_info,
+    miesc_list_tools,
 )
 
 SAMPLE_SOL = "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\ncontract S {}\n"
+
 
 # =========================================================================
 # Helper: _validate_contract_path
@@ -51,6 +56,7 @@ class TestValidateContractPath:
         circ.write_text("template Main() {}")
         assert _validate_contract_path(str(circ)) == str(circ.resolve())
 
+
 # =========================================================================
 # Helper: _summarize_results
 # =========================================================================
@@ -64,11 +70,16 @@ class TestSummarizeResults:
 
     def test_mixed_severities(self):
         results = [
-            {"status": "success", "findings": [
-                {"severity": "Critical"}, {"severity": "High"},
-                {"severity": "Medium"}, {"severity": "Low"},
-                {"severity": "Informational"},
-            ]},
+            {
+                "status": "success",
+                "findings": [
+                    {"severity": "Critical"},
+                    {"severity": "High"},
+                    {"severity": "Medium"},
+                    {"severity": "Low"},
+                    {"severity": "Informational"},
+                ],
+            },
             {"status": "error", "findings": [{"severity": "high"}]},
         ]
         summary = _summarize_results(results)
@@ -80,6 +91,7 @@ class TestSummarizeResults:
         assert summary["severity_counts"]["Medium"] == 1
         assert summary["severity_counts"]["Low"] == 1
         assert summary["severity_counts"]["Info"] == 1
+
 
 # =========================================================================
 # Config loaders: _get_layers / _get_adapter_map
@@ -95,11 +107,13 @@ class TestConfigLoaders:
         mock_map.return_value = {"slither": "SlitherAdapter"}
         assert len(mock_map()) > 0
 
+
 # =========================================================================
 # MCP Tools (async, via mocking)
 # =========================================================================
 _LAYERS = {1: {"name": "Static Analysis", "tools": ["slither", "aderyn"]}}
 _AMAP = {"slither": "SlitherAdapter", "aderyn": "AderynAdapter"}
+
 
 def _make_loader():
     loader = MagicMock()
@@ -107,13 +121,17 @@ def _make_loader():
     loader.get_adapter.return_value = None
     return loader
 
+
 class TestMCPTools:
     """Tests for MCP tool functions with mocked internals."""
+
     @pytest.fixture(autouse=True)
     def _patch_internals(self):
-        with patch("miesc.mcp_server._get_layers", return_value=_LAYERS), \
-             patch("miesc.mcp_server._get_adapter_map", return_value=_AMAP), \
-             patch("miesc.mcp_server._get_adapter_loader", return_value=_make_loader()):
+        with (
+            patch("miesc.mcp_server._get_layers", return_value=_LAYERS),
+            patch("miesc.mcp_server._get_adapter_map", return_value=_AMAP),
+            patch("miesc.mcp_server._get_adapter_loader", return_value=_make_loader()),
+        ):
             yield
 
     def test_miesc_list_tools(self):

@@ -5,6 +5,29 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.2] - 2026-02-01
+
+### Fixed
+- CLI help text updated to reflect 50 tools / 9 defense layers
+- REST API VERSION now imports from package (no more hardcoded value)
+- 849 ruff linting errors resolved (0 remaining)
+- 242 files reformatted with black
+- 27 bare-except clauses replaced with specific exception types
+- 31 raise-without-from-inside-except fixed with proper exception chaining
+
+### Changed
+- Docker base image optimized: Mythril/Manticore moved to Dockerfile.full only
+- Docker build parallelized: aderyn + foundry builder stages run concurrently
+- Docker layer reordering: code changes no longer invalidate pip cache
+- BuildKit cache mounts for pip and cargo across all Docker images
+- Duplicate Foundry install removed from runtime stage
+- Medusa removed from builder (was always failing)
+- Pre-commit hooks updated to latest versions (ruff v0.14.14, black 26.1.0, etc.)
+- Pre-commit Python version updated from 3.9 to 3.12
+- Test warnings reduced from 242 to 198
+
+---
+
 ## [5.0.1] - 2026-02-01
 
 ### Fixed

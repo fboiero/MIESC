@@ -3,25 +3,23 @@ MIESC Integration Tests
 End-to-end tests for MLOrchestrator, adapters, and full pipeline.
 """
 
-import pytest
 import os
 import tempfile
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+
+import pytest
 
 # Import MIESC components
 from src.core import (
+    HealthChecker,
+    HealthStatus,
     MLOrchestrator,
     get_ml_orchestrator,
     get_tool_discovery,
-    HealthChecker,
-    HealthStatus,
 )
-from src.ml import MLPipeline, FeedbackType
-
+from src.ml import FeedbackType, MLPipeline
 
 # Sample vulnerable contract for testing
-VULNERABLE_CONTRACT = '''
+VULNERABLE_CONTRACT = """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -47,7 +45,7 @@ contract VulnerableBank {
         return address(this).balance;
     }
 }
-'''
+"""
 
 
 class TestMLOrchestrator:
@@ -59,9 +57,9 @@ class TestMLOrchestrator:
     def test_orchestrator_initialization(self):
         """Test orchestrator initializes correctly."""
         assert self.orchestrator is not None
-        assert hasattr(self.orchestrator, 'analyze')
-        assert hasattr(self.orchestrator, 'quick_scan')
-        assert hasattr(self.orchestrator, 'deep_scan')
+        assert hasattr(self.orchestrator, "analyze")
+        assert hasattr(self.orchestrator, "quick_scan")
+        assert hasattr(self.orchestrator, "deep_scan")
 
     def test_orchestrator_singleton(self):
         """Test orchestrator is singleton."""
@@ -75,20 +73,18 @@ class TestMLOrchestrator:
 
     def test_orchestrator_with_temp_contract(self):
         """Test orchestrator with temporary contract file."""
-        with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.sol', delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
             f.write(VULNERABLE_CONTRACT)
             temp_path = f.name
 
         try:
             result = self.orchestrator.quick_scan(temp_path, timeout=30)
             assert result is not None
-            assert hasattr(result, 'get_summary')
+            assert hasattr(result, "get_summary")
 
             summary = result.get_summary()
-            assert 'total_findings' in summary
-            assert 'risk_level' in summary
+            assert "total_findings" in summary
+            assert "risk_level" in summary
         finally:
             os.unlink(temp_path)
 
@@ -128,9 +124,9 @@ class TestHealthChecker:
         """Test comprehensive health check."""
         health = self.checker.check_all()
         assert health is not None
-        assert hasattr(health, 'status')
-        assert hasattr(health, 'healthy_tools')
-        assert hasattr(health, 'unhealthy_tools')
+        assert hasattr(health, "status")
+        assert hasattr(health, "healthy_tools")
+        assert hasattr(health, "unhealthy_tools")
         assert isinstance(health.status, HealthStatus)
 
 
@@ -141,6 +137,7 @@ class TestAdapterIntegration:
         """Test Slither adapter availability check."""
         try:
             from src.adapters.slither_adapter import SlitherAdapter
+
             adapter = SlitherAdapter()
             # Just check it can be instantiated
             assert adapter is not None
@@ -151,6 +148,7 @@ class TestAdapterIntegration:
         """Test Mythril adapter availability check."""
         try:
             from src.adapters.mythril_adapter import MythrilAdapter
+
             adapter = MythrilAdapter()
             assert adapter is not None
         except ImportError:
@@ -160,6 +158,7 @@ class TestAdapterIntegration:
         """Test Solhint adapter availability check."""
         try:
             from src.adapters.solhint_adapter import SolhintAdapter
+
             adapter = SolhintAdapter()
             assert adapter is not None
         except ImportError:
@@ -180,9 +179,7 @@ class TestEndToEndPipeline:
 
     def create_temp_contract(self, content: str) -> str:
         """Create a temporary contract file."""
-        with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.sol', delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
             f.write(content)
             self.temp_files.append(f.name)
             return f.name
@@ -201,16 +198,16 @@ class TestEndToEndPipeline:
         assert result is not None
         # Check for either attribute or dict key access
         has_findings = (
-            hasattr(result, 'original_findings') or
-            hasattr(result, 'findings') or
-            (hasattr(result, 'to_dict') and 'findings' in result.to_dict())
+            hasattr(result, "original_findings")
+            or hasattr(result, "findings")
+            or (hasattr(result, "to_dict") and "findings" in result.to_dict())
         )
         assert has_findings or result is not None  # At minimum result exists
         # Check has some form of timing info
         has_timing = (
-            hasattr(result, 'execution_time_ms') or
-            hasattr(result, 'execution_time') or
-            (hasattr(result, 'to_dict') and 'metrics' in result.to_dict())
+            hasattr(result, "execution_time_ms")
+            or hasattr(result, "execution_time")
+            or (hasattr(result, "to_dict") and "metrics" in result.to_dict())
         )
         assert has_timing or result is not None
 
@@ -233,26 +230,35 @@ class TestEndToEndPipeline:
 
         assert isinstance(result_dict, dict)
         # Check for any expected keys in the result
-        expected_keys = ['original_count', 'original_findings', 'findings', 'metrics', 'status', 'contract_path']
+        expected_keys = [
+            "original_count",
+            "original_findings",
+            "findings",
+            "metrics",
+            "status",
+            "contract_path",
+        ]
         has_expected_key = any(key in result_dict for key in expected_keys)
-        assert has_expected_key, f"Result dict should have at least one of {expected_keys}, got: {list(result_dict.keys())}"
+        assert (
+            has_expected_key
+        ), f"Result dict should have at least one of {expected_keys}, got: {list(result_dict.keys())}"
 
     def test_feedback_submission(self):
         """Test feedback submission to ML pipeline."""
         finding = {
-            '_id': 'test_integration_123',
-            'type': 'reentrancy',
-            'severity': 'high',
+            "_id": "test_integration_123",
+            "type": "reentrancy",
+            "severity": "high",
         }
 
         result = self.orchestrator.submit_feedback(
             finding,
             FeedbackType.TRUE_POSITIVE,
-            user_id='integration_test',
-            notes='Automated integration test'
+            user_id="integration_test",
+            notes="Automated integration test",
         )
 
-        assert 'status' in result
+        assert "status" in result
 
 
 class TestMLPipelineIntegration:
@@ -265,28 +271,28 @@ class TestMLPipelineIntegration:
         """Test pipeline with realistic finding data."""
         findings = [
             {
-                '_id': 'f1',
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'Reentrancy vulnerability in withdraw function',
-                'location': {'file': 'VulnerableBank.sol', 'line': 15},
-                'tool': 'slither',
+                "_id": "f1",
+                "type": "reentrancy",
+                "severity": "high",
+                "message": "Reentrancy vulnerability in withdraw function",
+                "location": {"file": "VulnerableBank.sol", "line": 15},
+                "tool": "slither",
             },
             {
-                '_id': 'f2',
-                'type': 'unchecked-call',
-                'severity': 'medium',
-                'message': 'Unchecked return value from external call',
-                'location': {'file': 'VulnerableBank.sol', 'line': 18},
-                'tool': 'slither',
+                "_id": "f2",
+                "type": "unchecked-call",
+                "severity": "medium",
+                "message": "Unchecked return value from external call",
+                "location": {"file": "VulnerableBank.sol", "line": 18},
+                "tool": "slither",
             },
             {
-                '_id': 'f3',
-                'type': 'floating-pragma',
-                'severity': 'informational',
-                'message': 'Floating pragma version',
-                'location': {'file': 'VulnerableBank.sol', 'line': 2},
-                'tool': 'solhint',
+                "_id": "f3",
+                "type": "floating-pragma",
+                "severity": "informational",
+                "message": "Floating pragma version",
+                "location": {"file": "VulnerableBank.sol", "line": 2},
+                "tool": "solhint",
             },
         ]
 
@@ -301,22 +307,22 @@ class TestMLPipelineIntegration:
         """Test that similar findings are clustered."""
         findings = [
             {
-                '_id': 'r1',
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'Reentrancy in withdraw',
+                "_id": "r1",
+                "type": "reentrancy",
+                "severity": "high",
+                "message": "Reentrancy in withdraw",
             },
             {
-                '_id': 'r2',
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'Reentrancy in transfer',
+                "_id": "r2",
+                "type": "reentrancy",
+                "severity": "high",
+                "message": "Reentrancy in transfer",
             },
             {
-                '_id': 'r3',
-                'type': 'reentrancy',
-                'severity': 'medium',
-                'message': 'Potential reentrancy in sendFunds',
+                "_id": "r3",
+                "type": "reentrancy",
+                "severity": "medium",
+                "message": "Potential reentrancy in sendFunds",
             },
         ]
 
@@ -331,16 +337,16 @@ class TestConfigurationIntegration:
 
     def test_environment_variables(self):
         """Test MIESC responds to environment variables."""
-        original = os.environ.get('MIESC_ENV')
+        original = os.environ.get("MIESC_ENV")
 
-        os.environ['MIESC_ENV'] = 'test'
+        os.environ["MIESC_ENV"] = "test"
         orchestrator = MLOrchestrator()
 
         # Reset
         if original:
-            os.environ['MIESC_ENV'] = original
+            os.environ["MIESC_ENV"] = original
         else:
-            os.environ.pop('MIESC_ENV', None)
+            os.environ.pop("MIESC_ENV", None)
 
         assert orchestrator is not None
 
@@ -353,7 +359,7 @@ class TestConfigurationIntegration:
         pipeline_high = MLPipeline(fp_threshold=0.9)
 
         findings = [
-            {'type': 'pragma', 'severity': 'info', 'message': 'Info finding'},
+            {"type": "pragma", "severity": "info", "message": "Info finding"},
         ]
 
         result_low = pipeline_low.process(findings)
@@ -364,5 +370,5 @@ class TestConfigurationIntegration:
         assert result_high is not None
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '--tb=short'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])

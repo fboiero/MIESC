@@ -17,82 +17,60 @@ Date: January 2026
 import json
 import tempfile
 from pathlib import Path
-from typing import Dict, Any, List
 
 import pytest
 
-from src.core.chain_abstraction import (
-    # Enums
-    ChainType,
-    ContractLanguage,
-    Visibility,
-    Mutability,
-    SecurityProperty,
-    # Data types
-    TypeInfo,
-    Parameter,
-    Location,
-    # Contract elements
-    AbstractVariable,
-    AbstractModifier,
-    AbstractFunction,
-    AbstractEvent,
-    AbstractContract,
-    # Vulnerability mappings
-    VulnerabilityMapping,
-    VULNERABILITY_MAPPINGS,
-    get_vulnerability_mapping,
-    normalize_vulnerability_type,
-    # Registry
-    ChainRegistry,
-    get_chain_registry,
-    register_chain_analyzer,
-    get_analyzer_for_chain,
+from src.adapters.algorand_adapter import (
+    AlgorandAnalyzer,
+    AlgorandContract,
+    AlgorandPatternDetector,
+    PyTealParser,
+    TealParser,
+    TealProgram,
 )
-
+from src.adapters.cardano_adapter import (
+    AikenParser,
+    CardanoAnalyzer,
+    CardanoPatternDetector,
+    CardanoVulnerability,
+    PlutusParser,
+    PlutusScriptType,
+)
 from src.adapters.solana_adapter import (
-    SolanaAnalyzer,
-    SolanaVulnerability,
-    SolanaPatternDetector,
     AnchorAccount,
     AnchorInstruction,
-    AnchorIDL,
+    SolanaAnalyzer,
+    SolanaPatternDetector,
     analyze_solana_program,
     parse_anchor_idl,
 )
-
 from src.adapters.stellar_adapter import (
-    StellarAnalyzer,
-    StellarVulnerability,
-    StellarPatternDetector,
     SorobanParser,
-    SorobanFunction,
-    SorobanContract,
+    StellarAnalyzer,
+    StellarPatternDetector,
 )
-
-from src.adapters.algorand_adapter import (
-    AlgorandAnalyzer,
-    AlgorandVulnerability,
-    AlgorandPatternDetector,
-    TealParser,
-    PyTealParser,
-    TealProgram,
-    PyTealFunction,
-    AlgorandContract,
+from src.core.chain_abstraction import (
+    VULNERABILITY_MAPPINGS,
+    AbstractContract,
+    AbstractFunction,
+    AbstractVariable,
+    # Registry
+    ChainRegistry,
+    # Enums
+    ChainType,
+    ContractLanguage,
+    Location,
+    Mutability,
+    Parameter,
+    TypeInfo,
+    Visibility,
+    # Vulnerability mappings
+    get_analyzer_for_chain,
+    get_chain_registry,
+    get_vulnerability_mapping,
+    normalize_vulnerability_type,
+    register_chain_analyzer,
 )
-
-from src.adapters.cardano_adapter import (
-    CardanoAnalyzer,
-    CardanoVulnerability,
-    CardanoPatternDetector,
-    PlutusParser,
-    AikenParser,
-    PlutusValidator,
-    AikenValidator,
-    CardanoContract,
-    PlutusScriptType,
-)
-
 
 # ============================================================================
 # Test Fixtures
@@ -102,7 +80,7 @@ from src.adapters.cardano_adapter import (
 @pytest.fixture
 def sample_anchor_program():
     """Sample Anchor program source code."""
-    return '''
+    return """
 use anchor_lang::prelude::*;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
@@ -178,7 +156,7 @@ pub struct TransferEvent {
     pub to: Pubkey,
     pub amount: u64,
 }
-'''
+"""
 
 
 @pytest.fixture
@@ -244,7 +222,7 @@ def sample_anchor_idl():
 @pytest.fixture
 def vulnerable_solana_program():
     """Solana program with vulnerabilities."""
-    return '''
+    return """
 use anchor_lang::prelude::*;
 
 declare_id!("11111111111111111111111111111111");
@@ -347,13 +325,13 @@ pub struct UserAccount {
 pub struct Pool {
     pub reserves: u64,
 }
-'''
+"""
 
 
 @pytest.fixture
 def sample_soroban_contract():
     """Sample Soroban/Stellar contract source code."""
-    return '''
+    return """
 use soroban_sdk::{contract, contractimpl, Address, Env, token};
 
 #[contract]
@@ -394,13 +372,13 @@ pub enum DataKey {
     Admin,
     Balance(Address),
 }
-'''
+"""
 
 
 @pytest.fixture
 def sample_vulnerable_soroban():
     """Sample vulnerable Soroban contract."""
-    return '''
+    return """
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
 #[contract]
@@ -437,13 +415,13 @@ pub enum DataKey {
     Balance,
     Value,
 }
-'''
+"""
 
 
 @pytest.fixture
 def sample_teal_program():
     """Sample TEAL program source code."""
-    return '''
+    return """
 #pragma version 8
 
 txn ApplicationID
@@ -484,13 +462,13 @@ handle_noop:
 handle_optin:
     int 1
     return
-'''
+"""
 
 
 @pytest.fixture
 def sample_vulnerable_teal():
     """Sample vulnerable TEAL program."""
-    return '''
+    return """
 #pragma version 8
 
 // Missing sender check!
@@ -509,13 +487,13 @@ create:
     app_global_put
     int 1
     return
-'''
+"""
 
 
 @pytest.fixture
 def sample_pyteal_contract():
     """Sample PyTeal contract source code."""
-    return '''
+    return """
 from pyteal import *
 
 def approval_program():
@@ -560,13 +538,13 @@ def approval_program():
 
 if __name__ == "__main__":
     print(compileTeal(approval_program(), mode=Mode.Application, version=8))
-'''
+"""
 
 
 @pytest.fixture
 def sample_vulnerable_pyteal():
     """Sample vulnerable PyTeal contract."""
-    return '''
+    return """
 from pyteal import *
 
 def vulnerable_approval():
@@ -608,13 +586,13 @@ def vulnerable_approval():
     )
 
     return program
-'''
+"""
 
 
 @pytest.fixture
 def sample_plutus_validator():
     """Sample Plutus validator source code."""
-    return '''
+    return """
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -646,13 +624,13 @@ mkValidator datum redeemer ctx =
 
     valuePreserved :: Bool
     valuePreserved = valuePaidTo info (owner datum) >= Ada.lovelaceValueOf (amount datum)
-'''
+"""
 
 
 @pytest.fixture
 def sample_vulnerable_plutus():
     """Sample vulnerable Plutus validator."""
-    return '''
+    return """
 {-# LANGUAGE DataKinds #-}
 
 module VulnerableValidator where
@@ -669,13 +647,13 @@ mkValidator datum redeemer ctx =
     case redeemer of
         Claim -> True  -- Anyone can claim!
         Withdraw -> True  -- No validation!
-'''
+"""
 
 
 @pytest.fixture
 def sample_aiken_validator():
     """Sample Aiken validator source code."""
-    return '''
+    return """
 use aiken/list
 use aiken/transaction.{ScriptContext, Spend, Transaction}
 use aiken/transaction/credential.{VerificationKeyCredential}
@@ -707,13 +685,13 @@ validator token_lock {
     }
   }
 }
-'''
+"""
 
 
 @pytest.fixture
 def sample_vulnerable_aiken():
     """Sample vulnerable Aiken validator."""
-    return '''
+    return """
 use aiken/transaction.{ScriptContext, Spend}
 
 type Datum {
@@ -735,7 +713,7 @@ validator vulnerable {
     }
   }
 }
-'''
+"""
 
 
 # ============================================================================
@@ -1021,7 +999,10 @@ class TestVulnerabilityMappings:
 
     def test_normalize_vulnerability_type(self):
         """Test vulnerability type normalization."""
-        assert normalize_vulnerability_type("missing_signer_check", ChainType.SOLANA) == "access_control"
+        assert (
+            normalize_vulnerability_type("missing_signer_check", ChainType.SOLANA)
+            == "access_control"
+        )
         assert normalize_vulnerability_type("reentrancy_eth", ChainType.ETHEREUM) == "reentrancy"
         assert normalize_vulnerability_type("unknown_type", ChainType.ETHEREUM) == "unknown_type"
 
@@ -1158,10 +1139,10 @@ class TestSolanaPatternDetector:
         """Test signer pattern detection."""
         detector = SolanaPatternDetector()
 
-        code = '''
+        code = """
         #[account(mut)]
         pub account: Account<'info, Data>,
-        '''
+        """
 
         patterns = detector.detect_patterns(code, "test.rs")
         assert len(patterns) > 0
@@ -1170,11 +1151,11 @@ class TestSolanaPatternDetector:
         """Test arithmetic pattern detection."""
         detector = SolanaPatternDetector()
 
-        code = '''
+        code = """
         account.balance += amount;
         total -= fee;
         value = x as u64;
-        '''
+        """
 
         patterns = detector.detect_patterns(code, "test.rs")
         arithmetic_patterns = [p for p in patterns if p["category"] == "arithmetic"]
@@ -1187,12 +1168,12 @@ class TestSolanaPatternDetector:
         """Test CPI pattern detection."""
         detector = SolanaPatternDetector()
 
-        code = '''
+        code = """
         invoke(
             &instruction,
             &accounts,
         )?;
-        '''
+        """
 
         patterns = detector.detect_patterns(code, "test.rs")
         cpi_patterns = [p for p in patterns if p["category"] == "external_calls"]
@@ -1272,7 +1253,7 @@ class TestMultiChainIntegration:
 
     def test_solana_analyzer_registration(self):
         """Test Solana analyzer registration with registry."""
-        registry = get_chain_registry()
+        get_chain_registry()
         analyzer = SolanaAnalyzer()
         register_chain_analyzer(analyzer)
 
@@ -1374,9 +1355,8 @@ class TestEdgeCases:
 
 
 # Import NEAR adapter
-from src.adapters.near_adapter import (
+from src.adapters.near_adapter import (  # noqa: E402
     NearAnalyzer,
-    NearVulnerability,
     NearPatternDetector,
     analyze_near_contract,
 )
@@ -1385,7 +1365,7 @@ from src.adapters.near_adapter import (
 @pytest.fixture
 def sample_near_contract():
     """Sample NEAR contract source code."""
-    return '''
+    return """
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LookupMap;
 use near_sdk::{env, near_bindgen, AccountId, Balance, Promise};
@@ -1436,13 +1416,13 @@ impl TokenContract {
         // Handle callback
     }
 }
-'''
+"""
 
 
 @pytest.fixture
 def vulnerable_near_contract():
     """NEAR contract with vulnerabilities."""
-    return '''
+    return """
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::{env, near_bindgen, AccountId, Promise};
 
@@ -1477,7 +1457,7 @@ impl VulnerableContract {
         }
     }
 }
-'''
+"""
 
 
 class TestNearAnalyzer:
@@ -1538,22 +1518,22 @@ class TestNearPatternDetector:
     def test_detect_access_patterns(self):
         """Test access control pattern detection."""
         detector = NearPatternDetector()
-        code = '''
+        code = """
         let caller = env::predecessor_account_id();
         require!(caller == self.owner, "Not authorized");
-        '''
+        """
         patterns = detector.detect_patterns(code, "test.rs")
         assert len(patterns) > 0
 
     def test_detect_callback_patterns(self):
         """Test callback pattern detection."""
         detector = NearPatternDetector()
-        code = '''
+        code = """
         #[private]
         pub fn on_callback(&mut self) {
             let result = env::promise_result(0);
         }
-        '''
+        """
         patterns = detector.detect_patterns(code, "test.rs")
         callback_patterns = [p for p in patterns if p["category"] == "reentrancy"]
         assert len(callback_patterns) >= 1
@@ -1565,9 +1545,8 @@ class TestNearPatternDetector:
 
 
 # Import Move adapter
-from src.adapters.move_adapter import (
+from src.adapters.move_adapter import (  # noqa: E402
     MoveAnalyzer,
-    MoveVulnerability,
     MoveChainVariant,
     MovePatternDetector,
     analyze_move_module,
@@ -1577,7 +1556,7 @@ from src.adapters.move_adapter import (
 @pytest.fixture
 def sample_sui_module():
     """Sample Sui Move module."""
-    return '''
+    return """
 module example::token {
     use sui::object::{Self, UID};
     use sui::transfer;
@@ -1616,13 +1595,13 @@ module example::token {
         token.value
     }
 }
-'''
+"""
 
 
 @pytest.fixture
 def vulnerable_move_module():
     """Move module with vulnerabilities."""
-    return '''
+    return """
 module example::vulnerable {
     use sui::object::{Self, UID};
     use sui::transfer;
@@ -1656,7 +1635,7 @@ module example::vulnerable {
         data.value = data.value + amount;
     }
 }
-'''
+"""
 
 
 class TestMoveAnalyzer:
@@ -1731,24 +1710,26 @@ class TestMovePatternDetector:
     def test_detect_capability_patterns(self):
         """Test capability pattern detection."""
         detector = MovePatternDetector()
-        code = '''
+        code = """
         struct AdminCap has key, store {
             id: UID,
         }
         public fun use_cap(cap: &mut AdminCap) {}
-        '''
+        """
         patterns = detector.detect_patterns(code, "test.move")
-        cap_patterns = [p for p in patterns if "cap" in p["pattern"].lower() or "admin" in p["pattern"].lower()]
+        cap_patterns = [
+            p for p in patterns if "cap" in p["pattern"].lower() or "admin" in p["pattern"].lower()
+        ]
         assert len(cap_patterns) >= 1
 
     def test_detect_flash_loan_patterns(self):
         """Test flash loan pattern detection."""
         detector = MovePatternDetector()
-        code = '''
+        code = """
         public fun flash_borrow(amount: u64): HotPotato {
             HotPotato { amount }
         }
-        '''
+        """
         patterns = detector.detect_patterns(code, "test.move")
         flash_patterns = [p for p in patterns if p["category"] == "flash_loan"]
         assert len(flash_patterns) >= 1
@@ -1810,7 +1791,8 @@ class TestStellarAnalyzer:
             assert result["status"] == "success"
             # Should detect missing auth in withdraw function
             auth_findings = [
-                f for f in result["findings"]
+                f
+                for f in result["findings"]
                 if "auth" in f.get("type", "").lower() or "auth" in f.get("message", "").lower()
             ]
             assert len(auth_findings) >= 1
@@ -1826,7 +1808,8 @@ class TestStellarAnalyzer:
 
             # Should detect panic!
             panic_findings = [
-                f for f in result["findings"]
+                f
+                for f in result["findings"]
                 if "panic" in f.get("type", "").lower() or "panic" in f.get("message", "").lower()
             ]
             assert len(panic_findings) >= 1
@@ -1842,7 +1825,8 @@ class TestStellarAnalyzer:
 
             # Should detect unwrap
             unwrap_findings = [
-                f for f in result["findings"]
+                f
+                for f in result["findings"]
                 if "unwrap" in f.get("type", "").lower() or "unwrap" in f.get("message", "").lower()
             ]
             assert len(unwrap_findings) >= 1
@@ -1872,10 +1856,7 @@ class TestStellarAnalyzer:
 
             assert result["status"] == "success"
             # Safe contract should have few or no critical findings
-            critical_findings = [
-                f for f in result["findings"]
-                if f.get("severity") == "Critical"
-            ]
+            critical_findings = [f for f in result["findings"] if f.get("severity") == "Critical"]
             assert len(critical_findings) == 0
 
 
@@ -1926,22 +1907,20 @@ class TestStellarPatternDetector:
 
     def test_find_auth_patterns(self):
         """Test finding authorization patterns."""
-        code = '''
+        code = """
         admin.require_auth();
         from.require_auth_for_args((&amount,));
-        '''
-        matches = StellarPatternDetector.find_patterns(
-            code, StellarPatternDetector.AUTH_PATTERNS
-        )
+        """
+        matches = StellarPatternDetector.find_patterns(code, StellarPatternDetector.AUTH_PATTERNS)
         assert len(matches) >= 2
 
     def test_find_dangerous_patterns(self):
         """Test finding dangerous patterns."""
-        code = '''
+        code = """
         let value = option.unwrap();
         panic!("Error!");
         let result = data.expect("Failed");
-        '''
+        """
         matches = StellarPatternDetector.find_patterns(
             code, StellarPatternDetector.DANGEROUS_PATTERNS
         )
@@ -1949,10 +1928,10 @@ class TestStellarPatternDetector:
 
     def test_find_storage_patterns(self):
         """Test finding storage patterns."""
-        code = '''
+        code = """
         env.storage().instance().get::<_, i128>(&key);
         env.storage().persistent().set(&key, &value);
-        '''
+        """
         matches = StellarPatternDetector.find_patterns(
             code, StellarPatternDetector.STORAGE_PATTERNS
         )
@@ -2027,10 +2006,7 @@ class TestAlgorandAnalyzer:
             analyzer = AlgorandAnalyzer()
             result = analyzer.analyze(f.name)
 
-            rekey_findings = [
-                f for f in result["findings"]
-                if "rekey" in f.get("type", "").lower()
-            ]
+            rekey_findings = [f for f in result["findings"] if "rekey" in f.get("type", "").lower()]
             assert len(rekey_findings) >= 1
 
     def test_detect_pyteal_close_vulnerability(self, sample_vulnerable_pyteal):
@@ -2042,10 +2018,7 @@ class TestAlgorandAnalyzer:
             analyzer = AlgorandAnalyzer()
             result = analyzer.analyze(f.name)
 
-            close_findings = [
-                f for f in result["findings"]
-                if "close" in f.get("type", "").lower()
-            ]
+            close_findings = [f for f in result["findings"] if "close" in f.get("type", "").lower()]
             assert len(close_findings) >= 1
 
     def test_detect_unrestricted_update(self, sample_vulnerable_pyteal):
@@ -2057,8 +2030,9 @@ class TestAlgorandAnalyzer:
             analyzer = AlgorandAnalyzer()
             result = analyzer.analyze(f.name)
 
-            update_findings = [
-                f for f in result["findings"]
+            [
+                f
+                for f in result["findings"]
                 if "update" in f.get("type", "").lower() or "update" in f.get("message", "").lower()
             ]
             # May or may not detect based on analysis depth
@@ -2088,10 +2062,7 @@ class TestAlgorandAnalyzer:
 
             assert result["status"] == "success"
             # Safe contract should have fewer critical findings
-            critical_findings = [
-                f for f in result["findings"]
-                if f.get("severity") == "Critical"
-            ]
+            critical_findings = [f for f in result["findings"] if f.get("severity") == "Critical"]
             # The safe sample has proper rekey/close checks
             assert len(critical_findings) <= 2
 
@@ -2174,22 +2145,26 @@ class TestAlgorandPatternDetector:
         # Create minimal TealProgram for testing
         program = TealProgram()
         program.instructions = [
-            type('TealInstruction', (), {'opcode': 'txn', 'args': ['Sender'], 'line_number': 1, 'comment': ''})(),
+            type(
+                "TealInstruction",
+                (),
+                {"opcode": "txn", "args": ["Sender"], "line_number": 1, "comment": ""},
+            )(),
         ]
 
         findings = AlgorandPatternDetector.detect_teal_vulnerabilities(program, code)
         # Should not find missing sender check since it's present
-        sender_findings = [f for f in findings if "sender" in f.get("type", "").lower()]
+        [f for f in findings if "sender" in f.get("type", "").lower()]
         # This depends on implementation details
         assert isinstance(findings, list)
 
     def test_detect_pyteal_patterns(self):
         """Test PyTeal pattern detection."""
-        code = '''
+        code = """
         InnerTxnBuilder.Begin()
         InnerTxnBuilder.Submit()
         Gtxn[1].amount()
-        '''
+        """
 
         # Create minimal contract for testing
         contract = AlgorandContract(name="test", language="pyteal")
@@ -2268,7 +2243,8 @@ class TestCardanoAnalyzer:
             assert result["status"] == "success"
             # Should detect missing signer check
             signer_findings = [
-                f for f in result["findings"]
+                f
+                for f in result["findings"]
                 if "signer" in f.get("type", "").lower() or "signer" in f.get("message", "").lower()
             ]
             assert len(signer_findings) >= 1
@@ -2284,10 +2260,7 @@ class TestCardanoAnalyzer:
 
             assert result["status"] == "success"
             # Safe validator should have proper checks
-            critical_findings = [
-                f for f in result["findings"]
-                if f.get("severity") == "Critical"
-            ]
+            critical_findings = [f for f in result["findings"] if f.get("severity") == "Critical"]
             assert len(critical_findings) == 0
 
     def test_safe_aiken_analysis(self, sample_aiken_validator):
@@ -2301,10 +2274,7 @@ class TestCardanoAnalyzer:
 
             assert result["status"] == "success"
             # Safe validator should have few critical findings
-            critical_findings = [
-                f for f in result["findings"]
-                if f.get("severity") == "Critical"
-            ]
+            critical_findings = [f for f in result["findings"] if f.get("severity") == "Critical"]
             assert len(critical_findings) <= 1
 
 
@@ -2445,13 +2415,13 @@ class TestCrossChainAnalysis:
 
     def test_all_analyzers_registered(self):
         """Test that all analyzers can be registered."""
-        from src.adapters.solana_adapter import register_solana_analyzer
-        from src.adapters.near_adapter import register_near_analyzer
         from src.adapters.move_adapter import register_move_analyzer
+        from src.adapters.near_adapter import register_near_analyzer
+        from src.adapters.solana_adapter import register_solana_analyzer
 
-        solana = register_solana_analyzer()
-        near = register_near_analyzer()
-        move_sui = register_move_analyzer(MoveChainVariant.SUI)
+        register_solana_analyzer()
+        register_near_analyzer()
+        register_move_analyzer(MoveChainVariant.SUI)
 
         registry = get_chain_registry()
 
@@ -2535,7 +2505,14 @@ class TestCrossChainAnalysis:
     def test_all_chain_types_supported(self):
         """Test that all expected chain types are defined."""
         expected_chains = [
-            "ETHEREUM", "SOLANA", "NEAR", "SUI", "APTOS", "STELLAR", "ALGORAND", "CARDANO"
+            "ETHEREUM",
+            "SOLANA",
+            "NEAR",
+            "SUI",
+            "APTOS",
+            "STELLAR",
+            "ALGORAND",
+            "CARDANO",
         ]
         for chain in expected_chains:
             assert hasattr(ChainType, chain), f"Missing ChainType: {chain}"

@@ -9,18 +9,21 @@ Date: November 2025
 Version: 3.0.0 (Ollama Backend)
 """
 
+import json
+import logging
+import subprocess
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
 )
-from typing import Dict, Any, List, Optional
-import subprocess
-import logging
-import json
-import time
-import os
-import re
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -95,25 +98,20 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
                         "ai_detected_patterns",
                         "semantic_issues",
                         "access_control_flaws",
-                        "business_logic_bugs"
-                    ]
+                        "business_logic_bugs",
+                    ],
                 )
             ],
             cost=0.0,  # Free - local execution
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if Ollama is running and model is available."""
         try:
             # Check if ollama is running
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                timeout=10,
-                text=True
-            )
+            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=10, text=True)
 
             if result.returncode != 0:
                 logger.warning("Ollama not running or not responding")
@@ -163,7 +161,7 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "Ollama not available. Install from https://ollama.ai and run: ollama pull codellama:7b"
+                "error": "Ollama not available. Install from https://ollama.ai and run: ollama pull codellama:7b",
             }
 
         try:
@@ -176,7 +174,7 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
                     "status": "error",
                     "findings": [],
                     "execution_time": time.time() - start_time,
-                    "error": f"Could not read contract: {contract_path}"
+                    "error": f"Could not read contract: {contract_path}",
                 }
 
             # Get configuration
@@ -184,11 +182,7 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
             model = kwargs.get("model", self._detect_best_model())
 
             # Run Ollama analysis
-            raw_output = self._run_ollama_analysis(
-                contract_code,
-                model=model,
-                timeout=timeout
-            )
+            raw_output = self._run_ollama_analysis(contract_code, model=model, timeout=timeout)
 
             # Parse findings
             findings = self._parse_gptscan_output(raw_output, contract_path)
@@ -198,12 +192,8 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
                 "version": "3.0.0",
                 "status": "success",
                 "findings": findings,
-                "metadata": {
-                    "model": model,
-                    "backend": "ollama",
-                    "cost_usd": 0.0
-                },
-                "execution_time": time.time() - start_time
+                "metadata": {"model": model, "backend": "ollama", "cost_usd": 0.0},
+                "execution_time": time.time() - start_time,
             }
 
         except subprocess.TimeoutExpired:
@@ -213,7 +203,7 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
                 "status": "timeout",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": f"GPTScan analysis exceeded {timeout}s timeout"
+                "error": f"GPTScan analysis exceeded {timeout}s timeout",
             }
         except Exception as e:
             logger.error(f"GPTScan analysis error: {e}", exc_info=True)
@@ -223,7 +213,7 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -232,16 +222,11 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if adapter can analyze the contract."""
-        return Path(contract_path).suffix == '.sol'
+        return Path(contract_path).suffix == ".sol"
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
-        return {
-            "timeout": 600,
-            "model": "gpt-4",
-            "temperature": 0.1,
-            "max_retries": 3
-        }
+        return {"timeout": 600, "model": "gpt-4", "temperature": 0.1, "max_retries": 3}
 
     # ============================================================================
     # PRIVATE HELPER METHODS
@@ -250,7 +235,7 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
     def _read_contract(self, contract_path: str) -> Optional[str]:
         """Read contract file content."""
         try:
-            with open(contract_path, 'r', encoding='utf-8') as f:
+            with open(contract_path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Error reading contract: {e}")
@@ -259,12 +244,7 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
     def _detect_best_model(self) -> str:
         """Detect the best available Ollama model for security analysis."""
         try:
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                timeout=5,
-                text=True
-            )
+            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5, text=True)
             models = result.stdout.lower()
 
             # Priority order for security analysis
@@ -284,10 +264,7 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
             return "codellama:7b"
 
     def _run_ollama_analysis(
-        self,
-        contract_code: str,
-        model: str = "codellama:7b",
-        timeout: int = 120
+        self, contract_code: str, model: str = "codellama:7b", timeout: int = 120
     ) -> str:
         """Execute security analysis using Ollama."""
 
@@ -298,10 +275,7 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
 
         # Use ollama run command
         result = subprocess.run(
-            ["ollama", "run", model, prompt],
-            capture_output=True,
-            timeout=timeout,
-            text=True
+            ["ollama", "run", model, prompt], capture_output=True, timeout=timeout, text=True
         )
 
         if result.returncode != 0:
@@ -309,18 +283,14 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
 
         return result.stdout
 
-    def _parse_gptscan_output(
-        self,
-        output: str,
-        contract_path: str
-    ) -> List[Dict[str, Any]]:
+    def _parse_gptscan_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
         """Parse GPTScan output and extract findings."""
         findings = []
 
         try:
             # Try to parse JSON output
-            json_start = output.find('{')
-            json_end = output.rfind('}') + 1
+            json_start = output.find("{")
+            json_end = output.rfind("}") + 1
 
             if json_start != -1 and json_end > json_start:
                 json_str = output[json_start:json_end]
@@ -340,13 +310,12 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
                         "location": {
                             "file": contract_path,
                             "line": vuln.get("line", 0),
-                            "function": vuln.get("function", "")
+                            "function": vuln.get("function", ""),
                         },
-                        "recommendation": vuln.get("recommendation", "Review and address the AI-detected issue"),
-                        "references": [
-                            "GPT-4 AI Analysis",
-                            vuln.get("reference", "")
-                        ]
+                        "recommendation": vuln.get(
+                            "recommendation", "Review and address the AI-detected issue"
+                        ),
+                        "references": ["GPT-4 AI Analysis", vuln.get("reference", "")],
                     }
                     findings.append(finding)
 
@@ -375,24 +344,26 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
             "underflow": ("HIGH", "arithmetic_underflow"),
             "access control": ("HIGH", "access_control"),
             "unchecked": ("MEDIUM", "unchecked_calls"),
-            "logic error": ("HIGH", "logic_error")
+            "logic error": ("HIGH", "logic_error"),
         }
 
-        lines = output.split('\n')
-        for i, line in enumerate(lines):
+        lines = output.split("\n")
+        for _i, line in enumerate(lines):
             for keyword, (severity, category) in keywords.items():
                 if keyword.lower() in line.lower():
-                    findings.append({
-                        "id": f"gptscan-text-{len(findings)+1}",
-                        "title": f"AI-detected: {keyword.title()}",
-                        "description": line.strip(),
-                        "severity": severity,
-                        "confidence": 0.70,  # Lower confidence for text parsing
-                        "category": category,
-                        "location": {"file": contract_path},
-                        "recommendation": f"Review potential {keyword} issue detected by AI",
-                        "references": ["GPT-4 AI Analysis"]
-                    })
+                    findings.append(
+                        {
+                            "id": f"gptscan-text-{len(findings)+1}",
+                            "title": f"AI-detected: {keyword.title()}",
+                            "description": line.strip(),
+                            "severity": severity,
+                            "confidence": 0.70,  # Lower confidence for text parsing
+                            "category": category,
+                            "location": {"file": contract_path},
+                            "recommendation": f"Review potential {keyword} issue detected by AI",
+                            "references": ["GPT-4 AI Analysis"],
+                        }
+                    )
 
         return findings
 

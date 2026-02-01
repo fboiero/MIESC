@@ -18,17 +18,22 @@ Date: January 2026
 Version: 1.0.0
 """
 
+import json
+import logging
+import subprocess
+import tempfile
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
 )
 from src.llm import enhance_findings_with_llm
-from typing import Dict, Any, List, Optional
-import subprocess
-import json
-import time
-import logging
-import tempfile
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +66,8 @@ class SemgrepAdapter(ToolAdapter):
             "unchecked_calls",
             "oracle_manipulation",
             "front_running",
-            "gas_optimization"
-        ]
+            "gas_optimization",
+        ],
     }
 
     # Default rule registries for smart contracts
@@ -79,177 +84,169 @@ class SemgrepAdapter(ToolAdapter):
             "pattern": "$X.call{value: $V}($DATA)",
             "message": "Potential reentrancy vulnerability: external call with value transfer",
             "severity": "ERROR",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "reentrancy-send": {
             "pattern": "$X.send($V)",
             "message": "Potential reentrancy: send() can trigger fallback",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "reentrancy-transfer": {
             "pattern": "$X.transfer($V)",
             "message": "External transfer before state update",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
-
         # === UNCHECKED CALLS ===
         "unchecked-call": {
             "pattern": "$X.call($DATA);",
             "pattern-not": "(bool $SUCCESS,) = $X.call($DATA);",
             "message": "Unchecked low-level call return value",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "unchecked-return-transfer": {
             "pattern": "$TOKEN.transfer($TO, $AMOUNT);",
             "message": "Unchecked ERC20 transfer return value - use SafeERC20",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "unchecked-return-transferfrom": {
             "pattern": "$TOKEN.transferFrom($FROM, $TO, $AMOUNT);",
             "message": "Unchecked ERC20 transferFrom return value - use SafeERC20",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
-
         # === ACCESS CONTROL ===
         "tx-origin": {
             "pattern": "tx.origin",
             "message": "Use of tx.origin for authorization is insecure",
             "severity": "ERROR",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "selfdestruct": {
             "pattern": "selfdestruct($X)",
             "message": "Unprotected selfdestruct call",
             "severity": "ERROR",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "delegatecall": {
             "pattern": "$X.delegatecall($DATA)",
             "message": "Delegatecall to potentially untrusted contract",
             "severity": "ERROR",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "unprotected-initializer": {
             "pattern": "function initialize($PARAMS) $VISIBILITY { ... }",
             "pattern-not": "function initialize($PARAMS) $VISIBILITY initializer { ... }",
             "message": "Initialize function missing initializer modifier",
             "severity": "ERROR",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
-
         # === TIMESTAMP/RANDOMNESS ===
         "block-timestamp": {
             "pattern": "block.timestamp",
             "message": "Block timestamp used for critical logic - can be manipulated",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "weak-randomness-blockhash": {
             "pattern": "blockhash($X)",
             "message": "Blockhash used for randomness is predictable",
             "severity": "ERROR",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "weak-randomness-prevrandao": {
             "pattern": "block.prevrandao",
             "message": "prevrandao is predictable for PoS validators",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
-
         # === DEFI PATTERNS ===
         "flash-loan-callback": {
             "pattern": "function $FUNC($PARAMS) external { ... $X.call($DATA) ... }",
             "message": "Flash loan callback with external call - verify authorization",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "price-manipulation-spot": {
             "pattern": "$PAIR.getReserves()",
             "message": "Spot price from reserves can be manipulated - use TWAP",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "oracle-single-source": {
             "pattern": "$ORACLE.latestRoundData()",
             "message": "Single oracle source - consider using multiple oracles",
             "severity": "INFO",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "missing-slippage-check": {
             "pattern": "function swap($PARAMS) { ... $ROUTER.swap($ARGS) ... }",
             "pattern-not": "function swap($PARAMS) { ... require($AMOUNT >= $MIN) ... }",
             "message": "Swap function missing slippage protection",
             "severity": "ERROR",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "missing-deadline": {
             "pattern": "$ROUTER.swapExactTokensForTokens($A, $B, $PATH, $TO, $DEADLINE)",
             "message": "Ensure deadline parameter is not hardcoded or too far in future",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
-
         # === ARITHMETIC ===
         "division-before-multiplication": {
             "pattern": "$A / $B * $C",
             "message": "Division before multiplication causes precision loss",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "unsafe-downcast": {
             "pattern": "uint8($X)",
             "message": "Unsafe downcast may truncate value",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
-
         # === DOS ===
         "unbounded-loop": {
             "pattern": "for ($INIT; $COND < $ARR.length; $INC) { ... }",
             "message": "Loop over unbounded array can cause DoS",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "push-payment-in-loop": {
             "pattern": "for ($INIT; $COND; $INC) { ... $X.transfer($V) ... }",
             "message": "Push payment in loop can be blocked by malicious recipient",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
-
         # === SIGNATURE ===
         "signature-replay": {
             "pattern": "ecrecover($HASH, $V, $R, $S)",
             "message": "Ensure signature includes nonce and chain ID to prevent replay",
             "severity": "WARNING",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "missing-zero-check-ecrecover": {
             "pattern": "address $SIGNER = ecrecover($PARAMS);",
             "pattern-not": "require($SIGNER != address(0))",
             "message": "ecrecover can return address(0) on invalid signature",
             "severity": "ERROR",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
-
         # === STORAGE ===
         "uninitialized-storage": {
             "pattern": "$TYPE storage $VAR;",
             "message": "Uninitialized storage pointer can reference unexpected storage",
             "severity": "ERROR",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
         "storage-collision": {
             "pattern": "bytes32 constant $SLOT = keccak256($STRING);",
             "message": "Manual storage slot - ensure no collision with standard slots",
             "severity": "INFO",
-            "languages": ["solidity"]
+            "languages": ["solidity"],
         },
     }
 
@@ -260,7 +257,7 @@ class SemgrepAdapter(ToolAdapter):
         "INFO": "low",
         "error": "high",
         "warning": "medium",
-        "info": "low"
+        "info": "low",
     }
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -302,34 +299,31 @@ class SemgrepAdapter(ToolAdapter):
                     name="pattern_analysis",
                     description="Pattern-based vulnerability detection",
                     supported_languages=["solidity"],
-                    detection_types=["reentrancy", "access_control", "unchecked_calls"]
+                    detection_types=["reentrancy", "access_control", "unchecked_calls"],
                 ),
                 ToolCapability(
                     name="custom_rules",
                     description="Support for custom security rules",
                     supported_languages=["solidity"],
-                    detection_types=["custom_vulnerabilities"]
+                    detection_types=["custom_vulnerabilities"],
                 ),
                 ToolCapability(
                     name="registry_rules",
                     description="Community rule registries",
                     supported_languages=["solidity"],
-                    detection_types=["security_issues", "best_practices"]
-                )
+                    detection_types=["security_issues", "best_practices"],
+                ),
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if Semgrep is installed and available"""
         try:
             result = subprocess.run(
-                ["semgrep", "--version"],
-                capture_output=True,
-                timeout=10,
-                text=True
+                ["semgrep", "--version"], capture_output=True, timeout=10, text=True
             )
             if result.returncode == 0:
                 version = result.stdout.strip()
@@ -375,7 +369,7 @@ class SemgrepAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "Semgrep not available"
+                "error": "Semgrep not available",
             }
 
         try:
@@ -424,14 +418,14 @@ class SemgrepAdapter(ToolAdapter):
             # Show progress message
             verbose = kwargs.get("verbose", True)
             if verbose:
-                print(f"  [Semgrep] Running pattern analysis...")
+                print("  [Semgrep] Running pattern analysis...")
 
             # Run semgrep
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 timeout=self.timeout + 30,  # Extra buffer for timeout
-                text=True
+                text=True,
             )
 
             duration = time.time() - start_time
@@ -451,15 +445,11 @@ class SemgrepAdapter(ToolAdapter):
 
             # Enhance findings with LLM
             try:
-                with open(contract_path, 'r') as f:
+                with open(contract_path, "r") as f:
                     contract_code = f.read()
 
                 if findings:
-                    findings = enhance_findings_with_llm(
-                        findings[:5],
-                        contract_code,
-                        "semgrep"
-                    )
+                    findings = enhance_findings_with_llm(findings[:5], contract_code, "semgrep")
             except Exception as e:
                 logger.debug(f"LLM enhancement failed: {e}")
 
@@ -471,7 +461,7 @@ class SemgrepAdapter(ToolAdapter):
                 "execution_time": round(duration, 2),
                 "total_findings": len(findings),
                 "rules_used": rules,
-                "dpga_compliant": True
+                "dpga_compliant": True,
             }
 
         except subprocess.TimeoutExpired:
@@ -481,7 +471,7 @@ class SemgrepAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": self.timeout,
-                "error": f"Analysis timeout after {self.timeout}s"
+                "error": f"Analysis timeout after {self.timeout}s",
             }
         except FileNotFoundError:
             return {
@@ -489,7 +479,7 @@ class SemgrepAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": f"Contract file not found: {contract_path}"
+                "error": f"Contract file not found: {contract_path}",
             }
         except Exception as e:
             logger.error(f"Semgrep analysis failed: {str(e)}")
@@ -498,7 +488,7 @@ class SemgrepAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def _create_custom_rules_file(self) -> Optional[str]:
@@ -512,7 +502,7 @@ class SemgrepAdapter(ToolAdapter):
                     "message": rule_def["message"],
                     "severity": rule_def["severity"],
                     "languages": rule_def["languages"],
-                    "pattern": rule_def["pattern"]
+                    "pattern": rule_def["pattern"],
                 }
 
                 # Add pattern-not if present
@@ -525,7 +515,7 @@ class SemgrepAdapter(ToolAdapter):
             import yaml
 
             fd, path = tempfile.mkstemp(suffix=".yaml", prefix="semgrep_miesc_")
-            with open(path, 'w') as f:
+            with open(path, "w") as f:
                 yaml.dump(rules_yaml, f, default_flow_style=False)
 
             return path
@@ -612,7 +602,7 @@ class SemgrepAdapter(ToolAdapter):
                 "end_column": end.get("col"),
                 "code_snippet": extra.get("lines", ""),
                 "metadata": extra.get("metadata", {}),
-                "recommendation": self._get_recommendation(check_id)
+                "recommendation": self._get_recommendation(check_id),
             }
 
             # Add fix if available
@@ -651,7 +641,7 @@ class SemgrepAdapter(ToolAdapter):
             "front": "front_running",
             "sandwich": "front_running",
             "gas": "gas_optimization",
-            "delegatecall": "delegatecall_injection"
+            "delegatecall": "delegatecall_injection",
         }
 
         for pattern, vuln_type in type_mappings.items():
@@ -670,7 +660,7 @@ class SemgrepAdapter(ToolAdapter):
             "timestamp": "Avoid using block.timestamp for critical decisions",
             "delegatecall": "Validate target address before delegatecall",
             "overflow": "Use Solidity 0.8+ or SafeMath for arithmetic",
-            "oracle": "Use TWAP or multiple oracle sources"
+            "oracle": "Use TWAP or multiple oracle sources",
         }
 
         for pattern, rec in recommendations.items():
@@ -701,7 +691,7 @@ class SemgrepAdapter(ToolAdapter):
         path = Path(contract_path)
 
         # Can analyze .sol files
-        if path.is_file() and path.suffix == '.sol':
+        if path.is_file() and path.suffix == ".sol":
             return True
 
         # Can analyze directories containing .sol files
@@ -717,17 +707,14 @@ class SemgrepAdapter(ToolAdapter):
             "timeout": 120,
             "max_target_bytes": 1000000,
             "exclude": ["**/node_modules/**", "**/test/**"],
-            "use_custom_rules": True
+            "use_custom_rules": True,
         }
 
 
 # Adapter registration
 def register_adapter():
     """Register Semgrep adapter with MIESC"""
-    return {
-        "adapter_class": SemgrepAdapter,
-        "metadata": SemgrepAdapter.METADATA
-    }
+    return {"adapter_class": SemgrepAdapter, "metadata": SemgrepAdapter.METADATA}
 
 
 __all__ = ["SemgrepAdapter", "register_adapter"]

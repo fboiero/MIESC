@@ -10,14 +10,15 @@ License: MIT
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any
-from enum import Enum
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class AgentCapability(Enum):
     """Standard capabilities that agents can provide"""
+
     STATIC_ANALYSIS = "static_analysis"
     SYMBOLIC_EXECUTION = "symbolic_execution"
     AI_ANALYSIS = "ai_analysis"
@@ -32,13 +33,15 @@ class AgentCapability(Enum):
 
 class AgentSpeed(Enum):
     """Speed categories for agent execution"""
-    FAST = "fast"          # < 10 seconds
-    MEDIUM = "medium"      # 10-60 seconds
-    SLOW = "slow"          # > 60 seconds
+
+    FAST = "fast"  # < 10 seconds
+    MEDIUM = "medium"  # 10-60 seconds
+    SLOW = "slow"  # > 60 seconds
 
 
 class AnalysisStatus(Enum):
     """Status of analysis execution"""
+
     SUCCESS = "success"
     ERROR = "error"
     TIMEOUT = "timeout"
@@ -47,6 +50,7 @@ class AnalysisStatus(Enum):
 
 class FindingSeverity(Enum):
     """Standard severity levels"""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -57,6 +61,7 @@ class FindingSeverity(Enum):
 @dataclass
 class AgentMetadata:
     """Complete metadata for an agent"""
+
     name: str
     version: str
     description: str
@@ -76,6 +81,7 @@ class AgentMetadata:
 @dataclass
 class Finding:
     """Standard finding format"""
+
     type: str
     severity: FindingSeverity
     location: str
@@ -91,6 +97,7 @@ class Finding:
 @dataclass
 class AnalysisResult:
     """Standard analysis result format"""
+
     agent: str
     version: str
     status: AnalysisStatus
@@ -285,11 +292,11 @@ class SecurityAgent(ABC):
             supported_languages=self.supported_languages,
             cost=self.cost,
             speed=self.speed,
-            homepage=getattr(self, 'homepage', None),
-            repository=getattr(self, 'repository', None),
-            documentation=getattr(self, 'documentation', None),
-            installation=getattr(self, 'installation', None),
-            requires=getattr(self, 'requires', None)
+            homepage=getattr(self, "homepage", None),
+            repository=getattr(self, "repository", None),
+            documentation=getattr(self, "documentation", None),
+            installation=getattr(self, "installation", None),
+            requires=getattr(self, "requires", None),
         )
 
     def validate(self) -> bool:
@@ -313,10 +320,13 @@ class SecurityAgent(ABC):
 
             # Check name format (lowercase, alphanumeric, hyphens)
             import re
-            assert re.match(r'^[a-z0-9-]+$', self.name), "Name must be lowercase alphanumeric with hyphens"
+
+            assert re.match(
+                r"^[a-z0-9-]+$", self.name
+            ), "Name must be lowercase alphanumeric with hyphens"
 
             return True
-        except Exception as e:
+        except Exception:
             return False
 
     def get_config_schema(self) -> Dict[str, Any]:
@@ -328,7 +338,7 @@ class SecurityAgent(ABC):
         """
         return {}
 
-    def configure(self, config: Dict[str, Any]) -> None:
+    def configure(self, config: Dict[str, Any]) -> None:  # noqa: B027
         """
         Configure the agent with custom settings.
 

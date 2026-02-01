@@ -14,14 +14,13 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
+import json
 import logging
 import os
 import subprocess
 import tempfile
-import json
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -30,43 +29,40 @@ logger = logging.getLogger(__name__)
 PATTERN_TO_SLITHER_DETECTORS = {
     # Reentrancy patterns
     "reentrancy": [
-        "reentrancy-eth", "reentrancy-no-eth", "reentrancy-benign",
-        "reentrancy-events", "reentrancy-unlimited-gas"
+        "reentrancy-eth",
+        "reentrancy-no-eth",
+        "reentrancy-benign",
+        "reentrancy-events",
+        "reentrancy-unlimited-gas",
     ],
     "reentrancy_path": ["reentrancy-eth", "reentrancy-no-eth"],
-
     # Arithmetic patterns
     "arithmetic": ["divide-before-multiply", "tautology"],
     "integer_overflow": [],  # Slither doesn't detect overflow in 0.8+
     "integer_underflow": [],
-
     # Access control patterns
     "access_control": [
-        "arbitrary-send-eth", "arbitrary-send-erc20", "suicidal",
-        "protected-vars", "unprotected-upgrade"
+        "arbitrary-send-eth",
+        "arbitrary-send-erc20",
+        "suicidal",
+        "protected-vars",
+        "unprotected-upgrade",
     ],
     "unprotected_function": ["arbitrary-send-eth", "suicidal"],
     "missing_access_control": ["arbitrary-send-eth", "protected-vars"],
-
     # Unchecked patterns
-    "unchecked_low_level_calls": [
-        "unchecked-lowlevel", "unchecked-send", "low-level-calls"
-    ],
+    "unchecked_low_level_calls": ["unchecked-lowlevel", "unchecked-send", "low-level-calls"],
     "unchecked_send": ["unchecked-send", "unchecked-lowlevel"],
-
     # Timestamp patterns
     "timestamp_dependence": ["timestamp", "weak-prng"],
     "bad_randomness": ["weak-prng"],
-
     # Front-running patterns
     "front_running": ["incorrect-equality", "weak-prng"],
     "permit_frontrun": [],
-
     # DoS patterns
     "denial_of_service": ["calls-loop", "costly-loop"],
     "unbounded_loop": ["calls-loop", "costly-loop"],
     "push_payment": ["calls-loop"],
-
     # tx.origin
     "tx_origin": ["tx-origin"],
     "tx.origin": ["tx-origin"],
@@ -85,6 +81,7 @@ HIGH_CONFIDENCE_DETECTORS = {
 @dataclass
 class SlitherFinding:
     """A finding from Slither analysis."""
+
     detector: str
     impact: str
     confidence: str
@@ -96,6 +93,7 @@ class SlitherFinding:
 @dataclass
 class ValidationResult:
     """Result of cross-validating a pattern finding with Slither."""
+
     pattern_type: str
     pattern_line: int
     slither_confirmed: bool
@@ -162,10 +160,7 @@ class SlitherValidator:
         """Check if Slither is available."""
         try:
             result = subprocess.run(
-                [self.slither_binary, "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5
+                [self.slither_binary, "--version"], capture_output=True, text=True, timeout=5
             )
             return result.returncode == 0
         except Exception:
@@ -194,9 +189,7 @@ class SlitherValidator:
         findings = []
 
         # Create temporary file
-        with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.sol', delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
             f.write(source_code)
             temp_path = f.name
 
@@ -210,7 +203,8 @@ class SlitherValidator:
             cmd = [
                 self.slither_binary,
                 temp_path,
-                "--json", "-",
+                "--json",
+                "-",
                 "--solc-disable-warnings",
             ]
 
@@ -218,12 +212,7 @@ class SlitherValidator:
             if solc_version.startswith("0.4") or solc_version.startswith("0.5"):
                 cmd.extend(["--solc-solcs-select", solc_version])
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=self.timeout
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=self.timeout)
 
             # Parse JSON output
             if result.stdout:
@@ -238,14 +227,16 @@ class SlitherValidator:
                             if src.get("lines"):
                                 lines.extend(src["lines"])
 
-                        findings.append(SlitherFinding(
-                            detector=det.get("check", ""),
-                            impact=det.get("impact", ""),
-                            confidence=det.get("confidence", ""),
-                            description=det.get("description", ""),
-                            lines=sorted(set(lines)),
-                            elements=det.get("elements", []),
-                        ))
+                        findings.append(
+                            SlitherFinding(
+                                detector=det.get("check", ""),
+                                impact=det.get("impact", ""),
+                                confidence=det.get("confidence", ""),
+                                description=det.get("description", ""),
+                                lines=sorted(set(lines)),
+                                elements=det.get("elements", []),
+                            )
+                        )
 
                 except json.JSONDecodeError:
                     logger.debug("Failed to parse Slither JSON output")
@@ -344,16 +335,18 @@ class SlitherValidator:
             detector_name = finding.detector.lower().replace("_", "-")
 
             # Check if detector is relevant
-            detector_match = any(
-                det.lower().replace("_", "-") == detector_name
-                for det in relevant_detectors
-            ) if relevant_detectors else True  # If no mapping, consider any finding
+            detector_match = (
+                any(det.lower().replace("_", "-") == detector_name for det in relevant_detectors)
+                if relevant_detectors
+                else True
+            )  # If no mapping, consider any finding
 
             # Check line proximity
-            line_match = any(
-                abs(line - pattern_line) <= line_tolerance
-                for line in finding.lines
-            ) if finding.lines else False
+            line_match = (
+                any(abs(line - pattern_line) <= line_tolerance for line in finding.lines)
+                if finding.lines
+                else False
+            )
 
             if detector_match and line_match:
                 matched_detectors.append(finding.detector)
@@ -401,13 +394,15 @@ class SlitherValidator:
 
         if not self._slither_available:
             for f in findings:
-                results.append(ValidationResult(
-                    pattern_type=f.get("type", ""),
-                    pattern_line=f.get("line", 0),
-                    slither_confirmed=False,
-                    final_confidence=f.get("confidence", 0.5),
-                    notes="Slither not available",
-                ))
+                results.append(
+                    ValidationResult(
+                        pattern_type=f.get("type", ""),
+                        pattern_line=f.get("line", 0),
+                        slither_confirmed=False,
+                        final_confidence=f.get("confidence", 0.5),
+                        notes="Slither not available",
+                    )
+                )
             return results
 
         # Run Slither once
@@ -434,15 +429,19 @@ class SlitherValidator:
             for sf in slither_findings:
                 detector_name = sf.detector.lower().replace("_", "-")
 
-                detector_match = any(
-                    det.lower().replace("_", "-") == detector_name
-                    for det in relevant_detectors
-                ) if relevant_detectors else True
+                detector_match = (
+                    any(
+                        det.lower().replace("_", "-") == detector_name for det in relevant_detectors
+                    )
+                    if relevant_detectors
+                    else True
+                )
 
-                line_match = any(
-                    abs(line - pattern_line) <= line_tolerance
-                    for line in sf.lines
-                ) if sf.lines else False
+                line_match = (
+                    any(abs(line - pattern_line) <= line_tolerance for line in sf.lines)
+                    if sf.lines
+                    else False
+                )
 
                 if detector_match and line_match:
                     matched.append(sf.detector)
@@ -493,7 +492,7 @@ def validate_with_slither(
 
     # Update findings with new confidence
     validated_findings = []
-    for f, r in zip(findings, results):
+    for f, r in zip(findings, results, strict=False):
         updated = f.copy()
         updated["confidence"] = r.final_confidence
         updated["_slither_validated"] = r.slither_confirmed
@@ -519,7 +518,7 @@ def filter_unconfirmed(
         Filtered findings
     """
     return [
-        f for f in findings
-        if f.get("confidence", 0) >= min_confidence
-        or f.get("_slither_validated", False)
+        f
+        for f in findings
+        if f.get("confidence", 0) >= min_confidence or f.get("_slither_validated", False)
     ]

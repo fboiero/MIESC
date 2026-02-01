@@ -34,9 +34,9 @@ class AderynAgent(BaseAgent):
                 "ast_traversal",
                 "vulnerability_detection",
                 "markdown_reporting",
-                "87_detectors"
+                "87_detectors",
             ],
-            agent_type="static"
+            agent_type="static",
         )
         self.aderyn_path = self._find_aderyn()
 
@@ -49,16 +49,13 @@ class AderynAgent(BaseAgent):
         locations = [
             os.path.expanduser("~/.cargo/bin/aderyn"),
             "/usr/local/bin/aderyn",
-            "aderyn"  # PATH
+            "aderyn",  # PATH
         ]
 
         for location in locations:
             try:
                 result = subprocess.run(
-                    [location, "--version"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
+                    [location, "--version"], capture_output=True, text=True, timeout=5
                 )
                 if result.returncode == 0:
                     return location
@@ -89,7 +86,7 @@ class AderynAgent(BaseAgent):
         if not self.is_available():
             return {
                 "error": "Aderyn not installed",
-                "suggestion": "Install with: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/cyfrin/aderyn/releases/latest/download/aderyn-installer.sh | sh"
+                "suggestion": "Install with: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/cyfrin/aderyn/releases/latest/download/aderyn-installer.sh | sh",
             }
 
         try:
@@ -107,18 +104,14 @@ class AderynAgent(BaseAgent):
                 cmd.extend(["--output", output_dir])
 
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=60,
-                cwd=str(analysis_dir)
+                cmd, capture_output=True, text=True, timeout=60, cwd=str(analysis_dir)
             )
 
             if result.returncode != 0:
                 return {
                     "error": "Aderyn analysis failed",
                     "stderr": result.stderr,
-                    "stdout": result.stdout
+                    "stdout": result.stdout,
                 }
 
             # Parse report.md
@@ -136,7 +129,7 @@ class AderynAgent(BaseAgent):
                 "version": self._get_version(),
                 "status": "success",
                 "findings": findings,
-                "report_path": str(report_path) if report_path.exists() else None
+                "report_path": str(report_path) if report_path.exists() else None,
             }
 
         except subprocess.TimeoutExpired:
@@ -148,10 +141,7 @@ class AderynAgent(BaseAgent):
         """Get Aderyn version"""
         try:
             result = subprocess.run(
-                [self.aderyn_path, "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5
+                [self.aderyn_path, "--version"], capture_output=True, text=True, timeout=5
             )
             return result.stdout.strip()
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
@@ -162,24 +152,19 @@ class AderynAgent(BaseAgent):
         try:
             content = report_path.read_text()
 
-            findings = {
-                "high": [],
-                "medium": [],
-                "low": [],
-                "stats": {}
-            }
+            findings = {"high": [], "medium": [], "low": [], "stats": {}}
 
             # Extract issue counts
-            lines = content.split('\n')
+            lines = content.split("\n")
             for i, line in enumerate(lines):
                 if "| High |" in line:
-                    count = line.split('|')[2].strip()
+                    count = line.split("|")[2].strip()
                     findings["stats"]["high"] = int(count) if count.isdigit() else 0
                 elif "| Medium |" in line:
-                    count = line.split('|')[2].strip()
+                    count = line.split("|")[2].strip()
                     findings["stats"]["medium"] = int(count) if count.isdigit() else 0
                 elif "| Low |" in line:
-                    count = line.split('|')[2].strip()
+                    count = line.split("|")[2].strip()
                     findings["stats"]["low"] = int(count) if count.isdigit() else 0
 
                 # Extract high issues
@@ -188,10 +173,7 @@ class AderynAgent(BaseAgent):
                     description = ""
                     if i + 2 < len(lines):
                         description = lines[i + 2].strip()
-                    findings["high"].append({
-                        "title": title,
-                        "description": description
-                    })
+                    findings["high"].append({"title": title, "description": description})
 
                 # Extract low issues
                 if line.startswith("## L-"):
@@ -199,10 +181,7 @@ class AderynAgent(BaseAgent):
                     description = ""
                     if i + 2 < len(lines):
                         description = lines[i + 2].strip()
-                    findings["low"].append({
-                        "title": title,
-                        "description": description
-                    })
+                    findings["low"].append({"title": title, "description": description})
 
             return findings
 
@@ -218,9 +197,9 @@ class AderynAgent(BaseAgent):
                 findings={
                     "tool": "Aderyn",
                     "findings": findings,
-                    "timestamp": str(Path(contract).stat().st_mtime)
+                    "timestamp": str(Path(contract).stat().st_mtime),
                 },
-                metadata={"tool_version": self._get_version()}
+                metadata={"tool_version": self._get_version()},
             )
         except Exception as e:
             # Non-critical, just log
@@ -250,7 +229,7 @@ class AderynAgent(BaseAgent):
             "critical_count": stats.get("high", 0),
             "warning_count": stats.get("medium", 0) + stats.get("low", 0),
             "status": "pass" if stats.get("high", 0) == 0 else "fail",
-            "high_issues": findings.get("high", [])[:3]  # Top 3
+            "high_issues": findings.get("high", [])[:3],  # Top 3
         }
 
     def get_capabilities(self) -> List[str]:
@@ -262,7 +241,7 @@ class AderynAgent(BaseAgent):
             "Unchecked calls",
             "Gas optimization",
             "Best practices",
-            "87+ total detectors"
+            "87+ total detectors",
         ]
 
     def handle_message(self, message: MCPMessage):
@@ -276,5 +255,5 @@ class AderynAgent(BaseAgent):
                 self.publish_findings(
                     context_type="audit_response",
                     findings=result,
-                    metadata={"request_source": message.agent}
+                    metadata={"request_source": message.agent},
                 )

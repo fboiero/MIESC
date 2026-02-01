@@ -167,7 +167,7 @@ class TestMIESCWebSocketServer:
         """Test that server raises ImportError if websockets not installed."""
         # This test is conditional - skip if websockets is installed
         try:
-            import websockets
+            import websockets  # noqa: F401
 
             pytest.skip("websockets is installed, cannot test ImportError")
         except ImportError:

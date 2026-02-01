@@ -9,21 +9,22 @@ Tests the centralized exception handling system including:
 """
 
 import pytest
+
 from src.core.exceptions import (
-    MIESCException,
-    ToolAdapterError,
+    TOOL_INSTALL_SUGGESTIONS,
     AnalysisError,
     AnalysisTimeoutError,
-    ConfigurationError,
-    SecurityError,
-    ContractError,
     APIError,
-    ModelError,
+    ConfigurationError,
+    ContractError,
     ErrorCode,
-    tool_not_available,
-    contract_not_found,
+    MIESCException,
+    ModelError,
+    SecurityError,
+    ToolAdapterError,
     analysis_timeout,
-    TOOL_INSTALL_SUGGESTIONS,
+    contract_not_found,
+    tool_not_available,
 )
 
 
@@ -45,28 +46,20 @@ class TestMIESCException:
 
     def test_exception_with_suggestions(self):
         """Test exception with suggestions."""
-        exc = MIESCException(
-            "Test",
-            suggestions=["Try this", "Or this"]
-        )
+        exc = MIESCException("Test", suggestions=["Try this", "Or this"])
         assert len(exc.suggestions) == 2
         assert "Try this" in exc.suggestions
 
     def test_exception_with_context(self):
         """Test exception with context."""
-        exc = MIESCException(
-            "Test",
-            context={"tool": "slither", "version": "0.10.0"}
-        )
+        exc = MIESCException("Test", context={"tool": "slither", "version": "0.10.0"})
         assert exc.context["tool"] == "slither"
         assert exc.context["version"] == "0.10.0"
 
     def test_str_representation(self):
         """Test string representation."""
         exc = MIESCException(
-            "Test error",
-            error_code=ErrorCode.TOOL_NOT_FOUND,
-            suggestions=["Try pip install"]
+            "Test error", error_code=ErrorCode.TOOL_NOT_FOUND, suggestions=["Try pip install"]
         )
         str_repr = str(exc)
         assert "[E101]" in str_repr
@@ -79,7 +72,7 @@ class TestMIESCException:
             "Test",
             error_code=ErrorCode.ANALYSIS_FAILED,
             suggestions=["Check logs"],
-            context={"layer": 1}
+            context={"layer": 1},
         )
         d = exc.to_dict()
         assert d["error"] is True
@@ -94,38 +87,27 @@ class TestToolAdapterError:
 
     def test_basic_tool_error(self):
         """Test basic tool adapter error."""
-        exc = ToolAdapterError(
-            "Slither failed",
-            tool_name="slither"
-        )
+        exc = ToolAdapterError("Slither failed", tool_name="slither")
         assert exc.tool_name == "slither"
         assert exc.error_code == ErrorCode.TOOL_EXECUTION_FAILED.value
 
     def test_tool_with_version(self):
         """Test tool error with version info."""
-        exc = ToolAdapterError(
-            "Failed",
-            tool_name="mythril",
-            tool_version="0.24.0"
-        )
+        exc = ToolAdapterError("Failed", tool_name="mythril", tool_version="0.24.0")
         assert exc.tool_version == "0.24.0"
         assert exc.context["tool_version"] == "0.24.0"
 
     def test_auto_suggestions_for_not_found(self):
         """Test automatic installation suggestions."""
         exc = ToolAdapterError(
-            "Not installed",
-            tool_name="slither",
-            error_code=ErrorCode.TOOL_NOT_FOUND
+            "Not installed", tool_name="slither", error_code=ErrorCode.TOOL_NOT_FOUND
         )
         assert any("pip install slither-analyzer" in s for s in exc.suggestions)
 
     def test_mythril_suggestions(self):
         """Test Mythril-specific suggestions."""
         exc = ToolAdapterError(
-            "Not available",
-            tool_name="mythril",
-            error_code=ErrorCode.TOOL_NOT_AVAILABLE
+            "Not available", tool_name="mythril", error_code=ErrorCode.TOOL_NOT_AVAILABLE
         )
         assert any("pip install mythril" in s for s in exc.suggestions)
         assert any("docker" in s for s in exc.suggestions)
@@ -133,9 +115,7 @@ class TestToolAdapterError:
     def test_unknown_tool_no_suggestions(self):
         """Test unknown tool has no auto-suggestions."""
         exc = ToolAdapterError(
-            "Failed",
-            tool_name="unknown_tool",
-            error_code=ErrorCode.TOOL_NOT_FOUND
+            "Failed", tool_name="unknown_tool", error_code=ErrorCode.TOOL_NOT_FOUND
         )
         # Should not crash, just have empty or custom suggestions
         assert isinstance(exc.suggestions, list)
@@ -151,19 +131,13 @@ class TestAnalysisError:
 
     def test_with_contract_path(self):
         """Test with contract path."""
-        exc = AnalysisError(
-            "Failed",
-            contract_path="/path/to/Token.sol"
-        )
+        exc = AnalysisError("Failed", contract_path="/path/to/Token.sol")
         assert exc.contract_path == "/path/to/Token.sol"
         assert exc.context["contract_path"] == "/path/to/Token.sol"
 
     def test_with_layer(self):
         """Test with layer information."""
-        exc = AnalysisError(
-            "Layer 3 failed",
-            layer=3
-        )
+        exc = AnalysisError("Layer 3 failed", layer=3)
         assert exc.layer == 3
         assert exc.context["layer"] == 3
 
@@ -173,30 +147,20 @@ class TestAnalysisTimeoutError:
 
     def test_timeout_error(self):
         """Test timeout error creation."""
-        exc = AnalysisTimeoutError(
-            "Timed out",
-            timeout_seconds=300
-        )
+        exc = AnalysisTimeoutError("Timed out", timeout_seconds=300)
         assert exc.timeout_seconds == 300
         assert exc.error_code == ErrorCode.ANALYSIS_TIMEOUT.value
 
     def test_timeout_suggestions(self):
         """Test timeout has helpful suggestions."""
-        exc = AnalysisTimeoutError(
-            "Timed out",
-            timeout_seconds=300,
-            tool_name="mythril"
-        )
+        exc = AnalysisTimeoutError("Timed out", timeout_seconds=300, tool_name="mythril")
         assert any("600" in s for s in exc.suggestions)  # 2x timeout
         assert any("smaller contract" in s for s in exc.suggestions)
 
     def test_timeout_context(self):
         """Test timeout context includes tool."""
         exc = AnalysisTimeoutError(
-            "Timed out",
-            timeout_seconds=120,
-            tool_name="manticore",
-            contract_path="/path/test.sol"
+            "Timed out", timeout_seconds=120, tool_name="manticore", contract_path="/path/test.sol"
         )
         assert exc.context["tool_name"] == "manticore"
         assert exc.context["timeout_seconds"] == 120
@@ -212,18 +176,12 @@ class TestConfigurationError:
 
     def test_with_config_key(self):
         """Test with config key."""
-        exc = ConfigurationError(
-            "Missing key",
-            config_key="layers.static.timeout"
-        )
+        exc = ConfigurationError("Missing key", config_key="layers.static.timeout")
         assert exc.config_key == "layers.static.timeout"
 
     def test_with_config_file(self):
         """Test with config file path."""
-        exc = ConfigurationError(
-            "Invalid YAML",
-            config_file="/path/miesc.yaml"
-        )
+        exc = ConfigurationError("Invalid YAML", config_file="/path/miesc.yaml")
         assert any("miesc.yaml" in s for s in exc.suggestions)
 
     def test_validate_suggestion(self):
@@ -237,10 +195,7 @@ class TestSecurityError:
 
     def test_security_error(self):
         """Test security error."""
-        exc = SecurityError(
-            "Path traversal detected",
-            error_code=ErrorCode.PATH_TRAVERSAL_DETECTED
-        )
+        exc = SecurityError("Path traversal detected", error_code=ErrorCode.PATH_TRAVERSAL_DETECTED)
         assert exc.error_code == "E402"
 
 
@@ -249,10 +204,7 @@ class TestContractError:
 
     def test_contract_not_found(self):
         """Test contract not found error."""
-        exc = ContractError(
-            "File not found",
-            contract_path="/path/Token.sol"
-        )
+        exc = ContractError("File not found", contract_path="/path/Token.sol")
         assert exc.contract_path == "/path/Token.sol"
         assert any("ls -la" in s for s in exc.suggestions)
         assert any(".sol" in s for s in exc.suggestions)
@@ -263,11 +215,7 @@ class TestAPIError:
 
     def test_api_error(self):
         """Test API error with status code."""
-        exc = APIError(
-            "Request failed",
-            status_code=500,
-            endpoint="/api/v1/analyze"
-        )
+        exc = APIError("Request failed", status_code=500, endpoint="/api/v1/analyze")
         assert exc.status_code == 500
         assert exc.endpoint == "/api/v1/analyze"
         assert exc.context["status_code"] == 500
@@ -278,18 +226,12 @@ class TestModelError:
 
     def test_model_error(self):
         """Test model error."""
-        exc = ModelError(
-            "Inference failed",
-            model_name="deepseek-coder"
-        )
+        exc = ModelError("Inference failed", model_name="deepseek-coder")
         assert exc.model_name == "deepseek-coder"
 
     def test_ollama_suggestions(self):
         """Test Ollama-specific suggestions."""
-        exc = ModelError(
-            "Model not found",
-            model_name="ollama:deepseek"
-        )
+        exc = ModelError("Model not found", model_name="ollama:deepseek")
         assert any("ollama serve" in s for s in exc.suggestions)
         assert any("ollama pull" in s for s in exc.suggestions)
 
@@ -357,7 +299,7 @@ class TestToolInstallSuggestions:
 
     def test_suggestions_are_strings(self):
         """Test all suggestions are strings."""
-        for tool, suggestions in TOOL_INSTALL_SUGGESTIONS.items():
+        for _tool, suggestions in TOOL_INSTALL_SUGGESTIONS.items():
             assert isinstance(suggestions, list)
             for s in suggestions:
                 assert isinstance(s, str)
@@ -384,6 +326,7 @@ class TestExceptionInheritance:
 
     def test_can_catch_with_base(self):
         """Test can catch all with base exception."""
+
         def raise_tool_error():
             raise ToolAdapterError("test", "tool")
 

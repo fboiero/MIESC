@@ -14,18 +14,17 @@ Usage:
     print(results.summary())
 """
 
-import asyncio
 import json
 import subprocess
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Dict, List, Optional, Tuple
 
-from .dataset_loader import VulnerableContract, VulnerabilityCategory, GroundTruth
+from .dataset_loader import GroundTruth, VulnerableContract
 
 
 @dataclass
@@ -59,7 +58,9 @@ class DetectionMetrics:
     @property
     def accuracy(self) -> float:
         """Accuracy = (TP + TN) / (TP + TN + FP + FN)"""
-        total = self.true_positives + self.true_negatives + self.false_positives + self.false_negatives
+        total = (
+            self.true_positives + self.true_negatives + self.false_positives + self.false_negatives
+        )
         return (self.true_positives + self.true_negatives) / total if total > 0 else 0.0
 
     def to_dict(self) -> Dict:
@@ -160,12 +161,14 @@ class BenchmarkResult:
                     f"R:{metrics.recall*100:5.1f}% F1:{metrics.f1_score*100:5.1f}%"
                 )
 
-        lines.extend([
-            "",
-            f"Total Time: {self.total_time_seconds:.2f}s",
-            f"Avg Time/Contract: {self.total_time_seconds/max(self.analyzed_contracts,1)*1000:.0f}ms",
-            "=" * 60,
-        ])
+        lines.extend(
+            [
+                "",
+                f"Total Time: {self.total_time_seconds:.2f}s",
+                f"Avg Time/Contract: {self.total_time_seconds/max(self.analyzed_contracts,1)*1000:.0f}ms",
+                "=" * 60,
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -235,7 +238,6 @@ class BenchmarkRunner:
         "calls-loop": "denial_of_service",
         # Randomness
         "weak-prng": "bad_randomness",
-        "block-timestamp": "bad_randomness",
         # Timestamp
         "timestamp": "time_manipulation",
         "block-timestamp": "time_manipulation",
@@ -290,10 +292,7 @@ class BenchmarkRunner:
 
         if parallel:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = {
-                    executor.submit(self._analyze_contract, c, mode): c
-                    for c in contracts
-                }
+                futures = {executor.submit(self._analyze_contract, c, mode): c for c in contracts}
 
                 for i, future in enumerate(as_completed(futures)):
                     contract = futures[future]
@@ -304,13 +303,15 @@ class BenchmarkRunner:
                             status = "OK" if not result.error else f"ERR: {result.error[:30]}"
                             print(f"[{i+1}/{len(contracts)}] {contract.name}: {status}")
                     except Exception as e:
-                        contract_results.append(ContractResult(
-                            contract_name=contract.name,
-                            contract_path=contract.path,
-                            ground_truth=contract.vulnerabilities,
-                            detected_findings=[],
-                            error=str(e),
-                        ))
+                        contract_results.append(
+                            ContractResult(
+                                contract_name=contract.name,
+                                contract_path=contract.path,
+                                ground_truth=contract.vulnerabilities,
+                                detected_findings=[],
+                                error=str(e),
+                            )
+                        )
         else:
             for i, contract in enumerate(contracts):
                 result = self._analyze_contract(contract, mode)
@@ -335,13 +336,16 @@ class BenchmarkRunner:
 
             cmd = [
                 self.miesc_path,
-                "audit", mode,
+                "audit",
+                mode,
                 contract.path,
-                "--output", output_path,
-                "--format", "json",
+                "--output",
+                output_path,
+                "--format",
+                "json",
             ]
 
-            result = subprocess.run(
+            subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
@@ -431,10 +435,7 @@ class BenchmarkRunner:
                 false_positives.append(finding)
 
         # False negatives = unmatched ground truth
-        false_negatives = [
-            gt for i, gt in enumerate(ground_truth)
-            if i not in matched_gt
-        ]
+        false_negatives = [gt for i, gt in enumerate(ground_truth) if i not in matched_gt]
 
         return true_positives, false_positives, false_negatives
 
@@ -446,7 +447,7 @@ class BenchmarkRunner:
         if "line" in finding:
             lines.append(int(finding["line"]))
         if "lines" in finding:
-            lines.extend([int(l) for l in finding["lines"]])
+            lines.extend([int(ln) for ln in finding["lines"]])
         if "location" in finding:
             loc = finding["location"]
             if isinstance(loc, dict):
@@ -497,19 +498,13 @@ class BenchmarkRunner:
 
             # Update by category
             for tp in result.true_positives:
-                cat = self.TYPE_MAPPING.get(
-                    tp.get("type", tp.get("check", "")).lower(),
-                    "other"
-                )
+                cat = self.TYPE_MAPPING.get(tp.get("type", tp.get("check", "")).lower(), "other")
                 if cat not in metrics_by_cat:
                     metrics_by_cat[cat] = DetectionMetrics(category=cat)
                 metrics_by_cat[cat].true_positives += 1
 
             for fp in result.false_positives:
-                cat = self.TYPE_MAPPING.get(
-                    fp.get("type", fp.get("check", "")).lower(),
-                    "other"
-                )
+                cat = self.TYPE_MAPPING.get(fp.get("type", fp.get("check", "")).lower(), "other")
                 if cat not in metrics_by_cat:
                     metrics_by_cat[cat] = DetectionMetrics(category=cat)
                 metrics_by_cat[cat].false_positives += 1

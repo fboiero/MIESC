@@ -1,61 +1,69 @@
-# MIESC v5.0.1 - Complete Docker Deployment
+# MIESC v5.0.2 - Optimized Docker Deployment
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile creates a complete, production-ready environment with:
 # - Python 3.12 runtime
-# - Security tools: Slither, Mythril, Manticore, Aderyn, Medusa
-# - Solidity compiler (solc)
+# - Security tools: Slither, Aderyn
+# - Foundry toolchain (forge, cast, anvil)
+# - Solidity compiler (solc) + Solhint linter
 # - ML Pipeline: FP filtering, severity prediction, clustering
 # - All MIESC dependencies + OpenLLaMA support
 # - PDF generation with weasyprint
 # - Complete test suite
+#
+# Note: Symbolic execution tools (Mythril, Manticore) are in Dockerfile.full only.
+# Reason: z3-solver takes 15-20 min to compile per arch on QEMU, and Manticore
+# has protobuf compatibility issues on Python 3.12.
+#
+# Build with BuildKit for parallel stages and cache mounts:
+#   DOCKER_BUILDKIT=1 docker build -t miesc:5.0.2 -f Dockerfile .
 
-# Stage 1: Builder - Install dependencies and build tools
-FROM python:3.12-slim-bookworm AS builder
+# ============================================================
+# Stage 1a: aderyn-builder (runs in parallel with foundry-builder)
+# ============================================================
+FROM python:3.12-slim-bookworm AS aderyn-builder
 
-LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.0.1"
-LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
-
-# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    git \
-    curl \
-    wget \
-    ca-certificates \
-    libssl-dev \
-    pkg-config \
-    software-properties-common \
+    build-essential git curl ca-certificates libssl-dev pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Rust (required for Aderyn)
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Install Foundry v1.0 (February 2025 - 1000x performance improvement)
+RUN --mount=type=cache,target=/root/.cargo/registry \
+    cargo install aderyn
+
+# ============================================================
+# Stage 1b: foundry-builder (runs in parallel with aderyn-builder)
+# ============================================================
+FROM python:3.12-slim-bookworm AS foundry-builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH="/root/.foundry/bin:${PATH}"
-RUN foundryup --version 1.0.0 || foundryup  # Fallback to latest if 1.0.0 not available yet
+RUN foundryup --version 1.0.0 || foundryup
 
-# Install Aderyn (Rust-based Solidity analyzer)
-RUN cargo install aderyn
-
-# Install Medusa (coverage-guided fuzzer by Trail of Bits)
-RUN cargo install medusa || echo "Medusa install failed - will be optional"
-
+# ============================================================
 # Stage 2: Runtime - Create lean production image
+# ============================================================
 FROM python:3.12-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.0.1"
+LABEL version="5.0.2"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
-# Copy Rust binaries from builder (aderyn only, foundry installed separately)
-COPY --from=builder /root/.cargo/bin/aderyn /usr/local/bin/
+# Copy aderyn from aderyn-builder
+COPY --from=aderyn-builder /root/.cargo/bin/aderyn /usr/local/bin/
 
-# Install runtime AND build dependencies (needed for Mythril/Manticore compilation)
-# Also includes weasyprint dependencies for PDF generation
+# Copy Foundry binaries from foundry-builder
+COPY --from=foundry-builder /root/.foundry/bin/forge /usr/local/bin/
+COPY --from=foundry-builder /root/.foundry/bin/cast /usr/local/bin/
+COPY --from=foundry-builder /root/.foundry/bin/anvil /usr/local/bin/
+
+# Install runtime dependencies
+# Includes weasyprint dependencies for PDF generation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
@@ -91,12 +99,6 @@ RUN curl -fsSL https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0
     (apt-get update && apt-get install -y solc && rm -rf /var/lib/apt/lists/*) && \
     chmod +x /usr/local/bin/solc-0.8.20 2>/dev/null || true
 
-# Install Foundry (forge, cast, anvil) - needed by crytic-compile/slither
-RUN curl -L https://foundry.paradigm.xyz | bash && \
-    /root/.foundry/bin/foundryup && \
-    cp /root/.foundry/bin/* /usr/local/bin/ && \
-    chmod +x /usr/local/bin/forge /usr/local/bin/cast /usr/local/bin/anvil 2>/dev/null || true
-
 # Create non-root user for security
 RUN useradd -m -u 1000 -s /bin/bash miesc && \
     mkdir -p /app /data && \
@@ -108,20 +110,29 @@ WORKDIR /app
 # Switch to non-root user
 USER miesc
 
-# Copy all source code first (needed for editable install)
-COPY --chown=miesc:miesc . .
-
 # Create temp directory for pip builds (avoids read-only /tmp issues)
 RUN mkdir -p /home/miesc/.tmp && chmod 755 /home/miesc/.tmp
 ENV TMPDIR="/home/miesc/.tmp"
 ENV PIP_CACHE_DIR="/home/miesc/.cache/pip"
 
-# Install MIESC core dependencies (editable mode for development)
+# Copy only dependency files first (changes rarely - better layer caching)
+COPY --chown=miesc:miesc pyproject.toml README.md ./
+COPY --chown=miesc:miesc miesc/__init__.py miesc/__init__.py
+
+# Install MIESC dependencies (cached unless pyproject.toml changes)
 # Using [dev,full] to include prometheus-client, FastAPI, uvicorn, and all features
-RUN pip install --no-cache-dir --user -e .[dev,full]
+RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
+    pip install --user -e .[dev,full]
 
 # Install MCP server dependencies
-RUN pip install --no-cache-dir --user "mcp[cli]>=1.0.0"
+RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
+    pip install --user "mcp[cli]>=1.0.0"
+
+# Copy all source code (changes frequently - LAST for best caching)
+COPY --chown=miesc:miesc . .
+
+# Reinstall in editable mode with no-deps (just re-links, takes seconds)
+RUN pip install --no-deps --user -e .
 
 # Add user's local bin to PATH (needed for tools installed above)
 ENV PATH="/home/miesc/.local/bin:${PATH}"
@@ -134,25 +145,13 @@ RUN solc-select install 0.8.0 && \
     solc-select install 0.8.20 && \
     solc-select use 0.8.20
 
-# Install Mythril (symbolic execution) - with timeout to prevent hanging
-# Note: On ARM, this may take very long or fail due to z3-solver compilation
-# Timeout after 5 minutes, then continue without Mythril
-RUN timeout 300 pip install --no-cache-dir --user mythril>=0.24.0 && \
-    echo "Mythril installed successfully" || \
-    echo "WARNING: Mythril install skipped (timeout or failed) - symbolic execution will be limited"
-
-# Install Manticore (symbolic execution engine) - with timeout
-# Note: Manticore may have limited ARM support
-RUN timeout 300 pip install --no-cache-dir --user manticore[native] && \
-    echo "Manticore installed successfully" || \
-    echo "WARNING: Manticore install skipped (timeout or failed) - may not support this architecture"
-
 # Install weasyprint for PDF generation
-RUN pip install --no-cache-dir --user weasyprint markdown && \
+RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
+    pip install --user weasyprint markdown && \
     echo "WeasyPrint installed successfully"
 
 # Environment variables for MIESC
-ENV MIESC_VERSION="5.0.1"
+ENV MIESC_VERSION="5.0.2"
 ENV MIESC_ENV="docker"
 ENV PYTHONPATH="/app:${PYTHONPATH}"
 ENV PYTHONUNBUFFERED=1

@@ -9,20 +9,19 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
-import pytest
 import json
-import tempfile
-from pathlib import Path
-from unittest.mock import patch, MagicMock, mock_open
 import subprocess
+from unittest.mock import MagicMock, mock_open, patch
+
+import pytest
 
 from src.adapters.semgrep_adapter import SemgrepAdapter, register_adapter
-from src.core.tool_protocol import ToolStatus, ToolCategory, ToolMetadata
-
+from src.core.tool_protocol import ToolCategory, ToolMetadata, ToolStatus
 
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def adapter():
@@ -38,7 +37,7 @@ def adapter_with_config():
         "timeout": 60,
         "max_target_bytes": 500000,
         "exclude": ["**/test/**"],
-        "use_custom_rules": False
+        "use_custom_rules": False,
     }
     return SemgrepAdapter(config=config)
 
@@ -56,9 +55,9 @@ def sample_semgrep_output():
                 "extra": {
                     "message": "Potential reentrancy vulnerability: external call with value transfer",
                     "severity": "ERROR",
-                    "lines": "        msg.sender.call{value: balance}(\"\");",
-                    "metadata": {"category": "security"}
-                }
+                    "lines": '        msg.sender.call{value: balance}("");',
+                    "metadata": {"category": "security"},
+                },
             },
             {
                 "check_id": "miesc-tx-origin",
@@ -69,8 +68,8 @@ def sample_semgrep_output():
                     "message": "Use of tx.origin for authorization is insecure",
                     "severity": "ERROR",
                     "lines": "        require(tx.origin == owner);",
-                    "metadata": {}
-                }
+                    "metadata": {},
+                },
             },
             {
                 "check_id": "miesc-unchecked-call",
@@ -81,11 +80,11 @@ def sample_semgrep_output():
                     "message": "Unchecked low-level call return value",
                     "severity": "WARNING",
                     "lines": "        target.call(data);",
-                    "metadata": {}
-                }
-            }
+                    "metadata": {},
+                },
+            },
         ],
-        "errors": []
+        "errors": [],
     }
 
 
@@ -126,6 +125,7 @@ contract VulnerableBank {
 # =============================================================================
 # Class Attributes Tests
 # =============================================================================
+
 
 class TestClassAttributes:
     """Test SemgrepAdapter class attributes."""
@@ -170,7 +170,7 @@ class TestClassAttributes:
         assert isinstance(rules, dict)
         assert len(rules) >= 6
 
-        for rule_id, rule_def in rules.items():
+        for _rule_id, rule_def in rules.items():
             assert "pattern" in rule_def
             assert "message" in rule_def
             assert "severity" in rule_def
@@ -202,6 +202,7 @@ class TestClassAttributes:
 # =============================================================================
 # Initialization Tests
 # =============================================================================
+
 
 class TestInitialization:
     """Test SemgrepAdapter initialization."""
@@ -241,6 +242,7 @@ class TestInitialization:
 # =============================================================================
 # Metadata Tests
 # =============================================================================
+
 
 class TestGetMetadata:
     """Test get_metadata method."""
@@ -295,6 +297,7 @@ class TestGetMetadata:
 # Availability Tests
 # =============================================================================
 
+
 class TestIsAvailable:
     """Test is_available method."""
 
@@ -304,14 +307,14 @@ class TestIsAvailable:
         mock_result.returncode = 0
         mock_result.stdout = "1.50.0"
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             status = adapter.is_available()
             assert status == ToolStatus.AVAILABLE
             mock_run.assert_called_once()
 
     def test_not_installed(self, adapter):
         """Test returns NOT_INSTALLED when semgrep not found."""
-        with patch('subprocess.run', side_effect=FileNotFoundError):
+        with patch("subprocess.run", side_effect=FileNotFoundError):
             status = adapter.is_available()
             assert status == ToolStatus.NOT_INSTALLED
 
@@ -320,19 +323,19 @@ class TestIsAvailable:
         mock_result = MagicMock()
         mock_result.returncode = 1
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             status = adapter.is_available()
             assert status == ToolStatus.CONFIGURATION_ERROR
 
     def test_configuration_error_on_timeout(self, adapter):
         """Test returns CONFIGURATION_ERROR on timeout."""
-        with patch('subprocess.run', side_effect=subprocess.TimeoutExpired("semgrep", 10)):
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("semgrep", 10)):
             status = adapter.is_available()
             assert status == ToolStatus.CONFIGURATION_ERROR
 
     def test_configuration_error_on_exception(self, adapter):
         """Test returns CONFIGURATION_ERROR on general exception."""
-        with patch('subprocess.run', side_effect=Exception("Unknown error")):
+        with patch("subprocess.run", side_effect=Exception("Unknown error")):
             status = adapter.is_available()
             assert status == ToolStatus.CONFIGURATION_ERROR
 
@@ -340,6 +343,7 @@ class TestIsAvailable:
 # =============================================================================
 # Analysis Tests
 # =============================================================================
+
 
 class TestAnalyze:
     """Test analyze method."""
@@ -354,11 +358,14 @@ class TestAnalyze:
         mock_result.stdout = json.dumps(sample_semgrep_output)
         mock_result.stderr = ""
 
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch('subprocess.run', return_value=mock_result):
-                with patch.object(adapter, '_create_custom_rules_file', return_value=None):
-                    with patch('builtins.open', mock_open(read_data="contract code")):
-                        with patch('src.adapters.semgrep_adapter.enhance_findings_with_llm', return_value=[]):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch("subprocess.run", return_value=mock_result):
+                with patch.object(adapter, "_create_custom_rules_file", return_value=None):
+                    with patch("builtins.open", mock_open(read_data="contract code")):
+                        with patch(
+                            "src.adapters.semgrep_adapter.enhance_findings_with_llm",
+                            return_value=[],
+                        ):
                             result = adapter.analyze("/path/to/contract.sol", verbose=False)
 
         assert "tool" in result
@@ -369,7 +376,7 @@ class TestAnalyze:
 
     def test_analyze_not_available(self, adapter):
         """Test analyze returns error when semgrep not available."""
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.NOT_INSTALLED):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.NOT_INSTALLED):
             result = adapter.analyze("/path/to/contract.sol")
 
         assert result["status"] == "error"
@@ -382,11 +389,14 @@ class TestAnalyze:
         mock_result.stdout = json.dumps(sample_semgrep_output)
         mock_result.stderr = ""
 
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch('subprocess.run', return_value=mock_result):
-                with patch.object(adapter, '_create_custom_rules_file', return_value=None):
-                    with patch('builtins.open', mock_open(read_data="contract")):
-                        with patch('src.adapters.semgrep_adapter.enhance_findings_with_llm', side_effect=lambda f, c, t: f):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch("subprocess.run", return_value=mock_result):
+                with patch.object(adapter, "_create_custom_rules_file", return_value=None):
+                    with patch("builtins.open", mock_open(read_data="contract")):
+                        with patch(
+                            "src.adapters.semgrep_adapter.enhance_findings_with_llm",
+                            side_effect=lambda f, c, t: f,
+                        ):
                             result = adapter.analyze("/path/to/contract.sol", verbose=False)
 
         assert result["status"] == "success"
@@ -395,9 +405,9 @@ class TestAnalyze:
 
     def test_analyze_timeout(self, adapter):
         """Test analyze handles timeout correctly."""
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch.object(adapter, '_create_custom_rules_file', return_value=None):
-                with patch('subprocess.run', side_effect=subprocess.TimeoutExpired("semgrep", 120)):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch.object(adapter, "_create_custom_rules_file", return_value=None):
+                with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("semgrep", 120)):
                     result = adapter.analyze("/path/to/contract.sol", verbose=False)
 
         assert result["status"] == "error"
@@ -405,9 +415,9 @@ class TestAnalyze:
 
     def test_analyze_file_not_found(self, adapter):
         """Test analyze handles missing file."""
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch.object(adapter, '_create_custom_rules_file', return_value=None):
-                with patch('subprocess.run', side_effect=FileNotFoundError):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch.object(adapter, "_create_custom_rules_file", return_value=None):
+                with patch("subprocess.run", side_effect=FileNotFoundError):
                     result = adapter.analyze("/nonexistent/contract.sol", verbose=False)
 
         assert result["status"] == "error"
@@ -419,11 +429,14 @@ class TestAnalyze:
         mock_result.stdout = json.dumps(sample_semgrep_output)
         mock_result.stderr = ""
 
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch('subprocess.run', return_value=mock_result):
-                with patch.object(adapter, '_create_custom_rules_file', return_value=None):
-                    with patch('builtins.open', mock_open(read_data="contract")):
-                        with patch('src.adapters.semgrep_adapter.enhance_findings_with_llm', side_effect=lambda f, c, t: f):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch("subprocess.run", return_value=mock_result):
+                with patch.object(adapter, "_create_custom_rules_file", return_value=None):
+                    with patch("builtins.open", mock_open(read_data="contract")):
+                        with patch(
+                            "src.adapters.semgrep_adapter.enhance_findings_with_llm",
+                            side_effect=lambda f, c, t: f,
+                        ):
                             result = adapter.analyze("/path/to/contract.sol", verbose=False)
 
         assert result.get("dpga_compliant") is True
@@ -434,15 +447,16 @@ class TestAnalyze:
         mock_result.stdout = json.dumps({"results": [], "errors": []})
         mock_result.stderr = ""
 
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch('subprocess.run', return_value=mock_result) as mock_run:
-                with patch.object(adapter, '_create_custom_rules_file', return_value=None):
-                    with patch('builtins.open', mock_open(read_data="contract")):
-                        with patch('src.adapters.semgrep_adapter.enhance_findings_with_llm', return_value=[]):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch("subprocess.run", return_value=mock_result):
+                with patch.object(adapter, "_create_custom_rules_file", return_value=None):
+                    with patch("builtins.open", mock_open(read_data="contract")):
+                        with patch(
+                            "src.adapters.semgrep_adapter.enhance_findings_with_llm",
+                            return_value=[],
+                        ):
                             result = adapter.analyze(
-                                "/path/to/contract.sol",
-                                rules=["p/custom-registry"],
-                                verbose=False
+                                "/path/to/contract.sol", rules=["p/custom-registry"], verbose=False
                             )
 
         assert result["status"] == "success"
@@ -452,14 +466,15 @@ class TestAnalyze:
 # Custom Rules File Tests
 # =============================================================================
 
+
 class TestCreateCustomRulesFile:
     """Test _create_custom_rules_file method."""
 
     def test_creates_temp_file(self, adapter):
         """Test creates temporary YAML file."""
-        with patch('tempfile.mkstemp', return_value=(1, "/tmp/rules.yaml")):
-            with patch('builtins.open', mock_open()):
-                with patch('yaml.dump') as mock_yaml:
+        with patch("tempfile.mkstemp", return_value=(1, "/tmp/rules.yaml")):
+            with patch("builtins.open", mock_open()):
+                with patch("yaml.dump") as mock_yaml:
                     path = adapter._create_custom_rules_file()
 
         assert path == "/tmp/rules.yaml"
@@ -473,9 +488,9 @@ class TestCreateCustomRulesFile:
             nonlocal captured_rules
             captured_rules = data
 
-        with patch('tempfile.mkstemp', return_value=(1, "/tmp/rules.yaml")):
-            with patch('builtins.open', mock_open()):
-                with patch('yaml.dump', side_effect=capture_yaml):
+        with patch("tempfile.mkstemp", return_value=(1, "/tmp/rules.yaml")):
+            with patch("builtins.open", mock_open()):
+                with patch("yaml.dump", side_effect=capture_yaml):
                     adapter._create_custom_rules_file()
 
         assert captured_rules is not None
@@ -490,9 +505,9 @@ class TestCreateCustomRulesFile:
             nonlocal captured_rules
             captured_rules = data
 
-        with patch('tempfile.mkstemp', return_value=(1, "/tmp/rules.yaml")):
-            with patch('builtins.open', mock_open()):
-                with patch('yaml.dump', side_effect=capture_yaml):
+        with patch("tempfile.mkstemp", return_value=(1, "/tmp/rules.yaml")):
+            with patch("builtins.open", mock_open()):
+                with patch("yaml.dump", side_effect=capture_yaml):
                     adapter._create_custom_rules_file()
 
         for rule in captured_rules["rules"]:
@@ -505,26 +520,26 @@ class TestCreateCustomRulesFile:
 
     def test_returns_none_on_yaml_import_error(self, adapter):
         """Test returns None when yaml module not available."""
-        with patch.dict('sys.modules', {'yaml': None}):
-            with patch('tempfile.mkstemp', return_value=(1, "/tmp/rules.yaml")):
-                with patch('builtins.open', mock_open()):
+        with patch.dict("sys.modules", {"yaml": None}):
+            with patch("tempfile.mkstemp", return_value=(1, "/tmp/rules.yaml")):
+                with patch("builtins.open", mock_open()):
                     # Simulate ImportError for yaml
                     original_method = adapter._create_custom_rules_file
 
                     def mock_create():
                         try:
-                            import yaml
+                            import yaml  # noqa: F401
                         except ImportError:
                             return None
                         return original_method()
 
-                    with patch.object(adapter, '_create_custom_rules_file', mock_create):
+                    with patch.object(adapter, "_create_custom_rules_file", mock_create):
                         # This test verifies the pattern, actual behavior tested via integration
                         pass
 
     def test_returns_none_on_exception(self, adapter):
         """Test returns None on general exception."""
-        with patch('tempfile.mkstemp', side_effect=Exception("Temp file error")):
+        with patch("tempfile.mkstemp", side_effect=Exception("Temp file error")):
             path = adapter._create_custom_rules_file()
             assert path is None
 
@@ -532,6 +547,7 @@ class TestCreateCustomRulesFile:
 # =============================================================================
 # Output Parsing Tests
 # =============================================================================
+
 
 class TestParseOutput:
     """Test _parse_output method."""
@@ -557,10 +573,7 @@ class TestParseOutput:
 
     def test_parse_handles_errors(self, adapter):
         """Test parsing handles errors in output."""
-        data = {
-            "results": [],
-            "errors": [{"message": "Parse error in file.sol"}]
-        }
+        data = {"results": [], "errors": [{"message": "Parse error in file.sol"}]}
         findings = adapter._parse_output(json.dumps(data), "")
         assert findings == []
 
@@ -578,6 +591,7 @@ class TestParseOutput:
 # Result Normalization Tests
 # =============================================================================
 
+
 class TestNormalizeResult:
     """Test _normalize_result method."""
 
@@ -591,8 +605,8 @@ class TestNormalizeResult:
             "extra": {
                 "message": "Reentrancy vulnerability",
                 "severity": "ERROR",
-                "lines": "code snippet"
-            }
+                "lines": "code snippet",
+            },
         }
 
         finding = adapter._normalize_result(result)
@@ -611,7 +625,7 @@ class TestNormalizeResult:
             ("WARNING", "medium"),
             ("INFO", "low"),
             ("error", "high"),
-            ("UNKNOWN", "medium")  # Default
+            ("UNKNOWN", "medium"),  # Default
         ]
 
         for input_sev, expected in test_cases:
@@ -620,7 +634,7 @@ class TestNormalizeResult:
                 "path": "test.sol",
                 "start": {},
                 "end": {},
-                "extra": {"severity": input_sev, "message": "test"}
+                "extra": {"severity": input_sev, "message": "test"},
             }
             finding = adapter._normalize_result(result)
             assert finding["severity"] == expected, f"Failed for {input_sev}"
@@ -632,11 +646,7 @@ class TestNormalizeResult:
             "path": "test.sol",
             "start": {},
             "end": {},
-            "extra": {
-                "message": "Issue",
-                "severity": "ERROR",
-                "fix": "Use ReentrancyGuard"
-            }
+            "extra": {"message": "Issue", "severity": "ERROR", "fix": "Use ReentrancyGuard"},
         }
 
         finding = adapter._normalize_result(result)
@@ -652,8 +662,8 @@ class TestNormalizeResult:
             "extra": {
                 "message": "Issue",
                 "severity": "ERROR",
-                "metadata": {"cwe": "CWE-123", "owasp": "A1"}
-            }
+                "metadata": {"cwe": "CWE-123", "owasp": "A1"},
+            },
         }
 
         finding = adapter._normalize_result(result)
@@ -669,6 +679,7 @@ class TestNormalizeResult:
 # =============================================================================
 # Type Mapping Tests
 # =============================================================================
+
 
 class TestMapCheckToType:
     """Test _map_check_to_type method."""
@@ -737,6 +748,7 @@ class TestMapCheckToType:
 # Recommendation Tests
 # =============================================================================
 
+
 class TestGetRecommendation:
     """Test _get_recommendation method."""
 
@@ -791,14 +803,13 @@ class TestGetRecommendation:
 # Normalize Findings Tests
 # =============================================================================
 
+
 class TestNormalizeFindings:
     """Test normalize_findings method."""
 
     def test_normalize_dict_with_findings(self, adapter):
         """Test normalizing dict with findings key."""
-        input_data = {
-            "findings": [{"type": "reentrancy"}, {"type": "overflow"}]
-        }
+        input_data = {"findings": [{"type": "reentrancy"}, {"type": "overflow"}]}
         result = adapter.normalize_findings(input_data)
         assert len(result) == 2
 
@@ -818,6 +829,7 @@ class TestNormalizeFindings:
 # =============================================================================
 # Can Analyze Tests
 # =============================================================================
+
 
 class TestCanAnalyze:
     """Test can_analyze method."""
@@ -855,6 +867,7 @@ class TestCanAnalyze:
 # =============================================================================
 # Default Config Tests
 # =============================================================================
+
 
 class TestGetDefaultConfig:
     """Test get_default_config method."""
@@ -899,6 +912,7 @@ class TestGetDefaultConfig:
 # Register Adapter Tests
 # =============================================================================
 
+
 class TestRegisterAdapter:
     """Test register_adapter function."""
 
@@ -924,6 +938,7 @@ class TestRegisterAdapter:
 # Integration Tests
 # =============================================================================
 
+
 class TestIntegration:
     """Integration tests for SemgrepAdapter."""
 
@@ -931,22 +946,27 @@ class TestIntegration:
         """Test complete analysis flow with mocked subprocess."""
         # Create test contract
         contract = tmp_path / "Vulnerable.sol"
-        contract.write_text("""
+        contract.write_text(
+            """
             contract Test {
                 function withdraw() external {
                     msg.sender.call{value: 1}("");
                 }
             }
-        """)
+        """
+        )
 
         mock_result = MagicMock()
         mock_result.stdout = json.dumps(sample_semgrep_output)
         mock_result.stderr = ""
 
-        with patch.object(adapter, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch('subprocess.run', return_value=mock_result):
-                with patch.object(adapter, '_create_custom_rules_file', return_value=None):
-                    with patch('src.adapters.semgrep_adapter.enhance_findings_with_llm', side_effect=lambda f, c, t: f):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch("subprocess.run", return_value=mock_result):
+                with patch.object(adapter, "_create_custom_rules_file", return_value=None):
+                    with patch(
+                        "src.adapters.semgrep_adapter.enhance_findings_with_llm",
+                        side_effect=lambda f, c, t: f,
+                    ):
                         result = adapter.analyze(str(contract), verbose=False)
 
         assert result["status"] == "success"
@@ -970,10 +990,12 @@ class TestIntegration:
         mock_result.stdout = json.dumps({"results": [], "errors": []})
         mock_result.stderr = ""
 
-        with patch.object(adapter_with_config, 'is_available', return_value=ToolStatus.AVAILABLE):
-            with patch('subprocess.run', return_value=mock_result) as mock_run:
-                with patch('builtins.open', mock_open(read_data="contract")):
-                    with patch('src.adapters.semgrep_adapter.enhance_findings_with_llm', return_value=[]):
+        with patch.object(adapter_with_config, "is_available", return_value=ToolStatus.AVAILABLE):
+            with patch("subprocess.run", return_value=mock_result) as mock_run:
+                with patch("builtins.open", mock_open(read_data="contract")):
+                    with patch(
+                        "src.adapters.semgrep_adapter.enhance_findings_with_llm", return_value=[]
+                    ):
                         result = adapter_with_config.analyze(str(contract), verbose=False)
 
         assert result["status"] == "success"
@@ -993,7 +1015,7 @@ class TestIntegration:
         ]
 
         for status, expected_msg in error_cases:
-            with patch.object(adapter, 'is_available', return_value=status):
+            with patch.object(adapter, "is_available", return_value=status):
                 result = adapter.analyze(str(contract))
 
             assert result["status"] == "error"

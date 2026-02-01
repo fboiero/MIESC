@@ -19,7 +19,9 @@ class TestRestApiImports:
         from miesc.api import rest
 
         assert hasattr(rest, "VERSION")
-        assert rest.VERSION == "5.0.1"
+        from miesc import __version__
+
+        assert rest.VERSION == __version__
 
     def test_import_layers(self):
         """Test LAYERS dictionary is available."""
@@ -380,8 +382,8 @@ class TestCLIImports:
 
     def test_cli_version(self):
         """Test CLI version matches package version."""
-        from miesc.cli.main import VERSION
         from miesc import __version__
+        from miesc.cli.main import VERSION
 
         assert VERSION == __version__
 
@@ -475,8 +477,8 @@ class TestApiPackageInit:
 
     def test_api_version(self):
         """Test API package version matches main version."""
-        from miesc.api import __version__ as api_version
         from miesc import __version__
+        from miesc.api import __version__ as api_version
 
         assert api_version == __version__
 
@@ -512,13 +514,15 @@ class TestDjangoViews:
     def test_health_endpoint(self):
         """Test health view configuration exists."""
         # Test that the REST API module has the expected configuration
-        from miesc.api.rest import LAYERS, ADAPTER_MAP
+        from miesc.api.rest import ADAPTER_MAP, LAYERS
+
         assert len(LAYERS) > 0
         assert len(ADAPTER_MAP) > 0
 
     def test_tools_list_endpoint(self):
         """Test tools configuration is complete."""
         from miesc.api.rest import ADAPTER_MAP, QUICK_TOOLS
+
         # All quick tools should be in adapter map
         for tool in QUICK_TOOLS:
             assert tool in ADAPTER_MAP
@@ -526,8 +530,9 @@ class TestDjangoViews:
     def test_layers_endpoint(self):
         """Test layers configuration is valid."""
         from miesc.api.rest import LAYERS
+
         # All layers should have required fields
-        for layer_id, layer in LAYERS.items():
+        for _layer_id, layer in LAYERS.items():
             assert "name" in layer
             assert "tools" in layer
             assert isinstance(layer["tools"], list)

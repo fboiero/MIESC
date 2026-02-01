@@ -3,9 +3,9 @@ Generador de claves de licencia para MIESC.
 Formato: MIESC-XXXX-XXXX-XXXX-XXXX
 """
 
-import secrets
 import hashlib
 import re
+import secrets
 from typing import Optional
 
 
@@ -31,7 +31,7 @@ def validate_key_format(key: str) -> bool:
     Returns:
         bool: True si el formato es válido
     """
-    pattern = r'^MIESC-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$'
+    pattern = r"^MIESC-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$"
     return bool(re.match(pattern, key.upper()))
 
 
@@ -55,7 +55,9 @@ def normalize_key(key: str) -> Optional[str]:
     if not normalized.startswith("MIESC-"):
         # Intentar agregar guiones si faltan
         if len(normalized) == 16 and normalized.isalnum():
-            normalized = f"MIESC-{normalized[:4]}-{normalized[4:8]}-{normalized[8:12]}-{normalized[12:16]}"
+            normalized = (
+                f"MIESC-{normalized[:4]}-{normalized[4:8]}-{normalized[8:12]}-{normalized[12:16]}"
+            )
 
     # Validar formato
     if validate_key_format(normalized):

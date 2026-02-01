@@ -9,35 +9,34 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
-import pytest
-import json
 import subprocess
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from src.poc.validators.foundry_runner import (
-    FoundryRunner,
     FoundryResult,
+    FoundryRunner,
     TestResult,
     TestStatus,
 )
-
 
 # =============================================================================
 # Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def runner(tmp_path):
     """Create a FoundryRunner with mocked Foundry installation."""
-    with patch.object(FoundryRunner, '_check_foundry_installation'):
+    with patch.object(FoundryRunner, "_check_foundry_installation"):
         return FoundryRunner(project_dir=tmp_path)
 
 
 @pytest.fixture
 def runner_with_fork(tmp_path):
     """Create a FoundryRunner with fork configuration."""
-    with patch.object(FoundryRunner, '_check_foundry_installation'):
+    with patch.object(FoundryRunner, "_check_foundry_installation"):
         return FoundryRunner(
             project_dir=tmp_path,
             fork_url="https://eth-mainnet.g.alchemy.com/v2/xxx",
@@ -99,6 +98,7 @@ def sample_gas_report():
 # TestStatus Enum Tests
 # =============================================================================
 
+
 class TestTestStatusEnum:
     """Tests for TestStatus enum."""
 
@@ -118,6 +118,7 @@ class TestTestStatusEnum:
 # =============================================================================
 # TestResult Tests
 # =============================================================================
+
 
 class TestTestResultDataclass:
     """Tests for TestResult dataclass."""
@@ -164,6 +165,7 @@ class TestTestResultDataclass:
 # =============================================================================
 # FoundryResult Tests
 # =============================================================================
+
 
 class TestFoundryResultDataclass:
     """Tests for FoundryResult dataclass."""
@@ -215,6 +217,7 @@ class TestFoundryResultDataclass:
 # FoundryRunner Initialization Tests
 # =============================================================================
 
+
 class TestFoundryRunnerInit:
     """Tests for FoundryRunner initialization."""
 
@@ -233,7 +236,7 @@ class TestFoundryRunnerInit:
 
     def test_foundry_not_installed_raises(self, tmp_path):
         """Test error when Foundry not installed."""
-        with patch('subprocess.run', side_effect=FileNotFoundError):
+        with patch("subprocess.run", side_effect=FileNotFoundError):
             with pytest.raises(RuntimeError) as exc_info:
                 FoundryRunner(project_dir=tmp_path)
 
@@ -243,6 +246,7 @@ class TestFoundryRunnerInit:
 # =============================================================================
 # Run Test Tests
 # =============================================================================
+
 
 class TestRunTest:
     """Tests for run_test method."""
@@ -254,7 +258,7 @@ class TestRunTest:
         mock_result.stdout = sample_forge_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             result = runner.run_test("test/Bank.t.sol")
 
         assert isinstance(result, FoundryResult)
@@ -267,7 +271,7 @@ class TestRunTest:
         mock_result.stdout = "[FAIL] test_exploit()"
         mock_result.stderr = "Assertion failed"
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             result = runner.run_test("test/Bank.t.sol")
 
         assert result.success is False
@@ -275,7 +279,7 @@ class TestRunTest:
 
     def test_run_test_timeout(self, runner):
         """Test test run timeout."""
-        with patch('subprocess.run', side_effect=subprocess.TimeoutExpired("forge", 300)):
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("forge", 300)):
             result = runner.run_test("test/Bank.t.sol", timeout=300)
 
         assert result.success is False
@@ -288,7 +292,7 @@ class TestRunTest:
         mock_result.stdout = sample_forge_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             runner.run_test("test/Bank.t.sol", match_test="test_exploit")
 
         cmd = mock_run.call_args[0][0]
@@ -302,7 +306,7 @@ class TestRunTest:
         mock_result.stdout = sample_forge_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             runner.run_test("test/Bank.t.sol", match_contract="BankTest")
 
         cmd = mock_run.call_args[0][0]
@@ -314,6 +318,7 @@ class TestRunTest:
 # Run All Tests Tests
 # =============================================================================
 
+
 class TestRunAllTests:
     """Tests for run_all_tests method."""
 
@@ -324,7 +329,7 @@ class TestRunAllTests:
         mock_result.stdout = sample_forge_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             result = runner.run_all_tests()
 
         assert isinstance(result, FoundryResult)
@@ -337,7 +342,7 @@ class TestRunAllTests:
         mock_result.stdout = sample_forge_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             runner.run_all_tests(test_dir="test/exploits")
 
         cmd = mock_run.call_args[0][0]
@@ -345,7 +350,7 @@ class TestRunAllTests:
 
     def test_run_all_tests_timeout(self, runner):
         """Test run_all_tests timeout."""
-        with patch('subprocess.run', side_effect=subprocess.TimeoutExpired("forge", 600)):
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("forge", 600)):
             result = runner.run_all_tests(timeout=600)
 
         assert result.success is False
@@ -355,6 +360,7 @@ class TestRunAllTests:
 # =============================================================================
 # Compile Tests
 # =============================================================================
+
 
 class TestCompile:
     """Tests for compile method."""
@@ -366,7 +372,7 @@ class TestCompile:
         mock_result.stdout = "Compiling..."
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             success = runner.compile()
 
         assert success is True
@@ -378,14 +384,14 @@ class TestCompile:
         mock_result.stdout = ""
         mock_result.stderr = "Error: ParserError"
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             success = runner.compile()
 
         assert success is False
 
     def test_compile_exception(self, runner):
         """Test compilation with exception."""
-        with patch('subprocess.run', side_effect=Exception("Unknown error")):
+        with patch("subprocess.run", side_effect=Exception("Unknown error")):
             success = runner.compile()
 
         assert success is False
@@ -394,6 +400,7 @@ class TestCompile:
 # =============================================================================
 # Validate PoC Tests
 # =============================================================================
+
 
 class TestValidatePoC:
     """Tests for validate_poc method."""
@@ -405,7 +412,7 @@ class TestValidatePoC:
         mock_result.stdout = sample_forge_output + "\nPROFIT: 10 ETH"
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             validation = runner.validate_poc("test/exploit.t.sol")
 
         assert validation["valid"] is True
@@ -418,7 +425,7 @@ class TestValidatePoC:
         mock_result.stdout = sample_forge_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             validation = runner.validate_poc("test/exploit.t.sol")
 
         assert validation["valid"] is True
@@ -431,7 +438,7 @@ class TestValidatePoC:
         mock_result.stdout = "FAILED"
         mock_result.stderr = "Assertion error"
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             validation = runner.validate_poc("test/exploit.t.sol")
 
         assert validation["valid"] is False
@@ -457,7 +464,7 @@ class TestValidatePoC:
             raw_output="PROFIT: 1 ETH",
         )
 
-        with patch.object(runner, 'run_test', return_value=high_gas_result):
+        with patch.object(runner, "run_test", return_value=high_gas_result):
             validation = runner.validate_poc("test/exploit.t.sol")
 
         assert any("gas" in w.lower() for w in validation["warnings"])
@@ -466,6 +473,7 @@ class TestValidatePoC:
 # =============================================================================
 # Parse Output Tests
 # =============================================================================
+
 
 class TestParseOutput:
     """Tests for output parsing methods."""
@@ -506,12 +514,7 @@ class TestParseOutput:
 
     def test_parse_forge_output_combined(self, runner, sample_forge_output):
         """Test combined parsing."""
-        result = runner._parse_forge_output(
-            sample_forge_output,
-            "",
-            0,
-            100.0
-        )
+        result = runner._parse_forge_output(sample_forge_output, "", 0, 100.0)
 
         assert result.success is True
         assert result.total_tests == 3
@@ -523,6 +526,7 @@ class TestParseOutput:
 # Gas Report Tests
 # =============================================================================
 
+
 class TestGasReport:
     """Tests for gas report functionality."""
 
@@ -533,14 +537,14 @@ class TestGasReport:
         mock_result.stdout = sample_gas_report
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             report = runner.get_gas_report()
 
         assert "contracts" in report
 
     def test_get_gas_report_error(self, runner):
         """Test gas report with error."""
-        with patch('subprocess.run', side_effect=Exception("Error")):
+        with patch("subprocess.run", side_effect=Exception("Error")):
             report = runner.get_gas_report()
 
         assert "error" in report
@@ -549,6 +553,7 @@ class TestGasReport:
 # =============================================================================
 # Fork Configuration Tests
 # =============================================================================
+
 
 class TestForkConfiguration:
     """Tests for fork configuration."""
@@ -560,7 +565,7 @@ class TestForkConfiguration:
         mock_result.stdout = sample_forge_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             runner_with_fork.run_test("test/Bank.t.sol")
 
         cmd = mock_run.call_args[0][0]
@@ -574,7 +579,7 @@ class TestForkConfiguration:
         mock_result.stdout = sample_forge_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             runner_with_fork.run_test("test/Bank.t.sol")
 
         cmd = mock_run.call_args[0][0]
@@ -586,6 +591,7 @@ class TestForkConfiguration:
 # Verbosity Tests
 # =============================================================================
 
+
 class TestVerbosity:
     """Tests for verbosity configuration."""
 
@@ -596,7 +602,7 @@ class TestVerbosity:
         mock_result.stdout = sample_forge_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             runner.run_test("test/Bank.t.sol")
 
         cmd = mock_run.call_args[0][0]
@@ -609,7 +615,7 @@ class TestVerbosity:
         mock_result.stdout = sample_forge_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             runner_with_fork.run_test("test/Bank.t.sol")
 
         cmd = mock_run.call_args[0][0]
@@ -619,6 +625,7 @@ class TestVerbosity:
 # =============================================================================
 # Integration Tests
 # =============================================================================
+
 
 class TestIntegration:
     """Integration tests for FoundryRunner."""
@@ -635,7 +642,7 @@ class TestIntegration:
         mock_result.stdout = sample_forge_output
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             result = runner.run_test(str(test_file))
 
         assert result.success is True
@@ -652,7 +659,7 @@ class TestIntegration:
         mock_result.stdout = "[PASS] test_exploit() (gas: 50000)\nPROFIT: 5 ETH"
         mock_result.stderr = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             validation = runner.validate_poc(str(test_file))
 
         assert validation["valid"] is True

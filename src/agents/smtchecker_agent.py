@@ -34,9 +34,9 @@ class SMTCheckerAgent(BaseAgent):
                 "overflow_detection",
                 "assertion_verification",
                 "invariant_checking",
-                "division_by_zero"
+                "division_by_zero",
             ],
-            agent_type="formal"
+            agent_type="formal",
         )
         self.solc_path = self._find_solc()
 
@@ -48,16 +48,13 @@ class SMTCheckerAgent(BaseAgent):
         locations = [
             "solc",  # PATH
             "/usr/local/bin/solc",
-            os.path.expanduser("~/.solc-select/artifacts/solc")
+            os.path.expanduser("~/.solc-select/artifacts/solc"),
         ]
 
         for location in locations:
             try:
                 result = subprocess.run(
-                    [location, "--version"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
+                    [location, "--version"], capture_output=True, text=True, timeout=5
                 )
                 if result.returncode == 0:
                     return location
@@ -74,7 +71,9 @@ class SMTCheckerAgent(BaseAgent):
         """Return list of context types this agent publishes"""
         return ["formal_findings", "smtchecker_results"]
 
-    def analyze(self, contract_path: str, model_checker_engine: str = "all", **kwargs) -> Dict[str, Any]:
+    def analyze(
+        self, contract_path: str, model_checker_engine: str = "all", **kwargs
+    ) -> Dict[str, Any]:
         """
         Run SMTChecker on contracts
 
@@ -91,7 +90,7 @@ class SMTCheckerAgent(BaseAgent):
         if not self.is_available():
             return {
                 "error": "Solidity compiler (solc) not installed",
-                "suggestion": "Install with: pip install solc-select && solc-select install 0.8.20"
+                "suggestion": "Install with: pip install solc-select && solc-select install 0.8.20",
             }
 
         try:
@@ -104,13 +103,16 @@ class SMTCheckerAgent(BaseAgent):
             cmd = [
                 self.solc_path,
                 str(contract_path),
-                "--model-checker-engine", model_checker_engine,
+                "--model-checker-engine",
+                model_checker_engine,
                 "--model-checker-show-unproved",  # Show all results
-                "--json-output"  # Get JSON output
+                "--json-output",  # Get JSON output
             ]
 
             # Add targets if specified
-            targets = kwargs.get("targets", ["underflow", "overflow", "divByZero", "assert", "balance"])
+            targets = kwargs.get(
+                "targets", ["underflow", "overflow", "divByZero", "assert", "balance"]
+            )
             if targets:
                 cmd.extend(["--model-checker-targets", ",".join(targets)])
 
@@ -119,12 +121,7 @@ class SMTCheckerAgent(BaseAgent):
             cmd.extend(["--model-checker-timeout", str(timeout * 1000)])  # milliseconds
 
             # Run SMTChecker
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout + 10
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 10)
 
             # Parse output
             findings = self._parse_smtchecker_output(result.stdout, result.stderr)
@@ -133,7 +130,7 @@ class SMTCheckerAgent(BaseAgent):
             findings["execution"] = {
                 "returncode": result.returncode,
                 "engine": model_checker_engine,
-                "contract": str(contract_path)
+                "contract": str(contract_path),
             }
 
             # Publish to MCP bus
@@ -143,7 +140,7 @@ class SMTCheckerAgent(BaseAgent):
                 "tool": "SMTChecker",
                 "version": self._get_solc_version(),
                 "status": "success" if result.returncode == 0 else "completed_with_findings",
-                "findings": findings
+                "findings": findings,
             }
 
         except subprocess.TimeoutExpired:
@@ -155,31 +152,23 @@ class SMTCheckerAgent(BaseAgent):
         """Get Solidity compiler version"""
         try:
             result = subprocess.run(
-                [self.solc_path, "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5
+                [self.solc_path, "--version"], capture_output=True, text=True, timeout=5
             )
             # Extract version from output
-            for line in result.stdout.split('\n'):
-                if 'Version:' in line:
-                    return line.split('Version:')[1].strip()
+            for line in result.stdout.split("\n"):
+                if "Version:" in line:
+                    return line.split("Version:")[1].strip()
             return result.stdout.strip()
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             return "unknown"
 
     def _parse_smtchecker_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """Parse SMTChecker output"""
-        findings = {
-            "verified": [],
-            "warnings": [],
-            "errors": [],
-            "stats": {}
-        }
+        findings = {"verified": [], "warnings": [], "errors": [], "stats": {}}
 
         # Combine output
         output = stdout + "\n" + stderr
-        lines = output.split('\n')
+        lines = output.split("\n")
 
         for line in lines:
             line = line.strip()
@@ -187,29 +176,32 @@ class SMTCheckerAgent(BaseAgent):
             # Parse warnings (potential vulnerabilities)
             if "Warning:" in line or "warning:" in line.lower():
                 # Check for specific SMT warnings
-                if any(keyword in line.lower() for keyword in
-                       ["overflow", "underflow", "assertion", "division", "unreachable"]):
-                    findings["warnings"].append({
-                        "type": self._extract_warning_type(line),
-                        "message": line,
-                        "severity": "medium"
-                    })
+                if any(
+                    keyword in line.lower()
+                    for keyword in ["overflow", "underflow", "assertion", "division", "unreachable"]
+                ):
+                    findings["warnings"].append(
+                        {
+                            "type": self._extract_warning_type(line),
+                            "message": line,
+                            "severity": "medium",
+                        }
+                    )
 
             # Parse errors
             elif "Error:" in line or "error:" in line.lower():
-                findings["errors"].append({
-                    "message": line,
-                    "severity": "high"
-                })
+                findings["errors"].append({"message": line, "severity": "high"})
 
             # Parse verification results
             elif "CHC:" in line or "BMC:" in line:
                 if "verified" in line.lower() or "safe" in line.lower():
-                    findings["verified"].append({
-                        "engine": "CHC" if "CHC:" in line else "BMC",
-                        "status": "verified",
-                        "message": line
-                    })
+                    findings["verified"].append(
+                        {
+                            "engine": "CHC" if "CHC:" in line else "BMC",
+                            "status": "verified",
+                            "message": line,
+                        }
+                    )
 
         # Calculate stats
         findings["stats"]["total_warnings"] = len(findings["warnings"])
@@ -243,9 +235,16 @@ class SMTCheckerAgent(BaseAgent):
                 findings={
                     "tool": "SMTChecker",
                     "findings": findings,
-                    "timestamp": str(Path(contract).stat().st_mtime) if Path(contract).exists() else "unknown"
+                    "timestamp": (
+                        str(Path(contract).stat().st_mtime)
+                        if Path(contract).exists()
+                        else "unknown"
+                    ),
                 },
-                metadata={"tool_version": self._get_solc_version(), "verification_type": "smt_based"}
+                metadata={
+                    "tool_version": self._get_solc_version(),
+                    "verification_type": "smt_based",
+                },
             )
         except Exception as e:
             # Non-critical, just log
@@ -265,7 +264,7 @@ class SMTCheckerAgent(BaseAgent):
             contract_path,
             model_checker_engine="bmc",  # Bounded Model Checking (faster)
             targets=["overflow", "underflow", "divByZero", "assert"],
-            timeout=30  # 30 seconds
+            timeout=30,  # 30 seconds
         )
 
         if "error" in result:
@@ -281,7 +280,7 @@ class SMTCheckerAgent(BaseAgent):
             "warnings": len(warnings),
             "errors": len(errors),
             "status": "pass" if len(errors) == 0 else "fail",
-            "critical_issues": errors[:3] + warnings[:3]  # Top 3 of each
+            "critical_issues": errors[:3] + warnings[:3],  # Top 3 of each
         }
 
     def get_capabilities(self) -> List[str]:
@@ -293,7 +292,7 @@ class SMTCheckerAgent(BaseAgent):
             "Unreachable code detection",
             "Out-of-bounds array access",
             "BMC (Bounded Model Checking)",
-            "CHC (Constrained Horn Clauses)"
+            "CHC (Constrained Horn Clauses)",
         ]
 
     def handle_message(self, message):
@@ -307,5 +306,5 @@ class SMTCheckerAgent(BaseAgent):
                 self.publish_findings(
                     context_type="audit_response",
                     findings=result,
-                    metadata={"request_source": message.agent}
+                    metadata={"request_source": message.agent},
                 )

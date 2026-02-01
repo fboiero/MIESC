@@ -3,17 +3,18 @@ MIESC Code Embeddings
 Genera embeddings semánticos de código Solidity para análisis avanzado.
 """
 
-import re
 import hashlib
 import math
-from typing import Dict, Any, List, Optional, Tuple
-from dataclasses import dataclass, field
+import re
 from collections import defaultdict
+from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class TokenType(Enum):
     """Tipos de tokens en código Solidity."""
+
     KEYWORD = "keyword"
     TYPE = "type"
     MODIFIER = "modifier"
@@ -28,6 +29,7 @@ class TokenType(Enum):
 @dataclass
 class CodeToken:
     """Token de código con metadata."""
+
     value: str
     token_type: TokenType
     position: int
@@ -37,6 +39,7 @@ class CodeToken:
 @dataclass
 class CodeEmbedding:
     """Embedding de una sección de código."""
+
     source_hash: str
     vector: List[float]
     dimensions: int
@@ -44,12 +47,12 @@ class CodeEmbedding:
     code_type: str  # function, contract, modifier, etc.
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def similarity(self, other: 'CodeEmbedding') -> float:
+    def similarity(self, other: "CodeEmbedding") -> float:
         """Calcula similitud coseno con otro embedding."""
         if self.dimensions != other.dimensions:
             return 0.0
 
-        dot_product = sum(a * b for a, b in zip(self.vector, other.vector))
+        dot_product = sum(a * b for a, b in zip(self.vector, other.vector, strict=False))
         norm_a = math.sqrt(sum(a * a for a in self.vector))
         norm_b = math.sqrt(sum(b * b for b in other.vector))
 
@@ -63,70 +66,171 @@ class SolidityTokenizer:
     """Tokenizador especializado para Solidity."""
 
     KEYWORDS = {
-        'pragma', 'solidity', 'contract', 'interface', 'library', 'abstract',
-        'function', 'modifier', 'event', 'struct', 'enum', 'mapping',
-        'public', 'private', 'internal', 'external', 'view', 'pure',
-        'payable', 'virtual', 'override', 'immutable', 'constant',
-        'if', 'else', 'for', 'while', 'do', 'return', 'require', 'revert',
-        'assert', 'emit', 'new', 'delete', 'try', 'catch', 'using', 'is',
-        'constructor', 'fallback', 'receive', 'storage', 'memory', 'calldata',
+        "pragma",
+        "solidity",
+        "contract",
+        "interface",
+        "library",
+        "abstract",
+        "function",
+        "modifier",
+        "event",
+        "struct",
+        "enum",
+        "mapping",
+        "public",
+        "private",
+        "internal",
+        "external",
+        "view",
+        "pure",
+        "payable",
+        "virtual",
+        "override",
+        "immutable",
+        "constant",
+        "if",
+        "else",
+        "for",
+        "while",
+        "do",
+        "return",
+        "require",
+        "revert",
+        "assert",
+        "emit",
+        "new",
+        "delete",
+        "try",
+        "catch",
+        "using",
+        "is",
+        "constructor",
+        "fallback",
+        "receive",
+        "storage",
+        "memory",
+        "calldata",
     }
 
     TYPES = {
-        'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'uint128', 'uint256',
-        'int', 'int8', 'int16', 'int32', 'int64', 'int128', 'int256',
-        'bytes', 'bytes1', 'bytes2', 'bytes4', 'bytes8', 'bytes16', 'bytes32',
-        'string', 'address', 'bool', 'fixed', 'ufixed',
+        "uint",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "uint128",
+        "uint256",
+        "int",
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "int128",
+        "int256",
+        "bytes",
+        "bytes1",
+        "bytes2",
+        "bytes4",
+        "bytes8",
+        "bytes16",
+        "bytes32",
+        "string",
+        "address",
+        "bool",
+        "fixed",
+        "ufixed",
     }
 
     SECURITY_MODIFIERS = {
-        'onlyOwner', 'nonReentrant', 'whenNotPaused', 'whenPaused',
-        'onlyAdmin', 'onlyRole', 'initializer', 'reinitializer',
+        "onlyOwner",
+        "nonReentrant",
+        "whenNotPaused",
+        "whenPaused",
+        "onlyAdmin",
+        "onlyRole",
+        "initializer",
+        "reinitializer",
     }
 
     DANGEROUS_PATTERNS = {
-        'selfdestruct', 'suicide', 'delegatecall', 'callcode',
-        'tx.origin', 'block.timestamp', 'block.number',
-        'assembly', 'extcodesize', 'create2',
+        "selfdestruct",
+        "suicide",
+        "delegatecall",
+        "callcode",
+        "tx.origin",
+        "block.timestamp",
+        "block.number",
+        "assembly",
+        "extcodesize",
+        "create2",
     }
 
     OPERATORS = {
-        '+', '-', '*', '/', '%', '**',
-        '=', '==', '!=', '<', '>', '<=', '>=',
-        '&&', '||', '!', '&', '|', '^', '~',
-        '<<', '>>', '++', '--', '+=', '-=', '*=', '/=',
+        "+",
+        "-",
+        "*",
+        "/",
+        "%",
+        "**",
+        "=",
+        "==",
+        "!=",
+        "<",
+        ">",
+        "<=",
+        ">=",
+        "&&",
+        "||",
+        "!",
+        "&",
+        "|",
+        "^",
+        "~",
+        "<<",
+        ">>",
+        "++",
+        "--",
+        "+=",
+        "-=",
+        "*=",
+        "/=",
     }
 
     def tokenize(self, code: str) -> List[CodeToken]:
         """Tokeniza código Solidity."""
         tokens = []
-        lines = code.split('\n')
+        lines = code.split("\n")
 
         for line_num, line in enumerate(lines, 1):
             # Remover comentarios de línea
-            if '//' in line:
-                comment_start = line.index('//')
+            if "//" in line:
+                comment_start = line.index("//")
                 comment = line[comment_start:]
                 line = line[:comment_start]
-                tokens.append(CodeToken(
-                    value=comment,
-                    token_type=TokenType.COMMENT,
-                    position=comment_start,
-                    line=line_num,
-                ))
+                tokens.append(
+                    CodeToken(
+                        value=comment,
+                        token_type=TokenType.COMMENT,
+                        position=comment_start,
+                        line=line_num,
+                    )
+                )
 
             # Tokenizar resto de la línea
-            words = re.findall(r'\b\w+\b|[+\-*/%=<>!&|^~]+|[.,;(){}[\]]', line)
+            words = re.findall(r"\b\w+\b|[+\-*/%=<>!&|^~]+|[.,;(){}[\]]", line)
             pos = 0
 
             for word in words:
                 token_type = self._classify_token(word)
-                tokens.append(CodeToken(
-                    value=word,
-                    token_type=token_type,
-                    position=pos,
-                    line=line_num,
-                ))
+                tokens.append(
+                    CodeToken(
+                        value=word,
+                        token_type=token_type,
+                        position=pos,
+                        line=line_num,
+                    )
+                )
                 pos += len(word) + 1
 
         return tokens
@@ -137,13 +241,13 @@ class SolidityTokenizer:
 
         if token_lower in self.KEYWORDS:
             return TokenType.KEYWORD
-        elif token_lower in self.TYPES or token_lower.startswith(('uint', 'int', 'bytes')):
+        elif token_lower in self.TYPES or token_lower.startswith(("uint", "int", "bytes")):
             return TokenType.TYPE
         elif token in self.SECURITY_MODIFIERS:
             return TokenType.MODIFIER
         elif token in self.OPERATORS:
             return TokenType.OPERATOR
-        elif re.match(r'^0x[0-9a-fA-F]+$', token) or token.isdigit():
+        elif re.match(r"^0x[0-9a-fA-F]+$", token) or token.isdigit():
             return TokenType.LITERAL
         elif token[0].isupper() and len(token) > 1:
             return TokenType.FUNCTION  # Likely a contract/struct name
@@ -182,7 +286,7 @@ class CodeEmbedder:
         values = [t.value for t in tokens if t.token_type != TokenType.COMMENT]
         ngrams = []
         for i in range(len(values) - n + 1):
-            ngram = '_'.join(values[i:i+n])
+            ngram = "_".join(values[i : i + n])
             ngrams.append(ngram)
         return ngrams
 
@@ -191,20 +295,22 @@ class CodeEmbedder:
         features = {}
 
         # Contar elementos estructurales
-        features['function_count'] = len(re.findall(r'\bfunction\s+\w+', code))
-        features['modifier_count'] = len(re.findall(r'\bmodifier\s+\w+', code))
-        features['event_count'] = len(re.findall(r'\bevent\s+\w+', code))
-        features['require_count'] = len(re.findall(r'\brequire\s*\(', code))
-        features['assert_count'] = len(re.findall(r'\bassert\s*\(', code))
-        features['emit_count'] = len(re.findall(r'\bemit\s+\w+', code))
+        features["function_count"] = len(re.findall(r"\bfunction\s+\w+", code))
+        features["modifier_count"] = len(re.findall(r"\bmodifier\s+\w+", code))
+        features["event_count"] = len(re.findall(r"\bevent\s+\w+", code))
+        features["require_count"] = len(re.findall(r"\brequire\s*\(", code))
+        features["assert_count"] = len(re.findall(r"\bassert\s*\(", code))
+        features["emit_count"] = len(re.findall(r"\bemit\s+\w+", code))
 
         # Métricas de complejidad
-        features['loop_count'] = len(re.findall(r'\b(for|while|do)\s*\(', code))
-        features['conditional_count'] = len(re.findall(r'\bif\s*\(', code))
-        features['external_call_count'] = len(re.findall(r'\.(call|delegatecall|staticcall)\s*\(', code))
+        features["loop_count"] = len(re.findall(r"\b(for|while|do)\s*\(", code))
+        features["conditional_count"] = len(re.findall(r"\bif\s*\(", code))
+        features["external_call_count"] = len(
+            re.findall(r"\.(call|delegatecall|staticcall)\s*\(", code)
+        )
 
         # Normalizar por longitud
-        code_lines = max(code.count('\n'), 1)
+        code_lines = max(code.count("\n"), 1)
         for key in features:
             features[key] = features[key] / code_lines
 
@@ -216,33 +322,43 @@ class CodeEmbedder:
         code_lower = code.lower()
 
         # Patrones peligrosos
-        features['has_selfdestruct'] = 1.0 if 'selfdestruct' in code_lower or 'suicide' in code_lower else 0.0
-        features['has_delegatecall'] = 1.0 if 'delegatecall' in code_lower else 0.0
-        features['has_tx_origin'] = 1.0 if 'tx.origin' in code_lower else 0.0
-        features['has_inline_assembly'] = 1.0 if 'assembly' in code_lower else 0.0
-        features['has_unchecked'] = 1.0 if 'unchecked' in code_lower else 0.0
+        features["has_selfdestruct"] = (
+            1.0 if "selfdestruct" in code_lower or "suicide" in code_lower else 0.0
+        )
+        features["has_delegatecall"] = 1.0 if "delegatecall" in code_lower else 0.0
+        features["has_tx_origin"] = 1.0 if "tx.origin" in code_lower else 0.0
+        features["has_inline_assembly"] = 1.0 if "assembly" in code_lower else 0.0
+        features["has_unchecked"] = 1.0 if "unchecked" in code_lower else 0.0
 
         # Patrones seguros
-        features['has_reentrancy_guard'] = 1.0 if 'nonreentrant' in code_lower else 0.0
-        features['has_access_control'] = 1.0 if any(m.lower() in code_lower for m in ['onlyowner', 'onlyadmin', 'onlyrole']) else 0.0
-        features['has_pausable'] = 1.0 if 'whennotpaused' in code_lower else 0.0
-        features['uses_safemath'] = 1.0 if 'safemath' in code_lower else 0.0
-        features['uses_openzeppelin'] = 1.0 if 'openzeppelin' in code_lower else 0.0
+        features["has_reentrancy_guard"] = 1.0 if "nonreentrant" in code_lower else 0.0
+        features["has_access_control"] = (
+            1.0
+            if any(m.lower() in code_lower for m in ["onlyowner", "onlyadmin", "onlyrole"])
+            else 0.0
+        )
+        features["has_pausable"] = 1.0 if "whennotpaused" in code_lower else 0.0
+        features["uses_safemath"] = 1.0 if "safemath" in code_lower else 0.0
+        features["uses_openzeppelin"] = 1.0 if "openzeppelin" in code_lower else 0.0
 
         # Ratio de seguridad
-        dangerous = sum([
-            features['has_selfdestruct'],
-            features['has_delegatecall'],
-            features['has_tx_origin'],
-            features['has_inline_assembly'],
-        ])
-        safe = sum([
-            features['has_reentrancy_guard'],
-            features['has_access_control'],
-            features['has_pausable'],
-            features['uses_safemath'],
-        ])
-        features['security_ratio'] = safe / (dangerous + 1)
+        dangerous = sum(
+            [
+                features["has_selfdestruct"],
+                features["has_delegatecall"],
+                features["has_tx_origin"],
+                features["has_inline_assembly"],
+            ]
+        )
+        safe = sum(
+            [
+                features["has_reentrancy_guard"],
+                features["has_access_control"],
+                features["has_pausable"],
+                features["uses_safemath"],
+            ]
+        )
+        features["security_ratio"] = safe / (dangerous + 1)
 
         return features
 
@@ -286,8 +402,17 @@ class CodeEmbedder:
 
         # 3. Distribución de tipos de tokens (10 dims)
         token_dist = self._compute_token_type_distribution(tokens)
-        type_names = ['keyword', 'type', 'modifier', 'function', 'variable',
-                      'operator', 'literal', 'comment', 'other']
+        type_names = [
+            "keyword",
+            "type",
+            "modifier",
+            "function",
+            "variable",
+            "operator",
+            "literal",
+            "comment",
+            "other",
+        ]
         for tname in type_names:
             vector.append(token_dist.get(tname, 0.0))
         vector.append(0.0)  # padding
@@ -301,17 +426,31 @@ class CodeEmbedder:
         # 5. N-grama features (18 dims)
         ngrams = self._extract_ngrams(tokens, n=2)
         danger_patterns = [
-            'call_value', 'transfer_msg', 'delegatecall', 'selfdestruct',
-            'tx_origin', 'block_timestamp', 'assembly', 'unchecked',
-            'external_call', 'low_level', 'require', 'assert', 'revert',
-            'onlyowner', 'nonreentrant', 'payable', 'view', 'pure',
+            "call_value",
+            "transfer_msg",
+            "delegatecall",
+            "selfdestruct",
+            "tx_origin",
+            "block_timestamp",
+            "assembly",
+            "unchecked",
+            "external_call",
+            "low_level",
+            "require",
+            "assert",
+            "revert",
+            "onlyowner",
+            "nonreentrant",
+            "payable",
+            "view",
+            "pure",
         ]
         for pattern in danger_patterns:
             count = sum(1 for ng in ngrams if pattern in ng.lower())
             vector.append(min(count / 5.0, 1.0))
 
         # 6. Métricas de código (20 dims)
-        lines = code.count('\n') + 1
+        lines = code.count("\n") + 1
         chars = len(code)
         avg_line_len = chars / max(lines, 1)
 
@@ -322,8 +461,7 @@ class CodeEmbedder:
 
         # Complejidad ciclomática aproximada
         complexity = (
-            structural.get('conditional_count', 0) +
-            structural.get('loop_count', 0)
+            structural.get("conditional_count", 0) + structural.get("loop_count", 0)
         ) * lines
         vector.append(min(complexity / 50.0, 1.0))
 
@@ -332,7 +470,7 @@ class CodeEmbedder:
             vector.append(0.0)
 
         # Truncar si excede
-        vector = vector[:self.embedding_dim]
+        vector = vector[: self.embedding_dim]
 
         # Normalizar vector
         norm = math.sqrt(sum(v * v for v in vector))
@@ -346,16 +484,16 @@ class CodeEmbedder:
             tokens=len(tokens),
             code_type=code_type,
             metadata={
-                'lines': lines,
-                'structural': structural,
-                'security': security,
+                "lines": lines,
+                "structural": structural,
+                "security": security,
             },
         )
 
     def embed_function(self, code: str, function_name: str) -> Optional[CodeEmbedding]:
         """Extrae y embebe una función específica."""
         # Buscar la función
-        pattern = rf'function\s+{re.escape(function_name)}\s*\([^)]*\)[^{{]*\{{'
+        pattern = rf"function\s+{re.escape(function_name)}\s*\([^)]*\)[^{{]*\{{"
         match = re.search(pattern, code)
 
         if not match:
@@ -367,9 +505,9 @@ class CodeEmbedder:
         end = start
 
         for i, char in enumerate(code[start:], start):
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
                 if brace_count == 0:
                     end = i + 1
@@ -419,9 +557,7 @@ class VulnerabilityPatternDB:
             balances[msg.sender] -= amount;
         }
         """
-        self._patterns['reentrancy'] = [
-            self.embedder.embed(reentrancy_code, 'vulnerability')
-        ]
+        self._patterns["reentrancy"] = [self.embedder.embed(reentrancy_code, "vulnerability")]
 
         # Patrón de tx.origin
         txorigin_code = """
@@ -430,9 +566,7 @@ class VulnerabilityPatternDB:
             to.transfer(amount);
         }
         """
-        self._patterns['tx_origin'] = [
-            self.embedder.embed(txorigin_code, 'vulnerability')
-        ]
+        self._patterns["tx_origin"] = [self.embedder.embed(txorigin_code, "vulnerability")]
 
         # Patrón de unchecked return
         unchecked_code = """
@@ -441,9 +575,7 @@ class VulnerabilityPatternDB:
             emit Transfer(to, amount);
         }
         """
-        self._patterns['unchecked_return'] = [
-            self.embedder.embed(unchecked_code, 'vulnerability')
-        ]
+        self._patterns["unchecked_return"] = [self.embedder.embed(unchecked_code, "vulnerability")]
 
         # Patrón de integer overflow (pre-0.8)
         overflow_code = """
@@ -451,9 +583,7 @@ class VulnerabilityPatternDB:
             return a + b;
         }
         """
-        self._patterns['overflow'] = [
-            self.embedder.embed(overflow_code, 'vulnerability')
-        ]
+        self._patterns["overflow"] = [self.embedder.embed(overflow_code, "vulnerability")]
 
         # Patrón de access control missing
         access_code = """
@@ -461,8 +591,8 @@ class VulnerabilityPatternDB:
             owner = newOwner;
         }
         """
-        self._patterns['missing_access_control'] = [
-            self.embedder.embed(access_code, 'vulnerability')
+        self._patterns["missing_access_control"] = [
+            self.embedder.embed(access_code, "vulnerability")
         ]
 
     def match_patterns(
@@ -478,14 +608,16 @@ class VulnerabilityPatternDB:
             for pattern in patterns:
                 similarity = embedding.similarity(pattern)
                 if similarity >= threshold:
-                    matches.append({
-                        'vulnerability_type': vuln_type,
-                        'similarity': round(similarity, 3),
-                        'confidence': round(min(similarity * 1.2, 0.95), 3),
-                    })
+                    matches.append(
+                        {
+                            "vulnerability_type": vuln_type,
+                            "similarity": round(similarity, 3),
+                            "confidence": round(min(similarity * 1.2, 0.95), 3),
+                        }
+                    )
 
         # Ordenar por similitud
-        matches.sort(key=lambda x: -x['similarity'])
+        matches.sort(key=lambda x: -x["similarity"])
         return matches
 
     def add_pattern(
@@ -494,7 +626,7 @@ class VulnerabilityPatternDB:
         code: str,
     ) -> None:
         """Añade un nuevo patrón de vulnerabilidad."""
-        embedding = self.embedder.embed(code, 'vulnerability')
+        embedding = self.embedder.embed(code, "vulnerability")
         if vuln_type not in self._patterns:
             self._patterns[vuln_type] = []
         self._patterns[vuln_type].append(embedding)

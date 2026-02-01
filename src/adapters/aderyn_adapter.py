@@ -184,7 +184,6 @@ class AderynAdapter(ToolAdapter):
         """
         start_time = time.time()
         temp_workspace = None
-        actual_contract_path = contract_path
 
         # Check availability first
         status = self.is_available()
@@ -239,7 +238,7 @@ class AderynAdapter(ToolAdapter):
             # Show progress message
             verbose = kwargs.get("verbose", True)
             if verbose:
-                print(f"  [Aderyn] Running Rust-based static analysis...")
+                print("  [Aderyn] Running Rust-based static analysis...")
 
             # Execute Aderyn with corrected PATH for solc
             env = _get_solc_env()
@@ -472,7 +471,6 @@ class AderynAdapter(ToolAdapter):
         "reentrancy": "SWC-107",
         "cross-function-reentrancy": "SWC-107",
         "read-only-reentrancy": "SWC-107",
-
         # Access Control
         "unprotected": "SWC-105",
         "arbitrary-send": "SWC-105",
@@ -480,49 +478,39 @@ class AderynAdapter(ToolAdapter):
         "suicidal": "SWC-106",
         "selfdestruct": "SWC-106",
         "tx-origin": "SWC-115",
-
         # Unchecked Returns
         "unchecked": "SWC-104",
         "unchecked-send": "SWC-104",
         "unchecked-transfer": "SWC-104",
         "unchecked-call": "SWC-104",
-
         # Integer Issues
         "overflow": "SWC-101",
         "underflow": "SWC-101",
         "integer": "SWC-101",
-
         # Delegatecall
         "delegatecall": "SWC-112",
         "controlled-delegatecall": "SWC-112",
-
         # Timestamp
         "timestamp": "SWC-116",
         "block-timestamp": "SWC-116",
-
         # DoS
         "dos": "SWC-128",
         "gas-limit": "SWC-128",
         "unbounded": "SWC-128",
-
         # Randomness
         "random": "SWC-120",
         "weak-prng": "SWC-120",
         "blockhash": "SWC-120",
-
         # Storage
         "uninitialized-storage": "SWC-109",
         "uninitialized-state": "SWC-109",
         "shadowing": "SWC-119",
-
         # Signature
         "signature": "SWC-117",
         "ecrecover": "SWC-117",
-
         # Default Visibility
         "visibility": "SWC-100",
         "missing-visibility": "SWC-100",
-
         # Code Quality
         "unused": "SWC-131",
         "deprecated": "SWC-111",
@@ -711,13 +699,13 @@ class AderynAdapter(ToolAdapter):
             if not deps_to_install:
                 return True
 
-            foundry_config = f'''[profile.default]
+            foundry_config = f"""[profile.default]
 src = "."
 out = "out"
 libs = ["lib"]
 solc = "{solc_version}"
 auto_detect_solc = false
-'''
+"""
             if remappings:
                 foundry_config += "\nremappings = [\n"
                 for r in remappings:

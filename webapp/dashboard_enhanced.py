@@ -15,16 +15,16 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-12-03
 """
 
-import streamlit as st
-import sys
 import json
-import time
+import sys
 import tempfile
-from pathlib import Path
+import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-import plotly.express as px
+from pathlib import Path
+from typing import Dict, List
+
 import plotly.graph_objects as go
+import streamlit as st
 from plotly.subplots import make_subplots
 
 # Add src to path
@@ -42,14 +42,15 @@ st.set_page_config(
     page_title="MIESC Dashboard v4.0.0",
     page_icon="",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # =============================================================================
 # CUSTOM STYLING
 # =============================================================================
 
-st.markdown("""
+st.markdown(
+    """
 <style>
     /* Main header styling */
     .main-header {
@@ -166,18 +167,20 @@ st.markdown("""
         border-top: 1px solid #e9ecef;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # =============================================================================
 # SESSION STATE INITIALIZATION
 # =============================================================================
 
-if 'analysis_history' not in st.session_state:
+if "analysis_history" not in st.session_state:
     st.session_state.analysis_history = []
-if 'current_analysis' not in st.session_state:
+if "current_analysis" not in st.session_state:
     st.session_state.current_analysis = None
-if 'tool_metrics' not in st.session_state:
+if "tool_metrics" not in st.session_state:
     st.session_state.tool_metrics = {}
 
 
@@ -185,34 +188,39 @@ if 'tool_metrics' not in st.session_state:
 # CHART FUNCTIONS
 # =============================================================================
 
+
 def create_severity_donut_chart(findings: List[Dict]) -> go.Figure:
     """Create a donut chart showing severity distribution."""
-    severity_counts = {'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0, 'Info': 0}
+    severity_counts = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Info": 0}
 
     for f in findings:
-        sev = f.get('severity', 'Info')
+        sev = f.get("severity", "Info")
         if sev in severity_counts:
             severity_counts[sev] += 1
 
-    colors = ['#dc3545', '#fd7e14', '#ffc107', '#17a2b8', '#6c757d']
+    colors = ["#dc3545", "#fd7e14", "#ffc107", "#17a2b8", "#6c757d"]
 
-    fig = go.Figure(data=[go.Pie(
-        labels=list(severity_counts.keys()),
-        values=list(severity_counts.values()),
-        hole=0.6,
-        marker_colors=colors,
-        textinfo='label+percent',
-        textposition='outside',
-        pull=[0.1 if k == 'Critical' else 0 for k in severity_counts.keys()]
-    )])
+    fig = go.Figure(
+        data=[
+            go.Pie(
+                labels=list(severity_counts.keys()),
+                values=list(severity_counts.values()),
+                hole=0.6,
+                marker_colors=colors,
+                textinfo="label+percent",
+                textposition="outside",
+                pull=[0.1 if k == "Critical" else 0 for k in severity_counts.keys()],
+            )
+        ]
+    )
 
     fig.update_layout(
         title_text="Findings by Severity",
         showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
+        legend={"orientation": "h", "yanchor": "bottom", "y": -0.2, "xanchor": "center", "x": 0.5},
         height=400,
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
     )
 
     return fig
@@ -223,10 +231,10 @@ def create_tool_comparison_chart(findings: List[Dict]) -> go.Figure:
     tool_counts = {}
 
     for f in findings:
-        tool = f.get('tool', 'Unknown')
+        tool = f.get("tool", "Unknown")
         if tool not in tool_counts:
-            tool_counts[tool] = {'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0, 'Info': 0}
-        sev = f.get('severity', 'Info')
+            tool_counts[tool] = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Info": 0}
+        sev = f.get("severity", "Info")
         if sev in tool_counts[tool]:
             tool_counts[tool][sev] += 1
 
@@ -237,26 +245,27 @@ def create_tool_comparison_chart(findings: List[Dict]) -> go.Figure:
 
     fig = go.Figure()
 
-    colors = {'Critical': '#dc3545', 'High': '#fd7e14', 'Medium': '#ffc107', 'Low': '#17a2b8', 'Info': '#6c757d'}
+    colors = {
+        "Critical": "#dc3545",
+        "High": "#fd7e14",
+        "Medium": "#ffc107",
+        "Low": "#17a2b8",
+        "Info": "#6c757d",
+    }
 
-    for severity in ['Critical', 'High', 'Medium', 'Low', 'Info']:
+    for severity in ["Critical", "High", "Medium", "Low", "Info"]:
         values = [tool_counts[t].get(severity, 0) for t in tools]
-        fig.add_trace(go.Bar(
-            name=severity,
-            x=tools,
-            y=values,
-            marker_color=colors[severity]
-        ))
+        fig.add_trace(go.Bar(name=severity, x=tools, y=values, marker_color=colors[severity]))
 
     fig.update_layout(
-        barmode='stack',
+        barmode="stack",
         title_text="Findings by Tool and Severity",
         xaxis_title="Security Tool",
         yaxis_title="Number of Findings",
-        legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
+        legend={"orientation": "h", "yanchor": "bottom", "y": -0.3, "xanchor": "center", "x": 0.5},
         height=400,
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
     )
 
     return fig
@@ -264,37 +273,37 @@ def create_tool_comparison_chart(findings: List[Dict]) -> go.Figure:
 
 def create_risk_gauge(risk_score: float) -> go.Figure:
     """Create a gauge chart for risk score."""
-    color = '#28a745' if risk_score < 30 else '#ffc107' if risk_score < 70 else '#dc3545'
+    color = "#28a745" if risk_score < 30 else "#ffc107" if risk_score < 70 else "#dc3545"
 
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number+delta",
-        value=risk_score,
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': "Risk Score", 'font': {'size': 24}},
-        delta={'reference': 50, 'increasing': {'color': "red"}, 'decreasing': {'color': "green"}},
-        gauge={
-            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
-            'bar': {'color': color},
-            'bgcolor': "white",
-            'borderwidth': 2,
-            'bordercolor': "gray",
-            'steps': [
-                {'range': [0, 30], 'color': '#d4edda'},
-                {'range': [30, 70], 'color': '#fff3cd'},
-                {'range': [70, 100], 'color': '#f8d7da'}
-            ],
-            'threshold': {
-                'line': {'color': "red", 'width': 4},
-                'thickness': 0.75,
-                'value': 70
-            }
-        }
-    ))
+    fig = go.Figure(
+        go.Indicator(
+            mode="gauge+number+delta",
+            value=risk_score,
+            domain={"x": [0, 1], "y": [0, 1]},
+            title={"text": "Risk Score", "font": {"size": 24}},
+            delta={
+                "reference": 50,
+                "increasing": {"color": "red"},
+                "decreasing": {"color": "green"},
+            },
+            gauge={
+                "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": "darkblue"},
+                "bar": {"color": color},
+                "bgcolor": "white",
+                "borderwidth": 2,
+                "bordercolor": "gray",
+                "steps": [
+                    {"range": [0, 30], "color": "#d4edda"},
+                    {"range": [30, 70], "color": "#fff3cd"},
+                    {"range": [70, 100], "color": "#f8d7da"},
+                ],
+                "threshold": {"line": {"color": "red", "width": 4}, "thickness": 0.75, "value": 70},
+            },
+        )
+    )
 
     fig.update_layout(
-        height=300,
-        paper_bgcolor='rgba(0,0,0,0)',
-        font={'color': "#333", 'family': "Arial"}
+        height=300, paper_bgcolor="rgba(0,0,0,0)", font={"color": "#333", "family": "Arial"}
     )
 
     return fig
@@ -305,9 +314,9 @@ def create_timeline_chart(history: List[Dict]) -> go.Figure:
     if not history:
         return go.Figure()
 
-    dates = [h.get('timestamp', datetime.now()) for h in history]
-    findings_counts = [h.get('total_findings', 0) for h in history]
-    risk_scores = [h.get('risk_score', 0) for h in history]
+    dates = [h.get("timestamp", datetime.now()) for h in history]
+    findings_counts = [h.get("total_findings", 0) for h in history]
+    risk_scores = [h.get("risk_score", 0) for h in history]
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
@@ -316,11 +325,11 @@ def create_timeline_chart(history: List[Dict]) -> go.Figure:
             x=dates,
             y=findings_counts,
             name="Findings",
-            mode='lines+markers',
-            line=dict(color='#667eea', width=2),
-            marker=dict(size=8)
+            mode="lines+markers",
+            line={"color": "#667eea", "width": 2},
+            marker={"size": 8},
         ),
-        secondary_y=False
+        secondary_y=False,
     )
 
     fig.add_trace(
@@ -328,19 +337,19 @@ def create_timeline_chart(history: List[Dict]) -> go.Figure:
             x=dates,
             y=risk_scores,
             name="Risk Score",
-            mode='lines+markers',
-            line=dict(color='#dc3545', width=2, dash='dash'),
-            marker=dict(size=8)
+            mode="lines+markers",
+            line={"color": "#dc3545", "width": 2, "dash": "dash"},
+            marker={"size": 8},
         ),
-        secondary_y=True
+        secondary_y=True,
     )
 
     fig.update_layout(
         title_text="Analysis History",
         height=350,
-        legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
+        legend={"orientation": "h", "yanchor": "bottom", "y": -0.3, "xanchor": "center", "x": 0.5},
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
     )
 
     fig.update_xaxes(title_text="Date")
@@ -353,56 +362,53 @@ def create_timeline_chart(history: List[Dict]) -> go.Figure:
 def create_vulnerability_radar(findings: List[Dict]) -> go.Figure:
     """Create a radar chart of vulnerability categories."""
     categories = {
-        'Reentrancy': 0,
-        'Access Control': 0,
-        'Arithmetic': 0,
-        'Unchecked Calls': 0,
-        'Gas Issues': 0,
-        'Logic Errors': 0
+        "Reentrancy": 0,
+        "Access Control": 0,
+        "Arithmetic": 0,
+        "Unchecked Calls": 0,
+        "Gas Issues": 0,
+        "Logic Errors": 0,
     }
 
     # Map finding types to categories
     mapping = {
-        'reentrancy': 'Reentrancy',
-        'reentrancy-eth': 'Reentrancy',
-        'access-control': 'Access Control',
-        'unprotected': 'Access Control',
-        'overflow': 'Arithmetic',
-        'underflow': 'Arithmetic',
-        'integer': 'Arithmetic',
-        'unchecked': 'Unchecked Calls',
-        'low-level': 'Unchecked Calls',
-        'gas': 'Gas Issues',
-        'loop': 'Gas Issues',
-        'logic': 'Logic Errors',
-        'state': 'Logic Errors'
+        "reentrancy": "Reentrancy",
+        "reentrancy-eth": "Reentrancy",
+        "access-control": "Access Control",
+        "unprotected": "Access Control",
+        "overflow": "Arithmetic",
+        "underflow": "Arithmetic",
+        "integer": "Arithmetic",
+        "unchecked": "Unchecked Calls",
+        "low-level": "Unchecked Calls",
+        "gas": "Gas Issues",
+        "loop": "Gas Issues",
+        "logic": "Logic Errors",
+        "state": "Logic Errors",
     }
 
     for f in findings:
-        finding_type = f.get('type', '').lower()
+        finding_type = f.get("type", "").lower()
         for key, cat in mapping.items():
             if key in finding_type:
                 categories[cat] += 1
                 break
 
-    fig = go.Figure(data=go.Scatterpolar(
-        r=list(categories.values()),
-        theta=list(categories.keys()),
-        fill='toself',
-        fillcolor='rgba(102, 126, 234, 0.3)',
-        line=dict(color='#667eea', width=2)
-    ))
+    fig = go.Figure(
+        data=go.Scatterpolar(
+            r=list(categories.values()),
+            theta=list(categories.keys()),
+            fill="toself",
+            fillcolor="rgba(102, 126, 234, 0.3)",
+            line={"color": "#667eea", "width": 2},
+        )
+    )
 
     fig.update_layout(
-        polar=dict(
-            radialaxis=dict(
-                visible=True,
-                range=[0, max(max(categories.values()), 1)]
-            )
-        ),
+        polar={"radialaxis": {"visible": True, "range": [0, max(max(categories.values()), 1)]}},
         title_text="Vulnerability Categories",
         height=400,
-        paper_bgcolor='rgba(0,0,0,0)'
+        paper_bgcolor="rgba(0,0,0,0)",
     )
 
     return fig
@@ -410,37 +416,39 @@ def create_vulnerability_radar(findings: List[Dict]) -> go.Figure:
 
 def create_compliance_bar(compliance: Dict) -> go.Figure:
     """Create a horizontal bar chart for compliance metrics."""
-    policies = compliance.get('policy_scores', {})
+    policies = compliance.get("policy_scores", {})
 
     if not policies:
         policies = {
-            'OWASP Top 10': 85,
-            'SWC Registry': 78,
-            'EIP Standards': 92,
-            'Best Practices': 88
+            "OWASP Top 10": 85,
+            "SWC Registry": 78,
+            "EIP Standards": 92,
+            "Best Practices": 88,
         }
 
-    fig = go.Figure(go.Bar(
-        x=list(policies.values()),
-        y=list(policies.keys()),
-        orientation='h',
-        marker=dict(
-            color=list(policies.values()),
-            colorscale='RdYlGn',
-            cmin=0,
-            cmax=100
-        ),
-        text=[f"{v}%" for v in policies.values()],
-        textposition='outside'
-    ))
+    fig = go.Figure(
+        go.Bar(
+            x=list(policies.values()),
+            y=list(policies.keys()),
+            orientation="h",
+            marker={
+                "color": list(policies.values()),
+                "colorscale": "RdYlGn",
+                "cmin": 0,
+                "cmax": 100,
+            },
+            text=[f"{v}%" for v in policies.values()],
+            textposition="outside",
+        )
+    )
 
     fig.update_layout(
         title_text="Compliance Scores",
         xaxis_title="Score (%)",
-        xaxis=dict(range=[0, 100]),
+        xaxis={"range": [0, 100]},
         height=300,
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
     )
 
     return fig
@@ -452,7 +460,10 @@ def create_compliance_bar(compliance: Dict) -> go.Figure:
 
 # Header
 st.markdown('<p class="main-header">MIESC Enhanced Dashboard</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Advanced Security Analytics for Smart Contracts</p>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="sub-header">Advanced Security Analytics for Smart Contracts</p>',
+    unsafe_allow_html=True,
+)
 
 # Sidebar
 with st.sidebar:
@@ -463,11 +474,7 @@ with st.sidebar:
 
     # Tool selection
     available_tools = ["slither", "mythril", "aderyn", "solhint", "securify2"]
-    selected_tools = st.multiselect(
-        "Security Tools",
-        available_tools,
-        default=["slither"]
-    )
+    selected_tools = st.multiselect("Security Tools", available_tools, default=["slither"])
 
     enable_ai = st.checkbox("Enable AI Correlation", value=False)
     timeout = st.slider("Timeout (seconds)", 30, 300, 120)
@@ -479,12 +486,16 @@ with st.sidebar:
     st.metric("Total Analyses", total_analyses)
 
     if st.session_state.analysis_history:
-        avg_findings = sum(h.get('total_findings', 0) for h in st.session_state.analysis_history) / total_analyses
+        avg_findings = (
+            sum(h.get("total_findings", 0) for h in st.session_state.analysis_history)
+            / total_analyses
+        )
         st.metric("Avg Findings", f"{avg_findings:.1f}")
 
     st.markdown("---")
     st.markdown("### About")
-    st.markdown("""
+    st.markdown(
+        """
     **Author:** Fernando Boiero
     **Institution:** UNDEF - IUA Cordoba
     **License:** GPL-3.0
@@ -492,17 +503,14 @@ with st.sidebar:
     **25** Security Adapters
     **7** Defense Layers
     **94.5%** Precision
-    """)
+    """
+    )
 
 
 # Main tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "Upload & Analyze",
-    "Interactive Results",
-    "Analytics Dashboard",
-    "History & Trends",
-    "Export"
-])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    ["Upload & Analyze", "Interactive Results", "Analytics Dashboard", "History & Trends", "Export"]
+)
 
 # Tab 1: Upload & Analyze
 with tab1:
@@ -511,13 +519,11 @@ with tab1:
     with col1:
         st.markdown("### Upload Contract")
         uploaded_file = st.file_uploader(
-            "Choose a Solidity file",
-            type=['sol'],
-            help="Upload a .sol file for security analysis"
+            "Choose a Solidity file", type=["sol"], help="Upload a .sol file for security analysis"
         )
 
         if uploaded_file:
-            contract_code = uploaded_file.read().decode('utf-8')
+            contract_code = uploaded_file.read().decode("utf-8")
             st.session_state.contract_code = contract_code
             st.success(f"Loaded: {uploaded_file.name}")
 
@@ -526,7 +532,7 @@ with tab1:
         code_input = st.text_area(
             "Solidity Code",
             height=200,
-            placeholder="// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract MyContract {\n    // ...\n}"
+            placeholder="// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract MyContract {\n    // ...\n}",
         )
         if code_input:
             st.session_state.contract_code = code_input
@@ -536,7 +542,7 @@ with tab1:
     st.markdown("### Quick Demo Contracts")
 
     demo_contracts = {
-        "Reentrancy Vulnerable": '''// SPDX-License-Identifier: MIT
+        "Reentrancy Vulnerable": """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract VulnerableBank {
@@ -553,8 +559,8 @@ contract VulnerableBank {
         require(success, "Transfer failed");
         balances[msg.sender] = 0;
     }
-}''',
-        "Access Control Missing": '''// SPDX-License-Identifier: MIT
+}""",
+        "Access Control Missing": """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract Vault {
@@ -570,8 +576,8 @@ contract Vault {
         require(msg.sender == owner);
         payable(owner).transfer(address(this).balance);
     }
-}''',
-        "Safe Contract": '''// SPDX-License-Identifier: MIT
+}""",
+        "Safe Contract": """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract SafeBank {
@@ -588,7 +594,7 @@ contract SafeBank {
         (bool success, ) = msg.sender.call{value: balance}("");
         require(success, "Transfer failed");
     }
-}'''
+}""",
     }
 
     demo_cols = st.columns(len(demo_contracts))
@@ -601,7 +607,7 @@ contract SafeBank {
     # Analysis button
     st.markdown("---")
 
-    if st.session_state.get('contract_code'):
+    if st.session_state.get("contract_code"):
         st.markdown("### Contract Preview")
         code = st.session_state.contract_code
         st.code(code[:1000] + ("..." if len(code) > 1000 else ""), language="solidity")
@@ -613,7 +619,7 @@ contract SafeBank {
             with st.spinner("Analyzing contract..."):
                 try:
                     # Save to temp file
-                    with tempfile.NamedTemporaryFile(mode='w', suffix='.sol', delete=False) as f:
+                    with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
                         f.write(st.session_state.contract_code)
                         temp_path = f.name
 
@@ -635,28 +641,28 @@ contract SafeBank {
                     results = core.scan(temp_path, tools=selected_tools)
 
                     # Add metadata
-                    results['metadata'] = {
-                        'timestamp': datetime.now().isoformat(),
-                        'tools_used': selected_tools,
-                        'ai_enabled': enable_ai
+                    results["metadata"] = {
+                        "timestamp": datetime.now().isoformat(),
+                        "tools_used": selected_tools,
+                        "ai_enabled": enable_ai,
                     }
 
                     # Policy mapping
                     mapper = PolicyMapper()
-                    results['compliance'] = mapper.map_to_policies(results.get('findings', []))
+                    results["compliance"] = mapper.map_to_policies(results.get("findings", []))
 
                     # Risk assessment
                     risk_engine = RiskEngine()
-                    results['risk'] = risk_engine.assess(results.get('findings', []))
+                    results["risk"] = risk_engine.assess(results.get("findings", []))
 
                     st.session_state.current_analysis = results
 
                     # Add to history
                     history_entry = {
-                        'timestamp': datetime.now(),
-                        'total_findings': len(results.get('findings', [])),
-                        'risk_score': results.get('risk', {}).get('total_score', 0),
-                        'tools': selected_tools
+                        "timestamp": datetime.now(),
+                        "total_findings": len(results.get("findings", [])),
+                        "risk_score": results.get("risk", {}).get("total_score", 0),
+                        "tools": selected_tools,
                     }
                     st.session_state.analysis_history.append(history_entry)
 
@@ -673,7 +679,7 @@ contract SafeBank {
 with tab2:
     if st.session_state.current_analysis:
         results = st.session_state.current_analysis
-        findings = results.get('findings', [])
+        findings = results.get("findings", [])
 
         # Top metrics
         col1, col2, col3, col4, col5 = st.columns(5)
@@ -681,16 +687,21 @@ with tab2:
         with col1:
             st.metric("Total Findings", len(findings))
         with col2:
-            critical = sum(1 for f in findings if f.get('severity') == 'Critical')
-            st.metric("Critical", critical, delta=f"-{critical}" if critical else None, delta_color="inverse")
+            critical = sum(1 for f in findings if f.get("severity") == "Critical")
+            st.metric(
+                "Critical",
+                critical,
+                delta=f"-{critical}" if critical else None,
+                delta_color="inverse",
+            )
         with col3:
-            high = sum(1 for f in findings if f.get('severity') == 'High')
+            high = sum(1 for f in findings if f.get("severity") == "High")
             st.metric("High", high, delta=f"-{high}" if high else None, delta_color="inverse")
         with col4:
-            medium = sum(1 for f in findings if f.get('severity') == 'Medium')
+            medium = sum(1 for f in findings if f.get("severity") == "Medium")
             st.metric("Medium", medium)
         with col5:
-            low = sum(1 for f in findings if f.get('severity') in ['Low', 'Info'])
+            low = sum(1 for f in findings if f.get("severity") in ["Low", "Info"])
             st.metric("Low/Info", low)
 
         st.markdown("---")
@@ -710,7 +721,7 @@ with tab2:
         chart_col3, chart_col4 = st.columns(2)
 
         with chart_col3:
-            risk_score = results.get('risk', {}).get('total_score', 0)
+            risk_score = results.get("risk", {}).get("total_score", 0)
             fig = create_risk_gauge(risk_score)
             st.plotly_chart(fig, use_container_width=True)
 
@@ -728,36 +739,35 @@ with tab2:
             with filter_col1:
                 severity_filter = st.multiselect(
                     "Filter by Severity",
-                    ['Critical', 'High', 'Medium', 'Low', 'Info'],
-                    default=['Critical', 'High', 'Medium', 'Low', 'Info']
+                    ["Critical", "High", "Medium", "Low", "Info"],
+                    default=["Critical", "High", "Medium", "Low", "Info"],
                 )
             with filter_col2:
-                tools_in_findings = list(set(f.get('tool', 'Unknown') for f in findings))
+                tools_in_findings = list({f.get("tool", "Unknown") for f in findings})
                 tool_filter = st.multiselect(
-                    "Filter by Tool",
-                    tools_in_findings,
-                    default=tools_in_findings
+                    "Filter by Tool", tools_in_findings, default=tools_in_findings
                 )
 
             filtered_findings = [
-                f for f in findings
-                if f.get('severity', 'Info') in severity_filter
-                and f.get('tool', 'Unknown') in tool_filter
+                f
+                for f in findings
+                if f.get("severity", "Info") in severity_filter
+                and f.get("tool", "Unknown") in tool_filter
             ]
 
             for finding in filtered_findings:
-                severity = finding.get('severity', 'Info')
+                severity = finding.get("severity", "Info")
                 color_map = {
-                    'Critical': '#dc3545',
-                    'High': '#fd7e14',
-                    'Medium': '#ffc107',
-                    'Low': '#17a2b8',
-                    'Info': '#6c757d'
+                    "Critical": "#dc3545",
+                    "High": "#fd7e14",
+                    "Medium": "#ffc107",
+                    "Low": "#17a2b8",
+                    "Info": "#6c757d",
                 }
 
                 with st.expander(
                     f"[{severity}] {finding.get('title', finding.get('type', 'Finding'))}",
-                    expanded=(severity in ['Critical', 'High'])
+                    expanded=(severity in ["Critical", "High"]),
                 ):
                     cols = st.columns([1, 1, 2])
                     with cols[0]:
@@ -765,12 +775,12 @@ with tab2:
                     with cols[1]:
                         st.markdown(f"**Severity:** {severity}")
                     with cols[2]:
-                        if finding.get('location'):
+                        if finding.get("location"):
                             st.markdown(f"**Location:** {finding.get('location')}")
 
                     st.markdown(f"**Description:** {finding.get('description', 'N/A')}")
 
-                    if finding.get('recommendation'):
+                    if finding.get("recommendation"):
                         st.info(f"**Recommendation:** {finding.get('recommendation')}")
         else:
             st.success("No vulnerabilities found! Your contract appears to be secure.")
@@ -785,11 +795,11 @@ with tab3:
 
     if st.session_state.current_analysis:
         results = st.session_state.current_analysis
-        findings = results.get('findings', [])
+        findings = results.get("findings", [])
 
         # Compliance section
         st.markdown("#### Compliance Status")
-        compliance = results.get('compliance', {})
+        compliance = results.get("compliance", {})
         fig = create_compliance_bar(compliance)
         st.plotly_chart(fig, use_container_width=True)
 
@@ -800,22 +810,22 @@ with tab3:
 
         tool_stats = {}
         for f in findings:
-            tool = f.get('tool', 'Unknown')
+            tool = f.get("tool", "Unknown")
             if tool not in tool_stats:
-                tool_stats[tool] = {'count': 0, 'critical': 0, 'high': 0}
-            tool_stats[tool]['count'] += 1
-            if f.get('severity') == 'Critical':
-                tool_stats[tool]['critical'] += 1
-            elif f.get('severity') == 'High':
-                tool_stats[tool]['high'] += 1
+                tool_stats[tool] = {"count": 0, "critical": 0, "high": 0}
+            tool_stats[tool]["count"] += 1
+            if f.get("severity") == "Critical":
+                tool_stats[tool]["critical"] += 1
+            elif f.get("severity") == "High":
+                tool_stats[tool]["high"] += 1
 
         if tool_stats:
             cols = st.columns(len(tool_stats))
             for i, (tool, stats) in enumerate(tool_stats.items()):
                 with cols[i]:
                     st.markdown(f"**{tool}**")
-                    st.metric("Findings", stats['count'])
-                    st.metric("Critical+High", stats['critical'] + stats['high'])
+                    st.metric("Findings", stats["count"])
+                    st.metric("Critical+High", stats["critical"] + stats["high"])
 
         st.markdown("---")
 
@@ -826,7 +836,7 @@ with tab3:
 
         with summary_col1:
             st.markdown("**Tools Used:**")
-            for tool in results.get('metadata', {}).get('tools_used', []):
+            for tool in results.get("metadata", {}).get("tools_used", []):
                 st.markdown(f"- {tool}")
 
         with summary_col2:
@@ -852,12 +862,14 @@ with tab4:
         st.markdown("### Recent Analyses")
 
         for i, entry in enumerate(reversed(st.session_state.analysis_history[-10:])):
-            with st.expander(f"Analysis {len(st.session_state.analysis_history) - i}: {entry.get('timestamp', 'N/A')}"):
+            with st.expander(
+                f"Analysis {len(st.session_state.analysis_history) - i}: {entry.get('timestamp', 'N/A')}"
+            ):
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.metric("Findings", entry.get('total_findings', 0))
+                    st.metric("Findings", entry.get("total_findings", 0))
                 with col2:
-                    st.metric("Risk Score", entry.get('risk_score', 0))
+                    st.metric("Risk Score", entry.get("risk_score", 0))
                 with col3:
                     st.markdown(f"**Tools:** {', '.join(entry.get('tools', []))}")
 
@@ -867,11 +879,36 @@ with tab4:
         # Demo data option
         if st.button("Load Demo History"):
             demo_history = [
-                {'timestamp': datetime.now() - timedelta(days=7), 'total_findings': 15, 'risk_score': 72, 'tools': ['slither']},
-                {'timestamp': datetime.now() - timedelta(days=5), 'total_findings': 8, 'risk_score': 45, 'tools': ['slither', 'mythril']},
-                {'timestamp': datetime.now() - timedelta(days=3), 'total_findings': 12, 'risk_score': 58, 'tools': ['slither']},
-                {'timestamp': datetime.now() - timedelta(days=1), 'total_findings': 5, 'risk_score': 28, 'tools': ['slither', 'aderyn']},
-                {'timestamp': datetime.now(), 'total_findings': 3, 'risk_score': 15, 'tools': ['slither', 'mythril']}
+                {
+                    "timestamp": datetime.now() - timedelta(days=7),
+                    "total_findings": 15,
+                    "risk_score": 72,
+                    "tools": ["slither"],
+                },
+                {
+                    "timestamp": datetime.now() - timedelta(days=5),
+                    "total_findings": 8,
+                    "risk_score": 45,
+                    "tools": ["slither", "mythril"],
+                },
+                {
+                    "timestamp": datetime.now() - timedelta(days=3),
+                    "total_findings": 12,
+                    "risk_score": 58,
+                    "tools": ["slither"],
+                },
+                {
+                    "timestamp": datetime.now() - timedelta(days=1),
+                    "total_findings": 5,
+                    "risk_score": 28,
+                    "tools": ["slither", "aderyn"],
+                },
+                {
+                    "timestamp": datetime.now(),
+                    "total_findings": 3,
+                    "risk_score": 15,
+                    "tools": ["slither", "mythril"],
+                },
             ]
             st.session_state.analysis_history = demo_history
             st.rerun()
@@ -894,12 +931,12 @@ with tab5:
                 data=json_report,
                 file_name=f"miesc_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json",
-                use_container_width=True
+                use_container_width=True,
             )
 
         with export_col2:
             # Markdown export
-            findings = results.get('findings', [])
+            findings = results.get("findings", [])
             md_report = f"""# MIESC Security Audit Report
 
 **Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
@@ -930,7 +967,7 @@ with tab5:
                 data=md_report,
                 file_name=f"miesc_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
                 mime="text/markdown",
-                use_container_width=True
+                use_container_width=True,
             )
 
         with export_col3:
@@ -940,22 +977,24 @@ with tab5:
 
             csv_buffer = StringIO()
             writer = csv.writer(csv_buffer)
-            writer.writerow(['Severity', 'Type', 'Tool', 'Description', 'Location'])
+            writer.writerow(["Severity", "Type", "Tool", "Description", "Location"])
             for f in findings:
-                writer.writerow([
-                    f.get('severity', 'Info'),
-                    f.get('type', 'Unknown'),
-                    f.get('tool', 'Unknown'),
-                    f.get('description', ''),
-                    f.get('location', '')
-                ])
+                writer.writerow(
+                    [
+                        f.get("severity", "Info"),
+                        f.get("type", "Unknown"),
+                        f.get("tool", "Unknown"),
+                        f.get("description", ""),
+                        f.get("location", ""),
+                    ]
+                )
 
             st.download_button(
                 label="Download CSV Report",
                 data=csv_buffer.getvalue(),
                 file_name=f"miesc_findings_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
-                use_container_width=True
+                use_container_width=True,
             )
 
         st.markdown("---")
@@ -970,5 +1009,5 @@ with tab5:
 st.markdown("---")
 st.markdown(
     '<p class="footer">MIESC Enhanced Dashboard v4.0.0 | Fernando Boiero | UNDEF - IUA Cordoba</p>',
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )

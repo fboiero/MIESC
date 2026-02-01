@@ -10,16 +10,20 @@ Date: November 11, 2025
 Version: 2.0.0 (Matured)
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional
-import subprocess
 import logging
-import json
-import time
 import re
+import subprocess
+import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 # OpenLLaMA integration for intelligent post-processing
 from src.llm import enhance_findings_with_llm
@@ -65,23 +69,20 @@ class HalmosAdapter(ToolAdapter):
                         "invariant_failures",
                         "assertion_violations",
                         "revert_conditions",
-                        "counterexamples"
-                    ]
+                        "counterexamples",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if Halmos is installed and functional."""
         try:
             result = subprocess.run(
-                ["halmos", "--version"],
-                capture_output=True,
-                timeout=5,
-                text=True
+                ["halmos", "--version"], capture_output=True, timeout=5, text=True
             )
 
             if result.returncode == 0:
@@ -121,7 +122,7 @@ class HalmosAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "Halmos not available. Install: pip install halmos"
+                "error": "Halmos not available. Install: pip install halmos",
             }
 
         try:
@@ -135,7 +136,7 @@ class HalmosAdapter(ToolAdapter):
                 target_path = test_file
             else:
                 # If contract_path is a test file, use it directly
-                if contract_path.endswith('.t.sol'):
+                if contract_path.endswith(".t.sol"):
                     target_path = contract_path
                 else:
                     # Look for corresponding test file
@@ -148,7 +149,7 @@ class HalmosAdapter(ToolAdapter):
                             "status": "success",
                             "findings": [],
                             "execution_time": time.time() - start_time,
-                            "metadata": {"note": "No test file found - skipping Halmos"}
+                            "metadata": {"note": "No test file found - skipping Halmos"},
                         }
 
             # Run Halmos analysis
@@ -159,7 +160,7 @@ class HalmosAdapter(ToolAdapter):
 
             # Read contract code for LLM context
             try:
-                with open(contract_path, 'r', encoding='utf-8') as f:
+                with open(contract_path, "r", encoding="utf-8") as f:
                     contract_code = f.read()
             except Exception as e:
                 logger.warning(f"Could not read contract for LLM enhancement: {e}")
@@ -169,11 +170,9 @@ class HalmosAdapter(ToolAdapter):
             if contract_code and findings:
                 try:
                     findings = enhance_findings_with_llm(
-                        findings=findings,
-                        contract_code=contract_code,
-                        adapter_name="halmos"
+                        findings=findings, contract_code=contract_code, adapter_name="halmos"
                     )
-                    logger.info(f"OpenLLaMA: Enhanced Halmos findings with AI insights")
+                    logger.info("OpenLLaMA: Enhanced Halmos findings with AI insights")
                 except Exception as e:
                     logger.debug(f"OpenLLaMA enhancement skipped: {e}")
 
@@ -182,12 +181,8 @@ class HalmosAdapter(ToolAdapter):
                 "version": "2.0.0",
                 "status": "success",
                 "findings": findings,
-                "metadata": {
-                    "timeout": timeout,
-                    "depth": depth,
-                    "test_file": target_path
-                },
-                "execution_time": time.time() - start_time
+                "metadata": {"timeout": timeout, "depth": depth, "test_file": target_path},
+                "execution_time": time.time() - start_time,
             }
 
         except subprocess.TimeoutExpired:
@@ -197,7 +192,7 @@ class HalmosAdapter(ToolAdapter):
                 "status": "timeout",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": f"Halmos analysis exceeded {timeout}s timeout"
+                "error": f"Halmos analysis exceeded {timeout}s timeout",
             }
         except Exception as e:
             logger.error(f"Halmos analysis error: {e}", exc_info=True)
@@ -207,7 +202,7 @@ class HalmosAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -216,15 +211,11 @@ class HalmosAdapter(ToolAdapter):
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if adapter can analyze the contract."""
-        return Path(contract_path).suffix == '.sol'
+        return Path(contract_path).suffix == ".sol"
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
-        return {
-            "timeout": 300,
-            "depth": 64,
-            "solver_timeout": 100
-        }
+        return {"timeout": 300, "depth": 64, "solver_timeout": 100}
 
     # ============================================================================
     # PRIVATE HELPER METHODS
@@ -240,7 +231,7 @@ class HalmosAdapter(ToolAdapter):
         test_patterns = [
             f"{contract_name}.t.sol",
             f"Test{contract_name}.sol",
-            f"{contract_name}Test.sol"
+            f"{contract_name}Test.sol",
         ]
 
         # Search in common test directories
@@ -248,7 +239,7 @@ class HalmosAdapter(ToolAdapter):
             contract_dir / "test",
             contract_dir.parent / "test",
             contract_dir.parent / "tests",
-            contract_dir
+            contract_dir,
         ]
 
         for test_dir in test_dirs:
@@ -267,20 +258,19 @@ class HalmosAdapter(ToolAdapter):
 
         cmd = [
             "halmos",
-            "--root", str(Path(test_path).parent),
-            "--contract", Path(test_path).stem,
-            "--depth", str(depth),
-            "--verbose"
+            "--root",
+            str(Path(test_path).parent),
+            "--contract",
+            Path(test_path).stem,
+            "--depth",
+            str(depth),
+            "--verbose",
         ]
 
         logger.info(f"Halmos: Running symbolic test analysis (timeout={timeout}s)")
 
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            timeout=timeout,
-            text=True,
-            cwd=Path(test_path).parent
+            cmd, capture_output=True, timeout=timeout, text=True, cwd=Path(test_path).parent
         )
 
         if result.returncode not in [0, 1]:  # 0=pass, 1=fail (expected)
@@ -289,100 +279,96 @@ class HalmosAdapter(ToolAdapter):
         return result.stdout + "\n" + result.stderr
 
     def _parse_halmos_output(
-        self,
-        output: str,
-        contract_path: str,
-        test_path: str
+        self, output: str, contract_path: str, test_path: str
     ) -> List[Dict[str, Any]]:
         """Parse Halmos output and extract findings."""
         findings = []
 
-        lines = output.split('\n')
+        lines = output.split("\n")
 
         # Track test results
         for i, line in enumerate(lines):
             # Detect property violations (test failures)
             if "FAIL" in line or "Counterexample" in line:
                 # Extract test name
-                test_name_match = re.search(r'test\w+', line)
+                test_name_match = re.search(r"test\w+", line)
                 test_name = test_name_match.group(0) if test_name_match else "unknown_test"
 
                 # Look for counterexample details in following lines
                 counterexample = ""
-                for j in range(i+1, min(i+10, len(lines))):
+                for j in range(i + 1, min(i + 10, len(lines))):
                     if lines[j].strip() and not lines[j].startswith("["):
                         counterexample += lines[j].strip() + " "
 
-                findings.append({
-                    "id": f"halmos-{len(findings)+1}",
-                    "title": f"Property Violation: {test_name}",
-                    "description": f"Symbolic test {test_name} failed. {counterexample.strip()}",
-                    "severity": "HIGH",
-                    "confidence": 0.90,  # High confidence - symbolic proof
-                    "category": "property_violation",
-                    "location": {
-                        "file": contract_path,
-                        "test_file": test_path,
-                        "details": f"Test: {test_name}"
-                    },
-                    "recommendation": f"Review test {test_name} and fix the property violation. Counterexample: {counterexample.strip()[:200]}",
-                    "references": [
-                        "https://github.com/a16z/halmos",
-                        f"Test file: {test_path}"
-                    ]
-                })
+                findings.append(
+                    {
+                        "id": f"halmos-{len(findings)+1}",
+                        "title": f"Property Violation: {test_name}",
+                        "description": f"Symbolic test {test_name} failed. {counterexample.strip()}",
+                        "severity": "HIGH",
+                        "confidence": 0.90,  # High confidence - symbolic proof
+                        "category": "property_violation",
+                        "location": {
+                            "file": contract_path,
+                            "test_file": test_path,
+                            "details": f"Test: {test_name}",
+                        },
+                        "recommendation": f"Review test {test_name} and fix the property violation. Counterexample: {counterexample.strip()[:200]}",
+                        "references": ["https://github.com/a16z/halmos", f"Test file: {test_path}"],
+                    }
+                )
 
             # Detect assertion violations
             if "assert" in line.lower() and ("false" in line.lower() or "fail" in line.lower()):
-                findings.append({
-                    "id": f"halmos-{len(findings)+1}",
-                    "title": "Assertion Violation Detected",
-                    "description": line.strip(),
-                    "severity": "HIGH",
-                    "confidence": 0.88,
-                    "category": "assertion_violation",
-                    "location": {
-                        "file": contract_path,
-                        "test_file": test_path,
-                        "details": "Detected during symbolic execution"
-                    },
-                    "recommendation": "Review assertion conditions and ensure they hold for all possible inputs",
-                    "references": ["https://github.com/a16z/halmos/wiki/Assertions"]
-                })
+                findings.append(
+                    {
+                        "id": f"halmos-{len(findings)+1}",
+                        "title": "Assertion Violation Detected",
+                        "description": line.strip(),
+                        "severity": "HIGH",
+                        "confidence": 0.88,
+                        "category": "assertion_violation",
+                        "location": {
+                            "file": contract_path,
+                            "test_file": test_path,
+                            "details": "Detected during symbolic execution",
+                        },
+                        "recommendation": "Review assertion conditions and ensure they hold for all possible inputs",
+                        "references": ["https://github.com/a16z/halmos/wiki/Assertions"],
+                    }
+                )
 
             # Detect revert conditions
             if "revert" in line.lower() and "unexpected" in line.lower():
-                findings.append({
-                    "id": f"halmos-{len(findings)+1}",
-                    "title": "Unexpected Revert Condition",
-                    "description": line.strip(),
-                    "severity": "MEDIUM",
-                    "confidence": 0.75,
-                    "category": "revert_condition",
-                    "location": {
-                        "file": contract_path,
-                        "test_file": test_path
-                    },
-                    "recommendation": "Verify that revert conditions are intentional and properly documented",
-                    "references": ["https://github.com/a16z/halmos"]
-                })
+                findings.append(
+                    {
+                        "id": f"halmos-{len(findings)+1}",
+                        "title": "Unexpected Revert Condition",
+                        "description": line.strip(),
+                        "severity": "MEDIUM",
+                        "confidence": 0.75,
+                        "category": "revert_condition",
+                        "location": {"file": contract_path, "test_file": test_path},
+                        "recommendation": "Verify that revert conditions are intentional and properly documented",
+                        "references": ["https://github.com/a16z/halmos"],
+                    }
+                )
 
         # Check for successful execution
         if "PASS" in output and not findings:
-            findings.append({
-                "id": "halmos-pass",
-                "title": "All Symbolic Tests Passed",
-                "description": f"Halmos successfully verified all properties in {Path(test_path).name}",
-                "severity": "INFO",
-                "confidence": 1.0,
-                "category": "verification_success",
-                "location": {
-                    "file": contract_path,
-                    "test_file": test_path
-                },
-                "recommendation": "Properties verified symbolically - good test coverage",
-                "references": [f"Test file: {test_path}"]
-            })
+            findings.append(
+                {
+                    "id": "halmos-pass",
+                    "title": "All Symbolic Tests Passed",
+                    "description": f"Halmos successfully verified all properties in {Path(test_path).name}",
+                    "severity": "INFO",
+                    "confidence": 1.0,
+                    "category": "verification_success",
+                    "location": {"file": contract_path, "test_file": test_path},
+                    "recommendation": "Properties verified symbolically - good test coverage",
+                    "references": [f"Test file: {test_path}"],
+                }
+            )
 
         logger.info(f"Halmos: Extracted {len(findings)} findings")
         return findings

@@ -15,14 +15,15 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
-import pytest
-import sys
 import importlib.util
-from typing import Dict, Any, List
+import sys
 from pathlib import Path
+
+import pytest
 
 # Direct module imports to avoid circular import issues
 # This bypasses the __init__.py which has circular dependencies
+
 
 def _import_module_directly(module_path: str, module_name: str):
     """Import a module directly from file path without going through __init__.py"""
@@ -32,13 +33,12 @@ def _import_module_directly(module_path: str, module_name: str):
     spec.loader.exec_module(module)
     return module
 
+
 # Get base path
 BASE_PATH = Path(__file__).parent.parent / "src" / "ml"
 
 # Import v4.6.0 modules directly
-call_graph_module = _import_module_directly(
-    str(BASE_PATH / "call_graph.py"), "call_graph_test"
-)
+call_graph_module = _import_module_directly(str(BASE_PATH / "call_graph.py"), "call_graph_test")
 Visibility = call_graph_module.Visibility
 Mutability = call_graph_module.Mutability
 FunctionNode = call_graph_module.FunctionNode
@@ -49,9 +49,7 @@ CallGraphBuilder = call_graph_module.CallGraphBuilder
 build_call_graph = call_graph_module.build_call_graph
 analyze_reentrancy_risk = call_graph_module.analyze_reentrancy_risk
 
-taint_module = _import_module_directly(
-    str(BASE_PATH / "taint_analysis.py"), "taint_analysis_test"
-)
+taint_module = _import_module_directly(str(BASE_PATH / "taint_analysis.py"), "taint_analysis_test")
 TaintSource = taint_module.TaintSource
 TaintSink = taint_module.TaintSink
 SanitizerType = taint_module.SanitizerType
@@ -97,7 +95,7 @@ SmartCorrelationEngine = correlation_module.SmartCorrelationEngine
 # TEST DATA
 # =============================================================================
 
-VULNERABLE_CONTRACT = '''
+VULNERABLE_CONTRACT = """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -131,9 +129,9 @@ contract VulnerableBank {
         }
     }
 }
-'''
+"""
 
-SAFE_CONTRACT = '''
+SAFE_CONTRACT = """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -165,12 +163,13 @@ contract SafeBank is ReentrancyGuard, Ownable {
         // fee = _fee;
     }
 }
-'''
+"""
 
 
 # =============================================================================
 # CALL GRAPH TESTS
 # =============================================================================
+
 
 class TestCallGraph:
     """Tests for Call Graph module."""
@@ -185,7 +184,7 @@ class TestCallGraph:
         )
 
         assert node.name == "withdraw"
-        assert node.is_entry_point == True
+        assert node.is_entry_point
         assert node.visibility == Visibility.PUBLIC
         assert "nonReentrant" in node.modifiers
 
@@ -196,10 +195,10 @@ class TestCallGraph:
         internal_func = FunctionNode("test", Visibility.INTERNAL)
         private_func = FunctionNode("test", Visibility.PRIVATE)
 
-        assert public_func.is_entry_point == True
-        assert external_func.is_entry_point == True
-        assert internal_func.is_entry_point == False
-        assert private_func.is_entry_point == False
+        assert public_func.is_entry_point
+        assert external_func.is_entry_point
+        assert not internal_func.is_entry_point
+        assert not private_func.is_entry_point
 
     def test_call_graph_basic(self):
         """Test basic call graph operations."""
@@ -251,40 +250,41 @@ class TestCallGraph:
         """Test reentrancy risk detection."""
         result = analyze_reentrancy_risk(VULNERABLE_CONTRACT)
 
-        assert 'summary' in result
-        assert 'total_functions' in result['summary']
+        assert "summary" in result
+        assert "total_functions" in result["summary"]
 
 
 # =============================================================================
 # TAINT ANALYSIS TESTS
 # =============================================================================
 
+
 class TestTaintAnalysis:
     """Tests for Taint Analysis module."""
 
     def test_taint_source_detection(self):
         """Test detection of taint sources."""
-        code = '''
+        code = """
         function test() public {
             address sender = msg.sender;
             uint256 value = msg.value;
         }
-        '''
+        """
 
         analyzer = TaintAnalyzer()
-        paths = analyzer.analyze(code)
+        analyzer.analyze(code)
 
         # Should detect msg.sender and msg.value as taint sources
         assert len(analyzer._tainted_vars) >= 2
 
     def test_taint_propagation(self):
         """Test taint propagation through assignments."""
-        code = '''
+        code = """
         function test() public {
             address sender = msg.sender;
             address recipient = sender;
         }
-        '''
+        """
 
         analyzer = TaintAnalyzer()
         analyzer.analyze(code)
@@ -295,37 +295,38 @@ class TestTaintAnalysis:
 
     def test_tainted_sink_detection(self):
         """Test detection of tainted data reaching sinks."""
-        code = '''
+        code = """
         function test(address target) public {
             target.call("");
         }
-        '''
+        """
 
         result = analyze_taint(code)
 
         # Should detect parameter flowing to call
-        assert 'vulnerable_paths' in result
+        assert "vulnerable_paths" in result
 
     def test_sanitizer_detection(self):
         """Test that sanitizers are detected."""
-        code = '''
+        code = """
         function test(address target) public {
             require(target != address(0), "Invalid");
             target.call("");
         }
-        '''
+        """
 
         analyzer = TaintAnalyzer()
-        paths = analyzer.analyze(code)
+        analyzer.analyze(code)
 
         # Paths should potentially be marked as sanitized
         summary = analyzer.get_summary()
-        assert 'sanitized_paths' in summary
+        assert "sanitized_paths" in summary
 
 
 # =============================================================================
 # SLITHER IR PARSER TESTS
 # =============================================================================
+
 
 class TestSlitherIRParser:
     """Tests for Slither IR Parser module."""
@@ -379,9 +380,9 @@ class TestSlitherIRParser:
                                     "visibility": "public",
                                     "state_variables_read": [{"name": "balance"}],
                                     "state_variables_written": [{"name": "balance"}],
-                                }
+                                },
                             }
-                        ]
+                        ],
                     }
                 ]
             }
@@ -397,6 +398,7 @@ class TestSlitherIRParser:
 # =============================================================================
 # FALSE POSITIVE FILTER TESTS
 # =============================================================================
+
 
 class TestFalsePositiveFilter:
     """Tests for Enhanced FP Filter."""
@@ -442,9 +444,7 @@ class TestFalsePositiveFilter:
             "confidence": 0.90,
         }
 
-        adjusted = fp_filter.adjust_confidence_by_detector(
-            finding, "reentrancy-benign"
-        )
+        adjusted = fp_filter.adjust_confidence_by_detector(finding, "reentrancy-benign")
 
         # Confidence should be reduced due to high FP rate
         assert adjusted["confidence"] < finding["confidence"]
@@ -464,9 +464,7 @@ class TestSemanticContextAnalyzer:
         analyzer = SemanticContextAnalyzer()
 
         finding = {"type": "reentrancy-eth"}
-        result = analyzer.analyze_finding_context(
-            finding, SAFE_CONTRACT
-        )
+        result = analyzer.analyze_finding_context(finding, SAFE_CONTRACT)
 
         # Should detect ReentrancyGuard
         assert result["confidence_adjustment"] < 0
@@ -477,13 +475,13 @@ class TestSemanticContextAnalyzer:
         analyzer = SemanticContextAnalyzer()
 
         # Code with CEI pattern
-        cei_code = '''
+        cei_code = """
         function withdraw() public {
             uint256 balance = balances[msg.sender];
             balances[msg.sender] = 0;  // Effect before interaction
             (bool success, ) = msg.sender.call{value: balance}("");
         }
-        '''
+        """
 
         finding = {"type": "reentrancy"}
         result = analyzer.analyze_finding_context(finding, cei_code)
@@ -496,27 +494,28 @@ class TestSemanticContextAnalyzer:
         """Test Solidity version detection."""
         analyzer = SemanticContextAnalyzer()
 
-        code_08 = '''
+        code_08 = """
         pragma solidity ^0.8.0;
         contract Test {}
-        '''
+        """
 
-        code_07 = '''
+        code_07 = """
         pragma solidity ^0.7.0;
         contract Test {}
-        '''
+        """
 
         finding = {"type": "arithmetic"}
         result_08 = analyzer.analyze_finding_context(finding, code_08)
         result_07 = analyzer.analyze_finding_context(finding, code_07)
 
-        assert result_08["has_overflow_protection"] == True
-        assert result_07["has_overflow_protection"] == False
+        assert result_08["has_overflow_protection"]
+        assert not result_07["has_overflow_protection"]
 
 
 # =============================================================================
 # ACCESS CONTROL DETECTOR TESTS
 # =============================================================================
+
 
 class TestAccessControlSemanticDetector:
     """Tests for Access Control Semantic Detector."""
@@ -547,7 +546,7 @@ class TestAccessControlSemanticDetector:
 
     def test_uninitialized_owner_detection(self):
         """Test detection of uninitialized owner."""
-        code = '''
+        code = """
         contract Test {
             address owner;  // Not initialized
 
@@ -555,12 +554,12 @@ class TestAccessControlSemanticDetector:
                 require(msg.sender == owner);
             }
         }
-        '''
+        """
 
         detector = AccessControlSemanticDetector()
         findings = detector.analyze(code)
 
-        vuln_types = [f.vuln_type for f in findings]
+        [f.vuln_type for f in findings]
         # May or may not detect depending on implementation
         assert isinstance(findings, list)
 
@@ -581,6 +580,7 @@ class TestAccessControlSemanticDetector:
 # DoS DETECTOR TESTS
 # =============================================================================
 
+
 class TestDoSCrossFunctionDetector:
     """Tests for DoS Cross-Function Detector."""
 
@@ -600,7 +600,7 @@ class TestDoSCrossFunctionDetector:
 
     def test_push_payment_detection(self):
         """Test detection of push payment pattern."""
-        code = '''
+        code = """
         contract Test {
             address[] users;
 
@@ -610,13 +610,13 @@ class TestDoSCrossFunctionDetector:
                 }
             }
         }
-        '''
+        """
 
         detector = DoSCrossFunctionDetector()
         findings = detector.analyze(code)
 
         # Should detect push payment in loop
-        vuln_types = [f.vuln_type for f in findings]
+        [f.vuln_type for f in findings]
         assert len(findings) > 0
 
     def test_to_findings_format(self):
@@ -635,22 +635,23 @@ class TestDoSCrossFunctionDetector:
 # CROSS-VALIDATION TESTS
 # =============================================================================
 
+
 class TestCrossValidation:
     """Tests for Cross-Validation enforcement."""
 
     def test_cross_validation_required_set(self):
         """Test that CROSS_VALIDATION_REQUIRED is defined."""
         engine = SmartCorrelationEngine()
-        assert hasattr(engine, 'CROSS_VALIDATION_REQUIRED')
+        assert hasattr(engine, "CROSS_VALIDATION_REQUIRED")
         assert "reentrancy" in engine.CROSS_VALIDATION_REQUIRED
 
     def test_requires_cross_validation(self):
         """Test the requires_cross_validation method."""
         engine = SmartCorrelationEngine()
 
-        assert engine.requires_cross_validation("reentrancy-eth") == True
-        assert engine.requires_cross_validation("arbitrary-send") == True
-        assert engine.requires_cross_validation("naming-convention") == False
+        assert engine.requires_cross_validation("reentrancy-eth")
+        assert engine.requires_cross_validation("arbitrary-send")
+        assert not engine.requires_cross_validation("naming-convention")
 
     def test_single_tool_confidence_cap(self):
         """Test that single-tool critical findings are capped."""
@@ -685,6 +686,7 @@ class TestCrossValidation:
 # INTEGRATION TESTS
 # =============================================================================
 
+
 class TestV460Integration:
     """Integration tests for v4.6.0 modules."""
 
@@ -692,16 +694,12 @@ class TestV460Integration:
         """Test combined semantic vulnerability detection."""
         results = detect_semantic_vulnerabilities(VULNERABLE_CONTRACT)
 
-        assert 'access_control' in results
-        assert 'dos' in results
-        assert 'classic' in results
+        assert "access_control" in results
+        assert "dos" in results
+        assert "classic" in results
 
         # Should find vulnerabilities
-        total = (
-            len(results['access_control']) +
-            len(results['dos']) +
-            len(results['classic'])
-        )
+        total = len(results["access_control"]) + len(results["dos"]) + len(results["classic"])
         assert total > 0
 
     def test_full_analysis_pipeline(self):

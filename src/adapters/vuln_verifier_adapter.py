@@ -15,7 +15,7 @@ import logging
 import re
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -95,7 +95,8 @@ class VulnVerifierAdapter(ToolAdapter):
     def is_available(self) -> ToolStatus:
         if self._z3_available is None:
             try:
-                import z3
+                import z3  # noqa: F401
+
                 self._z3_available = True
             except ImportError:
                 self._z3_available = False
@@ -261,11 +262,13 @@ class VulnVerifierAdapter(ToolAdapter):
         has_check = False
 
         if 0 < line <= len(lines):
-            context = "\n".join(lines[max(0, line - 10):min(len(lines), line + 10)])
-            has_check = bool(re.search(
-                r"require\s*\(\s*msg\.sender\s*==\s*owner|onlyOwner|_checkOwner|onlyRole",
-                context,
-            ))
+            context = "\n".join(lines[max(0, line - 10) : min(len(lines), line + 10)])
+            has_check = bool(
+                re.search(
+                    r"require\s*\(\s*msg\.sender\s*==\s*owner|onlyOwner|_checkOwner|onlyRole",
+                    context,
+                )
+            )
 
         if not has_check:
             return {
@@ -305,7 +308,11 @@ class VulnVerifierAdapter(ToolAdapter):
         if check == z3.sat:
             # Check for guards in source
             lines = source.split("\n")
-            context = "\n".join(lines[max(0, line - 15):min(len(lines), line + 15)]) if line > 0 else source[:2000]
+            context = (
+                "\n".join(lines[max(0, line - 15) : min(len(lines), line + 15)])
+                if line > 0
+                else source[:2000]
+            )
             has_guard = bool(re.search(r"nonReentrant|ReentrancyGuard|_reentrancyGuard", context))
 
             if has_guard:
@@ -348,7 +355,7 @@ class VulnVerifierAdapter(ToolAdapter):
 
         context = ""
         if 0 < line <= len(lines):
-            context = "\n".join(lines[max(0, line - 10):min(len(lines), line + 10)])
+            context = "\n".join(lines[max(0, line - 10) : min(len(lines), line + 10)])
 
         # Check for common guards
         guards = [
@@ -419,22 +426,24 @@ class VulnVerifierAdapter(ToolAdapter):
             if ce:
                 msg += f" | Counter-example: {ce}"
 
-            findings.append({
-                "id": f"VRF-{finding_id}",
-                "type": f"{type_prefix}_{strategy}",
-                "severity": severity,
-                "confidence": item.get("confidence", 0.50),
-                "location": {
-                    "file": item.get("file", original.get("location", {}).get("file", "")),
-                    "line": item.get("line", original.get("location", {}).get("line", 0)),
-                    "function": original.get("location", {}).get("function", ""),
-                },
-                "message": msg,
-                "description": f"Z3 verification: {item.get('reason', status)}",
-                "recommendation": original.get("recommendation", "Review verification result"),
-                "swc_id": original.get("swc_id"),
-                "cwe_id": original.get("cwe_id"),
-                "tool": "vuln_verifier",
-            })
+            findings.append(
+                {
+                    "id": f"VRF-{finding_id}",
+                    "type": f"{type_prefix}_{strategy}",
+                    "severity": severity,
+                    "confidence": item.get("confidence", 0.50),
+                    "location": {
+                        "file": item.get("file", original.get("location", {}).get("file", "")),
+                        "line": item.get("line", original.get("location", {}).get("line", 0)),
+                        "function": original.get("location", {}).get("function", ""),
+                    },
+                    "message": msg,
+                    "description": f"Z3 verification: {item.get('reason', status)}",
+                    "recommendation": original.get("recommendation", "Review verification result"),
+                    "swc_id": original.get("swc_id"),
+                    "cwe_id": original.get("cwe_id"),
+                    "tool": "vuln_verifier",
+                }
+            )
 
         return findings

@@ -34,14 +34,12 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from src.core.chain_abstraction import (
     AbstractChainAnalyzer,
     AbstractContract,
-    AbstractEvent,
     AbstractFunction,
-    AbstractVariable,
     ChainType,
     ContractLanguage,
     Location,
@@ -186,7 +184,9 @@ class PlutusParser:
     IMPORT_PATTERN = r"import\s+(?:qualified\s+)?(\w+(?:\.\w+)*)"
 
     # Validator patterns
-    VALIDATOR_PATTERN = r"mkValidator\s*::\s*([^-]+)\s*->\s*([^-]+)\s*->\s*ScriptContext\s*->\s*Bool"
+    VALIDATOR_PATTERN = (
+        r"mkValidator\s*::\s*([^-]+)\s*->\s*([^-]+)\s*->\s*ScriptContext\s*->\s*Bool"
+    )
     MINTING_PATTERN = r"mkMintingPolicy\s*::\s*([^-]+)\s*->\s*ScriptContext\s*->\s*Bool"
 
     # Type patterns
@@ -263,24 +263,28 @@ class PlutusParser:
         for match in re.finditer(self.DATA_PATTERN, content):
             type_name = match.group(1)
             constructors = match.group(2).strip()
-            types.append({
-                "name": type_name,
-                "constructors": [c.strip() for c in constructors.split("|")],
-            })
+            types.append(
+                {
+                    "name": type_name,
+                    "constructors": [c.strip() for c in constructors.split("|")],
+                }
+            )
 
         for match in re.finditer(self.NEWTYPE_PATTERN, content):
             type_name = match.group(1)
-            types.append({
-                "name": type_name,
-                "newtype": True,
-            })
+            types.append(
+                {
+                    "name": type_name,
+                    "newtype": True,
+                }
+            )
 
         return types
 
     def _parse_validators(self, content: str) -> List[PlutusValidator]:
         """Parse validator definitions."""
         validators = []
-        lines = content.split("\n")
+        content.split("\n")
 
         for match in re.finditer(self.VALIDATOR_PATTERN, content):
             datum_type = match.group(1).strip()
@@ -288,7 +292,7 @@ class PlutusParser:
 
             # Find the function body
             start_pos = match.end()
-            line_no = content[:match.start()].count("\n") + 1
+            line_no = content[: match.start()].count("\n") + 1
 
             # Extract body (simplified)
             body = self._extract_function_body(content, start_pos)
@@ -316,7 +320,7 @@ class PlutusParser:
         for match in re.finditer(self.MINTING_PATTERN, content):
             redeemer_type = match.group(1).strip()
             start_pos = match.end()
-            line_no = content[:match.start()].count("\n") + 1
+            line_no = content[: match.start()].count("\n") + 1
 
             body = self._extract_function_body(content, start_pos)
 
@@ -448,23 +452,25 @@ class AikenParser:
         for match in re.finditer(self.TYPE_PATTERN, content):
             type_name = match.group(1)
             fields = match.group(2).strip()
-            types.append({
-                "name": type_name,
-                "fields": fields,
-            })
+            types.append(
+                {
+                    "name": type_name,
+                    "fields": fields,
+                }
+            )
 
         return types
 
     def _parse_validators(self, content: str, path: Path) -> List[AikenValidator]:
         """Parse validator definitions."""
         validators = []
-        lines = content.split("\n")
+        content.split("\n")
 
         for match in re.finditer(self.VALIDATOR_PATTERN, content):
             name = match.group(1)
             params_str = match.group(2) or ""
             start_pos = match.end()
-            line_no = content[:match.start()].count("\n") + 1
+            line_no = content[: match.start()].count("\n") + 1
 
             body = self._extract_body(content, start_pos)
             when_clauses = self._find_when_clauses(body)
@@ -515,7 +521,7 @@ class AikenParser:
                 brace_count -= 1
             pos += 1
 
-        return content[start_pos:pos - 1]
+        return content[start_pos : pos - 1]
 
     def _find_when_clauses(self, body: str) -> List[str]:
         """Find when/pattern match clauses."""
@@ -604,48 +610,56 @@ class CardanoPatternDetector:
         for validator in contract.validators:
             # Check for missing datum validation
             if not validator.has_datum_check:
-                findings.append({
-                    "type": CardanoVulnerability.MISSING_DATUM_VALIDATION.value,
-                    "validator": validator.name,
-                    "line": validator.location.line if validator.location else 0,
-                    "message": f"Validator '{validator.name}' may not properly validate datum",
-                    "severity": "High",
-                    "recommendation": "Use findDatum/getDatum and validate datum contents",
-                })
+                findings.append(
+                    {
+                        "type": CardanoVulnerability.MISSING_DATUM_VALIDATION.value,
+                        "validator": validator.name,
+                        "line": validator.location.line if validator.location else 0,
+                        "message": f"Validator '{validator.name}' may not properly validate datum",
+                        "severity": "High",
+                        "recommendation": "Use findDatum/getDatum and validate datum contents",
+                    }
+                )
 
             # Check for missing signer check
             if not validator.has_signer_check:
-                findings.append({
-                    "type": CardanoVulnerability.MISSING_SIGNER_CHECK.value,
-                    "validator": validator.name,
-                    "line": validator.location.line if validator.location else 0,
-                    "message": f"Validator '{validator.name}' may not check transaction signers",
-                    "severity": "High",
-                    "recommendation": "Use txSignedBy to verify required signatures",
-                })
+                findings.append(
+                    {
+                        "type": CardanoVulnerability.MISSING_SIGNER_CHECK.value,
+                        "validator": validator.name,
+                        "line": validator.location.line if validator.location else 0,
+                        "message": f"Validator '{validator.name}' may not check transaction signers",
+                        "severity": "High",
+                        "recommendation": "Use txSignedBy to verify required signatures",
+                    }
+                )
 
             # Check for missing value validation
             if not validator.has_value_check:
-                findings.append({
-                    "type": CardanoVulnerability.VALUE_NOT_PRESERVED.value,
-                    "validator": validator.name,
-                    "line": validator.location.line if validator.location else 0,
-                    "message": f"Validator '{validator.name}' may not validate value preservation",
-                    "severity": "Medium",
-                    "recommendation": "Verify output values match expected amounts",
-                })
+                findings.append(
+                    {
+                        "type": CardanoVulnerability.VALUE_NOT_PRESERVED.value,
+                        "validator": validator.name,
+                        "line": validator.location.line if validator.location else 0,
+                        "message": f"Validator '{validator.name}' may not validate value preservation",
+                        "severity": "Medium",
+                        "recommendation": "Verify output values match expected amounts",
+                    }
+                )
 
         # Check minting policies
         for policy in contract.minting_policies:
             if not policy.has_signer_check:
-                findings.append({
-                    "type": CardanoVulnerability.UNAUTHORIZED_MINTING.value,
-                    "policy": policy.name,
-                    "line": policy.location.line if policy.location else 0,
-                    "message": f"Minting policy '{policy.name}' may allow unauthorized minting",
-                    "severity": "Critical",
-                    "recommendation": "Add signer verification to minting policy",
-                })
+                findings.append(
+                    {
+                        "type": CardanoVulnerability.UNAUTHORIZED_MINTING.value,
+                        "policy": policy.name,
+                        "line": policy.location.line if policy.location else 0,
+                        "message": f"Minting policy '{policy.name}' may allow unauthorized minting",
+                        "severity": "Critical",
+                        "recommendation": "Add signer verification to minting policy",
+                    }
+                )
 
         # Global content checks
         findings.extend(cls._check_global_patterns(content))
@@ -658,74 +672,85 @@ class CardanoPatternDetector:
     ) -> List[Dict[str, Any]]:
         """Detect vulnerabilities in Aiken code."""
         findings = []
-        lines = content.split("\n")
+        content.split("\n")
 
         # Check validators
         for validator in contract.validators:
-            body = validator.body if hasattr(validator, 'body') else ""
+            body = validator.body if hasattr(validator, "body") else ""
 
             # Check for signer verification
-            has_signer = bool(re.search(
-                r"list\.has.*signator|must_be_signed|extra_signatories",
-                body, re.IGNORECASE
-            ))
+            has_signer = bool(
+                re.search(
+                    r"list\.has.*signator|must_be_signed|extra_signatories", body, re.IGNORECASE
+                )
+            )
             if not has_signer:
-                findings.append({
-                    "type": CardanoVulnerability.MISSING_SIGNER_CHECK.value,
-                    "validator": validator.name,
-                    "line": validator.location.line if validator.location else 0,
-                    "message": f"Validator '{validator.name}' may not check transaction signers",
-                    "severity": "High",
-                    "recommendation": "Add list.has(signatories, required_signer) check",
-                })
+                findings.append(
+                    {
+                        "type": CardanoVulnerability.MISSING_SIGNER_CHECK.value,
+                        "validator": validator.name,
+                        "line": validator.location.line if validator.location else 0,
+                        "message": f"Validator '{validator.name}' may not check transaction signers",
+                        "severity": "High",
+                        "recommendation": "Add list.has(signatories, required_signer) check",
+                    }
+                )
 
             # Check for datum validation
             has_datum = bool(re.search(r"expect.*datum|datum\s*:", body, re.IGNORECASE))
             if not has_datum and validator.datum_type:
-                findings.append({
-                    "type": CardanoVulnerability.MISSING_DATUM_VALIDATION.value,
-                    "validator": validator.name,
-                    "line": validator.location.line if validator.location else 0,
-                    "message": f"Validator '{validator.name}' may not validate datum properly",
-                    "severity": "High",
-                    "recommendation": "Use expect to destructure and validate datum",
-                })
+                findings.append(
+                    {
+                        "type": CardanoVulnerability.MISSING_DATUM_VALIDATION.value,
+                        "validator": validator.name,
+                        "line": validator.location.line if validator.location else 0,
+                        "message": f"Validator '{validator.name}' may not validate datum properly",
+                        "severity": "High",
+                        "recommendation": "Use expect to destructure and validate datum",
+                    }
+                )
 
             # Check for incomplete pattern matching
-            when_clauses = validator.when_clauses if hasattr(validator, 'when_clauses') else []
+            when_clauses = validator.when_clauses if hasattr(validator, "when_clauses") else []
             if not any("_" in c or "else" in c.lower() for c in when_clauses):
                 # No catch-all pattern
                 if when_clauses:
-                    findings.append({
-                        "type": CardanoVulnerability.INCOMPLETE_PATTERN_MATCH.value,
-                        "validator": validator.name,
-                        "line": validator.location.line if validator.location else 0,
-                        "message": f"Validator '{validator.name}' may have incomplete pattern matching",
-                        "severity": "Medium",
-                        "recommendation": "Add a catch-all pattern (_) or ensure all cases are covered",
-                    })
+                    findings.append(
+                        {
+                            "type": CardanoVulnerability.INCOMPLETE_PATTERN_MATCH.value,
+                            "validator": validator.name,
+                            "line": validator.location.line if validator.location else 0,
+                            "message": f"Validator '{validator.name}' may have incomplete pattern matching",
+                            "severity": "Medium",
+                            "recommendation": "Add a catch-all pattern (_) or ensure all cases are covered",
+                        }
+                    )
 
         # Check for double satisfaction risks
         if re.search(r"inputs.*filter|filter.*inputs", content):
             if not re.search(r"outputs_at|output.*script", content):
-                findings.append({
-                    "type": CardanoVulnerability.DOUBLE_SATISFACTION.value,
-                    "line": 1,
-                    "message": "Potential double satisfaction vulnerability - inputs processed without output verification",
-                    "severity": "Critical",
-                    "recommendation": "Verify outputs are sent to correct addresses/scripts",
-                })
+                findings.append(
+                    {
+                        "type": CardanoVulnerability.DOUBLE_SATISFACTION.value,
+                        "line": 1,
+                        "message": "Potential double satisfaction vulnerability - inputs processed without output verification",
+                        "severity": "Critical",
+                        "recommendation": "Verify outputs are sent to correct addresses/scripts",
+                    }
+                )
 
         # Check for time validity
         if re.search(r"deadline|expir|timeout", content, re.IGNORECASE):
             if not re.search(r"validity_range|valid_(before|after)", content):
-                findings.append({
-                    "type": CardanoVulnerability.TIME_VALIDITY_BYPASS.value,
-                    "line": 1,
-                    "message": "Time-sensitive logic without validity range check",
-                    "severity": "High",
-                    "recommendation": "Use validity_range to enforce time constraints",
-                })
+                findings.append(
+                    {
+                        "type": CardanoVulnerability.TIME_VALIDITY_BYPASS.value,
+                        "line": 1,
+                        "message": "Time-sensitive logic without validity range check",
+                        "severity": "High",
+                        "recommendation": "Use validity_range to enforce time constraints",
+                    }
+                )
 
         return findings
 
@@ -737,23 +762,27 @@ class CardanoPatternDetector:
         # Check for potential unbounded computation
         if re.search(r"foldr|foldl|map\s+\(", content):
             if re.search(r"all\s+inputs|all\s+outputs", content):
-                findings.append({
-                    "type": CardanoVulnerability.UNBOUNDED_COMPUTATION.value,
-                    "line": 1,
-                    "message": "Potential unbounded computation over all inputs/outputs",
-                    "severity": "Medium",
-                    "recommendation": "Consider limiting iterations to prevent exceeding execution units",
-                })
+                findings.append(
+                    {
+                        "type": CardanoVulnerability.UNBOUNDED_COMPUTATION.value,
+                        "line": 1,
+                        "message": "Potential unbounded computation over all inputs/outputs",
+                        "severity": "Medium",
+                        "recommendation": "Consider limiting iterations to prevent exceeding execution units",
+                    }
+                )
 
         # Check for missing script context validation
         if not re.search(r"ScriptContext|script_context|ctx\.", content):
-            findings.append({
-                "type": CardanoVulnerability.MISSING_CONTEXT_CHECK.value,
-                "line": 1,
-                "message": "Script may not properly use ScriptContext",
-                "severity": "Medium",
-                "recommendation": "Validate relevant fields from ScriptContext",
-            })
+            findings.append(
+                {
+                    "type": CardanoVulnerability.MISSING_CONTEXT_CHECK.value,
+                    "line": 1,
+                    "message": "Script may not properly use ScriptContext",
+                    "severity": "Medium",
+                    "recommendation": "Validate relevant fields from ScriptContext",
+                }
+            )
 
         return findings
 
@@ -915,18 +944,20 @@ class CardanoAnalyzer(AbstractChainAnalyzer):
             )
 
         for f in vuln_findings:
-            findings.append(self.normalize_finding(
-                vuln_type=f["type"],
-                severity=f["severity"],
-                message=f["message"],
-                location=Location(
-                    file=contract.source_path,
-                    line=f.get("line", 0),
-                ),
-                validator=f.get("validator"),
-                policy=f.get("policy"),
-                recommendation=f.get("recommendation"),
-            ))
+            findings.append(
+                self.normalize_finding(
+                    vuln_type=f["type"],
+                    severity=f["severity"],
+                    message=f["message"],
+                    location=Location(
+                        file=contract.source_path,
+                        line=f.get("line", 0),
+                    ),
+                    validator=f.get("validator"),
+                    policy=f.get("policy"),
+                    recommendation=f.get("recommendation"),
+                )
+            )
 
         return findings
 

@@ -18,19 +18,20 @@ Date: January 2026
 """
 
 import asyncio
+import hashlib
 import json
 import logging
-import hashlib
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class LLMProvider(Enum):
     """Supported LLM providers."""
+
     OLLAMA = "ollama"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -38,16 +39,19 @@ class LLMProvider(Enum):
 
 class ProviderUnavailable(Exception):
     """Exception raised when a provider is unavailable."""
+
     pass
 
 
 class AllProvidersUnavailable(Exception):
     """Exception raised when all providers are unavailable."""
+
     pass
 
 
 class VotingStrategy(Enum):
     """Voting strategies for ensemble."""
+
     MAJORITY = "majority"  # Finding valid if >= 50% models agree
     UNANIMOUS = "unanimous"  # All models must agree
     WEIGHTED = "weighted"  # Weighted by model expertise
@@ -57,6 +61,7 @@ class VotingStrategy(Enum):
 @dataclass
 class EnsembleFinding:
     """A finding validated by ensemble voting."""
+
     type: str
     severity: str
     title: str
@@ -76,6 +81,7 @@ class EnsembleFinding:
 @dataclass
 class EnsembleResult:
     """Result from ensemble detection."""
+
     findings: List[EnsembleFinding]
     models_used: List[str]
     models_available: List[str]
@@ -104,26 +110,26 @@ class LLMEnsembleDetector:
     # Provider-specific model configurations (v4.4.0)
     PROVIDER_MODELS = {
         LLMProvider.OLLAMA: [
-            "deepseek-coder:6.7b",   # Primary - best for code
-            "codellama:7b",           # Secondary - code specialist
-            "llama3.1:8b",            # Tertiary - general reasoning
+            "deepseek-coder:6.7b",  # Primary - best for code
+            "codellama:7b",  # Secondary - code specialist
+            "llama3.1:8b",  # Tertiary - general reasoning
         ],
         LLMProvider.OPENAI: [
-            "gpt-4-turbo",            # Best for complex analysis
-            "gpt-4o",                 # Fast and capable
-            "gpt-3.5-turbo",          # Fallback
+            "gpt-4-turbo",  # Best for complex analysis
+            "gpt-4o",  # Fast and capable
+            "gpt-3.5-turbo",  # Fallback
         ],
         LLMProvider.ANTHROPIC: [
-            "claude-3-5-sonnet-20241022",   # Best for code analysis
-            "claude-3-haiku-20240307",       # Fast and efficient
+            "claude-3-5-sonnet-20241022",  # Best for code analysis
+            "claude-3-haiku-20240307",  # Fast and efficient
         ],
     }
 
     # Default models for ensemble (ordered by priority)
     DEFAULT_MODELS = [
-        "deepseek-coder:6.7b",   # Primary - best for code
-        "codellama:7b",           # Secondary - code specialist
-        "llama3.1:8b",            # Tertiary - general reasoning
+        "deepseek-coder:6.7b",  # Primary - best for code
+        "codellama:7b",  # Secondary - code specialist
+        "llama3.1:8b",  # Tertiary - general reasoning
     ]
 
     # Model weights based on code analysis expertise
@@ -248,8 +254,7 @@ Response (JSON array only):"""
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(
-                        f"{self.base_url}/api/tags",
-                        timeout=aiohttp.ClientTimeout(total=10)
+                        f"{self.base_url}/api/tags", timeout=aiohttp.ClientTimeout(total=10)
                     ) as resp:
                         if resp.status == 200:
                             data = await resp.json()
@@ -274,10 +279,7 @@ Response (JSON array only):"""
         )
         return status
 
-    async def _check_provider_availability(
-        self,
-        provider: LLMProvider
-    ) -> List[str]:
+    async def _check_provider_availability(self, provider: LLMProvider) -> List[str]:
         """
         Check availability of models for a specific provider.
 
@@ -291,11 +293,11 @@ Response (JSON array only):"""
 
         if provider == LLMProvider.OLLAMA:
             import aiohttp
+
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(
-                        f"{self.base_url}/api/tags",
-                        timeout=aiohttp.ClientTimeout(total=10)
+                        f"{self.base_url}/api/tags", timeout=aiohttp.ClientTimeout(total=10)
                     ) as resp:
                         if resp.status == 200:
                             data = await resp.json()
@@ -367,9 +369,7 @@ Response (JSON array only):"""
                 last_error = e
                 continue
 
-        raise AllProvidersUnavailable(
-            f"All providers failed. Last error: {last_error}"
-        )
+        raise AllProvidersUnavailable(f"All providers failed. Last error: {last_error}")
 
     async def _detect_with_provider(
         self,
@@ -407,7 +407,7 @@ Response (JSON array only):"""
         # Process results
         model_findings: Dict[str, List[Dict]] = {}
 
-        for model, result in zip(models, results):
+        for model, result in zip(models, results, strict=False):
             if isinstance(result, Exception):
                 logger.warning(f"Model {model} failed: {result}")
             else:
@@ -454,9 +454,9 @@ Response (JSON array only):"""
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are an expert smart contract security auditor. Respond only with valid JSON."
+                    "content": "You are an expert smart contract security auditor. Respond only with valid JSON.",
                 },
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
             "temperature": self.temperature,
             "max_tokens": 4096,
@@ -468,7 +468,7 @@ Response (JSON array only):"""
                     "https://api.openai.com/v1/chat/completions",
                     json=payload,
                     headers=headers,
-                    timeout=aiohttp.ClientTimeout(total=self.timeout)
+                    timeout=aiohttp.ClientTimeout(total=self.timeout),
                 ) as resp:
                     if resp.status != 200:
                         error_text = await resp.text()
@@ -480,7 +480,7 @@ Response (JSON array only):"""
                     return self._parse_model_response(content, model)
 
         except aiohttp.ClientError as e:
-            raise ProviderUnavailable(f"OpenAI connection error: {e}")
+            raise ProviderUnavailable(f"OpenAI connection error: {e}") from e
 
     async def _query_anthropic(
         self,
@@ -518,9 +518,7 @@ Response (JSON array only):"""
             "model": model,
             "max_tokens": 4096,
             "system": "You are an expert smart contract security auditor. Respond only with valid JSON.",
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
+            "messages": [{"role": "user", "content": prompt}],
         }
 
         try:
@@ -529,7 +527,7 @@ Response (JSON array only):"""
                     "https://api.anthropic.com/v1/messages",
                     json=payload,
                     headers=headers,
-                    timeout=aiohttp.ClientTimeout(total=self.timeout)
+                    timeout=aiohttp.ClientTimeout(total=self.timeout),
                 ) as resp:
                     if resp.status != 200:
                         error_text = await resp.text()
@@ -541,7 +539,7 @@ Response (JSON array only):"""
                     return self._parse_model_response(content, model)
 
         except aiohttp.ClientError as e:
-            raise ProviderUnavailable(f"Anthropic connection error: {e}")
+            raise ProviderUnavailable(f"Anthropic connection error: {e}") from e
 
     async def detect_vulnerabilities(
         self,
@@ -579,10 +577,7 @@ Response (JSON array only):"""
             )
 
         # Query all available models in parallel
-        tasks = [
-            self._query_model(model, code, context)
-            for model in self._available_models
-        ]
+        tasks = [self._query_model(model, code, context) for model in self._available_models]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -590,7 +585,7 @@ Response (JSON array only):"""
         model_findings: Dict[str, List[Dict]] = {}
         failed_models: List[str] = []
 
-        for model, result in zip(self._available_models, results):
+        for model, result in zip(self._available_models, results, strict=False):
             if isinstance(result, Exception):
                 logger.warning(f"Model {model} failed: {result}")
                 failed_models.append(model)
@@ -650,15 +645,15 @@ Response (JSON array only):"""
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are an expert smart contract security auditor. Respond only with valid JSON."
+                    "content": "You are an expert smart contract security auditor. Respond only with valid JSON.",
                 },
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
             "stream": False,
             "options": {
                 "temperature": self.temperature,
                 "num_predict": 4096,
-            }
+            },
         }
 
         try:
@@ -666,7 +661,7 @@ Response (JSON array only):"""
                 async with session.post(
                     f"{self.base_url}/api/chat",
                     json=payload,
-                    timeout=aiohttp.ClientTimeout(total=self.timeout)
+                    timeout=aiohttp.ClientTimeout(total=self.timeout),
                 ) as resp:
                     if resp.status != 200:
                         raise Exception(f"Ollama error: {await resp.text()}")
@@ -684,8 +679,8 @@ Response (JSON array only):"""
         """Parse model response into findings list."""
         try:
             # Extract JSON from response
-            json_start = content.find('[')
-            json_end = content.rfind(']') + 1
+            json_start = content.find("[")
+            json_end = content.rfind("]") + 1
 
             if json_start >= 0 and json_end > json_start:
                 json_str = content[json_start:json_end]
@@ -702,7 +697,7 @@ Response (JSON array only):"""
                 return normalized
             else:
                 # Try parsing entire content
-                if content.strip().startswith('['):
+                if content.strip().startswith("["):
                     findings = json.loads(content)
                     for f in findings:
                         if isinstance(f, dict):
@@ -743,9 +738,7 @@ Response (JSON array only):"""
                         "raw_responses": {},
                     }
 
-                finding_groups[signature]["votes"].append(
-                    self.MODEL_WEIGHTS.get(model, 1.0)
-                )
+                finding_groups[signature]["votes"].append(self.MODEL_WEIGHTS.get(model, 1.0))
                 finding_groups[signature]["models"].append(model)
                 finding_groups[signature]["raw_responses"][model] = finding
 
@@ -753,7 +746,7 @@ Response (JSON array only):"""
         validated = []
         total_models = len(model_findings)
 
-        for signature, group in finding_groups.items():
+        for _signature, group in finding_groups.items():
             votes = len(group["votes"])
             weighted_votes = sum(group["votes"])
 
@@ -772,8 +765,7 @@ Response (JSON array only):"""
             elif self.voting_strategy == VotingStrategy.WEIGHTED:
                 # Weighted threshold based on available model weights
                 max_possible_weight = sum(
-                    self.MODEL_WEIGHTS.get(m, 1.0)
-                    for m in model_findings.keys()
+                    self.MODEL_WEIGHTS.get(m, 1.0) for m in model_findings.keys()
                 )
                 passes = weighted_votes >= max_possible_weight * 0.5
 
@@ -785,22 +777,24 @@ Response (JSON array only):"""
                 vote_bonus = min(0.2, votes * 0.05)  # Up to +0.2 for votes
                 aggregated_confidence = min(0.99, base_confidence + vote_bonus)
 
-                validated.append(EnsembleFinding(
-                    type=finding.get("type", "unknown"),
-                    severity=finding.get("severity", "medium").lower(),
-                    title=finding.get("title", finding.get("type", "Unknown")),
-                    description=finding.get("description", ""),
-                    location=finding.get("location", {}),
-                    confidence=aggregated_confidence,
-                    votes=votes,
-                    total_models=total_models,
-                    supporting_models=group["models"],
-                    attack_vector=finding.get("attack_vector"),
-                    remediation=finding.get("remediation"),
-                    swc_id=finding.get("swc_id") or finding.get("swc"),
-                    cwe_id=finding.get("cwe_id") or finding.get("cwe"),
-                    raw_responses=group["raw_responses"],
-                ))
+                validated.append(
+                    EnsembleFinding(
+                        type=finding.get("type", "unknown"),
+                        severity=finding.get("severity", "medium").lower(),
+                        title=finding.get("title", finding.get("type", "Unknown")),
+                        description=finding.get("description", ""),
+                        location=finding.get("location", {}),
+                        confidence=aggregated_confidence,
+                        votes=votes,
+                        total_models=total_models,
+                        supporting_models=group["models"],
+                        attack_vector=finding.get("attack_vector"),
+                        remediation=finding.get("remediation"),
+                        swc_id=finding.get("swc_id") or finding.get("swc"),
+                        cwe_id=finding.get("cwe_id") or finding.get("cwe"),
+                        raw_responses=group["raw_responses"],
+                    )
+                )
 
         # Sort by severity and confidence
         severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
@@ -839,10 +833,7 @@ Response (JSON array only):"""
             "available_models": self._available_models,
             "voting_strategy": self.voting_strategy.value,
             "consensus_threshold": self.consensus_threshold,
-            "model_weights": {
-                m: self.MODEL_WEIGHTS.get(m, 1.0)
-                for m in self.models
-            },
+            "model_weights": {m: self.MODEL_WEIGHTS.get(m, 1.0) for m in self.models},
             "initialized": self._initialized,
         }
 

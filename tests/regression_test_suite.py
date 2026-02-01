@@ -18,17 +18,16 @@ Institution: UNDEF - IUA Cordoba
 Date: December 2024
 """
 
-import os
-import sys
 import json
-import time
 import subprocess
-import requests
-from pathlib import Path
+import sys
+import time
+from dataclasses import dataclass, field
 from datetime import datetime
-from dataclasses import dataclass, field, asdict
-from typing import List, Dict, Any, Optional
-from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import requests
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -39,12 +38,13 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 SELENIUM_AVAILABLE = False
 try:
     from selenium import webdriver
-    from selenium.webdriver.chrome.service import Service
     from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.chrome.service import Service
     from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.support.ui import WebDriverWait
     from webdriver_manager.chrome import ChromeDriverManager
+
     SELENIUM_AVAILABLE = True
 except ImportError:
     print("Warning: Selenium not available, web screenshots will be skipped")
@@ -62,6 +62,7 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 @dataclass
 class TestResult:
     """Result of a single test case"""
+
     name: str
     module: str
     status: str  # PASS, FAIL, SKIP
@@ -125,7 +126,7 @@ class MIESCRegressionTester:
         filename = f"{name}_{timestamp}.log"
         filepath = LOGS_DIR / filename
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             f.write(content)
 
         return str(filepath)
@@ -145,8 +146,10 @@ class MIESCRegressionTester:
         try:
             result = subprocess.run(
                 [str(PROJECT_ROOT / "miesc-quick"), "doctor"],
-                capture_output=True, text=True, timeout=30,
-                cwd=str(PROJECT_ROOT)
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=str(PROJECT_ROOT),
             )
 
             log_path = self.save_log("cli_doctor", result.stdout + result.stderr)
@@ -161,7 +164,7 @@ class MIESCRegressionTester:
                 duration=time.time() - start,
                 message=f"Found {tools_found} tools available",
                 evidence_path=log_path,
-                details={"tools_found": tools_found}
+                details={"tools_found": tools_found},
             )
         except Exception as e:
             return TestResult(
@@ -169,7 +172,7 @@ class MIESCRegressionTester:
                 module="miesc-quick",
                 status="FAIL",
                 duration=time.time() - start,
-                message=str(e)
+                message=str(e),
             )
 
     def test_cli_checklist(self) -> TestResult:
@@ -179,8 +182,10 @@ class MIESCRegressionTester:
         try:
             result = subprocess.run(
                 [str(PROJECT_ROOT / "miesc-quick"), "checklist"],
-                capture_output=True, text=True, timeout=30,
-                cwd=str(PROJECT_ROOT)
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=str(PROJECT_ROOT),
             )
 
             log_path = self.save_log("cli_checklist", result.stdout + result.stderr)
@@ -194,7 +199,7 @@ class MIESCRegressionTester:
                 status="PASS" if has_categories else "FAIL",
                 duration=time.time() - start,
                 message="Security checklist displayed correctly",
-                evidence_path=log_path
+                evidence_path=log_path,
             )
         except Exception as e:
             return TestResult(
@@ -202,7 +207,7 @@ class MIESCRegressionTester:
                 module="miesc-quick",
                 status="FAIL",
                 duration=time.time() - start,
-                message=str(e)
+                message=str(e),
             )
 
     def test_cli_scan(self) -> TestResult:
@@ -213,14 +218,18 @@ class MIESCRegressionTester:
         try:
             result = subprocess.run(
                 [str(PROJECT_ROOT / "miesc-quick"), "scan", str(contract)],
-                capture_output=True, text=True, timeout=120,
-                cwd=str(PROJECT_ROOT)
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd=str(PROJECT_ROOT),
             )
 
             log_path = self.save_log("cli_scan", result.stdout + result.stderr)
 
             # Check for findings
-            has_findings = "Finding" in result.stdout or "CRITICAL" in result.stdout or "HIGH" in result.stdout
+            has_findings = (
+                "Finding" in result.stdout or "CRITICAL" in result.stdout or "HIGH" in result.stdout
+            )
 
             return TestResult(
                 name="CLI Scan Command",
@@ -228,7 +237,7 @@ class MIESCRegressionTester:
                 status="PASS" if has_findings else "FAIL",
                 duration=time.time() - start,
                 message="Scan completed with findings detected",
-                evidence_path=log_path
+                evidence_path=log_path,
             )
         except subprocess.TimeoutExpired:
             return TestResult(
@@ -236,7 +245,7 @@ class MIESCRegressionTester:
                 module="miesc-quick",
                 status="FAIL",
                 duration=time.time() - start,
-                message="Scan timed out after 120s"
+                message="Scan timed out after 120s",
             )
         except Exception as e:
             return TestResult(
@@ -244,7 +253,7 @@ class MIESCRegressionTester:
                 module="miesc-quick",
                 status="FAIL",
                 duration=time.time() - start,
-                message=str(e)
+                message=str(e),
             )
 
     # ==================== Adapter Tests ====================
@@ -261,7 +270,7 @@ class MIESCRegressionTester:
             adapter = getattr(module, adapter_class)()
 
             # Check availability
-            is_available = adapter.is_available() if hasattr(adapter, 'is_available') else True
+            is_available = adapter.is_available() if hasattr(adapter, "is_available") else True
 
             if not is_available:
                 return TestResult(
@@ -269,14 +278,14 @@ class MIESCRegressionTester:
                     module="adapters",
                     status="SKIP",
                     duration=time.time() - start,
-                    message="Tool not installed"
+                    message="Tool not installed",
                 )
 
             # Run analysis
             result = adapter.analyze(str(PROJECT_ROOT / contract), timeout=60)
 
-            findings = len(result.get('findings', []))
-            status = result.get('status', 'unknown')
+            findings = len(result.get("findings", []))
+            status = result.get("status", "unknown")
 
             log_content = json.dumps(result, indent=2, default=str)
             log_path = self.save_log(f"adapter_{adapter_name}", log_content)
@@ -284,11 +293,11 @@ class MIESCRegressionTester:
             return TestResult(
                 name=f"Adapter: {adapter_class}",
                 module="adapters",
-                status="PASS" if status == 'success' else "FAIL",
+                status="PASS" if status == "success" else "FAIL",
                 duration=time.time() - start,
                 message=f"Found {findings} findings",
                 evidence_path=log_path,
-                details={"findings": findings, "status": status}
+                details={"findings": findings, "status": status},
             )
 
         except Exception as e:
@@ -297,7 +306,7 @@ class MIESCRegressionTester:
                 module="adapters",
                 status="FAIL",
                 duration=time.time() - start,
-                message=str(e)[:100]
+                message=str(e)[:100],
             )
 
     def test_all_adapters(self):
@@ -333,7 +342,7 @@ class MIESCRegressionTester:
                     module="mcp",
                     status="FAIL",
                     duration=time.time() - start,
-                    message=f"Health check failed: {health_resp.status_code}"
+                    message=f"Health check failed: {health_resp.status_code}",
                 )
 
             # Test capabilities endpoint
@@ -348,7 +357,7 @@ class MIESCRegressionTester:
                 status="PASS" if caps_resp.status_code == 200 else "FAIL",
                 duration=time.time() - start,
                 message="Server responding correctly",
-                evidence_path=log_path
+                evidence_path=log_path,
             )
 
         except requests.ConnectionError:
@@ -357,7 +366,7 @@ class MIESCRegressionTester:
                 module="mcp",
                 status="SKIP",
                 duration=time.time() - start,
-                message="Server not running on port 5001"
+                message="Server not running on port 5001",
             )
         except Exception as e:
             return TestResult(
@@ -365,7 +374,7 @@ class MIESCRegressionTester:
                 module="mcp",
                 status="FAIL",
                 duration=time.time() - start,
-                message=str(e)
+                message=str(e),
             )
 
     # ==================== Web Interface Tests ====================
@@ -380,7 +389,7 @@ class MIESCRegressionTester:
                 module="webapp",
                 status="SKIP",
                 duration=time.time() - start,
-                message="Selenium not available"
+                message="Selenium not available",
             )
 
         try:
@@ -405,7 +414,7 @@ class MIESCRegressionTester:
                 status="PASS" if has_title else "FAIL",
                 duration=time.time() - start,
                 message="Home page loaded successfully",
-                evidence_path=screenshot_path
+                evidence_path=screenshot_path,
             )
 
         except Exception as e:
@@ -414,7 +423,7 @@ class MIESCRegressionTester:
                 module="webapp",
                 status="FAIL",
                 duration=time.time() - start,
-                message=str(e)
+                message=str(e),
             )
 
     def test_webapp_analysis(self) -> TestResult:
@@ -427,7 +436,7 @@ class MIESCRegressionTester:
                 module="webapp",
                 status="SKIP",
                 duration=time.time() - start,
-                message="Selenium not available"
+                message="Selenium not available",
             )
 
         try:
@@ -443,7 +452,7 @@ class MIESCRegressionTester:
                 status="PASS",
                 duration=time.time() - start,
                 message="Analysis page accessible",
-                evidence_path=screenshot_path
+                evidence_path=screenshot_path,
             )
 
         except Exception as e:
@@ -452,7 +461,7 @@ class MIESCRegressionTester:
                 module="webapp",
                 status="FAIL",
                 duration=time.time() - start,
-                message=str(e)
+                message=str(e),
             )
 
     # ==================== Full Audit Test ====================
@@ -473,10 +482,14 @@ class MIESCRegressionTester:
 
             findings_count = len(auditor.findings)
 
-            log_content = json.dumps({
-                "findings": [f.to_dict() for f in auditor.findings],
-                "layer_results": auditor.layer_results
-            }, indent=2, default=str)
+            log_content = json.dumps(
+                {
+                    "findings": [f.to_dict() for f in auditor.findings],
+                    "layer_results": auditor.layer_results,
+                },
+                indent=2,
+                default=str,
+            )
             log_path = self.save_log("full_audit", log_content)
 
             return TestResult(
@@ -486,7 +499,7 @@ class MIESCRegressionTester:
                 duration=time.time() - start,
                 message=f"Found {findings_count} findings in Layer 1",
                 evidence_path=log_path,
-                details={"findings": findings_count}
+                details={"findings": findings_count},
             )
 
         except Exception as e:
@@ -495,7 +508,7 @@ class MIESCRegressionTester:
                 module="audit",
                 status="FAIL",
                 duration=time.time() - start,
-                message=str(e)
+                message=str(e),
             )
 
     # ==================== Unit Tests ====================
@@ -507,8 +520,10 @@ class MIESCRegressionTester:
         try:
             result = subprocess.run(
                 [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short", "-q"],
-                capture_output=True, text=True, timeout=300,
-                cwd=str(PROJECT_ROOT)
+                capture_output=True,
+                text=True,
+                timeout=300,
+                cwd=str(PROJECT_ROOT),
             )
 
             log_path = self.save_log("pytest_suite", result.stdout + result.stderr)
@@ -524,7 +539,7 @@ class MIESCRegressionTester:
                 duration=time.time() - start,
                 message=f"{passed} passed, {failed} failed",
                 evidence_path=log_path,
-                details={"passed": passed, "failed": failed}
+                details={"passed": passed, "failed": failed},
             )
 
         except subprocess.TimeoutExpired:
@@ -533,7 +548,7 @@ class MIESCRegressionTester:
                 module="tests",
                 status="FAIL",
                 duration=time.time() - start,
-                message="Tests timed out after 300s"
+                message="Tests timed out after 300s",
             )
         except Exception as e:
             return TestResult(
@@ -541,7 +556,7 @@ class MIESCRegressionTester:
                 module="tests",
                 status="FAIL",
                 duration=time.time() - start,
-                message=str(e)
+                message=str(e),
             )
 
     # ==================== Report Generation ====================
@@ -596,7 +611,9 @@ class MIESCRegressionTester:
 
             for r in results:
                 status_icon = {"PASS": "✅", "FAIL": "❌", "SKIP": "⏭️"}.get(r.status, "❓")
-                report += f"| {r.name} | {status_icon} {r.status} | {r.duration:.2f}s | {r.message} |\n"
+                report += (
+                    f"| {r.name} | {status_icon} {r.status} | {r.duration:.2f}s | {r.message} |\n"
+                )
 
             report += "\n"
 
@@ -627,14 +644,16 @@ MIESC v4.0.0 regression testing {'completed successfully' if failed == 0 else 'f
 
     def run_all_tests(self):
         """Run complete regression test suite"""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("MIESC v4.0.0 - Complete Regression Test Suite")
-        print("="*70 + "\n")
+        print("=" * 70 + "\n")
 
         # Setup
         print("Setting up Selenium...")
         selenium_ok = self.setup_selenium()
-        print(f"  {'✅' if selenium_ok else '⚠️'} Selenium: {'Ready' if selenium_ok else 'Not available'}\n")
+        print(
+            f"  {'✅' if selenium_ok else '⚠️'} Selenium: {'Ready' if selenium_ok else 'Not available'}\n"
+        )
 
         # CLI Tests
         print("\n📋 Testing CLI (miesc-quick)...")
@@ -671,7 +690,7 @@ MIESC v4.0.0 regression testing {'completed successfully' if failed == 0 else 'f
         report = self.generate_report()
 
         report_path = EVIDENCE_DIR / "REGRESSION_TEST_REPORT.md"
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             f.write(report)
 
         print(f"\n✅ Report saved to: {report_path}")
@@ -681,9 +700,9 @@ MIESC v4.0.0 regression testing {'completed successfully' if failed == 0 else 'f
         failed = sum(1 for r in self.results if r.status == "FAIL")
         total = len(self.results)
 
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print(f"SUMMARY: {passed}/{total} tests passed, {failed} failed")
-        print("="*70 + "\n")
+        print("=" * 70 + "\n")
 
         return failed == 0
 

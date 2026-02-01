@@ -5,13 +5,13 @@ Fast security scanning using only static analysis tools.
 Optimized for development workflow (~30 seconds).
 """
 
-import os
 import json
-import subprocess
 import logging
-from pathlib import Path
+import os
+import subprocess
 from datetime import datetime
-from typing import Dict, List, Any
+from pathlib import Path
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class QuickScanner:
             try:
                 result = subprocess.run(cmd, capture_output=True, timeout=10)
                 tools[tool] = result.returncode == 0
-            except:
+            except Exception:
                 tools[tool] = False
 
         return tools
@@ -120,21 +120,23 @@ class QuickScanner:
                 ["slither", contract_path, "--json", "-"],
                 capture_output=True,
                 text=True,
-                timeout=60
+                timeout=60,
             )
 
             if result.stdout:
                 try:
                     data = json.loads(result.stdout)
                     for detector in data.get("results", {}).get("detectors", []):
-                        findings.append({
-                            "tool": "slither",
-                            "type": detector.get("check"),
-                            "severity": self._normalize_severity(detector.get("impact")),
-                            "confidence": detector.get("confidence", "").lower(),
-                            "description": detector.get("description", ""),
-                            "first_markdown_element": detector.get("first_markdown_element"),
-                        })
+                        findings.append(
+                            {
+                                "tool": "slither",
+                                "type": detector.get("check"),
+                                "severity": self._normalize_severity(detector.get("impact")),
+                                "confidence": detector.get("confidence", "").lower(),
+                                "description": detector.get("description", ""),
+                                "first_markdown_element": detector.get("first_markdown_element"),
+                            }
+                        )
                 except json.JSONDecodeError:
                     pass
         except subprocess.TimeoutExpired:
@@ -152,19 +154,21 @@ class QuickScanner:
                 ["aderyn", contract_path, "--output", "json"],
                 capture_output=True,
                 text=True,
-                timeout=60
+                timeout=60,
             )
 
             if result.stdout:
                 try:
                     data = json.loads(result.stdout)
                     for issue in data.get("issues", []):
-                        findings.append({
-                            "tool": "aderyn",
-                            "type": issue.get("title"),
-                            "severity": self._normalize_severity(issue.get("severity")),
-                            "description": issue.get("description", ""),
-                        })
+                        findings.append(
+                            {
+                                "tool": "aderyn",
+                                "type": issue.get("title"),
+                                "severity": self._normalize_severity(issue.get("severity")),
+                                "description": issue.get("description", ""),
+                            }
+                        )
                 except json.JSONDecodeError:
                     pass
         except subprocess.TimeoutExpired:
@@ -179,10 +183,7 @@ class QuickScanner:
         findings = []
         try:
             result = subprocess.run(
-                ["solhint", contract_path, "-f", "json"],
-                capture_output=True,
-                text=True,
-                timeout=30
+                ["solhint", contract_path, "-f", "json"], capture_output=True, text=True, timeout=30
             )
 
             if result.stdout:
@@ -190,16 +191,18 @@ class QuickScanner:
                     data = json.loads(result.stdout)
                     for file_results in data:
                         for msg in file_results.get("messages", []):
-                            findings.append({
-                                "tool": "solhint",
-                                "type": msg.get("ruleId"),
-                                "severity": self._normalize_severity(
-                                    "error" if msg.get("severity") == 2 else "warning"
-                                ),
-                                "description": msg.get("message", ""),
-                                "line": msg.get("line"),
-                                "column": msg.get("column"),
-                            })
+                            findings.append(
+                                {
+                                    "tool": "solhint",
+                                    "type": msg.get("ruleId"),
+                                    "severity": self._normalize_severity(
+                                        "error" if msg.get("severity") == 2 else "warning"
+                                    ),
+                                    "description": msg.get("message", ""),
+                                    "line": msg.get("line"),
+                                    "column": msg.get("column"),
+                                }
+                            )
                 except json.JSONDecodeError:
                     pass
         except subprocess.TimeoutExpired:

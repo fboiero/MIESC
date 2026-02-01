@@ -315,13 +315,15 @@ class UpgradabilityCheckerAdapter(ToolAdapter):
         if has_initializer and not has_initializer_modifier:
             for i, line in enumerate(lines, 1):
                 if re.search(r"function\s+initialize\s*\(", line):
-                    findings.append({
-                        "type": "uninitialized_proxy",
-                        "line": i,
-                        "file": path,
-                        "code": line.strip(),
-                        "vuln_key": "uninitialized_proxy",
-                    })
+                    findings.append(
+                        {
+                            "type": "uninitialized_proxy",
+                            "line": i,
+                            "file": path,
+                            "code": line.strip(),
+                            "vuln_key": "uninitialized_proxy",
+                        }
+                    )
                     break
 
         if has_initializer and not has_disable_initializers:
@@ -329,13 +331,15 @@ class UpgradabilityCheckerAdapter(ToolAdapter):
             if has_constructor:
                 for i, line in enumerate(lines, 1):
                     if re.search(r"constructor\s*\(", line):
-                        findings.append({
-                            "type": "uninitialized_proxy",
-                            "line": i,
-                            "file": path,
-                            "code": "Constructor without _disableInitializers() call",
-                            "vuln_key": "uninitialized_proxy",
-                        })
+                        findings.append(
+                            {
+                                "type": "uninitialized_proxy",
+                                "line": i,
+                                "file": path,
+                                "code": "Constructor without _disableInitializers() call",
+                                "vuln_key": "uninitialized_proxy",
+                            }
+                        )
                         break
 
         return findings
@@ -348,13 +352,15 @@ class UpgradabilityCheckerAdapter(ToolAdapter):
         if has_inheritance and not has_gap:
             for i, line in enumerate(lines, 1):
                 if re.search(r"contract\s+\w+\s+is\s+", line):
-                    findings.append({
-                        "type": "missing_storage_gap",
-                        "line": i,
-                        "file": path,
-                        "code": line.strip(),
-                        "vuln_key": "missing_storage_gap",
-                    })
+                    findings.append(
+                        {
+                            "type": "missing_storage_gap",
+                            "line": i,
+                            "file": path,
+                            "code": line.strip(),
+                            "vuln_key": "missing_storage_gap",
+                        }
+                    )
                     break
 
         return findings
@@ -363,32 +369,37 @@ class UpgradabilityCheckerAdapter(ToolAdapter):
         findings = []
         for i, line in enumerate(lines, 1):
             if re.search(r"\bselfdestruct\s*\(|\bsuicide\s*\(", line):
-                findings.append({
-                    "type": "selfdestruct_in_implementation",
-                    "line": i,
-                    "file": path,
-                    "code": line.strip(),
-                    "vuln_key": "selfdestruct_in_implementation",
-                })
+                findings.append(
+                    {
+                        "type": "selfdestruct_in_implementation",
+                        "line": i,
+                        "file": path,
+                        "code": line.strip(),
+                        "vuln_key": "selfdestruct_in_implementation",
+                    }
+                )
         return findings
 
     def _check_delegatecall(self, source_code: str, lines: List[str], path: str) -> List[Dict]:
         findings = []
         for i, line in enumerate(lines, 1):
             if re.search(r"\.delegatecall\s*\(", line):
-                context = "\n".join(lines[max(0, i - 5):min(len(lines), i + 5)])
-                has_validation = bool(re.search(
-                    r"require.*implementation|require.*target|_implementation\(\)",
-                    context
-                ))
+                context = "\n".join(lines[max(0, i - 5) : min(len(lines), i + 5)])
+                has_validation = bool(
+                    re.search(
+                        r"require.*implementation|require.*target|_implementation\(\)", context
+                    )
+                )
                 if not has_validation:
-                    findings.append({
-                        "type": "unsafe_delegatecall_target",
-                        "line": i,
-                        "file": path,
-                        "code": line.strip(),
-                        "vuln_key": "unsafe_delegatecall_target",
-                    })
+                    findings.append(
+                        {
+                            "type": "unsafe_delegatecall_target",
+                            "line": i,
+                            "file": path,
+                            "code": line.strip(),
+                            "vuln_key": "unsafe_delegatecall_target",
+                        }
+                    )
         return findings
 
     def _check_uups_guard(self, source_code: str, lines: List[str], path: str) -> List[Dict]:
@@ -398,13 +409,15 @@ class UpgradabilityCheckerAdapter(ToolAdapter):
         if not has_authorize:
             for i, line in enumerate(lines, 1):
                 if re.search(r"UUPSUpgradeable", line):
-                    findings.append({
-                        "type": "missing_upgrade_guard",
-                        "line": i,
-                        "file": path,
-                        "code": "UUPSUpgradeable without _authorizeUpgrade implementation",
-                        "vuln_key": "missing_upgrade_guard",
-                    })
+                    findings.append(
+                        {
+                            "type": "missing_upgrade_guard",
+                            "line": i,
+                            "file": path,
+                            "code": "UUPSUpgradeable without _authorizeUpgrade implementation",
+                            "vuln_key": "missing_upgrade_guard",
+                        }
+                    )
                     break
         else:
             # Check if _authorizeUpgrade has access control
@@ -415,42 +428,48 @@ class UpgradabilityCheckerAdapter(ToolAdapter):
             )
             if authorize_match:
                 body = authorize_match.group(1)
-                has_access_control = bool(re.search(
-                    r"onlyOwner|onlyRole|require\s*\(\s*msg\.sender|_checkOwner|_checkRole",
-                    body + source_code[authorize_match.start() - 100:authorize_match.start()],
-                ))
+                has_access_control = bool(
+                    re.search(
+                        r"onlyOwner|onlyRole|require\s*\(\s*msg\.sender|_checkOwner|_checkRole",
+                        body + source_code[authorize_match.start() - 100 : authorize_match.start()],
+                    )
+                )
                 if not has_access_control:
-                    line_num = source_code[:authorize_match.start()].count("\n") + 1
-                    findings.append({
-                        "type": "missing_upgrade_guard",
-                        "line": line_num,
-                        "file": path,
-                        "code": "_authorizeUpgrade without access control",
-                        "vuln_key": "missing_upgrade_guard",
-                    })
+                    line_num = source_code[: authorize_match.start()].count("\n") + 1
+                    findings.append(
+                        {
+                            "type": "missing_upgrade_guard",
+                            "line": line_num,
+                            "file": path,
+                            "code": "_authorizeUpgrade without access control",
+                            "vuln_key": "missing_upgrade_guard",
+                        }
+                    )
 
         return findings
 
     def _check_eip1967(self, source_code: str, lines: List[str], path: str) -> List[Dict]:
         findings = []
         has_delegatecall = bool(re.search(r"delegatecall", source_code))
-        has_eip1967 = any(
-            re.search(slot, source_code) for slot in EIP1967_SLOTS.values()
+        has_eip1967 = any(re.search(slot, source_code) for slot in EIP1967_SLOTS.values())
+        has_storage_slot = bool(
+            re.search(r"bytes32.*constant.*IMPLEMENTATION_SLOT|_IMPLEMENTATION_SLOT", source_code)
         )
-        has_storage_slot = bool(re.search(r"bytes32.*constant.*IMPLEMENTATION_SLOT|_IMPLEMENTATION_SLOT", source_code))
 
         if has_delegatecall and not has_eip1967 and not has_storage_slot:
             proxy_type = self._detect_proxy_type(source_code)
             if proxy_type and proxy_type != "minimal_proxy":
                 for i, line in enumerate(lines, 1):
                     if re.search(r"delegatecall", line):
-                        findings.append({
-                            "type": "eip1967_noncompliance",
-                            "line": i,
-                            "file": path,
-                            "code": "Proxy without EIP-1967 standard storage slots",
-                            "vuln_key": "eip1967_noncompliance",
-                        })
+                        findings.append(
+                            {
+                                "type": "eip1967_noncompliance",
+                                "line": i,
+                                "file": path,
+                                "code": "Proxy without EIP-1967 standard storage slots",
+                                "vuln_key": "eip1967_noncompliance",
+                            }
+                        )
                         break
 
         return findings
@@ -460,20 +479,26 @@ class UpgradabilityCheckerAdapter(ToolAdapter):
         has_constructor = bool(re.search(r"constructor\s*\(", source_code))
 
         if has_constructor:
-            constructor_match = re.search(r"constructor\s*\([^)]*\)[^{]*\{([^}]*)\}", source_code, re.DOTALL)
+            constructor_match = re.search(
+                r"constructor\s*\([^)]*\)[^{]*\{([^}]*)\}", source_code, re.DOTALL
+            )
             if constructor_match:
                 body = constructor_match.group(1).strip()
                 # Check if constructor sets state (not just _disableInitializers)
-                body_without_disable = re.sub(r"_disableInitializers\s*\(\s*\)\s*;?", "", body).strip()
+                body_without_disable = re.sub(
+                    r"_disableInitializers\s*\(\s*\)\s*;?", "", body
+                ).strip()
                 if body_without_disable and re.search(r"\w+\s*=\s*", body_without_disable):
-                    line_num = source_code[:constructor_match.start()].count("\n") + 1
-                    findings.append({
-                        "type": "missing_initializer",
-                        "line": line_num,
-                        "file": path,
-                        "code": "Constructor sets state variables - won't execute behind proxy",
-                        "vuln_key": "missing_initializer",
-                    })
+                    line_num = source_code[: constructor_match.start()].count("\n") + 1
+                    findings.append(
+                        {
+                            "type": "missing_initializer",
+                            "line": line_num,
+                            "file": path,
+                            "code": "Constructor sets state variables - won't execute behind proxy",
+                            "vuln_key": "missing_initializer",
+                        }
+                    )
 
         return findings
 
@@ -495,22 +520,24 @@ class UpgradabilityCheckerAdapter(ToolAdapter):
                 f"upgradability:{item.get('type', '')}:{item.get('file', '')}:{item.get('line', 0)}".encode()
             ).hexdigest()[:12]
 
-            findings.append({
-                "id": f"UPG-{finding_id}",
-                "type": item.get("type", vuln_key),
-                "severity": vuln_config["severity"],
-                "confidence": vuln_config["confidence"],
-                "location": {
-                    "file": item.get("file", ""),
-                    "line": item.get("line", 0),
-                    "function": "",
-                },
-                "message": f"{vuln_config['description']}: {item.get('code', '')}",
-                "description": vuln_config["description"],
-                "recommendation": vuln_config["recommendation"],
-                "swc_id": vuln_config.get("swc_id"),
-                "cwe_id": vuln_config.get("cwe_id"),
-                "tool": "upgradability_checker",
-            })
+            findings.append(
+                {
+                    "id": f"UPG-{finding_id}",
+                    "type": item.get("type", vuln_key),
+                    "severity": vuln_config["severity"],
+                    "confidence": vuln_config["confidence"],
+                    "location": {
+                        "file": item.get("file", ""),
+                        "line": item.get("line", 0),
+                        "function": "",
+                    },
+                    "message": f"{vuln_config['description']}: {item.get('code', '')}",
+                    "description": vuln_config["description"],
+                    "recommendation": vuln_config["recommendation"],
+                    "swc_id": vuln_config.get("swc_id"),
+                    "cwe_id": vuln_config.get("cwe_id"),
+                    "tool": "upgradability_checker",
+                }
+            )
 
         return findings

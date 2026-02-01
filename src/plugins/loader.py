@@ -33,7 +33,7 @@ import logging
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Type, Union
+from typing import Dict, List, Optional, Set, Type, Union
 
 from .protocol import (
     MIESCPlugin,
@@ -41,8 +41,8 @@ from .protocol import (
     PluginMetadata,
     PluginState,
     PluginType,
-    is_plugin_class,
     get_plugin_classes,
+    is_plugin_class,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,6 +61,7 @@ DEFAULT_PLUGIN_DIRS = [
 @dataclass
 class LoadedPlugin:
     """Container for a loaded plugin."""
+
     plugin_class: Type[MIESCPlugin]
     instance: Optional[MIESCPlugin] = None
     source: str = ""  # file path, entry point name, or package name
@@ -98,6 +99,7 @@ class LoadedPlugin:
 @dataclass
 class DiscoveryResult:
     """Result of plugin discovery."""
+
     plugins: List[LoadedPlugin] = field(default_factory=list)
     errors: List[str] = field(default_factory=list)
     sources_searched: List[str] = field(default_factory=list)
@@ -163,10 +165,7 @@ class PluginLoader:
         result.errors.extend(ep_result.errors)
         result.sources_searched.extend(ep_result.sources_searched)
 
-        logger.info(
-            f"Discovered {result.success_count} plugins "
-            f"({result.error_count} errors)"
-        )
+        logger.info(f"Discovered {result.success_count} plugins " f"({result.error_count} errors)")
 
         return result
 
@@ -228,10 +227,12 @@ class PluginLoader:
             # Python 3.10+ uses importlib.metadata
             if sys.version_info >= (3, 10):
                 from importlib.metadata import entry_points
+
                 eps = entry_points(group=ENTRY_POINT_GROUP)
             else:
                 # Python 3.9 compatibility
                 from importlib.metadata import entry_points as get_eps
+
                 all_eps = get_eps()
                 eps = all_eps.get(ENTRY_POINT_GROUP, [])
 
@@ -285,7 +286,7 @@ class PluginLoader:
             spec.loader.exec_module(module)
         except Exception as e:
             del sys.modules[module_name]
-            raise ImportError(f"Error executing module {filepath}: {e}")
+            raise ImportError(f"Error executing module {filepath}: {e}") from e
 
         # Find plugin classes
         plugins = []
@@ -312,7 +313,7 @@ class PluginLoader:
         try:
             module = importlib.import_module(package_name)
         except ImportError as e:
-            raise ImportError(f"Could not import package {package_name}: {e}")
+            raise ImportError(f"Could not import package {package_name}: {e}") from e
 
         plugins = []
         for plugin_class in get_plugin_classes(module):
@@ -352,9 +353,7 @@ class PluginLoader:
             loaded_plugin.instance = instance
             loaded_plugin.metadata = instance.get_metadata()
 
-            logger.info(
-                f"Initialized plugin: {instance.name} v{instance.version}"
-            )
+            logger.info(f"Initialized plugin: {instance.name} v{instance.version}")
         except Exception as e:
             instance._state = PluginState.ERROR
             loaded_plugin.load_error = str(e)

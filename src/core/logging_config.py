@@ -43,7 +43,7 @@ from typing import Any, Callable, Dict, Optional
 _correlation_id: ContextVar[Optional[str]] = ContextVar("correlation_id", default=None)
 
 # Context variable for additional context
-_log_context: ContextVar[Dict[str, Any]] = ContextVar("log_context", default={})
+_log_context: ContextVar[Dict[str, Any]] = ContextVar("log_context", default=None)  # type: ignore[arg-type]
 
 
 def get_correlation_id() -> Optional[str]:
@@ -61,7 +61,7 @@ def set_correlation_id(correlation_id: Optional[str] = None) -> str:
 
 def add_log_context(**kwargs: Any) -> None:
     """Add context to all subsequent log messages in this context."""
-    current = _log_context.get().copy()
+    current = (_log_context.get() or {}).copy()
     current.update(kwargs)
     _log_context.set(current)
 
@@ -93,7 +93,7 @@ class StructuredFormatter(logging.Formatter):
             log_data["correlation_id"] = correlation_id
 
         # Add context from ContextVar
-        context = _log_context.get()
+        context = _log_context.get() or {}
         if context:
             log_data.update(context)
 
@@ -102,11 +102,13 @@ class StructuredFormatter(logging.Formatter):
             log_data.update(record.extra_fields)
 
         # Add standard fields
-        log_data.update({
-            "file": record.filename,
-            "line": record.lineno,
-            "function": record.funcName,
-        })
+        log_data.update(
+            {
+                "file": record.filename,
+                "line": record.lineno,
+                "function": record.funcName,
+            }
+        )
 
         # Add exception info if present
         if record.exc_info:
@@ -124,11 +126,11 @@ class RichFormatter(logging.Formatter):
     """
 
     LEVEL_COLORS = {
-        "DEBUG": "\033[36m",    # Cyan
-        "INFO": "\033[32m",     # Green
+        "DEBUG": "\033[36m",  # Cyan
+        "INFO": "\033[32m",  # Green
         "WARNING": "\033[33m",  # Yellow
-        "ERROR": "\033[31m",    # Red
-        "CRITICAL": "\033[35m", # Magenta
+        "ERROR": "\033[31m",  # Red
+        "CRITICAL": "\033[35m",  # Magenta
     }
     RESET = "\033[0m"
 
@@ -169,7 +171,7 @@ class RichFormatter(logging.Formatter):
             line += f" [{correlation_id}]"
 
         # Add context
-        context = _log_context.get()
+        context = _log_context.get() or {}
         if context:
             ctx_str = " ".join(f"{k}={v}" for k, v in context.items())
             line += f" ({ctx_str})"
@@ -193,9 +195,11 @@ class ContextFilter(logging.Filter):
         # Extract extra fields from record
         extra_fields = {}
         for key, value in record.__dict__.items():
-            if key not in logging.LogRecord(
-                "", 0, "", 0, "", (), None
-            ).__dict__ and key not in ("message", "asctime", "extra_fields"):
+            if key not in logging.LogRecord("", 0, "", 0, "", (), None).__dict__ and key not in (
+                "message",
+                "asctime",
+                "extra_fields",
+            ):
                 if not key.startswith("_"):
                     extra_fields[key] = value
 
@@ -207,7 +211,7 @@ def setup_logging(
     level: str = "INFO",
     json_format: bool = False,
     log_file: Optional[str] = None,
-    quiet: bool = False
+    quiet: bool = False,
 ) -> None:
     """
     Configure MIESC logging.
@@ -286,7 +290,7 @@ def log_context(**kwargs: Any):
             # ... do work ...
             logger.info("Analysis complete")
     """
-    old_context = _log_context.get().copy()
+    old_context = (_log_context.get() or {}).copy()
     add_log_context(**kwargs)
     try:
         yield
@@ -328,6 +332,7 @@ def timed(logger: Optional[logging.Logger] = None, level: int = logging.DEBUG):
         def important_function():
             pass
     """
+
     def decorator(func: Callable) -> Callable:
         _logger = logger or get_logger(func.__module__)
 
@@ -340,7 +345,7 @@ def timed(logger: Optional[logging.Logger] = None, level: int = logging.DEBUG):
                 _logger.log(
                     level,
                     f"{func.__name__} completed",
-                    extra={"duration_ms": round(elapsed * 1000, 2)}
+                    extra={"duration_ms": round(elapsed * 1000, 2)},
                 )
                 return result
             except Exception as e:
@@ -348,14 +353,12 @@ def timed(logger: Optional[logging.Logger] = None, level: int = logging.DEBUG):
                 _logger.log(
                     logging.ERROR,
                     f"{func.__name__} failed",
-                    extra={
-                        "duration_ms": round(elapsed * 1000, 2),
-                        "error": str(e)
-                    }
+                    extra={"duration_ms": round(elapsed * 1000, 2), "error": str(e)},
                 )
                 raise
 
         return wrapper
+
     return decorator
 
 
@@ -380,8 +383,8 @@ class AnalysisLogger:
                 "contract": contract,
                 "layers": layers,
                 "tools": tools,
-                "event": "analysis_start"
-            }
+                "event": "analysis_start",
+            },
         )
 
     def layer_start(self, layer: int, tools: list[str]) -> None:
@@ -392,29 +395,18 @@ class AnalysisLogger:
                 "audit_id": self.audit_id,
                 "layer": layer,
                 "tools": tools,
-                "event": "layer_start"
-            }
+                "event": "layer_start",
+            },
         )
 
     def tool_start(self, tool: str, layer: int) -> None:
         """Log tool execution start."""
         self.logger.debug(
             f"Tool {tool} started",
-            extra={
-                "audit_id": self.audit_id,
-                "tool": tool,
-                "layer": layer,
-                "event": "tool_start"
-            }
+            extra={"audit_id": self.audit_id, "tool": tool, "layer": layer, "event": "tool_start"},
         )
 
-    def tool_complete(
-        self,
-        tool: str,
-        layer: int,
-        findings: int,
-        duration_ms: float
-    ) -> None:
+    def tool_complete(self, tool: str, layer: int, findings: int, duration_ms: float) -> None:
         """Log tool execution complete."""
         self.logger.info(
             f"Tool {tool} complete: {findings} findings",
@@ -424,8 +416,8 @@ class AnalysisLogger:
                 "layer": layer,
                 "findings": findings,
                 "duration_ms": duration_ms,
-                "event": "tool_complete"
-            }
+                "event": "tool_complete",
+            },
         )
 
     def tool_error(self, tool: str, layer: int, error: str) -> None:
@@ -437,8 +429,8 @@ class AnalysisLogger:
                 "tool": tool,
                 "layer": layer,
                 "error": error,
-                "event": "tool_error"
-            }
+                "event": "tool_error",
+            },
         )
 
     def layer_complete(self, layer: int, findings: int, duration_ms: float) -> None:
@@ -450,8 +442,8 @@ class AnalysisLogger:
                 "layer": layer,
                 "findings": findings,
                 "duration_ms": duration_ms,
-                "event": "layer_complete"
-            }
+                "event": "layer_complete",
+            },
         )
 
     def complete(self, total_findings: int, critical: int, high: int) -> None:
@@ -465,8 +457,8 @@ class AnalysisLogger:
                 "critical": critical,
                 "high": high,
                 "duration_s": round(elapsed, 2),
-                "event": "analysis_complete"
-            }
+                "event": "analysis_complete",
+            },
         )
 
 

@@ -24,8 +24,8 @@ import json
 import logging
 import re
 import time
-import urllib.request
 import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -52,84 +52,84 @@ VULNERABILITY_REGISTRY = {
         "cwe_id": "CWE-841",
         "severity": "Critical",
         "description": "A function makes an external call before updating its own state, "
-                       "allowing the callee to re-enter and exploit stale state.",
+        "allowing the callee to re-enter and exploit stale state.",
     },
     "integer_overflow": {
         "swc_id": "SWC-101",
         "cwe_id": "CWE-190",
         "severity": "High",
         "description": "Arithmetic operations that exceed the maximum or minimum "
-                       "value of the data type without proper checks.",
+        "value of the data type without proper checks.",
     },
     "access_control": {
         "swc_id": "SWC-105",
         "cwe_id": "CWE-284",
         "severity": "High",
         "description": "Missing or improper access control modifiers on sensitive "
-                       "functions that should be restricted.",
+        "functions that should be restricted.",
     },
     "unchecked_call": {
         "swc_id": "SWC-104",
         "cwe_id": "CWE-252",
         "severity": "Medium",
         "description": "Return value from a low-level call, send, or delegatecall "
-                       "is not checked for success or failure.",
+        "is not checked for success or failure.",
     },
     "tx_origin": {
         "swc_id": "SWC-115",
         "cwe_id": "CWE-477",
         "severity": "Medium",
         "description": "Usage of tx.origin for authorization, which can be exploited "
-                       "via phishing contracts.",
+        "via phishing contracts.",
     },
     "timestamp_dependence": {
         "swc_id": "SWC-116",
         "cwe_id": "CWE-829",
         "severity": "Low",
         "description": "Reliance on block.timestamp for critical logic, which miners "
-                       "can manipulate within a ~15 second window.",
+        "can manipulate within a ~15 second window.",
     },
     "delegatecall": {
         "swc_id": "SWC-112",
         "cwe_id": "CWE-829",
         "severity": "High",
         "description": "Delegatecall to an untrusted contract can overwrite storage "
-                       "variables in unexpected ways.",
+        "variables in unexpected ways.",
     },
     "selfdestruct": {
         "swc_id": "SWC-106",
         "cwe_id": "CWE-284",
         "severity": "High",
         "description": "Unprotected selfdestruct allows unauthorized contract destruction "
-                       "and fund extraction.",
+        "and fund extraction.",
     },
     "front_running": {
         "swc_id": "SWC-114",
         "cwe_id": "CWE-362",
         "severity": "Medium",
         "description": "Transaction ordering dependence allows miners or observers to "
-                       "front-run user transactions for profit.",
+        "front-run user transactions for profit.",
     },
     "denial_of_service": {
         "swc_id": "SWC-113",
         "cwe_id": "CWE-400",
         "severity": "High",
         "description": "A function can be blocked from executing due to gas limits, "
-                       "unbounded loops, or external call failures.",
+        "unbounded loops, or external call failures.",
     },
     "uninitialized_storage": {
         "swc_id": "SWC-109",
         "cwe_id": "CWE-824",
         "severity": "High",
         "description": "Uninitialized local storage variables can point to unexpected "
-                       "storage slots, leading to state corruption.",
+        "storage slots, leading to state corruption.",
     },
     "floating_pragma": {
         "swc_id": "SWC-103",
         "cwe_id": "CWE-1103",
         "severity": "Info",
         "description": "Floating pragma version allows compilation with different "
-                       "compiler versions, potentially introducing bugs.",
+        "compiler versions, potentially introducing bugs.",
     },
 }
 
@@ -143,18 +143,18 @@ FALLBACK_PATTERNS = [
         "confidence": 0.70,
         "message": "Potential reentrancy: external call detected with state-modifying code",
         "recommendation": "Apply checks-effects-interactions pattern. Update state variables "
-                          "before making external calls. Consider using ReentrancyGuard.",
+        "before making external calls. Consider using ReentrancyGuard.",
     },
     {
         "name": "access_control",
         "pattern": r"(function\s+\w+\s*\([^)]*\)\s*(public|external)\s+(?!.*\b(onlyOwner|onlyAdmin|"
-                   r"onlyRole|require\s*\(\s*msg\.sender|modifier)\b))",
+        r"onlyRole|require\s*\(\s*msg\.sender|modifier)\b))",
         "context_pattern": None,
         "severity": "High",
         "confidence": 0.55,
         "message": "Public/external function without access control modifier",
         "recommendation": "Add appropriate access control modifier (onlyOwner, onlyRole) "
-                          "or require() check for sender authorization.",
+        "or require() check for sender authorization.",
     },
     {
         "name": "tx_origin",
@@ -173,7 +173,7 @@ FALLBACK_PATTERNS = [
         "confidence": 0.60,
         "message": "Low-level call without explicit return value check",
         "recommendation": "Always check the boolean return value of low-level calls. "
-                          "Use require() to ensure the call succeeded.",
+        "Use require() to ensure the call succeeded.",
     },
     {
         "name": "selfdestruct",
@@ -183,7 +183,7 @@ FALLBACK_PATTERNS = [
         "confidence": 0.80,
         "message": "selfdestruct usage detected; ensure it is properly access-controlled",
         "recommendation": "Protect selfdestruct with onlyOwner or multi-sig authorization. "
-                          "Consider if selfdestruct is truly necessary.",
+        "Consider if selfdestruct is truly necessary.",
     },
     {
         "name": "delegatecall",
@@ -193,7 +193,7 @@ FALLBACK_PATTERNS = [
         "confidence": 0.75,
         "message": "delegatecall to potentially untrusted address detected",
         "recommendation": "Ensure delegatecall targets are trusted and immutable. "
-                          "Validate storage layout compatibility.",
+        "Validate storage layout compatibility.",
     },
     {
         "name": "timestamp_dependence",
@@ -203,7 +203,7 @@ FALLBACK_PATTERNS = [
         "confidence": 0.65,
         "message": "Block timestamp used in logic; miners can manipulate within ~15s",
         "recommendation": "Avoid using block.timestamp for time-critical logic. "
-                          "Use block numbers or an oracle for more reliable timing.",
+        "Use block numbers or an oracle for more reliable timing.",
     },
     {
         "name": "floating_pragma",
@@ -213,7 +213,7 @@ FALLBACK_PATTERNS = [
         "confidence": 0.90,
         "message": "Floating pragma version detected; pin to a specific compiler version",
         "recommendation": "Use a fixed pragma version (e.g., pragma solidity 0.8.20;) "
-                          "to ensure deterministic compilation.",
+        "to ensure deterministic compilation.",
     },
     {
         "name": "integer_overflow",
@@ -223,7 +223,7 @@ FALLBACK_PATTERNS = [
         "confidence": 0.60,
         "message": "Arithmetic operation in pre-0.8.x contract without overflow protection",
         "recommendation": "Upgrade to Solidity 0.8.x for built-in overflow checks, "
-                          "or use SafeMath library.",
+        "or use SafeMath library.",
     },
     {
         "name": "denial_of_service",
@@ -233,7 +233,7 @@ FALLBACK_PATTERNS = [
         "confidence": 0.55,
         "message": "Unbounded loop iterating over dynamic array length",
         "recommendation": "Limit loop iterations or use pagination to prevent "
-                          "exceeding the block gas limit.",
+        "exceeding the block gas limit.",
     },
 ]
 
@@ -241,6 +241,7 @@ FALLBACK_PATTERNS = [
 # ============================================================================
 # MAIN ADAPTER CLASS
 # ============================================================================
+
 
 class LlamaAuditAdapter(ToolAdapter):
     """
@@ -336,8 +337,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
             repository="https://github.com/ollama/ollama",
             documentation="https://github.com/ollama/ollama/blob/main/docs/api.md",
             installation_cmd=(
-                "curl -fsSL https://ollama.com/install.sh | sh && "
-                "ollama pull codellama"
+                "curl -fsSL https://ollama.com/install.sh | sh && " "ollama pull codellama"
             ),
             capabilities=[
                 ToolCapability(
@@ -418,15 +418,11 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                     if any(alt in name for name in model_names):
                         self._model = alt
                         logger.info(
-                            f"LlamaAudit: Using alternative model '{alt}' "
-                            f"(codellama not found)"
+                            f"LlamaAudit: Using alternative model '{alt}' " f"(codellama not found)"
                         )
                         return ToolStatus.AVAILABLE
 
-                logger.warning(
-                    "LlamaAudit: No suitable model found. "
-                    "Run: ollama pull codellama"
-                )
+                logger.warning("LlamaAudit: No suitable model found. " "Run: ollama pull codellama")
                 return ToolStatus.CONFIGURATION_ERROR
 
         except urllib.error.URLError as e:
@@ -459,9 +455,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         # Read contract source code
         contract_code = self._read_contract(contract_path)
         if not contract_code:
-            return self._error_result(
-                start_time, f"Could not read contract file: {contract_path}"
-            )
+            return self._error_result(start_time, f"Could not read contract file: {contract_path}")
 
         # Check cache
         cache_key = self._get_cache_key(contract_code)
@@ -477,17 +471,11 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
 
         if ollama_status == ToolStatus.AVAILABLE:
             # Primary path: LLM-based analysis via Ollama HTTP API
-            result = self._analyze_with_ollama(
-                contract_code, contract_path, timeout, **kwargs
-            )
+            result = self._analyze_with_ollama(contract_code, contract_path, timeout, **kwargs)
         elif use_fallback:
             # Fallback path: pattern-based analysis
-            logger.warning(
-                "LlamaAudit: Ollama unavailable, using pattern-based fallback"
-            )
-            result = self._analyze_with_patterns(
-                contract_code, contract_path, start_time
-            )
+            logger.warning("LlamaAudit: Ollama unavailable, using pattern-based fallback")
+            result = self._analyze_with_patterns(contract_code, contract_path, start_time)
         else:
             return self._error_result(
                 start_time,
@@ -557,9 +545,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                 "location": {
                     "file": location.get("file", finding.get("file", "")),
                     "line": location.get("line", finding.get("line", 0)),
-                    "function": location.get(
-                        "function", finding.get("function", "")
-                    ),
+                    "function": location.get("function", finding.get("function", "")),
                 },
                 "message": finding.get(
                     "message",
@@ -572,12 +558,8 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                 "recommendation": finding.get(
                     "recommendation", "Review and address the identified issue"
                 ),
-                "swc_id": finding.get(
-                    "swc_id", registry_entry.get("swc_id", None)
-                ),
-                "cwe_id": finding.get(
-                    "cwe_id", registry_entry.get("cwe_id", None)
-                ),
+                "swc_id": finding.get("swc_id", registry_entry.get("swc_id", None)),
+                "cwe_id": finding.get("cwe_id", registry_entry.get("cwe_id", None)),
             }
 
             normalized.append(norm_finding)
@@ -603,9 +585,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
     # PRIVATE: OLLAMA HTTP API METHODS
     # ============================================================================
 
-    def _call_ollama_generate(
-        self, prompt: str, timeout: int = 180
-    ) -> Optional[str]:
+    def _call_ollama_generate(self, prompt: str, timeout: int = 180) -> Optional[str]:
         """
         Call Ollama generate API via HTTP POST.
 
@@ -619,16 +599,18 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         Returns:
             Complete response text, or None on failure
         """
-        payload = json.dumps({
-            "model": self._model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.1,
-                "num_ctx": 8192,
-                "top_p": 0.9,
-            },
-        }).encode("utf-8")
+        payload = json.dumps(
+            {
+                "model": self._model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "num_ctx": 8192,
+                    "top_p": 0.9,
+                },
+            }
+        ).encode("utf-8")
 
         req = urllib.request.Request(
             self._ollama_generate_url,
@@ -646,9 +628,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                 )
                 with urllib.request.urlopen(req, timeout=timeout) as resp:
                     if resp.status != 200:
-                        logger.warning(
-                            f"Ollama generate returned status {resp.status}"
-                        )
+                        logger.warning(f"Ollama generate returned status {resp.status}")
                         continue
 
                     data = json.loads(resp.read().decode("utf-8"))
@@ -656,30 +636,22 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
 
                     if response_text:
                         logger.info(
-                            f"LlamaAudit: Received response "
-                            f"({len(response_text)} chars)"
+                            f"LlamaAudit: Received response " f"({len(response_text)} chars)"
                         )
                         return response_text
                     else:
                         logger.warning("Ollama returned empty response")
 
             except urllib.error.URLError as e:
-                logger.warning(
-                    f"LlamaAudit: HTTP error (attempt {attempt}): {e}"
-                )
+                logger.warning(f"LlamaAudit: HTTP error (attempt {attempt}): {e}")
             except TimeoutError:
                 logger.warning(
-                    f"LlamaAudit: Request timeout after {timeout}s "
-                    f"(attempt {attempt})"
+                    f"LlamaAudit: Request timeout after {timeout}s " f"(attempt {attempt})"
                 )
             except json.JSONDecodeError as e:
-                logger.warning(
-                    f"LlamaAudit: Invalid JSON response (attempt {attempt}): {e}"
-                )
+                logger.warning(f"LlamaAudit: Invalid JSON response (attempt {attempt}): {e}")
             except Exception as e:
-                logger.error(
-                    f"LlamaAudit: Unexpected error (attempt {attempt}): {e}"
-                )
+                logger.error(f"LlamaAudit: Unexpected error (attempt {attempt}): {e}")
 
             if attempt < self._max_retries:
                 time.sleep(self._retry_delay)
@@ -732,12 +704,9 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
             # LLM call failed - try fallback if enabled
             if kwargs.get("use_fallback", True):
                 logger.warning(
-                    "LlamaAudit: Ollama call failed, falling back to "
-                    "pattern-based analysis"
+                    "LlamaAudit: Ollama call failed, falling back to " "pattern-based analysis"
                 )
-                return self._analyze_with_patterns(
-                    contract_code, contract_path, start_time
-                )
+                return self._analyze_with_patterns(contract_code, contract_path, start_time)
             return self._error_result(
                 start_time, "Failed to get response from Ollama codellama model"
             )
@@ -766,9 +735,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
             "from_cache": False,
         }
 
-    def _parse_llm_response(
-        self, llm_response: str, contract_path: str
-    ) -> List[Dict[str, Any]]:
+    def _parse_llm_response(self, llm_response: str, contract_path: str) -> List[Dict[str, Any]]:
         """
         Parse CodeLlama response and extract vulnerability findings.
 
@@ -795,9 +762,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
 
         # Strategy 3: Regex extraction fallback
         if parsed is None:
-            logger.warning(
-                "LlamaAudit: JSON parsing failed, using regex extraction"
-            )
+            logger.warning("LlamaAudit: JSON parsing failed, using regex extraction")
             return self._extract_findings_regex(llm_response, contract_path)
 
         # Process parsed JSON findings
@@ -858,7 +823,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                     depth -= 1
                     if depth == 0:
                         try:
-                            return json.loads(text[start:start + i + 1])
+                            return json.loads(text[start : start + i + 1])
                         except json.JSONDecodeError:
                             break
 
@@ -878,9 +843,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
 
         return None
 
-    def _extract_findings_regex(
-        self, text: str, contract_path: str
-    ) -> List[Dict[str, Any]]:
+    def _extract_findings_regex(self, text: str, contract_path: str) -> List[Dict[str, Any]]:
         """
         Extract findings from LLM text using regex patterns.
 
@@ -913,26 +876,28 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                 seen_types.add(vuln_type)
                 registry_entry = VULNERABILITY_REGISTRY.get(vuln_type, {})
 
-                findings.append({
-                    "id": f"llamaaudit-regex-{len(findings) + 1}",
-                    "type": vuln_type,
-                    "severity": severity,
-                    "confidence": 0.55,
-                    "title": f"Potential {vuln_type.replace('_', ' ').title()}",
-                    "message": f"LLM analysis mentions {keyword} vulnerability",
-                    "description": registry_entry.get(
-                        "description",
-                        f"Potential {vuln_type} issue detected by LLM analysis.",
-                    ),
-                    "location": {
-                        "file": contract_path,
-                        "line": 0,
-                        "function": "",
-                    },
-                    "recommendation": f"Review contract for {keyword} vulnerabilities.",
-                    "swc_id": registry_entry.get("swc_id", None),
-                    "cwe_id": registry_entry.get("cwe_id", None),
-                })
+                findings.append(
+                    {
+                        "id": f"llamaaudit-regex-{len(findings) + 1}",
+                        "type": vuln_type,
+                        "severity": severity,
+                        "confidence": 0.55,
+                        "title": f"Potential {vuln_type.replace('_', ' ').title()}",
+                        "message": f"LLM analysis mentions {keyword} vulnerability",
+                        "description": registry_entry.get(
+                            "description",
+                            f"Potential {vuln_type} issue detected by LLM analysis.",
+                        ),
+                        "location": {
+                            "file": contract_path,
+                            "line": 0,
+                            "function": "",
+                        },
+                        "recommendation": f"Review contract for {keyword} vulnerabilities.",
+                        "swc_id": registry_entry.get("swc_id", None),
+                        "cwe_id": registry_entry.get("cwe_id", None),
+                    }
+                )
 
         return findings
 
@@ -968,9 +933,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
 
             # Check context pattern if specified (e.g., Solidity version check)
             if rule.get("context_pattern"):
-                context = re.compile(
-                    rule["context_pattern"], re.MULTILINE | re.IGNORECASE
-                )
+                context = re.compile(rule["context_pattern"], re.MULTILINE | re.IGNORECASE)
                 if not context.search(contract_code):
                     continue
 
@@ -980,12 +943,10 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
 
             for match_idx, match in enumerate(matches):
                 # Calculate line number from match position
-                line_num = contract_code[:match.start()].count("\n") + 1
+                line_num = contract_code[: match.start()].count("\n") + 1
 
                 # Try to determine the enclosing function name
-                function_name = self._find_enclosing_function(
-                    lines, line_num - 1
-                )
+                function_name = self._find_enclosing_function(lines, line_num - 1)
 
                 registry_entry = VULNERABILITY_REGISTRY.get(rule["name"], {})
 
@@ -996,9 +957,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                     "confidence": rule["confidence"],
                     "title": f"Pattern: {rule['name'].replace('_', ' ').title()}",
                     "message": rule["message"],
-                    "description": registry_entry.get(
-                        "description", rule["message"]
-                    ),
+                    "description": registry_entry.get("description", rule["message"]),
                     "location": {
                         "file": contract_path,
                         "line": line_num,
@@ -1034,17 +993,13 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
             "from_cache": False,
         }
 
-    def _find_enclosing_function(
-        self, lines: List[str], target_line: int
-    ) -> str:
+    def _find_enclosing_function(self, lines: List[str], target_line: int) -> str:
         """
         Find the name of the function enclosing the given line.
 
         Scans backward from the target line looking for a function declaration.
         """
-        func_pattern = re.compile(
-            r"function\s+(\w+)\s*\(", re.IGNORECASE
-        )
+        func_pattern = re.compile(r"function\s+(\w+)\s*\(", re.IGNORECASE)
         for i in range(target_line, max(target_line - 50, -1), -1):
             if i < 0 or i >= len(lines):
                 continue
@@ -1053,9 +1008,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                 return match.group(1)
         return ""
 
-    def _deduplicate_findings(
-        self, findings: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    def _deduplicate_findings(self, findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Remove duplicate findings based on type + function combination.
 
@@ -1103,7 +1056,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
             f"LlamaAudit: Contract truncated from {len(code)} to "
             f"{self._max_contract_chars} chars"
         )
-        return code[:self._max_contract_chars] + "\n// ... (truncated for analysis)"
+        return code[: self._max_contract_chars] + "\n// ... (truncated for analysis)"
 
     def _normalize_severity(self, raw_severity: str) -> str:
         """Normalize severity string to MIESC standard values."""

@@ -4,13 +4,11 @@ Tests for context_bus and MCP message protocol.
 """
 
 import pytest
-from datetime import datetime
-from unittest.mock import MagicMock
-
 
 # =============================================================================
 # MCP MESSAGE TESTS
 # =============================================================================
+
 
 class TestMCPMessage:
     """Tests for MCPMessage dataclass."""
@@ -18,6 +16,7 @@ class TestMCPMessage:
     def test_mcp_message_import(self):
         """Test that MCPMessage can be imported."""
         from src.mcp.context_bus import MCPMessage
+
         assert MCPMessage is not None
 
     def test_mcp_message_creation(self):
@@ -31,7 +30,7 @@ class TestMCPMessage:
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
             data={"findings": []},
-            metadata={"version": "1.0"}
+            metadata={"version": "1.0"},
         )
 
         assert msg.protocol == "mcp/1.0"
@@ -52,7 +51,7 @@ class TestMCPMessage:
             context_type="test",
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
-            data=[]
+            data=[],
         )
 
         assert msg.metadata == {}
@@ -67,7 +66,7 @@ class TestMCPMessage:
             context_type="test",
             contract="Test.sol",
             timestamp="",
-            data=[]
+            data=[],
         )
 
         # Should have generated a timestamp
@@ -85,7 +84,7 @@ class TestMCPMessage:
             context_type="test",
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
-            data=[]
+            data=[],
         )
 
         assert msg.protocol == "custom/2.0"
@@ -95,12 +94,14 @@ class TestMCPMessage:
 # CONTEXT BUS TESTS
 # =============================================================================
 
+
 class TestContextBus:
     """Tests for ContextBus class."""
 
     def test_context_bus_import(self):
         """Test that ContextBus can be imported."""
         from src.mcp.context_bus import ContextBus
+
         assert ContextBus is not None
 
     def test_context_bus_initialization(self):
@@ -109,9 +110,9 @@ class TestContextBus:
 
         bus = ContextBus()
         assert bus is not None
-        assert hasattr(bus, '_messages')
-        assert hasattr(bus, '_subscribers')
-        assert hasattr(bus, '_lock')
+        assert hasattr(bus, "_messages")
+        assert hasattr(bus, "_subscribers")
+        assert hasattr(bus, "_lock")
 
     def test_context_bus_publish(self):
         """Test publishing a message to the bus."""
@@ -124,7 +125,7 @@ class TestContextBus:
             context_type="test_findings",
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
-            data=[{"severity": "High"}]
+            data=[{"severity": "High"}],
         )
 
         bus.publish(msg)
@@ -147,7 +148,7 @@ class TestContextBus:
                 context_type="test_findings",
                 contract="Test.sol",
                 timestamp="2024-01-01T00:00:00Z",
-                data={"index": i}
+                data={"index": i},
             )
             bus.publish(msg)
 
@@ -173,7 +174,7 @@ class TestContextBus:
             context_type="test_findings",
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
-            data=[]
+            data=[],
         )
         bus.publish(msg)
 
@@ -198,7 +199,7 @@ class TestContextBus:
             context_type="test_findings",
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
-            data=[]
+            data=[],
         )
         bus.publish(msg)
 
@@ -223,7 +224,7 @@ class TestContextBus:
             context_type="test_findings",
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
-            data=[]
+            data=[],
         )
         bus.publish(msg)  # Should not raise
 
@@ -241,7 +242,7 @@ class TestContextBus:
                 context_type="test_findings",
                 contract="Test.sol",
                 timestamp="2024-01-01T00:00:00Z",
-                data={"index": i}
+                data={"index": i},
             )
             bus.publish(msg)
 
@@ -271,7 +272,7 @@ class TestContextBus:
                 context_type="test_findings",
                 contract="Test.sol",
                 timestamp="2024-01-01T00:00:00Z",
-                data={}
+                data={},
             )
             bus.publish(msg)
 
@@ -301,7 +302,7 @@ class TestContextBus:
                 context_type=ct,
                 contract="Test.sol",
                 timestamp="2024-01-01T00:00:00Z",
-                data={"type": ct}
+                data={"type": ct},
             )
             bus.publish(msg)
 
@@ -324,7 +325,7 @@ class TestContextBus:
             context_type="existing",
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
-            data={}
+            data={},
         )
         bus.publish(msg)
 
@@ -348,7 +349,7 @@ class TestContextBus:
             context_type="test",
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
-            data={}
+            data={},
         )
         bus.publish(msg)
         bus.subscribe("test", lambda m: None)
@@ -368,14 +369,14 @@ class TestContextBus:
         bus = ContextBus()
 
         # Publish to different context types
-        for i in range(2):
+        for _i in range(2):
             msg = MCPMessage(
                 protocol="mcp/1.0",
                 agent="TestAgent",
                 context_type="type_a",
                 contract="Test.sol",
                 timestamp="2024-01-01T00:00:00Z",
-                data={}
+                data={},
             )
             bus.publish(msg)
 
@@ -385,7 +386,7 @@ class TestContextBus:
             context_type="type_b",
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
-            data={}
+            data={},
         )
         bus.publish(msg)
 
@@ -408,6 +409,7 @@ class TestContextBus:
 # SINGLETON TESTS
 # =============================================================================
 
+
 class TestContextBusSingleton:
     """Tests for singleton functions."""
 
@@ -425,7 +427,7 @@ class TestContextBusSingleton:
 
     def test_reset_context_bus(self):
         """Test resetting singleton instance."""
-        from src.mcp.context_bus import get_context_bus, reset_context_bus, MCPMessage
+        from src.mcp.context_bus import MCPMessage, get_context_bus, reset_context_bus
 
         bus1 = get_context_bus()
 
@@ -436,7 +438,7 @@ class TestContextBusSingleton:
             context_type="test",
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
-            data={}
+            data={},
         )
         bus1.publish(msg)
 
@@ -453,13 +455,15 @@ class TestContextBusSingleton:
 # THREAD SAFETY TESTS
 # =============================================================================
 
+
 class TestContextBusThreadSafety:
     """Tests for thread safety."""
 
     def test_concurrent_publish(self):
         """Test concurrent message publishing."""
-        from src.mcp.context_bus import ContextBus, MCPMessage
         from concurrent.futures import ThreadPoolExecutor
+
+        from src.mcp.context_bus import ContextBus, MCPMessage
 
         bus = ContextBus()
 
@@ -470,7 +474,7 @@ class TestContextBusThreadSafety:
                 context_type="concurrent_test",
                 contract="Test.sol",
                 timestamp="2024-01-01T00:00:00Z",
-                data={"index": index}
+                data={"index": index},
             )
             bus.publish(msg)
             return True
@@ -487,6 +491,7 @@ class TestContextBusThreadSafety:
 # =============================================================================
 # INTEGRATION TESTS
 # =============================================================================
+
 
 class TestContextBusIntegration:
     """Integration tests for context bus with agents."""
@@ -509,7 +514,7 @@ class TestContextBusIntegration:
             context_type="static_findings",
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
-            data=[{"type": "reentrancy", "severity": "High"}]
+            data=[{"type": "reentrancy", "severity": "High"}],
         )
         bus.publish(static_msg)
 
@@ -520,7 +525,7 @@ class TestContextBusIntegration:
             context_type="dynamic_findings",
             contract="Test.sol",
             timestamp="2024-01-01T00:00:00Z",
-            data=[{"type": "assertion_failure", "severity": "Medium"}]
+            data=[{"type": "assertion_failure", "severity": "Medium"}],
         )
         bus.publish(dynamic_msg)
 
@@ -531,5 +536,5 @@ class TestContextBusIntegration:
         assert "DynamicAgent" in agents
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '--tb=short'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])

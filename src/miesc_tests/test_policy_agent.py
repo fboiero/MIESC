@@ -13,17 +13,18 @@ Author: Fernando Boiero
 Version: 3.2.0
 """
 
-import pytest
 import json
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
-import subprocess
 
 # Import module under test
 import sys
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from miesc_policy_agent import PolicyAgent, PolicyCheck, ComplianceReport
+from miesc_policy_agent import ComplianceReport, PolicyAgent, PolicyCheck
 
 
 class TestPolicyCheck:
@@ -40,7 +41,7 @@ class TestPolicyCheck:
             description="Test description",
             evidence={"test": True},
             remediation="No action needed",
-            standards=["TEST"]
+            standards=["TEST"],
         )
 
         assert check.policy_id == "TEST-001"
@@ -62,7 +63,7 @@ class TestComplianceReport:
             description="Test",
             evidence={},
             remediation="",
-            standards=[]
+            standards=[],
         )
 
         report = ComplianceReport(
@@ -75,7 +76,7 @@ class TestComplianceReport:
             compliance_score=100.0,
             checks=[check],
             frameworks={},
-            recommendations=[]
+            recommendations=[],
         )
 
         assert report.compliance_score == 100.0
@@ -93,7 +94,7 @@ class TestComplianceReport:
             description="Test",
             evidence={},
             remediation="",
-            standards=[]
+            standards=[],
         )
 
         report = ComplianceReport(
@@ -106,7 +107,7 @@ class TestComplianceReport:
             compliance_score=100.0,
             checks=[check],
             frameworks={},
-            recommendations=[]
+            recommendations=[],
         )
 
         report_dict = report.to_dict()
@@ -124,7 +125,7 @@ class TestPolicyAgent:
         assert agent.src_path == Path(".") / "src"
         assert agent.tests_path == Path(".") / "tests"
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_ruff_check_pass(self, mock_run):
         """Test Ruff check passing"""
         mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
@@ -135,14 +136,10 @@ class TestPolicyAgent:
         assert check.policy_id == "CQ-001"
         assert check.status == "pass"
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_ruff_check_fail(self, mock_run):
         """Test Ruff check failing"""
-        mock_run.return_value = Mock(
-            returncode=1,
-            stdout="error: Found 5 errors",
-            stderr=""
-        )
+        mock_run.return_value = Mock(returncode=1, stdout="error: Found 5 errors", stderr="")
 
         agent = PolicyAgent()
         check = agent._run_ruff_check()
@@ -150,21 +147,12 @@ class TestPolicyAgent:
         assert check.policy_id == "CQ-001"
         assert check.status == "fail"
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_bandit_check_with_high_severity(self, mock_run):
         """Test Bandit check with high severity issues"""
-        bandit_output = {
-            "results": [
-                {"issue_severity": "HIGH"},
-                {"issue_severity": "MEDIUM"}
-            ]
-        }
+        bandit_output = {"results": [{"issue_severity": "HIGH"}, {"issue_severity": "MEDIUM"}]}
 
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout=json.dumps(bandit_output),
-            stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout=json.dumps(bandit_output), stderr="")
 
         agent = PolicyAgent()
         check = agent._run_bandit_check()
@@ -273,7 +261,7 @@ class TestPolicyAgent:
                 description="Test",
                 evidence={},
                 remediation="",
-                standards=["ISO 27001 A.5.1", "NIST SSDF PW.8"]
+                standards=["ISO 27001 A.5.1", "NIST SSDF PW.8"],
             )
         ]
 
@@ -296,7 +284,7 @@ class TestPolicyAgent:
             description="Test",
             evidence={},
             remediation="",
-            standards=[]
+            standards=[],
         )
 
         agent = PolicyAgent()
@@ -317,7 +305,7 @@ class TestPolicyAgent:
             description="Test",
             evidence={},
             remediation="",
-            standards=[]
+            standards=[],
         )
 
         report = ComplianceReport(
@@ -330,7 +318,7 @@ class TestPolicyAgent:
             compliance_score=100.0,
             checks=[check],
             frameworks={},
-            recommendations=[]
+            recommendations=[],
         )
 
         output_path = tmp_path / "test_report.json"
@@ -354,7 +342,7 @@ class TestPolicyAgent:
             description="Test description",
             evidence={"result": "ok"},
             remediation="",
-            standards=["TEST"]
+            standards=["TEST"],
         )
 
         report = ComplianceReport(
@@ -369,9 +357,9 @@ class TestPolicyAgent:
             frameworks={
                 "ISO_27001": {"controls_tested": 0, "controls_passed": 0, "controls": []},
                 "NIST_SSDF": {"practices_tested": 0, "practices_passed": 0, "practices": []},
-                "OWASP_SAMM": {"activities_tested": 0, "activities_passed": 0, "activities": []}
+                "OWASP_SAMM": {"activities_tested": 0, "activities_passed": 0, "activities": []},
             },
-            recommendations=["All checks passed"]
+            recommendations=["All checks passed"],
         )
 
         output_path = tmp_path / "test_report.md"
@@ -390,15 +378,11 @@ class TestPolicyAgent:
 class TestPolicyAgentIntegration:
     """Integration tests for PolicyAgent"""
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_full_validation_workflow(self, mock_run, tmp_path):
         """Test complete validation workflow"""
         # Mock all subprocess calls to pass
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout="",
-            stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
 
         # Create minimal directory structure
         (tmp_path / "src").mkdir()

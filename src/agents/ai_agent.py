@@ -4,17 +4,19 @@ AI Agent for MCP Architecture
 Wraps Layer 6 (Cognitive Intelligence): GPTLens AI Triage
 Consumes findings from other agents and performs intelligent triage
 """
+
 import json
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 try:
     import openai
+
     OPENAI_AVAILABLE = True
 except ImportError:
     openai = None  # type: ignore
     OPENAI_AVAILABLE = False
-from pathlib import Path
+
 from src.agents.base_agent import BaseAgent
 from src.mcp.context_bus import MCPMessage
 
@@ -54,9 +56,9 @@ class AIAgent(BaseAgent):
                 "cross_layer_correlation",
                 "remediation_generation",
                 "exploitability_assessment",
-                "chain_of_thought_reasoning"
+                "chain_of_thought_reasoning",
             ],
-            agent_type="ai"
+            agent_type="ai",
         )
 
         self.model = model  # Updated to GPT-4o for superior reasoning
@@ -73,17 +75,13 @@ class AIAgent(BaseAgent):
                 "static_findings",
                 "dynamic_findings",
                 "formal_findings",
-                "symbolic_findings"
+                "symbolic_findings",
             ],
-            callback=self._handle_findings
+            callback=self._handle_findings,
         )
 
     def get_context_types(self) -> List[str]:
-        return [
-            "ai_triage",
-            "false_positives",
-            "root_cause_analysis"
-        ]
+        return ["ai_triage", "false_positives", "root_cause_analysis"]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -98,11 +96,7 @@ class AIAgent(BaseAgent):
         Returns:
             Dictionary with triage results
         """
-        results = {
-            "ai_triage": [],
-            "false_positives": [],
-            "root_cause_analysis": []
-        }
+        results = {"ai_triage": [], "false_positives": [], "root_cause_analysis": []}
 
         # Aggregate findings from all layers
         aggregated = kwargs.get("aggregated_findings")
@@ -117,7 +111,7 @@ class AIAgent(BaseAgent):
         contract_source = kwargs.get("contract_source")
         if not contract_source:
             try:
-                with open(contract_path, 'r') as f:
+                with open(contract_path, "r") as f:
                     contract_source = f.read()
             except Exception as e:
                 logger.error(f"AIAgent: Could not read contract source: {e}")
@@ -131,8 +125,7 @@ class AIAgent(BaseAgent):
 
         # Perform root cause analysis on critical issues
         critical_findings = [
-            f for f in triage_results["triaged"]
-            if f.get("severity") in ["Critical", "High"]
+            f for f in triage_results["triaged"] if f.get("severity") in ["Critical", "High"]
         ]
 
         if critical_findings:
@@ -164,13 +157,13 @@ class AIAgent(BaseAgent):
             "static_findings",
             "dynamic_findings",
             "formal_findings",
-            "symbolic_findings"
+            "symbolic_findings",
         ]
 
         aggregated_contexts = self.aggregate_contexts(context_types)
         all_findings = []
 
-        for context_type, messages in aggregated_contexts.items():
+        for _context_type, messages in aggregated_contexts.items():
             for message in messages:
                 if isinstance(message.data, list):
                     all_findings.extend(message.data)
@@ -179,8 +172,9 @@ class AIAgent(BaseAgent):
 
         return all_findings
 
-    def _triage_findings(self, findings: List[Dict[str, Any]],
-                        contract_source: str) -> Dict[str, List[Dict[str, Any]]]:
+    def _triage_findings(
+        self, findings: List[Dict[str, Any]], contract_source: str
+    ) -> Dict[str, List[Dict[str, Any]]]:
         """
         Triage findings using AI (GPT-4)
 
@@ -213,12 +207,12 @@ class AIAgent(BaseAgent):
                             "Your task is to triage vulnerability findings, identify false positives, "
                             "and prioritize real issues based on severity and exploitability. "
                             "Respond in JSON format."
-                        )
+                        ),
                     },
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
-                max_tokens=4000
+                max_tokens=4000,
             )
 
             # Parse response
@@ -226,7 +220,7 @@ class AIAgent(BaseAgent):
 
             return {
                 "triaged": triage_result.get("real_vulnerabilities", []),
-                "false_positives": triage_result.get("false_positives", [])
+                "false_positives": triage_result.get("false_positives", []),
             }
 
         except json.JSONDecodeError as e:
@@ -236,8 +230,7 @@ class AIAgent(BaseAgent):
             logger.error(f"AIAgent: Triage error: {e}")
             return {"triaged": findings, "false_positives": []}
 
-    def _build_triage_prompt(self, findings: List[Dict[str, Any]],
-                            contract_source: str) -> str:
+    def _build_triage_prompt(self, findings: List[Dict[str, Any]], contract_source: str) -> str:
         """
         Build prompt for AI triage
 
@@ -329,8 +322,7 @@ Respond in this JSON format:
 """
         return prompt
 
-    def _root_cause_analysis(self, finding: Dict[str, Any],
-                            contract_source: str) -> Dict[str, Any]:
+    def _root_cause_analysis(self, finding: Dict[str, Any], contract_source: str) -> Dict[str, Any]:
         """
         Perform deep root cause analysis on critical finding
 
@@ -346,7 +338,7 @@ Respond in this JSON format:
                 "finding_id": finding.get("id"),
                 "root_cause": "AI analysis not available (openai not installed or no API key)",
                 "attack_scenario": "",
-                "remediation_steps": []
+                "remediation_steps": [],
             }
 
         try:
@@ -385,12 +377,12 @@ Respond in JSON format:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a smart contract security expert performing root cause analysis."
+                        "content": "You are a smart contract security expert performing root cause analysis.",
                     },
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
-                max_tokens=2000
+                max_tokens=2000,
             )
 
             return json.loads(response.choices[0].message.content)
@@ -401,7 +393,7 @@ Respond in JSON format:
                 "finding_id": finding.get("id"),
                 "root_cause": f"Analysis failed: {str(e)}",
                 "attack_scenario": "",
-                "remediation_steps": []
+                "remediation_steps": [],
             }
 
     def cross_layer_correlation(self, finding_id: str) -> Dict[str, Any]:
@@ -414,18 +406,15 @@ Respond in JSON format:
         Returns:
             Dictionary with correlated findings from different layers
         """
-        all_contexts = self.aggregate_contexts([
-            "static_findings",
-            "dynamic_findings",
-            "symbolic_findings",
-            "formal_findings"
-        ])
+        all_contexts = self.aggregate_contexts(
+            ["static_findings", "dynamic_findings", "symbolic_findings", "formal_findings"]
+        )
 
         correlated = {
             "finding_id": finding_id,
             "detected_by": [],
             "consistency_score": 0.0,
-            "cross_layer_confidence": "Unknown"
+            "cross_layer_confidence": "Unknown",
         }
 
         # Search for same vulnerability across layers
@@ -434,12 +423,14 @@ Respond in JSON format:
                 findings = message.data if isinstance(message.data, list) else []
                 for f in findings:
                     if f.get("id") == finding_id or f.get("swc_id") == finding_id:
-                        correlated["detected_by"].append({
-                            "layer": context_type.replace("_findings", ""),
-                            "agent": message.agent,
-                            "severity": f.get("severity"),
-                            "confidence": f.get("confidence")
-                        })
+                        correlated["detected_by"].append(
+                            {
+                                "layer": context_type.replace("_findings", ""),
+                                "agent": message.agent,
+                                "severity": f.get("severity"),
+                                "confidence": f.get("confidence"),
+                            }
+                        )
 
         # Calculate consistency score
         num_detections = len(correlated["detected_by"])

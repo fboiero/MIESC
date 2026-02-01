@@ -7,22 +7,21 @@ Covers all methods in src/core/rich_cli.py.
 Author: Fernando Boiero
 """
 
-import pytest
-from io import StringIO
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
-import tempfile
 import os
+import tempfile
+from unittest.mock import patch
+
+import pytest
 
 from src.core.rich_cli import (
-    SeverityStyle,
     RICH_AVAILABLE,
+    SeverityStyle,
 )
-
 
 # =============================================================================
 # Test SeverityStyle Enum
 # =============================================================================
+
 
 class TestSeverityStyle:
     """Tests for SeverityStyle enum."""
@@ -63,6 +62,7 @@ class TestSeverityStyle:
 # Test Rich Availability
 # =============================================================================
 
+
 class TestRichAvailability:
     """Tests for Rich library availability."""
 
@@ -73,6 +73,7 @@ class TestRichAvailability:
     def test_module_imports(self):
         """Test module imports without error."""
         from src.core.rich_cli import SeverityStyle
+
         assert SeverityStyle is not None
 
     def test_rich_availability_is_boolean(self):
@@ -85,6 +86,7 @@ class TestRichAvailability:
 # Test MIESCRichCLI Class
 # =============================================================================
 
+
 @pytest.mark.skipif(not RICH_AVAILABLE, reason="Rich library not installed")
 class TestMIESCRichCLI:
     """Tests for MIESCRichCLI class (requires Rich)."""
@@ -93,12 +95,14 @@ class TestMIESCRichCLI:
     def cli(self):
         """Create CLI instance."""
         from src.core.rich_cli import MIESCRichCLI
+
         return MIESCRichCLI()
 
     @pytest.fixture
     def verbose_cli(self):
         """Create verbose CLI instance."""
         from src.core.rich_cli import MIESCRichCLI
+
         return MIESCRichCLI(verbose=True)
 
     @pytest.fixture
@@ -114,7 +118,7 @@ class TestMIESCRichCLI:
                 "location": "VulnerableBank.sol:25",
                 "cwe": "CWE-841",
                 "swc": "SWC-107",
-                "remediation": "Use checks-effects-interactions pattern or ReentrancyGuard."
+                "remediation": "Use checks-effects-interactions pattern or ReentrancyGuard.",
             },
             {
                 "title": "Unchecked Return Value",
@@ -147,7 +151,7 @@ class TestMIESCRichCLI:
                 "layer": 1,
                 "description": "Variable declared but never used.",
                 "location": "Contract.sol:100",
-            }
+            },
         ]
 
     @pytest.fixture
@@ -180,7 +184,7 @@ class TestMIESCRichCLI:
 
     def test_banner_is_ascii_art(self, cli):
         """Test banner is multi-line ASCII art."""
-        lines = cli.BANNER.strip().split('\n')
+        lines = cli.BANNER.strip().split("\n")
         assert len(lines) >= 5
 
     # --- Display Methods Tests ---
@@ -207,7 +211,8 @@ class TestMIESCRichCLI:
     def test_show_contract_info_existing_file(self, cli, tmp_path):
         """Test show_contract_info with existing file."""
         contract = tmp_path / "Test.sol"
-        contract.write_text("""
+        contract.write_text(
+            """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -216,7 +221,8 @@ contract Test {
         return "Hello";
     }
 }
-""")
+"""
+        )
         cli.show_contract_info(str(contract))
 
     def test_show_contract_info_nonexistent_file(self, cli):
@@ -234,7 +240,8 @@ contract Test {
     def test_show_contract_info_verbose(self, verbose_cli, tmp_path):
         """Test show_contract_info in verbose mode shows code preview."""
         contract = tmp_path / "Test.sol"
-        contract.write_text("""
+        contract.write_text(
+            """
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -249,7 +256,8 @@ contract Test {
         return value;
     }
 }
-""")
+"""
+        )
         verbose_cli.show_contract_info(str(contract))
 
     # --- Findings Display Tests ---
@@ -287,15 +295,13 @@ contract Test {
             "location": "test.sol:10",
             "cwe": "CWE-123",
             "swc": "SWC-101",
-            "remediation": "Fix this"
+            "remediation": "Fix this",
         }
         cli._show_finding(finding, "red")
 
     def test_show_finding_minimal(self, cli):
         """Test _show_finding with minimal data."""
-        finding = {
-            "type": "TestType"
-        }
+        finding = {"type": "TestType"}
         cli._show_finding(finding, "dim")
 
     # --- Progress Tests ---
@@ -381,7 +387,7 @@ contract Test {
 
     def test_prompt_contract_with_mock(self, cli):
         """Test prompt_contract with mocked input."""
-        with patch('src.core.rich_cli.Prompt.ask', return_value="/path/to/contract.sol"):
+        with patch("src.core.rich_cli.Prompt.ask", return_value="/path/to/contract.sol"):
             result = cli.prompt_contract(default="default.sol")
             assert result == "/path/to/contract.sol"
 
@@ -389,7 +395,7 @@ contract Test {
         """Test prompt_tools with 'all' selection."""
         available = ["slither", "mythril", "echidna"]
 
-        with patch('src.core.rich_cli.Prompt.ask', return_value="all"):
+        with patch("src.core.rich_cli.Prompt.ask", return_value="all"):
             result = cli.prompt_tools(available)
             assert result == available
 
@@ -397,7 +403,7 @@ contract Test {
         """Test prompt_tools with specific selection."""
         available = ["slither", "mythril", "echidna"]
 
-        with patch('src.core.rich_cli.Prompt.ask', return_value="1,3"):
+        with patch("src.core.rich_cli.Prompt.ask", return_value="1,3"):
             result = cli.prompt_tools(available)
             assert result == ["slither", "echidna"]
 
@@ -405,43 +411,43 @@ contract Test {
         """Test prompt_tools with invalid input returns all."""
         available = ["slither", "mythril"]
 
-        with patch('src.core.rich_cli.Prompt.ask', return_value="invalid"):
+        with patch("src.core.rich_cli.Prompt.ask", return_value="invalid"):
             result = cli.prompt_tools(available)
             assert result == available
 
     def test_prompt_confirm_yes(self, cli):
         """Test prompt_confirm returns True."""
-        with patch('src.core.rich_cli.Confirm.ask', return_value=True):
+        with patch("src.core.rich_cli.Confirm.ask", return_value=True):
             result = cli.prompt_confirm("Continue?")
             assert result is True
 
     def test_prompt_confirm_no(self, cli):
         """Test prompt_confirm returns False."""
-        with patch('src.core.rich_cli.Confirm.ask', return_value=False):
+        with patch("src.core.rich_cli.Confirm.ask", return_value=False):
             result = cli.prompt_confirm("Continue?")
             assert result is False
 
     def test_show_export_options_sarif(self, cli):
         """Test show_export_options returns sarif."""
-        with patch('src.core.rich_cli.Prompt.ask', return_value="1"):
+        with patch("src.core.rich_cli.Prompt.ask", return_value="1"):
             result = cli.show_export_options()
             assert result == "sarif"
 
     def test_show_export_options_markdown(self, cli):
         """Test show_export_options returns markdown."""
-        with patch('src.core.rich_cli.Prompt.ask', return_value="4"):
+        with patch("src.core.rich_cli.Prompt.ask", return_value="4"):
             result = cli.show_export_options()
             assert result == "markdown"
 
     def test_show_export_options_invalid(self, cli):
         """Test show_export_options returns default on invalid."""
-        with patch('src.core.rich_cli.Prompt.ask', return_value="invalid"):
+        with patch("src.core.rich_cli.Prompt.ask", return_value="invalid"):
             result = cli.show_export_options()
             assert result == "sarif"
 
     def test_show_export_options_out_of_range(self, cli):
         """Test show_export_options returns default on out of range."""
-        with patch('src.core.rich_cli.Prompt.ask', return_value="99"):
+        with patch("src.core.rich_cli.Prompt.ask", return_value="99"):
             result = cli.show_export_options()
             assert result == "sarif"
 
@@ -476,6 +482,7 @@ contract Test {
 # Test create_cli Factory Function
 # =============================================================================
 
+
 @pytest.mark.skipif(not RICH_AVAILABLE, reason="Rich library not installed")
 class TestCreateCLI:
     """Tests for create_cli factory function."""
@@ -501,6 +508,7 @@ class TestCreateCLI:
 # Test Edge Cases
 # =============================================================================
 
+
 @pytest.mark.skipif(not RICH_AVAILABLE, reason="Rich library not installed")
 class TestEdgeCases:
     """Edge case tests for CLI."""
@@ -508,21 +516,18 @@ class TestEdgeCases:
     @pytest.fixture
     def cli(self):
         from src.core.rich_cli import MIESCRichCLI
+
         return MIESCRichCLI()
 
     def test_findings_with_unknown_severity(self, cli):
         """Test handling findings with unknown severity."""
-        findings = [
-            {"title": "Unknown", "severity": "unknown", "tool": "test", "layer": 1}
-        ]
+        findings = [{"title": "Unknown", "severity": "unknown", "tool": "test", "layer": 1}]
         cli.show_findings_summary(findings)
         cli.show_findings_detail(findings)
 
     def test_findings_without_severity(self, cli):
         """Test handling findings without severity field."""
-        findings = [
-            {"title": "No Severity", "tool": "test", "layer": 1}
-        ]
+        findings = [{"title": "No Severity", "tool": "test", "layer": 1}]
         cli.show_findings_summary(findings)
 
     def test_findings_tree_grouped_by_layer(self, cli):
@@ -537,9 +542,10 @@ class TestEdgeCases:
     def test_long_code_preview(self):
         """Test code preview truncates long files."""
         from src.core.rich_cli import MIESCRichCLI
+
         cli = MIESCRichCLI(verbose=True)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.sol', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
             # Write many lines
             for i in range(100):
                 f.write(f"// Line {i}\n")
@@ -567,7 +573,7 @@ class TestEdgeCases:
                 "tool": "test",
                 "layer": 1,
                 "description": "Description with 'quotes' and \"double quotes\"",
-                "location": "file.sol:1"
+                "location": "file.sol:1",
             }
         ]
         cli.show_findings_detail(findings)
@@ -577,12 +583,14 @@ class TestEdgeCases:
 # Test Without Rich (Graceful Degradation)
 # =============================================================================
 
+
 class TestWithoutRich:
     """Tests for behavior when Rich is not available."""
 
     def test_import_without_rich(self, monkeypatch):
         """Test module handles missing Rich gracefully."""
         from src.core import rich_cli
+
         assert hasattr(rich_cli, "RICH_AVAILABLE")
 
     def test_severity_style_without_rich(self):

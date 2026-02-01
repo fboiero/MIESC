@@ -12,16 +12,15 @@ Institution: UNDEF - IUA
 """
 
 import csv
+import importlib.util
 import json
+import re
 import sys
 import time
-import importlib.util
-from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
-import re
+from typing import Dict, List, Optional, Tuple
 
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -47,9 +46,7 @@ classic_patterns = _import_module_directly(
 false_positive_filter = _import_module_directly(
     str(ML_PATH / "false_positive_filter.py"), "fp_filter_direct"
 )
-call_graph = _import_module_directly(
-    str(ML_PATH / "call_graph.py"), "call_graph_direct"
-)
+call_graph = _import_module_directly(str(ML_PATH / "call_graph.py"), "call_graph_direct")
 taint_analysis = _import_module_directly(
     str(ML_PATH / "taint_analysis.py"), "taint_analysis_direct"
 )
@@ -89,7 +86,7 @@ except Exception:
 
 # Import Mythril adapter for cross-validation
 # Need to add project root to path for mythril_adapter's internal imports
-import sys
+
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -102,6 +99,7 @@ try:
     # Check if Mythril is actually available
     _mythril_test = MythrilAdapter()
     from src.core.tool_protocol import ToolStatus
+
     MYTHRIL_AVAILABLE = _mythril_test.is_available() == ToolStatus.AVAILABLE
 except Exception as e:
     print(f"Warning: Mythril import failed: {e}")
@@ -122,32 +120,57 @@ SOLIDIFI_TO_SWC = {
 
 CATEGORY_TO_VULN_TYPES = {
     "Re-entrancy": {
-        "reentrancy", "reentrancy_eth", "reentrancy_no_eth", "reentrancy_path",
-        "vyper_reentrancy"
+        "reentrancy",
+        "reentrancy_eth",
+        "reentrancy_no_eth",
+        "reentrancy_path",
+        "vyper_reentrancy",
     },
     "Overflow-Underflow": {
-        "integer_overflow", "integer_underflow", "arithmetic", "overflow", "underflow"
+        "integer_overflow",
+        "integer_underflow",
+        "arithmetic",
+        "overflow",
+        "underflow",
     },
     "TOD": {
-        "front_running", "tod", "transaction_order_dependence", "race_condition",
-        "permit_frontrun"
+        "front_running",
+        "tod",
+        "transaction_order_dependence",
+        "race_condition",
+        "permit_frontrun",
     },
     "Timestamp-Dependency": {
-        "timestamp_dependence", "block_timestamp", "weak_randomness", "timestamp",
-        "bad_randomness"
+        "timestamp_dependence",
+        "block_timestamp",
+        "weak_randomness",
+        "timestamp",
+        "bad_randomness",
     },
     "Unchecked-Send": {
-        "unchecked_send", "unchecked_low_level_calls", "unchecked_call", "unchecked_return",
+        "unchecked_send",
+        "unchecked_low_level_calls",
+        "unchecked_call",
+        "unchecked_return",
         "reentrancy",  # .transfer() patterns detected as reentrancy also count
-        "arbitrary_send", "access_control", "unprotected_function"  # SolidiFI mislabels these
+        "arbitrary_send",
+        "access_control",
+        "unprotected_function",  # SolidiFI mislabels these
     },
     "Unhandled-Exceptions": {
-        "unchecked_low_level_calls", "unhandled_exception", "unchecked_call",
-        "unchecked_return", "unchecked_send"
+        "unchecked_low_level_calls",
+        "unhandled_exception",
+        "unchecked_call",
+        "unchecked_return",
+        "unchecked_send",
     },
     "tx.origin": {
-        "tx_origin", "tx.origin", "access_control", "authorization",
-        "unprotected_function", "missing_access_control"
+        "tx_origin",
+        "tx.origin",
+        "access_control",
+        "authorization",
+        "unprotected_function",
+        "missing_access_control",
     },
 }
 
@@ -155,6 +178,7 @@ CATEGORY_TO_VULN_TYPES = {
 @dataclass
 class GroundTruth:
     """Ground truth vulnerability from BugLog CSV."""
+
     line: int
     length: int
     bug_type: str
@@ -164,6 +188,7 @@ class GroundTruth:
 @dataclass
 class Detection:
     """Detection from MIESC modules."""
+
     line: int
     vuln_type: str
     severity: str
@@ -174,6 +199,7 @@ class Detection:
 @dataclass
 class ContractResult:
     """Results for a single contract."""
+
     name: str
     category: str
     ground_truth: List[GroundTruth]
@@ -188,6 +214,7 @@ class ContractResult:
 @dataclass
 class CategoryMetrics:
     """Metrics for a vulnerability category."""
+
     total_contracts: int = 0
     total_ground_truth: int = 0
     total_detections: int = 0
@@ -202,6 +229,7 @@ class CategoryMetrics:
 @dataclass
 class BenchmarkResults:
     """Complete benchmark results."""
+
     version: str = "4.7.0"
     timestamp: str = ""
     total_contracts: int = 0
@@ -223,15 +251,15 @@ def parse_buglog(csv_path: Path) -> List[GroundTruth]:
     """Parse BugLog CSV to extract ground truth."""
     ground_truth = []
     try:
-        with open(csv_path, 'r', encoding='utf-8', errors='ignore') as f:
+        with open(csv_path, "r", encoding="utf-8", errors="ignore") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 try:
                     gt = GroundTruth(
-                        line=int(row.get('loc', 0)),
-                        length=int(row.get('length', 0)),
-                        bug_type=row.get('bug type', '').strip(),
-                        approach=row.get('approach', '').strip()
+                        line=int(row.get("loc", 0)),
+                        length=int(row.get("length", 0)),
+                        bug_type=row.get("bug type", "").strip(),
+                        approach=row.get("approach", "").strip(),
                     )
                     if gt.line > 0:
                         ground_truth.append(gt)
@@ -253,39 +281,49 @@ def analyze_contract(source_code: str, category: str) -> Tuple[List[Detection], 
         classic_matches = classic_detector.detect(source_code)
 
         for match in classic_matches:
-            detections.append(Detection(
-                line=match.line,
-                vuln_type=match.vuln_type.value if hasattr(match.vuln_type, 'value') else str(match.vuln_type),
-                severity=match.severity,
-                confidence=match.confidence,
-                detector="classic_pattern"
-            ))
+            detections.append(
+                Detection(
+                    line=match.line,
+                    vuln_type=(
+                        match.vuln_type.value
+                        if hasattr(match.vuln_type, "value")
+                        else str(match.vuln_type)
+                    ),
+                    severity=match.severity,
+                    confidence=match.confidence,
+                    detector="classic_pattern",
+                )
+            )
 
         # 2. Access Control Semantic Detector
         ac_detector = AccessControlSemanticDetector()
         ac_findings = ac_detector.analyze(source_code)
 
         for finding in ac_findings:
-            detections.append(Detection(
-                line=finding.line,
-                vuln_type=finding.vuln_type,
-                severity=finding.severity,
-                confidence=finding.confidence,
-                detector="access_control_semantic"
-            ))
+            detections.append(
+                Detection(
+                    line=finding.line,
+                    vuln_type=finding.vuln_type,
+                    severity=finding.severity,
+                    confidence=finding.confidence,
+                    detector="access_control_semantic",
+                )
+            )
 
         # 3. DoS Cross-Function Detector
         dos_detector = DoSCrossFunctionDetector()
         dos_findings = dos_detector.analyze(source_code)
 
         for finding in dos_findings:
-            detections.append(Detection(
-                line=finding.line,
-                vuln_type=finding.vuln_type,
-                severity=finding.severity,
-                confidence=finding.confidence,
-                detector="dos_cross_function"
-            ))
+            detections.append(
+                Detection(
+                    line=finding.line,
+                    vuln_type=finding.vuln_type,
+                    severity=finding.severity,
+                    confidence=finding.confidence,
+                    detector="dos_cross_function",
+                )
+            )
 
         # 4. Call Graph Analysis (for reentrancy paths)
         try:
@@ -299,13 +337,15 @@ def analyze_contract(source_code: str, category: str) -> Tuple[List[Detection], 
                     func_name = path.nodes[0]
                     line = _find_function_line(source_code, func_name)
                     if line > 0:
-                        detections.append(Detection(
-                            line=line,
-                            vuln_type="reentrancy_path",
-                            severity="MEDIUM",
-                            confidence=0.6,
-                            detector="call_graph"
-                        ))
+                        detections.append(
+                            Detection(
+                                line=line,
+                                vuln_type="reentrancy_path",
+                                severity="MEDIUM",
+                                confidence=0.6,
+                                detector="call_graph",
+                            )
+                        )
         except Exception:
             pass  # Call graph analysis is supplementary
 
@@ -315,14 +355,20 @@ def analyze_contract(source_code: str, category: str) -> Tuple[List[Detection], 
             tainted_paths = taint_analyzer.analyze(source_code)
 
             for tpath in tainted_paths[:10]:  # Limit
-                if hasattr(tpath, 'sink') and tpath.sink:
-                    detections.append(Detection(
-                        line=tpath.sink.line if hasattr(tpath.sink, 'line') else 0,
-                        vuln_type=f"tainted_{tpath.sink.sink_type.value}" if hasattr(tpath.sink.sink_type, 'value') else "tainted_sink",
-                        severity="MEDIUM",
-                        confidence=0.5,
-                        detector="taint_analysis"
-                    ))
+                if hasattr(tpath, "sink") and tpath.sink:
+                    detections.append(
+                        Detection(
+                            line=tpath.sink.line if hasattr(tpath.sink, "line") else 0,
+                            vuln_type=(
+                                f"tainted_{tpath.sink.sink_type.value}"
+                                if hasattr(tpath.sink.sink_type, "value")
+                                else "tainted_sink"
+                            ),
+                            severity="MEDIUM",
+                            confidence=0.5,
+                            detector="taint_analysis",
+                        )
+                    )
         except Exception:
             pass  # Taint analysis is supplementary
 
@@ -355,13 +401,15 @@ def analyze_contract_with_fp_filter(
     # Convert detections to dict format for classifier
     findings_dicts = []
     for det in detections:
-        findings_dicts.append({
-            "type": det.vuln_type,
-            "confidence": det.confidence,
-            "severity": det.severity,
-            "location": {"line": det.line},
-            "detector": det.detector,
-        })
+        findings_dicts.append(
+            {
+                "type": det.vuln_type,
+                "confidence": det.confidence,
+                "severity": det.severity,
+                "location": {"line": det.line},
+                "detector": det.detector,
+            }
+        )
 
     # Score but don't filter (remove_fps=False)
     scored, _ = classifier.filter_findings(
@@ -376,13 +424,15 @@ def analyze_contract_with_fp_filter(
         if fp_prob >= fp_threshold:
             high_fp_count += 1
 
-        adjusted_detections.append(Detection(
-            line=f["location"]["line"],
-            vuln_type=f["type"],
-            severity=f["severity"],
-            confidence=f["confidence"],  # Now adjusted by FP classifier
-            detector=f.get("detector", "fp_scored")
-        ))
+        adjusted_detections.append(
+            Detection(
+                line=f["location"]["line"],
+                vuln_type=f["type"],
+                severity=f["severity"],
+                confidence=f["confidence"],  # Now adjusted by FP classifier
+                detector=f.get("detector", "fp_scored"),
+            )
+        )
 
     return adjusted_detections, elapsed_ms, high_fp_count
 
@@ -406,10 +456,10 @@ def cross_validate_with_mythril(
     adapter = MythrilAdapter()
 
     # Run Mythril analysis once
-    import tempfile
     import os
+    import tempfile
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.sol', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
         f.write(source_code)
         temp_path = f.name
 
@@ -418,7 +468,7 @@ def cross_validate_with_mythril(
     finally:
         try:
             os.unlink(temp_path)
-        except:
+        except Exception:
             pass
 
     if mythril_result.get("status") != "success":
@@ -458,7 +508,7 @@ def cross_validate_with_mythril(
 
         # Check if Mythril confirms this (within 10 lines)
         is_confirmed = False
-        for (mtype, mline) in mythril_confirmed:
+        for mtype, mline in mythril_confirmed:
             if mtype in det_type or det_type in mtype:
                 if abs(mline - det_line) <= 10:
                     is_confirmed = True
@@ -472,13 +522,15 @@ def cross_validate_with_mythril(
             # Reduce confidence for unconfirmed (but not too much)
             new_conf = max(0.3, det.confidence - 0.1)
 
-        validated.append(Detection(
-            line=det.line,
-            vuln_type=det.vuln_type,
-            severity=det.severity,
-            confidence=new_conf,
-            detector=det.detector + ("+mythril" if is_confirmed else "")
-        ))
+        validated.append(
+            Detection(
+                line=det.line,
+                vuln_type=det.vuln_type,
+                severity=det.severity,
+                confidence=new_conf,
+                detector=det.detector + ("+mythril" if is_confirmed else ""),
+            )
+        )
 
     return validated, confirmed_count
 
@@ -511,7 +563,12 @@ def cross_validate_with_slither(
         "reentrancy-no-eth": {"reentrancy", "reentrancy_no_eth"},
         "reentrancy-benign": {"reentrancy"},
         "reentrancy-events": {"reentrancy"},
-        "arbitrary-send-eth": {"access_control", "unprotected_function", "unchecked_send", "arbitrary_send"},
+        "arbitrary-send-eth": {
+            "access_control",
+            "unprotected_function",
+            "unchecked_send",
+            "arbitrary_send",
+        },
         "suicidal": {"access_control", "suicidal"},
         "controlled-delegatecall": {"access_control", "delegatecall"},
         "tx-origin": {"tx_origin"},
@@ -528,12 +585,23 @@ def cross_validate_with_slither(
     # Types that Slither CAN detect well - only apply penalty for these
     # Slither doesn't detect overflow/underflow, TOD, front-running, short address well
     slither_detectable_types = {
-        "reentrancy", "reentrancy_eth", "reentrancy_no_eth", "reentrancy_path",
-        "access_control", "unprotected_function", "suicidal",
-        "tx_origin", "tx.origin",
-        "timestamp_dependence", "timestamp", "bad_randomness",
-        "unchecked_low_level_calls", "unchecked_call", "unchecked_send",
-        "denial_of_service", "dos",
+        "reentrancy",
+        "reentrancy_eth",
+        "reentrancy_no_eth",
+        "reentrancy_path",
+        "access_control",
+        "unprotected_function",
+        "suicidal",
+        "tx_origin",
+        "tx.origin",
+        "timestamp_dependence",
+        "timestamp",
+        "bad_randomness",
+        "unchecked_low_level_calls",
+        "unchecked_call",
+        "unchecked_send",
+        "denial_of_service",
+        "dos",
     }
 
     # Build set of (type, lines) confirmed by Slither
@@ -557,13 +625,12 @@ def cross_validate_with_slither(
 
         # Check if this is a type Slither can detect
         slither_can_detect = any(
-            st in det_type or det_type in st
-            for st in slither_detectable_types
+            st in det_type or det_type in st for st in slither_detectable_types
         )
 
         # Check if Slither confirms this (within 10 lines)
         is_confirmed = False
-        for (stype, sline) in slither_confirmed:
+        for stype, sline in slither_confirmed:
             if stype in det_type or det_type in stype:
                 if abs(sline - det_line) <= 10:
                     is_confirmed = True
@@ -571,8 +638,7 @@ def cross_validate_with_slither(
 
         # Check if Slither found this type anywhere in the contract
         type_found_in_contract = any(
-            st in det_type or det_type in st
-            for st in slither_contract_types
+            st in det_type or det_type in st for st in slither_contract_types
         )
 
         if is_confirmed:
@@ -591,21 +657,23 @@ def cross_validate_with_slither(
             # Slither can't detect this type, keep original confidence
             new_conf = det.confidence
 
-        validated.append(Detection(
-            line=det.line,
-            vuln_type=det.vuln_type,
-            severity=det.severity,
-            confidence=new_conf,
-            detector=det.detector + ("+slither" if is_confirmed else "")
-        ))
+        validated.append(
+            Detection(
+                line=det.line,
+                vuln_type=det.vuln_type,
+                severity=det.severity,
+                confidence=new_conf,
+                detector=det.detector + ("+slither" if is_confirmed else ""),
+            )
+        )
 
     return validated, confirmed_count
 
 
 def _find_function_line(source: str, func_name: str) -> int:
     """Find line number where function is defined."""
-    pattern = rf'function\s+{re.escape(func_name)}\s*\('
-    for i, line in enumerate(source.split('\n'), 1):
+    pattern = rf"function\s+{re.escape(func_name)}\s*\("
+    for i, line in enumerate(source.split("\n"), 1):
         if re.search(pattern, line):
             return i
     return 0
@@ -615,7 +683,7 @@ def match_detections(
     ground_truth: List[GroundTruth],
     detections: List[Detection],
     category: str,
-    line_tolerance: int = 10
+    line_tolerance: int = 10,
 ) -> Tuple[int, int, int]:
     """
     Match detections against ground truth.
@@ -635,16 +703,14 @@ def match_detections(
                 continue
 
             # Check if detection type matches category
-            det_type = det.vuln_type.lower().replace('-', '_').replace(' ', '_')
+            det_type = det.vuln_type.lower().replace("-", "_").replace(" ", "_")
             type_matches = any(
-                exp_type in det_type or det_type in exp_type
-                for exp_type in expected_types
+                exp_type in det_type or det_type in exp_type for exp_type in expected_types
             )
 
             # Check line proximity
-            line_matches = (
-                (gt_start - line_tolerance <= det.line <= gt_end + line_tolerance) or
-                (det.line >= gt_start and det.line <= gt_end)
+            line_matches = (gt_start - line_tolerance <= det.line <= gt_end + line_tolerance) or (
+                det.line >= gt_start and det.line <= gt_end
             )
 
             if type_matches and line_matches:
@@ -683,9 +749,7 @@ def run_benchmark(
         use_slither: Use Slither for cross-validation (fast, improves precision)
         slither_timeout: Timeout per contract for Slither analysis
     """
-    results = BenchmarkResults(
-        timestamp=datetime.now().isoformat()
-    )
+    results = BenchmarkResults(timestamp=datetime.now().isoformat())
 
     if categories is None:
         categories = list(SOLIDIFI_TO_SWC.keys())
@@ -745,7 +809,7 @@ def run_benchmark(
 
             # Read source code
             try:
-                source_code = sol_file.read_text(encoding='utf-8', errors='ignore')
+                source_code = sol_file.read_text(encoding="utf-8", errors="ignore")
             except Exception as e:
                 results.errors.append(f"{sol_file}: {e}")
                 continue
@@ -786,7 +850,7 @@ def run_benchmark(
                 true_positives=tp,
                 false_positives=fp,
                 false_negatives=fn,
-                analysis_time_ms=analysis_time
+                analysis_time_ms=analysis_time,
             )
             results.contract_results.append(contract_result)
 
@@ -800,8 +864,10 @@ def run_benchmark(
 
             # Progress indicator
             status = "OK" if tp > 0 else "MISS" if len(ground_truth) > 0 else "EMPTY"
-            print(f"  {contract_name}: GT={len(ground_truth)}, Det={len(detections)}, "
-                  f"TP={tp}, FP={fp}, FN={fn} [{status}]")
+            print(
+                f"  {contract_name}: GT={len(ground_truth)}, Det={len(detections)}, "
+                f"TP={tp}, FP={fp}, FN={fn} [{status}]"
+            )
 
         # Calculate category metrics
         if cat_metrics.true_positives + cat_metrics.false_positives > 0:
@@ -813,8 +879,10 @@ def run_benchmark(
                 cat_metrics.true_positives + cat_metrics.false_negatives
             )
         if cat_metrics.precision + cat_metrics.recall > 0:
-            cat_metrics.f1_score = 2 * (cat_metrics.precision * cat_metrics.recall) / (
-                cat_metrics.precision + cat_metrics.recall
+            cat_metrics.f1_score = (
+                2
+                * (cat_metrics.precision * cat_metrics.recall)
+                / (cat_metrics.precision + cat_metrics.recall)
             )
 
         results.by_category[category] = cat_metrics
@@ -823,7 +891,9 @@ def run_benchmark(
         print(f"    Contracts: {cat_metrics.total_contracts}")
         print(f"    Ground Truth: {cat_metrics.total_ground_truth}")
         print(f"    Detections: {cat_metrics.total_detections}")
-        print(f"    TP: {cat_metrics.true_positives}, FP: {cat_metrics.false_positives}, FN: {cat_metrics.false_negatives}")
+        print(
+            f"    TP: {cat_metrics.true_positives}, FP: {cat_metrics.false_positives}, FN: {cat_metrics.false_negatives}"
+        )
         print(f"    Precision: {cat_metrics.precision:.1%}")
         print(f"    Recall: {cat_metrics.recall:.1%}")
         print(f"    F1: {cat_metrics.f1_score:.1%}")
@@ -838,11 +908,15 @@ def run_benchmark(
     results.false_negatives = sum(m.false_negatives for m in results.by_category.values())
 
     if results.true_positives + results.false_positives > 0:
-        results.precision = results.true_positives / (results.true_positives + results.false_positives)
+        results.precision = results.true_positives / (
+            results.true_positives + results.false_positives
+        )
     if results.true_positives + results.false_negatives > 0:
         results.recall = results.true_positives / (results.true_positives + results.false_negatives)
     if results.precision + results.recall > 0:
-        results.f1_score = 2 * (results.precision * results.recall) / (results.precision + results.recall)
+        results.f1_score = (
+            2 * (results.precision * results.recall) / (results.precision + results.recall)
+        )
 
     return results
 
@@ -853,7 +927,7 @@ def print_results(results: BenchmarkResults):
     print("  BENCHMARK RESULTS - MIESC v4.6.0")
     print("=" * 70)
 
-    print(f"\nOverall Metrics:")
+    print("\nOverall Metrics:")
     print(f"  Total Contracts: {results.total_contracts}")
     print(f"  Total Ground Truth Vulnerabilities: {results.total_ground_truth}")
     print(f"  Total Detections: {results.total_detections}")
@@ -866,22 +940,30 @@ def print_results(results: BenchmarkResults):
     print(f"  F1 Score: {results.f1_score:.1%}")
     print()
     print(f"  Total Time: {results.total_time_seconds:.1f}s")
-    print(f"  Avg Time/Contract: {results.total_time_seconds / max(results.total_contracts, 1) * 1000:.0f}ms")
+    print(
+        f"  Avg Time/Contract: {results.total_time_seconds / max(results.total_contracts, 1) * 1000:.0f}ms"
+    )
 
     print("\nMetrics by Category:")
     print("-" * 70)
-    print(f"{'Category':<25} {'Precision':>10} {'Recall':>10} {'F1':>10} {'TP':>6} {'FP':>6} {'FN':>6}")
+    print(
+        f"{'Category':<25} {'Precision':>10} {'Recall':>10} {'F1':>10} {'TP':>6} {'FP':>6} {'FN':>6}"
+    )
     print("-" * 70)
 
     for cat, metrics in sorted(results.by_category.items()):
-        print(f"{cat:<25} {metrics.precision:>9.1%} {metrics.recall:>9.1%} "
-              f"{metrics.f1_score:>9.1%} {metrics.true_positives:>6} "
-              f"{metrics.false_positives:>6} {metrics.false_negatives:>6}")
+        print(
+            f"{cat:<25} {metrics.precision:>9.1%} {metrics.recall:>9.1%} "
+            f"{metrics.f1_score:>9.1%} {metrics.true_positives:>6} "
+            f"{metrics.false_positives:>6} {metrics.false_negatives:>6}"
+        )
 
     print("-" * 70)
-    print(f"{'TOTAL':<25} {results.precision:>9.1%} {results.recall:>9.1%} "
-          f"{results.f1_score:>9.1%} {results.true_positives:>6} "
-          f"{results.false_positives:>6} {results.false_negatives:>6}")
+    print(
+        f"{'TOTAL':<25} {results.precision:>9.1%} {results.recall:>9.1%} "
+        f"{results.f1_score:>9.1%} {results.true_positives:>6} "
+        f"{results.false_positives:>6} {results.false_negatives:>6}"
+    )
 
     if results.errors:
         print(f"\nErrors ({len(results.errors)}):")
@@ -924,7 +1006,7 @@ def save_results(results: BenchmarkResults, output_path: Path):
         "errors": results.errors,
     }
 
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(data, f, indent=2)
 
     print(f"\nResults saved to: {output_path}")
@@ -934,30 +1016,51 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="MIESC v4.6.0 SolidiFI Benchmark")
-    parser.add_argument("--max-contracts", type=int, default=None,
-                        help="Max contracts per category (default: all)")
-    parser.add_argument("--categories", nargs="+", default=None,
-                        help="Categories to evaluate (default: all)")
-    parser.add_argument("--output", type=str, default=None,
-                        help="Output JSON file path")
-    parser.add_argument("--quick", action="store_true",
-                        help="Quick mode: 10 contracts per category")
-    parser.add_argument("--min-confidence", type=float, default=0.0,
-                        help="Minimum confidence threshold to count as detection (default: 0.0)")
-    parser.add_argument("--high-precision", action="store_true",
-                        help="High precision mode: min-confidence=0.5")
-    parser.add_argument("--fp-filter", action="store_true",
-                        help="Use ML-based FP classifier (v4.7.0)")
-    parser.add_argument("--fp-threshold", type=float, default=0.6,
-                        help="FP probability threshold (default: 0.6)")
-    parser.add_argument("--mythril", action="store_true",
-                        help="Use Mythril for cross-validation (slow)")
-    parser.add_argument("--mythril-timeout", type=int, default=60,
-                        help="Mythril timeout per contract (default: 60s)")
-    parser.add_argument("--slither", action="store_true",
-                        help="Use Slither for cross-validation (fast, recommended)")
-    parser.add_argument("--slither-timeout", type=int, default=30,
-                        help="Slither timeout per contract (default: 30s)")
+    parser.add_argument(
+        "--max-contracts", type=int, default=None, help="Max contracts per category (default: all)"
+    )
+    parser.add_argument(
+        "--categories", nargs="+", default=None, help="Categories to evaluate (default: all)"
+    )
+    parser.add_argument("--output", type=str, default=None, help="Output JSON file path")
+    parser.add_argument(
+        "--quick", action="store_true", help="Quick mode: 10 contracts per category"
+    )
+    parser.add_argument(
+        "--min-confidence",
+        type=float,
+        default=0.0,
+        help="Minimum confidence threshold to count as detection (default: 0.0)",
+    )
+    parser.add_argument(
+        "--high-precision", action="store_true", help="High precision mode: min-confidence=0.5"
+    )
+    parser.add_argument(
+        "--fp-filter", action="store_true", help="Use ML-based FP classifier (v4.7.0)"
+    )
+    parser.add_argument(
+        "--fp-threshold", type=float, default=0.6, help="FP probability threshold (default: 0.6)"
+    )
+    parser.add_argument(
+        "--mythril", action="store_true", help="Use Mythril for cross-validation (slow)"
+    )
+    parser.add_argument(
+        "--mythril-timeout",
+        type=int,
+        default=60,
+        help="Mythril timeout per contract (default: 60s)",
+    )
+    parser.add_argument(
+        "--slither",
+        action="store_true",
+        help="Use Slither for cross-validation (fast, recommended)",
+    )
+    parser.add_argument(
+        "--slither-timeout",
+        type=int,
+        default=30,
+        help="Slither timeout per contract (default: 30s)",
+    )
 
     args = parser.parse_args()
 
@@ -990,6 +1093,8 @@ if __name__ == "__main__":
         output_path = Path(args.output)
     else:
         RESULTS_PATH.mkdir(parents=True, exist_ok=True)
-        output_path = RESULTS_PATH / f"solidifi_v460_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        output_path = (
+            RESULTS_PATH / f"solidifi_v460_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
 
     save_results(results, output_path)

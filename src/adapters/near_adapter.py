@@ -25,13 +25,12 @@ Date: January 2026
 Version: 1.0.0
 """
 
-import json
 import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from src.core.chain_abstraction import (
     AbstractChainAnalyzer,
@@ -138,7 +137,10 @@ class NearPatternDetector:
 
     # Missing checks patterns (potential vulnerabilities)
     MISSING_CHECK_PATTERNS = [
-        (r"pub\s+fn\s+\w+\s*\([^)]*\)[^{]*\{(?![^}]*predecessor_account_id)", "missing_predecessor"),
+        (
+            r"pub\s+fn\s+\w+\s*\([^)]*\)[^{]*\{(?![^}]*predecessor_account_id)",
+            "missing_predecessor",
+        ),
         (r"#\[payable\]\s*pub\s+fn", "payable_function"),
     ]
 
@@ -222,14 +224,16 @@ class NearPatternDetector:
             for pattern, pattern_name in patterns:
                 for i, line in enumerate(lines, 1):
                     if re.search(pattern, line):
-                        findings.append({
-                            "pattern": pattern_name,
-                            "category": category,
-                            "severity": severity,
-                            "line": i,
-                            "file": file_path,
-                            "code": line.strip(),
-                        })
+                        findings.append(
+                            {
+                                "pattern": pattern_name,
+                                "category": category,
+                                "severity": severity,
+                                "line": i,
+                                "file": file_path,
+                                "code": line.strip(),
+                            }
+                        )
 
         return findings
 
@@ -290,8 +294,7 @@ class NearAnalyzer(AbstractChainAnalyzer):
 
         # Extract contract struct
         struct_match = re.search(
-            r'#\[near_bindgen\]\s*(?:#\[derive[^\]]+\]\s*)*pub\s+struct\s+(\w+)',
-            source_code
+            r"#\[near_bindgen\]\s*(?:#\[derive[^\]]+\]\s*)*pub\s+struct\s+(\w+)", source_code
         )
         if struct_match:
             contract.name = struct_match.group(1)
@@ -312,14 +315,14 @@ class NearAnalyzer(AbstractChainAnalyzer):
         methods = []
 
         # Pattern for method extraction
-        method_pattern = r'''
+        method_pattern = r"""
             (?P<decorators>(?:\#\[\w+(?:\([^\]]*\))?\]\s*)*)  # Decorators
             pub\s+fn\s+(?P<name>\w+)\s*                       # Function name
             (?:<[^>]+>)?\s*                                   # Optional generics
             \((?P<params>[^)]*)\)\s*                          # Parameters
             (?:->\s*(?P<return>[^{]+))?\s*                   # Optional return type
             \{                                                # Function body start
-        '''
+        """
 
         for match in re.finditer(method_pattern, source_code, re.VERBOSE):
             decorators_str = match.group("decorators") or ""
@@ -327,28 +330,32 @@ class NearAnalyzer(AbstractChainAnalyzer):
             params_str = match.group("params")
             return_type = match.group("return")
 
-            line = source_code[:match.start()].count("\n") + 1
+            line = source_code[: match.start()].count("\n") + 1
 
             # Parse decorators
-            decorators = re.findall(r'#\[(\w+)', decorators_str)
+            decorators = re.findall(r"#\[(\w+)", decorators_str)
 
             # Determine method properties
             is_init = "init" in decorators
             is_payable = "payable" in decorators
             is_private = "private" in decorators
-            is_view = return_type and "self" not in params_str.split(",")[0] if params_str else False
+            is_view = (
+                return_type and "self" not in params_str.split(",")[0] if params_str else False
+            )
 
             # Parse parameters
             parameters = []
             if params_str.strip():
-                for param_match in re.finditer(r'(\w+)\s*:\s*([^,]+)', params_str):
+                for param_match in re.finditer(r"(\w+)\s*:\s*([^,]+)", params_str):
                     param_name = param_match.group(1)
                     param_type = param_match.group(2).strip()
                     if param_name not in ("self", "&self", "&mut self"):
-                        parameters.append(Parameter(
-                            name=param_name,
-                            type_info=TypeInfo(name=param_type),
-                        ))
+                        parameters.append(
+                            Parameter(
+                                name=param_name,
+                                type_info=TypeInfo(name=param_type),
+                            )
+                        )
 
             # Determine visibility and mutability
             visibility = Visibility.PRIVATE if is_private else Visibility.PUBLIC
@@ -373,8 +380,10 @@ class NearAnalyzer(AbstractChainAnalyzer):
 
             # Check for cross-contract calls
             method_end = source_code.find("}", match.end())
-            method_body = source_code[match.end():method_end] if method_end != -1 else ""
-            func.calls_external = bool(re.search(r'Promise::new|\.function_call|ext_\w+::', method_body))
+            method_body = source_code[match.end() : method_end] if method_end != -1 else ""
+            func.calls_external = bool(
+                re.search(r"Promise::new|\.function_call|ext_\w+::", method_body)
+            )
 
             methods.append(func)
 
@@ -385,15 +394,17 @@ class NearAnalyzer(AbstractChainAnalyzer):
         variables = []
 
         # Find the main contract struct
-        struct_pattern = r'#\[near_bindgen\]\s*(?:#\[derive[^\]]+\]\s*)*pub\s+struct\s+\w+\s*\{([^}]+)\}'
+        struct_pattern = (
+            r"#\[near_bindgen\]\s*(?:#\[derive[^\]]+\]\s*)*pub\s+struct\s+\w+\s*\{([^}]+)\}"
+        )
         struct_match = re.search(struct_pattern, source_code)
 
         if struct_match:
             struct_body = struct_match.group(1)
-            line_offset = source_code[:struct_match.start()].count("\n")
+            line_offset = source_code[: struct_match.start()].count("\n")
 
             # Parse fields
-            field_pattern = r'(?:pub\s+)?(\w+)\s*:\s*([^,\n]+)'
+            field_pattern = r"(?:pub\s+)?(\w+)\s*:\s*([^,\n]+)"
             for i, match in enumerate(re.finditer(field_pattern, struct_body)):
                 field_name = match.group(1)
                 field_type = match.group(2).strip()
@@ -425,15 +436,17 @@ class NearAnalyzer(AbstractChainAnalyzer):
         events = []
 
         # NEAR events are typically logged with env::log or log!
-        event_pattern = r'#\[derive\([^)]*Event[^)]*\)\]\s*(?:pub\s+)?struct\s+(\w+)'
+        event_pattern = r"#\[derive\([^)]*Event[^)]*\)\]\s*(?:pub\s+)?struct\s+(\w+)"
         for match in re.finditer(event_pattern, source_code):
             event_name = match.group(1)
-            line = source_code[:match.start()].count("\n") + 1
+            line = source_code[: match.start()].count("\n") + 1
 
-            events.append(AbstractEvent(
-                name=event_name,
-                location=Location(file=file_path, line=line),
-            ))
+            events.append(
+                AbstractEvent(
+                    name=event_name,
+                    location=Location(file=file_path, line=line),
+                )
+            )
 
         return events
 
@@ -461,9 +474,7 @@ class NearAnalyzer(AbstractChainAnalyzer):
         properties = properties or list(SecurityProperty)
 
         # Run pattern detector
-        pattern_matches = self.pattern_detector.detect_patterns(
-            source_code, contract.source_path
-        )
+        pattern_matches = self.pattern_detector.detect_patterns(source_code, contract.source_path)
 
         # Convert relevant patterns to findings
         for match in pattern_matches:
@@ -559,36 +570,50 @@ class NearAnalyzer(AbstractChainAnalyzer):
                     func_body = self._extract_function_body(source, func_start)
 
                     # Look for state modifications without access check
-                    modifies_state = any(pattern in func_body for pattern in [
-                        ".insert(", ".remove(", ".replace(", "= ", "+= ", "-= ",
-                    ])
+                    modifies_state = any(
+                        pattern in func_body
+                        for pattern in [
+                            ".insert(",
+                            ".remove(",
+                            ".replace(",
+                            "= ",
+                            "+= ",
+                            "-= ",
+                        ]
+                    )
 
-                    has_access_check = any(pattern in func_body for pattern in [
-                        "predecessor_account_id", "signer_account_id", "require!",
-                    ])
+                    has_access_check = any(
+                        pattern in func_body
+                        for pattern in [
+                            "predecessor_account_id",
+                            "signer_account_id",
+                            "require!",
+                        ]
+                    )
 
                     if modifies_state and not has_access_check and not metadata.get("is_private"):
-                        findings.append(self.normalize_finding(
-                            vuln_type=NearVulnerability.MISSING_PREDECESSOR_CHECK.value,
-                            severity="High",
-                            message=f"Function '{func.name}' modifies state without access control",
-                            location=func.location,
-                            description=(
-                                f"The function '{func.name}' appears to modify contract state "
-                                "but doesn't verify the caller's identity."
-                            ),
-                            recommendation=(
-                                "Add access control using env::predecessor_account_id() check "
-                                "or use #[private] decorator if it should only be called internally."
-                            ),
-                        ))
+                        findings.append(
+                            self.normalize_finding(
+                                vuln_type=NearVulnerability.MISSING_PREDECESSOR_CHECK.value,
+                                severity="High",
+                                message=f"Function '{func.name}' modifies state without access control",
+                                location=func.location,
+                                description=(
+                                    f"The function '{func.name}' appears to modify contract state "
+                                    "but doesn't verify the caller's identity."
+                                ),
+                                recommendation=(
+                                    "Add access control using env::predecessor_account_id() check "
+                                    "or use #[private] decorator if it should only be called internally."
+                                ),
+                            )
+                        )
 
         return findings
 
     def _check_callback_safety(self, contract: AbstractContract) -> List[Dict[str, Any]]:
         """Check for callback safety issues."""
         findings = []
-        source = contract.source_code
 
         for func in contract.functions:
             if "callback" not in func.name.lower():
@@ -598,17 +623,19 @@ class NearAnalyzer(AbstractChainAnalyzer):
             decorators = metadata.get("decorators", [])
 
             if "private" not in decorators and func.visibility == Visibility.PUBLIC:
-                findings.append(self.normalize_finding(
-                    vuln_type=NearVulnerability.UNPROTECTED_CALLBACK.value,
-                    severity="High",
-                    message=f"Callback '{func.name}' is not marked as private",
-                    location=func.location,
-                    description=(
-                        f"The callback function '{func.name}' can be called by anyone, "
-                        "not just the contract itself after a cross-contract call."
-                    ),
-                    recommendation="Add #[private] decorator to ensure only the contract can call this callback.",
-                ))
+                findings.append(
+                    self.normalize_finding(
+                        vuln_type=NearVulnerability.UNPROTECTED_CALLBACK.value,
+                        severity="High",
+                        message=f"Callback '{func.name}' is not marked as private",
+                        location=func.location,
+                        description=(
+                            f"The callback function '{func.name}' can be called by anyone, "
+                            "not just the contract itself after a cross-contract call."
+                        ),
+                        recommendation="Add #[private] decorator to ensure only the contract can call this callback.",
+                    )
+                )
 
         return findings
 
@@ -629,23 +656,25 @@ class NearAnalyzer(AbstractChainAnalyzer):
 
                     # Check for panic in view function
                     if any(pattern in func_body for pattern in ["panic!", "unwrap()", ".expect("]):
-                        findings.append(self.normalize_finding(
-                            vuln_type=NearVulnerability.PANIC_IN_VIEW.value,
-                            severity="Medium",
-                            message=f"View function '{func.name}' may panic",
-                            location=func.location,
-                            description=(
-                                f"View function '{func.name}' contains panic-inducing code "
-                                "which can make the contract appear broken."
-                            ),
-                            recommendation="Use Option/Result return types instead of panicking in view functions.",
-                        ))
+                        findings.append(
+                            self.normalize_finding(
+                                vuln_type=NearVulnerability.PANIC_IN_VIEW.value,
+                                severity="Medium",
+                                message=f"View function '{func.name}' may panic",
+                                location=func.location,
+                                description=(
+                                    f"View function '{func.name}' contains panic-inducing code "
+                                    "which can make the contract appear broken."
+                                ),
+                                recommendation="Use Option/Result return types instead of panicking in view functions.",
+                            )
+                        )
 
         return findings
 
     def _find_function_body(self, source: str, func_name: str) -> Optional[int]:
         """Find the start of a function body."""
-        pattern = rf'fn\s+{func_name}\s*[^{{]*\{{'
+        pattern = rf"fn\s+{func_name}\s*[^{{]*\{{"
         match = re.search(pattern, source)
         return match.end() if match else None
 
@@ -655,9 +684,9 @@ class NearAnalyzer(AbstractChainAnalyzer):
         end = start
 
         while depth > 0 and end < len(source) and end - start < max_length:
-            if source[end] == '{':
+            if source[end] == "{":
                 depth += 1
-            elif source[end] == '}':
+            elif source[end] == "}":
                 depth -= 1
             end += 1
 

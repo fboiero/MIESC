@@ -4,18 +4,19 @@ Tests for MIESC Exporters Module
 Tests SARIF, SonarQube, Checkmarx, Markdown, and JSON exporters.
 """
 
-import pytest
 import json
 from pathlib import Path
 
+import pytest
+
 from src.core.exporters import (
+    CheckmarxExporter,
     Finding,
+    JSONExporter,
+    MarkdownExporter,
+    ReportExporter,
     SARIFExporter,
     SonarQubeExporter,
-    CheckmarxExporter,
-    MarkdownExporter,
-    JSONExporter,
-    ReportExporter,
 )
 
 
@@ -309,7 +310,7 @@ class TestReportExporter:
         results = exporter.export_all(sample_findings, str(tmp_path))
 
         assert len(results) == 5
-        for format_name, file_path in results.items():
+        for _format_name, file_path in results.items():
             assert Path(file_path).exists()
 
 

@@ -9,7 +9,7 @@ Institution: UNDEF - IUA Cordoba
 License: AGPL-3.0
 """
 
-__version__ = "5.0.1"
+__version__ = "5.0.2"
 __author__ = "Fernando Boiero"
 __email__ = "fboiero@frvm.utn.edu.ar"
 
@@ -51,12 +51,11 @@ def __getattr__(name: str):
             module_path, attr_name = _lazy_imports[name]
             try:
                 import importlib
+
                 module = importlib.import_module(module_path)
                 _loaded_modules[name] = getattr(module, attr_name)
             except (ImportError, AttributeError) as e:
-                raise ImportError(
-                    f"Cannot import {name} from {module_path}: {e}"
-                ) from e
+                raise ImportError(f"Cannot import {name} from {module_path}: {e}") from e
 
         return _loaded_modules[name]
 

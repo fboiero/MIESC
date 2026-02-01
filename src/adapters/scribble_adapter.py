@@ -25,7 +25,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -243,9 +243,7 @@ class ScribbleAdapter(ToolAdapter):
 
         # Count existing annotations
         annotation_count = sum(
-            1
-            for line in lines
-            if re.search(r"///\s*#(if_succeeds|invariant|if_updated)", line)
+            1 for line in lines if re.search(r"///\s*#(if_succeeds|invariant|if_updated)", line)
         )
 
         for pattern_name, config in SCRIBBLE_ANNOTATION_PATTERNS.items():
@@ -265,26 +263,24 @@ class ScribbleAdapter(ToolAdapter):
                         context_end = min(len(lines), i + 20)
                         context = "\n".join(lines[context_start:context_end])
 
-                        has_guard = any(
-                            re.search(g, context) for g in guards
-                        )
-                        has_check = any(
-                            re.search(c, context) for c in checks
-                        )
+                        has_guard = any(re.search(g, context) for g in guards)
+                        has_check = any(re.search(c, context) for c in checks)
 
                         if not has_guard and not has_check:
                             confidence = config["confidence"]
                             if annotation_count > 0:
                                 confidence *= 0.7  # Contract has some annotations
 
-                            raw_findings.append({
-                                "type": pattern_name,
-                                "line": i,
-                                "file": contract_path,
-                                "code": line.strip(),
-                                "config": config,
-                                "confidence_override": confidence,
-                            })
+                            raw_findings.append(
+                                {
+                                    "type": pattern_name,
+                                    "line": i,
+                                    "file": contract_path,
+                                    "code": line.strip(),
+                                    "config": config,
+                                    "confidence_override": confidence,
+                                }
+                            )
 
         # Deduplicate by type+line
         seen = set()
@@ -324,45 +320,51 @@ class ScribbleAdapter(ToolAdapter):
                     f"scribble:{item['type']}:{item.get('file', '')}:{item.get('line', 0)}".encode()
                 ).hexdigest()[:12]
 
-                findings.append({
-                    "id": f"SCR-{finding_id}",
-                    "type": item["type"],
-                    "severity": config["severity"],
-                    "confidence": item.get("confidence_override", config["confidence"]),
-                    "location": {
-                        "file": item.get("file", ""),
-                        "line": item.get("line", 0),
-                        "function": "",
-                    },
-                    "message": f"{config['description']}: {item.get('code', '')}",
-                    "description": config["description"],
-                    "recommendation": config["recommendation"],
-                    "swc_id": config.get("swc_id"),
-                    "cwe_id": config.get("cwe_id"),
-                    "tool": "scribble",
-                })
+                findings.append(
+                    {
+                        "id": f"SCR-{finding_id}",
+                        "type": item["type"],
+                        "severity": config["severity"],
+                        "confidence": item.get("confidence_override", config["confidence"]),
+                        "location": {
+                            "file": item.get("file", ""),
+                            "line": item.get("line", 0),
+                            "function": "",
+                        },
+                        "message": f"{config['description']}: {item.get('code', '')}",
+                        "description": config["description"],
+                        "recommendation": config["recommendation"],
+                        "swc_id": config.get("swc_id"),
+                        "cwe_id": config.get("cwe_id"),
+                        "tool": "scribble",
+                    }
+                )
             elif isinstance(item, dict):
                 # CLI output format
                 finding_id = hashlib.md5(
                     f"scribble:{item.get('annotation', '')}:{item.get('line', 0)}".encode()
                 ).hexdigest()[:12]
 
-                findings.append({
-                    "id": f"SCR-{finding_id}",
-                    "type": item.get("type", "annotation_violation"),
-                    "severity": item.get("severity", "High"),
-                    "confidence": 0.90,
-                    "location": {
-                        "file": item.get("file", ""),
-                        "line": item.get("line", 0),
-                        "function": item.get("function", ""),
-                    },
-                    "message": item.get("message", "Annotation violation detected"),
-                    "description": item.get("description", ""),
-                    "recommendation": item.get("recommendation", "Fix the annotation violation"),
-                    "swc_id": item.get("swc_id"),
-                    "cwe_id": item.get("cwe_id"),
-                    "tool": "scribble",
-                })
+                findings.append(
+                    {
+                        "id": f"SCR-{finding_id}",
+                        "type": item.get("type", "annotation_violation"),
+                        "severity": item.get("severity", "High"),
+                        "confidence": 0.90,
+                        "location": {
+                            "file": item.get("file", ""),
+                            "line": item.get("line", 0),
+                            "function": item.get("function", ""),
+                        },
+                        "message": item.get("message", "Annotation violation detected"),
+                        "description": item.get("description", ""),
+                        "recommendation": item.get(
+                            "recommendation", "Fix the annotation violation"
+                        ),
+                        "swc_id": item.get("swc_id"),
+                        "cwe_id": item.get("cwe_id"),
+                        "tool": "scribble",
+                    }
+                )
 
         return findings

@@ -4,17 +4,20 @@ Coordinator Agent for MCP Architecture
 LLM-based orchestrator that coordinates multi-agent audit workflow
 Implements intelligent task delegation and workflow optimization
 """
+
 import json
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 try:
     import openai
+
     OPENAI_AVAILABLE = True
 except ImportError:
     openai = None  # type: ignore
     OPENAI_AVAILABLE = False
 from datetime import datetime
+
 from src.agents.base_agent import BaseAgent
 from src.mcp.context_bus import MCPMessage
 
@@ -53,9 +56,9 @@ class CoordinatorAgent(BaseAgent):
                 "compliance_reporting",
                 "intelligent_agent_selection",
                 "adaptive_strategy",
-                "resource_optimization"
+                "resource_optimization",
             ],
-            agent_type="coordinator"
+            agent_type="coordinator",
         )
 
         self.model = model  # Updated to GPT-4o for better reasoning
@@ -72,7 +75,7 @@ class CoordinatorAgent(BaseAgent):
             "total_findings": 0,
             "contract_complexity": "unknown",
             "risk_level": "unknown",
-            "optimization_history": []
+            "optimization_history": [],
         }
 
         # Learning from previous audits
@@ -86,17 +89,13 @@ class CoordinatorAgent(BaseAgent):
                 "formal_findings",
                 "symbolic_findings",
                 "ai_triage",
-                "agent_error"
+                "agent_error",
             ],
-            callback=self._monitor_agent_output
+            callback=self._monitor_agent_output,
         )
 
     def get_context_types(self) -> List[str]:
-        return [
-            "audit_plan",
-            "audit_progress",
-            "audit_summary"
-        ]
+        return ["audit_plan", "audit_progress", "audit_summary"]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -113,11 +112,7 @@ class CoordinatorAgent(BaseAgent):
         Returns:
             Dictionary with orchestration results and final audit summary
         """
-        results = {
-            "audit_plan": {},
-            "audit_progress": [],
-            "audit_summary": {}
-        }
+        results = {"audit_plan": {}, "audit_progress": [], "audit_summary": {}}
 
         # Phase 1: Generate audit plan
         logger.info(f"CoordinatorAgent: Generating audit plan for {contract_path}")
@@ -161,14 +156,14 @@ class CoordinatorAgent(BaseAgent):
             "time_budget": time_budget,
             "phases": [],
             "estimated_duration": 0,
-            "timestamp": datetime.utcnow().isoformat() + "Z"
+            "timestamp": datetime.utcnow().isoformat() + "Z",
         }
 
         # Define phases based on priority
         if priority == "fast":
             plan["phases"] = [
                 {"layer": "static", "agent": "StaticAgent", "estimated_time": 60},
-                {"layer": "ai", "agent": "AIAgent", "estimated_time": 120}
+                {"layer": "ai", "agent": "AIAgent", "estimated_time": 120},
             ]
             plan["estimated_duration"] = 180  # 3 minutes
 
@@ -176,7 +171,7 @@ class CoordinatorAgent(BaseAgent):
             plan["phases"] = [
                 {"layer": "static", "agent": "StaticAgent", "estimated_time": 120},
                 {"layer": "dynamic", "agent": "DynamicAgent", "estimated_time": 300},
-                {"layer": "ai", "agent": "AIAgent", "estimated_time": 180}
+                {"layer": "ai", "agent": "AIAgent", "estimated_time": 180},
             ]
             plan["estimated_duration"] = 600  # 10 minutes
 
@@ -187,7 +182,7 @@ class CoordinatorAgent(BaseAgent):
                 {"layer": "runtime", "agent": "RuntimeAgent", "estimated_time": 300},
                 {"layer": "symbolic", "agent": "SymbolicAgent", "estimated_time": 900},
                 {"layer": "formal", "agent": "FormalAgent", "estimated_time": 1200},
-                {"layer": "ai", "agent": "AIAgent", "estimated_time": 300}
+                {"layer": "ai", "agent": "AIAgent", "estimated_time": 300},
             ]
             plan["estimated_duration"] = 3480  # ~58 minutes
 
@@ -201,8 +196,7 @@ class CoordinatorAgent(BaseAgent):
 
         return plan
 
-    def _llm_optimize_plan(self, base_plan: Dict[str, Any],
-                          contract_path: str) -> Dict[str, Any]:
+    def _llm_optimize_plan(self, base_plan: Dict[str, Any], contract_path: str) -> Dict[str, Any]:
         """
         Use LLM to optimize audit plan based on contract characteristics
 
@@ -215,7 +209,7 @@ class CoordinatorAgent(BaseAgent):
         """
         # Read contract for context
         try:
-            with open(contract_path, 'r') as f:
+            with open(contract_path, "r") as f:
                 contract_source = f.read()[:2000]  # Truncate
         except Exception as e:
             logger.error(f"CoordinatorAgent: Could not read contract: {e}")
@@ -256,12 +250,12 @@ Respond in JSON format with optimized plan:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a smart contract audit coordinator optimizing audit workflows."
+                        "content": "You are a smart contract audit coordinator optimizing audit workflows.",
                     },
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
-                max_tokens=1500
+                max_tokens=1500,
             )
 
             optimized = json.loads(response.choices[0].message.content)
@@ -331,12 +325,12 @@ Respond in JSON:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a smart contract complexity analyzer guiding security audit strategy."
+                        "content": "You are a smart contract complexity analyzer guiding security audit strategy.",
                     },
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.2,
-                max_tokens=1500
+                max_tokens=1500,
             )
 
             analysis = json.loads(response.choices[0].message.content)
@@ -351,8 +345,9 @@ Respond in JSON:
             logger.error(f"CoordinatorAgent: Complexity analysis failed: {e}")
             return {"complexity": "medium", "risk_factors": [], "recommended_depth": "standard"}
 
-    def _adaptive_agent_selection(self, complexity_analysis: Dict[str, Any],
-                                  time_budget: int) -> List[Dict[str, Any]]:
+    def _adaptive_agent_selection(
+        self, complexity_analysis: Dict[str, Any], time_budget: int
+    ) -> List[Dict[str, Any]]:
         """
         Intelligently select agents based on contract complexity and constraints
 
@@ -365,91 +360,103 @@ Respond in JSON:
         """
         complexity = complexity_analysis.get("complexity", "medium")
         risk_score = complexity_analysis.get("risk_score", 50)
-        recommended_tools = complexity_analysis.get("recommended_tools", [])
+        complexity_analysis.get("recommended_tools", [])
 
         selected_agents = []
 
         # Always include static analysis (fast)
-        selected_agents.append({
-            "agent": "StaticAgent",
-            "layer": "static",
-            "priority": "critical",
-            "estimated_time": 120,
-            "reason": "Fast baseline analysis required for all contracts"
-        })
+        selected_agents.append(
+            {
+                "agent": "StaticAgent",
+                "layer": "static",
+                "priority": "critical",
+                "estimated_time": 120,
+                "reason": "Fast baseline analysis required for all contracts",
+            }
+        )
 
         # Add agents based on complexity
         if complexity in ["high", "critical"] or risk_score > 70:
             # High-risk contracts need comprehensive analysis
-            selected_agents.extend([
-                {
-                    "agent": "DynamicAgent",
-                    "layer": "dynamic",
-                    "priority": "critical",
-                    "estimated_time": 600,
-                    "reason": "High complexity requires dynamic testing"
-                },
-                {
-                    "agent": "SymbolicAgent",
-                    "layer": "symbolic",
-                    "priority": "high",
-                    "estimated_time": 900,
-                    "reason": "Symbolic execution for edge case discovery"
-                },
-                {
-                    "agent": "FormalAgent",
-                    "layer": "formal",
-                    "priority": "high",
-                    "estimated_time": 1200,
-                    "reason": "Formal verification for high-risk logic"
-                }
-            ])
+            selected_agents.extend(
+                [
+                    {
+                        "agent": "DynamicAgent",
+                        "layer": "dynamic",
+                        "priority": "critical",
+                        "estimated_time": 600,
+                        "reason": "High complexity requires dynamic testing",
+                    },
+                    {
+                        "agent": "SymbolicAgent",
+                        "layer": "symbolic",
+                        "priority": "high",
+                        "estimated_time": 900,
+                        "reason": "Symbolic execution for edge case discovery",
+                    },
+                    {
+                        "agent": "FormalAgent",
+                        "layer": "formal",
+                        "priority": "high",
+                        "estimated_time": 1200,
+                        "reason": "Formal verification for high-risk logic",
+                    },
+                ]
+            )
         elif complexity == "medium" or 40 <= risk_score <= 70:
             # Medium complexity: standard analysis
-            selected_agents.extend([
-                {
-                    "agent": "DynamicAgent",
-                    "layer": "dynamic",
-                    "priority": "high",
-                    "estimated_time": 300,
-                    "reason": "Standard dynamic testing"
-                },
-                {
-                    "agent": "SymbolicAgent",
-                    "layer": "symbolic",
-                    "priority": "medium",
-                    "estimated_time": 600,
-                    "reason": "Limited symbolic execution"
-                }
-            ])
+            selected_agents.extend(
+                [
+                    {
+                        "agent": "DynamicAgent",
+                        "layer": "dynamic",
+                        "priority": "high",
+                        "estimated_time": 300,
+                        "reason": "Standard dynamic testing",
+                    },
+                    {
+                        "agent": "SymbolicAgent",
+                        "layer": "symbolic",
+                        "priority": "medium",
+                        "estimated_time": 600,
+                        "reason": "Limited symbolic execution",
+                    },
+                ]
+            )
         # Low complexity: fast analysis only (StaticAgent already included)
 
         # Always add AI triage
-        selected_agents.append({
-            "agent": "AIAgent",
-            "layer": "ai",
-            "priority": "critical",
-            "estimated_time": 180,
-            "reason": "AI triage to reduce false positives"
-        })
+        selected_agents.append(
+            {
+                "agent": "AIAgent",
+                "layer": "ai",
+                "priority": "critical",
+                "estimated_time": 180,
+                "reason": "AI triage to reduce false positives",
+            }
+        )
 
         # Add InterpretationAgent for better understanding
-        selected_agents.append({
-            "agent": "InterpretationAgent",
-            "layer": "interpretation",
-            "priority": "high",
-            "estimated_time": 120,
-            "reason": "Enhanced finding interpretation and correlation"
-        })
+        selected_agents.append(
+            {
+                "agent": "InterpretationAgent",
+                "layer": "interpretation",
+                "priority": "high",
+                "estimated_time": 120,
+                "reason": "Enhanced finding interpretation and correlation",
+            }
+        )
 
         # Add RecommendationAgent for next steps
-        selected_agents.append({
-            "agent": "RecommendationAgent",
-            "layer": "recommendation",
-            "priority": "high",
-            "estimated_time": 60,
-            "reason": "Generate actionable next steps"
-        })
+        selected_agents.append(
+            {
+                "agent": "RecommendationAgent",
+                "layer": "recommendation",
+                "priority": "high",
+                "estimated_time": 60,
+                "reason": "Generate actionable next steps",
+            }
+        )
 
         # Filter by time budget
         total_time = sum(a["estimated_time"] for a in selected_agents)
@@ -477,7 +484,7 @@ Respond in JSON:
             "agents_used": list(self.active_agents.keys()),
             "total_findings": self.audit_state.get("total_findings"),
             "execution_time": audit_results.get("total_time", 0),
-            "optimization_success": True  # Could be more sophisticated
+            "optimization_success": True,  # Could be more sophisticated
         }
 
         self.audit_history.append(audit_record)
@@ -491,8 +498,9 @@ Respond in JSON:
             f"{audit_record['total_findings']} findings in {audit_record['execution_time']:.2f}s"
         )
 
-    def _execute_audit_plan(self, plan: Dict[str, Any], contract_path: str,
-                           **kwargs) -> List[Dict[str, Any]]:
+    def _execute_audit_plan(
+        self, plan: Dict[str, Any], contract_path: str, **kwargs
+    ) -> List[Dict[str, Any]]:
         """
         Execute audit plan and track progress
 
@@ -513,7 +521,7 @@ Respond in JSON:
                 "phase": phase["layer"],
                 "agent": phase["agent"],
                 "status": "started",
-                "timestamp": phase_start.isoformat() + "Z"
+                "timestamp": phase_start.isoformat() + "Z",
             }
             execution_log.append(event)
 
@@ -536,7 +544,7 @@ Respond in JSON:
                 "agent": phase["agent"],
                 "status": "completed",
                 "timestamp": phase_end.isoformat() + "Z",
-                "duration": duration
+                "duration": duration,
             }
             execution_log.append(completion_event)
 
@@ -556,13 +564,15 @@ Respond in JSON:
             Audit summary with findings, metrics, and compliance data
         """
         # Aggregate all findings from Context Bus
-        all_contexts = self.aggregate_contexts([
-            "static_findings",
-            "dynamic_findings",
-            "formal_findings",
-            "symbolic_findings",
-            "ai_triage"
-        ])
+        all_contexts = self.aggregate_contexts(
+            [
+                "static_findings",
+                "dynamic_findings",
+                "formal_findings",
+                "symbolic_findings",
+                "ai_triage",
+            ]
+        )
 
         total_findings = 0
         findings_by_severity = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Info": 0}
@@ -602,9 +612,9 @@ Respond in JSON:
             "compliance": {
                 "iso27001": self._map_to_iso27001(all_vulnerabilities),
                 "nist_ssdf": ["PW.8", "RV.1.1", "RV.3"],
-                "owasp_sc_top10": list(owasp_coverage.keys())
+                "owasp_sc_top10": list(owasp_coverage.keys()),
             },
-            "recommendations": self._generate_recommendations(findings_by_severity)
+            "recommendations": self._generate_recommendations(findings_by_severity),
         }
 
         return summary
@@ -651,7 +661,7 @@ Respond in JSON:
         if critical:
             controls.add("A.14.2.5")
 
-        return sorted(list(controls))
+        return sorted(controls)
 
     def _generate_recommendations(self, findings_by_severity: Dict[str, int]) -> List[str]:
         """
@@ -685,13 +695,9 @@ Respond in JSON:
                 "✅ No vulnerabilities detected. Contract passed automated security checks."
             )
         else:
-            recommendations.append(
-                "Conduct manual expert review to validate automated findings."
-            )
+            recommendations.append("Conduct manual expert review to validate automated findings.")
 
-        recommendations.append(
-            "Consider formal verification (Certora) for high-value contracts."
-        )
+        recommendations.append("Consider formal verification (Certora) for high-value contracts.")
 
         return recommendations
 
@@ -742,5 +748,5 @@ Respond in JSON:
             "current_phase": self.audit_state["current_phase"],
             "completed_phases": self.audit_state["completed_phases"],
             "total_findings": self.audit_state["total_findings"],
-            "active_agents": list(self.active_agents.keys())
+            "active_agents": list(self.active_agents.keys()),
         }

@@ -6,26 +6,26 @@ Author: Fernando Boiero
 Institution: UNDEF - IUA
 """
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from detectors.smartbugs_detectors import (
-    SmartBugsDetectorEngine,
+from detectors.smartbugs_detectors import (  # noqa: E402
+    AccessControlDetector,
     ArithmeticDetector,
     BadRandomnessDetector,
     DenialOfServiceDetector,
     FrontRunningDetector,
-    ShortAddressDetector,
     ReentrancyDetector,
-    AccessControlDetector,
-    UncheckedLowLevelCallsDetector,
+    ShortAddressDetector,
+    SmartBugsDetectorEngine,
     TimeManipulationDetector,
-    Severity,
+    UncheckedLowLevelCallsDetector,
 )
 
 
@@ -409,14 +409,16 @@ class TestSmartBugsDetectorEngine:
     def test_engine_analyzes_file(self, engine, tmp_path):
         """Test file analysis."""
         test_file = tmp_path / "test.sol"
-        test_file.write_text("""
+        test_file.write_text(
+            """
         pragma solidity ^0.4.24;
         contract Test {
             function add(uint a, uint b) public returns (uint) {
                 return a + b;
             }
         }
-        """)
+        """
+        )
         findings = engine.analyze_file(test_file)
         assert isinstance(findings, list)
 
@@ -440,6 +442,7 @@ class TestSmartBugsDetectorEngine:
 # =============================================================================
 # ADDITIONAL COVERAGE TESTS
 # =============================================================================
+
 
 class TestArithmeticDetectorEdgeCases:
     """Edge case tests for ArithmeticDetector."""
@@ -755,7 +758,6 @@ class TestSmartBugsDetectorEngineEdgeCases:
         # Should find multiple vulnerability types
         assert len(findings) >= 3
 
-
     def test_get_summary(self, engine):
         """Test get_summary method generates correct statistics."""
         code = """
@@ -776,20 +778,20 @@ class TestSmartBugsDetectorEngineEdgeCases:
         findings = engine.analyze(code)
         summary = engine.get_summary(findings)
 
-        assert 'total' in summary
-        assert 'by_severity' in summary
-        assert 'by_category' in summary
-        assert summary['total'] == len(findings)
-        assert isinstance(summary['by_severity'], dict)
-        assert isinstance(summary['by_category'], dict)
+        assert "total" in summary
+        assert "by_severity" in summary
+        assert "by_category" in summary
+        assert summary["total"] == len(findings)
+        assert isinstance(summary["by_severity"], dict)
+        assert isinstance(summary["by_category"], dict)
 
     def test_get_summary_empty_findings(self, engine):
         """Test get_summary with empty findings list."""
         summary = engine.get_summary([])
-        assert summary['total'] == 0
-        assert summary['by_severity'] == {}
-        assert summary['by_category'] == {}
+        assert summary["total"] == 0
+        assert summary["by_severity"] == {}
+        assert summary["by_category"] == {}
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

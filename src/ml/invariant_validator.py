@@ -28,7 +28,6 @@ from typing import Any, Dict, List, Optional, Union
 
 from src.adapters.invariant_synthesizer import (
     InvariantCategory,
-    InvariantFormat,
     SynthesizedInvariant,
 )
 from src.poc.validators.foundry_runner import (
@@ -123,7 +122,7 @@ class InvariantTestGenerator:
     """
 
     # Template for invariant test contract
-    TEST_CONTRACT_TEMPLATE = '''// SPDX-License-Identifier: MIT
+    TEST_CONTRACT_TEMPLATE = """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
@@ -141,19 +140,19 @@ contract {test_contract_name} is Test {{
 
 {invariant_functions}
 }}
-'''
+"""
 
     # Template for individual invariant function
-    INVARIANT_FUNCTION_TEMPLATE = '''
+    INVARIANT_FUNCTION_TEMPLATE = """
     /// @notice {description}
     /// @dev Category: {category}, Importance: {importance}
     function invariant_{name}() public view {{
         {assertion_code}
     }}
-'''
+"""
 
     # Template for fuzz test function
-    FUZZ_TEST_TEMPLATE = '''
+    FUZZ_TEST_TEMPLATE = """
     /// @notice Fuzz test for {name}
     /// @dev {description}
     function testFuzz_{name}({fuzz_params}) public {{
@@ -161,7 +160,7 @@ contract {test_contract_name} is Test {{
         {action}
         {postconditions}
     }}
-'''
+"""
 
     def __init__(self, output_dir: Optional[Path] = None):
         """
@@ -294,7 +293,7 @@ contract {test_contract_name} is Test {{
 
         # If it's a condition, wrap in assertTrue
         if not assertion.startswith("assert") and not assertion.startswith("require"):
-            return f"assertTrue({assertion}, \"Invariant violated\");"
+            return f'assertTrue({assertion}, "Invariant violated");'
 
         return assertion + ";"
 
@@ -390,10 +389,7 @@ class InvariantValidator:
         contract_hash = hashlib.sha256(contract_name.encode()).hexdigest()[:16]
 
         # Filter invariants with testable assertions
-        testable = [
-            inv for inv in invariants
-            if inv.foundry_test or inv.solidity_assertion
-        ]
+        testable = [inv for inv in invariants if inv.foundry_test or inv.solidity_assertion]
 
         if not testable:
             logger.warning("No testable invariants found")
@@ -462,7 +458,9 @@ class InvariantValidator:
 
         # Calculate statistics
         passed = sum(1 for r in test_results if r.passed)
-        failed = sum(1 for r in test_results if not r.passed and r.test_status != TestStatus.SKIPPED)
+        failed = sum(
+            1 for r in test_results if not r.passed and r.test_status != TestStatus.SKIPPED
+        )
         skipped = sum(1 for r in test_results if r.test_status == TestStatus.SKIPPED)
 
         report = ValidationReport(
@@ -506,13 +504,15 @@ class InvariantValidator:
                 )
 
                 if not test_files:
-                    test_results.append(InvariantTestResult(
-                        invariant_name=inv.name,
-                        category=inv.category,
-                        passed=False,
-                        test_status=TestStatus.SKIPPED,
-                        error_message="Could not generate test",
-                    ))
+                    test_results.append(
+                        InvariantTestResult(
+                            invariant_name=inv.name,
+                            category=inv.category,
+                            passed=False,
+                            test_status=TestStatus.SKIPPED,
+                            error_message="Could not generate test",
+                        )
+                    )
                     continue
 
                 # Run test
@@ -527,38 +527,46 @@ class InvariantValidator:
                 # Parse result
                 if result.tests:
                     test = result.tests[0]
-                    test_results.append(InvariantTestResult(
-                        invariant_name=inv.name,
-                        category=inv.category,
-                        passed=test.status == TestStatus.PASSED,
-                        test_status=test.status,
-                        gas_used=test.gas_used,
-                        execution_time_ms=test.duration_ms,
-                        error_message=test.error_message,
-                        fuzzing_runs=self.fuzzing_runs,
-                    ))
+                    test_results.append(
+                        InvariantTestResult(
+                            invariant_name=inv.name,
+                            category=inv.category,
+                            passed=test.status == TestStatus.PASSED,
+                            test_status=test.status,
+                            gas_used=test.gas_used,
+                            execution_time_ms=test.duration_ms,
+                            error_message=test.error_message,
+                            fuzzing_runs=self.fuzzing_runs,
+                        )
+                    )
                 else:
-                    test_results.append(InvariantTestResult(
-                        invariant_name=inv.name,
-                        category=inv.category,
-                        passed=result.success,
-                        test_status=TestStatus.PASSED if result.success else TestStatus.ERROR,
-                        error_message=result.error,
-                    ))
+                    test_results.append(
+                        InvariantTestResult(
+                            invariant_name=inv.name,
+                            category=inv.category,
+                            passed=result.success,
+                            test_status=TestStatus.PASSED if result.success else TestStatus.ERROR,
+                            error_message=result.error,
+                        )
+                    )
 
             except Exception as e:
                 logger.error(f"Error validating {inv.name}: {e}")
-                test_results.append(InvariantTestResult(
-                    invariant_name=inv.name,
-                    category=inv.category,
-                    passed=False,
-                    test_status=TestStatus.ERROR,
-                    error_message=str(e),
-                ))
+                test_results.append(
+                    InvariantTestResult(
+                        invariant_name=inv.name,
+                        category=inv.category,
+                        passed=False,
+                        test_status=TestStatus.ERROR,
+                        error_message=str(e),
+                    )
+                )
 
         # Calculate statistics
         passed = sum(1 for r in test_results if r.passed)
-        failed = sum(1 for r in test_results if not r.passed and r.test_status != TestStatus.SKIPPED)
+        failed = sum(
+            1 for r in test_results if not r.passed and r.test_status != TestStatus.SKIPPED
+        )
         skipped = sum(1 for r in test_results if r.test_status == TestStatus.SKIPPED)
 
         report = ValidationReport(
@@ -597,26 +605,30 @@ class InvariantValidator:
 
             if func_name in test_lookup:
                 test = test_lookup[func_name]
-                results.append(InvariantTestResult(
-                    invariant_name=inv.name,
-                    category=inv.category,
-                    passed=test.status == TestStatus.PASSED,
-                    test_status=test.status,
-                    gas_used=test.gas_used,
-                    execution_time_ms=test.duration_ms,
-                    error_message=test.error_message,
-                    traces=test.traces,
-                    fuzzing_runs=self.fuzzing_runs,
-                ))
+                results.append(
+                    InvariantTestResult(
+                        invariant_name=inv.name,
+                        category=inv.category,
+                        passed=test.status == TestStatus.PASSED,
+                        test_status=test.status,
+                        gas_used=test.gas_used,
+                        execution_time_ms=test.duration_ms,
+                        error_message=test.error_message,
+                        traces=test.traces,
+                        fuzzing_runs=self.fuzzing_runs,
+                    )
+                )
             else:
                 # Test not found - might have failed to compile
-                results.append(InvariantTestResult(
-                    invariant_name=inv.name,
-                    category=inv.category,
-                    passed=False,
-                    test_status=TestStatus.SKIPPED,
-                    error_message="Test not found in results",
-                ))
+                results.append(
+                    InvariantTestResult(
+                        invariant_name=inv.name,
+                        category=inv.category,
+                        passed=False,
+                        test_status=TestStatus.SKIPPED,
+                        error_message="Test not found in results",
+                    )
+                )
 
         return results
 
@@ -641,13 +653,15 @@ class InvariantValidator:
         }
 
         for result in report.results:
-            feedback["invariants"].append({
-                "name": result.invariant_name,
-                "category": result.category.value,
-                "passed": result.passed,
-                "gas_used": result.gas_used,
-                "has_counterexample": result.counterexample is not None,
-            })
+            feedback["invariants"].append(
+                {
+                    "name": result.invariant_name,
+                    "category": result.category.value,
+                    "passed": result.passed,
+                    "gas_used": result.gas_used,
+                    "has_counterexample": result.counterexample is not None,
+                }
+            )
 
         return feedback
 
@@ -771,12 +785,14 @@ def quick_validate(
 
         # Create foundry.toml
         foundry_toml = project_dir / "foundry.toml"
-        foundry_toml.write_text("""
+        foundry_toml.write_text(
+            """
 [profile.default]
 src = "src"
 out = "out"
 libs = ["lib"]
-""")
+"""
+        )
 
         # Validate
         validator = InvariantValidator(project_dir=project_dir)

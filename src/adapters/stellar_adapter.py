@@ -30,7 +30,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from src.core.chain_abstraction import (
     AbstractChainAnalyzer,
@@ -235,7 +235,7 @@ class StellarPatternDetector:
     ) -> List[Dict[str, Any]]:
         """Detect functions missing authorization checks."""
         findings = []
-        lines = content.split("\n")
+        content.split("\n")
 
         # Find functions that modify state but don't have auth
         state_modifying_patterns = [
@@ -259,14 +259,16 @@ class StellarPatternDetector:
             )
 
             if modifies_state:
-                findings.append({
-                    "type": StellarVulnerability.MISSING_AUTH_CHECK.value,
-                    "function": func.name,
-                    "line": func.location.line if func.location else 0,
-                    "message": f"Public function '{func.name}' modifies state without authorization check",
-                    "severity": "High",
-                    "recommendation": "Add `address.require_auth()` or `env.require_auth_for_args()` before state modifications",
-                })
+                findings.append(
+                    {
+                        "type": StellarVulnerability.MISSING_AUTH_CHECK.value,
+                        "function": func.name,
+                        "line": func.location.line if func.location else 0,
+                        "message": f"Public function '{func.name}' modifies state without authorization check",
+                        "severity": "High",
+                        "recommendation": "Add `address.require_auth()` or `env.require_auth_for_args()` before state modifications",
+                    }
+                )
 
         return findings
 
@@ -278,17 +280,21 @@ class StellarPatternDetector:
 
         for pattern_name, line_no, matched_text in matches:
             severity = "High" if pattern_name in ("panic", "unwrap") else "Medium"
-            findings.append({
-                "type": StellarVulnerability.PANIC_IN_CONTRACT.value
-                if pattern_name == "panic"
-                else StellarVulnerability.UNWRAP_WITHOUT_CHECK.value,
-                "pattern": pattern_name,
-                "line": line_no,
-                "matched": matched_text,
-                "message": f"Dangerous pattern '{pattern_name}' could cause contract to fail unexpectedly",
-                "severity": severity,
-                "recommendation": f"Replace {pattern_name} with proper error handling using Result/Option",
-            })
+            findings.append(
+                {
+                    "type": (
+                        StellarVulnerability.PANIC_IN_CONTRACT.value
+                        if pattern_name == "panic"
+                        else StellarVulnerability.UNWRAP_WITHOUT_CHECK.value
+                    ),
+                    "pattern": pattern_name,
+                    "line": line_no,
+                    "matched": matched_text,
+                    "message": f"Dangerous pattern '{pattern_name}' could cause contract to fail unexpectedly",
+                    "severity": severity,
+                    "recommendation": f"Replace {pattern_name} with proper error handling using Result/Option",
+                }
+            )
 
         return findings
 
@@ -298,21 +304,26 @@ class StellarPatternDetector:
         findings = []
 
         # Check for storage access without TTL extension
-        storage_writes = cls.find_patterns(content, {
-            "set": r"env\.storage\(\)\.\w+\(\)\.set\s*\(",
-        })
+        storage_writes = cls.find_patterns(
+            content,
+            {
+                "set": r"env\.storage\(\)\.\w+\(\)\.set\s*\(",
+            },
+        )
 
         ttl_extensions = cls.find_patterns(content, cls.TTL_PATTERNS)
 
         if storage_writes and not ttl_extensions:
-            for _, line_no, matched in storage_writes:
-                findings.append({
-                    "type": StellarVulnerability.TTL_NOT_EXTENDED.value,
-                    "line": line_no,
-                    "message": "Storage write without TTL extension may cause data loss",
-                    "severity": "Medium",
-                    "recommendation": "Call extend_ttl() after storage writes to persistent data",
-                })
+            for _, line_no, _matched in storage_writes:
+                findings.append(
+                    {
+                        "type": StellarVulnerability.TTL_NOT_EXTENDED.value,
+                        "line": line_no,
+                        "message": "Storage write without TTL extension may cause data loss",
+                        "severity": "Medium",
+                        "recommendation": "Call extend_ttl() after storage writes to persistent data",
+                    }
+                )
 
         return findings
 
@@ -323,7 +334,7 @@ class StellarPatternDetector:
         matches = cls.find_patterns(content, cls.CROSS_CONTRACT_PATTERNS)
 
         # Check for invoke_contract without proper validation
-        for pattern_name, line_no, matched_text in matches:
+        for pattern_name, line_no, _matched_text in matches:
             if pattern_name == "invoke_contract":
                 # Check if there's address validation nearby
                 lines = content.split("\n")
@@ -332,13 +343,15 @@ class StellarPatternDetector:
                 context = "\n".join(lines[context_start:context_end])
 
                 if not re.search(r"require_auth|verify|check", context, re.IGNORECASE):
-                    findings.append({
-                        "type": StellarVulnerability.CROSS_CONTRACT_UNSAFE.value,
-                        "line": line_no,
-                        "message": "Cross-contract call without visible authorization check",
-                        "severity": "High",
-                        "recommendation": "Verify caller authorization before cross-contract invocations",
-                    })
+                    findings.append(
+                        {
+                            "type": StellarVulnerability.CROSS_CONTRACT_UNSAFE.value,
+                            "line": line_no,
+                            "message": "Cross-contract call without visible authorization check",
+                            "severity": "High",
+                            "recommendation": "Verify caller authorization before cross-contract invocations",
+                        }
+                    )
 
         return findings
 
@@ -348,29 +361,38 @@ class StellarPatternDetector:
         findings = []
 
         # Find unchecked arithmetic operations
-        unchecked_ops = cls.find_patterns(content, {
-            "add": r"[^a-z_](\+)[^=]",
-            "sub": r"[^a-z_](\-)[^=\>]",
-            "mul": r"[^a-z_](\*)[^=]",
-        })
+        unchecked_ops = cls.find_patterns(
+            content,
+            {
+                "add": r"[^a-z_](\+)[^=]",
+                "sub": r"[^a-z_](\-)[^=\>]",
+                "mul": r"[^a-z_](\*)[^=]",
+            },
+        )
 
         # Find checked operations
-        checked_ops = cls.find_patterns(content, {
-            k: v for k, v in cls.ARITHMETIC_PATTERNS.items()
-            if k.startswith("checked_") or k.startswith("saturating_")
-        })
+        checked_ops = cls.find_patterns(
+            content,
+            {
+                k: v
+                for k, v in cls.ARITHMETIC_PATTERNS.items()
+                if k.startswith("checked_") or k.startswith("saturating_")
+            },
+        )
 
         # If there are unchecked ops but no checked ops, it's suspicious
         if unchecked_ops and not checked_ops:
             for op_name, line_no, _ in unchecked_ops[:5]:  # Limit to first 5
-                findings.append({
-                    "type": StellarVulnerability.ARITHMETIC_OVERFLOW.value,
-                    "line": line_no,
-                    "operation": op_name,
-                    "message": "Arithmetic operation without overflow check",
-                    "severity": "Medium",
-                    "recommendation": "Use checked_* or saturating_* methods for safe arithmetic",
-                })
+                findings.append(
+                    {
+                        "type": StellarVulnerability.ARITHMETIC_OVERFLOW.value,
+                        "line": line_no,
+                        "operation": op_name,
+                        "message": "Arithmetic operation without overflow check",
+                        "severity": "Medium",
+                        "recommendation": "Use checked_* or saturating_* methods for safe arithmetic",
+                    }
+                )
 
         return findings
 
@@ -380,7 +402,7 @@ class StellarPatternDetector:
         findings = []
         token_ops = cls.find_patterns(content, cls.TOKEN_PATTERNS)
 
-        for pattern_name, line_no, matched_text in token_ops:
+        for pattern_name, line_no, _matched_text in token_ops:
             if pattern_name in ("transfer", "mint", "burn"):
                 # Check for auth before token operation
                 lines = content.split("\n")
@@ -388,14 +410,16 @@ class StellarPatternDetector:
                 context = "\n".join(lines[context_start:line_no])
 
                 if not re.search(r"require_auth", context):
-                    findings.append({
-                        "type": StellarVulnerability.TOKEN_TRANSFER_UNCHECKED.value,
-                        "line": line_no,
-                        "operation": pattern_name,
-                        "message": f"Token {pattern_name} without visible authorization",
-                        "severity": "Critical",
-                        "recommendation": f"Ensure proper authorization before token {pattern_name}",
-                    })
+                    findings.append(
+                        {
+                            "type": StellarVulnerability.TOKEN_TRANSFER_UNCHECKED.value,
+                            "line": line_no,
+                            "operation": pattern_name,
+                            "message": f"Token {pattern_name} without visible authorization",
+                            "severity": "Critical",
+                            "recommendation": f"Ensure proper authorization before token {pattern_name}",
+                        }
+                    )
 
         return findings
 
@@ -496,11 +520,11 @@ class SorobanParser:
             has_auth = bool(re.search(r"require_auth", body))
 
             # Calculate line number
-            line_no = content[:match.start()].count("\n") + 1
+            line_no = content[: match.start()].count("\n") + 1
 
             # Check for decorators
             decorators = []
-            pre_fn_content = content[max(0, match.start() - 100):match.start()]
+            pre_fn_content = content[max(0, match.start() - 100) : match.start()]
             if "#[init]" in pre_fn_content or name == "__constructor":
                 decorators.append("init")
             if "#[upgrade]" in pre_fn_content or name == "upgrade":
@@ -575,7 +599,7 @@ class SorobanParser:
                 brace_count -= 1
             pos += 1
 
-        return content[body_start:pos - 1]
+        return content[body_start : pos - 1]
 
     def _parse_storage(self, content: str) -> List[SorobanStorage]:
         """Parse storage access patterns."""
@@ -590,15 +614,17 @@ class SorobanParser:
         for storage_type, pattern in patterns.items():
             for match in re.finditer(pattern, content):
                 access_pattern = match.group(1)
-                line_no = content[:match.start()].count("\n") + 1
+                line_no = content[: match.start()].count("\n") + 1
 
-                storage_accesses.append(SorobanStorage(
-                    key_type="unknown",
-                    value_type="unknown",
-                    storage_type=storage_type,
-                    access_pattern=access_pattern,
-                    location=Location(file="", line=line_no),
-                ))
+                storage_accesses.append(
+                    SorobanStorage(
+                        key_type="unknown",
+                        value_type="unknown",
+                        storage_type=storage_type,
+                        access_pattern=access_pattern,
+                        location=Location(file="", line=line_no),
+                    )
+                )
 
         return storage_accesses
 
@@ -606,7 +632,7 @@ class SorobanParser:
         """Parse event emissions."""
         events = []
         pattern = r"env\.events\(\)\.publish\s*\("
-        for match in re.finditer(pattern, content):
+        for _match in re.finditer(pattern, content):
             events.append("event_publish")
         return events
 
@@ -699,13 +725,15 @@ class StellarAnalyzer(AbstractChainAnalyzer):
         # Create variables from storage accesses
         variables = []
         for i, storage in enumerate(soroban_contract.storage_accesses):
-            variables.append(AbstractVariable(
-                name=f"storage_{storage.storage_type}_{i}",
-                type_info=TypeInfo(name=storage.value_type),
-                visibility=Visibility.INTERNAL,
-                location=storage.location,
-                metadata={"storage_type": storage.storage_type},
-            ))
+            variables.append(
+                AbstractVariable(
+                    name=f"storage_{storage.storage_type}_{i}",
+                    type_info=TypeInfo(name=storage.value_type),
+                    visibility=Visibility.INTERNAL,
+                    location=storage.location,
+                    metadata={"storage_type": storage.storage_type},
+                )
+            )
 
         return AbstractContract(
             name=soroban_contract.name,
@@ -715,10 +743,7 @@ class StellarAnalyzer(AbstractChainAnalyzer):
             source_code=content,
             functions=functions,
             variables=variables,
-            events=[
-                AbstractEvent(name=e)
-                for e in soroban_contract.events
-            ],
+            events=[AbstractEvent(name=e) for e in soroban_contract.events],
             imports=soroban_contract.imports,
         )
 
@@ -749,43 +774,80 @@ class StellarAnalyzer(AbstractChainAnalyzer):
 
         # Access Control checks
         if SecurityProperty.ACCESS_CONTROL in properties:
-            auth_findings = StellarPatternDetector.detect_missing_auth(
-                content, soroban_functions
-            )
+            auth_findings = StellarPatternDetector.detect_missing_auth(content, soroban_functions)
             for f in auth_findings:
-                findings.append(self.normalize_finding(
-                    vuln_type=f["type"],
-                    severity=f["severity"],
-                    message=f["message"],
-                    location=Location(
-                        file=contract.source_path,
-                        line=f.get("line", 0),
-                    ),
-                    function=f.get("function"),
-                    recommendation=f.get("recommendation"),
-                ))
+                findings.append(
+                    self.normalize_finding(
+                        vuln_type=f["type"],
+                        severity=f["severity"],
+                        message=f["message"],
+                        location=Location(
+                            file=contract.source_path,
+                            line=f.get("line", 0),
+                        ),
+                        function=f.get("function"),
+                        recommendation=f.get("recommendation"),
+                    )
+                )
 
         # State handling checks (panic/unwrap)
         if SecurityProperty.STATE_HANDLING in properties:
             panic_findings = StellarPatternDetector.detect_panic_in_contract(content)
             for f in panic_findings:
-                findings.append(self.normalize_finding(
-                    vuln_type=f["type"],
-                    severity=f["severity"],
-                    message=f["message"],
-                    location=Location(
-                        file=contract.source_path,
-                        line=f.get("line", 0),
-                    ),
-                    pattern=f.get("pattern"),
-                    recommendation=f.get("recommendation"),
-                ))
+                findings.append(
+                    self.normalize_finding(
+                        vuln_type=f["type"],
+                        severity=f["severity"],
+                        message=f["message"],
+                        location=Location(
+                            file=contract.source_path,
+                            line=f.get("line", 0),
+                        ),
+                        pattern=f.get("pattern"),
+                        recommendation=f.get("recommendation"),
+                    )
+                )
 
         # External calls (cross-contract)
         if SecurityProperty.EXTERNAL_CALLS in properties:
             cc_findings = StellarPatternDetector.detect_cross_contract_risks(content)
             for f in cc_findings:
-                findings.append(self.normalize_finding(
+                findings.append(
+                    self.normalize_finding(
+                        vuln_type=f["type"],
+                        severity=f["severity"],
+                        message=f["message"],
+                        location=Location(
+                            file=contract.source_path,
+                            line=f.get("line", 0),
+                        ),
+                        recommendation=f.get("recommendation"),
+                    )
+                )
+
+        # Arithmetic checks
+        if SecurityProperty.ARITHMETIC in properties:
+            arith_findings = StellarPatternDetector.detect_arithmetic_issues(content)
+            for f in arith_findings:
+                findings.append(
+                    self.normalize_finding(
+                        vuln_type=f["type"],
+                        severity=f["severity"],
+                        message=f["message"],
+                        location=Location(
+                            file=contract.source_path,
+                            line=f.get("line", 0),
+                        ),
+                        operation=f.get("operation"),
+                        recommendation=f.get("recommendation"),
+                    )
+                )
+
+        # Storage/TTL checks
+        storage_findings = StellarPatternDetector.detect_storage_issues(content)
+        for f in storage_findings:
+            findings.append(
+                self.normalize_finding(
                     vuln_type=f["type"],
                     severity=f["severity"],
                     message=f["message"],
@@ -794,13 +856,14 @@ class StellarAnalyzer(AbstractChainAnalyzer):
                         line=f.get("line", 0),
                     ),
                     recommendation=f.get("recommendation"),
-                ))
+                )
+            )
 
-        # Arithmetic checks
-        if SecurityProperty.ARITHMETIC in properties:
-            arith_findings = StellarPatternDetector.detect_arithmetic_issues(content)
-            for f in arith_findings:
-                findings.append(self.normalize_finding(
+        # Token handling
+        token_findings = StellarPatternDetector.detect_token_issues(content)
+        for f in token_findings:
+            findings.append(
+                self.normalize_finding(
                     vuln_type=f["type"],
                     severity=f["severity"],
                     message=f["message"],
@@ -810,36 +873,8 @@ class StellarAnalyzer(AbstractChainAnalyzer):
                     ),
                     operation=f.get("operation"),
                     recommendation=f.get("recommendation"),
-                ))
-
-        # Storage/TTL checks
-        storage_findings = StellarPatternDetector.detect_storage_issues(content)
-        for f in storage_findings:
-            findings.append(self.normalize_finding(
-                vuln_type=f["type"],
-                severity=f["severity"],
-                message=f["message"],
-                location=Location(
-                    file=contract.source_path,
-                    line=f.get("line", 0),
-                ),
-                recommendation=f.get("recommendation"),
-            ))
-
-        # Token handling
-        token_findings = StellarPatternDetector.detect_token_issues(content)
-        for f in token_findings:
-            findings.append(self.normalize_finding(
-                vuln_type=f["type"],
-                severity=f["severity"],
-                message=f["message"],
-                location=Location(
-                    file=contract.source_path,
-                    line=f.get("line", 0),
-                ),
-                operation=f.get("operation"),
-                recommendation=f.get("recommendation"),
-            ))
+                )
+            )
 
         return findings
 

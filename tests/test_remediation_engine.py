@@ -6,26 +6,27 @@ Author: Fernando Boiero
 Institution: UNDEF - IUA
 """
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from security.remediation_engine import (
-    RemediationEngine,
+from security.remediation_engine import (  # noqa: E402
     EnrichedFinding,
-    RemediationReport,
     FixEffort,
     FixRisk,
+    RemediationEngine,
+    RemediationReport,
     enrich_with_remediations,
 )
-from security.remediations import (
+from security.remediations import (  # noqa: E402
+    get_all_remediations,
     get_remediation,
     get_remediation_by_type,
-    get_all_remediations,
 )
 
 
@@ -86,15 +87,15 @@ class TestEnrichedFinding:
 
         d = finding.to_dict()
 
-        assert d['id'] == "TEST-001"
-        assert d['type'] == "reentrancy"
-        assert d['severity'] == "high"
-        assert d['swc_id'] == "SWC-107"
-        assert d['fix']['effort'] == "high"
-        assert d['fix']['risk'] == "medium"
-        assert d['priority']['score'] == 8.5
-        assert 'remediation' in d
-        assert 'example_fixed' in d['remediation']
+        assert d["id"] == "TEST-001"
+        assert d["type"] == "reentrancy"
+        assert d["severity"] == "high"
+        assert d["swc_id"] == "SWC-107"
+        assert d["fix"]["effort"] == "high"
+        assert d["fix"]["risk"] == "medium"
+        assert d["priority"]["score"] == 8.5
+        assert "remediation" in d
+        assert "example_fixed" in d["remediation"]
 
 
 class TestRemediationEngine:
@@ -110,43 +111,43 @@ class TestRemediationEngine:
         """Sample findings for testing."""
         return [
             {
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'Reentrancy vulnerability in withdraw()',
-                'location': {'file': 'Contract.sol', 'line': 42, 'function': 'withdraw'},
-                'swc_id': 'SWC-107',
+                "type": "reentrancy",
+                "severity": "high",
+                "message": "Reentrancy vulnerability in withdraw()",
+                "location": {"file": "Contract.sol", "line": 42, "function": "withdraw"},
+                "swc_id": "SWC-107",
             },
             {
-                'type': 'unchecked-call',
-                'severity': 'medium',
-                'message': 'Return value of send() not checked',
-                'location': {'file': 'Contract.sol', 'line': 55},
-                'swc_id': 'SWC-104',
+                "type": "unchecked-call",
+                "severity": "medium",
+                "message": "Return value of send() not checked",
+                "location": {"file": "Contract.sol", "line": 55},
+                "swc_id": "SWC-104",
             },
             {
-                'type': 'tx-origin',
-                'severity': 'high',
-                'message': 'Use of tx.origin for authentication',
-                'location': {'file': 'Contract.sol', 'line': 30, 'function': 'transferOwnership'},
-                'swc_id': 'SWC-115',
+                "type": "tx-origin",
+                "severity": "high",
+                "message": "Use of tx.origin for authentication",
+                "location": {"file": "Contract.sol", "line": 30, "function": "transferOwnership"},
+                "swc_id": "SWC-115",
             },
         ]
 
     def test_enrich_single_finding(self, engine):
         """Test enriching a single finding."""
         finding = {
-            'type': 'reentrancy',
-            'severity': 'high',
-            'message': 'Test reentrancy',
-            'location': {'file': 'test.sol', 'line': 10},
-            'swc_id': 'SWC-107',
+            "type": "reentrancy",
+            "severity": "high",
+            "message": "Test reentrancy",
+            "location": {"file": "test.sol", "line": 10},
+            "swc_id": "SWC-107",
         }
 
         enriched = engine.enrich_finding(finding)
 
-        assert enriched.type == 'reentrancy'
-        assert enriched.severity == 'high'
-        assert enriched.swc_id == 'SWC-107'
+        assert enriched.type == "reentrancy"
+        assert enriched.severity == "high"
+        assert enriched.swc_id == "SWC-107"
         assert enriched.remediation is not None
         assert enriched.fix_effort == FixEffort.HIGH
         assert enriched.priority_score > 0
@@ -163,21 +164,25 @@ class TestRemediationEngine:
 
     def test_priority_scoring(self, engine):
         """Test priority scoring calculation."""
-        critical = engine.enrich_finding({
-            'type': 'reentrancy',
-            'severity': 'critical',
-            'message': 'Test',
-            'location': {},
-            'swc_id': 'SWC-107',
-        })
+        critical = engine.enrich_finding(
+            {
+                "type": "reentrancy",
+                "severity": "critical",
+                "message": "Test",
+                "location": {},
+                "swc_id": "SWC-107",
+            }
+        )
 
-        low = engine.enrich_finding({
-            'type': 'floating-pragma',
-            'severity': 'low',
-            'message': 'Test',
-            'location': {},
-            'swc_id': 'SWC-103',
-        })
+        low = engine.enrich_finding(
+            {
+                "type": "floating-pragma",
+                "severity": "low",
+                "message": "Test",
+                "location": {},
+                "swc_id": "SWC-103",
+            }
+        )
 
         assert critical.priority_score > low.priority_score
 
@@ -187,10 +192,10 @@ class TestRemediationEngine:
         fix_plan = engine.generate_fix_plan()
 
         assert len(fix_plan) > 0
-        assert 'step' in fix_plan[0]
-        assert 'swc_id' in fix_plan[0]
-        assert 'action' in fix_plan[0]
-        assert 'example' in fix_plan[0]
+        assert "step" in fix_plan[0]
+        assert "swc_id" in fix_plan[0]
+        assert "action" in fix_plan[0]
+        assert "example" in fix_plan[0]
 
     def test_estimate_total_effort(self, engine, sample_findings):
         """Test effort estimation."""
@@ -198,7 +203,7 @@ class TestRemediationEngine:
         effort = engine.estimate_total_effort()
 
         assert isinstance(effort, str)
-        assert any(unit in effort for unit in ['minutes', 'hours', 'days', 'weeks'])
+        assert any(unit in effort for unit in ["minutes", "hours", "days", "weeks"])
 
     def test_security_checklist(self, engine, sample_findings):
         """Test security checklist generation."""
@@ -206,11 +211,11 @@ class TestRemediationEngine:
         checklist = engine.check_security_checklist()
 
         assert isinstance(checklist, dict)
-        assert 'No reentrancy vulnerabilities' in checklist
+        assert "No reentrancy vulnerabilities" in checklist
         # Should be False because we have reentrancy finding
-        assert checklist['No reentrancy vulnerabilities'] == False
+        assert not checklist["No reentrancy vulnerabilities"]
         # tx.origin finding
-        assert checklist['No tx.origin for authentication'] == False
+        assert not checklist["No tx.origin for authentication"]
 
     def test_security_checklist_with_source(self, engine):
         """Test checklist with source code analysis."""
@@ -221,8 +226,8 @@ class TestRemediationEngine:
         """
         checklist = engine.check_security_checklist(source_code)
 
-        assert checklist['Uses Solidity 0.8+'] == True
-        assert checklist['Has ReentrancyGuard'] == True
+        assert checklist["Uses Solidity 0.8+"]
+        assert checklist["Has ReentrancyGuard"]
 
     def test_generate_report(self, engine, sample_findings):
         """Test full report generation."""
@@ -241,24 +246,36 @@ class TestRemediationEngine:
         report = engine.generate_report("TestContract")
         d = report.to_dict()
 
-        assert 'contract' in d
-        assert 'summary' in d
-        assert 'findings' in d
-        assert 'fix_plan' in d
-        assert 'estimated_effort' in d
+        assert "contract" in d
+        assert "summary" in d
+        assert "findings" in d
+        assert "fix_plan" in d
+        assert "estimated_effort" in d
 
     def test_get_quick_wins(self, engine):
         """Test quick wins filtering."""
         findings = [
-            {'type': 'floating-pragma', 'severity': 'low', 'message': 'Test', 'location': {}, 'swc_id': 'SWC-103'},
-            {'type': 'reentrancy', 'severity': 'high', 'message': 'Test', 'location': {}, 'swc_id': 'SWC-107'},
+            {
+                "type": "floating-pragma",
+                "severity": "low",
+                "message": "Test",
+                "location": {},
+                "swc_id": "SWC-103",
+            },
+            {
+                "type": "reentrancy",
+                "severity": "high",
+                "message": "Test",
+                "location": {},
+                "swc_id": "SWC-107",
+            },
         ]
         engine.enrich_findings(findings)
         quick_wins = engine.get_quick_wins(FixEffort.LOW)
 
         # Floating pragma is trivial, reentrancy is high effort
         assert len(quick_wins) == 1
-        assert quick_wins[0].swc_id == 'SWC-103'
+        assert quick_wins[0].swc_id == "SWC-103"
 
     def test_get_critical_fixes(self, engine, sample_findings):
         """Test critical fixes filtering."""
@@ -267,7 +284,7 @@ class TestRemediationEngine:
 
         assert len(critical) == 2  # high severity findings
         for f in critical:
-            assert f.severity in ['critical', 'high']
+            assert f.severity in ["critical", "high"]
 
     def test_empty_findings(self, engine):
         """Test handling of empty findings."""
@@ -284,16 +301,21 @@ class TestConvenienceFunction:
     def test_enrich_with_remediations(self):
         """Test the convenience function."""
         findings = [
-            {'type': 'reentrancy', 'severity': 'high', 'message': 'Test', 'location': {'file': 'test.sol'}},
+            {
+                "type": "reentrancy",
+                "severity": "high",
+                "message": "Test",
+                "location": {"file": "test.sol"},
+            },
         ]
 
         report = enrich_with_remediations(findings, "TestContract")
 
-        assert 'contract' in report
-        assert report['contract'] == "TestContract"
-        assert 'findings' in report
-        assert len(report['findings']) == 1
-        assert 'fix_plan' in report
+        assert "contract" in report
+        assert report["contract"] == "TestContract"
+        assert "findings" in report
+        assert len(report["findings"]) == 1
+        assert "fix_plan" in report
 
 
 class TestFixEffortAndRisk:
@@ -342,8 +364,8 @@ class TestRemediationEngineCoverage:
 
         d = finding.to_dict()
 
-        assert 'related_findings' in d
-        assert d['related_findings'] == ["TEST-002", "TEST-003"]
+        assert "related_findings" in d
+        assert d["related_findings"] == ["TEST-002", "TEST-003"]
 
     def test_enriched_finding_to_dict_with_affected_functions(self):
         """Test to_dict includes affected_functions when populated."""
@@ -358,18 +380,18 @@ class TestRemediationEngineCoverage:
 
         d = finding.to_dict()
 
-        assert 'affected_functions' in d
-        assert d['affected_functions'] == ["withdraw", "transfer"]
+        assert "affected_functions" in d
+        assert d["affected_functions"] == ["withdraw", "transfer"]
 
     def test_enrich_finding_fallback_to_finding_type(self, engine):
         """Test remediation fallback to original finding_type (line 272)."""
         # Create a finding with a type that's in TYPE_CANONICAL mapping
         # but canonical version returns no remediation, while original does
         finding = {
-            'type': 'reentrancy-eth',  # Maps to 'reentrancy' canonical
-            'severity': 'high',
-            'message': 'Test reentrancy eth',
-            'location': {'file': 'test.sol', 'line': 10},
+            "type": "reentrancy-eth",  # Maps to 'reentrancy' canonical
+            "severity": "high",
+            "message": "Test reentrancy eth",
+            "location": {"file": "test.sol", "line": 10},
             # No swc_id - force fallback path
         }
 
@@ -381,33 +403,33 @@ class TestRemediationEngineCoverage:
     def test_enrich_finding_with_no_swc_uses_type_fallback(self, engine):
         """Test finding without swc_id falls back to type-based lookup."""
         finding = {
-            'type': 'overflow',
-            'severity': 'high',
-            'message': 'Integer overflow',
-            'location': {},
+            "type": "overflow",
+            "severity": "high",
+            "message": "Integer overflow",
+            "location": {},
         }
 
         enriched = engine.enrich_finding(finding)
 
         assert enriched.remediation is not None
-        assert enriched.swc_id == 'SWC-101'  # Gets SWC from remediation
+        assert enriched.swc_id == "SWC-101"  # Gets SWC from remediation
 
     def test_fix_plan_skips_unknown_swc(self, engine):
         """Test fix plan skips findings with unknown SWC (line 395)."""
         # Create findings - one with valid SWC, one with unknown
         findings = [
             {
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'Valid finding',
-                'location': {'file': 'test.sol', 'line': 10},
-                'swc_id': 'SWC-107',
+                "type": "reentrancy",
+                "severity": "high",
+                "message": "Valid finding",
+                "location": {"file": "test.sol", "line": 10},
+                "swc_id": "SWC-107",
             },
             {
-                'type': 'unknown-vuln',
-                'severity': 'medium',
-                'message': 'Unknown finding',
-                'location': {},
+                "type": "unknown-vuln",
+                "severity": "medium",
+                "message": "Unknown finding",
+                "location": {},
                 # No swc_id - will be 'unknown'
             },
         ]
@@ -416,9 +438,9 @@ class TestRemediationEngineCoverage:
         fix_plan = engine.generate_fix_plan()
 
         # Only the SWC-107 finding should be in fix plan
-        swc_ids = [step['swc_id'] for step in fix_plan]
-        assert 'SWC-107' in swc_ids
-        assert 'unknown' not in swc_ids
+        swc_ids = [step["swc_id"] for step in fix_plan]
+        assert "SWC-107" in swc_ids
+        assert "unknown" not in swc_ids
 
     def test_fix_plan_skips_findings_without_remediation(self, engine):
         """Test fix plan skips findings without remediation (line 399)."""
@@ -448,71 +470,75 @@ class TestRemediationEngineCoverage:
         # Create a single trivial finding (0.5 hours = 30 minutes)
         findings = [
             {
-                'type': 'floating-pragma',
-                'severity': 'low',
-                'message': 'Trivial fix',
-                'location': {},
-                'swc_id': 'SWC-103',  # TRIVIAL effort
+                "type": "floating-pragma",
+                "severity": "low",
+                "message": "Trivial fix",
+                "location": {},
+                "swc_id": "SWC-103",  # TRIVIAL effort
             },
         ]
 
         engine.enrich_findings(findings)
         effort = engine.estimate_total_effort()
 
-        assert 'minutes' in effort
+        assert "minutes" in effort
 
     def test_estimate_effort_returns_weeks(self, engine):
         """Test effort estimate returns weeks for large efforts (line 469)."""
         # Create many complex findings to exceed 40 hours
         findings = []
         for i in range(5):
-            findings.append({
-                'type': 'reentrancy',
-                'severity': 'critical',
-                'message': f'Complex finding {i}',
-                'location': {},
-                'swc_id': 'SWC-107',  # HIGH effort = 12 hours each
-            })
+            findings.append(
+                {
+                    "type": "reentrancy",
+                    "severity": "critical",
+                    "message": f"Complex finding {i}",
+                    "location": {},
+                    "swc_id": "SWC-107",  # HIGH effort = 12 hours each
+                }
+            )
 
         engine.enrich_findings(findings)
         effort = engine.estimate_total_effort()
 
         # 5 * 12 hours = 60 hours > 40 hours threshold
-        assert 'weeks' in effort
+        assert "weeks" in effort
 
     def test_estimate_effort_returns_days(self, engine):
         """Test effort estimate returns days for medium efforts."""
         # Create findings to be between 8-40 hours
         findings = []
         for i in range(3):
-            findings.append({
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': f'Finding {i}',
-                'location': {},
-                'swc_id': 'SWC-107',  # HIGH effort = 12 hours each
-            })
+            findings.append(
+                {
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "message": f"Finding {i}",
+                    "location": {},
+                    "swc_id": "SWC-107",  # HIGH effort = 12 hours each
+                }
+            )
 
         engine.enrich_findings(findings)
         effort = engine.estimate_total_effort()
 
         # 3 * 12 hours = 36 hours, should be ~4.5 days
-        assert 'days' in effort
+        assert "days" in effort
 
     def test_generate_report_with_informational_severity(self, engine):
         """Test report handles 'informational' severity (lines 542-543)."""
         findings = [
             {
-                'type': 'best-practice',
-                'severity': 'informational',
-                'message': 'Informational finding',
-                'location': {},
+                "type": "best-practice",
+                "severity": "informational",
+                "message": "Informational finding",
+                "location": {},
             },
             {
-                'type': 'style',
-                'severity': 'info',
-                'message': 'Info level finding',
-                'location': {},
+                "type": "style",
+                "severity": "info",
+                "message": "Info level finding",
+                "location": {},
             },
         ]
 
@@ -527,18 +553,18 @@ class TestRemediationEngineCoverage:
         """Test that related findings are populated for same type."""
         findings = [
             {
-                'type': 'reentrancy',
-                'severity': 'high',
-                'message': 'First reentrancy',
-                'location': {'file': 'a.sol'},
-                'swc_id': 'SWC-107',
+                "type": "reentrancy",
+                "severity": "high",
+                "message": "First reentrancy",
+                "location": {"file": "a.sol"},
+                "swc_id": "SWC-107",
             },
             {
-                'type': 'reentrancy-eth',  # Maps to same canonical type
-                'severity': 'high',
-                'message': 'Second reentrancy',
-                'location': {'file': 'b.sol'},
-                'swc_id': 'SWC-107',
+                "type": "reentrancy-eth",  # Maps to same canonical type
+                "severity": "high",
+                "message": "Second reentrancy",
+                "location": {"file": "b.sol"},
+                "swc_id": "SWC-107",
             },
         ]
 
@@ -552,25 +578,25 @@ class TestRemediationEngineCoverage:
         """Test fix plan handles different location formats."""
         findings = [
             {
-                'type': 'tx-origin',
-                'severity': 'high',
-                'message': 'Finding with full location',
-                'location': {'file': 'test.sol', 'line': 10, 'function': 'auth'},
-                'swc_id': 'SWC-115',
+                "type": "tx-origin",
+                "severity": "high",
+                "message": "Finding with full location",
+                "location": {"file": "test.sol", "line": 10, "function": "auth"},
+                "swc_id": "SWC-115",
             },
             {
-                'type': 'tx-origin',
-                'severity': 'high',
-                'message': 'Finding with minimal location',
-                'location': {'file': 'test2.sol'},
-                'swc_id': 'SWC-115',
+                "type": "tx-origin",
+                "severity": "high",
+                "message": "Finding with minimal location",
+                "location": {"file": "test2.sol"},
+                "swc_id": "SWC-115",
             },
             {
-                'type': 'tx-origin',
-                'severity': 'high',
-                'message': 'Finding with empty location',
-                'location': {},
-                'swc_id': 'SWC-115',
+                "type": "tx-origin",
+                "severity": "high",
+                "message": "Finding with empty location",
+                "location": {},
+                "swc_id": "SWC-115",
             },
         ]
 
@@ -578,10 +604,10 @@ class TestRemediationEngineCoverage:
         fix_plan = engine.generate_fix_plan()
 
         assert len(fix_plan) == 1  # All grouped under same SWC
-        assert fix_plan[0]['instances'] == 3
+        assert fix_plan[0]["instances"] == 3
         # Should have 2 locations (empty one is skipped)
-        assert len(fix_plan[0]['locations']) == 2
+        assert len(fix_plan[0]["locations"]) == 2
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

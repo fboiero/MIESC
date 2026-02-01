@@ -1178,7 +1178,7 @@ class TestWebDashboardGenerator:
         dashboard = WebDashboardGenerator(str(empty_dir))
 
         # All tools should show not executed
-        for tool_key, tool_data in dashboard.metrics["tools"].items():
+        for _tool_key, tool_data in dashboard.metrics["tools"].items():
             assert tool_data["executed"] is False
 
     def test_parse_solhint_malformed_json(self, tmp_path):
@@ -1399,7 +1399,7 @@ class TestMetricsDashboardMain:
         import sys
 
         with patch.object(sys, "argv", ["metrics_dashboard", "--results", "/nonexistent/path"]):
-            with patch.object(sys, "exit") as mock_exit:
+            with patch.object(sys, "exit"):
                 try:
                     from src.utils.metrics_dashboard import main
 

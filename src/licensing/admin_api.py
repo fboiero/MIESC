@@ -5,16 +5,15 @@ Usa FastAPI para endpoints de administración.
 
 import os
 from datetime import datetime, timedelta
-from typing import Optional, List
-from functools import wraps
+from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException, Depends, Header, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 
 from .license_manager import LicenseManager
-from .quota_checker import QuotaChecker
 from .models import LicenseStatus, PlanType
+from .quota_checker import QuotaChecker
 
 # =============================================================================
 # API Configuration
@@ -63,6 +62,7 @@ def get_quota_checker() -> QuotaChecker:
 # Authentication
 # =============================================================================
 
+
 async def verify_admin_key(x_api_key: str = Header(..., alias="X-API-Key")):
     """Verify admin API key."""
     if x_api_key != ADMIN_API_KEY:
@@ -74,8 +74,10 @@ async def verify_admin_key(x_api_key: str = Header(..., alias="X-API-Key")):
 # Pydantic Models
 # =============================================================================
 
+
 class LicenseCreateRequest(BaseModel):
     """Request to create a new license."""
+
     email: EmailStr
     plan: str = "FREE"
     organization: Optional[str] = None
@@ -85,6 +87,7 @@ class LicenseCreateRequest(BaseModel):
 
 class LicenseUpdateRequest(BaseModel):
     """Request to update a license."""
+
     plan: Optional[str] = None
     extend_days: Optional[int] = None
     notes: Optional[str] = None
@@ -92,6 +95,7 @@ class LicenseUpdateRequest(BaseModel):
 
 class LicenseResponse(BaseModel):
     """License response model."""
+
     id: str
     license_key: str
     email: str
@@ -108,6 +112,7 @@ class LicenseResponse(BaseModel):
 
 class UsageResponse(BaseModel):
     """Usage statistics response."""
+
     month: str
     audits_used: int
     audits_limit: str
@@ -121,6 +126,7 @@ class UsageResponse(BaseModel):
 
 class StatsResponse(BaseModel):
     """License statistics response."""
+
     total: int
     active: int
     expired: int
@@ -131,6 +137,7 @@ class StatsResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     """Generic message response."""
+
     message: str
     success: bool
 
@@ -138,6 +145,7 @@ class MessageResponse(BaseModel):
 # =============================================================================
 # API Endpoints
 # =============================================================================
+
 
 @app.get("/")
 async def root():
@@ -154,6 +162,7 @@ async def health():
 # License Management Endpoints
 # -----------------------------------------------------------------------------
 
+
 @app.post("/licenses", response_model=LicenseResponse, dependencies=[Depends(verify_admin_key)])
 async def create_license(request: LicenseCreateRequest):
     """Create a new license."""
@@ -161,8 +170,8 @@ async def create_license(request: LicenseCreateRequest):
 
     try:
         plan_type = PlanType[request.plan.upper()]
-    except KeyError:
-        raise HTTPException(status_code=400, detail=f"Invalid plan: {request.plan}")
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid plan: {request.plan}") from e
 
     license_obj = manager.create_license(
         email=request.email,
@@ -188,10 +197,16 @@ async def create_license(request: LicenseCreateRequest):
     )
 
 
-@app.get("/licenses", response_model=List[LicenseResponse], dependencies=[Depends(verify_admin_key)])
+@app.get(
+    "/licenses", response_model=List[LicenseResponse], dependencies=[Depends(verify_admin_key)]
+)
 async def list_licenses(
-    status: Optional[str] = Query(None, description="Filter by status (active, expired, suspended, revoked)"),
-    plan: Optional[str] = Query(None, description="Filter by plan (FREE, STARTER, PRO, ENTERPRISE)"),
+    status: Optional[str] = Query(
+        None, description="Filter by status (active, expired, suspended, revoked)"
+    ),
+    plan: Optional[str] = Query(
+        None, description="Filter by plan (FREE, STARTER, PRO, ENTERPRISE)"
+    ),
     email: Optional[str] = Query(None, description="Filter by email (partial match)"),
 ):
     """List all licenses with optional filters."""
@@ -201,15 +216,15 @@ async def list_licenses(
     if status:
         try:
             status_filter = LicenseStatus[status.upper()]
-        except KeyError:
-            raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
+        except KeyError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid status: {status}") from e
 
     plan_filter = None
     if plan:
         try:
             plan_filter = PlanType[plan.upper()]
-        except KeyError:
-            raise HTTPException(status_code=400, detail=f"Invalid plan: {plan}")
+        except KeyError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid plan: {plan}") from e
 
     licenses = manager.list_licenses(
         status=status_filter,
@@ -236,7 +251,11 @@ async def list_licenses(
     ]
 
 
-@app.get("/licenses/{license_key}", response_model=LicenseResponse, dependencies=[Depends(verify_admin_key)])
+@app.get(
+    "/licenses/{license_key}",
+    response_model=LicenseResponse,
+    dependencies=[Depends(verify_admin_key)],
+)
 async def get_license(license_key: str):
     """Get a specific license by key."""
     manager = get_license_manager()
@@ -261,7 +280,11 @@ async def get_license(license_key: str):
     )
 
 
-@app.put("/licenses/{license_key}", response_model=LicenseResponse, dependencies=[Depends(verify_admin_key)])
+@app.put(
+    "/licenses/{license_key}",
+    response_model=LicenseResponse,
+    dependencies=[Depends(verify_admin_key)],
+)
 async def update_license(license_key: str, request: LicenseUpdateRequest):
     """Update an existing license."""
     manager = get_license_manager()
@@ -276,8 +299,8 @@ async def update_license(license_key: str, request: LicenseUpdateRequest):
     if request.plan:
         try:
             new_plan = PlanType[request.plan.upper()]
-        except KeyError:
-            raise HTTPException(status_code=400, detail=f"Invalid plan: {request.plan}")
+        except KeyError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid plan: {request.plan}") from e
 
     # Calculate new expiration if extending
     new_expires = None
@@ -311,7 +334,11 @@ async def update_license(license_key: str, request: LicenseUpdateRequest):
     )
 
 
-@app.post("/licenses/{license_key}/revoke", response_model=MessageResponse, dependencies=[Depends(verify_admin_key)])
+@app.post(
+    "/licenses/{license_key}/revoke",
+    response_model=MessageResponse,
+    dependencies=[Depends(verify_admin_key)],
+)
 async def revoke_license(license_key: str):
     """Revoke a license."""
     manager = get_license_manager()
@@ -322,7 +349,11 @@ async def revoke_license(license_key: str):
         raise HTTPException(status_code=404, detail="License not found or already revoked")
 
 
-@app.post("/licenses/{license_key}/suspend", response_model=MessageResponse, dependencies=[Depends(verify_admin_key)])
+@app.post(
+    "/licenses/{license_key}/suspend",
+    response_model=MessageResponse,
+    dependencies=[Depends(verify_admin_key)],
+)
 async def suspend_license(license_key: str):
     """Suspend a license."""
     manager = get_license_manager()
@@ -333,7 +364,11 @@ async def suspend_license(license_key: str):
         raise HTTPException(status_code=404, detail="License not found or cannot be suspended")
 
 
-@app.post("/licenses/{license_key}/reactivate", response_model=MessageResponse, dependencies=[Depends(verify_admin_key)])
+@app.post(
+    "/licenses/{license_key}/reactivate",
+    response_model=MessageResponse,
+    dependencies=[Depends(verify_admin_key)],
+)
 async def reactivate_license(license_key: str):
     """Reactivate a suspended license."""
     manager = get_license_manager()
@@ -347,7 +382,12 @@ async def reactivate_license(license_key: str):
 # Usage Endpoints
 # -----------------------------------------------------------------------------
 
-@app.get("/licenses/{license_key}/usage", response_model=UsageResponse, dependencies=[Depends(verify_admin_key)])
+
+@app.get(
+    "/licenses/{license_key}/usage",
+    response_model=UsageResponse,
+    dependencies=[Depends(verify_admin_key)],
+)
 async def get_usage(license_key: str):
     """Get usage statistics for a license."""
     manager = get_license_manager()
@@ -375,6 +415,7 @@ async def get_usage(license_key: str):
 # Statistics Endpoints
 # -----------------------------------------------------------------------------
 
+
 @app.get("/stats", response_model=StatsResponse, dependencies=[Depends(verify_admin_key)])
 async def get_stats():
     """Get license statistics."""
@@ -393,6 +434,7 @@ async def get_stats():
 
 # Public Validation Endpoint (no auth required)
 # -----------------------------------------------------------------------------
+
 
 @app.get("/validate/{license_key}")
 async def validate_license(license_key: str):
@@ -421,9 +463,11 @@ async def validate_license(license_key: str):
 # Run Server
 # =============================================================================
 
+
 def run_server(host: str = "0.0.0.0", port: int = 5002):
     """Run the admin API server."""
     import uvicorn
+
     uvicorn.run(app, host=host, port=port)
 
 

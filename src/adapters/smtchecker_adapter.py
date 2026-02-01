@@ -10,16 +10,20 @@ Date: November 11, 2025
 Version: 2.0.0 (Matured)
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional
-import subprocess
 import logging
-import json
-import time
 import re
+import subprocess
+import time
 from pathlib import Path
+from typing import Any, Dict, List
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 # OpenLLaMA integration for intelligent post-processing
 from src.llm import enhance_findings_with_llm
@@ -68,34 +72,31 @@ class SMTCheckerAdapter(ToolAdapter):
                         "unreachable_code",
                         "assertion_violations",
                         "out_of_bounds",
-                        "insufficient_funds"
-                    ]
+                        "insufficient_funds",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if solc is installed and supports SMTChecker."""
         try:
             result = subprocess.run(
-                ["solc", "--version"],
-                capture_output=True,
-                timeout=5,
-                text=True
+                ["solc", "--version"], capture_output=True, timeout=5, text=True
             )
 
             if result.returncode == 0:
                 # Extract version number
-                version_match = re.search(r'Version:\s*(\d+\.\d+\.\d+)', result.stdout)
+                version_match = re.search(r"Version:\s*(\d+\.\d+\.\d+)", result.stdout)
                 if version_match:
                     version = version_match.group(1)
                     logger.info(f"SMTChecker: Found solc version {version}")
                 return ToolStatus.AVAILABLE
             else:
-                logger.warning(f"SMTChecker: solc version check failed")
+                logger.warning("SMTChecker: solc version check failed")
                 return ToolStatus.CONFIGURATION_ERROR
 
         except FileNotFoundError:
@@ -129,7 +130,7 @@ class SMTCheckerAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "SMTChecker not available (requires solc >= 0.5.0)"
+                "error": "SMTChecker not available (requires solc >= 0.5.0)",
             }
 
         try:
@@ -140,10 +141,7 @@ class SMTCheckerAdapter(ToolAdapter):
 
             # Run SMTChecker analysis
             raw_output = self._run_smtchecker(
-                contract_path,
-                timeout=timeout,
-                engine=engine,
-                targets=targets
+                contract_path, timeout=timeout, engine=engine, targets=targets
             )
 
             # Parse findings
@@ -151,7 +149,7 @@ class SMTCheckerAdapter(ToolAdapter):
 
             # Read contract code for LLM context
             try:
-                with open(contract_path, 'r', encoding='utf-8') as f:
+                with open(contract_path, "r", encoding="utf-8") as f:
                     contract_code = f.read()
             except Exception as e:
                 logger.warning(f"Could not read contract for LLM enhancement: {e}")
@@ -161,11 +159,9 @@ class SMTCheckerAdapter(ToolAdapter):
             if contract_code and findings:
                 try:
                     findings = enhance_findings_with_llm(
-                        findings=findings,
-                        contract_code=contract_code,
-                        adapter_name="smtchecker"
+                        findings=findings, contract_code=contract_code, adapter_name="smtchecker"
                     )
-                    logger.info(f"OpenLLaMA: Enhanced SMTChecker findings with AI insights")
+                    logger.info("OpenLLaMA: Enhanced SMTChecker findings with AI insights")
                 except Exception as e:
                     logger.debug(f"OpenLLaMA enhancement skipped: {e}")
 
@@ -174,12 +170,8 @@ class SMTCheckerAdapter(ToolAdapter):
                 "version": "2.0.0",
                 "status": "success",
                 "findings": findings,
-                "metadata": {
-                    "timeout": timeout,
-                    "engine": engine,
-                    "targets": targets
-                },
-                "execution_time": time.time() - start_time
+                "metadata": {"timeout": timeout, "engine": engine, "targets": targets},
+                "execution_time": time.time() - start_time,
             }
 
         except subprocess.TimeoutExpired:
@@ -189,7 +181,7 @@ class SMTCheckerAdapter(ToolAdapter):
                 "status": "timeout",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": f"SMTChecker analysis exceeded {timeout}s timeout"
+                "error": f"SMTChecker analysis exceeded {timeout}s timeout",
             }
         except Exception as e:
             logger.error(f"SMTChecker analysis error: {e}", exc_info=True)
@@ -199,7 +191,7 @@ class SMTCheckerAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -208,7 +200,7 @@ class SMTCheckerAdapter(ToolAdapter):
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if adapter can analyze the contract."""
-        return Path(contract_path).suffix == '.sol'
+        return Path(contract_path).suffix == ".sol"
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
@@ -216,7 +208,7 @@ class SMTCheckerAdapter(ToolAdapter):
             "timeout": 300,
             "engine": "all",  # chc, bmc, or all
             "targets": "all",  # verification targets
-            "solver_timeout": 100000  # ms
+            "solver_timeout": 100000,  # ms
         }
 
     # ============================================================================
@@ -224,29 +216,25 @@ class SMTCheckerAdapter(ToolAdapter):
     # ============================================================================
 
     def _run_smtchecker(
-        self,
-        contract_path: str,
-        timeout: int = 300,
-        engine: str = "all",
-        targets: str = "all"
+        self, contract_path: str, timeout: int = 300, engine: str = "all", targets: str = "all"
     ) -> str:
         """Execute SMTChecker via solc compiler."""
 
         cmd = [
             "solc",
-            "--model-checker-engine", engine,
-            "--model-checker-targets", targets,
-            contract_path
+            "--model-checker-engine",
+            engine,
+            "--model-checker-targets",
+            targets,
+            contract_path,
         ]
 
-        logger.info(f"SMTChecker: Running formal verification (timeout={timeout}s, engine={engine})")
+        logger.info(
+            f"SMTChecker: Running formal verification (timeout={timeout}s, engine={engine})"
+        )
 
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            timeout=timeout,
-            text=True,
-            cwd=Path(contract_path).parent
+            cmd, capture_output=True, timeout=timeout, text=True, cwd=Path(contract_path).parent
         )
 
         # SMTChecker warnings appear in stderr
@@ -257,17 +245,13 @@ class SMTCheckerAdapter(ToolAdapter):
 
         return output
 
-    def _parse_smtchecker_output(
-        self,
-        output: str,
-        contract_path: str
-    ) -> List[Dict[str, Any]]:
+    def _parse_smtchecker_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
         """Parse SMTChecker output and extract findings."""
         findings = []
 
-        lines = output.split('\n')
+        lines = output.split("\n")
 
-        for i, line in enumerate(lines):
+        for _i, line in enumerate(lines):
             # SMTChecker warnings format: Warning: <description>
             if "Warning:" in line or "Error:" in line:
                 # Determine severity
@@ -275,15 +259,11 @@ class SMTCheckerAdapter(ToolAdapter):
                 severity = "HIGH" if is_error else "MEDIUM"
 
                 # Extract location if present (format: filename:line:col:)
-                location_match = re.search(r'(\S+\.sol):(\d+):(\d+):', line)
+                location_match = re.search(r"(\S+\.sol):(\d+):(\d+):", line)
                 location = {}
                 if location_match:
                     file_path, line_num, col_num = location_match.groups()
-                    location = {
-                        "file": file_path,
-                        "line": int(line_num),
-                        "column": int(col_num)
-                    }
+                    location = {"file": file_path, "line": int(line_num), "column": int(col_num)}
                 else:
                     location = {"file": contract_path}
 
@@ -304,26 +284,26 @@ class SMTCheckerAdapter(ToolAdapter):
                     "category": category,
                     "location": location,
                     "recommendation": self._get_recommendation(category),
-                    "references": [
-                        "https://docs.soliditylang.org/en/latest/smtchecker.html"
-                    ]
+                    "references": ["https://docs.soliditylang.org/en/latest/smtchecker.html"],
                 }
 
                 findings.append(finding)
 
         # Check for successful verification
         if "Warning" not in output and "Error" not in output:
-            findings.append({
-                "id": "smtchecker-verified",
-                "title": "SMTChecker: Contract Formally Verified",
-                "description": f"SMTChecker successfully verified {Path(contract_path).name} with no issues found",
-                "severity": "INFO",
-                "confidence": 1.0,
-                "category": "formal_verification_success",
-                "location": {"file": contract_path},
-                "recommendation": "Contract passed formal verification - continue with other analysis layers",
-                "references": ["https://docs.soliditylang.org/en/latest/smtchecker.html"]
-            })
+            findings.append(
+                {
+                    "id": "smtchecker-verified",
+                    "title": "SMTChecker: Contract Formally Verified",
+                    "description": f"SMTChecker successfully verified {Path(contract_path).name} with no issues found",
+                    "severity": "INFO",
+                    "confidence": 1.0,
+                    "category": "formal_verification_success",
+                    "location": {"file": contract_path},
+                    "recommendation": "Contract passed formal verification - continue with other analysis layers",
+                    "references": ["https://docs.soliditylang.org/en/latest/smtchecker.html"],
+                }
+            )
 
         logger.info(f"SMTChecker: Extracted {len(findings)} findings")
         return findings
@@ -375,12 +355,11 @@ class SMTCheckerAdapter(ToolAdapter):
             "out_of_bounds": "Add bounds checking before array/buffer access",
             "insufficient_funds": "Add balance check before transfer operations",
             "unreachable_code": "Remove unreachable code or fix logic to make it reachable if intended",
-            "trivial_condition": "Simplify or remove trivial conditions that are always true/false"
+            "trivial_condition": "Simplify or remove trivial conditions that are always true/false",
         }
 
         return recommendations.get(
-            category,
-            "Review the SMTChecker warning and address the formal verification issue"
+            category, "Review the SMTChecker warning and address the formal verification issue"
         )
 
 

@@ -3,7 +3,6 @@
 Handles loading, saving, and managing plugin settings from ~/.miesc/plugins.yaml
 """
 
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -94,11 +93,7 @@ class PluginConfigManager:
         """Save current configuration to file."""
         self._ensure_config_dir()
 
-        data = {
-            "plugins": {
-                name: config.to_dict() for name, config in self._plugins.items()
-            }
-        }
+        data = {"plugins": {name: config.to_dict() for name, config in self._plugins.items()}}
 
         with open(self.config_file, "w") as f:
             yaml.safe_dump(data, f, default_flow_style=False, sort_keys=True)

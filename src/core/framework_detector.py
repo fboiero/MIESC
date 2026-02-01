@@ -18,14 +18,13 @@ Date: December 2025
 Version: 1.0.0
 """
 
-import os
 import json
 import logging
 import subprocess
-from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import tomllib  # Python 3.11+
@@ -40,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 class Framework(Enum):
     """Supported Solidity development frameworks."""
+
     FOUNDRY = "foundry"
     HARDHAT = "hardhat"
     TRUFFLE = "truffle"
@@ -50,6 +50,7 @@ class Framework(Enum):
 @dataclass
 class FrameworkConfig:
     """Configuration extracted from a detected framework."""
+
     framework: Framework
     root_path: Path
     config_file: Optional[Path] = None
@@ -418,6 +419,7 @@ class FrameworkDetector:
 
         try:
             import yaml
+
             with open(config_file) as f:
                 data = yaml.safe_load(f)
 

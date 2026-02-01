@@ -259,8 +259,7 @@ VULNERABILITY_PATTERNS: Dict[str, Dict[str, Any]] = {
             "the storage slot, this may point to unexpected data."
         ),
         "recommendation": (
-            "Explicitly initialize all state variables in the constructor "
-            "or at declaration."
+            "Explicitly initialize all state variables in the constructor " "or at declaration."
         ),
     },
 }
@@ -526,8 +525,7 @@ class IAuditAdapter(ToolAdapter):
             repository="https://github.com/ollama/ollama",
             documentation="https://arxiv.org/abs/2404.xxxxx",
             installation_cmd=(
-                "curl -fsSL https://ollama.com/install.sh | sh && "
-                "ollama pull qwen2.5-coder:7b"
+                "curl -fsSL https://ollama.com/install.sh | sh && " "ollama pull qwen2.5-coder:7b"
             ),
             capabilities=[
                 ToolCapability(
@@ -564,8 +562,7 @@ class IAuditAdapter(ToolAdapter):
                 ToolCapability(
                     name="finding_review",
                     description=(
-                        "AI-powered false positive filtering with "
-                        "chain-of-thought verification"
+                        "AI-powered false positive filtering with " "chain-of-thought verification"
                     ),
                     supported_languages=["solidity"],
                     detection_types=["false_positive_reduction"],
@@ -605,10 +602,7 @@ class IAuditAdapter(ToolAdapter):
                         logger.info(f"iAudit: Found suitable model '{name}'")
                         return ToolStatus.AVAILABLE
 
-            logger.warning(
-                "iAudit: No suitable model found. "
-                "Run: ollama pull qwen2.5-coder:7b"
-            )
+            logger.warning("iAudit: No suitable model found. " "Run: ollama pull qwen2.5-coder:7b")
             return ToolStatus.CONFIGURATION_ERROR
 
         except urllib.error.URLError:
@@ -674,12 +668,8 @@ class IAuditAdapter(ToolAdapter):
                 contract_code, contract_path, start_time, **kwargs
             )
         else:
-            logger.info(
-                "iAudit: Ollama not available, using pattern-based fallback"
-            )
-            result = self._run_pattern_fallback(
-                contract_code, contract_path, start_time
-            )
+            logger.info("iAudit: Ollama not available, using pattern-based fallback")
+            result = self._run_pattern_fallback(contract_code, contract_path, start_time)
 
         # Cache result
         if result.get("status") == "success":
@@ -720,25 +710,25 @@ class IAuditAdapter(ToolAdapter):
             if isinstance(location, str):
                 location = {"file": "", "details": location}
 
-            normalized.append({
-                "id": f.get("id", f"iaudit-{idx + 1}"),
-                "type": f.get("type", f.get("category", "ai_detected")),
-                "severity": severity,
-                "confidence": float(f.get("confidence", 0.7)),
-                "location": {
-                    "file": location.get("file", ""),
-                    "line": location.get("line", location.get("line_hint", 0)),
-                    "function": location.get(
-                        "function", location.get("details", "")
-                    ),
-                },
-                "message": f.get("title", ""),
-                "description": f.get("description", ""),
-                "recommendation": f.get("recommendation", ""),
-                "swc_id": f.get("swc_id"),
-                "cwe_id": f.get("cwe_id"),
-                "owasp_category": f.get("owasp_category"),
-            })
+            normalized.append(
+                {
+                    "id": f.get("id", f"iaudit-{idx + 1}"),
+                    "type": f.get("type", f.get("category", "ai_detected")),
+                    "severity": severity,
+                    "confidence": float(f.get("confidence", 0.7)),
+                    "location": {
+                        "file": location.get("file", ""),
+                        "line": location.get("line", location.get("line_hint", 0)),
+                        "function": location.get("function", location.get("details", "")),
+                    },
+                    "message": f.get("title", ""),
+                    "description": f.get("description", ""),
+                    "recommendation": f.get("recommendation", ""),
+                    "swc_id": f.get("swc_id"),
+                    "cwe_id": f.get("cwe_id"),
+                    "owasp_category": f.get("owasp_category"),
+                }
+            )
 
         return normalized
 
@@ -810,12 +800,8 @@ class IAuditAdapter(ToolAdapter):
         planner_output = self._run_planner(truncated_code, model, planner_timeout)
 
         if not planner_output:
-            logger.warning(
-                "iAudit: Planner agent failed, falling back to pattern analysis"
-            )
-            return self._run_pattern_fallback(
-                contract_code, contract_path, start_time
-            )
+            logger.warning("iAudit: Planner agent failed, falling back to pattern analysis")
+            return self._run_pattern_fallback(contract_code, contract_path, start_time)
 
         metadata["planner_output_length"] = len(planner_output)
 
@@ -828,17 +814,11 @@ class IAuditAdapter(ToolAdapter):
         )
 
         if not detector_output:
-            logger.warning(
-                "iAudit: Detector agent failed, falling back to pattern analysis"
-            )
-            return self._run_pattern_fallback(
-                contract_code, contract_path, start_time
-            )
+            logger.warning("iAudit: Detector agent failed, falling back to pattern analysis")
+            return self._run_pattern_fallback(contract_code, contract_path, start_time)
 
         # Parse detector findings
-        detector_findings = self._parse_detector_output(
-            detector_output, contract_path
-        )
+        detector_findings = self._parse_detector_output(detector_output, contract_path)
         metadata["detector_findings_count"] = len(detector_findings)
 
         if not detector_findings:
@@ -874,13 +854,9 @@ class IAuditAdapter(ToolAdapter):
                 final_findings = reviewed
                 metadata["reviewer_applied"] = True
                 metadata["findings_after_review"] = len(final_findings)
-                metadata["false_positives_removed"] = (
-                    len(detector_findings) - len(final_findings)
-                )
+                metadata["false_positives_removed"] = len(detector_findings) - len(final_findings)
             else:
-                logger.warning(
-                    "iAudit: Reviewer agent failed, keeping raw detector findings"
-                )
+                logger.warning("iAudit: Reviewer agent failed, keeping raw detector findings")
                 metadata["reviewer_applied"] = False
         else:
             metadata["reviewer_applied"] = False
@@ -899,9 +875,7 @@ class IAuditAdapter(ToolAdapter):
     # Agent implementations
     # ========================================================================
 
-    def _run_planner(
-        self, contract_code: str, model: str, timeout: int
-    ) -> Optional[str]:
+    def _run_planner(self, contract_code: str, model: str, timeout: int) -> Optional[str]:
         """
         Run the Planner agent to produce an audit plan.
 
@@ -928,10 +902,7 @@ class IAuditAdapter(ToolAdapter):
             logger.warning("iAudit Planner: Response does not contain JSON")
             return None
 
-        logger.info(
-            f"iAudit Planner: Generated audit plan "
-            f"({len(response)} chars)"
-        )
+        logger.info(f"iAudit Planner: Generated audit plan " f"({len(response)} chars)")
         return response
 
     def _run_detector(
@@ -976,10 +947,7 @@ class IAuditAdapter(ToolAdapter):
             logger.warning("iAudit Detector: Response does not contain JSON")
             return None
 
-        logger.info(
-            f"iAudit Detector: Generated findings "
-            f"({len(response)} chars)"
-        )
+        logger.info(f"iAudit Detector: Generated findings " f"({len(response)} chars)")
         return response
 
     def _run_reviewer(
@@ -1043,9 +1011,7 @@ class IAuditAdapter(ToolAdapter):
     # Ollama HTTP API communication
     # ========================================================================
 
-    def _call_ollama_api(
-        self, prompt: str, model: str, timeout: int
-    ) -> Optional[str]:
+    def _call_ollama_api(self, prompt: str, model: str, timeout: int) -> Optional[str]:
         """
         Call Ollama HTTP API for text generation.
 
@@ -1060,16 +1026,18 @@ class IAuditAdapter(ToolAdapter):
         Returns:
             Complete generated text, or None on failure
         """
-        payload = json.dumps({
-            "model": model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.1,
-                "num_ctx": 8192,
-                "num_predict": 4096,
-            },
-        }).encode("utf-8")
+        payload = json.dumps(
+            {
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "num_ctx": 8192,
+                    "num_predict": 4096,
+                },
+            }
+        ).encode("utf-8")
 
         headers = {
             "Content-Type": "application/json",
@@ -1101,9 +1069,7 @@ class IAuditAdapter(ToolAdapter):
             logger.error(f"iAudit: Failed to decode Ollama response: {e}")
             return None
         except TimeoutError:
-            logger.error(
-                f"iAudit: Ollama API timeout after {timeout}s"
-            )
+            logger.error(f"iAudit: Ollama API timeout after {timeout}s")
             return None
         except Exception as e:
             logger.error(f"iAudit: Unexpected Ollama API error: {e}")
@@ -1144,16 +1110,12 @@ class IAuditAdapter(ToolAdapter):
                     return ToolStatus.AVAILABLE
 
             logger.warning(
-                "iAudit: No suitable model found via CLI. "
-                "Run: ollama pull qwen2.5-coder:7b"
+                "iAudit: No suitable model found via CLI. " "Run: ollama pull qwen2.5-coder:7b"
             )
             return ToolStatus.CONFIGURATION_ERROR
 
         except FileNotFoundError:
-            logger.info(
-                "iAudit: Ollama not installed. "
-                "Install from https://ollama.com"
-            )
+            logger.info("iAudit: Ollama not installed. " "Install from https://ollama.com")
             return ToolStatus.NOT_INSTALLED
         except subprocess.TimeoutExpired:
             logger.warning("iAudit: Ollama CLI timeout")
@@ -1214,9 +1176,7 @@ class IAuditAdapter(ToolAdapter):
     # Response parsing
     # ========================================================================
 
-    def _parse_detector_output(
-        self, raw_output: str, contract_path: str
-    ) -> List[Dict[str, Any]]:
+    def _parse_detector_output(self, raw_output: str, contract_path: str) -> List[Dict[str, Any]]:
         """
         Parse the Detector agent's raw response into structured findings.
 
@@ -1233,9 +1193,7 @@ class IAuditAdapter(ToolAdapter):
 
         parsed = self._extract_json_robust(raw_output)
         if parsed is None:
-            logger.warning(
-                "iAudit Detector: Could not parse JSON from response"
-            )
+            logger.warning("iAudit Detector: Could not parse JSON from response")
             return findings
 
         raw_findings = parsed.get("findings", [])
@@ -1254,9 +1212,7 @@ class IAuditAdapter(ToolAdapter):
             finding = {
                 "id": f.get("id", f"iaudit-{idx + 1}"),
                 "type": f.get("type", "other"),
-                "severity": self._normalize_severity(
-                    f.get("severity", "Medium")
-                ),
+                "severity": self._normalize_severity(f.get("severity", "Medium")),
                 "title": f.get("title", "Detected vulnerability"),
                 "description": f.get("description", ""),
                 "location": {
@@ -1302,18 +1258,13 @@ class IAuditAdapter(ToolAdapter):
         parsed = self._extract_json_robust(reviewer_response)
         if parsed is None:
             logger.warning(
-                "iAudit Reviewer: Could not parse review output, "
-                "using text-based fallback"
+                "iAudit Reviewer: Could not parse review output, " "using text-based fallback"
             )
-            return self._apply_reviewer_text_fallback(
-                detector_findings, reviewer_response
-            )
+            return self._apply_reviewer_text_fallback(detector_findings, reviewer_response)
 
         reviewed_items = parsed.get("reviewed_findings", [])
         if not reviewed_items:
-            logger.warning(
-                "iAudit Reviewer: No reviewed_findings in response"
-            )
+            logger.warning("iAudit Reviewer: No reviewed_findings in response")
             return detector_findings
 
         # Build verdict map by original_id
@@ -1332,9 +1283,7 @@ class IAuditAdapter(ToolAdapter):
             if verdict_info is None:
                 # No review for this finding - keep it with lower confidence
                 finding["reviewed"] = False
-                finding["confidence"] = max(
-                    finding.get("confidence", 0.75) - 0.1, 0.4
-                )
+                finding["confidence"] = max(finding.get("confidence", 0.75) - 0.1, 0.4)
                 final_findings.append(finding)
                 continue
 
@@ -1348,9 +1297,7 @@ class IAuditAdapter(ToolAdapter):
                 if adj_conf is not None:
                     finding["confidence"] = float(adj_conf)
                 else:
-                    finding["confidence"] = min(
-                        finding.get("confidence", 0.75) + 0.1, 0.95
-                    )
+                    finding["confidence"] = min(finding.get("confidence", 0.75) + 0.1, 0.95)
                 # Apply adjusted severity if present
                 adj_sev = verdict_info.get("adjusted_severity")
                 if adj_sev:
@@ -1365,9 +1312,7 @@ class IAuditAdapter(ToolAdapter):
                     finding["reviewed"] = True
                     finding["review_verdict"] = "false_positive_overridden"
                     finding["review_reasoning"] = verdict_info.get("reasoning", "")
-                    finding["confidence"] = max(
-                        finding.get("confidence", 0.75) - 0.25, 0.35
-                    )
+                    finding["confidence"] = max(finding.get("confidence", 0.75) - 0.25, 0.35)
                     final_findings.append(finding)
                     logger.warning(
                         f"iAudit Reviewer: Critical finding kept despite FP verdict: "
@@ -1375,8 +1320,7 @@ class IAuditAdapter(ToolAdapter):
                     )
                 else:
                     logger.info(
-                        f"iAudit Reviewer: FALSE POSITIVE removed - "
-                        f"{finding.get('title')}"
+                        f"iAudit Reviewer: FALSE POSITIVE removed - " f"{finding.get('title')}"
                     )
 
             elif verdict == "downgraded":
@@ -1400,9 +1344,7 @@ class IAuditAdapter(ToolAdapter):
                 finding["needs_context"] = True
                 finding["review_reasoning"] = verdict_info.get("reasoning", "")
                 final_findings.append(finding)
-                logger.info(
-                    f"iAudit Reviewer: NEEDS CONTEXT - {finding.get('title')}"
-                )
+                logger.info(f"iAudit Reviewer: NEEDS CONTEXT - {finding.get('title')}")
 
             else:
                 # Unknown verdict - keep conservatively
@@ -1448,7 +1390,7 @@ class IAuditAdapter(ToolAdapter):
                 # Look for false_positive near the finding reference
                 idx = text_lower.find(marker)
                 if idx != -1:
-                    context = text_lower[max(0, idx - 100):idx + len(marker) + 200]
+                    context = text_lower[max(0, idx - 100) : idx + len(marker) + 200]
                     if "false_positive" in context or "false positive" in context:
                         is_fp = True
                         break
@@ -1457,14 +1399,11 @@ class IAuditAdapter(ToolAdapter):
                 severity = finding.get("severity", "").lower()
                 if severity == "critical":
                     finding["reviewed"] = True
-                    finding["confidence"] = max(
-                        finding.get("confidence", 0.75) - 0.2, 0.4
-                    )
+                    finding["confidence"] = max(finding.get("confidence", 0.75) - 0.2, 0.4)
                     final_findings.append(finding)
                 else:
                     logger.info(
-                        f"iAudit Reviewer (text): FALSE POSITIVE - "
-                        f"{finding.get('title')}"
+                        f"iAudit Reviewer (text): FALSE POSITIVE - " f"{finding.get('title')}"
                     )
             else:
                 finding["reviewed"] = True
@@ -1510,9 +1449,7 @@ class IAuditAdapter(ToolAdapter):
 
             # Check negative patterns (mitigations)
             negative_patterns = vuln_info.get("negative_patterns", [])
-            has_mitigation = self._has_negative_patterns(
-                contract_code, negative_patterns
-            )
+            has_mitigation = self._has_negative_patterns(contract_code, negative_patterns)
 
             # Special handling for reentrancy: check if state update is after call
             if vuln_type == "reentrancy":
@@ -1534,30 +1471,31 @@ class IAuditAdapter(ToolAdapter):
                 finding_counter += 1
                 func_name = self._find_enclosing_function(lines, line_no)
 
-                findings.append({
-                    "id": f"iaudit-pattern-{finding_counter}",
-                    "type": vuln_type,
-                    "severity": severity,
-                    "title": vuln_info["title"],
-                    "description": vuln_info["description"],
-                    "location": {
-                        "file": contract_path,
-                        "line": line_no + 1,
-                        "function": func_name,
-                        "line_hint": line_text.strip()[:120],
-                    },
-                    "impact": (
-                        f"Potential {vuln_type} vulnerability detected "
-                        f"via pattern analysis"
-                    ),
-                    "attack_scenario": "",
-                    "swc_id": vuln_info.get("swc_id"),
-                    "cwe_id": vuln_info.get("cwe_id"),
-                    "recommendation": vuln_info["recommendation"],
-                    "confidence": confidence,
-                    "source": "iaudit-pattern-fallback",
-                    "has_mitigation": has_mitigation,
-                })
+                findings.append(
+                    {
+                        "id": f"iaudit-pattern-{finding_counter}",
+                        "type": vuln_type,
+                        "severity": severity,
+                        "title": vuln_info["title"],
+                        "description": vuln_info["description"],
+                        "location": {
+                            "file": contract_path,
+                            "line": line_no + 1,
+                            "function": func_name,
+                            "line_hint": line_text.strip()[:120],
+                        },
+                        "impact": (
+                            f"Potential {vuln_type} vulnerability detected " f"via pattern analysis"
+                        ),
+                        "attack_scenario": "",
+                        "swc_id": vuln_info.get("swc_id"),
+                        "cwe_id": vuln_info.get("cwe_id"),
+                        "recommendation": vuln_info["recommendation"],
+                        "confidence": confidence,
+                        "source": "iaudit-pattern-fallback",
+                        "has_mitigation": has_mitigation,
+                    }
+                )
 
         # Sort by severity
         severity_order = {
@@ -1623,9 +1561,7 @@ class IAuditAdapter(ToolAdapter):
                 logger.debug(f"iAudit: Invalid regex pattern '{pattern}': {e}")
         return matched
 
-    def _has_negative_patterns(
-        self, code: str, negative_patterns: List[str]
-    ) -> bool:
+    def _has_negative_patterns(self, code: str, negative_patterns: List[str]) -> bool:
         """
         Check if any negative patterns (mitigations) are present.
 
@@ -1668,15 +1604,13 @@ class IAuditAdapter(ToolAdapter):
                 call_pos = match.start()
                 # Look for state updates after this call within 500 chars
                 # (approximate function body)
-                after_call = code[call_pos:call_pos + 500]
+                after_call = code[call_pos : call_pos + 500]
                 for state_pat in state_patterns:
                     if re.search(state_pat, after_call):
                         return True
         return False
 
-    def _find_enclosing_function(
-        self, lines: List[str], target_line: int
-    ) -> str:
+    def _find_enclosing_function(self, lines: List[str], target_line: int) -> str:
         """
         Find the name of the function enclosing a given line number.
 
@@ -1689,9 +1623,7 @@ class IAuditAdapter(ToolAdapter):
         Returns:
             Function name or empty string if not found
         """
-        func_pattern = re.compile(
-            r"function\s+(\w+)\s*\("
-        )
+        func_pattern = re.compile(r"function\s+(\w+)\s*\(")
         for i in range(target_line, -1, -1):
             match = func_pattern.search(lines[i])
             if match:
@@ -1750,7 +1682,7 @@ class IAuditAdapter(ToolAdapter):
 
         # Strategy 2: Find known key patterns
         for key in ['"findings"', '"reviewed_findings"']:
-            pattern = re.search(r'\{\s*' + re.escape(key) + r'\s*:', text)
+            pattern = re.search(r"\{\s*" + re.escape(key) + r"\s*:", text)
             if pattern:
                 start = pattern.start()
                 result = self._extract_balanced_json(text, start)
@@ -1777,9 +1709,7 @@ class IAuditAdapter(ToolAdapter):
 
         return None
 
-    def _extract_balanced_json(
-        self, text: str, start: int
-    ) -> Optional[Dict[str, Any]]:
+    def _extract_balanced_json(self, text: str, start: int) -> Optional[Dict[str, Any]]:
         """
         Extract a balanced JSON object starting from a given position.
 
@@ -1800,7 +1730,7 @@ class IAuditAdapter(ToolAdapter):
                 depth -= 1
                 if depth == 0:
                     try:
-                        return json.loads(text[start:i + 1])
+                        return json.loads(text[start : i + 1])
                     except json.JSONDecodeError:
                         return None
         return None
@@ -1874,9 +1804,7 @@ class IAuditAdapter(ToolAdapter):
                 logger.error(f"iAudit: Contract file not found: {contract_path}")
                 return None
             if not path.suffix == ".sol":
-                logger.warning(
-                    f"iAudit: Non-Solidity file: {contract_path}"
-                )
+                logger.warning(f"iAudit: Non-Solidity file: {contract_path}")
             with open(path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
@@ -1896,13 +1824,9 @@ class IAuditAdapter(ToolAdapter):
         if len(code) <= self.MAX_CONTRACT_CHARS:
             return code
         logger.warning(
-            f"iAudit: Contract truncated from {len(code)} "
-            f"to {self.MAX_CONTRACT_CHARS} chars"
+            f"iAudit: Contract truncated from {len(code)} " f"to {self.MAX_CONTRACT_CHARS} chars"
         )
-        return (
-            code[:self.MAX_CONTRACT_CHARS]
-            + "\n// ... (truncated for analysis)"
-        )
+        return code[: self.MAX_CONTRACT_CHARS] + "\n// ... (truncated for analysis)"
 
     def _normalize_severity(self, severity: str) -> str:
         """
@@ -1926,9 +1850,7 @@ class IAuditAdapter(ToolAdapter):
         }
         return severity_map.get(severity.lower().strip(), "Medium")
 
-    def _error_result(
-        self, start_time: float, error: str
-    ) -> Dict[str, Any]:
+    def _error_result(self, start_time: float, error: str) -> Dict[str, Any]:
         """
         Create a standardized error result.
 
@@ -1963,13 +1885,9 @@ class IAuditAdapter(ToolAdapter):
             SHA-256 hex digest
         """
         model_str = self._model or "auto"
-        return hashlib.sha256(
-            f"iaudit:{model_str}:{contract_code}".encode()
-        ).hexdigest()
+        return hashlib.sha256(f"iaudit:{model_str}:{contract_code}".encode()).hexdigest()
 
-    def _get_cached_result(
-        self, cache_key: str
-    ) -> Optional[Dict[str, Any]]:
+    def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """
         Retrieve a cached analysis result.
 
@@ -1999,9 +1917,7 @@ class IAuditAdapter(ToolAdapter):
             logger.error(f"iAudit: Error reading cache: {e}")
             return None
 
-    def _cache_result(
-        self, cache_key: str, result: Dict[str, Any]
-    ) -> None:
+    def _cache_result(self, cache_key: str, result: Dict[str, Any]) -> None:
         """
         Cache an analysis result to disk.
 

@@ -21,17 +21,18 @@ Author: Fernando Boiero
 Institution: UNDEF - IUA
 """
 
+import importlib.metadata
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Pattern
-import re
-import importlib.metadata
+from typing import Any, Dict, List, Optional
 
 
 class Severity(Enum):
     """Vulnerability severity levels following CVSS classification."""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -50,6 +51,7 @@ class Severity(Enum):
 
 class Category(Enum):
     """Vulnerability categories for classification."""
+
     REENTRANCY = "reentrancy"
     ACCESS_CONTROL = "access_control"
     ARITHMETIC = "arithmetic"
@@ -71,6 +73,7 @@ class Category(Enum):
 @dataclass
 class Location:
     """Source code location information."""
+
     file_path: Optional[Path] = None
     line_start: Optional[int] = None
     line_end: Optional[int] = None
@@ -93,6 +96,7 @@ class Finding:
     This is the standard output format for all MIESC detectors.
     Custom detectors should return a list of Finding objects.
     """
+
     # Required fields
     detector: str
     title: str
@@ -211,8 +215,7 @@ class BaseDetector(ABC):
         if not self.target_patterns:
             return True
         return any(
-            re.search(pattern, source_code, re.IGNORECASE)
-            for pattern in self.target_patterns
+            re.search(pattern, source_code, re.IGNORECASE) for pattern in self.target_patterns
         )
 
     @abstractmethod
@@ -241,7 +244,7 @@ class BaseDetector(ABC):
         Returns:
             List of Finding objects
         """
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             source_code = f.read()
         return self.analyze(source_code, file_path)
 
@@ -254,7 +257,7 @@ class BaseDetector(ABC):
         code_snippet: Optional[str] = None,
         recommendation: str = "",
         references: Optional[List[str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Finding:
         """
         Helper method to create a Finding with detector defaults.
@@ -275,14 +278,11 @@ class BaseDetector(ABC):
             code_snippet=code_snippet,
             recommendation=recommendation,
             references=references or [],
-            **kwargs
+            **kwargs,
         )
 
     def find_pattern(
-        self,
-        source_code: str,
-        pattern: str,
-        flags: int = re.IGNORECASE
+        self, source_code: str, pattern: str, flags: int = re.IGNORECASE
     ) -> List[tuple]:
         """
         Find all matches of a pattern in source code.
@@ -290,7 +290,7 @@ class BaseDetector(ABC):
         Returns list of (match_object, line_number, line_content) tuples.
         """
         results = []
-        lines = source_code.split('\n')
+        lines = source_code.split("\n")
 
         for i, line in enumerate(lines, 1):
             for match in re.finditer(pattern, line, flags):
@@ -299,10 +299,7 @@ class BaseDetector(ABC):
         return results
 
     def find_multiline_pattern(
-        self,
-        source_code: str,
-        pattern: str,
-        flags: int = re.IGNORECASE | re.DOTALL
+        self, source_code: str, pattern: str, flags: int = re.IGNORECASE | re.DOTALL
     ) -> List[tuple]:
         """
         Find multiline patterns in source code.
@@ -312,8 +309,8 @@ class BaseDetector(ABC):
         results = []
 
         for match in re.finditer(pattern, source_code, flags):
-            start_line = source_code[:match.start()].count('\n') + 1
-            end_line = source_code[:match.end()].count('\n') + 1
+            start_line = source_code[: match.start()].count("\n") + 1
+            end_line = source_code[: match.end()].count("\n") + 1
             results.append((match, start_line, end_line))
 
         return results
@@ -357,14 +354,16 @@ class PatternDetector(BaseDetector):
 
             matches = self.find_pattern(source_code, pattern)
 
-            for match, line, code in matches:
-                findings.append(self.create_finding(
-                    title=f"{self.name}: {description[:50]}",
-                    description=description,
-                    severity=severity,
-                    line=line,
-                    code_snippet=code,
-                ))
+            for _match, line, code in matches:
+                findings.append(
+                    self.create_finding(
+                        title=f"{self.name}: {description[:50]}",
+                        description=description,
+                        severity=severity,
+                        line=line,
+                        code_snippet=code,
+                    )
+                )
 
         return findings
 
@@ -431,10 +430,10 @@ class DetectorRegistry:
         try:
             # Python 3.10+ style
             entry_points = importlib.metadata.entry_points()
-            if hasattr(entry_points, 'select'):
-                detectors_eps = entry_points.select(group='miesc.detectors')
+            if hasattr(entry_points, "select"):
+                detectors_eps = entry_points.select(group="miesc.detectors")
             else:
-                detectors_eps = entry_points.get('miesc.detectors', [])
+                detectors_eps = entry_points.get("miesc.detectors", [])
 
             for ep in detectors_eps:
                 try:
@@ -446,10 +445,7 @@ class DetectorRegistry:
             pass  # Entry points not available
 
     def run_all(
-        self,
-        source_code: str,
-        file_path: Optional[Path] = None,
-        enabled_only: bool = True
+        self, source_code: str, file_path: Optional[Path] = None, enabled_only: bool = True
     ) -> List[Finding]:
         """
         Run all registered detectors on source code.
@@ -479,21 +475,21 @@ class DetectorRegistry:
     def get_summary(self, findings: List[Finding]) -> Dict[str, Any]:
         """Generate summary statistics for findings."""
         summary = {
-            'total': len(findings),
-            'by_severity': {},
-            'by_category': {},
-            'by_detector': {},
+            "total": len(findings),
+            "by_severity": {},
+            "by_category": {},
+            "by_detector": {},
         }
 
         for finding in findings:
             sev = finding.severity.value
-            summary['by_severity'][sev] = summary['by_severity'].get(sev, 0) + 1
+            summary["by_severity"][sev] = summary["by_severity"].get(sev, 0) + 1
 
             cat = finding.category.value
-            summary['by_category'][cat] = summary['by_category'].get(cat, 0) + 1
+            summary["by_category"][cat] = summary["by_category"].get(cat, 0) + 1
 
             det = finding.detector
-            summary['by_detector'][det] = summary['by_detector'].get(det, 0) + 1
+            summary["by_detector"][det] = summary["by_detector"].get(det, 0) + 1
 
         return summary
 
@@ -524,13 +520,13 @@ def get_registry() -> DetectorRegistry:
 
 # Export public API
 __all__ = [
-    'Severity',
-    'Category',
-    'Location',
-    'Finding',
-    'BaseDetector',
-    'PatternDetector',
-    'DetectorRegistry',
-    'register_detector',
-    'get_registry',
+    "Severity",
+    "Category",
+    "Location",
+    "Finding",
+    "BaseDetector",
+    "PatternDetector",
+    "DetectorRegistry",
+    "register_detector",
+    "get_registry",
 ]

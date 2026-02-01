@@ -9,17 +9,16 @@ License: GPL-3.0
 """
 
 import json
-import os
-import re
-from dataclasses import dataclass, asdict
-from typing import List, Dict, Any, Optional
-from pathlib import Path
+from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
 class VulnerabilityExample:
     """Represents a single vulnerability training example."""
+
     id: str
     vulnerability_type: str
     severity: str
@@ -36,6 +35,7 @@ class VulnerabilityExample:
 @dataclass
 class TrainingExample:
     """Training example in instruction-following format."""
+
     instruction: str
     input: str
     output: str
@@ -55,35 +55,35 @@ class SoliditySecurityDatasetGenerator:
     # Known vulnerability patterns with examples
     VULNERABILITY_TEMPLATES = {
         "reentrancy": {
-            "vulnerable": '''
+            "vulnerable": """
 function withdraw(uint256 amount) external {
     require(balances[msg.sender] >= amount, "Insufficient balance");
     (bool success, ) = msg.sender.call{value: amount}("");
     require(success, "Transfer failed");
     balances[msg.sender] -= amount;  // State updated AFTER external call
 }
-''',
-            "fixed": '''
+""",
+            "fixed": """
 function withdraw(uint256 amount) external nonReentrant {
     require(balances[msg.sender] >= amount, "Insufficient balance");
     balances[msg.sender] -= amount;  // State updated BEFORE external call
     (bool success, ) = msg.sender.call{value: amount}("");
     require(success, "Transfer failed");
 }
-''',
+""",
             "explanation": "Reentrancy vulnerability occurs when external calls are made before state updates, allowing attackers to recursively call back into the contract.",
             "cwe": "CWE-841",
-            "swc": "SWC-107"
+            "swc": "SWC-107",
         },
         "integer_overflow": {
-            "vulnerable": '''
+            "vulnerable": """
 function transfer(address to, uint256 amount) external {
     require(balances[msg.sender] >= amount);
     balances[msg.sender] -= amount;
     balances[to] += amount;  // Can overflow in Solidity < 0.8.0
 }
-''',
-            "fixed": '''
+""",
+            "fixed": """
 function transfer(address to, uint256 amount) external {
     require(balances[msg.sender] >= amount);
     balances[msg.sender] -= amount;
@@ -94,13 +94,13 @@ function transfer(address to, uint256 amount) external {
     balances[to] += amount;  // Solidity 0.8+ has built-in overflow checks
 }
 // OR use OpenZeppelin SafeMath for < 0.8.0
-''',
+""",
             "explanation": "Integer overflow/underflow occurs when arithmetic operations exceed the maximum or minimum values of the data type.",
             "cwe": "CWE-190",
-            "swc": "SWC-101"
+            "swc": "SWC-101",
         },
         "access_control": {
-            "vulnerable": '''
+            "vulnerable": """
 function setOwner(address newOwner) external {
     owner = newOwner;  // Anyone can call this!
 }
@@ -108,8 +108,8 @@ function setOwner(address newOwner) external {
 function withdrawAll() external {
     payable(owner).transfer(address(this).balance);
 }
-''',
-            "fixed": '''
+""",
+            "fixed": """
 modifier onlyOwner() {
     require(msg.sender == owner, "Not owner");
     _;
@@ -123,18 +123,18 @@ function setOwner(address newOwner) external onlyOwner {
 function withdrawAll() external onlyOwner {
     payable(owner).transfer(address(this).balance);
 }
-''',
+""",
             "explanation": "Missing access control allows unauthorized users to execute privileged functions.",
             "cwe": "CWE-284",
-            "swc": "SWC-105"
+            "swc": "SWC-105",
         },
         "unchecked_return": {
-            "vulnerable": '''
+            "vulnerable": """
 function withdrawToken(address token, uint256 amount) external {
     IERC20(token).transfer(msg.sender, amount);  // Return value ignored
 }
-''',
-            "fixed": '''
+""",
+            "fixed": """
 function withdrawToken(address token, uint256 amount) external {
     bool success = IERC20(token).transfer(msg.sender, amount);
     require(success, "Transfer failed");
@@ -146,36 +146,36 @@ using SafeERC20 for IERC20;
 function withdrawTokenSafe(address token, uint256 amount) external {
     IERC20(token).safeTransfer(msg.sender, amount);
 }
-''',
+""",
             "explanation": "ERC20 transfer() returns a boolean that must be checked. Some tokens don't revert on failure.",
             "cwe": "CWE-252",
-            "swc": "SWC-104"
+            "swc": "SWC-104",
         },
         "tx_origin": {
-            "vulnerable": '''
+            "vulnerable": """
 function transferTo(address to, uint256 amount) external {
     require(tx.origin == owner, "Not owner");  // Vulnerable to phishing
     payable(to).transfer(amount);
 }
-''',
-            "fixed": '''
+""",
+            "fixed": """
 function transferTo(address to, uint256 amount) external {
     require(msg.sender == owner, "Not owner");  // Use msg.sender
     payable(to).transfer(amount);
 }
-''',
+""",
             "explanation": "Using tx.origin for authentication is vulnerable to phishing attacks where a malicious contract tricks the owner into calling it.",
             "cwe": "CWE-477",
-            "swc": "SWC-115"
+            "swc": "SWC-115",
         },
         "frontrunning": {
-            "vulnerable": '''
+            "vulnerable": """
 function claimReward(bytes32 solution) external {
     require(keccak256(abi.encodePacked(solution)) == solutionHash);
     payable(msg.sender).transfer(reward);
 }
-''',
-            "fixed": '''
+""",
+            "fixed": """
 // Use commit-reveal scheme
 mapping(address => bytes32) public commits;
 mapping(address => uint256) public commitBlock;
@@ -191,13 +191,13 @@ function reveal(bytes32 solution) external {
     require(keccak256(abi.encodePacked(solution)) == solutionHash);
     payable(msg.sender).transfer(reward);
 }
-''',
+""",
             "explanation": "Frontrunning occurs when attackers observe pending transactions and submit their own with higher gas to execute first.",
             "cwe": "CWE-362",
-            "swc": "SWC-114"
+            "swc": "SWC-114",
         },
         "oracle_manipulation": {
-            "vulnerable": '''
+            "vulnerable": """
 function getPrice() public view returns (uint256) {
     // Using spot price from single DEX - easily manipulated
     (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
@@ -209,8 +209,8 @@ function liquidate(address user) external {
     require(collateral[user] * price < debt[user], "Healthy");
     // Liquidation logic...
 }
-''',
-            "fixed": '''
+""",
+            "fixed": """
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 AggregatorV3Interface internal priceFeed;
@@ -231,21 +231,21 @@ function getPrice() public view returns (uint256) {
     return uint256(price);
 }
 // OR use TWAP (Time-Weighted Average Price) from Uniswap V3
-''',
+""",
             "explanation": "Using spot prices from DEXes is vulnerable to flash loan manipulation. Use decentralized oracles like Chainlink or TWAP.",
             "cwe": "CWE-829",
-            "swc": "N/A"
+            "swc": "N/A",
         },
         "flash_loan_attack": {
-            "vulnerable": '''
+            "vulnerable": """
 // Governance token voting based on current balance
 function vote(uint256 proposalId, bool support) external {
     uint256 votes = token.balanceOf(msg.sender);  // Can be inflated via flash loan
     require(votes > 0, "No voting power");
     proposals[proposalId].votes += support ? int256(votes) : -int256(votes);
 }
-''',
-            "fixed": '''
+""",
+            "fixed": """
 // Use snapshot-based voting
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
@@ -258,13 +258,13 @@ function vote(uint256 proposalId, bool support) external {
     hasVoted[proposalId][msg.sender] = true;
     proposals[proposalId].votes += support ? int256(votes) : -int256(votes);
 }
-''',
+""",
             "explanation": "Flash loans allow attackers to temporarily hold large token balances. Use historical snapshots for voting power.",
             "cwe": "CWE-362",
-            "swc": "N/A"
+            "swc": "N/A",
         },
         "dos_gas_limit": {
-            "vulnerable": '''
+            "vulnerable": """
 address[] public recipients;
 
 function distributeRewards() external {
@@ -272,8 +272,8 @@ function distributeRewards() external {
         payable(recipients[i]).transfer(rewards[recipients[i]]);
     }
 }
-''',
-            "fixed": '''
+""",
+            "fixed": """
 mapping(address => uint256) public pendingRewards;
 
 function claimReward() external {
@@ -289,13 +289,13 @@ function claimReward() external {
 function calculateReward(address user) external onlyOwner {
     pendingRewards[user] += calculateUserReward(user);
 }
-''',
+""",
             "explanation": "Unbounded loops can exceed block gas limit. Use pull pattern instead of push for distributions.",
             "cwe": "CWE-400",
-            "swc": "SWC-128"
+            "swc": "SWC-128",
         },
         "signature_replay": {
-            "vulnerable": '''
+            "vulnerable": """
 function executeWithSignature(
     address to,
     uint256 amount,
@@ -306,8 +306,8 @@ function executeWithSignature(
     require(signer == owner, "Invalid signature");
     payable(to).transfer(amount);
 }
-''',
-            "fixed": '''
+""",
+            "fixed": """
 mapping(bytes32 => bool) public usedSignatures;
 uint256 public nonce;
 
@@ -337,11 +337,11 @@ function executeWithSignature(
     require(signer == owner, "Invalid signature");
     payable(to).transfer(amount);
 }
-''',
+""",
             "explanation": "Signatures without nonces or chain IDs can be replayed across transactions or chains.",
             "cwe": "CWE-294",
-            "swc": "SWC-121"
-        }
+            "swc": "SWC-121",
+        },
     }
 
     def __init__(self, output_dir: str = "datasets"):
@@ -366,7 +366,7 @@ function executeWithSignature(
                 remediation=self._generate_remediation(vuln_type),
                 cwe_id=template.get("cwe"),
                 swc_id=template.get("swc"),
-                source="miesc_templates"
+                source="miesc_templates",
             )
             examples.append(example)
 
@@ -413,21 +413,23 @@ function executeWithSignature(
             "oracle_manipulation": "Use Chainlink oracles or TWAP instead of spot prices",
             "flash_loan_attack": "Use snapshot-based voting or time-weighted mechanisms",
             "dos_gas_limit": "Use pull pattern instead of push for distributions",
-            "signature_replay": "Include nonce, chain ID, contract address, and deadline in signed data"
+            "signature_replay": "Include nonce, chain ID, contract address, and deadline in signed data",
         }
         return remediations.get(vuln_type, "Review and fix the vulnerability")
 
-    def generate_training_examples(self,
-                                   examples: List[VulnerabilityExample]) -> List[TrainingExample]:
+    def generate_training_examples(
+        self, examples: List[VulnerabilityExample]
+    ) -> List[TrainingExample]:
         """Convert vulnerability examples to training format."""
         training_data = []
 
         for ex in examples:
             # Task 1: Vulnerability Detection
-            training_data.append(TrainingExample(
-                instruction="Analyze this Solidity code for security vulnerabilities. Identify any issues and explain their severity.",
-                input=ex.vulnerable_code,
-                output=f"""**Vulnerability Found: {ex.vulnerability_type.replace('_', ' ').title()}**
+            training_data.append(
+                TrainingExample(
+                    instruction="Analyze this Solidity code for security vulnerabilities. Identify any issues and explain their severity.",
+                    input=ex.vulnerable_code,
+                    output=f"""**Vulnerability Found: {ex.vulnerability_type.replace('_', ' ').title()}**
 
 **Severity:** {ex.severity.upper()}
 **CWE:** {ex.cwe_id or 'N/A'}
@@ -441,32 +443,36 @@ function executeWithSignature(
 
 **Remediation:**
 {ex.remediation}""",
-                metadata={
-                    "task": "vulnerability_detection",
-                    "vuln_type": ex.vulnerability_type,
-                    "severity": ex.severity,
-                    "source": ex.source
-                }
-            ))
+                    metadata={
+                        "task": "vulnerability_detection",
+                        "vuln_type": ex.vulnerability_type,
+                        "severity": ex.severity,
+                        "source": ex.source,
+                    },
+                )
+            )
 
             # Task 2: Code Fix Generation
-            training_data.append(TrainingExample(
-                instruction=f"Fix the {ex.vulnerability_type.replace('_', ' ')} vulnerability in this Solidity code.",
-                input=ex.vulnerable_code,
-                output=ex.fixed_code,
-                metadata={
-                    "task": "code_fix",
-                    "vuln_type": ex.vulnerability_type,
-                    "severity": ex.severity,
-                    "source": ex.source
-                }
-            ))
+            training_data.append(
+                TrainingExample(
+                    instruction=f"Fix the {ex.vulnerability_type.replace('_', ' ')} vulnerability in this Solidity code.",
+                    input=ex.vulnerable_code,
+                    output=ex.fixed_code,
+                    metadata={
+                        "task": "code_fix",
+                        "vuln_type": ex.vulnerability_type,
+                        "severity": ex.severity,
+                        "source": ex.source,
+                    },
+                )
+            )
 
             # Task 3: Explanation Generation
-            training_data.append(TrainingExample(
-                instruction="Explain why this code is vulnerable and how an attacker could exploit it.",
-                input=ex.vulnerable_code,
-                output=f"""## Vulnerability Analysis: {ex.vulnerability_type.replace('_', ' ').title()}
+            training_data.append(
+                TrainingExample(
+                    instruction="Explain why this code is vulnerable and how an attacker could exploit it.",
+                    input=ex.vulnerable_code,
+                    output=f"""## Vulnerability Analysis: {ex.vulnerability_type.replace('_', ' ').title()}
 
 ### How the Attack Works:
 {ex.explanation}
@@ -490,19 +496,21 @@ An attacker could exploit this vulnerability by:
 ### References:
 - CWE: {ex.cwe_id or 'N/A'}
 - SWC: {ex.swc_id or 'N/A'}""",
-                metadata={
-                    "task": "explanation",
-                    "vuln_type": ex.vulnerability_type,
-                    "severity": ex.severity,
-                    "source": ex.source
-                }
-            ))
+                    metadata={
+                        "task": "explanation",
+                        "vuln_type": ex.vulnerability_type,
+                        "severity": ex.severity,
+                        "source": ex.source,
+                    },
+                )
+            )
 
             # Task 4: Secure Code Verification
-            training_data.append(TrainingExample(
-                instruction="Verify if this Solidity code is secure against common vulnerabilities.",
-                input=ex.fixed_code,
-                output=f"""**Security Analysis: SECURE**
+            training_data.append(
+                TrainingExample(
+                    instruction="Verify if this Solidity code is secure against common vulnerabilities.",
+                    input=ex.fixed_code,
+                    output=f"""**Security Analysis: SECURE**
 
 This code implements proper protection against {ex.vulnerability_type.replace('_', ' ')}:
 
@@ -515,26 +523,23 @@ This code implements proper protection against {ex.vulnerability_type.replace('_
 - Secure external interactions
 
 **Recommendation:** The code follows security best practices. Continue monitoring for new vulnerability patterns.""",
-                metadata={
-                    "task": "verification",
-                    "vuln_type": ex.vulnerability_type,
-                    "is_secure": True,
-                    "source": ex.source
-                }
-            ))
+                    metadata={
+                        "task": "verification",
+                        "vuln_type": ex.vulnerability_type,
+                        "is_secure": True,
+                        "source": ex.source,
+                    },
+                )
+            )
 
         return training_data
 
-    def export_alpaca_format(self,
-                             training_data: List[TrainingExample],
-                             filename: str = "solidity_security_alpaca.json") -> str:
+    def export_alpaca_format(
+        self, training_data: List[TrainingExample], filename: str = "solidity_security_alpaca.json"
+    ) -> str:
         """Export dataset in Alpaca instruction-following format."""
         alpaca_data = [
-            {
-                "instruction": ex.instruction,
-                "input": ex.input,
-                "output": ex.output
-            }
+            {"instruction": ex.instruction, "input": ex.input, "output": ex.output}
             for ex in training_data
         ]
 
@@ -544,9 +549,9 @@ This code implements proper protection against {ex.vulnerability_type.replace('_
 
         return str(output_path)
 
-    def export_chatml_format(self,
-                             training_data: List[TrainingExample],
-                             filename: str = "solidity_security_chatml.jsonl") -> str:
+    def export_chatml_format(
+        self, training_data: List[TrainingExample], filename: str = "solidity_security_chatml.jsonl"
+    ) -> str:
         """Export dataset in ChatML format (for models like DeepSeek)."""
         output_path = self.output_dir / filename
 
@@ -556,39 +561,32 @@ This code implements proper protection against {ex.vulnerability_type.replace('_
                     "messages": [
                         {
                             "role": "system",
-                            "content": "You are an expert Solidity security auditor specializing in smart contract vulnerability detection and remediation."
+                            "content": "You are an expert Solidity security auditor specializing in smart contract vulnerability detection and remediation.",
                         },
                         {
                             "role": "user",
-                            "content": f"{ex.instruction}\n\n```solidity\n{ex.input}\n```"
+                            "content": f"{ex.instruction}\n\n```solidity\n{ex.input}\n```",
                         },
-                        {
-                            "role": "assistant",
-                            "content": ex.output
-                        }
+                        {"role": "assistant", "content": ex.output},
                     ]
                 }
                 f.write(json.dumps(conversation, ensure_ascii=False) + "\n")
 
         return str(output_path)
 
-    def export_sharegpt_format(self,
-                               training_data: List[TrainingExample],
-                               filename: str = "solidity_security_sharegpt.json") -> str:
+    def export_sharegpt_format(
+        self,
+        training_data: List[TrainingExample],
+        filename: str = "solidity_security_sharegpt.json",
+    ) -> str:
         """Export dataset in ShareGPT conversation format."""
         sharegpt_data = []
 
         for ex in training_data:
             conversation = {
                 "conversations": [
-                    {
-                        "from": "human",
-                        "value": f"{ex.instruction}\n\n```solidity\n{ex.input}\n```"
-                    },
-                    {
-                        "from": "gpt",
-                        "value": ex.output
-                    }
+                    {"from": "human", "value": f"{ex.instruction}\n\n```solidity\n{ex.input}\n```"},
+                    {"from": "gpt", "value": ex.output},
                 ]
             }
             sharegpt_data.append(conversation)
@@ -611,7 +609,7 @@ This code implements proper protection against {ex.vulnerability_type.replace('_
         paths = {
             "alpaca": self.export_alpaca_format(training_data),
             "chatml": self.export_chatml_format(training_data),
-            "sharegpt": self.export_sharegpt_format(training_data)
+            "sharegpt": self.export_sharegpt_format(training_data),
         }
 
         # Generate statistics
@@ -620,7 +618,7 @@ This code implements proper protection against {ex.vulnerability_type.replace('_
             "vulnerability_types": len(self.VULNERABILITY_TEMPLATES),
             "tasks": ["vulnerability_detection", "code_fix", "explanation", "verification"],
             "formats": list(paths.keys()),
-            "generated_at": datetime.now().isoformat()
+            "generated_at": datetime.now().isoformat(),
         }
 
         stats_path = self.output_dir / "dataset_stats.json"
@@ -638,7 +636,7 @@ def main():
     paths = generator.generate_full_dataset()
 
     print("Dataset generated successfully!")
-    print(f"Files created:")
+    print("Files created:")
     for format_name, path in paths.items():
         print(f"  - {format_name}: {path}")
 

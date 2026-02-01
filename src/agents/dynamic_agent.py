@@ -5,11 +5,13 @@ Wraps Layer 2 tools: Echidna, Medusa, Foundry Fuzz
 Enhanced with Tool Adapters: VertigoAdapter (mutation testing)
 Publishes fuzzing results and property violations to Context Bus
 """
+
 import json
 import logging
 import subprocess
-from typing import Dict, Any, List
 from pathlib import Path
+from typing import Any, Dict, List
+
 from src.agents.base_agent import BaseAgent
 from src.integration.adapter_integration import integrate_dynamic_testing
 
@@ -40,9 +42,9 @@ class DynamicAgent(BaseAgent):
                 "property_fuzzing",
                 "coverage_fuzzing",
                 "invariant_testing",
-                "edge_case_detection"
+                "edge_case_detection",
             ],
-            agent_type="dynamic"
+            agent_type="dynamic",
         )
 
     def get_context_types(self) -> List[str]:
@@ -51,7 +53,7 @@ class DynamicAgent(BaseAgent):
             "echidna_results",
             "medusa_results",
             "foundry_results",
-            "vertigo_results"  # From VertigoAdapter (mutation testing)
+            "vertigo_results",  # From VertigoAdapter (mutation testing)
         ]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
@@ -72,7 +74,7 @@ class DynamicAgent(BaseAgent):
             "dynamic_findings": [],
             "echidna_results": {},
             "medusa_results": {},
-            "foundry_results": {}
+            "foundry_results": {},
         }
 
         fuzz_runs = kwargs.get("fuzz_runs", 10000)
@@ -119,7 +121,7 @@ class DynamicAgent(BaseAgent):
                 results["adapter_metadata"] = {
                     "mutation_score": adapter_results.get("metadata", {}).get("mutation_score", 0),
                     "adapters_executed": adapter_results.get("successful", 0),
-                    "adapters_failed": adapter_results.get("failed", 0)
+                    "adapters_failed": adapter_results.get("failed", 0),
                 }
 
                 logger.info(
@@ -130,10 +132,7 @@ class DynamicAgent(BaseAgent):
         except Exception as e:
             # Graceful degradation: Agent works even if adapter fails
             logger.warning(f"DynamicAgent: Vertigo adapter failed (non-critical): {e}")
-            results["adapter_metadata"] = {
-                "error": str(e),
-                "adapters_executed": 0
-            }
+            results["adapter_metadata"] = {"error": str(e), "adapters_executed": 0}
 
         return results
 
@@ -146,49 +145,34 @@ class DynamicAgent(BaseAgent):
         """
         try:
             # Echidna requires a config file
-            echidna_config = {
-                "testLimit": runs,
-                "testMode": "property",
-                "format": "json"
-            }
 
             config_path = Path("echidna.yaml")
 
             # Run Echidna
-            cmd = [
-                "echidna",
-                contract_path,
-                "--config", str(config_path)
-            ]
+            cmd = ["echidna", contract_path, "--config", str(config_path)]
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
             # Parse output (Echidna outputs test results)
             output = result.stdout
             violations = []
 
             # Parse property violations from output
-            for line in output.split('\n'):
-                if 'failed' in line.lower() or 'violation' in line.lower():
-                    violations.append({
-                        "property": self._extract_property_name(line),
-                        "status": "failed",
-                        "description": line.strip()
-                    })
+            for line in output.split("\n"):
+                if "failed" in line.lower() or "violation" in line.lower():
+                    violations.append(
+                        {
+                            "property": self._extract_property_name(line),
+                            "status": "failed",
+                            "description": line.strip(),
+                        }
+                    )
 
             return {
                 "tool": "Echidna",
                 "violations": violations,
                 "total_tests": runs,
-                "metadata": {
-                    "exit_code": result.returncode,
-                    "mode": "property-based"
-                }
+                "metadata": {"exit_code": result.returncode, "mode": "property-based"},
             }
 
         except subprocess.TimeoutExpired:
@@ -209,39 +193,23 @@ class DynamicAgent(BaseAgent):
             Dictionary with fuzzing results
         """
         try:
-            cmd = [
-                "medusa",
-                "fuzz",
-                "--target", contract_path,
-                "--test-limit", str(runs)
-            ]
+            cmd = ["medusa", "fuzz", "--target", contract_path, "--test-limit", str(runs)]
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
             # Parse Medusa output
             output = result.stdout
             violations = []
 
-            for line in output.split('\n'):
-                if 'failed' in line.lower() or 'assertion' in line.lower():
-                    violations.append({
-                        "type": "assertion_failure",
-                        "description": line.strip()
-                    })
+            for line in output.split("\n"):
+                if "failed" in line.lower() or "assertion" in line.lower():
+                    violations.append({"type": "assertion_failure", "description": line.strip()})
 
             return {
                 "tool": "Medusa",
                 "violations": violations,
                 "total_runs": runs,
-                "metadata": {
-                    "exit_code": result.returncode,
-                    "mode": "coverage-guided"
-                }
+                "metadata": {"exit_code": result.returncode, "mode": "coverage-guided"},
             }
 
         except subprocess.TimeoutExpired:
@@ -262,34 +230,27 @@ class DynamicAgent(BaseAgent):
             Dictionary with fuzz test results
         """
         try:
-            cmd = [
-                "forge",
-                "test",
-                "--fuzz-runs", str(runs),
-                "--json"
-            ]
+            cmd = ["forge", "test", "--fuzz-runs", str(runs), "--json"]
 
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                cwd=Path.cwd()
+                cmd, capture_output=True, text=True, timeout=timeout, cwd=Path.cwd()
             )
 
             # Parse JSON output
             failures = []
             try:
                 # Foundry outputs JSON lines
-                for line in result.stdout.split('\n'):
+                for line in result.stdout.split("\n"):
                     if line.strip():
                         data = json.loads(line)
                         if data.get("status") == "failure":
-                            failures.append({
-                                "test": data.get("test", "unknown"),
-                                "reason": data.get("reason", ""),
-                                "counterexample": data.get("counterexample")
-                            })
+                            failures.append(
+                                {
+                                    "test": data.get("test", "unknown"),
+                                    "reason": data.get("reason", ""),
+                                    "counterexample": data.get("counterexample"),
+                                }
+                            )
             except json.JSONDecodeError:
                 logger.warning("Failed to parse Foundry JSON output")
 
@@ -297,9 +258,7 @@ class DynamicAgent(BaseAgent):
                 "tool": "Foundry",
                 "failures": failures,
                 "fuzz_runs": runs,
-                "metadata": {
-                    "exit_code": result.returncode
-                }
+                "metadata": {"exit_code": result.returncode},
             }
 
         except subprocess.TimeoutExpired:
@@ -329,8 +288,9 @@ class DynamicAgent(BaseAgent):
                 return word
         return "unknown"
 
-    def _aggregate_findings(self, echidna_data: Dict, medusa_data: Dict,
-                           foundry_data: Dict) -> List[Dict[str, Any]]:
+    def _aggregate_findings(
+        self, echidna_data: Dict, medusa_data: Dict, foundry_data: Dict
+    ) -> List[Dict[str, Any]]:
         """
         Aggregate findings from all fuzzing tools into unified format
 
@@ -341,44 +301,50 @@ class DynamicAgent(BaseAgent):
 
         # Add Echidna violations
         for violation in echidna_data.get("violations", []):
-            unified.append({
-                "source": "Echidna",
-                "type": "property_violation",
-                "property": violation.get("property"),
-                "severity": "High",
-                "description": violation.get("description"),
-                "layer": "dynamic",
-                "tool_type": "property-based_fuzzing",
-                "swc_id": "SWC-110",  # Assert violation
-                "owasp_category": "SC05-DoS"
-            })
+            unified.append(
+                {
+                    "source": "Echidna",
+                    "type": "property_violation",
+                    "property": violation.get("property"),
+                    "severity": "High",
+                    "description": violation.get("description"),
+                    "layer": "dynamic",
+                    "tool_type": "property-based_fuzzing",
+                    "swc_id": "SWC-110",  # Assert violation
+                    "owasp_category": "SC05-DoS",
+                }
+            )
 
         # Add Medusa violations
         for violation in medusa_data.get("violations", []):
-            unified.append({
-                "source": "Medusa",
-                "type": "assertion_failure",
-                "severity": "High",
-                "description": violation.get("description"),
-                "layer": "dynamic",
-                "tool_type": "coverage-guided_fuzzing",
-                "swc_id": "SWC-110",
-                "owasp_category": "SC05-DoS"
-            })
+            unified.append(
+                {
+                    "source": "Medusa",
+                    "type": "assertion_failure",
+                    "severity": "High",
+                    "description": violation.get("description"),
+                    "layer": "dynamic",
+                    "tool_type": "coverage-guided_fuzzing",
+                    "swc_id": "SWC-110",
+                    "owasp_category": "SC05-DoS",
+                }
+            )
 
         # Add Foundry failures
         for failure in foundry_data.get("failures", []):
-            unified.append({
-                "source": "Foundry",
-                "type": "fuzz_failure",
-                "test": failure.get("test"),
-                "severity": "Medium",
-                "description": failure.get("reason"),
-                "counterexample": failure.get("counterexample"),
-                "layer": "dynamic",
-                "tool_type": "integrated_fuzzing",
-                "swc_id": "SWC-110",
-                "owasp_category": "SC05-DoS"
-            })
+            unified.append(
+                {
+                    "source": "Foundry",
+                    "type": "fuzz_failure",
+                    "test": failure.get("test"),
+                    "severity": "Medium",
+                    "description": failure.get("reason"),
+                    "counterexample": failure.get("counterexample"),
+                    "layer": "dynamic",
+                    "tool_type": "integrated_fuzzing",
+                    "swc_id": "SWC-110",
+                    "owasp_category": "SC05-DoS",
+                }
+            )
 
         return unified

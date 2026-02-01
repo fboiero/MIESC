@@ -4,12 +4,13 @@ Usa SQLAlchemy para persistencia y Pydantic para validación.
 """
 
 import uuid
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List
-from dataclasses import dataclass, field
+from typing import List, Optional
 
-from sqlalchemy import Column, String, DateTime, Integer, Boolean, Enum as SQLEnum, ForeignKey, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -18,6 +19,7 @@ Base = declarative_base()
 
 class LicenseStatus(str, Enum):
     """Estados posibles de una licencia."""
+
     ACTIVE = "active"
     EXPIRED = "expired"
     SUSPENDED = "suspended"
@@ -26,6 +28,7 @@ class LicenseStatus(str, Enum):
 
 class PlanType(str, Enum):
     """Tipos de planes disponibles."""
+
     FREE = "FREE"
     STARTER = "STARTER"
     PRO = "PRO"
@@ -34,6 +37,7 @@ class PlanType(str, Enum):
 
 class LicenseDB(Base):
     """Modelo SQLAlchemy para persistencia de licencias."""
+
     __tablename__ = "licenses"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -48,11 +52,14 @@ class LicenseDB(Base):
     notes = Column(Text, nullable=True)
 
     # Relación con registros de uso
-    usage_records = relationship("UsageRecordDB", back_populates="license", cascade="all, delete-orphan")
+    usage_records = relationship(
+        "UsageRecordDB", back_populates="license", cascade="all, delete-orphan"
+    )
 
 
 class UsageRecordDB(Base):
     """Modelo SQLAlchemy para registro de uso."""
+
     __tablename__ = "usage_records"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -68,6 +75,7 @@ class UsageRecordDB(Base):
 @dataclass
 class License:
     """Modelo de dominio para licencia (en memoria)."""
+
     id: str
     license_key: str
     email: str
@@ -150,6 +158,7 @@ class License:
 @dataclass
 class UsageRecord:
     """Modelo de dominio para registro de uso."""
+
     id: str
     license_id: str
     month: str

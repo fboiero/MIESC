@@ -18,19 +18,19 @@ Version: 1.0.0
 License: AGPL-3.0
 """
 
-import hashlib
 import logging
 import re
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 
 class Visibility(Enum):
     """Function visibility levels in Solidity."""
+
     EXTERNAL = "external"
     PUBLIC = "public"
     INTERNAL = "internal"
@@ -39,6 +39,7 @@ class Visibility(Enum):
 
 class Mutability(Enum):
     """Function mutability modifiers."""
+
     PAYABLE = "payable"
     NONPAYABLE = "nonpayable"
     VIEW = "view"
@@ -57,6 +58,7 @@ class FunctionNode:
     - External calls made
     - Internal calls made
     """
+
     name: str
     visibility: Visibility
     mutability: Mutability = Mutability.NONPAYABLE
@@ -106,29 +108,30 @@ class FunctionNode:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
         return {
-            'name': self.name,
-            'visibility': self.visibility.value,
-            'mutability': self.mutability.value,
-            'modifiers': self.modifiers,
-            'parameters': self.parameters,
-            'returns': self.returns,
-            'state_vars_read': list(self.state_vars_read),
-            'state_vars_written': list(self.state_vars_written),
-            'internal_calls': self.internal_calls,
-            'external_calls': self.external_calls,
-            'is_entry_point': self.is_entry_point,
-            'is_payable': self.is_payable,
-            'modifies_state': self.modifies_state,
-            'makes_external_calls': self.makes_external_calls,
-            'has_reentrancy_guard': self.has_reentrancy_guard,
-            'has_access_control': self.has_access_control,
-            'location': {'start': self.start_line, 'end': self.end_line},
+            "name": self.name,
+            "visibility": self.visibility.value,
+            "mutability": self.mutability.value,
+            "modifiers": self.modifiers,
+            "parameters": self.parameters,
+            "returns": self.returns,
+            "state_vars_read": list(self.state_vars_read),
+            "state_vars_written": list(self.state_vars_written),
+            "internal_calls": self.internal_calls,
+            "external_calls": self.external_calls,
+            "is_entry_point": self.is_entry_point,
+            "is_payable": self.is_payable,
+            "modifies_state": self.modifies_state,
+            "makes_external_calls": self.makes_external_calls,
+            "has_reentrancy_guard": self.has_reentrancy_guard,
+            "has_access_control": self.has_access_control,
+            "location": {"start": self.start_line, "end": self.end_line},
         }
 
 
 @dataclass
 class CallEdge:
     """Represents a call relationship between functions."""
+
     caller: str
     callee: str
     call_type: str  # "internal", "external", "delegatecall", "staticcall"
@@ -136,16 +139,17 @@ class CallEdge:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'caller': self.caller,
-            'callee': self.callee,
-            'type': self.call_type,
-            'line': self.line,
+            "caller": self.caller,
+            "callee": self.callee,
+            "type": self.call_type,
+            "line": self.line,
         }
 
 
 @dataclass
 class CallPath:
     """Represents a path through the call graph."""
+
     nodes: List[str]
     edges: List[CallEdge]
     has_external_call: bool = False
@@ -157,10 +161,10 @@ class CallPath:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'path': self.nodes,
-            'length': self.length,
-            'has_external_call': self.has_external_call,
-            'has_state_modification': self.has_state_modification,
+            "path": self.nodes,
+            "length": self.length,
+            "has_external_call": self.has_external_call,
+            "has_state_modification": self.has_state_modification,
         }
 
 
@@ -188,14 +192,23 @@ class CallGraph:
 
     # Access control modifiers
     ACCESS_CONTROL_MODIFIERS = {
-        "onlyOwner", "onlyAdmin", "onlyRole", "onlyMinter",
-        "onlyOperator", "onlyGovernance", "onlyAuthorized",
-        "whenNotPaused", "whenPaused",
+        "onlyOwner",
+        "onlyAdmin",
+        "onlyRole",
+        "onlyMinter",
+        "onlyOperator",
+        "onlyGovernance",
+        "onlyAuthorized",
+        "whenNotPaused",
+        "whenPaused",
     }
 
     # Reentrancy guard modifiers
     REENTRANCY_GUARD_MODIFIERS = {
-        "nonReentrant", "noReentrant", "lock", "locked",
+        "nonReentrant",
+        "noReentrant",
+        "lock",
+        "locked",
     }
 
     def __init__(self, contract_name: str = "Contract"):
@@ -218,10 +231,7 @@ class CallGraph:
 
     def get_entry_points(self) -> List[FunctionNode]:
         """Get all functions that can be called externally."""
-        return [
-            func for func in self.nodes.values()
-            if func.is_entry_point
-        ]
+        return [func for func in self.nodes.values() if func.is_entry_point]
 
     def get_callees(self, func_name: str) -> List[str]:
         """Get functions called by the given function."""
@@ -278,9 +288,7 @@ class CallGraph:
         paths = []
 
         for entry_point in self.get_entry_points():
-            entry_paths = self._find_paths_bfs(
-                entry_point.name, sink, max_depth
-            )
+            entry_paths = self._find_paths_bfs(entry_point.name, sink, max_depth)
             paths.extend(entry_paths)
 
         return paths
@@ -337,12 +345,14 @@ class CallGraph:
         for func in self.nodes.values():
             if func.makes_external_calls and func.is_entry_point:
                 # Direct external call from entry point
-                chains.append(CallPath(
-                    nodes=[func.name],
-                    edges=[],
-                    has_external_call=True,
-                    has_state_modification=func.modifies_state,
-                ))
+                chains.append(
+                    CallPath(
+                        nodes=[func.name],
+                        edges=[],
+                        has_external_call=True,
+                        has_state_modification=func.modifies_state,
+                    )
+                )
 
         # Find indirect paths
         for func in self.nodes.values():
@@ -350,9 +360,7 @@ class CallGraph:
                 # Find entry points that can reach this function
                 for entry in self.get_entry_points():
                     if self.can_reach(entry.name, func.name):
-                        paths = self._find_paths_bfs(
-                            entry.name, func.name, max_depth=5
-                        )
+                        paths = self._find_paths_bfs(entry.name, func.name, max_depth=5)
                         for path in paths:
                             path.has_external_call = True
                             chains.append(path)
@@ -411,33 +419,26 @@ class CallGraph:
         unprotected = self.get_unprotected_state_modifiers()
 
         return {
-            'contract': self.contract_name,
-            'total_functions': len(self.nodes),
-            'entry_points': len(entry_points),
-            'total_edges': len(self.edges),
-            'external_call_chains': len(external_chains),
-            'reentrancy_risk_paths': len(reentrancy_risks),
-            'unprotected_state_modifiers': len(unprotected),
-            'functions_with_guards': sum(
-                1 for f in self.nodes.values()
-                if f.has_reentrancy_guard
-            ),
-            'functions_with_access_control': sum(
-                1 for f in self.nodes.values()
-                if f.has_access_control
+            "contract": self.contract_name,
+            "total_functions": len(self.nodes),
+            "entry_points": len(entry_points),
+            "total_edges": len(self.edges),
+            "external_call_chains": len(external_chains),
+            "reentrancy_risk_paths": len(reentrancy_risks),
+            "unprotected_state_modifiers": len(unprotected),
+            "functions_with_guards": sum(1 for f in self.nodes.values() if f.has_reentrancy_guard),
+            "functions_with_access_control": sum(
+                1 for f in self.nodes.values() if f.has_access_control
             ),
         }
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert call graph to dictionary."""
         return {
-            'contract': self.contract_name,
-            'nodes': {
-                name: node.to_dict()
-                for name, node in self.nodes.items()
-            },
-            'edges': [edge.to_dict() for edge in self.edges],
-            'summary': self.get_summary(),
+            "contract": self.contract_name,
+            "nodes": {name: node.to_dict() for name, node in self.nodes.items()},
+            "edges": [edge.to_dict() for edge in self.edges],
+            "summary": self.get_summary(),
         }
 
 
@@ -452,28 +453,21 @@ class CallGraphBuilder:
 
     # Regex patterns for source code parsing
     FUNCTION_PATTERN = re.compile(
-        r'function\s+(\w+)\s*\(([^)]*)\)\s*'
-        r'((?:public|external|internal|private)\s*)?'
-        r'((?:view|pure|payable)\s*)?'
-        r'((?:\w+\s*)*?)'  # Modifiers
-        r'(?:returns\s*\([^)]*\))?\s*\{',
-        re.MULTILINE
+        r"function\s+(\w+)\s*\(([^)]*)\)\s*"
+        r"((?:public|external|internal|private)\s*)?"
+        r"((?:view|pure|payable)\s*)?"
+        r"((?:\w+\s*)*?)"  # Modifiers
+        r"(?:returns\s*\([^)]*\))?\s*\{",
+        re.MULTILINE,
     )
 
     CALL_PATTERN = re.compile(
-        r'(\w+)\s*\.\s*(call|delegatecall|staticcall|transfer|send)\s*[{(]',
-        re.MULTILINE
+        r"(\w+)\s*\.\s*(call|delegatecall|staticcall|transfer|send)\s*[{(]", re.MULTILINE
     )
 
-    INTERNAL_CALL_PATTERN = re.compile(
-        r'(?<![.\w])(\w+)\s*\(',
-        re.MULTILINE
-    )
+    INTERNAL_CALL_PATTERN = re.compile(r"(?<![.\w])(\w+)\s*\(", re.MULTILINE)
 
-    STATE_WRITE_PATTERN = re.compile(
-        r'(\w+)\s*(?:\[[^\]]*\])?\s*[+\-*/]?=(?!=)',
-        re.MULTILINE
-    )
+    STATE_WRITE_PATTERN = re.compile(r"(\w+)\s*(?:\[[^\]]*\])?\s*[+\-*/]?=(?!=)", re.MULTILINE)
 
     def __init__(self):
         """Initialize the call graph builder."""
@@ -495,7 +489,7 @@ class CallGraphBuilder:
         # Extract functions
         for match in self.FUNCTION_PATTERN.finditer(source_code):
             func_name = match.group(1)
-            params = match.group(2)
+            match.group(2)
             visibility_str = (match.group(3) or "public").strip()
             mutability_str = (match.group(4) or "").strip()
             modifiers_str = match.group(5) or ""
@@ -519,12 +513,10 @@ class CallGraphBuilder:
 
             # Check for guards
             has_reentrancy_guard = any(
-                guard in modifiers_str
-                for guard in CallGraph.REENTRANCY_GUARD_MODIFIERS
+                guard in modifiers_str for guard in CallGraph.REENTRANCY_GUARD_MODIFIERS
             )
             has_access_control = any(
-                ac in modifiers_str
-                for ac in CallGraph.ACCESS_CONTROL_MODIFIERS
+                ac in modifiers_str for ac in CallGraph.ACCESS_CONTROL_MODIFIERS
             )
 
             func = FunctionNode(
@@ -534,7 +526,7 @@ class CallGraphBuilder:
                 modifiers=modifiers,
                 has_reentrancy_guard=has_reentrancy_guard,
                 has_access_control=has_access_control,
-                start_line=source_code[:match.start()].count('\n') + 1,
+                start_line=source_code[: match.start()].count("\n") + 1,
             )
 
             graph.add_function(func)
@@ -555,10 +547,7 @@ class CallGraphBuilder:
 
         for func_name, func in graph.nodes.items():
             # Find function body (simplified - won't work for all cases)
-            func_match = re.search(
-                rf'function\s+{func_name}\s*\([^)]*\)[^{{]*\{{',
-                source_code
-            )
+            func_match = re.search(rf"function\s+{func_name}\s*\([^)]*\)[^{{]*\{{", source_code)
             if not func_match:
                 continue
 
@@ -568,9 +557,9 @@ class CallGraphBuilder:
             end = start
 
             for i, char in enumerate(source_code[start:], start):
-                if char == '{':
+                if char == "{":
                     brace_count += 1
-                elif char == '}':
+                elif char == "}":
                     brace_count -= 1
                     if brace_count == 0:
                         end = i
@@ -584,16 +573,18 @@ class CallGraphBuilder:
                 call_type = match.group(2)
 
                 func.external_calls.append(f"{target}.{call_type}")
-                graph.add_edge(CallEdge(
-                    caller=func_name,
-                    callee=f"{target}.{call_type}",
-                    call_type=call_type,
-                ))
+                graph.add_edge(
+                    CallEdge(
+                        caller=func_name,
+                        callee=f"{target}.{call_type}",
+                        call_type=call_type,
+                    )
+                )
 
             # Find state writes
             for match in self.STATE_WRITE_PATTERN.finditer(func_body):
                 var_name = match.group(1)
-                if not var_name.startswith(('uint', 'int', 'bool', 'address', 'bytes')):
+                if not var_name.startswith(("uint", "int", "bool", "address", "bytes")):
                     func.state_vars_written.add(var_name)
 
     def build_from_slither(
@@ -665,11 +656,13 @@ class CallGraphBuilder:
                 target = element.get("target", "")
 
                 if source and target:
-                    graph.add_edge(CallEdge(
-                        caller=source,
-                        callee=target,
-                        call_type="internal",
-                    ))
+                    graph.add_edge(
+                        CallEdge(
+                            caller=source,
+                            callee=target,
+                            call_type="internal",
+                        )
+                    )
 
     def _extract_from_detectors(
         self,
@@ -712,6 +705,7 @@ class CallGraphBuilder:
 # CONVENIENCE FUNCTIONS
 # =============================================================================
 
+
 def build_call_graph(
     source_code: str,
     contract_name: str = "Contract",
@@ -743,9 +737,9 @@ def analyze_reentrancy_risk(
     risky_paths = graph.get_reentrancy_risk_paths()
 
     return {
-        'risky_paths_count': len(risky_paths),
-        'risky_paths': [p.to_dict() for p in risky_paths],
-        'summary': graph.get_summary(),
+        "risky_paths_count": len(risky_paths),
+        "risky_paths": [p.to_dict() for p in risky_paths],
+        "summary": graph.get_summary(),
     }
 
 

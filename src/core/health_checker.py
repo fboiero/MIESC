@@ -3,19 +3,20 @@ MIESC Health Checker
 Sistema de health checks y observabilidad para todas las herramientas.
 """
 
-import time
 import logging
-from typing import Dict, Any, List, Optional
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class HealthStatus(Enum):
     """Estados de salud posibles."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -25,6 +26,7 @@ class HealthStatus(Enum):
 @dataclass
 class ToolHealth:
     """Estado de salud de una herramienta."""
+
     name: str
     status: HealthStatus
     available: bool
@@ -36,20 +38,21 @@ class ToolHealth:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'name': self.name,
-            'status': self.status.value,
-            'available': self.available,
-            'version': self.version,
-            'response_time_ms': round(self.response_time_ms, 2),
-            'last_check': self.last_check.isoformat() if self.last_check else None,
-            'error_message': self.error_message,
-            'details': self.details,
+            "name": self.name,
+            "status": self.status.value,
+            "available": self.available,
+            "version": self.version,
+            "response_time_ms": round(self.response_time_ms, 2),
+            "last_check": self.last_check.isoformat() if self.last_check else None,
+            "error_message": self.error_message,
+            "details": self.details,
         }
 
 
 @dataclass
 class SystemHealth:
     """Estado de salud general del sistema."""
+
     status: HealthStatus
     total_tools: int
     healthy_tools: int
@@ -61,16 +64,16 @@ class SystemHealth:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'status': self.status.value,
-            'summary': {
-                'total': self.total_tools,
-                'healthy': self.healthy_tools,
-                'degraded': self.degraded_tools,
-                'unhealthy': self.unhealthy_tools,
+            "status": self.status.value,
+            "summary": {
+                "total": self.total_tools,
+                "healthy": self.healthy_tools,
+                "degraded": self.degraded_tools,
+                "unhealthy": self.unhealthy_tools,
             },
-            'tools': [t.to_dict() for t in self.tools],
-            'check_duration_ms': round(self.check_duration_ms, 2),
-            'timestamp': self.timestamp.isoformat(),
+            "tools": [t.to_dict() for t in self.tools],
+            "check_duration_ms": round(self.check_duration_ms, 2),
+            "timestamp": self.timestamp.isoformat(),
         }
 
 
@@ -87,29 +90,32 @@ class HealthChecker:
 
     # Mapeo de adaptadores a sus clases
     ADAPTER_MAP = {
-        'slither': ('src.adapters.slither_adapter', 'SlitherAdapter'),
-        'mythril': ('src.adapters.mythril_adapter', 'MythrilAdapter'),
-        'aderyn': ('src.adapters.aderyn_adapter', 'AderynAdapter'),
-        'solhint': ('src.adapters.solhint_adapter', 'SolhintAdapter'),
-        'echidna': ('src.adapters.echidna_adapter', 'EchidnaAdapter'),
-        'foundry': ('src.adapters.foundry_adapter', 'FoundryAdapter'),
-        'medusa': ('src.adapters.medusa_adapter', 'MedusaAdapter'),
-        'dogefuzz': ('src.adapters.dogefuzz_adapter', 'DogeFuzzAdapter'),
-        'manticore': ('src.adapters.manticore_adapter', 'ManticoreAdapter'),
-        'halmos': ('src.adapters.halmos_adapter', 'HalmosAdapter'),
-        'smtchecker': ('src.adapters.smtchecker_adapter', 'SMTCheckerAdapter'),
-        'certora': ('src.adapters.certora_adapter', 'CertoraAdapter'),
-        'wake': ('src.adapters.wake_adapter', 'WakeAdapter'),
-        'propertygpt': ('src.adapters.propertygpt_adapter', 'PropertyGPTAdapter'),
-        'smartllm': ('src.adapters.smartllm_adapter', 'SmartLLMAdapter'),
-        'gptscan': ('src.adapters.gptscan_adapter', 'GPTScanAdapter'),
-        'llmsmartaudit': ('src.adapters.llmsmartaudit_adapter', 'LLMSmartAuditAdapter'),
-        'gas_analyzer': ('src.adapters.gas_analyzer_adapter', 'GasAnalyzerAdapter'),
-        'mev_detector': ('src.adapters.mev_detector_adapter', 'MEVDetectorAdapter'),
-        'threat_model': ('src.adapters.threat_model_adapter', 'ThreatModelAdapter'),
-        'smartbugs_ml': ('src.adapters.smartbugs_ml_adapter', 'SmartBugsMLAdapter'),
-        'dagnn': ('src.adapters.dagnn_adapter', 'DAGNNAdapter'),
-        'contract_clone_detector': ('src.adapters.contract_clone_detector_adapter', 'ContractCloneDetectorAdapter'),
+        "slither": ("src.adapters.slither_adapter", "SlitherAdapter"),
+        "mythril": ("src.adapters.mythril_adapter", "MythrilAdapter"),
+        "aderyn": ("src.adapters.aderyn_adapter", "AderynAdapter"),
+        "solhint": ("src.adapters.solhint_adapter", "SolhintAdapter"),
+        "echidna": ("src.adapters.echidna_adapter", "EchidnaAdapter"),
+        "foundry": ("src.adapters.foundry_adapter", "FoundryAdapter"),
+        "medusa": ("src.adapters.medusa_adapter", "MedusaAdapter"),
+        "dogefuzz": ("src.adapters.dogefuzz_adapter", "DogeFuzzAdapter"),
+        "manticore": ("src.adapters.manticore_adapter", "ManticoreAdapter"),
+        "halmos": ("src.adapters.halmos_adapter", "HalmosAdapter"),
+        "smtchecker": ("src.adapters.smtchecker_adapter", "SMTCheckerAdapter"),
+        "certora": ("src.adapters.certora_adapter", "CertoraAdapter"),
+        "wake": ("src.adapters.wake_adapter", "WakeAdapter"),
+        "propertygpt": ("src.adapters.propertygpt_adapter", "PropertyGPTAdapter"),
+        "smartllm": ("src.adapters.smartllm_adapter", "SmartLLMAdapter"),
+        "gptscan": ("src.adapters.gptscan_adapter", "GPTScanAdapter"),
+        "llmsmartaudit": ("src.adapters.llmsmartaudit_adapter", "LLMSmartAuditAdapter"),
+        "gas_analyzer": ("src.adapters.gas_analyzer_adapter", "GasAnalyzerAdapter"),
+        "mev_detector": ("src.adapters.mev_detector_adapter", "MEVDetectorAdapter"),
+        "threat_model": ("src.adapters.threat_model_adapter", "ThreatModelAdapter"),
+        "smartbugs_ml": ("src.adapters.smartbugs_ml_adapter", "SmartBugsMLAdapter"),
+        "dagnn": ("src.adapters.dagnn_adapter", "DAGNNAdapter"),
+        "contract_clone_detector": (
+            "src.adapters.contract_clone_detector_adapter",
+            "ContractCloneDetectorAdapter",
+        ),
     }
 
     def __init__(self, max_workers: int = 4):
@@ -125,6 +131,7 @@ class HealthChecker:
         module_path, class_name = self.ADAPTER_MAP[tool_name]
         try:
             import importlib
+
             module = importlib.import_module(module_path)
             adapter_class = getattr(module, class_name)
             return adapter_class()
@@ -168,10 +175,10 @@ class HealthChecker:
 
             try:
                 metadata = adapter.get_metadata()
-                version = getattr(metadata, 'version', None)
+                version = getattr(metadata, "version", None)
                 details = {
-                    'layer': getattr(metadata, 'layer', 'unknown'),
-                    'category': getattr(metadata, 'category', 'unknown'),
+                    "layer": getattr(metadata, "layer", "unknown"),
+                    "category": getattr(metadata, "category", "unknown"),
                 }
             except Exception:
                 pass
@@ -222,10 +229,7 @@ class HealthChecker:
 
         # Ejecutar checks en paralelo
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            future_to_tool = {
-                executor.submit(self.check_tool, tool, False): tool
-                for tool in tools
-            }
+            future_to_tool = {executor.submit(self.check_tool, tool, False): tool for tool in tools}
 
             for future in as_completed(future_to_tool):
                 try:
@@ -233,13 +237,15 @@ class HealthChecker:
                     tool_healths.append(health)
                 except Exception as e:
                     tool_name = future_to_tool[future]
-                    tool_healths.append(ToolHealth(
-                        name=tool_name,
-                        status=HealthStatus.UNHEALTHY,
-                        available=False,
-                        last_check=datetime.now(),
-                        error_message=str(e),
-                    ))
+                    tool_healths.append(
+                        ToolHealth(
+                            name=tool_name,
+                            status=HealthStatus.UNHEALTHY,
+                            available=False,
+                            last_check=datetime.now(),
+                            error_message=str(e),
+                        )
+                    )
 
         # Calcular estadísticas
         healthy = sum(1 for t in tool_healths if t.status == HealthStatus.HEALTHY)
@@ -279,7 +285,7 @@ class HealthChecker:
 
         for tool in health.tools:
             if tool.available:
-                layer = tool.details.get('layer', 'other')
+                layer = tool.details.get("layer", "other")
                 if layer not in layers:
                     layers[layer] = []
                 layers[layer].append(tool.name)

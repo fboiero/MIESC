@@ -9,25 +9,23 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
-import pytest
 import json
-import tempfile
-from pathlib import Path
 from datetime import datetime
-from unittest.mock import patch, MagicMock
+
+import pytest
 
 from src.poc.poc_generator import (
-    PoCGenerator,
-    PoCTemplate,
-    PoCResult,
-    VulnerabilityType,
     GenerationOptions,
+    PoCGenerator,
+    PoCResult,
+    PoCTemplate,
+    VulnerabilityType,
 )
-
 
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def generator():
@@ -57,11 +55,7 @@ def reentrancy_finding():
         "severity": "critical",
         "title": "Reentrancy in withdraw function",
         "description": "External call before state update allows reentrancy attack",
-        "location": {
-            "function": "withdraw",
-            "line": 45,
-            "file": "contracts/Bank.sol"
-        },
+        "location": {"function": "withdraw", "line": 45, "file": "contracts/Bank.sol"},
         "id": "VULN-001",
         "attack_vector": "Recursive call during withdrawal",
         "remediation": "Use checks-effects-interactions pattern",
@@ -130,6 +124,7 @@ def unknown_type_finding():
 # VulnerabilityType Enum Tests
 # =============================================================================
 
+
 class TestVulnerabilityType:
     """Tests for VulnerabilityType enum."""
 
@@ -173,6 +168,7 @@ class TestVulnerabilityType:
 # GenerationOptions Tests
 # =============================================================================
 
+
 class TestGenerationOptions:
     """Tests for GenerationOptions dataclass."""
 
@@ -208,6 +204,7 @@ class TestGenerationOptions:
 # =============================================================================
 # PoCTemplate Tests
 # =============================================================================
+
 
 class TestPoCTemplate:
     """Tests for PoCTemplate dataclass."""
@@ -290,6 +287,7 @@ class TestPoCTemplate:
 # PoCResult Tests
 # =============================================================================
 
+
 class TestPoCResult:
     """Tests for PoCResult dataclass."""
 
@@ -324,6 +322,7 @@ class TestPoCResult:
 # PoCGenerator Initialization Tests
 # =============================================================================
 
+
 class TestPoCGeneratorInit:
     """Tests for PoCGenerator initialization."""
 
@@ -346,6 +345,7 @@ class TestPoCGeneratorInit:
 # =============================================================================
 # Type Resolution Tests
 # =============================================================================
+
 
 class TestTypeResolution:
     """Tests for vulnerability type resolution."""
@@ -384,9 +384,18 @@ class TestTypeResolution:
         finding_underflow = {"type": "underflow"}
         finding_arith = {"type": "arithmetic"}
 
-        assert generator._resolve_vulnerability_type(finding_overflow) == VulnerabilityType.INTEGER_OVERFLOW
-        assert generator._resolve_vulnerability_type(finding_underflow) == VulnerabilityType.INTEGER_UNDERFLOW
-        assert generator._resolve_vulnerability_type(finding_arith) == VulnerabilityType.INTEGER_OVERFLOW
+        assert (
+            generator._resolve_vulnerability_type(finding_overflow)
+            == VulnerabilityType.INTEGER_OVERFLOW
+        )
+        assert (
+            generator._resolve_vulnerability_type(finding_underflow)
+            == VulnerabilityType.INTEGER_UNDERFLOW
+        )
+        assert (
+            generator._resolve_vulnerability_type(finding_arith)
+            == VulnerabilityType.INTEGER_OVERFLOW
+        )
 
     def test_resolve_tx_origin(self, generator):
         """Test resolving tx.origin type."""
@@ -412,6 +421,7 @@ class TestTypeResolution:
 # Function Extraction Tests
 # =============================================================================
 
+
 class TestFunctionExtraction:
     """Tests for function name extraction from findings."""
 
@@ -422,10 +432,7 @@ class TestFunctionExtraction:
 
     def test_extract_from_string_location(self, generator):
         """Test extracting function from string location."""
-        finding = {
-            "type": "reentrancy",
-            "location": "function withdraw() in Bank.sol"
-        }
+        finding = {"type": "reentrancy", "location": "function withdraw() in Bank.sol"}
         func = generator._extract_function_name(finding)
         assert func == "withdraw"
 
@@ -437,10 +444,7 @@ class TestFunctionExtraction:
 
     def test_extract_location_with_func_key(self, generator):
         """Test extraction with 'func' key."""
-        finding = {
-            "type": "reentrancy",
-            "location": {"func": "transfer"}
-        }
+        finding = {"type": "reentrancy", "location": {"func": "transfer"}}
         func = generator._extract_function_name(finding)
         assert func == "transfer"
 
@@ -449,15 +453,14 @@ class TestFunctionExtraction:
 # PoC Name Generation Tests
 # =============================================================================
 
+
 class TestPoCNameGeneration:
     """Tests for PoC name generation."""
 
     def test_generate_name_with_function(self, generator):
         """Test name generation with function."""
         name = generator._generate_poc_name(
-            "contracts/Bank.sol",
-            VulnerabilityType.REENTRANCY,
-            "withdraw"
+            "contracts/Bank.sol", VulnerabilityType.REENTRANCY, "withdraw"
         )
         assert "Bank" in name
         assert "withdraw" in name
@@ -465,21 +468,13 @@ class TestPoCNameGeneration:
 
     def test_generate_name_without_function(self, generator):
         """Test name generation without function."""
-        name = generator._generate_poc_name(
-            "Token.sol",
-            VulnerabilityType.ACCESS_CONTROL,
-            None
-        )
+        name = generator._generate_poc_name("Token.sol", VulnerabilityType.ACCESS_CONTROL, None)
         assert "Token" in name
         assert "accesscontrol" in name
 
     def test_generate_name_strips_extension(self, generator):
         """Test name strips .sol extension."""
-        name = generator._generate_poc_name(
-            "MyContract.sol",
-            VulnerabilityType.REENTRANCY,
-            "test"
-        )
+        name = generator._generate_poc_name("MyContract.sol", VulnerabilityType.REENTRANCY, "test")
         assert ".sol" not in name
         assert "MyContract" in name
 
@@ -487,6 +482,7 @@ class TestPoCNameGeneration:
 # =============================================================================
 # Template Loading Tests
 # =============================================================================
+
 
 class TestTemplateLoading:
     """Tests for template loading."""
@@ -517,6 +513,7 @@ class TestTemplateLoading:
 # Template Customization Tests
 # =============================================================================
 
+
 class TestTemplateCustomization:
     """Tests for template customization."""
 
@@ -541,10 +538,7 @@ class TestTemplateCustomization:
     def test_customize_with_balances(self, generator, reentrancy_finding):
         """Test balance placeholders are replaced."""
         template = "{{ATTACKER_BALANCE}} - {{VICTIM_BALANCE}}"
-        options = GenerationOptions(
-            attacker_balance="200 ether",
-            victim_balance="50 ether"
-        )
+        options = GenerationOptions(attacker_balance="200 ether", victim_balance="50 ether")
 
         result = generator._customize_template(
             template,
@@ -582,6 +576,7 @@ class TestTemplateCustomization:
 # =============================================================================
 # Generate PoC Tests
 # =============================================================================
+
 
 class TestGeneratePoC:
     """Tests for PoC generation."""
@@ -639,6 +634,7 @@ class TestGeneratePoC:
 # Batch Generation Tests
 # =============================================================================
 
+
 class TestBatchGeneration:
     """Tests for batch PoC generation."""
 
@@ -661,10 +657,7 @@ class TestBatchGeneration:
         ]
 
         # Should not raise, should skip invalid
-        pocs = generator.generate_batch(
-            [f for f in findings if f],  # Filter None
-            "Test.sol"
-        )
+        pocs = generator.generate_batch([f for f in findings if f], "Test.sol")  # Filter None
 
         assert len(pocs) == 2
 
@@ -677,6 +670,7 @@ class TestBatchGeneration:
 # =============================================================================
 # Prerequisites and Outcomes Tests
 # =============================================================================
+
 
 class TestPrerequisitesAndOutcomes:
     """Tests for prerequisites and expected outcomes."""
@@ -718,6 +712,7 @@ class TestPrerequisitesAndOutcomes:
 # Utility Methods Tests
 # =============================================================================
 
+
 class TestUtilityMethods:
     """Tests for utility methods."""
 
@@ -755,6 +750,7 @@ class TestUtilityMethods:
 # =============================================================================
 # Integration Tests
 # =============================================================================
+
 
 class TestIntegration:
     """Integration tests for PoCGenerator."""
@@ -833,11 +829,11 @@ class TestIntegration:
 
         # Save to JSON
         json_path = tmp_path / "poc_metadata.json"
-        with open(json_path, 'w') as f:
+        with open(json_path, "w") as f:
             json.dump(poc_dict, f, indent=2)
 
         # Reload
-        with open(json_path, 'r') as f:
+        with open(json_path, "r") as f:
             loaded = json.load(f)
 
         assert loaded["name"] == poc.name

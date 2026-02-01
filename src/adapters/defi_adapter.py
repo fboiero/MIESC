@@ -18,12 +18,12 @@ from typing import Any, Dict, List
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from detectors.defi_detectors import DeFiDetectorEngine, DeFiFinding
-from src.core.tool_protocol import (
+from detectors.defi_detectors import DeFiDetectorEngine, DeFiFinding  # noqa: E402
+from src.core.tool_protocol import (  # noqa: E402
+    ToolCapability,
+    ToolCategory,
     ToolMetadata,
     ToolStatus,
-    ToolCategory,
-    ToolCapability,
 )
 
 
@@ -42,7 +42,7 @@ class DeFiAdapter:
     def is_available(self) -> ToolStatus:
         """Check if DeFi detector engine is available."""
         try:
-            from detectors.defi_detectors import DeFiDetectorEngine
+            from detectors.defi_detectors import DeFiDetectorEngine  # noqa: F401
 
             return ToolStatus.AVAILABLE
         except ImportError:

@@ -12,17 +12,17 @@ Author: Fernando Boiero
 License: GPL-3.0
 """
 
-import sys
 import json
-import asyncio
-sys.path.insert(0, '/Users/fboiero/Documents/GitHub/MIESC')
+import sys
+
+sys.path.insert(0, "/Users/fboiero/Documents/GitHub/MIESC")
 
 from src.core.websocket_api import (
+    WEBSOCKET_AVAILABLE,
+    AuditProgressTracker,
+    ConnectionManager,
     EventType,
     WebSocketEvent,
-    ConnectionManager,
-    AuditProgressTracker,
-    WEBSOCKET_AVAILABLE,
 )
 
 
@@ -59,7 +59,7 @@ def demo_event_types():
     for category, events in event_categories.items():
         print(f"{category}:")
         for event in events:
-            print(f"  - {event.name:20} -> \"{event.value}\"")
+            print(f'  - {event.name:20} -> "{event.value}"')
         print()
 
 
@@ -114,7 +114,7 @@ def demo_websocket_event():
         print(f"Event: {event.type.value}")
         print(f"  Audit ID: {event.audit_id or 'N/A'}")
         print(f"  Timestamp: {event.timestamp}")
-        print(f"  JSON Preview:")
+        print("  JSON Preview:")
         json_data = json.loads(event.to_json())
         print(f"    {json.dumps(json_data, indent=4)[:300]}...")
         print()
@@ -181,19 +181,25 @@ def demo_audit_progress_tracker():
     tracker.total_tools = 3
     tracker.tools_completed = 1
     tracker.findings_count = 5
-    print(f"  Layer {tracker.current_layer}: {tracker.tools_completed}/{tracker.total_tools} tools, {tracker.findings_count} findings")
+    print(
+        f"  Layer {tracker.current_layer}: {tracker.tools_completed}/{tracker.total_tools} tools, {tracker.findings_count} findings"
+    )
 
     # Layer 2
     tracker.current_layer = 2
     tracker.tools_completed = 2
     tracker.findings_count = 8
-    print(f"  Layer {tracker.current_layer}: {tracker.tools_completed}/{tracker.total_tools} tools, {tracker.findings_count} findings")
+    print(
+        f"  Layer {tracker.current_layer}: {tracker.tools_completed}/{tracker.total_tools} tools, {tracker.findings_count} findings"
+    )
 
     # Layer 3
     tracker.current_layer = 3
     tracker.tools_completed = 3
     tracker.findings_count = 12
-    print(f"  Layer {tracker.current_layer}: {tracker.tools_completed}/{tracker.total_tools} tools, {tracker.findings_count} findings")
+    print(
+        f"  Layer {tracker.current_layer}: {tracker.tools_completed}/{tracker.total_tools} tools, {tracker.findings_count} findings"
+    )
 
     # Show async methods
     print("\nAsync Event Methods:")
@@ -247,76 +253,103 @@ def demo_sample_workflow():
     audit_id = "audit-demo-001"
 
     workflow_events = [
-        ("Client connects", WebSocketEvent(
-            type=EventType.CONNECTED,
-            data={"message": "Connected to MIESC Real-Time API"},
-        )),
-        ("Audit starts", WebSocketEvent(
-            type=EventType.AUDIT_STARTED,
-            data={
-                "contract": "contracts/Vault.sol",
-                "tools": ["slither", "mythril", "echidna"],
-                "total_layers": 7,
-            },
-            audit_id=audit_id,
-        )),
-        ("Layer 1 begins", WebSocketEvent(
-            type=EventType.LAYER_STARTED,
-            data={"layer": 1, "name": "Static Analysis", "tools": ["slither", "aderyn"]},
-            audit_id=audit_id,
-        )),
-        ("Slither starts", WebSocketEvent(
-            type=EventType.TOOL_STARTED,
-            data={"tool": "slither", "layer": 1},
-            audit_id=audit_id,
-        )),
-        ("Finding detected", WebSocketEvent(
-            type=EventType.FINDING_DETECTED,
-            data={
-                "finding": {
-                    "severity": "critical",
-                    "type": "reentrancy",
-                    "title": "Reentrancy in withdraw()",
+        (
+            "Client connects",
+            WebSocketEvent(
+                type=EventType.CONNECTED,
+                data={"message": "Connected to MIESC Real-Time API"},
+            ),
+        ),
+        (
+            "Audit starts",
+            WebSocketEvent(
+                type=EventType.AUDIT_STARTED,
+                data={
+                    "contract": "contracts/Vault.sol",
+                    "tools": ["slither", "mythril", "echidna"],
+                    "total_layers": 7,
                 },
-                "total_findings": 1,
-            },
-            audit_id=audit_id,
-        )),
-        ("Slither completes", WebSocketEvent(
-            type=EventType.TOOL_COMPLETED,
-            data={"tool": "slither", "findings_count": 3, "duration_seconds": 2.5},
-            audit_id=audit_id,
-        )),
-        ("Layer 1 completes", WebSocketEvent(
-            type=EventType.LAYER_COMPLETED,
-            data={"layer": 1, "findings_count": 5, "duration_seconds": 8.2},
-            audit_id=audit_id,
-        )),
-        ("Progress update", WebSocketEvent(
-            type=EventType.AUDIT_PROGRESS,
-            data={
-                "progress": 42.5,
-                "message": "Layer 3/7 - Running Mythril",
-                "current_layer": 3,
-                "findings_count": 8,
-            },
-            audit_id=audit_id,
-        )),
-        ("Audit completes", WebSocketEvent(
-            type=EventType.AUDIT_COMPLETED,
-            data={
-                "total_findings": 12,
-                "duration_seconds": 245.8,
-                "summary": {
-                    "critical": 2,
-                    "high": 3,
-                    "medium": 4,
-                    "low": 3,
+                audit_id=audit_id,
+            ),
+        ),
+        (
+            "Layer 1 begins",
+            WebSocketEvent(
+                type=EventType.LAYER_STARTED,
+                data={"layer": 1, "name": "Static Analysis", "tools": ["slither", "aderyn"]},
+                audit_id=audit_id,
+            ),
+        ),
+        (
+            "Slither starts",
+            WebSocketEvent(
+                type=EventType.TOOL_STARTED,
+                data={"tool": "slither", "layer": 1},
+                audit_id=audit_id,
+            ),
+        ),
+        (
+            "Finding detected",
+            WebSocketEvent(
+                type=EventType.FINDING_DETECTED,
+                data={
+                    "finding": {
+                        "severity": "critical",
+                        "type": "reentrancy",
+                        "title": "Reentrancy in withdraw()",
+                    },
+                    "total_findings": 1,
                 },
-                "layers_analyzed": 7,
-            },
-            audit_id=audit_id,
-        )),
+                audit_id=audit_id,
+            ),
+        ),
+        (
+            "Slither completes",
+            WebSocketEvent(
+                type=EventType.TOOL_COMPLETED,
+                data={"tool": "slither", "findings_count": 3, "duration_seconds": 2.5},
+                audit_id=audit_id,
+            ),
+        ),
+        (
+            "Layer 1 completes",
+            WebSocketEvent(
+                type=EventType.LAYER_COMPLETED,
+                data={"layer": 1, "findings_count": 5, "duration_seconds": 8.2},
+                audit_id=audit_id,
+            ),
+        ),
+        (
+            "Progress update",
+            WebSocketEvent(
+                type=EventType.AUDIT_PROGRESS,
+                data={
+                    "progress": 42.5,
+                    "message": "Layer 3/7 - Running Mythril",
+                    "current_layer": 3,
+                    "findings_count": 8,
+                },
+                audit_id=audit_id,
+            ),
+        ),
+        (
+            "Audit completes",
+            WebSocketEvent(
+                type=EventType.AUDIT_COMPLETED,
+                data={
+                    "total_findings": 12,
+                    "duration_seconds": 245.8,
+                    "summary": {
+                        "critical": 2,
+                        "high": 3,
+                        "medium": 4,
+                        "low": 3,
+                    },
+                    "layers_analyzed": 7,
+                },
+                audit_id=audit_id,
+            ),
+        ),
     ]
 
     for step, event in workflow_events:

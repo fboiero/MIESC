@@ -6,15 +6,17 @@ Supports all 10 tools with advanced reporting capabilities
 
 import json
 import sys
-from pathlib import Path
-from datetime import datetime
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, asdict
 from collections import defaultdict
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 
 @dataclass
 class Finding:
     """Structured finding from any tool."""
+
     tool: str
     severity: str
     category: str
@@ -28,9 +30,11 @@ class Finding:
     swc_id: Optional[str] = None
     ai_classification: Optional[Dict] = None
 
+
 @dataclass
 class ExecutiveSummary:
     """Executive summary of the audit."""
+
     total_findings: int
     critical_count: int
     high_count: int
@@ -47,26 +51,27 @@ class ExecutiveSummary:
     properties_violated: int
     ai_false_positives_filtered: int
 
+
 class EnhancedReporter:
     """
     Enhanced reporting system for Xaudit v2.0
     Generates comprehensive reports from all 10 tools
     """
 
-    SEVERITY_ORDER = ['critical', 'high', 'medium', 'low', 'informational']
+    SEVERITY_ORDER = ["critical", "high", "medium", "low", "informational"]
 
     TOOL_NAMES = {
-        'solhint': 'Solhint (Linting)',
-        'slither': 'Slither (Static Analysis)',
-        'surya': 'Surya (Visualization)',
-        'mythril': 'Mythril (Symbolic - SMT)',
-        'manticore': 'Manticore (Symbolic - Dynamic)',
-        'echidna': 'Echidna (Fuzzing - Property)',
-        'medusa': 'Medusa (Fuzzing - Coverage)',
-        'foundry_fuzz': 'Foundry (Fuzzing - Stateless)',
-        'foundry_invariants': 'Foundry (Invariant Testing)',
-        'certora': 'Certora (Formal Verification)',
-        'ai_triage': 'AI Triage (GPT-4o-mini)'
+        "solhint": "Solhint (Linting)",
+        "slither": "Slither (Static Analysis)",
+        "surya": "Surya (Visualization)",
+        "mythril": "Mythril (Symbolic - SMT)",
+        "manticore": "Manticore (Symbolic - Dynamic)",
+        "echidna": "Echidna (Fuzzing - Property)",
+        "medusa": "Medusa (Fuzzing - Coverage)",
+        "foundry_fuzz": "Foundry (Fuzzing - Stateless)",
+        "foundry_invariants": "Foundry (Invariant Testing)",
+        "certora": "Certora (Formal Verification)",
+        "ai_triage": "AI Triage (GPT-4o-mini)",
     }
 
     def __init__(self, results_dir: Path):
@@ -117,280 +122,297 @@ class EnhancedReporter:
 
     def _collect_solhint(self):
         """Parse Solhint JSON results."""
-        solhint_dir = self.results_dir / 'solhint'
+        solhint_dir = self.results_dir / "solhint"
         if not solhint_dir.exists():
             return
 
-        for json_file in solhint_dir.glob('*.json'):
+        for json_file in solhint_dir.glob("*.json"):
             try:
                 with open(json_file) as f:
                     data = json.load(f)
                     for issue in data:
-                        self.findings.append(Finding(
-                            tool='solhint',
-                            severity=issue.get('severity', 'low'),
-                            category=issue.get('type', 'style'),
-                            title=issue.get('ruleId', 'Unknown'),
-                            description=issue.get('message', ''),
-                            location={
-                                'file': str(json_file),
-                                'line': issue.get('line', 0),
-                                'column': issue.get('column', 0)
-                            }
-                        ))
+                        self.findings.append(
+                            Finding(
+                                tool="solhint",
+                                severity=issue.get("severity", "low"),
+                                category=issue.get("type", "style"),
+                                title=issue.get("ruleId", "Unknown"),
+                                description=issue.get("message", ""),
+                                location={
+                                    "file": str(json_file),
+                                    "line": issue.get("line", 0),
+                                    "column": issue.get("column", 0),
+                                },
+                            )
+                        )
             except Exception as e:
                 print(f"Warning: Failed to parse Solhint {json_file}: {e}")
 
     def _collect_slither(self):
         """Parse Slither JSON results."""
-        slither_dir = self.results_dir / 'slither'
+        slither_dir = self.results_dir / "slither"
         if not slither_dir.exists():
             return
 
-        for json_file in slither_dir.glob('*.json'):
+        for json_file in slither_dir.glob("*.json"):
             try:
                 with open(json_file) as f:
                     data = json.load(f)
-                    detectors = data.get('results', {}).get('detectors', [])
+                    detectors = data.get("results", {}).get("detectors", [])
 
                     for detector in detectors:
-                        self.findings.append(Finding(
-                            tool='slither',
-                            severity=detector.get('impact', 'informational').lower(),
-                            category=detector.get('check', 'unknown'),
-                            title=detector.get('check', 'Unknown'),
-                            description=detector.get('description', ''),
-                            location={
-                                'file': detector.get('elements', [{}])[0].get('source_mapping', {}).get('filename_relative', 'unknown'),
-                                'line': detector.get('elements', [{}])[0].get('source_mapping', {}).get('lines', [0])[0]
-                            },
-                            confidence=detector.get('confidence'),
-                            impact=detector.get('impact')
-                        ))
+                        self.findings.append(
+                            Finding(
+                                tool="slither",
+                                severity=detector.get("impact", "informational").lower(),
+                                category=detector.get("check", "unknown"),
+                                title=detector.get("check", "Unknown"),
+                                description=detector.get("description", ""),
+                                location={
+                                    "file": detector.get("elements", [{}])[0]
+                                    .get("source_mapping", {})
+                                    .get("filename_relative", "unknown"),
+                                    "line": detector.get("elements", [{}])[0]
+                                    .get("source_mapping", {})
+                                    .get("lines", [0])[0],
+                                },
+                                confidence=detector.get("confidence"),
+                                impact=detector.get("impact"),
+                            )
+                        )
             except Exception as e:
                 print(f"Warning: Failed to parse Slither {json_file}: {e}")
 
     def _collect_surya(self):
         """Collect Surya metrics (no findings)."""
-        surya_dir = self.results_dir / 'surya' / 'outputs'
+        surya_dir = self.results_dir / "surya" / "outputs"
         if not surya_dir.exists():
             return
 
-        metrics_file = surya_dir / 'metrics.txt'
+        metrics_file = surya_dir / "metrics.txt"
         if metrics_file.exists():
             try:
-                content = metrics_file.read_text()
+                metrics_file.read_text()
                 # Parse metrics (simplified)
-                self.metrics['surya'] = {
-                    'complexity_analyzed': True,
-                    'graphs_generated': True
-                }
+                self.metrics["surya"] = {"complexity_analyzed": True, "graphs_generated": True}
             except Exception as e:
                 print(f"Warning: Failed to parse Surya metrics: {e}")
 
     def _collect_mythril(self):
         """Parse Mythril JSON results."""
-        mythril_dir = self.results_dir / 'mythril'
+        mythril_dir = self.results_dir / "mythril"
         if not mythril_dir.exists():
             return
 
-        for json_file in mythril_dir.glob('*.json'):
+        for json_file in mythril_dir.glob("*.json"):
             try:
                 with open(json_file) as f:
                     data = json.load(f)
-                    issues = data.get('issues', [])
+                    issues = data.get("issues", [])
 
                     for issue in issues:
-                        self.findings.append(Finding(
-                            tool='mythril',
-                            severity=issue.get('severity', 'medium').lower(),
-                            category=issue.get('title', 'unknown'),
-                            title=issue.get('title', 'Unknown'),
-                            description=issue.get('description', ''),
-                            location={
-                                'file': issue.get('filename', 'unknown'),
-                                'line': issue.get('lineno', 0)
-                            },
-                            swc_id=issue.get('swc-id')
-                        ))
+                        self.findings.append(
+                            Finding(
+                                tool="mythril",
+                                severity=issue.get("severity", "medium").lower(),
+                                category=issue.get("title", "unknown"),
+                                title=issue.get("title", "Unknown"),
+                                description=issue.get("description", ""),
+                                location={
+                                    "file": issue.get("filename", "unknown"),
+                                    "line": issue.get("lineno", 0),
+                                },
+                                swc_id=issue.get("swc-id"),
+                            )
+                        )
             except Exception as e:
                 print(f"Warning: Failed to parse Mythril {json_file}: {e}")
 
     def _collect_manticore(self):
         """Parse Manticore results and exploits."""
-        manticore_dir = self.results_dir / 'manticore'
+        manticore_dir = self.results_dir / "manticore"
         if not manticore_dir.exists():
             return
 
-        exploits_count = len(list(manticore_dir.glob('exploit_*.sol')))
-        self.metrics['manticore'] = {
-            'exploits_generated': exploits_count
-        }
+        exploits_count = len(list(manticore_dir.glob("exploit_*.sol")))
+        self.metrics["manticore"] = {"exploits_generated": exploits_count}
 
         # Parse workspace for findings
-        for workspace in manticore_dir.glob('mcore_*'):
+        for workspace in manticore_dir.glob("mcore_*"):
             try:
-                test_files = list(workspace.glob('test_*.txt'))
+                test_files = list(workspace.glob("test_*.txt"))
                 for test_file in test_files:
                     content = test_file.read_text()
-                    if 'REVERT' not in content and 'SUCCESS' in content:
+                    if "REVERT" not in content and "SUCCESS" in content:
                         # Found a vulnerability
-                        self.findings.append(Finding(
-                            tool='manticore',
-                            severity='high',
-                            category='symbolic_execution',
-                            title='Symbolic Execution Vulnerability',
-                            description=f'Exploit path found: {test_file.name}',
-                            location={'file': str(workspace)}
-                        ))
+                        self.findings.append(
+                            Finding(
+                                tool="manticore",
+                                severity="high",
+                                category="symbolic_execution",
+                                title="Symbolic Execution Vulnerability",
+                                description=f"Exploit path found: {test_file.name}",
+                                location={"file": str(workspace)},
+                            )
+                        )
             except Exception as e:
                 print(f"Warning: Failed to parse Manticore workspace: {e}")
 
     def _collect_echidna(self):
         """Parse Echidna results."""
-        echidna_dir = self.results_dir / 'echidna'
+        echidna_dir = self.results_dir / "echidna"
         if not echidna_dir.exists():
             return
 
-        for txt_file in echidna_dir.glob('*.txt'):
+        for txt_file in echidna_dir.glob("*.txt"):
             try:
                 content = txt_file.read_text()
-                lines = content.split('\n')
+                lines = content.split("\n")
 
                 for line in lines:
-                    if 'failed!' in line:
+                    if "failed!" in line:
                         # Property violated
-                        prop_name = line.split(':')[0].strip() if ':' in line else 'unknown'
-                        self.findings.append(Finding(
-                            tool='echidna',
-                            severity='high',
-                            category='property_violation',
-                            title=f'Property violated: {prop_name}',
-                            description=line,
-                            location={'file': str(txt_file)}
-                        ))
+                        prop_name = line.split(":")[0].strip() if ":" in line else "unknown"
+                        self.findings.append(
+                            Finding(
+                                tool="echidna",
+                                severity="high",
+                                category="property_violation",
+                                title=f"Property violated: {prop_name}",
+                                description=line,
+                                location={"file": str(txt_file)},
+                            )
+                        )
             except Exception as e:
                 print(f"Warning: Failed to parse Echidna {txt_file}: {e}")
 
     def _collect_medusa(self):
         """Parse Medusa results."""
-        medusa_dir = self.results_dir / 'medusa'
+        medusa_dir = self.results_dir / "medusa"
         if not medusa_dir.exists():
             return
 
-        for json_file in medusa_dir.glob('*.json'):
+        for json_file in medusa_dir.glob("*.json"):
             try:
                 with open(json_file) as f:
                     data = json.load(f)
                     # Parse Medusa results (structure depends on version)
                     # Simplified parsing
-                    if 'fuzzing' in data:
-                        test_results = data['fuzzing'].get('test_results', {})
+                    if "fuzzing" in data:
+                        test_results = data["fuzzing"].get("test_results", {})
                         for test_name, result in test_results.items():
-                            if result.get('status') == 'FAILED':
-                                self.findings.append(Finding(
-                                    tool='medusa',
-                                    severity='high',
-                                    category='assertion_failure',
-                                    title=f'Test failed: {test_name}',
-                                    description=result.get('message', ''),
-                                    location={'file': str(json_file)}
-                                ))
+                            if result.get("status") == "FAILED":
+                                self.findings.append(
+                                    Finding(
+                                        tool="medusa",
+                                        severity="high",
+                                        category="assertion_failure",
+                                        title=f"Test failed: {test_name}",
+                                        description=result.get("message", ""),
+                                        location={"file": str(json_file)},
+                                    )
+                                )
             except Exception as e:
                 print(f"Warning: Failed to parse Medusa {json_file}: {e}")
 
     def _collect_foundry_fuzz(self):
         """Parse Foundry fuzz test results."""
-        foundry_dir = self.results_dir / 'foundry'
+        foundry_dir = self.results_dir / "foundry"
         if not foundry_dir.exists():
             return
 
-        fuzz_results = foundry_dir / 'fuzz_results.txt'
+        fuzz_results = foundry_dir / "fuzz_results.txt"
         if fuzz_results.exists():
             try:
                 content = fuzz_results.read_text()
                 # Parse [FAIL] lines
-                for line in content.split('\n'):
-                    if '[FAIL]' in line:
-                        self.findings.append(Finding(
-                            tool='foundry_fuzz',
-                            severity='medium',
-                            category='fuzz_failure',
-                            title='Fuzz test failed',
-                            description=line.strip(),
-                            location={'file': str(fuzz_results)}
-                        ))
+                for line in content.split("\n"):
+                    if "[FAIL]" in line:
+                        self.findings.append(
+                            Finding(
+                                tool="foundry_fuzz",
+                                severity="medium",
+                                category="fuzz_failure",
+                                title="Fuzz test failed",
+                                description=line.strip(),
+                                location={"file": str(fuzz_results)},
+                            )
+                        )
             except Exception as e:
                 print(f"Warning: Failed to parse Foundry fuzz: {e}")
 
     def _collect_foundry_invariants(self):
         """Parse Foundry invariant test results."""
-        foundry_dir = self.results_dir / 'foundry'
+        foundry_dir = self.results_dir / "foundry"
         if not foundry_dir.exists():
             return
 
-        for log_file in foundry_dir.glob('invariant_*.log'):
+        for log_file in foundry_dir.glob("invariant_*.log"):
             try:
                 content = log_file.read_text()
                 # Look for invariant violations
-                if 'FAILED' in content or 'violated' in content.lower():
+                if "FAILED" in content or "violated" in content.lower():
                     # Extract invariant name
-                    for line in content.split('\n'):
-                        if 'invariant_' in line:
-                            self.findings.append(Finding(
-                                tool='foundry_invariants',
-                                severity='critical',
-                                category='invariant_violation',
-                                title='Invariant violated',
-                                description=line.strip(),
-                                location={'file': str(log_file)}
-                            ))
+                    for line in content.split("\n"):
+                        if "invariant_" in line:
+                            self.findings.append(
+                                Finding(
+                                    tool="foundry_invariants",
+                                    severity="critical",
+                                    category="invariant_violation",
+                                    title="Invariant violated",
+                                    description=line.strip(),
+                                    location={"file": str(log_file)},
+                                )
+                            )
             except Exception as e:
                 print(f"Warning: Failed to parse Foundry invariants: {e}")
 
     def _collect_certora(self):
         """Parse Certora verification results."""
-        certora_dir = self.results_dir / 'certora'
+        certora_dir = self.results_dir / "certora"
         if not certora_dir.exists():
             return
 
-        for json_file in certora_dir.glob('*.json'):
+        for json_file in certora_dir.glob("*.json"):
             try:
                 with open(json_file) as f:
                     data = json.load(f)
-                    rules = data.get('rules', [])
+                    rules = data.get("rules", [])
 
                     for rule in rules:
-                        if rule.get('status') == 'VIOLATED':
-                            self.findings.append(Finding(
-                                tool='certora',
-                                severity='critical',
-                                category='formal_verification',
-                                title=f"Rule violated: {rule.get('name', 'unknown')}",
-                                description=rule.get('message', ''),
-                                location={'file': str(json_file)}
-                            ))
+                        if rule.get("status") == "VIOLATED":
+                            self.findings.append(
+                                Finding(
+                                    tool="certora",
+                                    severity="critical",
+                                    category="formal_verification",
+                                    title=f"Rule violated: {rule.get('name', 'unknown')}",
+                                    description=rule.get("message", ""),
+                                    location={"file": str(json_file)},
+                                )
+                            )
             except Exception as e:
                 print(f"Warning: Failed to parse Certora {json_file}: {e}")
 
     def _collect_ai_triage(self):
         """Collect AI triage classifications."""
-        ai_dir = self.results_dir / 'ai_triage'
+        ai_dir = self.results_dir / "ai_triage"
         if not ai_dir.exists():
             return
 
-        triage_file = ai_dir / 'classification.json'
+        triage_file = ai_dir / "classification.json"
         if triage_file.exists():
             try:
                 with open(triage_file) as f:
                     data = json.load(f)
-                    self.metrics['ai_triage'] = {
-                        'false_positives_filtered': data.get('fp_filtered', 0),
-                        'findings_reclassified': data.get('reclassified', 0)
+                    self.metrics["ai_triage"] = {
+                        "false_positives_filtered": data.get("fp_filtered", 0),
+                        "findings_reclassified": data.get("reclassified", 0),
                     }
 
                     # Add AI classifications to findings
-                    classifications = data.get('classifications', [])
+                    classifications = data.get("classifications", [])
                     for idx, classification in enumerate(classifications):
                         if idx < len(self.findings):
                             self.findings[idx].ai_classification = classification
@@ -415,14 +437,15 @@ class EnhancedReporter:
         """Calculate total lines of code in analyzed Solidity contracts."""
         total_loc = 0
         try:
-            for sol_file in self.results_dir.glob('**/*.sol'):
+            for sol_file in self.results_dir.glob("**/*.sol"):
                 try:
-                    with open(sol_file, 'r', encoding='utf-8') as f:
+                    with open(sol_file, "r", encoding="utf-8") as f:
                         lines = f.readlines()
                         # Count non-empty, non-comment-only lines
                         code_lines = [
-                            line for line in lines
-                            if line.strip() and not line.strip().startswith('//')
+                            line
+                            for line in lines
+                            if line.strip() and not line.strip().startswith("//")
                         ]
                         total_loc += len(code_lines)
                 except Exception as e:
@@ -437,16 +460,16 @@ class EnhancedReporter:
         coverage = 0.0
 
         # Check Medusa results
-        if 'medusa' in self.metrics:
-            coverage = max(coverage, self.metrics['medusa'].get('coverage_percentage', 0.0))
+        if "medusa" in self.metrics:
+            coverage = max(coverage, self.metrics["medusa"].get("coverage_percentage", 0.0))
 
         # Check Echidna results
-        if 'echidna' in self.metrics:
-            coverage = max(coverage, self.metrics['echidna'].get('coverage_percentage', 0.0))
+        if "echidna" in self.metrics:
+            coverage = max(coverage, self.metrics["echidna"].get("coverage_percentage", 0.0))
 
         # Check Foundry results
-        if 'foundry_fuzz' in self.metrics:
-            coverage = max(coverage, self.metrics['foundry_fuzz'].get('coverage_percentage', 0.0))
+        if "foundry_fuzz" in self.metrics:
+            coverage = max(coverage, self.metrics["foundry_fuzz"].get("coverage_percentage", 0.0))
 
         return coverage
 
@@ -456,24 +479,26 @@ class EnhancedReporter:
         for finding in self.findings:
             severity_counts[finding.severity] += 1
 
-        tools_executed = list(set(f.tool for f in self.findings))
+        tools_executed = list({f.tool for f in self.findings})
 
         return ExecutiveSummary(
             total_findings=len(self.findings),
-            critical_count=severity_counts['critical'],
-            high_count=severity_counts['high'],
-            medium_count=severity_counts['medium'],
-            low_count=severity_counts['low'],
-            info_count=severity_counts.get('informational', 0) + severity_counts.get('info', 0),
+            critical_count=severity_counts["critical"],
+            high_count=severity_counts["high"],
+            medium_count=severity_counts["medium"],
+            low_count=severity_counts["low"],
+            info_count=severity_counts.get("informational", 0) + severity_counts.get("info", 0),
             tools_executed=tools_executed,
             analysis_duration=self._calculate_analysis_duration(),
-            contracts_analyzed=len(list(self.results_dir.glob('**/*.sol'))),
+            contracts_analyzed=len(list(self.results_dir.glob("**/*.sol"))),
             lines_of_code=self._calculate_lines_of_code(),
             coverage_percentage=self._calculate_coverage_percentage(),
-            exploits_generated=self.metrics.get('manticore', {}).get('exploits_generated', 0),
-            invariants_tested=len([f for f in self.findings if f.tool == 'foundry_invariants']),
-            properties_violated=len([f for f in self.findings if f.tool in ['echidna', 'medusa']]),
-            ai_false_positives_filtered=self.metrics.get('ai_triage', {}).get('false_positives_filtered', 0)
+            exploits_generated=self.metrics.get("manticore", {}).get("exploits_generated", 0),
+            invariants_tested=len([f for f in self.findings if f.tool == "foundry_invariants"]),
+            properties_violated=len([f for f in self.findings if f.tool in ["echidna", "medusa"]]),
+            ai_false_positives_filtered=self.metrics.get("ai_triage", {}).get(
+                "false_positives_filtered", 0
+            ),
         )
 
     def generate_json_report(self, output_file: Path):
@@ -481,23 +506,33 @@ class EnhancedReporter:
         summary = self.generate_executive_summary()
 
         report = {
-            'metadata': {
-                'version': '2.0',
-                'timestamp': self.timestamp.isoformat(),
-                'results_directory': str(self.results_dir),
-                'generator': 'Xaudit Enhanced Reporter'
+            "metadata": {
+                "version": "2.0",
+                "timestamp": self.timestamp.isoformat(),
+                "results_directory": str(self.results_dir),
+                "generator": "Xaudit Enhanced Reporter",
             },
-            'executive_summary': asdict(summary),
-            'findings': [asdict(f) for f in sorted(
-                self.findings,
-                key=lambda x: (self.SEVERITY_ORDER.index(x.severity) if x.severity in self.SEVERITY_ORDER else 999, x.tool)
-            )],
-            'metrics_by_tool': dict(self.metrics),
-            'statistics': self._generate_statistics()
+            "executive_summary": asdict(summary),
+            "findings": [
+                asdict(f)
+                for f in sorted(
+                    self.findings,
+                    key=lambda x: (
+                        (
+                            self.SEVERITY_ORDER.index(x.severity)
+                            if x.severity in self.SEVERITY_ORDER
+                            else 999
+                        ),
+                        x.tool,
+                    ),
+                )
+            ],
+            "metrics_by_tool": dict(self.metrics),
+            "statistics": self._generate_statistics(),
         }
 
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             json.dump(report, f, indent=2, default=str)
 
         print(f"✅ JSON report saved to: {output_file}")
@@ -505,28 +540,28 @@ class EnhancedReporter:
     def _generate_statistics(self) -> Dict:
         """Generate detailed statistics."""
         stats = {
-            'by_severity': defaultdict(int),
-            'by_tool': defaultdict(int),
-            'by_category': defaultdict(int),
-            'tools_summary': {}
+            "by_severity": defaultdict(int),
+            "by_tool": defaultdict(int),
+            "by_category": defaultdict(int),
+            "tools_summary": {},
         }
 
         for finding in self.findings:
-            stats['by_severity'][finding.severity] += 1
-            stats['by_tool'][finding.tool] += 1
-            stats['by_category'][finding.category] += 1
+            stats["by_severity"][finding.severity] += 1
+            stats["by_tool"][finding.tool] += 1
+            stats["by_category"][finding.category] += 1
 
         # Convert defaultdicts to regular dicts
-        stats['by_severity'] = dict(stats['by_severity'])
-        stats['by_tool'] = dict(stats['by_tool'])
-        stats['by_category'] = dict(stats['by_category'])
+        stats["by_severity"] = dict(stats["by_severity"])
+        stats["by_tool"] = dict(stats["by_tool"])
+        stats["by_category"] = dict(stats["by_category"])
 
         # Tools summary
         for tool_key, tool_name in self.TOOL_NAMES.items():
-            count = stats['by_tool'].get(tool_key, 0)
-            stats['tools_summary'][tool_name] = {
-                'findings': count,
-                'executed': tool_key in [f.tool for f in self.findings] or tool_key in self.metrics
+            count = stats["by_tool"].get(tool_key, 0)
+            stats["tools_summary"][tool_name] = {
+                "findings": count,
+                "executed": tool_key in [f.tool for f in self.findings] or tool_key in self.metrics,
             }
 
         return stats
@@ -564,16 +599,16 @@ class EnhancedReporter:
 ## 🛠️ Tools Executed
 
 """
-        for tool_name, info in stats['tools_summary'].items():
-            status = "✅" if info['executed'] else "⏭️"
+        for tool_name, info in stats["tools_summary"].items():
+            status = "✅" if info["executed"] else "⏭️"
             md_content += f"- {status} **{tool_name}**: {info['findings']} findings\n"
 
         md_content += "\n---\n\n## 🚨 Critical & High Findings\n\n"
 
-        critical_high = [f for f in self.findings if f.severity in ['critical', 'high']]
+        critical_high = [f for f in self.findings if f.severity in ["critical", "high"]]
         if critical_high:
             for idx, finding in enumerate(critical_high[:20], 1):  # Limit to top 20
-                severity_emoji = "🔴" if finding.severity == 'critical' else "🟠"
+                severity_emoji = "🔴" if finding.severity == "critical" else "🟠"
                 md_content += f"""
 ### {idx}. {severity_emoji} {finding.title}
 
@@ -596,7 +631,7 @@ class EnhancedReporter:
 ## 📈 Findings by Tool
 
 """
-        for tool_key, count in sorted(stats['by_tool'].items(), key=lambda x: -x[1]):
+        for tool_key, count in sorted(stats["by_tool"].items(), key=lambda x: -x[1]):
             tool_name = self.TOOL_NAMES.get(tool_key, tool_key)
             md_content += f"- **{tool_name}**: {count} findings\n"
 
@@ -626,8 +661,7 @@ class EnhancedReporter:
 **Generated by Xaudit v2.0** | [GitHub](https://github.com/fboiero/MIESC)
 Universidad de la Defensa Nacional (UNDEF) - IUA Córdoba | Maestría en Ciberdefensa
 """.format(
-            ai_filtered=summary.ai_false_positives_filtered,
-            exploits=summary.exploits_generated
+            ai_filtered=summary.ai_false_positives_filtered, exploits=summary.exploits_generated
         )
 
         output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -638,12 +672,17 @@ Universidad de la Defensa Nacional (UNDEF) - IUA Córdoba | Maestría en Ciberde
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(description="Xaudit Enhanced Reporter v2.0")
     parser.add_argument("--results", required=True, help="Path to analysis results directory")
     parser.add_argument("--output", default="reports", help="Output directory for reports")
-    parser.add_argument("--format", nargs='+', default=['json', 'markdown'],
-                       choices=['json', 'markdown', 'html', 'pdf'],
-                       help="Output formats")
+    parser.add_argument(
+        "--format",
+        nargs="+",
+        default=["json", "markdown"],
+        choices=["json", "markdown", "html", "pdf"],
+        help="Output formats",
+    )
 
     args = parser.parse_args()
 
@@ -662,11 +701,11 @@ def main():
 
     print("\n📝 Generating reports...")
 
-    if 'json' in args.format:
-        reporter.generate_json_report(output_dir / 'report.json')
+    if "json" in args.format:
+        reporter.generate_json_report(output_dir / "report.json")
 
-    if 'markdown' in args.format:
-        reporter.generate_markdown_report(output_dir / 'REPORT.md')
+    if "markdown" in args.format:
+        reporter.generate_markdown_report(output_dir / "REPORT.md")
 
     summary = reporter.generate_executive_summary()
 

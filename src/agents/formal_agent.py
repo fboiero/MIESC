@@ -10,11 +10,12 @@ Certora Prover Update (2025):
 - GitHub: https://github.com/Certora/CertoraProver
 - No license required, community-driven
 """
-import json
+
 import logging
 import subprocess
-from typing import Dict, Any, List
 from pathlib import Path
+from typing import Any, Dict, List
+
 from src.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
@@ -43,17 +44,13 @@ class FormalAgent(BaseAgent):
                 "formal_verification",
                 "mathematical_proofs",
                 "invariant_checking",
-                "temporal_logic"
+                "temporal_logic",
             ],
-            agent_type="formal"
+            agent_type="formal",
         )
 
     def get_context_types(self) -> List[str]:
-        return [
-            "formal_findings",
-            "certora_results",
-            "z3_results"
-        ]
+        return ["formal_findings", "certora_results", "z3_results"]
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -68,11 +65,7 @@ class FormalAgent(BaseAgent):
         Returns:
             Dictionary with formal verification results
         """
-        results = {
-            "formal_findings": [],
-            "certora_results": {},
-            "z3_results": {}
-        }
+        results = {"formal_findings": [], "certora_results": {}, "z3_results": {}}
 
         spec_file = kwargs.get("spec_file")
         timeout = kwargs.get("timeout", 1800)  # 30 minutes default
@@ -84,17 +77,14 @@ class FormalAgent(BaseAgent):
             results["certora_results"] = certora_data
         else:
             logger.warning("FormalAgent: No spec file provided, skipping Certora")
-            results["certora_results"] = {
-                "error": "no_spec_file",
-                "violations": []
-            }
+            results["certora_results"] = {"error": "no_spec_file", "violations": []}
 
         # Z3 can be used for specific constraint solving
-        logger.info(f"FormalAgent: Z3 available for constraint solving")
+        logger.info("FormalAgent: Z3 available for constraint solving")
         results["z3_results"] = {
             "tool": "Z3",
             "status": "available",
-            "message": "Z3 SMT solver ready for constraint solving"
+            "message": "Z3 SMT solver ready for constraint solving",
         }
 
         # Aggregate findings
@@ -104,8 +94,7 @@ class FormalAgent(BaseAgent):
 
         return results
 
-    def _run_certora(self, contract_path: str, spec_file: str,
-                     timeout: int) -> Dict[str, Any]:
+    def _run_certora(self, contract_path: str, spec_file: str, timeout: int) -> Dict[str, Any]:
         """
         Execute Certora Prover formal verification
 
@@ -117,34 +106,32 @@ class FormalAgent(BaseAgent):
             cmd = [
                 "certoraRun",
                 contract_path,
-                "--verify", f"{Path(contract_path).stem}:{spec_file}",
-                "--msg", "MIESC automated verification"
+                "--verify",
+                f"{Path(contract_path).stem}:{spec_file}",
+                "--msg",
+                "MIESC automated verification",
             ]
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
             # Parse Certora output
             output = result.stdout
             violations = []
             verified_rules = []
 
-            for line in output.split('\n'):
-                if 'violation' in line.lower() or 'failed' in line.lower():
-                    violations.append({
-                        "rule": self._extract_rule_name(line),
-                        "status": "violated",
-                        "description": line.strip()
-                    })
-                elif 'verified' in line.lower() or 'passed' in line.lower():
-                    verified_rules.append({
-                        "rule": self._extract_rule_name(line),
-                        "status": "verified"
-                    })
+            for line in output.split("\n"):
+                if "violation" in line.lower() or "failed" in line.lower():
+                    violations.append(
+                        {
+                            "rule": self._extract_rule_name(line),
+                            "status": "violated",
+                            "description": line.strip(),
+                        }
+                    )
+                elif "verified" in line.lower() or "passed" in line.lower():
+                    verified_rules.append(
+                        {"rule": self._extract_rule_name(line), "status": "verified"}
+                    )
 
             return {
                 "tool": "Certora",
@@ -154,8 +141,8 @@ class FormalAgent(BaseAgent):
                 "metadata": {
                     "exit_code": result.returncode,
                     "spec_file": spec_file,
-                    "verification_type": "formal_proof"
-                }
+                    "verification_type": "formal_proof",
+                },
             }
 
         except subprocess.TimeoutExpired:
@@ -166,7 +153,7 @@ class FormalAgent(BaseAgent):
             return {
                 "error": "not_installed",
                 "violations": [],
-                "suggestion": "Install Certora open source: npm install -g @certora/prover"
+                "suggestion": "Install Certora open source: npm install -g @certora/prover",
             }
         except Exception as e:
             logger.error(f"Certora execution error: {e}")
@@ -189,8 +176,7 @@ class FormalAgent(BaseAgent):
                 return word
         return "unknown"
 
-    def _aggregate_findings(self, certora_data: Dict,
-                           z3_data: Dict) -> List[Dict[str, Any]]:
+    def _aggregate_findings(self, certora_data: Dict, z3_data: Dict) -> List[Dict[str, Any]]:
         """
         Aggregate formal verification results into unified format
 
@@ -201,29 +187,33 @@ class FormalAgent(BaseAgent):
 
         # Add Certora violations
         for violation in certora_data.get("violations", []):
-            unified.append({
-                "source": "Certora",
-                "type": "rule_violation",
-                "rule": violation.get("rule"),
-                "severity": "Critical",
-                "description": violation.get("description"),
-                "layer": "formal",
-                "verification_type": "mathematical_proof",
-                "confidence": "Very High",  # Formal proofs have highest confidence
-                "owasp_category": "SC10-Unknown-Unknowns"  # Spec-specific
-            })
+            unified.append(
+                {
+                    "source": "Certora",
+                    "type": "rule_violation",
+                    "rule": violation.get("rule"),
+                    "severity": "Critical",
+                    "description": violation.get("description"),
+                    "layer": "formal",
+                    "verification_type": "mathematical_proof",
+                    "confidence": "Very High",  # Formal proofs have highest confidence
+                    "owasp_category": "SC10-Unknown-Unknowns",  # Spec-specific
+                }
+            )
 
         # Add verified rules as positive findings
         for verified in certora_data.get("verified_rules", []):
-            unified.append({
-                "source": "Certora",
-                "type": "verified_property",
-                "rule": verified.get("rule"),
-                "severity": "Info",
-                "description": f"Rule {verified.get('rule')} mathematically verified",
-                "layer": "formal",
-                "status": "verified"
-            })
+            unified.append(
+                {
+                    "source": "Certora",
+                    "type": "verified_property",
+                    "rule": verified.get("rule"),
+                    "severity": "Info",
+                    "description": f"Rule {verified.get('rule')} mathematically verified",
+                    "layer": "formal",
+                    "status": "verified",
+                }
+            )
 
         return unified
 
@@ -240,18 +230,14 @@ class FormalAgent(BaseAgent):
         try:
             # Write spec to temp file
             import tempfile
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.smt2', delete=False) as f:
+
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".smt2", delete=False) as f:
                 f.write(invariant_spec)
                 temp_path = f.name
 
             # Run Z3
             cmd = ["z3", temp_path]
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=60
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
             output = result.stdout.strip()
 
@@ -259,7 +245,7 @@ class FormalAgent(BaseAgent):
                 "tool": "Z3",
                 "result": output,
                 "satisfiable": "sat" in output.lower(),
-                "valid": "unsat" in output.lower()
+                "valid": "unsat" in output.lower(),
             }
 
         except Exception as e:

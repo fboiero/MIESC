@@ -1,8 +1,16 @@
-# MIESC v5.0.1 FULL - Extended Docker Image
+# MIESC v5.0.2 FULL - Extended Docker Image
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
-# This Dockerfile EXTENDS the standard image with additional tools:
-# - Layer 4: Symbolic Execution (Mythril, Manticore, Halmos)
+# This is the ONLY image that includes symbolic execution tools:
+# - Mythril (symbolic execution for Solidity - requires z3-solver)
+# - Manticore (symbolic execution engine - pinned protobuf for Python 3.12)
+# - Halmos (formal verification)
+#
+# These tools were removed from the base Dockerfile because:
+# - z3-solver takes 15-20 min to compile per architecture on QEMU
+# - Manticore has protobuf compatibility issues on Python 3.12
+#
+# Also includes:
 # - Layer 8-9: ML Analysis (PyTorch, scikit-learn for DAGNN/SmartGuard)
 # - Additional: Semgrep for pattern-based analysis
 #
@@ -20,7 +28,7 @@
 FROM ghcr.io/fboiero/miesc:latest
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.0.1-full"
+LABEL version="5.0.2-full"
 LABEL description="MIESC FULL - Extended with Mythril, Manticore, PyTorch for ML Analysis"
 
 # Switch to root for system packages
@@ -42,45 +50,52 @@ USER miesc
 
 # Install Mythril (symbolic execution for Solidity)
 # This may take a while due to z3-solver compilation on some platforms
-RUN pip install --no-cache-dir --user mythril>=0.24.0 && \
-    echo "✓ Mythril installed" || \
-    echo "⚠ Mythril skipped - install manually if needed"
+RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
+    pip install --user mythril>=0.24.0 && \
+    echo "Mythril installed" || \
+    echo "WARNING: Mythril skipped - install manually if needed"
 
 # Install Manticore (symbolic execution engine)
-RUN pip install --no-cache-dir --user manticore[native] && \
-    echo "✓ Manticore installed" || \
-    echo "⚠ Manticore skipped - install manually if needed"
+# Pin protobuf<4.0.0 to avoid compatibility issues with Python 3.12
+RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
+    pip install --user 'protobuf<4.0.0' manticore[native] && \
+    echo "Manticore installed" || \
+    echo "WARNING: Manticore skipped - install manually if needed"
 
 # Install Halmos (formal verification)
-RUN pip install --no-cache-dir --user halmos && \
-    echo "✓ Halmos installed" || \
-    echo "⚠ Halmos skipped"
+RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
+    pip install --user halmos && \
+    echo "Halmos installed" || \
+    echo "WARNING: Halmos skipped"
 
 # ==========================================
 # LAYER 8-9: ML ANALYSIS TOOLS
 # ==========================================
 
 # Install PyTorch CPU-only version (~800MB)
-RUN pip install --no-cache-dir --user \
+RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
+    pip install --user \
     torch --index-url https://download.pytorch.org/whl/cpu && \
-    echo "✓ PyTorch CPU installed"
+    echo "PyTorch CPU installed"
 
 # Install ML dependencies for DAGNN, SmartGuard
-RUN pip install --no-cache-dir --user \
+RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
+    pip install --user \
     torch-geometric \
     networkx \
-    && echo "✓ Graph Neural Network libraries installed" || \
-    echo "⚠ Some GNN libraries skipped"
+    && echo "Graph Neural Network libraries installed" || \
+    echo "WARNING: Some GNN libraries skipped"
 
 # Install Semgrep (pattern-based analysis)
-RUN pip install --no-cache-dir --user semgrep && \
-    echo "✓ Semgrep installed"
+RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
+    pip install --user semgrep && \
+    echo "Semgrep installed"
 
 # ==========================================
 # ENVIRONMENT CONFIGURATION
 # ==========================================
 
-ENV MIESC_VERSION="5.0.1-full"
+ENV MIESC_VERSION="5.0.2-full"
 ENV MIESC_ENV="docker-full"
 
 # Health check

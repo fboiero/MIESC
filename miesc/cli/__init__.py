@@ -2,6 +2,7 @@
 
 try:
     from miesc.cli.main import cli
+
     __all__ = ["cli"]
 except ImportError:
     # Allow package to be imported even if dependencies missing

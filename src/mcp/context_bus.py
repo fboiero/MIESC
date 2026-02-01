@@ -13,11 +13,11 @@ Design Philosophy:
 """
 
 import logging
-from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Callable
-from datetime import datetime
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime
 from threading import RLock
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,7 @@ class MCPMessage:
         data: Actual findings/analysis data
         metadata: Additional metadata (tool versions, execution time, etc.)
     """
+
     protocol: str
     agent: str
     context_type: str
@@ -121,7 +122,7 @@ class ContextBus:
                     except Exception as e:
                         logger.error(
                             f"ContextBus: Subscriber callback error for {context_type}: {e}",
-                            exc_info=True
+                            exc_info=True,
                         )
 
             logger.debug(
@@ -202,12 +203,8 @@ class ContextBus:
             return {
                 "context_types": list(self._messages.keys()),
                 "total_messages": sum(len(msgs) for msgs in self._messages.values()),
-                "messages_per_type": {
-                    ct: len(msgs) for ct, msgs in self._messages.items()
-                },
-                "subscriber_count": {
-                    ct: len(subs) for ct, subs in self._subscribers.items()
-                }
+                "messages_per_type": {ct: len(msgs) for ct, msgs in self._messages.items()},
+                "subscriber_count": {ct: len(subs) for ct, subs in self._subscribers.items()},
             }
 
 

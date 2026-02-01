@@ -9,26 +9,25 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: January 2026
 """
 
-import pytest
 import asyncio
 import json
-from unittest.mock import patch, MagicMock, AsyncMock
-from dataclasses import asdict
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from src.llm.ensemble_detector import (
+    AllProvidersUnavailable,
+    EnsembleResult,
     LLMEnsembleDetector,
     LLMProvider,
-    VotingStrategy,
-    EnsembleFinding,
-    EnsembleResult,
     ProviderUnavailable,
-    AllProvidersUnavailable,
+    VotingStrategy,
 )
-
 
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def sample_vulnerable_code():
@@ -155,6 +154,7 @@ def create_mock_context_manager(status, json_data):
 # Multi-Provider Initialization Tests
 # =============================================================================
 
+
 class TestMultiProviderInitialization:
     """Tests for multi-provider initialization."""
 
@@ -177,15 +177,13 @@ class TestMultiProviderInitialization:
 
     def test_api_keys_from_environment(self):
         """Test API keys are read from environment variables."""
-        with patch.dict('os.environ', {
-            'OPENAI_API_KEY': 'env-openai-key',
-            'ANTHROPIC_API_KEY': 'env-anthropic-key'
-        }):
-            detector = LLMEnsembleDetector(
-                providers=[LLMProvider.OPENAI, LLMProvider.ANTHROPIC]
-            )
-            assert detector.openai_api_key == 'env-openai-key'
-            assert detector.anthropic_api_key == 'env-anthropic-key'
+        with patch.dict(
+            "os.environ",
+            {"OPENAI_API_KEY": "env-openai-key", "ANTHROPIC_API_KEY": "env-anthropic-key"},
+        ):
+            detector = LLMEnsembleDetector(providers=[LLMProvider.OPENAI, LLMProvider.ANTHROPIC])
+            assert detector.openai_api_key == "env-openai-key"
+            assert detector.anthropic_api_key == "env-anthropic-key"
 
     def test_provider_models_configuration(self):
         """Test provider-specific model configurations exist."""
@@ -219,11 +217,13 @@ class TestMultiProviderInitialization:
 # Provider Availability Tests
 # =============================================================================
 
+
 class TestProviderAvailability:
     """Tests for provider availability checking."""
 
     def test_check_ollama_availability_success(self, ollama_only_detector):
         """Test Ollama availability check when successful."""
+
         async def run_test():
             ollama_response = {
                 "models": [
@@ -233,14 +233,10 @@ class TestProviderAvailability:
                 ]
             }
 
-            with patch('aiohttp.ClientSession') as mock_session_class:
-                mock_session_class.return_value = create_mock_session([
-                    (200, ollama_response)
-                ])
+            with patch("aiohttp.ClientSession") as mock_session_class:
+                mock_session_class.return_value = create_mock_session([(200, ollama_response)])
 
-                models = await ollama_only_detector._check_provider_availability(
-                    LLMProvider.OLLAMA
-                )
+                models = await ollama_only_detector._check_provider_availability(LLMProvider.OLLAMA)
 
             assert len(models) == 3
             assert "deepseek-coder:6.7b" in models
@@ -249,16 +245,15 @@ class TestProviderAvailability:
 
     def test_check_ollama_availability_failure(self, ollama_only_detector):
         """Test Ollama availability check when unavailable."""
+
         async def run_test():
-            with patch('aiohttp.ClientSession') as mock_session_class:
+            with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session_class.return_value.__aenter__ = AsyncMock(
                     side_effect=Exception("Connection refused")
                 )
                 mock_session_class.return_value.__aexit__ = AsyncMock(return_value=None)
 
-                models = await ollama_only_detector._check_provider_availability(
-                    LLMProvider.OLLAMA
-                )
+                models = await ollama_only_detector._check_provider_availability(LLMProvider.OLLAMA)
 
             assert models == []
 
@@ -266,10 +261,9 @@ class TestProviderAvailability:
 
     def test_check_openai_availability_with_key(self, multi_provider_detector):
         """Test OpenAI availability when API key is set."""
+
         async def run_test():
-            models = await multi_provider_detector._check_provider_availability(
-                LLMProvider.OPENAI
-            )
+            models = await multi_provider_detector._check_provider_availability(LLMProvider.OPENAI)
 
             assert len(models) >= 3
             assert "gpt-4-turbo" in models
@@ -278,6 +272,7 @@ class TestProviderAvailability:
 
     def test_check_openai_availability_without_key(self):
         """Test OpenAI availability when no API key."""
+
         async def run_test():
             detector = LLMEnsembleDetector(
                 providers=[LLMProvider.OPENAI],
@@ -291,6 +286,7 @@ class TestProviderAvailability:
 
     def test_check_anthropic_availability_with_key(self, multi_provider_detector):
         """Test Anthropic availability when API key is set."""
+
         async def run_test():
             models = await multi_provider_detector._check_provider_availability(
                 LLMProvider.ANTHROPIC
@@ -303,6 +299,7 @@ class TestProviderAvailability:
 
     def test_check_anthropic_availability_without_key(self):
         """Test Anthropic availability when no API key."""
+
         async def run_test():
             detector = LLMEnsembleDetector(
                 providers=[LLMProvider.ANTHROPIC],
@@ -319,11 +316,15 @@ class TestProviderAvailability:
 # Provider Fallback Tests
 # =============================================================================
 
+
 class TestProviderFallback:
     """Tests for provider fallback mechanism."""
 
-    def test_fallback_to_second_provider(self, multi_provider_detector, sample_vulnerable_code, reentrancy_finding):
+    def test_fallback_to_second_provider(
+        self, multi_provider_detector, sample_vulnerable_code, reentrancy_finding
+    ):
         """Test fallback when first provider fails."""
+
         async def run_test():
             # Initialize with only OpenAI available
             multi_provider_detector._initialized = True
@@ -336,14 +337,10 @@ class TestProviderFallback:
 
             # Mock OpenAI response
             openai_response = {
-                "choices": [{
-                    "message": {
-                        "content": json.dumps([reentrancy_finding])
-                    }
-                }]
+                "choices": [{"message": {"content": json.dumps([reentrancy_finding])}}]
             }
 
-            with patch('aiohttp.ClientSession') as mock_session_class:
+            with patch("aiohttp.ClientSession") as mock_session_class:
                 # Create session that returns OpenAI responses
                 mock_session = MagicMock()
                 mock_session.post = MagicMock(
@@ -366,6 +363,7 @@ class TestProviderFallback:
 
     def test_all_providers_unavailable(self, multi_provider_detector, sample_vulnerable_code):
         """Test AllProvidersUnavailable exception when all fail."""
+
         async def run_test():
             # Initialize with no providers available
             multi_provider_detector._initialized = True
@@ -383,6 +381,7 @@ class TestProviderFallback:
 
     def test_provider_unavailable_exception(self, multi_provider_detector, sample_vulnerable_code):
         """Test ProviderUnavailable is raised for individual provider failures."""
+
         async def run_test():
             multi_provider_detector._initialized = True
             multi_provider_detector._available_providers = {
@@ -391,7 +390,7 @@ class TestProviderFallback:
                 LLMProvider.ANTHROPIC: [],
             }
 
-            with patch('aiohttp.ClientSession') as mock_session_class:
+            with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session_class.return_value.__aenter__ = AsyncMock(
                     side_effect=Exception("Connection error")
                 )
@@ -406,6 +405,7 @@ class TestProviderFallback:
 # =============================================================================
 # Cross-Provider Voting Tests
 # =============================================================================
+
 
 class TestCrossProviderVoting:
     """Tests for voting across multiple providers."""
@@ -459,7 +459,7 @@ class TestCrossProviderVoting:
         # Higher-weighted models
         model_findings = {
             "gpt-4-turbo": [reentrancy_finding.copy()],  # Weight 1.4
-            "gpt-4o": [reentrancy_finding.copy()],       # Weight 1.35
+            "gpt-4o": [reentrancy_finding.copy()],  # Weight 1.35
         }
 
         for model, findings in model_findings.items():
@@ -541,21 +541,21 @@ class TestCrossProviderVoting:
 # Provider-Specific Query Tests
 # =============================================================================
 
+
 class TestProviderQueries:
     """Tests for provider-specific query methods."""
 
-    def test_query_openai_success(self, multi_provider_detector, sample_vulnerable_code, reentrancy_finding):
+    def test_query_openai_success(
+        self, multi_provider_detector, sample_vulnerable_code, reentrancy_finding
+    ):
         """Test successful OpenAI query."""
+
         async def run_test():
             openai_response = {
-                "choices": [{
-                    "message": {
-                        "content": json.dumps([reentrancy_finding])
-                    }
-                }]
+                "choices": [{"message": {"content": json.dumps([reentrancy_finding])}}]
             }
 
-            with patch('aiohttp.ClientSession') as mock_session_class:
+            with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session = MagicMock()
                 mock_session.post = MagicMock(
                     return_value=create_mock_context_manager(200, openai_response)
@@ -567,8 +567,7 @@ class TestProviderQueries:
                 mock_session_class.return_value = session_ctx
 
                 findings = await multi_provider_detector._query_openai(
-                    "gpt-4-turbo",
-                    sample_vulnerable_code
+                    "gpt-4-turbo", sample_vulnerable_code
                 )
 
             assert len(findings) == 1
@@ -579,6 +578,7 @@ class TestProviderQueries:
 
     def test_query_openai_no_api_key(self, sample_vulnerable_code):
         """Test OpenAI query fails without API key."""
+
         async def run_test():
             detector = LLMEnsembleDetector(
                 providers=[LLMProvider.OPENAI],
@@ -592,16 +592,15 @@ class TestProviderQueries:
 
         asyncio.run(run_test())
 
-    def test_query_anthropic_success(self, multi_provider_detector, sample_vulnerable_code, reentrancy_finding):
+    def test_query_anthropic_success(
+        self, multi_provider_detector, sample_vulnerable_code, reentrancy_finding
+    ):
         """Test successful Anthropic query."""
-        async def run_test():
-            anthropic_response = {
-                "content": [{
-                    "text": json.dumps([reentrancy_finding])
-                }]
-            }
 
-            with patch('aiohttp.ClientSession') as mock_session_class:
+        async def run_test():
+            anthropic_response = {"content": [{"text": json.dumps([reentrancy_finding])}]}
+
+            with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session = MagicMock()
                 mock_session.post = MagicMock(
                     return_value=create_mock_context_manager(200, anthropic_response)
@@ -613,8 +612,7 @@ class TestProviderQueries:
                 mock_session_class.return_value = session_ctx
 
                 findings = await multi_provider_detector._query_anthropic(
-                    "claude-3-5-sonnet-20241022",
-                    sample_vulnerable_code
+                    "claude-3-5-sonnet-20241022", sample_vulnerable_code
                 )
 
             assert len(findings) == 1
@@ -625,6 +623,7 @@ class TestProviderQueries:
 
     def test_query_anthropic_no_api_key(self, sample_vulnerable_code):
         """Test Anthropic query fails without API key."""
+
         async def run_test():
             detector = LLMEnsembleDetector(
                 providers=[LLMProvider.ANTHROPIC],
@@ -632,22 +631,23 @@ class TestProviderQueries:
             )
 
             with pytest.raises(ProviderUnavailable) as exc_info:
-                await detector._query_anthropic("claude-3-5-sonnet-20241022", sample_vulnerable_code)
+                await detector._query_anthropic(
+                    "claude-3-5-sonnet-20241022", sample_vulnerable_code
+                )
 
             assert "API key not configured" in str(exc_info.value)
 
         asyncio.run(run_test())
 
-    def test_query_ollama_success(self, ollama_only_detector, sample_vulnerable_code, reentrancy_finding):
+    def test_query_ollama_success(
+        self, ollama_only_detector, sample_vulnerable_code, reentrancy_finding
+    ):
         """Test successful Ollama query."""
-        async def run_test():
-            ollama_response = {
-                "message": {
-                    "content": json.dumps([reentrancy_finding])
-                }
-            }
 
-            with patch('aiohttp.ClientSession') as mock_session_class:
+        async def run_test():
+            ollama_response = {"message": {"content": json.dumps([reentrancy_finding])}}
+
+            with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session = MagicMock()
                 mock_session.post = MagicMock(
                     return_value=create_mock_context_manager(200, ollama_response)
@@ -659,8 +659,7 @@ class TestProviderQueries:
                 mock_session_class.return_value = session_ctx
 
                 findings = await ollama_only_detector._query_model(
-                    "deepseek-coder:6.7b",
-                    sample_vulnerable_code
+                    "deepseek-coder:6.7b", sample_vulnerable_code
                 )
 
             assert len(findings) == 1
@@ -673,11 +672,15 @@ class TestProviderQueries:
 # Full Detection Pipeline Tests
 # =============================================================================
 
+
 class TestFullDetectionPipeline:
     """Integration tests for full detection pipeline."""
 
-    def test_detect_vulnerabilities_with_ollama(self, ollama_only_detector, sample_vulnerable_code, reentrancy_finding):
+    def test_detect_vulnerabilities_with_ollama(
+        self, ollama_only_detector, sample_vulnerable_code, reentrancy_finding
+    ):
         """Test full detection pipeline with Ollama."""
+
         async def run_test():
             # Mock Ollama API responses
             tags_response = {
@@ -687,11 +690,7 @@ class TestFullDetectionPipeline:
                 ]
             }
 
-            model_response = {
-                "message": {
-                    "content": json.dumps([reentrancy_finding])
-                }
-            }
+            model_response = {"message": {"content": json.dumps([reentrancy_finding])}}
 
             call_count = [0]
 
@@ -701,7 +700,7 @@ class TestFullDetectionPipeline:
                     return create_mock_context_manager(200, tags_response)
                 return create_mock_context_manager(200, model_response)
 
-            with patch('aiohttp.ClientSession') as mock_session_class:
+            with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session = MagicMock()
                 mock_session.get = MagicMock(side_effect=mock_request)
                 mock_session.post = MagicMock(side_effect=mock_request)
@@ -718,27 +717,28 @@ class TestFullDetectionPipeline:
 
         asyncio.run(run_test())
 
-    def test_detect_with_context(self, ollama_only_detector, sample_vulnerable_code, reentrancy_finding):
+    def test_detect_with_context(
+        self, ollama_only_detector, sample_vulnerable_code, reentrancy_finding
+    ):
         """Test detection with additional context."""
+
         async def run_test():
             tags_response = {"models": [{"name": "deepseek-coder:6.7b"}]}
-            model_response = {
-                "message": {"content": json.dumps([reentrancy_finding])}
-            }
+            model_response = {"message": {"content": json.dumps([reentrancy_finding])}}
 
             call_count = [0]
             captured_payload = [None]
 
             def mock_post(*args, **kwargs):
                 call_count[0] += 1
-                if 'json' in kwargs:
-                    captured_payload[0] = kwargs['json']
+                if "json" in kwargs:
+                    captured_payload[0] = kwargs["json"]
                 return create_mock_context_manager(200, model_response)
 
             def mock_get(*args, **kwargs):
                 return create_mock_context_manager(200, tags_response)
 
-            with patch('aiohttp.ClientSession') as mock_session_class:
+            with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session = MagicMock()
                 mock_session.get = MagicMock(side_effect=mock_get)
                 mock_session.post = MagicMock(side_effect=mock_post)
@@ -750,8 +750,7 @@ class TestFullDetectionPipeline:
 
                 context = {"contract_name": "VulnerableBank", "version": "0.8.0"}
                 await ollama_only_detector.detect_vulnerabilities(
-                    sample_vulnerable_code,
-                    context=context
+                    sample_vulnerable_code, context=context
                 )
 
             # Verify context was included in prompt
@@ -761,8 +760,11 @@ class TestFullDetectionPipeline:
 
         asyncio.run(run_test())
 
-    def test_result_structure(self, ollama_only_detector, sample_vulnerable_code, reentrancy_finding):
+    def test_result_structure(
+        self, ollama_only_detector, sample_vulnerable_code, reentrancy_finding
+    ):
         """Test EnsembleResult structure is correct."""
+
         async def run_test():
             tags_response = {
                 "models": [
@@ -770,9 +772,7 @@ class TestFullDetectionPipeline:
                     {"name": "codellama:7b"},
                 ]
             }
-            model_response = {
-                "message": {"content": json.dumps([reentrancy_finding])}
-            }
+            model_response = {"message": {"content": json.dumps([reentrancy_finding])}}
 
             call_count = [0]
 
@@ -782,7 +782,7 @@ class TestFullDetectionPipeline:
                     return create_mock_context_manager(200, tags_response)
                 return create_mock_context_manager(200, model_response)
 
-            with patch('aiohttp.ClientSession') as mock_session_class:
+            with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session = MagicMock()
                 mock_session.get = MagicMock(side_effect=mock_request)
                 mock_session.post = MagicMock(side_effect=mock_request)
@@ -795,14 +795,14 @@ class TestFullDetectionPipeline:
                 result = await ollama_only_detector.detect_vulnerabilities(sample_vulnerable_code)
 
             # Verify result structure
-            assert hasattr(result, 'findings')
-            assert hasattr(result, 'models_used')
-            assert hasattr(result, 'models_available')
-            assert hasattr(result, 'models_failed')
-            assert hasattr(result, 'execution_time_ms')
-            assert hasattr(result, 'consensus_threshold')
-            assert hasattr(result, 'total_raw_findings')
-            assert hasattr(result, 'filtered_findings')
+            assert hasattr(result, "findings")
+            assert hasattr(result, "models_used")
+            assert hasattr(result, "models_available")
+            assert hasattr(result, "models_failed")
+            assert hasattr(result, "execution_time_ms")
+            assert hasattr(result, "consensus_threshold")
+            assert hasattr(result, "total_raw_findings")
+            assert hasattr(result, "filtered_findings")
 
             assert isinstance(result.findings, list)
             assert isinstance(result.models_used, list)
@@ -814,6 +814,7 @@ class TestFullDetectionPipeline:
 # =============================================================================
 # Model Status Tests
 # =============================================================================
+
 
 class TestModelStatus:
     """Tests for model status reporting."""
@@ -833,10 +834,14 @@ class TestModelStatus:
 
     def test_get_model_status_after_init(self, multi_provider_detector):
         """Test model status after initialization."""
+
         async def run_test():
             # Mock initialization
             multi_provider_detector._initialized = True
-            multi_provider_detector._available_models = ["gpt-4-turbo", "claude-3-5-sonnet-20241022"]
+            multi_provider_detector._available_models = [
+                "gpt-4-turbo",
+                "claude-3-5-sonnet-20241022",
+            ]
 
             status = multi_provider_detector.get_model_status()
 
@@ -849,6 +854,7 @@ class TestModelStatus:
 # =============================================================================
 # Convenience Function Tests
 # =============================================================================
+
 
 class TestConvenienceFunctions:
     """Tests for convenience functions."""
@@ -869,7 +875,7 @@ class TestConvenienceFunctions:
                     return create_mock_context_manager(200, tags_response)
                 return create_mock_context_manager(200, model_response)
 
-            with patch('aiohttp.ClientSession') as mock_session_class:
+            with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session = MagicMock()
                 mock_session.get = MagicMock(side_effect=mock_request)
                 mock_session.post = MagicMock(side_effect=mock_request)
@@ -889,6 +895,7 @@ class TestConvenienceFunctions:
 # =============================================================================
 # Error Handling Tests
 # =============================================================================
+
 
 class TestErrorHandling:
     """Tests for error handling scenarios."""
@@ -913,11 +920,14 @@ class TestErrorHandling:
 
     def test_handle_api_error_response(self, multi_provider_detector, sample_vulnerable_code):
         """Test handling of API error responses."""
+
         async def run_test():
-            with patch('aiohttp.ClientSession') as mock_session_class:
+            with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session = MagicMock()
                 mock_session.post = MagicMock(
-                    return_value=create_mock_context_manager(500, {"error": "Internal server error"})
+                    return_value=create_mock_context_manager(
+                        500, {"error": "Internal server error"}
+                    )
                 )
 
                 session_ctx = MagicMock()
@@ -932,24 +942,21 @@ class TestErrorHandling:
 
     def test_handle_timeout(self, ollama_only_detector, sample_vulnerable_code):
         """Test handling of request timeout."""
-        async def run_test():
-            import aiohttp
 
-            with patch('aiohttp.ClientSession') as mock_session_class:
+        async def run_test():
+
+            with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session = MagicMock()
-                mock_session.post = MagicMock(
-                    side_effect=asyncio.TimeoutError("Request timed out")
-                )
+                mock_session.post = MagicMock(side_effect=asyncio.TimeoutError("Request timed out"))
 
                 session_ctx = MagicMock()
                 session_ctx.__aenter__ = AsyncMock(return_value=mock_session)
                 session_ctx.__aexit__ = AsyncMock(return_value=None)
                 mock_session_class.return_value = session_ctx
 
-                with pytest.raises(Exception):
+                with pytest.raises((asyncio.TimeoutError, ConnectionError, RuntimeError)):
                     await ollama_only_detector._query_model(
-                        "deepseek-coder:6.7b",
-                        sample_vulnerable_code
+                        "deepseek-coder:6.7b", sample_vulnerable_code
                     )
 
         asyncio.run(run_test())

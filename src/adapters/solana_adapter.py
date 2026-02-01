@@ -32,7 +32,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from src.core.chain_abstraction import (
     AbstractChainAnalyzer,
@@ -240,14 +240,16 @@ class SolanaPatternDetector:
             for pattern, pattern_name in patterns:
                 for i, line in enumerate(lines, 1):
                     if re.search(pattern, line):
-                        findings.append({
-                            "pattern": pattern_name,
-                            "category": category,
-                            "severity": severity,
-                            "line": i,
-                            "file": file_path,
-                            "code": line.strip(),
-                        })
+                        findings.append(
+                            {
+                                "pattern": pattern_name,
+                                "category": category,
+                                "severity": severity,
+                                "line": i,
+                                "file": file_path,
+                                "code": line.strip(),
+                            }
+                        )
 
         return findings
 
@@ -379,22 +381,24 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
             contract.compiler_version = program_id_match.group(1)[:8] + "..."
 
         # Extract functions (instruction handlers)
-        function_pattern = r'pub\s+fn\s+(\w+)\s*\(([^)]*)\)[^{]*\{'
+        function_pattern = r"pub\s+fn\s+(\w+)\s*\(([^)]*)\)[^{]*\{"
         for match in re.finditer(function_pattern, source_code):
             func_name = match.group(1)
             params_str = match.group(2)
-            line_num = source_code[:match.start()].count("\n") + 1
+            line_num = source_code[: match.start()].count("\n") + 1
 
             # Parse parameters
             parameters = []
             if params_str.strip():
-                for param_match in re.finditer(r'(\w+)\s*:\s*([^,]+)', params_str):
+                for param_match in re.finditer(r"(\w+)\s*:\s*([^,]+)", params_str):
                     param_name = param_match.group(1)
                     param_type = param_match.group(2).strip()
-                    parameters.append(Parameter(
-                        name=param_name,
-                        type_info=TypeInfo(name=param_type),
-                    ))
+                    parameters.append(
+                        Parameter(
+                            name=param_name,
+                            type_info=TypeInfo(name=param_type),
+                        )
+                    )
 
             func = AbstractFunction(
                 name=func_name,
@@ -411,11 +415,11 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
             contract.functions.append(func)
 
         # Extract account structs
-        account_pattern = r'#\[account\(([^)]*)\)\]\s*pub\s+struct\s+(\w+)'
+        account_pattern = r"#\[account\(([^)]*)\)\]\s*pub\s+struct\s+(\w+)"
         for match in re.finditer(account_pattern, source_code):
             attrs = match.group(1)
             struct_name = match.group(2)
-            line_num = source_code[:match.start()].count("\n") + 1
+            line_num = source_code[: match.start()].count("\n") + 1
 
             var = AbstractVariable(
                 name=struct_name,
@@ -430,10 +434,10 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
             contract.variables.append(var)
 
         # Extract events
-        event_pattern = r'#\[event\]\s*pub\s+struct\s+(\w+)'
+        event_pattern = r"#\[event\]\s*pub\s+struct\s+(\w+)"
         for match in re.finditer(event_pattern, source_code):
             event_name = match.group(1)
-            line_num = source_code[:match.start()].count("\n") + 1
+            line_num = source_code[: match.start()].count("\n") + 1
 
             event = AbstractEvent(
                 name=event_name,
@@ -483,9 +487,7 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
         properties = properties or list(SecurityProperty)
 
         # Run pattern detector
-        pattern_matches = self.pattern_detector.detect_patterns(
-            source_code, contract.source_path
-        )
+        pattern_matches = self.pattern_detector.detect_patterns(source_code, contract.source_path)
 
         # Convert pattern matches to findings
         for match in pattern_matches:
@@ -515,7 +517,7 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
     ) -> Optional[Dict[str, Any]]:
         """Convert pattern match to finding."""
         pattern = match["pattern"]
-        category = match["category"]
+        match["category"]
 
         # Define finding messages
         messages = {
@@ -573,14 +575,14 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
         source = contract.source_code
 
         # Look for instruction handlers without signer checks
-        handler_pattern = r'pub\s+fn\s+(\w+)\s*\(\s*ctx\s*:\s*Context<(\w+)>'
+        handler_pattern = r"pub\s+fn\s+(\w+)\s*\(\s*ctx\s*:\s*Context<(\w+)>"
         for match in re.finditer(handler_pattern, source):
             func_name = match.group(1)
             ctx_type = match.group(2)
-            line = source[:match.start()].count("\n") + 1
+            line = source[: match.start()].count("\n") + 1
 
             # Find the accounts struct
-            ctx_pattern = rf'#\[derive\(Accounts\)\]\s*pub\s+struct\s+{ctx_type}'
+            ctx_pattern = rf"#\[derive\(Accounts\)\]\s*pub\s+struct\s+{ctx_type}"
             ctx_match = re.search(ctx_pattern, source)
 
             if ctx_match:
@@ -592,20 +594,22 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
                 if "#[account(mut" in ctx_body and "signer" not in ctx_body:
                     # Check if there's at least one signer
                     if "is_signer" not in ctx_body and "#[account(signer" not in ctx_body:
-                        findings.append(self.normalize_finding(
-                            vuln_type=SolanaVulnerability.MISSING_SIGNER_CHECK.value,
-                            severity="High",
-                            message=f"Instruction '{func_name}' may lack proper signer validation",
-                            location=Location(file=contract.source_path, line=line),
-                            description=(
-                                f"The instruction handler '{func_name}' has mutable accounts "
-                                "but may not properly validate signers."
-                            ),
-                            recommendation=(
-                                "Ensure at least one account has `signer` constraint and "
-                                "represents the authorized party for this operation."
-                            ),
-                        ))
+                        findings.append(
+                            self.normalize_finding(
+                                vuln_type=SolanaVulnerability.MISSING_SIGNER_CHECK.value,
+                                severity="High",
+                                message=f"Instruction '{func_name}' may lack proper signer validation",
+                                location=Location(file=contract.source_path, line=line),
+                                description=(
+                                    f"The instruction handler '{func_name}' has mutable accounts "
+                                    "but may not properly validate signers."
+                                ),
+                                recommendation=(
+                                    "Ensure at least one account has `signer` constraint and "
+                                    "represents the authorized party for this operation."
+                                ),
+                            )
+                        )
 
         return findings
 
@@ -617,30 +621,32 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
         # Check for AccountInfo without validation
         if "AccountInfo<'info>" in source:
             # Find usages without validation
-            info_pattern = r'(\w+)\s*:\s*AccountInfo<\'info>'
+            info_pattern = r"(\w+)\s*:\s*AccountInfo<\'info>"
             for match in re.finditer(info_pattern, source):
                 account_name = match.group(1)
-                line = source[:match.start()].count("\n") + 1
+                line = source[: match.start()].count("\n") + 1
 
                 # Check if there's a constraint for this account
-                context_line = source[:match.end()].rfind("#[account(")
-                has_constraint = context_line > source[:match.start()].rfind("\n")
+                context_line = source[: match.end()].rfind("#[account(")
+                has_constraint = context_line > source[: match.start()].rfind("\n")
 
                 if not has_constraint:
-                    findings.append(self.normalize_finding(
-                        vuln_type=SolanaVulnerability.ACCOUNT_DATA_MATCHING.value,
-                        severity="Medium",
-                        message=f"AccountInfo '{account_name}' without explicit validation",
-                        location=Location(file=contract.source_path, line=line),
-                        description=(
-                            f"The account '{account_name}' is declared as AccountInfo "
-                            "without explicit validation constraints."
-                        ),
-                        recommendation=(
-                            "Consider using typed accounts or adding explicit validation "
-                            "with constraints like `#[account(constraint = ...)]`."
-                        ),
-                    ))
+                    findings.append(
+                        self.normalize_finding(
+                            vuln_type=SolanaVulnerability.ACCOUNT_DATA_MATCHING.value,
+                            severity="Medium",
+                            message=f"AccountInfo '{account_name}' without explicit validation",
+                            location=Location(file=contract.source_path, line=line),
+                            description=(
+                                f"The account '{account_name}' is declared as AccountInfo "
+                                "without explicit validation constraints."
+                            ),
+                            recommendation=(
+                                "Consider using typed accounts or adding explicit validation "
+                                "with constraints like `#[account(constraint = ...)]`."
+                            ),
+                        )
+                    )
 
         return findings
 
@@ -651,27 +657,32 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
 
         # Dangerous patterns
         dangerous_ops = [
-            (r'(\w+)\s*\+=\s*(\w+)', "compound_add"),
-            (r'(\w+)\s*-=\s*(\w+)', "compound_sub"),
-            (r'(\w+)\s*\*=\s*(\w+)', "compound_mul"),
+            (r"(\w+)\s*\+=\s*(\w+)", "compound_add"),
+            (r"(\w+)\s*-=\s*(\w+)", "compound_sub"),
+            (r"(\w+)\s*\*=\s*(\w+)", "compound_mul"),
         ]
 
         for pattern, op_type in dangerous_ops:
             for match in re.finditer(pattern, source):
-                line = source[:match.start()].count("\n") + 1
+                line = source[: match.start()].count("\n") + 1
 
                 # Check if it's in an unchecked block or using checked math
                 context_start = max(0, match.start() - 100)
-                context = source[context_start:match.start()]
+                context = source[context_start : match.start()]
 
-                if "checked_" not in context and ".unwrap()" not in source[match.end():match.end() + 50]:
-                    findings.append(self.normalize_finding(
-                        vuln_type=SolanaVulnerability.ARITHMETIC_OVERFLOW.value,
-                        severity="High",
-                        message=f"Potentially unsafe {op_type} operation",
-                        location=Location(file=contract.source_path, line=line),
-                        recommendation="Use checked arithmetic methods or require-* error handling.",
-                    ))
+                if (
+                    "checked_" not in context
+                    and ".unwrap()" not in source[match.end() : match.end() + 50]
+                ):
+                    findings.append(
+                        self.normalize_finding(
+                            vuln_type=SolanaVulnerability.ARITHMETIC_OVERFLOW.value,
+                            severity="High",
+                            message=f"Potentially unsafe {op_type} operation",
+                            location=Location(file=contract.source_path, line=line),
+                            recommendation="Use checked arithmetic methods or require-* error handling.",
+                        )
+                    )
 
         return findings
 
@@ -681,31 +692,35 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
         source = contract.source_code
 
         # Find invoke calls
-        invoke_pattern = r'(invoke|invoke_signed)\s*\('
+        invoke_pattern = r"(invoke|invoke_signed)\s*\("
         for match in re.finditer(invoke_pattern, source):
-            line = source[:match.start()].count("\n") + 1
+            line = source[: match.start()].count("\n") + 1
 
             # Check if there's state modification after invoke
             invoke_end = source.find(";", match.end())
             if invoke_end != -1:
-                after_invoke = source[invoke_end:invoke_end + 200]
+                after_invoke = source[invoke_end : invoke_end + 200]
 
                 # Look for state modifications
-                if any(pattern in after_invoke for pattern in [".borrow_mut()", "= ", "+= ", "-= "]):
-                    findings.append(self.normalize_finding(
-                        vuln_type="cpi_reentrancy",
-                        severity="High",
-                        message="Potential CPI reentrancy vulnerability",
-                        location=Location(file=contract.source_path, line=line),
-                        description=(
-                            "State is modified after a CPI call, which could lead to "
-                            "reentrancy-like attacks if the called program makes a callback."
-                        ),
-                        recommendation=(
-                            "Follow checks-effects-interactions pattern: validate inputs, "
-                            "update state, then make external calls."
-                        ),
-                    ))
+                if any(
+                    pattern in after_invoke for pattern in [".borrow_mut()", "= ", "+= ", "-= "]
+                ):
+                    findings.append(
+                        self.normalize_finding(
+                            vuln_type="cpi_reentrancy",
+                            severity="High",
+                            message="Potential CPI reentrancy vulnerability",
+                            location=Location(file=contract.source_path, line=line),
+                            description=(
+                                "State is modified after a CPI call, which could lead to "
+                                "reentrancy-like attacks if the called program makes a callback."
+                            ),
+                            recommendation=(
+                                "Follow checks-effects-interactions pattern: validate inputs, "
+                                "update state, then make external calls."
+                            ),
+                        )
+                    )
 
         return findings
 

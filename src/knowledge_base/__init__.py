@@ -31,8 +31,4 @@ def get_remediation(vuln_type: str) -> str:
     return info.get("remediation", "No remediation available.")
 
 
-__all__ = [
-    "load_knowledge_base",
-    "get_vulnerability_info",
-    "get_remediation"
-]
+__all__ = ["load_knowledge_base", "get_vulnerability_info", "get_remediation"]

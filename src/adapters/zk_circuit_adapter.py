@@ -23,28 +23,29 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-01-15
 """
 
+import json
+import logging
+import re
+import subprocess
+import time
+from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from src.core.tool_protocol import (
     ToolAdapter,
+    ToolCapability,
+    ToolCategory,
     ToolMetadata,
     ToolStatus,
-    ToolCategory,
-    ToolCapability
 )
-from typing import Dict, Any, List, Optional, Tuple
-import logging
-import subprocess
-import json
-import re
-import time
-from pathlib import Path
-from dataclasses import dataclass
-from enum import Enum
 
 logger = logging.getLogger(__name__)
 
 
 class ZKFramework(Enum):
     """Supported ZK frameworks."""
+
     CIRCOM = "circom"
     NOIR = "noir"
     HALO2 = "halo2"
@@ -57,56 +58,56 @@ ZK_VULNERABILITY_PATTERNS = {
         "severity": "CRITICAL",
         "description": "Circuit has fewer constraints than needed, allowing malicious proofs",
         "cwe": "CWE-682",
-        "impact": "Attackers can generate valid proofs for invalid statements"
+        "impact": "Attackers can generate valid proofs for invalid statements",
     },
     "over_constrained": {
         "severity": "HIGH",
         "description": "Circuit has contradictory constraints, making valid proofs impossible",
         "cwe": "CWE-682",
-        "impact": "Legitimate users cannot generate valid proofs"
+        "impact": "Legitimate users cannot generate valid proofs",
     },
     "unused_signal": {
         "severity": "MEDIUM",
         "description": "Signal declared but never used in constraints",
         "cwe": "CWE-561",
-        "impact": "May indicate missing constraints or dead code"
+        "impact": "May indicate missing constraints or dead code",
     },
     "unconstrained_output": {
         "severity": "CRITICAL",
         "description": "Output signal not fully constrained by inputs",
         "cwe": "CWE-682",
-        "impact": "Prover can manipulate output values"
+        "impact": "Prover can manipulate output values",
     },
     "division_by_zero": {
         "severity": "HIGH",
         "description": "Division operation may have zero divisor",
         "cwe": "CWE-369",
-        "impact": "Circuit may fail or produce unexpected results"
+        "impact": "Circuit may fail or produce unexpected results",
     },
     "field_overflow": {
         "severity": "HIGH",
         "description": "Arithmetic operation may overflow field modulus",
         "cwe": "CWE-190",
-        "impact": "Unexpected wraparound in field arithmetic"
+        "impact": "Unexpected wraparound in field arithmetic",
     },
     "non_deterministic": {
         "severity": "CRITICAL",
         "description": "Circuit behavior depends on non-deterministic values",
         "cwe": "CWE-330",
-        "impact": "Proofs may be non-reproducible or exploitable"
+        "impact": "Proofs may be non-reproducible or exploitable",
     },
     "unsafe_component": {
         "severity": "MEDIUM",
         "description": "Using component known to have security issues",
         "cwe": "CWE-1357",
-        "impact": "Inherited vulnerabilities from dependencies"
+        "impact": "Inherited vulnerabilities from dependencies",
     },
     "signal_aliasing": {
         "severity": "HIGH",
         "description": "Multiple signals may reference same value unexpectedly",
         "cwe": "CWE-119",
-        "impact": "Constraint confusion and potential bypass"
-    }
+        "impact": "Constraint confusion and potential bypass",
+    },
 }
 
 
@@ -139,10 +140,7 @@ class ZKCircuitAdapter(ToolAdapter):
             homepage="https://github.com/trailofbits/circomspect",
             repository="https://github.com/trailofbits/circomspect",
             documentation="https://github.com/trailofbits/circomspect#readme",
-            installation_cmd=(
-                "cargo install circomspect && "
-                "npm install -g circom"
-            ),
+            installation_cmd=("cargo install circomspect && " "npm install -g circom"),
             capabilities=[
                 ToolCapability(
                     name="zk_static_analysis",
@@ -153,29 +151,25 @@ class ZKCircuitAdapter(ToolAdapter):
                         "over_constrained",
                         "unused_signals",
                         "division_by_zero",
-                        "unsafe_components"
-                    ]
+                        "unsafe_components",
+                    ],
                 ),
                 ToolCapability(
                     name="constraint_analysis",
                     description="Analyze constraint soundness and completeness",
                     supported_languages=["circom", "noir"],
-                    detection_types=[
-                        "unconstrained_outputs",
-                        "signal_aliasing",
-                        "non_determinism"
-                    ]
+                    detection_types=["unconstrained_outputs", "signal_aliasing", "non_determinism"],
                 ),
                 ToolCapability(
                     name="zk_pattern_matching",
                     description="Known ZK vulnerability pattern detection",
                     supported_languages=["circom", "noir"],
-                    detection_types=["known_vulnerabilities"]
-                )
+                    detection_types=["known_vulnerabilities"],
+                ),
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
@@ -190,22 +184,14 @@ class ZKCircuitAdapter(ToolAdapter):
         try:
             # Check circomspect (uses --help since --version not supported)
             result = subprocess.run(
-                ["circomspect", "--help"],
-                capture_output=True,
-                timeout=5,
-                text=True,
-                env=env
+                ["circomspect", "--help"], capture_output=True, timeout=5, text=True, env=env
             )
             self._circomspect_available = result.returncode == 0
 
             # Check picus (optional)
             try:
                 picus_result = subprocess.run(
-                    ["picus", "--help"],
-                    capture_output=True,
-                    timeout=5,
-                    text=True,
-                    env=env
+                    ["picus", "--help"], capture_output=True, timeout=5, text=True, env=env
                 )
                 self._picus_available = picus_result.returncode == 0
             except FileNotFoundError:
@@ -245,8 +231,7 @@ class ZKCircuitAdapter(ToolAdapter):
 
         if framework is None:
             return self._error_result(
-                start_time,
-                f"Unsupported file type: {path.suffix}. Supported: .circom, .nr"
+                start_time, f"Unsupported file type: {path.suffix}. Supported: .circom, .nr"
             )
 
         try:
@@ -286,9 +271,9 @@ class ZKCircuitAdapter(ToolAdapter):
                     "circomspect_available": self._circomspect_available,
                     "picus_available": self._picus_available,
                     "file_type": path.suffix,
-                    "line_count": len(circuit_code.splitlines())
+                    "line_count": len(circuit_code.splitlines()),
                 },
-                "execution_time": time.time() - start_time
+                "execution_time": time.time() - start_time,
             }
 
         except Exception as e:
@@ -302,15 +287,11 @@ class ZKCircuitAdapter(ToolAdapter):
     def can_analyze(self, contract_path: str) -> bool:
         """Check if this adapter can analyze the file."""
         suffix = Path(contract_path).suffix.lower()
-        return suffix in ['.circom', '.nr', '.zk']
+        return suffix in [".circom", ".nr", ".zk"]
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
-        return {
-            "timeout": 300,
-            "include_patterns": True,
-            "check_constraints": True
-        }
+        return {"timeout": 300, "include_patterns": True, "check_constraints": True}
 
     # ============================================================================
     # PRIVATE METHODS
@@ -324,13 +305,13 @@ class ZKCircuitAdapter(ToolAdapter):
             "status": "error",
             "findings": [],
             "execution_time": time.time() - start_time,
-            "error": error
+            "error": error,
         }
 
     def _read_file(self, path: str) -> Optional[str]:
         """Read file content."""
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Error reading file: {e}")
@@ -339,13 +320,13 @@ class ZKCircuitAdapter(ToolAdapter):
     def _detect_framework(self, path: Path) -> Optional[ZKFramework]:
         """Detect ZK framework from file extension."""
         suffix = path.suffix.lower()
-        if suffix == '.circom':
+        if suffix == ".circom":
             return ZKFramework.CIRCOM
-        elif suffix == '.nr':
+        elif suffix == ".nr":
             return ZKFramework.NOIR
-        elif suffix == '.go' and 'gnark' in path.name.lower():
+        elif suffix == ".go" and "gnark" in path.name.lower():
             return ZKFramework.GNARK
-        elif suffix == '.rs' and 'halo2' in path.name.lower():
+        elif suffix == ".rs" and "halo2" in path.name.lower():
             return ZKFramework.HALO2
         return None
 
@@ -355,10 +336,7 @@ class ZKCircuitAdapter(ToolAdapter):
 
         try:
             result = subprocess.run(
-                ["circomspect", circuit_path, "--json"],
-                capture_output=True,
-                timeout=120,
-                text=True
+                ["circomspect", circuit_path, "--json"], capture_output=True, timeout=120, text=True
             )
 
             if result.returncode == 0 or result.stdout:
@@ -369,16 +347,18 @@ class ZKCircuitAdapter(ToolAdapter):
                             "id": f"circomspect-{len(findings)+1}",
                             "title": issue.get("message", "Circomspect finding"),
                             "description": issue.get("help", ""),
-                            "severity": self._map_circomspect_severity(issue.get("severity", "warning")),
+                            "severity": self._map_circomspect_severity(
+                                issue.get("severity", "warning")
+                            ),
                             "confidence": 0.9,
                             "category": issue.get("code", "zk_issue"),
                             "location": {
                                 "file": circuit_path,
                                 "line": issue.get("span", {}).get("start", {}).get("line", 0),
-                                "details": issue.get("span_text", "")
+                                "details": issue.get("span_text", ""),
                             },
                             "recommendation": issue.get("note", "Review the flagged code"),
-                            "source": "circomspect"
+                            "source": "circomspect",
                         }
                         findings.append(finding)
                 except json.JSONDecodeError:
@@ -394,40 +374,34 @@ class ZKCircuitAdapter(ToolAdapter):
 
     def _map_circomspect_severity(self, severity: str) -> str:
         """Map circomspect severity to MIESC severity."""
-        mapping = {
-            "error": "CRITICAL",
-            "warning": "MEDIUM",
-            "info": "LOW",
-            "help": "INFO"
-        }
+        mapping = {"error": "CRITICAL", "warning": "MEDIUM", "info": "LOW", "help": "INFO"}
         return mapping.get(severity.lower(), "MEDIUM")
 
     def _parse_circomspect_text(self, output: str, circuit_path: str) -> List[Dict[str, Any]]:
         """Parse text output from circomspect."""
         findings = []
         # Basic pattern matching for circomspect output
-        pattern = r'(error|warning|info)\[(\w+)\]:\s*(.+?)(?=\n\n|\Z)'
+        pattern = r"(error|warning|info)\[(\w+)\]:\s*(.+?)(?=\n\n|\Z)"
         matches = re.findall(pattern, output, re.DOTALL)
 
         for severity, code, message in matches:
-            findings.append({
-                "id": f"circomspect-{len(findings)+1}",
-                "title": f"{code}: {message.split(chr(10))[0][:50]}",
-                "description": message.strip(),
-                "severity": self._map_circomspect_severity(severity),
-                "confidence": 0.85,
-                "category": code,
-                "location": {"file": circuit_path},
-                "source": "circomspect"
-            })
+            findings.append(
+                {
+                    "id": f"circomspect-{len(findings)+1}",
+                    "title": f"{code}: {message.split(chr(10))[0][:50]}",
+                    "description": message.strip(),
+                    "severity": self._map_circomspect_severity(severity),
+                    "confidence": 0.85,
+                    "category": code,
+                    "location": {"file": circuit_path},
+                    "source": "circomspect",
+                }
+            )
 
         return findings
 
     def _run_pattern_analysis(
-        self,
-        code: str,
-        circuit_path: str,
-        framework: ZKFramework
+        self, code: str, circuit_path: str, framework: ZKFramework
     ) -> List[Dict[str, Any]]:
         """Run ZK vulnerability pattern matching."""
         findings = []
@@ -442,163 +416,170 @@ class ZKCircuitAdapter(ToolAdapter):
         return findings
 
     def _analyze_circom_patterns(
-        self,
-        code: str,
-        lines: List[str],
-        circuit_path: str
+        self, code: str, lines: List[str], circuit_path: str
     ) -> List[Dict[str, Any]]:
         """Analyze Circom-specific patterns."""
         findings = []
 
         # Pattern 1: Unused signals (declared but never used)
-        signal_decl_pattern = r'signal\s+(input|output|private)?\s*(\w+)'
+        signal_decl_pattern = r"signal\s+(input|output|private)?\s*(\w+)"
         signals = set()
         for match in re.finditer(signal_decl_pattern, code):
             signals.add(match.group(2))
 
         for signal in signals:
             # Check if signal is used in constraints (not just declaration)
-            constraint_pattern = rf'[^a-zA-Z_]{signal}[^a-zA-Z_0-9].*===|===.*{signal}'
+            constraint_pattern = rf"[^a-zA-Z_]{signal}[^a-zA-Z_0-9].*===|===.*{signal}"
             if not re.search(constraint_pattern, code):
-                findings.append({
-                    "id": f"zk-pattern-{len(findings)+1}",
-                    "title": f"Potentially unused signal: {signal}",
-                    "description": ZK_VULNERABILITY_PATTERNS["unused_signal"]["description"],
-                    "severity": ZK_VULNERABILITY_PATTERNS["unused_signal"]["severity"],
-                    "confidence": 0.7,
-                    "category": "unused_signal",
-                    "location": {"file": circuit_path, "details": f"Signal: {signal}"},
-                    "cwe": ZK_VULNERABILITY_PATTERNS["unused_signal"]["cwe"],
-                    "recommendation": "Verify this signal is properly constrained",
-                    "source": "pattern_analysis"
-                })
+                findings.append(
+                    {
+                        "id": f"zk-pattern-{len(findings)+1}",
+                        "title": f"Potentially unused signal: {signal}",
+                        "description": ZK_VULNERABILITY_PATTERNS["unused_signal"]["description"],
+                        "severity": ZK_VULNERABILITY_PATTERNS["unused_signal"]["severity"],
+                        "confidence": 0.7,
+                        "category": "unused_signal",
+                        "location": {"file": circuit_path, "details": f"Signal: {signal}"},
+                        "cwe": ZK_VULNERABILITY_PATTERNS["unused_signal"]["cwe"],
+                        "recommendation": "Verify this signal is properly constrained",
+                        "source": "pattern_analysis",
+                    }
+                )
 
         # Pattern 2: Division operations (potential division by zero)
         for i, line in enumerate(lines, 1):
-            if '/' in line and '===' in line:
-                findings.append({
-                    "id": f"zk-pattern-{len(findings)+1}",
-                    "title": "Division in constraint - check for zero divisor",
-                    "description": ZK_VULNERABILITY_PATTERNS["division_by_zero"]["description"],
-                    "severity": ZK_VULNERABILITY_PATTERNS["division_by_zero"]["severity"],
-                    "confidence": 0.6,
-                    "category": "division_by_zero",
-                    "location": {"file": circuit_path, "line": i, "details": line.strip()},
-                    "cwe": ZK_VULNERABILITY_PATTERNS["division_by_zero"]["cwe"],
-                    "recommendation": "Add constraint to ensure divisor is non-zero",
-                    "source": "pattern_analysis"
-                })
+            if "/" in line and "===" in line:
+                findings.append(
+                    {
+                        "id": f"zk-pattern-{len(findings)+1}",
+                        "title": "Division in constraint - check for zero divisor",
+                        "description": ZK_VULNERABILITY_PATTERNS["division_by_zero"]["description"],
+                        "severity": ZK_VULNERABILITY_PATTERNS["division_by_zero"]["severity"],
+                        "confidence": 0.6,
+                        "category": "division_by_zero",
+                        "location": {"file": circuit_path, "line": i, "details": line.strip()},
+                        "cwe": ZK_VULNERABILITY_PATTERNS["division_by_zero"]["cwe"],
+                        "recommendation": "Add constraint to ensure divisor is non-zero",
+                        "source": "pattern_analysis",
+                    }
+                )
 
         # Pattern 3: Output signals without constraints
-        output_signals = re.findall(r'signal\s+output\s+(\w+)', code)
+        output_signals = re.findall(r"signal\s+output\s+(\w+)", code)
         for signal in output_signals:
             # Check if output is constrained
-            if not re.search(rf'{signal}\s*<==|{signal}\s*===', code):
-                findings.append({
-                    "id": f"zk-pattern-{len(findings)+1}",
-                    "title": f"Unconstrained output: {signal}",
-                    "description": ZK_VULNERABILITY_PATTERNS["unconstrained_output"]["description"],
-                    "severity": ZK_VULNERABILITY_PATTERNS["unconstrained_output"]["severity"],
-                    "confidence": 0.85,
-                    "category": "unconstrained_output",
-                    "location": {"file": circuit_path, "details": f"Output: {signal}"},
-                    "cwe": ZK_VULNERABILITY_PATTERNS["unconstrained_output"]["cwe"],
-                    "recommendation": "Ensure output signal is fully constrained by inputs",
-                    "source": "pattern_analysis"
-                })
+            if not re.search(rf"{signal}\s*<==|{signal}\s*===", code):
+                findings.append(
+                    {
+                        "id": f"zk-pattern-{len(findings)+1}",
+                        "title": f"Unconstrained output: {signal}",
+                        "description": ZK_VULNERABILITY_PATTERNS["unconstrained_output"][
+                            "description"
+                        ],
+                        "severity": ZK_VULNERABILITY_PATTERNS["unconstrained_output"]["severity"],
+                        "confidence": 0.85,
+                        "category": "unconstrained_output",
+                        "location": {"file": circuit_path, "details": f"Output: {signal}"},
+                        "cwe": ZK_VULNERABILITY_PATTERNS["unconstrained_output"]["cwe"],
+                        "recommendation": "Ensure output signal is fully constrained by inputs",
+                        "source": "pattern_analysis",
+                    }
+                )
 
         # Pattern 4: Using random/unsafe components
-        unsafe_patterns = ['Random', 'unsafe', 'unchecked']
+        unsafe_patterns = ["Random", "unsafe", "unchecked"]
         for pattern in unsafe_patterns:
             if pattern.lower() in code.lower():
-                findings.append({
-                    "id": f"zk-pattern-{len(findings)+1}",
-                    "title": f"Potentially unsafe component: {pattern}",
-                    "description": ZK_VULNERABILITY_PATTERNS["unsafe_component"]["description"],
-                    "severity": ZK_VULNERABILITY_PATTERNS["unsafe_component"]["severity"],
-                    "confidence": 0.5,
-                    "category": "unsafe_component",
-                    "location": {"file": circuit_path},
-                    "recommendation": "Review use of potentially unsafe components",
-                    "source": "pattern_analysis"
-                })
+                findings.append(
+                    {
+                        "id": f"zk-pattern-{len(findings)+1}",
+                        "title": f"Potentially unsafe component: {pattern}",
+                        "description": ZK_VULNERABILITY_PATTERNS["unsafe_component"]["description"],
+                        "severity": ZK_VULNERABILITY_PATTERNS["unsafe_component"]["severity"],
+                        "confidence": 0.5,
+                        "category": "unsafe_component",
+                        "location": {"file": circuit_path},
+                        "recommendation": "Review use of potentially unsafe components",
+                        "source": "pattern_analysis",
+                    }
+                )
 
         return findings
 
     def _analyze_noir_patterns(
-        self,
-        code: str,
-        lines: List[str],
-        circuit_path: str
+        self, code: str, lines: List[str], circuit_path: str
     ) -> List[Dict[str, Any]]:
         """Analyze Noir-specific patterns."""
         findings = []
 
         # Noir-specific patterns
         # Pattern 1: Unconstrained functions
-        if 'unconstrained fn' in code:
-            findings.append({
-                "id": f"zk-pattern-{len(findings)+1}",
-                "title": "Unconstrained function detected",
-                "description": "Unconstrained functions bypass ZK verification",
-                "severity": "HIGH",
-                "confidence": 0.8,
-                "category": "unconstrained_output",
-                "location": {"file": circuit_path},
-                "recommendation": "Verify unconstrained function is safe and necessary",
-                "source": "pattern_analysis"
-            })
+        if "unconstrained fn" in code:
+            findings.append(
+                {
+                    "id": f"zk-pattern-{len(findings)+1}",
+                    "title": "Unconstrained function detected",
+                    "description": "Unconstrained functions bypass ZK verification",
+                    "severity": "HIGH",
+                    "confidence": 0.8,
+                    "category": "unconstrained_output",
+                    "location": {"file": circuit_path},
+                    "recommendation": "Verify unconstrained function is safe and necessary",
+                    "source": "pattern_analysis",
+                }
+            )
 
         # Pattern 2: Assert without proper constraint
-        assert_count = code.count('assert(')
-        constraint_count = code.count('constrain')
+        assert_count = code.count("assert(")
+        constraint_count = code.count("constrain")
         if assert_count > constraint_count * 2:
-            findings.append({
-                "id": f"zk-pattern-{len(findings)+1}",
-                "title": "High assert-to-constraint ratio",
-                "description": "Many asserts without constraints may indicate under-constrained circuit",
-                "severity": "MEDIUM",
-                "confidence": 0.5,
-                "category": "under_constrained",
-                "location": {"file": circuit_path},
-                "recommendation": "Review constraint coverage",
-                "source": "pattern_analysis"
-            })
+            findings.append(
+                {
+                    "id": f"zk-pattern-{len(findings)+1}",
+                    "title": "High assert-to-constraint ratio",
+                    "description": "Many asserts without constraints may indicate under-constrained circuit",
+                    "severity": "MEDIUM",
+                    "confidence": 0.5,
+                    "category": "under_constrained",
+                    "location": {"file": circuit_path},
+                    "recommendation": "Review constraint coverage",
+                    "source": "pattern_analysis",
+                }
+            )
 
         return findings
 
     def _analyze_constraints(
-        self,
-        code: str,
-        circuit_path: str,
-        framework: ZKFramework
+        self, code: str, circuit_path: str, framework: ZKFramework
     ) -> List[Dict[str, Any]]:
         """Analyze constraint completeness and soundness."""
         findings = []
 
         if framework == ZKFramework.CIRCOM:
             # Count constraints vs signals
-            signal_count = len(re.findall(r'signal\s+(input|output|private)?\s+\w+', code))
-            constraint_count = len(re.findall(r'===', code))
+            signal_count = len(re.findall(r"signal\s+(input|output|private)?\s+\w+", code))
+            constraint_count = len(re.findall(r"===", code))
 
             # Heuristic: should have roughly n constraints for n signals
             if signal_count > 0 and constraint_count < signal_count * 0.5:
-                findings.append({
-                    "id": f"zk-constraint-1",
-                    "title": "Potentially under-constrained circuit",
-                    "description": (
-                        f"Found {signal_count} signals but only {constraint_count} constraints. "
-                        f"Ratio: {constraint_count/signal_count:.2f}. "
-                        f"{ZK_VULNERABILITY_PATTERNS['under_constrained']['description']}"
-                    ),
-                    "severity": "HIGH",
-                    "confidence": 0.6,
-                    "category": "under_constrained",
-                    "location": {"file": circuit_path},
-                    "cwe": ZK_VULNERABILITY_PATTERNS["under_constrained"]["cwe"],
-                    "recommendation": "Review constraint coverage - each signal should be properly constrained",
-                    "source": "constraint_analysis"
-                })
+                findings.append(
+                    {
+                        "id": "zk-constraint-1",
+                        "title": "Potentially under-constrained circuit",
+                        "description": (
+                            f"Found {signal_count} signals but only {constraint_count} constraints. "
+                            f"Ratio: {constraint_count/signal_count:.2f}. "
+                            f"{ZK_VULNERABILITY_PATTERNS['under_constrained']['description']}"
+                        ),
+                        "severity": "HIGH",
+                        "confidence": 0.6,
+                        "category": "under_constrained",
+                        "location": {"file": circuit_path},
+                        "cwe": ZK_VULNERABILITY_PATTERNS["under_constrained"]["cwe"],
+                        "recommendation": "Review constraint coverage - each signal should be properly constrained",
+                        "source": "constraint_analysis",
+                    }
+                )
 
         return findings
 
@@ -611,7 +592,7 @@ class ZKCircuitAdapter(ToolAdapter):
             key = (
                 finding.get("category", ""),
                 finding.get("title", ""),
-                str(finding.get("location", {}).get("line", ""))
+                str(finding.get("location", {}).get("line", "")),
             )
             if key not in seen:
                 seen.add(key)

@@ -34,9 +34,9 @@ class MedusaAgent(BaseAgent):
                 "property_based_testing",
                 "coverage_tracking",
                 "corpus_optimization",
-                "assertion_testing"
+                "assertion_testing",
             ],
-            agent_type="dynamic"
+            agent_type="dynamic",
         )
         self.medusa_path = self._find_medusa()
 
@@ -49,16 +49,13 @@ class MedusaAgent(BaseAgent):
         locations = [
             os.path.expanduser("~/go/bin/medusa"),
             "/usr/local/bin/medusa",
-            "medusa"  # PATH
+            "medusa",  # PATH
         ]
 
         for location in locations:
             try:
                 result = subprocess.run(
-                    [location, "--help"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
+                    [location, "--help"], capture_output=True, text=True, timeout=5
                 )
                 if result.returncode == 0 and "solidity smart contract fuzzing" in result.stdout:
                     return location
@@ -75,7 +72,9 @@ class MedusaAgent(BaseAgent):
         """Return list of context types this agent publishes"""
         return ["dynamic_findings", "medusa_results"]
 
-    def analyze(self, contract_path: str, test_limit: Optional[int] = None, **kwargs) -> Dict[str, Any]:
+    def analyze(
+        self, contract_path: str, test_limit: Optional[int] = None, **kwargs
+    ) -> Dict[str, Any]:
         """
         Run Medusa fuzzing on contracts
 
@@ -90,7 +89,7 @@ class MedusaAgent(BaseAgent):
         if not self.is_available():
             return {
                 "error": "Medusa not installed",
-                "suggestion": "Install with: go install github.com/crytic/medusa@latest"
+                "suggestion": "Install with: go install github.com/crytic/medusa@latest",
             }
 
         try:
@@ -105,7 +104,9 @@ class MedusaAgent(BaseAgent):
 
             # Look for foundry.toml or medusa.json
             while project_root != project_root.parent:
-                if (project_root / "foundry.toml").exists() or (project_root / "medusa.json").exists():
+                if (project_root / "foundry.toml").exists() or (
+                    project_root / "medusa.json"
+                ).exists():
                     break
                 project_root = project_root.parent
             else:
@@ -137,7 +138,7 @@ class MedusaAgent(BaseAgent):
                 capture_output=True,
                 text=True,
                 timeout=timeout_seconds + 30,  # Add buffer
-                cwd=str(project_root)
+                cwd=str(project_root),
             )
 
             # Parse output
@@ -147,7 +148,7 @@ class MedusaAgent(BaseAgent):
             findings["execution"] = {
                 "returncode": result.returncode,
                 "project_root": str(project_root),
-                "command": " ".join(cmd)
+                "command": " ".join(cmd),
             }
 
             # Publish to MCP bus
@@ -157,7 +158,7 @@ class MedusaAgent(BaseAgent):
                 "tool": "Medusa",
                 "version": "1.3.1",
                 "status": "success" if result.returncode == 0 else "completed_with_findings",
-                "findings": findings
+                "findings": findings,
             }
 
         except subprocess.TimeoutExpired:
@@ -167,14 +168,9 @@ class MedusaAgent(BaseAgent):
 
     def _parse_medusa_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """Parse Medusa output"""
-        findings = {
-            "passed": [],
-            "failed": [],
-            "coverage": {},
-            "stats": {}
-        }
+        findings = {"passed": [], "failed": [], "coverage": {}, "stats": {}}
 
-        lines = stdout.split('\n') + stderr.split('\n')
+        lines = stdout.split("\n") + stderr.split("\n")
 
         for line in lines:
             line = line.strip()
@@ -182,17 +178,10 @@ class MedusaAgent(BaseAgent):
             # Parse test results
             if "[PASSED]" in line or "PASSED" in line:
                 test_name = line.split("PASSED")[-1].strip() if "PASSED" in line else line
-                findings["passed"].append({
-                    "test": test_name,
-                    "status": "pass"
-                })
+                findings["passed"].append({"test": test_name, "status": "pass"})
             elif "[FAILED]" in line or "FAILED" in line:
                 test_name = line.split("FAILED")[-1].strip() if "FAILED" in line else line
-                findings["failed"].append({
-                    "test": test_name,
-                    "status": "fail",
-                    "severity": "high"
-                })
+                findings["failed"].append({"test": test_name, "status": "fail", "severity": "high"})
 
             # Parse coverage
             if "Coverage:" in line or "coverage:" in line:
@@ -229,9 +218,13 @@ class MedusaAgent(BaseAgent):
                 findings={
                     "tool": "Medusa",
                     "findings": findings,
-                    "timestamp": str(Path(contract).stat().st_mtime) if Path(contract).exists() else "unknown"
+                    "timestamp": (
+                        str(Path(contract).stat().st_mtime)
+                        if Path(contract).exists()
+                        else "unknown"
+                    ),
                 },
-                metadata={"tool_version": "1.3.1"}
+                metadata={"tool_version": "1.3.1"},
             )
         except Exception as e:
             # Non-critical, just log
@@ -248,10 +241,7 @@ class MedusaAgent(BaseAgent):
             Summary of findings
         """
         result = self.analyze(
-            contract_path,
-            test_limit=1000,  # Quick mode
-            workers=2,
-            timeout=60  # 1 minute
+            contract_path, test_limit=1000, workers=2, timeout=60  # Quick mode  # 1 minute
         )
 
         if "error" in result:
@@ -267,7 +257,7 @@ class MedusaAgent(BaseAgent):
             "failed_tests": len(failed),
             "passed_tests": len(passed),
             "status": "pass" if len(failed) == 0 else "fail",
-            "critical_failures": failed[:3]  # Top 3
+            "critical_failures": failed[:3],  # Top 3
         }
 
     def get_capabilities(self) -> List[str]:
@@ -278,7 +268,7 @@ class MedusaAgent(BaseAgent):
             "Coverage-guided fuzzing",
             "Assertion testing",
             "Call sequence generation",
-            "Corpus optimization"
+            "Corpus optimization",
         ]
 
     def handle_message(self, message):
@@ -292,5 +282,5 @@ class MedusaAgent(BaseAgent):
                 self.publish_findings(
                     context_type="audit_response",
                     findings=result,
-                    metadata={"request_source": message.agent}
+                    metadata={"request_source": message.agent},
                 )

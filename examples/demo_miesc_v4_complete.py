@@ -15,11 +15,9 @@ License: GPL-3.0
 """
 
 import sys
-import os
-from pathlib import Path
-from datetime import datetime
 from collections import defaultdict
-import json
+from datetime import datetime
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.absolute()
@@ -32,32 +30,33 @@ TEST_CONTRACTS = [
     "miesc_interactive_demo.py",
 ]
 
+
 class MIESCCompleteDemo:
     """Complete MIESC v4.0.0 demonstration suite"""
 
     def __init__(self):
         self.results = {
-            'adapters': {},
-            'contracts': {},
-            'vulnerabilities': defaultdict(list),
-            'statistics': {
-                'total_adapters': 0,
-                'registered_adapters': 0,
-                'failed_adapters': 0,
-                'total_contracts': 0,
-                'total_vulnerabilities': 0,
-                'by_layer': defaultdict(int),
-                'by_severity': defaultdict(int),
-                'by_type': defaultdict(int),
+            "adapters": {},
+            "contracts": {},
+            "vulnerabilities": defaultdict(list),
+            "statistics": {
+                "total_adapters": 0,
+                "registered_adapters": 0,
+                "failed_adapters": 0,
+                "total_contracts": 0,
+                "total_vulnerabilities": 0,
+                "by_layer": defaultdict(int),
+                "by_severity": defaultdict(int),
+                "by_type": defaultdict(int),
             },
-            'performance': {
-                'start_time': None,
-                'end_time': None,
-                'duration_seconds': 0,
-                'contracts_per_second': 0,
-            }
+            "performance": {
+                "start_time": None,
+                "end_time": None,
+                "duration_seconds": 0,
+                "contracts_per_second": 0,
+            },
         }
-        self.critical_enhancements = ['propertygpt', 'dagnn', 'smartllm', 'dogefuzz']
+        self.critical_enhancements = ["propertygpt", "dagnn", "smartllm", "dogefuzz"]
 
     def print_banner(self):
         """Print MIESC v4.0.0 banner"""
@@ -85,9 +84,9 @@ class MIESCCompleteDemo:
             print("\n[1.1] Registering all 25 security adapters...")
             report = register_all_adapters()
 
-            self.results['statistics']['total_adapters'] = report['total_adapters']
-            self.results['statistics']['registered_adapters'] = report['registered']
-            self.results['statistics']['failed_adapters'] = report['failed']
+            self.results["statistics"]["total_adapters"] = report["total_adapters"]
+            self.results["statistics"]["registered_adapters"] = report["registered"]
+            self.results["statistics"]["failed_adapters"] = report["failed"]
 
             print(f"✓ Total adapters: {report['total_adapters']}")
             print(f"✓ Successfully registered: {report['registered']}")
@@ -97,17 +96,19 @@ class MIESCCompleteDemo:
             # Validate CRITICAL enhancements
             print("\n[1.2] Validating CRITICAL enhancements...")
             found_critical = []
-            for adapter_info in report['adapters']:
-                adapter_name = adapter_info['name']
-                self.results['adapters'][adapter_name] = adapter_info
+            for adapter_info in report["adapters"]:
+                adapter_name = adapter_info["name"]
+                self.results["adapters"][adapter_name] = adapter_info
 
                 # Count by layer
-                layer = adapter_info.get('layer', 'unknown')
-                self.results['statistics']['by_layer'][layer] += 1
+                layer = adapter_info.get("layer", "unknown")
+                self.results["statistics"]["by_layer"][layer] += 1
 
                 if adapter_name in self.critical_enhancements:
                     found_critical.append(adapter_name)
-                    print(f"  ✓ {adapter_name.upper()}: {adapter_info['status']} (v{adapter_info['version']})")
+                    print(
+                        f"  ✓ {adapter_name.upper()}: {adapter_info['status']} (v{adapter_info['version']})"
+                    )
 
             if len(found_critical) == 4:
                 print("\n✅ ALL 4 CRITICAL enhancements successfully registered!")
@@ -117,8 +118,8 @@ class MIESCCompleteDemo:
 
             # Show layer distribution
             print("\n[1.3] Adapter distribution by layer:")
-            for layer in sorted(self.results['statistics']['by_layer'].keys()):
-                count = self.results['statistics']['by_layer'][layer]
+            for layer in sorted(self.results["statistics"]["by_layer"].keys()):
+                count = self.results["statistics"]["by_layer"][layer]
                 print(f"  Layer {layer}: {count} adapters")
 
             return True
@@ -126,6 +127,7 @@ class MIESCCompleteDemo:
         except Exception as e:
             print(f"✗ Adapter registration failed: {e}")
             import traceback
+
             traceback.print_exc()
             return False
 
@@ -140,19 +142,19 @@ class MIESCCompleteDemo:
 
         demo_contracts = [
             {
-                'path': 'demo_contracts/VulnerableBank.sol',
-                'name': 'VulnerableBank',
-                'size_loc': 145,
+                "path": "demo_contracts/VulnerableBank.sol",
+                "name": "VulnerableBank",
+                "size_loc": 145,
             },
             {
-                'path': 'demo_contracts/ReentrancyVault.sol',
-                'name': 'ReentrancyVault',
-                'size_loc': 89,
+                "path": "demo_contracts/ReentrancyVault.sol",
+                "name": "ReentrancyVault",
+                "size_loc": 89,
             },
             {
-                'path': 'demo_contracts/TokenSale.sol',
-                'name': 'TokenSale',
-                'size_loc': 203,
+                "path": "demo_contracts/TokenSale.sol",
+                "name": "TokenSale",
+                "size_loc": 203,
             },
         ]
 
@@ -166,28 +168,30 @@ class MIESCCompleteDemo:
             # Simulate vulnerability detection
             vulnerabilities = self._simulate_contract_analysis(contract)
 
-            self.results['contracts'][contract['name']] = {
-                'path': contract['path'],
-                'size_loc': contract['size_loc'],
-                'vulnerabilities': vulnerabilities,
-                'vulnerability_count': len(vulnerabilities),
+            self.results["contracts"][contract["name"]] = {
+                "path": contract["path"],
+                "size_loc": contract["size_loc"],
+                "vulnerabilities": vulnerabilities,
+                "vulnerability_count": len(vulnerabilities),
             }
 
-            self.results['statistics']['total_contracts'] += 1
-            self.results['statistics']['total_vulnerabilities'] += len(vulnerabilities)
+            self.results["statistics"]["total_contracts"] += 1
+            self.results["statistics"]["total_vulnerabilities"] += len(vulnerabilities)
 
             print(f"  ✓ Found {len(vulnerabilities)} vulnerabilities")
 
             # Show top 3 vulnerabilities
             for vuln in vulnerabilities[:3]:
                 severity_icon = {
-                    'CRITICAL': '🔴',
-                    'HIGH': '🟠',
-                    'MEDIUM': '🟡',
-                    'LOW': '🟢',
-                }.get(vuln['severity'], '⚪')
+                    "CRITICAL": "🔴",
+                    "HIGH": "🟠",
+                    "MEDIUM": "🟡",
+                    "LOW": "🟢",
+                }.get(vuln["severity"], "⚪")
 
-                print(f"    {severity_icon} {vuln['type']} ({vuln['severity']}) - {vuln['adapter']}")
+                print(
+                    f"    {severity_icon} {vuln['type']} ({vuln['severity']}) - {vuln['adapter']}"
+                )
 
         return True
 
@@ -200,40 +204,40 @@ class MIESCCompleteDemo:
 
         vulnerability_templates = [
             {
-                'type': 'Reentrancy',
-                'severity': 'CRITICAL',
-                'layer': 2,
-                'adapters': ['slither', 'mythril', 'echidna', 'dogefuzz'],
+                "type": "Reentrancy",
+                "severity": "CRITICAL",
+                "layer": 2,
+                "adapters": ["slither", "mythril", "echidna", "dogefuzz"],
             },
             {
-                'type': 'Integer Overflow',
-                'severity': 'HIGH',
-                'layer': 1,
-                'adapters': ['slither', 'mythril', 'smartcheck'],
+                "type": "Integer Overflow",
+                "severity": "HIGH",
+                "layer": 1,
+                "adapters": ["slither", "mythril", "smartcheck"],
             },
             {
-                'type': 'Access Control',
-                'severity': 'HIGH',
-                'layer': 1,
-                'adapters': ['slither', 'smartllm', 'propertygpt'],
+                "type": "Access Control",
+                "severity": "HIGH",
+                "layer": 1,
+                "adapters": ["slither", "smartllm", "propertygpt"],
             },
             {
-                'type': 'Unchecked Call Return',
-                'severity': 'MEDIUM',
-                'layer': 1,
-                'adapters': ['slither', 'aderyn'],
+                "type": "Unchecked Call Return",
+                "severity": "MEDIUM",
+                "layer": 1,
+                "adapters": ["slither", "aderyn"],
             },
             {
-                'type': 'Timestamp Dependence',
-                'severity': 'MEDIUM',
-                'layer': 3,
-                'adapters': ['manticore', 'mythril'],
+                "type": "Timestamp Dependence",
+                "severity": "MEDIUM",
+                "layer": 3,
+                "adapters": ["manticore", "mythril"],
             },
             {
-                'type': 'Gas Optimization',
-                'severity': 'LOW',
-                'layer': 1,
-                'adapters': ['gas_analyzer'],
+                "type": "Gas Optimization",
+                "severity": "LOW",
+                "layer": 1,
+                "adapters": ["gas_analyzer"],
             },
         ]
 
@@ -243,24 +247,24 @@ class MIESCCompleteDemo:
 
         for _ in range(num_vulns):
             template = random.choice(vulnerability_templates)
-            adapter = random.choice(template['adapters'])
+            adapter = random.choice(template["adapters"])
 
             vuln = {
-                'type': template['type'],
-                'severity': template['severity'],
-                'layer': template['layer'],
-                'adapter': adapter,
-                'contract': contract['name'],
-                'line': random.randint(10, contract['size_loc']),
-                'description': f"{template['type']} vulnerability detected by {adapter}",
+                "type": template["type"],
+                "severity": template["severity"],
+                "layer": template["layer"],
+                "adapter": adapter,
+                "contract": contract["name"],
+                "line": random.randint(10, contract["size_loc"]),
+                "description": f"{template['type']} vulnerability detected by {adapter}",
             }
 
             vulnerabilities.append(vuln)
 
             # Update statistics
-            self.results['vulnerabilities'][template['type']].append(vuln)
-            self.results['statistics']['by_severity'][template['severity']] += 1
-            self.results['statistics']['by_type'][template['type']] += 1
+            self.results["vulnerabilities"][template["type"]].append(vuln)
+            self.results["statistics"]["by_severity"][template["severity"]] += 1
+            self.results["statistics"]["by_type"][template["type"]] += 1
 
         return vulnerabilities
 
@@ -270,7 +274,7 @@ class MIESCCompleteDemo:
         print("STEP 3: RESULTS AGGREGATION & STATISTICS")
         print("=" * 80)
 
-        stats = self.results['statistics']
+        stats = self.results["statistics"]
 
         # Overall statistics
         print("\n[3.1] Overall Statistics:")
@@ -279,52 +283,50 @@ class MIESCCompleteDemo:
         print(f"  Success Rate: {(stats['registered_adapters']/stats['total_adapters'])*100:.1f}%")
         print(f"\n  Contracts Analyzed: {stats['total_contracts']}")
         print(f"  Total Vulnerabilities: {stats['total_vulnerabilities']}")
-        print(f"  Avg Vulnerabilities/Contract: {stats['total_vulnerabilities']/stats['total_contracts']:.1f}")
+        print(
+            f"  Avg Vulnerabilities/Contract: {stats['total_vulnerabilities']/stats['total_contracts']:.1f}"
+        )
 
         # Severity distribution
         print("\n[3.2] Vulnerability Distribution by Severity:")
-        severity_order = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
+        severity_order = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
         for severity in severity_order:
-            count = stats['by_severity'].get(severity, 0)
+            count = stats["by_severity"].get(severity, 0)
             if count > 0:
-                percentage = (count / stats['total_vulnerabilities']) * 100
-                bar = '█' * int(percentage / 2)
+                percentage = (count / stats["total_vulnerabilities"]) * 100
+                bar = "█" * int(percentage / 2)
                 print(f"  {severity:10s}: {count:3d} ({percentage:5.1f}%) {bar}")
 
         # Vulnerability type distribution
         print("\n[3.3] Top Vulnerability Types:")
-        sorted_types = sorted(
-            stats['by_type'].items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_types = sorted(stats["by_type"].items(), key=lambda x: x[1], reverse=True)
         for vuln_type, count in sorted_types[:5]:
-            percentage = (count / stats['total_vulnerabilities']) * 100
+            percentage = (count / stats["total_vulnerabilities"]) * 100
             print(f"  {vuln_type:25s}: {count:3d} ({percentage:5.1f}%)")
 
         # Layer effectiveness
         print("\n[3.4] Detection by Layer:")
         layer_detections = defaultdict(int)
-        for vulns in self.results['contracts'].values():
-            for vuln in vulns['vulnerabilities']:
-                layer_detections[vuln['layer']] += 1
+        for vulns in self.results["contracts"].values():
+            for vuln in vulns["vulnerabilities"]:
+                layer_detections[vuln["layer"]] += 1
 
         for layer in sorted(layer_detections.keys()):
             count = layer_detections[layer]
-            percentage = (count / stats['total_vulnerabilities']) * 100
+            percentage = (count / stats["total_vulnerabilities"]) * 100
             print(f"  Layer {layer}: {count:3d} detections ({percentage:5.1f}%)")
 
         # Contract-by-contract breakdown
         print("\n[3.5] Contract-by-Contract Breakdown:")
-        for contract_name, contract_data in self.results['contracts'].items():
+        for contract_name, contract_data in self.results["contracts"].items():
             print(f"\n  {contract_name}:")
             print(f"    Lines of Code: {contract_data['size_loc']}")
             print(f"    Vulnerabilities: {contract_data['vulnerability_count']}")
 
             # Severity breakdown for this contract
             severity_counts = defaultdict(int)
-            for vuln in contract_data['vulnerabilities']:
-                severity_counts[vuln['severity']] += 1
+            for vuln in contract_data["vulnerabilities"]:
+                severity_counts[vuln["severity"]] += 1
 
             for severity in severity_order:
                 if severity in severity_counts:
@@ -339,29 +341,29 @@ class MIESCCompleteDemo:
         print("=" * 80)
 
         enhancements = {
-            'PropertyGPT': {
-                'layer': 4,
-                'paper': 'NDSS Symposium 2025 (arXiv:2405.02580)',
-                'achievement': '80% recall on ground-truth Certora properties',
-                'impact': 'Formal verification adoption: 5% → 40% (+700%)',
+            "PropertyGPT": {
+                "layer": 4,
+                "paper": "NDSS Symposium 2025 (arXiv:2405.02580)",
+                "achievement": "80% recall on ground-truth Certora properties",
+                "impact": "Formal verification adoption: 5% → 40% (+700%)",
             },
-            'DA-GNN': {
-                'layer': 6,
-                'paper': 'Computer Networks (ScienceDirect, Feb 2024)',
-                'achievement': '95.7% accuracy with 4.3% false positive rate',
-                'impact': 'Graph-based vulnerability detection with attention mechanism',
+            "DA-GNN": {
+                "layer": 6,
+                "paper": "Computer Networks (ScienceDirect, Feb 2024)",
+                "achievement": "95.7% accuracy with 4.3% false positive rate",
+                "impact": "Graph-based vulnerability detection with attention mechanism",
             },
-            'SmartLLM RAG + Verificator': {
-                'layer': 5,
-                'paper': 'arXiv:2502.13167 (Feb 2025)',
-                'achievement': 'Precision: 75% → 88% (+17%)',
-                'impact': 'False positive rate: 25% → 12% (-52%)',
+            "SmartLLM RAG + Verificator": {
+                "layer": 5,
+                "paper": "arXiv:2502.13167 (Feb 2025)",
+                "achievement": "Precision: 75% → 88% (+17%)",
+                "impact": "False positive rate: 25% → 12% (-52%)",
             },
-            'DogeFuzz': {
-                'layer': 2,
-                'paper': 'arXiv:2409.01788 (Sep 2024)',
-                'achievement': '85% code coverage, 3x faster than Echidna',
-                'impact': 'AFL-style coverage-guided fuzzing with hybrid execution',
+            "DogeFuzz": {
+                "layer": 2,
+                "paper": "arXiv:2409.01788 (Sep 2024)",
+                "achievement": "85% code coverage, 3x faster than Echidna",
+                "impact": "AFL-style coverage-guided fuzzing with hybrid execution",
             },
         }
 
@@ -380,35 +382,40 @@ class MIESCCompleteDemo:
         print("=" * 80)
 
         # Calculate performance metrics
-        duration = self.results['performance']['duration_seconds']
-        contracts_per_sec = self.results['statistics']['total_contracts'] / duration if duration > 0 else 0
+        duration = self.results["performance"]["duration_seconds"]
+        contracts_per_sec = (
+            self.results["statistics"]["total_contracts"] / duration if duration > 0 else 0
+        )
 
-        print(f"\n⏱️  Performance:")
+        print("\n⏱️  Performance:")
         print(f"  Total Execution Time: {duration:.2f} seconds")
         print(f"  Contracts/Second: {contracts_per_sec:.2f}")
         print(f"  Avg Time/Contract: {duration/self.results['statistics']['total_contracts']:.2f}s")
 
-        print(f"\n🎯 Detection Summary:")
+        print("\n🎯 Detection Summary:")
         print(f"  Total Vulnerabilities: {self.results['statistics']['total_vulnerabilities']}")
         print(f"  CRITICAL: {self.results['statistics']['by_severity'].get('CRITICAL', 0)}")
         print(f"  HIGH: {self.results['statistics']['by_severity'].get('HIGH', 0)}")
         print(f"  MEDIUM: {self.results['statistics']['by_severity'].get('MEDIUM', 0)}")
         print(f"  LOW: {self.results['statistics']['by_severity'].get('LOW', 0)}")
 
-        print(f"\n🛡️  MIESC v4.0.0 Capabilities:")
+        print("\n🛡️  MIESC v4.0.0 Capabilities:")
         print(f"  Total Security Adapters: {self.results['statistics']['total_adapters']}")
-        print(f"  Defense Layers: 7")
-        print(f"  CRITICAL Enhancements: 4")
-        print(f"  Precision: 94.5%")
-        print(f"  Recall: 92.8%")
-        print(f"  False Positive Rate: 5.5%")
+        print("  Defense Layers: 7")
+        print("  CRITICAL Enhancements: 4")
+        print("  Precision: 94.5%")
+        print("  Recall: 92.8%")
+        print("  False Positive Rate: 5.5%")
 
         # Success indicators
-        critical_found = sum(1 for name in self.critical_enhancements
-                           if name in self.results['adapters'])
+        critical_found = sum(
+            1 for name in self.critical_enhancements if name in self.results["adapters"]
+        )
 
-        print(f"\n✅ System Health:")
-        print(f"  Adapter Registration: {self.results['statistics']['registered_adapters']}/{self.results['statistics']['total_adapters']} ({(self.results['statistics']['registered_adapters']/self.results['statistics']['total_adapters'])*100:.1f}%)")
+        print("\n✅ System Health:")
+        print(
+            f"  Adapter Registration: {self.results['statistics']['registered_adapters']}/{self.results['statistics']['total_adapters']} ({(self.results['statistics']['registered_adapters']/self.results['statistics']['total_adapters'])*100:.1f}%)"
+        )
         print(f"  CRITICAL Enhancements: {critical_found}/4 ({(critical_found/4)*100:.1f}%)")
         print(f"  Overall Status: {'🟢 OPERATIONAL' if critical_found == 4 else '🟡 PARTIAL'}")
 
@@ -418,7 +425,7 @@ class MIESCCompleteDemo:
 
     def run(self):
         """Run complete demonstration"""
-        self.results['performance']['start_time'] = datetime.now()
+        self.results["performance"]["start_time"] = datetime.now()
 
         try:
             self.print_banner()
@@ -444,10 +451,9 @@ class MIESCCompleteDemo:
                 return False
 
             # Calculate duration
-            self.results['performance']['end_time'] = datetime.now()
-            self.results['performance']['duration_seconds'] = (
-                self.results['performance']['end_time'] -
-                self.results['performance']['start_time']
+            self.results["performance"]["end_time"] = datetime.now()
+            self.results["performance"]["duration_seconds"] = (
+                self.results["performance"]["end_time"] - self.results["performance"]["start_time"]
             ).total_seconds()
 
             # Generate summary
@@ -458,6 +464,7 @@ class MIESCCompleteDemo:
         except Exception as e:
             print(f"\n❌ Demo failed with error: {e}")
             import traceback
+
             traceback.print_exc()
             return False
 
@@ -471,5 +478,5 @@ def main():
     sys.exit(0 if success else 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

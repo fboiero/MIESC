@@ -10,16 +10,20 @@ Date: November 11, 2025
 Version: 2.0.0 (Matured)
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional
-import subprocess
 import logging
-import json
-import time
 import re
+import subprocess
+import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,23 +65,20 @@ class WakeAdapter(ToolAdapter):
                         "assertion_violations",
                         "property_violations",
                         "coverage_gaps",
-                        "invariant_breaks"
-                    ]
+                        "invariant_breaks",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
         """Check if Wake is installed and functional."""
         try:
             result = subprocess.run(
-                ["wake", "--version"],
-                capture_output=True,
-                timeout=5,
-                text=True
+                ["wake", "--version"], capture_output=True, timeout=5, text=True
             )
 
             if result.returncode == 0:
@@ -117,7 +118,7 @@ class WakeAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "Wake not available. Install: pip install eth-wake"
+                "error": "Wake not available. Install: pip install eth-wake",
             }
 
         try:
@@ -136,7 +137,7 @@ class WakeAdapter(ToolAdapter):
                         "status": "success",
                         "findings": [],
                         "execution_time": time.time() - start_time,
-                        "metadata": {"note": "No test directory found - skipping Wake"}
+                        "metadata": {"note": "No test directory found - skipping Wake"},
                     }
 
             # Run Wake tests
@@ -150,11 +151,8 @@ class WakeAdapter(ToolAdapter):
                 "version": "2.0.0",
                 "status": "success",
                 "findings": findings,
-                "metadata": {
-                    "timeout": timeout,
-                    "test_path": test_path
-                },
-                "execution_time": time.time() - start_time
+                "metadata": {"timeout": timeout, "test_path": test_path},
+                "execution_time": time.time() - start_time,
             }
 
         except subprocess.TimeoutExpired:
@@ -164,7 +162,7 @@ class WakeAdapter(ToolAdapter):
                 "status": "timeout",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": f"Wake testing exceeded {timeout}s timeout"
+                "error": f"Wake testing exceeded {timeout}s timeout",
             }
         except Exception as e:
             logger.error(f"Wake testing error: {e}", exc_info=True)
@@ -174,7 +172,7 @@ class WakeAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -183,15 +181,11 @@ class WakeAdapter(ToolAdapter):
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if adapter can analyze the contract."""
-        return Path(contract_path).suffix == '.sol'
+        return Path(contract_path).suffix == ".sol"
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
-        return {
-            "timeout": 300,
-            "coverage": True,
-            "verbose": True
-        }
+        return {"timeout": 300, "coverage": True, "verbose": True}
 
     # ============================================================================
     # PRIVATE HELPER METHODS
@@ -221,22 +215,12 @@ class WakeAdapter(ToolAdapter):
     def _run_wake_tests(self, test_path: str, timeout: int = 300) -> str:
         """Execute Wake tests."""
 
-        cmd = [
-            "wake",
-            "test",
-            test_path,
-            "--verbose",
-            "--tb=short"
-        ]
+        cmd = ["wake", "test", test_path, "--verbose", "--tb=short"]
 
         logger.info(f"Wake: Running tests (timeout={timeout}s)")
 
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            timeout=timeout,
-            text=True,
-            cwd=Path(test_path).parent
+            cmd, capture_output=True, timeout=timeout, text=True, cwd=Path(test_path).parent
         )
 
         # Wake uses pytest-style return codes: 0=pass, 1=fail (expected)
@@ -246,27 +230,24 @@ class WakeAdapter(ToolAdapter):
         return result.stdout + "\n" + result.stderr
 
     def _parse_wake_output(
-        self,
-        output: str,
-        contract_path: str,
-        test_path: str
+        self, output: str, contract_path: str, test_path: str
     ) -> List[Dict[str, Any]]:
         """Parse Wake output and extract findings."""
         findings = []
 
-        lines = output.split('\n')
+        lines = output.split("\n")
 
         # Track test results (pytest-style output)
         for i, line in enumerate(lines):
             # Detect test failures
             if "FAILED" in line or "ERROR" in line:
                 # Extract test name
-                test_name_match = re.search(r'test_\w+', line)
+                test_name_match = re.search(r"test_\w+", line)
                 test_name = test_name_match.group(0) if test_name_match else "unknown_test"
 
                 # Look for failure details in following lines
                 failure_details = ""
-                for j in range(i+1, min(i+15, len(lines))):
+                for j in range(i + 1, min(i + 15, len(lines))):
                     if lines[j].strip() and not lines[j].startswith("="):
                         failure_details += lines[j].strip() + " "
                     if "AssertionError" in lines[j] or "assert" in lines[j]:
@@ -274,83 +255,84 @@ class WakeAdapter(ToolAdapter):
 
                 severity = "HIGH" if "ERROR" in line else "MEDIUM"
 
-                findings.append({
-                    "id": f"wake-{len(findings)+1}",
-                    "title": f"Test Failure: {test_name}",
-                    "description": f"Wake test {test_name} failed. {failure_details[:300]}",
-                    "severity": severity,
-                    "confidence": 0.90,  # High confidence - concrete test failure
-                    "category": "test_failure",
-                    "location": {
-                        "file": contract_path,
-                        "test_file": test_path,
-                        "test_name": test_name
-                    },
-                    "recommendation": f"Fix test {test_name} failure. Review assertion conditions.",
-                    "references": [
-                        "https://ackee.xyz/wake/docs/latest/",
-                        f"Test file: {test_path}"
-                    ]
-                })
+                findings.append(
+                    {
+                        "id": f"wake-{len(findings)+1}",
+                        "title": f"Test Failure: {test_name}",
+                        "description": f"Wake test {test_name} failed. {failure_details[:300]}",
+                        "severity": severity,
+                        "confidence": 0.90,  # High confidence - concrete test failure
+                        "category": "test_failure",
+                        "location": {
+                            "file": contract_path,
+                            "test_file": test_path,
+                            "test_name": test_name,
+                        },
+                        "recommendation": f"Fix test {test_name} failure. Review assertion conditions.",
+                        "references": [
+                            "https://ackee.xyz/wake/docs/latest/",
+                            f"Test file: {test_path}",
+                        ],
+                    }
+                )
 
             # Detect assertion violations
             if "AssertionError" in line:
-                findings.append({
-                    "id": f"wake-{len(findings)+1}",
-                    "title": "Assertion Violation",
-                    "description": line.strip(),
-                    "severity": "HIGH",
-                    "confidence": 0.92,
-                    "category": "assertion_violation",
-                    "location": {
-                        "file": contract_path,
-                        "test_file": test_path
-                    },
-                    "recommendation": "Review assertion condition - it failed during testing",
-                    "references": ["https://ackee.xyz/wake/docs/latest/testing/"]
-                })
+                findings.append(
+                    {
+                        "id": f"wake-{len(findings)+1}",
+                        "title": "Assertion Violation",
+                        "description": line.strip(),
+                        "severity": "HIGH",
+                        "confidence": 0.92,
+                        "category": "assertion_violation",
+                        "location": {"file": contract_path, "test_file": test_path},
+                        "recommendation": "Review assertion condition - it failed during testing",
+                        "references": ["https://ackee.xyz/wake/docs/latest/testing/"],
+                    }
+                )
 
             # Detect coverage issues
             if "coverage" in line.lower() and any(x in line for x in ["%", "percent", "0"]):
-                coverage_match = re.search(r'(\d+)%', line)
+                coverage_match = re.search(r"(\d+)%", line)
                 if coverage_match:
                     coverage = int(coverage_match.group(1))
                     if coverage < 80:
-                        findings.append({
-                            "id": f"wake-coverage",
-                            "title": f"Low Test Coverage: {coverage}%",
-                            "description": f"Test coverage is {coverage}%, below recommended 80%",
-                            "severity": "LOW",
-                            "confidence": 0.85,
-                            "category": "coverage_gap",
-                            "location": {
-                                "file": contract_path,
-                                "test_file": test_path
-                            },
-                            "recommendation": "Add more test cases to improve coverage",
-                            "references": ["https://ackee.xyz/wake/docs/latest/testing/coverage/"]
-                        })
+                        findings.append(
+                            {
+                                "id": "wake-coverage",
+                                "title": f"Low Test Coverage: {coverage}%",
+                                "description": f"Test coverage is {coverage}%, below recommended 80%",
+                                "severity": "LOW",
+                                "confidence": 0.85,
+                                "category": "coverage_gap",
+                                "location": {"file": contract_path, "test_file": test_path},
+                                "recommendation": "Add more test cases to improve coverage",
+                                "references": [
+                                    "https://ackee.xyz/wake/docs/latest/testing/coverage/"
+                                ],
+                            }
+                        )
 
         # Check for successful test run
         if "passed" in output.lower() and not findings:
             # Extract test count
-            test_count_match = re.search(r'(\d+)\s+passed', output)
+            test_count_match = re.search(r"(\d+)\s+passed", output)
             test_count = int(test_count_match.group(1)) if test_count_match else 0
 
-            findings.append({
-                "id": "wake-pass",
-                "title": f"All Wake Tests Passed ({test_count} tests)",
-                "description": f"Wake successfully ran {test_count} tests with no failures",
-                "severity": "INFO",
-                "confidence": 1.0,
-                "category": "test_success",
-                "location": {
-                    "file": contract_path,
-                    "test_file": test_path
-                },
-                "recommendation": "All tests passing - continue with other analysis layers",
-                "references": [f"Test file: {test_path}"]
-            })
+            findings.append(
+                {
+                    "id": "wake-pass",
+                    "title": f"All Wake Tests Passed ({test_count} tests)",
+                    "description": f"Wake successfully ran {test_count} tests with no failures",
+                    "severity": "INFO",
+                    "confidence": 1.0,
+                    "category": "test_success",
+                    "location": {"file": contract_path, "test_file": test_path},
+                    "recommendation": "All tests passing - continue with other analysis layers",
+                    "references": [f"Test file: {test_path}"],
+                }
+            )
 
         logger.info(f"Wake: Extracted {len(findings)} findings")
         return findings

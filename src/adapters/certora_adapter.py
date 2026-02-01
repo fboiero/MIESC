@@ -12,17 +12,21 @@ Date: November 11, 2025
 Version: 2.0.0 (Matured)
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional
-import subprocess
 import logging
-import json
-import time
-import re
 import os
+import re
+import subprocess
+import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,13 +68,13 @@ class CertoraAdapter(ToolAdapter):
                         "property_failures",
                         "specification_mismatches",
                         "state_reachability_issues",
-                        "counterexamples"
-                    ]
+                        "counterexamples",
+                    ],
                 )
             ],
             cost=0.0,  # Commercial - pricing varies
             requires_api_key=True,
-            is_optional=True
+            is_optional=True,
         )
 
     def is_available(self) -> ToolStatus:
@@ -78,10 +82,7 @@ class CertoraAdapter(ToolAdapter):
         try:
             # Check if certoraRun command exists
             result = subprocess.run(
-                ["certoraRun", "--version"],
-                capture_output=True,
-                timeout=10,
-                text=True
+                ["certoraRun", "--version"], capture_output=True, timeout=10, text=True
             )
 
             if result.returncode == 0:
@@ -97,7 +98,9 @@ class CertoraAdapter(ToolAdapter):
                 return ToolStatus.CONFIGURATION_ERROR
 
         except FileNotFoundError:
-            logger.info("Certora not installed. Requires commercial license from https://www.certora.com")
+            logger.info(
+                "Certora not installed. Requires commercial license from https://www.certora.com"
+            )
             return ToolStatus.NOT_INSTALLED
         except subprocess.TimeoutExpired:
             logger.warning("Certora version check timeout")
@@ -127,7 +130,7 @@ class CertoraAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": "Certora not available. Requires commercial license and CERTORAKEY environment variable."
+                "error": "Certora not available. Requires commercial license and CERTORAKEY environment variable.",
             }
 
         try:
@@ -146,15 +149,11 @@ class CertoraAdapter(ToolAdapter):
                         "status": "success",
                         "findings": [],
                         "execution_time": time.time() - start_time,
-                        "metadata": {"note": "No CVL spec file found - skipping Certora"}
+                        "metadata": {"note": "No CVL spec file found - skipping Certora"},
                     }
 
             # Run Certora verification
-            raw_output = self._run_certora_prover(
-                contract_path,
-                spec_file,
-                timeout=timeout
-            )
+            raw_output = self._run_certora_prover(contract_path, spec_file, timeout=timeout)
 
             # Parse findings
             findings = self._parse_certora_output(raw_output, contract_path, spec_file)
@@ -164,11 +163,8 @@ class CertoraAdapter(ToolAdapter):
                 "version": "2.0.0",
                 "status": "success",
                 "findings": findings,
-                "metadata": {
-                    "timeout": timeout,
-                    "spec_file": spec_file
-                },
-                "execution_time": time.time() - start_time
+                "metadata": {"timeout": timeout, "spec_file": spec_file},
+                "execution_time": time.time() - start_time,
             }
 
         except subprocess.TimeoutExpired:
@@ -178,7 +174,7 @@ class CertoraAdapter(ToolAdapter):
                 "status": "timeout",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": f"Certora verification exceeded {timeout}s timeout"
+                "error": f"Certora verification exceeded {timeout}s timeout",
             }
         except Exception as e:
             logger.error(f"Certora verification error: {e}", exc_info=True)
@@ -188,7 +184,7 @@ class CertoraAdapter(ToolAdapter):
                 "status": "error",
                 "findings": [],
                 "execution_time": time.time() - start_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -197,16 +193,11 @@ class CertoraAdapter(ToolAdapter):
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if adapter can analyze the contract."""
-        return Path(contract_path).suffix == '.sol'
+        return Path(contract_path).suffix == ".sol"
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
-        return {
-            "timeout": 900,
-            "optimistic_loop": True,
-            "loop_iter": 3,
-            "smt_timeout": 600
-        }
+        return {"timeout": 900, "optimistic_loop": True, "loop_iter": 3, "smt_timeout": 600}
 
     # ============================================================================
     # PRIVATE HELPER METHODS
@@ -222,7 +213,7 @@ class CertoraAdapter(ToolAdapter):
             f"{contract_name}.spec",
             f"{contract_name}.cvl",
             f"spec/{contract_name}.spec",
-            f"certora/specs/{contract_name}.spec"
+            f"certora/specs/{contract_name}.spec",
         ]
 
         # Search in common spec directories
@@ -230,7 +221,7 @@ class CertoraAdapter(ToolAdapter):
             contract_path_obj.parent,
             contract_path_obj.parent / "certora" / "specs",
             contract_path_obj.parent / "spec",
-            contract_path_obj.parent.parent / "certora" / "specs"
+            contract_path_obj.parent.parent / "certora" / "specs",
         ]
 
         for spec_dir in spec_dirs:
@@ -244,12 +235,7 @@ class CertoraAdapter(ToolAdapter):
 
         return None
 
-    def _run_certora_prover(
-        self,
-        contract_path: str,
-        spec_file: str,
-        timeout: int = 900
-    ) -> str:
+    def _run_certora_prover(self, contract_path: str, spec_file: str, timeout: int = 900) -> str:
         """Execute Certora Prover verification."""
 
         cmd = [
@@ -258,18 +244,16 @@ class CertoraAdapter(ToolAdapter):
             "--verify",
             f"{Path(contract_path).stem}:{spec_file}",
             "--optimistic_loop",
-            "--loop_iter", "3",
-            "--msg", "MIESC automated verification"
+            "--loop_iter",
+            "3",
+            "--msg",
+            "MIESC automated verification",
         ]
 
         logger.info(f"Certora: Running formal verification (timeout={timeout}s)")
 
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            timeout=timeout,
-            text=True,
-            cwd=Path(contract_path).parent
+            cmd, capture_output=True, timeout=timeout, text=True, cwd=Path(contract_path).parent
         )
 
         # Certora returns non-zero for violations (expected)
@@ -279,112 +263,112 @@ class CertoraAdapter(ToolAdapter):
         return result.stdout + "\n" + result.stderr
 
     def _parse_certora_output(
-        self,
-        output: str,
-        contract_path: str,
-        spec_file: str
+        self, output: str, contract_path: str, spec_file: str
     ) -> List[Dict[str, Any]]:
         """Parse Certora output and extract findings."""
         findings = []
 
-        lines = output.split('\n')
+        lines = output.split("\n")
 
         for i, line in enumerate(lines):
             # Detect rule violations
             if "violated" in line.lower() or "violation" in line.lower():
                 # Extract rule name
-                rule_match = re.search(r'rule\s+(\w+)', line, re.IGNORECASE)
+                rule_match = re.search(r"rule\s+(\w+)", line, re.IGNORECASE)
                 rule_name = rule_match.group(1) if rule_match else "unknown_rule"
 
                 # Look for counterexample details
                 counterexample = ""
-                for j in range(i+1, min(i+20, len(lines))):
+                for j in range(i + 1, min(i + 20, len(lines))):
                     if "counterexample" in lines[j].lower() or "trace" in lines[j].lower():
                         counterexample += lines[j].strip() + " "
-                        for k in range(j+1, min(j+10, len(lines))):
+                        for k in range(j + 1, min(j + 10, len(lines))):
                             if lines[k].strip():
                                 counterexample += lines[k].strip() + " "
 
-                findings.append({
-                    "id": f"certora-{len(findings)+1}",
-                    "title": f"Rule Violation: {rule_name}",
-                    "description": f"Certora detected violation of rule {rule_name}. {counterexample[:300]}",
-                    "severity": "CRITICAL",
-                    "confidence": 0.98,  # Very high - formal proof
-                    "category": "rule_violation",
-                    "location": {
-                        "file": contract_path,
-                        "spec_file": spec_file,
-                        "rule": rule_name
-                    },
-                    "recommendation": f"Fix violation of rule {rule_name}. Review counterexample trace.",
-                    "references": [
-                        "https://docs.certora.com",
-                        f"Spec file: {spec_file}"
-                    ]
-                })
+                findings.append(
+                    {
+                        "id": f"certora-{len(findings)+1}",
+                        "title": f"Rule Violation: {rule_name}",
+                        "description": f"Certora detected violation of rule {rule_name}. {counterexample[:300]}",
+                        "severity": "CRITICAL",
+                        "confidence": 0.98,  # Very high - formal proof
+                        "category": "rule_violation",
+                        "location": {
+                            "file": contract_path,
+                            "spec_file": spec_file,
+                            "rule": rule_name,
+                        },
+                        "recommendation": f"Fix violation of rule {rule_name}. Review counterexample trace.",
+                        "references": ["https://docs.certora.com", f"Spec file: {spec_file}"],
+                    }
+                )
 
             # Detect invariant violations
-            if "invariant" in line.lower() and ("failed" in line.lower() or "violation" in line.lower()):
-                invariant_match = re.search(r'invariant\s+(\w+)', line, re.IGNORECASE)
-                invariant_name = invariant_match.group(1) if invariant_match else "unknown_invariant"
+            if "invariant" in line.lower() and (
+                "failed" in line.lower() or "violation" in line.lower()
+            ):
+                invariant_match = re.search(r"invariant\s+(\w+)", line, re.IGNORECASE)
+                invariant_name = (
+                    invariant_match.group(1) if invariant_match else "unknown_invariant"
+                )
 
-                findings.append({
-                    "id": f"certora-inv-{len(findings)+1}",
-                    "title": f"Invariant Violation: {invariant_name}",
-                    "description": line.strip(),
-                    "severity": "CRITICAL",
-                    "confidence": 0.98,
-                    "category": "invariant_violation",
-                    "location": {
-                        "file": contract_path,
-                        "spec_file": spec_file,
-                        "invariant": invariant_name
-                    },
-                    "recommendation": f"Fix invariant {invariant_name} - it does not hold for all states",
-                    "references": [
-                        "https://docs.certora.com/en/latest/docs/cvl/invariants.html",
-                        f"Spec file: {spec_file}"
-                    ]
-                })
+                findings.append(
+                    {
+                        "id": f"certora-inv-{len(findings)+1}",
+                        "title": f"Invariant Violation: {invariant_name}",
+                        "description": line.strip(),
+                        "severity": "CRITICAL",
+                        "confidence": 0.98,
+                        "category": "invariant_violation",
+                        "location": {
+                            "file": contract_path,
+                            "spec_file": spec_file,
+                            "invariant": invariant_name,
+                        },
+                        "recommendation": f"Fix invariant {invariant_name} - it does not hold for all states",
+                        "references": [
+                            "https://docs.certora.com/en/latest/docs/cvl/invariants.html",
+                            f"Spec file: {spec_file}",
+                        ],
+                    }
+                )
 
             # Detect timeout or incomplete verification
             if "timeout" in line.lower() or "incomplete" in line.lower():
-                findings.append({
-                    "id": f"certora-timeout",
-                    "title": "Verification Timeout",
-                    "description": line.strip(),
-                    "severity": "LOW",
-                    "confidence": 0.70,
-                    "category": "verification_incomplete",
-                    "location": {
-                        "file": contract_path,
-                        "spec_file": spec_file
-                    },
-                    "recommendation": "Increase timeout or simplify specifications to complete verification",
-                    "references": ["https://docs.certora.com/en/latest/docs/prover/approx/"]
-                })
+                findings.append(
+                    {
+                        "id": "certora-timeout",
+                        "title": "Verification Timeout",
+                        "description": line.strip(),
+                        "severity": "LOW",
+                        "confidence": 0.70,
+                        "category": "verification_incomplete",
+                        "location": {"file": contract_path, "spec_file": spec_file},
+                        "recommendation": "Increase timeout or simplify specifications to complete verification",
+                        "references": ["https://docs.certora.com/en/latest/docs/prover/approx/"],
+                    }
+                )
 
         # Check for successful verification
         if "verified" in output.lower() and not findings:
             # Extract verified rules count
-            verified_count_match = re.search(r'(\d+)\s+rules?\s+verified', output, re.IGNORECASE)
+            verified_count_match = re.search(r"(\d+)\s+rules?\s+verified", output, re.IGNORECASE)
             verified_count = int(verified_count_match.group(1)) if verified_count_match else 0
 
-            findings.append({
-                "id": "certora-verified",
-                "title": f"Formal Verification Passed ({verified_count} rules)",
-                "description": f"Certora successfully verified {verified_count} rules with no violations",
-                "severity": "INFO",
-                "confidence": 1.0,
-                "category": "verification_success",
-                "location": {
-                    "file": contract_path,
-                    "spec_file": spec_file
-                },
-                "recommendation": "Contract formally verified - proceed with confidence",
-                "references": [f"Spec file: {spec_file}"]
-            })
+            findings.append(
+                {
+                    "id": "certora-verified",
+                    "title": f"Formal Verification Passed ({verified_count} rules)",
+                    "description": f"Certora successfully verified {verified_count} rules with no violations",
+                    "severity": "INFO",
+                    "confidence": 1.0,
+                    "category": "verification_success",
+                    "location": {"file": contract_path, "spec_file": spec_file},
+                    "recommendation": "Contract formally verified - proceed with confidence",
+                    "references": [f"Spec file: {spec_file}"],
+                }
+            )
 
         logger.info(f"Certora: Extracted {len(findings)} findings")
         return findings

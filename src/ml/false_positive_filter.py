@@ -178,69 +178,65 @@ class FeedbackEntry:
 
 SLITHER_DETECTOR_FP_RATES = {
     # === HIGH FP RATE (0.70+) - Usually informational/benign ===
-    "reentrancy-benign": 0.85,          # Almost always FP - benign reentrancy
-    "reentrancy-events": 0.80,          # Event emissions, not real reentrancy
-    "naming-convention": 0.95,          # Code style, not security
-    "solc-version": 0.80,               # Pragma version warnings
-    "pragma": 0.80,                     # Pragma-related issues
+    "reentrancy-benign": 0.85,  # Almost always FP - benign reentrancy
+    "reentrancy-events": 0.80,  # Event emissions, not real reentrancy
+    "naming-convention": 0.95,  # Code style, not security
+    "solc-version": 0.80,  # Pragma version warnings
+    "pragma": 0.80,  # Pragma-related issues
     "different-pragma-directives-are-used": 0.75,
     "conformance-to-solidity-naming-conventions": 0.90,
-    "too-many-digits": 0.85,            # Magic numbers
-    "similar-names": 0.80,              # Variable naming similarity
-    "boolean-equal": 0.85,              # x == true instead of x
-    "events-maths": 0.75,               # Math in events
-    "events-access": 0.70,              # Access in events
-    "function-ordering": 0.90,          # Code style
+    "too-many-digits": 0.85,  # Magic numbers
+    "similar-names": 0.80,  # Variable naming similarity
+    "boolean-equal": 0.85,  # x == true instead of x
+    "events-maths": 0.75,  # Math in events
+    "events-access": 0.70,  # Access in events
+    "function-ordering": 0.90,  # Code style
     "state-variables-could-be-declared-immutable": 0.80,
     "state-variables-could-be-declared-constant": 0.80,
     "public-functions-could-be-declared-external": 0.75,
-
     # === MEDIUM-HIGH FP RATE (0.50-0.69) - Context dependent ===
-    "reentrancy-no-eth": 0.55,          # No ETH transfer, lower risk
-    "reentrancy-unlimited-gas": 0.60,   # Gas-related reentrancy
-    "timestamp": 0.55,                  # Often legitimate deadline usage
+    "reentrancy-no-eth": 0.55,  # No ETH transfer, lower risk
+    "reentrancy-unlimited-gas": 0.60,  # Gas-related reentrancy
+    "timestamp": 0.55,  # Often legitimate deadline usage
     "block-timestamp": 0.55,
-    "weak-prng": 0.55,                  # Depends on usage context
-    "low-level-calls": 0.50,            # Often intentional
-    "assembly": 0.50,                   # Often intentional optimization
-    "constable-states": 0.65,           # Could be constant
-    "immutable-states": 0.60,           # Could be immutable
-    "dead-code": 0.55,                  # May be intentional placeholder
-    "unused-state": 0.55,               # May be used in derived contracts
-    "external-function": 0.60,          # Could be external
-    "unused-return": 0.55,              # Context dependent
-    "shadowing-local": 0.65,            # Often intentional
+    "weak-prng": 0.55,  # Depends on usage context
+    "low-level-calls": 0.50,  # Often intentional
+    "assembly": 0.50,  # Often intentional optimization
+    "constable-states": 0.65,  # Could be constant
+    "immutable-states": 0.60,  # Could be immutable
+    "dead-code": 0.55,  # May be intentional placeholder
+    "unused-state": 0.55,  # May be used in derived contracts
+    "external-function": 0.60,  # Could be external
+    "unused-return": 0.55,  # Context dependent
+    "shadowing-local": 0.65,  # Often intentional
     "shadowing-abstract": 0.70,
-    "incorrect-equality": 0.55,         # Many legitimate uses
+    "incorrect-equality": 0.55,  # Many legitimate uses
     "dangerous-strict-equalities": 0.55,
-    "encode-packed-collision": 0.50,    # FP when counter/nonce present
-    "msg-value-loop": 0.50,             # Context dependent
-    "calls-loop": 0.50,                 # May be intentional
-    "costly-loop": 0.60,                # Gas optimization
+    "encode-packed-collision": 0.50,  # FP when counter/nonce present
+    "msg-value-loop": 0.50,  # Context dependent
+    "calls-loop": 0.50,  # May be intentional
+    "costly-loop": 0.60,  # Gas optimization
     "multiple-sends": 0.55,
-
     # === MEDIUM FP RATE (0.30-0.49) - Needs review ===
-    "uninitialized-local": 0.45,        # Could be intentional
-    "uninitialized-state": 0.40,        # More serious
+    "uninitialized-local": 0.45,  # Could be intentional
+    "uninitialized-state": 0.40,  # More serious
     "unchecked-transfer": 0.45,
     "unchecked-lowlevel": 0.40,
     "divide-before-multiply": 0.45,
     "missing-zero-check": 0.40,
-    "shadowing-state": 0.45,            # Can be serious
+    "shadowing-state": 0.45,  # Can be serious
     "controlled-array-length": 0.45,
-    "arbitrary-send-eth": 0.35,         # Needs context review
+    "arbitrary-send-eth": 0.35,  # Needs context review
     "deprecated-standards": 0.50,
-
     # === LOW FP RATE (0.15-0.29) - Likely true positive ===
-    "reentrancy-eth": 0.20,             # Real reentrancy with ETH
-    "uninitialized-storage": 0.25,      # Storage pointer issues
-    "arbitrary-send": 0.25,             # Arbitrary send vulnerabilities
-    "controlled-delegatecall": 0.20,    # Dangerous delegatecall
-
+    "reentrancy-eth": 0.20,  # Real reentrancy with ETH
+    "uninitialized-storage": 0.25,  # Storage pointer issues
+    "arbitrary-send": 0.25,  # Arbitrary send vulnerabilities
+    "controlled-delegatecall": 0.20,  # Dangerous delegatecall
     # === VERY LOW FP RATE (<0.15) - Almost always TP ===
-    "suicidal": 0.10,                   # Unprotected selfdestruct
-    "unprotected-upgrade": 0.10,        # Upgrade vulnerabilities
-    "backdoor": 0.05,                   # Backdoor detection
+    "suicidal": 0.10,  # Unprotected selfdestruct
+    "unprotected-upgrade": 0.10,  # Upgrade vulnerabilities
+    "backdoor": 0.05,  # Backdoor detection
 }
 
 
@@ -347,7 +343,6 @@ class FalsePositiveFilter:
         "msg-value-loop": 0.45,  # Often FP in controlled contexts
         "arbitrary-send-eth": 0.40,  # Context-dependent
         # Slither specific patterns with high FP rates
-        "solc-version": 0.80,  # Almost always informational
         "different-pragma-directives-are-used": 0.75,
         "missing-inheritance": 0.70,
         "conformance-to-solidity-naming-conventions": 0.85,
@@ -443,7 +438,11 @@ class FalsePositiveFilter:
                 (r"counter|Count", 0.85, "counter present"),
                 (r"requestCount|requestId|uniqueId", 0.85, "unique identifier"),
                 (r"abi\.encodePacked\s*\([^)]*id\s*[,)]", 0.80, "unique id present"),
-                (r"abi\.encodePacked\s*\([^)]*block\.(timestamp|number)", 0.75, "block data for uniqueness"),
+                (
+                    r"abi\.encodePacked\s*\([^)]*block\.(timestamp|number)",
+                    0.75,
+                    "block data for uniqueness",
+                ),
                 (r"sequence|seq\d*|incrementing", 0.80, "sequential value"),
             ],
         },
@@ -1102,6 +1101,7 @@ class FalsePositiveFilter:
 # v2.2: SEMANTIC CONTEXT ANALYZER
 # =============================================================================
 
+
 class SemanticContextAnalyzer:
     """
     Deep semantic analysis of code context to reduce false positives.
@@ -1236,21 +1236,15 @@ class SemanticContextAnalyzer:
 
         # Determine if protected
         analysis["is_protected"] = (
-            len(analysis["guards_detected"]) > 0 or
-            "CEI" in analysis["patterns_detected"]
+            len(analysis["guards_detected"]) > 0 or "CEI" in analysis["patterns_detected"]
         )
 
         # Cap adjustment
-        analysis["confidence_adjustment"] = max(
-            min(analysis["confidence_adjustment"], 0.50),
-            -0.60
-        )
+        analysis["confidence_adjustment"] = max(min(analysis["confidence_adjustment"], 0.50), -0.60)
 
         return analysis
 
-    def _analyze_reentrancy_context(
-        self, context: str
-    ) -> Tuple[float, List[str], List[str]]:
+    def _analyze_reentrancy_context(self, context: str) -> Tuple[float, List[str], List[str]]:
         """Analyze context for reentrancy protection."""
         adjustment = 0.0
         reasons = []
@@ -1268,7 +1262,7 @@ class SemanticContextAnalyzer:
         for pattern in self.CEI_PATTERN_INDICATORS:
             if re.search(pattern, context, re.IGNORECASE):
                 adjustment -= 0.15
-                reasons.append(f"CEI state update pattern: -0.15")
+                reasons.append("CEI state update pattern: -0.15")
                 break
 
         # Check for safe call comments
@@ -1280,9 +1274,7 @@ class SemanticContextAnalyzer:
 
         return adjustment, reasons, guards
 
-    def _analyze_access_control_context(
-        self, context: str
-    ) -> Tuple[float, List[str], List[str]]:
+    def _analyze_access_control_context(self, context: str) -> Tuple[float, List[str], List[str]]:
         """Analyze context for access control protection."""
         adjustment = 0.0
         reasons = []
@@ -1321,9 +1313,7 @@ class SemanticContextAnalyzer:
 
         return adjustment, reasons
 
-    def _analyze_timestamp_context(
-        self, context: str
-    ) -> Tuple[float, List[str]]:
+    def _analyze_timestamp_context(self, context: str) -> Tuple[float, List[str]]:
         """Analyze context for legitimate timestamp usage."""
         adjustment = 0.0
         reasons = []
@@ -1351,20 +1341,19 @@ class SemanticContextAnalyzer:
         A function follows CEI if state changes occur before external calls.
         """
         # Find external calls
-        call_matches = list(re.finditer(
-            r"\.call\s*\{|\.call\(|\.transfer\(|\.send\(",
-            context
-        ))
+        call_matches = list(re.finditer(r"\.call\s*\{|\.call\(|\.transfer\(|\.send\(", context))
 
         if not call_matches:
             return False
 
         # Find state changes (effects)
-        effect_matches = list(re.finditer(
-            r"balances?\s*\[[^\]]+\]\s*[-+]?=|_?balance\s*[-+]?=|"
-            r"deposits?\s*\[[^\]]+\]\s*=|withdrawn\s*=|claimed\s*=",
-            context
-        ))
+        effect_matches = list(
+            re.finditer(
+                r"balances?\s*\[[^\]]+\]\s*[-+]?=|_?balance\s*[-+]?=|"
+                r"deposits?\s*\[[^\]]+\]\s*=|withdrawn\s*=|claimed\s*=",
+                context,
+            )
+        )
 
         if not effect_matches:
             return False

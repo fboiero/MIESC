@@ -11,15 +11,19 @@ Date: November 10, 2025
 Version: 1.0.0
 """
 
-from src.core.tool_protocol import (
-    ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
-)
-from typing import Dict, Any, List, Optional
-import subprocess
-import json
 import logging
+import subprocess
 import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,14 +48,14 @@ class MedusaAdapter(ToolAdapter):
 
     # Default fuzzing configuration
     DEFAULT_CONFIG = {
-        "test_limit": 10000,        # Number of test sequences
-        "timeout": 300,              # Total timeout in seconds
-        "coverage_target": 90,       # Target coverage percentage
+        "test_limit": 10000,  # Number of test sequences
+        "timeout": 300,  # Total timeout in seconds
+        "coverage_target": 90,  # Target coverage percentage
         "corpus_dir": ".medusa_corpus",  # Corpus directory
-        "shrink_corpus": True,       # Minimize corpus after fuzzing
-        "assertion_testing": True,   # Test for assertion violations
+        "shrink_corpus": True,  # Minimize corpus after fuzzing
+        "assertion_testing": True,  # Test for assertion violations
         "optimization_testing": False,  # Test for gas optimizations
-        "workers": 4                 # Parallel workers
+        "workers": 4,  # Parallel workers
     }
 
     def get_metadata(self) -> ToolMetadata:
@@ -78,13 +82,13 @@ class MedusaAdapter(ToolAdapter):
                         "access_control_bypass",
                         "state_inconsistencies",
                         "race_conditions",
-                        "edge_case_vulnerabilities"
-                    ]
+                        "edge_case_vulnerabilities",
+                    ],
                 )
             ],
             cost=0.0,
             requires_api_key=False,
-            is_optional=True  # DPGA compliance - graceful degradation
+            is_optional=True,  # DPGA compliance - graceful degradation
         )
 
     def is_available(self) -> ToolStatus:
@@ -97,10 +101,7 @@ class MedusaAdapter(ToolAdapter):
         """
         try:
             result = subprocess.run(
-                ["medusa", "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5
+                ["medusa", "--version"], capture_output=True, text=True, timeout=5
             )
 
             if result.returncode == 0:
@@ -159,7 +160,7 @@ class MedusaAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"tool_status": status.value},
                 "execution_time": time.time() - start_time,
-                "error": f"Medusa not available: {status.value}"
+                "error": f"Medusa not available: {status.value}",
             }
 
         try:
@@ -182,7 +183,8 @@ class MedusaAdapter(ToolAdapter):
                 f"--timeout={timeout}",
                 f"--workers={workers}",
                 f"--corpus-dir={corpus_dir}",
-                "--compilation-target", contract_path
+                "--compilation-target",
+                contract_path,
             ]
 
             if config_file and Path(config_file).exists():
@@ -202,7 +204,7 @@ class MedusaAdapter(ToolAdapter):
                 capture_output=True,
                 text=True,
                 timeout=timeout + 30,  # Add buffer to subprocess timeout
-                cwd=Path(contract_path).parent if Path(contract_path).is_file() else contract_path
+                cwd=Path(contract_path).parent if Path(contract_path).is_file() else contract_path,
             )
 
             execution_time = time.time() - start_time
@@ -223,7 +225,7 @@ class MedusaAdapter(ToolAdapter):
                 "corpus_size": coverage_info.get("corpus_size", 0),
                 "workers_used": workers,
                 "exit_code": result.returncode,
-                "campaign_completed": result.returncode == 0
+                "campaign_completed": result.returncode == 0,
             }
 
             if result.returncode != 0 and len(findings) == 0:
@@ -241,7 +243,7 @@ class MedusaAdapter(ToolAdapter):
                 "status": "success" if result.returncode in [0, 1] else "error",
                 "findings": findings,
                 "metadata": metadata,
-                "execution_time": execution_time
+                "execution_time": execution_time,
             }
 
         except subprocess.TimeoutExpired:
@@ -254,7 +256,7 @@ class MedusaAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"timeout": timeout},
                 "execution_time": execution_time,
-                "error": f"Fuzzing campaign timed out after {timeout} seconds"
+                "error": f"Fuzzing campaign timed out after {timeout} seconds",
             }
 
         except Exception as e:
@@ -267,7 +269,7 @@ class MedusaAdapter(ToolAdapter):
                 "findings": [],
                 "metadata": {"exception": str(e)},
                 "execution_time": execution_time,
-                "error": f"Unexpected error: {e}"
+                "error": f"Unexpected error: {e}",
             }
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
@@ -283,7 +285,7 @@ class MedusaAdapter(ToolAdapter):
         normalized = []
 
         try:
-            lines = raw_output.split('\n') if isinstance(raw_output, str) else []
+            lines = raw_output.split("\n") if isinstance(raw_output, str) else []
 
             # Medusa outputs findings in structured format
             # Look for patterns like:
@@ -292,7 +294,7 @@ class MedusaAdapter(ToolAdapter):
             # [FAIL] integer overflow
 
             for idx, line in enumerate(lines):
-                if '[FAIL]' in line or 'FAILURE' in line or 'violated' in line.lower():
+                if "[FAIL]" in line or "FAILURE" in line or "violated" in line.lower():
                     # Extract finding details
                     finding_type = self._extract_finding_type(line)
                     location_info = self._extract_location(lines, idx)
@@ -308,7 +310,7 @@ class MedusaAdapter(ToolAdapter):
                         "recommendation": self._get_recommendation(finding_type),
                         "swc_id": self._map_to_swc(finding_type),
                         "cwe_id": None,
-                        "owasp_category": self._map_to_owasp(finding_type)
+                        "owasp_category": self._map_to_owasp(finding_type),
                     }
 
                     normalized.append(normalized_finding)
@@ -346,36 +348,27 @@ class MedusaAdapter(ToolAdapter):
                 if len(parts) >= 2:
                     file_path = parts[0].split()[-1] + ".sol"
                     line_num = int(parts[1].split(":")[0]) if ":" in parts[1] else 0
-                    return {
-                        "file": file_path,
-                        "line": line_num,
-                        "function": "unknown"
-                    }
+                    return {"file": file_path, "line": line_num, "function": "unknown"}
 
         return {"file": "unknown", "line": 0, "function": "unknown"}
 
     def _extract_coverage_metrics(self, output: str) -> Dict[str, Any]:
         """Extract coverage metrics from Medusa output."""
-        metrics = {
-            "tests_run": 0,
-            "coverage_percentage": 0,
-            "paths_explored": 0,
-            "corpus_size": 0
-        }
+        metrics = {"tests_run": 0, "coverage_percentage": 0, "paths_explored": 0, "corpus_size": 0}
 
         try:
-            lines = output.split('\n')
+            lines = output.split("\n")
             for line in lines:
                 if "coverage:" in line.lower():
                     # Extract percentage
                     parts = line.split()
                     for part in parts:
-                        if '%' in part:
-                            metrics["coverage_percentage"] = float(part.replace('%', ''))
+                        if "%" in part:
+                            metrics["coverage_percentage"] = float(part.replace("%", ""))
 
                 if "tests:" in line.lower() or "sequences:" in line.lower():
                     parts = line.split()
-                    for i, part in enumerate(parts):
+                    for _i, part in enumerate(parts):
                         if part.isdigit():
                             metrics["tests_run"] = int(part)
                             break
@@ -394,7 +387,7 @@ class MedusaAdapter(ToolAdapter):
             "integer_underflow": "High",
             "reentrancy": "Critical",
             "access_control": "High",
-            "unknown_violation": "Medium"
+            "unknown_violation": "Medium",
         }
         return severity_map.get(finding_type, "Medium")
 
@@ -406,7 +399,7 @@ class MedusaAdapter(ToolAdapter):
             "integer_overflow": "Integer overflow detected through coverage-guided fuzzing",
             "integer_underflow": "Integer underflow detected through coverage-guided fuzzing",
             "reentrancy": "Reentrancy vulnerability discovered through path exploration",
-            "access_control": "Access control bypass detected during fuzzing campaign"
+            "access_control": "Access control bypass detected during fuzzing campaign",
         }
         return descriptions.get(finding_type, line.strip())
 
@@ -418,7 +411,7 @@ class MedusaAdapter(ToolAdapter):
             "integer_overflow": "Use SafeMath library or Solidity 0.8+ automatic overflow checks",
             "integer_underflow": "Use SafeMath library or Solidity 0.8+ automatic underflow checks",
             "reentrancy": "Apply checks-effects-interactions pattern and consider using ReentrancyGuard",
-            "access_control": "Implement proper access control modifiers and validation"
+            "access_control": "Implement proper access control modifiers and validation",
         }
         return recommendations.get(finding_type, "Review and fix the discovered vulnerability")
 
@@ -429,7 +422,7 @@ class MedusaAdapter(ToolAdapter):
             "integer_underflow": "SWC-101",
             "reentrancy": "SWC-107",
             "access_control": "SWC-105",
-            "assertion_violation": "SWC-110"
+            "assertion_violation": "SWC-110",
         }
         return swc_map.get(finding_type)
 
@@ -440,7 +433,7 @@ class MedusaAdapter(ToolAdapter):
             "access_control": "SC02: Access Control",
             "integer_overflow": "SC03: Arithmetic Issues",
             "integer_underflow": "SC03: Arithmetic Issues",
-            "assertion_violation": "SC06: Unvalidated Inputs"
+            "assertion_violation": "SC06: Unvalidated Inputs",
         }
         return owasp_map.get(finding_type)
 
@@ -450,9 +443,9 @@ class MedusaAdapter(ToolAdapter):
 
         # Medusa works best with project directories
         if path.is_dir():
-            return any(path.glob('**/*.sol'))
+            return any(path.glob("**/*.sol"))
         elif path.is_file():
-            return path.suffix == '.sol'
+            return path.suffix == ".sol"
 
         return False
 
