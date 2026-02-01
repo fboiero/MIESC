@@ -38,7 +38,7 @@ RUN --mount=type=cache,target=/root/.cargo/registry \
 # ============================================================
 FROM python:3.12-slim-bookworm AS foundry-builder
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -L https://foundry.paradigm.xyz | bash
@@ -153,7 +153,7 @@ RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
 # Environment variables for MIESC
 ENV MIESC_VERSION="5.0.2"
 ENV MIESC_ENV="docker"
-ENV PYTHONPATH="/app:${PYTHONPATH}"
+ENV PYTHONPATH="/app"
 ENV PYTHONUNBUFFERED=1
 
 # LLM Configuration (for AI-powered report interpretation)

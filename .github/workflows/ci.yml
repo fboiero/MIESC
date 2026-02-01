@@ -39,8 +39,8 @@ jobs:
       - name: Check Black formatting
         run: black --check src/ tests/
 
-      - name: Check import sorting
-        run: isort --check-only src/ tests/
+      - name: Check import sorting (via ruff)
+        run: ruff check src/ tests/ --select I001
 
   # =============================================================================
   # Unit Tests
