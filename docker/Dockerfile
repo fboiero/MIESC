@@ -43,7 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 
 RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH="/root/.foundry/bin:${PATH}"
-RUN foundryup --version 1.0.0 || foundryup
+RUN foundryup
 
 # ============================================================
 # Stage 2: Runtime - Create lean production image
