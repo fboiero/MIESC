@@ -38,6 +38,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -463,9 +464,7 @@ class IAuditAdapter(ToolAdapter):
         Smart Contracts (2024)
     """
 
-    # Ollama HTTP API endpoint for model generation
-    OLLAMA_API_URL = "http://localhost:11434/api/generate"
-    OLLAMA_TAGS_URL = "http://localhost:11434/api/tags"
+    # Ollama URLs resolved at runtime via get_ollama_host()
 
     # Supported model names in priority order
     MODEL_PRIORITY = [
@@ -487,16 +486,19 @@ class IAuditAdapter(ToolAdapter):
 
     def __init__(
         self,
-        ollama_url: str = "http://localhost:11434",
+        ollama_url: str = None,
         model: Optional[str] = None,
         planner_timeout: int = DEFAULT_PLANNER_TIMEOUT,
         detector_timeout: int = DEFAULT_DETECTOR_TIMEOUT,
         reviewer_timeout: int = DEFAULT_REVIEWER_TIMEOUT,
     ):
         super().__init__()
-        self._ollama_url = ollama_url.rstrip("/")
-        self._api_generate = f"{self._ollama_url}/api/generate"
-        self._api_tags = f"{self._ollama_url}/api/tags"
+        _base = (ollama_url or get_ollama_host()).rstrip("/")
+        self._ollama_api_url = f"{_base}/api/generate"
+        self._ollama_tags_url = f"{_base}/api/tags"
+        self._ollama_url = _base
+        self._api_generate = self._ollama_api_url
+        self._api_tags = self._ollama_tags_url
         self._model = model
         self._planner_timeout = planner_timeout
         self._detector_timeout = detector_timeout

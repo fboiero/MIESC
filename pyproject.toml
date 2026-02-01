@@ -338,15 +338,12 @@ omit = [
     "src/adapters/pakala_adapter.py",
     "src/adapters/scribble_adapter.py",
     "src/adapters/solcmc_adapter.py",
-    "src/adapters/gptlens_adapter.py",
-    "src/adapters/llamaaudit_adapter.py",
-    "src/adapters/iaudit_adapter.py",
-    "src/adapters/peculiar_adapter.py",
+    # gptlens, llamaaudit, iaudit, peculiar - covered by test_v500_adapters.py
     "src/adapters/upgradability_checker_adapter.py",
     "src/adapters/bridge_monitor_adapter.py",
     "src/adapters/l2_validator_adapter.py",
     "src/adapters/circom_analyzer_adapter.py",
-    "src/adapters/audit_consensus_adapter.py",
+    # audit_consensus - covered by test_v500_adapters.py
     "src/adapters/exploit_synthesizer_adapter.py",
     "src/adapters/vuln_verifier_adapter.py",
     "src/adapters/remediation_validator_adapter.py",
@@ -385,5 +382,5 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
 ]
-fail_under = 50
+fail_under = 55
 show_missing = true

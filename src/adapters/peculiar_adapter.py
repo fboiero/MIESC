@@ -237,9 +237,11 @@ class PeculiarAdapter(ToolAdapter):
                 "Peculiar: Pre-trained GNN model found at %s", self.model_dir
             )
         else:
-            logger.info(
-                "Peculiar: No model files at %s; using pattern-based fallback",
-                self.model_dir,
+            logger.warning(
+                "Peculiar: No GNN model found at %s. Using pattern-based fallback "
+                "(reduced accuracy). To enable full GNN inference, place model files "
+                "in %s/",
+                self.model_dir, self.model_dir,
             )
         return ToolStatus.AVAILABLE
 

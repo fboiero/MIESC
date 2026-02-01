@@ -123,7 +123,7 @@ class TestMCPToolRegistry:
 
         assert "tools" in caps
         assert "experimental" in caps
-        assert caps["experimental"]["miesc"]["version"] == "4.1.0"
+        assert caps["experimental"]["miesc"]["version"] == "5.0.0"
 
     def test_filter_by_category(self):
         """Test filtering tools by category."""
@@ -135,7 +135,8 @@ class TestMCPToolRegistry:
         assert len(correlation_tools) > 0
         # All returned tools should be correlation tools
         for tool in correlation_tools:
-            assert "correlate" in tool["name"].lower() or "chain" in tool["name"].lower()
+            name = tool["name"].lower()
+            assert any(kw in name for kw in ("correlate", "chain", "filter"))
 
 
 # =============================================================================

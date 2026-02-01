@@ -9,6 +9,7 @@ Date: November 2025
 Version: 3.0.0 (Ollama Backend)
 """
 
+from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
     ToolAdapter, ToolMetadata, ToolStatus, ToolCategory, ToolCapability
 )
@@ -70,7 +71,7 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
         super().__init__()
         self._default_timeout = 120
         self._ollama_model = "codellama:7b"  # Default model
-        self._ollama_url = "http://localhost:11434"
+        self._ollama_url = get_ollama_host()
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(

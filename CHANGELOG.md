@@ -5,6 +5,44 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.1] - 2026-02-01
+
+### Fixed
+- Version sync across Docker files, README, docker-compose.yml
+- REST API VERSION constant updated from stale 4.3.2 to package version
+- CI/CD: Linting, formatting, and security checks now block PRs (removed continue-on-error)
+- Layer 5 AI adapters use centralized OLLAMA_HOST config instead of hardcoded localhost
+
+### Added
+- MCP server test suite (test_mcp_server.py, 13 tests)
+- v5.0.0 adapter test suite (test_v500_adapters.py, 51 tests)
+- ML model requirements documentation (docs/models/README.md)
+- MCP dependency in Docker image
+- Graceful degradation logging for ML adapters (peculiar, dagnn, smartbugs_ml)
+
+### Changed
+- Coverage threshold raised from 50% to 55%
+- CI Python version updated from 3.11 to 3.12
+- REST API ADAPTER_MAP expanded to 50 entries (was 32)
+
+---
+
+## [5.0.0] - 2026-01-31
+
+### Added
+- **9 Defense Layers with 50 Security Tools**: Expanded from 7 layers/32 tools to 9 layers/50 tools
+- **17 new adapters**: fouranalyzer, oyente, pakala, scribble, solcmc, gptlens, llamaaudit, iaudit, peculiar, upgradability_checker, bridge_monitor, l2_validator, circom_analyzer, audit_consensus, exploit_synthesizer, vuln_verifier, remediation_validator
+- **MCP Server**: stdio-based FastMCP server for Claude Desktop integration with 18 tools
+- **Cross-Validation v3**: Bayesian scoring with intra/inter-layer confidence and Layer 9 meta-analysis
+- **`miesc-mcp` entry point**: Run MCP server via `miesc-mcp` CLI command
+
+### Changed
+- Architecture expanded from 7 to 9 defense layers
+- False positive filter v2.3 with FP rates for all new adapters
+- Tool weights updated for 50 tools in config/miesc.yaml
+
+---
+
 ## [4.5.3] - 2026-01-30
 
 ### Fixed

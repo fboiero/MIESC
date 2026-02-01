@@ -19,7 +19,7 @@ class TestRestApiImports:
         from miesc.api import rest
 
         assert hasattr(rest, "VERSION")
-        assert rest.VERSION == "4.3.2"
+        assert rest.VERSION == "5.0.1"
 
     def test_import_layers(self):
         """Test LAYERS dictionary is available."""
@@ -33,7 +33,7 @@ class TestRestApiImports:
         """Test ADAPTER_MAP dictionary is available."""
         from miesc.api.rest import ADAPTER_MAP
 
-        assert len(ADAPTER_MAP) == 32
+        assert len(ADAPTER_MAP) == 50
         assert "slither" in ADAPTER_MAP
         assert "mythril" in ADAPTER_MAP
 
@@ -395,7 +395,7 @@ class TestCLIImports:
         """Test CLI has ADAPTER_MAP defined."""
         from miesc.cli.main import ADAPTER_MAP
 
-        assert len(ADAPTER_MAP) == 32
+        assert len(ADAPTER_MAP) == 50
 
 
 class TestCLIAdapterLoader:

@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  PYTHON_VERSION: "3.11"
+  PYTHON_VERSION: "3.12"
   NODE_VERSION: "18"
 
 jobs:
@@ -35,15 +35,12 @@ jobs:
 
       - name: Run Ruff (linter)
         run: ruff check src/ tests/ --output-format=github
-        continue-on-error: true
 
       - name: Check Black formatting
         run: black --check src/ tests/
-        continue-on-error: true
 
       - name: Check import sorting
         run: isort --check-only src/ tests/
-        continue-on-error: true
 
   # =============================================================================
   # Unit Tests
@@ -127,7 +124,6 @@ jobs:
             -v \
             --tb=short \
             -x
-        continue-on-error: true
 
   # =============================================================================
   # Security Scan
@@ -151,7 +147,6 @@ jobs:
 
       - name: Run Bandit (Python security linter)
         run: bandit -r src/ -ll -ii
-        continue-on-error: true
 
       - name: Check dependencies for vulnerabilities
         run: safety check -r requirements.txt

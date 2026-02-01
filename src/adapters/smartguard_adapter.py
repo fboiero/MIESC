@@ -15,6 +15,7 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-12-03
 """
 
+from src.core.llm_config import get_default_model
 from src.core.tool_protocol import (
     ToolAdapter,
     ToolMetadata,
@@ -204,7 +205,7 @@ class SmartGuardAdapter(ToolAdapter):
         super().__init__()
         self._cache_dir = Path.home() / ".miesc" / "smartguard_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
-        self._model = "deepseek-coder"
+        self._model = get_default_model()
         self._max_tokens = 8000
         self._similarity_threshold = 0.6
 

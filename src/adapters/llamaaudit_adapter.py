@@ -29,6 +29,7 @@ import urllib.error
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -305,12 +306,15 @@ OUTPUT FORMAT - Respond with ONLY valid JSON:
 
 Respond with ONLY the JSON object. No explanations outside JSON."""
 
-    OLLAMA_BASE_URL = "http://localhost:11434"
-    OLLAMA_GENERATE_URL = "http://localhost:11434/api/generate"
-    OLLAMA_TAGS_URL = "http://localhost:11434/api/tags"
+    # Ollama URLs resolved at runtime via get_ollama_host()
+    # Supports OLLAMA_HOST env var and config/miesc.yaml
 
     def __init__(self):
         super().__init__()
+        _base = get_ollama_host()
+        self._ollama_base_url = _base
+        self._ollama_generate_url = f"{_base}/api/generate"
+        self._ollama_tags_url = f"{_base}/api/tags"
         self._model = "codellama"
         self._default_timeout = 180
         self._http_timeout = 10
@@ -389,7 +393,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         """
         try:
             req = urllib.request.Request(
-                self.OLLAMA_TAGS_URL,
+                self._ollama_tags_url,
                 method="GET",
             )
             with urllib.request.urlopen(req, timeout=self._http_timeout) as resp:
@@ -426,7 +430,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                 return ToolStatus.CONFIGURATION_ERROR
 
         except urllib.error.URLError as e:
-            logger.info(f"Ollama not reachable at {self.OLLAMA_BASE_URL}: {e}")
+            logger.info(f"Ollama not reachable at {self._ollama_base_url}: {e}")
             return ToolStatus.NOT_INSTALLED
         except ConnectionRefusedError:
             logger.info("Ollama service not running")
@@ -627,7 +631,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         }).encode("utf-8")
 
         req = urllib.request.Request(
-            self.OLLAMA_GENERATE_URL,
+            self._ollama_generate_url,
             data=payload,
             headers={"Content-Type": "application/json"},
             method="POST",
@@ -685,7 +689,7 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
     def _check_ollama_available(self) -> bool:
         """Quick check if Ollama HTTP API is reachable."""
         try:
-            req = urllib.request.Request(self.OLLAMA_TAGS_URL, method="GET")
+            req = urllib.request.Request(self._ollama_tags_url, method="GET")
             with urllib.request.urlopen(req, timeout=5) as resp:
                 return resp.status == 200
         except Exception:

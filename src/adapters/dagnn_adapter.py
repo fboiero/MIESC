@@ -177,6 +177,15 @@ class DAGNNAdapter(ToolAdapter):
                     logger.warning("Slither not available for graph extraction")
                     return ToolStatus.NOT_INSTALLED
 
+            if hasattr(self, 'model_path'):
+                from pathlib import Path as _Path
+                if self.model_path and not _Path(self.model_path).exists():
+                    logger.warning(
+                        "DA-GNN: Pre-trained model not found at %s. "
+                        "Heuristic fallback will be used (reduced accuracy).",
+                        self.model_path
+                    )
+
             return ToolStatus.AVAILABLE
 
         except ImportError as e:

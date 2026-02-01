@@ -325,6 +325,11 @@ class SmartBugsMLAdapter:
         Returns:
             List of predicted vulnerabilities with confidence scores
         """
+        logger.info(
+            "SmartBugs-ML: Running rule-based inference "
+            "(pre-trained ML models not loaded). Results are approximate."
+        )
+
         findings = []
 
         # Reentrancy detection (rule-based heuristic simulating ML)

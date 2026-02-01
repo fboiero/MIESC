@@ -37,6 +37,7 @@ import urllib.error
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -51,8 +52,8 @@ logger = logging.getLogger(__name__)
 # Constants
 # ============================================================================
 
-OLLAMA_BASE_URL = "http://localhost:11434"
-OLLAMA_GENERATE_ENDPOINT = f"{OLLAMA_BASE_URL}/api/generate"
+# Ollama URL resolved at runtime via get_ollama_host()
+# Supports OLLAMA_HOST env var and config/miesc.yaml
 
 # Default models for each role
 DEFAULT_AUDITOR_MODEL = "deepseek-coder"
@@ -267,7 +268,7 @@ class GPTLensAdapter(ToolAdapter):
         self,
         auditor_model: str = DEFAULT_AUDITOR_MODEL,
         critic_model: str = DEFAULT_CRITIC_MODEL,
-        ollama_url: str = OLLAMA_BASE_URL,
+        ollama_url: str = None,
     ):
         """
         Initialize GPTLens adapter.
@@ -280,8 +281,8 @@ class GPTLensAdapter(ToolAdapter):
         super().__init__()
         self._auditor_model = auditor_model
         self._critic_model = critic_model
-        self._ollama_url = ollama_url
-        self._generate_url = f"{ollama_url}/api/generate"
+        self._ollama_url = ollama_url or get_ollama_host()
+        self._generate_url = f"{self._ollama_url}/api/generate"
         self._cache_dir = Path.home() / ".miesc" / "gptlens_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._max_retries = 2
@@ -566,7 +567,7 @@ class GPTLensAdapter(ToolAdapter):
         return {
             "auditor_model": DEFAULT_AUDITOR_MODEL,
             "critic_model": DEFAULT_CRITIC_MODEL,
-            "ollama_url": OLLAMA_BASE_URL,
+            "ollama_url": get_ollama_host(),
             "auditor_timeout": AUDITOR_TIMEOUT,
             "critic_timeout": CRITIC_TIMEOUT,
             "skip_critic": False,
