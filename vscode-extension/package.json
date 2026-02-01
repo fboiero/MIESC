@@ -146,7 +146,12 @@
         },
         "miesc.defaultLayers": {
           "type": "array",
-          "default": [1, 2, 3, 6],
+          "default": [
+            1,
+            2,
+            3,
+            6
+          ],
           "description": "Default layers to run during audit (1-9)"
         },
         "miesc.autoAuditOnSave": {
@@ -161,7 +166,13 @@
         },
         "miesc.severityThreshold": {
           "type": "string",
-          "enum": ["critical", "high", "medium", "low", "info"],
+          "enum": [
+            "critical",
+            "high",
+            "medium",
+            "low",
+            "info"
+          ],
           "default": "medium",
           "description": "Minimum severity level to display"
         },
@@ -239,18 +250,20 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src/",
     "test": "node ./out/test/runTest.js",
     "package": "vsce package"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/eslint-plugin": "^8.53.1",
     "@typescript-eslint/parser": "^8.53.1",
-    "eslint": "^8.54.0",
+    "@vscode/vsce": "^3.7.1",
+    "eslint": "^9.39.2",
     "typescript": "^5.3.0",
-    "@vscode/vsce": "^2.22.0"
+    "typescript-eslint": "^8.54.0"
   },
   "dependencies": {
     "axios": "^1.13.3"
