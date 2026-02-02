@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "updated_at": "2026-02-02T00:00:00Z",
+  "plugins": [
+    {
+      "name": "Dangerous Delegatecall Detector",
+      "slug": "dangerous-delegatecall",
+      "pypi_package": "miesc-dangerous_delegatecall",
+      "version": "0.1.0",
+      "plugin_type": "detector",
+      "description": "Detects dangerous delegatecall patterns in smart contracts that could lead to storage collision or unauthorized code execution",
+      "author": "Fernando Boiero",
+      "author_email": "fboiero@frvm.utn.edu.ar",
+      "homepage": "https://github.com/fboiero/MIESC",
+      "repository": "https://github.com/fboiero/MIESC",
+      "license": "AGPL-3.0",
+      "tags": ["security", "delegatecall", "proxy", "storage-collision"],
+      "min_miesc_version": "4.3.0",
+      "max_miesc_version": null,
+      "verification_status": "verified",
+      "added_at": "2026-02-02T00:00:00Z",
+      "updated_at": "2026-02-02T00:00:00Z"
+    }
+  ]
+}

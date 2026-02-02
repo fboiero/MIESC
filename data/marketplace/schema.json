@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MIESC Plugin Marketplace Index",
+  "type": "object",
+  "required": ["version", "updated_at", "plugins"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp"
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "slug",
+          "pypi_package",
+          "version",
+          "plugin_type",
+          "description",
+          "author"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Human-readable plugin name"
+          },
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+            "description": "Unique URL-friendly identifier"
+          },
+          "pypi_package": {
+            "type": "string",
+            "pattern": "^miesc[-_]",
+            "description": "PyPI package name (must start with miesc-)"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+",
+            "description": "Semantic version"
+          },
+          "plugin_type": {
+            "type": "string",
+            "enum": ["detector", "adapter", "reporter", "transformer", "analyzer", "hook"],
+            "description": "Plugin type category"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "description": "Plugin description"
+          },
+          "author": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Plugin author name"
+          },
+          "author_email": {
+            "type": "string",
+            "format": "email"
+          },
+          "homepage": {
+            "type": "string",
+            "format": "uri"
+          },
+          "repository": {
+            "type": "string",
+            "format": "uri"
+          },
+          "license": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Searchable tags"
+          },
+          "min_miesc_version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$",
+            "default": "4.0.0",
+            "description": "Minimum compatible MIESC version"
+          },
+          "max_miesc_version": {
+            "type": ["string", "null"],
+            "pattern": "^\\d+\\.\\d+\\.\\d+$",
+            "description": "Maximum compatible MIESC version"
+          },
+          "verification_status": {
+            "type": "string",
+            "enum": ["verified", "community", "experimental"],
+            "default": "community",
+            "description": "Review status"
+          },
+          "added_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

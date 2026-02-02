@@ -5,6 +5,7 @@ external detector plugins from PyPI or local directories.
 """
 
 import importlib.metadata
+import logging
 import re
 import subprocess
 import sys
@@ -12,6 +13,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from .config import PluginConfigManager
 
@@ -1023,3 +1026,62 @@ class PluginManager:
         return create_plugin_scaffold(
             name=name, output_dir=output_dir, description=description, author=author
         )
+
+    def get_marketplace_client(self):
+        """Get a MarketplaceClient instance.
+
+        Returns:
+            MarketplaceClient instance for remote plugin index operations.
+        """
+        from src.plugins.marketplace import MarketplaceClient
+
+        return MarketplaceClient()
+
+    def search_marketplace(self, query: str, **kwargs) -> list[dict[str, str]]:
+        """Search the remote plugin marketplace.
+
+        Args:
+            query: Search query
+            **kwargs: Additional filters passed to MarketplaceClient.search()
+
+        Returns:
+            List of package info dicts with keys: name, version, description,
+            url, slug, source, verification_status
+        """
+        try:
+            client = self.get_marketplace_client()
+            results = client.search(query, **kwargs)
+            return [
+                {
+                    "name": r.plugin.name,
+                    "version": r.plugin.version,
+                    "description": r.plugin.description,
+                    "url": r.plugin.homepage or r.plugin.repository,
+                    "slug": r.plugin.slug,
+                    "pypi_package": r.plugin.pypi_package,
+                    "source": "marketplace",
+                    "verification_status": r.plugin.verification_status.value,
+                }
+                for r in results
+            ]
+        except Exception as e:
+            logger.warning("Marketplace search failed: %s", e)
+            return []
+
+    def resolve_marketplace_slug(self, slug: str) -> str | None:
+        """Resolve a marketplace slug to a PyPI package name.
+
+        Args:
+            slug: Marketplace plugin slug (e.g., 'defi-flash-loan')
+
+        Returns:
+            PyPI package name if found, None otherwise.
+        """
+        try:
+            client = self.get_marketplace_client()
+            plugin = client.get_plugin(slug)
+            if plugin:
+                return plugin.pypi_package
+        except Exception as e:
+            logger.warning("Marketplace slug resolution failed: %s", e)
+        return None

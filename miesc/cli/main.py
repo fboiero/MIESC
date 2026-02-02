@@ -3332,6 +3332,13 @@ def plugins_install(package, upgrade, force, no_check):
 
     manager = PluginManager()
 
+    # Try to resolve marketplace slug to PyPI package name
+    if not package.startswith("miesc-"):
+        resolved = manager.resolve_marketplace_slug(package)
+        if resolved:
+            info(f"Resolved marketplace plugin '{package}' -> {resolved}")
+            package = resolved
+
     # Check compatibility first if not skipped
     if not no_check and not force:
         info(f"Checking compatibility for {package}...")
@@ -3595,19 +3602,21 @@ def plugins_create(name, output, description, author):
 @plugins.command("search")
 @click.argument("query")
 @click.option("--timeout", "-t", type=int, default=10, help="Request timeout in seconds")
-def plugins_search(query, timeout):
-    """Search PyPI for MIESC detector plugins.
+@click.option("--marketplace-only", is_flag=True, help="Search marketplace only")
+@click.option("--pypi-only", is_flag=True, help="Search PyPI only")
+def plugins_search(query, timeout, marketplace_only, pypi_only):
+    """Search for MIESC plugins.
 
-    Searches the PyPI registry for packages matching the query.
-    Results include package name, version, and description.
+    Searches the MIESC marketplace and PyPI for matching plugins.
+    Results include source, package name, version, and description.
 
     Examples:
 
       miesc plugins search defi
 
-      miesc plugins search flash-loan
+      miesc plugins search flash-loan --marketplace-only
 
-      miesc plugins search reentrancy
+      miesc plugins search reentrancy --pypi-only
     """
     print_banner()
 
@@ -3618,42 +3627,64 @@ def plugins_search(query, timeout):
         raise SystemExit(1) from e
 
     manager = PluginManager()
+    all_results = []
 
-    info(f"Searching PyPI for MIESC plugins matching '{query}'...")
+    # Search marketplace first
+    if not pypi_only:
+        info(f"Searching marketplace for '{query}'...")
+        mp_results = manager.search_marketplace(query)
+        all_results.extend(mp_results)
 
-    results = manager.search_pypi(query, timeout=timeout)
+    # Search PyPI
+    if not marketplace_only:
+        info(f"Searching PyPI for '{query}'...")
+        pypi_results = manager.search_pypi(query, timeout=timeout)
+        # Mark PyPI results and avoid duplicates
+        seen_packages = {r["pypi_package"] for r in all_results if "pypi_package" in r}
+        for pkg in pypi_results:
+            if pkg["name"] not in seen_packages:
+                pkg["source"] = "pypi"
+                pkg["verification_status"] = ""
+                all_results.append(pkg)
 
-    if not results:
+    if not all_results:
         info(f"No plugins found matching '{query}'")
         info("")
         info("Tips:")
         info("  - Try a different search term")
-        info("  - Check https://pypi.org/search/?q=miesc for all MIESC packages")
+        info("  - Browse the marketplace: miesc plugins marketplace")
         info("  - Create your own plugin: miesc plugins create <name>")
         return
 
     if RICH_AVAILABLE:
-        table = Table(title=f"Found {len(results)} plugin(s)")
+        table = Table(title=f"Found {len(all_results)} plugin(s)")
+        table.add_column("Source", style="dim")
         table.add_column("Package", style="cyan")
         table.add_column("Version", style="green")
+        table.add_column("Status", style="yellow")
         table.add_column("Description")
 
-        for pkg in results:
-            desc = pkg["description"]
-            if len(desc) > 50:
-                desc = desc[:47] + "..."
-            table.add_row(pkg["name"], pkg["version"], desc)
+        for pkg in all_results:
+            desc = pkg.get("description", "")
+            if len(desc) > 45:
+                desc = desc[:42] + "..."
+            source = pkg.get("source", "pypi")
+            status = pkg.get("verification_status", "")
+            name = pkg.get("pypi_package", pkg.get("name", ""))
+            table.add_row(source, name, pkg.get("version", ""), status, desc)
 
         console.print(table)
         console.print("")
         info("Install with: miesc plugins install <package-name>")
     else:
-        print(f"\nFound {len(results)} plugin(s) matching '{query}':\n")
-        for pkg in results:
-            desc = pkg["description"]
+        print(f"\nFound {len(all_results)} plugin(s) matching '{query}':\n")
+        for pkg in all_results:
+            desc = pkg.get("description", "")
             if len(desc) > 50:
                 desc = desc[:47] + "..."
-            print(f"  {pkg['name']} (v{pkg['version']})")
+            source = pkg.get("source", "pypi")
+            name = pkg.get("pypi_package", pkg.get("name", ""))
+            print(f"  [{source}] {name} (v{pkg.get('version', '?')})")
             if desc:
                 print(f"    {desc}")
             print()
@@ -3922,6 +3953,166 @@ def plugins_load(plugin_path, enable):
         error(f"Failed to load plugin: {e}")
         logger.exception("Plugin load error")
         raise SystemExit(1) from e
+
+
+@plugins.command("marketplace")
+@click.option("--type", "-t", "plugin_type", default=None,
+              type=click.Choice(["detector", "adapter", "reporter", "transformer"]),
+              help="Filter by plugin type")
+@click.option("--tag", multiple=True, help="Filter by tag")
+@click.option("--verified-only", is_flag=True, help="Show only verified plugins")
+@click.option("--refresh", is_flag=True, help="Force refresh from remote")
+@click.option("--page", type=int, default=1, help="Page number")
+def plugins_marketplace(plugin_type, tag, verified_only, refresh, page):
+    """Browse the MIESC plugin marketplace.
+
+    Shows available plugins from the remote marketplace index hosted
+    on GitHub. Plugins are community-submitted and reviewed via PR.
+
+    \b
+    Examples:
+        miesc plugins marketplace
+        miesc plugins marketplace --type detector
+        miesc plugins marketplace --tag defi --verified-only
+        miesc plugins marketplace --refresh
+    """
+    print_banner()
+
+    try:
+        from src.plugins.marketplace import MarketplaceClient, VerificationStatus
+    except ImportError as e:
+        error("Marketplace module not available")
+        raise SystemExit(1) from e
+
+    client = MarketplaceClient()
+
+    try:
+        verification = None
+        if verified_only:
+            verification = VerificationStatus.VERIFIED
+
+        plugins = client.browse(
+            plugin_type=plugin_type,
+            verification_status=verification,
+            page=page,
+        )
+
+        # Apply tag filter manually if specified
+        if tag:
+            tag_set = set(tag)
+            plugins = [p for p in plugins if tag_set.intersection(p.tags)]
+
+        if not plugins:
+            info("No plugins found matching your filters.")
+            info("Try: miesc plugins marketplace --refresh")
+            return
+
+        if RICH_AVAILABLE:
+            table = Table(title=f"MIESC Plugin Marketplace (page {page})")
+            table.add_column("Name", style="cyan")
+            table.add_column("Version", style="green")
+            table.add_column("Type", style="blue")
+            table.add_column("Status", style="yellow")
+            table.add_column("Author")
+            table.add_column("Description")
+
+            status_styles = {
+                VerificationStatus.VERIFIED: "[green]verified[/green]",
+                VerificationStatus.COMMUNITY: "[yellow]community[/yellow]",
+                VerificationStatus.EXPERIMENTAL: "[dim]experimental[/dim]",
+            }
+
+            for p in plugins:
+                desc = p.description
+                if len(desc) > 40:
+                    desc = desc[:37] + "..."
+                status = status_styles.get(p.verification_status, p.verification_status.value)
+                table.add_row(p.name, p.version, p.plugin_type, status, p.author, desc)
+
+            console.print(table)
+            console.print("")
+        else:
+            print(f"\nMIESC Plugin Marketplace (page {page}):\n")
+            for p in plugins:
+                desc = p.description
+                if len(desc) > 50:
+                    desc = desc[:47] + "..."
+                print(f"  {p.name} v{p.version} [{p.plugin_type}] ({p.verification_status.value})")
+                print(f"    by {p.author} - {desc}")
+                print()
+
+        info(f"Install with: miesc plugins install <slug>")
+        info(f"More details: miesc plugins info <slug>")
+
+    except Exception as e:
+        error(f"Failed to browse marketplace: {e}")
+        raise SystemExit(1) from e
+
+
+@plugins.command("submit")
+@click.option("--name", prompt="Plugin display name", help="Plugin display name")
+@click.option("--package", prompt="PyPI package name (miesc-...)", help="PyPI package name")
+@click.option("--version", "pkg_version", prompt="Version", help="Plugin version")
+@click.option("--type", "plugin_type", prompt="Plugin type",
+              type=click.Choice(["detector", "adapter", "reporter", "transformer"]),
+              help="Plugin type")
+@click.option("--description", prompt="Description", help="Plugin description")
+@click.option("--author", prompt="Author name", help="Author name")
+@click.option("--open-pr", is_flag=True, help="Open GitHub PR creation page")
+def plugins_submit(name, package, pkg_version, plugin_type, description, author, open_pr):
+    """Generate a marketplace submission entry.
+
+    Creates a JSON entry for submitting your plugin to the MIESC marketplace.
+    Copy the output into a PR to the MIESC repository.
+
+    \b
+    Examples:
+        miesc plugins submit
+        miesc plugins submit --name "My Detector" --package miesc-my-detector \\
+            --version 1.0.0 --type detector --description "Detects things" \\
+            --author "Dev"
+    """
+    print_banner()
+
+    try:
+        from src.plugins.marketplace import MarketplaceClient
+    except ImportError as e:
+        error("Marketplace module not available")
+        raise SystemExit(1) from e
+
+    client = MarketplaceClient()
+
+    entry = client.generate_submission(
+        name=name,
+        pypi_package=package,
+        version=pkg_version,
+        plugin_type=plugin_type,
+        description=description,
+        author=author,
+    )
+
+    errors = client.validate_submission(entry)
+    if errors:
+        error("Submission validation failed:")
+        for err in errors:
+            error(f"  - {err}")
+        raise SystemExit(1)
+
+    import json
+    entry_json = json.dumps(entry, indent=2)
+
+    success("Submission entry generated:")
+    print(f"\n{entry_json}\n")
+    info("To submit to the marketplace:")
+    info("  1. Fork https://github.com/fboiero/MIESC")
+    info("  2. Add this entry to data/marketplace/marketplace-index.json")
+    info("  3. Open a Pull Request")
+
+    if open_pr:
+        import webbrowser
+        pr_url = "https://github.com/fboiero/MIESC/edit/main/data/marketplace/marketplace-index.json"
+        info(f"Opening {pr_url} ...")
+        webbrowser.open(pr_url)
 
 
 # ============================================================================

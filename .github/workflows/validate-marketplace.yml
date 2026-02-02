@@ -1,0 +1,81 @@
+name: Validate Marketplace Index
+
+on:
+  pull_request:
+    paths:
+      - 'data/marketplace/marketplace-index.json'
+
+jobs:
+  validate:
+    name: Validate Marketplace Index
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON syntax
+        run: python3 -m json.tool data/marketplace/marketplace-index.json > /dev/null
+
+      - name: Validate against schema
+        run: |
+          pip install jsonschema
+          python3 -c "
+          import json, jsonschema
+
+          with open('data/marketplace/schema.json') as f:
+              schema = json.load(f)
+          with open('data/marketplace/marketplace-index.json') as f:
+              index = json.load(f)
+
+          jsonschema.validate(index, schema)
+          print(f'Validation passed: {len(index[\"plugins\"])} plugin(s)')
+          "
+
+      - name: Check slug uniqueness
+        run: |
+          python3 -c "
+          import json
+
+          with open('data/marketplace/marketplace-index.json') as f:
+              index = json.load(f)
+
+          slugs = [p['slug'] for p in index['plugins']]
+          duplicates = [s for s in slugs if slugs.count(s) > 1]
+
+          if duplicates:
+              print(f'ERROR: Duplicate slugs found: {set(duplicates)}')
+              exit(1)
+
+          print(f'All {len(slugs)} slugs are unique')
+          "
+
+      - name: Verify PyPI packages exist
+        continue-on-error: true
+        run: |
+          python3 -c "
+          import json
+          import urllib.request
+          import urllib.error
+
+          with open('data/marketplace/marketplace-index.json') as f:
+              index = json.load(f)
+
+          errors = []
+          for plugin in index['plugins']:
+              pkg = plugin['pypi_package']
+              url = f'https://pypi.org/pypi/{pkg}/json'
+              try:
+                  req = urllib.request.Request(url, headers={'User-Agent': 'MIESC-CI'})
+                  with urllib.request.urlopen(req, timeout=10) as resp:
+                      if resp.status == 200:
+                          print(f'  OK: {pkg}')
+              except urllib.error.HTTPError as e:
+                  if e.code == 404:
+                      errors.append(f'{pkg} not found on PyPI')
+                      print(f'  WARN: {pkg} not found on PyPI')
+              except Exception as e:
+                  print(f'  WARN: Could not check {pkg}: {e}')
+
+          if errors:
+              print(f'\\nWarning: {len(errors)} package(s) not found on PyPI')
+              print('This is expected for new submissions not yet published')
+          "

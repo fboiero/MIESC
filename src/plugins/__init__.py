@@ -62,6 +62,15 @@ from .registry import (
     get_registry,
     set_registry,
 )
+from .marketplace import (
+    DEFAULT_CACHE_PATH,
+    DEFAULT_INDEX_URL,
+    MarketplaceClient,
+    MarketplaceIndex,
+    MarketplacePlugin,
+    MarketplaceSearchResult,
+    VerificationStatus,
+)
 from .templates import (
     PluginTemplate,
     PluginTemplateGenerator,
@@ -99,6 +108,14 @@ __all__ = [
     # Templates
     "PluginTemplateGenerator",
     "PluginTemplate",
+    # Marketplace
+    "MarketplaceClient",
+    "MarketplacePlugin",
+    "MarketplaceIndex",
+    "MarketplaceSearchResult",
+    "VerificationStatus",
+    "DEFAULT_INDEX_URL",
+    "DEFAULT_CACHE_PATH",
 ]
 
 # Version
