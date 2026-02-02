@@ -5,6 +5,20 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.3] - 2026-02-02
+
+### Fixed
+- Docker build: package stubs for editable install in multi-stage build
+- CI/CD: override entrypoint for Docker image test
+- CI/CD: disable coverage threshold in integration tests (only 2 test files)
+- Removed unused `setuptools_scm` from build-requires
+
+### Changed
+- Black formatting applied to scripts, examples and webapp (13 files)
+- Cleaned up 177 Finder duplicate files
+
+---
+
 ## [5.0.2] - 2026-02-01
 
 ### Fixed

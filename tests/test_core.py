@@ -3471,7 +3471,7 @@ class TestConfigLoaderCoverage:
 
         config = MIESCConfig()
         # Should get default config
-        assert config.version == "5.0.2"
+        assert config.version == "5.0.3"
         self._reset_singleton()
 
     def test_get_config_function(self):

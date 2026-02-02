@@ -1,4 +1,4 @@
-# MIESC v5.0.2 FULL - Extended Docker Image
+# MIESC v5.0.3 FULL - Extended Docker Image
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This is the ONLY image that includes symbolic execution tools:
@@ -28,7 +28,7 @@
 FROM ghcr.io/fboiero/miesc:latest
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.0.2-full"
+LABEL version="5.0.3-full"
 LABEL description="MIESC FULL - Extended with Mythril, Manticore, PyTorch for ML Analysis"
 
 # Switch to root for system packages
@@ -95,7 +95,7 @@ RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
 # ENVIRONMENT CONFIGURATION
 # ==========================================
 
-ENV MIESC_VERSION="5.0.2-full"
+ENV MIESC_VERSION="5.0.3-full"
 ENV MIESC_ENV="docker-full"
 
 # Health check
