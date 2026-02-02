@@ -96,8 +96,7 @@ jobs:
 
   publish:
     name: Publish to PyPI
-    needs: [build]  # Only depend on build, not test-pypi
-    if: always()  # Run even if publish-test fails
+    needs: build
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
