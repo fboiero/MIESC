@@ -1,0 +1,24 @@
+digraph{
+0[label="Node Type: ENTRY_POINT 0
+"];
+0->1;
+1[label="Node Type: NEW VARIABLE 1
+"];
+1->2;
+2[label="Node Type: EXPRESSION 2
+
+EXPRESSION:
+(success,None) = target.delegatecall(data)
+
+IRs:
+TUPLE_0(bool,bytes) = LOW_LEVEL_CALL, dest:target, function:delegatecall, arguments:['data']  
+success(bool)= UNPACK TUPLE_0 index: 0 "];
+2->3;
+3[label="Node Type: EXPRESSION 3
+
+EXPRESSION:
+require(bool,string)(success,Delegatecall failed)
+
+IRs:
+TMP_23(None) = SOLIDITY_CALL require(bool,string)(success,Delegatecall failed)"];
+}

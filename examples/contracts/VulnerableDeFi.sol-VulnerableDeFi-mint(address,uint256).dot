@@ -1,0 +1,29 @@
+digraph{
+0[label="Node Type: ENTRY_POINT 0
+"];
+0->3;
+1[label="Node Type: EXPRESSION 1
+
+EXPRESSION:
+balances[to] += amount
+
+IRs:
+REF_3(uint256) -> balances[to]
+REF_3(-> balances) = REF_3 (c)+ amount"];
+1->2;
+2[label="Node Type: EXPRESSION 2
+
+EXPRESSION:
+Mint(to,amount)
+
+IRs:
+Emit Mint(to,amount)"];
+3[label="Node Type: EXPRESSION 3
+
+EXPRESSION:
+onlyOwner()
+
+IRs:
+MODIFIER_CALL, VulnerableDeFi.onlyOwner()()"];
+3->1;
+}

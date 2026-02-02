@@ -337,6 +337,82 @@ miesc doctor
 
 **[Complete Quick Start Guide](./docs/guides/QUICKSTART.md)** - Detailed installation and usage instructions.
 
+### Recommended: Full Audit with Professional PDF Report
+
+> **For the best results**, run a **full 9-layer audit** using all available tools and generate a **premium PDF report with LLM interpretation**. This combines static analysis, dynamic testing, symbolic execution, formal verification, AI analysis, and ML detection into a single comprehensive audit with professional-grade output comparable to Trail of Bits / OpenZeppelin reports.
+
+```bash
+# Step 1: Run full audit with ALL tools (use :full Docker image or thorough profile)
+miesc audit full contract.sol -o results.json
+
+# Step 2: Generate premium PDF report with AI-powered insights (recommended)
+miesc report results.json -t premium -f pdf --llm-interpret \
+  --client "Your Client" \
+  --auditor "Your Name" \
+  --contract-name "MyContract.sol" \
+  --network "Ethereum Mainnet" \
+  -o audit_report.pdf
+```
+
+**Why this is the recommended workflow:**
+
+| Feature | `scan` / `quick` | `audit full` + `premium --llm-interpret` |
+|---------|:-----------------:|:----------------------------------------:|
+| Static analysis (Slither, Aderyn) | ✅ | ✅ |
+| Dynamic testing (Echidna, Foundry) | ❌ | ✅ |
+| Symbolic execution (Mythril, Halmos) | ❌ | ✅ |
+| Formal verification (Certora, SMTChecker) | ❌ | ✅ |
+| AI analysis (SmartLLM, GPTScan) | ❌ | ✅ |
+| ML detection (DA-GNN, SmartGuard) | ❌ | ✅ |
+| CVSS scoring & risk matrix | ❌ | ✅ |
+| AI-generated attack scenarios | ❌ | ✅ |
+| Deployment recommendation (GO/NO-GO) | ❌ | ✅ |
+| Remediation roadmap | ❌ | ✅ |
+| Professional PDF output | ❌ | ✅ |
+
+> **Requirements:** The full audit needs the `:full` Docker image (~8GB) or all tools installed locally. LLM interpretation requires [Ollama](https://ollama.com) with `mistral:latest` (~4GB). See [Docker with LLM Support](#docker-with-llm-support-professional-pdf-reports) above for setup instructions.
+
+<details>
+<summary><strong>Docker one-liner (recommended for most users)</strong></summary>
+
+```bash
+# Full audit + premium PDF with AI insights in one workflow
+docker run --rm \
+  -v $(pwd):/contracts \
+  ghcr.io/fboiero/miesc:full \
+  audit batch /contracts -o /contracts/results.json -p thorough -r
+
+docker run --rm \
+  -e OLLAMA_HOST=http://host.docker.internal:11434 \
+  -v $(pwd):/contracts \
+  ghcr.io/fboiero/miesc:full \
+  report /contracts/results.json -t premium -f pdf \
+    --llm-interpret \
+    --client "Your Client" \
+    --auditor "Your Name" \
+    -o /contracts/audit_report.pdf
+```
+
+</details>
+
+<details>
+<summary><strong>Available analysis profiles</strong></summary>
+
+| Profile | Tools | Layers | Best for |
+|---------|-------|--------|----------|
+| `fast` | Slither, Solhint | 1 | Quick feedback during development |
+| `balanced` | Slither, Aderyn, Mythril, Halmos | 1, 3 | Pre-commit checks |
+| **`thorough`** | **All 50 tools** | **1-9** | **Pre-release / comprehensive audit (recommended)** |
+| `security` | Slither, Aderyn, Mythril, Halmos, Certora, SmartLLM | 1, 3, 4, 5 | High-value contracts |
+| `audit` | All tools + compliance mapping | 1-7 | Pre-audit preparation |
+| `defi` | Slither, Echidna, Mythril, SmartLLM, MEV detector | 1, 2, 3, 5, 8 | DeFi protocols |
+| `token` | Slither, Aderyn, Mythril, SmartLLM | 1, 3, 5 | ERC20/721/1155 tokens |
+| `ci` | Slither, Aderyn, Solhint | 1 | CI/CD pipelines |
+
+Use profiles with: `miesc audit profile <name> contract.sol` or `miesc audit batch ./contracts -p <name>`
+
+</details>
+
 ## Features
 
 - **9 defense layers**: Static, Dynamic, Symbolic, Formal, AI, ML, Threat Modeling, Cross-Chain, AI Ensemble
@@ -358,7 +434,7 @@ miesc audit quick contract.sol       # Fast 4-tool scan
 miesc audit full contract.sol        # Complete 9-layer audit
 miesc audit layer 3 contract.sol     # Run specific layer
 miesc report results.json -t professional  # Generate audit report
-miesc report results.json -t premium --llm-interpret  # Premium report with AI
+miesc report results.json -t premium -f pdf --llm-interpret -o report.pdf  # Recommended: Premium PDF with AI
 miesc benchmark ./contracts --save   # Track security posture
 miesc server rest --port 5001        # Start REST API
 miesc doctor                         # Check tool availability
@@ -381,12 +457,12 @@ miesc report results.json -t professional  # Standard audit report
 miesc report results.json -t executive     # C-level summary
 miesc report results.json -t premium       # Trail of Bits style (CVSS, risk matrix)
 
-# With AI-powered interpretation (requires Ollama)
-miesc report results.json -t premium --llm-interpret -o report.md
+# Recommended: Premium PDF with AI-powered interpretation
+miesc report results.json -t premium -f pdf --llm-interpret -o report.pdf
 
-# Different output formats
+# Other output formats
 miesc report results.json -t premium -f html -o report.html
-miesc report results.json -t premium -f pdf -o report.pdf
+miesc report results.json -t premium -f markdown -o report.md
 ```
 
 **Premium Report Features:**

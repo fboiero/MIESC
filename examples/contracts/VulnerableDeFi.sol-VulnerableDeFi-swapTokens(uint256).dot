@@ -1,0 +1,40 @@
+digraph{
+0[label="Node Type: ENTRY_POINT 0
+"];
+0->1;
+1[label="Node Type: EXPRESSION 1
+
+EXPRESSION:
+require(bool,string)(tradingEnabled,Trading disabled)
+
+IRs:
+TMP_3(None) = SOLIDITY_CALL require(bool,string)(tradingEnabled,Trading disabled)"];
+1->2;
+2[label="Node Type: EXPRESSION 2
+
+EXPRESSION:
+require(bool,string)(! blacklisted[msg.sender],Blacklisted)
+
+IRs:
+REF_1(bool) -> blacklisted[msg.sender]
+TMP_4 = UnaryType.BANG REF_1 
+TMP_5(None) = SOLIDITY_CALL require(bool,string)(TMP_4,Blacklisted)"];
+2->3;
+3[label="Node Type: EXPRESSION 3
+
+EXPRESSION:
+IRouter(router).swap(address(this),amount,0)
+
+IRs:
+TMP_6 = CONVERT router to IRouter
+TMP_7 = CONVERT this to address
+HIGH_LEVEL_CALL, dest:TMP_6(IRouter), function:swap, arguments:['TMP_7', 'amount', '0']  "];
+3->4;
+4[label="Node Type: EXPRESSION 4
+
+EXPRESSION:
+Swap(msg.sender,amount)
+
+IRs:
+Emit Swap(msg.sender,amount)"];
+}

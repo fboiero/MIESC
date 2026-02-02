@@ -1,0 +1,21 @@
+digraph{
+0[label="Node Type: ENTRY_POINT 0
+"];
+0->2;
+1[label="Node Type: EXPRESSION 1
+
+EXPRESSION:
+blacklisted[user] = true
+
+IRs:
+REF_0(bool) -> blacklisted[user]
+REF_0(bool) (->blacklisted) := True(bool)"];
+2[label="Node Type: EXPRESSION 2
+
+EXPRESSION:
+onlyOwner()
+
+IRs:
+MODIFIER_CALL, VulnerableDeFi.onlyOwner()()"];
+2->1;
+}

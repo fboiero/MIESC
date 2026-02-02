@@ -1,0 +1,38 @@
+digraph{
+0[label="Node Type: ENTRY_POINT 0
+"];
+0->1;
+1[label="Node Type: NEW VARIABLE 1
+
+EXPRESSION:
+amounts = IRouter(router).getAmountsOut(1e18,getPath(tokenA,tokenB))
+
+IRs:
+TMP_28 = CONVERT router to IRouter
+TMP_29(address[]) = INTERNAL_CALL, VulnerableDeFi.getPath(address,address)(tokenA,tokenB)
+TMP_30(uint256[]) = HIGH_LEVEL_CALL, dest:TMP_28(IRouter), function:getAmountsOut, arguments:['1000000000000000000', 'TMP_29']  
+amounts(uint256[]) = ['TMP_30(uint256[])']"];
+1->2;
+2[label="Node Type: IF 2
+
+EXPRESSION:
+amounts[1] > 1e18
+
+IRs:
+REF_15(uint256) -> amounts[1]
+TMP_31(bool) = REF_15 > 1000000000000000000
+CONDITION TMP_31"];
+2->3[label="True"];
+2->4[label="False"];
+3[label="Node Type: EXPRESSION 3
+
+EXPRESSION:
+IRouter(router).swap(tokenA,1e18,0)
+
+IRs:
+TMP_32 = CONVERT router to IRouter
+HIGH_LEVEL_CALL, dest:TMP_32(IRouter), function:swap, arguments:['tokenA', '1000000000000000000', '0']  "];
+3->4;
+4[label="Node Type: END_IF 4
+"];
+}

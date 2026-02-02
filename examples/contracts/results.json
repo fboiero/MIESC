@@ -1,0 +1,257 @@
+{
+  "results": [
+    {
+      "tool": "slither",
+      "contract": "/contracts/VulnerableDeFi.sol",
+      "status": "success",
+      "findings": [
+        {
+          "id": "slither-weak-prng-0",
+          "type": "weak-prng",
+          "severity": "High",
+          "confidence": 0.75,
+          "location": {
+            "file": "VulnerableDeFi.sol",
+            "line": 73,
+            "function": "lottery"
+          },
+          "message": "VulnerableDeFi.lottery() (VulnerableDeFi.sol#73-80) uses a weak PRNG: \"random % 100 (VulnerableDeFi.sol#79)\" ",
+          "description": "[VulnerableDeFi.lottery()](../contracts/VulnerableDeFi.sol#L73-L80) uses a weak PRNG: \"[random % 100](../contracts/VulnerableDeFi.sol#L79)\" \n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": "SWC-120",
+          "cwe_id": "CWE-330",
+          "owasp_category": null,
+          "_slither_detector": "weak-prng",
+          "_slither_impact": "High",
+          "_slither_confidence": "Medium"
+        },
+        {
+          "id": "slither-controlled-delegatecall-1",
+          "type": "controlled-delegatecall",
+          "severity": "High",
+          "confidence": 0.75,
+          "location": {
+            "file": "VulnerableDeFi.sol",
+            "line": 93,
+            "function": "execute"
+          },
+          "message": "VulnerableDeFi.execute(address,bytes) (VulnerableDeFi.sol#93-97) uses delegatecall to a input-controlled function id",
+          "description": "[VulnerableDeFi.execute(address,bytes)](../contracts/VulnerableDeFi.sol#L93-L97) uses delegatecall to a input-controlled function id\n\t- [(success,None) = target.delegatecall(data)](../contracts/VulnerableDeFi.sol#L95)\n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": "SWC-112",
+          "cwe_id": "CWE-829",
+          "owasp_category": "SC07: Unprotected Delegatecall",
+          "_slither_detector": "controlled-delegatecall",
+          "_slither_impact": "High",
+          "_slither_confidence": "Medium"
+        },
+        {
+          "id": "slither-suicidal-2",
+          "type": "suicidal",
+          "severity": "High",
+          "confidence": 0.9,
+          "location": {
+            "file": "VulnerableDeFi.sol",
+            "line": 100,
+            "function": "destroy"
+          },
+          "message": "VulnerableDeFi.destroy() (VulnerableDeFi.sol#100-103) allows anyone to destruct the contract",
+          "description": "[VulnerableDeFi.destroy()](../contracts/VulnerableDeFi.sol#L100-L103) allows anyone to destruct the contract\n",
+          "recommendation": "Protect selfdestruct with proper access control",
+          "swc_id": "SWC-106",
+          "cwe_id": null,
+          "owasp_category": null,
+          "_slither_detector": "suicidal",
+          "_slither_impact": "High",
+          "_slither_confidence": "High"
+        },
+        {
+          "id": "slither-uninitialized-state-3",
+          "type": "uninitialized-state",
+          "severity": "High",
+          "confidence": 0.9,
+          "location": {
+            "file": "VulnerableDeFi.sol",
+            "line": 15,
+            "function": "holders"
+          },
+          "message": "VulnerableDeFi.holders (VulnerableDeFi.sol#15) is never initialized. It is used in:",
+          "description": "[VulnerableDeFi.holders](../contracts/VulnerableDeFi.sol#L15) is never initialized. It is used in:\n\t- [VulnerableDeFi.distributeRewards(uint256)](../contracts/VulnerableDeFi.sol#L65-L70)\n",
+          "recommendation": "Initialize all state variables in constructor",
+          "swc_id": "SWC-109",
+          "cwe_id": "CWE-457",
+          "owasp_category": null,
+          "_slither_detector": "uninitialized-state",
+          "_slither_impact": "High",
+          "_slither_confidence": "High"
+        },
+        {
+          "id": "slither-unused-return-4",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.75,
+          "location": {
+            "file": "VulnerableDeFi.sol",
+            "line": 88,
+            "function": "approveSpender"
+          },
+          "message": "VulnerableDeFi.approveSpender(address,address,uint256) (VulnerableDeFi.sol#88-90) ignores return value by IERC20(token).approve(spender,amount) (VulnerableDeFi.sol#89)",
+          "description": "[VulnerableDeFi.approveSpender(address,address,uint256)](../contracts/VulnerableDeFi.sol#L88-L90) ignores return value by [IERC20(token).approve(spender,amount)](../contracts/VulnerableDeFi.sol#L89)\n",
+          "recommendation": "Review and fix the vulnerability",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": null,
+          "_slither_detector": "unused-return",
+          "_slither_impact": "Medium",
+          "_slither_confidence": "Medium"
+        }
+      ],
+      "execution_time": 5.851816177368164,
+      "timestamp": "2026-02-02T15:30:58.509419",
+      "metadata": {
+        "contract_analyzed": "/contracts/VulnerableDeFi.sol",
+        "output_file": "/tmp/slither_output.json",
+        "raw_findings_count": 14,
+        "normalized_findings_count": 5,
+        "slither_version": true,
+        "excluded_detectors": []
+      },
+      "error": null
+    },
+    {
+      "tool": "aderyn",
+      "contract": "/contracts/VulnerableDeFi.sol",
+      "status": "success",
+      "findings": [
+        {
+          "id": "aderyn-selfdestruct-identifier-0-0",
+          "type": "selfdestruct-identifier",
+          "severity": "High",
+          "confidence": 0.9,
+          "location": {
+            "file": "VulnerableDeFi.sol",
+            "line": 102,
+            "function": "unknown"
+          },
+          "message": "Depracated EVM Instruction for `selfdestruct` should not be used.",
+          "description": "Depracated EVM Instruction for `selfdestruct` should not be used.",
+          "recommendation": "Add access control and consider removing selfdestruct",
+          "swc_id": "SWC-106",
+          "cwe_id": null,
+          "owasp_category": null,
+          "_aderyn_detector": "selfdestruct-identifier"
+        },
+        {
+          "id": "aderyn-delegate-call-unchecked-address-1-0",
+          "type": "delegate-call-unchecked-address",
+          "severity": "High",
+          "confidence": 0.9,
+          "location": {
+            "file": "VulnerableDeFi.sol",
+            "line": 93,
+            "function": "unknown"
+          },
+          "message": "Delegatecall made by the function without checks on any adress.",
+          "description": "Introduce checks on the address",
+          "recommendation": "Always check return value of low-level calls or use SafeERC20",
+          "swc_id": "SWC-104",
+          "cwe_id": "CWE-252",
+          "owasp_category": null,
+          "_aderyn_detector": "delegate-call-unchecked-address"
+        },
+        {
+          "id": "aderyn-unchecked-return-2-0",
+          "type": "unchecked-return",
+          "severity": "High",
+          "confidence": 0.9,
+          "location": {
+            "file": "VulnerableDeFi.sol",
+            "line": 89,
+            "function": "unknown"
+          },
+          "message": "Return value of the function call is not checked.",
+          "description": "Function returns a value but it is ignored.",
+          "recommendation": "Always check return value of low-level calls or use SafeERC20",
+          "swc_id": "SWC-104",
+          "cwe_id": "CWE-252",
+          "owasp_category": null,
+          "_aderyn_detector": "unchecked-return"
+        },
+        {
+          "id": "aderyn-weak-randomness-3-0",
+          "type": "weak-randomness",
+          "severity": "High",
+          "confidence": 0.9,
+          "location": {
+            "file": "VulnerableDeFi.sol",
+            "line": 74,
+            "function": "unknown"
+          },
+          "message": "Weak Randomness",
+          "description": "The use of keccak256 hash functions on predictable values like block.timestamp, block.number, or similar data, including modulo operations on these values, should be avoided for generating randomness, as they are easily predictable and manipulable. The `PREVRANDAO` opcode also should not be used as a source of randomness. Instead, utilize Chainlink VRF for cryptographically secure and provably random values to ensure protocol integrity.",
+          "recommendation": "Use Chainlink VRF or commit-reveal scheme for randomness",
+          "swc_id": "SWC-120",
+          "cwe_id": "CWE-330",
+          "owasp_category": null,
+          "_aderyn_detector": "weak-randomness"
+        },
+        {
+          "id": "aderyn-centralization-risk-4-0",
+          "type": "centralization-risk",
+          "severity": "Low",
+          "confidence": 0.75,
+          "location": {
+            "file": "VulnerableDeFi.sol",
+            "line": 33,
+            "function": "unknown"
+          },
+          "message": "Centralization Risk for trusted owners",
+          "description": "Contracts have owners with privileged rights to perform admin tasks and need to be trusted to not perform malicious updates or drain funds.",
+          "recommendation": "Consider using multi-sig or timelocks for privileged operations",
+          "swc_id": null,
+          "cwe_id": null,
+          "owasp_category": "SC09: Centralization Risk",
+          "_aderyn_detector": "centralization-risk"
+        }
+      ],
+      "execution_time": 2.0030505657196045,
+      "timestamp": "2026-02-02T15:31:00.545509",
+      "metadata": {
+        "contract_analyzed": "/contracts/VulnerableDeFi.sol",
+        "output_file": "/tmp/aderyn_output.json",
+        "raw_findings_count": 0,
+        "normalized_findings_count": 5,
+        "aderyn_version": "unknown",
+        "analysis_timestamp": "unknown"
+      },
+      "error": null
+    },
+    {
+      "tool": "solhint",
+      "contract": "/contracts/VulnerableDeFi.sol",
+      "status": "success",
+      "findings": [],
+      "execution_time": 0.93,
+      "timestamp": "2026-02-02T15:31:01.863031",
+      "metadata": {},
+      "error": null
+    },
+    {
+      "tool": "mythril",
+      "contract": "/contracts/VulnerableDeFi.sol",
+      "status": "not_available",
+      "findings": [],
+      "execution_time": 0.001355,
+      "timestamp": "2026-02-02T15:31:01.865189",
+      "error": "Tool mythril not available: not_installed"
+    }
+  ],
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 8,
+    "MEDIUM": 1,
+    "LOW": 1,
+    "INFO": 0
+  },
+  "version": "5.0.3"
+}

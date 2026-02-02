@@ -1,0 +1,39 @@
+digraph{
+0[label="Node Type: ENTRY_POINT 0
+"];
+0->1;
+1[label="Node Type: NEW VARIABLE 1
+
+EXPRESSION:
+path = new address[](2)
+
+IRs:
+TMP_35(address[])  = new address[](2)
+path(address[]) = ['TMP_35(address[])']"];
+1->2;
+2[label="Node Type: EXPRESSION 2
+
+EXPRESSION:
+path[0] = a
+
+IRs:
+REF_17(address) -> path[0]
+REF_17(address) (->path) := a(address)"];
+2->3;
+3[label="Node Type: EXPRESSION 3
+
+EXPRESSION:
+path[1] = b
+
+IRs:
+REF_18(address) -> path[1]
+REF_18(address) (->path) := b(address)"];
+3->4;
+4[label="Node Type: RETURN 4
+
+EXPRESSION:
+path
+
+IRs:
+RETURN path"];
+}

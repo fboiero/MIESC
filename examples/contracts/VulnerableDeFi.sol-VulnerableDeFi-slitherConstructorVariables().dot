@@ -1,0 +1,25 @@
+digraph{
+0[label="Node Type: OTHER_ENTRYPOINT 0
+
+EXPRESSION:
+router = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
+
+IRs:
+router(address) := 697323163401596485410334513241460920685086001293(address)"];
+0->1;
+1[label="Node Type: OTHER_ENTRYPOINT 1
+
+EXPRESSION:
+tradingEnabled = true
+
+IRs:
+tradingEnabled(bool) := True(bool)"];
+1->2;
+2[label="Node Type: OTHER_ENTRYPOINT 2
+
+EXPRESSION:
+fee = 5
+
+IRs:
+fee(uint256) := 5(uint256)"];
+}

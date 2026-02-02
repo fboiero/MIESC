@@ -1,0 +1,13 @@
+digraph{
+0[label="Node Type: ENTRY_POINT 0
+"];
+0->1;
+1[label="Node Type: EXPRESSION 1
+
+EXPRESSION:
+selfdestruct(address)(address(msg.sender))
+
+IRs:
+TMP_24 = CONVERT msg.sender to address
+TMP_25(None) = SOLIDITY_CALL selfdestruct(address)(TMP_24)"];
+}

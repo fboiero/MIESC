@@ -1,0 +1,13 @@
+digraph{
+0[label="Node Type: ENTRY_POINT 0
+"];
+0->1;
+1[label="Node Type: EXPRESSION 1
+
+EXPRESSION:
+IERC20(token).approve(spender,amount)
+
+IRs:
+TMP_21 = CONVERT token to IERC20
+TMP_22(bool) = HIGH_LEVEL_CALL, dest:TMP_21(IERC20), function:approve, arguments:['spender', 'amount']  "];
+}

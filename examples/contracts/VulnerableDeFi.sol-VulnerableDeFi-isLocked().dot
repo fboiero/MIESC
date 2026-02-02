@@ -1,0 +1,13 @@
+digraph{
+0[label="Node Type: ENTRY_POINT 0
+"];
+0->1;
+1[label="Node Type: RETURN 1
+
+EXPRESSION:
+block.timestamp < 1700000000
+
+IRs:
+TMP_20(bool) = block.timestamp < 1700000000
+RETURN TMP_20"];
+}
