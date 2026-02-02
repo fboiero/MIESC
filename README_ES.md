@@ -3,7 +3,7 @@
 [![Licencia: AGPL v3](https://img.shields.io/badge/Licencia-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/pypi/v/miesc)](https://pypi.org/project/miesc/)
-[![Versión](https://img.shields.io/badge/versión-4.3.4-green)](https://github.com/fboiero/MIESC/releases)
+[![Versión](https://img.shields.io/badge/versión-5.0.3-green)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions/workflows/secure-dev-pipeline.yml)
 [![Cobertura](https://img.shields.io/badge/cobertura-81%25-green)](./htmlcov/index.html)
 [![Herramientas](https://img.shields.io/badge/herramientas-31%2F31%20operativas-brightgreen)](./docs/TOOLS.md)
@@ -11,7 +11,7 @@
 
 [English](./README.md) | **Español**
 
-Framework de análisis de seguridad multicapa para smart contracts de Ethereum. Orquesta **31 herramientas especializadas** a través de **9 capas de defensa** con correlación asistida por IA y detección basada en ML.
+Framework de análisis de seguridad multicapa para smart contracts con **soporte multi-chain**. Orquesta **50 herramientas de seguridad** a través de **9 capas de defensa** con correlación asistida por IA y detección basada en ML.
 
 **Resultados Validados (dataset SmartBugs-curated, 50 contratos):**
 
@@ -144,6 +144,9 @@ miesc audit full contrato.sol
 # Generar reporte profesional de auditoría
 miesc report results.json -t professional -o reporte.md
 
+# Recomendado: Reporte premium PDF con IA
+miesc report results.json -t premium -f pdf --llm-interpret -o reporte.pdf
+
 # Seguimiento de postura de seguridad
 miesc benchmark ./contracts --save
 
@@ -155,6 +158,120 @@ miesc watch ./contracts
 ```
 
 **[Guía de Inicio Rápido Completa](./QUICKSTART_ES.md)** - Instrucciones detalladas de instalación y uso.
+
+### Recomendado: Auditoría Completa con Reporte PDF Profesional
+
+> **Para obtener los mejores resultados**, ejecutá una **auditoría completa de 9 capas** usando todas las herramientas disponibles y generá un **reporte premium en PDF con interpretación LLM**. Esto combina análisis estático, testing dinámico, ejecución simbólica, verificación formal, análisis IA y detección ML en una única auditoría integral con salida de calidad profesional comparable a reportes de Trail of Bits / OpenZeppelin.
+
+```bash
+# Paso 1: Ejecutar auditoría completa con TODAS las herramientas
+miesc audit full contrato.sol -o results.json
+
+# Paso 2: Generar reporte premium PDF con insights de IA (recomendado)
+miesc report results.json -t premium -f pdf --llm-interpret \
+  --client "Tu Cliente" \
+  --auditor "Tu Nombre" \
+  --contract-name "MiContrato.sol" \
+  --network "Ethereum Mainnet" \
+  -o reporte_auditoria.pdf
+```
+
+**Por qué es el workflow recomendado:**
+
+| Característica | `scan` / `quick` | `audit full` + `premium --llm-interpret` |
+|----------------|:-----------------:|:----------------------------------------:|
+| Análisis estático (Slither, Aderyn) | ✅ | ✅ |
+| Testing dinámico (Echidna, Foundry) | ❌ | ✅ |
+| Ejecución simbólica (Mythril, Halmos) | ❌ | ✅ |
+| Verificación formal (Certora, SMTChecker) | ❌ | ✅ |
+| Análisis IA (SmartLLM, GPTScan) | ❌ | ✅ |
+| Detección ML (DA-GNN, SmartGuard) | ❌ | ✅ |
+| Scoring CVSS y matriz de riesgo | ❌ | ✅ |
+| Escenarios de ataque generados por IA | ❌ | ✅ |
+| Recomendación de despliegue (GO/NO-GO) | ❌ | ✅ |
+| Hoja de ruta de remediación | ❌ | ✅ |
+| Salida PDF profesional | ❌ | ✅ |
+
+> **Requisitos:** La auditoría completa necesita la imagen Docker `:full` (~8GB) o todas las herramientas instaladas localmente. La interpretación LLM requiere [Ollama](https://ollama.com) con `mistral:latest` (~4GB).
+
+<details>
+<summary><strong>Docker (recomendado para la mayoría de usuarios)</strong></summary>
+
+```bash
+# Auditoría completa + PDF premium con insights de IA
+docker run --rm \
+  -v $(pwd):/contracts \
+  ghcr.io/fboiero/miesc:full \
+  audit batch /contracts -o /contracts/results.json -p thorough -r
+
+docker run --rm \
+  -e OLLAMA_HOST=http://host.docker.internal:11434 \
+  -v $(pwd):/contracts \
+  ghcr.io/fboiero/miesc:full \
+  report /contracts/results.json -t premium -f pdf \
+    --llm-interpret \
+    --client "Tu Cliente" \
+    --auditor "Tu Nombre" \
+    -o /contracts/reporte_auditoria.pdf
+```
+
+</details>
+
+<details>
+<summary><strong>Perfiles de análisis disponibles</strong></summary>
+
+| Perfil | Herramientas | Capas | Ideal para |
+|--------|-------------|-------|------------|
+| `fast` | Slither, Solhint | 1 | Feedback rápido durante desarrollo |
+| `balanced` | Slither, Aderyn, Mythril, Halmos | 1, 3 | Checks pre-commit |
+| **`thorough`** | **Las 50 herramientas** | **1-9** | **Pre-release / auditoría completa (recomendado)** |
+| `security` | Slither, Aderyn, Mythril, Halmos, Certora, SmartLLM | 1, 3, 4, 5 | Contratos de alto valor |
+| `audit` | Todas + mapeo de cumplimiento | 1-7 | Preparación pre-auditoría |
+| `defi` | Slither, Echidna, Mythril, SmartLLM, detector MEV | 1, 2, 3, 5, 8 | Protocolos DeFi |
+| `token` | Slither, Aderyn, Mythril, SmartLLM | 1, 3, 5 | Tokens ERC20/721/1155 |
+| `ci` | Slither, Aderyn, Solhint | 1 | Pipelines CI/CD |
+
+Uso: `miesc audit profile <nombre> contrato.sol` o `miesc audit batch ./contracts -p <nombre>`
+
+</details>
+
+### Generación de Reportes
+
+```bash
+# Templates disponibles
+miesc report results.json -t simple        # Lista básica de hallazgos
+miesc report results.json -t professional  # Reporte estándar de auditoría
+miesc report results.json -t executive     # Resumen para ejecutivos
+miesc report results.json -t premium       # Estilo Trail of Bits (CVSS, matriz de riesgo)
+
+# Recomendado: PDF Premium con interpretación IA
+miesc report results.json -t premium -f pdf --llm-interpret -o reporte.pdf
+
+# Otros formatos de salida
+miesc report results.json -t premium -f html -o reporte.html
+miesc report results.json -t premium -f markdown -o reporte.md
+```
+
+**Características del reporte premium:**
+- Scoring CVSS para cada hallazgo
+- Matriz de riesgo (Impacto vs Probabilidad)
+- Recomendación de despliegue (GO/NO-GO/CONDICIONAL)
+- Escenarios de ataque para vulnerabilidades críticas
+- Sugerencias de remediación con diffs de código
+- Hoja de ruta de remediación con priorización
+
+**Requisitos LLM (para `--llm-interpret`):**
+
+| Modelo | Tamaño | Propósito |
+|--------|--------|-----------|
+| `mistral:latest` | ~4GB | Interpretación de reportes, análisis de riesgo |
+| `deepseek-coder:6.7b` | ~4GB | Análisis de código (opcional) |
+
+```bash
+# Instalar Ollama: https://ollama.com/download
+ollama pull mistral:latest
+ollama list  # Verificar que está disponible
+```
 
 ### Hook Pre-commit
 
