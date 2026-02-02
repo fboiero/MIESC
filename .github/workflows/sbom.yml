@@ -26,36 +26,26 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install CycloneDX
-        run: pip install cyclonedx-bom
-
-      - name: Generate Python SBOM
+      - name: Install project and CycloneDX
         run: |
-          cyclonedx-py requirements \
-            -i requirements.txt \
-            -o sbom-python.json \
-            --format json
+          pip install cyclonedx-bom
+          pip install -e ".[full]"
 
-      - name: Generate pip SBOM
+      - name: Generate SBOM from environment
         run: |
-          pip install -r requirements.txt
           cyclonedx-py environment \
             -o sbom-environment.json \
-            --format json
+            --of JSON
 
       - name: Upload SBOM to Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            sbom-python.json
-            sbom-environment.json
+          files: sbom-environment.json
 
       - name: Upload SBOM Artifact
         uses: actions/upload-artifact@v4
         with:
           name: sbom
-          path: |
-            sbom-python.json
-            sbom-environment.json
+          path: sbom-environment.json
           retention-days: 90
