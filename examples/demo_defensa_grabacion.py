@@ -453,8 +453,7 @@ def mostrar_resultados():
     subtitulo("DETALLE: Vulnerabilidad Principal")
     v = VULNERABILIDADES_DETECTADAS[0]
 
-    print(
-        f"""
+    print(f"""
   {C.BOLD}ID:{C.RESET}           {v['id']}
   {C.BOLD}Titulo:{C.RESET}       {v['titulo']}
   {C.BOLD}Severidad:{C.RESET}    {C.BRED}{v['severidad']}{C.RESET}
@@ -468,8 +467,7 @@ def mostrar_resultados():
       - Herramientas: {', '.join(v['herramientas'])}
   {C.BOLD}Descripcion:{C.RESET}
       {v['descripcion']}
-"""
-    )
+""")
     pause(2)
 
 
@@ -663,14 +661,12 @@ def mostrar_mcp_integracion():
     subtitulo("Que es MCP?")
     pause(0.5)
 
-    print(
-        f"""
+    print(f"""
   {C.BCYAN}MCP (Model Context Protocol){C.RESET} es un protocolo estandar que permite
   a agentes de IA (Claude, GPT, etc.) usar herramientas externas.
 
   MIESC expone sus capacidades como {C.BGREEN}MCP Tools{C.RESET}:
-"""
-    )
+""")
     pause(2)
 
     # Mostrar herramientas MCP disponibles
@@ -994,8 +990,7 @@ def mostrar_api_llamada():
     subtitulo("Como lo ve el usuario en Claude Desktop")
     pause(1)
 
-    print(
-        f"""
+    print(f"""
   {C.DIM}┌──────────────────────────────────────────────────────────────┐
   │ {C.RESET}{C.BOLD}Claude Desktop{C.RESET}{C.DIM}                                               │
   ├──────────────────────────────────────────────────────────────┤{C.RESET}
@@ -1019,21 +1014,18 @@ def mostrar_api_llamada():
   │  un modificador ReentrancyGuard de OpenZeppelin.            │
   │                                                              │
   {C.DIM}└──────────────────────────────────────────────────────────────┘{C.RESET}
-"""
-    )
+""")
     pause(4)
 
     # Destacar el valor
-    print(
-        f"""
+    print(f"""
   {C.BMAGENTA}╔═══════════════════════════════════════════════════════════╗
   ║  El usuario interactua en LENGUAJE NATURAL                 ║
   ║  MIESC ejecuta 3 capas con 5 herramientas en paralelo      ║
   ║  Ollama corre 100% LOCAL - codigo nunca sale de tu PC      ║
   ║  Claude presenta resultados claros y accionables           ║
   ╚═══════════════════════════════════════════════════════════╝{C.RESET}
-"""
-    )
+""")
     pause(3)
 
 
@@ -1076,8 +1068,7 @@ def mostrar_cierre():
     pause(2)
 
     # Banner final
-    print(
-        f"""
+    print(f"""
 {C.BCYAN}
   ╔═══════════════════════════════════════════════════════════════╗
   ║                                                               ║
@@ -1092,8 +1083,7 @@ def mostrar_cierre():
   ║                                                               ║
   ╚═══════════════════════════════════════════════════════════════╝
 {C.RESET}
-"""
-    )
+""")
     pause(4)  # Tiempo para leer la cita final
 
 

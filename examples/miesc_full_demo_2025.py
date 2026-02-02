@@ -468,8 +468,7 @@ def display_final_summary(adapter_report: Dict[str, Any]):
 
     available_count = len([a for a in adapter_report["adapters"] if a["status"] == "available"])
 
-    print(
-        f"""
+    print(f"""
 {NeonColors.NEON_PINK}    ╔═══════════════════════════════════════════════════════════════╗
     ║                     THREAT ASSESSMENT                         ║
     ╠═══════════════════════════════════════════════════════════════╣{NeonColors.ENDC}
@@ -499,8 +498,7 @@ def display_final_summary(adapter_report: Dict[str, Any]):
     ║  3. Add comprehensive test coverage                          ║
     ║  4. Re-run MIESC verification                                ║{NeonColors.ENDC}
 {NeonColors.NEON_PINK}    ╚═══════════════════════════════════════════════════════════════╝{NeonColors.ENDC}
-"""
-    )
+""")
 
 
 def generate_html_dashboard(adapter_report: Dict[str, Any], contract_path: str):
@@ -766,8 +764,7 @@ def main():
     # Open in browser
     webbrowser.open(f"file://{html_file}")
 
-    print(
-        f"""
+    print(f"""
 {NeonColors.NEON_PINK}    ╔═══════════════════════════════════════════════════════════════╗
     ║                 DEMO SESSION COMPLETE                         ║
     ╠═══════════════════════════════════════════════════════════════╣{NeonColors.ENDC}
@@ -784,8 +781,7 @@ def main():
 {NeonColors.NEON_PINK}    ╠═══════════════════════════════════════════════════════════════╣
     ║        Thank you for exploring MIESC v3.4.0! 🚀              ║
     ╚═══════════════════════════════════════════════════════════════╝{NeonColors.ENDC}
-"""
-    )
+""")
 
 
 if __name__ == "__main__":

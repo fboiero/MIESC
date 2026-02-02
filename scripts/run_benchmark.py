@@ -35,16 +35,14 @@ from src.benchmark import (  # noqa: E402
 
 def print_banner():
     """Print benchmark banner."""
-    print(
-        """
+    print("""
 ╔══════════════════════════════════════════════════════════════╗
 ║           MIESC Detection Accuracy Benchmark                 ║
 ║                                                              ║
 ║  Datasets: SmartBugs Curated, Damn Vulnerable DeFi           ║
 ║  Metrics: Precision, Recall, F1 Score by category            ║
 ╚══════════════════════════════════════════════════════════════╝
-"""
-    )
+""")
 
 
 def run_full_benchmark(args):

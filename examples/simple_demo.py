@@ -29,15 +29,13 @@ class Colors:
 
 def print_banner():
     """Print MIESC banner"""
-    print(
-        f"""
+    print(f"""
 {Colors.BOLD}{Colors.CYAN}╔═══════════════════════════════════════════════════════════════╗
 ║                     MIESC v1.0.0                              ║
 ║   Multi-layer Intelligent Evaluation for Smart Contracts     ║
 ║   Advanced Security Framework for Smart Contract Audits      ║
 ╚═══════════════════════════════════════════════════════════════╝{Colors.ENDC}
-"""
-    )
+""")
 
 
 def analyze_contract(contract_path: str):
@@ -92,8 +90,7 @@ def analyze_contract(contract_path: str):
     print(f"{Colors.CYAN}  → Generating remediation...{Colors.ENDC}")
     time.sleep(1)
     print(f"{Colors.GREEN}    ✓ Recommended fix (OpenZeppelin pattern):{Colors.ENDC}")
-    print(
-        """
+    print("""
       import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
       contract EtherStore is ReentrancyGuard {
@@ -106,8 +103,7 @@ def analyze_contract(contract_path: str):
               require(sent, "Failed to send Ether");
           }
       }
-    """
-    )
+    """)
     print()
 
     # Layer 6: Standards Mapping

@@ -197,8 +197,7 @@ def analyze_contract(contract_path: str):
     loading_bar("  OpenZeppelin pattern match", 40, NeonColors.NEON_GREEN)
 
     print(f"\n{NeonColors.NEON_GREEN}    ✓ RECOMMENDED FIX (OpenZeppelin):{NeonColors.ENDC}")
-    print(
-        f"""
+    print(f"""
 {NeonColors.DIM_CYAN}    ╔════════════════════════════════════════════════════════════╗
     ║  import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
     ║
@@ -213,8 +212,7 @@ def analyze_contract(contract_path: str):
     ║      }}
     ║  }}
     ╚════════════════════════════════════════════════════════════╝{NeonColors.ENDC}
-"""
-    )
+""")
 
     # Layer 5: Standards Mapping
     print_section_header("LAYER 6: COMPLIANCE MAPPING", "📊")
@@ -238,8 +236,7 @@ def analyze_contract(contract_path: str):
     # Final Summary
     print_section_header("ANALYSIS COMPLETE", "✓")
 
-    print(
-        f"""
+    print(f"""
 {NeonColors.NEON_PINK}    ╔═══════════════════════════════════════════════════════════════╗
     ║                     THREAT ASSESSMENT                         ║
     ╠═══════════════════════════════════════════════════════════════╣{NeonColors.ENDC}
@@ -265,8 +262,7 @@ def analyze_contract(contract_path: str):
     ║  ✓ Technical report (developers)                             ║
     ║  ✓ Compliance report (auditors/ISO 27001)                    ║{NeonColors.ENDC}
 {NeonColors.NEON_PINK}    ╚═══════════════════════════════════════════════════════════════╝{NeonColors.ENDC}
-"""
-    )
+""")
 
     print(
         f"\n{NeonColors.NEON_CYAN}    ⏱  Analysis time: 3.2 minutes (vs 3 days manual){NeonColors.ENDC}"
@@ -682,16 +678,14 @@ def main():
     # Open in browser
     webbrowser.open(f"file://{html_file}")
 
-    print(
-        f"""
+    print(f"""
 {NeonColors.NEON_PINK}    ╔═══════════════════════════════════════════════════════════════╗
     ║                 SESSION TERMINATED                            ║
     ╠═══════════════════════════════════════════════════════════════╣{NeonColors.ENDC}
 {NeonColors.NEON_CYAN}    ║  Thank you for using MIESC Cyberpunk Edition                 ║
     ║  Stay secure. Stay vigilant. Keep hacking.                   ║{NeonColors.ENDC}
 {NeonColors.NEON_PINK}    ╚═══════════════════════════════════════════════════════════════╝{NeonColors.ENDC}
-"""
-    )
+""")
 
 
 if __name__ == "__main__":

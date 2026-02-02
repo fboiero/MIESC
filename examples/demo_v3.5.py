@@ -271,8 +271,7 @@ def run_demo():
     # Step 5: Summary
     print_section("Step 5: Analysis Summary", "📊")
 
-    print(
-        """
+    print("""
 ✅ Demo Complete!
 
 🎯 MIESC v3.5.0 Capabilities Demonstrated:
@@ -298,8 +297,7 @@ def run_demo():
 🐛 Issues: https://github.com/fboiero/MIESC/issues
 ⭐ Star on GitHub: https://github.com/fboiero/MIESC
 
-"""
-    )
+""")
 
     print("=" * 80)
     print("Thank you for trying MIESC v3.5.0! 🎉")

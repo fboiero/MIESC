@@ -595,8 +595,7 @@ def main():
     print(f"\n{Colors.BOLD}Final Installation Status:{Colors.ENDC}")
     print_tool_list()
 
-    print(
-        f"""
+    print(f"""
 {Colors.OKGREEN}Installation complete.{Colors.ENDC}
 
 All tools are optional per DPGA compliance requirements.
@@ -608,8 +607,7 @@ Usage:
   python3 -m miesc.cli analyze <contract.sol>    # CLI
 
 Documentation: ./docs/
-"""
-    )
+""")
 
 
 if __name__ == "__main__":

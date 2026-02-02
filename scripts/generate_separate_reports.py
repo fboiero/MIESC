@@ -420,8 +420,7 @@ Cada capa de MIESC aborda diferentes aspectos del análisis de seguridad, de mod
     doc.add_heading("4.3 Flujo de Datos", level=2)
 
     p = doc.add_paragraph()
-    p.add_run(
-        """El flujo de datos en MIESC sigue un pipeline optimizado para máxima eficiencia:
+    p.add_run("""El flujo de datos en MIESC sigue un pipeline optimizado para máxima eficiencia:
 
 1. Entrada: Contrato Solidity (.sol) + Configuración (TOML)
 2. Preprocesamiento: Compilación con solc, generación de AST
@@ -430,8 +429,7 @@ Cada capa de MIESC aborda diferentes aspectos del análisis de seguridad, de mod
 5. Agregación: Recolección de resultados de todas las herramientas
 6. Correlación: Deduplicación y cálculo de confianza
 7. Filtrado: Eliminación de falsos positivos (89% reducción)
-8. Salida: Reporte unificado (JSON, SARIF, PDF, Markdown)"""
-    )
+8. Salida: Reporte unificado (JSON, SARIF, PDF, Markdown)""")
 
     doc.add_paragraph()
     add_figure_with_image(doc, "data_flow.svg", "Flujo de Datos de MIESC", "4.3")
@@ -1168,8 +1166,7 @@ Each MIESC layer addresses different aspects of security analysis, so that a vul
     doc.add_heading("4.3 Data Flow", level=2)
 
     p = doc.add_paragraph()
-    p.add_run(
-        """Data flow in MIESC follows a pipeline optimized for maximum efficiency:
+    p.add_run("""Data flow in MIESC follows a pipeline optimized for maximum efficiency:
 
 1. Input: Solidity contract (.sol) + Configuration (TOML)
 2. Preprocessing: Compilation with solc, AST generation
@@ -1178,8 +1175,7 @@ Each MIESC layer addresses different aspects of security analysis, so that a vul
 5. Aggregation: Collection of results from all tools
 6. Correlation: Deduplication and confidence calculation
 7. Filtering: False positive elimination (89% reduction)
-8. Output: Unified report (JSON, SARIF, PDF, Markdown)"""
-    )
+8. Output: Unified report (JSON, SARIF, PDF, Markdown)""")
 
     doc.add_paragraph()
     add_figure_with_image(doc, "data_flow.svg", "MIESC Data Flow", "4.3")

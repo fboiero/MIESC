@@ -494,8 +494,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### About")
-    st.markdown(
-        """
+    st.markdown("""
     **Author:** Fernando Boiero
     **Institution:** UNDEF - IUA Cordoba
     **License:** GPL-3.0
@@ -503,8 +502,7 @@ with st.sidebar:
     **25** Security Adapters
     **7** Defense Layers
     **94.5%** Precision
-    """
-    )
+    """)
 
 
 # Main tabs
