@@ -16,11 +16,9 @@ import pytest
 
 from src.plugins.marketplace import (
     DEFAULT_CACHE_TTL_SECONDS,
-    VALID_PLUGIN_TYPES,
     MarketplaceClient,
     MarketplaceIndex,
     MarketplacePlugin,
-    MarketplaceSearchResult,
     MarketplaceUnavailableError,
     VerificationStatus,
     _compute_relevance,
@@ -28,7 +26,6 @@ from src.plugins.marketplace import (
     _slugify,
     _version_in_range,
 )
-
 
 # --- Sample data ---
 
@@ -546,7 +543,7 @@ class TestMarketplaceFetch:
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
 
-        with pytest.raises(Exception):
+        with pytest.raises((json.JSONDecodeError, MarketplaceUnavailableError, ValueError)):
             client.fetch_index(force_refresh=True)
 
 

@@ -37,31 +37,6 @@ from .loader import (
     LoadedPlugin,
     PluginLoader,
 )
-from .protocol import (
-    AdapterPlugin,
-    DetectorPlugin,
-    # Base classes
-    MIESCPlugin,
-    PluginContext,
-    # Data classes
-    PluginMetadata,
-    PluginResult,
-    PluginState,
-    # Enums
-    PluginType,
-    ReporterPlugin,
-    TransformerPlugin,
-    get_plugin_classes,
-    # Helpers
-    is_plugin_class,
-)
-from .registry import (
-    DEFAULT_REGISTRY_PATH,
-    PluginEntry,
-    PluginRegistry,
-    get_registry,
-    set_registry,
-)
 from .marketplace import (
     DEFAULT_CACHE_PATH,
     DEFAULT_INDEX_URL,
@@ -70,6 +45,27 @@ from .marketplace import (
     MarketplacePlugin,
     MarketplaceSearchResult,
     VerificationStatus,
+)
+from .protocol import (
+    AdapterPlugin,
+    DetectorPlugin,
+    MIESCPlugin,
+    PluginContext,
+    PluginMetadata,
+    PluginResult,
+    PluginState,
+    PluginType,
+    ReporterPlugin,
+    TransformerPlugin,
+    get_plugin_classes,
+    is_plugin_class,
+)
+from .registry import (
+    DEFAULT_REGISTRY_PATH,
+    PluginEntry,
+    PluginRegistry,
+    get_registry,
+    set_registry,
 )
 from .templates import (
     PluginTemplate,
