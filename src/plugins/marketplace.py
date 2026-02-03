@@ -156,9 +156,7 @@ class MarketplacePlugin:
 
     def is_compatible(self, miesc_version: str) -> bool:
         """Check compatibility with a MIESC version."""
-        return _version_in_range(
-            miesc_version, self.min_miesc_version, self.max_miesc_version
-        )
+        return _version_in_range(miesc_version, self.min_miesc_version, self.max_miesc_version)
 
 
 @dataclass
@@ -172,9 +170,7 @@ class MarketplaceIndex:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "MarketplaceIndex":
         """Parse index from dictionary."""
-        plugins = [
-            MarketplacePlugin.from_dict(p) for p in data.get("plugins", [])
-        ]
+        plugins = [MarketplacePlugin.from_dict(p) for p in data.get("plugins", [])]
         return cls(
             version=data.get("version", "1.0"),
             updated_at=data.get("updated_at", ""),
@@ -242,8 +238,13 @@ class MarketplaceClient:
             self._save_cache(index)
             self._index = index
             return index
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError,
-                OSError, MarketplaceError) as e:
+        except (
+            urllib.error.URLError,
+            urllib.error.HTTPError,
+            TimeoutError,
+            OSError,
+            MarketplaceError,
+        ) as e:
             logger.warning("Failed to fetch remote index: %s", e)
             cached = self._load_cache()
             if cached is not None:
@@ -265,9 +266,7 @@ class MarketplaceClient:
         )
         with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as response:
             if response.status != 200:
-                raise MarketplaceError(
-                    f"Unexpected status {response.status} from marketplace"
-                )
+                raise MarketplaceError(f"Unexpected status {response.status} from marketplace")
             data = json.loads(response.read().decode("utf-8"))
             return MarketplaceIndex.from_dict(data)
 
@@ -291,9 +290,7 @@ class MarketplaceClient:
                 "ttl_seconds": self.cache_ttl_seconds,
                 "index": index.to_dict(),
             }
-            self.cache_path.write_text(
-                json.dumps(cache_data, indent=2), encoding="utf-8"
-            )
+            self.cache_path.write_text(json.dumps(cache_data, indent=2), encoding="utf-8")
         except OSError as e:
             logger.warning("Failed to save marketplace cache: %s", e)
 
@@ -309,9 +306,7 @@ class MarketplaceClient:
             cached_at = datetime.fromisoformat(cached_at_str)
             if cached_at.tzinfo is None:
                 cached_at = cached_at.replace(tzinfo=timezone.utc)
-            age_seconds = (
-                datetime.now(timezone.utc) - cached_at
-            ).total_seconds()
+            age_seconds = (datetime.now(timezone.utc) - cached_at).total_seconds()
             return age_seconds < self.cache_ttl_seconds
         except (json.JSONDecodeError, ValueError, OSError):
             return False
@@ -379,9 +374,7 @@ class MarketplaceClient:
         if plugin_type:
             plugins = [p for p in plugins if p.plugin_type == plugin_type]
         if verification_status:
-            plugins = [
-                p for p in plugins if p.verification_status == verification_status
-            ]
+            plugins = [p for p in plugins if p.verification_status == verification_status]
 
         # Pagination
         start = (page - 1) * per_page
@@ -396,9 +389,7 @@ class MarketplaceClient:
                 return plugin
         return None
 
-    def get_plugin_by_package(
-        self, pypi_package: str
-    ) -> Optional[MarketplacePlugin]:
+    def get_plugin_by_package(self, pypi_package: str) -> Optional[MarketplacePlugin]:
         """Get a plugin by its PyPI package name."""
         index = self.fetch_index()
         for plugin in index.plugins:
@@ -406,9 +397,7 @@ class MarketplaceClient:
                 return plugin
         return None
 
-    def check_compatibility(
-        self, plugin: MarketplacePlugin
-    ) -> Dict[str, Any]:
+    def check_compatibility(self, plugin: MarketplacePlugin) -> Dict[str, Any]:
         """Check if a marketplace plugin is compatible."""
         compatible = plugin.is_compatible(self.miesc_version)
         if compatible:
@@ -483,8 +472,13 @@ class MarketplaceClient:
 
         # Required fields
         required = [
-            "name", "slug", "pypi_package", "version",
-            "plugin_type", "description", "author",
+            "name",
+            "slug",
+            "pypi_package",
+            "version",
+            "plugin_type",
+            "description",
+            "author",
         ]
         for field_name in required:
             if not entry.get(field_name):
@@ -493,9 +487,7 @@ class MarketplaceClient:
         # Slug format
         slug = entry.get("slug", "")
         if slug and not re.match(r"^[a-z0-9][a-z0-9-]*[a-z0-9]$", slug):
-            errors.append(
-                "Invalid slug format: must be lowercase alphanumeric with hyphens"
-            )
+            errors.append("Invalid slug format: must be lowercase alphanumeric with hyphens")
 
         # Plugin type
         ptype = entry.get("plugin_type", "")
@@ -532,11 +524,13 @@ def _get_miesc_version() -> str:
     """Get the current MIESC version."""
     try:
         from miesc import __version__
+
         return __version__
     except ImportError:
         pass
     try:
         import importlib.metadata
+
         return importlib.metadata.version("miesc")
     except Exception:
         return "5.0.3"

@@ -137,9 +137,15 @@ class TestMarketplacePlugin:
         assert sample_plugin.max_miesc_version is None
 
     def test_from_dict_defaults(self):
-        minimal = {"name": "Test", "slug": "test", "pypi_package": "miesc-test",
-                    "version": "1.0.0", "plugin_type": "detector",
-                    "description": "A test", "author": "Dev"}
+        minimal = {
+            "name": "Test",
+            "slug": "test",
+            "pypi_package": "miesc-test",
+            "version": "1.0.0",
+            "plugin_type": "detector",
+            "description": "A test",
+            "author": "Dev",
+        }
         plugin = MarketplacePlugin.from_dict(minimal)
         assert plugin.author_email == ""
         assert plugin.homepage == ""
@@ -162,9 +168,13 @@ class TestMarketplacePlugin:
 
     def test_to_dict_omits_empty_optional(self):
         plugin = MarketplacePlugin(
-            name="Test", slug="test", pypi_package="miesc-test",
-            version="1.0.0", plugin_type="detector",
-            description="A test", author="Dev",
+            name="Test",
+            slug="test",
+            pypi_package="miesc-test",
+            version="1.0.0",
+            plugin_type="detector",
+            description="A test",
+            author="Dev",
         )
         d = plugin.to_dict()
         assert "author_email" not in d
@@ -271,10 +281,12 @@ class TestHelpers:
 
     def test_compute_relevance_verified_boost(self):
         verified = MarketplacePlugin.from_dict(SAMPLE_PLUGIN_DICT_2)
-        community = MarketplacePlugin.from_dict({
-            **SAMPLE_PLUGIN_DICT_2,
-            "verification_status": "community",
-        })
+        community = MarketplacePlugin.from_dict(
+            {
+                **SAMPLE_PLUGIN_DICT_2,
+                "verification_status": "community",
+            }
+        )
         # Same plugin, only verification status differs
         score_v = _compute_relevance(verified, "security", ["security"])
         score_c = _compute_relevance(community, "security", ["security"])
@@ -315,13 +327,8 @@ class TestMarketplaceSearch:
         assert all("defi" in r.plugin.tags for r in results)
 
     def test_search_filter_by_verification(self, client_with_index):
-        results = client_with_index.search(
-            "", verification_status=VerificationStatus.VERIFIED
-        )
-        assert all(
-            r.plugin.verification_status == VerificationStatus.VERIFIED
-            for r in results
-        )
+        results = client_with_index.search("", verification_status=VerificationStatus.VERIFIED)
+        assert all(r.plugin.verification_status == VerificationStatus.VERIFIED for r in results)
 
     def test_search_compatible_only(self, client_with_index):
         # Client is v5.0.3, plugin_dict_2 requires 5.0.0+ -> compatible
@@ -366,9 +373,7 @@ class TestMarketplaceBrowse:
         assert all(p.plugin_type == "detector" for p in plugins)
 
     def test_browse_filter_by_verification(self, client_with_index):
-        plugins = client_with_index.browse(
-            verification_status=VerificationStatus.VERIFIED
-        )
+        plugins = client_with_index.browse(verification_status=VerificationStatus.VERIFIED)
         assert len(plugins) == 1
         assert plugins[0].slug == "reentrancy-guard"
 
@@ -589,8 +594,12 @@ class TestMarketplaceSubmission:
 
     def test_validate_submission_bad_slug(self, client_with_index):
         entry = client_with_index.generate_submission(
-            name="T", pypi_package="miesc-t", version="1.0.0",
-            plugin_type="detector", description="Test", author="Dev",
+            name="T",
+            pypi_package="miesc-t",
+            version="1.0.0",
+            plugin_type="detector",
+            description="Test",
+            author="Dev",
         )
         # Single char slug won't match the regex requiring at least 2 chars
         errors = client_with_index.validate_submission(entry)
@@ -598,36 +607,51 @@ class TestMarketplaceSubmission:
 
     def test_validate_submission_bad_version(self, client_with_index):
         entry = {
-            "name": "Test", "slug": "test-plugin", "pypi_package": "miesc-test",
-            "version": "bad", "plugin_type": "detector",
-            "description": "Test desc", "author": "Dev",
+            "name": "Test",
+            "slug": "test-plugin",
+            "pypi_package": "miesc-test",
+            "version": "bad",
+            "plugin_type": "detector",
+            "description": "Test desc",
+            "author": "Dev",
         }
         errors = client_with_index.validate_submission(entry)
         assert any("version" in e.lower() for e in errors)
 
     def test_validate_submission_bad_type(self, client_with_index):
         entry = {
-            "name": "Test", "slug": "test-plugin", "pypi_package": "miesc-test",
-            "version": "1.0.0", "plugin_type": "invalid_type",
-            "description": "Test desc", "author": "Dev",
+            "name": "Test",
+            "slug": "test-plugin",
+            "pypi_package": "miesc-test",
+            "version": "1.0.0",
+            "plugin_type": "invalid_type",
+            "description": "Test desc",
+            "author": "Dev",
         }
         errors = client_with_index.validate_submission(entry)
         assert any("plugin_type" in e for e in errors)
 
     def test_validate_submission_no_miesc_prefix(self, client_with_index):
         entry = {
-            "name": "Test", "slug": "test-plugin", "pypi_package": "not-miesc",
-            "version": "1.0.0", "plugin_type": "detector",
-            "description": "Test desc", "author": "Dev",
+            "name": "Test",
+            "slug": "test-plugin",
+            "pypi_package": "not-miesc",
+            "version": "1.0.0",
+            "plugin_type": "detector",
+            "description": "Test desc",
+            "author": "Dev",
         }
         errors = client_with_index.validate_submission(entry)
         assert any("miesc-" in e for e in errors)
 
     def test_validate_submission_duplicate_slug(self, client_with_index):
         entry = {
-            "name": "Test", "slug": "defi-flash-loan",
-            "pypi_package": "miesc-duplicate", "version": "1.0.0",
-            "plugin_type": "detector", "description": "Duplicate slug",
+            "name": "Test",
+            "slug": "defi-flash-loan",
+            "pypi_package": "miesc-duplicate",
+            "version": "1.0.0",
+            "plugin_type": "detector",
+            "description": "Duplicate slug",
             "author": "Dev",
         }
         errors = client_with_index.validate_submission(entry)
@@ -651,9 +675,7 @@ class TestMarketplaceIntegration:
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
 
-        client = MarketplaceClient(
-            cache_path=cache_path, miesc_version="5.0.3"
-        )
+        client = MarketplaceClient(cache_path=cache_path, miesc_version="5.0.3")
 
         # Search
         results = client.search("flash loan")
