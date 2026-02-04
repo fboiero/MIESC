@@ -64,10 +64,12 @@ cd MIESC && pip install -e .[dev]
 
 ```bash
 # STANDARD image (~2-3GB) - Core tools: Slither, Aderyn, Solhint, Foundry
+# Multi-arch: works natively on both x86_64 and ARM (Apple Silicon)
 docker pull ghcr.io/fboiero/miesc:latest
 docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:latest scan /contracts/MyContract.sol
 
 # FULL image (~8GB) - ALL tools: Mythril, Manticore, Echidna, Halmos, PyTorch
+# Note: registry image is amd64-only. On ARM, use ./scripts/docker-setup.sh
 docker pull ghcr.io/fboiero/miesc:full
 docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:full scan /contracts/MyContract.sol
 
@@ -76,8 +78,8 @@ docker run --rm ghcr.io/fboiero/miesc:latest doctor  # Standard: ~15 tools
 docker run --rm ghcr.io/fboiero/miesc:full doctor    # Full: ~30 tools
 
 # Or build locally
-docker build -t miesc:latest -f docker/Dockerfile .              # Standard
-docker build -t miesc:full -f docker/Dockerfile.full .           # Full
+./scripts/build-images.sh standard  # Standard (multi-arch)
+./scripts/build-images.sh full      # Full (see ARM notes below)
 ```
 
 <details>
@@ -95,7 +97,7 @@ docker rmi ghcr.io/fboiero/miesc:main 2>/dev/null
 # Pull fresh image
 docker pull ghcr.io/fboiero/miesc:latest
 
-# Verify version (should show 4.3.7+)
+# Verify version (should show 5.0.3)
 docker run --rm ghcr.io/fboiero/miesc:latest --version
 ```
 
@@ -128,6 +130,33 @@ docker run --rm -v /full/path/to/contracts:/contracts ghcr.io/fboiero/miesc:late
 # On Windows PowerShell, use ${PWD}
 docker run --rm -v ${PWD}:/contracts ghcr.io/fboiero/miesc:latest scan /contracts/MyContract.sol
 ```
+
+</details>
+
+<details>
+<summary><strong>ARM / Apple Silicon Notes</strong></summary>
+
+The **standard** image (`miesc:latest`) is multi-arch and runs natively on ARM (Apple Silicon).
+
+The **full** image (`miesc:full`) in the registry is **amd64-only**. On ARM hosts, Docker will run it under QEMU emulation (~3-5x slower). You have three options:
+
+1. **Pull amd64 and run emulated** (fast download, slower runtime)
+2. **Build natively for arm64** (build takes ~30-60 min due to z3-solver, but native speed)
+3. **Skip full image** (use standard image only)
+
+Use the setup wizard to choose automatically:
+
+```bash
+./scripts/docker-setup.sh
+```
+
+Or build the full image natively:
+
+```bash
+./scripts/build-images.sh full
+```
+
+> **Note:** The registry may contain older image versions (pre-5.0.3). Always use tagged versions `miesc:latest`, `miesc:full`, `miesc:5.0.3`, or `miesc:5.0.3-full` to get the current release.
 
 </details>
 

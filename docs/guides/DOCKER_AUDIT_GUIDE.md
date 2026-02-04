@@ -31,6 +31,8 @@ Download Docker Desktop from https://www.docker.com/products/docker-desktop
 docker pull ghcr.io/fboiero/miesc:full
 ```
 
+> **ARM / Apple Silicon:** The `:full` image in the registry is amd64-only. On ARM it runs under QEMU emulation (~3-5x slower). For native performance, build locally with `./scripts/build-images.sh full` or use the setup wizard `./scripts/docker-setup.sh`. The `:latest` (standard) image is multi-arch and works natively on ARM.
+
 Verify it works:
 
 ```bash

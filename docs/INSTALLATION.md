@@ -275,13 +275,15 @@ docker run --platform linux/amd64 --rm -v $(pwd):/contracts miesc:v4.3.0-x86 aud
 
 ```bash
 # Pull from GitHub Container Registry
-docker pull ghcr.io/fboiero/miesc:latest
+docker pull ghcr.io/fboiero/miesc:latest    # Standard (multi-arch, ~2-3GB)
+docker pull ghcr.io/fboiero/miesc:full      # Full - amd64 only (~8GB)
 
 # Run audit
 docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:latest audit quick /contracts/MyContract.sol
 
-# Or build locally
-docker build -t miesc:latest .
+# Or build locally (use the build script for ARM compatibility)
+./scripts/build-images.sh standard
+./scripts/build-images.sh full              # On ARM: prompts for native build
 docker run --rm -v $(pwd):/contracts miesc:latest audit quick /contracts/MyContract.sol
 ```
 
