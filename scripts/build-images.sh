@@ -23,6 +23,7 @@ NC='\033[0m'
 
 # Source platform detection library
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 source "$SCRIPT_DIR/detect-platform.sh"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${NC}"
@@ -37,12 +38,12 @@ build_standard() {
     echo ""
 
     docker build \
-        -f Dockerfile \
+        -f "$PROJECT_DIR/docker/Dockerfile" \
         -t miesc:${VERSION} \
         -t miesc:latest \
         -t ${REGISTRY}/miesc:${VERSION} \
         -t ${REGISTRY}/miesc:latest \
-        .
+        "$PROJECT_DIR"
 
     echo -e "${GREEN}✓ Standard image built successfully${NC}"
     echo ""
@@ -87,12 +88,12 @@ build_full() {
 
     docker build \
         "${platform_flag[@]}" \
-        -f Dockerfile.full \
+        -f "$PROJECT_DIR/docker/Dockerfile.full" \
         -t miesc:${VERSION}-full \
         -t miesc:full \
         -t ${REGISTRY}/miesc:${VERSION}-full \
         -t ${REGISTRY}/miesc:full \
-        .
+        "$PROJECT_DIR"
 
     echo -e "${GREEN}✓ Full image built successfully${NC}"
     echo ""
