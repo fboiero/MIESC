@@ -18,7 +18,12 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+BOLD='\033[1m'
 NC='\033[0m'
+
+# Source platform detection library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/detect-platform.sh"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║     MIESC v${VERSION} - Docker Image Builder           ║${NC}"
@@ -50,7 +55,38 @@ build_full() {
     echo "     Build time: 30-45 minutes"
     echo ""
 
+    # ARM warning and confirmation
+    if [ "$MIESC_IS_ARM" = true ]; then
+        echo -e "${YELLOW}╔══════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${YELLOW}║  WARNING: Building full image on ARM (${MIESC_HOST_ARCH})              ║${NC}"
+        echo -e "${YELLOW}╚══════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        echo "  z3-solver compilation on ARM can take 30-60 minutes."
+        echo "  The resulting image will run at native speed."
+        echo ""
+        echo "  Alternatives:"
+        echo "    - Pull the pre-built amd64 image (runs under QEMU, ~3-5x slower):"
+        echo "      docker pull --platform linux/amd64 ${REGISTRY}/miesc:full"
+        echo "    - Use the standard image (natively multi-arch, no Mythril/Manticore):"
+        echo "      docker pull ${REGISTRY}/miesc:latest"
+        echo ""
+        read -p "Continue with native ARM build? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${YELLOW}Skipping full image build.${NC}"
+            return 0
+        fi
+    fi
+
+    # Support explicit platform override via MIESC_FULL_PLATFORM
+    local platform_flag=()
+    if [ -n "${MIESC_FULL_PLATFORM:-}" ]; then
+        platform_flag=(--platform "$MIESC_FULL_PLATFORM")
+        echo -e "${BLUE}Using explicit platform: ${MIESC_FULL_PLATFORM}${NC}"
+    fi
+
     docker build \
+        "${platform_flag[@]}" \
         -f Dockerfile.full \
         -t miesc:${VERSION}-full \
         -t miesc:full \
@@ -69,11 +105,18 @@ push_images() {
     docker push ${REGISTRY}/miesc:${VERSION}
     docker push ${REGISTRY}/miesc:latest
 
-    # Full images
-    docker push ${REGISTRY}/miesc:${VERSION}-full
-    docker push ${REGISTRY}/miesc:full
+    # Full images - warn on ARM native builds
+    if [ "$MIESC_IS_ARM" = true ] && [ "${MIESC_FULL_PLATFORM:-}" != "linux/amd64" ]; then
+        echo -e "${YELLOW}[WARN]${NC} Skipping push of full image: built natively for ${MIESC_HOST_ARCH}."
+        echo "  The registry tag :full is expected to be amd64."
+        echo "  To push an amd64 full image, rebuild with:"
+        echo "    MIESC_FULL_PLATFORM=linux/amd64 ./scripts/build-images.sh push"
+    else
+        docker push ${REGISTRY}/miesc:${VERSION}-full
+        docker push ${REGISTRY}/miesc:full
+    fi
 
-    echo -e "${GREEN}✓ All images pushed to registry${NC}"
+    echo -e "${GREEN}✓ Images pushed to registry${NC}"
 }
 
 show_summary() {
@@ -82,6 +125,17 @@ show_summary() {
     echo -e "${GREEN}║                   BUILD COMPLETE                        ║${NC}"
     echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
     echo ""
+
+    # Architecture info
+    echo -e "${BOLD}Architecture:${NC}"
+    echo "  Host: $(uname -m) (${MIESC_HOST_ARCH})"
+    echo "  Docker platform: ${MIESC_DOCKER_PLATFORM}"
+    if [ "$MIESC_IS_ARM" = true ]; then
+        echo -e "  ${YELLOW}Note:${NC} The :full registry image is amd64-only."
+        echo "  Local builds on ARM produce native arm64 images."
+    fi
+    echo ""
+
     echo "Available images:"
     echo ""
     echo -e "  ${BLUE}STANDARD${NC} (lightweight, ~2-3GB):"

@@ -18,6 +18,9 @@ BOLD='\033[1m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
+# Source platform detection library
+source "$SCRIPT_DIR/detect-platform.sh"
+
 # Print functions
 print_header() {
     echo ""
@@ -156,6 +159,56 @@ detect_gpu() {
     fi
 }
 
+# Detect architecture and handle full image strategy for ARM hosts
+detect_architecture() {
+    print_step "Detecting host architecture..."
+
+    print_platform_info | while IFS= read -r line; do
+        echo "  $line"
+    done
+
+    # Default: no special handling needed
+    MIESC_FULL_IMAGE_MODE="default"
+
+    if [ "$MIESC_IS_ARM" = true ]; then
+        print_warning "ARM architecture detected (Apple Silicon / aarch64)"
+        echo ""
+        echo -e "  The ${BOLD}miesc:full${NC} image in the registry is built for amd64 only."
+        echo "  On ARM, you have three options:"
+        echo ""
+        echo "  1) Pull amd64 image and run under QEMU emulation"
+        echo "     - Fast to download, but runtime is ~3-5x slower"
+        echo ""
+        echo "  2) Build full image locally (native arm64)"
+        echo "     - Build takes ~30-60 min (z3-solver compilation)"
+        echo "     - Runtime performance is native speed"
+        echo ""
+        echo "  3) Skip full image (use standard multi-arch image only)"
+        echo "     - Standard image works natively on ARM"
+        echo "     - No Mythril, Manticore, Echidna, or PyTorch"
+        echo ""
+
+        read -p "Select option for full image [1/2/3] (default: 3): " ARCH_CHOICE
+
+        case "$ARCH_CHOICE" in
+            1)
+                MIESC_FULL_IMAGE_MODE="emulated"
+                print_info "Will use amd64 full image under QEMU emulation"
+                ;;
+            2)
+                MIESC_FULL_IMAGE_MODE="native-build"
+                print_info "Will build full image natively for arm64"
+                ;;
+            *)
+                MIESC_FULL_IMAGE_MODE="skip"
+                print_info "Skipping full image, using standard image only"
+                ;;
+        esac
+    else
+        print_success "x86_64 architecture detected, all images are natively compatible"
+    fi
+}
+
 # Configure environment
 configure_environment() {
     print_step "Configuring environment..."
@@ -179,6 +232,12 @@ MIESC_LLM_TIMEOUT=180
 # GPU Configuration
 GPU_AVAILABLE=$GPU_AVAILABLE
 GPU_TYPE=$GPU_TYPE
+
+# Platform / Architecture
+MIESC_HOST_ARCH=$MIESC_HOST_ARCH
+MIESC_DOCKER_PLATFORM=$MIESC_DOCKER_PLATFORM
+MIESC_IS_ARM=$MIESC_IS_ARM
+MIESC_FULL_IMAGE_MODE=$MIESC_FULL_IMAGE_MODE
 EOF
 
     print_success "Environment configured: $ENV_FILE"
@@ -221,12 +280,29 @@ start_services() {
 
     cd "$PROJECT_DIR"
 
+    # Determine compose env overrides for ARM full-image strategy
+    local platform_env=()
+    local skip_full=false
+
+    if [ "$MIESC_FULL_IMAGE_MODE" = "emulated" ]; then
+        print_info "Full image will run under QEMU (linux/amd64)"
+        platform_env=(env DOCKER_DEFAULT_PLATFORM=linux/amd64)
+    elif [ "$MIESC_FULL_IMAGE_MODE" = "skip" ]; then
+        skip_full=true
+        print_info "Skipping full image profile"
+    fi
+    # native-build and default: no special env needed
+
     if [ "$DEPLOYMENT_MODE" = "production" ]; then
         # Production mode - starts everything
         echo "Starting production deployment..."
         echo "This will download ~8GB of LLM models on first run."
         echo ""
-        $COMPOSE_CMD -f "$COMPOSE_FILE" up -d --build
+        if [ "$skip_full" = true ]; then
+            $COMPOSE_CMD -f "$COMPOSE_FILE" up -d --build
+        else
+            "${platform_env[@]}" $COMPOSE_CMD -f "$COMPOSE_FILE" up -d --build
+        fi
     else
         # Development mode - start with LLM profile
         echo "Starting development deployment with LLM support..."
@@ -333,6 +409,7 @@ main() {
     check_docker_compose
     check_disk_space
     detect_gpu
+    detect_architecture
     configure_environment
     select_mode
 

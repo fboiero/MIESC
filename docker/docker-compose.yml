@@ -4,6 +4,17 @@
 # Plus: Ollama LLM integration for AI-powered report interpretation
 # SmartLLM: Uses deepseek-coder for code analysis, mistral for general interpretation
 #
+# Architecture / Platform Notes:
+#   - miesc:latest (standard) is multi-arch (amd64 + arm64) - works natively everywhere
+#   - miesc:full is amd64-only in the registry; on ARM hosts it runs under QEMU
+#   - ollama/ollama:latest is multi-arch - works natively everywhere
+#   - Platform selection is NOT set via 'platform:' keys in this file to avoid
+#     compatibility issues with Compose < v2.20 (empty values cause errors).
+#   - Instead, scripts/docker-setup.sh sets DOCKER_DEFAULT_PLATFORM as an env var
+#     when invoking compose, based on the user's choice during setup.
+#   - On ARM, run ./scripts/docker-setup.sh to choose between:
+#     1) Emulated amd64 (QEMU), 2) Native arm64 build, 3) Skip full image
+#
 # Usage:
 #   Build and run:     docker-compose up --build
 #   Run tests:         docker-compose run miesc-test
