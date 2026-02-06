@@ -961,6 +961,1077 @@ function deposit(uint256 amount) external {
         real_exploit="Multiple DeFi protocols affected",
         tags=["fee-on-transfer", "token", "accounting", "balance-check", "deflationary"],
     ),
+
+    # SWC-106: Unprotected SELFDESTRUCT
+    VulnerabilityDocument(
+        id="SWC-106",
+        swc_id="SWC-106",
+        cwe_id="CWE-284",
+        title="Unprotected SELFDESTRUCT Instruction",
+        description=(
+            "A contract with a public or unprotected selfdestruct() function can be "
+            "destroyed by anyone. This permanently removes the contract code and sends "
+            "all remaining ETH to a specified address."
+        ),
+        vulnerable_code="""
+function destroy() public {
+    selfdestruct(payable(msg.sender));  // Anyone can call!
+}
+""",
+        fixed_code="""
+function destroy() public onlyOwner {
+    selfdestruct(payable(owner));
+}
+
+// Better: Remove selfdestruct entirely (deprecated in newer Solidity)
+// Use pausable pattern instead
+""",
+        attack_scenario=(
+            "1. Attacker finds contract with unprotected selfdestruct. "
+            "2. Attacker calls destroy(). "
+            "3. Contract code is erased permanently. "
+            "4. All ETH sent to attacker. "
+            "5. Dependent contracts/users lose access forever."
+        ),
+        severity="critical",
+        category="access-control",
+        real_exploit="Parity Multisig Library - $150M frozen permanently (2017)",
+        tags=["selfdestruct", "access-control", "permanent", "destructive"],
+    ),
+
+    # SWC-116: Block Timestamp Dependence
+    VulnerabilityDocument(
+        id="SWC-116",
+        swc_id="SWC-116",
+        cwe_id="CWE-829",
+        title="Block Values as Time Proxy",
+        description=(
+            "Miners can manipulate block.timestamp within a range (~15 seconds). "
+            "Contracts that rely on precise timing or use timestamp for randomness "
+            "are vulnerable to manipulation."
+        ),
+        vulnerable_code="""
+function isLotteryWinner() public view returns (bool) {
+    return block.timestamp % 2 == 0;  // Manipulable!
+}
+
+function timeLock() public {
+    require(block.timestamp >= releaseTime);  // ~15s manipulation window
+    // Release funds...
+}
+""",
+        fixed_code="""
+// For randomness: Use Chainlink VRF
+function requestRandomness() external returns (bytes32) {
+    return requestRandomness(keyHash, fee);
+}
+
+// For time-locks: Add buffer for manipulation
+function timeLock() public {
+    require(block.timestamp >= releaseTime + 15 minutes);  // Buffer
+    // Or use block.number instead for longer periods
+}
+""",
+        attack_scenario=(
+            "1. Lottery uses timestamp for winner selection. "
+            "2. Miner sees their transaction would lose. "
+            "3. Miner adjusts block timestamp slightly. "
+            "4. Miner wins the lottery."
+        ),
+        severity="low",
+        category="randomness",
+        tags=["timestamp", "block-values", "randomness", "miner-manipulation"],
+    ),
+
+    # SWC-120: Weak Sources of Randomness
+    VulnerabilityDocument(
+        id="SWC-120",
+        swc_id="SWC-120",
+        cwe_id="CWE-330",
+        title="Weak Sources of Randomness from Chain Attributes",
+        description=(
+            "Using blockhash, block.timestamp, block.difficulty, or block.number as "
+            "randomness sources is insecure. Miners can influence these values, and "
+            "blockhash is only available for the 256 most recent blocks."
+        ),
+        vulnerable_code="""
+function random() internal view returns (uint256) {
+    return uint256(keccak256(abi.encodePacked(
+        block.timestamp,
+        block.difficulty,
+        msg.sender
+    )));  // All predictable/manipulable!
+}
+
+function flipCoin() external payable {
+    require(msg.value == 1 ether);
+    if (random() % 2 == 0) {
+        payable(msg.sender).transfer(2 ether);
+    }
+}
+""",
+        fixed_code="""
+// Use Chainlink VRF for secure randomness
+import "@chainlink/contracts/src/v0.8/vrf/VRFV2WrapperConsumerBase.sol";
+
+function requestRandomWords() internal returns (uint256 requestId) {
+    return requestRandomness(callbackGasLimit, requestConfirmations, numWords);
+}
+
+function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal override {
+    // Use randomWords[0] for provably fair randomness
+    processGameResult(randomWords[0]);
+}
+""",
+        attack_scenario=(
+            "1. Attacker predicts 'random' outcome off-chain. "
+            "2. Only submits transaction when outcome is favorable. "
+            "3. Or miner manipulates block values to win. "
+            "4. 'Random' lottery/game is deterministic for attacker."
+        ),
+        severity="high",
+        category="randomness",
+        real_exploit="Multiple lottery/gambling contracts exploited",
+        tags=["randomness", "blockhash", "timestamp", "chainlink-vrf", "predictable"],
+    ),
+
+    # SWC-100: Function Default Visibility
+    VulnerabilityDocument(
+        id="SWC-100",
+        swc_id="SWC-100",
+        cwe_id="CWE-710",
+        title="Function Default Visibility",
+        description=(
+            "Functions without explicit visibility default to 'public' in older Solidity. "
+            "This can expose internal functions that should be private, allowing attackers "
+            "to call sensitive functions directly."
+        ),
+        vulnerable_code="""
+// Solidity < 0.5.0
+contract Wallet {
+    function transfer(address to, uint amount) {  // No visibility = public!
+        // Internal transfer logic exposed
+    }
+
+    function _internalHelper() {  // Convention says private, but it's public!
+        // Sensitive logic
+    }
+}
+""",
+        fixed_code="""
+contract Wallet {
+    function transfer(address to, uint amount) public {
+        // Explicitly public
+    }
+
+    function _internalHelper() private {
+        // Explicitly private
+    }
+
+    function _protectedLogic() internal {
+        // Explicitly internal
+    }
+}
+""",
+        attack_scenario=(
+            "1. Developer assumes underscore prefix means private. "
+            "2. Function is actually public (no explicit visibility). "
+            "3. Attacker calls _adminFunction() directly. "
+            "4. Bypasses intended access control."
+        ),
+        severity="high",
+        category="visibility",
+        tags=["visibility", "public", "private", "access-control", "solidity-version"],
+    ),
+
+    # SWC-117: Signature Malleability
+    VulnerabilityDocument(
+        id="SWC-117",
+        swc_id="SWC-117",
+        cwe_id="CWE-347",
+        title="Signature Malleability",
+        description=(
+            "ECDSA signatures in Ethereum have a malleability property: for any valid "
+            "signature (r, s, v), there exists another valid signature (r, -s mod n, v'). "
+            "This can be exploited if signatures are used as unique identifiers."
+        ),
+        vulnerable_code="""
+mapping(bytes => bool) public usedSignatures;
+
+function claim(bytes memory signature) external {
+    require(!usedSignatures[signature], "Already used");
+    // Verify signature...
+    address signer = recoverSigner(message, signature);
+    require(signer == trustedSigner);
+    usedSignatures[signature] = true;
+    // Process claim
+}
+""",
+        fixed_code="""
+mapping(bytes32 => bool) public usedMessages;  // Track message hash, not signature
+
+function claim(bytes memory signature) external {
+    bytes32 messageHash = getMessageHash(msg.sender, amount);
+    require(!usedMessages[messageHash], "Already claimed");
+
+    // Use OpenZeppelin ECDSA for safe recovery
+    address signer = ECDSA.recover(messageHash, signature);
+    require(signer == trustedSigner);
+
+    usedMessages[messageHash] = true;  // Mark message as used
+    // Process claim
+}
+""",
+        attack_scenario=(
+            "1. User submits valid signature S for claim. "
+            "2. Contract marks signature S as used. "
+            "3. Attacker computes malleable signature S'. "
+            "4. S' is different but recovers same signer. "
+            "5. Attacker claims again with S'."
+        ),
+        severity="medium",
+        category="cryptography",
+        tags=["signature", "malleability", "ecdsa", "ecrecover", "replay"],
+    ),
+
+    # SWC-119: Shadowing State Variables
+    VulnerabilityDocument(
+        id="SWC-119",
+        swc_id="SWC-119",
+        cwe_id="CWE-710",
+        title="Shadowing State Variables",
+        description=(
+            "State variable shadowing occurs when a derived contract declares a variable "
+            "with the same name as a parent contract. This creates two separate storage "
+            "slots and can lead to unexpected behavior."
+        ),
+        vulnerable_code="""
+contract Parent {
+    address public owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
+}
+
+contract Child is Parent {
+    address public owner;  // SHADOWS Parent.owner!
+
+    function setOwner(address newOwner) public {
+        owner = newOwner;  // Only sets Child.owner, not Parent.owner
+    }
+}
+""",
+        fixed_code="""
+contract Parent {
+    address public owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
+}
+
+contract Child is Parent {
+    // Don't redeclare owner - use inherited variable
+
+    function setOwner(address newOwner) public {
+        owner = newOwner;  // Modifies Parent.owner correctly
+    }
+}
+""",
+        attack_scenario=(
+            "1. Parent contract checks owner for access control. "
+            "2. Child shadows owner variable. "
+            "3. Child's setOwner updates Child.owner only. "
+            "4. Parent's owner check uses Parent.owner (unchanged). "
+            "5. Access control behaves unexpectedly."
+        ),
+        severity="medium",
+        category="inheritance",
+        tags=["shadowing", "inheritance", "state-variable", "storage"],
+    ),
+
+    # SWC-113: DoS with Failed Call
+    VulnerabilityDocument(
+        id="SWC-113",
+        swc_id="SWC-113",
+        cwe_id="CWE-400",
+        title="DoS with Failed Call",
+        description=(
+            "External calls can fail intentionally. If a contract iterates through "
+            "recipients and one always reverts, the entire function becomes unusable. "
+            "Attackers can exploit this to block legitimate operations."
+        ),
+        vulnerable_code="""
+address[] public bidders;
+
+function refundAll() external {
+    for (uint i = 0; i < bidders.length; i++) {
+        // If any transfer fails, entire function reverts!
+        payable(bidders[i]).transfer(bids[bidders[i]]);
+    }
+}
+""",
+        fixed_code="""
+mapping(address => uint256) public pendingReturns;
+
+function refundAll() external {
+    for (uint i = 0; i < bidders.length; i++) {
+        pendingReturns[bidders[i]] = bids[bidders[i]];
+    }
+}
+
+// Pull pattern - users withdraw themselves
+function withdraw() external {
+    uint256 amount = pendingReturns[msg.sender];
+    require(amount > 0);
+    pendingReturns[msg.sender] = 0;
+    (bool success,) = msg.sender.call{value: amount}("");
+    require(success);
+}
+""",
+        attack_scenario=(
+            "1. Attacker bids in auction with contract that reverts on receive. "
+            "2. Auction ends, refundAll() called to return funds. "
+            "3. When transfer to attacker's contract happens, it reverts. "
+            "4. Entire refundAll() reverts - no one gets refund. "
+            "5. Funds locked forever."
+        ),
+        severity="medium",
+        category="denial-of-service",
+        real_exploit="King of the Ether (2016)",
+        tags=["dos", "failed-call", "pull-pattern", "revert", "griefing"],
+    ),
+
+    # SWC-126: Insufficient Gas Griefing
+    VulnerabilityDocument(
+        id="SWC-126",
+        swc_id="SWC-126",
+        cwe_id="CWE-691",
+        title="Insufficient Gas Griefing",
+        description=(
+            "When a contract makes an external call, the caller controls how much gas "
+            "to forward. A malicious relayer can provide just enough gas for the outer "
+            "call to succeed but the inner call to fail."
+        ),
+        vulnerable_code="""
+function relay(address target, bytes calldata data) external {
+    (bool success,) = target.call(data);  // All remaining gas forwarded
+    // But relayer can limit gas to fail inner call
+    require(success, "Call failed");
+}
+""",
+        fixed_code="""
+function relay(address target, bytes calldata data, uint256 gasLimit) external {
+    require(gasleft() >= gasLimit + 10000, "Insufficient gas");
+    (bool success,) = target.call{gas: gasLimit}(data);
+    require(success, "Call failed");
+}
+
+// Or use EIP-150 1/64th rule consideration
+function safeRelay(address target, bytes calldata data) external {
+    uint256 gasToForward = gasleft() - 5000;
+    (bool success,) = target.call{gas: gasToForward}(data);
+    require(success, "Call failed");
+}
+""",
+        attack_scenario=(
+            "1. User relies on relayer to submit transaction. "
+            "2. Relayer forwards minimal gas. "
+            "3. Outer call succeeds (enough gas). "
+            "4. Inner subcall fails (insufficient gas). "
+            "5. User's transaction appears successful but didn't complete."
+        ),
+        severity="medium",
+        category="gas",
+        tags=["gas-griefing", "relay", "insufficient-gas", "eip-150"],
+    ),
+
+    # SWC-132: Unexpected Ether Balance
+    VulnerabilityDocument(
+        id="SWC-132",
+        swc_id="SWC-132",
+        cwe_id="CWE-841",
+        title="Unexpected Ether Balance",
+        description=(
+            "Contracts can receive ETH through selfdestruct (forced) or coinbase "
+            "transactions without triggering receive/fallback. Contracts that rely on "
+            "address(this).balance == expected_value are vulnerable."
+        ),
+        vulnerable_code="""
+function withdraw() external {
+    require(address(this).balance == totalDeposits);  // Can be broken!
+    payable(msg.sender).transfer(deposits[msg.sender]);
+    totalDeposits -= deposits[msg.sender];
+}
+""",
+        fixed_code="""
+// Track balances independently, don't rely on address(this).balance
+uint256 public accountedBalance;
+
+function deposit() external payable {
+    deposits[msg.sender] += msg.value;
+    accountedBalance += msg.value;
+}
+
+function withdraw() external {
+    uint256 amount = deposits[msg.sender];
+    deposits[msg.sender] = 0;
+    accountedBalance -= amount;
+    payable(msg.sender).transfer(amount);
+}
+""",
+        attack_scenario=(
+            "1. Contract checks balance == expected for invariant. "
+            "2. Attacker creates contract with some ETH. "
+            "3. Attacker selfdestructs, sending ETH to victim. "
+            "4. Victim's balance check now fails. "
+            "5. Contract functionality broken."
+        ),
+        severity="low",
+        category="balance",
+        tags=["selfdestruct", "balance", "unexpected-ether", "invariant"],
+    ),
+
+    # SWC-124: Write to Arbitrary Storage
+    VulnerabilityDocument(
+        id="SWC-124",
+        swc_id="SWC-124",
+        cwe_id="CWE-123",
+        title="Write to Arbitrary Storage Location",
+        description=(
+            "Dynamic arrays in storage can be manipulated to write to arbitrary slots. "
+            "If array length is user-controlled, attacker can overflow array index to "
+            "target specific storage slots like owner address."
+        ),
+        vulnerable_code="""
+uint256[] public data;
+
+function write(uint256 index, uint256 value) external {
+    // No bounds check!
+    data[index] = value;  // Can write to ANY storage slot
+}
+
+function expand(uint256 newLength) external {
+    data.length = newLength;  // Old Solidity: controllable length
+}
+""",
+        fixed_code="""
+uint256[] public data;
+
+function write(uint256 index, uint256 value) external {
+    require(index < data.length, "Out of bounds");
+    data[index] = value;
+}
+
+// Modern Solidity: Use push() for dynamic arrays
+function append(uint256 value) external {
+    data.push(value);
+}
+""",
+        attack_scenario=(
+            "1. Array stored at slot S, length at slot S. "
+            "2. Array elements at keccak256(S) + index. "
+            "3. Attacker calculates index to hit target slot (e.g., owner). "
+            "4. Attacker calls write(malicious_index, attacker_address). "
+            "5. Owner slot overwritten, attacker gains control."
+        ),
+        severity="critical",
+        category="storage",
+        tags=["arbitrary-write", "storage", "array", "overflow", "solidity-version"],
+    ),
+
+    # Permit Function Phishing
+    VulnerabilityDocument(
+        id="PERMIT-PHISHING",
+        swc_id=None,
+        cwe_id="CWE-352",
+        title="ERC-2612 Permit Function Phishing",
+        description=(
+            "ERC-2612 permit() allows gasless approvals via signatures. Attackers can "
+            "trick users into signing permit messages that approve unlimited spending "
+            "to attacker-controlled addresses."
+        ),
+        vulnerable_code="""
+// This is actually standard permit - the vulnerability is in how it's used
+function permit(
+    address owner,
+    address spender,
+    uint256 value,
+    uint256 deadline,
+    uint8 v, bytes32 r, bytes32 s
+) external {
+    // Attacker tricks user into signing (owner=user, spender=attacker, value=MAX)
+}
+""",
+        fixed_code="""
+// User protection: Always verify permit parameters before signing
+// Wallet protection: Show clear permit details to user
+// Protocol protection: Limit permit amounts and add time-based restrictions
+
+// For smart contract wallets:
+function safePermit(...) external {
+    require(value <= dailyLimit[owner], "Exceeds daily limit");
+    require(spender != address(0), "Invalid spender");
+    // Additional checks...
+}
+""",
+        attack_scenario=(
+            "1. Attacker creates phishing site mimicking legitimate dApp. "
+            "2. Site requests user to sign 'transaction' (actually permit). "
+            "3. User signs permit: spender=attacker, value=MAX_UINT. "
+            "4. Attacker calls permit() with user's signature. "
+            "5. Attacker now approved for all user's tokens, drains wallet."
+        ),
+        severity="high",
+        category="phishing",
+        real_exploit="Multiple permit phishing attacks, millions lost (2023)",
+        tags=["permit", "erc2612", "phishing", "signature", "approval", "gasless"],
+    ),
+
+    # ERC-4626 Vault Inflation Attack
+    VulnerabilityDocument(
+        id="ERC4626-INFLATION",
+        swc_id=None,
+        cwe_id="CWE-682",
+        title="ERC-4626 Vault Inflation Attack",
+        description=(
+            "ERC-4626 vaults can be exploited if the first depositor manipulates the "
+            "share/asset ratio. By donating assets directly (not through deposit), "
+            "attacker inflates share price, causing later depositors to receive 0 shares."
+        ),
+        vulnerable_code="""
+// Standard ERC-4626 without protection
+function convertToShares(uint256 assets) public view returns (uint256) {
+    uint256 supply = totalSupply();
+    return supply == 0 ? assets : assets * supply / totalAssets();
+}
+
+function deposit(uint256 assets, address receiver) public returns (uint256 shares) {
+    shares = convertToShares(assets);  // Can round to 0!
+    // Transfer and mint...
+}
+""",
+        fixed_code="""
+// Add virtual shares/assets offset
+function convertToShares(uint256 assets) public view returns (uint256) {
+    return assets.mulDivDown(totalSupply() + 1, totalAssets() + 1);
+}
+
+// Or require minimum deposit on first deposit
+function deposit(uint256 assets, address receiver) public returns (uint256 shares) {
+    if (totalSupply() == 0) {
+        require(assets >= MIN_DEPOSIT, "Below minimum");
+    }
+    shares = convertToShares(assets);
+    require(shares > 0, "Zero shares");
+    // Continue...
+}
+""",
+        attack_scenario=(
+            "1. Attacker is first depositor, deposits 1 wei, gets 1 share. "
+            "2. Attacker donates 100 ETH directly to vault (not deposit). "
+            "3. 1 share = 100 ETH + 1 wei. "
+            "4. Victim deposits 99 ETH. "
+            "5. convertToShares(99 ETH) = 0 due to rounding. "
+            "6. Victim gets 0 shares, attacker profits."
+        ),
+        severity="high",
+        category="vault",
+        real_exploit="Multiple ERC-4626 implementations vulnerable",
+        tags=["erc4626", "vault", "inflation", "rounding", "first-deposit", "defi"],
+    ),
+
+    # UUPS Uninitialized Implementation
+    VulnerabilityDocument(
+        id="UUPS-UNINITIALIZED",
+        swc_id=None,
+        cwe_id="CWE-665",
+        title="UUPS Proxy Uninitialized Implementation",
+        description=(
+            "UUPS proxies store upgrade logic in the implementation. If the implementation "
+            "is left uninitialized, anyone can call initialize() to become owner and then "
+            "call upgradeToAndCall() to destroy or replace the proxy."
+        ),
+        vulnerable_code="""
+// Implementation contract
+contract MyContractV1 is UUPSUpgradeable {
+    address public owner;
+
+    function initialize(address _owner) public initializer {
+        owner = _owner;
+    }
+
+    function _authorizeUpgrade(address) internal override {
+        require(msg.sender == owner);
+    }
+}
+
+// DANGER: Implementation deployed but initialize() not called
+// Anyone can call initialize() on the implementation directly
+""",
+        fixed_code="""
+contract MyContractV1 is UUPSUpgradeable {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();  // Prevent initialization of implementation
+    }
+
+    function initialize(address _owner) public initializer {
+        owner = _owner;
+    }
+}
+
+// Always call _disableInitializers() in constructor
+""",
+        attack_scenario=(
+            "1. Protocol deploys UUPS implementation without initializing. "
+            "2. Attacker calls implementation.initialize(attacker). "
+            "3. Attacker is now owner of implementation. "
+            "4. Attacker calls upgradeToAndCall with selfdestruct payload. "
+            "5. Implementation destroyed, proxy becomes unusable."
+        ),
+        severity="critical",
+        category="proxy",
+        real_exploit="Wormhole - Implementation takeover possible (2022)",
+        tags=["uups", "proxy", "uninitialized", "upgradeable", "initializer"],
+    ),
+
+    # Cross-Contract Reentrancy
+    VulnerabilityDocument(
+        id="CROSS-CONTRACT-REENTRANCY",
+        swc_id="SWC-107",
+        cwe_id="CWE-841",
+        title="Cross-Contract Reentrancy",
+        description=(
+            "Reentrancy between different contracts in the same protocol. Contract A "
+            "calls Contract B which calls back to Contract A (or C) before A's state "
+            "is updated. Each contract may be safe individually but vulnerable together."
+        ),
+        vulnerable_code="""
+// Contract A (Lending Pool)
+function borrow(uint amount) external {
+    require(collateral[msg.sender] >= amount * 2);
+    token.transfer(msg.sender, amount);  // External call
+    borrowed[msg.sender] += amount;
+}
+
+// Contract B (Collateral Manager) - shares state with A
+function withdraw(uint amount) external {
+    require(collateral[msg.sender] >= amount);
+    collateral[msg.sender] -= amount;  // During reentrancy, this isn't updated yet in A's view
+    msg.sender.call{value: amount}("");  // Callback point
+}
+""",
+        fixed_code="""
+// Use protocol-wide reentrancy lock
+contract ReentrancyGuard {
+    uint256 private constant UNLOCKED = 1;
+    uint256 private constant LOCKED = 2;
+    uint256 private _status = UNLOCKED;
+
+    modifier nonReentrant() {
+        require(_status == UNLOCKED);
+        _status = LOCKED;
+        _;
+        _status = UNLOCKED;
+    }
+}
+
+// Share the lock across all protocol contracts
+// Or use a central registry for cross-contract locks
+""",
+        attack_scenario=(
+            "1. Attacker deposits collateral in Contract B. "
+            "2. Attacker calls borrow() in Contract A. "
+            "3. Before borrow updates state, calls withdraw() in B. "
+            "4. B sends ETH, triggering callback to attacker. "
+            "5. Attacker re-borrows (collateral still shows as available). "
+            "6. Protocol drained across contracts."
+        ),
+        severity="critical",
+        category="reentrancy",
+        real_exploit="Fei Protocol Rari Hack - $80M (2022)",
+        tags=["reentrancy", "cross-contract", "protocol", "shared-state"],
+    ),
+
+    # Rebasing Token Issues
+    VulnerabilityDocument(
+        id="REBASING-TOKEN",
+        swc_id=None,
+        cwe_id="CWE-682",
+        title="Rebasing Token Incompatibility",
+        description=(
+            "Rebasing tokens (like stETH, AMPL) automatically adjust all balances. "
+            "Protocols that cache balances or use transfer amounts directly will have "
+            "accounting errors as the actual balance changes over time."
+        ),
+        vulnerable_code="""
+mapping(address => uint256) public stakedAmount;
+
+function stake(uint256 amount) external {
+    rebasingToken.transferFrom(msg.sender, address(this), amount);
+    stakedAmount[msg.sender] = amount;  // Cached amount, won't update on rebase
+}
+
+function unstake() external {
+    uint256 amount = stakedAmount[msg.sender];
+    stakedAmount[msg.sender] = 0;
+    rebasingToken.transfer(msg.sender, amount);  // May fail if negative rebase occurred
+}
+""",
+        fixed_code="""
+// Use shares instead of amounts for rebasing tokens
+mapping(address => uint256) public userShares;
+
+function stake(uint256 amount) external {
+    uint256 sharesBefore = rebasingToken.sharesOf(address(this));
+    rebasingToken.transferFrom(msg.sender, address(this), amount);
+    uint256 sharesAfter = rebasingToken.sharesOf(address(this));
+    userShares[msg.sender] += sharesAfter - sharesBefore;
+}
+
+// Or simply don't support rebasing tokens
+require(!isRebasingToken(token), "Rebasing tokens not supported");
+""",
+        attack_scenario=(
+            "1. User stakes 100 stETH, protocol records 100. "
+            "2. Positive rebase: user's stake is now worth 110 stETH. "
+            "3. User withdraws, only gets 100 stETH (protocol's cached amount). "
+            "4. Extra 10 stETH stuck in protocol. "
+            "5. Or with negative rebase: protocol may be insolvent."
+        ),
+        severity="medium",
+        category="token",
+        real_exploit="Multiple DeFi protocols had rebasing issues",
+        tags=["rebasing", "steth", "ampl", "shares", "balance", "defi"],
+    ),
+
+    # Merkle Tree Leaf Collision
+    VulnerabilityDocument(
+        id="MERKLE-LEAF-COLLISION",
+        swc_id=None,
+        cwe_id="CWE-327",
+        title="Merkle Tree Leaf vs Node Collision",
+        description=(
+            "Merkle trees that don't differentiate between leaf and internal node hashes "
+            "are vulnerable to second preimage attacks. An attacker can prove membership "
+            "of fabricated data by providing an internal node as a 'leaf'."
+        ),
+        vulnerable_code="""
+function verifyProof(
+    bytes32[] memory proof,
+    bytes32 root,
+    bytes32 leaf
+) internal pure returns (bool) {
+    bytes32 computedHash = leaf;
+    for (uint256 i = 0; i < proof.length; i++) {
+        computedHash = keccak256(abi.encodePacked(computedHash, proof[i]));
+        // No distinction between leaf and internal node hashing!
+    }
+    return computedHash == root;
+}
+""",
+        fixed_code="""
+// Use different hash for leaves vs internal nodes
+function verifyProof(...) internal pure returns (bool) {
+    // Leaf hash: 0x00 prefix
+    bytes32 computedHash = keccak256(abi.encodePacked(hex"00", leaf));
+
+    for (uint256 i = 0; i < proof.length; i++) {
+        // Internal node hash: 0x01 prefix + sorted children
+        if (computedHash < proof[i]) {
+            computedHash = keccak256(abi.encodePacked(hex"01", computedHash, proof[i]));
+        } else {
+            computedHash = keccak256(abi.encodePacked(hex"01", proof[i], computedHash));
+        }
+    }
+    return computedHash == root;
+}
+
+// Or use OpenZeppelin MerkleProof library
+""",
+        attack_scenario=(
+            "1. Merkle tree has leaves: hash(A), hash(B). "
+            "2. Internal node = hash(hash(A) || hash(B)). "
+            "3. Attacker presents internal node value as 'leaf'. "
+            "4. Proof verifies (internal node is in tree). "
+            "5. Attacker claims airdrop for fabricated data."
+        ),
+        severity="high",
+        category="cryptography",
+        real_exploit="CVE-2012-2459 (Bitcoin), various Merkle airdrops",
+        tags=["merkle", "proof", "collision", "airdrop", "cryptography"],
+    ),
+
+    # Lack of Access Control on Callback
+    VulnerabilityDocument(
+        id="CALLBACK-ACCESS-CONTROL",
+        swc_id=None,
+        cwe_id="CWE-284",
+        title="Missing Access Control on Callback Functions",
+        description=(
+            "Callback functions (like Uniswap's uniswapV3SwapCallback or flash loan callbacks) "
+            "must verify the caller. Without proper validation, attackers can call these "
+            "functions directly with malicious parameters."
+        ),
+        vulnerable_code="""
+function uniswapV3SwapCallback(
+    int256 amount0Delta,
+    int256 amount1Delta,
+    bytes calldata data
+) external {
+    // NO CALLER VALIDATION!
+    // Attacker can call directly
+    if (amount0Delta > 0) {
+        IERC20(token0).transfer(msg.sender, uint256(amount0Delta));
+    }
+}
+""",
+        fixed_code="""
+function uniswapV3SwapCallback(
+    int256 amount0Delta,
+    int256 amount1Delta,
+    bytes calldata data
+) external {
+    // Verify caller is legitimate Uniswap pool
+    require(msg.sender == address(pool), "Invalid caller");
+    // Or compute expected pool address
+    address expectedPool = PoolAddress.computeAddress(
+        factory, PoolAddress.getPoolKey(token0, token1, fee)
+    );
+    require(msg.sender == expectedPool, "Invalid pool");
+
+    // Now safe to proceed
+    if (amount0Delta > 0) {
+        IERC20(token0).transfer(msg.sender, uint256(amount0Delta));
+    }
+}
+""",
+        attack_scenario=(
+            "1. Protocol implements swap callback without caller check. "
+            "2. Attacker calls callback directly (not through swap). "
+            "3. Passes attacker's address for payment. "
+            "4. Protocol sends tokens to attacker. "
+            "5. Funds drained without actual swap occurring."
+        ),
+        severity="critical",
+        category="access-control",
+        real_exploit="Multiple DeFi protocols vulnerable to callback exploits",
+        tags=["callback", "access-control", "uniswap", "flash-loan", "verification"],
+    ),
+
+    # Precision Loss in Division
+    VulnerabilityDocument(
+        id="PRECISION-LOSS",
+        swc_id=None,
+        cwe_id="CWE-682",
+        title="Precision Loss in Division",
+        description=(
+            "Solidity integer division truncates (rounds down). Operations like "
+            "(a / b) * c lose precision compared to (a * c) / b. This can be "
+            "exploited to extract value through rounding errors."
+        ),
+        vulnerable_code="""
+function calculateFee(uint256 amount) public pure returns (uint256) {
+    return (amount / 10000) * 30;  // 0.3% fee - precision loss!
+    // For amount = 9999, returns 0 instead of ~3
+}
+
+function swap(uint256 amountIn) external returns (uint256) {
+    uint256 fee = calculateFee(amountIn);
+    uint256 amountOut = (amountIn - fee) * price / 1e18;
+    // Multiple division operations compound precision loss
+}
+""",
+        fixed_code="""
+function calculateFee(uint256 amount) public pure returns (uint256) {
+    return (amount * 30) / 10000;  // Multiply first, then divide
+}
+
+// Use higher precision internally
+uint256 constant PRECISION = 1e18;
+
+function swap(uint256 amountIn) external returns (uint256) {
+    uint256 amountOutPrecise = amountIn * PRECISION * price / 10000 / 1e18;
+    return amountOutPrecise / PRECISION;
+}
+
+// Or use fixed-point math libraries like PRBMath
+""",
+        attack_scenario=(
+            "1. Protocol charges 0.3% fee with (amount/10000)*30. "
+            "2. Attacker sends many small swaps of 9999 wei. "
+            "3. Fee calculates to 0 each time (9999/10000 = 0). "
+            "4. Attacker avoids all fees. "
+            "5. Over time, significant value extracted."
+        ),
+        severity="medium",
+        category="arithmetic",
+        tags=["precision", "division", "rounding", "fee", "dust"],
+    ),
+
+    # Time-lock Bypass
+    VulnerabilityDocument(
+        id="TIMELOCK-BYPASS",
+        swc_id=None,
+        cwe_id="CWE-287",
+        title="Governance Timelock Bypass",
+        description=(
+            "Timelocks protect users by delaying sensitive operations. However, some "
+            "functions may bypass the timelock, or the timelock admin might have direct "
+            "access, negating the protection entirely."
+        ),
+        vulnerable_code="""
+contract Treasury {
+    address public admin;
+    address public timelock;
+
+    function executeProposal(bytes calldata data) external {
+        require(msg.sender == timelock, "Only timelock");
+        // Execute...
+    }
+
+    function emergencyWithdraw(address to) external {
+        require(msg.sender == admin, "Only admin");
+        // BYPASSES TIMELOCK! Admin can drain instantly
+        payable(to).transfer(address(this).balance);
+    }
+}
+""",
+        fixed_code="""
+contract Treasury {
+    address public timelock;  // Only timelock can act
+
+    // ALL sensitive functions go through timelock
+    function executeProposal(bytes calldata data) external {
+        require(msg.sender == timelock, "Only timelock");
+        // Execute...
+    }
+
+    // Even emergency functions have delay
+    function emergencyWithdraw(address to) external {
+        require(msg.sender == timelock, "Only timelock");
+        // Emergency can have shorter delay, but still has one
+        payable(to).transfer(address(this).balance);
+    }
+}
+""",
+        attack_scenario=(
+            "1. Protocol advertises 48h timelock for governance safety. "
+            "2. Admin (multisig) has emergencyWithdraw() bypassing timelock. "
+            "3. Multisig keys compromised or malicious. "
+            "4. Admin calls emergencyWithdraw() - no delay. "
+            "5. Treasury drained before users can react."
+        ),
+        severity="high",
+        category="governance",
+        tags=["timelock", "bypass", "governance", "admin", "emergency", "defi"],
+    ),
+
+    # Chainlink Stale Price
+    VulnerabilityDocument(
+        id="CHAINLINK-STALE-PRICE",
+        swc_id=None,
+        cwe_id="CWE-754",
+        title="Chainlink Oracle Stale/Invalid Price",
+        description=(
+            "Chainlink price feeds can return stale data, incomplete rounds, or zero "
+            "prices during network congestion or oracle issues. Contracts must validate "
+            "all returned values to avoid using bad price data."
+        ),
+        vulnerable_code="""
+function getPrice() external view returns (uint256) {
+    (, int256 price,,,) = priceFeed.latestRoundData();
+    return uint256(price);  // No validation!
+}
+""",
+        fixed_code="""
+function getPrice() external view returns (uint256) {
+    (
+        uint80 roundId,
+        int256 price,
+        ,
+        uint256 updatedAt,
+        uint80 answeredInRound
+    ) = priceFeed.latestRoundData();
+
+    // Validate round completeness
+    require(answeredInRound >= roundId, "Stale price round");
+
+    // Validate freshness
+    require(block.timestamp - updatedAt < MAX_STALENESS, "Stale price");
+
+    // Validate price is positive
+    require(price > 0, "Invalid price");
+
+    // Validate price is within reasonable bounds
+    require(price < MAX_PRICE && price > MIN_PRICE, "Price out of bounds");
+
+    return uint256(price);
+}
+""",
+        attack_scenario=(
+            "1. Network congestion delays Chainlink updates. "
+            "2. Price feed returns 24-hour-old price. "
+            "3. Actual market price has moved 50%. "
+            "4. Attacker exploits stale price for arbitrage. "
+            "5. Protocol loses funds due to mispricing."
+        ),
+        severity="high",
+        category="oracle",
+        real_exploit="Multiple DeFi exploits during market volatility",
+        tags=["chainlink", "oracle", "stale-price", "validation", "defi"],
+    ),
+
+    # Missing Zero Address Validation
+    VulnerabilityDocument(
+        id="ZERO-ADDRESS-CHECK",
+        swc_id=None,
+        cwe_id="CWE-20",
+        title="Missing Zero Address Validation",
+        description=(
+            "Functions that accept addresses should validate against the zero address "
+            "(address(0)). Sending tokens or ETH to zero address burns them permanently. "
+            "Setting owner/admin to zero address removes access permanently."
+        ),
+        vulnerable_code="""
+function setOwner(address newOwner) external onlyOwner {
+    owner = newOwner;  // If newOwner is address(0), ownership lost forever
+}
+
+function transfer(address to, uint256 amount) external {
+    balances[msg.sender] -= amount;
+    balances[to] += amount;  // Tokens sent to address(0) are burned
+}
+""",
+        fixed_code="""
+function setOwner(address newOwner) external onlyOwner {
+    require(newOwner != address(0), "Invalid address");
+    owner = newOwner;
+}
+
+function transfer(address to, uint256 amount) external {
+    require(to != address(0), "Cannot transfer to zero address");
+    balances[msg.sender] -= amount;
+    balances[to] += amount;
+}
+
+// Or use custom error for gas efficiency (Solidity 0.8.4+)
+error ZeroAddress();
+if (to == address(0)) revert ZeroAddress();
+""",
+        attack_scenario=(
+            "1. Admin accidentally calls setOwner(address(0)). "
+            "2. Or attacker tricks admin into setting zero address. "
+            "3. Contract now has no owner. "
+            "4. No one can call onlyOwner functions. "
+            "5. Contract stuck in current state forever."
+        ),
+        severity="low",
+        category="validation",
+        tags=["zero-address", "validation", "burn", "access-control", "input-validation"],
+    ),
 ]
 
 
