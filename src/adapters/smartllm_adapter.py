@@ -512,25 +512,46 @@ CRITICAL RULES:
         return "\n".join(focus)
 
     def _call_ollama_with_retry(self, prompt: str) -> Optional[str]:
-        """Call Ollama API with retry logic."""
+        """Call Ollama HTTP API with retry logic."""
+        import urllib.request
+        import urllib.error
+
+        generate_url = f"{self._ollama_host}/api/generate"
+
+        payload = json.dumps({
+            "model": self._model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.1,
+                "num_ctx": self._max_tokens,
+            }
+        }).encode("utf-8")
+
         for attempt in range(1, self._max_retries + 1):
             try:
                 logger.info(f"SmartLLM: Calling Ollama (attempt {attempt}/{self._max_retries})")
 
-                result = subprocess.run(
-                    ["ollama", "run", self._model, prompt],
-                    capture_output=True,
-                    timeout=300,  # 5 minutes max
-                    text=True,
+                req = urllib.request.Request(
+                    generate_url,
+                    data=payload,
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
                 )
 
-                if result.returncode == 0 and result.stdout:
-                    return result.stdout.strip()
-                else:
-                    logger.warning(f"Ollama call failed (attempt {attempt}): {result.stderr}")
+                with urllib.request.urlopen(req, timeout=300) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode())
+                        response = data.get("response", "")
+                        if response:
+                            return response.strip()
+                        else:
+                            logger.warning(f"Ollama returned empty response (attempt {attempt})")
+                    else:
+                        logger.warning(f"Ollama returned status {resp.status} (attempt {attempt})")
 
-            except subprocess.TimeoutExpired:
-                logger.warning(f"Ollama call timeout (attempt {attempt})")
+            except urllib.error.URLError as e:
+                logger.error(f"Ollama API error (attempt {attempt}): {e}")
             except Exception as e:
                 logger.error(f"Ollama call error (attempt {attempt}): {e}")
 

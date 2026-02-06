@@ -247,22 +247,31 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
             return None
 
     def _detect_best_model(self) -> str:
-        """Detect the best available Ollama model for security analysis."""
+        """Detect the best available Ollama model for security analysis via HTTP API."""
+        import urllib.request
+        import urllib.error
+
         try:
-            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5, text=True)
-            models = result.stdout.lower()
+            ollama_host = get_ollama_host()
+            tags_url = f"{ollama_host}/api/tags"
 
-            # Priority order for security analysis
-            model_priority = [
-                ("qwen2.5-coder", "qwen2.5-coder:7b"),
-                ("deepseek-coder", "deepseek-coder:6.7b"),
-                ("codellama", "codellama:7b"),
-                ("llama3", "llama3:8b"),
-            ]
+            req = urllib.request.Request(tags_url, method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode())
+                    models = " ".join([m.get("name", "") for m in data.get("models", [])]).lower()
 
-            for keyword, full_name in model_priority:
-                if keyword in models:
-                    return full_name
+                    # Priority order for security analysis
+                    model_priority = [
+                        ("qwen2.5-coder", "qwen2.5-coder:7b"),
+                        ("deepseek-coder", "deepseek-coder:6.7b"),
+                        ("codellama", "codellama:7b"),
+                        ("llama3", "llama3:8b"),
+                    ]
+
+                    for keyword, full_name in model_priority:
+                        if keyword in models:
+                            return full_name
 
             return "codellama:7b"  # Default fallback
         except Exception:
@@ -271,22 +280,50 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
     def _run_ollama_analysis(
         self, contract_code: str, model: str = "codellama:7b", timeout: int = 120
     ) -> str:
-        """Execute security analysis using Ollama."""
+        """Execute security analysis using Ollama HTTP API."""
+        import urllib.request
+        import urllib.error
 
         # Build prompt with contract code
         prompt = self.SECURITY_PROMPT.replace("%CONTRACT_CODE%", contract_code)
 
         logger.info(f"GPTScan: Running Ollama analysis with {model}")
 
-        # Use ollama run command
-        result = subprocess.run(
-            ["ollama", "run", model, prompt], capture_output=True, timeout=timeout, text=True
+        # Use Ollama HTTP API instead of CLI
+        ollama_host = get_ollama_host()
+        generate_url = f"{ollama_host}/api/generate"
+
+        payload = json.dumps({
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.1,
+                "num_ctx": 8192,
+            }
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            generate_url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
         )
 
-        if result.returncode != 0:
-            logger.warning(f"Ollama completed with code {result.returncode}: {result.stderr}")
-
-        return result.stdout
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode())
+                    return data.get("response", "")
+                else:
+                    logger.warning(f"Ollama returned status {resp.status}")
+                    return ""
+        except urllib.error.URLError as e:
+            logger.error(f"GPTScan: Ollama API error: {e}")
+            return ""
+        except Exception as e:
+            logger.error(f"GPTScan: Unexpected error: {e}")
+            return ""
 
     def _parse_gptscan_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
         """Parse GPTScan output and extract findings."""

@@ -400,40 +400,51 @@ Generate {self.max_properties} high-quality properties.
         return prompt
 
     def _generate_with_ollama(self, prompt: str) -> List[Dict[str, Any]]:
-        """Generate properties using local Ollama."""
-        try:
-            # Create a temp file for the prompt
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-                f.write(prompt)
-                prompt_file = f.name
+        """Generate properties using local Ollama HTTP API."""
+        import urllib.request
+        import urllib.error
 
-            # Call Ollama
-            result = subprocess.run(
-                ["ollama", "run", self.ollama_model],
-                input=prompt,
-                capture_output=True,
-                timeout=120,
-                text=True,
+        try:
+            ollama_host = get_ollama_host()
+            generate_url = f"{ollama_host}/api/generate"
+
+            payload = json.dumps({
+                "model": self.ollama_model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "num_ctx": 8192,
+                }
+            }).encode("utf-8")
+
+            req = urllib.request.Request(
+                generate_url,
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST"
             )
 
-            os.unlink(prompt_file)
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode())
+                    response_text = data.get("response", "").strip()
 
-            if result.returncode == 0:
-                # Parse JSON response
-                response_text = result.stdout.strip()
-
-                # Extract JSON array (may be embedded in markdown)
-                json_match = re.search(r"\[.*\]", response_text, re.DOTALL)
-                if json_match:
-                    properties = json.loads(json_match.group(0))
-                    return properties
+                    # Extract JSON array (may be embedded in markdown)
+                    json_match = re.search(r"\[.*\]", response_text, re.DOTALL)
+                    if json_match:
+                        properties = json.loads(json_match.group(0))
+                        return properties
+                    else:
+                        logger.warning("Could not parse Ollama response as JSON")
+                        return self._generate_fallback_properties()
                 else:
-                    logger.warning("Could not parse Ollama response as JSON")
+                    logger.error(f"Ollama returned status {resp.status}")
                     return self._generate_fallback_properties()
-            else:
-                logger.error(f"Ollama execution failed: {result.stderr}")
-                return self._generate_fallback_properties()
 
+        except urllib.error.URLError as e:
+            logger.error(f"Ollama API error: {e}")
+            return self._generate_fallback_properties()
         except Exception as e:
             logger.error(f"Ollama property generation failed: {e}")
             return self._generate_fallback_properties()
