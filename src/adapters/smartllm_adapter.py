@@ -29,6 +29,15 @@ from src.adapters.smartllm_rag_knowledge import (
     get_relevant_knowledge,
     get_vulnerability_context,
 )
+
+# Try to import EmbeddingRAG (optional dependency)
+try:
+    from src.llm.embedding_rag import EmbeddingRAG, get_context_for_finding
+    _EMBEDDING_RAG_AVAILABLE = True
+except ImportError:
+    _EMBEDDING_RAG_AVAILABLE = False
+    EmbeddingRAG = None
+    get_context_for_finding = None
 from src.core.llm_config import (
     ROLE_GENERATOR,
     USE_CASE_CODE_ANALYSIS,
@@ -74,6 +83,17 @@ class SmartLLMAdapter(ToolAdapter):
 
         self._use_rag = True  # Enable RAG by default
         self._use_verificator = True  # Enable verificator by default
+
+        # Initialize EmbeddingRAG if available (ChromaDB + sentence-transformers)
+        self._embedding_rag = None
+        self._use_embedding_rag = False
+        if _EMBEDDING_RAG_AVAILABLE:
+            try:
+                self._embedding_rag = EmbeddingRAG()
+                self._use_embedding_rag = True
+                logger.info("EmbeddingRAG (ChromaDB) enabled for semantic search")
+            except Exception as e:
+                logger.warning(f"EmbeddingRAG initialization failed: {e}, using keyword RAG")
 
         logger.info(
             f"SmartLLMAdapter initialized with model={self._model}, host={self._ollama_host}"
@@ -338,13 +358,35 @@ class SmartLLMAdapter(ToolAdapter):
 
         Uses structured prompt engineering with:
         - Code pattern detection first (analyze what the code ACTUALLY does)
-        - RAG context for vulnerability pattern matching
+        - RAG context for vulnerability pattern matching (keyword or embedding-based)
         - Specific SWC-based vulnerability checks
         """
         # Get relevant knowledge from RAG knowledge base
         rag_context = ""
         if self._use_rag:
-            rag_context = get_relevant_knowledge(contract_code)
+            if self._use_embedding_rag and self._embedding_rag:
+                # Use ChromaDB embedding-based RAG for semantic search
+                try:
+                    results = self._embedding_rag.search(
+                        query=contract_code[:2000],  # Use first 2K chars as query
+                        n_results=5
+                    )
+                    rag_parts = []
+                    for r in results:
+                        rag_parts.append(
+                            f"**{r.document.title}** ({r.document.swc_id or 'Pattern'})\n"
+                            f"- Severity: {r.document.severity}\n"
+                            f"- {r.document.description[:200]}...\n"
+                            f"- Attack: {r.document.attack_scenario[:150]}..."
+                        )
+                    rag_context = "\n\n".join(rag_parts)
+                    logger.debug(f"EmbeddingRAG returned {len(results)} results")
+                except Exception as e:
+                    logger.warning(f"EmbeddingRAG search failed: {e}, falling back to keyword RAG")
+                    rag_context = get_relevant_knowledge(contract_code)
+            else:
+                # Fallback to keyword-based RAG
+                rag_context = get_relevant_knowledge(contract_code)
 
         # Pre-analyze code for key patterns to guide LLM focus
         code_patterns = self._detect_code_patterns(contract_code)
@@ -1061,7 +1103,16 @@ CRITICAL RULES:
         """
         # Get vulnerability context from knowledge base
         vuln_type = finding.get("category", finding.get("type", ""))
-        vuln_context = get_vulnerability_context(vuln_type)
+
+        # Use EmbeddingRAG if available for better context
+        if self._use_embedding_rag and self._embedding_rag and get_context_for_finding:
+            try:
+                vuln_context = get_context_for_finding(finding, contract_code[:1000])
+            except Exception as e:
+                logger.debug(f"EmbeddingRAG context failed: {e}")
+                vuln_context = get_vulnerability_context(vuln_type)
+        else:
+            vuln_context = get_vulnerability_context(vuln_type)
 
         # Get role-specific system prompt from config
         from src.core.llm_config import ROLE_VERIFICATOR, get_role_system_prompt

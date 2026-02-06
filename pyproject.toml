@@ -89,6 +89,12 @@ llm = [
     "anthropic>=0.18.0",
     "httpx>=0.25.0",
 ]
+# RAG with embeddings and vector database
+rag = [
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+    "rank-bm25>=0.2.2",
+]
 # Web frameworks for API servers and web UI
 web = [
     "fastapi>=0.104.0",
@@ -121,6 +127,10 @@ full = [
     "plotly>=5.18.0",
     "weasyprint>=60.0",
     "markdown>=3.5.0",
+    # RAG dependencies
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+    "rank-bm25>=0.2.2",
     # Note: mythril and django excluded due to dependency conflicts
     # Install separately: pip install mythril django djangorestframework
 ]

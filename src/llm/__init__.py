@@ -61,6 +61,31 @@ from .vulnerability_rag import (
     VulnerabilityRAG,
 )
 
+# v5.0.3+ Embedding RAG with ChromaDB (optional dependencies)
+try:
+    from .embedding_rag import (
+        EmbeddingRAG,
+        HybridRAG,
+        RetrievalResult,
+        VulnerabilityDocument,
+        VULNERABILITY_KNOWLEDGE_BASE,
+        get_rag,
+        search_vulnerabilities,
+        get_context_for_finding,
+    )
+    _EMBEDDING_RAG_AVAILABLE = True
+except ImportError:
+    # ChromaDB/sentence-transformers not installed
+    _EMBEDDING_RAG_AVAILABLE = False
+    EmbeddingRAG = None
+    HybridRAG = None
+    RetrievalResult = None
+    VulnerabilityDocument = None
+    VULNERABILITY_KNOWLEDGE_BASE = None
+    get_rag = None
+    search_vulnerabilities = None
+    get_context_for_finding = None
+
 __all__ = [
     # Legacy OpenLLaMA helpers
     "OpenLLaMAHelper",
@@ -91,7 +116,7 @@ __all__ = [
     "EnsembleResult",
     "VotingStrategy",
     "detect_with_ensemble",
-    # v4.3.0+ Vulnerability RAG
+    # v4.3.0+ Vulnerability RAG (keyword-based)
     "VulnerabilityRAG",
     "VulnerabilityExample",
     "SimilarVuln",
@@ -105,4 +130,14 @@ __all__ = [
     "REMEDIATION_PATTERNS",
     "generate_fix",
     "get_quick_fix",
+    # v5.0.3+ Embedding RAG with ChromaDB (optional)
+    "EmbeddingRAG",
+    "HybridRAG",
+    "RetrievalResult",
+    "VulnerabilityDocument",
+    "VULNERABILITY_KNOWLEDGE_BASE",
+    "get_rag",
+    "search_vulnerabilities",
+    "get_context_for_finding",
+    "_EMBEDDING_RAG_AVAILABLE",
 ]
