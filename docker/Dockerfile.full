@@ -1,94 +1,130 @@
 # MIESC v5.0.3 FULL - Extended Docker Image
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
-# This is the ONLY image that includes symbolic execution tools:
-# - Mythril (symbolic execution for Solidity - requires z3-solver)
-# - Manticore (symbolic execution engine - pinned protobuf for Python 3.12)
-# - Halmos (formal verification)
+# This image includes advanced security analysis tools:
+# - Mythril (symbolic execution for Solidity)
+# - Halmos (formal verification / symbolic testing)
+# - Echidna (property-based fuzzer)
+# - Medusa (parallel fuzzer)
+# - PyTorch + GNN libraries (for ML-based detection)
+# - Semgrep (pattern-based analysis)
 #
-# These tools were removed from the base Dockerfile because:
-# - z3-solver takes 15-20 min to compile per architecture on QEMU
-# - Manticore has protobuf compatibility issues on Python 3.12
+# NOTE: Manticore is DEPRECATED due to Python 3.12 incompatibility
+# (pysha3 fails to compile - missing pystrhex.h header)
 #
-# Also includes:
-# - Layer 8-9: ML Analysis (PyTorch, scikit-learn for DAGNN/SmartGuard)
-# - Additional: Semgrep for pattern-based analysis
-#
-# Image size: ~6GB (includes PyTorch, symbolic execution engines)
-# Build time: ~15-20 minutes
+# Image size: ~4GB
+# Build time: ~10-15 minutes (x86), ~20-25 minutes (ARM due to z3)
 # Memory requirement: 8GB+ RAM recommended
 #
 # PREREQUISITE: Build the standard image first:
-#   docker build -t ghcr.io/fboiero/miesc:latest .
+#   docker build -t ghcr.io/fboiero/miesc:latest -f docker/Dockerfile docker/
 #
 # Then build this full image:
-#   docker build -f Dockerfile.full -t ghcr.io/fboiero/miesc:full .
+#   docker build -t ghcr.io/fboiero/miesc:full -f docker/Dockerfile.full .
+#
+# Or use the build script:
+#   ./scripts/build-images.sh --full
 
-# Use the standard MIESC image as base
 FROM ghcr.io/fboiero/miesc:latest
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
 LABEL version="5.0.3-full"
-LABEL description="MIESC FULL - Extended with Mythril, Manticore, PyTorch for ML Analysis"
+LABEL description="MIESC FULL - Extended with Mythril, Echidna, Halmos, PyTorch for ML Analysis"
 
-# Switch to root for system packages
+# ==========================================
+# SYSTEM DEPENDENCIES
+# ==========================================
+
 USER root
 
-# Install Z3 solver and additional dependencies for symbolic execution
+# Install Z3 solver, fuzzing dependencies, and build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libz3-dev \
     z3 \
     libopenblas-dev \
+    libgmp-dev \
+    # For downloading release binaries
+    curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Switch back to miesc user
+# ==========================================
+# LAYER 2: FUZZING TOOLS (Echidna, Medusa)
+# ==========================================
+
+# Install Echidna (property-based fuzzer from Trail of Bits)
+# https://github.com/crytic/echidna
+ARG ECHIDNA_VERSION=2.2.7
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "amd64" ]; then \
+        curl -L "https://github.com/crytic/echidna/releases/download/v${ECHIDNA_VERSION}/echidna-${ECHIDNA_VERSION}-x86_64-linux.tar.gz" | tar xz -C /usr/local/bin/ && \
+        chmod +x /usr/local/bin/echidna && \
+        echo "Echidna ${ECHIDNA_VERSION} installed"; \
+    else \
+        echo "WARNING: Echidna not available for $ARCH - skipping"; \
+    fi
+
+# Install Medusa (parallel fuzzer from Crytic)
+# https://github.com/crytic/medusa
+ARG MEDUSA_VERSION=1.3.1
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "amd64" ]; then \
+        curl -L "https://github.com/crytic/medusa/releases/download/v${MEDUSA_VERSION}/medusa-linux-x64.tar.gz" | tar xz -C /usr/local/bin/ && \
+        chmod +x /usr/local/bin/medusa && \
+        echo "Medusa ${MEDUSA_VERSION} installed"; \
+    else \
+        echo "WARNING: Medusa not available for $ARCH - skipping"; \
+    fi
+
+# ==========================================
+# LAYER 3: SYMBOLIC EXECUTION TOOLS
+# ==========================================
+
+# Create cache directories with correct permissions BEFORE pip install
+# This fixes the puccinialin PermissionError with Mythril
+# Must be done as root, then chown to miesc
+RUN mkdir -p /home/miesc/.cache/pip /home/miesc/.cache/puccinialin && \
+    chown -R miesc:miesc /home/miesc/.cache && \
+    chmod -R 755 /home/miesc/.cache
+
 USER miesc
 
-# ==========================================
-# LAYER 4: SYMBOLIC EXECUTION TOOLS
-# ==========================================
-
 # Install Mythril (symbolic execution for Solidity)
-# This may take a while due to z3-solver compilation on some platforms
-RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
-    pip install --user mythril>=0.24.0 && \
-    echo "Mythril installed" || \
-    echo "WARNING: Mythril skipped - install manually if needed"
+# Using --no-cache-dir to avoid cache mount permission issues
+# z3-solver will compile from source on ARM (~15-20 min)
+RUN pip install --user --no-cache-dir 'mythril>=0.24.0' && \
+    echo "Mythril installed successfully" || \
+    echo "WARNING: Mythril installation failed - symbolic execution will be limited"
 
-# Install Manticore (symbolic execution engine)
-# Pin protobuf<4.0.0 to avoid compatibility issues with Python 3.12
-RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
-    pip install --user 'protobuf<4.0.0' manticore[native] && \
-    echo "Manticore installed" || \
-    echo "WARNING: Manticore skipped - install manually if needed"
+# Install Halmos (formal verification / symbolic testing)
+# Works well on both x86 and ARM after z3 compiles
+RUN pip install --user --no-cache-dir halmos && \
+    echo "Halmos installed successfully"
 
-# Install Halmos (formal verification)
-RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
-    pip install --user halmos && \
-    echo "Halmos installed" || \
-    echo "WARNING: Halmos skipped"
+# NOTE: Manticore is DEPRECATED and NOT installed
+# Reason: pysha3 dependency fails on Python 3.12 (missing pystrhex.h)
+# The Manticore project is in maintenance-only mode
+# Use Halmos or Mythril instead for symbolic execution
 
 # ==========================================
-# LAYER 8-9: ML ANALYSIS TOOLS
+# LAYER 6: ML ANALYSIS TOOLS
 # ==========================================
 
 # Install PyTorch CPU-only version (~800MB)
-RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
-    pip install --user \
+# Has native wheels for both x86 and ARM
+RUN pip install --user --no-cache-dir \
     torch --index-url https://download.pytorch.org/whl/cpu && \
     echo "PyTorch CPU installed"
 
-# Install ML dependencies for DAGNN, SmartGuard
-RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
-    pip install --user \
+# Install Graph Neural Network libraries for DAGNN, Peculiar
+RUN pip install --user --no-cache-dir \
     torch-geometric \
     networkx \
-    && echo "Graph Neural Network libraries installed" || \
-    echo "WARNING: Some GNN libraries skipped"
+    && echo "Graph Neural Network libraries installed"
 
 # Install Semgrep (pattern-based analysis)
-RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
-    pip install --user semgrep && \
+# Has native wheels for both x86 and ARM
+RUN pip install --user --no-cache-dir semgrep && \
     echo "Semgrep installed"
 
 # ==========================================
@@ -97,6 +133,9 @@ RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
 
 ENV MIESC_VERSION="5.0.3-full"
 ENV MIESC_ENV="docker-full"
+
+# Mark deprecated tools
+ENV MIESC_DEPRECATED_TOOLS="manticore,oyente"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
