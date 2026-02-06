@@ -37,12 +37,24 @@ class Finding:
                     return self.location.get("line") == other.location.get("line")
                 return True
 
-        # Match by title similarity (case-insensitive substring)
+        # Match by title similarity (case-insensitive)
         if self.title and other.title:
             t1 = self.title.lower()
             t2 = other.title.lower()
+            # Direct substring match
             if t1 in t2 or t2 in t1:
                 return True
+            # Keyword-based matching for common vulnerability types
+            vuln_keywords = [
+                "reentrancy", "overflow", "underflow", "access control",
+                "delegatecall", "selfdestruct", "front-run", "frontrun",
+                "oracle", "flash loan", "signature", "replay", "dos",
+                "denial of service", "timestamp", "randomness", "phishing",
+                "permit", "callback", "proxy", "storage", "uninitialized"
+            ]
+            for keyword in vuln_keywords:
+                if keyword in t1 and keyword in t2:
+                    return True
 
         return False
 

@@ -1,0 +1,17 @@
+{
+  "contract": "reentrancy_cross_function.sol",
+  "source": "smartbugs-curated",
+  "findings": [
+    {
+      "id": "gt-1",
+      "swc_id": "SWC-107",
+      "title": "Cross-function Reentrancy",
+      "severity": "CRITICAL",
+      "location": {
+        "line": 24,
+        "function": "withdrawBalance"
+      },
+      "description": "Cross-function reentrancy where attacker can call transfer() during withdrawBalance callback"
+    }
+  ]
+}

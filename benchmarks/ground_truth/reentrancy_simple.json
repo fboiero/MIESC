@@ -1,0 +1,17 @@
+{
+  "contract": "reentrancy_simple.sol",
+  "source": "smartbugs-curated",
+  "findings": [
+    {
+      "id": "gt-1",
+      "swc_id": "SWC-107",
+      "title": "Reentrancy",
+      "severity": "HIGH",
+      "location": {
+        "line": 24,
+        "function": "withdrawBalance"
+      },
+      "description": "The withdrawBalance function sends ETH before updating userBalance, allowing reentrancy attack"
+    }
+  ]
+}
