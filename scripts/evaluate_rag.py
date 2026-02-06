@@ -109,7 +109,11 @@ def run_benchmark(args):
         ]
 
     contracts = [(args.contract, ground_truth)]
-    adapters = [args.adapter] if args.adapter else ["smartllm", "gptscan"]
+    if args.adapter:
+        # Support comma-separated adapters: "gptscan,smartllm,gptlens"
+        adapters = [a.strip() for a in args.adapter.split(",")]
+    else:
+        adapters = ["smartllm", "gptscan"]
 
     logger.info(f"Running benchmark with adapters: {adapters}")
     logger.info(f"Contract: {args.contract}")
