@@ -25,6 +25,14 @@ from src.core.tool_protocol import (
     ToolStatus,
 )
 
+# Try to import EmbeddingRAG (optional dependency)
+try:
+    from src.llm.embedding_rag import EmbeddingRAG
+    _EMBEDDING_RAG_AVAILABLE = True
+except ImportError:
+    _EMBEDDING_RAG_AVAILABLE = False
+    EmbeddingRAG = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -75,6 +83,17 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
         self._default_timeout = 120
         self._ollama_model = "codellama:7b"  # Default model
         self._ollama_url = get_ollama_host()
+
+        # Initialize EmbeddingRAG if available
+        self._embedding_rag = None
+        self._use_rag = False
+        if _EMBEDDING_RAG_AVAILABLE:
+            try:
+                self._embedding_rag = EmbeddingRAG()
+                self._use_rag = True
+                logger.info("GPTScan: EmbeddingRAG (ChromaDB) enabled")
+            except Exception as e:
+                logger.debug(f"GPTScan: EmbeddingRAG unavailable: {e}")
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -286,6 +305,28 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
 
         # Build prompt with contract code
         prompt = self.SECURITY_PROMPT.replace("%CONTRACT_CODE%", contract_code)
+
+        # Add RAG context if available
+        if self._use_rag and self._embedding_rag:
+            try:
+                results = self._embedding_rag.search(
+                    query=contract_code[:2000],
+                    n_results=3
+                )
+                if results:
+                    rag_context = "\n\nKNOWN VULNERABILITY PATTERNS:\n"
+                    for r in results:
+                        rag_context += (
+                            f"- {r.document.title} ({r.document.swc_id or 'Pattern'}): "
+                            f"{r.document.description[:150]}...\n"
+                        )
+                    prompt = prompt.replace(
+                        "Respond ONLY with valid JSON.",
+                        f"{rag_context}\nRespond ONLY with valid JSON."
+                    )
+                    logger.debug(f"GPTScan: Added RAG context ({len(results)} patterns)")
+            except Exception as e:
+                logger.debug(f"GPTScan: RAG context failed: {e}")
 
         logger.info(f"GPTScan: Running Ollama analysis with {model}")
 

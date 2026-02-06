@@ -39,6 +39,14 @@ from src.core.tool_protocol import (
     ToolStatus,
 )
 
+# Try to import EmbeddingRAG (optional dependency)
+try:
+    from src.llm.embedding_rag import EmbeddingRAG
+    _EMBEDDING_RAG_AVAILABLE = True
+except ImportError:
+    _EMBEDDING_RAG_AVAILABLE = False
+    EmbeddingRAG = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -92,6 +100,17 @@ class LLMBugScannerAdapter(ToolAdapter):
         self._consensus_threshold = 0.5  # Minimum weighted consensus for a finding
         self._max_retries = 2
         self._available_models: Set[str] = set()
+
+        # Initialize EmbeddingRAG if available
+        self._embedding_rag = None
+        self._use_rag = False
+        if _EMBEDDING_RAG_AVAILABLE:
+            try:
+                self._embedding_rag = EmbeddingRAG()
+                self._use_rag = True
+                logger.info("LLMBugScanner: EmbeddingRAG (ChromaDB) enabled")
+            except Exception as e:
+                logger.debug(f"LLMBugScanner: EmbeddingRAG unavailable: {e}")
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -373,8 +392,27 @@ class LLMBugScannerAdapter(ToolAdapter):
 
     def _generate_analysis_prompt(self, contract_code: str, specialization: str) -> str:
         """Generate analysis prompt tailored to model specialization."""
-        base_prompt = f"""You are an expert smart contract security auditor.
+        # Get RAG context if available
+        rag_context = ""
+        if self._use_rag and self._embedding_rag:
+            try:
+                results = self._embedding_rag.search(
+                    query=contract_code[:2000],
+                    n_results=3
+                )
+                if results:
+                    rag_context = "\nKNOWN VULNERABILITY PATTERNS:\n"
+                    for r in results:
+                        rag_context += (
+                            f"- {r.document.title}: {r.document.description[:80]}...\n"
+                        )
+                    rag_context += "\n"
+                    logger.debug(f"LLMBugScanner: Added RAG context ({len(results)} patterns)")
+            except Exception as e:
+                logger.debug(f"LLMBugScanner: RAG context failed: {e}")
 
+        base_prompt = f"""You are an expert smart contract security auditor.
+{rag_context}
 SMART CONTRACT:
 ```solidity
 {contract_code}

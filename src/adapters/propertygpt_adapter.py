@@ -39,6 +39,14 @@ from src.core.tool_protocol import (
     ToolStatus,
 )
 
+# Try to import EmbeddingRAG (optional dependency)
+try:
+    from src.llm.embedding_rag import EmbeddingRAG
+    _EMBEDDING_RAG_AVAILABLE = True
+except ImportError:
+    _EMBEDDING_RAG_AVAILABLE = False
+    EmbeddingRAG = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -98,6 +106,17 @@ class PropertyGPTAdapter(ToolAdapter):
         self.max_properties = self.config.get("max_properties", 10)
         self.min_confidence = self.config.get("min_confidence", 0.7)
         self.enable_validation = self.config.get("enable_validation", True)
+
+        # Initialize EmbeddingRAG if available
+        self._embedding_rag = None
+        self._use_rag = False
+        if _EMBEDDING_RAG_AVAILABLE:
+            try:
+                self._embedding_rag = EmbeddingRAG()
+                self._use_rag = True
+                logger.info("PropertyGPT: EmbeddingRAG (ChromaDB) enabled")
+            except Exception as e:
+                logger.debug(f"PropertyGPT: EmbeddingRAG unavailable: {e}")
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -365,6 +384,25 @@ class PropertyGPTAdapter(ToolAdapter):
 
         Based on techniques from arXiv:2405.02580
         """
+        # Get RAG context for vulnerability patterns to inform property generation
+        rag_context = ""
+        if self._use_rag and self._embedding_rag:
+            try:
+                results = self._embedding_rag.search(
+                    query=contract_source[:2000],
+                    n_results=3
+                )
+                if results:
+                    rag_context = "\n\nKNOWN VULNERABILITY PATTERNS TO VERIFY AGAINST:\n"
+                    for r in results:
+                        rag_context += (
+                            f"- {r.document.title} ({r.document.swc_id or 'Pattern'}): "
+                            f"{r.document.description[:100]}...\n"
+                        )
+                    logger.debug(f"PropertyGPT: Added RAG context ({len(results)} patterns)")
+            except Exception as e:
+                logger.debug(f"PropertyGPT: RAG context failed: {e}")
+
         prompt = f"""You are PropertyGPT, an expert in formal verification and Certora Verification Language (CVL).
 
 Your task is to analyze the following Solidity smart contract and generate formal properties in CVL format.
@@ -394,7 +432,7 @@ For each property, provide:
 - Confidence score (0.0-1.0 based on contract analysis)
 
 Output format: JSON array of objects with keys: type, name, cvl_code, description, confidence
-
+{rag_context}
 Generate {self.max_properties} high-quality properties.
 """
         return prompt

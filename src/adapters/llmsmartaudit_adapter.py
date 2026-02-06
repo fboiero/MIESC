@@ -27,6 +27,14 @@ from src.core.tool_protocol import (
     ToolStatus,
 )
 
+# Try to import EmbeddingRAG (optional dependency)
+try:
+    from src.llm.embedding_rag import EmbeddingRAG
+    _EMBEDDING_RAG_AVAILABLE = True
+except ImportError:
+    _EMBEDDING_RAG_AVAILABLE = False
+    EmbeddingRAG = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -80,6 +88,17 @@ Respond ONLY with valid JSON."""
         self._default_timeout = 120
         self._cache_dir = Path.home() / ".miesc" / "llmsmartaudit_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
+
+        # Initialize EmbeddingRAG if available
+        self._embedding_rag = None
+        self._use_rag = False
+        if _EMBEDDING_RAG_AVAILABLE:
+            try:
+                self._embedding_rag = EmbeddingRAG()
+                self._use_rag = True
+                logger.info("LLMSmartAudit: EmbeddingRAG (ChromaDB) enabled")
+            except Exception as e:
+                logger.debug(f"LLMSmartAudit: EmbeddingRAG unavailable: {e}")
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -299,6 +318,27 @@ Respond ONLY with valid JSON."""
         import urllib.error
 
         prompt = self.AUDIT_PROMPT.replace("%CONTRACT_CODE%", contract_code)
+
+        # Add RAG context if available
+        if self._use_rag and self._embedding_rag:
+            try:
+                results = self._embedding_rag.search(
+                    query=contract_code[:2000],
+                    n_results=3
+                )
+                if results:
+                    rag_context = "\n\nKNOWN VULNERABILITY PATTERNS:\n"
+                    for r in results:
+                        rag_context += (
+                            f"- {r.document.title}: {r.document.description[:100]}...\n"
+                        )
+                    prompt = prompt.replace(
+                        "Respond ONLY with valid JSON.",
+                        f"{rag_context}\nRespond ONLY with valid JSON."
+                    )
+                    logger.debug(f"LLMSmartAudit: Added RAG context ({len(results)} patterns)")
+            except Exception as e:
+                logger.debug(f"LLMSmartAudit: RAG context failed: {e}")
 
         logger.info(f"LLM-SmartAudit: Running Ollama audit with {model}")
 
