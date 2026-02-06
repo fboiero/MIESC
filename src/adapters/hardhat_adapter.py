@@ -161,26 +161,40 @@ class HardhatAdapter(ToolAdapter):
             if result.returncode != 0:
                 return ToolStatus.NOT_INSTALLED
 
-            # Check if hardhat is available
+            # Check if hardhat is installed globally or locally
+            # First try: check if hardhat is in npm global list
             result = subprocess.run(
-                ["npx", "hardhat", "--version"],
+                ["npm", "list", "-g", "hardhat", "--depth=0"],
                 capture_output=True,
                 timeout=15,
                 text=True,
-                cwd=self.project_path or ".",
             )
-            if result.returncode == 0:
-                version = result.stdout.strip()
-                logger.debug(f"Hardhat available: {version}")
+            if result.returncode == 0 and "hardhat@" in result.stdout:
+                logger.debug("Hardhat available globally")
                 return ToolStatus.AVAILABLE
-            else:
-                # Hardhat might not be in current directory
-                return ToolStatus.CONFIGURATION_ERROR
+
+            # Second try: check if hardhat package exists in npm registry (can be installed)
+            # This confirms npx can install it on-demand
+            result = subprocess.run(
+                ["npm", "view", "hardhat", "version"],
+                capture_output=True,
+                timeout=10,
+                text=True,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                version = result.stdout.strip()
+                logger.debug(f"Hardhat available via npx (latest: {version})")
+                return ToolStatus.AVAILABLE
+
+            # Hardhat not available
+            logger.debug("Hardhat not installed")
+            return ToolStatus.NOT_INSTALLED
 
         except FileNotFoundError:
-            logger.debug("npx/hardhat not installed")
+            logger.debug("npx/npm not installed")
             return ToolStatus.NOT_INSTALLED
         except subprocess.TimeoutExpired:
+            logger.debug("Hardhat check timed out")
             return ToolStatus.CONFIGURATION_ERROR
         except Exception as e:
             logger.error(f"Error checking Hardhat availability: {e}")
