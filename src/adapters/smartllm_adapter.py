@@ -439,6 +439,30 @@ STEP 5 - EXTERNAL CALL SAFETY (SWC-104, SWC-113):
 - Are return values from external calls checked?
 - Real-world example: Wormhole (2022, $320M) - unchecked signature verification
 
+STEP 6 - ORACLE MANIPULATION (DeFi):
+- Does the contract use external price feeds?
+- Is it using spot prices (getReserves) instead of TWAP or Chainlink?
+- Can the price be manipulated in the same transaction?
+- Real-world example: Harvest Finance (2020, $34M) - AMM spot price manipulation
+
+STEP 7 - FLASH LOAN / SAME-BLOCK ATTACKS (DeFi):
+- Can an attacker manipulate state and exploit it atomically?
+- Is there protection against same-block price manipulation?
+- Look for: no block.number checks, no TWAP, using spot prices for lending/borrowing
+- Real-world example: bZx (2020, $8M) - flash loan price manipulation
+
+STEP 8 - PRECISION LOSS (DeFi):
+- Is division done before multiplication? (causes precision loss)
+- Are there rounding issues in interest/fee calculations?
+- Look for: (a / 1e18) * b instead of (a * b) / 1e18
+- Real-world example: Many DeFi protocols lose funds to rounding errors
+
+STEP 9 - ADMIN/GOVERNANCE ISSUES:
+- Are there admin functions without timelocks?
+- Can owner withdraw all funds without delay?
+- Is zero address checked when setting new owner?
+- Look for: setOwner without address(0) check, emergencyWithdraw without timelock
+
 OUTPUT FORMAT (valid JSON only):
 ```json
 {
@@ -480,6 +504,12 @@ CRITICAL RULES:
             "has_mapping": False,
             "has_payable": False,
             "solidity_version": "unknown",
+            # DeFi patterns
+            "has_price_oracle": False,
+            "has_amm_integration": False,
+            "has_lending_logic": False,
+            "has_division": False,
+            "has_admin_functions": False,
         }
 
         code_lower = code.lower()
@@ -497,6 +527,18 @@ CRITICAL RULES:
             patterns["has_mapping"] = True
         if "payable" in code_lower:
             patterns["has_payable"] = True
+
+        # DeFi pattern detection
+        if any(p in code_lower for p in ["getreserves", "getprice", "latestrounddata", "oracle"]):
+            patterns["has_price_oracle"] = True
+        if any(p in code_lower for p in ["uniswap", "reserve0", "reserve1", "amm", "swap"]):
+            patterns["has_amm_integration"] = True
+        if any(p in code_lower for p in ["borrow", "lend", "collateral", "liquidat"]):
+            patterns["has_lending_logic"] = True
+        if "/" in code and any(p in code for p in ["1e18", "10**18", "1e6", "10**6"]):
+            patterns["has_division"] = True
+        if any(p in code_lower for p in ["onlyowner", "setowner", "admin", "emergency"]):
+            patterns["has_admin_functions"] = True
 
         # Detect reentrancy pattern: external call before state update
         # Simple heuristic: if we see .call{ before -= or = on a mapping
@@ -538,13 +580,28 @@ CRITICAL RULES:
         if patterns.get("has_mapping"):
             focus.append("- MAPPINGS DETECTED: Check for balance manipulation vulnerabilities")
 
+        # DeFi-specific focus areas
+        if patterns.get("has_price_oracle"):
+            focus.append("- PRICE ORACLE DETECTED: Check for oracle manipulation, stale prices")
+        if patterns.get("has_amm_integration"):
+            focus.append("- AMM INTEGRATION DETECTED: Check for flash loan attacks, spot price manipulation")
+        if patterns.get("has_lending_logic"):
+            focus.append("- LENDING LOGIC DETECTED: Check for liquidation vulnerabilities, collateral manipulation")
+        if patterns.get("has_division"):
+            focus.append("- DIVISION OPERATIONS: Check for precision loss (divide before multiply)")
+        if patterns.get("has_admin_functions"):
+            focus.append("- ADMIN FUNCTIONS DETECTED: Check for missing timelocks, zero address validation")
+
         version = patterns.get("solidity_version", "unknown")
         if version != "unknown":
-            major, minor, patch = version.split(".")
-            if int(minor) < 8:
-                focus.append(
-                    f"- SOLIDITY {version}: Check for integer overflow/underflow (SWC-101)"
-                )
+            try:
+                major, minor, patch = version.split(".")
+                if int(minor) < 8:
+                    focus.append(
+                        f"- SOLIDITY {version}: Check for integer overflow/underflow (SWC-101)"
+                    )
+            except ValueError:
+                pass  # Invalid version format
 
         if not focus:
             focus.append(
@@ -971,9 +1028,20 @@ CRITICAL RULES:
 
         for finding in initial_findings:
             severity = finding.get("severity", "MEDIUM").upper()
-            is_critical = severity == "CRITICAL"
+            is_critical = severity in ("CRITICAL", "HIGH")
             finding_type = finding.get("category", finding.get("type", "")).lower()
+            finding_title = finding.get("title", "").lower()
+            finding_desc = finding.get("description", "").lower()
+            combined_text = f"{finding_type} {finding_title} {finding_desc}"
+
             is_reentrancy = "reentrancy" in finding_type or "reentrant" in finding_type
+
+            # DeFi vulnerabilities should be kept conservatively
+            is_defi_vuln = any(kw in combined_text for kw in [
+                "oracle", "price", "flash loan", "flashloan", "manipulation",
+                "precision", "liquidat", "collateral", "timelock", "admin",
+                "zero address", "address(0)", "same block", "same-block"
+            ])
 
             # For known high-risk patterns, verify using code pattern detection
             if is_reentrancy:
@@ -1024,19 +1092,20 @@ CRITICAL RULES:
                         "verdict: false_positive" in response_lower
                         or "verdict:false_positive" in response_lower
                     ):
-                        # Explicit false positive - but for CRITICAL, require clear reasoning
-                        if is_critical:
-                            # For CRITICAL findings, keep with lower confidence
+                        # Explicit false positive - but for CRITICAL/HIGH or DeFi, require clear reasoning
+                        if is_critical or is_defi_vuln:
+                            # For important findings, keep with lower confidence
+                            reason = "severity" if is_critical else "DeFi pattern"
                             finding["verified"] = False
                             finding["verification_note"] = (
-                                "Verificator marked FP but keeping due to severity"
+                                f"Verificator marked FP but keeping due to {reason}"
                             )
                             finding["confidence"] = max(
                                 finding.get("confidence", 0.75) - 0.20, 0.50
                             )
                             verified_findings.append(finding)
                             logger.warning(
-                                f"CRITICAL finding kept despite FP verdict: "
+                                f"Finding kept despite FP verdict ({reason}): "
                                 f"{finding.get('title')}"
                             )
                         else:
@@ -1048,18 +1117,19 @@ CRITICAL RULES:
                         verified_findings.append(finding)
                         logger.info(f"✓ Finding confirmed: {finding.get('title')}")
                     else:
-                        # Ambiguous response - for CRITICAL, keep; otherwise filter
-                        if is_critical:
+                        # Ambiguous response - for CRITICAL/HIGH or DeFi vulns, keep; otherwise filter
+                        if is_critical or is_defi_vuln:
                             finding["verified"] = False
+                            reason = "severity" if is_critical else "DeFi vulnerability pattern"
                             finding["verification_note"] = (
-                                "Ambiguous verification - kept due to severity"
+                                f"Ambiguous verification - kept due to {reason}"
                             )
                             finding["confidence"] = max(
                                 finding.get("confidence", 0.75) - 0.15, 0.50
                             )
                             verified_findings.append(finding)
                             logger.warning(
-                                f"⚠ CRITICAL finding kept (ambiguous): {finding.get('title')}"
+                                f"⚠ Finding kept (ambiguous, {reason}): {finding.get('title')}"
                             )
                         else:
                             logger.info(f"✗ False positive removed: {finding.get('title')}")
