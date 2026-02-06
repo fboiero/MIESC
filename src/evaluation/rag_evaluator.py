@@ -206,7 +206,7 @@ class RAGEvaluator:
             search_results = rag.search(query, n_results=k)
             elapsed_ms = (time.time() - start) * 1000
 
-            relevance_scores = [r.score for r in search_results]
+            relevance_scores = [r.similarity_score for r in search_results]
             retrieved_swcs = [r.document.swc_id for r in search_results if r.document.swc_id]
 
             result = RAGRetrievalResult(
@@ -215,7 +215,7 @@ class RAGEvaluator:
                     {
                         "swc_id": r.document.swc_id,
                         "title": r.document.title,
-                        "score": r.score,
+                        "score": r.similarity_score,
                     }
                     for r in search_results
                 ],
