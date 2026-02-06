@@ -901,6 +901,21 @@ class GPTLensAdapter(ToolAdapter):
                 critic_model=critic_model,
             )
 
+            # Check if this is a DeFi-related or high-severity finding
+            severity = finding.get("severity", "Medium").upper()
+            is_critical = severity in ("CRITICAL", "HIGH")
+            finding_type = finding.get("type", "").lower()
+            finding_title = finding.get("title", "").lower()
+            finding_desc = finding.get("description", "").lower()
+            combined_text = f"{finding_type} {finding_title} {finding_desc}"
+
+            is_defi_vuln = any(kw in combined_text for kw in [
+                "oracle", "price", "flash loan", "flashloan", "manipulation",
+                "precision", "liquidat", "collateral", "timelock", "admin",
+                "zero address", "address(0)", "same block", "same-block",
+                "getreserves", "spot", "amm", "uniswap"
+            ])
+
             if verdict == "TRUE_POSITIVE":
                 # Confirmed: boost confidence
                 finding["critic_verdict"] = "true_positive"
@@ -911,14 +926,29 @@ class GPTLensAdapter(ToolAdapter):
                 verdicts.append({"title": finding.get("title"), "verdict": "TP"})
 
             elif verdict == "FALSE_POSITIVE":
-                # Rejected: filter out
-                rejected_count += 1
-                verdicts.append({"title": finding.get("title"), "verdict": "FP"})
-                logger.info(
-                    "GPTLens Critic: Filtered FP - %s (%s)",
-                    finding.get("title", "unknown"),
-                    explanation[:100] if explanation else "no explanation",
-                )
+                # For DeFi or critical findings, keep with lower confidence
+                if is_defi_vuln or is_critical:
+                    reason = "DeFi pattern" if is_defi_vuln else "severity"
+                    finding["critic_verdict"] = "false_positive_kept"
+                    finding["critic_explanation"] = f"Kept despite FP due to {reason}: {explanation}"
+                    original_conf = finding.get("confidence", 0.75)
+                    finding["confidence"] = max(original_conf - 0.20, 0.40)
+                    confirmed.append(finding)
+                    verdicts.append({"title": finding.get("title"), "verdict": "FP-kept"})
+                    logger.warning(
+                        "GPTLens Critic: Keeping FP (%s) - %s",
+                        reason,
+                        finding.get("title", "unknown"),
+                    )
+                else:
+                    # Non-critical, non-DeFi: filter out
+                    rejected_count += 1
+                    verdicts.append({"title": finding.get("title"), "verdict": "FP"})
+                    logger.info(
+                        "GPTLens Critic: Filtered FP - %s (%s)",
+                        finding.get("title", "unknown"),
+                        explanation[:100] if explanation else "no explanation",
+                    )
 
             else:
                 # Uncertain or error: keep conservatively with slight penalty
