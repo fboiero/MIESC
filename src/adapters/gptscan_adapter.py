@@ -108,30 +108,35 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
         )
 
     def is_available(self) -> ToolStatus:
-        """Check if Ollama is running and model is available."""
+        """Check if Ollama is running and accessible via HTTP API."""
+        import urllib.request
+        import urllib.error
+
         try:
-            # Check if ollama is running
-            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=10, text=True)
+            ollama_host = get_ollama_host()
+            tags_url = f"{ollama_host}/api/tags"
 
-            if result.returncode != 0:
-                logger.warning("Ollama not running or not responding")
-                return ToolStatus.CONFIGURATION_ERROR
+            req = urllib.request.Request(tags_url, method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode())
+                    models = [m.get("name", "") for m in data.get("models", [])]
+                    model_names = " ".join(models).lower()
 
-            # Check if we have a suitable model
-            models = result.stdout.lower()
-            suitable_models = ["codellama", "llama3", "deepseek-coder", "qwen2.5-coder"]
+                    suitable_models = ["codellama", "llama3", "deepseek-coder", "qwen2.5-coder"]
+                    for model in suitable_models:
+                        if model in model_names:
+                            logger.info(f"GPTScan: Ollama available at {ollama_host} with {model}")
+                            return ToolStatus.AVAILABLE
 
-            for model in suitable_models:
-                if model in models:
-                    logger.info(f"GPTScan: Found Ollama model with {model}")
-                    return ToolStatus.AVAILABLE
+                    logger.warning("GPTScan: No suitable LLM model found. Run: ollama pull codellama:7b")
+                    return ToolStatus.CONFIGURATION_ERROR
+                else:
+                    logger.warning(f"GPTScan: Ollama returned status {resp.status}")
+                    return ToolStatus.CONFIGURATION_ERROR
 
-            # No model found, but ollama is running
-            logger.warning("GPTScan: No suitable LLM model found. Run: ollama pull codellama:7b")
-            return ToolStatus.CONFIGURATION_ERROR
-
-        except FileNotFoundError:
-            logger.info("Ollama not installed. Install from https://ollama.ai")
+        except urllib.error.URLError as e:
+            logger.info(f"GPTScan: Ollama not reachable: {e}")
             return ToolStatus.NOT_INSTALLED
         except subprocess.TimeoutExpired:
             logger.warning("Ollama check timeout")

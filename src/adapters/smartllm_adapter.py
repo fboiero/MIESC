@@ -135,30 +135,39 @@ class SmartLLMAdapter(ToolAdapter):
         )
 
     def is_available(self) -> ToolStatus:
-        """Check if Ollama is installed and deepseek-coder model is available."""
+        """Check if Ollama is running and accessible via HTTP API."""
+        import urllib.request
+        import urllib.error
+
         try:
-            # Check if ollama command exists
-            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5, text=True)
+            ollama_host = get_ollama_host()
+            tags_url = f"{ollama_host}/api/tags"
 
-            if result.returncode != 0:
-                logger.warning("Ollama command failed")
-                return ToolStatus.CONFIGURATION_ERROR
+            req = urllib.request.Request(tags_url, method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    # Check if we have a suitable model
+                    data = json.loads(resp.read().decode())
+                    models = [m.get("name", "") for m in data.get("models", [])]
+                    model_names = " ".join(models).lower()
 
-            # Check if deepseek-coder model is available
-            if "deepseek-coder" in result.stdout:
-                return ToolStatus.AVAILABLE
-            else:
-                logger.warning(f"Model {self._model} not found. Run: ollama pull {self._model}")
-                return ToolStatus.CONFIGURATION_ERROR
+                    if "deepseek-coder" in model_names or "codellama" in model_names:
+                        logger.info(f"SmartLLM: Ollama available at {ollama_host}")
+                        return ToolStatus.AVAILABLE
+                    else:
+                        logger.warning(
+                            f"SmartLLM: No suitable model found. Run: ollama pull {self._model}"
+                        )
+                        return ToolStatus.CONFIGURATION_ERROR
+                else:
+                    logger.warning(f"SmartLLM: Ollama returned status {resp.status}")
+                    return ToolStatus.CONFIGURATION_ERROR
 
-        except FileNotFoundError:
-            logger.info("Ollama not installed. Install from https://ollama.com")
+        except urllib.error.URLError as e:
+            logger.info(f"SmartLLM: Ollama not reachable: {e}")
             return ToolStatus.NOT_INSTALLED
-        except subprocess.TimeoutExpired:
-            logger.warning("Ollama command timeout")
-            return ToolStatus.CONFIGURATION_ERROR
         except Exception as e:
-            logger.error(f"Error checking Ollama availability: {e}")
+            logger.error(f"SmartLLM: Error checking Ollama availability: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:

@@ -30,6 +30,7 @@ import tempfile
 import time
 from typing import Any, Dict, List, Optional
 
+from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -131,25 +132,34 @@ class PropertyGPTAdapter(ToolAdapter):
 
     def is_available(self) -> ToolStatus:
         """Check if PropertyGPT backend (LLM) is available."""
+        import urllib.request
+        import urllib.error
+
         try:
             if self.llm_backend == "ollama":
-                # Check if Ollama is running
-                result = subprocess.run(
-                    ["ollama", "list"], capture_output=True, timeout=5, text=True
-                )
+                # Check if Ollama is running via HTTP API
+                ollama_host = get_ollama_host()
+                tags_url = f"{ollama_host}/api/tags"
 
-                if result.returncode == 0:
-                    # Check if model is available
-                    if self.ollama_model in result.stdout:
-                        return ToolStatus.AVAILABLE
+                req = urllib.request.Request(tags_url, method="GET")
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode())
+                        models = [m.get("name", "") for m in data.get("models", [])]
+                        model_names = " ".join(models).lower()
+
+                        if self.ollama_model.lower() in model_names or "deepseek" in model_names:
+                            logger.info(f"PropertyGPT: Ollama available at {ollama_host}")
+                            return ToolStatus.AVAILABLE
+                        else:
+                            logger.warning(
+                                f"PropertyGPT: Model '{self.ollama_model}' not found. "
+                                f"Run: ollama pull {self.ollama_model}"
+                            )
+                            return ToolStatus.NOT_INSTALLED
                     else:
-                        logger.warning(
-                            f"Ollama model '{self.ollama_model}' not found. Run: ollama pull {self.ollama_model}"
-                        )
+                        logger.warning(f"PropertyGPT: Ollama returned status {resp.status}")
                         return ToolStatus.NOT_INSTALLED
-                else:
-                    logger.warning("Ollama not responding")
-                    return ToolStatus.NOT_INSTALLED
 
             elif self.llm_backend == "gpt-4":
                 # Check for OpenAI API key
@@ -172,12 +182,15 @@ class PropertyGPTAdapter(ToolAdapter):
                 logger.error(f"Unknown LLM backend: {self.llm_backend}")
                 return ToolStatus.CONFIGURATION_ERROR
 
+        except urllib.error.URLError as e:
+            logger.info(f"PropertyGPT: Ollama not reachable: {e}")
+            return ToolStatus.NOT_INSTALLED
         except FileNotFoundError:
             logger.info("PropertyGPT backend not available. Install Ollama or configure API keys.")
             return ToolStatus.NOT_INSTALLED
         except Exception as e:
             logger.error(f"PropertyGPT availability check failed: {e}")
-            return ToolStatus.ERROR
+            return ToolStatus.CONFIGURATION_ERROR
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """

@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -145,38 +146,46 @@ class LLMBugScannerAdapter(ToolAdapter):
         )
 
     def is_available(self) -> ToolStatus:
-        """Check if Ollama and at least one ensemble model is available."""
+        """Check if Ollama and at least one ensemble model is available via HTTP API."""
+        import urllib.request
+        import urllib.error
+
         try:
-            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5, text=True)
+            ollama_host = get_ollama_host()
+            tags_url = f"{ollama_host}/api/tags"
 
-            if result.returncode != 0:
-                logger.warning("Ollama command failed")
-                return ToolStatus.CONFIGURATION_ERROR
+            req = urllib.request.Request(tags_url, method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode())
+                    models = [m.get("name", "") for m in data.get("models", [])]
 
-            # Check which ensemble models are available
-            self._available_models.clear()
-            for model in self._ensemble:
-                if model.name in result.stdout:
-                    self._available_models.add(model.name)
+                    # Check which ensemble models are available
+                    self._available_models.clear()
+                    for model in self._ensemble:
+                        for available_model in models:
+                            if model.name in available_model:
+                                self._available_models.add(model.name)
+                                break
 
-            if len(self._available_models) >= 1:
-                logger.info(
-                    f"LLMBugScanner: {len(self._available_models)} models available: "
-                    f"{self._available_models}"
-                )
-                return ToolStatus.AVAILABLE
-            else:
-                logger.warning("No ensemble models found. Run: ollama pull deepseek-coder")
-                return ToolStatus.CONFIGURATION_ERROR
+                    if len(self._available_models) >= 1:
+                        logger.info(
+                            f"LLMBugScanner: {len(self._available_models)} models available at "
+                            f"{ollama_host}: {self._available_models}"
+                        )
+                        return ToolStatus.AVAILABLE
+                    else:
+                        logger.warning("LLMBugScanner: No ensemble models found. Run: ollama pull deepseek-coder")
+                        return ToolStatus.CONFIGURATION_ERROR
+                else:
+                    logger.warning(f"LLMBugScanner: Ollama returned status {resp.status}")
+                    return ToolStatus.CONFIGURATION_ERROR
 
-        except FileNotFoundError:
-            logger.info("Ollama not installed. Install from https://ollama.com")
+        except urllib.error.URLError as e:
+            logger.info(f"LLMBugScanner: Ollama not reachable: {e}")
             return ToolStatus.NOT_INSTALLED
-        except subprocess.TimeoutExpired:
-            logger.warning("Ollama command timeout")
-            return ToolStatus.CONFIGURATION_ERROR
         except Exception as e:
-            logger.error(f"Error checking Ollama availability: {e}")
+            logger.error(f"LLMBugScanner: Error checking Ollama availability: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:

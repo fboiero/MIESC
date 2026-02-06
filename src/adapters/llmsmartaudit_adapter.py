@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -112,30 +113,36 @@ Respond ONLY with valid JSON."""
         )
 
     def is_available(self) -> ToolStatus:
-        """Check if Ollama is running with a suitable model."""
+        """Check if Ollama is running and accessible via HTTP API."""
+        import urllib.request
+        import urllib.error
+
         try:
-            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=10, text=True)
+            ollama_host = get_ollama_host()
+            tags_url = f"{ollama_host}/api/tags"
 
-            if result.returncode != 0:
-                logger.warning("Ollama not running")
-                return ToolStatus.CONFIGURATION_ERROR
+            req = urllib.request.Request(tags_url, method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode())
+                    models = [m.get("name", "") for m in data.get("models", [])]
+                    model_names = " ".join(models).lower()
 
-            # Check for any LLM model
-            models = result.stdout.lower()
-            if any(m in models for m in ["codellama", "llama3", "deepseek", "qwen"]):
-                return ToolStatus.AVAILABLE
+                    if any(m in model_names for m in ["codellama", "llama3", "deepseek", "qwen"]):
+                        logger.info(f"LLMSmartAudit: Ollama available at {ollama_host}")
+                        return ToolStatus.AVAILABLE
 
-            logger.warning("No suitable LLM model found for LLMSmartAudit")
-            return ToolStatus.CONFIGURATION_ERROR
+                    logger.warning("LLMSmartAudit: No suitable LLM model found")
+                    return ToolStatus.CONFIGURATION_ERROR
+                else:
+                    logger.warning(f"LLMSmartAudit: Ollama returned status {resp.status}")
+                    return ToolStatus.CONFIGURATION_ERROR
 
-        except FileNotFoundError:
-            logger.info("Ollama not installed")
+        except urllib.error.URLError as e:
+            logger.info(f"LLMSmartAudit: Ollama not reachable: {e}")
             return ToolStatus.NOT_INSTALLED
-        except subprocess.TimeoutExpired:
-            logger.warning("Ollama check timeout")
-            return ToolStatus.CONFIGURATION_ERROR
         except Exception as e:
-            logger.error(f"Error checking Ollama: {e}")
+            logger.error(f"LLMSmartAudit: Error checking Ollama: {e}")
             return ToolStatus.CONFIGURATION_ERROR
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
