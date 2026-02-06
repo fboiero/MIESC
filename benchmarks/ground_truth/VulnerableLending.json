@@ -1,0 +1,73 @@
+{
+  "contract": "VulnerableLending.sol",
+  "source": "MIESC benchmark",
+  "description": "Multi-vulnerability DeFi lending contract for RAG testing",
+  "findings": [
+    {
+      "id": "gt-1",
+      "swc_id": null,
+      "title": "Oracle Price Manipulation",
+      "severity": "CRITICAL",
+      "location": {
+        "line": 47,
+        "function": "getCollateralPrice"
+      },
+      "description": "Uses Uniswap spot price which can be manipulated with flash loans"
+    },
+    {
+      "id": "gt-2",
+      "swc_id": null,
+      "title": "Flash Loan Attack Vector",
+      "severity": "CRITICAL",
+      "location": {
+        "line": 60,
+        "function": "borrow"
+      },
+      "description": "No protection against flash loan price manipulation in same transaction"
+    },
+    {
+      "id": "gt-3",
+      "swc_id": null,
+      "title": "Precision Loss in Calculation",
+      "severity": "MEDIUM",
+      "location": {
+        "line": 73,
+        "function": "getCollateralValue"
+      },
+      "description": "Division before multiplication causes precision loss"
+    },
+    {
+      "id": "gt-4",
+      "swc_id": null,
+      "title": "Price-dependent Liquidation",
+      "severity": "HIGH",
+      "location": {
+        "line": 82,
+        "function": "liquidate"
+      },
+      "description": "Liquidation uses manipulatable oracle price"
+    },
+    {
+      "id": "gt-5",
+      "swc_id": null,
+      "title": "Missing Zero Address Validation",
+      "severity": "LOW",
+      "location": {
+        "line": 100,
+        "function": "setOwner"
+      },
+      "description": "No check for zero address when setting new owner"
+    },
+    {
+      "id": "gt-6",
+      "swc_id": null,
+      "title": "No Timelock on Admin Functions",
+      "severity": "MEDIUM",
+      "location": {
+        "line": 106,
+        "function": "emergencyWithdraw"
+      },
+      "description": "Admin can withdraw funds without any timelock protection"
+    }
+  ]
+}

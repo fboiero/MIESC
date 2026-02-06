@@ -48,9 +48,11 @@ class Finding:
             vuln_keywords = [
                 "reentrancy", "overflow", "underflow", "access control",
                 "delegatecall", "selfdestruct", "front-run", "frontrun",
-                "oracle", "flash loan", "signature", "replay", "dos",
+                "oracle", "flash loan", "flash-loan", "signature", "replay", "dos",
                 "denial of service", "timestamp", "randomness", "phishing",
-                "permit", "callback", "proxy", "storage", "uninitialized"
+                "permit", "callback", "proxy", "storage", "uninitialized",
+                "precision", "liquidat", "timelock", "admin", "zero address",
+                "price", "manipulation", "same-block", "same block"
             ]
             for keyword in vuln_keywords:
                 if keyword in t1 and keyword in t2:
