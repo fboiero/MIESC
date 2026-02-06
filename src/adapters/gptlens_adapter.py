@@ -76,12 +76,17 @@ VULNERABILITY_SWC_MAP = {
     "access_control": {"swc": "SWC-105", "cwe": "CWE-284", "owasp": "SC01"},
     "logic_error": {"swc": "SWC-110", "cwe": "CWE-670", "owasp": "SC04"},
     "oracle_manipulation": {"swc": "SWC-120", "cwe": "CWE-829", "owasp": "SC06"},
+    "flash_loan": {"swc": "", "cwe": "CWE-362", "owasp": "SC07"},
     "front_running": {"swc": "SWC-114", "cwe": "CWE-362", "owasp": "SC07"},
     "integer_overflow": {"swc": "SWC-101", "cwe": "CWE-190", "owasp": "SC02"},
     "unchecked_return": {"swc": "SWC-104", "cwe": "CWE-252", "owasp": "SC05"},
     "tx_origin": {"swc": "SWC-115", "cwe": "CWE-477", "owasp": "SC01"},
     "delegatecall": {"swc": "SWC-112", "cwe": "CWE-829", "owasp": "SC08"},
     "timestamp_dependence": {"swc": "SWC-116", "cwe": "CWE-330", "owasp": "SC09"},
+    "precision_loss": {"swc": "", "cwe": "CWE-682", "owasp": "SC04"},
+    "zero_address": {"swc": "", "cwe": "CWE-20", "owasp": "SC05"},
+    "timelock": {"swc": "", "cwe": "CWE-284", "owasp": "SC01"},
+    "liquidation": {"swc": "", "cwe": "CWE-829", "owasp": "SC06"},
 }
 
 # Severity levels ordered by priority
@@ -122,6 +127,20 @@ PATTERN_KEYWORDS = {
         "getPrice",
         "latestRoundData",
         "twap",
+        "getReserves",
+        "spot price",
+        "amm",
+        "uniswap",
+        "manipulat",
+    ],
+    "flash_loan": [
+        "flash loan",
+        "flashloan",
+        "flash-loan",
+        "same block",
+        "same-block",
+        "atomic",
+        "same transaction",
     ],
     "front_running": [
         "front-run",
@@ -130,6 +149,37 @@ PATTERN_KEYWORDS = {
         "mev",
         "slippage",
         "deadline",
+    ],
+    "precision_loss": [
+        "precision",
+        "rounding",
+        "division before multiplication",
+        "truncat",
+        "decimal",
+        "loss of precision",
+        "/ 1e18",
+    ],
+    "zero_address": [
+        "zero address",
+        "address(0)",
+        "null address",
+        "empty address",
+        "missing validation",
+    ],
+    "timelock": [
+        "timelock",
+        "time lock",
+        "delay",
+        "governance",
+        "admin function",
+        "emergency",
+    ],
+    "liquidation": [
+        "liquidat",
+        "collateral",
+        "undercollateral",
+        "health factor",
+        "borrow",
     ],
     "integer_overflow": [
         "overflow",
@@ -172,13 +222,18 @@ DEFAULT_SEVERITY_MAP = {
     "reentrancy": "Critical",
     "access_control": "High",
     "logic_error": "High",
-    "oracle_manipulation": "High",
+    "oracle_manipulation": "Critical",
+    "flash_loan": "Critical",
     "front_running": "Medium",
     "integer_overflow": "High",
     "unchecked_return": "Medium",
     "tx_origin": "Medium",
     "delegatecall": "High",
     "timestamp_dependence": "Low",
+    "precision_loss": "Medium",
+    "zero_address": "Low",
+    "timelock": "Medium",
+    "liquidation": "High",
 }
 
 
@@ -196,13 +251,18 @@ VULNERABILITY CATEGORIES TO CHECK:
 1. Reentrancy (SWC-107): External calls before state updates
 2. Access Control (SWC-105): Missing or incorrect access restrictions
 3. Logic Errors (SWC-110): Flawed business logic, incorrect calculations
-4. Oracle Manipulation (SWC-120): Price feed manipulation, stale data
-5. Front-Running (SWC-114): Transaction ordering dependence
-6. Integer Overflow/Underflow (SWC-101): Arithmetic issues
-7. Unchecked Return Values (SWC-104): Ignored call results
-8. tx.origin Authentication (SWC-115): Phishing via tx.origin
-9. Delegatecall Injection (SWC-112): Storage collision, proxy issues
-10. Timestamp Dependence (SWC-116): Block timestamp manipulation
+4. Oracle Manipulation: Price feed manipulation, spot price vulnerabilities, AMM price dependencies
+5. Flash Loan Attacks: Same-block manipulation, atomic transaction exploits
+6. Front-Running (SWC-114): Transaction ordering dependence, MEV
+7. Integer Overflow/Underflow (SWC-101): Arithmetic issues
+8. Unchecked Return Values (SWC-104): Ignored call results
+9. tx.origin Authentication (SWC-115): Phishing via tx.origin
+10. Delegatecall Injection (SWC-112): Storage collision, proxy issues
+11. Timestamp Dependence (SWC-116): Block timestamp manipulation
+12. Precision Loss: Division before multiplication, rounding errors
+13. Missing Input Validation: Zero address checks, parameter validation
+14. Timelock Issues: Missing timelocks on admin/governance functions
+15. Liquidation Vulnerabilities: Price-dependent liquidation, manipulatable thresholds
 
 ANALYSIS METHODOLOGY:
 - Trace each function's control flow carefully
@@ -1262,7 +1322,10 @@ class GPTLensAdapter(ToolAdapter):
                 "access_control",
             ),
             (r"(?:HIGH|MEDIUM)\s*[:\-]?\s*([Ll]ogic\s+[Ee]rror[^\n]{10,})", "High", "logic_error"),
-            (r"(?:HIGH|MEDIUM)\s*[:\-]?\s*([Oo]racle[^\n]{10,})", "High", "oracle_manipulation"),
+            (r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Oo]racle[^\n]{10,})", "Critical", "oracle_manipulation"),
+            (r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Pp]rice\s+[Mm]anipulat[^\n]{10,})", "Critical", "oracle_manipulation"),
+            (r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Ff]lash\s*[Ll]oan[^\n]{10,})", "Critical", "flash_loan"),
+            (r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Ss]ame[\s-]*[Bb]lock[^\n]{10,})", "Critical", "flash_loan"),
             (
                 r"(?:MEDIUM)\s*[:\-]?\s*([Ff]ront[\s-]*[Rr]unning[^\n]{10,})",
                 "Medium",
@@ -1277,6 +1340,12 @@ class GPTLensAdapter(ToolAdapter):
             (r"(?:MEDIUM)\s*[:\-]?\s*([Tt]x\.origin[^\n]{10,})", "Medium", "tx_origin"),
             (r"(?:HIGH)\s*[:\-]?\s*([Dd]elegatecall[^\n]{10,})", "High", "delegatecall"),
             (r"(?:LOW|MEDIUM)\s*[:\-]?\s*([Tt]imestamp[^\n]{10,})", "Low", "timestamp_dependence"),
+            (r"(?:MEDIUM|HIGH)\s*[:\-]?\s*([Pp]recision[^\n]{10,})", "Medium", "precision_loss"),
+            (r"(?:MEDIUM)\s*[:\-]?\s*([Dd]ivision\s+before[^\n]{10,})", "Medium", "precision_loss"),
+            (r"(?:LOW|MEDIUM)\s*[:\-]?\s*([Zz]ero\s+[Aa]ddress[^\n]{10,})", "Low", "zero_address"),
+            (r"(?:LOW|MEDIUM)\s*[:\-]?\s*([Aa]ddress\(0\)[^\n]{10,})", "Low", "zero_address"),
+            (r"(?:MEDIUM)\s*[:\-]?\s*([Tt]imelock[^\n]{10,})", "Medium", "timelock"),
+            (r"(?:HIGH)\s*[:\-]?\s*([Ll]iquidat[^\n]{10,})", "High", "liquidation"),
             (r"SWC-107[:\s]+([^\n]+)", "Critical", "reentrancy"),
             (r"SWC-105[:\s]+([^\n]+)", "High", "access_control"),
             (r"SWC-101[:\s]+([^\n]+)", "High", "integer_overflow"),
