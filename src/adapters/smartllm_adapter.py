@@ -1105,14 +1105,22 @@ CRITICAL RULES:
         vuln_type = finding.get("category", finding.get("type", ""))
 
         # Use EmbeddingRAG if available for better context
+        vuln_context_str = ""
+        vuln_mitigation = ""
         if self._use_embedding_rag and self._embedding_rag and get_context_for_finding:
             try:
-                vuln_context = get_context_for_finding(finding, contract_code[:1000])
+                # EmbeddingRAG returns a formatted string
+                vuln_context_str = get_context_for_finding(finding, contract_code[:1000])
+                vuln_mitigation = "See context above for mitigation strategies."
             except Exception as e:
                 logger.debug(f"EmbeddingRAG context failed: {e}")
-                vuln_context = get_vulnerability_context(vuln_type)
+                vuln_dict = get_vulnerability_context(vuln_type)
+                vuln_context_str = vuln_dict.get('description', 'No reference available')
+                vuln_mitigation = vuln_dict.get('mitigation', 'N/A')
         else:
-            vuln_context = get_vulnerability_context(vuln_type)
+            vuln_dict = get_vulnerability_context(vuln_type)
+            vuln_context_str = vuln_dict.get('description', 'No reference available')
+            vuln_mitigation = vuln_dict.get('mitigation', 'N/A')
 
         # Get role-specific system prompt from config
         from src.core.llm_config import ROLE_VERIFICATOR, get_role_system_prompt
@@ -1132,8 +1140,8 @@ FINDING TO VERIFY:
 - Severity: {finding.get('severity', 'N/A')}
 
 VULNERABILITY REFERENCE (from SWC Registry):
-{vuln_context.get('description', 'No reference available')}
-Mitigation: {vuln_context.get('mitigation', 'N/A')}
+{vuln_context_str}
+Mitigation: {vuln_mitigation}
 
 CONTRACT CODE:
 ```solidity
