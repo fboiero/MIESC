@@ -552,6 +552,17 @@ class GPTLensAdapter(ToolAdapter):
                 auditor_model,
                 contract_path,
             )
+            # Step 1: Run pattern-based analysis first (fast, reliable)
+            pattern_findings = self._pattern_based_analysis(
+                contract_code,
+                contract_path,
+            )
+            logger.info(
+                "GPTLens Auditor: Pattern analysis found %d potential issues",
+                len(pattern_findings),
+            )
+
+            # Step 2: Run LLM analysis
             auditor_prompt = AUDITOR_PROMPT_TEMPLATE.format(
                 contract_code=contract_code,
             )
@@ -562,20 +573,23 @@ class GPTLensAdapter(ToolAdapter):
             )
 
             # Parse auditor findings
+            llm_findings = []
             if auditor_response:
-                raw_findings = self._parse_auditor_response(
+                llm_findings = self._parse_auditor_response(
                     auditor_response,
                     contract_path,
                 )
+                logger.info(
+                    "GPTLens Auditor: LLM analysis found %d findings",
+                    len(llm_findings),
+                )
             else:
                 logger.warning(
-                    "GPTLens: Auditor LLM returned no response, "
-                    "falling back to pattern-based analysis"
+                    "GPTLens: Auditor LLM returned no response"
                 )
-                raw_findings = self._pattern_based_analysis(
-                    contract_code,
-                    contract_path,
-                )
+
+            # Step 3: Merge findings (LLM takes priority, add unique pattern findings)
+            raw_findings = self._merge_findings(llm_findings, pattern_findings)
 
             logger.info(
                 "GPTLens Phase 1 complete: %d raw findings from Auditor",
@@ -859,6 +873,52 @@ class GPTLensAdapter(ToolAdapter):
             "error": "High",
         }
         return severity_map.get(severity.strip().lower(), "Medium")
+
+    def _merge_findings(
+        self,
+        llm_findings: List[Dict[str, Any]],
+        pattern_findings: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Merge LLM and pattern-based findings, avoiding duplicates.
+
+        LLM findings take priority. Pattern findings are added if they
+        detect a vulnerability type not found by the LLM.
+
+        Args:
+            llm_findings: Findings from LLM analysis
+            pattern_findings: Findings from pattern-based analysis
+
+        Returns:
+            Merged list of unique findings
+        """
+        merged = list(llm_findings)  # Start with LLM findings
+
+        # Track which vulnerability types are already covered
+        covered_types = set()
+        for f in llm_findings:
+            vuln_type = f.get("type", "").lower()
+            covered_types.add(vuln_type)
+            # Also add normalized version
+            covered_types.add(vuln_type.replace("_", ""))
+            covered_types.add(vuln_type.replace("-", "_"))
+
+        # Add pattern findings for types not covered by LLM
+        for pf in pattern_findings:
+            pf_type = pf.get("type", "").lower()
+            pf_type_normalized = pf_type.replace("_", "").replace("-", "")
+
+            if pf_type not in covered_types and pf_type_normalized not in covered_types:
+                # Mark as pattern-based for transparency
+                pf["source"] = "pattern_detection"
+                merged.append(pf)
+                covered_types.add(pf_type)
+                logger.debug(
+                    "Added pattern finding: %s (not covered by LLM)",
+                    pf.get("title", pf_type),
+                )
+
+        return merged
 
     # ========================================================================
     # Phase 2: Critic Methods
@@ -1507,6 +1567,11 @@ class GPTLensAdapter(ToolAdapter):
             self._detect_timestamp_pattern,
             self._detect_oracle_pattern,
             self._detect_front_running_pattern,
+            # DeFi-specific patterns
+            self._detect_amm_price_pattern,
+            self._detect_precision_loss_pattern,
+            self._detect_zero_address_pattern,
+            self._detect_timelock_pattern,
         ]
 
         for check in pattern_checks:
@@ -1820,6 +1885,144 @@ class GPTLensAdapter(ToolAdapter):
                         confidence=0.55,
                     )
 
+        return None
+
+    def _detect_amm_price_pattern(
+        self, code: str, lines: List[str], path: str
+    ) -> Optional[Dict[str, Any]]:
+        """Detect AMM spot price manipulation vulnerabilities."""
+        # Look for getReserves() usage (Uniswap V2 style)
+        reserves_match = re.search(r"getReserves\s*\(\s*\)", code)
+        if reserves_match:
+            line_num = code[: reserves_match.start()].count("\n") + 1
+            func_name = self._find_enclosing_function(code, reserves_match.start())
+
+            # Check if there's TWAP or time-based averaging
+            has_twap = bool(re.search(
+                r"twap|timeWeight|cumulative|observe\s*\(|consult\s*\(",
+                code, re.IGNORECASE
+            ))
+            if not has_twap:
+                return self._make_pattern_finding(
+                    vuln_type="oracle_manipulation",
+                    title="AMM Spot Price Manipulation Risk",
+                    description=(
+                        "Uses getReserves() for price calculation without TWAP. "
+                        "Spot prices can be manipulated within a single transaction "
+                        "using flash loans, leading to price oracle attacks."
+                    ),
+                    path=path,
+                    line=line_num,
+                    function=func_name,
+                    confidence=0.75,
+                )
+        return None
+
+    def _detect_precision_loss_pattern(
+        self, code: str, lines: List[str], path: str
+    ) -> Optional[Dict[str, Any]]:
+        """Detect precision loss from division before multiplication."""
+        # Pattern: (a / b) * c  or  variable / 1e18 (then used in multiplication)
+        precision_patterns = [
+            (r"\(\s*\w+\s*/\s*1e18\s*\)\s*\*", "Division by 1e18 before multiplication"),
+            (r"\(\s*\w+\s*/\s*10\*\*18\s*\)\s*\*", "Division by 10**18 before multiplication"),
+            (r"(\w+)\s*/\s*1e18\s*\)\s*\*\s*(\w+)", "Division before multiplication pattern"),
+        ]
+        for pattern, desc in precision_patterns:
+            match = re.search(pattern, code)
+            if match:
+                line_num = code[: match.start()].count("\n") + 1
+                func_name = self._find_enclosing_function(code, match.start())
+                return self._make_pattern_finding(
+                    vuln_type="precision_loss",
+                    title="Precision Loss: Division Before Multiplication",
+                    description=(
+                        f"{desc}. This causes precision loss due to integer division "
+                        "truncation. Multiply first, then divide to preserve precision."
+                    ),
+                    path=path,
+                    line=line_num,
+                    function=func_name,
+                    confidence=0.70,
+                )
+        return None
+
+    def _detect_zero_address_pattern(
+        self, code: str, lines: List[str], path: str
+    ) -> Optional[Dict[str, Any]]:
+        """Detect missing zero address validation."""
+        # Find setOwner/setAdmin type functions
+        setter_pattern = re.search(
+            r"function\s+(set\w*[Oo]wner|set\w*[Aa]dmin|transfer[Oo]wnership)\s*\(\s*address\s+(\w+)",
+            code
+        )
+        if setter_pattern:
+            func_name = setter_pattern.group(1)
+            param_name = setter_pattern.group(2)
+            func_start = setter_pattern.start()
+            # Find the function body
+            brace_start = code.find("{", func_start)
+            if brace_start != -1:
+                # Check next 200 chars for zero address check
+                func_snippet = code[brace_start:brace_start + 300]
+                has_check = bool(re.search(
+                    rf"require\s*\(\s*{param_name}\s*!=\s*address\s*\(\s*0\s*\)|"
+                    rf"{param_name}\s*!=\s*address\s*\(\s*0\s*\)|"
+                    r"!= address\(0\)",
+                    func_snippet
+                ))
+                if not has_check:
+                    line_num = code[:func_start].count("\n") + 1
+                    return self._make_pattern_finding(
+                        vuln_type="zero_address",
+                        title=f"Missing Zero Address Check in {func_name}",
+                        description=(
+                            f"Function {func_name} accepts an address parameter without "
+                            "validating it is not the zero address. This could lead to "
+                            "loss of admin access or locked funds."
+                        ),
+                        path=path,
+                        line=line_num,
+                        function=func_name,
+                        confidence=0.65,
+                    )
+        return None
+
+    def _detect_timelock_pattern(
+        self, code: str, lines: List[str], path: str
+    ) -> Optional[Dict[str, Any]]:
+        """Detect admin functions without timelock protection."""
+        # Find emergency/admin withdrawal functions
+        admin_patterns = [
+            (r"function\s+(emergency\w*)\s*\(", "Emergency function"),
+            (r"function\s+(\w*[Ww]ithdraw\w*)\s*\([^)]*\)\s*[^{]*only[Oo]wner", "Owner withdrawal"),
+            (r"function\s+(pause|unpause)\s*\(", "Pause function"),
+        ]
+        for pattern, desc in admin_patterns:
+            match = re.search(pattern, code)
+            if match:
+                func_name = match.group(1)
+                func_start = match.start()
+                # Check if there's timelock
+                has_timelock = bool(re.search(
+                    r"timelock|TimeLock|delay|DELAY|MIN_DELAY|governance",
+                    code, re.IGNORECASE
+                ))
+                if not has_timelock:
+                    line_num = code[:func_start].count("\n") + 1
+                    return self._make_pattern_finding(
+                        vuln_type="timelock",
+                        title=f"No Timelock on {func_name}",
+                        description=(
+                            f"{desc} '{func_name}' lacks timelock protection. "
+                            "Admin actions should have a delay to give users time "
+                            "to react to potentially malicious changes."
+                        ),
+                        path=path,
+                        line=line_num,
+                        function=func_name,
+                        confidence=0.60,
+                    )
         return None
 
     def _make_pattern_finding(
