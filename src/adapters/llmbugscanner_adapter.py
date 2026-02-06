@@ -70,17 +70,35 @@ DEFAULT_ENSEMBLE = [
 # Vulnerability categories for consensus analysis
 VULNERABILITY_CATEGORIES = {
     "reentrancy": ["reentrancy", "re-entrancy", "recursive call", "external call before state"],
-    "access_control": ["access control", "authorization", "owner only", "permission", "admin"],
+    "access_control": [
+        "access control", "authorization", "owner only", "permission", "admin",
+        "onlyowner", "restricted", "privilege", "role"
+    ],
     "integer_overflow": ["overflow", "underflow", "integer", "arithmetic"],
     "unchecked_call": ["unchecked", "return value", "external call", "low-level call"],
     "denial_of_service": ["dos", "denial of service", "gas limit", "loop", "unbounded"],
-    "front_running": ["front-run", "frontrun", "mev", "sandwich"],
-    "flash_loan": ["flash loan", "flashloan", "price manipulation"],
-    "oracle_manipulation": ["oracle", "price feed", "chainlink", "twap"],
+    "front_running": ["front-run", "frontrun", "mev", "sandwich", "same-block", "same block"],
+    "flash_loan": ["flash loan", "flashloan", "flash-loan", "atomic", "same transaction"],
+    "oracle_manipulation": [
+        "oracle", "price feed", "chainlink", "twap", "spot price", "price manipulation",
+        "getreserves", "amm", "uniswap", "manipulat"
+    ],
     "logic_error": ["logic", "business logic", "incorrect", "wrong", "bug"],
     "timestamp_dependence": ["timestamp", "block.timestamp", "now"],
     "tx_origin": ["tx.origin", "phishing"],
     "delegatecall": ["delegatecall", "proxy", "storage collision"],
+    # DeFi-specific categories
+    "precision_loss": [
+        "precision", "rounding", "division before multiplication", "truncat",
+        "decimal", "loss of precision"
+    ],
+    "zero_address": ["zero address", "address(0)", "null address", "empty address"],
+    "missing_validation": [
+        "missing validation", "no validation", "missing check", "unchecked input",
+        "input validation"
+    ],
+    "liquidation": ["liquidat", "collateral", "undercollateral", "health factor"],
+    "timelock": ["timelock", "time lock", "delay", "governance", "admin function"],
 }
 
 
@@ -97,7 +115,7 @@ class LLMBugScannerAdapter(ToolAdapter):
         self._cache_dir = Path.home() / ".miesc" / "llmbugscanner_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._ensemble = ensemble or DEFAULT_ENSEMBLE
-        self._consensus_threshold = 0.5  # Minimum weighted consensus for a finding
+        self._consensus_threshold = 0.35  # Minimum weighted consensus for a finding
         self._max_retries = 2
         self._available_models: Set[str] = set()
 
@@ -541,18 +559,41 @@ Respond with ONLY the JSON, no additional text."""
                     finding_groups[key] = []
                 finding_groups[key].append((model_name, finding))
 
+        logger.debug(f"Consensus grouping: {len(finding_groups)} groups from {sum(len(f) for f in all_findings.values())} findings")
+
         # Calculate consensus for each group
         consensus_findings = []
-        for _key, group in finding_groups.items():
+        single_model_findings = []  # Findings from only one model
+
+        for key, group in finding_groups.items():
             # Calculate weighted vote
             models_agreeing = {model_name for model_name, _ in group}
             weighted_vote = sum(weights.get(m, 0) for m in models_agreeing)
             consensus_score = weighted_vote / total_weight if total_weight > 0 else 0
 
+            logger.debug(f"Group '{key}': {len(models_agreeing)} models, score={consensus_score:.2f}")
+
             if consensus_score >= threshold:
                 # Merge findings from group
                 merged = self._merge_findings(group, consensus_score)
                 consensus_findings.append(merged)
+            elif len(models_agreeing) == 1:
+                # Track single-model findings for potential fallback
+                _, finding = group[0]
+                finding_copy = finding.copy()
+                finding_copy["consensus_score"] = consensus_score
+                finding_copy["single_model"] = True
+                single_model_findings.append(finding_copy)
+
+        # Fallback: if no consensus findings, include high-confidence single-model findings
+        if not consensus_findings and single_model_findings:
+            logger.info(f"No consensus reached. Using fallback with {len(single_model_findings)} single-model findings")
+            # Only include CRITICAL/HIGH severity from single models
+            for finding in single_model_findings:
+                severity = finding.get("severity", "").upper()
+                if severity in ("CRITICAL", "HIGH"):
+                    finding["confidence"] = 0.4  # Lower confidence for non-consensus
+                    consensus_findings.append(finding)
 
         # Sort by severity and confidence
         severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
@@ -560,14 +601,21 @@ Respond with ONLY the JSON, no additional text."""
             key=lambda f: (severity_order.get(f.get("severity", "LOW"), 4), -f.get("confidence", 0))
         )
 
+        logger.info(f"Consensus result: {len(consensus_findings)} findings (threshold={threshold})")
         return consensus_findings
 
     def _get_finding_key(self, finding: Dict[str, Any]) -> str:
-        """Generate a key for grouping similar findings."""
-        category = finding.get("category", "unknown")
-        severity = finding.get("severity", "MEDIUM")
-        location = finding.get("location", {}).get("details", "")[:50]
-        return f"{category}:{severity}:{location}"
+        """Generate a key for grouping similar findings.
+
+        Uses normalized category only - severity and location are too variable
+        across models to use for grouping.
+        """
+        # Normalize category using keyword matching
+        category = self._categorize_finding(finding)
+
+        # Only group by category to maximize consensus opportunities
+        # Different models may report different severities for the same issue
+        return category
 
     def _merge_findings(
         self, group: List[Tuple[str, Dict[str, Any]]], consensus_score: float
