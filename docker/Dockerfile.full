@@ -4,9 +4,11 @@
 # This image includes advanced security analysis tools:
 # - Mythril (symbolic execution for Solidity)
 # - Halmos (formal verification / symbolic testing)
-# - Echidna (property-based fuzzer)
-# - Medusa (parallel fuzzer)
-# - PyTorch + GNN libraries (for ML-based detection)
+# - Echidna (property-based fuzzer, x86 only)
+# - Medusa (parallel fuzzer, x86 only)
+# - Wake (Ackee Blockchain's Python testing framework)
+# - PyTorch + GNN libraries (for DAGNN, Peculiar ML models)
+# - scikit-learn (for SmartBugs-ML)
 # - Semgrep (pattern-based analysis)
 #
 # NOTE: Manticore is DEPRECATED due to Python 3.12 incompatibility
@@ -101,6 +103,15 @@ RUN pip install --user --no-cache-dir 'mythril>=0.24.0' && \
 RUN pip install --user --no-cache-dir halmos && \
     echo "Halmos installed successfully"
 
+# ==========================================
+# LAYER 4: FORMAL VERIFICATION / TESTING
+# ==========================================
+
+# Install Wake (Ackee Blockchain's Python-based testing framework)
+# https://getwake.io
+RUN pip install --user --no-cache-dir eth-wake && \
+    echo "Wake (eth-wake) installed successfully"
+
 # NOTE: Manticore is DEPRECATED and NOT installed
 # Reason: pysha3 dependency fails on Python 3.12 (missing pystrhex.h)
 # The Manticore project is in maintenance-only mode
@@ -121,6 +132,12 @@ RUN pip install --user --no-cache-dir \
     torch-geometric \
     networkx \
     && echo "Graph Neural Network libraries installed"
+
+# Install scikit-learn for SmartBugs-ML and other ML adapters
+RUN pip install --user --no-cache-dir \
+    scikit-learn \
+    numpy \
+    && echo "scikit-learn installed for ML adapters"
 
 # Install Semgrep (pattern-based analysis)
 # Has native wheels for both x86 and ARM
