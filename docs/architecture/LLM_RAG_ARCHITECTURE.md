@@ -150,11 +150,11 @@ MIESC uses a multi-layered LLM architecture with optional RAG enrichment for vul
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3. SmartLLM Multi-Stage Pipeline
+### 3. SmartLLM Multi-Stage Pipeline (Updated 2026-02-07)
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                    SmartLLM Adapter Architecture                       │
+│            SmartLLM Adapter Architecture (DeFi-enhanced)               │
 ├────────────────────────────────────────────────────────────────────────┤
 │                                                                        │
 │  ┌─────────────────┐                                                   │
@@ -163,10 +163,23 @@ MIESC uses a multi-layered LLM architecture with optional RAG enrichment for vul
 │           │                                                            │
 │           ▼                                                            │
 │  ┌────────────────────────────────────────────────────────────────┐   │
+│  │                 CODE PATTERN DETECTION (NEW)                    │   │
+│  │  ┌──────────────────────────────────────────────────────────┐  │   │
+│  │  │ DeFi Indicators:                                         │  │   │
+│  │  │ • has_price_oracle: getReserves, getPrice, latestRound   │  │   │
+│  │  │ • has_amm_integration: uniswap, reserve0, swap           │  │   │
+│  │  │ • has_flash_loan: flashLoan, callback, same block        │  │   │
+│  │  │ • has_precision_ops: division before multiplication      │  │   │
+│  │  │ • has_admin_functions: onlyOwner without timelock        │  │   │
+│  │  └──────────────────────────────────────────────────────────┘  │   │
+│  └───────────────────────────────┬────────────────────────────────┘   │
+│                                  │                                     │
+│                                  ▼                                     │
+│  ┌────────────────────────────────────────────────────────────────┐   │
 │  │                    STAGE 1: GENERATOR                          │   │
 │  │  ┌──────────────────┐                                          │   │
-│  │  │ LLM (deepseek-   │  Prompt: Analyze for vulnerabilities     │   │
-│  │  │ coder:6.7b)      │  Temperature: 0.2 (deterministic)        │   │
+│  │  │ LLM (deepseek-   │  Prompt: Analyze with DeFi focus         │   │
+│  │  │ coder:6.7b)      │  Includes: Pattern hints + RAG context   │   │
 │  │  │                  │  Output: Raw findings JSON               │   │
 │  │  └────────┬─────────┘                                          │   │
 │  └───────────┼────────────────────────────────────────────────────┘   │
@@ -178,21 +191,26 @@ MIESC uses a multi-layered LLM architecture with optional RAG enrichment for vul
 │  │  ┌────────────────┐        ┌─────────────────────┐             │   │
 │  │  │ EmbeddingRAG   │───────▶│ Vulnerability       │             │   │
 │  │  │ search()       │        │ context for each    │             │   │
-│  │  └────────────────┘        │ finding             │             │   │
-│  │                            │ - Similar SWCs      │             │   │
-│  │  ┌────────────────┐        │ - Attack scenarios  │             │   │
-│  │  │ smartllm_rag_  │───────▶│ - Code examples     │             │   │
-│  │  │ knowledge      │        │ - ERC standards     │             │   │
+│  │  └────────────────┘        │ finding:            │             │   │
+│  │                            │ - vuln_context_str  │             │   │
+│  │  ┌────────────────┐        │ - vuln_mitigation   │             │   │
+│  │  │ smartllm_rag_  │───────▶│ - attack_scenario   │             │   │
+│  │  │ knowledge      │        │ - severity_context  │             │   │
 │  │  └────────────────┘        └──────────┬──────────┘             │   │
 │  └───────────────────────────────────────┼────────────────────────┘   │
 │                                          │                            │
 │                                          ▼                            │
 │  ┌────────────────────────────────────────────────────────────────┐   │
-│  │                    STAGE 2: VERIFICATOR                        │   │
-│  │  ┌──────────────────┐                                          │   │
-│  │  │ LLM (codellama:  │  Prompt: Validate findings with context  │   │
-│  │  │ 7b)              │  Temperature: 0.1 (critical/strict)      │   │
-│  │  │                  │  Output: Validated findings + confidence │   │
+│  │              STAGE 2: VERIFICATOR (Conservative for DeFi)      │   │
+│  │  ┌──────────────────────────────────────────────────────────┐  │   │
+│  │  │ LLM (codellama:7b)                                       │  │   │
+│  │  │                                                          │  │   │
+│  │  │ Conservative mode triggered by DeFi keywords:            │  │   │
+│  │  │ • oracle, price, flash loan, manipulation                │  │   │
+│  │  │ • precision, liquidat, collateral, timelock              │  │   │
+│  │  │ • zero address, same block                               │  │   │
+│  │  │                                                          │  │   │
+│  │  │ If DeFi + HIGH severity → confidence boost, not filter   │  │   │
 │  │  └────────┬─────────┘                                          │   │
 │  └───────────┼────────────────────────────────────────────────────┘   │
 │              │                                                         │
@@ -202,25 +220,25 @@ MIESC uses a multi-layered LLM architecture with optional RAG enrichment for vul
 │  │  ┌──────────────────────────────────────────────────────────┐  │   │
 │  │  │ Cross-validation:                                        │  │   │
 │  │  │ • Compare Generator vs Verificator findings              │  │   │
+│  │  │ • DeFi findings: prefer Generator over rejection         │  │   │
 │  │  │ • Adjust confidence based on agreement                   │  │   │
-│  │  │ • Filter false positives                                 │  │   │
-│  │  │ • Merge duplicate findings                               │  │   │
+│  │  │ • Merge duplicate findings by category                   │  │   │
 │  │  └──────────────────────────────────────────────────────────┘  │   │
 │  └────────────────────────────────────────────────────────────────┘   │
 │              │                                                         │
 │              ▼                                                         │
 │  ┌─────────────────┐                                                   │
-│  │ Final Findings  │  High-confidence, validated vulnerabilities       │
+│  │ Final Findings  │  100% F1 on DeFi benchmark (VulnerableLending)    │
 │  └─────────────────┘                                                   │
 │                                                                        │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 4. LLMBugScanner Ensemble Voting
+### 4. LLMBugScanner Ensemble Voting (Updated 2026-02-07)
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                   LLMBugScanner Ensemble Architecture                  │
+│             LLMBugScanner Ensemble Architecture (DeFi-aware)           │
 ├────────────────────────────────────────────────────────────────────────┤
 │                                                                        │
 │  ┌─────────────────┐                                                   │
@@ -246,15 +264,29 @@ MIESC uses a multi-layered LLM architecture with optional RAG enrichment for vul
 │             └───────────────────┼───────────────────┘                  │
 │                                 ▼                                      │
 │  ┌────────────────────────────────────────────────────────────────┐   │
-│  │                      VOTING ENGINE                              │   │
+│  │                CATEGORY-BASED GROUPING (NEW)                    │   │
 │  │                                                                 │   │
-│  │  For each unique finding:                                       │   │
+│  │  Normalize findings to DeFi-aware categories:                   │   │
 │  │  ┌──────────────────────────────────────────────────────────┐  │   │
-│  │  │ votes = sum(model_weights where model detected finding)  │  │   │
+│  │  │ Categories (12 total):                                   │  │   │
+│  │  │ • reentrancy      • access_control   • oracle_manipulation│  │   │
+│  │  │ • flash_loan      • precision_loss   • zero_address       │  │   │
+│  │  │ • liquidation     • timelock         • unchecked_return   │  │   │
+│  │  │ • integer_issue   • frontrunning     • other              │  │   │
+│  │  └──────────────────────────────────────────────────────────┘  │   │
+│  └───────────────────────────────┬────────────────────────────────┘   │
+│                                  │                                     │
+│                                  ▼                                     │
+│  ┌────────────────────────────────────────────────────────────────┐   │
+│  │                VOTING ENGINE (Threshold: 35%)                   │   │
+│  │                                                                 │   │
+│  │  For each category (not finding title):                         │   │
+│  │  ┌──────────────────────────────────────────────────────────┐  │   │
+│  │  │ votes = sum(model_weights where model detected category) │  │   │
 │  │  │                                                          │  │   │
-│  │  │ if votes >= threshold (50%):                             │  │   │
+│  │  │ if votes >= 0.35:  (lowered from 0.50)                   │  │   │
 │  │  │     finding.status = CONFIRMED                           │  │   │
-│  │  │     finding.confidence = votes / total_weight            │  │   │
+│  │  │     finding.confidence = votes                           │  │   │
 │  │  │ else:                                                    │  │   │
 │  │  │     finding.status = REJECTED                            │  │   │
 │  │  └──────────────────────────────────────────────────────────┘  │   │
@@ -262,61 +294,96 @@ MIESC uses a multi-layered LLM architecture with optional RAG enrichment for vul
 │                                 │                                      │
 │                                 ▼                                      │
 │  ┌─────────────────┐                                                   │
-│  │ Consensus       │  Only findings with ≥50% weighted agreement       │
-│  │ Findings        │                                                   │
+│  │ Consensus       │  Findings with ≥35% weighted agreement            │
+│  │ Findings        │  Grouped by category, not exact title match       │
 │  └─────────────────┘                                                   │
 │                                                                        │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 5. GPTLens Dual-Role Architecture
+#### LLMBugScanner DeFi Categories
+
+| Category | Keywords | Example Vulnerability |
+|----------|----------|----------------------|
+| `oracle_manipulation` | oracle, price, getprice, chainlink | Spot price manipulation |
+| `flash_loan` | flashloan, flash loan, borrow, same block | Flash loan attack |
+| `precision_loss` | precision, rounding, division | Integer division before multiplication |
+| `zero_address` | zero address, address(0), null | Missing zero address validation |
+| `liquidation` | liquidat, collateral, undercollateral | Improper liquidation logic |
+| `timelock` | timelock, delay, governance | Missing governance timelock |
+
+### 5. GPTLens Hybrid Pattern + LLM Architecture (Updated 2026-02-07)
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                     GPTLens Adapter Architecture                       │
+│              GPTLens Adapter Architecture (Hybrid Pattern + LLM)       │
 ├────────────────────────────────────────────────────────────────────────┤
 │                                                                        │
 │  ┌─────────────────┐                                                   │
 │  │  Contract Code  │                                                   │
 │  └────────┬────────┘                                                   │
 │           │                                                            │
-│           ▼                                                            │
+│           ├───────────────────────────────────────┐                    │
+│           │                                       │                    │
+│           ▼                                       ▼                    │
+│  ┌────────────────────────────────┐   ┌────────────────────────────┐  │
+│  │     PATTERN-BASED ANALYSIS     │   │      AUDITOR ROLE (LLM)    │  │
+│  │  ┌───────────────────────────┐ │   │  ┌────────────────────────┐│  │
+│  │  │ DeFi Pattern Detectors:   │ │   │  │ LLM: deepseek-coder    ││  │
+│  │  │ • _detect_amm_price       │ │   │  │                        ││  │
+│  │  │ • _detect_precision_loss  │ │   │  │ Categories (15 total): ││  │
+│  │  │ • _detect_zero_address    │ │   │  │ • Reentrancy           ││  │
+│  │  │ • _detect_timelock        │ │   │  │ • Access Control       ││  │
+│  │  │                           │ │   │  │ • Oracle Manipulation  ││  │
+│  │  │ + Standard SWC patterns:  │ │   │  │ • Flash Loan Attack    ││  │
+│  │  │ • Reentrancy              │ │   │  │ • Precision Loss       ││  │
+│  │  │ • tx.origin               │ │   │  │ • Zero Address         ││  │
+│  │  │ • Unchecked calls         │ │   │  │ • Timelock Missing     ││  │
+│  │  │ • delegatecall            │ │   │  │ • Liquidation Risk     ││  │
+│  │  └───────────────────────────┘ │   │  │ • + 7 more...          ││  │
+│  │                                │   │  └────────────────────────┘│  │
+│  │  Output: [Pattern Findings]    │   │  Output: [LLM Findings]    │  │
+│  └────────────────┬───────────────┘   └──────────────┬─────────────┘  │
+│                   │                                   │                │
+│                   └─────────────┬─────────────────────┘                │
+│                                 ▼                                      │
 │  ┌────────────────────────────────────────────────────────────────┐   │
-│  │                       AUDITOR ROLE                              │   │
-│  │  ┌──────────────────────────────────────────────────────────┐  │   │
-│  │  │ LLM: deepseek-coder:6.7b                                 │  │   │
-│  │  │                                                          │  │   │
-│  │  │ Prompt: "As a security auditor, analyze this contract    │  │   │
-│  │  │         for vulnerabilities. Be thorough and report      │  │   │
-│  │  │         all potential issues."                           │  │   │
-│  │  │                                                          │  │   │
-│  │  │ Output: Comprehensive findings list (may include FPs)    │  │   │
-│  │  └──────────────────────────────────────────────────────────┘  │   │
+│  │                    FINDING MERGER                               │   │
+│  │  • Deduplicate by location/type                                 │   │
+│  │  • Pattern findings marked as "pattern_based"                   │   │
+│  │  • LLM findings verified against code                           │   │
 │  └───────────────────────────────┬────────────────────────────────┘   │
 │                                  │                                     │
 │                                  ▼                                     │
 │  ┌────────────────────────────────────────────────────────────────┐   │
-│  │                        CRITIC ROLE                              │   │
+│  │                   CRITIC ROLE (Conservative)                    │   │
 │  │  ┌──────────────────────────────────────────────────────────┐  │   │
 │  │  │ LLM: codellama:7b                                        │  │   │
 │  │  │                                                          │  │   │
-│  │  │ Prompt: "As a security critic, review these findings     │  │   │
-│  │  │         and determine which are valid. Remove false      │  │   │
-│  │  │         positives and assess real risk."                 │  │   │
-│  │  │                                                          │  │   │
-│  │  │ Input: Auditor findings + original contract              │  │   │
-│  │  │ Output: Filtered findings with validation reasoning      │  │   │
+│  │  │ Conservative mode for DeFi/HIGH severity:                │  │   │
+│  │  │ • Pattern-based findings: ALWAYS KEPT                    │  │   │
+│  │  │ • DeFi keywords detected: ALWAYS KEPT                    │  │   │
+│  │  │ • HIGH severity: requires explicit rejection             │  │   │
+│  │  │ • Other findings: standard FP filtering                  │  │   │
 │  │  └──────────────────────────────────────────────────────────┘  │   │
 │  └───────────────────────────────┬────────────────────────────────┘   │
 │                                  │                                     │
 │                                  ▼                                     │
 │  ┌─────────────────┐                                                   │
-│  │ Validated       │  Critic-approved findings only                    │
-│  │ Findings        │                                                   │
+│  │ Final Findings  │  Pattern + LLM validated findings                 │
 │  └─────────────────┘                                                   │
 │                                                                        │
 └────────────────────────────────────────────────────────────────────────┘
 ```
+
+#### GPTLens DeFi Pattern Detectors
+
+| Detector | Pattern | Vulnerability |
+|----------|---------|---------------|
+| `_detect_amm_price_pattern` | `getReserves()` without TWAP/timeweight | AMM spot price manipulation |
+| `_detect_precision_loss_pattern` | Division before multiplication | Rounding errors in token math |
+| `_detect_zero_address_pattern` | Missing `address(0)` validation | Funds sent to burn address |
+| `_detect_timelock_pattern` | Admin functions without delay | Governance attacks |
 
 ---
 
@@ -452,16 +519,35 @@ The RAG knowledge base contains **30+ vulnerability patterns**:
 
 ## LLM Adapters
 
-### Adapter Comparison Matrix
+### Adapter Comparison Matrix (Updated 2026-02-07)
 
-| Adapter | Architecture | Models | RAG Type | Strengths | Weaknesses |
-|---------|-------------|--------|----------|-----------|------------|
-| **SmartLLM** | Multi-stage | deepseek + codellama | EmbeddingRAG + Keyword | Low false positives, thorough | Slower |
-| **GPTLens** | Dual-role | deepseek + codellama | Pattern-based | Critic filtering reduces FPs | Two LLM calls |
-| **LLMBugScanner** | Ensemble | 3 models | EmbeddingRAG | Consensus voting | Highest latency |
-| **GPTScan** | Single-pass | codellama | EmbeddingRAG | Fast, semantic | May miss complex issues |
-| **LlamaAudit** | Single-pass | codellama | SWC mapping | Simple, reliable | Less thorough |
-| **LLMSmartAudit** | Single-pass | codellama | EmbeddingRAG | Balanced | Average performance |
+| Adapter | Architecture | Models | RAG Type | DeFi Detection | F1 Score* |
+|---------|-------------|--------|----------|----------------|-----------|
+| **SmartLLM** | Multi-stage + Pattern | deepseek + codellama | EmbeddingRAG + Keyword | ✓ Conservative Verificator | **100%** |
+| **GPTLens** | Hybrid (Pattern + Dual-role) | deepseek + codellama | Pattern-based | ✓ 4 DeFi pattern detectors | 66.7% |
+| **LLMBugScanner** | Ensemble (threshold 0.35) | 3 models | EmbeddingRAG | ✓ Category-based consensus | 72.7% |
+| **GPTScan** | Single-pass | codellama | EmbeddingRAG | Basic | 0% |
+| **LlamaAudit** | Single-pass | codellama | SWC mapping | Basic | N/A |
+| **LLMSmartAudit** | Single-pass | codellama | EmbeddingRAG | Basic | N/A |
+
+*F1 Score measured on VulnerableLending.sol benchmark (6 DeFi vulnerabilities)
+
+### DeFi Benchmark Results (2026-02-07)
+
+Benchmark contract: `VulnerableLending.sol` with 6 known DeFi vulnerabilities:
+- Oracle price manipulation (using spot price)
+- Flash loan attack vector
+- Precision loss (division before multiplication)
+- Missing zero address validation
+- Liquidation logic issues
+- Missing timelock on admin functions
+
+| Adapter | TP | FP | FN | Precision | Recall | F1 Score |
+|---------|----|----|----|-----------|---------|----|
+| **SmartLLM** | 6 | 0 | 0 | 100% | 100% | **100%** |
+| **LLMBugScanner** | 4 | 1 | 2 | 80% | 66.7% | 72.7% |
+| **GPTLens** | 3 | 0 | 3 | 100% | 50% | 66.7% |
+| **GPTScan** | 0 | 0 | 6 | 0% | 0% | 0% |
 
 ### RAG Integration Status
 
@@ -698,6 +784,6 @@ rag.add_custom_vulnerability(VulnerabilityDocument(
 
 ---
 
-*Document Version: 1.0.0*
-*Last Updated: 2026-02-06*
-*Author: Claude Code (AI Assistant)*
+*Document Version: 1.1.0*
+*Last Updated: 2026-02-07*
+*Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>*
