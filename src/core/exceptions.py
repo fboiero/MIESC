@@ -18,8 +18,16 @@ Usage:
     )
 """
 
+import functools
+import logging
+import subprocess
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, TypeVar
+
+logger = logging.getLogger(__name__)
+
+# Type variable for generic decorator
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 class ErrorCode(str, Enum):
@@ -467,6 +475,78 @@ def analysis_timeout(
     )
 
 
+# =============================================================================
+# Error Handling Decorator
+# =============================================================================
+
+
+def handle_adapter_errors(func: F) -> F:
+    """
+    Decorator to handle common adapter errors gracefully.
+
+    Catches specific exceptions and converts them to standardized error responses.
+    This ensures adapters return consistent error formats instead of crashing.
+
+    Usage:
+        from src.core.exceptions import handle_adapter_errors
+
+        class MyAdapter:
+            @handle_adapter_errors
+            def analyze(self, contract_path: str) -> dict:
+                # Your analysis code - exceptions are caught and converted
+                pass
+
+    Returns:
+        dict with status="error" on failure, or the original return value on success
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+        try:
+            return func(*args, **kwargs)
+        except FileNotFoundError as e:
+            logger.error(f"File not found: {e}")
+            return _error_response(ErrorCode.CONTRACT_NOT_FOUND, str(e))
+        except subprocess.TimeoutExpired as e:
+            tool_name = getattr(args[0], "name", "unknown") if args else "unknown"
+            logger.error(f"Tool timeout: {tool_name}")
+            return _error_response(
+                ErrorCode.TOOL_TIMEOUT, f"Tool timed out after {e.timeout}s"
+            )
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Tool execution failed: {e}")
+            stderr = e.stderr[:200] if e.stderr else ""
+            return _error_response(
+                ErrorCode.TOOL_EXECUTION_FAILED,
+                f"Exit code {e.returncode}: {stderr}",
+            )
+        except PermissionError as e:
+            logger.error(f"Permission denied: {e}")
+            return _error_response(ErrorCode.SECURITY_VALIDATION_FAILED, str(e))
+        except OSError as e:
+            logger.error(f"OS error: {e}")
+            return _error_response(ErrorCode.INTERNAL_ERROR, str(e))
+        except MIESCException as e:
+            logger.error(f"MIESC error: {e}")
+            return e.to_dict()
+        except Exception as e:
+            # Last resort - catch-all for truly unexpected errors
+            logger.exception(f"Unexpected error in adapter: {e}")
+            return _error_response(ErrorCode.UNKNOWN_ERROR, str(e))
+
+    return wrapper  # type: ignore
+
+
+def _error_response(error_code: ErrorCode, message: str) -> Dict[str, Any]:
+    """Create standardized error response for adapters."""
+    return {
+        "status": "error",
+        "error_code": error_code.value,
+        "error": message,
+        "findings": [],
+    }
+
+
 __all__ = [
     # Base exception
     "MIESCException",
@@ -485,6 +565,8 @@ __all__ = [
     "tool_not_available",
     "contract_not_found",
     "analysis_timeout",
+    # Decorator
+    "handle_adapter_errors",
     # Installation suggestions
     "TOOL_INSTALL_SUGGESTIONS",
 ]
