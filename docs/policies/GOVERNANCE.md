@@ -1,5 +1,7 @@
 # MIESC Governance
 
+**[Versión en Español](GOVERNANCE_ES.md)**
+
 **MIESC - Multi-layer Intelligent Evaluation for Smart Contracts**
 
 *Version 1.0 - December 2024*

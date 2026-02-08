@@ -1,5 +1,7 @@
 # Privacy Policy
 
+**[Versión en Español](PRIVACY_ES.md)**
+
 **MIESC - Multi-layer Intelligent Evaluation for Smart Contracts**
 
 *Last Updated: December 2024*

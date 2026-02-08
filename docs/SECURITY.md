@@ -1,5 +1,7 @@
 # Security Policy
 
+**[Versión en Español](SECURITY_ES.md)**
+
 **MIESC - Multi-layer Intelligent Evaluation for Smart Contracts**
 
 ---

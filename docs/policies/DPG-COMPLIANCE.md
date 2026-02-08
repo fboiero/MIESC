@@ -1,5 +1,7 @@
 # Digital Public Good Compliance Statement
 
+**[Versión en Español](DPG-COMPLIANCE_ES.md)**
+
 **MIESC - Multi-layer Intelligent Evaluation for Smart Contracts**
 
 [![DPG Standard](https://img.shields.io/badge/DPG%20Standard-v1.1.6-blue)](https://digitalpublicgoods.net/standard/)

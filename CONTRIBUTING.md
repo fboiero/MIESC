@@ -1,5 +1,7 @@
 # Contributing to MIESC
 
+**[Versión en Español](CONTRIBUTING_ES.md)**
+
 Thank you for your interest in contributing to MIESC! This document provides guidelines and instructions for contributing.
 
 ---
