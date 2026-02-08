@@ -7,13 +7,21 @@ Enables loose coupling and avoids vendor lock-in (DPGA requirement).
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 """
 
+import json
 import logging
+import shutil
+import subprocess
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
 
 logger = logging.getLogger(__name__)
+
+# Type for subprocess result
+SubprocessResult = Tuple[int, str, str]  # returncode, stdout, stderr
 
 
 class ToolCategory(Enum):
@@ -247,6 +255,326 @@ print(f"Status: {{status}}")
         OPTIONAL: Prevents configuration errors.
         """
         return True
+
+    # =========================================================================
+    # Helper Methods - Reduce boilerplate in adapters
+    # =========================================================================
+
+    def check_binary_available(
+        self,
+        binary_name: str,
+        version_flag: str = "--version",
+        timeout: int = 10,
+        env: Optional[Dict[str, str]] = None,
+    ) -> ToolStatus:
+        """
+        Check if a binary is available in PATH and working.
+
+        This is a helper method to implement is_available() with less boilerplate.
+
+        Args:
+            binary_name: Name of the binary to check (e.g., "slither", "myth")
+            version_flag: Flag to get version (default: "--version")
+            timeout: Timeout in seconds for the version check
+            env: Optional environment variables
+
+        Returns:
+            ToolStatus indicating availability
+
+        Example:
+            def is_available(self) -> ToolStatus:
+                return self.check_binary_available("slither", "--version")
+        """
+        try:
+            result = subprocess.run(
+                [binary_name, version_flag],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env=env,
+            )
+
+            if result.returncode == 0:
+                version = result.stdout.strip() or result.stderr.strip()
+                logger.info(f"{binary_name} available: {version}")
+                return ToolStatus.AVAILABLE
+            else:
+                logger.warning(f"{binary_name} command found but returned error")
+                return ToolStatus.CONFIGURATION_ERROR
+
+        except FileNotFoundError:
+            logger.info(f"{binary_name} not installed (optional tool)")
+            return ToolStatus.NOT_INSTALLED
+        except subprocess.TimeoutExpired:
+            logger.warning(f"{binary_name} version check timed out")
+            return ToolStatus.CONFIGURATION_ERROR
+        except Exception as e:
+            logger.error(f"Error checking {binary_name} availability: {e}")
+            return ToolStatus.CONFIGURATION_ERROR
+
+    def run_subprocess(
+        self,
+        cmd: List[str],
+        timeout: int = 120,
+        env: Optional[Dict[str, str]] = None,
+        cwd: Optional[str] = None,
+    ) -> SubprocessResult:
+        """
+        Run a subprocess with standard error handling.
+
+        Args:
+            cmd: Command as list of strings
+            timeout: Timeout in seconds (default: 120)
+            env: Optional environment variables
+            cwd: Optional working directory
+
+        Returns:
+            Tuple of (returncode, stdout, stderr)
+
+        Raises:
+            subprocess.TimeoutExpired: If command times out
+            FileNotFoundError: If binary not found
+
+        Example:
+            returncode, stdout, stderr = self.run_subprocess(
+                ["slither", "contract.sol", "--json", "-"],
+                timeout=300
+            )
+        """
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=env,
+            cwd=cwd,
+        )
+        return result.returncode, result.stdout, result.stderr
+
+    def parse_json_safely(self, text: str) -> Tuple[Optional[Any], Optional[str]]:
+        """
+        Safely parse JSON from command output.
+
+        Handles common issues like ANSI codes, BOM, etc.
+
+        Args:
+            text: JSON text to parse
+
+        Returns:
+            Tuple of (parsed_data, error_message)
+            If successful: (data, None)
+            If failed: (None, error_message)
+
+        Example:
+            data, error = self.parse_json_safely(stdout)
+            if error:
+                return {"status": "error", "error": error}
+        """
+        if not text or not text.strip():
+            return None, "Empty output"
+
+        # Remove ANSI escape codes
+        import re
+        clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
+
+        # Remove BOM if present
+        clean_text = clean_text.lstrip('\ufeff')
+
+        # Try to find JSON in the output (some tools mix text with JSON)
+        json_match = re.search(r'[\[{].*[\]}]', clean_text, re.DOTALL)
+        if json_match:
+            clean_text = json_match.group()
+
+        try:
+            return json.loads(clean_text), None
+        except json.JSONDecodeError as e:
+            return None, f"JSON parse error: {e}"
+
+    def normalize_severity(
+        self,
+        severity: str,
+        severity_map: Optional[Dict[str, str]] = None,
+    ) -> str:
+        """
+        Normalize severity to MIESC standard levels.
+
+        MIESC standard levels: Critical, High, Medium, Low, Info
+
+        Args:
+            severity: Original severity string from tool
+            severity_map: Optional custom mapping. If None, uses default mapping.
+
+        Returns:
+            Normalized severity string
+
+        Example:
+            severity = self.normalize_severity(raw_severity, self.SEVERITY_MAP)
+        """
+        default_map = {
+            # Common variations
+            "critical": "Critical",
+            "high": "High",
+            "medium": "Medium",
+            "low": "Low",
+            "info": "Info",
+            "informational": "Info",
+            "information": "Info",
+            "warning": "Medium",
+            "warn": "Medium",
+            "note": "Info",
+            "optimization": "Info",
+            "gas": "Info",
+            "nc": "Info",  # Non-Critical
+            "suggestion": "Info",
+        }
+
+        if severity_map:
+            # Merge custom map with defaults (custom takes priority)
+            full_map = {**default_map, **{k.lower(): v for k, v in severity_map.items()}}
+        else:
+            full_map = default_map
+
+        normalized = full_map.get(severity.lower(), "Info")
+        return normalized
+
+    def create_finding(
+        self,
+        finding_id: str,
+        finding_type: str,
+        severity: str,
+        message: str,
+        file_path: str = "",
+        line: int = 0,
+        function: str = "",
+        confidence: float = 0.8,
+        description: str = "",
+        recommendation: str = "",
+        swc_id: Optional[str] = None,
+        cwe_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Create a normalized finding dictionary.
+
+        Helper to ensure all findings have consistent structure.
+
+        Args:
+            finding_id: Unique identifier for the finding
+            finding_type: Type of vulnerability (e.g., "reentrancy")
+            severity: Severity level (will be normalized)
+            message: Short description of the issue
+            file_path: Path to the affected file
+            line: Line number (0 if unknown)
+            function: Function name (empty if unknown)
+            confidence: Confidence score 0.0-1.0
+            description: Detailed description
+            recommendation: How to fix the issue
+            swc_id: Optional SWC identifier (e.g., "SWC-107")
+            cwe_id: Optional CWE identifier (e.g., "CWE-841")
+
+        Returns:
+            Normalized finding dictionary
+        """
+        return {
+            "id": finding_id,
+            "type": finding_type,
+            "severity": self.normalize_severity(severity),
+            "confidence": max(0.0, min(1.0, confidence)),
+            "location": {
+                "file": file_path,
+                "line": line,
+                "function": function,
+            },
+            "message": message,
+            "description": description or message,
+            "recommendation": recommendation,
+            "swc_id": swc_id,
+            "cwe_id": cwe_id,
+        }
+
+    def create_result(
+        self,
+        status: str = "success",
+        findings: Optional[List[Dict[str, Any]]] = None,
+        error: Optional[str] = None,
+        execution_time: float = 0.0,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Create a normalized result dictionary.
+
+        Helper to ensure all analyze() results have consistent structure.
+
+        Args:
+            status: "success" or "error"
+            findings: List of normalized findings
+            error: Error message if status is "error"
+            execution_time: Time taken for analysis
+            metadata: Additional tool-specific metadata
+
+        Returns:
+            Normalized result dictionary
+        """
+        tool_metadata = self.get_metadata()
+        return {
+            "tool": tool_metadata.name,
+            "version": tool_metadata.version,
+            "status": status,
+            "findings": findings or [],
+            "metadata": metadata or {},
+            "execution_time": execution_time,
+            "error": error,
+        }
+
+    def find_binary(
+        self,
+        binary_name: str,
+        priority_paths: Optional[List[str]] = None,
+        version_flag: str = "--version",
+    ) -> str:
+        """
+        Find the best binary path, preferring user installations.
+
+        Args:
+            binary_name: Name of the binary to find
+            priority_paths: Optional list of paths to check first
+            version_flag: Flag to verify the binary works
+
+        Returns:
+            Path to the binary (or just binary_name if not found in priority paths)
+
+        Example:
+            slither_path = self.find_binary(
+                "slither",
+                priority_paths=[
+                    os.path.expanduser("~/.local/bin/slither"),
+                    os.path.expanduser("~/Library/Python/3.11/bin/slither"),
+                ]
+            )
+        """
+        # Check priority paths first
+        if priority_paths:
+            for path in priority_paths:
+                if path and Path(path).is_file() and Path(path).stat().st_mode & 0o111:
+                    try:
+                        result = subprocess.run(
+                            [path, version_flag],
+                            capture_output=True,
+                            text=True,
+                            timeout=5,
+                        )
+                        if result.returncode == 0:
+                            logger.debug(f"Found {binary_name} at priority path: {path}")
+                            return path
+                    except Exception:
+                        continue
+
+        # Fall back to shutil.which (PATH-based lookup)
+        which_path = shutil.which(binary_name)
+        if which_path:
+            return which_path
+
+        # Default to binary name and let caller handle if not found
+        return binary_name
 
 
 class ToolRegistry:
