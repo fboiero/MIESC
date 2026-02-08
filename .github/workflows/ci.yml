@@ -43,6 +43,33 @@ jobs:
         run: ruff check src/ tests/ --select I001
 
   # =============================================================================
+  # Type Checking
+  # =============================================================================
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+          pip install mypy types-PyYAML types-requests
+
+      - name: Run mypy
+        run: mypy src/ miesc/ --ignore-missing-imports
+        continue-on-error: true  # TODO: Remove after fixing type errors
+
+  # =============================================================================
   # Unit Tests
   # =============================================================================
   test:
@@ -207,6 +234,18 @@ jobs:
           else
             echo "No mkdocs.yml found, skipping docs build"
           fi
+        continue-on-error: true
+
+      - name: Set up Node.js for link checker
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check documentation links
+        run: |
+          npm install -g markdown-link-check
+          find docs -name "*.md" -print0 | xargs -0 -n1 markdown-link-check --quiet || true
+          markdown-link-check README.md --quiet || true
         continue-on-error: true
 
   # =============================================================================

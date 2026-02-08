@@ -232,7 +232,9 @@ ignore = [
 python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -392,5 +394,5 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
 ]
-fail_under = 55
+fail_under = 70
 show_missing = true
