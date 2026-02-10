@@ -219,15 +219,15 @@ def main():
     """Test the adapter."""
     adapter = AdvancedDetectorAdapter()
 
-    print("\n" + "=" * 60)
-    print("  MIESC Advanced Detector Adapter")
-    print("=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201
+    print("  MIESC Advanced Detector Adapter")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     info = adapter.get_detector_info()
-    print(f"\nLayer: {info['layer']}")
-    print(f"Detectors: {len(info['detectors'])}")
+    print(f"\nLayer: {info['layer']}")  # noqa: T201
+    print(f"Detectors: {len(info['detectors'])}")  # noqa: T201
     for d in info["detectors"]:
-        print(f"  - {d}")
+        print(f"  - {d}")  # noqa: T201
 
     # Test with sample code
     sample = """
@@ -251,19 +251,19 @@ def main():
     }
     """
 
-    print("\n" + "-" * 60)
-    print("  Testing with sample contract")
-    print("-" * 60)
+    print("\n" + "-" * 60)  # noqa: T201
+    print("  Testing with sample contract")  # noqa: T201
+    print("-" * 60)  # noqa: T201
 
     result = adapter.analyze_source(sample)
 
     if result["success"]:
-        print(f"\nFindings: {len(result['findings'])}")
+        print(f"\nFindings: {len(result['findings'])}")  # noqa: T201
         for f in result["findings"]:
-            print(f"  [{f['severity']}] {f['title']}")
-        print(f"\nSummary: {result['summary']}")
+            print(f"  [{f['severity']}] {f['title']}")  # noqa: T201
+        print(f"\nSummary: {result['summary']}")  # noqa: T201
     else:
-        print(f"Error: {result['error']}")
+        print(f"Error: {result['error']}")  # noqa: T201
 
 
 if __name__ == "__main__":

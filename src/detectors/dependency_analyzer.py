@@ -402,28 +402,28 @@ def main():
     analyzer = DependencyAnalyzer()
     findings = analyzer.analyze(test_contract)
 
-    print("\n" + "=" * 60)
-    print("  MIESC Dependency Security Analysis")
-    print("=" * 60 + "\n")
+    print("\n" + "=" * 60)  # noqa: T201
+    print("  MIESC Dependency Security Analysis")  # noqa: T201
+    print("=" * 60 + "\n")  # noqa: T201
 
     for i, finding in enumerate(findings, 1):
-        print(f"{i}. [{finding.severity.value.upper()}] {finding.title}")
-        print(f"   Package: {finding.package}")
+        print(f"{i}. [{finding.severity.value.upper()}] {finding.title}")  # noqa: T201
+        print(f"   Package: {finding.package}")  # noqa: T201
         if finding.line:
-            print(f"   Line: {finding.line}")
+            print(f"   Line: {finding.line}")  # noqa: T201
         if finding.cve:
-            print(f"   CVE: {finding.cve}")
-        print(f"   {finding.description}")
-        print(f"   Recommendation: {finding.recommendation}")
-        print()
+            print(f"   CVE: {finding.cve}")  # noqa: T201
+        print(f"   {finding.description}")  # noqa: T201
+        print(f"   Recommendation: {finding.recommendation}")  # noqa: T201
+        print()  # noqa: T201
 
     summary = analyzer.get_summary(findings)
-    print("-" * 60)
-    print(f"Total Findings: {summary['total']}")
-    print(f"By Severity: {summary['by_severity']}")
-    print(f"By Package: {summary['by_package']}")
+    print("-" * 60)  # noqa: T201
+    print(f"Total Findings: {summary['total']}")  # noqa: T201
+    print(f"By Severity: {summary['by_severity']}")  # noqa: T201
+    print(f"By Package: {summary['by_package']}")  # noqa: T201
     if summary["cves"]:
-        print(f"CVEs: {summary['cves']}")
+        print(f"CVEs: {summary['cves']}")  # noqa: T201
 
 
 if __name__ == "__main__":

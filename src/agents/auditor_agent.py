@@ -554,25 +554,22 @@ class AutonomousAuditorAgent(BaseAgent):
             context = await self._initialize_context(contract_path)
 
         if self.verbose:
-            print(f"\n{'='*60}")
-            print("MIESC Autonomous Auditor - Starting Audit")
-            print(f"Contract: {contract_path}")
-            print(f"{'='*60}\n")
+            logger.info(f"MIESC Autonomous Auditor - Starting Audit: {contract_path}")
 
         # Execute each step
         for step in self.AUDIT_STEPS:
             if step in context.completed_steps:
                 if self.verbose:
-                    print(f"[SKIP] {step.value} (already completed)")
+                    logger.debug(f"[SKIP] {step.value} (already completed)")
                 continue
 
             if skip_steps and step in skip_steps:
                 if self.verbose:
-                    print(f"[SKIP] {step.value} (user requested)")
+                    logger.debug(f"[SKIP] {step.value} (user requested)")
                 continue
 
             if self.verbose:
-                print(f"\n[STEP] {step.value}...")
+                logger.debug(f"[STEP] {step.value}...")
 
             step_start = time.time()
             context.current_step = step
@@ -588,12 +585,10 @@ class AutonomousAuditorAgent(BaseAgent):
                     await self._save_checkpoint(context)
 
                 if self.verbose:
-                    print(f"[DONE] {step.value} ({time.time() - step_start:.1f}s)")
+                    logger.debug(f"[DONE] {step.value} ({time.time() - step_start:.1f}s)")
 
             except Exception as e:
                 logger.error(f"Step {step.value} failed: {e}", exc_info=True)
-                if self.verbose:
-                    print(f"[ERROR] {step.value}: {e}")
                 # Continue with next step on error
                 context.metadata[f"{step.value}_error"] = str(e)
 
@@ -601,12 +596,10 @@ class AutonomousAuditorAgent(BaseAgent):
         report = self._generate_report(context, time.time() - start_time)
 
         if self.verbose:
-            print(f"\n{'='*60}")
-            print("Audit Complete!")
-            print(f"Findings: {sum(report.findings_by_severity.values())}")
-            print(f"Risk Score: {report.risk_score:.1f}/100")
-            print(f"Time: {report.execution_time_ms/1000:.1f}s")
-            print(f"{'='*60}\n")
+            logger.info(
+                f"Audit Complete! Findings: {sum(report.findings_by_severity.values())}, "
+                f"Risk Score: {report.risk_score:.1f}/100, Time: {report.execution_time_ms/1000:.1f}s"
+            )
 
         return report
 

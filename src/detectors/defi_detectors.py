@@ -570,24 +570,24 @@ def main():
     engine = DeFiDetectorEngine()
     findings = engine.analyze(test_contract)
 
-    print("\n" + "=" * 60)
-    print("  MIESC DeFi Vulnerability Scanner Results")
-    print("=" * 60 + "\n")
+    print("\n" + "=" * 60)  # noqa: T201
+    print("  MIESC DeFi Vulnerability Scanner Results")  # noqa: T201
+    print("=" * 60 + "\n")  # noqa: T201
 
     for i, finding in enumerate(findings, 1):
-        print(f"{i}. [{finding.severity.value.upper()}] {finding.title}")
-        print(f"   Category: {finding.category.value}")
+        print(f"{i}. [{finding.severity.value.upper()}] {finding.title}")  # noqa: T201
+        print(f"   Category: {finding.category.value}")  # noqa: T201
         if finding.line:
-            print(f"   Line: {finding.line}")
-        print(f"   {finding.description}")
-        print(f"   Recommendation: {finding.recommendation}")
-        print()
+            print(f"   Line: {finding.line}")  # noqa: T201
+        print(f"   {finding.description}")  # noqa: T201
+        print(f"   Recommendation: {finding.recommendation}")  # noqa: T201
+        print()  # noqa: T201
 
     summary = engine.get_summary(findings)
-    print("-" * 60)
-    print(f"Total Findings: {summary['total']}")
-    print(f"By Severity: {summary['by_severity']}")
-    print(f"By Category: {summary['by_category']}")
+    print("-" * 60)  # noqa: T201
+    print(f"Total Findings: {summary['total']}")  # noqa: T201
+    print(f"By Severity: {summary['by_severity']}")  # noqa: T201
+    print(f"By Category: {summary['by_category']}")  # noqa: T201
 
 
 if __name__ == "__main__":
