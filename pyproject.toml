@@ -170,6 +170,7 @@ packages = [
     "miesc.core",
     "miesc.api",
     "miesc.cli",
+    "miesc.cli.commands",
     "miesc.adapters",
     "miesc.agents",
     "miesc.security",

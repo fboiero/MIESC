@@ -7,14 +7,13 @@ A professional CLI for smart contract security audits targeting:
 - Security Researchers: Deep analysis, custom configurations
 - Auditors: Full reports, compliance mapping
 
-Integrates 32 security tools across 9 defense layers.
+Integrates 50 security tools across 9 defense layers.
 
 Author: Fernando Boiero
 Institution: UNDEF - IUA Cordoba
 License: AGPL-3.0
 """
 
-import importlib
 import json
 import logging
 import os
@@ -33,7 +32,36 @@ sys.path.insert(0, str(ROOT_DIR))
 # Import version from package
 from miesc import __version__ as VERSION  # noqa: E402
 
-# Try to import Rich for beautiful output
+# Import from refactored modules
+from miesc.cli.constants import (  # noqa: E402
+    ADAPTER_MAP,
+    AVAILABLE_PROFILES,
+    BANNER,
+    LAYERS,
+    QUICK_TOOLS,
+)
+from miesc.cli.utils import (  # noqa: E402
+    AdapterLoader,
+    configure_logging,
+    error,
+    get_correlation_api,
+    get_ml_orchestrator,
+    get_profile,
+    get_root_dir,
+    info,
+    load_config,
+    load_profiles,
+    print_banner,
+    run_layer,
+    run_tool,
+    success,
+    summarize_findings,
+    warning,
+)
+from miesc.cli.utils import RICH_AVAILABLE, YAML_AVAILABLE  # noqa: E402
+from miesc.cli.utils import console  # noqa: E402
+
+# Try to import Rich for beautiful output (needed for direct usage in this module)
 try:
     from rich import box
     from rich.console import Console
@@ -42,547 +70,33 @@ try:
     from rich.table import Table
     from rich.text import Text
     from rich.tree import Tree
-
-    RICH_AVAILABLE = True
-    console = Console()
 except ImportError:
-    RICH_AVAILABLE = False
-    console = None
+    pass
 
-# Try to import YAML for config
+# Try to import YAML for config (needed for direct usage in this module)
 try:
     import yaml
-
-    YAML_AVAILABLE = True
 except ImportError:
-    YAML_AVAILABLE = False
-
-# Lazy import for centralized logging (avoid heavy src.core imports at startup)
-LOGGING_AVAILABLE = None  # Will be set on first use
-_setup_logging = None
-
-# Lazy imports for ML/Correlation (v4.2.0+)
-ML_ORCHESTRATOR_AVAILABLE = None
-_MLOrchestrator = None
-_MIESCCorrelationAPI = None
+    pass
 
 # Configure logging (will be reconfigured by setup_logging if available)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def configure_logging(debug: bool = False, quiet: bool = False):
-    """Configure logging based on flags and environment variables."""
-    global LOGGING_AVAILABLE, _setup_logging
-
-    # Check environment variable
-    env_debug = os.environ.get("MIESC_DEBUG", "").lower() in ("1", "true", "yes")
-    env_level = os.environ.get("MIESC_LOG_LEVEL", "").upper()
-
-    # Determine log level
-    if debug or env_debug:
-        level = "DEBUG"
-    elif env_level:
-        level = env_level
-    else:
-        level = "INFO"
-
-    # Lazy import of centralized logging
-    if LOGGING_AVAILABLE is None:
-        try:
-            from src.core.logging_config import setup_logging
-
-            _setup_logging = setup_logging
-            LOGGING_AVAILABLE = True
-        except ImportError:
-            LOGGING_AVAILABLE = False
-
-    if LOGGING_AVAILABLE and _setup_logging:
-        _setup_logging(level=level, quiet=quiet)
-        logger.debug(f"Logging configured with level={level}")
-    else:
-        logging.basicConfig(level=getattr(logging, level, logging.INFO))
-        logger.debug(f"Basic logging configured with level={level}")
-
-
-def get_ml_orchestrator():
-    """Lazy load MLOrchestrator for ML-enhanced analysis."""
-    global ML_ORCHESTRATOR_AVAILABLE, _MLOrchestrator
-
-    if ML_ORCHESTRATOR_AVAILABLE is None:
-        try:
-            from src.core.ml_orchestrator import MLOrchestrator
-
-            _MLOrchestrator = MLOrchestrator
-            ML_ORCHESTRATOR_AVAILABLE = True
-            logger.debug("MLOrchestrator loaded successfully")
-        except ImportError as e:
-            logger.debug(f"MLOrchestrator not available: {e}")
-            ML_ORCHESTRATOR_AVAILABLE = False
-
-    if ML_ORCHESTRATOR_AVAILABLE and _MLOrchestrator:
-        return _MLOrchestrator()
-    return None
-
-
-def get_correlation_api():
-    """Lazy load MIESCCorrelationAPI for intelligent correlation."""
-    global _MIESCCorrelationAPI
-
-    if _MIESCCorrelationAPI is None:
-        try:
-            from src.core.correlation_api import MIESCCorrelationAPI
-
-            _MIESCCorrelationAPI = MIESCCorrelationAPI
-            logger.debug("MIESCCorrelationAPI loaded successfully")
-        except ImportError as e:
-            logger.debug(f"MIESCCorrelationAPI not available: {e}")
-            return None
-
-    if _MIESCCorrelationAPI:
-        return _MIESCCorrelationAPI()
-    return None
-
-
-# Version and banner
-BANNER = r"""
-  __  __ ___ _____ ____   ____
- |  \/  |_ _| ____/ ___| / ___|
- | |\/| || ||  _| \___ \| |
- | |  | || || |___ ___) | |___
- |_|  |_|___|_____|____/ \____|
-"""
-
-
-# ============================================================================
-# Layer and Tool Definitions
-# ============================================================================
-
-# Complete 9-layer architecture with 50 tools
-LAYERS = {
-    1: {
-        "name": "Static Analysis",
-        "description": "Pattern-based code analysis",
-        "tools": ["slither", "aderyn", "solhint", "wake", "semgrep", "fouranalyzer"],
-    },
-    2: {
-        "name": "Dynamic Testing",
-        "description": "Fuzzing and property testing",
-        "tools": ["echidna", "medusa", "foundry", "dogefuzz", "vertigo", "hardhat"],
-    },
-    3: {
-        "name": "Symbolic Execution",
-        "description": "Path exploration and constraint solving",
-        "tools": ["mythril", "manticore", "halmos", "oyente", "pakala"],
-    },
-    4: {
-        "name": "Formal Verification",
-        "description": "Mathematical proofs of correctness",
-        "tools": ["certora", "smtchecker", "propertygpt", "scribble", "solcmc"],
-    },
-    5: {
-        "name": "AI Analysis",
-        "description": "LLM-powered vulnerability detection",
-        "tools": ["smartllm", "gptscan", "llmsmartaudit", "gptlens", "llamaaudit", "iaudit"],
-    },
-    6: {
-        "name": "ML Detection",
-        "description": "Machine learning classifiers",
-        "tools": ["dagnn", "smartbugs_ml", "smartbugs_detector", "smartguard", "peculiar"],
-    },
-    7: {
-        "name": "Specialized Analysis",
-        "description": "Domain-specific security checks",
-        "tools": [
-            "threat_model",
-            "gas_analyzer",
-            "mev_detector",
-            "contract_clone_detector",
-            "defi",
-            "advanced_detector",
-            "upgradability_checker",
-        ],
-    },
-    8: {
-        "name": "Cross-Chain & ZK Security",
-        "description": "Bridge security and zero-knowledge circuit analysis",
-        "tools": ["crosschain", "zk_circuit", "bridge_monitor", "l2_validator", "circom_analyzer"],
-    },
-    9: {
-        "name": "Advanced AI Ensemble",
-        "description": "Multi-LLM ensemble with consensus-based detection",
-        "tools": [
-            "llmbugscanner",
-            "audit_consensus",
-            "exploit_synthesizer",
-            "vuln_verifier",
-            "remediation_validator",
-        ],
-    },
-}
-
-# Quick scan tools (fast, high-value)
-QUICK_TOOLS = ["slither", "aderyn", "solhint", "mythril"]
-
-# Adapter class mapping (tool name -> adapter class name)
-ADAPTER_MAP = {
-    # Layer 1: Static Analysis
-    "slither": "SlitherAdapter",
-    "aderyn": "AderynAdapter",
-    "solhint": "SolhintAdapter",
-    "wake": "WakeAdapter",
-    "semgrep": "SemgrepAdapter",
-    "fouranalyzer": "FourAnalyzerAdapter",
-    # Layer 2: Dynamic Testing
-    "echidna": "EchidnaAdapter",
-    "medusa": "MedusaAdapter",
-    "foundry": "FoundryAdapter",
-    "dogefuzz": "DogeFuzzAdapter",
-    "vertigo": "VertigoAdapter",
-    "hardhat": "HardhatAdapter",
-    # Layer 3: Symbolic Execution
-    "mythril": "MythrilAdapter",
-    "manticore": "ManticoreAdapter",
-    "halmos": "HalmosAdapter",
-    "oyente": "OyenteAdapter",
-    "pakala": "PakalaAdapter",
-    # Layer 4: Formal Verification
-    "certora": "CertoraAdapter",
-    "smtchecker": "SMTCheckerAdapter",
-    "propertygpt": "PropertyGPTAdapter",
-    "scribble": "ScribbleAdapter",
-    "solcmc": "SolCMCAdapter",
-    # Layer 5: AI Analysis
-    "smartllm": "SmartLLMAdapter",
-    "gptscan": "GPTScanAdapter",
-    "llmsmartaudit": "LLMSmartAuditAdapter",
-    "gptlens": "GPTLensAdapter",
-    "llamaaudit": "LlamaAuditAdapter",
-    "iaudit": "IAuditAdapter",
-    # Layer 6: ML Detection
-    "dagnn": "DAGNNAdapter",
-    "smartbugs_ml": "SmartBugsMLAdapter",
-    "smartbugs_detector": "SmartBugsDetectorAdapter",
-    "smartguard": "SmartGuardAdapter",
-    "peculiar": "PeculiarAdapter",
-    # Layer 7: Specialized Analysis
-    "threat_model": "ThreatModelAdapter",
-    "gas_analyzer": "GasAnalyzerAdapter",
-    "mev_detector": "MEVDetectorAdapter",
-    "contract_clone_detector": "ContractCloneDetectorAdapter",
-    "defi": "DeFiAdapter",
-    "advanced_detector": "AdvancedDetectorAdapter",
-    "upgradability_checker": "UpgradabilityCheckerAdapter",
-    # Layer 8: Cross-Chain & ZK Security
-    "crosschain": "CrossChainAdapter",
-    "zk_circuit": "ZKCircuitAdapter",
-    "bridge_monitor": "BridgeMonitorAdapter",
-    "l2_validator": "L2ValidatorAdapter",
-    "circom_analyzer": "CircomAnalyzerAdapter",
-    # Layer 9: Advanced AI Ensemble
-    "llmbugscanner": "LLMBugScannerAdapter",
-    "audit_consensus": "AuditConsensusAdapter",
-    "exploit_synthesizer": "ExploitSynthesizerAdapter",
-    "vuln_verifier": "VulnVerifierAdapter",
-    "remediation_validator": "RemediationValidatorAdapter",
-}
-
-
-# ============================================================================
-# Adapter Loader
-# ============================================================================
-
-
-class AdapterLoader:
-    """Dynamic loader for tool adapters."""
-
-    _adapters: Dict[str, Any] = {}
-    _loaded = False
-
-    @classmethod
-    def load_all(cls) -> Dict[str, Any]:
-        """Load all available adapters from src/adapters/."""
-        if cls._loaded:
-            return cls._adapters
-
-        adapters_dir = ROOT_DIR / "src" / "adapters"
-
-        for tool_name, class_name in ADAPTER_MAP.items():
-            try:
-                # Build module name
-                module_name = f"src.adapters.{tool_name}_adapter"
-
-                # Try to import module
-                module = importlib.import_module(module_name)
-
-                # Get adapter class
-                adapter_class = getattr(module, class_name, None)
-
-                if adapter_class:
-                    # Instantiate adapter
-                    cls._adapters[tool_name] = adapter_class()
-                    logger.debug(f"Loaded adapter: {tool_name}")
-                else:
-                    logger.debug(f"Class {class_name} not found in {module_name}")
-
-            except ImportError as e:
-                logger.debug(f"Could not import {tool_name}: {e}")
-            except Exception as e:
-                logger.debug(f"Error loading {tool_name}: {e}")
-
-        cls._loaded = True
-        logger.info(f"Loaded {len(cls._adapters)} adapters")
-        return cls._adapters
-
-    @classmethod
-    def get_adapter(cls, tool_name: str):
-        """Get a specific adapter by name."""
-        if not cls._loaded:
-            cls.load_all()
-        return cls._adapters.get(tool_name)
-
-    @classmethod
-    def get_available_tools(cls) -> List[str]:
-        """Get list of tools with available adapters."""
-        if not cls._loaded:
-            cls.load_all()
-        return list(cls._adapters.keys())
-
-    @classmethod
-    def check_tool_status(cls, tool_name: str) -> Dict[str, Any]:
-        """Check if a tool is installed and available."""
-        adapter = cls.get_adapter(tool_name)
-        if not adapter:
-            return {"status": "no_adapter", "available": False}
-
-        try:
-            # Import ToolStatus enum
-            from src.core.tool_protocol import ToolStatus
-
-            status = adapter.is_available()
-            return {
-                "status": status.value if hasattr(status, "value") else str(status),
-                "available": status == ToolStatus.AVAILABLE,
-            }
-        except Exception as e:
-            return {"status": "error", "available": False, "error": str(e)}
-
-
-# ============================================================================
-# Output Helpers
-# ============================================================================
-
-
-def print_banner():
-    """Print the MIESC banner."""
-    if RICH_AVAILABLE:
-        console.print(Text(BANNER, style="bold blue"))
-        console.print(
-            f"[cyan]v{VERSION}[/cyan] - Multi-layer Intelligent Evaluation for Smart Contracts"
-        )
-        console.print("[dim]9 Defense Layers | 50 Security Tools | AI-Powered Analysis[/dim]\n")
-    else:
-        print(BANNER)
-        print(f"v{VERSION} - Multi-layer Intelligent Evaluation for Smart Contracts")
-        print("9 Defense Layers | 50 Security Tools | AI-Powered Analysis\n")
-
-
-def success(msg: str):
-    """Print success message."""
-    if RICH_AVAILABLE:
-        console.print(f"[green]OK[/green] {msg}")
-    else:
-        print(f"[OK] {msg}")
-
-
-def error(msg: str):
-    """Print error message."""
-    if RICH_AVAILABLE:
-        console.print(f"[red]ERR[/red] {msg}")
-    else:
-        print(f"[ERR] {msg}")
-
-
-def warning(msg: str):
-    """Print warning message."""
-    if RICH_AVAILABLE:
-        console.print(f"[yellow]WARN[/yellow] {msg}")
-    else:
-        print(f"[WARN] {msg}")
-
-
-def info(msg: str):
-    """Print info message."""
-    if RICH_AVAILABLE:
-        console.print(f"[cyan]INFO[/cyan] {msg}")
-    else:
-        print(f"[INFO] {msg}")
-
-
-def load_config() -> Dict[str, Any]:
-    """Load MIESC configuration from config/miesc.yaml."""
-    config_path = ROOT_DIR / "config" / "miesc.yaml"
-    if config_path.exists() and YAML_AVAILABLE:
-        with open(config_path) as f:
-            return yaml.safe_load(f) or {}
-    return {}
-
-
-def load_profiles() -> Dict[str, Any]:
-    """Load analysis profiles from config/profiles.yaml."""
-    profiles_path = ROOT_DIR / "config" / "profiles.yaml"
-    if profiles_path.exists() and YAML_AVAILABLE:
-        with open(profiles_path) as f:
-            data = yaml.safe_load(f) or {}
-            return data.get("profiles", {})
-    return {}
-
-
-def get_profile(name: str) -> Optional[Dict[str, Any]]:
-    """Get a specific profile by name, handling aliases."""
-    profiles = load_profiles()
-    profiles_path = ROOT_DIR / "config" / "profiles.yaml"
-
-    if profiles_path.exists() and YAML_AVAILABLE:
-        with open(profiles_path) as f:
-            data = yaml.safe_load(f) or {}
-            aliases = data.get("aliases", {})
-            # Resolve alias
-            resolved_name = aliases.get(name, name)
-            return profiles.get(resolved_name)
-
-    return profiles.get(name)
-
-
-# Available profiles for CLI help
-AVAILABLE_PROFILES = ["fast", "balanced", "thorough", "security", "ci", "audit", "defi", "token"]
-
-
-# ============================================================================
-# Tool Execution
-# ============================================================================
-
-
-def _run_tool(tool: str, contract: str, timeout: int = 300, **kwargs) -> Dict[str, Any]:
-    """
-    Run a security tool using its adapter.
-
-    Args:
-        tool: Tool name (e.g., 'slither', 'mythril')
-        contract: Path to Solidity contract
-        timeout: Timeout in seconds
-        **kwargs: Additional tool-specific parameters
-
-    Returns:
-        Normalized results dictionary
-    """
-    start_time = datetime.now()
-
-    # Get adapter for tool
-    adapter = AdapterLoader.get_adapter(tool)
-
-    if not adapter:
-        return {
-            "tool": tool,
-            "contract": contract,
-            "status": "no_adapter",
-            "findings": [],
-            "execution_time": 0,
-            "timestamp": datetime.now().isoformat(),
-            "error": f"No adapter found for {tool}",
-        }
-
-    try:
-        # Check if tool is available
-        from src.core.tool_protocol import ToolStatus
-
-        status = adapter.is_available()
-
-        if status != ToolStatus.AVAILABLE:
-            return {
-                "tool": tool,
-                "contract": contract,
-                "status": "not_available",
-                "findings": [],
-                "execution_time": (datetime.now() - start_time).total_seconds(),
-                "timestamp": datetime.now().isoformat(),
-                "error": f"Tool {tool} not available: {status.value}",
-            }
-
-        # Run analysis
-        result = adapter.analyze(contract, timeout=timeout, **kwargs)
-
-        # Ensure consistent output format
-        return {
-            "tool": tool,
-            "contract": contract,
-            "status": result.get("status", "success"),
-            "findings": result.get("findings", []),
-            "execution_time": result.get(
-                "execution_time", (datetime.now() - start_time).total_seconds()
-            ),
-            "timestamp": datetime.now().isoformat(),
-            "metadata": result.get("metadata", {}),
-            "error": result.get("error"),
-        }
-
-    except Exception as e:
-        logger.error(f"Error running {tool}: {e}", exc_info=True)
-        return {
-            "tool": tool,
-            "contract": contract,
-            "status": "error",
-            "findings": [],
-            "execution_time": (datetime.now() - start_time).total_seconds(),
-            "timestamp": datetime.now().isoformat(),
-            "error": str(e),
-        }
-
-
-def _run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
-    """Run all tools in a specific layer."""
-    if layer not in LAYERS:
-        return []
-
-    results = []
-    layer_info = LAYERS[layer]
-
-    for tool in layer_info["tools"]:
-        info(f"Running {tool}...")
-        result = _run_tool(tool, contract, timeout)
-        results.append(result)
-
-        if result["status"] == "success":
-            findings_count = len(result.get("findings", []))
-            success(f"{tool}: {findings_count} findings in {result.get('execution_time', 0):.1f}s")
-        elif result["status"] == "not_available":
-            warning(f"{tool}: not installed")
-        else:
-            warning(f"{tool}: {result.get('error', 'Unknown error')}")
-
-    return results
-
-
-def _summarize_findings(all_results: List[Dict[str, Any]]) -> Dict[str, int]:
-    """Summarize findings by severity."""
-    summary = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
-
-    for result in all_results:
-        for finding in result.get("findings", []):
-            sev = str(finding.get("severity", "INFO")).upper()
-            # Normalize severity names
-            if sev in ["CRITICAL", "CRIT"]:
-                summary["CRITICAL"] += 1
-            elif sev in ["HIGH", "HI"]:
-                summary["HIGH"] += 1
-            elif sev in ["MEDIUM", "MED"]:
-                summary["MEDIUM"] += 1
-            elif sev in ["LOW", "LO"]:
-                summary["LOW"] += 1
-            else:
-                summary["INFO"] += 1
-
-    return summary
+# =============================================================================
+# Backward Compatibility Aliases (deprecated, use miesc.cli.utils instead)
+# =============================================================================
+
+# Keep _run_tool and _run_layer as aliases for backward compatibility
+_run_tool = run_tool
+_run_layer = run_layer
+_summarize_findings = summarize_findings
+
+
+# =============================================================================
+# Output Format Converters (unique to main.py)
+# =============================================================================
 
 
 def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:

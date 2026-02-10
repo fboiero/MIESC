@@ -13,6 +13,7 @@ Added
 * Test fixtures for vulnerable contracts (reentrancy, integer overflow, etc.)
 * ToolAdapter helper methods for common patterns
 * Architecture Decision Records (ADRs)
+* CLI modular structure: constants.py, utils.py, commands/ package
 
 Changed
 ~~~~~~~
@@ -20,6 +21,7 @@ Changed
 * Print statements migrated to logging with noqa annotations
 * Coverage target increased to 70%
 * Mypy strict mode enabled
+* main.py refactored: extracted constants and utilities to separate modules (-488 lines)
 
 [5.0.3] - 2026-02-04
 --------------------
