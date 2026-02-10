@@ -148,29 +148,27 @@ class CrewAICoordinator(BaseAgent):
 
         start_time = time.time()
 
-        print("\n🎭 CrewAI Multi-Agent Coordination Starting...")
-        print(f"   Contract: {contract_path}")
-        print(f"   LLM: {self.llm_model}")
+        logger.info(f"CrewAI Multi-Agent Coordination Starting - Contract: {contract_path}, LLM: {self.llm_model}")
 
         # Create agents
-        print("\n[1/4] Creating specialized agents...")
+        logger.debug("[1/4] Creating specialized agents...")
         agents = self._create_agents(contract_path)
 
         # Create tasks
-        print("[2/4] Defining tasks...")
+        logger.debug("[2/4] Defining tasks...")
         tasks = self._create_tasks(agents, contract_path, **kwargs)
 
         # Create crew
-        print("[3/4] Assembling crew...")
+        logger.debug("[3/4] Assembling crew...")
         crew = self._create_crew(agents, tasks)
 
         # Execute crew
-        print("[4/4] Executing multi-agent workflow...")
+        logger.debug("[4/4] Executing multi-agent workflow...")
         try:
             result = crew.kickoff()
             execution_time = time.time() - start_time
 
-            print(f"\n✅ CrewAI analysis complete ({execution_time:.2f}s)")
+            logger.info(f"CrewAI analysis complete ({execution_time:.2f}s)")
 
             # Parse and structure results
             structured_results = self._structure_results(result, execution_time)
@@ -423,12 +421,14 @@ Make it clear and actionable for developers.""",
 if __name__ == "__main__":
     import sys
 
-    print("=" * 60)
-    print("CrewAI Coordinator - MIESC Integration")
-    print("=" * 60)
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
+
+    print("=" * 60)  # noqa: T201
+    print("CrewAI Coordinator - MIESC Integration")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     if len(sys.argv) < 2:
-        print("\nUsage: python crewai_coordinator.py <contract.sol>")
+        print("\nUsage: python crewai_coordinator.py <contract.sol>")  # noqa: T201
         sys.exit(1)
 
     contract_path = sys.argv[1]
@@ -442,24 +442,24 @@ if __name__ == "__main__":
     results = coordinator.run(contract_path)
 
     # Display results
-    print("\n" + "=" * 60)
-    print("RESULTS")
-    print("=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201
+    print("RESULTS")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     findings = results.get("crew_findings", [])
     summary = results.get("crew_summary", {})
 
-    print("\n📊 Summary:")
-    print(f"   Total Findings: {summary.get('total_findings', 0)}")
-    print(f"   Execution Time: {summary.get('execution_time', 0):.2f}s")
-    print(f"   LLM Model: {summary.get('llm_model', 'unknown')}")
+    print("\n📊 Summary:")  # noqa: T201
+    print(f"   Total Findings: {summary.get('total_findings', 0)}")  # noqa: T201
+    print(f"   Execution Time: {summary.get('execution_time', 0):.2f}s")  # noqa: T201
+    print(f"   LLM Model: {summary.get('llm_model', 'unknown')}")  # noqa: T201
 
     if findings:
-        print("\n🚨 Findings:")
+        print("\n🚨 Findings:")  # noqa: T201
         for finding in findings:
-            print(f"\n   [{finding['id']}] {finding['severity']}")
-            print(f"   {finding['description'][:100]}...")
+            print(f"\n   [{finding['id']}] {finding['severity']}")  # noqa: T201
+            print(f"   {finding['description'][:100]}...")  # noqa: T201
     else:
-        print("\n✅ No vulnerabilities detected by crew")
+        print("\n✅ No vulnerabilities detected by crew")  # noqa: T201
 
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201

@@ -5,12 +5,15 @@ Supports all 10 tools with advanced reporting capabilities
 """
 
 import json
+import logging
 import sys
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -83,7 +86,7 @@ class EnhancedReporter:
 
     def collect_all_findings(self):
         """Collect findings from all tools."""
-        print("Collecting findings from all tools...")
+        logger.info("Collecting findings from all tools...")
 
         # 1. Solhint
         self._collect_solhint()
@@ -118,7 +121,7 @@ class EnhancedReporter:
         # 11. AI Triage
         self._collect_ai_triage()
 
-        print(f"Total findings collected: {len(self.findings)}")
+        logger.info(f"Total findings collected: {len(self.findings)}")
 
     def _collect_solhint(self):
         """Parse Solhint JSON results."""
@@ -146,7 +149,7 @@ class EnhancedReporter:
                             )
                         )
             except Exception as e:
-                print(f"Warning: Failed to parse Solhint {json_file}: {e}")
+                logger.warning(f" Failed to parse Solhint {json_file}: {e}")
 
     def _collect_slither(self):
         """Parse Slither JSON results."""
@@ -181,7 +184,7 @@ class EnhancedReporter:
                             )
                         )
             except Exception as e:
-                print(f"Warning: Failed to parse Slither {json_file}: {e}")
+                logger.warning(f" Failed to parse Slither {json_file}: {e}")
 
     def _collect_surya(self):
         """Collect Surya metrics (no findings)."""
@@ -196,7 +199,7 @@ class EnhancedReporter:
                 # Parse metrics (simplified)
                 self.metrics["surya"] = {"complexity_analyzed": True, "graphs_generated": True}
             except Exception as e:
-                print(f"Warning: Failed to parse Surya metrics: {e}")
+                logger.warning(f" Failed to parse Surya metrics: {e}")
 
     def _collect_mythril(self):
         """Parse Mythril JSON results."""
@@ -226,7 +229,7 @@ class EnhancedReporter:
                             )
                         )
             except Exception as e:
-                print(f"Warning: Failed to parse Mythril {json_file}: {e}")
+                logger.warning(f" Failed to parse Mythril {json_file}: {e}")
 
     def _collect_manticore(self):
         """Parse Manticore results and exploits."""
@@ -256,7 +259,7 @@ class EnhancedReporter:
                             )
                         )
             except Exception as e:
-                print(f"Warning: Failed to parse Manticore workspace: {e}")
+                logger.warning(f" Failed to parse Manticore workspace: {e}")
 
     def _collect_echidna(self):
         """Parse Echidna results."""
@@ -284,7 +287,7 @@ class EnhancedReporter:
                             )
                         )
             except Exception as e:
-                print(f"Warning: Failed to parse Echidna {txt_file}: {e}")
+                logger.warning(f" Failed to parse Echidna {txt_file}: {e}")
 
     def _collect_medusa(self):
         """Parse Medusa results."""
@@ -313,7 +316,7 @@ class EnhancedReporter:
                                     )
                                 )
             except Exception as e:
-                print(f"Warning: Failed to parse Medusa {json_file}: {e}")
+                logger.warning(f" Failed to parse Medusa {json_file}: {e}")
 
     def _collect_foundry_fuzz(self):
         """Parse Foundry fuzz test results."""
@@ -339,7 +342,7 @@ class EnhancedReporter:
                             )
                         )
             except Exception as e:
-                print(f"Warning: Failed to parse Foundry fuzz: {e}")
+                logger.warning(f" Failed to parse Foundry fuzz: {e}")
 
     def _collect_foundry_invariants(self):
         """Parse Foundry invariant test results."""
@@ -366,7 +369,7 @@ class EnhancedReporter:
                                 )
                             )
             except Exception as e:
-                print(f"Warning: Failed to parse Foundry invariants: {e}")
+                logger.warning(f" Failed to parse Foundry invariants: {e}")
 
     def _collect_certora(self):
         """Parse Certora verification results."""
@@ -393,7 +396,7 @@ class EnhancedReporter:
                                 )
                             )
             except Exception as e:
-                print(f"Warning: Failed to parse Certora {json_file}: {e}")
+                logger.warning(f" Failed to parse Certora {json_file}: {e}")
 
     def _collect_ai_triage(self):
         """Collect AI triage classifications."""
@@ -417,7 +420,7 @@ class EnhancedReporter:
                         if idx < len(self.findings):
                             self.findings[idx].ai_classification = classification
             except Exception as e:
-                print(f"Warning: Failed to parse AI triage: {e}")
+                logger.warning(f" Failed to parse AI triage: {e}")
 
     def _calculate_analysis_duration(self) -> str:
         """Calculate analysis duration from start_time if available."""
@@ -449,9 +452,9 @@ class EnhancedReporter:
                         ]
                         total_loc += len(code_lines)
                 except Exception as e:
-                    print(f"Warning: Could not read {sol_file}: {e}")
+                    logger.warning(f" Could not read {sol_file}: {e}")
         except Exception as e:
-            print(f"Warning: Failed to calculate LOC: {e}")
+            logger.warning(f" Failed to calculate LOC: {e}")
         return total_loc
 
     def _calculate_coverage_percentage(self) -> float:
@@ -535,7 +538,7 @@ class EnhancedReporter:
         with open(output_file, "w") as f:
             json.dump(report, f, indent=2, default=str)
 
-        print(f"✅ JSON report saved to: {output_file}")
+        logger.info(f"JSON report saved to: {output_file}")
 
     def _generate_statistics(self) -> Dict:
         """Generate detailed statistics."""
@@ -665,7 +668,7 @@ Universidad de la Defensa Nacional (UNDEF) - IUA Córdoba | Maestría en Ciberde
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text(md_content)
 
-        print(f"✅ Markdown report saved to: {output_file}")
+        logger.info(f"Markdown report saved to: {output_file}")
 
 
 def main():
@@ -688,16 +691,16 @@ def main():
     output_dir = Path(args.output)
 
     if not results_dir.exists():
-        print(f"❌ Error: Results directory not found: {results_dir}")
+        print(f"❌ Error: Results directory not found: {results_dir}")  # noqa: T201
         sys.exit(1)
 
-    print("🔍 Xaudit Enhanced Reporter v2.0")
-    print("=" * 60)
+    print("🔍 Xaudit Enhanced Reporter v2.0")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     reporter = EnhancedReporter(results_dir)
     reporter.collect_all_findings()
 
-    print("\n📝 Generating reports...")
+    print("\n📝 Generating reports...")  # noqa: T201
 
     if "json" in args.format:
         reporter.generate_json_report(output_dir / "report.json")
@@ -707,18 +710,18 @@ def main():
 
     summary = reporter.generate_executive_summary()
 
-    print("\n" + "=" * 60)
-    print("✅ ANALYSIS COMPLETE")
-    print("=" * 60)
-    print(f"\n📊 Total Findings: {summary.total_findings}")
-    print(f"   🔴 Critical: {summary.critical_count}")
-    print(f"   🟠 High: {summary.high_count}")
-    print(f"   🟡 Medium: {summary.medium_count}")
-    print(f"   🟢 Low: {summary.low_count}")
-    print(f"\n⚡ Exploits Generated: {summary.exploits_generated}")
-    print(f"🧪 Invariants Tested: {summary.invariants_tested}")
-    print(f"🤖 AI FP Filtered: {summary.ai_false_positives_filtered}")
-    print(f"\n📁 Reports saved to: {output_dir.absolute()}")
+    print("\n" + "=" * 60)  # noqa: T201
+    print("✅ ANALYSIS COMPLETE")  # noqa: T201
+    print("=" * 60)  # noqa: T201
+    print(f"\n📊 Total Findings: {summary.total_findings}")  # noqa: T201
+    print(f"   🔴 Critical: {summary.critical_count}")  # noqa: T201
+    print(f"   🟠 High: {summary.high_count}")  # noqa: T201
+    print(f"   🟡 Medium: {summary.medium_count}")  # noqa: T201
+    print(f"   🟢 Low: {summary.low_count}")  # noqa: T201
+    print(f"\n⚡ Exploits Generated: {summary.exploits_generated}")  # noqa: T201
+    print(f"🧪 Invariants Tested: {summary.invariants_tested}")  # noqa: T201
+    print(f"🤖 AI FP Filtered: {summary.ai_false_positives_filtered}")  # noqa: T201
+    print(f"\n📁 Reports saved to: {output_dir.absolute()}")  # noqa: T201
 
 
 if __name__ == "__main__":
