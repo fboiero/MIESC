@@ -519,9 +519,9 @@ def analyze_contract_with_correlation(
 def main():
     """Demo del API de correlación."""
 
-    print("\n" + "=" * 60)
-    print("  MIESC Smart Correlation API Demo")
-    print("=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201
+    print("  MIESC Smart Correlation API Demo")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     # Crear datos de ejemplo
     slither_findings = [
@@ -579,22 +579,22 @@ def main():
     # Ejecutar análisis
     report = api.analyze(output_format="full")
 
-    print(f"\nHerramientas usadas: {report['metadata']['tools_used']}")
-    print("\nResumen:")
-    print(f"  - Total correlacionados: {report['summary']['total_correlated']}")
-    print(f"  - Hallazgos originales: {report['summary']['original_findings']}")
-    print(f"  - Tasa de deduplicación: {report['summary']['deduplication_rate']*100:.1f}%")
-    print(f"  - Validación cruzada: {report['summary']['cross_validated']}")
-    print(f"  - Alta confianza: {report['summary']['high_confidence_count']}")
+    print(f"\nHerramientas usadas: {report['metadata']['tools_used']}")  # noqa: T201
+    print("\nResumen:")  # noqa: T201
+    print(f"  - Total correlacionados: {report['summary']['total_correlated']}")  # noqa: T201
+    print(f"  - Hallazgos originales: {report['summary']['original_findings']}")  # noqa: T201
+    print(f"  - Tasa de deduplicación: {report['summary']['deduplication_rate']*100:.1f}%")  # noqa: T201
+    print(f"  - Validación cruzada: {report['summary']['cross_validated']}")  # noqa: T201
+    print(f"  - Alta confianza: {report['summary']['high_confidence_count']}")  # noqa: T201
 
-    print(f"\nHallazgos accionables: {len(report['findings']['actionable'])}")
+    print(f"\nHallazgos accionables: {len(report['findings']['actionable'])}")  # noqa: T201
     for f in report["findings"]["actionable"]:
-        print(f"  [{f['severity'].upper()}] {f['type']}")
-        print(f"    Confianza: {f['confidence']['final']:.2f}")
-        print(f"    Validado por: {', '.join(f['confirming_tools'])}")
-        print(f"    Ubicación: {f['location']['file']}:{f['location']['line']}")
+        print(f"  [{f['severity'].upper()}] {f['type']}")  # noqa: T201
+        print(f"    Confianza: {f['confidence']['final']:.2f}")  # noqa: T201
+        print(f"    Validado por: {', '.join(f['confirming_tools'])}")  # noqa: T201
+        print(f"    Ubicación: {f['location']['file']}:{f['location']['line']}")  # noqa: T201
 
-    print(f"\nFiltrados como FP: {len(report['findings']['likely_false_positives'])}")
+    print(f"\nFiltrados como FP: {len(report['findings']['likely_false_positives'])}")  # noqa: T201
 
 
 if __name__ == "__main__":

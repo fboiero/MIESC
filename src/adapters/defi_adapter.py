@@ -234,15 +234,15 @@ def main():
     adapter = DeFiAdapter()
 
     # Print layer info
-    print("\n" + "=" * 60)
-    print("  MIESC Layer 8: DeFi Security Analysis")
-    print("=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201
+    print("  MIESC Layer 8: DeFi Security Analysis")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     info = adapter.get_layer_info()
-    print(f"\nLayer: {info['layer']}")
-    print(f"Name: {info['name']}")
-    print(f"Description: {info['description']}")
-    print(f"Categories: {', '.join(info['categories'])}")
+    print(f"\nLayer: {info['layer']}")  # noqa: T201
+    print(f"Name: {info['name']}")  # noqa: T201
+    print(f"Description: {info['description']}")  # noqa: T201
+    print(f"Categories: {', '.join(info['categories'])}")  # noqa: T201
 
     # Test with sample contract
     sample_code = """
@@ -267,24 +267,24 @@ def main():
     }
     """
 
-    print("\n" + "-" * 60)
-    print("  Analyzing Sample DeFi Contract")
-    print("-" * 60)
+    print("\n" + "-" * 60)  # noqa: T201
+    print("  Analyzing Sample DeFi Contract")  # noqa: T201
+    print("-" * 60)  # noqa: T201
 
     result = adapter.analyze_source(sample_code)
 
     if result["success"]:
-        print(f"\nFindings: {len(result['findings'])}")
+        print(f"\nFindings: {len(result['findings'])}")  # noqa: T201
         for finding in result["findings"]:
-            print(f"\n  [{finding['severity']}] {finding['title']}")
-            print(f"    Category: {finding['category']}")
-            print(f"    SWC: {finding['swc_id']}")
+            print(f"\n  [{finding['severity']}] {finding['title']}")  # noqa: T201
+            print(f"    Category: {finding['category']}")  # noqa: T201
+            print(f"    SWC: {finding['swc_id']}")  # noqa: T201
             if finding["location"].get("line"):
-                print(f"    Line: {finding['location']['line']}")
+                print(f"    Line: {finding['location']['line']}")  # noqa: T201
 
-        print(f"\nSummary: {result['summary']}")
+        print(f"\nSummary: {result['summary']}")  # noqa: T201
     else:
-        print(f"Error: {result['error']}")
+        print(f"Error: {result['error']}")  # noqa: T201
 
 
 if __name__ == "__main__":
