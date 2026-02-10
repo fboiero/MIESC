@@ -157,9 +157,7 @@ Respond in JSON format with this structure:
 
         start_time = time.time()
 
-        print("\n🤖 Ollama Analysis Starting...")
-        print(f"   Model: {self.model}")
-        print(f"   Contract: {contract_path}")
+        logger.info(f"Ollama Analysis Starting - Model: {self.model}, Contract: {contract_path}")
 
         # Read contract
         try:
@@ -180,7 +178,7 @@ Respond in JSON format with this structure:
         prompt = self._build_analysis_prompt(contract_code, **kwargs)
 
         # Call Ollama
-        print("\n[1/2] Sending to Ollama LLM...")
+        logger.debug("[1/2] Sending to Ollama LLM...")
         response = self._call_ollama(prompt)
 
         if not response:
@@ -191,14 +189,12 @@ Respond in JSON format with this structure:
             }
 
         # Parse response
-        print("[2/2] Parsing LLM response...")
+        logger.debug("[2/2] Parsing LLM response...")
         findings = self._parse_ollama_response(response, contract_path)
 
         execution_time = time.time() - start_time
 
-        print(f"\n✅ Ollama analysis complete ({execution_time:.2f}s)")
-        print(f"   Findings: {len(findings)}")
-        print(f"   Model: {self.model}")
+        logger.info(f"Ollama analysis complete ({execution_time:.2f}s) - {len(findings)} findings")
 
         return {
             "ollama_findings": findings,
@@ -430,22 +426,28 @@ Focus on real vulnerabilities, not style issues."""
 if __name__ == "__main__":
     import sys
 
-    print("=" * 60)
-    print("Ollama Agent - MIESC Integration")
-    print("=" * 60)
+    # Configure logging for standalone execution
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+
+    print("=" * 60)  # noqa: T201
+    print("Ollama Agent - MIESC Integration")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     # Check available models
-    print("\n📦 Checking available models...")
+    print("\n📦 Checking available models...")  # noqa: T201
     models = OllamaAgent.get_available_models()
 
     if models:
-        print(f"   Found {len(models)} models:")
+        print(f"   Found {len(models)} models:")  # noqa: T201
         for model in models:
-            print(f"   - {model}")
+            print(f"   - {model}")  # noqa: T201
     else:
-        print("   ⚠️  No models found. Download with:")
-        print("      ollama pull codellama:13b")
-        print("      ollama pull mistral:7b-instruct")
+        print("   ⚠️  No models found. Download with:")  # noqa: T201
+        print("      ollama pull codellama:13b")  # noqa: T201
+        print("      ollama pull mistral:7b-instruct")  # noqa: T201
         sys.exit(1)
 
     # Use first available model or specified one
@@ -456,8 +458,8 @@ if __name__ == "__main__":
         contract_path = sys.argv[1]
         model = models[0] if models else "codellama:13b"
     else:
-        print("\nUsage: python ollama_agent.py <contract.sol> [model]")
-        print(f"\nAvailable models: {', '.join(models)}")
+        print("\nUsage: python ollama_agent.py <contract.sol> [model]")  # noqa: T201
+        print(f"\nAvailable models: {', '.join(models)}")  # noqa: T201
         sys.exit(1)
 
     # Run analysis
@@ -465,33 +467,33 @@ if __name__ == "__main__":
     results = agent.run(contract_path)
 
     # Display results
-    print("\n" + "=" * 60)
-    print("RESULTS")
-    print("=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201
+    print("RESULTS")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     findings = results.get("ollama_findings", [])
     analysis = results.get("ollama_analysis", {})
 
-    print("\n📊 Analysis Summary:")
-    print(f"   Model: {analysis.get('model', 'unknown')}")
-    print(f"   Execution Time: {analysis.get('execution_time', 0):.2f}s")
-    print(f"   Total Findings: {analysis.get('total_findings', 0)}")
+    print("\n📊 Analysis Summary:")  # noqa: T201
+    print(f"   Model: {analysis.get('model', 'unknown')}")  # noqa: T201
+    print(f"   Execution Time: {analysis.get('execution_time', 0):.2f}s")  # noqa: T201
+    print(f"   Total Findings: {analysis.get('total_findings', 0)}")  # noqa: T201
 
     if findings:
-        print(f"\n🚨 Vulnerabilities Detected: {len(findings)}")
+        print(f"\n🚨 Vulnerabilities Detected: {len(findings)}")  # noqa: T201
         for finding in findings:
-            print(f"\n   [{finding['id']}] {finding['severity']}")
-            print(f"   Category: {finding['category']}")
-            print(f"   Location: {finding['location']}")
-            print(f"   {finding['description'][:100]}...")
-            print(f"   💡 Fix: {finding['recommendation'][:80]}...")
+            print(f"\n   [{finding['id']}] {finding['severity']}")  # noqa: T201
+            print(f"   Category: {finding['category']}")  # noqa: T201
+            print(f"   Location: {finding['location']}")  # noqa: T201
+            print(f"   {finding['description'][:100]}...")  # noqa: T201
+            print(f"   💡 Fix: {finding['recommendation'][:80]}...")  # noqa: T201
     else:
-        print("\n✅ No vulnerabilities detected")
+        print("\n✅ No vulnerabilities detected")  # noqa: T201
 
     recommendations = results.get("ollama_recommendations", [])
     if recommendations:
-        print("\n📋 Recommendations:")
+        print("\n📋 Recommendations:")  # noqa: T201
         for rec in recommendations:
-            print(f"   • {rec}")
+            print(f"   • {rec}")  # noqa: T201
 
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201

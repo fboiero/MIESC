@@ -12,12 +12,15 @@ Note: This is a reference implementation showing how to integrate local LLMs
 """
 
 import json
+import logging
 import os
 import time
 from pathlib import Path
 from typing import Any, Dict, List
 
 from src.agents.base_agent import BaseAgent
+
+logger = logging.getLogger(__name__)
 
 
 class SmartLLMAgent(BaseAgent):
@@ -58,7 +61,7 @@ class SmartLLMAgent(BaseAgent):
             self.llm_available = False
 
         if not self.llm_available:
-            print("⚠️  Warning: Local LLM not available. Using pattern-based fallback.")
+            logger.warning("Local LLM not available. Using pattern-based fallback.")
 
         # Initialize RAG knowledge base
         self.kb_path = Path(__file__).parent.parent / "knowledge_base"
@@ -79,27 +82,27 @@ class SmartLLMAgent(BaseAgent):
 
             for location in model_locations:
                 if location and os.path.exists(location):
-                    print(f"📦 Loading LLaMA model from: {location}")
+                    logger.info(f"Loading LLaMA model from: {location}")
                     self.llm = Llama(
                         model_path=location,
                         n_ctx=4096,
                         n_threads=4,
                         n_gpu_layers=0,  # CPU only by default
                     )
-                    print("✅ Local LLM loaded successfully")
+                    logger.info("Local LLM loaded successfully")
                     return True
 
-            print("⚠️  No LLaMA model found. Install with:")
-            print("   1. pip install llama-cpp-python")
-            print("   2. Download model from HuggingFace")
+            logger.warning(
+                "No LLaMA model found. Install with: "
+                "1) pip install llama-cpp-python, 2) Download model from HuggingFace"
+            )
             return False
 
         except ImportError:
-            print("⚠️  llama-cpp-python not installed. Install with:")
-            print("   pip install llama-cpp-python")
+            logger.warning("llama-cpp-python not installed. Install with: pip install llama-cpp-python")
             return False
         except Exception as e:
-            print(f"⚠️  Failed to load local LLM: {e}")
+            logger.warning(f"Failed to load local LLM: {e}")
             return False
 
     def _initialize_knowledge_base(self):
@@ -113,13 +116,13 @@ class SmartLLMAgent(BaseAgent):
         if kb_file.exists():
             with open(kb_file, "r") as f:
                 self.knowledge_base = json.load(f)
-            print(f"✅ Loaded KB with {len(self.knowledge_base)} vulnerability patterns")
+            logger.info(f"Loaded KB with {len(self.knowledge_base)} vulnerability patterns")
         else:
             # Create minimal KB
             self.knowledge_base = self._create_minimal_kb()
             with open(kb_file, "w") as f:
                 json.dump(self.knowledge_base, f, indent=2)
-            print(f"✅ Created minimal KB with {len(self.knowledge_base)} patterns")
+            logger.info(f"Created minimal KB with {len(self.knowledge_base)} patterns")
 
     def _create_minimal_kb(self) -> List[Dict]:
         """Create minimal vulnerability knowledge base"""
@@ -192,31 +195,29 @@ class SmartLLMAgent(BaseAgent):
         """
         start_time = time.time()
 
-        print("\n🔍 SmartLLM Analysis Starting...")
-        print(f"   Contract: {contract_path}")
-        print(f"   Local LLM: {self.llm_available}")
-        print(f"   KB Patterns: {len(self.knowledge_base)}")
+        logger.info(f"SmartLLM Analysis Starting - Contract: {contract_path}")
+        logger.debug(f"Local LLM: {self.llm_available}, KB Patterns: {len(self.knowledge_base)}")
 
         # Read contract
         with open(contract_path, "r") as f:
             contract_code = f.read()
 
         # Step 1: RAG - Retrieve relevant patterns
-        print("\n[1/3] RAG: Retrieving relevant patterns...")
+        logger.debug("[1/3] RAG: Retrieving relevant patterns...")
         relevant_patterns = self._rag_retrieve(contract_code)
 
         # Step 2: LLM Analysis (or fallback)
-        print("[2/3] Analyzing with local LLM...")
+        logger.debug("[2/3] Analyzing with local LLM...")
         if self.llm_available:
             vulnerabilities = self._analyze_with_llm(contract_code, relevant_patterns)
         else:
             vulnerabilities = self._analyze_with_patterns(contract_code, relevant_patterns)
 
         # Step 3: Generate explanations
-        print("[3/3] Generating explanations...")
+        logger.debug("[3/3] Generating explanations...")
         explanations = self._generate_explanations(vulnerabilities)
 
-        print("\n✅ Analysis complete")
+        logger.info("SmartLLM analysis complete")
 
         # Format findings
         findings = self._format_findings(vulnerabilities, explanations)
@@ -252,7 +253,7 @@ class SmartLLMAgent(BaseAgent):
         # Sort by relevance
         relevant.sort(key=lambda x: x["relevance_score"], reverse=True)
 
-        print(f"   Retrieved {len(relevant)} relevant patterns")
+        logger.debug(f"Retrieved {len(relevant)} relevant patterns")
         return relevant[:5]  # Top 5
 
     def _analyze_with_llm(self, contract_code: str, patterns: List[Dict]) -> List[Dict]:
@@ -274,7 +275,7 @@ class SmartLLMAgent(BaseAgent):
                     vulnerabilities.append(vuln)
 
             except Exception as e:
-                print(f"⚠️  LLM analysis failed for pattern {pattern['id']}: {e}")
+                logger.warning(f"LLM analysis failed for pattern {pattern['id']}: {e}")
 
         return vulnerabilities
 
@@ -428,42 +429,47 @@ Respond with:
 if __name__ == "__main__":
     import sys
 
+    # Configure logging for standalone execution
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+
     if len(sys.argv) < 2:
-        print("Usage: python smartllm_agent.py <contract.sol>")
+        print("Usage: python smartllm_agent.py <contract.sol>")  # noqa: T201
         sys.exit(1)
 
     contract_path = sys.argv[1]
 
-    print("=" * 60)
-    print("SmartLLM Agent - MIESC Integration")
-    print("=" * 60)
+    print("=" * 60)  # noqa: T201
+    print("SmartLLM Agent - MIESC Integration")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     agent = SmartLLMAgent()
     results = agent.run(contract_path)
 
-    print("\n" + "=" * 60)
-    print("RESULTS")
-    print("=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201
+    print("RESULTS")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     findings = results.get("smartllm_findings", [])
-    explanations = results.get("smartllm_explanations", [])
 
-    print("\n📊 Analysis Summary:")
-    print(f"   LLM Enabled: {results.get('llm_enabled', False)}")
-    print(f"   RAG Patterns: {len(results.get('smartllm_rag_context', []))}")
-    print(f"   Vulnerabilities: {len(findings)}")
-    print(f"   Execution Time: {results.get('execution_time', 0):.2f}s")
+    print("\n📊 Analysis Summary:")  # noqa: T201
+    print(f"   LLM Enabled: {results.get('llm_enabled', False)}")  # noqa: T201
+    print(f"   RAG Patterns: {len(results.get('smartllm_rag_context', []))}")  # noqa: T201
+    print(f"   Vulnerabilities: {len(findings)}")  # noqa: T201
+    print(f"   Execution Time: {results.get('execution_time', 0):.2f}s")  # noqa: T201
 
     if findings:
-        print(f"\n🚨 Vulnerabilities Detected: {len(findings)}")
+        print(f"\n🚨 Vulnerabilities Detected: {len(findings)}")  # noqa: T201
         for finding in findings:
-            print(f"\n   [{finding['id']}] {finding['severity']}")
-            print(f"   SWC: {finding['swc_id']} | OWASP: {finding['owasp_category']}")
-            print(f"   Location: {finding['location']}")
-            print(f"   {finding['description'][:80]}...")
+            print(f"\n   [{finding['id']}] {finding['severity']}")  # noqa: T201
+            print(f"   SWC: {finding['swc_id']} | OWASP: {finding['owasp_category']}")  # noqa: T201
+            print(f"   Location: {finding['location']}")  # noqa: T201
+            print(f"   {finding['description'][:80]}...")  # noqa: T201
             if finding["explanation"]:
-                print(f"   💡 {finding['explanation'][:80]}...")
+                print(f"   💡 {finding['explanation'][:80]}...")  # noqa: T201
     else:
-        print("\n✅ No vulnerabilities detected")
+        print("\n✅ No vulnerabilities detected")  # noqa: T201
 
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201
