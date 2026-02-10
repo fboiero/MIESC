@@ -10,6 +10,7 @@ Paper: https://arxiv.org/abs/2410.09381
 Repository: https://github.com/Marvinmw/LLM-SmartAudit (Not public yet as of Oct 2024)
 """
 
+import logging
 import os
 import time
 from typing import Any, Dict, List
@@ -22,6 +23,8 @@ try:
     load_dotenv()  # Load environment variables from .env
 except ImportError:
     pass  # dotenv not installed, environment variables must be set manually
+
+logger = logging.getLogger(__name__)
 
 
 class LLMSmartAuditAgent(BaseAgent):
@@ -53,7 +56,7 @@ class LLMSmartAuditAgent(BaseAgent):
         self.openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
 
         if not self.openai_api_key:
-            print("⚠️  Warning: OPENAI_API_KEY not set. LLM-SmartAudit will run in demo mode.")
+            logger.warning("OPENAI_API_KEY not set. LLM-SmartAudit will run in demo mode.")
             self.llm_enabled = False
         else:
             self.llm_enabled = True
@@ -63,7 +66,7 @@ class LLMSmartAuditAgent(BaseAgent):
                 openai.api_key = self.openai_api_key
                 self.openai = openai
             except ImportError:
-                print("⚠️  Warning: openai package not installed. Install with: pip install openai")
+                logger.warning("openai package not installed. Install with: pip install openai")
                 self.llm_enabled = False
 
     def get_context_types(self) -> List[str]:
@@ -83,27 +86,25 @@ class LLMSmartAuditAgent(BaseAgent):
         """
         start_time = time.time()
 
-        print("\n🔍 LLM-SmartAudit Analysis Starting...")
-        print(f"   Contract: {contract_path}")
-        print(f"   LLM Enabled: {self.llm_enabled}")
+        logger.info(f"LLM-SmartAudit Analysis Starting - Contract: {contract_path}, LLM: {self.llm_enabled}")
 
         # Read contract
         with open(contract_path, "r") as f:
             contract_code = f.read()
 
         # Sub-agent 1: Contract Analysis
-        print("\n[1/3] Contract Analysis Agent...")
+        logger.debug("[1/3] Contract Analysis Agent...")
         contract_analysis = self._contract_analysis_agent(contract_code)
 
         # Sub-agent 2: Vulnerability Identification
-        print("[2/3] Vulnerability Identification Agent...")
+        logger.debug("[2/3] Vulnerability Identification Agent...")
         vulnerabilities = self._vulnerability_identification_agent(contract_code, contract_analysis)
 
         # Sub-agent 3: Comprehensive Report
-        print("[3/3] Comprehensive Report Agent...")
+        logger.debug("[3/3] Comprehensive Report Agent...")
         report = self._comprehensive_report_agent(contract_code, contract_analysis, vulnerabilities)
 
-        print("\n✅ Analysis complete")
+        logger.info("LLM-SmartAudit analysis complete")
 
         # Format findings
         findings = self._format_findings(vulnerabilities)
@@ -160,7 +161,7 @@ Be concise. Focus on security-relevant aspects.
                     "raw_analysis": analysis_text,
                 }
             except Exception as e:
-                print(f"⚠️  LLM analysis failed: {e}")
+                logger.warning(f"LLM analysis failed: {e}")
                 return self._fallback_contract_analysis(contract_code)
         else:
             return self._fallback_contract_analysis(contract_code)
@@ -239,7 +240,7 @@ Format as a numbered list.
                 vulnerabilities = self._parse_vulnerabilities(vuln_text)
 
             except Exception as e:
-                print(f"⚠️  Vulnerability identification failed: {e}")
+                logger.warning(f"Vulnerability identification failed: {e}")
                 vulnerabilities = self._fallback_vulnerability_identification(
                     contract_code, analysis
                 )
@@ -447,43 +448,45 @@ Format as a numbered list.
 if __name__ == "__main__":
     import sys
 
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
+
     if len(sys.argv) < 2:
-        print("Usage: python llm_smartaudit_agent.py <contract.sol>")
+        print("Usage: python llm_smartaudit_agent.py <contract.sol>")  # noqa: T201
         sys.exit(1)
 
     contract_path = sys.argv[1]
 
-    print("=" * 60)
-    print("LLM-SmartAudit Agent - MIESC Integration")
-    print("=" * 60)
+    print("=" * 60)  # noqa: T201
+    print("LLM-SmartAudit Agent - MIESC Integration")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     agent = LLMSmartAuditAgent()
     results = agent.run(contract_path)
 
-    print("\n" + "=" * 60)
-    print("RESULTS")
-    print("=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201
+    print("RESULTS")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     findings = results.get("llm_smartaudit_findings", [])
     analysis = results.get("llm_smartaudit_analysis", {})
     report = results.get("llm_smartaudit_report", {})
 
-    print("\n📊 Analysis Summary:")
-    print(f"   Contract Structure: {analysis.get('structure', 'N/A')}")
-    print(f"   Risk Areas: {len(analysis.get('risk_areas', []))}")
-    print(f"   Vulnerabilities: {len(findings)}")
-    print(f"   Confidence: {report.get('confidence', 0)*100:.1f}%")
-    print(f"   Execution Time: {results.get('execution_time', 0):.2f}s")
+    print("\n📊 Analysis Summary:")  # noqa: T201
+    print(f"   Contract Structure: {analysis.get('structure', 'N/A')}")  # noqa: T201
+    print(f"   Risk Areas: {len(analysis.get('risk_areas', []))}")  # noqa: T201
+    print(f"   Vulnerabilities: {len(findings)}")  # noqa: T201
+    print(f"   Confidence: {report.get('confidence', 0)*100:.1f}%")  # noqa: T201
+    print(f"   Execution Time: {results.get('execution_time', 0):.2f}s")  # noqa: T201
 
     if findings:
-        print(f"\n🚨 Vulnerabilities Detected: {len(findings)}")
+        print(f"\n🚨 Vulnerabilities Detected: {len(findings)}")  # noqa: T201
         for finding in findings:
-            print(f"\n   [{finding['id']}] {finding['severity']}")
-            print(f"   SWC: {finding['swc_id']} | OWASP: {finding['owasp_category']}")
-            print(f"   Location: {finding['location']}")
-            print(f"   {finding['description'][:80]}...")
-            print(f"   Impact: {finding['impact'][:80]}...")
+            print(f"\n   [{finding['id']}] {finding['severity']}")  # noqa: T201
+            print(f"   SWC: {finding['swc_id']} | OWASP: {finding['owasp_category']}")  # noqa: T201
+            print(f"   Location: {finding['location']}")  # noqa: T201
+            print(f"   {finding['description'][:80]}...")  # noqa: T201
+            print(f"   Impact: {finding['impact'][:80]}...")  # noqa: T201
     else:
-        print("\n✅ No vulnerabilities detected")
+        print("\n✅ No vulnerabilities detected")  # noqa: T201
 
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201
