@@ -206,6 +206,22 @@ jobs:
           docker run --rm miesc:latest --version
           docker run --rm --entrypoint python miesc:latest -c "from src.core import get_ml_orchestrator; print('MIESC OK')"
 
+      - name: Scan Docker image for vulnerabilities (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: miesc:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+        if: always()
+        continue-on-error: true
+
   # =============================================================================
   # Documentation
   # =============================================================================
