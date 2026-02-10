@@ -6,9 +6,12 @@ Processes findings from static analyzers and provides intelligent classification
 
 import argparse
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, List
+
+logger = logging.getLogger(__name__)
 
 try:
     from dotenv import load_dotenv
@@ -94,7 +97,7 @@ Output as JSON:
             return finding
 
         except Exception as e:
-            print(f"Warning: AI classification failed: {e}")
+            logger.warning(f"AI classification failed: {e}")
             finding["ai_classification"] = {
                 "classification": "UNKNOWN",
                 "risk_score": 0,
@@ -201,26 +204,26 @@ def main():
     args = parser.parse_args()
 
     # Load findings
-    print(f"Loading findings from {args.findings}...")
+    print(f"Loading findings from {args.findings}...")  # noqa: T201
     with open(args.findings, "r") as f:
         data = json.load(f)
 
     findings = data.get("results", {}).get("detectors", [])
-    print(f"Found {len(findings)} findings")
+    print(f"Found {len(findings)} findings")  # noqa: T201
 
     # Initialize AI assistant
-    print(f"Initializing AI assistant (model: {args.model})...")
+    print(f"Initializing AI assistant (model: {args.model})...")  # noqa: T201
     assistant = AIAuditAssistant(model=args.model)
 
     # Deduplicate
     findings = assistant.deduplicate_findings(findings)
-    print(f"After deduplication: {len(findings)} unique findings")
+    print(f"After deduplication: {len(findings)} unique findings")  # noqa: T201
 
     # Classify each finding
-    print("Classifying findings with AI...")
+    print("Classifying findings with AI...")  # noqa: T201
     classified = []
     for i, finding in enumerate(findings, 1):
-        print(f"  [{i}/{len(findings)}] Classifying {finding.get('check', 'Unknown')}...")
+        print(f"  [{i}/{len(findings)}] Classifying {finding.get('check', 'Unknown')}...")  # noqa: T201
         classified_finding = assistant.classify_finding(finding)
         classified.append(classified_finding)
 
@@ -228,7 +231,7 @@ def main():
     classified = assistant.prioritize_findings(classified)
 
     # Generate summary
-    print("Generating report...")
+    print("Generating report...")  # noqa: T201
     summary = assistant.generate_summary(classified)
 
     # Save results
@@ -277,9 +280,9 @@ def main():
             indent=2,
         )
 
-    print("\n✅ Report generated:")
-    print(f"   - Markdown: {output_path}")
-    print(f"   - JSON: {json_output}")
+    print("\n✅ Report generated:")  # noqa: T201
+    print(f"   - Markdown: {output_path}")  # noqa: T201
+    print(f"   - JSON: {json_output}")  # noqa: T201
 
 
 if __name__ == "__main__":

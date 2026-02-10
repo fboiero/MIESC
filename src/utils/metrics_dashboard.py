@@ -5,10 +5,13 @@ Creates visualizations and HTML dashboard from analysis results
 """
 
 import json
+import logging
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
+
+logger = logging.getLogger(__name__)
 
 try:
     import matplotlib
@@ -16,7 +19,7 @@ try:
 
     matplotlib.use("Agg")  # Non-interactive backend
 except ImportError:
-    print("Warning: matplotlib not installed. Run: pip install matplotlib")
+    print("Warning: matplotlib not installed. Run: pip install matplotlib")  # noqa: T201
     plt = None
 
 
@@ -75,7 +78,7 @@ class XauditDashboard:
                                 }
                             )
             except Exception as e:
-                print(f"Warning: Failed to parse {json_file}: {e}")
+                logger.warning(f"Failed to parse {json_file}: {e}")
 
         return {
             severity: {"count": len(issues), "issues": issues}
@@ -123,7 +126,7 @@ class XauditDashboard:
     def generate_charts(self, output_dir: Path):
         """Generate visualization charts."""
         if plt is None:
-            print("Skipping chart generation (matplotlib not available)")
+            logger.warning("Skipping chart generation (matplotlib not available)")
             return
 
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -137,7 +140,7 @@ class XauditDashboard:
         # Chart 3: Summary Dashboard
         self._chart_summary_dashboard(output_dir)
 
-        print(f"Charts saved to: {output_dir}")
+        logger.info(f"Charts saved to: {output_dir}")
 
     def _chart_severity_distribution(self, output_dir: Path):
         """Bar chart of issues by severity."""
@@ -360,14 +363,14 @@ class XauditDashboard:
 
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text(html_content)
-        print(f"HTML dashboard saved to: {output_file}")
+        logger.info(f"HTML dashboard saved to: {output_file}")
 
     def save_metrics_json(self, output_file: Path):
         """Save metrics as JSON."""
         output_file.parent.mkdir(parents=True, exist_ok=True)
         with open(output_file, "w") as f:
             json.dump(self.metrics, f, indent=2)
-        print(f"Metrics JSON saved to: {output_file}")
+        logger.info(f"Metrics JSON saved to: {output_file}")
 
 
 def main():
@@ -385,10 +388,10 @@ def main():
     output_dir = Path(args.output)
 
     if not results_dir.exists():
-        print(f"Error: Results directory not found: {results_dir}")
+        print(f"Error: Results directory not found: {results_dir}")  # noqa: T201
         sys.exit(1)
 
-    print("Generating dashboard...")
+    print("Generating dashboard...")  # noqa: T201
     dashboard = XauditDashboard(results_dir)
 
     # Generate outputs
@@ -396,8 +399,8 @@ def main():
     dashboard.generate_html_report(output_dir / "index.html")
     dashboard.save_metrics_json(output_dir / "metrics.json")
 
-    print("\n✅ Dashboard generated successfully!")
-    print(f"\nOpen in browser: file://{output_dir.absolute()}/index.html")
+    print("\n✅ Dashboard generated successfully!")  # noqa: T201
+    print(f"\nOpen in browser: file://{output_dir.absolute()}/index.html")  # noqa: T201
 
 
 if __name__ == "__main__":

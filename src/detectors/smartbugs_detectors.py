@@ -1158,24 +1158,24 @@ def main():
         ),
     ]
 
-    print("\n" + "=" * 60)
-    print("  MIESC SmartBugs-Specific Detectors")
-    print("=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201
+    print("  MIESC SmartBugs-Specific Detectors")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     for category, code in test_files:
         findings = engine.analyze(code)
-        print(f"\n[{category}] Findings: {len(findings)}")
+        print(f"\n[{category}] Findings: {len(findings)}")  # noqa: T201
         for f in findings:
-            print(f"  - [{f.severity.value}] {f.title}")
+            print(f"  - [{f.severity.value}] {f.title}")  # noqa: T201
             if f.line:
-                print(f"    Line {f.line}: {f.code_snippet}")
+                print(f"    Line {f.line}: {f.code_snippet}")  # noqa: T201
 
     summary = engine.get_summary(
         engine.analyze(test_files[0][1] + test_files[1][1] + test_files[2][1])
     )
-    print("\n" + "-" * 60)
-    print(f"Total: {summary['total']}")
-    print(f"By Category: {summary['by_category']}")
+    print("\n" + "-" * 60)  # noqa: T201
+    print(f"Total: {summary['total']}")  # noqa: T201
+    print(f"By Category: {summary['by_category']}")  # noqa: T201
 
 
 if __name__ == "__main__":
