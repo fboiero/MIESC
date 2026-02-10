@@ -62,6 +62,12 @@ web3 = [
     "web3>=6.0.0",
 ]
 docs = [
+    # Sphinx for API documentation
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=2.0.0",
+    "sphinx-autodoc-typehints>=2.0.0",
+    "sphinx-autobuild>=2024.0.0",
+    # MkDocs for user guides (optional)
     "mkdocs>=1.5.0",
     "mkdocs-material>=9.0.0",
 ]

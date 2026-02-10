@@ -217,3 +217,6 @@ miesc-quick
 # Virtual environments (additional patterns)
 venv*/
 vscode-extension/node_modules/
+
+# Sphinx build output
+docs/_build/
