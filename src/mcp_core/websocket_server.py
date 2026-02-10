@@ -522,11 +522,11 @@ async def run_server(host: str = "localhost", port: int = 8765):
 
 
 if __name__ == "__main__":
-    print("Starting MIESC WebSocket Server...")
-    print("Connect to: ws://localhost:8765")
-    print("Press Ctrl+C to stop")
+    print("Starting MIESC WebSocket Server...")  # noqa: T201
+    print("Connect to: ws://localhost:8765")  # noqa: T201
+    print("Press Ctrl+C to stop")  # noqa: T201
 
     try:
         asyncio.run(run_server())
     except KeyboardInterrupt:
-        print("\nServer stopped")
+        print("\nServer stopped")  # noqa: T201

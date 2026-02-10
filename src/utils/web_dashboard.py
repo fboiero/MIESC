@@ -825,7 +825,7 @@ class WebDashboardGenerator:
 
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text(html)
-        print(f"✅ Dashboard web generado: {output_file}")
+        print(f"✅ Dashboard web generado: {output_file}")  # noqa: T201
         return output_file
 
     def _generate_tool_badges(self) -> str:
@@ -971,7 +971,7 @@ class WebDashboardGenerator:
         output_file.parent.mkdir(parents=True, exist_ok=True)
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(self.metrics, f, indent=2, ensure_ascii=False)
-        print(f"✅ Métricas JSON guardadas: {output_file}")
+        print(f"✅ Métricas JSON guardadas: {output_file}")  # noqa: T201
 
 
 def main():
@@ -989,10 +989,10 @@ def main():
     output_dir = Path(args.output)
 
     if not results_dir.exists():
-        print(f"❌ Error: Results directory not found: {results_dir}")
+        print(f"❌ Error: Results directory not found: {results_dir}")  # noqa: T201
         sys.exit(1)
 
-    print("🚀 Generating interactive web dashboard...")
+    print("🚀 Generating interactive web dashboard...")  # noqa: T201
 
     dashboard = WebDashboardGenerator(results_dir)
 
@@ -1000,8 +1000,8 @@ def main():
     dashboard.generate_html_dashboard(output_dir / "index.html")
     dashboard.save_metrics_json(output_dir / "metrics.json")
 
-    print("\n✅ Dashboard generated successfully!")
-    print(f"\n📊 Open in browser: file://{(output_dir / 'index.html').absolute()}")
+    print("\n✅ Dashboard generated successfully!")  # noqa: T201
+    print(f"\n📊 Open in browser: file://{(output_dir / 'index.html').absolute()}")  # noqa: T201
 
 
 if __name__ == "__main__":

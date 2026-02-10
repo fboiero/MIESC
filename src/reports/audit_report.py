@@ -836,10 +836,10 @@ class AuditReportGenerator:
         # Fallback: save HTML and print instructions
         html_path = output_path.with_suffix('.html')
         self.save_html(html_path)
-        print("PDF generation requires 'weasyprint' or 'pdfkit'.")
-        print("Install with: pip install weasyprint")
-        print(f"HTML saved to: {html_path}")
-        print("You can print to PDF from your browser.")
+        print("PDF generation requires 'weasyprint' or 'pdfkit'.")  # noqa: T201
+        print("Install with: pip install weasyprint")  # noqa: T201
+        print(f"HTML saved to: {html_path}")  # noqa: T201
+        print("You can print to PDF from your browser.")  # noqa: T201
         return None
 
     def save_json(self, output_path: Path) -> Path:
@@ -984,10 +984,10 @@ if __name__ == "__main__":
     html_path = generator.save_html(output_dir / "sample_audit_report.html")
     json_path = generator.save_json(output_dir / "sample_audit_report.json")
 
-    print(f"HTML report saved to: {html_path}")
-    print(f"JSON report saved to: {json_path}")
+    print(f"HTML report saved to: {html_path}")  # noqa: T201
+    print(f"JSON report saved to: {json_path}")  # noqa: T201
 
     # Try PDF
     pdf_path = generator.save_pdf(output_dir / "sample_audit_report.pdf")
     if pdf_path:
-        print(f"PDF report saved to: {pdf_path}")
+        print(f"PDF report saved to: {pdf_path}")  # noqa: T201

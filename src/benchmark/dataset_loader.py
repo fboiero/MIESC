@@ -353,12 +353,12 @@ class DatasetLoader:
         try:
             all_contracts.extend(self.load_smartbugs())
         except FileNotFoundError as e:
-            print(f"Warning: {e}")
+            print(f"Warning: {e}")  # noqa: T201
 
         try:
             all_contracts.extend(self.load_damn_vulnerable_defi())
         except FileNotFoundError as e:
-            print(f"Warning: {e}")
+            print(f"Warning: {e}")  # noqa: T201
 
         return all_contracts
 

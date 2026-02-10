@@ -11,7 +11,7 @@ Usage:
     runner = BenchmarkRunner()
     contracts = load_smartbugs()
     results = runner.run(contracts)
-    print(results.summary())
+    print(results.summary())  # noqa: T201
 """
 
 import json
@@ -301,7 +301,7 @@ class BenchmarkRunner:
                         contract_results.append(result)
                         if verbose:
                             status = "OK" if not result.error else f"ERR: {result.error[:30]}"
-                            print(f"[{i+1}/{len(contracts)}] {contract.name}: {status}")
+                            print(f"[{i+1}/{len(contracts)}] {contract.name}: {status}")  # noqa: T201
                     except Exception as e:
                         contract_results.append(
                             ContractResult(
@@ -318,7 +318,7 @@ class BenchmarkRunner:
                 contract_results.append(result)
                 if verbose:
                     status = "OK" if not result.error else f"ERR: {result.error[:30]}"
-                    print(f"[{i+1}/{len(contracts)}] {contract.name}: {status}")
+                    print(f"[{i+1}/{len(contracts)}] {contract.name}: {status}")  # noqa: T201
 
         total_time = time.time() - start_time
 

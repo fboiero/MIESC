@@ -544,7 +544,7 @@ def create_progress_tracker(audit_id: str) -> Optional[AuditProgressTracker]:
 if __name__ == "__main__":
     if WEBSOCKET_AVAILABLE:
         server = WebSocketServer(port=8765)
-        print("Starting MIESC WebSocket server on ws://0.0.0.0:8765")
+        print("Starting MIESC WebSocket server on ws://0.0.0.0:8765")  # noqa: T201
         server.run()
     else:
-        print("WebSocket dependencies not installed. Run: pip install fastapi uvicorn")
+        print("WebSocket dependencies not installed. Run: pip install fastapi uvicorn")  # noqa: T201

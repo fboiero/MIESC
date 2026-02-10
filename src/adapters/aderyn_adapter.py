@@ -238,7 +238,7 @@ class AderynAdapter(ToolAdapter):
             # Show progress message
             verbose = kwargs.get("verbose", True)
             if verbose:
-                print("  [Aderyn] Running Rust-based static analysis...")
+                print("  [Aderyn] Running Rust-based static analysis...")  # noqa: T201
 
             # Execute Aderyn with corrected PATH for solc
             env = _get_solc_env()
@@ -247,7 +247,7 @@ class AderynAdapter(ToolAdapter):
             execution_time = time.time() - start_time
 
             if verbose:
-                print(f"  [Aderyn] Analysis completed in {execution_time:.1f}s")
+                print(f"  [Aderyn] Analysis completed in {execution_time:.1f}s")  # noqa: T201
 
             # Check for errors - but first check if output file was created with valid JSON
             # Aderyn 0.1.9 has a version parsing bug that causes exit code 101

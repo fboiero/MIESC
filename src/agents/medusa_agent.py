@@ -228,7 +228,7 @@ class MedusaAgent(BaseAgent):
             )
         except Exception as e:
             # Non-critical, just log
-            print(f"Warning: Failed to publish to MCP bus: {e}")
+            print(f"Warning: Failed to publish to MCP bus: {e}")  # noqa: T201
 
     def quick_fuzz(self, contract_path: str) -> Dict:
         """

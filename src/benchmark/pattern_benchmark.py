@@ -290,7 +290,7 @@ class PatternBenchmarkRunner:
                     total_fn += 1
                     category_stats[cat]["fn"] += 1
                     if verbose:
-                        print(f"  MISS: {contract.name} - {cat} @ line {gt.lines}")
+                        print(f"  MISS: {contract.name} - {cat} @ line {gt.lines}")  # noqa: T201
 
         processing_time = (time.time() - start_time) * 1000
 

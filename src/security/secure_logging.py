@@ -245,12 +245,12 @@ if __name__ == "__main__":
         "Bearer Authorization: Bearer abc123.def456.ghi789",
     ]
 
-    print("Testing Secure Logging:\n")
+    print("Testing Secure Logging:\n")  # noqa: T201
     for test in test_cases:
         logger.info(test)
 
-    print("\n\nDirect redaction test:")
+    print("\n\nDirect redaction test:")  # noqa: T201
     for test in test_cases:
         redacted = SecureFormatter.redact_string(test)
-        print(f"Original: {test}")
-        print(f"Redacted: {redacted}\n")
+        print(f"Original: {test}")  # noqa: T201
+        print(f"Redacted: {redacted}\n")  # noqa: T201

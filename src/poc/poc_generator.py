@@ -331,7 +331,7 @@ class PoCGenerator:
             ]
 
             if verbose:
-                print(f"Running: {' '.join(cmd)}")
+                print(f"Running: {' '.join(cmd)}")  # noqa: T201
 
             result = subprocess.run(
                 cmd,

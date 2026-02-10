@@ -196,9 +196,9 @@ class MythrilAdapter(ToolAdapter):
             # Show progress message
             verbose = kwargs.get("verbose", True)
             if verbose:
-                print("  [Mythril] Starting symbolic execution analysis...")
-                print("  [Mythril] This may take 2-5 minutes for complex contracts")
-                print(
+                print("  [Mythril] Starting symbolic execution analysis...")  # noqa: T201
+                print("  [Mythril] This may take 2-5 minutes for complex contracts")  # noqa: T201
+                print(  # noqa: T201
                     f"  [Mythril] Parameters: max_depth={max_depth}, solver_timeout={solver_timeout}"
                 )
 
@@ -219,7 +219,7 @@ class MythrilAdapter(ToolAdapter):
                 # Check if we should show progress
                 if verbose and (time.time() - last_progress) >= progress_interval:
                     elapsed = int(time.time() - start_time)
-                    print(f"  [Mythril] Analysis in progress... ({elapsed}s elapsed)")
+                    print(f"  [Mythril] Analysis in progress... ({elapsed}s elapsed)")  # noqa: T201
                     last_progress = time.time()
 
                 # Non-blocking read of stderr for progress info
@@ -235,7 +235,7 @@ class MythrilAdapter(ToolAdapter):
                                     kw in line.lower()
                                     for kw in ["analyzing", "solving", "checking", "creating"]
                                 ):
-                                    print(f"  [Mythril] {line.strip()}")
+                                    print(f"  [Mythril] {line.strip()}")  # noqa: T201
                     except Exception:
                         time.sleep(0.5)
 
@@ -267,7 +267,7 @@ class MythrilAdapter(ToolAdapter):
             execution_time = time.time() - start_time
 
             if verbose:
-                print(f"  [Mythril] Analysis completed in {execution_time:.1f}s")
+                print(f"  [Mythril] Analysis completed in {execution_time:.1f}s")  # noqa: T201
 
             # Parse JSON output
             try:

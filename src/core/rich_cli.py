@@ -509,7 +509,7 @@ def create_cli(verbose: bool = False) -> Optional[MIESCRichCLI]:
 # Example usage
 if __name__ == "__main__":
     if not RICH_AVAILABLE:
-        print("Rich library not installed. Run: pip install rich")
+        print("Rich library not installed. Run: pip install rich")  # noqa: T201
         sys.exit(1)
 
     cli = MIESCRichCLI(verbose=True)

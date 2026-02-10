@@ -635,10 +635,10 @@ def main():
     generator = SoliditySecurityDatasetGenerator(output_dir="data/fine_tuning")
     paths = generator.generate_full_dataset()
 
-    print("Dataset generated successfully!")
-    print("Files created:")
+    print("Dataset generated successfully!")  # noqa: T201
+    print("Files created:")  # noqa: T201
     for format_name, path in paths.items():
-        print(f"  - {format_name}: {path}")
+        print(f"  - {format_name}: {path}")  # noqa: T201
 
 
 if __name__ == "__main__":

@@ -254,7 +254,7 @@ class HardhatAdapter(ToolAdapter):
 
             # Run compilation
             if verbose:
-                print("  [Hardhat] Compiling contracts...")
+                print("  [Hardhat] Compiling contracts...")  # noqa: T201
 
             compile_result = self._run_compile(project_dir)
             findings.extend(compile_result.get("findings", []))
@@ -263,21 +263,21 @@ class HardhatAdapter(ToolAdapter):
             # Run gas reporter if enabled
             if self.run_gas_reporter and kwargs.get("run_gas_reporter", False):
                 if verbose:
-                    print("  [Hardhat] Running gas reporter...")
+                    print("  [Hardhat] Running gas reporter...")  # noqa: T201
                 gas_result = self._run_gas_reporter(project_dir)
                 findings.extend(gas_result.get("findings", []))
 
             # Run coverage if enabled
             if self.run_coverage and kwargs.get("run_coverage", False):
                 if verbose:
-                    print("  [Hardhat] Running coverage...")
+                    print("  [Hardhat] Running coverage...")  # noqa: T201
                 coverage_result = self._run_coverage(project_dir)
                 findings.extend(coverage_result.get("findings", []))
 
             duration = time.time() - start_time
 
             if verbose:
-                print(f"  [Hardhat] Analysis completed in {duration:.1f}s")
+                print(f"  [Hardhat] Analysis completed in {duration:.1f}s")  # noqa: T201
 
             # Enhance findings with LLM
             try:

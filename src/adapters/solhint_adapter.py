@@ -231,7 +231,7 @@ class SolhintAdapter(ToolAdapter):
             # Show progress message
             verbose = kwargs.get("verbose", True)
             if verbose:
-                print("  [Solhint] Running linting analysis...")
+                print("  [Solhint] Running linting analysis...")  # noqa: T201
 
             # Run solhint
             result = subprocess.run(cmd, capture_output=True, timeout=self.timeout, text=True)
@@ -239,7 +239,7 @@ class SolhintAdapter(ToolAdapter):
             duration = time.time() - start_time
 
             if verbose:
-                print(f"  [Solhint] Analysis completed in {duration:.1f}s")
+                print(f"  [Solhint] Analysis completed in {duration:.1f}s")  # noqa: T201
 
             # Parse output
             findings = self._parse_output(result.stdout, result.stderr)

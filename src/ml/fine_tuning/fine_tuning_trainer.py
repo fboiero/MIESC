@@ -461,19 +461,19 @@ def main():
 
     # Check dependencies
     deps = trainer.check_dependencies()
-    print("Dependencies status:")
+    print("Dependencies status:")  # noqa: T201
     for dep, installed in deps.items():
         status = "OK" if installed else "MISSING"
-        print(f"  {dep}: {status}")
+        print(f"  {dep}: {status}")  # noqa: T201
 
     # Generate Axolotl config (for reference)
     axolotl_config = trainer.generate_axolotl_config(
         "data/fine_tuning/solidity_security_alpaca.json"
     )
-    print(f"\nAxolotl config: {axolotl_config}")
+    print(f"\nAxolotl config: {axolotl_config}")  # noqa: T201
 
-    print("\nTo train the model, run:")
-    print(
+    print("\nTo train the model, run:")  # noqa: T201
+    print(  # noqa: T201
         "  python -m src.ml.fine_tuning.fine_tuning_trainer --train data/fine_tuning/solidity_security_chatml.jsonl"
     )
 

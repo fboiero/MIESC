@@ -87,7 +87,7 @@ class SlitherBenchmarkRunner:
                             tp = len(result.true_positives)
                             fp = len(result.false_positives)
                             fn = len(result.false_negatives)
-                            print(
+                            print(  # noqa: T201
                                 f"[{i+1}/{len(contracts)}] {contract.name}: {status} TP={tp} FP={fp} FN={fn}"
                             )
                     except Exception as e:
@@ -106,7 +106,7 @@ class SlitherBenchmarkRunner:
                 results.append(result)
                 if verbose:
                     status = "OK" if not result.error else "ERR"
-                    print(f"[{i+1}/{len(contracts)}] {contract.name}: {status}")
+                    print(f"[{i+1}/{len(contracts)}] {contract.name}: {status}")  # noqa: T201
 
         total_time = time.time() - start_time
         return self._calculate_results(contracts, results, total_time)

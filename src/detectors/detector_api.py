@@ -440,7 +440,7 @@ class DetectorRegistry:
                     detector_class = ep.load()
                     self.register_class(detector_class)
                 except Exception as e:
-                    print(f"Warning: Failed to load detector {ep.name}: {e}")
+                    print(f"Warning: Failed to load detector {ep.name}: {e}")  # noqa: T201
         except Exception:
             pass  # Entry points not available
 
@@ -468,7 +468,7 @@ class DetectorRegistry:
                 findings = detector.analyze(source_code, file_path)
                 all_findings.extend(findings)
             except Exception as e:
-                print(f"Warning: Detector {detector.name} failed: {e}")
+                print(f"Warning: Detector {detector.name} failed: {e}")  # noqa: T201
 
         return all_findings
 

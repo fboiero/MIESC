@@ -418,7 +418,7 @@ class SemgrepAdapter(ToolAdapter):
             # Show progress message
             verbose = kwargs.get("verbose", True)
             if verbose:
-                print("  [Semgrep] Running pattern analysis...")
+                print("  [Semgrep] Running pattern analysis...")  # noqa: T201
 
             # Run semgrep
             result = subprocess.run(
@@ -431,7 +431,7 @@ class SemgrepAdapter(ToolAdapter):
             duration = time.time() - start_time
 
             if verbose:
-                print(f"  [Semgrep] Analysis completed in {duration:.1f}s")
+                print(f"  [Semgrep] Analysis completed in {duration:.1f}s")  # noqa: T201
 
             # Clean up temp file
             if custom_rules_file:

@@ -539,8 +539,8 @@ if __name__ == "__main__":
         """
 
         result = await analyze_solidity(code)
-        print(f"Found {len(result.vulnerabilities)} vulnerabilities")
-        print(f"Severity: {result.severity_assessment}")
-        print(f"Summary: {result.analysis_summary}")
+        print(f"Found {len(result.vulnerabilities)} vulnerabilities")  # noqa: T201
+        print(f"Severity: {result.severity_assessment}")  # noqa: T201
+        print(f"Summary: {result.analysis_summary}")  # noqa: T201
 
     asyncio.run(main())
