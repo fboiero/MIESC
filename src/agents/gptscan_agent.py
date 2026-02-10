@@ -11,6 +11,7 @@ Paper: https://gptscan.github.io/
 """
 
 import json
+import logging
 import os
 import subprocess
 from typing import Any, Dict, List
@@ -23,6 +24,8 @@ except ImportError:
     pass  # dotenv not installed, environment variables must be set manually
 
 from src.agents.base_agent import BaseAgent
+
+logger = logging.getLogger(__name__)
 
 
 class GPTScanAgent(BaseAgent):
@@ -54,7 +57,7 @@ class GPTScanAgent(BaseAgent):
         self.openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
 
         if not self.openai_api_key:
-            print("⚠️  Warning: OPENAI_API_KEY not set. GPTScan will run in static-only mode.")
+            logger.warning("OPENAI_API_KEY not set. GPTScan will run in static-only mode.")
             self.gpt_enabled = False
         else:
             self.gpt_enabled = True
@@ -64,7 +67,7 @@ class GPTScanAgent(BaseAgent):
                 openai.api_key = self.openai_api_key
                 self.openai = openai
             except ImportError:
-                print("⚠️  Warning: openai package not installed. Install with: pip install openai")
+                logger.warning("openai package not installed. Install with: pip install openai")
                 self.gpt_enabled = False
 
     def get_context_types(self) -> List[str]:
@@ -87,28 +90,26 @@ class GPTScanAgent(BaseAgent):
 
         start_time = time.time()
 
-        print("\n🔍 GPTScan Analysis Starting...")
-        print(f"   Contract: {contract_path}")
-        print(f"   GPT Enabled: {self.gpt_enabled}")
+        logger.info(f"GPTScan Analysis Starting - Contract: {contract_path}, GPT: {self.gpt_enabled}")
 
         # Step 1: Run static analysis (Slither-based)
-        print("\n[1/3] Running static analysis...")
+        logger.debug("[1/3] Running static analysis...")
         static_results = self._run_static_analysis(contract_path, **kwargs)
 
         # Step 2: Extract suspicious patterns
-        print("[2/3] Extracting patterns...")
+        logger.debug("[2/3] Extracting patterns...")
         patterns = self._extract_patterns(static_results, contract_path)
 
         # Step 3: Analyze with GPT (if enabled)
         if self.gpt_enabled and kwargs.get("use_gpt", True):
-            print("[3/3] Analyzing with GPT-4...")
+            logger.debug("[3/3] Analyzing with GPT-4...")
             gpt_analysis = self._analyze_with_gpt(patterns, contract_path)
         else:
-            print("[3/3] Skipping GPT analysis (not enabled)")
+            logger.debug("[3/3] Skipping GPT analysis (not enabled)")
             gpt_analysis = {"patterns_analyzed": len(patterns), "gpt_enabled": False}
 
         # Step 4: Combine and format results
-        print("\n✅ Analysis complete")
+        logger.info("GPTScan analysis complete")
         findings = self._combine_results(static_results, patterns, gpt_analysis)
 
         execution_time = time.time() - start_time
@@ -252,7 +253,7 @@ class GPTScanAgent(BaseAgent):
                 analyses.append(analysis)
 
             except Exception as e:
-                print(f"⚠️  GPT analysis failed for pattern: {e}")
+                logger.warning(f"GPT analysis failed for pattern: {e}")
                 analyses.append(
                     {"pattern": pattern["type"], "error": str(e), "is_vulnerability": None}
                 )
@@ -398,42 +399,44 @@ Be concise but thorough.
 if __name__ == "__main__":
     import sys
 
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
+
     if len(sys.argv) < 2:
-        print("Usage: python gptscan_agent.py <contract.sol>")
+        print("Usage: python gptscan_agent.py <contract.sol>")  # noqa: T201
         sys.exit(1)
 
     contract_path = sys.argv[1]
 
-    print("=" * 60)
-    print("GPTScan Agent - MIESC Integration")
-    print("=" * 60)
+    print("=" * 60)  # noqa: T201
+    print("GPTScan Agent - MIESC Integration")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     agent = GPTScanAgent()
     results = agent.run(contract_path)
 
-    print("\n" + "=" * 60)
-    print("RESULTS")
-    print("=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201
+    print("RESULTS")  # noqa: T201
+    print("=" * 60)  # noqa: T201
 
     findings = results.get("gptscan_findings", [])
     analysis = results.get("gptscan_analysis", {})
 
-    print("\n📊 Analysis Summary:")
-    print(f"   Static Issues Found: {analysis.get('static_issues', 0)}")
-    print(f"   Patterns Extracted: {analysis.get('patterns_extracted', 0)}")
-    print(f"   GPT Analyzed: {analysis.get('gpt_analyzed', 0)}")
-    print(f"   Final Findings: {analysis.get('final_findings', 0)}")
-    print(f"   Execution Time: {results.get('execution_time', 0):.2f}s")
+    print("\n📊 Analysis Summary:")  # noqa: T201
+    print(f"   Static Issues Found: {analysis.get('static_issues', 0)}")  # noqa: T201
+    print(f"   Patterns Extracted: {analysis.get('patterns_extracted', 0)}")  # noqa: T201
+    print(f"   GPT Analyzed: {analysis.get('gpt_analyzed', 0)}")  # noqa: T201
+    print(f"   Final Findings: {analysis.get('final_findings', 0)}")  # noqa: T201
+    print(f"   Execution Time: {results.get('execution_time', 0):.2f}s")  # noqa: T201
 
     if findings:
-        print(f"\n🚨 Vulnerabilities Detected: {len(findings)}")
+        print(f"\n🚨 Vulnerabilities Detected: {len(findings)}")  # noqa: T201
         for finding in findings:
-            print(f"\n   [{finding['id']}] {finding['severity']}")
-            print(f"   SWC: {finding['swc_id']} | OWASP: {finding['owasp_category']}")
-            print(f"   {finding['description'][:80]}...")
+            print(f"\n   [{finding['id']}] {finding['severity']}")  # noqa: T201
+            print(f"   SWC: {finding['swc_id']} | OWASP: {finding['owasp_category']}")  # noqa: T201
+            print(f"   {finding['description'][:80]}...")  # noqa: T201
             if "gpt_reasoning" in finding:
-                print(f"   GPT: {finding['gpt_reasoning'][:80]}...")
+                print(f"   GPT: {finding['gpt_reasoning'][:80]}...")  # noqa: T201
     else:
-        print("\n✅ No vulnerabilities detected")
+        print("\n✅ No vulnerabilities detected")  # noqa: T201
 
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 60)  # noqa: T201
