@@ -8,6 +8,7 @@ License: AGPL-3.0
 """
 
 from .audit import audit
+from .benchmark import benchmark
 from .config import config
 from .detectors import detectors
 from .init import init
@@ -17,4 +18,15 @@ from .report import report
 from .server import server
 from .tools import tools
 
-__all__ = ["audit", "config", "detectors", "init", "plugins", "poc", "report", "server", "tools"]
+__all__ = [
+    "audit",
+    "benchmark",
+    "config",
+    "detectors",
+    "init",
+    "plugins",
+    "poc",
+    "report",
+    "server",
+    "tools",
+]
