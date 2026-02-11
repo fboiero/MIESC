@@ -13,7 +13,8 @@ from .detectors import detectors
 from .init import init
 from .plugins import plugins
 from .poc import poc
+from .report import report
 from .server import server
 from .tools import tools
 
-__all__ = ["audit", "config", "detectors", "init", "plugins", "poc", "server", "tools"]
+__all__ = ["audit", "config", "detectors", "init", "plugins", "poc", "report", "server", "tools"]
