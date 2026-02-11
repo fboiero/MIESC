@@ -70,6 +70,7 @@ from miesc.cli.commands.init import init as init_group  # noqa: E402
 from miesc.cli.commands.plugins import plugins as plugins_group  # noqa: E402
 from miesc.cli.commands.poc import poc as poc_group  # noqa: E402
 from miesc.cli.commands.report import report as report_cmd  # noqa: E402
+from miesc.cli.commands.scan import scan as scan_cmd  # noqa: E402
 from miesc.cli.commands.server import server as server_group  # noqa: E402
 from miesc.cli.commands.tools import tools as tools_group  # noqa: E402
 
@@ -165,121 +166,9 @@ cli.add_command(init_group, name="init")
 cli.add_command(plugins_group, name="plugins")
 cli.add_command(poc_group, name="poc")
 cli.add_command(report_cmd, name="report")
+cli.add_command(scan_cmd, name="scan")
 cli.add_command(server_group, name="server")
 cli.add_command(tools_group, name="tools")
-
-
-# ============================================================================
-# Scan Command (Simplified Entry Point)
-# ============================================================================
-
-
-@cli.command()
-@click.argument("contract", type=click.Path(exists=True))
-@click.option("--output", "-o", type=click.Path(), help="Output file for JSON report")
-@click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues found")
-@click.option("--quiet", "-q", is_flag=True, help="Minimal output, only show summary")
-def scan(contract, output, ci, quiet):
-    """Quick vulnerability scan for a Solidity contract.
-
-    This is a simplified command for quick scans. For more options,
-    use 'miesc audit quick' or 'miesc audit full'.
-
-    \b
-    Examples:
-        miesc scan MyContract.sol
-        miesc scan contracts/Token.sol --ci
-        miesc scan MyContract.sol -o report.json
-
-    \b
-    Exit codes:
-        0 - Success (no critical/high issues, or CI mode disabled)
-        1 - Critical or high severity issues found (CI mode only)
-    """
-    if not quiet:
-        print_banner()
-        info(f"Scanning {contract}")
-        info(f"Tools: {', '.join(QUICK_TOOLS)}")
-
-    all_results = []
-
-    if RICH_AVAILABLE and not quiet:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-        ) as progress:
-            task = progress.add_task("Scanning...", total=len(QUICK_TOOLS))
-
-            for tool in QUICK_TOOLS:
-                progress.update(task, description=f"Running {tool}...")
-                result = _run_tool(tool, contract, 300)
-                all_results.append(result)
-                progress.advance(task)
-    else:
-        for tool in QUICK_TOOLS:
-            if not quiet:
-                info(f"Running {tool}...")
-            result = _run_tool(tool, contract, 300)
-            all_results.append(result)
-
-    summary = _summarize_findings(all_results)
-    total = sum(summary.values())
-    critical_high = summary.get("CRITICAL", 0) + summary.get("HIGH", 0)
-
-    # Display summary
-    if RICH_AVAILABLE:
-        table = Table(title="Scan Results", box=box.ROUNDED)
-        table.add_column("Severity", style="bold")
-        table.add_column("Count", justify="right")
-
-        colors = {
-            "CRITICAL": "red",
-            "HIGH": "red",
-            "MEDIUM": "yellow",
-            "LOW": "cyan",
-            "INFO": "dim",
-        }
-        for sev, count in summary.items():
-            if count > 0:  # Only show non-zero
-                table.add_row(sev, str(count), style=colors.get(sev, "white"))
-        table.add_row("TOTAL", str(total), style="bold")
-        console.print(table)
-
-        if critical_high > 0:
-            console.print(
-                f"\n[bold red]Found {critical_high} critical/high severity issues![/bold red]"
-            )
-        elif total > 0:
-            console.print(f"\n[yellow]Found {total} issues to review[/yellow]")
-        else:
-            console.print("\n[green]No issues found![/green]")
-    else:
-        print("\n=== Scan Results ===")
-        for sev, count in summary.items():
-            if count > 0:
-                print(f"{sev}: {count}")
-        print(f"TOTAL: {total}")
-
-    # Save output
-    if output:
-        data = {
-            "contract": str(contract),
-            "timestamp": datetime.now().isoformat(),
-            "version": VERSION,
-            "summary": summary,
-            "total_findings": total,
-            "results": all_results,
-        }
-        with open(output, "w") as f:
-            json.dump(data, f, indent=2, default=str)
-        success(f"Report saved to {output}")
-
-    # CI mode exit
-    if ci and critical_high > 0:
-        error(f"CI check failed: {critical_high} critical/high issues")
-        sys.exit(1)
 
 
 # ============================================================================

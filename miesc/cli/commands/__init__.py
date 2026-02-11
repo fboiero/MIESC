@@ -15,6 +15,7 @@ from .init import init
 from .plugins import plugins
 from .poc import poc
 from .report import report
+from .scan import scan
 from .server import server
 from .tools import tools
 
@@ -27,6 +28,7 @@ __all__ = [
     "plugins",
     "poc",
     "report",
+    "scan",
     "server",
     "tools",
 ]
