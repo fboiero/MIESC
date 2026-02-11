@@ -8,7 +8,8 @@ License: AGPL-3.0
 """
 
 from .config import config
+from .detectors import detectors
 from .server import server
 from .tools import tools
 
-__all__ = ["config", "server", "tools"]
+__all__ = ["config", "detectors", "server", "tools"]
