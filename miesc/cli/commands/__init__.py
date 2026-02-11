@@ -21,6 +21,7 @@ from .report import report
 from .scan import scan
 from .server import server
 from .tools import tools
+from .watch import watch
 
 __all__ = [
     "audit",
@@ -37,4 +38,5 @@ __all__ = [
     "scan",
     "server",
     "tools",
+    "watch",
 ]
