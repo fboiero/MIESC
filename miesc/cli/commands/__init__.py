@@ -10,8 +10,9 @@ License: AGPL-3.0
 from .config import config
 from .detectors import detectors
 from .init import init
+from .plugins import plugins
 from .poc import poc
 from .server import server
 from .tools import tools
 
-__all__ = ["config", "detectors", "init", "poc", "server", "tools"]
+__all__ = ["config", "detectors", "init", "plugins", "poc", "server", "tools"]
