@@ -61,6 +61,11 @@ from miesc.cli.utils import (  # noqa: E402
 from miesc.cli.utils import RICH_AVAILABLE, YAML_AVAILABLE  # noqa: E402
 from miesc.cli.utils import console  # noqa: E402
 
+# Import command modules (Phase 2 refactoring)
+from miesc.cli.commands.tools import tools as tools_group  # noqa: E402
+from miesc.cli.commands.server import server as server_group  # noqa: E402
+from miesc.cli.commands.config import config as config_group  # noqa: E402
+
 # Try to import Rich for beautiful output (needed for direct usage in this module)
 try:
     from rich import box
@@ -310,6 +315,12 @@ def cli(ctx, version, no_banner, debug, quiet):
         if not no_banner and not quiet:
             print_banner()
         click.echo(ctx.get_help())
+
+
+# Register command groups from separate modules (Phase 2 refactoring)
+cli.add_command(tools_group, name="tools")
+cli.add_command(server_group, name="server")
+cli.add_command(config_group, name="config")
 
 
 # ============================================================================
@@ -1673,270 +1684,6 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
     success(
         f"Batch analysis complete: {len(all_contract_results)} contracts, {total_findings} findings"
     )
-
-
-# ============================================================================
-# Tools Command Group
-# ============================================================================
-
-
-@cli.group()
-def tools():
-    """Manage and explore security tools."""
-    pass
-
-
-@tools.command("list")
-@click.option("--layer", "-l", type=int, help="Filter by layer (1-7)")
-@click.option("--available-only", "-a", is_flag=True, help="Show only installed tools")
-def tools_list(layer, available_only):
-    """List all 29 security tools."""
-    print_banner()
-
-    if layer and layer in LAYERS:
-        layers_to_show = {layer: LAYERS[layer]}
-    else:
-        layers_to_show = LAYERS
-
-    if RICH_AVAILABLE:
-        for num, layer_info in layers_to_show.items():
-            table = Table(
-                title=f"Layer {num}: {layer_info['name']}", box=box.ROUNDED, show_header=True
-            )
-            table.add_column("Tool", style="bold cyan")
-            table.add_column("Status", width=12)
-            table.add_column("Category")
-
-            for tool in layer_info["tools"]:
-                status_info = AdapterLoader.check_tool_status(tool)
-
-                if available_only and not status_info.get("available"):
-                    continue
-
-                status = status_info.get("status", "unknown")
-                if status_info.get("available"):
-                    status_display = "[green]available[/green]"
-                elif status == "not_installed":
-                    status_display = "[yellow]not installed[/yellow]"
-                elif status == "no_adapter":
-                    status_display = "[dim]no adapter[/dim]"
-                else:
-                    status_display = f"[red]{status}[/red]"
-
-                table.add_row(tool, status_display, layer_info["description"])
-
-            console.print(table)
-            console.print("")
-    else:
-        for num, layer_info in layers_to_show.items():
-            print(f"\n=== Layer {num}: {layer_info['name']} ===")
-            for tool in layer_info["tools"]:
-                status_info = AdapterLoader.check_tool_status(tool)
-                status = "OK" if status_info.get("available") else "MISSING"
-                if available_only and status != "OK":
-                    continue
-                print(f"  [{status}] {tool}")
-
-
-@tools.command("info")
-@click.argument("tool", type=str)
-def tools_info(tool):
-    """Show detailed information about a tool."""
-    print_banner()
-
-    adapter = AdapterLoader.get_adapter(tool)
-
-    if not adapter:
-        error(f"No adapter found for: {tool}")
-        info(f"Available tools: {', '.join(ADAPTER_MAP.keys())}")
-        return
-
-    try:
-        metadata = adapter.get_metadata()
-        status = adapter.is_available()
-
-        if RICH_AVAILABLE:
-            panel_content = f"""
-[bold cyan]Name:[/bold cyan] {metadata.name}
-[bold cyan]Version:[/bold cyan] {metadata.version}
-[bold cyan]Category:[/bold cyan] {metadata.category.value if hasattr(metadata.category, 'value') else metadata.category}
-[bold cyan]Author:[/bold cyan] {metadata.author}
-[bold cyan]License:[/bold cyan] {metadata.license}
-[bold cyan]Status:[/bold cyan] {'[green]Available[/green]' if status.value == 'available' else f'[yellow]{status.value}[/yellow]'}
-
-[bold]Links:[/bold]
-- Homepage: {metadata.homepage}
-- Repository: {metadata.repository}
-- Documentation: {metadata.documentation}
-
-[bold]Installation:[/bold]
-{metadata.installation_cmd}
-
-[bold]Capabilities:[/bold]
-"""
-            for cap in metadata.capabilities:
-                panel_content += f"- {cap.name}: {cap.description}\n"
-                panel_content += f"  Detection types: {', '.join(cap.detection_types[:5])}\n"
-
-            console.print(Panel(panel_content, title=f"Tool: {tool}", border_style="blue"))
-        else:
-            print(f"\n=== {tool} ===")
-            print(f"Version: {metadata.version}")
-            print(f"Category: {metadata.category}")
-            print(f"Status: {status.value}")
-            print(f"Installation: {metadata.installation_cmd}")
-
-    except Exception as e:
-        error(f"Could not get info for {tool}: {e}")
-
-
-# ============================================================================
-# Server Commands
-# ============================================================================
-
-
-@cli.group()
-def server():
-    """Start MIESC API servers."""
-    pass
-
-
-@server.command("rest")
-@click.option("--port", "-p", type=int, default=5001, help="Port number")
-@click.option("--host", "-h", type=str, default="0.0.0.0", help="Host address")
-@click.option("--debug", is_flag=True, help="Enable debug mode")
-def server_rest(port, host, debug):
-    """Start the Django REST API server."""
-    print_banner()
-    info(f"Starting Django REST API on http://{host}:{port}")
-    info("Endpoints:")
-    info("  - POST /api/v1/analyze/quick/  - Quick 4-tool scan")
-    info("  - POST /api/v1/analyze/full/   - Complete 7-layer audit")
-    info("  - GET  /api/v1/tools/          - List available tools")
-    info("  - GET  /api/v1/layers/         - Layer information")
-    info("  - GET  /api/v1/health/         - System health check")
-
-    try:
-        from miesc.api.rest import run_server
-
-        run_server(host, port, debug)
-    except ImportError as e:
-        error(f"Django REST Framework not available: {e}")
-        info("Install with: pip install django djangorestframework django-cors-headers")
-        sys.exit(1)
-    except Exception as e:
-        error(f"Server error: {e}")
-        sys.exit(1)
-
-
-@server.command("mcp")
-@click.option("--port", "-p", type=int, default=8765, help="WebSocket port number")
-@click.option("--host", "-h", type=str, default="localhost", help="Host to bind to")
-def server_mcp(port, host):
-    """Start the MCP WebSocket server for AI agent integration.
-
-    The MCP (Model Context Protocol) server enables real-time communication
-    with AI agents like Claude Desktop for collaborative security analysis.
-
-    Example:
-        miesc server mcp
-        miesc server mcp --port 9000 --host 0.0.0.0
-    """
-    print_banner()
-    info(f"Starting MCP WebSocket server on ws://{host}:{port}")
-    info("Compatible with Claude Desktop and other MCP clients")
-
-    try:
-        import asyncio
-
-        from src.mcp_core.websocket_server import run_server
-
-        info("Press Ctrl+C to stop the server")
-        asyncio.run(run_server(host=host, port=port))
-    except ImportError as e:
-        error(f"MCP dependencies not installed: {e}")
-        info("Install with: pip install websockets")
-        sys.exit(1)
-    except KeyboardInterrupt:
-        info("MCP server stopped")
-    except Exception as e:
-        error(f"MCP server error: {e}")
-        sys.exit(1)
-
-
-# ============================================================================
-# Config Commands
-# ============================================================================
-
-
-@cli.group()
-def config():
-    """Manage MIESC configuration."""
-    pass
-
-
-@config.command("show")
-def config_show():
-    """Display current configuration."""
-    print_banner()
-
-    cfg = load_config()
-    if not cfg:
-        warning("No configuration found at config/miesc.yaml")
-        return
-
-    if RICH_AVAILABLE:
-        tree = Tree("[bold cyan]MIESC Configuration[/bold cyan]")
-
-        def add_tree(parent, data, depth=0):
-            if depth > 3:
-                return
-            if isinstance(data, dict):
-                for key, value in data.items():
-                    if isinstance(value, (dict, list)):
-                        branch = parent.add(f"[yellow]{key}[/yellow]")
-                        add_tree(branch, value, depth + 1)
-                    else:
-                        parent.add(f"[yellow]{key}[/yellow]: {value}")
-            elif isinstance(data, list):
-                for i, item in enumerate(data[:10]):
-                    if isinstance(item, dict):
-                        branch = parent.add(f"[dim][{i}][/dim]")
-                        add_tree(branch, item, depth + 1)
-                    else:
-                        parent.add(f"[dim][{i}][/dim] {item}")
-
-        add_tree(tree, cfg)
-        console.print(tree)
-    else:
-        print(json.dumps(cfg, indent=2))
-
-
-@config.command("validate")
-def config_validate():
-    """Validate configuration file."""
-    print_banner()
-
-    config_path = ROOT_DIR / "config" / "miesc.yaml"
-    if not config_path.exists():
-        error(f"Config file not found: {config_path}")
-        sys.exit(1)
-
-    try:
-        cfg = load_config()
-
-        required_sections = ["layers", "adapters"]
-        for section in required_sections:
-            if section in cfg:
-                success(f"Section '{section}' found")
-            else:
-                warning(f"Section '{section}' missing (optional)")
-
-        success("Configuration is valid YAML")
-
-    except Exception as e:
-        error(f"Config error: {e}")
-        sys.exit(1)
 
 
 # ============================================================================

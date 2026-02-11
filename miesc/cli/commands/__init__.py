@@ -7,13 +7,8 @@ Author: Fernando Boiero
 License: AGPL-3.0
 """
 
-# Command groups will be imported here as they are created
-# from .audit import audit
-# from .tools import tools
-# from .report import report
-# from .detectors import detectors
-# from .plugins import plugins
-# from .init import init
-# from .poc import poc
-# from .server import server
-# from .config import config
+from .config import config
+from .server import server
+from .tools import tools
+
+__all__ = ["config", "server", "tools"]
