@@ -67,6 +67,7 @@ from miesc.cli.commands.benchmark import benchmark as benchmark_cmd  # noqa: E40
 from miesc.cli.commands.config import config as config_group  # noqa: E402
 from miesc.cli.commands.detect import detect as detect_cmd  # noqa: E402
 from miesc.cli.commands.detectors import detectors as detectors_group  # noqa: E402
+from miesc.cli.commands.doctor import doctor as doctor_cmd  # noqa: E402
 from miesc.cli.commands.init import init as init_group  # noqa: E402
 from miesc.cli.commands.plugins import plugins as plugins_group  # noqa: E402
 from miesc.cli.commands.poc import poc as poc_group  # noqa: E402
@@ -164,6 +165,7 @@ cli.add_command(benchmark_cmd, name="benchmark")
 cli.add_command(config_group, name="config")
 cli.add_command(detect_cmd, name="detect")
 cli.add_command(detectors_group, name="detectors")
+cli.add_command(doctor_cmd, name="doctor")
 cli.add_command(init_group, name="init")
 cli.add_command(plugins_group, name="plugins")
 cli.add_command(poc_group, name="poc")
@@ -171,107 +173,6 @@ cli.add_command(report_cmd, name="report")
 cli.add_command(scan_cmd, name="scan")
 cli.add_command(server_group, name="server")
 cli.add_command(tools_group, name="tools")
-
-
-# ============================================================================
-# Doctor Command
-# ============================================================================
-
-
-@cli.command()
-@click.option("--verbose", "-v", is_flag=True, help="Show detailed information")
-def doctor(verbose):
-    """Check tool availability and system health."""
-    print_banner()
-    info("Checking system health and tool availability...\n")
-
-    # Check basic dependencies
-    dependencies = {
-        "python": "python3 --version",
-        "solc": "solc --version",
-        "node": "node --version",
-        "npm": "npm --version",
-    }
-
-    if RICH_AVAILABLE:
-        # Dependencies table
-        dep_table = Table(title="Core Dependencies", box=box.ROUNDED)
-        dep_table.add_column("Dependency", style="bold", width=15)
-        dep_table.add_column("Status", width=10)
-        dep_table.add_column("Version", width=40)
-
-        for dep, cmd in dependencies.items():
-            try:
-                import subprocess
-
-                result = subprocess.run(cmd.split(), capture_output=True, text=True, timeout=5)
-                version = (
-                    result.stdout.strip().split("\n")[0][:40]
-                    or result.stderr.strip().split("\n")[0][:40]
-                )
-                dep_table.add_row(dep, "[green]OK[/green]", version)
-            except Exception:
-                dep_table.add_row(dep, "[yellow]MISSING[/yellow]", "Not installed")
-
-        console.print(dep_table)
-        console.print("")
-
-        # Security tools table
-        tools_table = Table(title="Security Tools (29 Total)", box=box.ROUNDED)
-        tools_table.add_column("Layer", style="bold", width=8)
-        tools_table.add_column("Tool", width=25)
-        tools_table.add_column("Status", width=15)
-
-        total_available = 0
-        total_tools = 0
-
-        for layer_num, layer_info in LAYERS.items():
-            for tool in layer_info["tools"]:
-                total_tools += 1
-                status_info = AdapterLoader.check_tool_status(tool)
-
-                if status_info.get("available"):
-                    status_display = "[green]available[/green]"
-                    total_available += 1
-                elif status_info.get("status") == "not_installed":
-                    status_display = "[yellow]not installed[/yellow]"
-                elif status_info.get("status") == "no_adapter":
-                    status_display = "[dim]pending[/dim]"
-                else:
-                    status_display = f"[red]{status_info.get('status', 'error')}[/red]"
-
-                tools_table.add_row(str(layer_num), tool, status_display)
-
-        console.print(tools_table)
-        console.print(f"\n[bold]{total_available}/{total_tools}[/bold] tools available")
-
-    else:
-        print("=== Core Dependencies ===")
-        for dep, cmd in dependencies.items():
-            try:
-                import subprocess
-
-                result = subprocess.run(cmd.split(), capture_output=True, text=True, timeout=5)
-                print(f"[OK] {dep}")
-            except Exception:
-                print(f"[MISSING] {dep}")
-
-        print("\n=== Security Tools ===")
-        total_available = 0
-        total_tools = 0
-
-        for layer_num, layer_info in LAYERS.items():
-            print(f"\nLayer {layer_num}: {layer_info['name']}")
-            for tool in layer_info["tools"]:
-                total_tools += 1
-                status_info = AdapterLoader.check_tool_status(tool)
-                if status_info.get("available"):
-                    print(f"  [OK] {tool}")
-                    total_available += 1
-                else:
-                    print(f"  [MISSING] {tool}")
-
-        print(f"\n{total_available}/{total_tools} tools available")
 
 
 # ============================================================================

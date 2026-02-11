@@ -12,6 +12,7 @@ from .benchmark import benchmark
 from .config import config
 from .detect import detect
 from .detectors import detectors
+from .doctor import doctor
 from .init import init
 from .plugins import plugins
 from .poc import poc
@@ -26,6 +27,7 @@ __all__ = [
     "config",
     "detect",
     "detectors",
+    "doctor",
     "init",
     "plugins",
     "poc",
