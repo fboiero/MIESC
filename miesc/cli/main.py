@@ -65,6 +65,7 @@ from miesc.cli.utils import console  # noqa: E402
 from miesc.cli.commands.audit import audit as audit_group  # noqa: E402
 from miesc.cli.commands.benchmark import benchmark as benchmark_cmd  # noqa: E402
 from miesc.cli.commands.config import config as config_group  # noqa: E402
+from miesc.cli.commands.detect import detect as detect_cmd  # noqa: E402
 from miesc.cli.commands.detectors import detectors as detectors_group  # noqa: E402
 from miesc.cli.commands.init import init as init_group  # noqa: E402
 from miesc.cli.commands.plugins import plugins as plugins_group  # noqa: E402
@@ -161,6 +162,7 @@ def cli(ctx, version, no_banner, debug, quiet):
 cli.add_command(audit_group, name="audit")
 cli.add_command(benchmark_cmd, name="benchmark")
 cli.add_command(config_group, name="config")
+cli.add_command(detect_cmd, name="detect")
 cli.add_command(detectors_group, name="detectors")
 cli.add_command(init_group, name="init")
 cli.add_command(plugins_group, name="plugins")
@@ -169,116 +171,6 @@ cli.add_command(report_cmd, name="report")
 cli.add_command(scan_cmd, name="scan")
 cli.add_command(server_group, name="server")
 cli.add_command(tools_group, name="tools")
-
-
-# ============================================================================
-# Detect Command (Framework Auto-Detection)
-# ============================================================================
-
-
-@cli.command()
-@click.argument("path", type=click.Path(exists=True), default=".")
-@click.option("--json", "-j", "as_json", is_flag=True, help="Output as JSON")
-def detect(path, as_json):
-    """Auto-detect Foundry/Hardhat/Truffle framework.
-
-    Detects the Solidity development framework in use and extracts
-    configuration like solc version, remappings, and paths.
-
-    Supports:
-      - Foundry (foundry.toml)
-      - Hardhat (hardhat.config.js/ts)
-      - Truffle (truffle-config.js)
-      - Brownie (brownie-config.yaml)
-
-    Examples:
-      miesc detect                    # Detect in current directory
-      miesc detect ./my-project       # Detect in specific path
-      miesc detect . --json           # Output as JSON
-    """
-    if not as_json:
-        print_banner()
-
-    try:
-        from src.core.framework_detector import Framework, detect_framework
-    except ImportError:
-        error("Framework detector module not available")
-        sys.exit(1)
-
-    config = detect_framework(path)
-
-    if as_json:
-        import json
-
-        click.echo(json.dumps(config.to_dict(), indent=2))
-        return
-
-    if config.framework == Framework.UNKNOWN:
-        warning(f"No supported framework detected in {path}")
-        info("Supported frameworks: Foundry, Hardhat, Truffle, Brownie")
-        info("\nLooking for:")
-        info("  - foundry.toml        (Foundry)")
-        info("  - hardhat.config.js   (Hardhat)")
-        info("  - truffle-config.js   (Truffle)")
-        info("  - brownie-config.yaml (Brownie)")
-        return
-
-    if RICH_AVAILABLE:
-        from rich.panel import Panel
-
-        # Build panel content
-        content = f"""[bold cyan]Framework:[/bold cyan] {config.framework.value.upper()}
-[bold cyan]Root Path:[/bold cyan] {config.root_path}
-[bold cyan]Config File:[/bold cyan] {config.config_file}
-
-[bold]Compiler Settings:[/bold]
-  Solc Version: {config.solc_version or 'auto'}
-  EVM Version: {config.evm_version or 'default'}
-  Optimizer: {'enabled' if config.optimizer_enabled else 'disabled'}
-  Optimizer Runs: {config.optimizer_runs}
-
-[bold]Project Paths:[/bold]
-  Source: {config.src_path or 'N/A'}
-  Test: {config.test_path or 'N/A'}
-  Output: {config.out_path or 'N/A'}
-"""
-        if config.remappings:
-            content += f"""
-[bold]Remappings:[/bold] ({len(config.remappings)} entries)
-"""
-            for remap in config.remappings[:5]:
-                content += f"  {remap}\n"
-            if len(config.remappings) > 5:
-                content += f"  ... and {len(config.remappings) - 5} more\n"
-
-        if config.lib_paths:
-            content += """
-[bold]Library Paths:[/bold]
-"""
-            for lib in config.lib_paths[:3]:
-                content += f"  {lib}\n"
-
-        console.print(Panel(content, title="Framework Detection", border_style="green"))
-    else:
-        print("\n=== Framework Detection ===")
-        print(f"Framework: {config.framework.value.upper()}")
-        print(f"Root Path: {config.root_path}")
-        print(f"Config File: {config.config_file}")
-        print("\nCompiler Settings:")
-        print(f"  Solc Version: {config.solc_version or 'auto'}")
-        print(f"  EVM Version: {config.evm_version or 'default'}")
-        print(f"  Optimizer: {'enabled' if config.optimizer_enabled else 'disabled'}")
-        print("\nProject Paths:")
-        print(f"  Source: {config.src_path}")
-        print(f"  Test: {config.test_path}")
-        print(f"  Output: {config.out_path}")
-
-        if config.remappings:
-            print(f"\nRemappings: ({len(config.remappings)} entries)")
-            for remap in config.remappings[:5]:
-                print(f"  {remap}")
-
-    success(f"Detected {config.framework.value.upper()} project")
 
 
 # ============================================================================

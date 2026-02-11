@@ -10,6 +10,7 @@ License: AGPL-3.0
 from .audit import audit
 from .benchmark import benchmark
 from .config import config
+from .detect import detect
 from .detectors import detectors
 from .init import init
 from .plugins import plugins
@@ -23,6 +24,7 @@ __all__ = [
     "audit",
     "benchmark",
     "config",
+    "detect",
     "detectors",
     "init",
     "plugins",
