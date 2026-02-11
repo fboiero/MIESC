@@ -5,6 +5,28 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0] - 2026-02-11
+
+### Changed
+- **CLI Refactoring**: main.py reduced from 6,710 to 126 lines (98.1% reduction)
+- Extracted 8 command modules to `miesc/cli/commands/`:
+  - `audit.py` - 7 subcommands (quick, full, layer, smart, profile, single, batch)
+  - `report.py` - Report generation with 7 templates and LLM interpretation
+  - `benchmark.py` - Security posture tracking over time
+  - `scan.py` - Quick vulnerability scan
+  - `detect.py` - Framework auto-detection (Foundry/Hardhat/Truffle/Brownie)
+  - `doctor.py` - System health check
+  - `export.py` - Export to SARIF/Markdown/CSV/HTML
+  - `watch.py` - Real-time file watching with auto-scan
+- All commands now registered via `cli.add_command()` pattern
+- Removed unused imports from main.py
+
+### Added
+- `miesc/cli/commands/` package with 15 command modules
+- Modular CLI architecture for easier maintenance and testing
+
+---
+
 ## [5.0.3] - 2026-02-02
 
 ### Fixed

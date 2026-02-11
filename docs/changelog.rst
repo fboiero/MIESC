@@ -23,7 +23,7 @@ Changed
 * Mypy strict mode enabled
 * main.py refactored: extracted constants and utilities to separate modules (-488 lines)
 
-[5.0.3] - 2026-02-04
+[5.1.0] - 2026-02-04
 --------------------
 
 Added

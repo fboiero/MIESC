@@ -61,7 +61,7 @@ from .vulnerability_rag import (
     VulnerabilityRAG,
 )
 
-# v5.0.3+ Embedding RAG with ChromaDB (optional dependencies)
+# v5.1.0+ Embedding RAG with ChromaDB (optional dependencies)
 try:
     from .embedding_rag import (
         EmbeddingRAG,
@@ -130,7 +130,7 @@ __all__ = [
     "REMEDIATION_PATTERNS",
     "generate_fix",
     "get_quick_fix",
-    # v5.0.3+ Embedding RAG with ChromaDB (optional)
+    # v5.1.0+ Embedding RAG with ChromaDB (optional)
     "EmbeddingRAG",
     "HybridRAG",
     "RetrievalResult",

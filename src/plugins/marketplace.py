@@ -533,7 +533,7 @@ def _get_miesc_version() -> str:
 
         return importlib.metadata.version("miesc")
     except Exception:
-        return "5.0.3"
+        return "5.1.0"
 
 
 def _parse_version(version_str: str) -> tuple:

@@ -1,4 +1,4 @@
-# MIESC v5.0.3 FULL - Extended Docker Image
+# MIESC v5.1.0 FULL - Extended Docker Image
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This image includes advanced security analysis tools:
@@ -30,7 +30,7 @@
 FROM ghcr.io/fboiero/miesc:latest
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.0.3-full"
+LABEL version="5.1.0-full"
 LABEL description="MIESC FULL - Extended with Mythril, Echidna, Halmos, PyTorch for ML Analysis"
 
 # ==========================================
@@ -156,7 +156,7 @@ RUN pip install --user --no-cache-dir semgrep && \
 # ENVIRONMENT CONFIGURATION
 # ==========================================
 
-ENV MIESC_VERSION="5.0.3-full"
+ENV MIESC_VERSION="5.1.0-full"
 ENV MIESC_ENV="docker-full"
 
 # Mark deprecated tools

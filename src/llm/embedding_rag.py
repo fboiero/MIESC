@@ -1,5 +1,5 @@
 """
-Embedding-based RAG for Vulnerability Analysis - MIESC v5.0.3
+Embedding-based RAG for Vulnerability Analysis - MIESC v5.1.0
 ==============================================================
 
 ChromaDB-powered semantic search for vulnerability knowledge base.

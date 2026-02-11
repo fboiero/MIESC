@@ -1,4 +1,4 @@
-# MIESC v5.0.3 - Optimized Docker Deployment
+# MIESC v5.1.0 - Optimized Docker Deployment
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile creates a complete, production-ready environment with:
@@ -16,7 +16,7 @@
 # has protobuf compatibility issues on Python 3.12.
 #
 # Build with BuildKit for parallel stages and cache mounts:
-#   DOCKER_BUILDKIT=1 docker build -t miesc:5.0.3 -f Dockerfile .
+#   DOCKER_BUILDKIT=1 docker build -t miesc:5.1.0 -f Dockerfile .
 
 # ============================================================
 # Stage 1a: aderyn-builder (runs in parallel with foundry-builder)
@@ -51,7 +51,7 @@ RUN foundryup
 FROM python:3.12-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.0.3"
+LABEL version="5.1.0"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
 # Copy aderyn from aderyn-builder
@@ -158,7 +158,7 @@ RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
     echo "WeasyPrint installed successfully"
 
 # Environment variables for MIESC
-ENV MIESC_VERSION="5.0.3"
+ENV MIESC_VERSION="5.1.0"
 ENV MIESC_ENV="docker"
 ENV PYTHONPATH="/app"
 ENV PYTHONUNBUFFERED=1

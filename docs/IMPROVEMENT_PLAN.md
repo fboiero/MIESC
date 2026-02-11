@@ -1,7 +1,7 @@
 # MIESC - Plan de Mejoras v5.1.0
 
 **Fecha**: Febrero 2026
-**Versión actual**: 5.0.3
+**Versión actual**: 5.1.0
 **Objetivo**: 5.1.0
 
 ---
