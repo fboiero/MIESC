@@ -68,6 +68,7 @@ from miesc.cli.commands.config import config as config_group  # noqa: E402
 from miesc.cli.commands.detect import detect as detect_cmd  # noqa: E402
 from miesc.cli.commands.detectors import detectors as detectors_group  # noqa: E402
 from miesc.cli.commands.doctor import doctor as doctor_cmd  # noqa: E402
+from miesc.cli.commands.export import export as export_cmd  # noqa: E402
 from miesc.cli.commands.init import init as init_group  # noqa: E402
 from miesc.cli.commands.plugins import plugins as plugins_group  # noqa: E402
 from miesc.cli.commands.poc import poc as poc_group  # noqa: E402
@@ -166,6 +167,7 @@ cli.add_command(config_group, name="config")
 cli.add_command(detect_cmd, name="detect")
 cli.add_command(detectors_group, name="detectors")
 cli.add_command(doctor_cmd, name="doctor")
+cli.add_command(export_cmd, name="export")
 cli.add_command(init_group, name="init")
 cli.add_command(plugins_group, name="plugins")
 cli.add_command(poc_group, name="poc")
@@ -173,124 +175,6 @@ cli.add_command(report_cmd, name="report")
 cli.add_command(scan_cmd, name="scan")
 cli.add_command(server_group, name="server")
 cli.add_command(tools_group, name="tools")
-
-
-# ============================================================================
-# Export Command
-# ============================================================================
-
-
-@cli.command()
-@click.argument("input_file", type=click.Path(exists=True))
-@click.option(
-    "--format", "-f", "fmt", type=click.Choice(["sarif", "markdown", "csv", "html"]), required=True
-)
-@click.option("--output", "-o", type=click.Path(), help="Output file path")
-def export(input_file, fmt, output):
-    """Export JSON results to different formats."""
-    print_banner()
-
-    with open(input_file) as f:
-        data = json.load(f)
-
-    results = data.get("results", [data])
-    contract = data.get("contract", input_file)
-
-    if fmt == "sarif":
-        output_data = _to_sarif(results)
-        output_str = json.dumps(output_data, indent=2)
-        ext = ".sarif.json"
-    elif fmt == "markdown":
-        output_str = _to_markdown(results, contract)
-        ext = ".md"
-    elif fmt == "csv":
-        import csv
-        import io
-
-        output_io = io.StringIO()
-        writer = csv.writer(output_io)
-        writer.writerow(["Tool", "Severity", "Title", "Description", "Location", "Line"])
-        for result in results:
-            for finding in result.get("findings", []):
-                location = finding.get("location", {})
-                if isinstance(location, dict):
-                    loc_file = location.get("file", "")
-                    loc_line = location.get("line", 0)
-                else:
-                    loc_file = str(location)
-                    loc_line = 0
-
-                writer.writerow(
-                    [
-                        result.get("tool", ""),
-                        finding.get("severity", ""),
-                        finding.get("title", finding.get("type", "")),
-                        finding.get("description", finding.get("message", ""))[:100],
-                        loc_file,
-                        loc_line,
-                    ]
-                )
-        output_str = output_io.getvalue()
-        ext = ".csv"
-    elif fmt == "html":
-        output_str = f"""<!DOCTYPE html>
-<html>
-<head>
-    <title>MIESC Security Report</title>
-    <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; }}
-        h1 {{ color: #1a73e8; }}
-        .summary {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }}
-        .finding {{ border-left: 4px solid #ccc; padding: 10px 20px; margin: 10px 0; }}
-        .finding.critical {{ border-color: #dc3545; }}
-        .finding.high {{ border-color: #fd7e14; }}
-        .finding.medium {{ border-color: #ffc107; }}
-        .finding.low {{ border-color: #28a745; }}
-    </style>
-</head>
-<body>
-    <h1>MIESC Security Report</h1>
-    <div class="summary">
-        <strong>Generated:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}<br>
-        <strong>Contract:</strong> {contract}<br>
-        <strong>MIESC Version:</strong> {VERSION}
-    </div>
-"""
-        summary = _summarize_findings(results)
-        output_str += f"""
-    <h2>Summary</h2>
-    <ul>
-        <li>Critical: {summary['CRITICAL']}</li>
-        <li>High: {summary['HIGH']}</li>
-        <li>Medium: {summary['MEDIUM']}</li>
-        <li>Low: {summary['LOW']}</li>
-        <li>Info: {summary['INFO']}</li>
-    </ul>
-    <h2>Findings</h2>
-"""
-        for result in results:
-            for finding in result.get("findings", []):
-                severity = str(finding.get("severity", "info")).lower()
-                output_str += f"""
-    <div class="finding {severity}">
-        <strong>[{finding.get("severity", "INFO")}] {finding.get("title", finding.get("type", "Finding"))}</strong>
-        <p>{finding.get("description", finding.get("message", ""))}</p>
-    </div>
-"""
-        output_str += "</body></html>"
-        ext = ".html"
-    else:
-        error(f"Format {fmt} not supported")
-        return
-
-    # Determine output path
-    if not output:
-        output = str(Path(input_file).with_suffix(ext))
-
-    with open(output, "w") as f:
-        f.write(output_str)
-
-    success(f"Exported to {output}")
 
 
 # ============================================================================

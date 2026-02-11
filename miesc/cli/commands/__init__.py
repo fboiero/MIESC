@@ -13,6 +13,7 @@ from .config import config
 from .detect import detect
 from .detectors import detectors
 from .doctor import doctor
+from .export import export
 from .init import init
 from .plugins import plugins
 from .poc import poc
@@ -28,6 +29,7 @@ __all__ = [
     "detect",
     "detectors",
     "doctor",
+    "export",
     "init",
     "plugins",
     "poc",
