@@ -244,8 +244,10 @@ class SmartLLMAdapter(ToolAdapter):
                 cached_result["execution_time"] = time.time() - start_time
                 return cached_result
 
-            # Truncate if too long (manage 8K context window)
-            contract_code = self._truncate_code(contract_code, self._max_tokens)
+            # Smart truncation for very large contracts (>50K chars)
+            # Smaller contracts handled dynamically in prompt generation
+            if len(contract_code) > 50000:
+                contract_code = self._truncate_code_smart(contract_code, 50000)
 
             # STAGE 1: Generator - Initial vulnerability detection with RAG
             logger.info("SmartLLM Stage 1/3: Generator (RAG-enhanced)")
@@ -358,6 +360,156 @@ class SmartLLMAdapter(ToolAdapter):
         logger.warning(f"Contract truncated from {len(code)} to {max_chars} chars")
         return code[:max_chars] + "\n// ... (truncated for analysis)"
 
+    def _truncate_code_smart(self, code: str, max_chars: int) -> str:
+        """
+        Smart code truncation that prioritizes security-critical functions.
+
+        Strategy:
+        1. Always include contract header (imports, state variables)
+        2. Prioritize functions with security patterns (external calls, admin, etc.)
+        3. Include remaining functions in order up to limit
+        """
+        import re
+
+        if len(code) <= max_chars:
+            return code
+
+        # Extract contract structure
+        lines = code.split('\n')
+
+        # Phase 1: Always include header (first ~30 lines or until first function)
+        header_end = 0
+        for i, line in enumerate(lines):
+            if 'function ' in line or 'modifier ' in line:
+                header_end = i
+                break
+            header_end = i + 1
+
+        header = '\n'.join(lines[:header_end])
+
+        # Phase 2: Extract and prioritize functions
+        function_pattern = re.compile(
+            r'(function\s+\w+[^{]*\{)',
+            re.MULTILINE
+        )
+
+        # Simple function extraction (brace counting)
+        functions = []
+        current_func = []
+        brace_count = 0
+        in_function = False
+
+        for line in lines[header_end:]:
+            if 'function ' in line and brace_count == 0:
+                if current_func:
+                    functions.append('\n'.join(current_func))
+                current_func = [line]
+                in_function = True
+                brace_count = line.count('{') - line.count('}')
+            elif in_function:
+                current_func.append(line)
+                brace_count += line.count('{') - line.count('}')
+                if brace_count <= 0:
+                    functions.append('\n'.join(current_func))
+                    current_func = []
+                    in_function = False
+                    brace_count = 0
+
+        if current_func:
+            functions.append('\n'.join(current_func))
+
+        # Score functions by security criticality
+        def score_function(func_code: str) -> int:
+            score = 0
+            func_lower = func_code.lower()
+            # High priority: external calls (reentrancy risk)
+            if '.call{' in func_code or '.call(' in func_code:
+                score += 100
+            if '.transfer(' in func_code:
+                score += 80
+            if 'delegatecall' in func_lower:
+                score += 90
+            # High priority: admin/owner functions
+            if 'onlyowner' in func_lower or 'admin' in func_lower:
+                score += 70
+            if 'selfdestruct' in func_lower:
+                score += 100
+            # Medium priority: value handling
+            if 'payable' in func_lower:
+                score += 50
+            if 'withdraw' in func_lower or 'deposit' in func_lower:
+                score += 60
+            # DeFi patterns
+            if any(p in func_lower for p in ['swap', 'borrow', 'lend', 'liquidat', 'price']):
+                score += 75
+            return score
+
+        # Sort functions by score (highest first)
+        scored_functions = [(score_function(f), f) for f in functions]
+        scored_functions.sort(key=lambda x: -x[0])
+
+        # Build result within limit
+        result_parts = [header]
+        current_len = len(header)
+        included_count = 0
+
+        for score, func in scored_functions:
+            func_with_separator = f"\n\n{func}"
+            if current_len + len(func_with_separator) <= max_chars - 50:  # Reserve 50 for truncation note
+                result_parts.append(func_with_separator)
+                current_len += len(func_with_separator)
+                included_count += 1
+
+        if included_count < len(functions):
+            omitted = len(functions) - included_count
+            result_parts.append(f"\n\n// ... ({omitted} functions omitted, {len(functions)} total)")
+            logger.info(f"Smart truncation: included {included_count}/{len(functions)} functions (prioritized by security risk)")
+
+        return ''.join(result_parts)
+
+    def _extract_rag_query(self, contract_code: str, patterns: dict) -> str:
+        """
+        Extract optimized query for RAG search based on detected patterns.
+
+        Instead of raw code, creates semantic query from:
+        - Function signatures with risky patterns
+        - Detected vulnerability indicators
+        """
+        query_parts = []
+
+        # Add pattern-based query terms
+        if patterns.get("has_external_calls") or patterns.get("has_state_after_call"):
+            query_parts.append("reentrancy external call state update vulnerability")
+        if patterns.get("has_delegatecall"):
+            query_parts.append("delegatecall proxy storage collision")
+        if patterns.get("has_price_oracle"):
+            query_parts.append("oracle manipulation price feed attack")
+        if patterns.get("has_amm_integration"):
+            query_parts.append("flash loan AMM spot price manipulation")
+        if patterns.get("has_lending_logic"):
+            query_parts.append("lending collateral liquidation attack")
+        if patterns.get("has_admin_functions"):
+            query_parts.append("access control owner privilege escalation")
+        if patterns.get("has_selfdestruct"):
+            query_parts.append("selfdestruct arbitrary destruction")
+
+        # Extract function signatures for context
+        import re
+        func_sigs = re.findall(r'function\s+(\w+)\s*\([^)]*\)', contract_code)
+        if func_sigs:
+            # Focus on suspicious function names
+            suspicious = [f for f in func_sigs if any(
+                kw in f.lower() for kw in ['withdraw', 'transfer', 'admin', 'owner', 'mint', 'burn', 'swap', 'borrow']
+            )]
+            if suspicious:
+                query_parts.append(f"security analysis of {' '.join(suspicious[:5])}")
+
+        # Default query if no patterns
+        if not query_parts:
+            query_parts.append("smart contract security vulnerability analysis")
+
+        return " ".join(query_parts)
+
     def _generate_analysis_prompt(self, contract_code: str) -> str:
         """Generate RAG-enhanced analysis prompt for Ollama LLM.
 
@@ -365,15 +517,25 @@ class SmartLLMAdapter(ToolAdapter):
         - Code pattern detection first (analyze what the code ACTUALLY does)
         - RAG context for vulnerability pattern matching (keyword or embedding-based)
         - Specific SWC-based vulnerability checks
+
+        Context window optimization (v5.1.0):
+        - Smart code truncation prioritizes security-critical functions
+        - Optimized RAG query based on detected patterns
+        - Dynamic context allocation (more space for complex contracts)
         """
+        # Pre-analyze code for key patterns
+        code_patterns = self._detect_code_patterns(contract_code)
+
         # Get relevant knowledge from RAG knowledge base
         rag_context = ""
         if self._use_rag:
             if self._use_embedding_rag and self._embedding_rag:
                 # Use ChromaDB embedding-based RAG for semantic search
                 try:
+                    # Use optimized query instead of raw code
+                    rag_query = self._extract_rag_query(contract_code, code_patterns)
                     results = self._embedding_rag.search(
-                        query=contract_code[:2000],  # Use first 2K chars as query
+                        query=rag_query,
                         n_results=5
                     )
                     rag_parts = []
@@ -385,6 +547,7 @@ class SmartLLMAdapter(ToolAdapter):
                             f"- Attack: {r.document.attack_scenario[:150]}..."
                         )
                     rag_context = "\n\n".join(rag_parts)
+                    logger.debug(f"EmbeddingRAG query: {rag_query[:100]}...")
                     logger.debug(f"EmbeddingRAG returned {len(results)} results")
                 except Exception as e:
                     logger.warning(f"EmbeddingRAG search failed: {e}, falling back to keyword RAG")
@@ -393,108 +556,56 @@ class SmartLLMAdapter(ToolAdapter):
                 # Fallback to keyword-based RAG
                 rag_context = get_relevant_knowledge(contract_code)
 
-        # Pre-analyze code for key patterns to guide LLM focus
-        code_patterns = self._detect_code_patterns(contract_code)
+        # Get focus areas based on patterns (already computed)
         focus_areas = self._get_focus_areas(code_patterns)
 
-        prompt = f"""You are a senior smart contract security auditor. Your task is to analyze \
-this contract and find REAL vulnerabilities in the ACTUAL code.
+        # Context window optimization: allocate space based on content
+        # Total context ~8K tokens (~32K chars), reserve:
+        # - ~2K chars for prompt template
+        # - ~3K chars for RAG context
+        # - ~27K chars for code (or less if smaller)
+        max_code_chars = 27000
+        if len(contract_code) > max_code_chars:
+            # Use smart truncation for large contracts
+            contract_code = self._truncate_code_smart(contract_code, max_code_chars)
 
-CRITICAL: Focus ONLY on vulnerabilities that EXIST in this specific code. \
-Do NOT report generic best practices that aren't applicable.
+        prompt = f"""You are a smart contract security auditor. Find REAL vulnerabilities in this code.
 
-SMART CONTRACT TO ANALYZE:
+RULES:
+- Only report vulnerabilities that EXIST in this code
+- Include SWC ID and attack scenario for critical findings
+- Output valid JSON only
+
+CONTRACT:
 ```solidity
 {contract_code}
 ```
 
-DETECTED CODE PATTERNS (focus your analysis on these):
+DETECTED PATTERNS:
 {focus_areas}
 """
 
-        # Add RAG context if available
+        # Add RAG context if available (dynamic allocation)
         if rag_context:
+            # More RAG context for smaller contracts, less for larger
+            rag_chars = min(4000, max(2000, 32000 - len(contract_code) - 2000))
             prompt += f"""
-VULNERABILITY KNOWLEDGE BASE (SWC Registry patterns):
-{rag_context[:3000]}
+VULNERABILITY PATTERNS (from knowledge base):
+{rag_context[:rag_chars]}
 """
 
         prompt += """
-STEP-BY-STEP ANALYSIS (for security researchers):
+ANALYZE FOR:
+1. Reentrancy (SWC-107): external call before state update
+2. Access Control (SWC-105): missing modifiers on sensitive functions
+3. Unchecked Returns (SWC-104): ignored return values
+4. Oracle Manipulation: spot prices without TWAP/Chainlink
+5. Precision Loss: division before multiplication
 
-STEP 1 - CONTROL FLOW ANALYSIS:
-- Trace each function's execution path
-- Identify external calls (call, delegatecall, transfer, send)
-- Check if state changes happen BEFORE or AFTER external calls
-
-STEP 2 - REENTRANCY CHECK (SWC-107):
-- Pattern: external call BEFORE state update = REENTRANCY
-- Look for: `.call{value:`, `.transfer(`, `.send(`, `IERC20.transfer(`
-- Real-world example: The DAO hack (2016, $60M) used this exact pattern
-
-STEP 3 - ACCESS CONTROL CHECK (SWC-105):
-- Are there admin/owner functions without proper modifiers?
-- Real-world example: Ronin Bridge (2022, $625M) - compromised private keys
-
-STEP 4 - INTEGER ISSUES (SWC-101):
-- Check for unchecked arithmetic (pre-Solidity 0.8.0)
-- Look for precision loss in divisions (common in DeFi yield calculations)
-
-STEP 5 - EXTERNAL CALL SAFETY (SWC-104, SWC-113):
-- Are return values from external calls checked?
-- Real-world example: Wormhole (2022, $320M) - unchecked signature verification
-
-STEP 6 - ORACLE MANIPULATION (DeFi):
-- Does the contract use external price feeds?
-- Is it using spot prices (getReserves) instead of TWAP or Chainlink?
-- Can the price be manipulated in the same transaction?
-- Real-world example: Harvest Finance (2020, $34M) - AMM spot price manipulation
-
-STEP 7 - FLASH LOAN / SAME-BLOCK ATTACKS (DeFi):
-- Can an attacker manipulate state and exploit it atomically?
-- Is there protection against same-block price manipulation?
-- Look for: no block.number checks, no TWAP, using spot prices for lending/borrowing
-- Real-world example: bZx (2020, $8M) - flash loan price manipulation
-
-STEP 8 - PRECISION LOSS (DeFi):
-- Is division done before multiplication? (causes precision loss)
-- Are there rounding issues in interest/fee calculations?
-- Look for: (a / 1e18) * b instead of (a * b) / 1e18
-- Real-world example: Many DeFi protocols lose funds to rounding errors
-
-STEP 9 - ADMIN/GOVERNANCE ISSUES:
-- Are there admin functions without timelocks?
-- Can owner withdraw all funds without delay?
-- Is zero address checked when setting new owner?
-- Look for: setOwner without address(0) check, emergencyWithdraw without timelock
-
-OUTPUT FORMAT (valid JSON only):
+OUTPUT (JSON only):
 ```json
-{
-  "findings": [
-    {
-      "type": "reentrancy",
-      "severity": "CRITICAL",
-      "title": "Reentrancy in withdraw function",
-      "description": "External call before state update allows reentrancy attack",
-      "location": "withdraw:14-16",
-      "swc_id": "SWC-107",
-      "attack_scenario": "1) Deploy malicious contract 2) Call withdraw 3) Fallback re-enters",
-      "remediation": "Move balances[msg.sender] -= amount before the external call",
-      "real_world_reference": "The DAO hack 2016"
-    }
-  ]
-}
-```
-
-CRITICAL RULES:
-- Output ONLY valid JSON inside ```json``` code block
-- Do NOT include actual code snippets with newlines (breaks JSON)
-- Keep all string values on single lines
-- Only report REAL vulnerabilities found in this specific code
-- Include SWC Registry ID for each finding
-- For CRITICAL findings, include attack_scenario
-- Do NOT report generic best practices"""
+{"findings": [{"type": "reentrancy", "severity": "CRITICAL", "title": "...", "description": "...", "location": "function:line", "swc_id": "SWC-107", "attack_scenario": "...", "remediation": "..."}]}
+```"""
 
         return prompt
 
