@@ -10,7 +10,7 @@
 
 set -e
 
-VERSION="5.1.0"
+VERSION="5.1.1"
 REGISTRY="ghcr.io/fboiero"
 
 # Colors

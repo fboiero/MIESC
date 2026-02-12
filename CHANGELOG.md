@@ -5,6 +5,36 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.1] - 2026-02-12
+
+### Added
+- **RAG Knowledge Base Expansion**: 59 vulnerability patterns (up from 39)
+  - New categories: MEV (4), Bridge (3), ZK (2), NFT (2), DeFi (2)
+  - Real exploits: Curve/Vyper ($70M), Euler ($197M), Wormhole ($320M)
+- **RAG Performance Optimizations**:
+  - O(1) document lookup via dictionary index (was O(n) linear search)
+  - Query caching with 5-min TTL, 256-entry LRU cache
+  - `batch_search()` for multiple queries in single ChromaDB call
+  - `batch_get_context_for_findings()` groups findings by type (50-75% faster)
+- **Context Window Optimization**:
+  - `_truncate_code_smart()` prioritizes security-critical functions
+  - `_extract_rag_query()` for semantic queries instead of raw code
+  - Dynamic context allocation based on contract size
+  - Prompt template reduced from ~2500 to ~500 chars
+- **RAG-Enhanced False Positive Filter**:
+  - Validates findings against 59-pattern knowledge base
+  - Detects fix patterns present in code (nonReentrant, SafeMath, etc.)
+  - Identifies severity mismatches between reported and expected
+- **Documentation**:
+  - `docs/guides/RAG_API.md` - Comprehensive RAG API documentation
+  - `scripts/benchmark_rag.py` - Performance benchmark script
+
+### Changed
+- SmartLLM verificator now pre-fetches all RAG context at once
+- FalsePositiveFilter now accepts `use_rag` parameter (default True)
+
+---
+
 ## [5.1.0] - 2026-02-11
 
 ### Changed
