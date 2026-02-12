@@ -394,6 +394,7 @@ class FalsePositiveFilter:
         filter_test_files: bool = True,
         filter_interfaces: bool = True,
         filter_informational: bool = True,
+        use_rag: bool = True,
     ):
         """
         Initialize the false positive filter.
@@ -403,17 +404,33 @@ class FalsePositiveFilter:
             filter_test_files: Whether to filter findings in test files
             filter_interfaces: Whether to filter findings in interfaces
             filter_informational: Whether to filter INFO severity findings
+            use_rag: Whether to use RAG-enhanced validation (v5.1.0)
         """
         self.fp_threshold = fp_threshold
         self.filter_test_files = filter_test_files
         self.filter_interfaces = filter_interfaces
         self.filter_informational = filter_informational
+        self.use_rag = use_rag
 
         # Compile regex patterns for performance
         self._compiled_patterns: Dict[str, List[re.Pattern]] = {}
         self._compile_patterns()
 
-        logger.info(f"FP Filter initialized with threshold={fp_threshold}")
+        # Initialize RAG system for semantic validation (v5.1.0)
+        self._rag = None
+        self._rag_available = False
+        if use_rag:
+            try:
+                from src.llm.embedding_rag import EmbeddingRAG
+                self._rag = EmbeddingRAG()
+                self._rag_available = True
+                logger.info("FP Filter: RAG-enhanced validation enabled")
+            except ImportError:
+                logger.debug("FP Filter: RAG not available (optional)")
+            except Exception as e:
+                logger.warning(f"FP Filter: RAG init failed: {e}")
+
+        logger.info(f"FP Filter initialized with threshold={fp_threshold}, rag={self._rag_available}")
 
     def _compile_patterns(self):
         """Pre-compile regex patterns for better performance."""
@@ -436,6 +453,136 @@ class FalsePositiveFilter:
             self._compiled_patterns[name] = [
                 re.compile(p, re.IGNORECASE | re.MULTILINE) for p in patterns
             ]
+
+    def _rag_validate_finding(
+        self,
+        finding: Dict[str, Any],
+        code_context: str = "",
+    ) -> Optional[FPMatch]:
+        """
+        Use RAG knowledge base to validate if finding matches known patterns.
+
+        RAG-enhanced validation (v5.1.0):
+        - Searches for similar vulnerability patterns in knowledge base
+        - Compares finding characteristics with known vulnerabilities
+        - Identifies potential false positives based on semantic mismatch
+
+        Returns:
+            FPMatch if the finding doesn't match known patterns (likely FP),
+            None if finding matches known patterns (likely real vulnerability)
+        """
+        if not self._rag_available or not self._rag:
+            return None
+
+        vuln_type = finding.get("type", "").lower()
+        severity = finding.get("severity", "").lower()
+        swc_id = finding.get("swc_id", "")
+
+        # Skip if no meaningful type
+        if not vuln_type or vuln_type in ["info", "best-practice", "informational"]:
+            return None
+
+        try:
+            # Build search query from finding
+            query_parts = [vuln_type]
+            if swc_id:
+                query_parts.append(swc_id)
+            # Add key terms from finding message
+            message = finding.get("message", "") + " " + finding.get("description", "")
+            for kw in ["reentrancy", "overflow", "underflow", "access", "oracle", "flash"]:
+                if kw in message.lower():
+                    query_parts.append(kw)
+
+            query = " ".join(query_parts)
+
+            # Search RAG knowledge base
+            results = self._rag.search(query=query, n_results=3)
+
+            if not results:
+                # No matching patterns found - might be false positive
+                return FPMatch(
+                    category=FPCategory.PATTERN_SAFE,
+                    pattern="rag_no_match",
+                    confidence=0.3,  # Low confidence since we just didn't find a match
+                    reason=f"No matching vulnerability pattern for '{vuln_type}'",
+                )
+
+            # Check similarity scores
+            top_result = results[0]
+            similarity = top_result.similarity_score
+
+            # Very low similarity suggests the finding doesn't match known patterns
+            if similarity < 0.3:
+                return FPMatch(
+                    category=FPCategory.PATTERN_SAFE,
+                    pattern="rag_low_similarity",
+                    confidence=0.25,
+                    reason=f"Low semantic similarity ({similarity:.2f}) to known patterns",
+                )
+
+            # Check if severity matches expected pattern
+            pattern_severity = top_result.document.severity.lower()
+            if severity and pattern_severity:
+                severity_mismatch = self._check_severity_mismatch(severity, pattern_severity)
+                if severity_mismatch:
+                    return FPMatch(
+                        category=FPCategory.CONTEXT_SAFE,
+                        pattern="rag_severity_mismatch",
+                        confidence=0.2,
+                        reason=f"Severity mismatch: reported {severity}, pattern is {pattern_severity}",
+                    )
+
+            # Check if code context has protective patterns mentioned in RAG
+            if code_context and top_result.document.fixed_code:
+                # Simple check: if the code context already contains fix patterns
+                fix_keywords = self._extract_fix_keywords(top_result.document.fixed_code)
+                context_lower = code_context.lower()
+                for kw in fix_keywords:
+                    if kw in context_lower:
+                        return FPMatch(
+                            category=FPCategory.PATTERN_SAFE,
+                            pattern="rag_fix_pattern_present",
+                            confidence=0.4,
+                            reason=f"Code contains fix pattern '{kw}' from knowledge base",
+                        )
+
+            # No FP indicators found
+            return None
+
+        except Exception as e:
+            logger.debug(f"RAG validation failed: {e}")
+            return None
+
+    def _check_severity_mismatch(self, reported: str, expected: str) -> bool:
+        """Check if reported severity significantly differs from expected."""
+        severity_order = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
+        rep_level = severity_order.get(reported, 2)
+        exp_level = severity_order.get(expected, 2)
+        # Significant mismatch: more than 1 level difference
+        return abs(rep_level - exp_level) > 1
+
+    def _extract_fix_keywords(self, fixed_code: str) -> List[str]:
+        """Extract key patterns from fix code that indicate protection."""
+        keywords = []
+        fixed_lower = fixed_code.lower()
+
+        # Common fix patterns
+        if "nonreentrant" in fixed_lower or "reentrancyguard" in fixed_lower:
+            keywords.append("nonreentrant")
+        if "safemath" in fixed_lower:
+            keywords.append("safemath")
+        if "safetransfer" in fixed_lower or "safeerc20" in fixed_lower:
+            keywords.append("safetransfer")
+        if "onlyowner" in fixed_lower:
+            keywords.append("onlyowner")
+        if "require(" in fixed_lower:
+            keywords.append("require")
+        if "assert(" in fixed_lower:
+            keywords.append("assert")
+        if "timelock" in fixed_lower:
+            keywords.append("timelock")
+
+        return keywords
 
     def filter_finding(
         self,
@@ -470,6 +617,11 @@ class FalsePositiveFilter:
         # Check library imports in finding message/description
         message = finding.get("message", "") + " " + finding.get("description", "")
         matches.extend(self._check_library_patterns(message))
+
+        # RAG-enhanced validation (v5.1.0)
+        rag_match = self._rag_validate_finding(finding, code_context)
+        if rag_match:
+            matches.append(rag_match)
 
         # Calculate FP probability
         fp_probability = self._calculate_fp_probability(matches, original_confidence)
