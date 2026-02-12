@@ -1,4 +1,4 @@
-# RAG API Guide - MIESC v5.1.0
+# RAG API Guide - MIESC v5.1.1
 
 This guide covers the Retrieval-Augmented Generation (RAG) system for vulnerability analysis in MIESC.
 
@@ -42,7 +42,7 @@ class EmbeddingRAG:
     """
     ChromaDB-powered RAG for vulnerability analysis.
 
-    Performance optimizations (v5.1.0):
+    Performance optimizations (v5.1.1):
     - O(1) document lookup via _doc_index
     - Query caching with 5-min TTL
     - Batch search support
