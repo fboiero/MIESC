@@ -144,13 +144,15 @@ miesc audit full ./contracts --timeout 600 -o results-full.json
 **Objetivo:** Profundizar en aspectos específicos de seguridad.
 
 ```bash
-# Análisis de una sola capa
-miesc audit layer ./contracts --layer 1  # Solo estático
-miesc audit layer ./contracts --layer 3  # Ejecución simbólica
-miesc audit layer ./contracts --layer 7  # Análisis LLM
+# Análisis de una sola capa (sintaxis: audit layer NUMERO_CAPA CONTRATO)
+miesc audit layer 1 ./contracts  # Solo estático
+miesc audit layer 3 ./contracts  # Ejecución simbólica
+miesc audit layer 7 ./contracts  # Análisis LLM
 
-# Múltiples capas específicas
-miesc audit layer ./contracts --layer 1 --layer 3 --layer 7
+# Ejecutar múltiples capas secuencialmente
+miesc audit layer 1 ./contracts -o layer1.json
+miesc audit layer 3 ./contracts -o layer3.json
+miesc audit layer 7 ./contracts -o layer7.json
 ```
 
 **Guía de Selección de Capas:**
@@ -205,7 +207,7 @@ miesc export results-full.json -f sarif -o results.sarif.json
 | `miesc scan <archivo>` | Escaneo de triaje | 1-5 min |
 | `miesc audit quick <dir>` | Auditoría rápida 4 herramientas | 15-30 min |
 | `miesc audit full <dir>` | Auditoría completa 9 capas | 1-4 horas |
-| `miesc audit layer <dir> --layer N` | Análisis de capa específica | Variable |
+| `miesc audit layer N <contrato>` | Análisis de capa específica | Variable |
 | `miesc audit smart <dir>` | Auditoría adaptativa con IA | 30-60 min |
 | `miesc report <json>` | Generar reporte | 5-60 min |
 | `miesc export <json>` | Convertir a SARIF/CSV/HTML | Instantáneo |
@@ -551,16 +553,16 @@ miesc export full-audit.json -f sarif -o results.sarif.json
 miesc scan ./contracts
 
 # 2. Análisis estático (Capa 1)
-miesc audit layer ./contracts --layer 1 -o layer1.json
+miesc audit layer 1 ./contracts -o layer1.json
 
 # 3. Ejecución simbólica (Capa 3)
-miesc audit layer ./contracts --layer 3 -o layer3.json
+miesc audit layer 3 ./contracts -o layer3.json
 
 # 4. Análisis económico (Capa 5)
-miesc audit layer ./contracts --layer 5 -o layer5.json
+miesc audit layer 5 ./contracts -o layer5.json
 
 # 5. Análisis LLM para patrones DeFi (Capa 7)
-miesc audit layer ./contracts --layer 7 -o layer7.json
+miesc audit layer 7 ./contracts -o layer7.json
 
 # 6. Auditoría completa para completitud
 miesc audit full ./contracts --skip-unavailable -o full-audit.json

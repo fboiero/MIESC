@@ -144,13 +144,15 @@ miesc audit full ./contracts --timeout 600 -o results-full.json
 **Goal:** Deep dive into specific security aspects.
 
 ```bash
-# Single layer analysis
-miesc audit layer ./contracts --layer 1  # Static only
-miesc audit layer ./contracts --layer 3  # Symbolic execution
-miesc audit layer ./contracts --layer 7  # LLM analysis
+# Single layer analysis (syntax: audit layer LAYER_NUM CONTRACT)
+miesc audit layer 1 ./contracts  # Static only
+miesc audit layer 3 ./contracts  # Symbolic execution
+miesc audit layer 7 ./contracts  # LLM analysis
 
-# Multiple specific layers
-miesc audit layer ./contracts --layer 1 --layer 3 --layer 7
+# Run multiple layers sequentially
+miesc audit layer 1 ./contracts -o layer1.json
+miesc audit layer 3 ./contracts -o layer3.json
+miesc audit layer 7 ./contracts -o layer7.json
 ```
 
 **Layer Selection Guide:**
@@ -205,7 +207,7 @@ miesc export results-full.json -f sarif -o results.sarif.json
 | `miesc scan <file>` | Quick triage scan | 1-5 min |
 | `miesc audit quick <dir>` | Fast 4-tool audit | 15-30 min |
 | `miesc audit full <dir>` | Complete 9-layer audit | 1-4 hours |
-| `miesc audit layer <dir> --layer N` | Specific layer analysis | Variable |
+| `miesc audit layer N <contract>` | Specific layer analysis | Variable |
 | `miesc audit smart <dir>` | AI-guided adaptive audit | 30-60 min |
 | `miesc report <json>` | Generate report | 5-60 min |
 | `miesc export <json>` | Convert to SARIF/CSV/HTML | Instant |
@@ -551,16 +553,16 @@ miesc export full-audit.json -f sarif -o results.sarif.json
 miesc scan ./contracts
 
 # 2. Static analysis (Layer 1)
-miesc audit layer ./contracts --layer 1 -o layer1.json
+miesc audit layer 1 ./contracts -o layer1.json
 
 # 3. Symbolic execution (Layer 3)
-miesc audit layer ./contracts --layer 3 -o layer3.json
+miesc audit layer 3 ./contracts -o layer3.json
 
 # 4. Economic analysis (Layer 5)
-miesc audit layer ./contracts --layer 5 -o layer5.json
+miesc audit layer 5 ./contracts -o layer5.json
 
 # 5. LLM analysis for DeFi patterns (Layer 7)
-miesc audit layer ./contracts --layer 7 -o layer7.json
+miesc audit layer 7 ./contracts -o layer7.json
 
 # 6. Full audit for completeness
 miesc audit full ./contracts --skip-unavailable -o full-audit.json
