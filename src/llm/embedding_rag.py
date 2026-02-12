@@ -3339,7 +3339,7 @@ contract Airdrop {
 
     # Time-Locked Admin Bypass
     VulnerabilityDocument(
-        id="TIMELOCK-BYPASS",
+        id="EMERGENCY-TIMELOCK-BYPASS",
         swc_id=None,
         cwe_id="CWE-863",
         title="Timelock Bypass via Emergency Functions",
@@ -3415,7 +3415,7 @@ contract TimelockController {
 
     # Permit Signature Phishing
     VulnerabilityDocument(
-        id="PERMIT-PHISHING",
+        id="PERMIT-SIGNATURE-PHISHING",
         swc_id=None,
         cwe_id="CWE-346",
         title="ERC-20 Permit Signature Phishing",
