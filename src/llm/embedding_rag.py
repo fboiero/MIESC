@@ -2032,6 +2032,1470 @@ if (to == address(0)) revert ZeroAddress();
         category="validation",
         tags=["zero-address", "validation", "burn", "access-control", "input-validation"],
     ),
+
+    # =========================================================================
+    # MEV / FRONTRUNNING PATTERNS (Expanded)
+    # =========================================================================
+
+    # JIT Liquidity Attack
+    VulnerabilityDocument(
+        id="MEV-JIT-LIQUIDITY",
+        swc_id=None,
+        cwe_id="CWE-362",
+        title="JIT (Just-In-Time) Liquidity Attack",
+        description=(
+            "Attacker observes pending swap in mempool, adds liquidity just before the "
+            "swap executes, collects fees from the swap, then removes liquidity immediately "
+            "after. This extracts value from LPs without providing persistent liquidity."
+        ),
+        vulnerable_code="""
+// AMM Pool without JIT protection
+function swap(uint amountIn, uint minOut) external {
+    // No time-weighted checks
+    uint amountOut = getAmountOut(amountIn);
+    require(amountOut >= minOut);
+    // Execute swap - vulnerable to JIT liquidity
+    _swap(amountIn, amountOut);
+}
+
+function addLiquidity(uint amount) external {
+    // No minimum lock period
+    _mint(msg.sender, shares);
+}
+""",
+        fixed_code="""
+// Protected with time-weighted average liquidity (TWAL)
+uint256 public constant MIN_LIQUIDITY_LOCK = 1 hours;
+mapping(address => uint256) public liquidityAddedAt;
+
+function addLiquidity(uint amount) external {
+    liquidityAddedAt[msg.sender] = block.timestamp;
+    _mint(msg.sender, shares);
+}
+
+function removeLiquidity(uint shares) external {
+    require(
+        block.timestamp >= liquidityAddedAt[msg.sender] + MIN_LIQUIDITY_LOCK,
+        "Liquidity locked"
+    );
+    _burn(msg.sender, shares);
+}
+
+// Use TWAP for pricing to resist manipulation
+function getAmountOut(uint amountIn) public view returns (uint) {
+    return oracle.consultTWAP(token, amountIn, 30 minutes);
+}
+""",
+        attack_scenario=(
+            "1. Attacker monitors mempool for large pending swap (e.g., 100 ETH → USDC). "
+            "2. Attacker frontruns by adding massive liquidity to the pool. "
+            "3. Original swap executes, paying fees to attacker's liquidity. "
+            "4. Attacker backruns by removing all liquidity immediately. "
+            "5. Net profit: swap fees minus gas costs."
+        ),
+        severity="medium",
+        category="mev",
+        real_exploit="Common on Uniswap V3 - $100M+ extracted annually",
+        tags=["mev", "jit", "liquidity", "frontrunning", "amm", "uniswap"],
+    ),
+
+    # Time-Bandit Attack
+    VulnerabilityDocument(
+        id="MEV-TIME-BANDIT",
+        swc_id=None,
+        cwe_id="CWE-362",
+        title="Time-Bandit Attack (Chain Reorg MEV)",
+        description=(
+            "Miners/validators with sufficient hashpower can reorg the chain to re-execute "
+            "profitable transactions (like DEX arbitrage) to capture the MEV for themselves. "
+            "This undermines transaction finality and consensus security."
+        ),
+        vulnerable_code="""
+// High-value arbitrage visible on-chain
+function executeArbitrage(
+    address[] calldata path,
+    uint amountIn
+) external {
+    // Large profit visible to miners
+    uint profit = _calculateProfit(path, amountIn);
+    require(profit > 0, "No profit");
+
+    // Execute trades - miner can reorg and front-this
+    _executeTrades(path, amountIn);
+}
+""",
+        fixed_code="""
+// Use commit-reveal to hide arbitrage details
+mapping(bytes32 => uint256) public commitments;
+
+function commitArbitrage(bytes32 hash) external {
+    commitments[hash] = block.number;
+}
+
+function executeArbitrage(
+    bytes calldata data,
+    bytes32 salt
+) external {
+    bytes32 hash = keccak256(abi.encodePacked(data, salt, msg.sender));
+    require(commitments[hash] > 0, "No commitment");
+    require(block.number > commitments[hash] + 1, "Wait 1 block");
+    delete commitments[hash];
+
+    // Execute with hidden details
+    _executeFromData(data);
+}
+
+// Or use Flashbots/private mempools for MEV protection
+""",
+        attack_scenario=(
+            "1. User submits profitable 10 ETH arbitrage transaction. "
+            "2. Miner sees transaction in their mempool with high profit. "
+            "3. Miner creates competing transaction capturing the arbitrage. "
+            "4. If already mined, miner with >50% hashpower can reorg chain. "
+            "5. Miner's transaction replaces user's in new canonical chain."
+        ),
+        severity="high",
+        category="mev",
+        real_exploit="Theoretical but incentivized - discussed in 'Flash Boys 2.0' paper",
+        tags=["mev", "reorg", "time-bandit", "consensus", "mining", "finality"],
+    ),
+
+    # Long-tail MEV
+    VulnerabilityDocument(
+        id="MEV-LONG-TAIL",
+        swc_id=None,
+        cwe_id="CWE-362",
+        title="Long-tail MEV Extraction",
+        description=(
+            "Beyond simple arbitrage and liquidations, sophisticated MEV extraction targets "
+            "NFT mints, token launches, governance votes, and complex multi-step operations. "
+            "Any on-chain action with economic value is potentially exploitable."
+        ),
+        vulnerable_code="""
+// NFT mint without MEV protection
+function mint(uint256 quantity) external payable {
+    require(msg.value >= price * quantity);
+    require(totalSupply + quantity <= maxSupply);
+
+    // Predictable - bots can frontrun popular mints
+    for (uint i = 0; i < quantity; i++) {
+        _safeMint(msg.sender, totalSupply + i);
+    }
+}
+
+// Governance vote without delay
+function castVote(uint proposalId, bool support) external {
+    // Vote immediately visible - can be frontrun to manipulate
+    _castVote(msg.sender, proposalId, support);
+}
+""",
+        fixed_code="""
+// Protected NFT mint with commit-reveal
+mapping(bytes32 => uint256) public mintCommitments;
+
+function commitMint(bytes32 hash) external payable {
+    mintCommitments[hash] = block.timestamp;
+}
+
+function revealMint(uint256 quantity, bytes32 salt) external {
+    bytes32 hash = keccak256(abi.encodePacked(quantity, salt, msg.sender));
+    require(mintCommitments[hash] > 0, "No commitment");
+    require(block.timestamp > mintCommitments[hash] + 1 minutes, "Too soon");
+    delete mintCommitments[hash];
+    _mint(msg.sender, quantity);
+}
+
+// Governance with snapshot voting
+function castVote(uint proposalId, bool support) external {
+    uint256 votingPower = token.getPastVotes(msg.sender, proposals[proposalId].snapshot);
+    _castVote(msg.sender, proposalId, support, votingPower);
+}
+""",
+        attack_scenario=(
+            "1. Popular NFT announces mint at specific block. "
+            "2. Bots prepare bundle with high gas to frontrun. "
+            "3. Bots secure all/most NFTs before regular users. "
+            "4. Bots resell NFTs at markup on secondary market. "
+            "5. Regular users left with nothing or forced to pay premium."
+        ),
+        severity="medium",
+        category="mev",
+        real_exploit="Bored Ape Yacht Club land mint - $175M gas war (2022)",
+        tags=["mev", "nft", "governance", "frontrunning", "long-tail"],
+    ),
+
+    # =========================================================================
+    # CROSS-CHAIN / BRIDGE VULNERABILITIES
+    # =========================================================================
+
+    # Bridge Message Replay
+    VulnerabilityDocument(
+        id="BRIDGE-MESSAGE-REPLAY",
+        swc_id=None,
+        cwe_id="CWE-294",
+        title="Cross-Chain Message Replay Attack",
+        description=(
+            "Bridge messages that lack proper replay protection can be re-executed multiple "
+            "times, allowing attackers to mint tokens or execute actions repeatedly from "
+            "a single legitimate cross-chain message."
+        ),
+        vulnerable_code="""
+// Bridge receiver without replay protection
+function receiveMessage(
+    bytes32 messageHash,
+    uint256 amount,
+    address recipient,
+    bytes calldata signature
+) external {
+    // Verify signature from trusted relayer
+    require(verifySignature(messageHash, signature), "Invalid sig");
+
+    // VULNERABLE: No check if message already processed
+    token.mint(recipient, amount);
+}
+""",
+        fixed_code="""
+// Protected with nonce tracking
+mapping(bytes32 => bool) public processedMessages;
+mapping(uint256 => uint256) public sourceChainNonces;
+
+function receiveMessage(
+    uint256 sourceChain,
+    uint256 nonce,
+    uint256 amount,
+    address recipient,
+    bytes calldata signature
+) external {
+    bytes32 messageHash = keccak256(abi.encodePacked(
+        sourceChain, nonce, amount, recipient
+    ));
+
+    // Replay protection
+    require(!processedMessages[messageHash], "Already processed");
+    require(nonce == sourceChainNonces[sourceChain] + 1, "Invalid nonce");
+    require(verifySignature(messageHash, signature), "Invalid sig");
+
+    processedMessages[messageHash] = true;
+    sourceChainNonces[sourceChain] = nonce;
+
+    token.mint(recipient, amount);
+}
+""",
+        attack_scenario=(
+            "1. User bridges 100 tokens from Chain A to Chain B. "
+            "2. Bridge message processed, 100 tokens minted on Chain B. "
+            "3. Attacker captures the signed message. "
+            "4. Attacker replays same message to bridge contract. "
+            "5. Another 100 tokens minted - infinite minting possible."
+        ),
+        severity="critical",
+        category="bridge",
+        real_exploit="Wormhole Bridge - $320M (February 2022)",
+        tags=["bridge", "replay", "cross-chain", "signature", "nonce"],
+    ),
+
+    # L2 Sequencer Downtime Risk
+    VulnerabilityDocument(
+        id="L2-SEQUENCER-DOWNTIME",
+        swc_id=None,
+        cwe_id="CWE-703",
+        title="L2 Sequencer Downtime Risk",
+        description=(
+            "Layer 2 rollups depend on sequencers to order transactions. During sequencer "
+            "downtime, time-sensitive operations (liquidations, oracle updates) may fail "
+            "or execute at stale prices, causing protocol insolvency or user losses."
+        ),
+        vulnerable_code="""
+// Oracle without sequencer check
+function getLatestPrice() public view returns (uint256) {
+    (, int256 price,, uint256 updatedAt,) = priceFeed.latestRoundData();
+    require(block.timestamp - updatedAt < 1 hours, "Stale price");
+    return uint256(price);
+}
+
+// Liquidation without sequencer awareness
+function liquidate(address user) external {
+    uint256 price = getLatestPrice();  // May be stale during downtime
+    require(isUndercollateralized(user, price), "Not liquidatable");
+    _liquidate(user);
+}
+""",
+        fixed_code="""
+// Chainlink Sequencer Uptime Feed integration
+AggregatorV3Interface public sequencerUptimeFeed;
+uint256 public constant GRACE_PERIOD = 1 hours;
+
+function getLatestPrice() public view returns (uint256) {
+    // Check sequencer status first
+    (, int256 answer, uint256 startedAt,,) = sequencerUptimeFeed.latestRoundData();
+
+    bool isSequencerUp = answer == 0;
+    require(isSequencerUp, "Sequencer down");
+
+    // Grace period after sequencer comes back up
+    uint256 timeSinceUp = block.timestamp - startedAt;
+    require(timeSinceUp > GRACE_PERIOD, "Grace period not over");
+
+    // Now safe to use price
+    (, int256 price,, uint256 updatedAt,) = priceFeed.latestRoundData();
+    require(block.timestamp - updatedAt < 1 hours, "Stale price");
+    return uint256(price);
+}
+""",
+        attack_scenario=(
+            "1. L2 sequencer goes down (maintenance, attack, bug). "
+            "2. Oracle prices become stale but contract doesn't know. "
+            "3. Market moves significantly during downtime. "
+            "4. Sequencer comes back up with queue of pending transactions. "
+            "5. Liquidations execute at stale prices, causing bad debt. "
+            "6. Or: Users front-run with knowledge of price movement."
+        ),
+        severity="high",
+        category="bridge",
+        real_exploit="Arbitrum sequencer downtime - multiple DeFi protocols affected",
+        tags=["l2", "sequencer", "oracle", "downtime", "arbitrum", "optimism"],
+    ),
+
+    # Cross-Chain Oracle Manipulation
+    VulnerabilityDocument(
+        id="CROSS-CHAIN-ORACLE",
+        swc_id=None,
+        cwe_id="CWE-346",
+        title="Cross-Chain Oracle Manipulation",
+        description=(
+            "Protocols relying on cross-chain data without proper validation can be exploited "
+            "by manipulating prices on a less-liquid chain and using that manipulated price "
+            "on the target chain for borrowing, liquidation, or trading."
+        ),
+        vulnerable_code="""
+// Bridge using single chain price
+function bridgeWithCollateral(
+    uint256 sourceChain,
+    uint256 amount,
+    address token
+) external {
+    // Gets price only from destination chain
+    uint256 price = localOracle.getPrice(token);
+    uint256 collateralValue = amount * price;
+
+    require(collateralValue >= minCollateral, "Insufficient collateral");
+    _bridge(msg.sender, amount);
+}
+""",
+        fixed_code="""
+// Multi-chain price verification
+mapping(uint256 => address) public chainOracles;
+uint256 public constant MAX_PRICE_DEVIATION = 5; // 5%
+
+function bridgeWithCollateral(
+    uint256 sourceChain,
+    uint256 amount,
+    address token
+) external {
+    // Get prices from multiple chains
+    uint256 localPrice = localOracle.getPrice(token);
+    uint256 sourcePrice = IOracle(chainOracles[sourceChain]).getPrice(token);
+
+    // Verify prices are within acceptable deviation
+    uint256 deviation = _calculateDeviation(localPrice, sourcePrice);
+    require(deviation <= MAX_PRICE_DEVIATION, "Price deviation too high");
+
+    // Use conservative (lower) price for collateral
+    uint256 price = localPrice < sourcePrice ? localPrice : sourcePrice;
+    uint256 collateralValue = amount * price;
+
+    require(collateralValue >= minCollateral, "Insufficient collateral");
+    _bridge(msg.sender, amount);
+}
+""",
+        attack_scenario=(
+            "1. Token has thin liquidity on Chain A, deep liquidity on Chain B. "
+            "2. Attacker manipulates price on Chain A (flash loan + swap). "
+            "3. Bridge/lending protocol uses Chain A price as reference. "
+            "4. Attacker borrows on Chain B using inflated collateral value. "
+            "5. Attacker defaults, protocol left with bad debt."
+        ),
+        severity="high",
+        category="bridge",
+        real_exploit="Multiple cross-chain lending protocols affected in 2023",
+        tags=["cross-chain", "oracle", "bridge", "manipulation", "multichain"],
+    ),
+
+    # =========================================================================
+    # RECENT DEFI EXPLOITS (2023-2024)
+    # =========================================================================
+
+    # Curve/Vyper Reentrancy (July 2023)
+    VulnerabilityDocument(
+        id="CURVE-VYPER-REENTRANCY",
+        swc_id="SWC-107",
+        cwe_id="CWE-841",
+        title="Vyper Compiler Reentrancy (Curve Finance Exploit)",
+        description=(
+            "Vyper compiler versions 0.2.15, 0.2.16, and 0.3.0 had a bug where the @nonreentrant "
+            "decorator malfunctioned due to incorrect storage slot allocation. This allowed "
+            "reentrancy attacks on contracts that appeared protected."
+        ),
+        vulnerable_code="""
+# Vyper 0.2.15-0.3.0 - @nonreentrant was BROKEN
+@external
+@nonreentrant("lock")  # This lock didn't work correctly!
+def remove_liquidity(amount: uint256):
+    # State changes
+    self.balances[msg.sender] -= amount
+
+    # External call - should be protected but wasn't
+    send(msg.sender, amount)  # Reentrancy possible here!
+
+    # More state changes after external call
+    self.total_supply -= amount
+""",
+        fixed_code="""
+# Fixed in Vyper 0.3.1+
+@external
+@nonreentrant("lock")  # Now works correctly
+def remove_liquidity(amount: uint256):
+    # CEI pattern as defense-in-depth
+    old_balance: uint256 = self.balances[msg.sender]
+    self.balances[msg.sender] = 0  # Clear balance FIRST
+    self.total_supply -= amount
+
+    # External call AFTER state changes
+    send(msg.sender, old_balance)
+
+# Always verify Vyper version >= 0.3.1 for reentrancy protection
+# Or implement manual reentrancy guards
+locked: bool
+
+@internal
+def _lock():
+    assert not self.locked, "Reentrant call"
+    self.locked = True
+
+@internal
+def _unlock():
+    self.locked = False
+""",
+        attack_scenario=(
+            "1. Attacker identifies Curve pool using Vyper 0.2.15-0.3.0. "
+            "2. @nonreentrant decorator silently fails due to compiler bug. "
+            "3. Attacker calls remove_liquidity with malicious contract. "
+            "4. During ETH transfer, attacker reenters remove_liquidity. "
+            "5. Balance not yet updated, attacker drains pool repeatedly."
+        ),
+        severity="critical",
+        category="reentrancy",
+        real_exploit="Curve Finance - $70M stolen across multiple pools (July 2023)",
+        tags=["vyper", "compiler", "reentrancy", "curve", "nonreentrant", "defi"],
+    ),
+
+    # Euler Finance Attack
+    VulnerabilityDocument(
+        id="EULER-DONATE-ATTACK",
+        swc_id=None,
+        cwe_id="CWE-682",
+        title="Donation Attack / Collateral Manipulation",
+        description=(
+            "Attacker exploits a protocol's accounting by 'donating' tokens directly to a "
+            "contract (not through deposit functions), then using the inflated balance to "
+            "borrow more than legitimately collateralized, leaving bad debt."
+        ),
+        vulnerable_code="""
+// Vulnerable collateral calculation
+function getCollateralValue(address user) public view returns (uint256) {
+    // Uses raw token balance - can be manipulated by donation
+    uint256 balance = collateralToken.balanceOf(address(this));
+    uint256 userShare = shares[user] * balance / totalShares;
+    return userShare * getPrice();
+}
+
+function borrow(uint256 amount) external {
+    uint256 collateral = getCollateralValue(msg.sender);
+    require(amount <= collateral * LTV / 100, "Insufficient collateral");
+    _borrow(msg.sender, amount);
+}
+""",
+        fixed_code="""
+// Track deposits internally, ignore donations
+uint256 public totalDeposited;
+mapping(address => uint256) public userDeposits;
+
+function deposit(uint256 amount) external {
+    collateralToken.transferFrom(msg.sender, address(this), amount);
+    userDeposits[msg.sender] += amount;
+    totalDeposited += amount;
+}
+
+function getCollateralValue(address user) public view returns (uint256) {
+    // Use internal accounting, not raw balance
+    return userDeposits[user] * getPrice();
+}
+
+// Rescue function for accidentally sent tokens (admin only)
+function rescueDonatedTokens(address token) external onlyAdmin {
+    if (token == address(collateralToken)) {
+        uint256 donated = collateralToken.balanceOf(address(this)) - totalDeposited;
+        collateralToken.transfer(treasury, donated);
+    }
+}
+""",
+        attack_scenario=(
+            "1. Attacker takes flash loan of large token amount. "
+            "2. Attacker deposits small amount as collateral normally. "
+            "3. Attacker 'donates' flash loaned tokens directly to contract. "
+            "4. Contract's raw balance is now inflated. "
+            "5. Attacker's collateral value appears much higher. "
+            "6. Attacker borrows maximum against inflated collateral. "
+            "7. Attacker withdraws borrowed funds and defaults."
+        ),
+        severity="critical",
+        category="defi",
+        real_exploit="Euler Finance - $197M stolen (March 2023)",
+        tags=["donation", "flash-loan", "collateral", "euler", "accounting", "defi"],
+    ),
+
+    # LP Token Inflation Attack
+    VulnerabilityDocument(
+        id="LP-INFLATION-ATTACK",
+        swc_id=None,
+        cwe_id="CWE-682",
+        title="LP Token Share Inflation Attack",
+        description=(
+            "First depositor in an empty vault/pool can manipulate share price by depositing "
+            "minimum amount, then donating tokens. Subsequent depositors receive zero or minimal "
+            "shares due to rounding in their favor."
+        ),
+        vulnerable_code="""
+// Vulnerable share calculation
+function deposit(uint256 assets) external returns (uint256 shares) {
+    if (totalSupply == 0) {
+        shares = assets;  // First deposit: 1:1 ratio
+    } else {
+        // shares = assets * totalSupply / totalAssets
+        shares = assets * totalSupply / token.balanceOf(address(this));
+    }
+
+    require(shares > 0, "Zero shares");
+    _mint(msg.sender, shares);
+    token.transferFrom(msg.sender, address(this), assets);
+}
+""",
+        fixed_code="""
+// Protected with virtual shares and minimum deposit
+uint256 internal constant MINIMUM_SHARES = 1000;
+uint256 internal constant VIRTUAL_ASSETS = 1;
+uint256 internal constant VIRTUAL_SHARES = 1;
+
+function deposit(uint256 assets) external returns (uint256 shares) {
+    uint256 supply = totalSupply + VIRTUAL_SHARES;
+    uint256 totalAssets = token.balanceOf(address(this)) + VIRTUAL_ASSETS;
+
+    shares = assets * supply / totalAssets;
+    require(shares >= MINIMUM_SHARES, "Shares below minimum");
+
+    _mint(msg.sender, shares);
+    token.transferFrom(msg.sender, address(this), assets);
+}
+
+// Or: Burn initial shares to dead address
+function _initializePool(uint256 initialDeposit) internal {
+    uint256 shares = initialDeposit;
+    _mint(address(0xdead), MINIMUM_SHARES);  // Burn minimum
+    _mint(msg.sender, shares - MINIMUM_SHARES);
+}
+""",
+        attack_scenario=(
+            "1. Pool is empty (totalSupply = 0). "
+            "2. Attacker deposits 1 wei, receives 1 share. "
+            "3. Attacker donates 1e18 tokens directly to pool. "
+            "4. Share price is now 1e18 tokens per share. "
+            "5. Victim deposits 1.9e18 tokens. "
+            "6. Victim receives 1.9e18 * 1 / 1e18 = 1 share (rounded down to 1). "
+            "7. Attacker withdraws, taking majority of victim's deposit."
+        ),
+        severity="high",
+        category="vault",
+        real_exploit="Multiple ERC-4626 vault implementations affected",
+        tags=["inflation", "vault", "lp", "shares", "rounding", "first-depositor"],
+    ),
+
+    # =========================================================================
+    # NFT-SPECIFIC VULNERABILITIES
+    # =========================================================================
+
+    # Unlimited NFT Mint
+    VulnerabilityDocument(
+        id="NFT-UNLIMITED-MINT",
+        swc_id=None,
+        cwe_id="CWE-284",
+        title="Unlimited NFT Mint Vulnerability",
+        description=(
+            "NFT contracts without proper mint limits per wallet allow attackers to mint "
+            "entire supply or bypass whitelist restrictions using multiple transactions "
+            "or contract-based minting."
+        ),
+        vulnerable_code="""
+// Vulnerable mint function
+uint256 public constant MAX_SUPPLY = 10000;
+uint256 public constant MINT_PRICE = 0.08 ether;
+
+function mint(uint256 quantity) external payable {
+    require(totalSupply + quantity <= MAX_SUPPLY, "Exceeds supply");
+    require(msg.value >= MINT_PRICE * quantity, "Insufficient payment");
+
+    // No per-wallet limit - can mint entire supply
+    for (uint i = 0; i < quantity; i++) {
+        _safeMint(msg.sender, totalSupply + i);
+    }
+}
+
+// Whitelist bypass - contract can call multiple times
+function whitelistMint() external {
+    require(whitelist[msg.sender], "Not whitelisted");
+    _safeMint(msg.sender, totalSupply);
+    // Whitelist not cleared - can mint again!
+}
+""",
+        fixed_code="""
+uint256 public constant MAX_PER_WALLET = 3;
+uint256 public constant MAX_PER_TX = 5;
+mapping(address => uint256) public mintedCount;
+
+function mint(uint256 quantity) external payable {
+    require(quantity <= MAX_PER_TX, "Exceeds tx limit");
+    require(mintedCount[msg.sender] + quantity <= MAX_PER_WALLET, "Exceeds wallet limit");
+    require(totalSupply + quantity <= MAX_SUPPLY, "Exceeds supply");
+    require(msg.value >= MINT_PRICE * quantity, "Insufficient payment");
+
+    // Prevent contract minting (optional)
+    require(msg.sender == tx.origin, "No contract minting");
+
+    mintedCount[msg.sender] += quantity;
+
+    for (uint i = 0; i < quantity; i++) {
+        _safeMint(msg.sender, totalSupply + i);
+    }
+}
+
+function whitelistMint() external {
+    require(whitelist[msg.sender], "Not whitelisted");
+    require(!whitelistMinted[msg.sender], "Already minted");
+
+    whitelistMinted[msg.sender] = true;  // Mark as minted
+    _safeMint(msg.sender, totalSupply);
+}
+""",
+        attack_scenario=(
+            "1. Attacker deploys contract that calls mint() in loop. "
+            "2. Attacker mints entire supply before regular users. "
+            "3. Or: Attacker uses multiple wallets for whitelist mint. "
+            "4. Regular users unable to mint, supply exhausted. "
+            "5. Attacker sells NFTs at markup on secondary market."
+        ),
+        severity="high",
+        category="nft",
+        real_exploit="Multiple NFT projects suffered 'bot' mints in 2021-2022",
+        tags=["nft", "mint", "unlimited", "bot", "whitelist", "erc721"],
+    ),
+
+    # NFT Royalty Bypass
+    VulnerabilityDocument(
+        id="NFT-ROYALTY-BYPASS",
+        swc_id=None,
+        cwe_id="CWE-284",
+        title="NFT Royalty Bypass via Wrapper Contracts",
+        description=(
+            "NFT royalties are not enforced at the protocol level. Marketplaces or wrapper "
+            "contracts can facilitate royalty-free transfers by wrapping NFTs or using "
+            "alternative transfer mechanisms that bypass royalty checks."
+        ),
+        vulnerable_code="""
+// Standard ERC-721 with royalty info (EIP-2981)
+function royaltyInfo(uint256 tokenId, uint256 salePrice)
+    external view returns (address receiver, uint256 royaltyAmount)
+{
+    return (royaltyReceiver, salePrice * royaltyBps / 10000);
+}
+
+// Problem: royaltyInfo is just informational
+// Nothing prevents direct transfers bypassing marketplace
+function transferFrom(address from, address to, uint256 tokenId) public {
+    // No royalty enforcement here
+    _transfer(from, to, tokenId);
+}
+""",
+        fixed_code="""
+// Operator filter registry (OpenSea's approach)
+import {OperatorFilterer} from "operator-filter-registry/OperatorFilterer.sol";
+
+contract ProtectedNFT is ERC721, OperatorFilterer {
+    constructor() OperatorFilterer(CANONICAL_OPERATOR_FILTER_REGISTRY, true) {}
+
+    function transferFrom(address from, address to, uint256 tokenId)
+        public
+        override
+        onlyAllowedOperator(from)  // Blocks blacklisted operators
+    {
+        super.transferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId)
+        public
+        override
+        onlyAllowedOperator(from)
+    {
+        super.safeTransferFrom(from, to, tokenId);
+    }
+}
+
+// Alternative: On-chain royalty enforcement
+function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal {
+    if (from != address(0) && to != address(0)) {
+        // Require royalty payment for non-mint transfers
+        require(royaltyPaid[tokenId], "Pay royalty first");
+        royaltyPaid[tokenId] = false;  // Reset for next transfer
+    }
+}
+""",
+        attack_scenario=(
+            "1. Creator sets 5% royalty on NFT collection. "
+            "2. Buyer and seller agree to trade off-marketplace. "
+            "3. Seller calls transferFrom() directly to buyer. "
+            "4. Buyer sends payment via separate transaction. "
+            "5. Creator receives 0% royalty on sale."
+        ),
+        severity="medium",
+        category="nft",
+        real_exploit="Blur, SudoSwap, and others enabled royalty-optional trading (2022-2023)",
+        tags=["nft", "royalty", "bypass", "erc721", "eip2981", "marketplace"],
+    ),
+
+    # =========================================================================
+    # ADVANCED PROXY / UPGRADEABLE PATTERNS
+    # =========================================================================
+
+    # Diamond Proxy Storage Collision
+    VulnerabilityDocument(
+        id="DIAMOND-STORAGE-COLLISION",
+        swc_id=None,
+        cwe_id="CWE-787",
+        title="Diamond Proxy (EIP-2535) Storage Collision",
+        description=(
+            "Diamond proxies use multiple facets that share storage. Without careful "
+            "storage slot management, facets can accidentally overwrite each other's "
+            "state, corrupting data or enabling exploits."
+        ),
+        vulnerable_code="""
+// Facet A - Uses storage starting at slot 0
+contract FacetA {
+    uint256 public valueA;  // Slot 0
+    address public owner;   // Slot 1
+
+    function setValueA(uint256 _value) external {
+        valueA = _value;
+    }
+}
+
+// Facet B - COLLISION: Also uses slot 0!
+contract FacetB {
+    uint256 public valueB;  // Slot 0 - OVERWRITES valueA!
+    mapping(address => uint256) balances;  // Slot 1 - CORRUPTS owner!
+
+    function setValueB(uint256 _value) external {
+        valueB = _value;  // This overwrites FacetA.valueA
+    }
+}
+""",
+        fixed_code="""
+// Diamond Storage Pattern - Each facet uses unique storage slot
+library LibDiamond {
+    bytes32 constant DIAMOND_STORAGE_POSITION =
+        keccak256("diamond.standard.diamond.storage");
+
+    struct DiamondStorage {
+        mapping(bytes4 => address) facetAddresses;
+        address contractOwner;
+    }
+
+    function diamondStorage() internal pure returns (DiamondStorage storage ds) {
+        bytes32 position = DIAMOND_STORAGE_POSITION;
+        assembly {
+            ds.slot := position
+        }
+    }
+}
+
+// Facet A - Unique storage slot
+library LibFacetA {
+    bytes32 constant STORAGE_POSITION = keccak256("myproject.facetA.storage");
+
+    struct Storage {
+        uint256 valueA;
+        mapping(address => uint256) dataA;
+    }
+
+    function getStorage() internal pure returns (Storage storage s) {
+        bytes32 position = STORAGE_POSITION;
+        assembly {
+            s.slot := position
+        }
+    }
+}
+
+contract FacetA {
+    function setValueA(uint256 _value) external {
+        LibFacetA.getStorage().valueA = _value;
+    }
+}
+""",
+        attack_scenario=(
+            "1. Diamond proxy deployed with FacetA managing access control. "
+            "2. FacetB added later, developer unaware of storage layout. "
+            "3. FacetB.setValueB() called with attacker's address. "
+            "4. This overwrites FacetA.owner at slot 1. "
+            "5. Attacker now has owner privileges across all facets."
+        ),
+        severity="critical",
+        category="proxy",
+        real_exploit="Multiple Diamond implementations have had storage issues",
+        tags=["diamond", "proxy", "storage", "collision", "eip2535", "upgradeable"],
+    ),
+
+    # Beacon Proxy Initialization
+    VulnerabilityDocument(
+        id="BEACON-PROXY-UNINIT",
+        swc_id=None,
+        cwe_id="CWE-665",
+        title="Beacon Proxy Uninitialized Implementation",
+        description=(
+            "Beacon proxies point to a shared implementation. If the implementation "
+            "contract itself is not properly initialized, attackers can initialize it "
+            "and potentially gain control or disrupt all proxies using that beacon."
+        ),
+        vulnerable_code="""
+// Implementation contract - VULNERABLE
+contract TokenImplementation is Initializable {
+    address public owner;
+
+    function initialize(address _owner) external initializer {
+        owner = _owner;
+    }
+
+    function mint(address to, uint256 amount) external {
+        require(msg.sender == owner, "Not owner");
+        _mint(to, amount);
+    }
+}
+
+// Deployment - Implementation left uninitialized!
+TokenImplementation impl = new TokenImplementation();
+// impl.initialize() NOT CALLED - anyone can call it!
+
+UpgradeableBeacon beacon = new UpgradeableBeacon(address(impl));
+""",
+        fixed_code="""
+// Protected implementation
+contract TokenImplementation is Initializable {
+    address public owner;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();  // Prevents initialization of implementation
+    }
+
+    function initialize(address _owner) external initializer {
+        owner = _owner;
+    }
+}
+
+// Or: Initialize implementation to dead address
+TokenImplementation impl = new TokenImplementation();
+impl.initialize(address(0xdead));  // Initialize with unusable owner
+
+UpgradeableBeacon beacon = new UpgradeableBeacon(address(impl));
+
+// Each proxy still gets its own initialization
+BeaconProxy proxy = new BeaconProxy(
+    address(beacon),
+    abi.encodeWithSelector(TokenImplementation.initialize.selector, realOwner)
+);
+""",
+        attack_scenario=(
+            "1. Protocol deploys beacon with uninitialized implementation. "
+            "2. Attacker calls implementation.initialize(attackerAddress). "
+            "3. Attacker is now owner of the implementation contract. "
+            "4. If implementation has selfdestruct, attacker can destroy it. "
+            "5. All beacon proxies now point to destroyed/malicious implementation."
+        ),
+        severity="critical",
+        category="proxy",
+        real_exploit="Wormhole uninitialized implementation - $320M at risk",
+        tags=["beacon", "proxy", "initialization", "upgradeable", "implementation"],
+    ),
+
+    # =========================================================================
+    # ZK CIRCUIT VULNERABILITIES
+    # =========================================================================
+
+    # Underconstrained Circuit
+    VulnerabilityDocument(
+        id="ZK-UNDERCONSTRAINED",
+        swc_id=None,
+        cwe_id="CWE-682",
+        title="Underconstrained ZK Circuit",
+        description=(
+            "Zero-knowledge circuits must fully constrain all variables. Underconstrained "
+            "circuits allow multiple valid witness values for the same public inputs, "
+            "enabling attackers to forge proofs or bypass verification."
+        ),
+        vulnerable_code="""
+// Circom - Underconstrained multiplier
+template Multiplier() {
+    signal input a;
+    signal input b;
+    signal output c;
+
+    c <-- a * b;  // Assignment only, NO constraint!
+    // Prover can set c to anything
+}
+
+// Missing constraint example
+template RangeCheck(n) {
+    signal input value;
+    signal bits[n];
+
+    var sum = 0;
+    for (var i = 0; i < n; i++) {
+        bits[i] <-- (value >> i) & 1;  // Assignment only
+        sum += bits[i] * (2 ** i);
+        // Missing: bits[i] * (bits[i] - 1) === 0
+    }
+    // Missing: sum === value
+}
+""",
+        fixed_code="""
+// Properly constrained multiplier
+template Multiplier() {
+    signal input a;
+    signal input b;
+    signal output c;
+
+    c <== a * b;  // <== creates constraint: c === a * b
+}
+
+// Properly constrained range check
+template RangeCheck(n) {
+    signal input value;
+    signal bits[n];
+
+    var sum = 0;
+    for (var i = 0; i < n; i++) {
+        bits[i] <-- (value >> i) & 1;
+        bits[i] * (bits[i] - 1) === 0;  // Constraint: bit is 0 or 1
+        sum += bits[i] * (2 ** i);
+    }
+    sum === value;  // Constraint: bits reconstruct value
+}
+
+// Use established libraries
+include "circomlib/circuits/comparators.circom";
+component rangeCheck = LessThan(252);
+rangeCheck.in[0] <== value;
+rangeCheck.in[1] <== maxValue;
+rangeCheck.out === 1;
+""",
+        attack_scenario=(
+            "1. ZK rollup uses underconstrained circuit for transfers. "
+            "2. Circuit doesn't fully constrain balance updates. "
+            "3. Attacker generates proof with arbitrary balance. "
+            "4. Proof passes verification despite invalid state transition. "
+            "5. Attacker mints tokens or steals funds from rollup."
+        ),
+        severity="critical",
+        category="zk",
+        real_exploit="Zcash counterfeiting vulnerability (2019) - fixed before exploitation",
+        tags=["zk", "circom", "underconstrained", "snark", "circuit", "proof"],
+    ),
+
+    # ZK Nullifier Collision
+    VulnerabilityDocument(
+        id="ZK-NULLIFIER-COLLISION",
+        swc_id=None,
+        cwe_id="CWE-327",
+        title="ZK Nullifier Collision / Double-Spend",
+        description=(
+            "Privacy protocols use nullifiers to prevent double-spending without revealing "
+            "which note is spent. Weak nullifier derivation or missing uniqueness checks "
+            "can enable double-spends or nullifier grinding attacks."
+        ),
+        vulnerable_code="""
+// Weak nullifier derivation
+template SpendNote() {
+    signal input secret;
+    signal input noteIndex;
+    signal output nullifier;
+
+    // VULNERABLE: Nullifier only depends on secret
+    // Same secret = same nullifier across all notes
+    nullifier <== hash(secret);
+}
+
+// Missing nullifier check in contract
+contract PrivacyPool {
+    mapping(bytes32 => bool) public nullifiers;
+
+    function withdraw(bytes calldata proof, bytes32 nullifier) external {
+        // VULNERABLE: Check happens after state change
+        require(verifyProof(proof), "Invalid proof");
+
+        // Race condition possible
+        nullifiers[nullifier] = true;
+
+        payable(msg.sender).transfer(AMOUNT);
+    }
+}
+""",
+        fixed_code="""
+// Proper nullifier derivation
+template SpendNote() {
+    signal input secret;
+    signal input noteCommitment;  // Unique per note
+    signal input leafIndex;       // Position in Merkle tree
+    signal output nullifier;
+
+    // Nullifier uniquely tied to specific note
+    nullifier <== hash(secret, noteCommitment, leafIndex);
+}
+
+// Safe nullifier handling
+contract PrivacyPool {
+    mapping(bytes32 => bool) public nullifiers;
+
+    function withdraw(
+        bytes calldata proof,
+        bytes32 nullifier,
+        bytes32 root
+    ) external nonReentrant {
+        // Check nullifier FIRST
+        require(!nullifiers[nullifier], "Note already spent");
+        require(isKnownRoot(root), "Unknown root");
+        require(verifyProof(proof, nullifier, root), "Invalid proof");
+
+        // Mark spent BEFORE transfer
+        nullifiers[nullifier] = true;
+
+        payable(msg.sender).transfer(AMOUNT);
+    }
+}
+""",
+        attack_scenario=(
+            "1. User deposits 1 ETH, receives note commitment. "
+            "2. User generates nullifier and withdraws 1 ETH. "
+            "3. Due to weak derivation, user can generate same nullifier for different 'note'. "
+            "4. User submits second withdrawal with same nullifier. "
+            "5. If nullifier check is missing/weak, user withdraws twice."
+        ),
+        severity="critical",
+        category="zk",
+        real_exploit="Tornado Cash fork vulnerabilities discovered in 2023",
+        tags=["zk", "nullifier", "double-spend", "privacy", "tornado", "merkle"],
+    ),
+
+    # =========================================================================
+    # DEFI PROTOCOL-SPECIFIC PATTERNS
+    # =========================================================================
+
+    # Compound Fork Interest Rate Manipulation
+    VulnerabilityDocument(
+        id="COMPOUND-INTEREST-MANIPULATION",
+        swc_id=None,
+        cwe_id="CWE-682",
+        title="Interest Rate Model Manipulation",
+        description=(
+            "Compound-style lending protocols calculate interest rates based on utilization. "
+            "Attackers can manipulate utilization via large flash-borrowed deposits/withdrawals "
+            "to spike rates and force liquidations or extract value from rate-sensitive positions."
+        ),
+        vulnerable_code="""
+// Simple interest rate model
+function getBorrowRate(uint256 cash, uint256 borrows) public pure returns (uint256) {
+    uint256 utilization = borrows * 1e18 / (cash + borrows);
+
+    // Linear model - easily manipulable
+    return baseRate + utilization * multiplier / 1e18;
+}
+
+// Vulnerable to flash loan manipulation
+function accrueInterest() external {
+    uint256 rate = getBorrowRate(getCash(), totalBorrows);
+    uint256 interestAccumulated = rate * (block.timestamp - lastAccrual);
+
+    // Interest spikes immediately based on current utilization
+    totalBorrows += interestAccumulated;
+}
+""",
+        fixed_code="""
+// Time-weighted utilization
+uint256 public lastUtilization;
+uint256 public lastUtilizationUpdate;
+uint256 public constant SMOOTHING_PERIOD = 1 hours;
+
+function getSmoothedUtilization() public view returns (uint256) {
+    uint256 currentUtil = getCurrentUtilization();
+    uint256 elapsed = block.timestamp - lastUtilizationUpdate;
+
+    if (elapsed >= SMOOTHING_PERIOD) {
+        return currentUtil;
+    }
+
+    // Exponential smoothing
+    uint256 weight = elapsed * 1e18 / SMOOTHING_PERIOD;
+    return (lastUtilization * (1e18 - weight) + currentUtil * weight) / 1e18;
+}
+
+function getBorrowRate() public view returns (uint256) {
+    uint256 utilization = getSmoothedUtilization();
+
+    // Kinked model with dampening
+    if (utilization <= kink) {
+        return baseRate + utilization * multiplierPerBlock / 1e18;
+    } else {
+        uint256 normalRate = baseRate + kink * multiplierPerBlock / 1e18;
+        uint256 excessUtil = utilization - kink;
+        return normalRate + excessUtil * jumpMultiplier / 1e18;
+    }
+}
+""",
+        attack_scenario=(
+            "1. Protocol has $10M deposits, $5M borrows (50% utilization, 5% rate). "
+            "2. Attacker flash loans $9M. "
+            "3. Attacker withdraws $9M from protocol (leaving $1M cash). "
+            "4. Utilization spikes to 83%, rate jumps to 20%. "
+            "5. Interest accrues at manipulated rate. "
+            "6. Attacker redeposits $9M, repays flash loan. "
+            "7. Protocol accrued excess interest, borrowers damaged."
+        ),
+        severity="high",
+        category="defi",
+        real_exploit="Cream Finance interest rate manipulation (2021)",
+        tags=["compound", "interest-rate", "utilization", "flash-loan", "lending"],
+    ),
+
+    # Governance Proposal Spam
+    VulnerabilityDocument(
+        id="GOV-PROPOSAL-SPAM",
+        swc_id=None,
+        cwe_id="CWE-400",
+        title="Governance Proposal Spam / DoS",
+        description=(
+            "Governance systems without adequate proposal thresholds or rate limiting "
+            "can be spammed with proposals, overwhelming voters, hiding malicious proposals "
+            "among benign ones, or consuming gas for on-chain execution."
+        ),
+        vulnerable_code="""
+// Vulnerable governance - low barrier to propose
+contract Governance {
+    uint256 public constant PROPOSAL_THRESHOLD = 100e18;  // Only 100 tokens
+
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) external returns (uint256) {
+        require(token.balanceOf(msg.sender) >= PROPOSAL_THRESHOLD, "Below threshold");
+
+        // No rate limiting - can spam proposals
+        uint256 proposalId = _createProposal(targets, values, calldatas, description);
+        return proposalId;
+    }
+}
+""",
+        fixed_code="""
+contract Governance {
+    uint256 public constant PROPOSAL_THRESHOLD = 10000e18;  // 10,000 tokens (1% supply)
+    uint256 public constant MAX_ACTIVE_PROPOSALS = 10;
+    uint256 public constant PROPOSAL_COOLDOWN = 7 days;
+
+    mapping(address => uint256) public lastProposalTime;
+    uint256 public activeProposalCount;
+
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) external returns (uint256) {
+        require(
+            token.getPastVotes(msg.sender, block.number - 1) >= PROPOSAL_THRESHOLD,
+            "Below threshold"
+        );
+        require(activeProposalCount < MAX_ACTIVE_PROPOSALS, "Too many proposals");
+        require(
+            block.timestamp >= lastProposalTime[msg.sender] + PROPOSAL_COOLDOWN,
+            "Cooldown active"
+        );
+
+        lastProposalTime[msg.sender] = block.timestamp;
+        activeProposalCount++;
+
+        return _createProposal(targets, values, calldatas, description);
+    }
+
+    function _finalizeProposal(uint256 proposalId) internal {
+        activeProposalCount--;
+        // ...
+    }
+}
+""",
+        attack_scenario=(
+            "1. Attacker acquires minimal token threshold. "
+            "2. Attacker submits hundreds of trivial proposals. "
+            "3. Real malicious proposal hidden among spam. "
+            "4. Voters overwhelmed, don't review all proposals. "
+            "5. Malicious proposal passes unnoticed."
+        ),
+        severity="medium",
+        category="governance",
+        real_exploit="Beanstalk governance attack used distraction proposals (2022)",
+        tags=["governance", "proposal", "spam", "dos", "voting", "dao"],
+    ),
+
+    # Airdrop Claim Vulnerability
+    VulnerabilityDocument(
+        id="AIRDROP-CLAIM-VULN",
+        swc_id=None,
+        cwe_id="CWE-284",
+        title="Airdrop Merkle Proof Vulnerabilities",
+        description=(
+            "Airdrop contracts using Merkle proofs can have vulnerabilities in proof "
+            "verification, allowing attackers to claim more than allocated, claim on "
+            "behalf of others, or replay claims across different airdrops."
+        ),
+        vulnerable_code="""
+// Vulnerable airdrop - weak leaf encoding
+contract Airdrop {
+    bytes32 public merkleRoot;
+    mapping(address => bool) public claimed;
+
+    function claim(uint256 amount, bytes32[] calldata proof) external {
+        require(!claimed[msg.sender], "Already claimed");
+
+        // VULNERABLE: Leaf doesn't include msg.sender binding
+        bytes32 leaf = keccak256(abi.encodePacked(amount));
+        require(MerkleProof.verify(proof, merkleRoot, leaf), "Invalid proof");
+
+        claimed[msg.sender] = true;
+        token.transfer(msg.sender, amount);
+    }
+}
+
+// VULNERABLE: Second preimage attack possible
+bytes32 leaf = keccak256(abi.encodePacked(address, amount));
+// If address + amount = 64 bytes, could match intermediate node
+""",
+        fixed_code="""
+contract Airdrop {
+    bytes32 public merkleRoot;
+    mapping(address => bool) public claimed;
+
+    function claim(uint256 index, address account, uint256 amount, bytes32[] calldata proof) external {
+        require(!claimed[account], "Already claimed");
+
+        // Secure leaf encoding with index and double-hash
+        bytes32 leaf = keccak256(bytes.concat(
+            keccak256(abi.encode(index, account, amount))
+        ));
+        require(MerkleProof.verify(proof, merkleRoot, leaf), "Invalid proof");
+
+        claimed[account] = true;
+        token.transfer(account, amount);  // Transfer to account, not msg.sender
+    }
+
+    // Or use bitmap for gas-efficient claim tracking
+    mapping(uint256 => uint256) private claimedBitmap;
+
+    function isClaimed(uint256 index) public view returns (bool) {
+        uint256 wordIndex = index / 256;
+        uint256 bitIndex = index % 256;
+        return claimedBitmap[wordIndex] & (1 << bitIndex) != 0;
+    }
+}
+""",
+        attack_scenario=(
+            "1. Airdrop uses weak leaf encoding (amount only). "
+            "2. Attacker finds another user's proof for same amount. "
+            "3. Attacker uses proof to claim tokens to their address. "
+            "4. Legitimate user can no longer claim. "
+            "Or: Attacker constructs proof matching intermediate Merkle node."
+        ),
+        severity="high",
+        category="token",
+        real_exploit="Multiple airdrop implementations with second preimage issues",
+        tags=["airdrop", "merkle", "proof", "claim", "token", "distribution"],
+    ),
+
+    # Time-Locked Admin Bypass
+    VulnerabilityDocument(
+        id="TIMELOCK-BYPASS",
+        swc_id=None,
+        cwe_id="CWE-863",
+        title="Timelock Bypass via Emergency Functions",
+        description=(
+            "Protocols implement timelocks to give users time to exit before changes. "
+            "However, emergency or admin functions that bypass the timelock can be "
+            "abused to make instant changes without user protection."
+        ),
+        vulnerable_code="""
+// Timelock with dangerous bypass
+contract TimelockController {
+    uint256 public constant DELAY = 2 days;
+    mapping(bytes32 => uint256) public timestamps;
+
+    function schedule(bytes32 id, address target, bytes calldata data) external onlyAdmin {
+        timestamps[id] = block.timestamp + DELAY;
+    }
+
+    function execute(bytes32 id, address target, bytes calldata data) external {
+        require(block.timestamp >= timestamps[id], "Not ready");
+        (bool success,) = target.call(data);
+        require(success);
+    }
+
+    // DANGEROUS: Bypasses all timelock protections!
+    function emergencyExecute(address target, bytes calldata data) external onlyAdmin {
+        (bool success,) = target.call(data);
+        require(success);
+    }
+}
+""",
+        fixed_code="""
+contract TimelockController {
+    uint256 public constant DELAY = 2 days;
+    uint256 public constant EMERGENCY_DELAY = 6 hours;  // Shorter but not instant
+
+    mapping(bytes32 => uint256) public timestamps;
+
+    // Regular timelock
+    function schedule(bytes32 id, address target, bytes calldata data) external onlyAdmin {
+        timestamps[id] = block.timestamp + DELAY;
+        emit Scheduled(id, target, data, timestamps[id]);
+    }
+
+    // Emergency still has delay + limited scope
+    function emergencySchedule(bytes32 id, address target, bytes calldata data) external {
+        require(isEmergencyAction(target, data), "Not emergency action");
+        require(msg.sender == guardian, "Only guardian");
+
+        timestamps[id] = block.timestamp + EMERGENCY_DELAY;
+        emit EmergencyScheduled(id, target, data, timestamps[id]);
+    }
+
+    // Define what counts as emergency (pause, not upgrade)
+    function isEmergencyAction(address target, bytes calldata data) internal view returns (bool) {
+        bytes4 selector = bytes4(data[:4]);
+        return selector == IProtocol.pause.selector;  // Only pause allowed
+    }
+}
+""",
+        attack_scenario=(
+            "1. Protocol has 2-day timelock for upgrades. "
+            "2. Admin key compromised or malicious insider. "
+            "3. Attacker uses emergencyExecute to upgrade instantly. "
+            "4. Malicious implementation drains all funds. "
+            "5. Users had no time to exit despite 'timelock protection'."
+        ),
+        severity="high",
+        category="governance",
+        real_exploit="Multiple DeFi protocols had emergency function abuse",
+        tags=["timelock", "bypass", "emergency", "admin", "governance", "upgrade"],
+    ),
+
+    # Permit Signature Phishing
+    VulnerabilityDocument(
+        id="PERMIT-PHISHING",
+        swc_id=None,
+        cwe_id="CWE-346",
+        title="ERC-20 Permit Signature Phishing",
+        description=(
+            "ERC-2612 permit() allows gasless approvals via signatures. Attackers can "
+            "trick users into signing permit messages that look harmless but grant "
+            "unlimited token approvals to attacker-controlled addresses."
+        ),
+        vulnerable_code="""
+// Legitimate permit implementation - not vulnerable itself
+// But users can be tricked into signing malicious permits
+
+// Phishing site presents this as "Sign to verify wallet":
+const domain = {
+    name: "USD Coin",
+    version: "1",
+    chainId: 1,
+    verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+};
+
+const permit = {
+    owner: victimAddress,
+    spender: attackerAddress,  // Hidden in UI
+    value: "115792089237316195423570985008687907853269984665640564039457584007913129639935",  // uint256 max
+    nonce: 0,
+    deadline: 1893456000  // Far future
+};
+
+// User signs, thinking it's wallet verification
+const signature = await signer._signTypedData(domain, types, permit);
+
+// Attacker submits permit and drains tokens
+usdc.permit(victim, attacker, MAX_UINT256, deadline, v, r, s);
+usdc.transferFrom(victim, attacker, usdc.balanceOf(victim));
+""",
+        fixed_code="""
+// Wallet protection - show clear permit details
+// MetaMask and other wallets should display:
+// "Approve [SPENDER] to spend [AMOUNT] [TOKEN]"
+
+// Contract-side: Consider permit with amount limits
+function permitWithLimit(
+    address owner,
+    address spender,
+    uint256 value,
+    uint256 deadline,
+    uint8 v, bytes32 r, bytes32 s
+) external {
+    require(value <= MAX_PERMIT_AMOUNT, "Amount too high");
+    _permit(owner, spender, value, deadline, v, r, s);
+}
+
+// User-side: Always verify before signing
+// 1. Check the spender address
+// 2. Check the amount (MAX_UINT256 = unlimited!)
+// 3. Check the deadline
+// 4. Verify the contract address matches expected token
+
+// Protocol-side: Use minimal necessary approvals
+function depositWithPermit(
+    uint256 amount,
+    uint256 deadline,
+    uint8 v, bytes32 r, bytes32 s
+) external {
+    // Only approve exact amount needed
+    token.permit(msg.sender, address(this), amount, deadline, v, r, s);
+    token.transferFrom(msg.sender, address(this), amount);
+}
+""",
+        attack_scenario=(
+            "1. Attacker creates phishing site mimicking popular dApp. "
+            "2. Site prompts 'Sign to verify your wallet'. "
+            "3. User sees EIP-712 signature request, appears legitimate. "
+            "4. Hidden in data: permit granting attacker unlimited approval. "
+            "5. User signs, attacker now has approval without on-chain tx. "
+            "6. Attacker calls transferFrom to drain user's tokens."
+        ),
+        severity="high",
+        category="phishing",
+        real_exploit="OpenSea permit phishing - $1.7M stolen (2022)",
+        tags=["permit", "phishing", "erc2612", "signature", "approval", "gasless"],
+    ),
 ]
 
 
