@@ -101,7 +101,7 @@ docker rmi ghcr.io/fboiero/miesc:main 2>/dev/null
 # Descargar imagen fresca
 docker pull ghcr.io/fboiero/miesc:latest
 
-# Verificar versión (debe mostrar 4.3.4+)
+# Verificar versión (debe mostrar 5.1.0)
 docker run --rm ghcr.io/fboiero/miesc:latest --version
 ```
 
@@ -286,7 +286,7 @@ Agrega a tu `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v4.3.4
+    rev: v5.1.0
     hooks:
       - id: miesc-quick
         args: ['--ci']  # Falla en issues críticos/altos
@@ -959,12 +959,12 @@ Resultados: `benchmark_results/`, `outputs/benchmarks/`
 **Citación** (preliminar):
 
 ```bibtex
-@software{boiero2025miesc,
+@software{boiero2026miesc,
   author = {Boiero, Fernando},
   title = {{MIESC}: Evaluación Inteligente Multicapa para Smart Contracts},
-  year = {2025},
+  year = {2026},
   url = {https://github.com/fboiero/MIESC},
-  version = {4.3.3},
+  version = {5.1.0},
   note = {Implementación para Tesis de Maestría en Ciberdefensa}
 }
 ```
@@ -973,20 +973,19 @@ Resultados: `benchmark_results/`, `outputs/benchmarks/`
 
 ## Roadmap
 
-**v4.3.3 (actual)**:
+**v5.1.0 (actual)**:
 
-- Distribución PyPI: `pip install miesc` disponible
-- PropertyGPT: Generación automatizada de propiedades CVL (+700% adopción verificación formal)
-- DA-GNN: Detección de vulnerabilidades con Redes Neuronales de Grafos (95.7% precisión)
-- SmartLLM RAG Mejorado: Rol verificador para comprobación de hechos (+17% precisión)
-- DogeFuzz: Fuzzing guiado por cobertura con programación de potencia (3x más rápido)
-- 31 adaptadores de herramientas en 9 capas de defensa
-- 1833 tests pasando, 80.4% cobertura
+- CLI modular: main.py reducido 98.1% (6,710 → 126 líneas)
+- 50 herramientas de seguridad en 9 capas de defensa
+- Soporte multi-chain (EVM, Solana, NEAR, Move, Stellar, Algorand, Cardano)
+- RAG con ChromaDB para detección semántica de vulnerabilidades
+- Imágenes Docker multi-arch (ARM/x86)
+- Reportes PDF profesionales con interpretación LLM
 
-**Futuro (v5.0)**:
+**Futuro (v6.0)**:
 
-- Empaquetado Docker oficial
-- Soporte multi-chain (Soroban, Solana, Cairo)
+- Consolidación de estructura de paquetes (ADR 0004)
+- Mejoras de rendimiento en análisis simbólico
 - Extensión VSCode mejorada
 - Pre-commit hooks oficiales
 - Integración Foundry/Hardhat nativa
@@ -1066,6 +1065,6 @@ Datasets: SmartBugs (INESC-ID), SolidiFI (TU Delft), Etherscan.
 
 ---
 
-**Versión 4.3.3** | Enero 2026
+**Versión 5.1.0** | Febrero 2026
 
 [Repositorio](https://github.com/fboiero/MIESC) | [Documentación](https://fboiero.github.io/MIESC) | [Issues](https://github.com/fboiero/MIESC/issues)

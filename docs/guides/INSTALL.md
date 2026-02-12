@@ -102,7 +102,7 @@ apt-get install python3 python3-pip nodejs npm rustc cargo golang-go
 **Docker** (alternative):
 ```bash
 docker build -t miesc .
-docker run -v $(pwd)/contracts:/contracts miesc analyze /contracts/MyToken.sol
+docker run -v $(pwd)/contracts:/contracts ghcr.io/fboiero/miesc:latest scan /contracts/MyToken.sol
 ```
 
 See [docs/DOCKER_DEPLOYMENT.md](./docs/DOCKER_DEPLOYMENT.md)
@@ -153,8 +153,8 @@ source venv/bin/activate  # Linux/macOS
 If you only need static analysis:
 
 ```bash
-pip install slither-analyzer
-python xaudit.py --target contract.sol --layers static
+pip install miesc
+miesc scan contract.sol  # Quick 4-tool scan with Slither
 ```
 
 Framework gracefully degrades when tools are unavailable (DPGA compliance).

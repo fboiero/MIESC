@@ -608,7 +608,7 @@ Add to your `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v4.3.7
+    rev: v5.1.0
     hooks:
       - id: miesc-quick
         args: ['--ci']  # Fail on critical/high issues
