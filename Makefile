@@ -4,7 +4,7 @@
 # Author: Fernando Boiero - UNDEF
 # Thesis: Master's in Cyberdefense
 
-.PHONY: help install test lint audit experiments clean docs docker mcp build publish release
+.PHONY: help install test lint audit experiments clean docs docker mcp build publish release sphinx-build sphinx-serve sphinx-clean sphinx-api
 
 # Default target
 .DEFAULT_GOAL := help
@@ -129,7 +129,33 @@ install-webapp:  ## Install webapp dependencies
 install-docs:  ## Install documentation dependencies
 	@echo "$(BLUE)Installing documentation dependencies...$(NC)"
 	@pip install mkdocs-material mkdocs-minify-plugin mkdocs-git-revision-date-localized-plugin mkdocstrings[python] mkdocs-autorefs
-	@echo "$(GREEN)✓ Documentation dependencies installed$(NC)"
+	@pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints sphinx-autobuild
+	@echo "$(GREEN)✓ Documentation dependencies installed (MkDocs + Sphinx)$(NC)"
+
+# ============================================
+# SPHINX API DOCUMENTATION (v5.1.1+)
+# ============================================
+
+sphinx-build:  ## Build Sphinx API documentation
+	@echo "$(BLUE)Building Sphinx API documentation...$(NC)"
+	@cd docs && sphinx-build -b html . _build/html
+	@echo "$(GREEN)✓ Sphinx documentation built in docs/_build/html/$(NC)"
+
+sphinx-serve:  ## Start Sphinx development server with auto-reload
+	@echo "$(BLUE)Starting Sphinx development server...$(NC)"
+	@echo "$(YELLOW)Opening browser at http://127.0.0.1:8001$(NC)"
+	@cd docs && sphinx-autobuild . _build/html --port 8001
+
+sphinx-clean:  ## Clean Sphinx build artifacts
+	@echo "$(BLUE)Cleaning Sphinx build...$(NC)"
+	@rm -rf docs/_build
+	@echo "$(GREEN)✓ Sphinx build cleaned$(NC)"
+
+sphinx-api:  ## Generate API documentation from docstrings
+	@echo "$(BLUE)Generating API documentation from docstrings...$(NC)"
+	@sphinx-apidoc -o docs/api src/ -f -e -M
+	@sphinx-apidoc -o docs/api miesc/ -f -e -M
+	@echo "$(GREEN)✓ API documentation generated in docs/api/$(NC)"
 
 clean:  ## Clean temporary files
 	@echo "$(BLUE)Cleaning temporary files...$(NC)"

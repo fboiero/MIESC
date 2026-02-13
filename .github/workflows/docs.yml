@@ -1,0 +1,167 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'src/**/*.py'
+      - 'miesc/**/*.py'
+      - 'mkdocs.yml'
+      - 'docs/conf.py'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'src/**/*.py'
+      - 'miesc/**/*.py'
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # =============================================================================
+  # Build MkDocs Documentation
+  # =============================================================================
+  mkdocs:
+    name: Build MkDocs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install MkDocs dependencies
+        run: |
+          pip install mkdocs mkdocs-material mkdocstrings[python] mkdocs-autorefs
+
+      - name: Build MkDocs documentation
+        run: |
+          if [ -f mkdocs.yml ]; then
+            mkdocs build --strict
+            echo "MkDocs build successful"
+          else
+            echo "No mkdocs.yml found, skipping MkDocs build"
+          fi
+
+      - name: Upload MkDocs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkdocs-site
+          path: site/
+          retention-days: 7
+        if: hashFiles('mkdocs.yml') != ''
+
+  # =============================================================================
+  # Build Sphinx API Documentation
+  # =============================================================================
+  sphinx:
+    name: Build Sphinx API Docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[docs]"
+
+      - name: Build Sphinx documentation
+        run: |
+          if [ -f docs/conf.py ]; then
+            cd docs && sphinx-build -b html . _build/html -W --keep-going
+            echo "Sphinx build successful"
+          else
+            echo "No docs/conf.py found, skipping Sphinx build"
+          fi
+
+      - name: Upload Sphinx artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sphinx-docs
+          path: docs/_build/html/
+          retention-days: 7
+        if: hashFiles('docs/conf.py') != ''
+
+  # =============================================================================
+  # Check Documentation Links
+  # =============================================================================
+  linkcheck:
+    name: Check Links
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install link checker
+        run: npm install -g markdown-link-check
+
+      - name: Check documentation links
+        run: |
+          echo "Checking README.md..."
+          markdown-link-check README.md --quiet || true
+
+          echo "Checking docs/*.md..."
+          find docs -name "*.md" -type f | head -20 | while read file; do
+            echo "Checking $file..."
+            markdown-link-check "$file" --quiet || true
+          done
+        continue-on-error: true
+
+  # =============================================================================
+  # Deploy to GitHub Pages (main branch only)
+  # =============================================================================
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: [mkdocs, sphinx]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install MkDocs
+        run: pip install mkdocs mkdocs-material mkdocstrings[python] mkdocs-autorefs
+
+      - name: Build and deploy
+        run: |
+          if [ -f mkdocs.yml ]; then
+            mkdocs gh-deploy --force
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
