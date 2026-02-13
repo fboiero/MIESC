@@ -67,7 +67,7 @@ jobs:
 
       - name: Run mypy
         run: mypy src/ miesc/ --ignore-missing-imports
-        continue-on-error: true  # TODO: Remove after fixing type errors
+        # Type errors now fail the build
 
   # =============================================================================
   # Unit Tests
@@ -100,7 +100,8 @@ jobs:
             --tb=short \
             --cov=src \
             --cov-report=xml \
-            --cov-report=term-missing
+            --cov-report=term-missing \
+            --cov-fail-under=80
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

@@ -152,14 +152,14 @@ miesc = "miesc.cli.main:cli"
 miesc-mcp = "miesc.mcp_server:main"
 
 [project.entry-points."miesc.detectors"]
-# Built-in detectors (for reference/documentation)
+# Built-in detectors - using miesc.* namespace for proper packaging
 # External packages can register their detectors here:
 # flash-loan = "my_package.detectors:FlashLoanDetector"
 # custom-check = "my_package.detectors:CustomDetector"
-unchecked-call = "src.detectors.example_detectors:UncheckedCallDetector"
-flash-loan = "src.detectors.example_detectors:FlashLoanDetector"
-mev-detector = "src.detectors.example_detectors:MEVDetector"
-access-control = "src.detectors.example_detectors:AccessControlDetector"
+unchecked-call = "miesc.detectors.builtin:UncheckedCallDetector"
+flash-loan = "miesc.detectors.builtin:FlashLoanDetector"
+mev-detector = "miesc.detectors.builtin:MEVDetector"
+access-control = "miesc.detectors.builtin:AccessControlDetector"
 
 [tool.setuptools.dynamic]
 version = {attr = "miesc.__version__"}
@@ -246,7 +246,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-testpaths = ["tests", "miesc/tests"]
+testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -401,5 +401,5 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
 ]
-fail_under = 70
+fail_under = 80
 show_missing = true
