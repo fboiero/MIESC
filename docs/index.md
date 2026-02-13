@@ -6,7 +6,7 @@ title: MIESC - Smart Contract Security Framework
 # MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MIESC-v5.1.0-blue?style=for-the-badge" alt="MIESC v5.1.0">
+  <img src="https://img.shields.io/badge/MIESC-v5.1.1-blue?style=for-the-badge" alt="MIESC v5.1.1">
   <img src="https://img.shields.io/pypi/v/miesc?style=for-the-badge&label=PyPI" alt="PyPI">
   <img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Python-3.12+-yellow?style=for-the-badge" alt="Python">
@@ -76,7 +76,7 @@ title: MIESC - Smart Contract Security Framework
 
 **MIESC** is a production-grade smart contract security framework that implements a **9-layer Defense-in-Depth architecture**, integrating **31 specialized security tools** with **AI-powered correlation** and **ML-based detection** to deliver comprehensive vulnerability detection with industry-leading accuracy.
 
-### Key Achievements (v5.1.0)
+### Key Achievements (v5.1.1)
 
 - **31 Integrated Tools** across 9 defense layers
 - **95.7% ML Detection Accuracy** with DA-GNN Graph Neural Networks
@@ -260,7 +260,7 @@ Static Dynamic Symbolic Formal
 
 ## Performance Metrics
 
-### v5.1.0 Results (SmartBugs-curated Benchmark)
+### v5.1.1 Results (SmartBugs-curated Benchmark)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
@@ -310,7 +310,7 @@ Static Dynamic Symbolic Formal
   title = {MIESC: Multi-layer Intelligent Evaluation for Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
-  version = {5.1.0},
+  version = {5.1.1},
   note = {Implementation for Master's thesis in Cyberdefense}
 }
 ```
@@ -475,7 +475,7 @@ Ensures framework remains open-source. Allows commercial use with attribution. D
 ---
 
 <p align="center">
-  <strong>MIESC v5.1.0</strong> | Master's Thesis in Cyberdefense | AGPL-3.0 License
+  <strong>MIESC v5.1.1</strong> | Master's Thesis in Cyberdefense | AGPL-3.0 License
 </p>
 
 <p align="center">

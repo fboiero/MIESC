@@ -5,7 +5,7 @@ Multi-layer security analysis framework for smart contracts with **multi-chain s
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/pypi/v/miesc)](https://pypi.org/project/miesc/)
-[![Version](https://img.shields.io/badge/version-5.1.0-green)](https://github.com/fboiero/MIESC/releases)
+[![Version](https://img.shields.io/badge/version-5.1.1-green)](https://github.com/fboiero/MIESC/releases)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/fboiero/MIESC/badge)](https://securityscorecards.dev/viewer/?uri=github.com/fboiero/MIESC)
 [![Security Audit](https://github.com/fboiero/MIESC/actions/workflows/miesc-security.yml/badge.svg)](https://github.com/fboiero/MIESC/actions/workflows/miesc-security.yml)
 [![codecov](https://codecov.io/gh/fboiero/MIESC/graph/badge.svg)](https://codecov.io/gh/fboiero/MIESC)
@@ -97,7 +97,7 @@ docker rmi ghcr.io/fboiero/miesc:main 2>/dev/null
 # Pull fresh image
 docker pull ghcr.io/fboiero/miesc:latest
 
-# Verify version (should show 5.1.0)
+# Verify version (should show 5.1.1)
 docker run --rm ghcr.io/fboiero/miesc:latest --version
 ```
 
@@ -156,7 +156,7 @@ Or build the full image natively:
 ./scripts/build-images.sh full
 ```
 
-> **Note:** The registry may contain older image versions (pre-5.1.0). Always use tagged versions `miesc:latest`, `miesc:full`, `miesc:5.1.0`, or `miesc:5.1.0-full` to get the current release.
+> **Note:** Always use tagged versions `miesc:latest`, `miesc:full`, `miesc:5.1.1`, or `miesc:5.1.1-full` to get the current release.
 
 </details>
 
@@ -608,7 +608,7 @@ Add to your `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v5.1.0
+    rev: v5.1.1
     hooks:
       - id: miesc-quick
         args: ['--ci']  # Fail on critical/high issues

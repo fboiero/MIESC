@@ -3,7 +3,7 @@
 [![Licencia: AGPL v3](https://img.shields.io/badge/Licencia-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/pypi/v/miesc)](https://pypi.org/project/miesc/)
-[![Versión](https://img.shields.io/badge/versión-5.1.0-green)](https://github.com/fboiero/MIESC/releases)
+[![Versión](https://img.shields.io/badge/versión-5.1.1-green)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions/workflows/secure-dev-pipeline.yml)
 [![Cobertura](https://img.shields.io/badge/cobertura-81%25-green)](./htmlcov/index.html)
 [![Herramientas](https://img.shields.io/badge/herramientas-31%2F31%20operativas-brightgreen)](./docs/TOOLS.md)
@@ -101,7 +101,7 @@ docker rmi ghcr.io/fboiero/miesc:main 2>/dev/null
 # Descargar imagen fresca
 docker pull ghcr.io/fboiero/miesc:latest
 
-# Verificar versión (debe mostrar 5.1.0)
+# Verificar versión (debe mostrar 5.1.1)
 docker run --rm ghcr.io/fboiero/miesc:latest --version
 ```
 
@@ -286,7 +286,7 @@ Agrega a tu `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v5.1.0
+    rev: v5.1.1
     hooks:
       - id: miesc-quick
         args: ['--ci']  # Falla en issues críticos/altos
@@ -964,7 +964,7 @@ Resultados: `benchmark_results/`, `outputs/benchmarks/`
   title = {{MIESC}: Evaluación Inteligente Multicapa para Smart Contracts},
   year = {2026},
   url = {https://github.com/fboiero/MIESC},
-  version = {5.1.0},
+  version = {5.1.1},
   note = {Implementación para Tesis de Maestría en Ciberdefensa}
 }
 ```
@@ -973,7 +973,7 @@ Resultados: `benchmark_results/`, `outputs/benchmarks/`
 
 ## Roadmap
 
-**v5.1.0 (actual)**:
+**v5.1.1 (actual)**:
 
 - CLI modular: main.py reducido 98.1% (6,710 → 126 líneas)
 - 50 herramientas de seguridad en 9 capas de defensa
@@ -1065,6 +1065,6 @@ Datasets: SmartBugs (INESC-ID), SolidiFI (TU Delft), Etherscan.
 
 ---
 
-**Versión 5.1.0** | Febrero 2026
+**Versión 5.1.1** | Febrero 2026
 
 [Repositorio](https://github.com/fboiero/MIESC) | [Documentación](https://fboiero.github.io/MIESC) | [Issues](https://github.com/fboiero/MIESC/issues)
