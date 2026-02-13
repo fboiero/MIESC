@@ -175,26 +175,24 @@ tbody tr:hover {
 }
 
 /* Severity Badges */
-.severity-critical,
-td:contains("CRITICAL"),
-strong:contains("CRITICAL") {
+.severity-critical {
     color: white;
     background: var(--color-critical);
     padding: 2px 8px;
     border-radius: 4px;
     font-weight: 600;
     font-size: 8pt;
+    display: inline-block;
 }
 
-.severity-high,
-td:contains("HIGH"),
-strong:contains("HIGH") {
+.severity-high {
     color: white;
     background: var(--color-high);
     padding: 2px 8px;
     border-radius: 4px;
     font-weight: 600;
     font-size: 8pt;
+    display: inline-block;
 }
 
 .severity-medium {
@@ -347,11 +345,12 @@ li {
     margin: 0.3em 0;
 }
 
-/* Horizontal Rules */
+/* Horizontal Rules - minimal spacing */
 hr {
     border: none;
     border-top: 1px solid var(--color-border);
-    margin: 2em 0;
+    margin: 1em 0;
+    page-break-after: avoid;
 }
 
 /* Links */
@@ -388,12 +387,19 @@ blockquote {
     page-break-after: always;
 }
 
-h1 {
+/* Only break before major sections, not every h1 */
+h1.section-break {
     page-break-before: always;
 }
 
-h1:first-of-type {
-    page-break-before: avoid;
+/* Prevent orphan headings */
+h1, h2, h3 {
+    page-break-after: avoid;
+}
+
+/* Keep content together */
+.finding-card, .recommendation-box, table {
+    page-break-inside: avoid;
 }
 
 /* Executive Summary Box */

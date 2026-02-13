@@ -133,14 +133,26 @@ def _simple_render_template(template: str, variables: dict) -> str:
     """Simple template rendering fallback without Jinja2."""
     output = template
 
+    # Replace variables with default values {{ var | default('value') }}
+    def replace_with_default(match):
+        var_name = match.group(1).strip()
+        default_val = match.group(2).strip().strip("'\"")
+        return str(variables.get(var_name, default_val))
+
+    output = re.sub(
+        r"\{\{\s*(\w+)\s*\|\s*default\s*\(\s*['\"]?([^'\")\s]+)['\"]?\s*\)\s*\}\}",
+        replace_with_default,
+        output,
+    )
+
     # Replace simple variables {{ var }}
     for key, value in variables.items():
         if not isinstance(value, (list, dict)):
             output = output.replace("{{ " + key + " }}", str(value))
             output = output.replace("{{" + key + "}}", str(value))
 
-    # Handle generic for loops
-    loop_pattern = r"\{% for (\w+) in (\w+) %\}(.*?)\{% endfor %\}"
+    # Handle generic for loops (including {%- and -%} whitespace control)
+    loop_pattern = r"\{%-?\s*for\s+(\w+)\s+in\s+(\w+)\s*-?%\}(.*?)\{%-?\s*endfor\s*-?%\}"
 
     def replace_loop(match):
         item_name = match.group(1)
@@ -172,8 +184,22 @@ def _simple_render_template(template: str, variables: dict) -> str:
             break
         output = new_output
 
-    # Handle conditionals (simplified - remove unfilled ones)
-    output = re.sub(r"\{% if [^%]+%\}.*?\{% endif %\}", "", output, flags=re.DOTALL)
+    # Handle conditionals (including {%- and -%} whitespace control)
+    # Remove entire if/else/endif blocks that weren't processed
+    output = re.sub(r"\{%-?\s*if\s+[^%]+%\}.*?\{%-?\s*endif\s*-?%\}", "", output, flags=re.DOTALL)
+
+    # Clean up any remaining Jinja2 syntax
+    output = re.sub(r"\{%-?\s*else\s*-?%\}", "", output)
+    output = re.sub(r"\{%-?\s*elif\s+[^%]+%\}", "", output)
+
+    # Remove leftover unprocessed variables with defaults
+    output = re.sub(r"\{\{\s*\w+\s*\|\s*default\s*\([^)]+\)\s*\}\}", "", output)
+
+    # Remove leftover unprocessed simple variables
+    output = re.sub(r"\{\{\s*\w+\s*\}\}", "", output)
+
+    # Clean up multiple blank lines
+    output = re.sub(r"\n{4,}", "\n\n\n", output)
 
     return output
 

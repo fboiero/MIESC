@@ -32,7 +32,7 @@ This document contains confidential security findings and is intended solely for
 
 </div>
 
----
+<!-- section-break -->
 
 # Table of Contents
 
@@ -44,7 +44,7 @@ This document contains confidential security findings and is intended solely for
 6. [Remediation Roadmap](#remediation-roadmap)
 7. [Appendices](#appendices)
 
----
+<!-- section-break -->
 
 # 1. Executive Summary
 
@@ -100,7 +100,7 @@ Based on the identified vulnerabilities:
 | **Availability** | {{ 'Medium' if critical_count > 0 or high_count > 0 else 'Low' }} - {% if critical_count > 0 %}Denial of service possible{% else %}No significant availability risks{% endif %} |
 {%- endif %}
 
----
+<!-- section-break -->
 
 # 2. Scope & Methodology
 
@@ -181,7 +181,7 @@ Layer 9: Advanced Detection     [{{ layer9_coverage | default('--') }}]
 - Economic attack vectors not fully modeled
 - Dependency vulnerabilities may exist beyond analysis scope
 
----
+<!-- section-break -->
 
 # 3. Risk Assessment
 
@@ -247,7 +247,7 @@ The following matrix maps findings by **Impact** (vertical) and **Likelihood** (
 The analyzed contract presents security concerns that should be addressed before production deployment. The combination of findings indicates potential for exploitation if left unmitigated.
 {%- endif %}
 
----
+<!-- section-break -->
 
 # 4. Findings Overview
 
@@ -275,7 +275,7 @@ The analyzed contract presents security concerns that should be addressed before
 | {{ layer.name }} | {{ layer.tools }} | {{ layer.success_count }} | {{ layer.failed_count }} | {{ layer.findings_count }} | {{ layer.coverage_bar }} |
 {%- endfor %}
 
----
+<!-- section-break -->
 
 # 5. Detailed Findings
 
@@ -349,10 +349,10 @@ The analyzed contract presents security concerns that should be addressed before
 - No references available
 {%- endif %}
 
----
+<!-- section-break -->
 {%- endfor %}
 
----
+<!-- section-break -->
 
 # 6. Remediation Roadmap
 
@@ -436,7 +436,7 @@ Review findings marked as "Low" effort for quick security improvements.
 {% if effort_impact_matrix.high_high.count > 0 %}- 📅 **Schedule ({{ effort_impact_matrix.high_high.count }})**: High effort, high impact - important but complex{% endif %}
 {% endif %}
 
----
+<!-- section-break -->
 
 # 7. Appendices
 
@@ -505,7 +505,7 @@ Review findings marked as "Low" effort for quick security improvements.
 | Report Generated | {{ generation_date }} | -- |
 | Report Hash | {{ generation_date }} | `{{ report_hash | default('N/A') }}` |
 
----
+<!-- section-break -->
 
 # Disclaimer
 
@@ -523,7 +523,7 @@ This audit report is provided on an "AS IS" basis without warranties of any kind
 **AI Disclosure:** Sections labeled as "AI-Generated" or "AI Analysis" were produced using large language models ({{ llm_model }}). These AI-generated insights are supplementary and should be reviewed by qualified security professionals. AI outputs may contain inaccuracies and are provided for informational purposes only.
 {%- endif %}
 
----
+<!-- section-break -->
 
 <div class="footer" style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc;">
 
