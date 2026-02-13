@@ -416,9 +416,25 @@ mkdocs build
 
 ### Getting Help
 
-- **GitHub Issues**: Bug reports, feature requests
-- **GitHub Discussions**: Questions, ideas, community
-- **Email**: fboiero@frvm.utn.edu.ar
+We have two main channels for community interaction:
+
+| Channel | Use For |
+|---------|---------|
+| [GitHub Discussions](https://github.com/fboiero/MIESC/discussions) | Questions, ideas, show-and-tell, general discussion |
+| [GitHub Issues](https://github.com/fboiero/MIESC/issues) | Bug reports, feature requests, confirmed problems |
+
+**When to use Discussions:**
+- You have a question about how to use MIESC
+- You want to share something you built with MIESC
+- You have an idea you want to discuss before creating a feature request
+- You need help troubleshooting (not a confirmed bug)
+
+**When to use Issues:**
+- You found a bug and can reproduce it
+- You have a well-defined feature request
+- You're reporting a security vulnerability (use private reporting)
+
+**Email**: fboiero@frvm.utn.edu.ar (for private inquiries)
 
 ### Recognition
 

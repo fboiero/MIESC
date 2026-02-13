@@ -9,6 +9,7 @@ Multi-layer security analysis framework for smart contracts with **multi-chain s
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/fboiero/MIESC/badge)](https://securityscorecards.dev/viewer/?uri=github.com/fboiero/MIESC)
 [![Security Audit](https://github.com/fboiero/MIESC/actions/workflows/miesc-security.yml/badge.svg)](https://github.com/fboiero/MIESC/actions/workflows/miesc-security.yml)
 [![codecov](https://codecov.io/gh/fboiero/MIESC/graph/badge.svg)](https://codecov.io/gh/fboiero/MIESC)
+[![GitHub Discussions](https://img.shields.io/github/discussions/fboiero/MIESC)](https://github.com/fboiero/MIESC/discussions)
 [![Tools](https://img.shields.io/badge/tools-50%2F50%20operational-brightgreen)](./docs/TOOLS.md)
 [![Chains](https://img.shields.io/badge/chains-7%20supported-blue)](./docs/MULTICHAIN.md)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
