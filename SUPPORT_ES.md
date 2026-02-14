@@ -17,6 +17,9 @@
 
 - [GitHub Discussions](https://github.com/fboiero/MIESC/discussions) - Preguntas, ideas, comunidad
 - [Issue Tracker](https://github.com/fboiero/MIESC/issues) - Reportes de bugs y solicitudes
+- [Guía de Comunidad](docs/COMMUNITY.md) - Recursos completos y guías de la comunidad
+
+**Chat en tiempo real (Discord/Matrix) próximamente!** Ver [Guía de Comunidad](docs/COMMUNITY.md) para actualizaciones.
 
 ---
 

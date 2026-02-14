@@ -17,6 +17,9 @@ Need help with MIESC? Here's how to get support.
 
 - [GitHub Discussions](https://github.com/fboiero/MIESC/discussions) - Questions, ideas, community
 - [Issue Tracker](https://github.com/fboiero/MIESC/issues) - Bug reports and feature requests
+- [Community Guide](docs/COMMUNITY.md) - Full community resources and guidelines
+
+**Real-time chat (Discord/Matrix) coming soon!** See [Community Guide](docs/COMMUNITY.md) for updates.
 
 ---
 
