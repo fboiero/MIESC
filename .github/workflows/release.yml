@@ -36,7 +36,7 @@ jobs:
 
       - name: Check coverage
         run: |
-          python -m pytest tests/ --cov=src --cov-report=xml --cov-fail-under=50
+          python -m pytest tests/ --cov=src --cov-report=xml --cov-fail-under=80
 
       - name: Upload coverage
         uses: codecov/codecov-action@v5
