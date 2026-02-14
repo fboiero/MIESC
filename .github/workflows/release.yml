@@ -48,6 +48,8 @@ jobs:
     name: Build Package
     needs: test
     runs-on: ubuntu-latest
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
     steps:
       - uses: actions/checkout@v4
 
@@ -67,15 +69,59 @@ jobs:
       - name: Check package
         run: twine check dist/*
 
+      - name: Generate checksums
+        id: hash
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          echo "hashes=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
 
+  # =============================================================================
+  # Sign Release Artifacts with Sigstore
+  # =============================================================================
+  sign:
+    name: Sign Artifacts
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign artifacts with Sigstore
+        run: |
+          cd dist
+          for file in *.whl *.tar.gz; do
+            if [ -f "$file" ]; then
+              echo "Signing $file..."
+              cosign sign-blob --yes "$file" --output-signature "${file}.sig" --output-certificate "${file}.pem"
+            fi
+          done
+
+      - name: Upload signed artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-signed
+          path: dist/
+
   publish-test:
     name: Publish to Test PyPI
-    needs: build
+    needs: [build, sign]
     runs-on: ubuntu-latest
     environment: test-pypi
     continue-on-error: true  # Don't block PyPI publish if Test PyPI fails
@@ -83,7 +129,7 @@ jobs:
       id-token: write
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
@@ -96,14 +142,14 @@ jobs:
 
   publish:
     name: Publish to PyPI
-    needs: build
+    needs: [build, sign]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
       id-token: write
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
@@ -160,7 +206,7 @@ jobs:
 
   create-release-notes:
     name: Generate Release Notes
-    needs: publish
+    needs: [publish, sign]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -169,16 +215,28 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Download signed artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-signed
+          path: dist/
+
       - name: Generate changelog
         id: changelog
         uses: metcalfc/changelog-generator@v4.3.1
         with:
           myToken: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update release
+      - name: Update release with artifacts
         uses: softprops/action-gh-release@v2
         if: github.event_name == 'release'
         with:
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/*.sig
+            dist/*.pem
+            dist/SHA256SUMS.txt
           body: |
             ## What's Changed
             ${{ steps.changelog.outputs.changelog }}
@@ -192,3 +250,23 @@ jobs:
             ```bash
             docker pull ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}
             ```
+
+            ## Verification
+
+            All release artifacts are signed with [Sigstore](https://www.sigstore.dev/).
+
+            **Verify checksums:**
+            ```bash
+            sha256sum -c SHA256SUMS.txt
+            ```
+
+            **Verify signatures with cosign:**
+            ```bash
+            # Install cosign: https://docs.sigstore.dev/cosign/installation/
+            cosign verify-blob --signature miesc-${{ github.event.release.tag_name }}.tar.gz.sig \
+              --certificate miesc-${{ github.event.release.tag_name }}.tar.gz.pem \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              miesc-${{ github.event.release.tag_name }}.tar.gz
+            ```
+
+            See [RELEASE_VERIFICATION.md](https://github.com/fboiero/MIESC/blob/main/docs/policies/RELEASE_VERIFICATION.md) for detailed instructions.
