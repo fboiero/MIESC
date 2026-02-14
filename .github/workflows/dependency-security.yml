@@ -1,0 +1,166 @@
+name: Dependency Security
+
+on:
+  # Run on push to main
+  push:
+    branches: [main]
+    paths:
+      - 'pyproject.toml'
+      - 'requirements*.txt'
+      - 'requirements/**'
+  # Run on PRs
+  pull_request:
+    branches: [main]
+    paths:
+      - 'pyproject.toml'
+      - 'requirements*.txt'
+      - 'requirements/**'
+  # Run weekly
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 6 AM UTC
+  # Manual trigger
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # =============================================================================
+  # Dependency Vulnerability Scanning
+  # =============================================================================
+  vulnerability-scan:
+    name: Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install security tools
+        run: |
+          pip install pip-audit safety
+
+      - name: Install project dependencies
+        run: |
+          pip install -e ".[full]" || pip install -e ".[dev]" || pip install -e .
+
+      - name: Run pip-audit
+        id: pip-audit
+        run: |
+          echo "## Dependency Vulnerability Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### pip-audit Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          pip-audit --format json --output pip-audit.json || true
+          pip-audit --desc on 2>&1 | tee pip-audit.txt
+
+          # Count vulnerabilities
+          VULN_COUNT=$(grep -c "^Name:" pip-audit.txt 2>/dev/null || echo "0")
+          echo "vulnerabilities=$VULN_COUNT" >> $GITHUB_OUTPUT
+
+          if [ "$VULN_COUNT" -gt "0" ]; then
+            echo "::warning::Found $VULN_COUNT vulnerable packages"
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat pip-audit.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Run safety check
+        id: safety
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Safety Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          safety check --json --output safety.json 2>/dev/null || true
+          safety check --full-report 2>&1 | tee safety.txt || true
+
+          if grep -q "No known security vulnerabilities found" safety.txt; then
+            echo "No vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            head -100 safety.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload vulnerability reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerability-reports
+          path: |
+            pip-audit.txt
+            pip-audit.json
+            safety.txt
+            safety.json
+          retention-days: 90
+
+      - name: Check for critical vulnerabilities
+        run: |
+          # Fail if high/critical vulnerabilities found
+          if grep -qi "critical" pip-audit.txt 2>/dev/null; then
+            echo "::error::Critical vulnerabilities found in dependencies!"
+            exit 1
+          fi
+
+          # Warning for high severity
+          if grep -qi "high" pip-audit.txt 2>/dev/null; then
+            echo "::warning::High severity vulnerabilities found. Review recommended."
+          fi
+
+  # =============================================================================
+  # License Compliance Check
+  # =============================================================================
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install tools
+        run: pip install pip-licenses
+
+      - name: Install project dependencies
+        run: pip install -e ".[dev]" || pip install -e .
+
+      - name: Check licenses
+        run: |
+          echo "## License Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          pip-licenses --format=markdown >> $GITHUB_STEP_SUMMARY
+
+          # Check for problematic licenses
+          pip-licenses --format=csv > licenses.csv
+
+          # List of licenses that may conflict with AGPL-3.0
+          PROBLEMATIC="GPL-2.0-only|AGPL-2.0"
+
+          if grep -qiE "$PROBLEMATIC" licenses.csv; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Potential License Conflicts" >> $GITHUB_STEP_SUMMARY
+            echo "Review dependencies with restrictive licenses." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: licenses.csv
+          retention-days: 90

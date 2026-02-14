@@ -172,14 +172,44 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install security tools
-        run: pip install bandit pip-audit
+        run: pip install bandit pip-audit safety
 
       - name: Run Bandit (Python security linter)
         run: bandit -r src/ -ll -ii --exit-zero
 
-      - name: Check dependencies for vulnerabilities
-        run: pip install -e . && pip-audit
-        continue-on-error: true
+      - name: Install project dependencies
+        run: pip install -e .
+
+      - name: Check dependencies with pip-audit
+        run: |
+          echo "Running pip-audit for vulnerability scanning..."
+          pip-audit --strict --desc on 2>&1 | tee pip-audit-report.txt || {
+            echo "::warning::pip-audit found vulnerabilities"
+            # Check if any are high/critical severity
+            if grep -qi "high\|critical" pip-audit-report.txt; then
+              echo "::error::High or critical vulnerabilities found!"
+              exit 1
+            fi
+          }
+
+      - name: Check dependencies with safety
+        run: |
+          echo "Running safety check..."
+          safety check --full-report 2>&1 | tee safety-report.txt || {
+            echo "::warning::safety found vulnerabilities"
+            # Don't fail on safety alone, pip-audit is primary
+            true
+          }
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            pip-audit-report.txt
+            safety-report.txt
+          retention-days: 30
+        if: always()
 
   # =============================================================================
   # Build Docker Image
