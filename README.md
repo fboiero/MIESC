@@ -768,7 +768,7 @@ See [docs/INSTALLATION.md](./docs/INSTALLATION.md) for complete setup.
 
 - [Installation Guide](https://fboiero.github.io/MIESC/docs/02_SETUP_AND_USAGE/)
 - [Architecture](https://fboiero.github.io/MIESC/docs/01_ARCHITECTURE/)
-- [API Reference](https://fboiero.github.io/MIESC/docs/API_SETUP/)
+- [API Reference](https://fboiero.github.io/MIESC/api/) - Auto-generated from docstrings
 - [Tool Reference](./docs/TOOLS.md)
 - [Report Generation Guide](./docs/guides/REPORTS.md)
 - [Testing Guide](./docs/guides/TESTING.md)
