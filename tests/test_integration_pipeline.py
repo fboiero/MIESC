@@ -35,7 +35,7 @@ class TestAuditPipelineCLI:
             output_path = f.name
 
         try:
-            with patch("miesc.cli.main._run_tool") as mock_run:
+            with patch("miesc.cli.commands.audit.run_tool") as mock_run:
                 mock_run.return_value = {
                     "tool": "slither",
                     "contract": vulnerable_contract,
@@ -69,7 +69,7 @@ class TestAuditPipelineCLI:
         """Run audit quick with --ci flag and verify exit codes."""
         from miesc.cli.main import cli
 
-        with patch("miesc.cli.main._run_tool") as mock_run:
+        with patch("miesc.cli.commands.audit.run_tool") as mock_run:
             mock_run.return_value = {
                 "tool": "slither",
                 "contract": vulnerable_contract,
@@ -94,7 +94,7 @@ class TestAuditPipelineCLI:
         """Run audit smart with mocked adapters and verify ML enhancement applied."""
         from miesc.cli.main import cli
 
-        with patch("miesc.cli.main.get_ml_orchestrator") as mock_ml:
+        with patch("miesc.cli.commands.audit.get_ml_orchestrator") as mock_ml:
 
             # Create a properly mocked result object
             mock_result = MagicMock()
@@ -136,7 +136,7 @@ class TestAuditPipelineCLI:
         """Run scan command and verify structured output."""
         from miesc.cli.main import cli
 
-        with patch("miesc.cli.main._run_tool") as mock_run:
+        with patch("miesc.cli.commands.audit.run_tool") as mock_run:
             mock_run.return_value = {
                 "tool": "slither",
                 "contract": vulnerable_contract,
@@ -165,7 +165,7 @@ class TestAuditPipelineCLI:
             output_path = f.name
 
         try:
-            with patch("miesc.cli.main._run_tool") as mock_run:
+            with patch("miesc.cli.commands.audit.run_tool") as mock_run:
                 mock_run.return_value = {
                     "tool": "slither",
                     "contract": vulnerable_contract,

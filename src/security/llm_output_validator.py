@@ -147,7 +147,7 @@ class VulnerabilityFinding(BaseModel):
 
     # Attack details
     attack_scenario: Optional[str] = Field(default=None, max_length=5000)
-    attack_steps: Optional[List[str]] = Field(default=None, max_items=20)
+    attack_steps: Optional[List[str]] = Field(default=None, max_length=20)
     impact: Optional[str] = Field(default=None, max_length=2000)
 
     # References

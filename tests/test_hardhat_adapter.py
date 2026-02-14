@@ -311,16 +311,16 @@ class TestIsAvailable:
     """Test is_available method."""
 
     def test_available_when_installed(self, adapter):
-        """Test returns AVAILABLE when hardhat is installed."""
+        """Test returns AVAILABLE when hardhat is installed globally."""
         mock_npx = MagicMock()
         mock_npx.returncode = 0
         mock_npx.stdout = "10.0.0"
 
-        mock_hardhat = MagicMock()
-        mock_hardhat.returncode = 0
-        mock_hardhat.stdout = "2.19.0"
+        mock_npm_list = MagicMock()
+        mock_npm_list.returncode = 0
+        mock_npm_list.stdout = "hardhat@2.19.0"
 
-        with patch("subprocess.run", side_effect=[mock_npx, mock_hardhat]) as mock_run:
+        with patch("subprocess.run", side_effect=[mock_npx, mock_npm_list]) as mock_run:
             status = adapter.is_available()
             assert status == ToolStatus.AVAILABLE
             assert mock_run.call_count == 2

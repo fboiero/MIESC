@@ -476,19 +476,35 @@ Provide a comprehensive security analysis in JSON format."""
                 logger.warning(f"LLM output validation warnings: {validation_result.warnings}")
 
             # Convert validated findings to dict format
+            # Handle both Pydantic objects and raw dicts (from model_construct in lenient mode)
             vulnerabilities = []
             for vuln in validated.vulnerabilities:
-                vuln_dict = {
-                    "type": vuln.type,
-                    "severity": vuln.severity,
-                    "title": vuln.title,
-                    "description": vuln.description,
-                    "confidence": vuln.confidence,
-                    "swc_id": vuln.swc_id,
-                    "cwe_id": vuln.cwe_id,
-                    "remediation": vuln.remediation,
-                    "attack_scenario": vuln.attack_scenario,
-                }
+                if isinstance(vuln, dict):
+                    # Already a dict (from lenient parsing)
+                    vuln_dict = {
+                        "type": vuln.get("type", "unknown"),
+                        "severity": vuln.get("severity", "medium"),
+                        "title": vuln.get("title", ""),
+                        "description": vuln.get("description", ""),
+                        "confidence": vuln.get("confidence", 0.5),
+                        "swc_id": vuln.get("swc_id"),
+                        "cwe_id": vuln.get("cwe_id"),
+                        "remediation": vuln.get("remediation"),
+                        "attack_scenario": vuln.get("attack_scenario"),
+                    }
+                else:
+                    # Pydantic object
+                    vuln_dict = {
+                        "type": vuln.type,
+                        "severity": vuln.severity,
+                        "title": vuln.title,
+                        "description": vuln.description,
+                        "confidence": vuln.confidence,
+                        "swc_id": vuln.swc_id,
+                        "cwe_id": vuln.cwe_id,
+                        "remediation": vuln.remediation,
+                        "attack_scenario": vuln.attack_scenario,
+                    }
                 vulnerabilities.append(vuln_dict)
 
             severity_assessment = {
