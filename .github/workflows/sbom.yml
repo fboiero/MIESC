@@ -1,16 +1,31 @@
 # SBOM (Software Bill of Materials) Generation
 # Generates CycloneDX SBOM for each release
 # https://cyclonedx.org/
+#
+# SBOM Strategy:
+# - Generated on every release and weekly schedule
+# - CycloneDX JSON format (industry standard)
+# - Includes all Python dependencies from pip
+# - Attached to GitHub releases
+# - Retained for 90 days as artifacts
+#
+# See docs/policies/SBOM.md for verification instructions
 
 name: SBOM Generation
 
 on:
   release:
     types: [published]
+  schedule:
+    # Weekly on Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
   workflow_dispatch:
 
 permissions:
   contents: write
+
+env:
+  PYTHON_VERSION: "3.12"
 
 jobs:
   sbom:
@@ -24,28 +39,55 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install project and CycloneDX
         run: |
-          pip install cyclonedx-bom
-          pip install -e ".[full]"
+          pip install cyclonedx-bom pip-licenses
+          pip install -e ".[full]" || pip install -e ".[dev]" || pip install -e .
 
       - name: Generate SBOM from environment
         run: |
           cyclonedx-py environment \
-            -o sbom-environment.json \
+            -o sbom.json \
             --of JSON
+
+      - name: Generate SBOM summary
+        run: |
+          echo "## SBOM Summary" > sbom-summary.md
+          echo "" >> sbom-summary.md
+          echo "Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> sbom-summary.md
+          echo "Format: CycloneDX JSON" >> sbom-summary.md
+          echo "" >> sbom-summary.md
+          echo "### Dependencies" >> sbom-summary.md
+          pip-licenses --format=markdown >> sbom-summary.md
+
+      - name: Generate license report
+        run: |
+          pip-licenses --format=json > licenses.json
+          pip-licenses --format=csv > licenses.csv
 
       - name: Upload SBOM to Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: sbom-environment.json
+          files: |
+            sbom.json
+            licenses.csv
 
       - name: Upload SBOM Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sbom
-          path: sbom-environment.json
+          name: sbom-${{ github.sha }}
+          path: |
+            sbom.json
+            sbom-summary.md
+            licenses.json
+            licenses.csv
           retention-days: 90
+
+      - name: Add SBOM summary to job
+        run: |
+          echo "## SBOM Generated Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat sbom-summary.md >> $GITHUB_STEP_SUMMARY
