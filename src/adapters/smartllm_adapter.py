@@ -30,6 +30,19 @@ from src.adapters.smartllm_rag_knowledge import (
     get_vulnerability_context,
 )
 
+# LLM Security imports (v5.1.2+)
+from src.security.prompt_sanitizer import (
+    InjectionRiskLevel,
+    detect_prompt_injection,
+    sanitize_code_for_prompt,
+)
+from src.security.llm_output_validator import (
+    AnalysisResponse,
+    VulnerabilityFinding,
+    safe_parse_llm_json,
+    validate_vulnerability_finding,
+)
+
 # Try to import EmbeddingRAG (optional dependency)
 try:
     from src.llm.embedding_rag import (
@@ -569,17 +582,34 @@ class SmartLLMAdapter(ToolAdapter):
             # Use smart truncation for large contracts
             contract_code = self._truncate_code_smart(contract_code, max_code_chars)
 
+        # SECURITY: Detect and log prompt injection attempts (v5.1.2+)
+        injection_result = detect_prompt_injection(contract_code)
+        if injection_result.risk_level in (InjectionRiskLevel.HIGH, InjectionRiskLevel.CRITICAL):
+            logger.warning(
+                f"Prompt injection detected in contract code: "
+                f"risk={injection_result.risk_level.value}, "
+                f"patterns={injection_result.patterns_found}"
+            )
+
+        # SECURITY: Sanitize contract code before embedding in prompt (v5.1.2+)
+        # Uses XML-style tags to clearly separate code from instructions
+        safe_code = sanitize_code_for_prompt(
+            contract_code,
+            max_length=max_code_chars,
+            wrap_in_tags=True,
+            tag_name="solidity-contract"
+        )
+
         prompt = f"""You are a smart contract security auditor. Find REAL vulnerabilities in this code.
 
 RULES:
 - Only report vulnerabilities that EXIST in this code
 - Include SWC ID and attack scenario for critical findings
 - Output valid JSON only
+- IMPORTANT: Analyze ONLY the code within the <solidity-contract> tags below
 
 CONTRACT:
-```solidity
-{contract_code}
-```
+{safe_code}
 
 DETECTED PATTERNS:
 {focus_areas}
@@ -777,11 +807,82 @@ OUTPUT (JSON only):
         return None
 
     def _parse_llm_response(self, llm_response: str, contract_path: str) -> List[Dict[str, Any]]:
-        """Parse LLM response to extract findings with robust JSON repair."""
+        """Parse LLM response to extract findings with Pydantic validation (v5.1.2+).
+
+        Uses structured validation to:
+        - Ensure response format matches expected schema
+        - Sanitize and validate all fields
+        - Provide safe fallbacks for malformed data
+        """
         findings = []
 
         try:
-            # Strategy 1: Try direct JSON extraction
+            # SECURITY: Use Pydantic validation for LLM output (v5.1.2+)
+            validation_result = safe_parse_llm_json(llm_response, AnalysisResponse)
+
+            if validation_result.is_valid and validation_result.data:
+                # Successfully validated response
+                validated_response = validation_result.data
+
+                # Log any validation warnings
+                if validation_result.has_warnings:
+                    logger.warning(f"LLM output validation warnings: {validation_result.warnings}")
+
+                # Process validated findings
+                for idx, vuln in enumerate(validated_response.vulnerabilities):
+                    # Build SWC reference URL if available
+                    swc_id = vuln.swc_id or ""
+                    swc_url = ""
+                    if swc_id and "SWC-" in swc_id:
+                        swc_num = swc_id.split("SWC-")[1].split()[0].split("(")[0].strip()
+                        swc_url = f"https://swcregistry.io/docs/SWC-{swc_num}"
+
+                    # Get remediation from validated fields
+                    remediation = (
+                        vuln.remediation
+                        or vuln.fixed_code
+                        or "Review and address the identified issue"
+                    )
+
+                    # Map severity to uppercase
+                    severity = vuln.severity.upper() if vuln.severity else "MEDIUM"
+
+                    normalized = {
+                        "id": f"smartllm-{idx+1}",
+                        "title": vuln.title,
+                        "description": vuln.description,
+                        "severity": severity,
+                        "confidence": vuln.confidence,  # Validated 0-1 range
+                        "category": vuln.type,
+                        "location": {
+                            "file": contract_path,
+                            "details": f"{vuln.function or ''}" if vuln.function else "See full contract",
+                        },
+                        # Enhanced fields for security researchers
+                        "swc_id": swc_id,
+                        "swc_url": swc_url,
+                        "attack_scenario": vuln.attack_scenario or "",
+                        "vulnerable_code": vuln.vulnerable_code or "",
+                        "remediation_code": remediation,
+                        "testing_suggestion": "",
+                        "real_world_reference": "",
+                        "recommendation": remediation,
+                        "references": [
+                            "AI-powered analysis using Ollama + deepseek-coder",
+                        ],
+                    }
+                    if swc_url:
+                        normalized["references"].append(swc_url)
+
+                    findings.append(normalized)
+
+                logger.info(f"SmartLLM: Validated and parsed {len(findings)} findings")
+                return findings
+
+            # Validation failed - fall back to legacy parsing
+            logger.warning(f"LLM output validation failed: {validation_result.errors}")
+
+            # Strategy 1: Try direct JSON extraction (legacy)
             parsed = self._extract_json(llm_response)
 
             if not parsed:
@@ -797,7 +898,7 @@ OUTPUT (JSON only):
                 # Return structured finding from raw text analysis
                 return self._parse_raw_response(llm_response, contract_path)
 
-            # Extract findings
+            # Extract findings (legacy path)
             llm_findings = parsed.get("findings", [])
             if isinstance(parsed, list):
                 llm_findings = parsed
@@ -806,52 +907,79 @@ OUTPUT (JSON only):
                 if not isinstance(finding, dict):
                     continue
 
-                # Build SWC reference URL if available
-                swc_id = finding.get("swc_id", "")
-                swc_url = ""
-                if swc_id and "SWC-" in swc_id:
-                    swc_num = swc_id.split("SWC-")[1].split()[0].split("(")[0].strip()
-                    swc_url = f"https://swcregistry.io/docs/SWC-{swc_num}"
+                # SECURITY: Validate individual finding with Pydantic
+                finding_result = validate_vulnerability_finding(finding)
+                if finding_result.is_valid and finding_result.data:
+                    validated = finding_result.data
+                    swc_id = validated.swc_id or ""
+                    swc_url = ""
+                    if swc_id and "SWC-" in swc_id:
+                        swc_num = swc_id.split("SWC-")[1].split()[0].split("(")[0].strip()
+                        swc_url = f"https://swcregistry.io/docs/SWC-{swc_num}"
 
-                # Get remediation from either field name
-                remediation = (
-                    finding.get("remediation")
-                    or finding.get("remediation_code")
-                    or "Review and address the identified issue"
-                )
+                    remediation = validated.remediation or "Review and address the identified issue"
 
-                normalized = {
-                    "id": f"smartllm-{idx+1}",
-                    "title": finding.get("title", "LLM-detected issue"),
-                    "description": finding.get("description", ""),
-                    "severity": finding.get("severity", "MEDIUM").upper(),
-                    "confidence": 0.75,
-                    "category": finding.get("type", "ai_detected_pattern"),
-                    "location": {
-                        "file": contract_path,
-                        "details": finding.get("location", "See full contract"),
-                    },
-                    # Enhanced fields for security researchers
-                    "swc_id": swc_id,
-                    "swc_url": swc_url,
-                    "attack_scenario": finding.get("attack_scenario", ""),
-                    "vulnerable_code": finding.get("vulnerable_code", ""),
-                    "remediation_code": remediation,
-                    "testing_suggestion": finding.get("testing_suggestion", ""),
-                    "real_world_reference": finding.get("real_world_reference", ""),
-                    "recommendation": finding.get("recommendation", remediation),
-                    "references": [
-                        "AI-powered analysis using Ollama + deepseek-coder",
-                    ],
-                }
-                if swc_url:
-                    normalized["references"].append(swc_url)
-                if finding.get("real_world_reference"):
-                    normalized["references"].append(finding.get("real_world_reference"))
+                    normalized = {
+                        "id": f"smartllm-{idx+1}",
+                        "title": validated.title,
+                        "description": validated.description,
+                        "severity": validated.severity.upper(),
+                        "confidence": validated.confidence,
+                        "category": validated.type,
+                        "location": {
+                            "file": contract_path,
+                            "details": validated.function or "See full contract",
+                        },
+                        "swc_id": swc_id,
+                        "swc_url": swc_url,
+                        "attack_scenario": validated.attack_scenario or "",
+                        "vulnerable_code": validated.vulnerable_code or "",
+                        "remediation_code": remediation,
+                        "recommendation": remediation,
+                        "references": ["AI-powered analysis using Ollama + deepseek-coder"],
+                    }
+                    if swc_url:
+                        normalized["references"].append(swc_url)
+                    findings.append(normalized)
+                else:
+                    # Fall back to unvalidated parsing with reduced confidence
+                    logger.debug(f"Finding {idx} validation failed, using fallback")
+                    swc_id = finding.get("swc_id", "")
+                    swc_url = ""
+                    if swc_id and "SWC-" in swc_id:
+                        swc_num = swc_id.split("SWC-")[1].split()[0].split("(")[0].strip()
+                        swc_url = f"https://swcregistry.io/docs/SWC-{swc_num}"
 
-                findings.append(normalized)
+                    remediation = (
+                        finding.get("remediation")
+                        or finding.get("remediation_code")
+                        or "Review and address the identified issue"
+                    )
 
-            logger.info(f"SmartLLM: Parsed {len(findings)} findings from LLM response")
+                    normalized = {
+                        "id": f"smartllm-{idx+1}",
+                        "title": str(finding.get("title", "LLM-detected issue"))[:500],
+                        "description": str(finding.get("description", ""))[:5000],
+                        "severity": str(finding.get("severity", "MEDIUM")).upper()[:20],
+                        "confidence": 0.5,  # Reduced confidence for unvalidated
+                        "category": str(finding.get("type", "ai_detected_pattern"))[:200],
+                        "location": {
+                            "file": contract_path,
+                            "details": str(finding.get("location", "See full contract"))[:500],
+                        },
+                        "swc_id": swc_id,
+                        "swc_url": swc_url,
+                        "attack_scenario": str(finding.get("attack_scenario", ""))[:2000],
+                        "vulnerable_code": str(finding.get("vulnerable_code", ""))[:5000],
+                        "remediation_code": str(remediation)[:2000],
+                        "recommendation": str(remediation)[:2000],
+                        "references": ["AI-powered analysis using Ollama + deepseek-coder"],
+                    }
+                    if swc_url:
+                        normalized["references"].append(swc_url)
+                    findings.append(normalized)
+
+            logger.info(f"SmartLLM: Parsed {len(findings)} findings from LLM response (legacy path)")
 
         except Exception as e:
             logger.error(f"Error parsing LLM response: {e}")

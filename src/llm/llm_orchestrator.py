@@ -18,6 +18,18 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+# LLM Security imports (v5.1.2+)
+from src.security.prompt_sanitizer import (
+    InjectionRiskLevel,
+    detect_prompt_injection,
+    sanitize_code_for_prompt,
+    sanitize_context,
+)
+from src.security.llm_output_validator import (
+    AnalysisResponse,
+    safe_parse_llm_json,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -362,16 +374,34 @@ class LLMOrchestrator:
         Returns:
             Structured vulnerability analysis
         """
-        prompt = f"""Analyze the following Solidity smart contract for security vulnerabilities:
+        # SECURITY: Detect prompt injection attempts (v5.1.2+)
+        injection_result = detect_prompt_injection(code)
+        if injection_result.risk_level in (InjectionRiskLevel.HIGH, InjectionRiskLevel.CRITICAL):
+            logger.warning(
+                f"Prompt injection detected in contract: "
+                f"risk={injection_result.risk_level.value}, "
+                f"patterns={injection_result.patterns_found}"
+            )
 
-```solidity
-{code}
-```
+        # SECURITY: Sanitize contract code before embedding (v5.1.2+)
+        safe_code = sanitize_code_for_prompt(
+            code,
+            wrap_in_tags=True,
+            tag_name="solidity-contract"
+        )
+
+        # SECURITY: Sanitize context if provided (v5.1.2+)
+        safe_context = sanitize_context(context) if context else None
+
+        prompt = f"""Analyze the following Solidity smart contract for security vulnerabilities.
+IMPORTANT: Only analyze the code within the <solidity-contract> tags.
+
+{safe_code}
 
 Provide a comprehensive security analysis in JSON format."""
 
         # Get LLM response
-        response = await self.query(prompt, context, provider)
+        response = await self.query(prompt, safe_context, provider)
 
         # Parse response
         return self._parse_analysis(response)
@@ -431,10 +461,61 @@ Provide a comprehensive security analysis in JSON format."""
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 
     def _parse_analysis(self, response: LLMResponse) -> VulnerabilityAnalysis:
-        """Parse LLM response into structured analysis."""
+        """Parse LLM response into structured analysis with Pydantic validation (v5.1.2+)."""
+        content = response.content
+
+        # SECURITY: Use Pydantic validation for LLM output (v5.1.2+)
+        validation_result = safe_parse_llm_json(content, AnalysisResponse)
+
+        if validation_result.is_valid and validation_result.data:
+            # Successfully validated response
+            validated = validation_result.data
+
+            # Log any validation warnings
+            if validation_result.has_warnings:
+                logger.warning(f"LLM output validation warnings: {validation_result.warnings}")
+
+            # Convert validated findings to dict format
+            vulnerabilities = []
+            for vuln in validated.vulnerabilities:
+                vuln_dict = {
+                    "type": vuln.type,
+                    "severity": vuln.severity,
+                    "title": vuln.title,
+                    "description": vuln.description,
+                    "confidence": vuln.confidence,
+                    "swc_id": vuln.swc_id,
+                    "cwe_id": vuln.cwe_id,
+                    "remediation": vuln.remediation,
+                    "attack_scenario": vuln.attack_scenario,
+                }
+                vulnerabilities.append(vuln_dict)
+
+            severity_assessment = {
+                "critical": sum(1 for v in vulnerabilities if v.get("severity") == "critical"),
+                "high": sum(1 for v in vulnerabilities if v.get("severity") == "high"),
+                "medium": sum(1 for v in vulnerabilities if v.get("severity") == "medium"),
+                "low": sum(1 for v in vulnerabilities if v.get("severity") == "low"),
+                "info": sum(1 for v in vulnerabilities if v.get("severity") in ("info", "informational")),
+            }
+
+            return VulnerabilityAnalysis(
+                vulnerabilities=vulnerabilities,
+                severity_assessment=severity_assessment,
+                recommendations=[
+                    v.get("remediation", "") for v in vulnerabilities if v.get("remediation")
+                ],
+                confidence_score=sum(v.get("confidence", 0.5) for v in vulnerabilities)
+                / max(len(vulnerabilities), 1),
+                analysis_summary=validated.summary or "Analysis completed",
+                raw_response=content,
+            )
+
+        # Validation failed - fall back to legacy parsing with logging
+        logger.warning(f"LLM output validation failed: {validation_result.errors}")
+
         try:
-            # Try to extract JSON from response
-            content = response.content
+            # Legacy JSON extraction
             json_start = content.find("{")
             json_end = content.rfind("}") + 1
 
@@ -445,6 +526,13 @@ Provide a comprehensive security analysis in JSON format."""
                 data = {}
 
             vulnerabilities = data.get("vulnerabilities", [])
+
+            # Truncate and sanitize unvalidated data
+            for vuln in vulnerabilities:
+                for key in list(vuln.keys()):
+                    if isinstance(vuln[key], str) and len(vuln[key]) > 5000:
+                        vuln[key] = vuln[key][:5000] + "...[truncated]"
+
             severity_assessment = {
                 "critical": sum(1 for v in vulnerabilities if v.get("severity") == "critical"),
                 "high": sum(1 for v in vulnerabilities if v.get("severity") == "high"),
@@ -457,12 +545,12 @@ Provide a comprehensive security analysis in JSON format."""
                 vulnerabilities=vulnerabilities,
                 severity_assessment=severity_assessment,
                 recommendations=[
-                    v.get("remediation", "") for v in vulnerabilities if v.get("remediation")
+                    v.get("remediation", "")[:2000] for v in vulnerabilities if v.get("remediation")
                 ],
                 confidence_score=sum(v.get("confidence", 0.5) for v in vulnerabilities)
                 / max(len(vulnerabilities), 1),
-                analysis_summary=data.get("summary", "Analysis completed"),
-                raw_response=response.content,
+                analysis_summary=str(data.get("summary", "Analysis completed"))[:2000],
+                raw_response=content,
             )
 
         except json.JSONDecodeError:
@@ -472,8 +560,8 @@ Provide a comprehensive security analysis in JSON format."""
                 severity_assessment={"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
                 recommendations=[],
                 confidence_score=0.5,
-                analysis_summary=response.content[:500],
-                raw_response=response.content,
+                analysis_summary=content[:500] if content else "Analysis failed",
+                raw_response=content,
             )
 
     def select_model_for_task(self, task: str) -> str:
