@@ -292,9 +292,17 @@ jobs:
           if [ -f benchmarks/run_benchmarks.py ]; then
             python benchmarks/run_benchmarks.py --output results.json
           else
-            echo "No benchmarks found"
+            echo "No benchmarks found, skipping"
+            exit 0
           fi
-        continue-on-error: true
+
+      - name: Check for performance regression
+        run: |
+          if [ -f benchmarks/check_regression.py ] && [ -f results.json ]; then
+            python benchmarks/check_regression.py results.json --threshold 0.10
+          else
+            echo "Regression check skipped (missing files)"
+          fi
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
@@ -303,7 +311,6 @@ jobs:
           path: results.json
           retention-days: 30
         if: always()
-        continue-on-error: true
 
   # =============================================================================
   # Notify on Success/Failure
