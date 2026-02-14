@@ -51,6 +51,7 @@ dev = [
     "black>=23.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "mutmut>=2.4.0",
 ]
 # Note: mythril has conflicting dependencies with slither-analyzer
 # Install separately in isolated environment: pip install mythril
@@ -403,3 +404,45 @@ exclude_lines = [
 ]
 fail_under = 80
 show_missing = true
+
+# ============================================
+# MUTATION TESTING (mutmut)
+# ============================================
+# Run with: mutmut run
+# View results: mutmut results
+# HTML report: mutmut html
+# ============================================
+
+[tool.mutmut]
+# Paths to mutate
+paths_to_mutate = "src/"
+
+# Test runner configuration
+runner = "python -m pytest tests/ -x --no-cov -q"
+
+# Files to exclude from mutation
+paths_to_exclude = [
+    "src/*_tool.py",
+    "src/miesc_*.py",
+    "src/detectors/smartbugs_detectors.py",
+    "src/agents/crewai_coordinator.py",
+    "src/licensing/",
+    "src/miesc_tests/",
+    "src/dashboard/",
+]
+
+# Test timeout per mutation (seconds)
+# Mutations that cause tests to hang will be killed
+timeout_multiplier = 2.0
+
+# Disable mutations for specific patterns
+disable_mutation_types = [
+    # These often produce equivalent mutants
+    "string",
+    "fstring",
+    "annotation",
+]
+
+# Minimum score threshold (percentage of mutations killed)
+# Used by make mutate-check target
+# score_threshold = 60

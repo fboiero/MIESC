@@ -288,6 +288,23 @@ class TestSlitherAdapter:
 - New features must include tests
 - Bug fixes must include regression tests
 
+### Mutation Testing (Optional)
+
+We use [mutmut](https://mutmut.readthedocs.io/) for mutation testing to validate test quality:
+
+```bash
+# Quick mutation test (core modules)
+make mutate-quick
+
+# Full mutation analysis
+make mutate
+
+# View results
+make mutate-results
+```
+
+For detailed instructions, see [Mutation Testing Guide](docs/guides/MUTATION_TESTING.md).
+
 ---
 
 ## Pull Request Process
@@ -350,6 +367,23 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `refactor`: Code restructuring
 - `test`: Adding tests
 - `chore`: Maintenance
+
+### Signed Commits (Optional but Recommended)
+
+We encourage signing your commits with GPG for added security and verification:
+
+```bash
+# Configure Git for signed commits
+git config --global commit.gpgsign true
+git config --global user.signingkey YOUR_KEY_ID
+```
+
+Signed commits show as "Verified" on GitHub and provide:
+- **Authenticity**: Proves you authored the commit
+- **Integrity**: Confirms the commit hasn't been modified
+- **Trust**: Shows verification badge on GitHub
+
+For detailed setup instructions, see [Signed Commits Guide](docs/guides/SIGNED_COMMITS.md).
 
 ### Submitting the PR
 

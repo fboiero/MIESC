@@ -4,7 +4,7 @@
 # Author: Fernando Boiero - UNDEF
 # Thesis: Master's in Cyberdefense
 
-.PHONY: help install test lint audit experiments clean docs docker mcp build publish release sphinx-build sphinx-serve sphinx-clean sphinx-api
+.PHONY: help install test lint audit experiments clean docs docker mcp build publish release sphinx-build sphinx-serve sphinx-clean sphinx-api mutate mutate-run mutate-results mutate-html mutate-check
 
 # Default target
 .DEFAULT_GOAL := help
@@ -443,3 +443,63 @@ academic-report:  ## Generate comprehensive academic report
 	@echo ""
 	@echo "$(YELLOW)Citation:$(NC)"
 	@cat CITATION.cff
+
+# ============================================
+# MUTATION TESTING (v5.1.1+)
+# ============================================
+# Mutation testing verifies test quality by introducing
+# small code changes (mutants) and checking if tests catch them.
+# A high mutation score indicates effective tests.
+# ============================================
+
+mutate:  ## Run mutation testing (full analysis)
+	@echo "$(BLUE)Running mutation testing...$(NC)"
+	@echo "$(YELLOW)This may take 30-60 minutes for full analysis$(NC)"
+	@mutmut run
+	@echo "$(GREEN)✓ Mutation testing complete$(NC)"
+	@mutmut results
+
+mutate-run:  ## Run mutation testing with progress output
+	@echo "$(BLUE)Running mutation testing with verbose output...$(NC)"
+	@mutmut run --paths-to-mutate src/core/ --CI
+	@echo "$(GREEN)✓ Mutation run complete$(NC)"
+
+mutate-quick:  ## Quick mutation test (core modules only)
+	@echo "$(BLUE)Running quick mutation testing (core only)...$(NC)"
+	@mutmut run --paths-to-mutate src/core/
+	@echo "$(GREEN)✓ Quick mutation testing complete$(NC)"
+	@mutmut results
+
+mutate-results:  ## Show mutation testing results summary
+	@echo "$(BLUE)Mutation Testing Results:$(NC)"
+	@mutmut results
+
+mutate-html:  ## Generate HTML mutation testing report
+	@echo "$(BLUE)Generating mutation testing HTML report...$(NC)"
+	@mutmut html
+	@echo "$(GREEN)✓ HTML report generated: html/index.html$(NC)"
+	@echo "$(YELLOW)Open in browser: open html/index.html$(NC)"
+
+mutate-show:  ## Show details of surviving mutants
+	@echo "$(BLUE)Surviving mutants (tests failed to catch):$(NC)"
+	@mutmut show all
+
+mutate-check:  ## Check mutation score meets threshold (CI)
+	@echo "$(BLUE)Checking mutation score against threshold...$(NC)"
+	@python -c "import subprocess; import re; \
+		result = subprocess.run(['mutmut', 'results'], capture_output=True, text=True); \
+		match = re.search(r'(\d+)/(\d+)', result.stdout); \
+		if match: \
+			killed, total = int(match.group(1)), int(match.group(2)); \
+			score = (killed/total)*100 if total > 0 else 0; \
+			print(f'Mutation score: {score:.1f}% ({killed}/{total} mutants killed)'); \
+			exit(0 if score >= 60 else 1); \
+		else: \
+			print('No mutation results found'); \
+			exit(1)"
+	@echo "$(GREEN)✓ Mutation score check passed$(NC)"
+
+mutate-clean:  ## Clean mutation testing cache
+	@echo "$(BLUE)Cleaning mutation testing cache...$(NC)"
+	@rm -rf .mutmut-cache html/
+	@echo "$(GREEN)✓ Mutation cache cleaned$(NC)"
