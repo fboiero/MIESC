@@ -635,22 +635,18 @@ class MIESCDatabase:
             audits_count = conn.execute("SELECT COUNT(*) FROM audits").fetchone()[0]
             findings_count = conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
 
-            severity_dist = conn.execute(
-                """
+            severity_dist = conn.execute("""
                 SELECT severity, COUNT(*) as count
                 FROM findings
                 GROUP BY severity
-            """
-            ).fetchall()
+            """).fetchall()
 
-            tool_dist = conn.execute(
-                """
+            tool_dist = conn.execute("""
                 SELECT tool, COUNT(*) as count
                 FROM findings
                 GROUP BY tool
                 ORDER BY count DESC
-            """
-            ).fetchall()
+            """).fetchall()
 
             return {
                 "total_audits": audits_count,
@@ -681,8 +677,7 @@ class MIESCDatabase:
                     (tool_name,),
                 ).fetchall()
             else:
-                rows = conn.execute(
-                    """
+                rows = conn.execute("""
                     SELECT
                         tool_name,
                         AVG(execution_time_ms) as avg_time,
@@ -693,8 +688,7 @@ class MIESCDatabase:
                         COUNT(*) as total_runs
                     FROM tool_performance
                     GROUP BY tool_name
-                """
-                ).fetchall()
+                """).fetchall()
 
             return {
                 row[0]: {
