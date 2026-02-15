@@ -66,7 +66,7 @@ jobs:
             type=ref,event=pr
 
       - name: Build and push (amd64 only for PR/SHA tags)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
@@ -123,7 +123,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push multi-arch
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
@@ -182,7 +182,7 @@ jobs:
             type=raw,value=${{ steps.version.outputs.major_minor }}-full
 
       - name: Build and push full image (amd64)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile.full
