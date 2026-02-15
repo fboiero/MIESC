@@ -29,6 +29,11 @@ from src.adapters.smartllm_rag_knowledge import (
     get_relevant_knowledge,
     get_vulnerability_context,
 )
+from src.security.llm_output_validator import (
+    AnalysisResponse,
+    safe_parse_llm_json,
+    validate_vulnerability_finding,
+)
 
 # LLM Security imports (v5.1.2+)
 from src.security.prompt_sanitizer import (
@@ -36,19 +41,13 @@ from src.security.prompt_sanitizer import (
     detect_prompt_injection,
     sanitize_code_for_prompt,
 )
-from src.security.llm_output_validator import (
-    AnalysisResponse,
-    VulnerabilityFinding,
-    safe_parse_llm_json,
-    validate_vulnerability_finding,
-)
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
     from src.llm.embedding_rag import (
         EmbeddingRAG,
-        get_context_for_finding,
         batch_get_context_for_findings,
+        get_context_for_finding,
     )
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
@@ -174,8 +173,8 @@ class SmartLLMAdapter(ToolAdapter):
 
     def is_available(self) -> ToolStatus:
         """Check if Ollama is running and accessible via HTTP API."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         try:
             ollama_host = get_ollama_host()
@@ -401,7 +400,7 @@ class SmartLLMAdapter(ToolAdapter):
         header = '\n'.join(lines[:header_end])
 
         # Phase 2: Extract and prioritize functions
-        function_pattern = re.compile(
+        re.compile(
             r'(function\s+\w+[^{]*\{)',
             re.MULTILINE
         )
@@ -466,7 +465,7 @@ class SmartLLMAdapter(ToolAdapter):
         current_len = len(header)
         included_count = 0
 
-        for score, func in scored_functions:
+        for _score, func in scored_functions:
             func_with_separator = f"\n\n{func}"
             if current_len + len(func_with_separator) <= max_chars - 50:  # Reserve 50 for truncation note
                 result_parts.append(func_with_separator)
@@ -758,8 +757,8 @@ OUTPUT (JSON only):
 
     def _call_ollama_with_retry(self, prompt: str) -> Optional[str]:
         """Call Ollama HTTP API with retry logic."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         generate_url = f"{self._ollama_host}/api/generate"
 

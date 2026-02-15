@@ -27,7 +27,6 @@ Usage:
     '''
 """
 
-import html
 import logging
 import re
 from dataclasses import dataclass
@@ -433,7 +432,7 @@ def build_safe_prompt(
         safe_prompt = template.format(**safe_vars)
     except KeyError as e:
         logger.error(f"Missing template variable: {e}")
-        raise ValueError(f"Missing template variable: {e}")
+        raise ValueError(f"Missing template variable: {e}") from e
 
     # Aggregate detection results
     max_risk = InjectionRiskLevel.NONE

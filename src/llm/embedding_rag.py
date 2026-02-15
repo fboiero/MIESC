@@ -18,12 +18,9 @@ Date: February 2026
 """
 
 import hashlib
-import json
 import logging
-import os
 import time
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -45,7 +42,7 @@ def _get_chromadb():
             raise ImportError(
                 "ChromaDB is required for embedding RAG. "
                 "Install with: pip install chromadb"
-            )
+            ) from None
     return _chromadb
 
 
@@ -60,7 +57,7 @@ def _get_sentence_transformer():
             raise ImportError(
                 "sentence-transformers is required for embedding RAG. "
                 "Install with: pip install sentence-transformers"
-            )
+            ) from None
     return _sentence_transformers
 
 
@@ -3612,7 +3609,7 @@ class EmbeddingRAG:
             raise ImportError(
                 f"Required dependency not found: {e}. "
                 "Install with: pip install chromadb sentence-transformers"
-            )
+            ) from e
 
     def _build_doc_index(self) -> None:
         """Build O(1) lookup index for vulnerability documents."""
@@ -4015,7 +4012,7 @@ class EmbeddingRAG:
                 break
 
         if doc.real_exploit:
-            reasons.append(f"Real-world exploit documented")
+            reasons.append("Real-world exploit documented")
 
         if not reasons:
             reasons.append("Semantic similarity match")
@@ -4030,7 +4027,7 @@ class EmbeddingRAG:
             "total_documents": self._collection.count(),
             "embedding_model": self.embedding_model_name,
             "persist_directory": str(self.persist_dir),
-            "categories": list(set(d.category for d in VULNERABILITY_KNOWLEDGE_BASE)),
+            "categories": list({d.category for d in VULNERABILITY_KNOWLEDGE_BASE}),
             "knowledge_base_version": "1.0.0",
         }
 

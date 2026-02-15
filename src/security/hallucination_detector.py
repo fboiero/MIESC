@@ -233,13 +233,13 @@ class HallucinationDetector:
         is_confirmed = self._is_type_in_static(vuln_type, static_types)
         if is_confirmed:
             sources.append("static_analysis")
-            reasons.append(f"Confirmed by static analysis tools")
+            reasons.append("Confirmed by static analysis tools")
 
         # Check 2: Location matching with static findings
         location_match = self._check_location_match(finding, static_findings)
         if location_match:
             sources.append("location_match")
-            reasons.append(f"Location matches static analysis finding")
+            reasons.append("Location matches static analysis finding")
 
         # Check 3: Code pattern verification
         code_evidence = None
@@ -289,7 +289,7 @@ class HallucinationDetector:
             return True
 
         # Check aliases
-        for canonical, aliases in VULN_TYPE_ALIASES.items():
+        for _canonical, aliases in VULN_TYPE_ALIASES.items():
             normalized_aliases = [self._normalize_type(a) for a in aliases]
             if llm_normalized in normalized_aliases:
                 # Check if any alias is in static findings

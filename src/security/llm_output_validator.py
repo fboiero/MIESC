@@ -30,7 +30,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Generic, List, Literal, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
 
 from pydantic import (
     BaseModel,
@@ -380,7 +380,6 @@ def safe_parse_llm_json(
         >>> else:
         ...     print(f"Parse failed: {result.errors}")
     """
-    errors = []
     warnings = []
 
     if not content:

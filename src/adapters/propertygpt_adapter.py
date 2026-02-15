@@ -25,8 +25,6 @@ import json
 import logging
 import os
 import re
-import subprocess
-import tempfile
 import time
 from typing import Any, Dict, List, Optional
 
@@ -151,8 +149,8 @@ class PropertyGPTAdapter(ToolAdapter):
 
     def is_available(self) -> ToolStatus:
         """Check if PropertyGPT backend (LLM) is available."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         try:
             if self.llm_backend == "ollama":
@@ -439,8 +437,8 @@ Generate {self.max_properties} high-quality properties.
 
     def _generate_with_ollama(self, prompt: str) -> List[Dict[str, Any]]:
         """Generate properties using local Ollama HTTP API."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         try:
             ollama_host = get_ollama_host()

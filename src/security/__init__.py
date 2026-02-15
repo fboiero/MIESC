@@ -7,6 +7,15 @@ reproducibility utilities, and remediation suggestions.
 """
 
 from .api_limiter import APIQuotaManager, RateLimiter, RateLimitExceeded
+from .hallucination_detector import (
+    HallucinationDetector,
+    ValidatedFinding,
+    ValidationResult,
+    ValidationStatus,
+    cross_validate_finding,
+    filter_reliable_findings,
+    validate_llm_findings,
+)
 from .input_validator import (
     SecurityError,
     validate_contract_path,
@@ -15,11 +24,13 @@ from .input_validator import (
 )
 from .llm_output_validator import (
     AnalysisResponse,
-    ValidationResult,
     VulnerabilityFinding,
     safe_parse_llm_json,
     validate_analysis_response,
     validate_vulnerability_finding,
+)
+from .llm_output_validator import (
+    ValidationResult as LLMValidationResult,
 )
 from .prompt_sanitizer import (
     InjectionDetectionResult,
@@ -55,15 +66,6 @@ from .reproducibility import (
     get_model_version,
     set_global_seeds,
 )
-from .hallucination_detector import (
-    HallucinationDetector,
-    ValidatedFinding,
-    ValidationResult,
-    ValidationStatus,
-    cross_validate_finding,
-    filter_reliable_findings,
-    validate_llm_findings,
-)
 from .secure_logging import SecureFormatter, setup_secure_logging
 
 __all__ = [
@@ -92,7 +94,7 @@ __all__ = [
     "safe_parse_llm_json",
     "validate_analysis_response",
     "validate_vulnerability_finding",
-    "ValidationResult",
+    "LLMValidationResult",
     "VulnerabilityFinding",
     "AnalysisResponse",
     # Reproducibility

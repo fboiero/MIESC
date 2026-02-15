@@ -128,8 +128,8 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
 
     def is_available(self) -> ToolStatus:
         """Check if Ollama is running and accessible via HTTP API."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         try:
             ollama_host = get_ollama_host()
@@ -267,8 +267,8 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
 
     def _detect_best_model(self) -> str:
         """Detect the best available Ollama model for security analysis via HTTP API."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         try:
             ollama_host = get_ollama_host()
@@ -300,8 +300,8 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
         self, contract_code: str, model: str = "codellama:7b", timeout: int = 120
     ) -> str:
         """Execute security analysis using Ollama HTTP API."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         # Build prompt with contract code
         prompt = self.SECURITY_PROMPT.replace("%CONTRACT_CODE%", contract_code)

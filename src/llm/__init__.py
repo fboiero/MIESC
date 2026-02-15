@@ -64,14 +64,14 @@ from .vulnerability_rag import (
 # v5.1.0+ Embedding RAG with ChromaDB (optional dependencies)
 try:
     from .embedding_rag import (
+        VULNERABILITY_KNOWLEDGE_BASE,
         EmbeddingRAG,
         HybridRAG,
         RetrievalResult,
         VulnerabilityDocument,
-        VULNERABILITY_KNOWLEDGE_BASE,
+        get_context_for_finding,
         get_rag,
         search_vulnerabilities,
-        get_context_for_finding,
     )
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:

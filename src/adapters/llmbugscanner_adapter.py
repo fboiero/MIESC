@@ -184,8 +184,8 @@ class LLMBugScannerAdapter(ToolAdapter):
 
     def is_available(self) -> ToolStatus:
         """Check if Ollama and at least one ensemble model is available via HTTP API."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         try:
             ollama_host = get_ollama_host()

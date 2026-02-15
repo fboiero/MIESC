@@ -18,16 +18,17 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from src.security.llm_output_validator import (
+    AnalysisResponse,
+    safe_parse_llm_json,
+)
+
 # LLM Security imports (v5.1.2+)
 from src.security.prompt_sanitizer import (
     InjectionRiskLevel,
     detect_prompt_injection,
     sanitize_code_for_prompt,
     sanitize_context,
-)
-from src.security.llm_output_validator import (
-    AnalysisResponse,
-    safe_parse_llm_json,
 )
 
 logger = logging.getLogger(__name__)
