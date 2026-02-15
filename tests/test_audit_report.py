@@ -491,3 +491,270 @@ class TestCreateSampleReport:
 
         assert "<!DOCTYPE html>" in html
         assert "Reentrancy" in html
+
+
+class TestVersionConsistency:
+    """Tests for version consistency across report generation."""
+
+    def test_version_import(self):
+        """Test that MIESC_VERSION is imported correctly."""
+        from src.reports.audit_report import MIESC_VERSION
+
+        assert MIESC_VERSION is not None
+        assert isinstance(MIESC_VERSION, str)
+        assert len(MIESC_VERSION) > 0
+
+    def test_generator_version_matches_miesc(self, sample_metadata, sample_findings):
+        """Test that generator VERSION matches MIESC version."""
+        from miesc import __version__
+        from src.reports.audit_report import AuditReportGenerator
+
+        assert AuditReportGenerator.VERSION == __version__
+
+    def test_html_contains_correct_version(self, sample_metadata, sample_findings):
+        """Test that HTML report contains correct version."""
+        from miesc import __version__
+
+        generator = AuditReportGenerator(
+            metadata=sample_metadata,
+            findings=sample_findings,
+        )
+        html = generator.generate_html()
+
+        assert f"MIESC v{__version__}" in html
+
+    def test_methodology_contains_version(self, sample_metadata, sample_findings):
+        """Test methodology section has dynamic version."""
+        from miesc import __version__
+
+        generator = AuditReportGenerator(
+            metadata=sample_metadata,
+            findings=sample_findings,
+        )
+        html = generator._generate_methodology_section()
+
+        assert f"MIESC v{__version__}" in html
+
+    def test_json_contains_version(self, sample_metadata, sample_findings):
+        """Test JSON output contains correct version."""
+        from miesc import __version__
+
+        generator = AuditReportGenerator(
+            metadata=sample_metadata,
+            findings=sample_findings,
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "report.json"
+            generator.save_json(output_path)
+
+            data = json.loads(output_path.read_text())
+            assert f"MIESC v{__version__}" in data["generator"]
+
+    @pytest.fixture
+    def sample_metadata(self):
+        """Create sample metadata for tests."""
+        return AuditMetadata(
+            project_name="Test Project",
+            contract_name="Test.sol",
+            version="1.0.0",
+            auditor="Test Auditor",
+            organization="Test Org",
+            audit_date="2026-01-15",
+            report_id="TEST-001",
+            contract_hash="abc123",
+        )
+
+    @pytest.fixture
+    def sample_findings(self):
+        """Create sample findings for tests."""
+        return [
+            Finding(
+                id="TEST-001",
+                title="Test Finding",
+                severity="High",
+                category="Test",
+                description="Test description",
+                location="Test.sol:10",
+            )
+        ]
+
+
+class TestRemediationSection:
+    """Tests for remediation section generation."""
+
+    @pytest.fixture
+    def sample_metadata(self):
+        """Create sample metadata for tests."""
+        return AuditMetadata(
+            project_name="Test Project",
+            contract_name="Test.sol",
+            version="1.0.0",
+            auditor="Test Auditor",
+            organization="Test Org",
+            audit_date="2026-01-15",
+            report_id="TEST-001",
+            contract_hash="abc123",
+        )
+
+    def test_remediation_with_basic_text(self, sample_metadata):
+        """Test remediation section with basic text."""
+        finding = Finding(
+            id="TEST-001",
+            title="Test",
+            severity="High",
+            category="Test",
+            description="Test",
+            location="test.sol:1",
+            remediation="Apply checks-effects-interactions pattern.",
+        )
+
+        gen = AuditReportGenerator(sample_metadata, [finding])
+        html = gen._generate_remediation_section(finding)
+
+        assert "Remediation" in html
+        assert "checks-effects-interactions" in html
+
+    def test_remediation_with_fixed_code(self, sample_metadata):
+        """Test remediation section with generated fix code."""
+        finding = Finding(
+            id="TEST-001",
+            title="Test",
+            severity="High",
+            category="Test",
+            description="Test",
+            location="test.sol:1",
+            evidence={
+                "fixed_code": """function withdraw(uint256 amount) external nonReentrant {
+    require(amount <= balances[msg.sender], "Insufficient balance");
+    balances[msg.sender] -= amount;
+    (bool success,) = msg.sender.call{value: amount}("");
+    require(success, "Transfer failed");
+}""",
+            },
+        )
+
+        gen = AuditReportGenerator(sample_metadata, [finding])
+        html = gen._generate_remediation_section(finding)
+
+        assert "Suggested Fix" in html
+        assert "FIXED CODE" in html
+        assert "nonReentrant" in html
+
+    def test_remediation_with_fix_explanation(self, sample_metadata):
+        """Test remediation section with fix explanation."""
+        finding = Finding(
+            id="TEST-001",
+            title="Test",
+            severity="High",
+            category="Test",
+            description="Test",
+            location="test.sol:1",
+            evidence={
+                "fixed_code": "// fixed code",
+                "fix_explanation": "Added nonReentrant modifier to prevent reentrancy attacks.",
+            },
+        )
+
+        gen = AuditReportGenerator(sample_metadata, [finding])
+        html = gen._generate_remediation_section(finding)
+
+        assert "Why This Fixes The Issue" in html
+        assert "nonReentrant modifier" in html
+
+    def test_remediation_with_test_suggestions(self, sample_metadata):
+        """Test remediation section with test suggestions."""
+        finding = Finding(
+            id="TEST-001",
+            title="Test",
+            severity="High",
+            category="Test",
+            description="Test",
+            location="test.sol:1",
+            evidence={
+                "fixed_code": "// fixed code",
+                "test_suggestions": [
+                    "Test that reentrancy attack fails",
+                    "Test that normal withdrawal works",
+                    "Test edge cases with zero amount",
+                ],
+            },
+        )
+
+        gen = AuditReportGenerator(sample_metadata, [finding])
+        html = gen._generate_remediation_section(finding)
+
+        assert "Suggested Tests" in html
+        assert "reentrancy attack fails" in html
+        assert "normal withdrawal works" in html
+
+    def test_remediation_empty_when_no_data(self, sample_metadata):
+        """Test remediation section is empty when no remediation data."""
+        finding = Finding(
+            id="TEST-001",
+            title="Test",
+            severity="High",
+            category="Test",
+            description="Test",
+            location="test.sol:1",
+        )
+
+        gen = AuditReportGenerator(sample_metadata, [finding])
+        html = gen._generate_remediation_section(finding)
+
+        assert html == ""
+
+    def test_remediation_with_all_evidence(self, sample_metadata):
+        """Test remediation section with all evidence types."""
+        finding = Finding(
+            id="TEST-001",
+            title="Test",
+            severity="High",
+            category="Test",
+            description="Test",
+            location="test.sol:1",
+            remediation="Apply the fix shown below.",
+            evidence={
+                "fixed_code": "function safe() external nonReentrant {}",
+                "fix_explanation": "The fix adds reentrancy protection.",
+                "test_suggestions": [
+                    "Test reentrancy attack",
+                    "Test normal flow",
+                ],
+            },
+        )
+
+        gen = AuditReportGenerator(sample_metadata, [finding])
+        html = gen._generate_remediation_section(finding)
+
+        # Should contain all sections
+        assert "Remediation" in html
+        assert "Suggested Fix" in html
+        assert "Why This Fixes The Issue" in html
+        assert "Suggested Tests" in html
+
+    def test_remediation_html_escaping(self, sample_metadata):
+        """Test that remediation content is properly HTML escaped."""
+        finding = Finding(
+            id="TEST-001",
+            title="Test",
+            severity="High",
+            category="Test",
+            description="Test",
+            location="test.sol:1",
+            remediation="Use <script> sanitization & avoid 'XSS'",
+            evidence={
+                "fixed_code": "// Code with <special> & 'chars'",
+            },
+        )
+
+        gen = AuditReportGenerator(sample_metadata, [finding])
+        html = gen._generate_remediation_section(finding)
+
+        # HTML entities should be escaped
+        assert "&lt;script&gt;" in html
+        assert "&amp;" in html
+
+
+# Import required for new tests
+import tempfile

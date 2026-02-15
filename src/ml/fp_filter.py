@@ -428,7 +428,7 @@ class FalsePositiveFilter:
                 logger.info("FP Filter: RAG-enhanced validation enabled")
             except ImportError:
                 logger.debug("FP Filter: RAG not available (optional)")
-            except Exception as e:
+            except (RuntimeError, ValueError, OSError) as e:
                 logger.warning(f"FP Filter: RAG init failed: {e}")
 
         logger.info(
@@ -552,7 +552,7 @@ class FalsePositiveFilter:
             # No FP indicators found
             return None
 
-        except Exception as e:
+        except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
             logger.debug(f"RAG validation failed: {e}")
             return None
 

@@ -141,7 +141,7 @@ class FindingFeatures:
                 elif major == 0 and minor >= 4:
                     return 0.4
                 return 0.2
-        except Exception:
+        except (ValueError, AttributeError, TypeError):
             pass
         return 0.5
 
@@ -590,7 +590,7 @@ class FalsePositiveFilter:
 
             self._version_cache[contract_path] = version
 
-        except Exception as e:
+        except (OSError, IOError, UnicodeDecodeError) as e:
             logger.debug(f"Could not detect Solidity version: {e}")
 
         return version, self._is_solidity_08_plus(version)
@@ -604,7 +604,7 @@ class FalsePositiveFilter:
             if match:
                 major, minor = int(match.group(1)), int(match.group(2))
                 return major == 0 and minor >= 8
-        except Exception:
+        except (ValueError, AttributeError, TypeError):
             pass
         return False
 
@@ -709,7 +709,8 @@ class FalsePositiveFilter:
                         for e in data.get("entries", [])
                     ]
                     self._learned_weights = data.get("weights", {})
-            except Exception:
+            except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
+                logger.debug(f"Could not load feedback: {e}")
                 self._feedback = []
                 self._learned_weights = {}
 
@@ -1390,7 +1391,7 @@ class SemanticContextAnalyzer:
                 major, minor = int(match.group(1)), int(match.group(2))
                 # Solidity 0.8.0+ has built-in overflow checks
                 return major == 0 and minor >= 8
-        except Exception:
+        except (ValueError, AttributeError, TypeError):
             pass
 
         return False

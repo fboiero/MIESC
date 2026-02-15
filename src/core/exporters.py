@@ -15,6 +15,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# Import version from miesc package
+try:
+    from miesc import __version__ as MIESC_VERSION
+except ImportError:
+    MIESC_VERSION = "5.1.1"  # Fallback version
+
 
 @dataclass
 class Finding:
@@ -49,9 +55,9 @@ class SARIFExporter:
     SARIF_VERSION = "2.1.0"
     SARIF_SCHEMA = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
 
-    def __init__(self, tool_name: str = "MIESC", tool_version: str = "4.1.0"):
+    def __init__(self, tool_name: str = "MIESC", tool_version: str = None):
         self.tool_name = tool_name
-        self.tool_version = tool_version
+        self.tool_version = tool_version or MIESC_VERSION
 
     def export(self, findings: List[Finding], output_path: Optional[str] = None) -> str:
         """
@@ -420,7 +426,7 @@ class JSONExporter:
         if include_metadata:
             data["metadata"] = {
                 "tool": "MIESC",
-                "version": "4.1.0",
+                "version": MIESC_VERSION,
                 "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 "total_findings": len(findings),
                 "severity_counts": self._count_severities(findings),
