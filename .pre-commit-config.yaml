@@ -12,7 +12,7 @@
 repos:
   # Code Formatting
   - repo: https://github.com/psf/black
-    rev: 25.11.0
+    rev: 26.1.0
     hooks:
       - id: black
         name: Black Code Formatter

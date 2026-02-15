@@ -31,7 +31,7 @@ jobs:
 
       - name: Install linting tools
         run: |
-          pip install ruff black isort mypy
+          pip install ruff 'black>=26.1.0' isort mypy
 
       - name: Run Ruff (linter)
         run: ruff check src/ tests/ --output-format=github
