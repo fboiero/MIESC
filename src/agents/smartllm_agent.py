@@ -99,7 +99,9 @@ class SmartLLMAgent(BaseAgent):
             return False
 
         except ImportError:
-            logger.warning("llama-cpp-python not installed. Install with: pip install llama-cpp-python")
+            logger.warning(
+                "llama-cpp-python not installed. Install with: pip install llama-cpp-python"
+            )
             return False
         except Exception as e:
             logger.warning(f"Failed to load local LLM: {e}")

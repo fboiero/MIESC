@@ -374,13 +374,14 @@ print(f"Status: {{status}}")
 
         # Remove ANSI escape codes
         import re
-        clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
+
+        clean_text = re.sub(r"\x1b\[[0-9;]*m", "", text)
 
         # Remove BOM if present
-        clean_text = clean_text.lstrip('\ufeff')
+        clean_text = clean_text.lstrip("\ufeff")
 
         # Try to find JSON in the output (some tools mix text with JSON)
-        json_match = re.search(r'[\[{].*[\]}]', clean_text, re.DOTALL)
+        json_match = re.search(r"[\[{].*[\]}]", clean_text, re.DOTALL)
         if json_match:
             clean_text = json_match.group()
 

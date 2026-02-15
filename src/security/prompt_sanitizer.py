@@ -70,32 +70,44 @@ class PromptInjectionWarning(Warning):
 # Patterns that indicate potential prompt injection attempts
 INJECTION_PATTERNS = [
     # Direct instruction overrides
-    (r"(?i)ignore\s+(all\s+)?(previous|above|prior)\s+instructions?", "instruction_override", InjectionRiskLevel.CRITICAL),
-    (r"(?i)disregard\s+(all\s+)?(previous|above|prior)", "instruction_override", InjectionRiskLevel.CRITICAL),
-    (r"(?i)forget\s+(everything|all)\s+(above|before|previous)", "instruction_override", InjectionRiskLevel.CRITICAL),
+    (
+        r"(?i)ignore\s+(all\s+)?(previous|above|prior)\s+instructions?",
+        "instruction_override",
+        InjectionRiskLevel.CRITICAL,
+    ),
+    (
+        r"(?i)disregard\s+(all\s+)?(previous|above|prior)",
+        "instruction_override",
+        InjectionRiskLevel.CRITICAL,
+    ),
+    (
+        r"(?i)forget\s+(everything|all)\s+(above|before|previous)",
+        "instruction_override",
+        InjectionRiskLevel.CRITICAL,
+    ),
     (r"(?i)new\s+instructions?:", "new_instructions", InjectionRiskLevel.HIGH),
     (r"(?i)system\s*:\s*you\s+are", "system_role_override", InjectionRiskLevel.CRITICAL),
     (r"(?i)assistant\s*:\s*", "role_injection", InjectionRiskLevel.HIGH),
     (r"(?i)user\s*:\s*", "role_injection", InjectionRiskLevel.HIGH),
-
     # Output manipulation
     (r"(?i)report\s+no\s+vulnerabilities?", "output_manipulation", InjectionRiskLevel.HIGH),
-    (r"(?i)say\s+(there\s+are\s+)?no\s+(issues?|problems?|vulnerabilities?)", "output_manipulation", InjectionRiskLevel.HIGH),
+    (
+        r"(?i)say\s+(there\s+are\s+)?no\s+(issues?|problems?|vulnerabilities?)",
+        "output_manipulation",
+        InjectionRiskLevel.HIGH,
+    ),
     (r"(?i)output\s*:\s*\{", "output_injection", InjectionRiskLevel.MEDIUM),
     (r"(?i)respond\s+with\s+only", "output_control", InjectionRiskLevel.MEDIUM),
-
     # Jailbreak attempts
     (r"(?i)pretend\s+(you\s+are|to\s+be)", "jailbreak", InjectionRiskLevel.HIGH),
     (r"(?i)act\s+as\s+(if|a)", "jailbreak", InjectionRiskLevel.MEDIUM),
     (r"(?i)roleplay\s+as", "jailbreak", InjectionRiskLevel.HIGH),
     (r"(?i)you\s+are\s+now\s+", "jailbreak", InjectionRiskLevel.HIGH),
     (r"(?i)DAN\s+mode", "jailbreak", InjectionRiskLevel.CRITICAL),
-
     # Delimiter escapes
     (r"```\s*\n\s*```", "delimiter_escape", InjectionRiskLevel.MEDIUM),
     (r"</code>\s*<code>", "tag_escape", InjectionRiskLevel.MEDIUM),
     (r"\]\]\s*\[\[", "bracket_escape", InjectionRiskLevel.MEDIUM),
-
     # Hidden instructions (Unicode/whitespace tricks)
     (r"[\u200b\u200c\u200d\ufeff]", "hidden_chars", InjectionRiskLevel.HIGH),
     (r"[\u202a-\u202e]", "bidi_override", InjectionRiskLevel.HIGH),
@@ -202,8 +214,7 @@ def detect_prompt_injection(
     # Log warnings for non-trivial risks
     if max_risk != InjectionRiskLevel.NONE:
         logger.warning(
-            f"Prompt injection detection: {max_risk.value} risk, "
-            f"patterns: {patterns_found}"
+            f"Prompt injection detection: {max_risk.value} risk, " f"patterns: {patterns_found}"
         )
 
     return InjectionDetectionResult(
@@ -295,8 +306,7 @@ def sanitize_context(
             return value
         elif isinstance(value, dict):
             return {
-                sanitize_value(k, depth + 1): sanitize_value(v, depth + 1)
-                for k, v in value.items()
+                sanitize_value(k, depth + 1): sanitize_value(v, depth + 1) for k, v in value.items()
             }
         elif isinstance(value, (list, tuple)):
             return [sanitize_value(item, depth + 1) for item in value]
@@ -403,6 +413,7 @@ def build_safe_prompt(
     # Sanitize context
     if context is not None:
         import json
+
         safe_context = sanitize_context(context)
         safe_vars["context"] = json.dumps(safe_context, indent=2)
 
@@ -418,6 +429,7 @@ def build_safe_prompt(
                     safe_finding[key] = value
             safe_findings.append(safe_finding)
         import json
+
         safe_vars["findings"] = json.dumps(safe_findings, indent=2)
 
     # Sanitize additional kwargs

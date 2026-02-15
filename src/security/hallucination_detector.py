@@ -201,11 +201,13 @@ class HallucinationDetector:
                 and validation.status != ValidationStatus.HALLUCINATION
             )
 
-            validated_findings.append(ValidatedFinding(
-                finding=finding,
-                validation=validation,
-                is_reliable=is_reliable,
-            ))
+            validated_findings.append(
+                ValidatedFinding(
+                    finding=finding,
+                    validation=validation,
+                    is_reliable=is_reliable,
+                )
+            )
 
         # Log summary
         reliable_count = sum(1 for f in validated_findings if f.is_reliable)
@@ -499,11 +501,15 @@ def cross_validate_finding(
     """
     detector = HallucinationDetector()
     results = detector.validate_findings([finding], static_findings, contract_code)
-    return results[0].validation if results else ValidationResult(
-        status=ValidationStatus.UNVALIDATED,
-        original_confidence=float(finding.get("confidence", 0.5)),
-        adjusted_confidence=0.3,
-        reasons=["Validation failed"],
+    return (
+        results[0].validation
+        if results
+        else ValidationResult(
+            status=ValidationStatus.UNVALIDATED,
+            original_confidence=float(finding.get("confidence", 0.5)),
+            adjusted_confidence=0.3,
+            reasons=["Validation failed"],
+        )
     )
 
 

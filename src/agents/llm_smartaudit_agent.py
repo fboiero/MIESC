@@ -86,7 +86,9 @@ class LLMSmartAuditAgent(BaseAgent):
         """
         start_time = time.time()
 
-        logger.info(f"LLM-SmartAudit Analysis Starting - Contract: {contract_path}, LLM: {self.llm_enabled}")
+        logger.info(
+            f"LLM-SmartAudit Analysis Starting - Contract: {contract_path}, LLM: {self.llm_enabled}"
+        )
 
         # Read contract
         with open(contract_path, "r") as f:

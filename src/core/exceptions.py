@@ -510,9 +510,7 @@ def handle_adapter_errors(func: F) -> F:
         except subprocess.TimeoutExpired as e:
             tool_name = getattr(args[0], "name", "unknown") if args else "unknown"
             logger.error(f"Tool timeout: {tool_name}")
-            return _error_response(
-                ErrorCode.TOOL_TIMEOUT, f"Tool timed out after {e.timeout}s"
-            )
+            return _error_response(ErrorCode.TOOL_TIMEOUT, f"Tool timed out after {e.timeout}s")
         except subprocess.CalledProcessError as e:
             logger.error(f"Tool execution failed: {e}")
             stderr = e.stderr[:200] if e.stderr else ""

@@ -422,6 +422,7 @@ class FalsePositiveFilter:
         if use_rag:
             try:
                 from src.llm.embedding_rag import EmbeddingRAG
+
                 self._rag = EmbeddingRAG()
                 self._rag_available = True
                 logger.info("FP Filter: RAG-enhanced validation enabled")
@@ -430,7 +431,9 @@ class FalsePositiveFilter:
             except Exception as e:
                 logger.warning(f"FP Filter: RAG init failed: {e}")
 
-        logger.info(f"FP Filter initialized with threshold={fp_threshold}, rag={self._rag_available}")
+        logger.info(
+            f"FP Filter initialized with threshold={fp_threshold}, rag={self._rag_available}"
+        )
 
     def _compile_patterns(self):
         """Pre-compile regex patterns for better performance."""

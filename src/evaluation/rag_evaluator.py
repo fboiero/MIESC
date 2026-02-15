@@ -79,10 +79,7 @@ class RAGEvaluationResult:
     def __post_init__(self):
         """Compute comparison after initialization."""
         if self.metrics_with_rag and self.metrics_without_rag:
-            self.comparison = compare_metrics(
-                self.metrics_without_rag,
-                self.metrics_with_rag
-            )
+            self.comparison = compare_metrics(self.metrics_without_rag, self.metrics_with_rag)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -143,6 +140,7 @@ class RAGEvaluator:
         if self._embedding_rag is None:
             try:
                 from src.llm.embedding_rag import EmbeddingRAG
+
                 self._embedding_rag = EmbeddingRAG()
             except ImportError:
                 logger.warning("EmbeddingRAG not available")
@@ -167,6 +165,7 @@ class RAGEvaluator:
             module_name, class_name = adapter_map[adapter_name]
             try:
                 import importlib
+
                 module = importlib.import_module(module_name)
                 adapter_class = getattr(module, class_name)
                 self._adapters[adapter_name] = adapter_class()
@@ -234,9 +233,7 @@ class RAGEvaluator:
 
         avg_time = total_time / len(queries) if queries else 0
         hit_rate = hits / len(queries) if queries else 0
-        avg_top_relevance = (
-            sum(r.top_relevance for r in results) / len(results) if results else 0
-        )
+        avg_top_relevance = sum(r.top_relevance for r in results) / len(results) if results else 0
 
         return {
             "num_queries": len(queries),

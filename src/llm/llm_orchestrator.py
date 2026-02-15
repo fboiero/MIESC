@@ -385,11 +385,7 @@ class LLMOrchestrator:
             )
 
         # SECURITY: Sanitize contract code before embedding (v5.1.2+)
-        safe_code = sanitize_code_for_prompt(
-            code,
-            wrap_in_tags=True,
-            tag_name="solidity-contract"
-        )
+        safe_code = sanitize_code_for_prompt(code, wrap_in_tags=True, tag_name="solidity-contract")
 
         # SECURITY: Sanitize context if provided (v5.1.2+)
         safe_context = sanitize_context(context) if context else None
@@ -513,7 +509,9 @@ Provide a comprehensive security analysis in JSON format."""
                 "high": sum(1 for v in vulnerabilities if v.get("severity") == "high"),
                 "medium": sum(1 for v in vulnerabilities if v.get("severity") == "medium"),
                 "low": sum(1 for v in vulnerabilities if v.get("severity") == "low"),
-                "info": sum(1 for v in vulnerabilities if v.get("severity") in ("info", "informational")),
+                "info": sum(
+                    1 for v in vulnerabilities if v.get("severity") in ("info", "informational")
+                ),
             }
 
             return VulnerabilityAnalysis(

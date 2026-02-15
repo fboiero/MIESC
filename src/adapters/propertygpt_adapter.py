@@ -40,6 +40,7 @@ from src.core.tool_protocol import (
 # Try to import EmbeddingRAG (optional dependency)
 try:
     from src.llm.embedding_rag import EmbeddingRAG
+
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
     _EMBEDDING_RAG_AVAILABLE = False
@@ -386,10 +387,7 @@ class PropertyGPTAdapter(ToolAdapter):
         rag_context = ""
         if self._use_rag and self._embedding_rag:
             try:
-                results = self._embedding_rag.search(
-                    query=contract_source[:2000],
-                    n_results=3
-                )
+                results = self._embedding_rag.search(query=contract_source[:2000], n_results=3)
                 if results:
                     rag_context = "\n\nKNOWN VULNERABILITY PATTERNS TO VERIFY AGAINST:\n"
                     for r in results:
@@ -444,21 +442,23 @@ Generate {self.max_properties} high-quality properties.
             ollama_host = get_ollama_host()
             generate_url = f"{ollama_host}/api/generate"
 
-            payload = json.dumps({
-                "model": self.ollama_model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "num_ctx": 8192,
+            payload = json.dumps(
+                {
+                    "model": self.ollama_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.1,
+                        "num_ctx": 8192,
+                    },
                 }
-            }).encode("utf-8")
+            ).encode("utf-8")
 
             req = urllib.request.Request(
                 generate_url,
                 data=payload,
                 headers={"Content-Type": "application/json"},
-                method="POST"
+                method="POST",
             )
 
             with urllib.request.urlopen(req, timeout=120) as resp:

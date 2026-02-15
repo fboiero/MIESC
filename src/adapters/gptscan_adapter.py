@@ -28,6 +28,7 @@ from src.core.tool_protocol import (
 # Try to import EmbeddingRAG (optional dependency)
 try:
     from src.llm.embedding_rag import EmbeddingRAG
+
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
     _EMBEDDING_RAG_AVAILABLE = False
@@ -148,7 +149,9 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
                             logger.info(f"GPTScan: Ollama available at {ollama_host} with {model}")
                             return ToolStatus.AVAILABLE
 
-                    logger.warning("GPTScan: No suitable LLM model found. Run: ollama pull codellama:7b")
+                    logger.warning(
+                        "GPTScan: No suitable LLM model found. Run: ollama pull codellama:7b"
+                    )
                     return ToolStatus.CONFIGURATION_ERROR
                 else:
                     logger.warning(f"GPTScan: Ollama returned status {resp.status}")
@@ -309,10 +312,7 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
         # Add RAG context if available
         if self._use_rag and self._embedding_rag:
             try:
-                results = self._embedding_rag.search(
-                    query=contract_code[:2000],
-                    n_results=3
-                )
+                results = self._embedding_rag.search(query=contract_code[:2000], n_results=3)
                 if results:
                     rag_context = "\n\nKNOWN VULNERABILITY PATTERNS:\n"
                     for r in results:
@@ -322,7 +322,7 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
                         )
                     prompt = prompt.replace(
                         "Respond ONLY with valid JSON.",
-                        f"{rag_context}\nRespond ONLY with valid JSON."
+                        f"{rag_context}\nRespond ONLY with valid JSON.",
                     )
                     logger.debug(f"GPTScan: Added RAG context ({len(results)} patterns)")
             except Exception as e:
@@ -334,21 +334,20 @@ Respond ONLY with valid JSON. No explanations outside JSON."""
         ollama_host = get_ollama_host()
         generate_url = f"{ollama_host}/api/generate"
 
-        payload = json.dumps({
-            "model": model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.1,
-                "num_ctx": 8192,
+        payload = json.dumps(
+            {
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "num_ctx": 8192,
+                },
             }
-        }).encode("utf-8")
+        ).encode("utf-8")
 
         req = urllib.request.Request(
-            generate_url,
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST"
+            generate_url, data=payload, headers={"Content-Type": "application/json"}, method="POST"
         )
 
         try:

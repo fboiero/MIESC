@@ -46,13 +46,38 @@ class Finding:
                 return True
             # Keyword-based matching for common vulnerability types
             vuln_keywords = [
-                "reentrancy", "overflow", "underflow", "access control",
-                "delegatecall", "selfdestruct", "front-run", "frontrun",
-                "oracle", "flash loan", "flash-loan", "signature", "replay", "dos",
-                "denial of service", "timestamp", "randomness", "phishing",
-                "permit", "callback", "proxy", "storage", "uninitialized",
-                "precision", "liquidat", "timelock", "admin", "zero address",
-                "price", "manipulation", "same-block", "same block"
+                "reentrancy",
+                "overflow",
+                "underflow",
+                "access control",
+                "delegatecall",
+                "selfdestruct",
+                "front-run",
+                "frontrun",
+                "oracle",
+                "flash loan",
+                "flash-loan",
+                "signature",
+                "replay",
+                "dos",
+                "denial of service",
+                "timestamp",
+                "randomness",
+                "phishing",
+                "permit",
+                "callback",
+                "proxy",
+                "storage",
+                "uninitialized",
+                "precision",
+                "liquidat",
+                "timelock",
+                "admin",
+                "zero address",
+                "price",
+                "manipulation",
+                "same-block",
+                "same block",
             ]
             for keyword in vuln_keywords:
                 if keyword in t1 and keyword in t2:
@@ -280,9 +305,7 @@ def compute_map(predictions: List[List[bool]], k: Optional[int] = None) -> float
 
 
 def evaluate_findings(
-    predicted: List[Finding],
-    ground_truth: List[Finding],
-    strict_matching: bool = False
+    predicted: List[Finding], ground_truth: List[Finding], strict_matching: bool = False
 ) -> EvaluationMetrics:
     """
     Evaluate predicted findings against ground truth.
@@ -353,10 +376,7 @@ def evaluate_findings(
     return metrics
 
 
-def compare_metrics(
-    baseline: EvaluationMetrics,
-    treatment: EvaluationMetrics
-) -> Dict[str, Any]:
+def compare_metrics(baseline: EvaluationMetrics, treatment: EvaluationMetrics) -> Dict[str, Any]:
     """
     Compare two sets of metrics (e.g., with vs without RAG).
 
@@ -367,6 +387,7 @@ def compare_metrics(
     Returns:
         Dictionary with improvement percentages and analysis.
     """
+
     def pct_change(old: float, new: float) -> float:
         if old == 0:
             return float("inf") if new > 0 else 0.0
@@ -399,7 +420,9 @@ def _generate_recommendation(baseline: EvaluationMetrics, treatment: EvaluationM
         if latency_increase < 1000:  # Less than 1 second
             return "Strong recommendation: Enable RAG. Significant F1 improvement with acceptable latency."
         else:
-            return "Conditional: Enable RAG for thorough audits. Consider disabling for quick scans."
+            return (
+                "Conditional: Enable RAG for thorough audits. Consider disabling for quick scans."
+            )
     elif f1_improvement > 0.05:
         if fp_reduction > 0:
             return "Moderate recommendation: Enable RAG. Modest F1 improvement with FP reduction."

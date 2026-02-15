@@ -547,4 +547,6 @@ if __name__ == "__main__":
         print("Starting MIESC WebSocket server on ws://0.0.0.0:8765")  # noqa: T201
         server.run()
     else:
-        print("WebSocket dependencies not installed. Run: pip install fastapi uvicorn")  # noqa: T201
+        print(
+            "WebSocket dependencies not installed. Run: pip install fastapi uvicorn"
+        )  # noqa: T201

@@ -301,7 +301,9 @@ class BenchmarkRunner:
                         contract_results.append(result)
                         if verbose:
                             status = "OK" if not result.error else f"ERR: {result.error[:30]}"
-                            print(f"[{i+1}/{len(contracts)}] {contract.name}: {status}")  # noqa: T201
+                            print(
+                                f"[{i+1}/{len(contracts)}] {contract.name}: {status}"
+                            )  # noqa: T201
                     except Exception as e:
                         contract_results.append(
                             ContractResult(

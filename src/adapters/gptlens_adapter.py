@@ -584,9 +584,7 @@ class GPTLensAdapter(ToolAdapter):
                     len(llm_findings),
                 )
             else:
-                logger.warning(
-                    "GPTLens: Auditor LLM returned no response"
-                )
+                logger.warning("GPTLens: Auditor LLM returned no response")
 
             # Step 3: Merge findings (LLM takes priority, add unique pattern findings)
             raw_findings = self._merge_findings(llm_findings, pattern_findings)
@@ -875,9 +873,7 @@ class GPTLensAdapter(ToolAdapter):
         return severity_map.get(severity.strip().lower(), "Medium")
 
     def _merge_findings(
-        self,
-        llm_findings: List[Dict[str, Any]],
-        pattern_findings: List[Dict[str, Any]]
+        self, llm_findings: List[Dict[str, Any]], pattern_findings: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """
         Merge LLM and pattern-based findings, avoiding duplicates.
@@ -969,12 +965,29 @@ class GPTLensAdapter(ToolAdapter):
             finding_desc = finding.get("description", "").lower()
             combined_text = f"{finding_type} {finding_title} {finding_desc}"
 
-            is_defi_vuln = any(kw in combined_text for kw in [
-                "oracle", "price", "flash loan", "flashloan", "manipulation",
-                "precision", "liquidat", "collateral", "timelock", "admin",
-                "zero address", "address(0)", "same block", "same-block",
-                "getreserves", "spot", "amm", "uniswap"
-            ])
+            is_defi_vuln = any(
+                kw in combined_text
+                for kw in [
+                    "oracle",
+                    "price",
+                    "flash loan",
+                    "flashloan",
+                    "manipulation",
+                    "precision",
+                    "liquidat",
+                    "collateral",
+                    "timelock",
+                    "admin",
+                    "zero address",
+                    "address(0)",
+                    "same block",
+                    "same-block",
+                    "getreserves",
+                    "spot",
+                    "amm",
+                    "uniswap",
+                ]
+            )
 
             if verdict == "TRUE_POSITIVE":
                 # Confirmed: boost confidence
@@ -990,7 +1003,9 @@ class GPTLensAdapter(ToolAdapter):
                 if is_defi_vuln or is_critical:
                     reason = "DeFi pattern" if is_defi_vuln else "severity"
                     finding["critic_verdict"] = "false_positive_kept"
-                    finding["critic_explanation"] = f"Kept despite FP due to {reason}: {explanation}"
+                    finding["critic_explanation"] = (
+                        f"Kept despite FP due to {reason}: {explanation}"
+                    )
                     original_conf = finding.get("confidence", 0.75)
                     finding["confidence"] = max(original_conf - 0.20, 0.40)
                     confirmed.append(finding)
@@ -1412,10 +1427,26 @@ class GPTLensAdapter(ToolAdapter):
                 "access_control",
             ),
             (r"(?:HIGH|MEDIUM)\s*[:\-]?\s*([Ll]ogic\s+[Ee]rror[^\n]{10,})", "High", "logic_error"),
-            (r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Oo]racle[^\n]{10,})", "Critical", "oracle_manipulation"),
-            (r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Pp]rice\s+[Mm]anipulat[^\n]{10,})", "Critical", "oracle_manipulation"),
-            (r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Ff]lash\s*[Ll]oan[^\n]{10,})", "Critical", "flash_loan"),
-            (r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Ss]ame[\s-]*[Bb]lock[^\n]{10,})", "Critical", "flash_loan"),
+            (
+                r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Oo]racle[^\n]{10,})",
+                "Critical",
+                "oracle_manipulation",
+            ),
+            (
+                r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Pp]rice\s+[Mm]anipulat[^\n]{10,})",
+                "Critical",
+                "oracle_manipulation",
+            ),
+            (
+                r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Ff]lash\s*[Ll]oan[^\n]{10,})",
+                "Critical",
+                "flash_loan",
+            ),
+            (
+                r"(?:CRITICAL|HIGH)\s*[:\-]?\s*([Ss]ame[\s-]*[Bb]lock[^\n]{10,})",
+                "Critical",
+                "flash_loan",
+            ),
             (
                 r"(?:MEDIUM)\s*[:\-]?\s*([Ff]ront[\s-]*[Rr]unning[^\n]{10,})",
                 "Medium",
@@ -1898,10 +1929,11 @@ class GPTLensAdapter(ToolAdapter):
             func_name = self._find_enclosing_function(code, reserves_match.start())
 
             # Check if there's TWAP or time-based averaging
-            has_twap = bool(re.search(
-                r"twap|timeWeight|cumulative|observe\s*\(|consult\s*\(",
-                code, re.IGNORECASE
-            ))
+            has_twap = bool(
+                re.search(
+                    r"twap|timeWeight|cumulative|observe\s*\(|consult\s*\(", code, re.IGNORECASE
+                )
+            )
             if not has_twap:
                 return self._make_pattern_finding(
                     vuln_type="oracle_manipulation",
@@ -1954,7 +1986,7 @@ class GPTLensAdapter(ToolAdapter):
         # Find setOwner/setAdmin type functions
         setter_pattern = re.search(
             r"function\s+(set\w*[Oo]wner|set\w*[Aa]dmin|transfer[Oo]wnership)\s*\(\s*address\s+(\w+)",
-            code
+            code,
         )
         if setter_pattern:
             func_name = setter_pattern.group(1)
@@ -1964,13 +1996,15 @@ class GPTLensAdapter(ToolAdapter):
             brace_start = code.find("{", func_start)
             if brace_start != -1:
                 # Check next 200 chars for zero address check
-                func_snippet = code[brace_start:brace_start + 300]
-                has_check = bool(re.search(
-                    rf"require\s*\(\s*{param_name}\s*!=\s*address\s*\(\s*0\s*\)|"
-                    rf"{param_name}\s*!=\s*address\s*\(\s*0\s*\)|"
-                    r"!= address\(0\)",
-                    func_snippet
-                ))
+                func_snippet = code[brace_start : brace_start + 300]
+                has_check = bool(
+                    re.search(
+                        rf"require\s*\(\s*{param_name}\s*!=\s*address\s*\(\s*0\s*\)|"
+                        rf"{param_name}\s*!=\s*address\s*\(\s*0\s*\)|"
+                        r"!= address\(0\)",
+                        func_snippet,
+                    )
+                )
                 if not has_check:
                     line_num = code[:func_start].count("\n") + 1
                     return self._make_pattern_finding(
@@ -2004,10 +2038,11 @@ class GPTLensAdapter(ToolAdapter):
                 func_name = match.group(1)
                 func_start = match.start()
                 # Check if there's timelock
-                has_timelock = bool(re.search(
-                    r"timelock|TimeLock|delay|DELAY|MIN_DELAY|governance",
-                    code, re.IGNORECASE
-                ))
+                has_timelock = bool(
+                    re.search(
+                        r"timelock|TimeLock|delay|DELAY|MIN_DELAY|governance", code, re.IGNORECASE
+                    )
+                )
                 if not has_timelock:
                     line_num = code[:func_start].count("\n") + 1
                     return self._make_pattern_finding(

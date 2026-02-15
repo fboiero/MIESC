@@ -67,6 +67,7 @@ def set_global_seeds(seed: int = 42) -> None:
     # NumPy (if available)
     try:
         import numpy as np
+
         np.random.seed(seed)
         logger.debug(f"NumPy seed set to {seed}")
     except ImportError:
@@ -75,6 +76,7 @@ def set_global_seeds(seed: int = 42) -> None:
     # PyTorch (if available)
     try:
         import torch
+
         torch.manual_seed(seed)
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
@@ -88,6 +90,7 @@ def set_global_seeds(seed: int = 42) -> None:
     # TensorFlow (if available)
     try:
         import tensorflow as tf
+
         tf.random.set_seed(seed)
         logger.debug(f"TensorFlow seed set to {seed}")
     except ImportError:
@@ -219,7 +222,9 @@ def get_model_version(model_name: str, provider: str) -> ModelVersion:
     provider = provider.lower()
 
     if provider == "ollama":
-        return get_ollama_model_version(model_name) or ModelVersion(name=model_name, provider=provider)
+        return get_ollama_model_version(model_name) or ModelVersion(
+            name=model_name, provider=provider
+        )
     elif provider == "openai":
         return get_openai_model_version(model_name)
     elif provider == "anthropic":
@@ -267,6 +272,7 @@ def get_environment_fingerprint() -> EnvironmentFingerprint:
     for pkg in package_names:
         try:
             import importlib.metadata
+
             packages[pkg] = importlib.metadata.version(pkg)
         except Exception:
             packages[pkg] = "not installed"
@@ -424,11 +430,13 @@ class ExperimentLogger:
             hash_value = hash_value or "unknown"
             size = 0
 
-        self.record.inputs.append(InputRecord(
-            path=str(path),
-            hash=hash_value,
-            size=size,
-        ))
+        self.record.inputs.append(
+            InputRecord(
+                path=str(path),
+                hash=hash_value,
+                size=size,
+            )
+        )
         logger.debug(f"Logged input: {path}")
 
     def log_parameter(self, name: str, value: Any) -> None:
@@ -502,9 +510,15 @@ def create_reproducibility_report(
                 for i in record.inputs
             ],
             "environment": {
-                "python": record.environment.python_version.split()[0] if record.environment else "unknown",
+                "python": (
+                    record.environment.python_version.split()[0]
+                    if record.environment
+                    else "unknown"
+                ),
                 "platform": record.environment.platform if record.environment else "unknown",
-                "miesc_version": record.environment.miesc_version if record.environment else "unknown",
+                "miesc_version": (
+                    record.environment.miesc_version if record.environment else "unknown"
+                ),
             },
             "parameters": record.parameters,
         }

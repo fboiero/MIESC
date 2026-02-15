@@ -90,7 +90,9 @@ class GPTScanAgent(BaseAgent):
 
         start_time = time.time()
 
-        logger.info(f"GPTScan Analysis Starting - Contract: {contract_path}, GPT: {self.gpt_enabled}")
+        logger.info(
+            f"GPTScan Analysis Starting - Contract: {contract_path}, GPT: {self.gpt_enabled}"
+        )
 
         # Step 1: Run static analysis (Slither-based)
         logger.debug("[1/3] Running static analysis...")

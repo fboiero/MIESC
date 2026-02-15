@@ -583,7 +583,9 @@ def main():
     print("\nResumen:")  # noqa: T201
     print(f"  - Total correlacionados: {report['summary']['total_correlated']}")  # noqa: T201
     print(f"  - Hallazgos originales: {report['summary']['original_findings']}")  # noqa: T201
-    print(f"  - Tasa de deduplicación: {report['summary']['deduplication_rate']*100:.1f}%")  # noqa: T201
+    print(
+        f"  - Tasa de deduplicación: {report['summary']['deduplication_rate']*100:.1f}%"
+    )  # noqa: T201
     print(f"  - Validación cruzada: {report['summary']['cross_validated']}")  # noqa: T201
     print(f"  - Alta confianza: {report['summary']['high_confidence_count']}")  # noqa: T201
 

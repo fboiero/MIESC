@@ -37,11 +37,11 @@ def _get_chromadb():
     if _chromadb is None:
         try:
             import chromadb
+
             _chromadb = chromadb
         except ImportError:
             raise ImportError(
-                "ChromaDB is required for embedding RAG. "
-                "Install with: pip install chromadb"
+                "ChromaDB is required for embedding RAG. " "Install with: pip install chromadb"
             ) from None
     return _chromadb
 
@@ -52,6 +52,7 @@ def _get_sentence_transformer():
     if _sentence_transformers is None:
         try:
             from sentence_transformers import SentenceTransformer
+
             _sentence_transformers = SentenceTransformer
         except ImportError:
             raise ImportError(
@@ -181,9 +182,14 @@ function withdraw(uint256 _amount) public nonReentrant {
         severity="critical",
         category="reentrancy",
         real_exploit="The DAO Hack - $60M stolen (2016)",
-        tags=["reentrancy", "external-call", "state-update", "cef-pattern", "checks-effects-interactions"],
+        tags=[
+            "reentrancy",
+            "external-call",
+            "state-update",
+            "cef-pattern",
+            "checks-effects-interactions",
+        ],
     ),
-
     # SWC-107 Variant: Cross-function Reentrancy
     VulnerabilityDocument(
         id="CROSS-FUNC-REENTRANCY",
@@ -232,7 +238,6 @@ function withdraw() public nonReentrant {
         real_exploit="Multiple DeFi hacks use this pattern",
         tags=["reentrancy", "cross-function", "state-sharing", "multi-function"],
     ),
-
     # SWC-107 Variant: Read-only Reentrancy
     VulnerabilityDocument(
         id="READ-ONLY-REENTRANCY",
@@ -278,7 +283,6 @@ function getPrice() public view returns (uint256) {
         real_exploit="Curve/Vyper Read-only Reentrancy - $70M (2023)",
         tags=["reentrancy", "read-only", "oracle", "view-function", "defi"],
     ),
-
     # SWC-105: Unprotected Ether Withdrawal
     VulnerabilityDocument(
         id="SWC-105",
@@ -315,7 +319,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
         real_exploit="Parity Multisig Hack - $150M frozen (2017)",
         tags=["access-control", "withdrawal", "authorization", "missing-modifier"],
     ),
-
     # SWC-115: tx.origin Authentication
     VulnerabilityDocument(
         id="SWC-115",
@@ -351,7 +354,6 @@ function transferTo(address payable dest, uint amount) public {
         real_exploit="Common phishing vector in DeFi",
         tags=["tx-origin", "phishing", "authorization", "msg-sender"],
     ),
-
     # SWC-104: Unchecked Call Return Value
     VulnerabilityDocument(
         id="SWC-104",
@@ -392,7 +394,6 @@ Address.sendValue(_to, _amount);
         category="unchecked-call",
         tags=["unchecked-return", "low-level-call", "error-handling", "send", "call"],
     ),
-
     # SWC-101: Integer Overflow/Underflow
     VulnerabilityDocument(
         id="SWC-101",
@@ -435,7 +436,6 @@ function transfer(address _to, uint256 _amount) public {
         real_exploit="BEC Token - $900M theoretical (2018)",
         tags=["overflow", "underflow", "arithmetic", "safemath", "solidity-version"],
     ),
-
     # SWC-112: Delegatecall to Untrusted Callee
     VulnerabilityDocument(
         id="SWC-112",
@@ -473,7 +473,6 @@ function execute(address _target, bytes memory _data) public onlyOwner {
         real_exploit="Parity Wallet Hack - $30M (2017)",
         tags=["delegatecall", "proxy", "code-injection", "storage-manipulation"],
     ),
-
     # Flash Loan Attack Pattern
     VulnerabilityDocument(
         id="FLASH-LOAN-ATTACK",
@@ -528,7 +527,6 @@ modifier noFlashLoan() {
         real_exploit="bZx Flash Loan Attack - $350K (2020), Cream Finance - $130M (2021)",
         tags=["flash-loan", "price-manipulation", "oracle", "defi", "arbitrage"],
     ),
-
     # Oracle Manipulation
     VulnerabilityDocument(
         id="ORACLE-MANIPULATION",
@@ -576,7 +574,6 @@ function getTWAP() public view returns (uint256) {
         real_exploit="Harvest Finance - $34M (2020), Mango Markets - $114M (2022)",
         tags=["oracle", "price-manipulation", "flash-loan", "twap", "chainlink", "defi"],
     ),
-
     # Frontrunning / Sandwich Attack
     VulnerabilityDocument(
         id="SANDWICH-ATTACK",
@@ -620,7 +617,6 @@ function swap(uint256 amountIn, uint256 minAmountOut, uint256 deadline) external
         real_exploit="Common MEV extraction, estimated $1B+ annually",
         tags=["mev", "frontrunning", "sandwich", "slippage", "deadline", "mempool"],
     ),
-
     # Governance Flash Loan Attack
     VulnerabilityDocument(
         id="GOVERNANCE-FLASH-LOAN",
@@ -663,7 +659,6 @@ function castVote(uint256 proposalId, bool support) external {
         real_exploit="Beanstalk - $182M (2022)",
         tags=["governance", "flash-loan", "voting", "snapshot", "checkpoint", "defi"],
     ),
-
     # Proxy Storage Collision
     VulnerabilityDocument(
         id="PROXY-STORAGE-COLLISION",
@@ -719,7 +714,6 @@ contract Proxy {
         real_exploit="Multiple proxy-related hacks including Wormhole",
         tags=["proxy", "storage-collision", "upgradeable", "eip-1967", "delegatecall"],
     ),
-
     # Signature Replay Attack
     VulnerabilityDocument(
         id="SIGNATURE-REPLAY",
@@ -779,7 +773,6 @@ function executeWithSig(
         real_exploit="Wintermute - $160M (2022, related to signature vulnerability)",
         tags=["signature", "replay", "nonce", "ecrecover", "eip-712", "chainid"],
     ),
-
     # Denial of Service - Gas Limit
     VulnerabilityDocument(
         id="DOS-GAS-LIMIT",
@@ -831,7 +824,6 @@ function claimReward() external {
         real_exploit="GovernMental - locked funds forever (2016)",
         tags=["dos", "gas-limit", "unbounded-loop", "array", "pull-pattern"],
     ),
-
     # Uninitialized Storage Pointer
     VulnerabilityDocument(
         id="SWC-109",
@@ -875,7 +867,6 @@ function modifyData() public {
         real_exploit="OpenAddressLottery (2017)",
         tags=["storage", "uninitialized", "pointer", "solidity-version", "slot-0"],
     ),
-
     # ERC-777 Hooks Reentrancy
     VulnerabilityDocument(
         id="ERC777-REENTRANCY",
@@ -920,7 +911,6 @@ require(!ERC1820Registry.getInterfaceImplementer(
         real_exploit="imBTC Uniswap Attack - $300K (2020)",
         tags=["erc777", "hooks", "reentrancy", "token", "callback"],
     ),
-
     # Fee-on-Transfer Token Issues
     VulnerabilityDocument(
         id="FEE-ON-TRANSFER",
@@ -960,7 +950,6 @@ function deposit(uint256 amount) external {
         real_exploit="Multiple DeFi protocols affected",
         tags=["fee-on-transfer", "token", "accounting", "balance-check", "deflationary"],
     ),
-
     # SWC-106: Unprotected SELFDESTRUCT
     VulnerabilityDocument(
         id="SWC-106",
@@ -997,7 +986,6 @@ function destroy() public onlyOwner {
         real_exploit="Parity Multisig Library - $150M frozen permanently (2017)",
         tags=["selfdestruct", "access-control", "permanent", "destructive"],
     ),
-
     # SWC-116: Block Timestamp Dependence
     VulnerabilityDocument(
         id="SWC-116",
@@ -1041,7 +1029,6 @@ function timeLock() public {
         category="randomness",
         tags=["timestamp", "block-values", "randomness", "miner-manipulation"],
     ),
-
     # SWC-120: Weak Sources of Randomness
     VulnerabilityDocument(
         id="SWC-120",
@@ -1093,7 +1080,6 @@ function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) int
         real_exploit="Multiple lottery/gambling contracts exploited",
         tags=["randomness", "blockhash", "timestamp", "chainlink-vrf", "predictable"],
     ),
-
     # SWC-100: Function Default Visibility
     VulnerabilityDocument(
         id="SWC-100",
@@ -1142,7 +1128,6 @@ contract Wallet {
         category="visibility",
         tags=["visibility", "public", "private", "access-control", "solidity-version"],
     ),
-
     # SWC-117: Signature Malleability
     VulnerabilityDocument(
         id="SWC-117",
@@ -1192,7 +1177,6 @@ function claim(bytes memory signature) external {
         category="cryptography",
         tags=["signature", "malleability", "ecdsa", "ecrecover", "replay"],
     ),
-
     # SWC-119: Shadowing State Variables
     VulnerabilityDocument(
         id="SWC-119",
@@ -1249,7 +1233,6 @@ contract Child is Parent {
         category="inheritance",
         tags=["shadowing", "inheritance", "state-variable", "storage"],
     ),
-
     # SWC-113: DoS with Failed Call
     VulnerabilityDocument(
         id="SWC-113",
@@ -1301,7 +1284,6 @@ function withdraw() external {
         real_exploit="King of the Ether (2016)",
         tags=["dos", "failed-call", "pull-pattern", "revert", "griefing"],
     ),
-
     # SWC-126: Insufficient Gas Griefing
     VulnerabilityDocument(
         id="SWC-126",
@@ -1345,7 +1327,6 @@ function safeRelay(address target, bytes calldata data) external {
         category="gas",
         tags=["gas-griefing", "relay", "insufficient-gas", "eip-150"],
     ),
-
     # SWC-132: Unexpected Ether Balance
     VulnerabilityDocument(
         id="SWC-132",
@@ -1391,7 +1372,6 @@ function withdraw() external {
         category="balance",
         tags=["selfdestruct", "balance", "unexpected-ether", "invariant"],
     ),
-
     # SWC-124: Write to Arbitrary Storage
     VulnerabilityDocument(
         id="SWC-124",
@@ -1439,7 +1419,6 @@ function append(uint256 value) external {
         category="storage",
         tags=["arbitrary-write", "storage", "array", "overflow", "solidity-version"],
     ),
-
     # Permit Function Phishing
     VulnerabilityDocument(
         id="PERMIT-PHISHING",
@@ -1487,7 +1466,6 @@ function safePermit(...) external {
         real_exploit="Multiple permit phishing attacks, millions lost (2023)",
         tags=["permit", "erc2612", "phishing", "signature", "approval", "gasless"],
     ),
-
     # ERC-4626 Vault Inflation Attack
     VulnerabilityDocument(
         id="ERC4626-INFLATION",
@@ -1540,7 +1518,6 @@ function deposit(uint256 assets, address receiver) public returns (uint256 share
         real_exploit="Multiple ERC-4626 implementations vulnerable",
         tags=["erc4626", "vault", "inflation", "rounding", "first-deposit", "defi"],
     ),
-
     # UUPS Uninitialized Implementation
     VulnerabilityDocument(
         id="UUPS-UNINITIALIZED",
@@ -1595,7 +1572,6 @@ contract MyContractV1 is UUPSUpgradeable {
         real_exploit="Wormhole - Implementation takeover possible (2022)",
         tags=["uups", "proxy", "uninitialized", "upgradeable", "initializer"],
     ),
-
     # Cross-Contract Reentrancy
     VulnerabilityDocument(
         id="CROSS-CONTRACT-REENTRANCY",
@@ -1653,7 +1629,6 @@ contract ReentrancyGuard {
         real_exploit="Fei Protocol Rari Hack - $80M (2022)",
         tags=["reentrancy", "cross-contract", "protocol", "shared-state"],
     ),
-
     # Rebasing Token Issues
     VulnerabilityDocument(
         id="REBASING-TOKEN",
@@ -1705,7 +1680,6 @@ require(!isRebasingToken(token), "Rebasing tokens not supported");
         real_exploit="Multiple DeFi protocols had rebasing issues",
         tags=["rebasing", "steth", "ampl", "shares", "balance", "defi"],
     ),
-
     # Merkle Tree Leaf Collision
     VulnerabilityDocument(
         id="MERKLE-LEAF-COLLISION",
@@ -1762,7 +1736,6 @@ function verifyProof(...) internal pure returns (bool) {
         real_exploit="CVE-2012-2459 (Bitcoin), various Merkle airdrops",
         tags=["merkle", "proof", "collision", "airdrop", "cryptography"],
     ),
-
     # Lack of Access Control on Callback
     VulnerabilityDocument(
         id="CALLBACK-ACCESS-CONTROL",
@@ -1819,7 +1792,6 @@ function uniswapV3SwapCallback(
         real_exploit="Multiple DeFi protocols vulnerable to callback exploits",
         tags=["callback", "access-control", "uniswap", "flash-loan", "verification"],
     ),
-
     # Precision Loss in Division
     VulnerabilityDocument(
         id="PRECISION-LOSS",
@@ -1869,7 +1841,6 @@ function swap(uint256 amountIn) external returns (uint256) {
         category="arithmetic",
         tags=["precision", "division", "rounding", "fee", "dust"],
     ),
-
     # Time-lock Bypass
     VulnerabilityDocument(
         id="TIMELOCK-BYPASS",
@@ -1927,7 +1898,6 @@ contract Treasury {
         category="governance",
         tags=["timelock", "bypass", "governance", "admin", "emergency", "defi"],
     ),
-
     # Chainlink Stale Price
     VulnerabilityDocument(
         id="CHAINLINK-STALE-PRICE",
@@ -1982,7 +1952,6 @@ function getPrice() external view returns (uint256) {
         real_exploit="Multiple DeFi exploits during market volatility",
         tags=["chainlink", "oracle", "stale-price", "validation", "defi"],
     ),
-
     # Missing Zero Address Validation
     VulnerabilityDocument(
         id="ZERO-ADDRESS-CHECK",
@@ -2031,11 +2000,9 @@ if (to == address(0)) revert ZeroAddress();
         category="validation",
         tags=["zero-address", "validation", "burn", "access-control", "input-validation"],
     ),
-
     # =========================================================================
     # MEV / FRONTRUNNING PATTERNS (Expanded)
     # =========================================================================
-
     # JIT Liquidity Attack
     VulnerabilityDocument(
         id="MEV-JIT-LIQUIDITY",
@@ -2097,7 +2064,6 @@ function getAmountOut(uint amountIn) public view returns (uint) {
         real_exploit="Common on Uniswap V3 - $100M+ extracted annually",
         tags=["mev", "jit", "liquidity", "frontrunning", "amm", "uniswap"],
     ),
-
     # Time-Bandit Attack
     VulnerabilityDocument(
         id="MEV-TIME-BANDIT",
@@ -2158,7 +2124,6 @@ function executeArbitrage(
         real_exploit="Theoretical but incentivized - discussed in 'Flash Boys 2.0' paper",
         tags=["mev", "reorg", "time-bandit", "consensus", "mining", "finality"],
     ),
-
     # Long-tail MEV
     VulnerabilityDocument(
         id="MEV-LONG-TAIL",
@@ -2222,11 +2187,9 @@ function castVote(uint proposalId, bool support) external {
         real_exploit="Bored Ape Yacht Club land mint - $175M gas war (2022)",
         tags=["mev", "nft", "governance", "frontrunning", "long-tail"],
     ),
-
     # =========================================================================
     # CROSS-CHAIN / BRIDGE VULNERABILITIES
     # =========================================================================
-
     # Bridge Message Replay
     VulnerabilityDocument(
         id="BRIDGE-MESSAGE-REPLAY",
@@ -2292,7 +2255,6 @@ function receiveMessage(
         real_exploit="Wormhole Bridge - $320M (February 2022)",
         tags=["bridge", "replay", "cross-chain", "signature", "nonce"],
     ),
-
     # L2 Sequencer Downtime Risk
     VulnerabilityDocument(
         id="L2-SEQUENCER-DOWNTIME",
@@ -2354,7 +2316,6 @@ function getLatestPrice() public view returns (uint256) {
         real_exploit="Arbitrum sequencer downtime - multiple DeFi protocols affected",
         tags=["l2", "sequencer", "oracle", "downtime", "arbitrum", "optimism"],
     ),
-
     # Cross-Chain Oracle Manipulation
     VulnerabilityDocument(
         id="CROSS-CHAIN-ORACLE",
@@ -2419,11 +2380,9 @@ function bridgeWithCollateral(
         real_exploit="Multiple cross-chain lending protocols affected in 2023",
         tags=["cross-chain", "oracle", "bridge", "manipulation", "multichain"],
     ),
-
     # =========================================================================
     # RECENT DEFI EXPLOITS (2023-2024)
     # =========================================================================
-
     # Curve/Vyper Reentrancy (July 2023)
     VulnerabilityDocument(
         id="CURVE-VYPER-REENTRANCY",
@@ -2487,7 +2446,6 @@ def _unlock():
         real_exploit="Curve Finance - $70M stolen across multiple pools (July 2023)",
         tags=["vyper", "compiler", "reentrancy", "curve", "nonreentrant", "defi"],
     ),
-
     # Euler Finance Attack
     VulnerabilityDocument(
         id="EULER-DONATE-ATTACK",
@@ -2552,7 +2510,6 @@ function rescueDonatedTokens(address token) external onlyAdmin {
         real_exploit="Euler Finance - $197M stolen (March 2023)",
         tags=["donation", "flash-loan", "collateral", "euler", "accounting", "defi"],
     ),
-
     # LP Token Inflation Attack
     VulnerabilityDocument(
         id="LP-INFLATION-ATTACK",
@@ -2617,11 +2574,9 @@ function _initializePool(uint256 initialDeposit) internal {
         real_exploit="Multiple ERC-4626 vault implementations affected",
         tags=["inflation", "vault", "lp", "shares", "rounding", "first-depositor"],
     ),
-
     # =========================================================================
     # NFT-SPECIFIC VULNERABILITIES
     # =========================================================================
-
     # Unlimited NFT Mint
     VulnerabilityDocument(
         id="NFT-UNLIMITED-MINT",
@@ -2696,7 +2651,6 @@ function whitelistMint() external {
         real_exploit="Multiple NFT projects suffered 'bot' mints in 2021-2022",
         tags=["nft", "mint", "unlimited", "bot", "whitelist", "erc721"],
     ),
-
     # NFT Royalty Bypass
     VulnerabilityDocument(
         id="NFT-ROYALTY-BYPASS",
@@ -2768,11 +2722,9 @@ function _beforeTokenTransfer(address from, address to, uint256 tokenId) interna
         real_exploit="Blur, SudoSwap, and others enabled royalty-optional trading (2022-2023)",
         tags=["nft", "royalty", "bypass", "erc721", "eip2981", "marketplace"],
     ),
-
     # =========================================================================
     # ADVANCED PROXY / UPGRADEABLE PATTERNS
     # =========================================================================
-
     # Diamond Proxy Storage Collision
     VulnerabilityDocument(
         id="DIAMOND-STORAGE-COLLISION",
@@ -2859,7 +2811,6 @@ contract FacetA {
         real_exploit="Multiple Diamond implementations have had storage issues",
         tags=["diamond", "proxy", "storage", "collision", "eip2535", "upgradeable"],
     ),
-
     # Beacon Proxy Initialization
     VulnerabilityDocument(
         id="BEACON-PROXY-UNINIT",
@@ -2931,11 +2882,9 @@ BeaconProxy proxy = new BeaconProxy(
         real_exploit="Wormhole uninitialized implementation - $320M at risk",
         tags=["beacon", "proxy", "initialization", "upgradeable", "implementation"],
     ),
-
     # =========================================================================
     # ZK CIRCUIT VULNERABILITIES
     # =========================================================================
-
     # Underconstrained Circuit
     VulnerabilityDocument(
         id="ZK-UNDERCONSTRAINED",
@@ -3015,7 +2964,6 @@ rangeCheck.out === 1;
         real_exploit="Zcash counterfeiting vulnerability (2019) - fixed before exploitation",
         tags=["zk", "circom", "underconstrained", "snark", "circuit", "proof"],
     ),
-
     # ZK Nullifier Collision
     VulnerabilityDocument(
         id="ZK-NULLIFIER-COLLISION",
@@ -3099,11 +3047,9 @@ contract PrivacyPool {
         real_exploit="Tornado Cash fork vulnerabilities discovered in 2023",
         tags=["zk", "nullifier", "double-spend", "privacy", "tornado", "merkle"],
     ),
-
     # =========================================================================
     # DEFI PROTOCOL-SPECIFIC PATTERNS
     # =========================================================================
-
     # Compound Fork Interest Rate Manipulation
     VulnerabilityDocument(
         id="COMPOUND-INTEREST-MANIPULATION",
@@ -3179,7 +3125,6 @@ function getBorrowRate() public view returns (uint256) {
         real_exploit="Cream Finance interest rate manipulation (2021)",
         tags=["compound", "interest-rate", "utilization", "flash-loan", "lending"],
     ),
-
     # Governance Proposal Spam
     VulnerabilityDocument(
         id="GOV-PROPOSAL-SPAM",
@@ -3259,7 +3204,6 @@ contract Governance {
         real_exploit="Beanstalk governance attack used distraction proposals (2022)",
         tags=["governance", "proposal", "spam", "dos", "voting", "dao"],
     ),
-
     # Airdrop Claim Vulnerability
     VulnerabilityDocument(
         id="AIRDROP-CLAIM-VULN",
@@ -3333,7 +3277,6 @@ contract Airdrop {
         real_exploit="Multiple airdrop implementations with second preimage issues",
         tags=["airdrop", "merkle", "proof", "claim", "token", "distribution"],
     ),
-
     # Time-Locked Admin Bypass
     VulnerabilityDocument(
         id="EMERGENCY-TIMELOCK-BYPASS",
@@ -3409,7 +3352,6 @@ contract TimelockController {
         real_exploit="Multiple DeFi protocols had emergency function abuse",
         tags=["timelock", "bypass", "emergency", "admin", "governance", "upgrade"],
     ),
-
     # Permit Signature Phishing
     VulnerabilityDocument(
         id="PERMIT-SIGNATURE-PHISHING",
@@ -3566,7 +3508,9 @@ class EmbeddingRAG:
         self._cache_hits = 0
         self._cache_misses = 0
 
-        logger.info(f"EmbeddingRAG configured with model={embedding_model}, top_k={top_k}, cache={enable_cache}")
+        logger.info(
+            f"EmbeddingRAG configured with model={embedding_model}, top_k={top_k}, cache={enable_cache}"
+        )
 
     def _ensure_initialized(self) -> None:
         """Lazy initialization of ChromaDB and embeddings."""
@@ -3593,7 +3537,7 @@ class EmbeddingRAG:
                     "hnsw:space": "cosine",
                     "hnsw:search_ef": 50,  # Better recall (default 10)
                     "hnsw:M": 16,  # Default, good balance
-                }
+                },
             )
 
             # Check if we need to populate the knowledge base
@@ -3760,7 +3704,7 @@ class EmbeddingRAG:
             query_texts=[query],
             n_results=n,
             where=where_filter,
-            include=["documents", "metadatas", "distances"]
+            include=["documents", "metadatas", "distances"],
         )
 
         # Convert to RetrievalResult objects using O(1) lookup
@@ -3776,11 +3720,13 @@ class EmbeddingRAG:
                     distance = results["distances"][0][i] if results["distances"] else 0
                     similarity = 1 - distance  # Cosine distance to similarity
 
-                    retrieval_results.append(RetrievalResult(
-                        document=original_doc,
-                        similarity_score=similarity,
-                        relevance_reason=self._explain_relevance(query, original_doc),
-                    ))
+                    retrieval_results.append(
+                        RetrievalResult(
+                            document=original_doc,
+                            similarity_score=similarity,
+                            relevance_reason=self._explain_relevance(query, original_doc),
+                        )
+                    )
 
         # Cache the results
         self._cache_result(cache_key, retrieval_results)
@@ -3862,7 +3808,7 @@ class EmbeddingRAG:
                 query_texts=query_texts,
                 n_results=n,
                 where=where_filter,
-                include=["documents", "metadatas", "distances"]
+                include=["documents", "metadatas", "distances"],
             )
 
             # Process results for each query
@@ -3873,13 +3819,17 @@ class EmbeddingRAG:
                     for i, doc_id in enumerate(results["ids"][batch_idx]):
                         original_doc = self._doc_index.get(doc_id)
                         if original_doc:
-                            distance = results["distances"][batch_idx][i] if results["distances"] else 0
+                            distance = (
+                                results["distances"][batch_idx][i] if results["distances"] else 0
+                            )
                             similarity = 1 - distance
-                            retrieval_results.append(RetrievalResult(
-                                document=original_doc,
-                                similarity_score=similarity,
-                                relevance_reason=self._explain_relevance(query, original_doc),
-                            ))
+                            retrieval_results.append(
+                                RetrievalResult(
+                                    document=original_doc,
+                                    similarity_score=similarity,
+                                    relevance_reason=self._explain_relevance(query, original_doc),
+                                )
+                            )
 
                 # Cache this result
                 cache_key = self._get_cache_key(query, filter_category, filter_severity, n)
@@ -4040,8 +3990,7 @@ class EmbeddingRAG:
 
         # Recreate
         self._collection = self._client.create_collection(
-            name=self.COLLECTION_NAME,
-            metadata={"hnsw:space": "cosine"}
+            name=self.COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
         )
 
         # Reindex
@@ -4124,9 +4073,7 @@ class HybridRAG(EmbeddingRAG):
         n = n_results or self.top_k
 
         # Get embedding results (fetch more for reranking)
-        embedding_results = super().search(
-            query, filter_category, filter_severity, n_results=n * 2
-        )
+        embedding_results = super().search(query, filter_category, filter_severity, n_results=n * 2)
 
         if self._bm25 is None:
             # Fall back to embedding-only if BM25 not available
@@ -4151,16 +4098,18 @@ class HybridRAG(EmbeddingRAG):
         for result in embedding_results:
             bm25_score = id_to_bm25.get(result.document.id, 0)
             hybrid_score = (
-                self.embedding_weight * result.similarity_score +
-                (1 - self.embedding_weight) * bm25_score
+                self.embedding_weight * result.similarity_score
+                + (1 - self.embedding_weight) * bm25_score
             )
 
-            hybrid_results.append(RetrievalResult(
-                document=result.document,
-                similarity_score=hybrid_score,
-                relevance_reason=result.relevance_reason +
-                    f" (hybrid: emb={result.similarity_score:.2f}, bm25={bm25_score:.2f})",
-            ))
+            hybrid_results.append(
+                RetrievalResult(
+                    document=result.document,
+                    similarity_score=hybrid_score,
+                    relevance_reason=result.relevance_reason
+                    + f" (hybrid: emb={result.similarity_score:.2f}, bm25={bm25_score:.2f})",
+                )
+            )
 
         # Sort by hybrid score and return top-k
         hybrid_results.sort(key=lambda x: -x.similarity_score)
@@ -4280,9 +4229,7 @@ def batch_get_context_for_findings(
             type_to_findings[vuln_type] = []
         type_to_findings[vuln_type].append(finding)
 
-    logger.debug(
-        f"Batch context: {len(findings)} findings -> {len(type_to_findings)} unique types"
-    )
+    logger.debug(f"Batch context: {len(findings)} findings -> {len(type_to_findings)} unique types")
 
     # Build queries for unique types
     queries = []
@@ -4321,9 +4268,7 @@ def batch_get_context_for_findings(
     for finding in findings:
         vuln_type = finding.get("type", finding.get("category", "general")).lower()
         finding_key = finding.get("title", finding.get("id", str(id(finding))))
-        result[finding_key] = type_to_context.get(
-            vuln_type, "No context available."
-        )
+        result[finding_key] = type_to_context.get(vuln_type, "No context available.")
 
     return result
 

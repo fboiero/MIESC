@@ -49,6 +49,7 @@ try:
         batch_get_context_for_findings,
         get_context_for_finding,
     )
+
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
     _EMBEDDING_RAG_AVAILABLE = False
@@ -387,23 +388,20 @@ class SmartLLMAdapter(ToolAdapter):
             return code
 
         # Extract contract structure
-        lines = code.split('\n')
+        lines = code.split("\n")
 
         # Phase 1: Always include header (first ~30 lines or until first function)
         header_end = 0
         for i, line in enumerate(lines):
-            if 'function ' in line or 'modifier ' in line:
+            if "function " in line or "modifier " in line:
                 header_end = i
                 break
             header_end = i + 1
 
-        header = '\n'.join(lines[:header_end])
+        header = "\n".join(lines[:header_end])
 
         # Phase 2: Extract and prioritize functions
-        re.compile(
-            r'(function\s+\w+[^{]*\{)',
-            re.MULTILINE
-        )
+        re.compile(r"(function\s+\w+[^{]*\{)", re.MULTILINE)
 
         # Simple function extraction (brace counting)
         functions = []
@@ -412,47 +410,47 @@ class SmartLLMAdapter(ToolAdapter):
         in_function = False
 
         for line in lines[header_end:]:
-            if 'function ' in line and brace_count == 0:
+            if "function " in line and brace_count == 0:
                 if current_func:
-                    functions.append('\n'.join(current_func))
+                    functions.append("\n".join(current_func))
                 current_func = [line]
                 in_function = True
-                brace_count = line.count('{') - line.count('}')
+                brace_count = line.count("{") - line.count("}")
             elif in_function:
                 current_func.append(line)
-                brace_count += line.count('{') - line.count('}')
+                brace_count += line.count("{") - line.count("}")
                 if brace_count <= 0:
-                    functions.append('\n'.join(current_func))
+                    functions.append("\n".join(current_func))
                     current_func = []
                     in_function = False
                     brace_count = 0
 
         if current_func:
-            functions.append('\n'.join(current_func))
+            functions.append("\n".join(current_func))
 
         # Score functions by security criticality
         def score_function(func_code: str) -> int:
             score = 0
             func_lower = func_code.lower()
             # High priority: external calls (reentrancy risk)
-            if '.call{' in func_code or '.call(' in func_code:
+            if ".call{" in func_code or ".call(" in func_code:
                 score += 100
-            if '.transfer(' in func_code:
+            if ".transfer(" in func_code:
                 score += 80
-            if 'delegatecall' in func_lower:
+            if "delegatecall" in func_lower:
                 score += 90
             # High priority: admin/owner functions
-            if 'onlyowner' in func_lower or 'admin' in func_lower:
+            if "onlyowner" in func_lower or "admin" in func_lower:
                 score += 70
-            if 'selfdestruct' in func_lower:
+            if "selfdestruct" in func_lower:
                 score += 100
             # Medium priority: value handling
-            if 'payable' in func_lower:
+            if "payable" in func_lower:
                 score += 50
-            if 'withdraw' in func_lower or 'deposit' in func_lower:
+            if "withdraw" in func_lower or "deposit" in func_lower:
                 score += 60
             # DeFi patterns
-            if any(p in func_lower for p in ['swap', 'borrow', 'lend', 'liquidat', 'price']):
+            if any(p in func_lower for p in ["swap", "borrow", "lend", "liquidat", "price"]):
                 score += 75
             return score
 
@@ -467,7 +465,9 @@ class SmartLLMAdapter(ToolAdapter):
 
         for _score, func in scored_functions:
             func_with_separator = f"\n\n{func}"
-            if current_len + len(func_with_separator) <= max_chars - 50:  # Reserve 50 for truncation note
+            if (
+                current_len + len(func_with_separator) <= max_chars - 50
+            ):  # Reserve 50 for truncation note
                 result_parts.append(func_with_separator)
                 current_len += len(func_with_separator)
                 included_count += 1
@@ -475,9 +475,11 @@ class SmartLLMAdapter(ToolAdapter):
         if included_count < len(functions):
             omitted = len(functions) - included_count
             result_parts.append(f"\n\n// ... ({omitted} functions omitted, {len(functions)} total)")
-            logger.info(f"Smart truncation: included {included_count}/{len(functions)} functions (prioritized by security risk)")
+            logger.info(
+                f"Smart truncation: included {included_count}/{len(functions)} functions (prioritized by security risk)"
+            )
 
-        return ''.join(result_parts)
+        return "".join(result_parts)
 
     def _extract_rag_query(self, contract_code: str, patterns: dict) -> str:
         """
@@ -507,12 +509,27 @@ class SmartLLMAdapter(ToolAdapter):
 
         # Extract function signatures for context
         import re
-        func_sigs = re.findall(r'function\s+(\w+)\s*\([^)]*\)', contract_code)
+
+        func_sigs = re.findall(r"function\s+(\w+)\s*\([^)]*\)", contract_code)
         if func_sigs:
             # Focus on suspicious function names
-            suspicious = [f for f in func_sigs if any(
-                kw in f.lower() for kw in ['withdraw', 'transfer', 'admin', 'owner', 'mint', 'burn', 'swap', 'borrow']
-            )]
+            suspicious = [
+                f
+                for f in func_sigs
+                if any(
+                    kw in f.lower()
+                    for kw in [
+                        "withdraw",
+                        "transfer",
+                        "admin",
+                        "owner",
+                        "mint",
+                        "burn",
+                        "swap",
+                        "borrow",
+                    ]
+                )
+            ]
             if suspicious:
                 query_parts.append(f"security analysis of {' '.join(suspicious[:5])}")
 
@@ -546,10 +563,7 @@ class SmartLLMAdapter(ToolAdapter):
                 try:
                     # Use optimized query instead of raw code
                     rag_query = self._extract_rag_query(contract_code, code_patterns)
-                    results = self._embedding_rag.search(
-                        query=rag_query,
-                        n_results=5
-                    )
+                    results = self._embedding_rag.search(query=rag_query, n_results=5)
                     rag_parts = []
                     for r in results:
                         rag_parts.append(
@@ -596,7 +610,7 @@ class SmartLLMAdapter(ToolAdapter):
             contract_code,
             max_length=max_code_chars,
             wrap_in_tags=True,
-            tag_name="solidity-contract"
+            tag_name="solidity-contract",
         )
 
         prompt = f"""You are a smart contract security auditor. Find REAL vulnerabilities in this code.
@@ -729,13 +743,19 @@ OUTPUT (JSON only):
         if patterns.get("has_price_oracle"):
             focus.append("- PRICE ORACLE DETECTED: Check for oracle manipulation, stale prices")
         if patterns.get("has_amm_integration"):
-            focus.append("- AMM INTEGRATION DETECTED: Check for flash loan attacks, spot price manipulation")
+            focus.append(
+                "- AMM INTEGRATION DETECTED: Check for flash loan attacks, spot price manipulation"
+            )
         if patterns.get("has_lending_logic"):
-            focus.append("- LENDING LOGIC DETECTED: Check for liquidation vulnerabilities, collateral manipulation")
+            focus.append(
+                "- LENDING LOGIC DETECTED: Check for liquidation vulnerabilities, collateral manipulation"
+            )
         if patterns.get("has_division"):
             focus.append("- DIVISION OPERATIONS: Check for precision loss (divide before multiply)")
         if patterns.get("has_admin_functions"):
-            focus.append("- ADMIN FUNCTIONS DETECTED: Check for missing timelocks, zero address validation")
+            focus.append(
+                "- ADMIN FUNCTIONS DETECTED: Check for missing timelocks, zero address validation"
+            )
 
         version = patterns.get("solidity_version", "unknown")
         if version != "unknown":
@@ -762,15 +782,17 @@ OUTPUT (JSON only):
 
         generate_url = f"{self._ollama_host}/api/generate"
 
-        payload = json.dumps({
-            "model": self._model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.1,
-                "num_ctx": self._max_tokens,
+        payload = json.dumps(
+            {
+                "model": self._model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "num_ctx": self._max_tokens,
+                },
             }
-        }).encode("utf-8")
+        ).encode("utf-8")
 
         for attempt in range(1, self._max_retries + 1):
             try:
@@ -780,7 +802,7 @@ OUTPUT (JSON only):
                     generate_url,
                     data=payload,
                     headers={"Content-Type": "application/json"},
-                    method="POST"
+                    method="POST",
                 )
 
                 with urllib.request.urlopen(req, timeout=300) as resp:
@@ -855,7 +877,9 @@ OUTPUT (JSON only):
                         "category": vuln.type,
                         "location": {
                             "file": contract_path,
-                            "details": f"{vuln.function or ''}" if vuln.function else "See full contract",
+                            "details": (
+                                f"{vuln.function or ''}" if vuln.function else "See full contract"
+                            ),
                         },
                         # Enhanced fields for security researchers
                         "swc_id": swc_id,
@@ -978,7 +1002,9 @@ OUTPUT (JSON only):
                         normalized["references"].append(swc_url)
                     findings.append(normalized)
 
-            logger.info(f"SmartLLM: Parsed {len(findings)} findings from LLM response (legacy path)")
+            logger.info(
+                f"SmartLLM: Parsed {len(findings)} findings from LLM response (legacy path)"
+            )
 
         except Exception as e:
             logger.error(f"Error parsing LLM response: {e}")
@@ -1281,9 +1307,7 @@ OUTPUT (JSON only):
             and initial_findings
         ):
             try:
-                logger.debug(
-                    f"Batch pre-fetching RAG context for {len(initial_findings)} findings"
-                )
+                logger.debug(f"Batch pre-fetching RAG context for {len(initial_findings)} findings")
                 preloaded_contexts = batch_get_context_for_findings(
                     initial_findings, contract_code[:1000]
                 )
@@ -1306,11 +1330,25 @@ OUTPUT (JSON only):
             is_reentrancy = "reentrancy" in finding_type or "reentrant" in finding_type
 
             # DeFi vulnerabilities should be kept conservatively
-            is_defi_vuln = any(kw in combined_text for kw in [
-                "oracle", "price", "flash loan", "flashloan", "manipulation",
-                "precision", "liquidat", "collateral", "timelock", "admin",
-                "zero address", "address(0)", "same block", "same-block"
-            ])
+            is_defi_vuln = any(
+                kw in combined_text
+                for kw in [
+                    "oracle",
+                    "price",
+                    "flash loan",
+                    "flashloan",
+                    "manipulation",
+                    "precision",
+                    "liquidat",
+                    "collateral",
+                    "timelock",
+                    "admin",
+                    "zero address",
+                    "address(0)",
+                    "same block",
+                    "same-block",
+                ]
+            )
 
             # For known high-risk patterns, verify using code pattern detection
             if is_reentrancy:
@@ -1467,12 +1505,12 @@ OUTPUT (JSON only):
             except Exception as e:
                 logger.debug(f"EmbeddingRAG context failed: {e}")
                 vuln_dict = get_vulnerability_context(vuln_type)
-                vuln_context_str = vuln_dict.get('description', 'No reference available')
-                vuln_mitigation = vuln_dict.get('mitigation', 'N/A')
+                vuln_context_str = vuln_dict.get("description", "No reference available")
+                vuln_mitigation = vuln_dict.get("mitigation", "N/A")
         else:
             vuln_dict = get_vulnerability_context(vuln_type)
-            vuln_context_str = vuln_dict.get('description', 'No reference available')
-            vuln_mitigation = vuln_dict.get('mitigation', 'N/A')
+            vuln_context_str = vuln_dict.get("description", "No reference available")
+            vuln_mitigation = vuln_dict.get("mitigation", "N/A")
 
         # Get role-specific system prompt from config
         from src.core.llm_config import ROLE_VERIFICATOR, get_role_system_prompt

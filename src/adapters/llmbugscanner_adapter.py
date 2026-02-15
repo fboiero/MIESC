@@ -42,6 +42,7 @@ from src.core.tool_protocol import (
 # Try to import EmbeddingRAG (optional dependency)
 try:
     from src.llm.embedding_rag import EmbeddingRAG
+
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
     _EMBEDDING_RAG_AVAILABLE = False
@@ -71,8 +72,15 @@ DEFAULT_ENSEMBLE = [
 VULNERABILITY_CATEGORIES = {
     "reentrancy": ["reentrancy", "re-entrancy", "recursive call", "external call before state"],
     "access_control": [
-        "access control", "authorization", "owner only", "permission", "admin",
-        "onlyowner", "restricted", "privilege", "role"
+        "access control",
+        "authorization",
+        "owner only",
+        "permission",
+        "admin",
+        "onlyowner",
+        "restricted",
+        "privilege",
+        "role",
     ],
     "integer_overflow": ["overflow", "underflow", "integer", "arithmetic"],
     "unchecked_call": ["unchecked", "return value", "external call", "low-level call"],
@@ -80,8 +88,16 @@ VULNERABILITY_CATEGORIES = {
     "front_running": ["front-run", "frontrun", "mev", "sandwich", "same-block", "same block"],
     "flash_loan": ["flash loan", "flashloan", "flash-loan", "atomic", "same transaction"],
     "oracle_manipulation": [
-        "oracle", "price feed", "chainlink", "twap", "spot price", "price manipulation",
-        "getreserves", "amm", "uniswap", "manipulat"
+        "oracle",
+        "price feed",
+        "chainlink",
+        "twap",
+        "spot price",
+        "price manipulation",
+        "getreserves",
+        "amm",
+        "uniswap",
+        "manipulat",
     ],
     "logic_error": ["logic", "business logic", "incorrect", "wrong", "bug"],
     "timestamp_dependence": ["timestamp", "block.timestamp", "now"],
@@ -89,13 +105,20 @@ VULNERABILITY_CATEGORIES = {
     "delegatecall": ["delegatecall", "proxy", "storage collision"],
     # DeFi-specific categories
     "precision_loss": [
-        "precision", "rounding", "division before multiplication", "truncat",
-        "decimal", "loss of precision"
+        "precision",
+        "rounding",
+        "division before multiplication",
+        "truncat",
+        "decimal",
+        "loss of precision",
     ],
     "zero_address": ["zero address", "address(0)", "null address", "empty address"],
     "missing_validation": [
-        "missing validation", "no validation", "missing check", "unchecked input",
-        "input validation"
+        "missing validation",
+        "no validation",
+        "missing check",
+        "unchecked input",
+        "input validation",
     ],
     "liquidation": ["liquidat", "collateral", "undercollateral", "health factor"],
     "timelock": ["timelock", "time lock", "delay", "governance", "admin function"],
@@ -212,7 +235,9 @@ class LLMBugScannerAdapter(ToolAdapter):
                         )
                         return ToolStatus.AVAILABLE
                     else:
-                        logger.warning("LLMBugScanner: No ensemble models found. Run: ollama pull deepseek-coder")
+                        logger.warning(
+                            "LLMBugScanner: No ensemble models found. Run: ollama pull deepseek-coder"
+                        )
                         return ToolStatus.CONFIGURATION_ERROR
                 else:
                     logger.warning(f"LLMBugScanner: Ollama returned status {resp.status}")
@@ -414,16 +439,11 @@ class LLMBugScannerAdapter(ToolAdapter):
         rag_context = ""
         if self._use_rag and self._embedding_rag:
             try:
-                results = self._embedding_rag.search(
-                    query=contract_code[:2000],
-                    n_results=3
-                )
+                results = self._embedding_rag.search(query=contract_code[:2000], n_results=3)
                 if results:
                     rag_context = "\nKNOWN VULNERABILITY PATTERNS:\n"
                     for r in results:
-                        rag_context += (
-                            f"- {r.document.title}: {r.document.description[:80]}...\n"
-                        )
+                        rag_context += f"- {r.document.title}: {r.document.description[:80]}...\n"
                     rag_context += "\n"
                     logger.debug(f"LLMBugScanner: Added RAG context ({len(results)} patterns)")
             except Exception as e:
@@ -559,7 +579,9 @@ Respond with ONLY the JSON, no additional text."""
                     finding_groups[key] = []
                 finding_groups[key].append((model_name, finding))
 
-        logger.debug(f"Consensus grouping: {len(finding_groups)} groups from {sum(len(f) for f in all_findings.values())} findings")
+        logger.debug(
+            f"Consensus grouping: {len(finding_groups)} groups from {sum(len(f) for f in all_findings.values())} findings"
+        )
 
         # Calculate consensus for each group
         consensus_findings = []
@@ -571,7 +593,9 @@ Respond with ONLY the JSON, no additional text."""
             weighted_vote = sum(weights.get(m, 0) for m in models_agreeing)
             consensus_score = weighted_vote / total_weight if total_weight > 0 else 0
 
-            logger.debug(f"Group '{key}': {len(models_agreeing)} models, score={consensus_score:.2f}")
+            logger.debug(
+                f"Group '{key}': {len(models_agreeing)} models, score={consensus_score:.2f}"
+            )
 
             if consensus_score >= threshold:
                 # Merge findings from group
@@ -587,7 +611,9 @@ Respond with ONLY the JSON, no additional text."""
 
         # Fallback: if no consensus findings, include high-confidence single-model findings
         if not consensus_findings and single_model_findings:
-            logger.info(f"No consensus reached. Using fallback with {len(single_model_findings)} single-model findings")
+            logger.info(
+                f"No consensus reached. Using fallback with {len(single_model_findings)} single-model findings"
+            )
             # Only include CRITICAL/HIGH severity from single models
             for finding in single_model_findings:
                 severity = finding.get("severity", "").upper()

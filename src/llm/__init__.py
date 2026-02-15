@@ -73,6 +73,7 @@ try:
         get_rag,
         search_vulnerabilities,
     )
+
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
     # ChromaDB/sentence-transformers not installed

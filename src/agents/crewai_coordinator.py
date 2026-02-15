@@ -148,7 +148,9 @@ class CrewAICoordinator(BaseAgent):
 
         start_time = time.time()
 
-        logger.info(f"CrewAI Multi-Agent Coordination Starting - Contract: {contract_path}, LLM: {self.llm_model}")
+        logger.info(
+            f"CrewAI Multi-Agent Coordination Starting - Contract: {contract_path}, LLM: {self.llm_model}"
+        )
 
         # Create agents
         logger.debug("[1/4] Creating specialized agents...")

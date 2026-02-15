@@ -223,7 +223,9 @@ def main():
     print("Classifying findings with AI...")  # noqa: T201
     classified = []
     for i, finding in enumerate(findings, 1):
-        print(f"  [{i}/{len(findings)}] Classifying {finding.get('check', 'Unknown')}...")  # noqa: T201
+        print(
+            f"  [{i}/{len(findings)}] Classifying {finding.get('check', 'Unknown')}..."
+        )  # noqa: T201
         classified_finding = assistant.classify_finding(finding)
         classified.append(classified_finding)
 
