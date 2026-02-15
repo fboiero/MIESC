@@ -200,9 +200,7 @@ class TestGetModelVersion:
 
     def test_ollama_provider(self):
         """Test with ollama provider."""
-        with patch(
-            "src.security.reproducibility.get_ollama_model_version"
-        ) as mock:
+        with patch("src.security.reproducibility.get_ollama_model_version") as mock:
             mock.return_value = ModelVersion(name="test", provider="ollama")
             result = get_model_version("test", "ollama")
             assert result.provider == "ollama"
@@ -311,9 +309,7 @@ class TestExperimentRecord:
             start_time="2026-02-15T12:00:00",
         )
         record.models.append(ModelVersion(name="gpt-4", provider="openai"))
-        record.inputs.append(
-            InputRecord(path="test.sol", hash="abc", size=100)
-        )
+        record.inputs.append(InputRecord(path="test.sol", hash="abc", size=100))
         record.parameters = {"temperature": 0.7}
 
         d = record.to_dict()
@@ -337,17 +333,13 @@ class TestExperimentLogger:
     def test_init_custom_id(self):
         """Test initialization with custom ID."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            logger = ExperimentLogger(
-                experiment_id="my_experiment", output_dir=Path(tmpdir)
-            )
+            logger = ExperimentLogger(experiment_id="my_experiment", output_dir=Path(tmpdir))
             assert logger.experiment_id == "my_experiment"
 
     def test_init_without_environment(self):
         """Test initialization without environment capture."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            logger = ExperimentLogger(
-                output_dir=Path(tmpdir), capture_environment=False
-            )
+            logger = ExperimentLogger(output_dir=Path(tmpdir), capture_environment=False)
             assert logger.record.environment is None
 
     def test_log_model(self):
@@ -411,9 +403,7 @@ class TestExperimentLogger:
     def test_save(self):
         """Test saving experiment record."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            logger = ExperimentLogger(
-                experiment_id="test_save", output_dir=Path(tmpdir)
-            )
+            logger = ExperimentLogger(experiment_id="test_save", output_dir=Path(tmpdir))
             logger.log_parameter("test", 123)
             output_path = logger.save()
 
@@ -466,9 +456,7 @@ class TestEnsureReproducibility:
     def test_sets_seed_and_returns_logger(self):
         """Test that it sets seed and returns logger."""
         with tempfile.TemporaryDirectory():
-            with patch(
-                "src.security.reproducibility.ExperimentLogger"
-            ) as MockLogger:
+            with patch("src.security.reproducibility.ExperimentLogger") as MockLogger:
                 MockLogger.return_value = MagicMock()
                 ensure_reproducibility(123)
                 assert get_global_seed() == 123

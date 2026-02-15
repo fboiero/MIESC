@@ -375,7 +375,9 @@ class TestSanitizeContext:
     def test_max_depth(self):
         """Test max depth protection."""
         # Create deeply nested dict
-        context = {"a": {"b": {"c": {"d": {"e": {"f": {"g": {"h": {"i": {"j": {"k": "deep"}}}}}}}}}}}
+        context = {
+            "a": {"b": {"c": {"d": {"e": {"f": {"g": {"h": {"i": {"j": {"k": "deep"}}}}}}}}}}
+        }
         result = sanitize_context(context)
         # Should handle without infinite recursion
         assert result is not None
@@ -429,9 +431,7 @@ class TestBuildSafePrompt:
     def test_prompt_with_context(self):
         """Test building prompt with context."""
         template = "Analyze {code} with context: {context}"
-        prompt, result = build_safe_prompt(
-            template, code="test()", context={"network": "mainnet"}
-        )
+        prompt, result = build_safe_prompt(template, code="test()", context={"network": "mainnet"})
         assert "mainnet" in prompt
 
     def test_prompt_with_findings(self):

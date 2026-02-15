@@ -88,9 +88,7 @@ class TestValidatedFinding:
             original_confidence=0.8,
             adjusted_confidence=0.9,
         )
-        validated = ValidatedFinding(
-            finding=finding, validation=validation, is_reliable=True
-        )
+        validated = ValidatedFinding(finding=finding, validation=validation, is_reliable=True)
         assert validated.finding == finding
         assert validated.is_reliable is True
         assert validated.adjusted_confidence == 0.9
@@ -466,9 +464,7 @@ class TestValidateFindings:
     def test_validate_with_static_match(self):
         """Test validation with static analysis match."""
         detector = HallucinationDetector()
-        llm_findings = [
-            {"type": "reentrancy", "confidence": 0.8, "location": {"line": 42}}
-        ]
+        llm_findings = [{"type": "reentrancy", "confidence": 0.8, "location": {"line": 42}}]
         static_findings = [{"type": "reentrancy", "location": {"line": 42}}]
         code = "msg.sender.call{value: amount}('')"
 
