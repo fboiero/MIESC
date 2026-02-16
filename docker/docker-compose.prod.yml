@@ -42,17 +42,24 @@ services:
       - miesc-network
 
   # License Admin API
+  # Security: Admin API should only be accessed via Nginx reverse proxy
+  # Do NOT expose port directly in production - use nginx profile
   admin-api:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.prod
     container_name: miesc-admin-api
     command: ["uvicorn", "src.licensing.admin_api:app", "--host", "0.0.0.0", "--port", "5002"]
-    ports:
-      - "5002:5002"
+    # Security: Port NOT exposed directly - access only via internal network
+    # To expose for development, use: docker-compose --profile dev-admin up
+    expose:
+      - "5002"
     environment:
       - MIESC_ENV=production
-      - MIESC_ADMIN_API_KEY=${MIESC_ADMIN_API_KEY:-miesc-admin-secret-key}
+      # Security: MIESC_ADMIN_API_KEY is required - no default value
+      # Generate a secure key: openssl rand -base64 32
+      - MIESC_ADMIN_API_KEY=${MIESC_ADMIN_API_KEY:?ERROR: MIESC_ADMIN_API_KEY is required. Generate with: openssl rand -base64 32}
+      - MIESC_ALLOWED_ORIGINS=${MIESC_ALLOWED_ORIGINS:-http://localhost:8501}
       - DATABASE_URL=sqlite:///data/licenses.db
     volumes:
       - miesc-data:/app/data

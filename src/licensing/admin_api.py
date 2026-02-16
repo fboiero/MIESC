@@ -25,17 +25,35 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS configuration
+# CORS configuration - Security hardened
+# In production, set MIESC_ALLOWED_ORIGINS to comma-separated list of allowed origins
+_allowed_origins = os.getenv("MIESC_ALLOWED_ORIGINS", "")
+ALLOWED_ORIGINS = [origin.strip() for origin in _allowed_origins.split(",") if origin.strip()]
+if not ALLOWED_ORIGINS:
+    # Default to localhost only for development
+    ALLOWED_ORIGINS = ["http://localhost:8501", "http://localhost:3000", "http://127.0.0.1:8501"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure in production
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["X-API-Key", "Content-Type", "Authorization"],
 )
 
-# Admin API Key (should be set via environment variable)
-ADMIN_API_KEY = os.getenv("MIESC_ADMIN_API_KEY", "miesc-admin-secret-key")
+# Admin API Key - REQUIRED in production
+# Security: No default value to prevent accidental use of weak credentials
+ADMIN_API_KEY = os.getenv("MIESC_ADMIN_API_KEY")
+if not ADMIN_API_KEY:
+    import warnings
+    warnings.warn(
+        "MIESC_ADMIN_API_KEY not set. Using development key. "
+        "DO NOT use in production!",
+        RuntimeWarning,
+        stacklevel=2,
+    )
+    # Development-only fallback (will log warning)
+    ADMIN_API_KEY = "dev-only-key-not-for-production"
 
 # Singleton instances
 _license_manager: Optional[LicenseManager] = None

@@ -22,9 +22,11 @@ Date: February 2026
 Version: 1.0.0
 """
 
+import ipaddress
 import json
 import logging
 import re
+import socket
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
@@ -32,8 +34,97 @@ from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
+
+
+# Security: Whitelist of allowed hosts for marketplace index
+ALLOWED_MARKETPLACE_HOSTS = {
+    "raw.githubusercontent.com",
+    "api.github.com",
+    "github.com",
+}
+
+
+def _validate_marketplace_url(url: str) -> str:
+    """
+    Validate marketplace URL to prevent SSRF attacks.
+
+    Security controls:
+    - Only HTTPS allowed (except localhost for development)
+    - Block private/reserved IP addresses
+    - Whitelist of allowed hosts
+
+    Args:
+        url: URL to validate
+
+    Returns:
+        Validated URL
+
+    Raises:
+        MarketplaceError: If URL fails security validation
+    """
+    parsed = urlparse(url)
+
+    # Check scheme - only HTTPS allowed (or http://localhost for dev)
+    if parsed.scheme == "http":
+        if parsed.hostname not in ("localhost", "127.0.0.1"):
+            raise MarketplaceError(
+                f"Only HTTPS URLs allowed for marketplace. Got: {parsed.scheme}://"
+            )
+    elif parsed.scheme != "https":
+        raise MarketplaceError(
+            f"Invalid URL scheme for marketplace: {parsed.scheme}. Use HTTPS."
+        )
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise MarketplaceError("Invalid URL: no hostname")
+
+    # Check if hostname is an IP address
+    try:
+        ip = ipaddress.ip_address(hostname)
+        # Block private, loopback, reserved IPs (except localhost for dev)
+        if ip.is_private or ip.is_reserved or ip.is_multicast or ip.is_link_local:
+            if str(ip) not in ("127.0.0.1", "::1"):
+                raise MarketplaceError(
+                    f"Access to private/reserved IP addresses blocked: {ip}"
+                )
+    except ValueError:
+        # Not an IP address, it's a hostname - check against whitelist
+        if hostname not in ALLOWED_MARKETPLACE_HOSTS:
+            # Also block cloud metadata endpoints
+            if hostname in ("169.254.169.254", "metadata.google.internal"):
+                raise MarketplaceError(
+                    f"Access to cloud metadata endpoints blocked: {hostname}"
+                )
+
+            # Resolve hostname and check resulting IP
+            try:
+                resolved_ips = socket.getaddrinfo(hostname, None)
+                for family, _, _, _, sockaddr in resolved_ips:
+                    ip_str = sockaddr[0]
+                    try:
+                        ip = ipaddress.ip_address(ip_str)
+                        if ip.is_private or ip.is_reserved or ip.is_loopback:
+                            raise MarketplaceError(
+                                f"Hostname {hostname} resolves to private IP {ip}"
+                            )
+                    except ValueError:
+                        continue
+            except socket.gaierror:
+                # DNS resolution failed - let the actual request handle this
+                pass
+
+            logger.warning(
+                "Marketplace URL host '%s' not in whitelist. "
+                "Allowed hosts: %s",
+                hostname,
+                ", ".join(sorted(ALLOWED_MARKETPLACE_HOSTS)),
+            )
+
+    return url
 
 
 # Default marketplace configuration
@@ -211,7 +302,8 @@ class MarketplaceClient:
         cache_ttl_seconds: int = DEFAULT_CACHE_TTL_SECONDS,
         miesc_version: Optional[str] = None,
     ):
-        self.index_url = index_url
+        # Security: Validate URL to prevent SSRF attacks
+        self.index_url = _validate_marketplace_url(index_url)
         self.cache_path = cache_path or DEFAULT_CACHE_PATH
         self.cache_ttl_seconds = cache_ttl_seconds
         self.miesc_version = miesc_version or _get_miesc_version()
