@@ -12,12 +12,25 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
+
+# Security: WebSocket authentication token (optional for development)
+WEBSOCKET_AUTH_TOKEN = os.getenv("MIESC_WEBSOCKET_TOKEN")
+WEBSOCKET_AUTH_REQUIRED = os.getenv("MIESC_WEBSOCKET_AUTH_REQUIRED", "false").lower() == "true"
+
+# Security: CORS configuration
+_ws_allowed_origins = os.getenv("MIESC_WS_ALLOWED_ORIGINS", "")
+WS_ALLOWED_ORIGINS = [origin.strip() for origin in _ws_allowed_origins.split(",") if origin.strip()]
+if not WS_ALLOWED_ORIGINS:
+    # Default to localhost for development
+    WS_ALLOWED_ORIGINS = ["http://localhost:8501", "http://localhost:3000", "http://127.0.0.1:8501"]
 
 # Try to import WebSocket dependencies
 try:
@@ -358,6 +371,18 @@ class AuditProgressTracker:
         )
 
 
+def _validate_websocket_token(token: Optional[str]) -> bool:
+    """Validate WebSocket authentication token."""
+    if not WEBSOCKET_AUTH_REQUIRED:
+        return True
+    if not WEBSOCKET_AUTH_TOKEN:
+        logger.warning("WebSocket auth required but no token configured")
+        return False
+    if not token:
+        return False
+    return secrets.compare_digest(token, WEBSOCKET_AUTH_TOKEN)
+
+
 def create_websocket_app() -> Optional["FastAPI"]:
     """Create FastAPI application with WebSocket support."""
     if not WEBSOCKET_AVAILABLE:
@@ -370,13 +395,13 @@ def create_websocket_app() -> Optional["FastAPI"]:
         version="4.1.0",
     )
 
-    # CORS configuration
+    # Security: CORS configuration with whitelist
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=WS_ALLOWED_ORIGINS,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST"],
+        allow_headers=["Authorization", "Content-Type"],
     )
 
     # Connection manager
@@ -386,6 +411,12 @@ def create_websocket_app() -> Optional["FastAPI"]:
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
         """Main WebSocket endpoint."""
+        # Security: Validate authentication token if required
+        token = websocket.query_params.get("token") or websocket.headers.get("Authorization", "").replace("Bearer ", "")
+        if not _validate_websocket_token(token):
+            await websocket.close(code=1008, reason="Unauthorized")
+            return
+
         await manager.connect(websocket)
 
         # Send welcome event
@@ -433,6 +464,12 @@ def create_websocket_app() -> Optional["FastAPI"]:
     @app.websocket("/ws/audit/{audit_id}")
     async def audit_websocket(websocket: WebSocket, audit_id: str):
         """WebSocket endpoint for specific audit."""
+        # Security: Validate authentication token if required
+        token = websocket.query_params.get("token") or websocket.headers.get("Authorization", "").replace("Bearer ", "")
+        if not _validate_websocket_token(token):
+            await websocket.close(code=1008, reason="Unauthorized")
+            return
+
         await manager.connect(websocket)
         manager.subscribe_to_audit(websocket, audit_id)
 

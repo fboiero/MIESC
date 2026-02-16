@@ -27,6 +27,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential git curl ca-certificates libssl-dev pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
+# Security Note: rustup from official source with TLS verification
+# For high-security environments, consider using distro packages instead
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
@@ -41,6 +43,8 @@ FROM python:3.12-slim-bookworm AS foundry-builder
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 
+# Security Note: Foundry from official source (paradigm.xyz)
+# For high-security environments, consider building from source
 RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH="/root/.foundry/bin:${PATH}"
 RUN foundryup
@@ -91,8 +95,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Solhint (Solidity linter)
-RUN npm install -g solhint
+# Install Solhint (Solidity linter) - pinned version for reproducibility
+RUN npm install -g solhint@5.0.3
 
 # Install Solc from Ethereum PPA (native binary for ARM/x86)
 RUN curl -fsSL https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.20+commit.a1b79de6 -o /usr/local/bin/solc-0.8.20 || \

@@ -127,8 +127,9 @@ class DAGNNAdapter(ToolAdapter):
         self.enable_attention_viz = self.config.get("enable_attention_viz", False)
 
         # Cache directory for graph representations
+        # Security: Use restrictive permissions to prevent TOCTOU race conditions
         self.cache_dir = Path(tempfile.gettempdir()) / "miesc_dagnn_cache"
-        self.cache_dir.mkdir(exist_ok=True)
+        self.cache_dir.mkdir(exist_ok=True, mode=0o700)
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(

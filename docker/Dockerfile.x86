@@ -11,6 +11,7 @@
 
 # Force x86_64 architecture for all stages
 # Using Python 3.10 for Manticore compatibility (pysha3 incompatible with 3.11+)
+# Security Note: Python 3.10 EOL is October 2026 - migrate to 3.12 when Manticore supports it
 FROM --platform=linux/amd64 python:3.10-slim-bookworm AS builder
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"

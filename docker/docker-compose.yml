@@ -232,8 +232,8 @@ services:
     image: ollama/ollama:latest
     container_name: miesc-ollama
     ports:
-      # Expose Ollama API (optional, for external access)
-      - "11434:11434"
+      # Security: Bind to localhost only to prevent unauthorized access
+      - "127.0.0.1:11434:11434"
     volumes:
       # Persist downloaded models
       - ollama-models:/root/.ollama

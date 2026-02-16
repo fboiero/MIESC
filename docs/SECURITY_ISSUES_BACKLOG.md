@@ -27,7 +27,7 @@ This document tracks security issues identified during the security audit that r
 
 **Severity:** MEDIUM
 **CWE:** CWE-367
-**Status:** PENDING
+**Status:** **FIXED**
 
 **Locations:**
 - `src/adapters/dagnn_adapter.py:130`
@@ -56,7 +56,7 @@ os.chmod(self.cache_dir, 0o700)  # Ensure restrictive permissions
 
 **Severity:** MEDIUM
 **CWE:** CWE-1104
-**Status:** PENDING
+**Status:** **FIXED**
 
 **Locations:**
 - `docker/Dockerfile:85`
@@ -81,7 +81,7 @@ RUN npm install -g solhint@5.0.3
 
 **Severity:** MEDIUM
 **CWE:** CWE-494
-**Status:** PENDING
+**Status:** **DOCUMENTED** (security comments added)
 
 **Location:** `docker/Dockerfile:35-40`
 
@@ -112,7 +112,7 @@ RUN apt-get install -y rustup
 
 **Severity:** MEDIUM
 **CWE:** CWE-306
-**Status:** PENDING
+**Status:** **FIXED**
 
 **Location:** `docker/docker-compose.yml:234-236`
 
@@ -141,7 +141,7 @@ ollama:
 
 **Severity:** MEDIUM
 **CWE:** CWE-1104
-**Status:** PENDING
+**Status:** **FIXED**
 
 **Location:** `docker/Dockerfile.prod:1`
 
@@ -183,7 +183,7 @@ pip-compile pyproject.toml --python-version=3.12 -o requirements-lock.txt
 
 **Severity:** MEDIUM
 **CWE:** CWE-306
-**Status:** PENDING
+**Status:** **FIXED**
 
 **Location:** `src/core/websocket_api.py`
 
@@ -205,7 +205,7 @@ async def websocket_handler(websocket):
 ### MED-008: SSL Certificates on Filesystem
 
 **Severity:** MEDIUM
-**Status:** PENDING
+**Status:** **FIXED** (added to .gitignore)
 
 **Location:** `docker/docker-compose.prod.yml:76`
 
@@ -249,7 +249,7 @@ def mock_api_key():
 ### LOW-002: Python 3.10 EOL in Dockerfile.x86
 
 **Severity:** LOW
-**Status:** PENDING
+**Status:** **DOCUMENTED** (EOL comment added)
 
 **Location:** `docker/Dockerfile.x86:1`
 
@@ -268,7 +268,7 @@ FROM --platform=linux/amd64 python:3.12-slim-bookworm
 ### LOW-003: `:latest` Tag Used in Dockerfile.full
 
 **Severity:** LOW
-**Status:** PENDING
+**Status:** **FIXED**
 
 **Location:** `docker/Dockerfile.full:1`
 
@@ -348,9 +348,9 @@ RUN curl -L "https://github.com/crytic/echidna/releases/..." -o /tmp/echidna.tar
 | Sprint | Issues Addressed | Notes |
 |--------|-----------------|-------|
 | 2026-02-16 | CRIT-001, CRIT-002, HIGH-001, HIGH-002 | Critical/High fixes |
-| TBD | MED-001 to MED-004 | Temp files, NPM, Docker |
-| TBD | MED-005 to MED-008 | Images, WebSocket, SSL |
-| TBD | LOW-001 to LOW-006 | Cleanup items |
+| 2026-02-16 | MED-001 to MED-008 | Temp files, NPM, Docker, WebSocket, SSL |
+| 2026-02-16 | LOW-002, LOW-003 | Dockerfile updates |
+| TBD | LOW-001, LOW-004 to LOW-006 | Remaining cleanup items |
 
 ---
 

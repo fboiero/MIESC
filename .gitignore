@@ -66,6 +66,9 @@ local.env
 config.local.yml
 *.key
 *.pem
+*.crt
+ssl/
+docker/ssl/
 
 # -----------------------------------------------------------------------------
 # Logs and Temporary Files

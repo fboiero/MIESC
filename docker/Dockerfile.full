@@ -19,15 +19,16 @@
 # Memory requirement: 8GB+ RAM recommended
 #
 # PREREQUISITE: Build the standard image first:
-#   docker build -t ghcr.io/fboiero/miesc:latest -f docker/Dockerfile docker/
+#   docker build -t ghcr.io/fboiero/miesc:5.1.1 -f docker/Dockerfile docker/
 #
 # Then build this full image:
-#   docker build -t ghcr.io/fboiero/miesc:full -f docker/Dockerfile.full .
+#   docker build -t ghcr.io/fboiero/miesc:5.1.1-full -f docker/Dockerfile.full .
 #
 # Or use the build script:
 #   ./scripts/build-images.sh --full
 
-FROM ghcr.io/fboiero/miesc:latest
+# Security: Use specific version tag instead of :latest for reproducibility
+FROM ghcr.io/fboiero/miesc:5.1.1
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
 LABEL version="5.1.0-full"

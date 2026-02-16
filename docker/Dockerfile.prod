@@ -1,7 +1,9 @@
 # MIESC Production Dockerfile for AWS ECS/Fargate
 # Multi-stage build for optimized image size
+# Security: Use specific OS version for reproducibility
+# For maximum security, pin by digest: python:3.12-slim-bookworm@sha256:<digest>
 
-FROM python:3.11-slim as builder
+FROM python:3.12-slim-bookworm as builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -20,7 +22,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir fastapi uvicorn pydantic[email]
 
 # Production stage
-FROM python:3.11-slim
+FROM python:3.12-slim-bookworm
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -28,8 +30,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     npm \
     && rm -rf /var/lib/apt/lists/*
 
-# Install solhint globally
-RUN npm install -g solhint
+# Install solhint globally - pinned version for reproducibility
+RUN npm install -g solhint@5.0.3
 
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
