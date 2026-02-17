@@ -332,3 +332,131 @@ class TestExceptionInheritance:
 
         with pytest.raises(MIESCException):
             raise_tool_error()
+
+
+class TestHandleAdapterErrorsDecorator:
+    """Test handle_adapter_errors decorator."""
+
+    def test_successful_function(self):
+        """Test decorator allows successful returns through."""
+        from src.core.exceptions import handle_adapter_errors
+
+        @handle_adapter_errors
+        def successful_func():
+            return {"status": "success", "findings": []}
+
+        result = successful_func()
+        assert result["status"] == "success"
+
+    def test_file_not_found_handling(self):
+        """Test decorator handles FileNotFoundError."""
+        from src.core.exceptions import handle_adapter_errors
+
+        @handle_adapter_errors
+        def missing_file():
+            raise FileNotFoundError("Contract.sol not found")
+
+        result = missing_file()
+        assert result["status"] == "error"
+        assert result["error_code"] == "E204"  # CONTRACT_NOT_FOUND
+
+    def test_timeout_expired_handling(self):
+        """Test decorator handles subprocess.TimeoutExpired."""
+        import subprocess
+
+        from src.core.exceptions import handle_adapter_errors
+
+        @handle_adapter_errors
+        def timeout_func():
+            raise subprocess.TimeoutExpired(cmd="slither", timeout=300)
+
+        result = timeout_func()
+        assert result["status"] == "error"
+        assert result["error_code"] == "E105"  # TOOL_TIMEOUT
+
+    def test_called_process_error_handling(self):
+        """Test decorator handles subprocess.CalledProcessError."""
+        import subprocess
+
+        from src.core.exceptions import handle_adapter_errors
+
+        @handle_adapter_errors
+        def process_error():
+            raise subprocess.CalledProcessError(
+                returncode=1, cmd="slither", stderr="Compilation failed"
+            )
+
+        result = process_error()
+        assert result["status"] == "error"
+        assert result["error_code"] == "E103"  # TOOL_EXECUTION_FAILED
+
+    def test_permission_error_handling(self):
+        """Test decorator handles PermissionError."""
+        from src.core.exceptions import handle_adapter_errors
+
+        @handle_adapter_errors
+        def permission_denied():
+            raise PermissionError("Access denied to /etc/shadow")
+
+        result = permission_denied()
+        assert result["status"] == "error"
+        assert result["error_code"] == "E401"  # SECURITY_VALIDATION_FAILED
+
+    def test_os_error_handling(self):
+        """Test decorator handles OSError."""
+        from src.core.exceptions import handle_adapter_errors
+
+        @handle_adapter_errors
+        def os_error():
+            raise OSError("Disk full")
+
+        result = os_error()
+        assert result["status"] == "error"
+        assert result["error_code"] == "E901"  # INTERNAL_ERROR
+
+    def test_miesc_exception_handling(self):
+        """Test decorator handles MIESCException."""
+        from src.core.exceptions import handle_adapter_errors
+
+        @handle_adapter_errors
+        def miesc_error():
+            raise MIESCException("Custom error", error_code=ErrorCode.ANALYSIS_FAILED)
+
+        result = miesc_error()
+        assert result["error"] is True
+        assert result["error_code"] == "E201"
+
+    def test_generic_exception_handling(self):
+        """Test decorator handles unknown exceptions."""
+        from src.core.exceptions import handle_adapter_errors
+
+        @handle_adapter_errors
+        def unknown_error():
+            raise ValueError("Unexpected error")
+
+        result = unknown_error()
+        assert result["status"] == "error"
+        assert result["error_code"] == "E999"  # UNKNOWN_ERROR
+
+    def test_decorated_function_with_args(self):
+        """Test decorator preserves function arguments."""
+        from src.core.exceptions import handle_adapter_errors
+
+        @handle_adapter_errors
+        def func_with_args(a, b, c=None):
+            return {"status": "success", "result": a + b + (c or 0)}
+
+        result = func_with_args(1, 2, c=3)
+        assert result["result"] == 6
+
+    def test_decorator_preserves_function_name(self):
+        """Test decorator preserves function metadata."""
+        from src.core.exceptions import handle_adapter_errors
+
+        @handle_adapter_errors
+        def my_function():
+            """My docstring."""
+            return {"status": "success"}
+
+        assert my_function.__name__ == "my_function"
+        assert "My docstring" in my_function.__doc__
