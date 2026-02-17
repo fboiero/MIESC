@@ -559,7 +559,7 @@ class FeedbackLoop:
 
         data = {
             "samples": [
-                {"features": f, "label": lbl} for f, lbl in zip(features, labels, strict=False)
+                {"features": f, "label": lbl} for f, lbl in zip(features, labels)
             ],
             "exported_at": datetime.now().isoformat(),
             "total_samples": len(features),

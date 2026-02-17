@@ -294,7 +294,7 @@ Respond in JSON format:
 
         # Merge interpretation with original findings
         interpreted = []
-        for original, interp in zip(findings, result["interpreted_findings"], strict=False):
+        for original, interp in zip(findings, result["interpreted_findings"]):
             merged = {**original, **interp}
             interpreted.append(merged)
 

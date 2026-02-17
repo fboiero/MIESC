@@ -397,7 +397,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
             batch_validations = await asyncio.gather(*tasks, return_exceptions=True)
 
-            for finding, validation in zip(batch, batch_validations, strict=False):
+            for finding, validation in zip(batch, batch_validations):
                 if isinstance(validation, Exception):
                     logger.warning(f"Validation exception: {validation}")
                     validations.append(

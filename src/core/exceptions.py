@@ -22,7 +22,7 @@ import functools
 import logging
 import subprocess
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ class MIESCException(Exception):
     def __init__(
         self,
         message: str,
-        error_code: str | ErrorCode = ErrorCode.UNKNOWN_ERROR,
+        error_code: Union[str, ErrorCode] = ErrorCode.UNKNOWN_ERROR,
         suggestions: Optional[List[str]] = None,
         context: Optional[Dict[str, Any]] = None,
     ):
@@ -176,7 +176,7 @@ class ToolAdapterError(MIESCException):
         self,
         message: str,
         tool_name: str,
-        error_code: str | ErrorCode = ErrorCode.TOOL_EXECUTION_FAILED,
+        error_code: Union[str, ErrorCode] = ErrorCode.TOOL_EXECUTION_FAILED,
         tool_version: Optional[str] = None,
         suggestions: Optional[List[str]] = None,
         context: Optional[Dict[str, Any]] = None,
@@ -217,7 +217,7 @@ class AnalysisError(MIESCException):
         message: str,
         contract_path: Optional[str] = None,
         layer: Optional[int] = None,
-        error_code: str | ErrorCode = ErrorCode.ANALYSIS_FAILED,
+        error_code: Union[str, ErrorCode] = ErrorCode.ANALYSIS_FAILED,
         suggestions: Optional[List[str]] = None,
         context: Optional[Dict[str, Any]] = None,
     ):
@@ -295,7 +295,7 @@ class ConfigurationError(MIESCException):
         message: str,
         config_key: Optional[str] = None,
         config_file: Optional[str] = None,
-        error_code: str | ErrorCode = ErrorCode.CONFIG_INVALID,
+        error_code: Union[str, ErrorCode] = ErrorCode.CONFIG_INVALID,
         suggestions: Optional[List[str]] = None,
         context: Optional[Dict[str, Any]] = None,
     ):
@@ -328,7 +328,7 @@ class SecurityError(MIESCException):
     def __init__(
         self,
         message: str,
-        error_code: str | ErrorCode = ErrorCode.SECURITY_VALIDATION_FAILED,
+        error_code: Union[str, ErrorCode] = ErrorCode.SECURITY_VALIDATION_FAILED,
         suggestions: Optional[List[str]] = None,
         context: Optional[Dict[str, Any]] = None,
     ):
@@ -348,7 +348,7 @@ class ContractError(AnalysisError):
         self,
         message: str,
         contract_path: str,
-        error_code: str | ErrorCode = ErrorCode.CONTRACT_NOT_FOUND,
+        error_code: Union[str, ErrorCode] = ErrorCode.CONTRACT_NOT_FOUND,
         suggestions: Optional[List[str]] = None,
         context: Optional[Dict[str, Any]] = None,
     ):
@@ -386,7 +386,7 @@ class APIError(MIESCException):
         message: str,
         status_code: Optional[int] = None,
         endpoint: Optional[str] = None,
-        error_code: str | ErrorCode = ErrorCode.API_REQUEST_FAILED,
+        error_code: Union[str, ErrorCode] = ErrorCode.API_REQUEST_FAILED,
         suggestions: Optional[List[str]] = None,
         context: Optional[Dict[str, Any]] = None,
     ):
@@ -418,7 +418,7 @@ class ModelError(MIESCException):
         self,
         message: str,
         model_name: Optional[str] = None,
-        error_code: str | ErrorCode = ErrorCode.MODEL_INFERENCE_FAILED,
+        error_code: Union[str, ErrorCode] = ErrorCode.MODEL_INFERENCE_FAILED,
         suggestions: Optional[List[str]] = None,
         context: Optional[Dict[str, Any]] = None,
     ):

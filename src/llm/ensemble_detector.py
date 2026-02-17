@@ -407,7 +407,7 @@ Response (JSON array only):"""
         # Process results
         model_findings: Dict[str, List[Dict]] = {}
 
-        for model, result in zip(models, results, strict=False):
+        for model, result in zip(models, results):
             if isinstance(result, Exception):
                 logger.warning(f"Model {model} failed: {result}")
             else:
@@ -585,7 +585,7 @@ Response (JSON array only):"""
         model_findings: Dict[str, List[Dict]] = {}
         failed_models: List[str] = []
 
-        for model, result in zip(self._available_models, results, strict=False):
+        for model, result in zip(self._available_models, results):
             if isinstance(result, Exception):
                 logger.warning(f"Model {model} failed: {result}")
                 failed_models.append(model)

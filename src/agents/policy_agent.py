@@ -1855,7 +1855,7 @@ class PolicyAgent(BaseAgent):
 
         if scores:
             result["overall_score"] = sum(
-                s * w for s, w in zip(scores, weights, strict=False)
+                s * w for s, w in zip(scores, weights)
             ) / sum(weights)
         else:
             result["overall_score"] = 0.0

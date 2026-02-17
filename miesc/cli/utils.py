@@ -131,7 +131,7 @@ def get_correlation_api() -> Any:
 # =============================================================================
 
 
-def print_banner(version: str | None = None) -> None:
+def print_banner(version: Optional[str] = None) -> None:
     """Print the MIESC banner."""
     from .constants import BANNER
 

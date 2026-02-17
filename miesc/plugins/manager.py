@@ -12,7 +12,7 @@ import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ class CompatibilityStatus(Enum):
 class VersionConstraint:
     """Represents a version constraint (e.g., >=4.0.0, <5.0.0)."""
 
-    min_version: str | None = None
-    max_version: str | None = None
+    min_version: Optional[str] = None
+    max_version: Optional[str] = None
     min_inclusive: bool = True
     max_inclusive: bool = False
 
@@ -105,10 +105,10 @@ class CompatibilityInfo:
     """Detailed compatibility information for a plugin."""
 
     status: CompatibilityStatus = CompatibilityStatus.UNKNOWN
-    miesc_constraint: VersionConstraint | None = None
+    miesc_constraint: Optional[VersionConstraint] = None
     current_miesc_version: str = ""
     message: str = ""
-    python_constraint: str | None = None
+    python_constraint: Optional[str] = None
 
     def __str__(self) -> str:
         if self.status == CompatibilityStatus.COMPATIBLE:
@@ -129,13 +129,13 @@ class PluginInfo:
     version: str
     enabled: bool = True
     detector_count: int = 0
-    detectors: list[str] = field(default_factory=list)
+    detectors: List[str] = field(default_factory=list)
     description: str = ""
     author: str = ""
     local: bool = False
-    compatibility: CompatibilityInfo | None = None
-    requires_miesc: str | None = None  # e.g., ">=4.0.0"
-    requires_python: str | None = None
+    compatibility: Optional[CompatibilityInfo] = None
+    requires_miesc: Optional[str] = None  # e.g., ">=4.0.0"
+    requires_python: Optional[str] = None
 
     def __str__(self) -> str:
         status = "enabled" if self.enabled else "disabled"
@@ -173,7 +173,7 @@ def compare_versions(v1: str, v2: str) -> int:
         -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2
     """
 
-    def normalize(v: str) -> tuple[int, ...]:
+    def normalize(v: str) -> Tuple[int, ...]:
         parts = []
         for part in v.split("."):
             # Handle versions like "4.3.3a1" -> extract numeric part
@@ -203,20 +203,20 @@ class PluginManager:
     ENTRY_POINT_GROUP = "miesc.detectors"
     LOCAL_PLUGINS_DIR = Path.home() / ".miesc" / "plugins"
 
-    def __init__(self, config_manager: PluginConfigManager | None = None):
+    def __init__(self, config_manager: Optional[PluginConfigManager] = None):
         """Initialize plugin manager.
 
         Args:
             config_manager: Custom config manager (creates default if None)
         """
         self.config_manager = config_manager or PluginConfigManager()
-        self._cached_plugins: list[PluginInfo] | None = None
+        self._cached_plugins: Optional[List[PluginInfo]] = None
         self._miesc_version = get_miesc_version()
 
     def validate_compatibility(
         self,
-        requires_miesc: str | None = None,
-        requires_python: str | None = None,
+        requires_miesc: Optional[str] = None,
+        requires_python: Optional[str] = None,
     ) -> CompatibilityInfo:
         """Validate plugin compatibility with current MIESC version.
 
@@ -295,7 +295,7 @@ class PluginManager:
 
     def check_pypi_compatibility(
         self, package_name: str, timeout: int = 10
-    ) -> tuple[CompatibilityInfo, str | None]:
+    ) -> Tuple[CompatibilityInfo, Optional[str]]:
         """Check compatibility of a PyPI package before installation.
 
         Args:
@@ -383,7 +383,7 @@ class PluginManager:
         upgrade: bool = False,
         check_compatibility: bool = True,
         force: bool = False,
-    ) -> tuple[bool, str]:
+    ) -> Tuple[bool, str]:
         """Install a plugin package from PyPI.
 
         Args:
@@ -452,7 +452,7 @@ class PluginManager:
         except Exception as e:
             return False, f"Installation error: {e}"
 
-    def uninstall(self, package_name: str) -> tuple[bool, str]:
+    def uninstall(self, package_name: str) -> Tuple[bool, str]:
         """Uninstall a plugin package.
 
         Args:
@@ -482,7 +482,7 @@ class PluginManager:
         except Exception as e:
             return False, f"Uninstallation error: {e}"
 
-    def list_installed(self, include_disabled: bool = True) -> list[PluginInfo]:
+    def list_installed(self, include_disabled: bool = True) -> List[PluginInfo]:
         """List all installed MIESC plugins.
 
         Args:
@@ -501,13 +501,13 @@ class PluginManager:
             return plugins
         return [p for p in plugins if p.enabled]
 
-    def _discover_plugins(self) -> list[PluginInfo]:
+    def _discover_plugins(self) -> List[PluginInfo]:
         """Discover all installed plugins from entry points.
 
         Returns:
             List of PluginInfo objects
         """
-        plugins: dict[str, PluginInfo] = {}
+        plugins: Dict[str, PluginInfo] = {}
 
         # Get entry points for miesc.detectors
         try:
@@ -590,7 +590,7 @@ class PluginManager:
 
         return list(plugins.values())
 
-    def _discover_local_plugins(self) -> list[PluginInfo]:
+    def _discover_local_plugins(self) -> List[PluginInfo]:
         """Discover plugins from local plugins directory.
 
         Scans ~/.miesc/plugins/ for valid plugin packages and introspects
@@ -619,7 +619,7 @@ class PluginManager:
 
         return plugins
 
-    def _load_local_plugin_info(self, plugin_dir: Path) -> PluginInfo | None:
+    def _load_local_plugin_info(self, plugin_dir: Path) -> Optional[PluginInfo]:
         """Load plugin info from a local plugin directory.
 
         Args:
@@ -685,7 +685,7 @@ class PluginManager:
             local=True,
         )
 
-    def _find_detector_classes_in_dir(self, plugin_dir: Path) -> list[type]:
+    def _find_detector_classes_in_dir(self, plugin_dir: Path) -> List[type]:
         """Find all detector classes in a plugin directory.
 
         Args:
@@ -766,7 +766,7 @@ class PluginManager:
         self.LOCAL_PLUGINS_DIR.mkdir(parents=True, exist_ok=True)
         return self.LOCAL_PLUGINS_DIR
 
-    def get_local_plugin_detectors(self) -> list[tuple[str, type]]:
+    def get_local_plugin_detectors(self) -> List[Tuple[str, type]]:
         """Get all detector classes from enabled local plugins.
 
         Returns:
@@ -786,7 +786,7 @@ class PluginManager:
 
         return detectors
 
-    def enable(self, plugin_name: str) -> tuple[bool, str]:
+    def enable(self, plugin_name: str) -> Tuple[bool, str]:
         """Enable a plugin.
 
         Args:
@@ -812,7 +812,7 @@ class PluginManager:
         self._cached_plugins = None
         return True, f"Enabled plugin '{plugin.package}'"
 
-    def disable(self, plugin_name: str) -> tuple[bool, str]:
+    def disable(self, plugin_name: str) -> Tuple[bool, str]:
         """Disable a plugin.
 
         Args:
@@ -837,7 +837,7 @@ class PluginManager:
         self._cached_plugins = None
         return True, f"Disabled plugin '{plugin.package}'"
 
-    def get_plugin_info(self, plugin_name: str) -> PluginInfo | None:
+    def get_plugin_info(self, plugin_name: str) -> Optional[PluginInfo]:
         """Get detailed information about a plugin.
 
         Args:
@@ -855,7 +855,7 @@ class PluginManager:
 
         return plugin
 
-    def get_enabled_detectors(self) -> list[tuple[str, Any]]:
+    def get_enabled_detectors(self) -> List[Tuple[str, Any]]:
         """Get all detector classes from enabled plugins (PyPI and local).
 
         Returns:
@@ -892,7 +892,7 @@ class PluginManager:
 
         return detectors
 
-    def search_pypi(self, query: str, timeout: int = 10) -> list[dict[str, str]]:
+    def search_pypi(self, query: str, timeout: int = 10) -> List[Dict[str, str]]:
         """Search PyPI for MIESC plugins.
 
         Uses multiple strategies:
@@ -1037,7 +1037,7 @@ class PluginManager:
 
         return MarketplaceClient()
 
-    def search_marketplace(self, query: str, **kwargs) -> list[dict[str, str]]:
+    def search_marketplace(self, query: str, **kwargs) -> List[Dict[str, str]]:
         """Search the remote plugin marketplace.
 
         Args:
@@ -1068,7 +1068,7 @@ class PluginManager:
             logger.warning("Marketplace search failed: %s", e)
             return []
 
-    def resolve_marketplace_slug(self, slug: str) -> str | None:
+    def resolve_marketplace_slug(self, slug: str) -> Optional[str]:
         """Resolve a marketplace slug to a PyPI package name.
 
         Args:

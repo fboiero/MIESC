@@ -163,7 +163,7 @@ class XauditDashboard:
         plt.grid(axis="y", alpha=0.3)
 
         # Add count labels on bars
-        for bar, count in zip(bars, counts, strict=False):
+        for bar, count in zip(bars, counts):
             height = bar.get_height()
             plt.text(
                 bar.get_x() + bar.get_width() / 2.0,

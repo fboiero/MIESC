@@ -492,7 +492,7 @@ def validate_with_slither(
 
     # Update findings with new confidence
     validated_findings = []
-    for f, r in zip(findings, results, strict=False):
+    for f, r in zip(findings, results):
         updated = f.copy()
         updated["confidence"] = r.final_confidence
         updated["_slither_validated"] = r.slither_confirmed

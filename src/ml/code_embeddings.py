@@ -52,7 +52,7 @@ class CodeEmbedding:
         if self.dimensions != other.dimensions:
             return 0.0
 
-        dot_product = sum(a * b for a, b in zip(self.vector, other.vector, strict=False))
+        dot_product = sum(a * b for a, b in zip(self.vector, other.vector))
         norm_a = math.sqrt(sum(a * a for a in self.vector))
         norm_b = math.sqrt(sum(b * b for b in other.vector))
 

@@ -5,7 +5,7 @@ Handles loading, saving, and managing plugin settings from ~/.miesc/plugins.yaml
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import yaml
 
@@ -18,9 +18,9 @@ class PluginConfig:
     enabled: bool = True
     version: str = ""
     package: str = ""
-    settings: dict[str, Any] = field(default_factory=dict)
+    settings: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for YAML serialization."""
         return {
             "enabled": self.enabled,
@@ -30,7 +30,7 @@ class PluginConfig:
         }
 
     @classmethod
-    def from_dict(cls, name: str, data: dict[str, Any]) -> "PluginConfig":
+    def from_dict(cls, name: str, data: Dict[str, Any]) -> "PluginConfig":
         """Create from dictionary."""
         return cls(
             name=name,
@@ -47,7 +47,7 @@ class PluginConfigManager:
     DEFAULT_CONFIG_DIR = Path.home() / ".miesc"
     CONFIG_FILENAME = "plugins.yaml"
 
-    def __init__(self, config_dir: Path | None = None):
+    def __init__(self, config_dir: Optional[Path] = None):
         """Initialize config manager.
 
         Args:
@@ -55,14 +55,14 @@ class PluginConfigManager:
         """
         self.config_dir = config_dir or self.DEFAULT_CONFIG_DIR
         self.config_file = self.config_dir / self.CONFIG_FILENAME
-        self._plugins: dict[str, PluginConfig] = {}
+        self._plugins: Dict[str, PluginConfig] = {}
         self._loaded = False
 
     def _ensure_config_dir(self) -> None:
         """Create config directory if it doesn't exist."""
         self.config_dir.mkdir(parents=True, exist_ok=True)
 
-    def load(self) -> dict[str, PluginConfig]:
+    def load(self) -> Dict[str, PluginConfig]:
         """Load plugins configuration from file.
 
         Returns:
@@ -98,7 +98,7 @@ class PluginConfigManager:
         with open(self.config_file, "w") as f:
             yaml.safe_dump(data, f, default_flow_style=False, sort_keys=True)
 
-    def get_plugin_config(self, name: str) -> PluginConfig | None:
+    def get_plugin_config(self, name: str) -> Optional[PluginConfig]:
         """Get configuration for a specific plugin.
 
         Args:
@@ -183,7 +183,7 @@ class PluginConfigManager:
             return True
         return False
 
-    def list_plugins(self) -> list[PluginConfig]:
+    def list_plugins(self) -> List[PluginConfig]:
         """List all configured plugins.
 
         Returns:

@@ -958,7 +958,7 @@ class SmartCorrelationEngine:
 
         # Combinación simple (simulando modelo ML)
         weights = [0.2, 0.25, 0.15, 0.25, 0.15]
-        ml_score = sum(f * w for f, w in zip(features, weights, strict=False))
+        ml_score = sum(f * w for f, w in zip(features, weights))
 
         return min(ml_score, 0.95)
 
