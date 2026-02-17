@@ -466,3 +466,215 @@ class TestEnsureReproducibility:
         """Test default seed value."""
         ensure_reproducibility()
         assert get_global_seed() == 42
+
+
+# =============================================================================
+# Additional Coverage Tests (Lines 73-74, 80-86, 94-95, 181-182, 283-284, 300)
+# =============================================================================
+
+
+class TestSetGlobalSeedsWithMockedImports:
+    """Tests for set_global_seeds with mocked import scenarios."""
+
+    def test_set_global_seeds_numpy_import_error(self):
+        """Test handling when numpy is not available (lines 73-74)."""
+        import sys
+        from unittest.mock import patch
+
+        # Mock numpy not being available
+        with patch.dict(sys.modules, {"numpy": None}):
+            # This should not raise an error
+            from src.security.reproducibility import set_global_seeds
+
+            set_global_seeds(42)
+            assert get_global_seed() == 42
+
+    def test_set_global_seeds_pytorch_with_cuda(self):
+        """Test PyTorch seeding with CUDA simulation (lines 80-86)."""
+        from unittest.mock import MagicMock, patch
+
+        mock_torch = MagicMock()
+        mock_torch.cuda.is_available.return_value = True
+        mock_torch.backends.cudnn = MagicMock()
+
+        with patch.dict("sys.modules", {"torch": mock_torch}):
+            from src.security.reproducibility import set_global_seeds
+
+            set_global_seeds(123)
+
+            # Verify torch methods were called
+            mock_torch.manual_seed.assert_called_with(123)
+            if mock_torch.cuda.is_available():
+                mock_torch.cuda.manual_seed_all.assert_called_with(123)
+
+    def test_set_global_seeds_tensorflow_import_error(self):
+        """Test handling when tensorflow is not available (lines 94-95)."""
+        import sys
+        from unittest.mock import patch
+
+        # Mock tensorflow not being available
+        with patch.dict(sys.modules, {"tensorflow": None}):
+            from src.security.reproducibility import set_global_seeds
+
+            set_global_seeds(99)
+            assert get_global_seed() == 99
+
+
+class TestModelVersioningFunctions:
+    """Tests for model versioning functions."""
+
+    def test_get_model_version_ollama(self):
+        """Test getting model version for Ollama."""
+        from src.security.reproducibility import get_model_version
+
+        version = get_model_version("mistral:latest", "ollama")
+        assert version.name == "mistral:latest"
+        assert version.provider == "ollama"
+
+    def test_get_model_version_openai(self):
+        """Test getting model version for OpenAI."""
+        from src.security.reproducibility import get_model_version
+
+        version = get_model_version("gpt-4", "openai")
+        assert version.name == "gpt-4"
+        assert version.provider == "openai"
+
+    def test_get_model_version_anthropic(self):
+        """Test getting model version for Anthropic."""
+        from src.security.reproducibility import get_model_version
+
+        version = get_model_version("claude-3", "anthropic")
+        assert version.name == "claude-3"
+        assert version.provider == "anthropic"
+
+
+class TestExperimentLoggerMethods:
+    """Tests for ExperimentLogger methods."""
+
+    def test_experiment_logger_init(self):
+        """Test logger initialization."""
+        import tempfile
+        from pathlib import Path
+        from src.security.reproducibility import ExperimentLogger
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            logger = ExperimentLogger(
+                experiment_id="test-123",
+                output_dir=Path(tmpdir),
+                capture_environment=True,
+            )
+
+            assert logger.experiment_id == "test-123"
+            assert logger.record.experiment_id == "test-123"
+
+    def test_experiment_logger_auto_id(self):
+        """Test logger generates ID when not provided."""
+        import tempfile
+        from pathlib import Path
+        from src.security.reproducibility import ExperimentLogger
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            logger = ExperimentLogger(output_dir=Path(tmpdir))
+
+            assert logger.experiment_id.startswith("exp_")
+
+    def test_experiment_logger_log_model(self):
+        """Test logging a model."""
+        import tempfile
+        from pathlib import Path
+        from src.security.reproducibility import ExperimentLogger
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            logger = ExperimentLogger(output_dir=Path(tmpdir))
+            logger.log_model("mistral:latest", "ollama", temperature=0.5)
+
+            assert len(logger.record.models) == 1
+            assert logger.record.models[0].name == "mistral:latest"
+
+    def test_experiment_logger_log_input_file(self, tmp_path):
+        """Test logging an input file."""
+        from pathlib import Path
+        from src.security.reproducibility import ExperimentLogger
+
+        # Create a test file
+        test_file = tmp_path / "contract.sol"
+        test_file.write_text("pragma solidity ^0.8.0;")
+
+        logger = ExperimentLogger(output_dir=tmp_path)
+        logger.log_input(str(test_file))
+
+        assert len(logger.record.inputs) == 1
+        assert "contract.sol" in logger.record.inputs[0].path
+        # Hash should be computed
+        assert len(logger.record.inputs[0].hash) == 64
+
+    def test_experiment_logger_log_parameter(self):
+        """Test logging parameters."""
+        import tempfile
+        from pathlib import Path
+        from src.security.reproducibility import ExperimentLogger
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            logger = ExperimentLogger(output_dir=Path(tmpdir))
+            logger.log_parameter("temperature", 0.7)
+            logger.log_parameter("max_tokens", 2000)
+
+            assert logger.record.parameters["temperature"] == 0.7
+            assert logger.record.parameters["max_tokens"] == 2000
+
+    def test_experiment_logger_save(self, tmp_path):
+        """Test saving experiment record."""
+        from src.security.reproducibility import ExperimentLogger
+
+        logger = ExperimentLogger(
+            experiment_id="save-test",
+            output_dir=tmp_path,
+        )
+        logger.log_parameter("test", "value")
+
+        saved_path = logger.save()
+
+        assert saved_path.exists()
+        assert "save-test" in str(saved_path)
+
+
+class TestCreateReproducibilityReport:
+    """Tests for create_reproducibility_report function."""
+
+    def test_create_report_basic(self, tmp_path):
+        """Test creating a reproducibility report."""
+        from src.security.reproducibility import (
+            ExperimentLogger,
+            create_reproducibility_report,
+        )
+
+        logger = ExperimentLogger(
+            experiment_id="report-test",
+            output_dir=tmp_path,
+        )
+        logger.log_model("test-model", "ollama")
+        logger.log_parameter("temperature", 0.5)
+
+        report = create_reproducibility_report(logger)
+
+        assert "reproducibility" in report
+        assert report["reproducibility"]["random_seed"] is not None
+        assert len(report["reproducibility"]["models"]) == 1
+
+    def test_create_report_with_inputs(self, tmp_path):
+        """Test creating report with input files."""
+        from src.security.reproducibility import (
+            ExperimentLogger,
+            create_reproducibility_report,
+        )
+
+        # Create test file
+        test_file = tmp_path / "test.sol"
+        test_file.write_text("// test")
+
+        logger = ExperimentLogger(output_dir=tmp_path)
+        logger.log_input(str(test_file))
+
+        report = create_reproducibility_report(logger)
+
+        assert len(report["reproducibility"]["inputs"]) == 1

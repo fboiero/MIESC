@@ -839,3 +839,352 @@ class TestIntegration:
         assert loaded["name"] == poc.name
         assert loaded["vulnerability_type"] == poc.vulnerability_type.value
         assert loaded["target_contract"] == poc.target_contract
+
+
+# =============================================================================
+# Additional Coverage Tests (Lines 292-293, 314-377, 395, 489-494, 618-629)
+# =============================================================================
+
+
+class TestBatchGenerateExceptionHandling:
+    """Tests for exception handling in generate_batch (lines 292-293)."""
+
+    @pytest.fixture
+    def generator(self):
+        """Create a default PoCGenerator."""
+        return PoCGenerator()
+
+    def test_generate_batch_skips_failed_findings(self, generator):
+        """Test generate_batch continues when individual generation fails."""
+        from unittest.mock import patch
+
+        findings = [
+            {"type": "reentrancy", "severity": "high", "description": "Test 1"},
+            {"type": "invalid-type-that-fails", "severity": "high"},
+            {"type": "overflow", "severity": "medium", "description": "Test 2"},
+        ]
+
+        # Mock generate to fail on second finding
+        original_generate = generator.generate
+        call_count = [0]
+
+        def mock_generate(finding, target, options=None):
+            call_count[0] += 1
+            if "invalid-type-that-fails" in str(finding.get("type", "")):
+                raise ValueError("Cannot process this finding")
+            return original_generate(finding, target, options)
+
+        with patch.object(generator, "generate", side_effect=mock_generate):
+            results = generator.generate_batch(findings, "Test.sol")
+
+        # Should have 2 successful results (first and third)
+        assert len(results) == 2
+
+    def test_generate_batch_all_fail(self, generator):
+        """Test generate_batch when all findings fail."""
+        from unittest.mock import patch
+
+        findings = [
+            {"type": "test1"},
+            {"type": "test2"},
+        ]
+
+        with patch.object(generator, "generate", side_effect=Exception("Always fails")):
+            results = generator.generate_batch(findings, "Test.sol")
+
+        assert results == []
+
+
+class TestPoCRunMethod:
+    """Tests for PoCGenerator.run method (lines 314-377)."""
+
+    import subprocess
+    from unittest.mock import MagicMock, patch
+
+    @pytest.fixture
+    def generator(self):
+        """Create a default PoCGenerator."""
+        return PoCGenerator()
+
+    @pytest.fixture
+    def sample_poc(self, generator):
+        """Create a sample PoC template."""
+        finding = {
+            "type": "reentrancy",
+            "severity": "critical",
+            "description": "Test reentrancy",
+        }
+        return generator.generate(finding, "Bank.sol")
+
+    def test_run_success(self, generator, sample_poc, tmp_path):
+        """Test successful PoC run."""
+        from unittest.mock import MagicMock, patch
+        import subprocess
+
+        # Create project structure
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "[PASS] test_exploit() (gas: 123456)"
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert isinstance(result, PoCResult)
+        assert result.success is True
+        assert result.error is None
+
+    def test_run_failure(self, generator, sample_poc, tmp_path):
+        """Test failed PoC run."""
+        from unittest.mock import MagicMock, patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stdout = ""
+        mock_result.stderr = "Assertion failed"
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert result.success is False
+        assert "Assertion failed" in result.error
+
+    def test_run_timeout(self, generator, sample_poc, tmp_path):
+        """Test PoC run timeout (lines 362-368)."""
+        from unittest.mock import patch
+        import subprocess
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("forge", 300)):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert result.success is False
+        assert "timed out" in result.error.lower()
+
+    def test_run_foundry_not_installed(self, generator, sample_poc, tmp_path):
+        """Test PoC run when Foundry not installed (lines 369-375)."""
+        from unittest.mock import patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        with patch("subprocess.run", side_effect=FileNotFoundError):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert result.success is False
+        assert "not installed" in result.error.lower()
+
+    def test_run_generic_exception(self, generator, sample_poc, tmp_path):
+        """Test PoC run with generic exception (lines 376-382)."""
+        from unittest.mock import patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        with patch("subprocess.run", side_effect=RuntimeError("Unexpected error")):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert result.success is False
+        assert "Unexpected error" in result.error
+
+    def test_run_verbose_output(self, generator, sample_poc, tmp_path, capsys):
+        """Test verbose output during run (line 334)."""
+        from unittest.mock import MagicMock, patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "[PASS]"
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            generator.run(sample_poc, tmp_path, verbose=True)
+
+        captured = capsys.readouterr()
+        assert "Running:" in captured.out
+
+
+class TestResolveVulnerabilityTypePartialMatch:
+    """Tests for partial matching in _resolve_vulnerability_type (line 395)."""
+
+    @pytest.fixture
+    def generator(self):
+        """Create a default PoCGenerator."""
+        return PoCGenerator()
+
+    def test_partial_match_alias_in_finding_type(self, generator):
+        """Test partial matching when alias is in finding type."""
+        finding = {"type": "some-reentrancy-variant", "severity": "high"}
+        vuln_type = generator._resolve_vulnerability_type(finding)
+        assert vuln_type == VulnerabilityType.REENTRANCY
+
+    def test_partial_match_finding_type_in_alias(self, generator):
+        """Test partial matching when finding type is in alias."""
+        finding = {"type": "overflow", "severity": "high"}
+        vuln_type = generator._resolve_vulnerability_type(finding)
+        assert vuln_type == VulnerabilityType.INTEGER_OVERFLOW
+
+    def test_unknown_type_defaults_to_reentrancy(self, generator):
+        """Test unknown vulnerability type defaults to reentrancy."""
+        finding = {"type": "totally-unknown-xyz", "severity": "high"}
+        vuln_type = generator._resolve_vulnerability_type(finding)
+        assert vuln_type == VulnerabilityType.REENTRANCY
+
+
+class TestCustomizePoCTemplate:
+    """Tests for template customization (lines 489-494)."""
+
+    @pytest.fixture
+    def generator(self):
+        """Create a default PoCGenerator."""
+        return PoCGenerator()
+
+    def test_custom_imports_replacement(self, generator):
+        """Test custom imports are added to template (lines 489-490)."""
+        options = GenerationOptions(
+            custom_imports=["@openzeppelin/contracts/token/ERC20/IERC20.sol"]
+        )
+
+        finding = {"type": "reentrancy", "severity": "high", "description": "Test"}
+        poc = generator.generate(finding, "Token.sol", options)
+
+        assert "IERC20.sol" in poc.solidity_code
+
+    def test_custom_setup_code_replacement(self, generator):
+        """Test custom setup code is added (line 494)."""
+        options = GenerationOptions(custom_setup_code="token = new MockToken();")
+
+        finding = {"type": "reentrancy", "severity": "high", "description": "Test"}
+        poc = generator.generate(finding, "Token.sol", options)
+
+        assert "token = new MockToken();" in poc.solidity_code
+
+    def test_multiple_custom_imports(self, generator):
+        """Test multiple custom imports are added."""
+        options = GenerationOptions(
+            custom_imports=[
+                "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+                "forge-std/Vm.sol",
+                "./interfaces/IVault.sol",
+            ]
+        )
+
+        finding = {"type": "flash-loan", "severity": "critical", "description": "Test"}
+        poc = generator.generate(finding, "Vault.sol", options)
+
+        assert "IERC20.sol" in poc.solidity_code
+        assert "Vm.sol" in poc.solidity_code
+        assert "IVault.sol" in poc.solidity_code
+
+
+class TestGasAndTraceExtraction:
+    """Tests for gas and trace extraction (lines 618-621, 626-629)."""
+
+    @pytest.fixture
+    def generator(self):
+        """Create a default PoCGenerator."""
+        return PoCGenerator()
+
+    def test_extract_gas_from_output(self, generator):
+        """Test gas extraction from forge output (lines 618-621)."""
+        output = "[PASS] test_exploit() (gas: 123456)"
+        gas = generator._extract_gas_from_output(output)
+        assert gas == 123456
+
+    def test_extract_gas_no_match(self, generator):
+        """Test gas extraction returns None when no match."""
+        output = "[PASS] test_exploit()"
+        gas = generator._extract_gas_from_output(output)
+        assert gas is None
+
+    def test_extract_gas_multiple_values(self, generator):
+        """Test gas extraction picks first match."""
+        output = "gas: 100\ngas: 200\ngas: 300"
+        gas = generator._extract_gas_from_output(output)
+        assert gas == 100
+
+    def test_extract_traces_found(self, generator):
+        """Test trace extraction when traces exist (lines 626-628)."""
+        output = """
+[PASS] test_exploit()
+Traces:
+  [CALL] Bank.withdraw(100)
+    [CALL] Attacker.receive()
+"""
+        traces = generator._extract_traces(output)
+        assert traces is not None
+        assert "Traces:" in traces
+        assert "Bank.withdraw" in traces
+
+    def test_extract_traces_not_found(self, generator):
+        """Test trace extraction returns None when no traces (line 629)."""
+        output = "[PASS] test_exploit() (gas: 123456)"
+        traces = generator._extract_traces(output)
+        assert traces is None
+
+
+class TestPoCResultWithGasAndTraces:
+    """Tests for PoCResult with gas and traces from run method."""
+
+    @pytest.fixture
+    def generator(self):
+        """Create a default PoCGenerator."""
+        return PoCGenerator()
+
+    @pytest.fixture
+    def sample_poc(self, generator):
+        """Create a sample PoC template."""
+        finding = {
+            "type": "reentrancy",
+            "severity": "critical",
+            "description": "Test reentrancy",
+        }
+        return generator.generate(finding, "Bank.sol")
+
+    def test_run_extracts_gas(self, generator, sample_poc, tmp_path):
+        """Test run extracts gas from output."""
+        from unittest.mock import MagicMock, patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "[PASS] test_exploit() (gas: 999888)"
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert result.gas_used == 999888
+
+    def test_run_extracts_traces(self, generator, sample_poc, tmp_path):
+        """Test run extracts traces from output."""
+        from unittest.mock import MagicMock, patch
+
+        test_dir = tmp_path / "test" / "exploits"
+        test_dir.mkdir(parents=True)
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = """[PASS] test_exploit() (gas: 123)
+Traces:
+  [CALL] Victim.withdraw()
+"""
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = generator.run(sample_poc, tmp_path, verbose=False)
+
+        assert result.traces is not None
+        assert "Traces:" in result.traces

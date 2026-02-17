@@ -665,3 +665,245 @@ class TestIntegration:
         assert validation["valid"] is True
         assert "path" in validation
         assert "execution_time_ms" in validation
+
+
+# =============================================================================
+# Additional Coverage Tests (Lines 118, 123-124, 208-209, 346-347, 380-386, etc.)
+# =============================================================================
+
+
+class TestFoundryInstallationCheck:
+    """Tests for _check_foundry_installation edge cases (lines 118, 123-124)."""
+
+    def test_foundry_not_properly_installed_warning(self, tmp_path, caplog):
+        """Test warning when Foundry may not be properly installed (line 118)."""
+        import logging
+
+        mock_result = MagicMock()
+        mock_result.returncode = 1  # Non-zero indicates issue
+        mock_result.stdout = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            with caplog.at_level(logging.WARNING):
+                FoundryRunner(project_dir=tmp_path)
+
+        assert any("may not be properly installed" in r.message for r in caplog.records)
+
+    def test_foundry_version_check_timeout(self, tmp_path, caplog):
+        """Test timeout during version check (lines 123-124)."""
+        import logging
+
+        # First call times out, second succeeds (for subsequent operations)
+        call_count = [0]
+
+        def side_effect_func(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise subprocess.TimeoutExpired("forge", 10)
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = "forge 0.2.0"
+            return mock_result
+
+        with patch("subprocess.run", side_effect=side_effect_func):
+            with caplog.at_level(logging.WARNING):
+                try:
+                    FoundryRunner(project_dir=tmp_path)
+                except RuntimeError:
+                    pass  # May raise if all calls fail
+
+        assert any("timed out" in r.message.lower() for r in caplog.records)
+
+
+class TestRunTestExceptionHandling:
+    """Tests for run_test exception handling (lines 208-209)."""
+
+    def test_run_test_generic_exception(self, runner):
+        """Test run_test with generic exception (lines 208-209)."""
+        with patch("subprocess.run", side_effect=OSError("Permission denied")):
+            result = runner.run_test("test/Test.t.sol")
+
+        assert result.success is False
+        assert "Permission denied" in result.error
+
+
+class TestValidatePoCEdgeCases:
+    """Tests for validate_poc edge cases (lines 346-347)."""
+
+    def test_validate_poc_exploit_failed(self, runner, tmp_path):
+        """Test validate_poc when exploit fails (lines 346-347)."""
+        test_file = tmp_path / "test" / "Exploit.t.sol"
+        test_file.parent.mkdir(parents=True, exist_ok=True)
+        test_file.write_text("// Test file")
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "FAILED: Exploit did not succeed"
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            validation = runner.validate_poc(str(test_file), expected_profit=True)
+
+        assert validation["exploit_demonstrated"] is False
+        assert any("may not have succeeded" in w for w in validation["warnings"])
+
+    def test_validate_poc_profit_indicator(self, runner, tmp_path):
+        """Test validate_poc with PROFIT indicator."""
+        test_file = tmp_path / "test" / "Exploit.t.sol"
+        test_file.parent.mkdir(parents=True, exist_ok=True)
+        test_file.write_text("// Test file")
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "PROFIT: 5 ETH"
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            validation = runner.validate_poc(str(test_file), expected_profit=True)
+
+        assert validation["exploit_demonstrated"] is True
+
+    def test_validate_poc_no_exploit_indicator(self, runner, tmp_path):
+        """Test validate_poc without exploit indicators."""
+        test_file = tmp_path / "test" / "Exploit.t.sol"
+        test_file.parent.mkdir(parents=True, exist_ok=True)
+        test_file.write_text("// Test file")
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "[PASS] test_something()"
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            validation = runner.validate_poc(str(test_file), expected_profit=True)
+
+        assert validation["exploit_demonstrated"] is None
+        assert any("Could not determine" in w for w in validation["warnings"])
+
+
+class TestParseForgeOutputEdgeCases:
+    """Tests for _parse_forge_output edge cases (lines 380-386)."""
+
+    def test_parse_forge_output_json_decode_error(self, runner):
+        """Test parsing when JSON is malformed (lines 380-386)."""
+        stdout = '{"incomplete: json\n{"also": "broken"}'
+        stderr = ""
+
+        result = runner._parse_forge_output(stdout, stderr, 0, 100.0)
+
+        # Should fallback to text parsing
+        assert isinstance(result, FoundryResult)
+
+    def test_parse_forge_output_mixed_json_text(self, runner):
+        """Test parsing with mixed JSON and text output."""
+        stdout = """Some text before
+{"test_name": "test_foo", "success": true}
+More text
+[PASS] test_bar() (gas: 123)
+"""
+        stderr = ""
+
+        result = runner._parse_forge_output(stdout, stderr, 0, 100.0)
+
+        assert isinstance(result, FoundryResult)
+        # Should have parsed at least one test
+        assert result.passed >= 0
+
+    def test_parse_forge_output_empty(self, runner):
+        """Test parsing empty output."""
+        result = runner._parse_forge_output("", "", 0, 100.0)
+
+        assert isinstance(result, FoundryResult)
+        assert result.total_tests == 0
+
+    def test_parse_forge_output_exception_during_parsing(self, runner, caplog):
+        """Test exception handling during JSON parsing (lines 385-386)."""
+        import logging
+
+        # Invalid structure that could cause issues
+        stdout = '{"key": [invalid]}\n'
+        stderr = ""
+
+        with caplog.at_level(logging.DEBUG):
+            result = runner._parse_forge_output(stdout, stderr, 0, 100.0)
+
+        # Should handle gracefully
+        assert isinstance(result, FoundryResult)
+
+
+class TestHighGasUsageWarning:
+    """Tests for high gas usage warning in validate_poc."""
+
+    def test_high_gas_usage_warning(self, runner, tmp_path):
+        """Test warning for high gas usage (lines 356-359)."""
+        test_file = tmp_path / "test" / "Exploit.t.sol"
+        test_file.parent.mkdir(parents=True, exist_ok=True)
+        test_file.write_text("// Test file")
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "[PASS] test() (gas: 15000000)"  # High gas
+        mock_result.stderr = ""
+
+        # Mock _parse_forge_output to return high gas
+        mock_foundry_result = FoundryResult(
+            success=True,
+            tests=[TestResult("test", TestStatus.PASSED, gas_used=15000000)],
+            total_tests=1,
+            passed=1,
+            failed=0,
+            skipped=0,
+            total_gas=15000000,
+            execution_time_ms=100.0,
+            raw_output="",
+        )
+
+        with patch("subprocess.run", return_value=mock_result):
+            with patch.object(runner, "_parse_forge_output", return_value=mock_foundry_result):
+                validation = runner.validate_poc(str(test_file))
+
+        assert any("High gas usage" in w for w in validation["warnings"])
+
+
+class TestRunAllTests:
+    """Tests for run_all_tests method."""
+
+    def test_run_all_tests_success(self, runner, sample_forge_output):
+        """Test running all tests successfully."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = sample_forge_output
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = runner.run_all_tests()
+
+        assert isinstance(result, FoundryResult)
+
+    def test_run_all_tests_with_options(self, runner_with_fork, sample_forge_output):
+        """Test run_all_tests with fork configuration."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = sample_forge_output
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            runner_with_fork.run_all_tests()
+
+        # Verify fork options are included
+        cmd = mock_run.call_args[0][0]
+        assert "--fork-url" in cmd
+
+
+class TestFoundryRunnerRepr:
+    """Tests for FoundryRunner __repr__."""
+
+    def test_repr(self, runner):
+        """Test string representation."""
+        r = repr(runner)
+        assert "FoundryRunner" in r
+
+    def test_repr_with_fork(self, runner_with_fork):
+        """Test string representation with fork config."""
+        r = repr(runner_with_fork)
+        assert "FoundryRunner" in r

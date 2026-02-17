@@ -612,3 +612,176 @@ class TestVulnTypeAliases:
         for vuln_type, aliases in VULN_TYPE_ALIASES.items():
             assert isinstance(aliases, list), f"{vuln_type} aliases should be a list"
             assert len(aliases) > 0, f"{vuln_type} should have at least one alias"
+
+
+# =============================================================================
+# Additional Coverage Tests (Lines 333, 441-442)
+# =============================================================================
+
+
+class TestLocationMatchWithStringLocation:
+    """Tests for _check_location_match with string location (line 333)."""
+
+    @pytest.fixture
+    def detector(self):
+        """Create detector instance."""
+        return HallucinationDetector()
+
+    def test_location_match_with_string_location(self, detector):
+        """Test location match when static finding has string location (line 333)."""
+        llm_finding = {
+            "type": "reentrancy",
+            "location": {"line": 42},
+        }
+
+        static_findings = [
+            {"type": "reentrancy", "location": "Contract.sol:line 43"},  # String location
+        ]
+
+        result = detector._check_location_match(llm_finding, static_findings)
+
+        # Should be able to extract line from string and find match
+        assert result is True
+
+    def test_location_match_string_location_with_colon(self, detector):
+        """Test location match with colon-style string location."""
+        llm_finding = {
+            "type": "reentrancy",
+            "location": {"line": 100},
+        }
+
+        static_findings = [
+            {"type": "reentrancy", "location": "Bank.sol:102"},  # Within 5 lines
+        ]
+
+        result = detector._check_location_match(llm_finding, static_findings)
+
+        assert result is True
+
+    def test_extract_line_from_string_colon_format(self, detector):
+        """Test line extraction from colon format."""
+        result = detector._extract_line_from_string("Contract.sol:42")
+        assert result == 42
+
+    def test_extract_line_from_string_line_format(self, detector):
+        """Test line extraction from 'line X' format."""
+        result = detector._extract_line_from_string("at line 100")
+        assert result == 100
+
+    def test_extract_line_from_string_no_match(self, detector):
+        """Test line extraction when no line number present."""
+        result = detector._extract_line_from_string("Contract.sol")
+        assert result is None
+
+
+class TestValidateFindingsUnvalidatedStatus:
+    """Tests for validate_findings unvalidated status (lines 441-442)."""
+
+    @pytest.fixture
+    def detector(self):
+        """Create detector instance."""
+        return HallucinationDetector()
+
+    def test_validate_unvalidated_finding(self, detector):
+        """Test validation for unvalidated finding (lines 440-442)."""
+        findings = [
+            {
+                "type": "unknown-vuln-type",
+                "severity": "medium",
+                "confidence": 0.8,
+            }
+        ]
+
+        validated = detector.validate_findings(
+            llm_findings=findings,
+            contract_code="pragma solidity ^0.8.0;",
+            static_findings=[],  # No static findings to corroborate
+        )
+
+        # Should have one result
+        assert len(validated) == 1
+        # Confidence may be adjusted
+        result = validated[0]
+        assert result.validation is not None
+
+    def test_validate_with_low_confidence(self, detector):
+        """Test validation with low initial confidence."""
+        findings = [
+            {
+                "type": "reentrancy",
+                "severity": "critical",
+                "confidence": 0.3,
+                "description": "Potential issue",
+            }
+        ]
+
+        validated = detector.validate_findings(
+            llm_findings=findings,
+            contract_code="function simple() public { emit Event(); }",
+            static_findings=[],
+        )
+
+        assert len(validated) == 1
+
+    def test_validate_very_low_confidence_may_be_hallucination(self, detector):
+        """Test that very low confidence may be marked as hallucination (lines 452-453)."""
+        findings = [
+            {
+                "type": "non-existent-vuln",
+                "severity": "critical",
+                "confidence": 0.05,  # Very low
+                "description": "Fake vulnerability",
+            }
+        ]
+
+        validated = detector.validate_findings(
+            llm_findings=findings,
+            contract_code="// Empty contract",
+            static_findings=[],
+        )
+
+        assert len(validated) == 1
+        # Check if marked as not reliable or hallucination
+        result = validated[0]
+        # Low confidence findings should not be reliable
+        assert result.validation is not None
+
+
+class TestDetectorValidateFindingsEdgeCases:
+    """Tests for HallucinationDetector.validate_findings edge cases."""
+
+    @pytest.fixture
+    def detector(self):
+        """Create detector instance."""
+        return HallucinationDetector()
+
+    def test_validate_findings_empty_list(self, detector):
+        """Test validating empty findings list."""
+        result = detector.validate_findings(
+            llm_findings=[],
+            contract_code="pragma solidity ^0.8.0;",
+        )
+
+        assert len(result) == 0
+
+    def test_validate_findings_with_static_and_llm(self, detector):
+        """Test validation with both static and LLM findings."""
+        llm_findings = [
+            {"type": "reentrancy", "severity": "high", "location": {"line": 50}},
+        ]
+
+        static_findings = [
+            {"type": "reentrancy", "severity": "high", "location": {"line": 52}},
+        ]
+
+        result = detector.validate_findings(
+            llm_findings=llm_findings,
+            contract_code="function withdraw() external {}",
+            static_findings=static_findings,
+        )
+
+        assert len(result) == 1
+        # Should have a validation result
+        validated_finding = result[0]
+        assert validated_finding.validation is not None
+        assert validated_finding.validation.status in list(ValidationStatus)

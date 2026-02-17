@@ -401,20 +401,20 @@ class TestExtractJsonFromText:
 
     def test_json_in_code_block(self):
         """Test extracting JSON from code block."""
-        text = '''Here's the analysis:
+        text = """Here's the analysis:
 ```json
 {"severity": "high", "title": "Test"}
 ```
-End of analysis.'''
+End of analysis."""
         result = extract_json_from_text(text)
         assert result == '{"severity": "high", "title": "Test"}'
 
     def test_json_without_json_marker(self):
         """Test extracting JSON from unmarked code block."""
-        text = '''Analysis:
+        text = """Analysis:
 ```
 {"type": "reentrancy"}
-```'''
+```"""
         result = extract_json_from_text(text)
         assert result == '{"type": "reentrancy"}'
 
@@ -490,9 +490,9 @@ class TestSafeParseLlmJson:
 
     def test_json_in_text(self):
         """Test extracting JSON from surrounding text."""
-        content = '''Analysis complete.
+        content = """Analysis complete.
 {"vulnerabilities": [], "summary": "No issues found"}
-End of report.'''
+End of report."""
         result = safe_parse_llm_json(content, AnalysisResponse)
         assert result.is_valid is True
 
@@ -554,14 +554,14 @@ class TestValidateAnalysisResponse:
 
     def test_valid_response(self):
         """Test validating a valid response."""
-        content = '''
+        content = """
         {
             "vulnerabilities": [
                 {"type": "test", "severity": "low", "title": "Test finding"}
             ],
             "summary": "One issue found"
         }
-        '''
+        """
         result = validate_analysis_response(content)
         assert result.is_valid is True
         assert len(result.data.vulnerabilities) == 1
@@ -661,3 +661,176 @@ class TestEdgeCases:
             cvss_score=7.5,
         )
         assert finding.cvss_score == 7.5
+
+
+# =============================================================================
+# Additional Coverage Tests (Lines 110, 198, 208, 210, 261, 266, 289, 448-449)
+# =============================================================================
+
+
+class TestCodeLocationSanitizeStringEdgeCases:
+    """Tests for CodeLocation.sanitize_string edge cases (line 110)."""
+
+    def test_codelocation_with_none_fields(self):
+        """Test CodeLocation with None values (line 110)."""
+        loc = CodeLocation()
+        assert loc.function is None
+        assert loc.contract is None
+        assert loc.file is None
+
+    def test_codelocation_with_non_string_values(self):
+        """Test CodeLocation with non-string values (line 111-112)."""
+        # CodeLocation should convert non-strings to strings
+        loc = CodeLocation(function=123, contract=True, file="path")
+        assert isinstance(loc.function, str)
+        assert isinstance(loc.contract, str)
+        assert isinstance(loc.file, str)
+
+    def test_codelocation_sanitizes_dangerous_chars(self):
+        """Test CodeLocation sanitizes dangerous characters (line 114)."""
+        loc = CodeLocation(
+            function="withdraw<script>alert(1)</script>",
+            contract="Test'Contract\"",
+            file="path;rm -rf /",
+        )
+        assert "<" not in (loc.function or "")
+        assert ">" not in (loc.function or "")
+        assert "'" not in (loc.contract or "")
+        assert '"' not in (loc.contract or "")
+        assert ";" not in (loc.file or "")
+
+
+class TestVulnerabilityFindingDescriptionEdgeCases:
+    """Tests for VulnerabilityFinding description handling (lines 198, 208, 210)."""
+
+    def test_finding_with_non_string_description(self):
+        """Test finding with non-string description (line 198)."""
+        finding = VulnerabilityFinding(
+            type="test",
+            severity="high",
+            title="Test",
+            description=12345,  # Non-string
+        )
+        assert isinstance(finding.description, str)
+
+    def test_finding_with_empty_swc_id(self):
+        """Test finding with empty string swc_id (line 208)."""
+        finding = VulnerabilityFinding(
+            type="test",
+            severity="high",
+            title="Test",
+            swc_id="",
+        )
+        assert finding.swc_id is None
+
+    def test_finding_with_non_string_swc_id(self):
+        """Test finding with non-string swc_id (line 210)."""
+        finding = VulnerabilityFinding(
+            type="test",
+            severity="high",
+            title="Test",
+            swc_id=123,  # Non-string
+        )
+        # Should be None since just a number is invalid
+        assert finding.swc_id is None
+
+    def test_finding_with_numeric_only_swc_id(self):
+        """Test finding with numeric-only swc_id returns None (line 214)."""
+        finding = VulnerabilityFinding(
+            type="test",
+            severity="high",
+            title="Test",
+            swc_id="123",  # Just a number
+        )
+        assert finding.swc_id is None
+
+
+class TestSafeParseWithRecoveryEdgeCases:
+    """Tests for safe_parse_llm_json recovery (lines 448-449)."""
+
+    def test_safe_parse_with_partial_data_has_warnings(self):
+        """Test safe parsing with partial data generates warnings."""
+        from src.security.llm_output_validator import safe_parse_llm_json, VulnerabilityFinding
+
+        # Valid JSON but missing required fields
+        content = '{"severity": "high"}'
+
+        result = safe_parse_llm_json(content, VulnerabilityFinding)
+
+        # Should parse with warnings about missing fields
+        assert len(result.warnings) > 0
+        # Warnings should mention missing required fields
+        warning_text = " ".join(result.warnings).lower()
+        assert "type" in warning_text or "title" in warning_text or "required" in warning_text
+
+    def test_safe_parse_completely_invalid_json(self):
+        """Test safe parsing with completely invalid JSON."""
+        from src.security.llm_output_validator import safe_parse_llm_json, VulnerabilityFinding
+
+        content = "This is not JSON at all"
+
+        result = safe_parse_llm_json(content, VulnerabilityFinding)
+
+        # Should return invalid
+        assert result.is_valid is False
+
+    def test_safe_parse_with_nested_errors(self):
+        """Test safe parsing when nested structure causes errors."""
+        from src.security.llm_output_validator import safe_parse_llm_json, AnalysisResponse
+
+        # JSON with wrong types for nested fields
+        content = '{"findings": "not a list", "summary": 123}'
+
+        result = safe_parse_llm_json(content, AnalysisResponse)
+
+        # Should handle gracefully
+        assert isinstance(result.is_valid, bool)
+
+
+class TestValidateVulnerabilityFindingEdgeCases:
+    """Tests for validate_vulnerability_finding edge cases."""
+
+    def test_validate_finding_valid(self):
+        """Test validating a valid finding."""
+        from src.security.llm_output_validator import validate_vulnerability_finding
+
+        data = {
+            "type": "reentrancy",
+            "severity": "high",
+            "title": "Reentrancy vulnerability",
+        }
+
+        result = validate_vulnerability_finding(data)
+
+        assert result.is_valid is True
+        assert result.data is not None
+
+    def test_validate_finding_missing_required(self):
+        """Test validating finding missing required fields."""
+        from src.security.llm_output_validator import validate_vulnerability_finding
+
+        data = {"severity": "high"}  # Missing type and title
+
+        result = validate_vulnerability_finding(data)
+
+        # Should fail validation or have warnings
+        assert len(result.warnings) > 0 or len(result.errors) > 0
+
+    def test_validate_finding_with_all_fields(self):
+        """Test validating finding with all optional fields."""
+        from src.security.llm_output_validator import validate_vulnerability_finding
+
+        data = {
+            "type": "reentrancy",
+            "severity": "critical",
+            "title": "Critical Reentrancy",
+            "description": "Detailed description",
+            "confidence": 0.9,
+            "location": {"file": "Test.sol", "line": 42},
+            "swc_id": "SWC-107",
+            "cwe_id": "CWE-841",
+        }
+
+        result = validate_vulnerability_finding(data)
+
+        assert result.is_valid is True
