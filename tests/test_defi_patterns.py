@@ -811,7 +811,7 @@ class TestDeFiPatternDetectorIntegration:
 
         assert len(matches1) == len(matches2)
 
-        for m1, m2 in zip(matches1, matches2, strict=False):
+        for m1, m2 in zip(matches1, matches2):
             assert m1.pattern.vuln_type == m2.pattern.vuln_type
             assert m1.confidence == m2.confidence
 

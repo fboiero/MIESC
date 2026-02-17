@@ -672,7 +672,7 @@ class TestClassicPatternDetectorIntegration:
         matches2 = detector.detect(reentrancy_vulnerable_code)
 
         assert len(matches1) == len(matches2)
-        for m1, m2 in zip(matches1, matches2, strict=False):
+        for m1, m2 in zip(matches1, matches2):
             assert m1.vuln_type == m2.vuln_type
             assert m1.line == m2.line
 
