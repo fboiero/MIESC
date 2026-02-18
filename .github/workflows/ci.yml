@@ -284,7 +284,7 @@ jobs:
         continue-on-error: true
 
       - name: Set up Node.js for link checker
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
