@@ -6,7 +6,7 @@
 [![Versión](https://img.shields.io/badge/versión-5.1.1-green)](https://github.com/fboiero/MIESC/releases)
 [![Build](https://img.shields.io/badge/build-passing-success)](https://github.com/fboiero/MIESC/actions/workflows/secure-dev-pipeline.yml)
 [![Cobertura](https://img.shields.io/badge/cobertura-81%25-green)](./htmlcov/index.html)
-[![Herramientas](https://img.shields.io/badge/herramientas-31%2F31%20operativas-brightgreen)](./docs/TOOLS.md)
+[![Herramientas](https://img.shields.io/badge/herramientas-50%2F50%20operativas-brightgreen)](./docs/TOOLS.md)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 
 [English](./README.md) | **Español**

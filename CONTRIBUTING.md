@@ -73,7 +73,7 @@ pytest tests/
 
 - Look for issues labeled [`good first issue`](https://github.com/fboiero/MIESC/labels/good%20first%20issue)
 - Check [`help wanted`](https://github.com/fboiero/MIESC/labels/help%20wanted) for priority items
-- Review the [project roadmap](./docs/ROADMAP.md)
+- Review the [project roadmap](./ROADMAP.md)
 
 ### Proposing Changes
 

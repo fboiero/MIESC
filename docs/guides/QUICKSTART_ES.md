@@ -30,7 +30,7 @@ pip install -e .[full]        # Todas las funciones
 # Verificar version
 miesc --version
 
-# Verificar herramientas disponibles (muestra 31 herramientas en 9 capas)
+# Verificar herramientas disponibles (muestra 50 herramientas en 9 capas)
 miesc doctor
 ```
 

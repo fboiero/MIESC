@@ -44,7 +44,7 @@ title: MIESC - Smart Contract Security Framework
 **Demonstrates:**
 
 - Defense-in-Depth analysis across 9 security layers
-- 31 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
+- 50 integrated tools (Slither, Mythril, Echidna, Certora, etc.)
 - Model Context Protocol (MCP) integration with MCP client
 - 100% Precision, 70% Recall, F1-Score 82.35% (SmartBugs-curated benchmark)
 - Sovereign AI with Ollama (code never leaves your machine)
@@ -55,7 +55,7 @@ title: MIESC - Smart Contract Security Framework
 
 **Purpose:**
 
-- Automated orchestration of 31 security analysis tools
+- Automated orchestration of 50 security analysis tools
 - AI-assisted finding correlation to reduce duplicate reports
 - ML-based vulnerability detection with 95.7% accuracy
 - Compliance mapping to ISO/NIST/OWASP standards
@@ -275,7 +275,7 @@ Static Dynamic Symbolic Formal
 - **117 tests passing**
 - **80.8% code coverage**
 - **0 critical vulnerabilities**
-- **31/31 tools operational**
+- **50/50 tools operational**
 
 ---
 
@@ -368,7 +368,7 @@ We welcome contributions from the security research and blockchain communities!
 
 - Certora CVL specs for common patterns (ERC-20/721)
 - Echidna property templates for DeFi
-- Integration tests for all 31 tools
+- Integration tests for all 50 tools
 - Cross-chain vulnerability analysis
 - Documentation translations
 

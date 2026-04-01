@@ -282,5 +282,5 @@ Custom detectors integrate with the full MIESC pipeline:
 
 ---
 
-*Custom Detector API v4.3*
+*Custom Detector API v5.1.1*
 *MIESC - Multi-layer Intelligent Evaluation for Smart Contracts*

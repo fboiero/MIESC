@@ -1,6 +1,6 @@
 # MIESC Documentation
 
-**Last Updated:** 2025-12-13
+**Last Updated:** 2026-03-31
 
 This directory contains all documentation for the MIESC project, organized by purpose and timeline.
 
@@ -103,9 +103,9 @@ docs/
 - **Main README**: `/README.md`
 - **Spanish README**: `/README_ES.md`
 - **Contributing**: `/CONTRIBUTING.md`
-- **License**: `/LICENSE` (GPL-3.0)
+- **License**: `/LICENSE` (AGPL-3.0)
 - **Changelog**: `/CHANGELOG.md`
 
 ---
 
-*MIESC v4.2.0 "Fortress" - Maestria en Ciberdefensa, UNDEF/IUA*
+*MIESC v5.1.1 - Maestria en Ciberdefensa, UNDEF/IUA*

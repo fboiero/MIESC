@@ -45,7 +45,7 @@ lang: es
 **Demuestra:**
 
 - Análisis Defense-in-Depth a través de 9 capas de seguridad
-- 31 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
+- 50 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
 - Integración del Model Context Protocol (MCP) con Claude Desktop
 - 100% Precisión, 70% Recall, F1-Score 82.35% (benchmark SmartBugs-curated)
 - IA Soberana con Ollama (el código nunca sale de tu máquina)
@@ -56,7 +56,7 @@ lang: es
 
 **Propósito:**
 
-- Orquestación automatizada de 31 herramientas de análisis de seguridad
+- Orquestación automatizada de 50 herramientas de análisis de seguridad
 - Correlación asistida por IA para reducir reportes duplicados
 - Detección de vulnerabilidades basada en ML con 95.7% de precisión
 - Mapeo de cumplimiento a estándares ISO/NIST/OWASP
@@ -75,7 +75,7 @@ lang: es
 
 ## Descripción General
 
-**MIESC** es un framework de seguridad de smart contracts de grado de producción que implementa una **arquitectura Defense-in-Depth de 9 capas**, integrando **31 herramientas de seguridad especializadas** con **correlación potenciada por IA** y **detección basada en ML** para ofrecer detección integral de vulnerabilidades con precisión líder en la industria.
+**MIESC** es un framework de seguridad de smart contracts de grado de producción que implementa una **arquitectura Defense-in-Depth de 9 capas**, integrando **50 herramientas de seguridad especializadas** con **correlación potenciada por IA** y **detección basada en ML** para ofrecer detección integral de vulnerabilidades con precisión líder en la industria.
 
 ### Logros Principales (v5.1.1)
 
@@ -274,7 +274,7 @@ Static Dynamic Symbolic Formal
 - **117 tests pasando**
 - **80.8% cobertura de código**
 - **0 vulnerabilidades críticas**
-- **31/31 herramientas operativas**
+- **50/50 herramientas operativas**
 
 ---
 
@@ -371,7 +371,7 @@ Damos la bienvenida a contribuciones de las comunidades de investigación en seg
 
 - Specs CVL Certora para patrones comunes (ERC-20/721)
 - Templates de propiedades Echidna para DeFi
-- Tests de integración para las 31 herramientas
+- Tests de integración para las 50 herramientas
 - Análisis de vulnerabilidades cross-chain
 - Traducciones de documentación
 

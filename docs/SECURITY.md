@@ -265,4 +265,4 @@ MIESC development follows security best practices aligned with:
 
 ---
 
-*Last Updated: December 2024*
+*Last Updated: March 2026*

@@ -64,15 +64,13 @@ format:  ## Format code with black
 
 audit:  ## Run sample audit
 	@echo "$(BLUE)Running sample audit...$(NC)"
-	python src/miesc_cli.py run-audit examples/reentrancy_simple.sol \
-		--enable-ai \
+	miesc audit quick examples/reentrancy_simple.sol \
 		-o analysis/results/sample_audit.json
 	@echo "$(GREEN)✓ Audit complete$(NC)"
 
 audit-fast:  ## Run fast audit (no AI)
 	@echo "$(BLUE)Running fast audit (no AI)...$(NC)"
-	python src/miesc_cli.py run-audit examples/reentrancy_simple.sol \
-		--no-ai \
+	miesc scan examples/reentrancy_simple.sol \
 		-o analysis/results/fast_audit.json
 	@echo "$(GREEN)✓ Fast audit complete$(NC)"
 
@@ -247,12 +245,12 @@ citation:  ## Show citation information
 
 version:  ## Show version information
 	@echo "$(BLUE)MIESC Version Information:$(NC)"
-	@echo "Version: 3.5.0"
+	@echo "Version: 5.1.1"
 	@echo "Author: Fernando Boiero"
 	@echo "Institution: UNDEF - IUA Córdoba"
-	@echo "License: GPL-3.0"
+	@echo "License: AGPL-3.0-only"
 	@echo "MCP Protocol: mcp/1.0"
-	@echo "AI Enhancement: OpenLLaMA (Sovereign LLM)"
+	@echo "AI Enhancement: Ollama (Local LLM)"
 
 # Security targets (v3.1.0 - DevSecOps)
 security:  ## Run all security checks

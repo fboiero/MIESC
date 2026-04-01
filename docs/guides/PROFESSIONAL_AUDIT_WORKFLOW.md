@@ -1,6 +1,6 @@
 # Professional Smart Contract Audit Workflow
 
-**MIESC v5.1.0** | Professional Auditor Guide
+**MIESC v5.1.1** | Professional Auditor Guide
 
 This guide provides a structured workflow for conducting professional smart contract security audits using MIESC.
 

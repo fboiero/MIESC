@@ -1,4 +1,4 @@
-# MIESC v5.1.0 - Complete Installation Guide
+# MIESC v5.1.1 - Complete Installation Guide
 
 **[Versión en Español](INSTALLATION_ES.md)**
 
@@ -117,7 +117,7 @@ slither --version
 
 ## Tool Installation by Layer
 
-MIESC uses 31 tools organized in 9 layers. Install tools based on your needs.
+MIESC integrates 50 tool adapters organized in 9 layers. Install tools based on your needs.
 
 ### Layer 1: Static Analysis (3 tools)
 
@@ -321,7 +321,7 @@ MIESC v4.3.0 - Installation Verification
 
 5. MIESC Adapter Registration
 ----------------------------------------
-  [OK] All 31/31 adapters registered
+  [OK] All 50/50 adapters registered
   [OK] XX tools currently available
 
 Installation Summary
@@ -431,4 +431,4 @@ After installation:
 
 ---
 
-**Version**: 4.3.0 | **Last Updated**: January 2026
+**Version**: 5.1.1 | **Last Updated**: March 2026

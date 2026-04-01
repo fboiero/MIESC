@@ -21,7 +21,7 @@ Supported networks: Ethereum, Polygon, BSC, Arbitrum, Optimism, Avalanche, and a
 - Vyper
 
 ### Capabilities
-- **31 integrated tools** across 9 defense layers
+- **50 integrated tools** across 9 defense layers
 - Full symbolic execution (Mythril, Manticore, Halmos)
 - Formal verification (Certora, SMTChecker)
 - Fuzzing (Echidna, Medusa, Foundry)

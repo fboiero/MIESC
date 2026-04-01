@@ -1,4 +1,4 @@
-# MIESC v5.1.0 - Guía de Instalación Completa
+# MIESC v5.1.1 - Guía de Instalación Completa
 
 **[English Version](INSTALLATION.md)**
 
@@ -117,7 +117,7 @@ slither --version
 
 ## Instalación de Herramientas por Capa
 
-MIESC usa 31 herramientas organizadas en 9 capas. Instala las herramientas según tus necesidades.
+MIESC integra 50 adaptadores de herramientas organizados en 9 capas. Instala las herramientas según tus necesidades.
 
 ### Capa 1: Análisis Estático (3 herramientas)
 
@@ -321,7 +321,7 @@ MIESC v5.1.0 - Verificación de Instalación
 
 5. Registro de Adaptadores MIESC
 ----------------------------------------
-  [OK] Todos los 31/31 adaptadores registrados
+  [OK] Todos los 50/50 adaptadores registrados
   [OK] XX herramientas actualmente disponibles
 
 Resumen de Instalación
@@ -431,4 +431,4 @@ Después de la instalación:
 
 ---
 
-**Versión**: 5.1.0 | **Última Actualización**: Febrero 2026
+**Versión**: 5.1.1 | **Última Actualización**: Marzo 2026

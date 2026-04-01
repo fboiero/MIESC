@@ -26,7 +26,7 @@ pip install -e .[full]        # All features
 # Check version
 miesc --version
 
-# Check available tools (shows 31 tools across 9 layers)
+# Check available tools (shows 50 tools across 9 layers)
 miesc doctor
 ```
 
