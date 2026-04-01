@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MIESC v4.0.0 - Interactive Web Dashboard
+MIESC v5.1.1 - Interactive Web Dashboard
 Streamlit-based interface for smart contract security analysis
 
 Author: Fernando Boiero
@@ -31,7 +31,7 @@ from src.miesc_risk_engine import RiskEngine
 TRANSLATIONS = {
     "en": {
         # Header
-        "main_title": "MIESC v4.0.0",
+        "main_title": "MIESC v5.1.1",
         "subtitle": "Multi-layer Intelligent Evaluation for Smart Contracts",
         # Sidebar
         "configuration": "Configuration",
@@ -121,7 +121,7 @@ TRANSLATIONS = {
         "chapter_7": "7. MCP Justification",
         "chapter_8": "8. Future Work",
         # Footer
-        "footer": "MIESC v4.0.0 | Fernando Boiero | UNDEF - IUA Cordoba",
+        "footer": "MIESC v5.1.1 | Fernando Boiero | UNDEF - IUA Cordoba",
         # License activation
         "license_activation": "License Activation",
         "enter_license_key": "Enter your license key to access MIESC",
@@ -144,7 +144,7 @@ TRANSLATIONS = {
     },
     "es": {
         # Header
-        "main_title": "MIESC v4.0.0",
+        "main_title": "MIESC v5.1.1",
         "subtitle": "Evaluacion Inteligente Multi-capa para Contratos Inteligentes",
         # Sidebar
         "configuration": "Configuracion",
@@ -234,7 +234,7 @@ TRANSLATIONS = {
         "chapter_7": "7. Justificacion MCP",
         "chapter_8": "8. Trabajos Futuros",
         # Footer
-        "footer": "MIESC v4.0.0 | Fernando Boiero | UNDEF - IUA Cordoba",
+        "footer": "MIESC v5.1.1 | Fernando Boiero | UNDEF - IUA Cordoba",
         # License activation
         "license_activation": "Activacion de Licencia",
         "enter_license_key": "Ingresa tu clave de licencia para acceder a MIESC",
@@ -429,7 +429,7 @@ def record_analysis():
 
 # Page configuration
 st.set_page_config(
-    page_title="MIESC v4.0.0", page_icon="", layout="wide", initial_sidebar_state="expanded"
+    page_title="MIESC v5.1.1", page_icon="", layout="wide", initial_sidebar_state="expanded"
 )
 
 # Initialize session state

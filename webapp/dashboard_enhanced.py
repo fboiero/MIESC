@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MIESC v4.0.0 - Enhanced Interactive Dashboard
+MIESC v5.1.1 - Enhanced Interactive Dashboard
 Advanced analytics and real-time visualization for smart contract security.
 
 Features:

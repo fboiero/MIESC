@@ -1,0 +1,24 @@
+[global]
+developmentMode = false
+disableWatchdogWarning = true
+
+[server]
+headless = true
+port = 8501
+enableCORS = false
+enableXsrfProtection = true
+maxUploadSize = 10
+
+[browser]
+gatherUsageStats = false
+serverAddress = "0.0.0.0"
+
+[theme]
+primaryColor = "#2563eb"
+backgroundColor = "#0f172a"
+secondaryBackgroundColor = "#1e293b"
+textColor = "#e2e8f0"
+font = "sans serif"
+
+[runner]
+magicEnabled = false

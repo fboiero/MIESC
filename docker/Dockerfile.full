@@ -1,4 +1,4 @@
-# MIESC v5.1.0 FULL - Extended Docker Image
+# MIESC v5.1.1 FULL - Extended Docker Image
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This image includes advanced security analysis tools:
@@ -157,7 +157,7 @@ RUN pip install --user --no-cache-dir semgrep && \
 # ENVIRONMENT CONFIGURATION
 # ==========================================
 
-ENV MIESC_VERSION="5.1.0-full"
+ENV MIESC_VERSION="5.1.1-full"
 ENV MIESC_ENV="docker-full"
 
 # Mark deprecated tools

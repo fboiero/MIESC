@@ -1,0 +1,366 @@
+name: 'MIESC Smart Contract Security'
+description: 'Multi-layer Intelligent Evaluation for Smart Contracts - Orchestrates 50 security tools across 9 defense layers with AI correlation'
+author: 'Fernando Boiero'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  path:
+    description: 'Path to smart contract file or directory'
+    required: true
+    default: 'contracts/'
+  mode:
+    description: 'Analysis mode: scan (quick), audit-quick (4 tools), audit-full (9 layers), audit-layer (specific layer), audit-profile (named profile)'
+    required: false
+    default: 'scan'
+  profile:
+    description: 'Audit profile when mode=audit-profile (fast, balanced, thorough, security, ci, audit, defi, token)'
+    required: false
+    default: 'ci'
+  layer:
+    description: 'Layer number when mode=audit-layer (1-9)'
+    required: false
+    default: '1'
+  output-format:
+    description: 'Output format: json, sarif, markdown'
+    required: false
+    default: 'sarif'
+  output-file:
+    description: 'Output file path'
+    required: false
+    default: 'miesc-results'
+  fail-on:
+    description: 'Fail the action on findings of this severity or higher: critical, high, medium, low, none'
+    required: false
+    default: 'high'
+  timeout:
+    description: 'Timeout per tool in seconds'
+    required: false
+    default: '300'
+  skip-unavailable:
+    description: 'Skip tools that are not installed instead of failing'
+    required: false
+    default: 'true'
+  extra-tools:
+    description: 'Additional pip packages to install (space-separated, e.g., "mythril halmos")'
+    required: false
+    default: ''
+  miesc-version:
+    description: 'MIESC version to install (default: latest)'
+    required: false
+    default: ''
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.12'
+  upload-sarif:
+    description: 'Upload SARIF results to GitHub Security tab'
+    required: false
+    default: 'true'
+  comment-on-pr:
+    description: 'Post findings summary as PR comment'
+    required: false
+    default: 'true'
+
+outputs:
+  report-path:
+    description: 'Path to the generated report file'
+    value: ${{ steps.run-miesc.outputs.report_path }}
+  findings-count:
+    description: 'Total number of findings'
+    value: ${{ steps.run-miesc.outputs.findings_count }}
+  critical-count:
+    description: 'Number of critical findings'
+    value: ${{ steps.run-miesc.outputs.critical_count }}
+  high-count:
+    description: 'Number of high findings'
+    value: ${{ steps.run-miesc.outputs.high_count }}
+  exit-code:
+    description: 'Exit code (0=pass, 1=findings exceed threshold)'
+    value: ${{ steps.evaluate.outputs.exit_code }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install MIESC
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+
+        # Install MIESC
+        if [ -n "${{ inputs.miesc-version }}" ]; then
+          pip install "miesc==${{ inputs.miesc-version }}"
+        else
+          pip install miesc
+        fi
+
+        # Install extra tools
+        if [ -n "${{ inputs.extra-tools }}" ]; then
+          for tool in ${{ inputs.extra-tools }}; do
+            echo "Installing $tool..."
+            pip install "$tool" || echo "Warning: Failed to install $tool"
+          done
+        fi
+
+    - name: Install solc
+      shell: bash
+      run: |
+        pip install solc-select
+        solc-select install 0.8.20
+        solc-select use 0.8.20
+
+    - name: Run MIESC Analysis
+      id: run-miesc
+      shell: bash
+      env:
+        MIESC_CI: "true"
+      run: |
+        set +e
+
+        MODE="${{ inputs.mode }}"
+        PATH_INPUT="${{ inputs.path }}"
+        FORMAT="${{ inputs.output-format }}"
+        TIMEOUT="${{ inputs.timeout }}"
+        SKIP_FLAG=""
+        OUTPUT_EXT="json"
+
+        if [ "${{ inputs.skip-unavailable }}" = "true" ]; then
+          SKIP_FLAG="--skip-unavailable"
+        fi
+
+        if [ "$FORMAT" = "sarif" ]; then
+          OUTPUT_EXT="sarif"
+        elif [ "$FORMAT" = "markdown" ]; then
+          OUTPUT_EXT="md"
+        fi
+
+        OUTPUT_FILE="${{ inputs.output-file }}.$OUTPUT_EXT"
+        RESULTS_JSON="${{ inputs.output-file }}.json"
+
+        echo "::group::MIESC Analysis ($MODE)"
+        echo "Path: $PATH_INPUT"
+        echo "Mode: $MODE"
+        echo "Format: $FORMAT"
+        echo "Timeout: ${TIMEOUT}s"
+
+        # Run analysis based on mode
+        case "$MODE" in
+          scan)
+            miesc scan "$PATH_INPUT" -o "$RESULTS_JSON" --ci 2>&1
+            MIESC_EXIT=$?
+            ;;
+          audit-quick)
+            miesc audit quick "$PATH_INPUT" -o "$RESULTS_JSON" -t "$TIMEOUT" $SKIP_FLAG 2>&1
+            MIESC_EXIT=$?
+            ;;
+          audit-full)
+            miesc audit full "$PATH_INPUT" -o "$RESULTS_JSON" -t "$TIMEOUT" $SKIP_FLAG 2>&1
+            MIESC_EXIT=$?
+            ;;
+          audit-layer)
+            miesc audit layer "${{ inputs.layer }}" "$PATH_INPUT" -o "$RESULTS_JSON" -t "$TIMEOUT" 2>&1
+            MIESC_EXIT=$?
+            ;;
+          audit-profile)
+            miesc audit profile "${{ inputs.profile }}" "$PATH_INPUT" -o "$RESULTS_JSON" -t "$TIMEOUT" $SKIP_FLAG 2>&1
+            MIESC_EXIT=$?
+            ;;
+          *)
+            echo "::error::Unknown mode: $MODE"
+            exit 1
+            ;;
+        esac
+
+        echo "::endgroup::"
+
+        # Generate report in requested format if not JSON
+        if [ "$FORMAT" != "json" ] && [ -f "$RESULTS_JSON" ]; then
+          echo "::group::Generating $FORMAT report"
+          miesc export "$RESULTS_JSON" -f "$FORMAT" -o "$OUTPUT_FILE" 2>&1 || true
+          echo "::endgroup::"
+        else
+          OUTPUT_FILE="$RESULTS_JSON"
+        fi
+
+        # Parse findings count from JSON results
+        FINDINGS_COUNT=0
+        CRITICAL_COUNT=0
+        HIGH_COUNT=0
+        if [ -f "$RESULTS_JSON" ]; then
+          FINDINGS_COUNT=$(python3 -c "
+        import json, sys
+        try:
+            with open('$RESULTS_JSON') as f:
+                data = json.load(f)
+            findings = data.get('findings', data.get('results', []))
+            if isinstance(findings, list):
+                print(len(findings))
+            else:
+                print(0)
+        except:
+            print(0)
+        " 2>/dev/null || echo "0")
+
+          CRITICAL_COUNT=$(python3 -c "
+        import json
+        try:
+            with open('$RESULTS_JSON') as f:
+                data = json.load(f)
+            findings = data.get('findings', data.get('results', []))
+            count = sum(1 for f in findings if f.get('severity','').lower() == 'critical')
+            print(count)
+        except:
+            print(0)
+        " 2>/dev/null || echo "0")
+
+          HIGH_COUNT=$(python3 -c "
+        import json
+        try:
+            with open('$RESULTS_JSON') as f:
+                data = json.load(f)
+            findings = data.get('findings', data.get('results', []))
+            count = sum(1 for f in findings if f.get('severity','').lower() == 'high')
+            print(count)
+        except:
+            print(0)
+        " 2>/dev/null || echo "0")
+        fi
+
+        echo "report_path=$OUTPUT_FILE" >> $GITHUB_OUTPUT
+        echo "findings_count=$FINDINGS_COUNT" >> $GITHUB_OUTPUT
+        echo "critical_count=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
+        echo "high_count=$HIGH_COUNT" >> $GITHUB_OUTPUT
+        echo "miesc_exit=$MIESC_EXIT" >> $GITHUB_OUTPUT
+
+        # Summary
+        echo "### MIESC Security Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Mode | \`$MODE\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| Target | \`$PATH_INPUT\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| Total Findings | **$FINDINGS_COUNT** |" >> $GITHUB_STEP_SUMMARY
+        echo "| Critical | $CRITICAL_COUNT |" >> $GITHUB_STEP_SUMMARY
+        echo "| High | $HIGH_COUNT |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        if [ "$FINDINGS_COUNT" -gt 0 ]; then
+          echo "> Run \`miesc report $RESULTS_JSON -t premium\` locally for a detailed audit report." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "> No findings detected." >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Upload SARIF to GitHub Security
+      if: inputs.upload-sarif == 'true' && inputs.output-format == 'sarif' && hashFiles(format('{0}.sarif', inputs.output-file)) != ''
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.run-miesc.outputs.report_path }}
+        category: miesc
+      continue-on-error: true
+
+    - name: Upload report artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: miesc-report
+        path: |
+          ${{ inputs.output-file }}.*
+        retention-days: 30
+
+    - name: Comment on PR
+      if: inputs.comment-on-pr == 'true' && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const findingsCount = '${{ steps.run-miesc.outputs.findings_count }}';
+          const criticalCount = '${{ steps.run-miesc.outputs.critical_count }}';
+          const highCount = '${{ steps.run-miesc.outputs.high_count }}';
+          const mode = '${{ inputs.mode }}';
+
+          let emoji = '✅';
+          let status = 'passed';
+          if (parseInt(criticalCount) > 0) { emoji = '🚨'; status = 'critical issues found'; }
+          else if (parseInt(highCount) > 0) { emoji = '⚠️'; status = 'high severity issues found'; }
+          else if (parseInt(findingsCount) > 0) { emoji = '🔍'; status = 'findings detected'; }
+
+          const body = `## ${emoji} MIESC Security Analysis
+
+          | Metric | Value |
+          |--------|-------|
+          | Mode | \`${mode}\` |
+          | Total Findings | **${findingsCount}** |
+          | Critical | ${criticalCount} |
+          | High | ${highCount} |
+          | Status | ${status} |
+
+          <details>
+          <summary>What is MIESC?</summary>
+
+          [MIESC](https://github.com/fboiero/MIESC) orchestrates 50 security tools across 9 defense layers with AI-assisted correlation. This is an automated pre-audit triage — not a replacement for manual review.
+
+          </details>
+
+          > Download the full report from the **Artifacts** section of this workflow run.`;
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          const existing = comments.find(c => c.body.includes('MIESC Security Analysis'));
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body: body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body,
+            });
+          }
+
+    - name: Evaluate findings threshold
+      id: evaluate
+      shell: bash
+      run: |
+        FAIL_ON="${{ inputs.fail-on }}"
+        CRITICAL=${{ steps.run-miesc.outputs.critical_count }}
+        HIGH=${{ steps.run-miesc.outputs.high_count }}
+        FINDINGS=${{ steps.run-miesc.outputs.findings_count }}
+
+        EXIT_CODE=0
+
+        case "$FAIL_ON" in
+          critical)
+            if [ "$CRITICAL" -gt 0 ]; then EXIT_CODE=1; fi
+            ;;
+          high)
+            if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then EXIT_CODE=1; fi
+            ;;
+          medium|low)
+            if [ "$FINDINGS" -gt 0 ]; then EXIT_CODE=1; fi
+            ;;
+          none)
+            EXIT_CODE=0
+            ;;
+        esac
+
+        echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+
+        if [ "$EXIT_CODE" -ne 0 ]; then
+          echo "::error::MIESC found $CRITICAL critical and $HIGH high severity issues (threshold: $FAIL_ON)"
+          exit 1
+        fi

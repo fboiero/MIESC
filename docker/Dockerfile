@@ -1,4 +1,4 @@
-# MIESC v5.1.0 - Optimized Docker Deployment
+# MIESC v5.1.1 - Optimized Docker Deployment
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile creates a complete, production-ready environment with:
@@ -162,7 +162,7 @@ RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
     echo "WeasyPrint installed successfully"
 
 # Environment variables for MIESC
-ENV MIESC_VERSION="5.1.0"
+ENV MIESC_VERSION="5.1.1"
 ENV MIESC_ENV="docker"
 ENV PYTHONPATH="/app"
 ENV PYTHONUNBUFFERED=1

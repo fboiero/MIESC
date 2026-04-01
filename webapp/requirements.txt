@@ -1,0 +1,14 @@
+# MIESC Web Dashboard - Streamlit Cloud Dependencies
+# Deploy: https://share.streamlit.io
+
+streamlit>=1.28.0
+plotly>=5.18.0
+pydantic>=2.0.0
+pyyaml>=6.0.0
+jinja2>=3.1.0
+click>=8.1.0
+
+# Note: slither-analyzer and other heavy tools are NOT required
+# for the web dashboard. The dashboard provides a UI for uploading
+# contracts and viewing results. Full analysis requires the CLI
+# or Docker image.

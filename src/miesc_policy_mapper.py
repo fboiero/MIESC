@@ -1,15 +1,29 @@
 """
-MIESC Policy Mapper - Compatibility shim for legacy webapp imports.
-Redirects to src.security.compliance_mapper for v4.2+ compatibility.
+MIESC Policy Mapper - Compatibility shim for webapp imports.
+
+.. deprecated:: 5.1.1
+    Use ``from src.security.compliance_mapper import ComplianceMapper`` instead.
+    This module will be removed in v6.0.0.
 """
 
+import warnings
+
 from src.security.compliance_mapper import ComplianceMapper
+
+warnings.warn(
+    "src.miesc_policy_mapper is deprecated. Use src.security.compliance_mapper instead. "
+    "This module will be removed in v6.0.0.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class PolicyMapper:
     """
-    Legacy compatibility wrapper around ComplianceMapper.
-    Used by webapp/app.py.
+    Compatibility wrapper around ComplianceMapper.
+
+    .. deprecated:: 5.1.1
+        Use ``ComplianceMapper`` directly instead.
     """
 
     def __init__(self):

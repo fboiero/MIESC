@@ -1,0 +1,77 @@
+# Example: How to use the MIESC GitHub Action in your project
+#
+# Copy this workflow to your repository's .github/workflows/ directory
+# and customize it for your smart contract project.
+#
+# For more information, see: https://github.com/fboiero/MIESC
+
+name: Smart Contract Security (MIESC)
+
+on:
+  push:
+    paths: ['contracts/**/*.sol', 'src/**/*.sol']
+  pull_request:
+    paths: ['contracts/**/*.sol', 'src/**/*.sol']
+
+permissions:
+  contents: read
+  security-events: write    # Required for SARIF upload
+  pull-requests: write      # Required for PR comments
+
+jobs:
+  # ──────────────────────────────────────────────────────
+  # Quick scan on every push (~30 seconds)
+  # ──────────────────────────────────────────────────────
+  quick-scan:
+    name: Quick Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: MIESC Quick Scan
+        uses: fboiero/MIESC@v5
+        with:
+          path: contracts/
+          mode: scan
+          fail-on: critical
+          output-format: sarif
+          upload-sarif: true
+
+  # ──────────────────────────────────────────────────────
+  # Full audit on PRs to main (~5-10 minutes)
+  # ──────────────────────────────────────────────────────
+  full-audit:
+    name: Full Security Audit
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: MIESC Full Audit
+        uses: fboiero/MIESC@v5
+        with:
+          path: contracts/
+          mode: audit-quick
+          fail-on: high
+          output-format: sarif
+          upload-sarif: true
+          comment-on-pr: true
+
+  # ──────────────────────────────────────────────────────
+  # Advanced: Profile-based audit with extra tools
+  # ──────────────────────────────────────────────────────
+  # defi-audit:
+  #   name: DeFi Security Audit
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'pull_request'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: MIESC DeFi Audit
+  #       uses: fboiero/MIESC@v5
+  #       with:
+  #         path: contracts/
+  #         mode: audit-profile
+  #         profile: defi
+  #         fail-on: high
+  #         extra-tools: 'mythril'
+  #         timeout: '600'

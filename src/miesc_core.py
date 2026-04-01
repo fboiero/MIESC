@@ -1,15 +1,29 @@
 """
-MIESC Core - Compatibility shim for legacy webapp imports.
-Redirects to src.core.optimized_orchestrator for v4.2+ compatibility.
+MIESC Core - Compatibility shim for webapp imports.
+
+.. deprecated:: 5.1.1
+    Use ``from miesc.api import run_full_audit`` instead.
+    This module will be removed in v6.0.0.
 """
 
+import warnings
+
 from src.core.optimized_orchestrator import OptimizedOrchestrator
+
+warnings.warn(
+    "src.miesc_core is deprecated. Use miesc.api instead. "
+    "This module will be removed in v6.0.0.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class MIESCCore:
     """
-    Legacy compatibility wrapper around OptimizedOrchestrator.
-    Used by webapp/app.py and webapp/dashboard_enhanced.py.
+    Compatibility wrapper around OptimizedOrchestrator.
+
+    .. deprecated:: 5.1.1
+        Use ``from miesc.api import run_full_audit`` instead.
     """
 
     def __init__(self, config=None):
@@ -36,7 +50,7 @@ class MIESCCore:
                     "contract": contract_path,
                     "tools_used": tools or ["slither", "mythril", "aderyn"],
                     "layers_executed": 7,
-                    "version": "4.2.0",
+                    "version": "5.1.1",
                 },
                 "summary": result.get("summary", {}),
                 "success": True,
@@ -61,4 +75,4 @@ class MIESCCore:
 
     def get_version(self) -> str:
         """Return MIESC version."""
-        return "4.2.0"
+        return "5.1.1"

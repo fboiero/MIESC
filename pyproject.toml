@@ -288,7 +288,6 @@ omit = [
     # Detectors with external dependencies
     "src/detectors/smartbugs_detectors.py",
     # Duplicate/backup files
-    "src/agents/symbolic_agent 2.py",
     # Additional legacy/utility modules (v3.x)
     "src/GPTLens_prompts.py",
     "src/summarize_information.py",
