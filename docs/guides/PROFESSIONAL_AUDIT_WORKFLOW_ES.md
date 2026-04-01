@@ -1,6 +1,6 @@
 # Flujo de Trabajo para Auditorías Profesionales
 
-**MIESC v5.1.0** | Guía para Auditores Profesionales
+**MIESC v5.1.1** | Guía para Auditores Profesionales
 
 Esta guía proporciona un flujo de trabajo estructurado para realizar auditorías de seguridad profesionales de smart contracts usando MIESC.
 

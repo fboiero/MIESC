@@ -306,7 +306,7 @@ miesc doctor
 Salida esperada:
 
 ```
-MIESC v5.1.0 - Verificación de Instalación
+MIESC v5.1.1 - Verificación de Instalación
 ============================================================
 
 1. Entorno Python
