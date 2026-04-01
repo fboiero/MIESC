@@ -162,6 +162,19 @@ The FP filter employs a multi-signal approach:
     \item \textbf{RAG validation}: Cross-reference with curated vulnerability patterns for relevance scoring.
 \end{itemize}
 
+\subsection{Agentic Deep Audit}
+
+Beyond batch orchestration, MIESC includes a \emph{DeepAuditAgent} that implements an autonomous 4-phase investigation loop inspired by intelligent agent architectures~\cite{wooldridge1995intelligent}. Agents communicate via a Model Context Protocol (MCP) bus~\cite{mcp2024}, enabling modular coordination:
+
+\begin{enumerate}
+    \item \textbf{Reconnaissance}: Static call graph construction, taint analysis, risk profiling (DeFi, proxy, bridge, token), and attack surface scoring.
+    \item \textbf{Targeted Scan}: Adaptive tool selection based on risk profile---e.g., DeFi contracts trigger oracle and MEV detectors; proxy contracts trigger upgradability checkers.
+    \item \textbf{Deep Investigation}: Iterative agentic loop over HIGH/CRITICAL findings with RAG enrichment, targeted taint analysis, and dynamic tool triggering (e.g., adding symbolic execution for reentrancy confirmation).
+    \item \textbf{Synthesis}: Cross-finding correlation, exploit chain detection, and optional LLM narrative generation (local-first via Ollama, with optional cloud API fallback).
+\end{enumerate}
+
+This agentic approach reduces manual triage by automatically investigating and correlating the most critical findings, detecting multi-step exploit chains that single-pass analysis would miss.
+
 % ===========================================================================
 \section{Evaluation}
 % ===========================================================================

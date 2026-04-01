@@ -31,7 +31,7 @@
 FROM ghcr.io/fboiero/miesc:5.1.1
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.1.0-full"
+LABEL version="5.1.1-full"
 LABEL description="MIESC FULL - Extended with Mythril, Echidna, Halmos, PyTorch for ML Analysis"
 
 # ==========================================

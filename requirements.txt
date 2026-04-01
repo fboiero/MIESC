@@ -1,0 +1,11 @@
+# MIESC Web Dashboard - Streamlit Cloud Dependencies
+# For full CLI/Docker dependencies, see pyproject.toml
+# For pinned versions, see requirements-lock.txt
+
+streamlit>=1.28.0
+plotly>=5.18.0
+pydantic>=2.0.0
+pyyaml>=6.0.0
+jinja2>=3.1.0
+click>=8.1.0
+sqlalchemy>=2.0.0
