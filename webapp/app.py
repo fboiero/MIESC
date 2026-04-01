@@ -127,6 +127,7 @@ TRANSLATIONS = {
         "enter_license_key": "Enter your license key to access MIESC",
         "license_key_placeholder": "MIESC-XXXX-XXXX-XXXX-XXXX",
         "activate_button": "Activate License",
+        "try_demo": "Try Free Demo",
         "invalid_license": "Invalid or expired license key",
         "license_valid": "License activated successfully!",
         "license_info": "License Information",
@@ -240,6 +241,7 @@ TRANSLATIONS = {
         "enter_license_key": "Ingresa tu clave de licencia para acceder a MIESC",
         "license_key_placeholder": "MIESC-XXXX-XXXX-XXXX-XXXX",
         "activate_button": "Activar Licencia",
+        "try_demo": "Probar Demo Gratuita",
         "invalid_license": "Clave de licencia invalida o expirada",
         "license_valid": "Licencia activada exitosamente!",
         "license_info": "Informacion de Licencia",
@@ -327,6 +329,28 @@ def get_quota_checker():
     return QuotaChecker()
 
 
+def _create_demo_license():
+    """Create an in-memory FREE demo license (no DB required)."""
+    from src.licensing.models import License, LicenseStatus, PlanType
+    from src.licensing.plans import get_plan_config
+
+    plan_config = get_plan_config(PlanType.FREE)
+    return License(
+        id="demo-session",
+        license_key="DEMO-MODE",
+        email="demo@miesc.dev",
+        plan=PlanType.FREE,
+        status=LicenseStatus.ACTIVE,
+        created_at=datetime.utcnow(),
+        expires_at=None,
+        organization="MIESC Community",
+        max_audits_month=plan_config.get("max_audits_month", 5),
+        allowed_tools=plan_config.get("allowed_tools", ["slither", "solhint"]),
+        ai_enabled=plan_config.get("ai_enabled", False),
+        max_contract_size_kb=plan_config.get("max_contract_size_kb", 50),
+    )
+
+
 def show_activation_screen():
     """Display license activation screen."""
     st.markdown(f'<p class="main-header">{t("main_title")}</p>', unsafe_allow_html=True)
@@ -356,6 +380,12 @@ def show_activation_screen():
                     st.error(t("invalid_license"))
             else:
                 st.warning(t("enter_license_key"))
+
+        st.markdown("---")
+        if st.button(t("try_demo"), use_container_width=True):
+            st.session_state.license = _create_demo_license()
+            st.session_state.license_key = "DEMO-MODE"
+            st.rerun()
 
 
 def show_license_info_sidebar():
@@ -500,7 +530,7 @@ if not st.session_state.license:
 
 # Sidebar (only shown when license is active)
 with st.sidebar:
-    st.image("https://img.shields.io/badge/version-4.0.0-blue", width=100)
+    st.image("https://img.shields.io/badge/version-5.1.1-blue", width=100)
 
     # Language selector at the top
     st.markdown("---")
