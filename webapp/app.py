@@ -7,7 +7,10 @@ Author: Fernando Boiero
 Institution: UNDEF - IUA Cordoba
 """
 
+import glob
 import json
+import shutil
+import subprocess
 import sys
 import tempfile
 from datetime import datetime
@@ -120,6 +123,16 @@ TRANSLATIONS = {
         "chapter_6": "6. AI and Sovereign LLM Justification",
         "chapter_7": "7. MCP Justification",
         "chapter_8": "8. Future Work",
+        # GitHub repo audit
+        "github_repo": "GitHub Repository",
+        "github_url_placeholder": "https://github.com/user/repo",
+        "github_url_help": "Enter a public GitHub repository URL to audit all Solidity contracts",
+        "clone_and_audit": "Clone & Audit",
+        "cloning_repo": "Cloning repository...",
+        "no_sol_files": "No .sol files found in this repository",
+        "found_contracts": "contracts found",
+        "select_contracts": "Select contracts to audit",
+        "repo_error": "Could not clone repository. Verify the URL is correct and the repo is public.",
         # Footer
         "footer": "MIESC v5.1.1 | Fernando Boiero | UNDEF - IUA Cordoba",
         # License activation
@@ -234,6 +247,16 @@ TRANSLATIONS = {
         "chapter_6": "6. Justificacion IA y LLM Soberano",
         "chapter_7": "7. Justificacion MCP",
         "chapter_8": "8. Trabajos Futuros",
+        # GitHub repo audit
+        "github_repo": "Repositorio GitHub",
+        "github_url_placeholder": "https://github.com/usuario/repo",
+        "github_url_help": "Ingresa la URL de un repositorio publico de GitHub para auditar todos los contratos Solidity",
+        "clone_and_audit": "Clonar y Auditar",
+        "cloning_repo": "Clonando repositorio...",
+        "no_sol_files": "No se encontraron archivos .sol en este repositorio",
+        "found_contracts": "contratos encontrados",
+        "select_contracts": "Seleccionar contratos a auditar",
+        "repo_error": "No se pudo clonar el repositorio. Verifica que la URL sea correcta y el repo sea publico.",
         # Footer
         "footer": "MIESC v5.1.1 | Fernando Boiero | UNDEF - IUA Cordoba",
         # License activation
@@ -473,6 +496,8 @@ if "license" not in st.session_state:
     st.session_state.license = None
 if "license_key" not in st.session_state:
     st.session_state.license_key = None
+if "repo_clone_dir" not in st.session_state:
+    st.session_state.repo_clone_dir = None
 
 # Custom CSS
 st.markdown(
@@ -616,24 +641,73 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
 with tab1:
     st.markdown(f"### {t('upload_contract')}")
 
-    col1, col2 = st.columns([1, 1])
+    input_method = st.radio(
+        "Input method",
+        [t("choose_file"), t("paste_code"), t("github_repo")],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
 
-    with col1:
+    if input_method == t("choose_file"):
         uploaded_file = st.file_uploader(t("choose_file"), type=["sol"], help=t("upload_help"))
-
         if uploaded_file:
             st.session_state.contract_code = uploaded_file.read().decode("utf-8")
             st.success(f"{t('loaded')}: {uploaded_file.name}")
 
-    with col2:
-        st.markdown(f"**{t('paste_code')}**")
+    elif input_method == t("paste_code"):
         code_input = st.text_area(
             t("solidity_code"),
-            height=200,
+            height=250,
             placeholder="// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract MyContract {\n    // ...\n}",
         )
         if code_input:
             st.session_state.contract_code = code_input
+
+    elif input_method == t("github_repo"):
+        repo_url = st.text_input(
+            t("github_repo"),
+            placeholder=t("github_url_placeholder"),
+            help=t("github_url_help"),
+        )
+        if repo_url and st.button(t("clone_and_audit"), type="primary", use_container_width=True):
+            with st.spinner(t("cloning_repo")):
+                try:
+                    clone_dir = tempfile.mkdtemp(prefix="miesc_repo_")
+                    subprocess.run(
+                        ["git", "clone", "--depth", "1", repo_url, clone_dir],
+                        capture_output=True, text=True, timeout=60, check=True,
+                    )
+                    sol_files = sorted(glob.glob(f"{clone_dir}/**/*.sol", recursive=True))
+
+                    if not sol_files:
+                        st.warning(t("no_sol_files"))
+                        shutil.rmtree(clone_dir, ignore_errors=True)
+                    else:
+                        rel_paths = [str(Path(f).relative_to(clone_dir)) for f in sol_files]
+                        st.success(f"{len(sol_files)} {t('found_contracts')}")
+
+                        selected = st.multiselect(
+                            t("select_contracts"),
+                            rel_paths,
+                            default=rel_paths[:5],
+                        )
+
+                        if selected:
+                            combined = []
+                            for rel in selected:
+                                full = Path(clone_dir) / rel
+                                code = full.read_text(errors="replace")
+                                combined.append(f"// === {rel} ===\n{code}")
+                            st.session_state.contract_code = "\n\n".join(combined)
+                            st.session_state.repo_clone_dir = clone_dir
+                            st.info(f"{len(selected)} contracts loaded")
+
+                except subprocess.TimeoutExpired:
+                    st.error(t("repo_error"))
+                except subprocess.CalledProcessError:
+                    st.error(t("repo_error"))
+                except Exception as e:
+                    st.error(f"{t('repo_error')}: {e}")
 
     # Sample contracts
     st.markdown("---")
