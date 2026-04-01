@@ -44,16 +44,127 @@ ROOT_DIR = get_root_dir()
 # =============================================================================
 
 
-def _get_impact_description(severity: str) -> str:
-    """Get impact description based on severity."""
-    impacts = {
-        "critical": "Complete loss of funds or contract takeover possible. Immediate exploitation risk.",
-        "high": "Significant financial loss or contract compromise possible under certain conditions.",
-        "medium": "Limited financial impact or requires specific conditions to exploit.",
-        "low": "Minor impact on contract functionality or gas efficiency.",
-        "info": "Informational finding for code quality improvement.",
+def _get_impact_description(severity: str, category: str = "") -> str:
+    """Get impact description based on severity and vulnerability category."""
+    cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
+    # Category-specific impact descriptions
+    category_impacts = {
+        "reentrancy": "An attacker can recursively call the vulnerable function before state updates complete, draining contract funds in a single transaction. This is one of the most exploited vulnerability classes in DeFi (e.g., The DAO hack, $60M lost).",
+        "selfdestruct": "An unprotected selfdestruct allows any caller to permanently destroy the contract and redirect all remaining ETH to an arbitrary address. Post-EIP-6780 (Dencun upgrade), selfdestruct only sends ETH without destroying storage, but the funds loss risk remains.",
+        "uninitialized state": "Uninitialized state variables default to zero values, which for address types means address(0). Funds sent to uninitialized addresses are permanently lost. For boolean flags, uninitialized means false, potentially bypassing access controls.",
+        "unchecked send": "Low-level calls (send, call) can silently fail without reverting the transaction. If the return value is not checked, the contract state advances as if the transfer succeeded, leading to accounting inconsistencies and potential fund loss.",
+        "weak randomness": "Using block.timestamp, block.number, or blockhash for randomness is predictable by miners/validators. An attacker can manipulate or predict these values to consistently win lotteries, bypass random checks, or front-run randomness-dependent logic.",
+        "tx origin": "Using tx.origin for authentication allows phishing attacks: if the contract owner interacts with a malicious contract, that contract can call the vulnerable function and pass the tx.origin check. Always use msg.sender for authentication.",
+        "access control": "Missing or incorrect access control allows unauthorized users to execute privileged functions such as minting tokens, modifying state, transferring ownership, or withdrawing funds.",
+        "integer overflow": "Arithmetic overflow/underflow can cause balances to wrap around, enabling attackers to mint tokens or manipulate accounting. Solidity 0.8+ has built-in overflow protection, but unchecked blocks and assembly bypass this.",
+        "front running": "Pending transactions in the mempool are visible to anyone. An attacker can observe a profitable transaction and submit their own with higher gas to be executed first, extracting value (sandwich attacks, DEX arbitrage).",
+        "oracle": "Price oracle manipulation allows attackers to distort asset prices used by the protocol, enabling exploits such as flash loan attacks that drain lending pools or manipulate collateral ratios.",
+        "flash loan": "Flash loan attacks allow borrowing unlimited capital with zero collateral within a single transaction. Combined with other vulnerabilities (oracle manipulation, reentrancy), this enables catastrophic fund drainage.",
     }
-    return impacts.get(severity, "Impact assessment pending.")
+    for key, desc in category_impacts.items():
+        if key in cat:
+            return desc
+    # Fallback to severity-based
+    severity_impacts = {
+        "critical": "Complete loss of funds or contract takeover possible. Immediate exploitation risk with high likelihood of active exploitation.",
+        "high": "Significant financial loss or contract compromise possible. Exploitation requires moderate effort but impact is severe.",
+        "medium": "Limited financial impact or requires specific pre-conditions to exploit. Should be addressed before mainnet deployment.",
+        "low": "Minor impact on contract functionality, gas efficiency, or code quality. Low risk but recommended to fix for best practices.",
+        "info": "Informational finding for code quality improvement. No direct security impact.",
+    }
+    return severity_impacts.get(severity, "Impact assessment pending.")
+
+
+def _get_recommendation(category: str, severity: str = "") -> str:
+    """Get specific recommendation based on vulnerability category."""
+    cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
+    recommendations = {
+        "reentrancy": "Apply the Checks-Effects-Interactions pattern: verify conditions, update state, then make external calls. Consider using OpenZeppelin's ReentrancyGuard modifier.",
+        "selfdestruct": "Remove selfdestruct entirely (deprecated since Solidity 0.8.24). If contract cleanup is needed, implement a migration pattern with proper access control instead.",
+        "uninitialized state": "Explicitly initialize all state variables in the constructor or at declaration. Use require() checks to ensure addresses are non-zero before transferring funds.",
+        "unchecked send": "Always check the return value of low-level calls. Use OpenZeppelin's Address.sendValue() or SafeERC20 for token transfers which handle failures automatically.",
+        "weak randomness": "Use Chainlink VRF or a commit-reveal scheme for cryptographically secure randomness. Never use block.timestamp, block.number, or blockhash as entropy sources.",
+        "tx origin": "Replace tx.origin with msg.sender for all authentication checks. tx.origin should only be used to verify that the caller is an EOA (not a contract), never for authorization.",
+        "access control": "Implement role-based access control using OpenZeppelin's AccessControl or Ownable2Step. Use modifier-based checks and emit events on all privileged operations.",
+        "unspecific solidity pragma": "Pin the Solidity version to a specific release (e.g., pragma solidity 0.8.20;) instead of a range (^0.8.0). This ensures consistent compilation and avoids unexpected behavior from compiler updates.",
+        "zero address check": "Add require(addr != address(0)) validation for all address parameters in functions that assign state variables or transfer funds.",
+        "unindexed events": "Add the indexed keyword to event parameters that will be used for filtering (typically addresses and IDs). Each event can have up to 3 indexed parameters.",
+        "unsafe erc20": "Use OpenZeppelin's SafeERC20 library which handles non-standard ERC20 implementations (tokens that don't return bool on transfer).",
+        "push zero opcode": "Set the Solidity compiler target to >= 0.8.20 to take advantage of the PUSH0 opcode (EIP-3855) which saves gas on contract deployment.",
+        "solc version": "Update to a recent stable Solidity version (0.8.20+) for the latest security fixes, gas optimizations, and language features.",
+    }
+    for key, rec in recommendations.items():
+        if key in cat:
+            return rec
+    return "Review and fix according to smart contract security best practices. See SWC Registry for detailed remediation guidance."
+
+
+def _get_swc_references(category: str, swc_id: str = "") -> list:
+    """Auto-generate references based on SWC/CWE classification."""
+    refs = []
+    cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
+    # SWC mapping
+    swc_map = {
+        "reentrancy": ("SWC-107", "https://swcregistry.io/docs/SWC-107"),
+        "selfdestruct": ("SWC-106", "https://swcregistry.io/docs/SWC-106"),
+        "unchecked": ("SWC-104", "https://swcregistry.io/docs/SWC-104"),
+        "tx origin": ("SWC-115", "https://swcregistry.io/docs/SWC-115"),
+        "weak random": ("SWC-120", "https://swcregistry.io/docs/SWC-120"),
+        "integer overflow": ("SWC-101", "https://swcregistry.io/docs/SWC-101"),
+        "access control": ("SWC-105", "https://swcregistry.io/docs/SWC-105"),
+        "front running": ("SWC-114", "https://swcregistry.io/docs/SWC-114"),
+        "dos": ("SWC-113", "https://swcregistry.io/docs/SWC-113"),
+        "uninitialized": ("SWC-109", "https://swcregistry.io/docs/SWC-109"),
+    }
+    # If explicit SWC ID provided
+    if swc_id and swc_id.startswith("SWC"):
+        num = swc_id.replace("SWC-", "").replace("SWC", "")
+        refs.append(f"[{swc_id}](https://swcregistry.io/docs/SWC-{num})")
+    else:
+        for key, (swc, url) in swc_map.items():
+            if key in cat:
+                refs.append(f"[{swc}](https://swcregistry.io/docs/{swc})")
+                break
+    # Always add OWASP SC Top 10
+    refs.append("[OWASP Smart Contract Top 10](https://owasp.org/www-project-smart-contract-top-10/)")
+    return refs
+
+
+def _extract_source_code(
+    contract_path: str, line_number: int, context: int = 5, base_dir: str = ""
+) -> str:
+    """Extract actual source code lines from the contract file."""
+    if not contract_path or contract_path == "unknown" or not line_number:
+        return ""
+    try:
+        path = Path(contract_path)
+        if not path.exists():
+            # Try relative to base_dir (from results JSON "contract" field)
+            search_dirs = [Path.cwd()]
+            if base_dir:
+                bd = Path(base_dir)
+                search_dirs.insert(0, bd)
+                # If base_dir is a file, use its parent
+                if bd.is_file():
+                    search_dirs.insert(0, bd.parent)
+            search_dirs.extend([Path("/contracts"), Path("/tmp")])
+            for base in search_dirs:
+                candidate = base / contract_path
+                if candidate.exists():
+                    path = candidate
+                    break
+            else:
+                return ""
+        lines = path.read_text().splitlines()
+        start = max(0, line_number - context - 1)
+        end = min(len(lines), line_number + context)
+        snippet_lines = []
+        for i in range(start, end):
+            marker = " >> " if i == line_number - 1 else "    "
+            snippet_lines.append(f"{marker}{i + 1:4d} | {lines[i]}")
+        return "\n".join(snippet_lines)
+    except Exception:
+        return ""
 
 
 def _interactive_wizard(variables: dict, console) -> dict:
@@ -494,9 +605,10 @@ def report(
     # Prepare template variables
     # CLI parameters override auto-detected values from results
     # Support multiple JSON formats: contract, contract_path, path
-    detected_contract = (
+    detected_contract_full_path = (
         results.get("contract") or results.get("contract_path") or results.get("path") or "Unknown"
     )
+    detected_contract = detected_contract_full_path
     # Extract just the filename from path
     if "/" in detected_contract:
         detected_contract = detected_contract.split("/")[-1]
@@ -1436,17 +1548,26 @@ def report(
                 "category": category,
                 "location": loc_str,
                 "description": finding.get("description", finding.get("message", "")),
-                "recommendation": finding.get(
-                    "recommendation", "Review and fix the vulnerability."
-                ),
+                "recommendation": _get_recommendation(category, severity_lower)
+                    if not finding.get("recommendation")
+                    or finding.get("recommendation", "").startswith("Review and fix")
+                    else finding["recommendation"],
                 "tool": finding.get("tool", "unknown"),
                 "status": finding.get("status", "open"),
-                "impact": finding.get("impact", _get_impact_description(severity_lower)),
-                "poc": finding.get("poc", "// No PoC provided"),
-                "vulnerable_code": finding.get(
-                    "vulnerable_code", finding.get("poc", "// No code snippet")
+                "impact": _get_impact_description(severity_lower, category)
+                    if not finding.get("impact")
+                    or finding.get("impact", "").startswith("Significant financial")
+                    or finding.get("impact", "").startswith("Minor impact")
+                    else finding["impact"],
+                "poc": finding.get("poc", ""),
+                "vulnerable_code": finding.get("vulnerable_code") or _extract_source_code(
+                    finding.get("location", {}).get("file", "") if isinstance(finding.get("location"), dict) else str(finding.get("location", "")).split(":")[0],
+                    finding.get("location", {}).get("line", 0) if isinstance(finding.get("location"), dict) else int(str(finding.get("location", "0")).split(":")[-1].split(" ")[0] or 0) if ":" in str(finding.get("location", "")) else 0,
+                    base_dir=detected_contract_full_path,
+                ) or "// Source code not available for this finding",
+                "references": finding.get("references") or _get_swc_references(
+                    category, finding.get("swc_id", finding.get("category", ""))
                 ),
-                "references": finding.get("references", []),
                 # Premium fields
                 "cvss_score": cvss_score,
                 "attack_scenario": attack_scenario,

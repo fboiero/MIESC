@@ -1,32 +1,33 @@
 <!-- COVER PAGE -->
 <div class="cover-page">
 
-<div style="margin-bottom: 60px;">
-<h1 style="font-size: 42pt; margin-bottom: 10px; color: white; border: none;">🛡️ MIESC</h1>
-<p style="font-size: 14pt; color: #94a3b8;">Multi-layer Intelligent Evaluation for Smart Contracts</p>
+<div style="margin-bottom: 40px;">
+<h1 style="font-size: 38pt; margin-bottom: 10px; color: white; border: none;">MIESC</h1>
+<p style="font-size: 13pt; color: #cbd5e1;">Multi-layer Intelligent Evaluation for Smart Contracts</p>
 </div>
 
-<h2 style="font-size: 28pt; font-weight: 300; color: white; margin: 40px 0;">Smart Contract Security Audit</h2>
+<h2 style="font-size: 26pt; font-weight: 300; color: white; margin: 30px 0;">Smart Contract Security Audit</h2>
 
-<div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 30px; margin: 30px 0;">
-<h3 style="font-size: 22pt; color: #60a5fa; border: none; margin: 0;">{{ contract_name }}</h3>
-<p style="color: #94a3b8; margin-top: 10px;">{{ client_name | default('Client') }}</p>
+<div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 25px; margin: 25px 0;">
+<h3 style="font-size: 20pt; color: #60a5fa; border: none; margin: 0;">{{ contract_name }}</h3>
+<p style="color: #cbd5e1; margin-top: 8px; font-size: 12pt;">{{ client_name | default('Client') }}</p>
 </div>
 
-<div style="margin-top: 60px; text-align: left; display: inline-block;">
-<table style="background: transparent; border: none;">
-<tr><td style="color: #94a3b8; border: none; padding: 8px 20px 8px 0;">Prepared by:</td><td style="color: white; border: none; padding: 8px 0;"><strong>{{ auditor_name | default('MIESC Security') }}</strong></td></tr>
-<tr><td style="color: #94a3b8; border: none; padding: 8px 20px 8px 0;">Audit Date:</td><td style="color: white; border: none; padding: 8px 0;"><strong>{{ audit_date }}</strong></td></tr>
-<tr><td style="color: #94a3b8; border: none; padding: 8px 20px 8px 0;">Report Date:</td><td style="color: white; border: none; padding: 8px 0;"><strong>{{ generation_date }}</strong></td></tr>
-<tr><td style="color: #94a3b8; border: none; padding: 8px 20px 8px 0;">Version:</td><td style="color: white; border: none; padding: 8px 0;"><strong>{{ report_version | default('1.0') }}</strong></td></tr>
+<div style="margin-top: 40px; text-align: left; display: inline-block;">
+<table style="background: transparent; border: none; font-size: 11pt;">
+<tr><td style="color: #cbd5e1; border: none; padding: 6px 20px 6px 0;">Prepared by:</td><td style="color: white; border: none; padding: 6px 0;"><strong>{{ auditor_name | default('MIESC Security') }}</strong></td></tr>
+<tr><td style="color: #cbd5e1; border: none; padding: 6px 20px 6px 0;">Audit Date:</td><td style="color: white; border: none; padding: 6px 0;"><strong>{{ audit_date }}</strong></td></tr>
+<tr><td style="color: #cbd5e1; border: none; padding: 6px 20px 6px 0;">Report Date:</td><td style="color: white; border: none; padding: 6px 0;"><strong>{{ generation_date }}</strong></td></tr>
+<tr><td style="color: #cbd5e1; border: none; padding: 6px 20px 6px 0;">Version:</td><td style="color: white; border: none; padding: 6px 0;"><strong>{{ report_version | default('1.0') }}</strong></td></tr>
+<tr><td style="color: #cbd5e1; border: none; padding: 6px 20px 6px 0;">Network:</td><td style="color: white; border: none; padding: 6px 0;"><strong>{{ network | default('Ethereum Mainnet') }}</strong></td></tr>
 </table>
 </div>
 
-<div style="margin-top: 50px;">
-<span style="background: #dc3545; color: white; padding: 8px 20px; border-radius: 4px; font-weight: 600; font-size: 10pt;">{{ classification | default('CONFIDENTIAL') }}</span>
+<div style="margin-top: 35px;">
+<span style="background: #dc3545; color: white; padding: 8px 24px; border-radius: 4px; font-weight: 600; font-size: 11pt; letter-spacing: 1px;">{{ classification | default('CONFIDENTIAL') }}</span>
 </div>
 
-<p style="color: #64748b; font-size: 9pt; margin-top: 60px; max-width: 400px;">
+<p style="color: #94a3b8; font-size: 8pt; margin-top: 40px; max-width: 400px;">
 This document contains confidential security findings and is intended solely for the addressee. Unauthorized distribution is prohibited.
 </p>
 
@@ -294,7 +295,7 @@ The analyzed contract presents security concerns that should be addressed before
 ### Vulnerable Code
 
 ```solidity
-{{ finding.vulnerable_code | default(finding.poc) }}
+{{ finding.vulnerable_code }}
 ```
 
 ### Impact Analysis
@@ -341,11 +342,12 @@ The analyzed contract presents security concerns that should be addressed before
 - {{ ref }}
 {%- endfor %}
 {%- if not finding.references %}
-- No references available
+- [OWASP Smart Contract Top 10](https://owasp.org/www-project-smart-contract-top-10/)
 {%- endif %}
 
-<!-- section-break -->
 {%- endfor %}
+
+<!-- section-break -->
 
 <!-- section-break -->
 
@@ -453,7 +455,36 @@ Review findings marked as "Low" effort for quick security improvements.
 </details>
 {%- endfor %}
 
-## Appendix B: Files Analyzed
+## Appendix B: Proof of Concept Exploits
+
+{%- set poc_findings = [] %}
+{%- for finding in findings %}
+{%- if finding.poc and finding.poc != "" %}
+{%- set _ = poc_findings.append(finding) %}
+{%- endif %}
+{%- endfor %}
+
+{%- if poc_findings %}
+The following PoC exploit templates were generated for critical/high findings. These are designed for local Foundry test environments and are NOT production exploits.
+
+{%- for finding in findings %}
+{%- if finding.poc and finding.poc != "" %}
+
+### B.{{ loop.index }}. {{ finding.id }} - {{ finding.title }}
+
+**Severity:** {{ finding.severity_badge }} | **Category:** {{ finding.category }}
+
+```solidity
+{{ finding.poc }}
+```
+
+{%- endif %}
+{%- endfor %}
+{%- else %}
+No PoC exploit templates were generated for this audit.
+{%- endif %}
+
+## Appendix C: Files Analyzed
 
 | # | File Path | Lines | Functions | Findings |
 |--:|-----------|------:|----------:|----------:|
@@ -461,7 +492,7 @@ Review findings marked as "Low" effort for quick security improvements.
 | {{ loop.index }} | `{{ file.path }}` | {{ file.lines }} | {{ file.functions | default('--') }} | {{ file.findings }} |
 {%- endfor %}
 
-## Appendix C: SWC Registry Compliance
+## Appendix D: SWC Registry Compliance
 
 | SWC ID | Title | Status | Finding(s) |
 |--------|-------|--------|------------|
@@ -469,7 +500,7 @@ Review findings marked as "Low" effort for quick security improvements.
 | [{{ swc.id }}](https://swcregistry.io/docs/{{ swc.id }}) | {{ swc.title }} | {{ swc.status_icon }} {{ swc.status }} | {{ swc.finding_ids | default('--') }} |
 {%- endfor %}
 
-## Appendix D: OWASP Smart Contract Top 10
+## Appendix E: OWASP Smart Contract Top 10
 
 | Rank | Category | Status | Findings |
 |------|----------|--------|----------|
@@ -477,7 +508,7 @@ Review findings marked as "Low" effort for quick security improvements.
 | {{ owasp.id }} | {{ owasp.category }} | {{ owasp.status_icon }} | {{ owasp.count }} |
 {%- endfor %}
 
-## Appendix E: Glossary
+## Appendix F: Glossary
 
 | Term | Definition |
 |------|------------|
@@ -488,7 +519,7 @@ Review findings marked as "Low" effort for quick security improvements.
 | **Oracle Manipulation** | Attacking price feeds or external data sources to influence contract behavior |
 | **Access Control** | Mechanisms that restrict who can execute sensitive functions |
 
-## Appendix F: Audit Trail
+## Appendix G: Audit Trail
 
 | Event | Timestamp | Hash |
 |-------|-----------|------|

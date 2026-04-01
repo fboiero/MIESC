@@ -189,6 +189,19 @@ class PoCGenerator:
         "replay": VulnerabilityType.SIGNATURE_REPLAY,
         "erc4626": VulnerabilityType.ERC4626_INFLATION,
         "inflation": VulnerabilityType.ERC4626_INFLATION,
+        # Aderyn-specific finding types
+        "selfdestruct-identifier": VulnerabilityType.SELFDESTRUCT,
+        "selfdestruct_identifier": VulnerabilityType.SELFDESTRUCT,
+        "uninitialized-state-variable": VulnerabilityType.ACCESS_CONTROL,
+        "uninitialized_state_variable": VulnerabilityType.ACCESS_CONTROL,
+        "unchecked-send": VulnerabilityType.UNCHECKED_CALL,
+        "unchecked_send": VulnerabilityType.UNCHECKED_CALL,
+        "weak-randomness": VulnerabilityType.TIMESTAMP_DEPENDENCE,
+        "weak_randomness": VulnerabilityType.TIMESTAMP_DEPENDENCE,
+        "tx-origin-used-for-auth": VulnerabilityType.TX_ORIGIN,
+        "tx_origin_used_for_auth": VulnerabilityType.TX_ORIGIN,
+        "unsafe-erc20-functions": VulnerabilityType.UNCHECKED_CALL,
+        "unsafe_erc20_functions": VulnerabilityType.UNCHECKED_CALL,
     }
 
     def __init__(

@@ -200,6 +200,88 @@ class RiskCalculator:
             integrity_impact=Impact.HIGH,
             availability_impact=Impact.LOW,
         ),
+        "selfdestruct": CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.LOW,
+            privileges_required=PrivilegesRequired.NONE,
+            user_interaction=UserInteraction.NONE,
+            integrity_impact=Impact.HIGH,
+            availability_impact=Impact.HIGH,
+        ),
+        "tx-origin": CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.HIGH,
+            privileges_required=PrivilegesRequired.NONE,
+            user_interaction=UserInteraction.REQUIRED,
+            confidentiality_impact=Impact.HIGH,
+            integrity_impact=Impact.HIGH,
+        ),
+        "weak-randomness": CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.LOW,
+            privileges_required=PrivilegesRequired.NONE,
+            user_interaction=UserInteraction.NONE,
+            integrity_impact=Impact.HIGH,
+        ),
+        "uninitialized": CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.LOW,
+            privileges_required=PrivilegesRequired.NONE,
+            user_interaction=UserInteraction.NONE,
+            integrity_impact=Impact.HIGH,
+            availability_impact=Impact.LOW,
+        ),
+        "solc-version": CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.HIGH,
+            privileges_required=PrivilegesRequired.HIGH,
+            user_interaction=UserInteraction.NONE,
+            integrity_impact=Impact.LOW,
+        ),
+        "pragma": CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.HIGH,
+            privileges_required=PrivilegesRequired.HIGH,
+            user_interaction=UserInteraction.NONE,
+            integrity_impact=Impact.LOW,
+        ),
+        "zero-address": CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.LOW,
+            privileges_required=PrivilegesRequired.LOW,
+            user_interaction=UserInteraction.NONE,
+            integrity_impact=Impact.LOW,
+            availability_impact=Impact.LOW,
+        ),
+        "unindexed": CVSSVector(
+            attack_vector=AttackVector.LOCAL,
+            attack_complexity=AttackComplexity.HIGH,
+            privileges_required=PrivilegesRequired.NONE,
+            user_interaction=UserInteraction.NONE,
+        ),
+        "push-zero": CVSSVector(
+            attack_vector=AttackVector.LOCAL,
+            attack_complexity=AttackComplexity.HIGH,
+            privileges_required=PrivilegesRequired.HIGH,
+            user_interaction=UserInteraction.NONE,
+        ),
+        "unsafe-erc20": CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.LOW,
+            privileges_required=PrivilegesRequired.NONE,
+            user_interaction=UserInteraction.NONE,
+            integrity_impact=Impact.LOW,
+            availability_impact=Impact.LOW,
+        ),
+        "flash-loan": CVSSVector(
+            attack_vector=AttackVector.NETWORK,
+            attack_complexity=AttackComplexity.LOW,
+            privileges_required=PrivilegesRequired.NONE,
+            user_interaction=UserInteraction.NONE,
+            confidentiality_impact=Impact.HIGH,
+            integrity_impact=Impact.HIGH,
+            availability_impact=Impact.HIGH,
+        ),
         "default": CVSSVector(
             attack_vector=AttackVector.NETWORK,
             attack_complexity=AttackComplexity.LOW,
@@ -272,9 +354,26 @@ class RiskCalculator:
         vector: CVSSVector,
         severity: str
     ) -> CVSSVector:
-        """Adjust vector components based on reported severity."""
-        severity_lower = severity.lower()
+        """Adjust vector lightly based on reported severity.
 
+        Only nudge the vector if the category mapping is the default.
+        Category-specific vectors already encode the correct risk profile.
+        """
+        severity_lower = severity.lower()
+        # Check if this is a default vector (no category match was found)
+        is_default = (
+            vector.integrity_impact == Impact.LOW
+            and vector.availability_impact == Impact.NONE
+            and vector.confidentiality_impact == Impact.NONE
+            and vector.privileges_required == PrivilegesRequired.LOW
+        )
+        if not is_default:
+            # Category-specific vector: only nudge AC for critical
+            if severity_lower == "critical":
+                vector.attack_complexity = AttackComplexity.LOW
+            return vector
+
+        # Default vector: adjust based on severity
         if severity_lower == "critical":
             vector.attack_complexity = AttackComplexity.LOW
             vector.privileges_required = PrivilegesRequired.NONE
@@ -283,13 +382,8 @@ class RiskCalculator:
         elif severity_lower == "high":
             vector.attack_complexity = AttackComplexity.LOW
             vector.integrity_impact = Impact.HIGH
-        elif severity_lower == "medium":
-            if vector.integrity_impact == Impact.HIGH:
-                vector.attack_complexity = AttackComplexity.HIGH
         elif severity_lower in ["low", "info", "informational"]:
             vector.attack_complexity = AttackComplexity.HIGH
-            vector.integrity_impact = Impact.LOW
-            vector.availability_impact = Impact.NONE
 
         return vector
 

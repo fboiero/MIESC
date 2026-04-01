@@ -100,6 +100,19 @@ body {
     margin: 1em 0;
 }
 
+/* Override table striping inside cover page */
+.cover-page table,
+.cover-page tbody tr,
+.cover-page tbody tr:nth-child(even),
+.cover-page tbody tr:nth-child(odd) {
+    background: transparent !important;
+}
+
+.cover-page td {
+    border: none !important;
+    color: white !important;
+}
+
 /* Typography */
 h1 {
     font-size: 20pt;
@@ -271,20 +284,22 @@ tbody tr:hover {
 
 /* Code Blocks */
 pre, code {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
-    font-size: 8.5pt;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    font-size: 8pt;
 }
 
 pre {
     background: #1e293b;
     color: #e2e8f0;
-    padding: 1em;
-    border-radius: 8px;
+    padding: 0.8em;
+    border-radius: 6px;
     white-space: pre-wrap;
     word-wrap: break-word;
-    page-break-inside: avoid;
-    margin: 1em 0;
-    line-height: 1.4;
+    page-break-inside: auto;
+    margin: 0.8em 0;
+    line-height: 1.35;
+    max-height: 300px;
+    overflow: hidden;
 }
 
 code {
@@ -398,7 +413,19 @@ h1, h2, h3, h4 {
 }
 
 /* Keep content together */
-.finding-card, .recommendation-box, table {
+.finding-card, .recommendation-box {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+/* Allow large tables to break across pages */
+table {
+    page-break-inside: auto;
+    break-inside: auto;
+}
+
+/* But keep small tables (< 10 rows) together */
+table.compact {
     page-break-inside: avoid;
     break-inside: avoid;
 }
