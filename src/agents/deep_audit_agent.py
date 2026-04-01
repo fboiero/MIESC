@@ -34,12 +34,20 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DeepAuditConfig:
-    """Configuration for the agentic deep audit."""
+    """Configuration for the agentic deep audit.
+
+    LLM priority (local-first, cloud optional):
+      1. Ollama (local) - default, DPGA compliant
+      2. Anthropic Claude API - if ANTHROPIC_API_KEY set
+      3. OpenAI API - if OPENAI_API_KEY set
+      4. No LLM - graceful degradation to template narrative
+    """
 
     timeout_seconds: int = 600
     max_iterations: int = 5
     min_severity_for_deep: str = "high"
     enable_llm: bool = True
+    llm_provider: str = "auto"  # "auto", "ollama", "anthropic", "openai"
     llm_model: str = "mistral:latest"
     enable_rag: bool = True
     enable_taint: bool = True
@@ -813,7 +821,108 @@ class DeepAuditAgent(BaseAgent):
     def _generate_narrative(
         self, findings: List[Dict], summary: Dict, chains: List[Dict]
     ) -> str:
-        """Generate LLM narrative using local Ollama."""
+        """Generate LLM narrative using available provider (local-first).
+
+        Priority: Ollama (local) -> Anthropic Claude -> OpenAI -> template.
+        """
+        provider = self.config.llm_provider
+
+        # Try LLMOrchestrator (supports Ollama, Anthropic, OpenAI with fallback)
+        if provider == "auto" or provider in ("anthropic", "openai"):
+            narrative = self._try_llm_orchestrator(findings, summary, chains)
+            if narrative:
+                return narrative
+
+        # Try Ollama directly (local-first default)
+        if provider in ("auto", "ollama"):
+            narrative = self._try_ollama_interpreter(findings, summary)
+            if narrative:
+                return narrative
+
+        return ""
+
+    def _try_llm_orchestrator(
+        self, findings: List[Dict], summary: Dict, chains: List[Dict]
+    ) -> str:
+        """Try LLMOrchestrator with multi-provider fallback."""
+        try:
+            import asyncio
+            import os
+            from src.llm.llm_orchestrator import (
+                AnthropicBackend, LLMConfig, LLMOrchestrator, LLMProvider,
+                OllamaBackend, OpenAIBackend,
+            )
+
+            configs = []
+            provider = self.config.llm_provider
+
+            # Local-first: always add Ollama
+            if provider in ("auto", "ollama"):
+                configs.append(LLMConfig(
+                    provider=LLMProvider.OLLAMA,
+                    model=self.config.llm_model,
+                    base_url="http://localhost:11434",
+                ))
+
+            # Anthropic Claude (optional, if API key available)
+            if provider in ("auto", "anthropic") and os.getenv("ANTHROPIC_API_KEY"):
+                configs.append(LLMConfig(
+                    provider=LLMProvider.ANTHROPIC,
+                    model="claude-sonnet-4-20250514",
+                    api_key=os.getenv("ANTHROPIC_API_KEY"),
+                ))
+
+            # OpenAI (optional, if API key available)
+            if provider in ("auto", "openai") and os.getenv("OPENAI_API_KEY"):
+                configs.append(LLMConfig(
+                    provider=LLMProvider.OPENAI,
+                    model="gpt-4o",
+                    api_key=os.getenv("OPENAI_API_KEY"),
+                ))
+
+            if not configs:
+                return ""
+
+            orch = LLMOrchestrator(configs=configs)
+
+            # Build prompt
+            contract_name = Path(self.contract_path).stem if self.contract_path else "Contract"
+            critical = summary.get("CRITICAL", 0)
+            high = summary.get("HIGH", 0)
+            total = summary.get("total", 0)
+            chain_count = len(chains)
+
+            top_findings = "\n".join(
+                f"- [{f.get('severity', '?').upper()}] {f.get('title', f.get('type', '?'))}: {f.get('description', '')[:100]}"
+                for f in findings[:8]
+            )
+
+            prompt = f"""Analyze this smart contract security audit for {contract_name} and write a 200-word executive summary.
+
+Findings: {total} total ({critical} critical, {high} high)
+Exploit chains detected: {chain_count}
+
+Top findings:
+{top_findings}
+
+Focus on: business risk, deployment recommendation (GO/NO-GO/CONDITIONAL), and top 3 remediation priorities.
+Write for a non-technical executive audience."""
+
+            async def run():
+                await orch.initialize()
+                response = await orch.analyze(prompt)
+                return response.content if response else ""
+
+            result = asyncio.run(run())
+            if result:
+                logger.info(f"LLM narrative generated via LLMOrchestrator")
+            return result
+        except Exception as e:
+            logger.debug(f"LLMOrchestrator narrative failed: {e}")
+            return ""
+
+    def _try_ollama_interpreter(self, findings: List[Dict], summary: Dict) -> str:
+        """Try Ollama via LLMReportInterpreter (existing module)."""
         try:
             from src.reports.llm_interpreter import LLMReportInterpreter
             interp = LLMReportInterpreter()
@@ -826,7 +935,7 @@ class DeepAuditAgent(BaseAgent):
             )
             return result if isinstance(result, str) else ""
         except Exception as e:
-            logger.debug(f"LLM narrative failed: {e}")
+            logger.debug(f"Ollama interpreter failed: {e}")
             return ""
 
     def _template_narrative(self, summary: Dict, chains: List[Dict]) -> str:

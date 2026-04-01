@@ -1479,10 +1479,16 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
 @click.option("--format", "-f", "fmt", type=click.Choice(["json", "markdown"]), default="json")
 @click.option("--timeout", "-t", type=int, default=600, help="Max total audit time in seconds")
 @click.option("--max-iterations", type=int, default=5, help="Max agentic loop iterations")
-@click.option("--no-llm", is_flag=True, help="Disable LLM synthesis (Ollama)")
+@click.option("--no-llm", is_flag=True, help="Disable LLM synthesis entirely")
 @click.option("--no-rag", is_flag=True, help="Disable RAG enrichment")
+@click.option(
+    "--llm-provider",
+    type=click.Choice(["auto", "ollama", "anthropic", "openai"]),
+    default="auto",
+    help="LLM provider: auto (local-first with cloud fallback), ollama, anthropic, openai",
+)
 @click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues")
-def audit_deep(contract, output, fmt, timeout, max_iterations, no_llm, no_rag, ci):
+def audit_deep(contract, output, fmt, timeout, max_iterations, no_llm, no_rag, llm_provider, ci):
     """Agentic deep audit with iterative analysis and cross-layer correlation.
 
     \b
@@ -1510,13 +1516,15 @@ def audit_deep(contract, output, fmt, timeout, max_iterations, no_llm, no_rag, c
         timeout_seconds=timeout,
         max_iterations=max_iterations,
         enable_llm=not no_llm,
+        llm_provider=llm_provider,
         enable_rag=not no_rag,
     )
 
     agent = DeepAuditAgent(config=config)
 
     info(f"Starting agentic deep audit on {contract}")
-    info(f"Timeout: {timeout}s | Max iterations: {max_iterations} | LLM: {not no_llm} | RAG: {not no_rag}")
+    llm_status = f"{llm_provider}" if not no_llm else "disabled"
+    info(f"Timeout: {timeout}s | Max iterations: {max_iterations} | LLM: {llm_status} | RAG: {not no_rag}")
 
     if RICH_AVAILABLE:
         from rich.progress import Progress, SpinnerColumn, TextColumn
