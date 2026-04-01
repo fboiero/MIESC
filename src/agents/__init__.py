@@ -8,6 +8,7 @@ from src.agents.aderyn_agent import AderynAgent
 from src.agents.ai_agent import AIAgent
 from src.agents.base_agent import BaseAgent
 from src.agents.coordinator_agent import CoordinatorAgent
+from src.agents.deep_audit_agent import DeepAuditAgent
 from src.agents.dynamic_agent import DynamicAgent
 from src.agents.formal_agent import FormalAgent
 from src.agents.halmos_agent import HalmosAgent
@@ -32,6 +33,7 @@ __all__ = [
     "AIAgent",
     "PolicyAgent",
     "CoordinatorAgent",
+    "DeepAuditAgent",
 ]
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"

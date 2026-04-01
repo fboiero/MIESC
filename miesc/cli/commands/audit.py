@@ -1471,3 +1471,135 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
     success(
         f"Batch analysis complete: {len(all_contract_results)} contracts, {total_findings} findings"
     )
+
+
+@audit.command("deep")
+@click.argument("contract", type=click.Path(exists=True))
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--format", "-f", "fmt", type=click.Choice(["json", "markdown"]), default="json")
+@click.option("--timeout", "-t", type=int, default=600, help="Max total audit time in seconds")
+@click.option("--max-iterations", type=int, default=5, help="Max agentic loop iterations")
+@click.option("--no-llm", is_flag=True, help="Disable LLM synthesis (Ollama)")
+@click.option("--no-rag", is_flag=True, help="Disable RAG enrichment")
+@click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues")
+def audit_deep(contract, output, fmt, timeout, max_iterations, no_llm, no_rag, ci):
+    """Agentic deep audit with iterative analysis and cross-layer correlation.
+
+    \b
+    This is the most thorough analysis mode. It:
+    - Analyzes contract structure (call graph, taint sources)
+    - Selects tools based on risk profile (not run-all)
+    - Iteratively investigates HIGH/CRITICAL findings
+    - Enriches findings with RAG vulnerability knowledge
+    - Detects exploit chains across findings
+    - Generates LLM narrative (local Ollama, optional)
+    - 100% local execution, DPGA compliant
+
+    \b
+    Examples:
+        miesc audit deep contract.sol
+        miesc audit deep contract.sol --no-llm
+        miesc audit deep contract.sol -t 300
+        miesc audit deep contract.sol -o report.json --ci
+    """
+    print_banner()
+
+    from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+
+    config = DeepAuditConfig(
+        timeout_seconds=timeout,
+        max_iterations=max_iterations,
+        enable_llm=not no_llm,
+        enable_rag=not no_rag,
+    )
+
+    agent = DeepAuditAgent(config=config)
+
+    info(f"Starting agentic deep audit on {contract}")
+    info(f"Timeout: {timeout}s | Max iterations: {max_iterations} | LLM: {not no_llm} | RAG: {not no_rag}")
+
+    if RICH_AVAILABLE:
+        from rich.progress import Progress, SpinnerColumn, TextColumn
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Running agentic deep audit...", total=None)
+            result = agent.analyze(contract)
+            progress.update(task, description="Deep audit complete")
+    else:
+        result = agent.analyze(contract)
+
+    # Display results
+    summary = result.get("summary", {})
+    phases = result.get("phases", {})
+
+    if RICH_AVAILABLE:
+        from rich.panel import Panel
+        from rich.table import Table
+
+        # Risk profile
+        recon = phases.get("reconnaissance", {})
+        profile = recon.get("risk_profile", {})
+        console.print(
+            Panel(
+                f"[bold]{profile.get('primary', 'general').upper()}[/bold]",
+                title="Risk Profile",
+                border_style="cyan",
+            )
+        )
+
+        # Phase summary
+        inv = phases.get("deep_investigation", {})
+        console.print(f"\n  Iterations: {inv.get('iterations', 0)}")
+        console.print(f"  Findings enriched: {inv.get('findings_enriched', 0)}")
+        console.print(f"  Exploit chains: {inv.get('chains_detected', 0)}")
+        console.print(f"  Mitigated: {inv.get('mitigated', 0)}")
+        if inv.get("additional_tools"):
+            console.print(f"  Additional tools triggered: {inv['additional_tools']}")
+
+        # Findings table
+        table = Table(title="Deep Audit Results")
+        table.add_column("Severity", style="bold")
+        table.add_column("Count", justify="right")
+        for sev in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]:
+            count = summary.get(sev, 0)
+            style = "red" if sev == "CRITICAL" else "yellow" if sev == "HIGH" else ""
+            table.add_row(sev, str(count), style=style)
+        table.add_row("TOTAL", str(summary.get("total", 0)), style="bold")
+        console.print(table)
+
+    # Narrative
+    narrative = result.get("narrative", "")
+    if narrative:
+        info("Executive narrative:")
+        click.echo(narrative[:500])
+
+    # Save output
+    if output:
+        import json as json_mod
+
+        output_path = Path(output)
+        if fmt == "json":
+            output_path.write_text(json_mod.dumps(result, indent=2, default=str))
+        else:
+            # Markdown summary
+            md = f"# Deep Audit Report\n\n{narrative}\n\n"
+            md += f"## Summary\n\n| Severity | Count |\n|---|---|\n"
+            for sev in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]:
+                md += f"| {sev} | {summary.get(sev, 0)} |\n"
+            md += f"\nTools used: {', '.join(summary.get('tools_used', []))}\n"
+            md += f"Iterations: {summary.get('iterations', 0)}\n"
+            md += f"Exploit chains: {summary.get('exploit_chains', 0)}\n"
+            output_path.write_text(md)
+        success(f"Report saved to {output}")
+
+    # CI mode
+    if ci:
+        critical = summary.get("CRITICAL", 0)
+        high = summary.get("HIGH", 0)
+        if critical > 0 or high > 0:
+            error(f"CI check failed: {critical} critical, {high} high issues")
+            sys.exit(1)

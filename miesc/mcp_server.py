@@ -203,6 +203,36 @@ async def miesc_deep_scan(contract_path: str, timeout: int = 300) -> str:
 
 
 @mcp.tool()
+async def miesc_deep_audit(
+    contract_path: str,
+    timeout: int = 600,
+    max_iterations: int = 5,
+    enable_llm: bool = True,
+    enable_rag: bool = True,
+) -> str:
+    """
+    Agentic deep audit with iterative analysis and cross-layer correlation.
+    Analyzes contract structure, selects tools adaptively, iteratively
+    investigates findings, enriches with RAG, and detects exploit chains.
+    100% local execution (DPGA compliant). LLM is optional (Ollama).
+    """
+    contract_path = _validate_contract_path(contract_path)
+
+    from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+
+    config = DeepAuditConfig(
+        timeout_seconds=timeout,
+        max_iterations=max_iterations,
+        enable_llm=enable_llm,
+        enable_rag=enable_rag,
+    )
+    agent = DeepAuditAgent(config=config)
+    result = agent.analyze(contract_path)
+
+    return json.dumps(result, indent=2, default=str)
+
+
+@mcp.tool()
 async def miesc_run_tool(tool_name: str, contract_path: str, timeout: int = 300) -> str:
     """
     Run a specific security tool on a contract.
