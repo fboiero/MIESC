@@ -11,15 +11,13 @@ authors:
 repository-code: "https://github.com/fboiero/MIESC"
 url: "https://github.com/fboiero/MIESC"
 abstract: >
-  MIESC is an automated security assessment framework for Ethereum smart contracts
-  that integrates 50 specialized security tools across 9 defense layers with AI-powered correlation and
-  compliance mapping. Built as a Model Context Protocol (MCP) agent, MIESC enables
-  collaborative cyberdefense through inter-agent communication. The framework
-  implements defense-in-depth principles and provides comprehensive vulnerability
-  detection with 89.47% precision, 86.2% recall, and Cohen's Kappa of 0.847
-  (validated on 5,127 contracts). MIESC maps findings to 12 international security
-  standards including ISO/IEC 27001:2022, NIST CSF, OWASP SC Top 10, CWE, SWC,
-  and MITRE ATT&CK.
+  MIESC is an open-source framework that brings enterprise-grade smart contract
+  security analysis to every developer. It integrates 50 specialized security tools
+  across 9 defense layers with AI-powered correlation and compliance mapping,
+  providing comprehensive vulnerability detection with 89.47% precision, 86.2%
+  recall, and Cohen's Kappa of 0.847 (validated on 5,127 contracts). MIESC runs
+  entirely locally, maps findings to 12 international security standards, and is
+  freely available to help secure Web3 for everyone.
 keywords:
   - smart contracts
   - blockchain security

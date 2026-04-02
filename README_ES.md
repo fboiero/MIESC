@@ -4,7 +4,7 @@
     <strong>50 herramientas de seguridad. 9 capas de defensa. Un comando.</strong>
   </p>
   <p align="center">
-    Triaje pre-auditoría para contratos inteligentes que realmente detecta lo que las herramientas individuales no ven.
+    Seguridad de nivel empresarial para contratos inteligentes, libre y abierta para todos.
   </p>
 </p>
 
@@ -86,9 +86,9 @@ Report saved to results.json
 
 ## Por Qué MIESC
 
-**El problema**: Ejecutar Slither solo detecta ~70% de las vulnerabilidades con un 15-20% de falsos positivos. Cada herramienta tiene puntos ciegos. Los auditores ejecutan manualmente 5-10 herramientas, normalizan las salidas y correlacionan los hallazgos. Esto lleva horas.
+**El problema**: Las auditorías profesionales de smart contracts cuestan entre $50K y $200K y llevan semanas. Mientras tanto, se pierden más de $1,500M al año por exploits. La mayoría de los proyectos salen a producción sin ninguna auditoría. Ejecutar Slither solo detecta ~70% de las vulnerabilidades con un 15-20% de falsos positivos. Cada herramienta tiene puntos ciegos. Los auditores ejecutan manualmente 5-10 herramientas, normalizan las salidas y correlacionan los hallazgos. Esto lleva horas.
 
-**MIESC automatiza todo ese flujo de trabajo.** Un comando orquesta 50 herramientas a través de 9 técnicas de análisis complementarias, deduplica hallazgos, filtra falsos positivos con ML y genera reportes profesionales.
+**MIESC hace accesible ese flujo de trabajo para todos.** Un comando orquesta 50 herramientas a través de 9 técnicas de análisis complementarias, deduplica hallazgos, filtra falsos positivos con ML y genera reportes profesionales. Gratuito, open-source, se ejecuta localmente — tu código nunca sale de tu máquina.
 
 ### Resultados Validados
 
@@ -509,7 +509,7 @@ Consultá [CONTRIBUTING.md](./CONTRIBUTING.md) para las guías. [CONTRIBUTING_ES
 
 ## Licencia
 
-[AGPL-3.0](./LICENSE) - Libre para cualquier uso. Si construís un servicio sobre MIESC, contribuí tus cambios de vuelta.
+[AGPL-3.0](./LICENSE) - Libre para cualquier uso. La seguridad no debería ser un privilegio reservado para proyectos con grandes presupuestos. Si construís un servicio sobre MIESC, contribuí tus cambios de vuelta.
 
 ## Autor
 

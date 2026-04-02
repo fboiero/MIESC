@@ -35,7 +35,7 @@ TRANSLATIONS = {
     "en": {
         # Header
         "main_title": "MIESC v5.1.1",
-        "subtitle": "Multi-layer Intelligent Evaluation for Smart Contracts",
+        "subtitle": "Enterprise-grade smart contract security, open to everyone",
         # Sidebar
         "configuration": "Configuration",
         "security_tools": "Security Tools",
@@ -159,7 +159,7 @@ TRANSLATIONS = {
     "es": {
         # Header
         "main_title": "MIESC v5.1.1",
-        "subtitle": "Evaluacion Inteligente Multi-capa para Contratos Inteligentes",
+        "subtitle": "Seguridad de nivel empresarial para smart contracts, abierta para todos",
         # Sidebar
         "configuration": "Configuracion",
         "security_tools": "Herramientas de Seguridad",

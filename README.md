@@ -4,7 +4,7 @@
     <strong>50 security tools. 9 defense layers. One command.</strong>
   </p>
   <p align="center">
-    Pre-audit triage for smart contracts that actually catches what single tools miss.
+    Enterprise-grade smart contract security, free and open to everyone.
   </p>
 </p>
 
@@ -86,9 +86,9 @@ Report saved to results.json
 
 ## Why MIESC
 
-**The problem**: Running Slither alone catches ~70% of vulnerabilities with 15-20% false positives. Every tool has blind spots. Auditors manually run 5-10 tools, normalize outputs, and cross-reference findings. This takes hours.
+**The problem**: Professional smart contract audits cost $50K-$200K and take weeks. Meanwhile, $1.5B+ is lost to exploits every year. Most projects ship without any audit at all. Running Slither alone catches ~70% of vulnerabilities with 15-20% false positives. Every tool has blind spots. Auditors manually run 5-10 tools, normalize outputs, and cross-reference findings. This takes hours.
 
-**MIESC automates that entire workflow.** One command orchestrates 50 tools across 9 complementary analysis techniques, deduplicates findings, filters false positives with ML, and generates professional reports.
+**MIESC makes that workflow accessible to everyone.** One command orchestrates 50 tools across 9 complementary analysis techniques, deduplicates findings, filters false positives with ML, and generates professional reports. Free, open-source, runs locally — your code never leaves your machine.
 
 ### Validated Results
 
@@ -509,7 +509,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines. [CONTRIBUTING_ES.md](./
 
 ## License
 
-[AGPL-3.0](./LICENSE) - Free for any use. If you build a service on top of MIESC, contribute your changes back.
+[AGPL-3.0](./LICENSE) - Free for any use. Security should not be a privilege reserved for well-funded projects. If you build a service on top of MIESC, contribute your changes back.
 
 ## Author
 
