@@ -809,28 +809,40 @@ contract Vault {
 
                     # Run analysis
                     core = MIESCCore()
-                    results = core.scan(temp_path, tools=selected_tools)
+                    results = core.analyze(temp_path, tools=selected_tools)
 
                     # Record usage for quota tracking
                     record_analysis()
 
-                    # Add metadata
-                    results["metadata"] = {
-                        "timestamp": datetime.now().isoformat(),
-                        "tools_used": selected_tools,
-                        "ai_enabled": enable_ai,
-                    }
+                    # Enrich metadata
+                    results.setdefault("metadata", {})
+                    results["metadata"]["timestamp"] = datetime.now().isoformat()
+                    results["metadata"]["ai_enabled"] = enable_ai
 
                     # Policy mapping
-                    mapper = PolicyMapper()
-                    results["compliance"] = mapper.map_to_policies(results.get("findings", []))
+                    try:
+                        mapper = PolicyMapper()
+                        results["compliance"] = mapper.map_to_policies(results.get("findings", []))
+                    except Exception:
+                        results["compliance"] = {}
 
                     # Risk assessment
-                    risk_engine = RiskEngine()
-                    results["risk"] = risk_engine.assess(results.get("findings", []))
+                    try:
+                        risk_engine = RiskEngine()
+                        results["risk"] = risk_engine.assess(results.get("findings", []))
+                    except Exception:
+                        results["risk"] = {}
 
                     st.session_state.results = results
-                    st.success(t("analysis_complete"))
+
+                    findings = results.get("findings", [])
+                    if findings:
+                        st.success(f"{t('analysis_complete')} - {len(findings)} findings")
+                    elif results.get("metadata", {}).get("tools_failed"):
+                        failed = results["metadata"]["tools_failed"]
+                        st.warning(f"{t('analysis_complete')} - No findings. Tools unavailable: {', '.join(failed)}")
+                    else:
+                        st.success(f"{t('analysis_complete')} - No vulnerabilities detected")
 
                     # Cleanup
                     Path(temp_path).unlink(missing_ok=True)
