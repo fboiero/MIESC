@@ -235,7 +235,7 @@ class TestBenchmarkResult:
         """Test creating benchmark result."""
         assert sample_result.total_contracts == 100
         assert sample_result.analyzed_contracts == 95
-        assert sample_result.miesc_version == "4.3.0"
+        assert sample_result.miesc_version == "5.1.1"
 
     def test_success_rate(self, sample_result):
         """Test success rate calculation."""
