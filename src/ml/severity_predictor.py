@@ -237,8 +237,10 @@ class SeverityPredictor:
 
         return total_impact
 
-    def _get_visibility_factor(self, func_name: str, code_context: str) -> float:
+    def _get_visibility_factor(self, func_name, code_context: str) -> float:
         """Calcula factor de visibilidad de función."""
+        if isinstance(func_name, list):
+            func_name = func_name[0] if func_name else ""
         if not func_name and not code_context:
             return 0.0
 

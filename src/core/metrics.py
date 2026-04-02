@@ -306,7 +306,7 @@ class MIESCMetrics:
 
     def get_metrics_text(self) -> str:
         """Get metrics in Prometheus text format."""
-        if PROMETHEUS_AVAILABLE:
+        if PROMETHEUS_AVAILABLE and self.registry is not None:
             return generate_latest(self.registry).decode("utf-8")
         else:
             # Generate simple text format for internal metrics
