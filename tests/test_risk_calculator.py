@@ -441,47 +441,71 @@ class TestGetSeverityFromScore:
 
 
 class TestAdjustVectorBySeverity:
-    """Tests for adjust_vector_by_severity method."""
+    """Tests for adjust_vector_by_severity method.
+
+    The is_default check requires: integrity=LOW, availability=NONE,
+    confidentiality=NONE, privileges=LOW. Only default vectors get
+    full severity adjustments; category-specific vectors are only
+    nudged on AC for critical.
+    """
 
     @pytest.fixture
     def calc(self):
         return RiskCalculator()
 
-    def test_critical_adjustment(self, calc):
-        """Test critical severity adjustments."""
-        vector = CVSSVector()
-        adjusted = calc.adjust_vector_by_severity(vector, "critical")
+    @pytest.fixture
+    def default_vector(self):
+        """A vector that matches the is_default condition."""
+        return CVSSVector(
+            integrity_impact=Impact.LOW,
+            availability_impact=Impact.NONE,
+            confidentiality_impact=Impact.NONE,
+            privileges_required=PrivilegesRequired.LOW,
+        )
+
+    def test_critical_adjustment(self, calc, default_vector):
+        """Test critical severity adjustments on default vector."""
+        adjusted = calc.adjust_vector_by_severity(default_vector, "critical")
         assert adjusted.attack_complexity == AttackComplexity.LOW
         assert adjusted.privileges_required == PrivilegesRequired.NONE
         assert adjusted.integrity_impact == Impact.HIGH
         assert adjusted.availability_impact == Impact.HIGH
 
-    def test_high_adjustment(self, calc):
-        """Test high severity adjustments."""
-        vector = CVSSVector()
-        adjusted = calc.adjust_vector_by_severity(vector, "high")
+    def test_high_adjustment(self, calc, default_vector):
+        """Test high severity adjustments on default vector."""
+        adjusted = calc.adjust_vector_by_severity(default_vector, "high")
         assert adjusted.attack_complexity == AttackComplexity.LOW
         assert adjusted.integrity_impact == Impact.HIGH
 
     def test_medium_adjustment(self, calc):
-        """Test medium severity adjustments."""
+        """Test medium severity on non-default vector returns unchanged."""
         vector = CVSSVector(integrity_impact=Impact.HIGH)
         adjusted = calc.adjust_vector_by_severity(vector, "medium")
+        # Non-default vector: no adjustments for medium
+        assert adjusted.attack_complexity == vector.attack_complexity
+
+    def test_low_adjustment(self, calc, default_vector):
+        """Test low severity adjustments on default vector."""
+        adjusted = calc.adjust_vector_by_severity(default_vector, "low")
         assert adjusted.attack_complexity == AttackComplexity.HIGH
 
-    def test_low_adjustment(self, calc):
-        """Test low severity adjustments."""
-        vector = CVSSVector()
-        adjusted = calc.adjust_vector_by_severity(vector, "low")
+    def test_info_adjustment(self, calc, default_vector):
+        """Test informational severity adjustments on default vector."""
+        adjusted = calc.adjust_vector_by_severity(default_vector, "informational")
         assert adjusted.attack_complexity == AttackComplexity.HIGH
-        assert adjusted.integrity_impact == Impact.LOW
-        assert adjusted.availability_impact == Impact.NONE
 
-    def test_info_adjustment(self, calc):
-        """Test informational severity adjustments."""
+    def test_category_vector_critical_nudge(self, calc):
+        """Non-default vector only gets AC nudge for critical."""
+        vector = CVSSVector()  # Default has integrity=HIGH, not is_default
+        adjusted = calc.adjust_vector_by_severity(vector, "critical")
+        assert adjusted.attack_complexity == AttackComplexity.LOW
+
+    def test_category_vector_high_unchanged(self, calc):
+        """Non-default vector unchanged for high severity."""
         vector = CVSSVector()
-        adjusted = calc.adjust_vector_by_severity(vector, "informational")
-        assert adjusted.attack_complexity == AttackComplexity.HIGH
+        original_ac = vector.attack_complexity
+        adjusted = calc.adjust_vector_by_severity(vector, "high")
+        assert adjusted.attack_complexity == original_ac
 
 
 class TestCalculateFindingScore:
