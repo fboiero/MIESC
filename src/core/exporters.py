@@ -5,7 +5,7 @@ Exports audit results in multiple formats for integration with various tools.
 Supports SARIF (GitHub), SonarQube, Checkmarx, and custom formats.
 
 Author: Fernando Boiero
-License: GPL-3.0
+License: AGPL-3.0
 """
 
 import hashlib

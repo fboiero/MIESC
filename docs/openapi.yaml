@@ -29,7 +29,7 @@ info:
     - OWASP Smart Contract Top 10
     - Digital Public Good (DPG) Standards
 
-  version: "4.2.0"
+  version: "5.1.1"
   contact:
     name: Fernando Boiero
     email: fboiero@frvm.utn.edu.ar

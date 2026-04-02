@@ -5,7 +5,7 @@ Provides training infrastructure for fine-tuning LLMs on Solidity security analy
 Supports multiple backends: Hugging Face Transformers, Axolotl, and Ollama.
 
 Author: Fernando Boiero
-License: GPL-3.0
+License: AGPL-3.0
 """
 
 import logging

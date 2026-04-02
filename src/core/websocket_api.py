@@ -5,7 +5,7 @@ Provides real-time updates during security audits using WebSocket connections.
 Supports progress tracking, live findings, and tool status updates.
 
 Author: Fernando Boiero
-License: GPL-3.0
+License: AGPL-3.0
 """
 
 from __future__ import annotations
@@ -392,7 +392,7 @@ def create_websocket_app() -> Optional["FastAPI"]:
     app = FastAPI(
         title="MIESC Real-Time API",
         description="WebSocket API for real-time audit updates",
-        version="4.1.0",
+        version="5.1.1",
     )
 
     # Security: CORS configuration with whitelist
@@ -516,7 +516,7 @@ def create_websocket_app() -> Optional["FastAPI"]:
             "websocket_available": True,
             "connections": len(manager.active_connections),
             "subscribed_audits": list(manager.audit_subscriptions.keys()),
-            "version": "4.1.0",
+            "version": "5.1.1",
         }
 
     return app

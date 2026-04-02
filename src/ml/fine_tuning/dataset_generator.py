@@ -5,7 +5,7 @@ Generates training datasets from vulnerability databases, audit reports,
 and MIESC analysis results for fine-tuning LLMs on Solidity security.
 
 Author: Fernando Boiero
-License: GPL-3.0
+License: AGPL-3.0
 """
 
 import json

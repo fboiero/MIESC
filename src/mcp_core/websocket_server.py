@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MIESC v4.1 - WebSocket Server for Real-time Audit Streaming
+MIESC v5.1.1 - WebSocket Server for Real-time Audit Streaming
 
 Provides real-time progress updates during multi-layer security audits.
 Implements the Model Context Protocol (MCP) over WebSocket for agent integration.
@@ -13,7 +13,7 @@ Features:
 
 Author: Fernando Boiero
 Institution: UNDEF - IUA
-License: GPL-3.0
+License: AGPL-3.0
 """
 
 import asyncio
@@ -195,7 +195,7 @@ class MIESCWebSocketServer:
                 timestamp=datetime.now(timezone.utc),
                 data={
                     "client_id": client_id,
-                    "server_version": "4.2.0",
+                    "server_version": "5.1.1",
                     "available_commands": [
                         "start_audit",
                         "subscribe",

@@ -9,7 +9,7 @@ Demonstrates the real-time WebSocket API system:
 - Real-time event serialization
 
 Author: Fernando Boiero
-License: GPL-3.0
+License: AGPL-3.0
 """
 
 import json

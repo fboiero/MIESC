@@ -5,7 +5,7 @@ Provides machine learning-based vulnerability detection using pattern recognitio
 trained on historical smart contract vulnerabilities.
 
 Author: Fernando Boiero
-License: GPL-3.0
+License: AGPL-3.0
 Version: 1.0.0
 """
 

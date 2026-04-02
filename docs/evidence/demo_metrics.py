@@ -9,7 +9,7 @@ Demonstrates the observability metrics system:
 - Time measurement utilities
 
 Author: Fernando Boiero
-License: GPL-3.0
+License: AGPL-3.0
 """
 
 import sys

@@ -11,7 +11,7 @@ This script demonstrates the complete MIESC pipeline:
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Institution: UNDEF - IUA Córdoba
-License: GPL-3.0
+License: AGPL-3.0
 """
 
 import sys

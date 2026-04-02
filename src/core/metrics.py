@@ -5,7 +5,7 @@ Provides observability metrics for monitoring audit performance,
 tool execution, and system health using Prometheus format.
 
 Author: Fernando Boiero
-License: GPL-3.0
+License: AGPL-3.0
 """
 
 import logging
@@ -210,7 +210,7 @@ class MIESCMetrics:
 
         # Info
         self.info = Info("miesc", "MIESC version and configuration info", registry=self.registry)
-        self.info.info({"version": "4.1.0", "layers": "7", "python_version": "3.11"})
+        self.info.info({"version": "5.1.1", "layers": "7", "python_version": "3.11"})
 
     def _init_internal_metrics(self):
         """Initialize internal-only metrics when Prometheus is unavailable."""

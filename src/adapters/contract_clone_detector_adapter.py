@@ -5,7 +5,7 @@ Detects cloned/similar contracts using code similarity algorithms and ML techniq
 Useful for finding malicious forks, copycats, and verifying uniqueness.
 
 Author: Fernando Boiero
-License: GPL-3.0
+License: AGPL-3.0
 Version: 1.0.0
 """
 

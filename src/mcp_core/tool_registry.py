@@ -9,7 +9,7 @@ Scientific Context: Agent interoperability in distributed security systems
 
 Author: Fernando Boiero
 Thesis: Master's in Cyberdefense - UNDEF
-Version: 5.0.0
+Version: 5.1.1
 """
 
 import logging
@@ -93,7 +93,7 @@ class MCPTool:
     handler: Optional[Callable] = None
     layer: Optional[int] = None
     available: bool = True
-    version: str = "5.0.0"
+    version: str = "5.1.1"
 
     def to_mcp_format(self) -> Dict[str, Any]:
         """

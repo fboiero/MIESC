@@ -116,7 +116,7 @@ class BenchmarkResult:
     metrics_by_category: Dict[str, DetectionMetrics]
     overall_metrics: DetectionMetrics
     total_time_seconds: float
-    miesc_version: str = "4.3.0"
+    miesc_version: str = "5.1.1"
     config: Dict = field(default_factory=dict)
 
     @property

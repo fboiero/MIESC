@@ -5,7 +5,7 @@ Orchestrates multiple LLM backends for intelligent security analysis.
 Supports Ollama (local), OpenAI, Anthropic, and custom models.
 
 Author: Fernando Boiero
-License: GPL-3.0
+License: AGPL-3.0
 """
 
 import asyncio

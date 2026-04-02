@@ -262,15 +262,15 @@ Para un entorno completo y aislado con todas las herramientas preinstaladas:
 ### ARM64 (Apple Silicon)
 
 ```bash
-docker build -t miesc:v5.1.0 .
-docker run --rm -v $(pwd):/contracts miesc:v5.1.0 audit quick /contracts/MiContrato.sol
+docker build -t miesc:v5.1.1 .
+docker run --rm -v $(pwd):/contracts miesc:v5.1.1 audit quick /contracts/MiContrato.sol
 ```
 
 ### x86_64 (Intel/AMD)
 
 ```bash
-docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:v5.1.0-x86 .
-docker run --platform linux/amd64 --rm -v $(pwd):/contracts miesc:v5.1.0-x86 audit quick /contracts/MiContrato.sol
+docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:v5.1.1-x86 .
+docker run --platform linux/amd64 --rm -v $(pwd):/contracts miesc:v5.1.1-x86 audit quick /contracts/MiContrato.sol
 ```
 
 ### Imagen Pre-construida

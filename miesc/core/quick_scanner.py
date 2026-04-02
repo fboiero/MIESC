@@ -70,7 +70,7 @@ class QuickScanner:
         results = {
             "contract": contract_path,
             "timestamp": start_time.isoformat(),
-            "miesc_version": "4.0.0",
+            "miesc_version": "5.1.1",
             "scan_type": "quick",
             "tools_run": [],
             "findings": [],

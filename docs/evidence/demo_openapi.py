@@ -9,7 +9,7 @@ Demonstrates the OpenAPI 3.1.0 specification:
 - Compliance and Export endpoints
 
 Author: Fernando Boiero
-License: GPL-3.0
+License: AGPL-3.0
 """
 
 import sys

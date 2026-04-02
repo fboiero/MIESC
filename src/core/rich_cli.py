@@ -5,7 +5,7 @@ Beautiful terminal UI with progress bars, live updates, and rich formatting
 using the Rich library.
 
 Author: Fernando Boiero
-License: GPL-3.0
+License: AGPL-3.0
 """
 
 import sys

@@ -616,11 +616,11 @@ with st.sidebar:
     st.markdown(f"""
     **{t('author')}:** Fernando Boiero
     **{t('institution')}:** UNDEF - IUA Cordoba
-    **{t('license')}:** GPL-3.0
+    **{t('license')}:** AGPL-3.0
 
-    **25** {t('security_adapters')}
-    **7** {t('defense_layers')}
-    **94.5%** {t('precision')}
+    **50** {t('security_adapters')}
+    **9** {t('defense_layers')}
+    **89.5%** {t('precision')}
     """)
 
 # Header
@@ -1036,11 +1036,11 @@ with tab4:
         st.markdown("---")
         st.markdown(f"#### {t('miesc_info')}")
         st.markdown(f"""
-        - **{t('version')}:** 4.0.0
-        - **{t('adapters')}:** 25
-        - **{t('layers')}:** 7
-        - **{t('precision')}:** 94.5%
-        - **{t('recall')}:** 92.8%
+        - **{t('version')}:** 5.1.1
+        - **{t('adapters')}:** 50
+        - **{t('layers')}:** 9
+        - **{t('precision')}:** 89.5%
+        - **{t('recall')}:** 86.2%
         """)
 
 # Thesis tab

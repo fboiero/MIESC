@@ -15,6 +15,7 @@
   <a href="https://securityscorecards.dev/viewer/?uri=github.com/fboiero/MIESC"><img src="https://api.securityscorecards.dev/projects/github.com/fboiero/MIESC/badge" alt="OpenSSF"></a>
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License"></a>
   <a href="https://github.com/fboiero/MIESC/discussions"><img src="https://img.shields.io/github/discussions/fboiero/MIESC" alt="Discussions"></a>
+  <a href="./docs/policies/DPG-COMPLIANCE.md"><img src="https://img.shields.io/badge/DPG-Candidate-4c9f38?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIvPjxwYXRoIGQ9Ik04IDEybDMgMyA1LTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==" alt="DPG Candidate"></a>
 </p>
 
 <p align="center">
@@ -454,6 +455,26 @@ If you use MIESC in research, please cite:
   type={Master's Thesis in Cyberdefense}
 }
 ```
+
+---
+
+## Digital Public Good
+
+MIESC is a candidate for [Digital Public Goods Alliance](https://digitalpublicgoods.net/) certification (Application ID: GID0092948), aligned with the UN Sustainable Development Goals:
+
+- **SDG 9** (Industry & Infrastructure): Strengthening blockchain infrastructure security
+- **SDG 16** (Peace & Strong Institutions): Protecting digital assets, reducing fraud
+- **SDG 17** (Partnerships): Open-source collaboration for global security standards
+
+The project is fully compliant with all 9 DPGA indicators: open license (AGPL-3.0), clear ownership, platform independence, comprehensive documentation, data portability (SARIF/CSV/JSON), privacy-preserving (local-first), standards-based (12 international standards), and responsible use policies.
+
+| Policy | Description |
+|--------|-------------|
+| [DPG Compliance](./docs/policies/DPG-COMPLIANCE.md) | Full 9-indicator compliance statement |
+| [SDG Relevance](./docs/policies/SDG_RELEVANCE.md) | Sustainable Development Goals mapping |
+| [Privacy Policy](./PRIVACY.md) | Data handling and privacy statement |
+| [Responsible Use](./RESPONSIBLE_USE.md) | Ethical use guidelines |
+| [Do No Harm](./docs/policies/DO_NO_HARM.md) | Risk assessment and mitigations |
 
 ---
 
