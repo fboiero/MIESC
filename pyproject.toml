@@ -401,7 +401,7 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
 ]
-fail_under = 65  # Current coverage is ~65%
+fail_under = 80  # Coverage target: 80%
 show_missing = true
 
 # ============================================
