@@ -1,0 +1,45 @@
+{
+  "contests": [
+    {
+      "id": "2023-01-ondo",
+      "name": "Ondo Finance",
+      "repo": "https://github.com/code-423n4/2023-01-ondo",
+      "findings_repo": "https://github.com/code-423n4/2023-01-ondo-findings",
+      "high_findings": 3,
+      "medium_findings": 8
+    },
+    {
+      "id": "2023-03-asymmetry",
+      "name": "Asymmetry",
+      "repo": "https://github.com/code-423n4/2023-03-asymmetry",
+      "findings_repo": "https://github.com/code-423n4/2023-03-asymmetry-findings",
+      "high_findings": 5,
+      "medium_findings": 12
+    },
+    {
+      "id": "2023-04-eigenlayer",
+      "name": "EigenLayer",
+      "repo": "https://github.com/code-423n4/2023-04-eigenlayer",
+      "findings_repo": "https://github.com/code-423n4/2023-04-eigenlayer-findings",
+      "high_findings": 2,
+      "medium_findings": 7
+    },
+    {
+      "id": "2023-05-ajna",
+      "name": "Ajna Protocol",
+      "repo": "https://github.com/code-423n4/2023-05-ajna",
+      "findings_repo": "https://github.com/code-423n4/2023-05-ajna-findings",
+      "high_findings": 4,
+      "medium_findings": 15
+    },
+    {
+      "id": "2023-07-amphora",
+      "name": "Amphora Protocol",
+      "repo": "https://github.com/code-423n4/2023-07-amphora",
+      "findings_repo": "https://github.com/code-423n4/2023-07-amphora-findings",
+      "high_findings": 3,
+      "medium_findings": 10
+    }
+  ],
+  "downloaded": true
+}

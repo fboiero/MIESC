@@ -223,3 +223,12 @@ vscode-extension/node_modules/
 
 # Sphinx build output
 docs/_build/
+
+# Downloaded benchmark datasets (too large for git)
+data/datasets/etherscan/contracts/
+data/datasets/etherscan/_*/
+data/datasets/rekt_exploits/contracts/
+data/datasets/rekt_exploits/_*/
+data/datasets/code4rena/contracts/
+data/datasets/code4rena/findings/
+data/datasets/code4rena/_*/
