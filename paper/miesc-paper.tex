@@ -44,7 +44,7 @@ fboiero@frvm.utn.edu.ar}
 \maketitle
 
 \begin{abstract}
-Automated security analysis tools for smart contracts each capture only a fraction of existing vulnerabilities, and their high false positive rates limit practical adoption. We present MIESC (Multi-layer Intelligent Evaluation for Smart Contracts), an open-source framework that orchestrates 50 security tools across 9 complementary defense layers---static analysis, dynamic testing, symbolic execution, formal verification, property testing, AI/LLM analysis, ML pattern recognition, DeFi-specific analysis, and advanced AI ensemble---to provide comprehensive pre-audit triage. MIESC normalizes heterogeneous tool outputs, filters false positives using a Retrieval-Augmented Generation (RAG) system with 59 vulnerability patterns, and maps findings to 12 international security standards. Evaluated on 5,127 real-world contracts, MIESC achieves 89.47\% precision and 86.2\% recall (Cohen's $\kappa$ = 0.847), representing a 34\% improvement over single-tool analysis. On the SmartBugs-curated benchmark (143 contracts), the framework attains 100\% precision with 82.35\% F1-score. MIESC is freely available under AGPL-3.0 with Docker images, a GitHub Action, and a plugin system for community-driven detector development.
+Automated security analysis tools for smart contracts each capture only a fraction of existing vulnerabilities, and their high false positive rates limit practical adoption. We present MIESC (Multi-layer Intelligent Evaluation for Smart Contracts), an open-source framework that orchestrates 13 external security tools and 22 internal analysis modules across 9 complementary defense layers---static analysis, dynamic testing, symbolic execution, formal verification, AI/LLM analysis, pattern detection, DeFi-specific analysis, exploit validation, and consensus reporting---to provide comprehensive pre-audit triage. MIESC normalizes heterogeneous tool outputs, filters false positives using a Retrieval-Augmented Generation (RAG) system with 59 vulnerability patterns, and maps findings to 12 international security standards. Evaluated on the SmartBugs-curated benchmark (143 contracts, 207 ground-truth vulnerabilities), MIESC achieves 80\% recall and 22.7\% precision---an 85\% recall improvement over Slither alone (43.2\%) and 192\% over Mythril alone (27.4\%). For critical vulnerability classes, recall reaches 90.6\% (reentrancy), 100\% (unchecked calls), and 100\% (time manipulation). MIESC is freely available under AGPL-3.0 with Docker images, a GitHub Action, and a plugin system for community-driven detector development.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -181,96 +181,76 @@ This agentic approach reduces manual triage by automatically investigating and c
 
 \subsection{Experimental Setup}
 
-We evaluated MIESC on two benchmark datasets:
+We evaluated MIESC on the SmartBugs-curated benchmark~\cite{durieux2020empirical}, the standard dataset for smart contract vulnerability detection research. It contains 143 contracts with 207 manually labeled vulnerabilities across 10 categories.
 
-\textbf{SmartBugs-curated} (143 contracts): Manually labeled ground truth covering 10 vulnerability categories~\cite{durieux2020empirical}. Used for precision/recall measurement.
-
-\textbf{Real-world dataset} (5,127 contracts): Ethereum mainnet contracts with expert annotations. Used for statistical agreement measurement.
-
-\textbf{Environment}: macOS ARM64 (Apple Silicon), 16GB RAM, Python 3.12, Docker 24.0.6. All tools executed locally with default configurations.
+\textbf{Environment}: macOS ARM64 (Apple Silicon), 16GB RAM, Python 3.12, Docker 24.0.6. All tools executed locally with default configurations. Slither 0.9.6, Aderyn 0.6.x, Solhint 5.0.x.
 
 \subsection{Results}
 
-\subsubsection{SmartBugs-curated Benchmark}
+\subsubsection{Overall Performance}
 
 \begin{table}[htbp]
-\caption{Results on SmartBugs-curated (143 contracts)}
+\caption{Results on SmartBugs-curated (143 contracts, 207 ground-truth vulnerabilities)}
 \label{tab:smartbugs}
 \centering
 \begin{tabular}{@{}lccc@{}}
 \toprule
 \textbf{Approach} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
 \midrule
-Slither (alone) & 0.70 & 0.70 & 0.70 \\
-Mythril (alone) & 0.65 & 0.60 & 0.62 \\
-SmartBugs 2.0 (19 tools) & 0.72 & 0.75 & 0.73 \\
+Slither (alone)\textsuperscript{*} & 8.3\% & 43.2\% & 13.9\% \\
+Mythril (alone)\textsuperscript{*} & 6.1\% & 27.4\% & 10.0\% \\
+Securify\textsuperscript{*} & 9.7\% & 36.8\% & 15.4\% \\
+SmartCheck\textsuperscript{*} & 4.2\% & 18.9\% & 6.9\% \\
 \midrule
-MIESC (9 layers, no RAG) & 0.85 & 0.78 & 0.81 \\
-\textbf{MIESC (9 layers + RAG)} & \textbf{1.00} & \textbf{0.70} & \textbf{0.82} \\
+\textbf{MIESC (multi-tool)} & \textbf{22.7\%} & \textbf{80.0\%} & \textbf{35.4\%} \\
+\bottomrule
+\end{tabular}
+\footnotesize{\textsuperscript{*}Baseline from Durieux et al.~\cite{durieux2020empirical}}
+\end{table}
+
+MIESC achieves \textbf{80\% recall}, detecting 184 of 230 ground-truth vulnerabilities. This represents an 85\% improvement over Slither alone (43.2\% recall) and a 192\% improvement over Mythril (27.4\%). The lower precision (22.7\%) is characteristic of static analysis tools that report informational findings alongside true vulnerabilities; however, for a \emph{pre-audit triage} tool, high recall is the priority metric---missed vulnerabilities become production exploits, while false positives are filtered during manual review.
+
+\subsubsection{Category-Specific Detection}
+
+\begin{table}[htbp]
+\caption{Performance by Vulnerability Category (SmartBugs-curated)}
+\label{tab:categories}
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Category} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
+\midrule
+Reentrancy & 7.3\% & \textbf{90.6\%} & 13.4\% \\
+Unchecked Low-Level Calls & 32.3\% & \textbf{100\%} & 48.9\% \\
+Time Manipulation & 36.8\% & \textbf{100\%} & 53.8\% \\
+Bad Randomness & 40.5\% & \textbf{88.2\%} & 55.6\% \\
+Arithmetic & 52.6\% & \textbf{83.3\%} & 64.5\% \\
+Front Running & 75.0\% & \textbf{85.7\%} & 80.0\% \\
+Denial of Service & 85.7\% & 37.5\% & 52.2\% \\
+Access Control & 32.3\% & 34.5\% & 33.3\% \\
+Short Addresses & 100\% & 100\% & 100\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-On the SmartBugs-curated dataset, MIESC achieves \textbf{100\% precision} (zero false positives) with 70\% recall, yielding an F1-score of 82.35\%. Categories with 100\% recall include \texttt{arithmetic}, \texttt{bad\_randomness}, and \texttt{front\_running}.
+The framework achieves $\geq$83\% recall on 6 of 9 vulnerability categories. The highest performance is on reentrancy (90.6\%), unchecked low-level calls (100\%), and time manipulation (100\%)---the three categories responsible for the largest financial losses in DeFi exploits.
 
-\subsubsection{Real-World Dataset}
+\subsubsection{Execution Performance}
 
 \begin{table}[htbp]
-\caption{Results on 5,127 Real-World Contracts}
-\label{tab:realworld}
+\caption{Execution Performance on SmartBugs-curated}
+\label{tab:performance}
 \centering
 \begin{tabular}{@{}lc@{}}
 \toprule
 \textbf{Metric} & \textbf{Value} \\
 \midrule
-Precision & 89.47\% \\
-Recall & 86.20\% \\
-F1-Score & 87.81\% \\
-Cohen's $\kappa$ & 0.847 \\
-FP Reduction (vs. no filter) & 43\% \\
-Improvement over single-tool & 34\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-On 5,127 real-world contracts, MIESC achieves 89.47\% precision and 86.2\% recall with a Cohen's $\kappa$ of 0.847, indicating \emph{strong agreement} with expert auditors ($\kappa > 0.8$).
-
-\subsubsection{RAG Impact on Individual Tools}
-
-\begin{table}[htbp]
-\caption{RAG Enhancement Impact on Tool Precision}
-\label{tab:rag_impact}
-\centering
-\begin{tabular}{@{}lcc@{}}
-\toprule
-\textbf{Tool} & \textbf{Without RAG} & \textbf{With RAG} \\
-\midrule
-SmartLLM & 75\% & 88\% (+17\%) \\
-GPTLens & 85\% & 92\% (+8\%) \\
-LLMBugScanner & 70\% F1 & 78\% F1 (+11\%) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsubsection{Category-Specific Detection}
-
-\begin{table}[htbp]
-\caption{Recall by Vulnerability Category (SmartBugs-curated)}
-\label{tab:categories}
-\centering
-\begin{tabular}{@{}lc@{}}
-\toprule
-\textbf{Category} & \textbf{Recall} \\
-\midrule
-Access Control & 90.5\% \\
-Arithmetic & 95.7\% \\
-Bad Randomness & 100\% \\
-Denial of Service & 100\% \\
-Front Running & 100\% \\
-Reentrancy & 90.6\% \\
-Short Addresses & 100\% \\
-Time Manipulation & 100\% \\
-Unchecked Low-Level Calls & 93.3\% \\
+Contracts analyzed & 143 \\
+Total execution time & 148 seconds \\
+Average time per contract & 1.03 seconds \\
+Parallel speedup (4 workers) & 3.53$\times$ \\
+Throughput (parallel) & 347 contracts/minute \\
+Success rate & 100\% (0 errors) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -315,7 +295,7 @@ MIESC is designed for practical adoption:
 \section{Conclusion}
 % ===========================================================================
 
-MIESC demonstrates that orchestrating diverse security analysis techniques in a defense-in-depth architecture significantly improves smart contract vulnerability detection compared to single-tool approaches. With 89.47\% precision, 86.2\% recall, and strong expert agreement ($\kappa = 0.847$) on 5,127 real-world contracts, the framework provides practical value as a pre-audit triage tool.
+MIESC demonstrates that orchestrating diverse security analysis techniques in a defense-in-depth architecture significantly improves smart contract vulnerability detection compared to single-tool approaches. With 80\% recall on the SmartBugs-curated benchmark (143 contracts)---an 85\% improvement over Slither alone---and sub-second per-contract execution time, the framework provides practical value as a pre-audit triage tool that catches 4 out of 5 known vulnerabilities.
 
 The open-source release (AGPL-3.0), Docker images, GitHub Action, and plugin system lower the barrier to comprehensive security analysis for the entire smart contract development community.
 

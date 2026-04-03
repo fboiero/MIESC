@@ -12,12 +12,12 @@ repository-code: "https://github.com/fboiero/MIESC"
 url: "https://github.com/fboiero/MIESC"
 abstract: >
   MIESC is an open-source framework that brings enterprise-grade smart contract
-  security analysis to every developer. It integrates 50 specialized security tools
-  across 9 defense layers with AI-powered correlation and compliance mapping,
-  providing comprehensive vulnerability detection with 89.47% precision, 86.2%
-  recall, and Cohen's Kappa of 0.847 (validated on 5,127 contracts). MIESC runs
-  entirely locally, maps findings to 12 international security standards, and is
-  freely available to help secure Web3 for everyone.
+  security analysis to every developer. It orchestrates 13 external security tools
+  and 22 internal analysis modules across 9 defense layers, achieving 80% recall
+  on the SmartBugs-curated benchmark (143 contracts) — an 85% improvement over
+  single-tool analysis. MIESC runs entirely locally, maps findings to 12
+  international security standards, and is freely available to help secure Web3
+  for everyone.
 keywords:
   - smart contracts
   - blockchain security

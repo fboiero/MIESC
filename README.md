@@ -88,47 +88,57 @@ Report saved to results.json
 
 **The problem**: Professional smart contract audits cost $50K-$200K and take weeks. Meanwhile, $1.5B+ is lost to exploits every year. Most projects ship without any audit at all. Running Slither alone catches ~70% of vulnerabilities with 15-20% false positives. Every tool has blind spots. Auditors manually run 5-10 tools, normalize outputs, and cross-reference findings. This takes hours.
 
-**MIESC makes that workflow accessible to everyone.** One command orchestrates 50 tools across 9 complementary analysis techniques, deduplicates findings, filters false positives with ML, and generates professional reports. Free, open-source, runs locally — your code never leaves your machine.
+**MIESC makes that workflow accessible to everyone.** One command orchestrates multiple security tools across 9 complementary analysis techniques, deduplicates findings, and generates professional reports. Free, open-source, runs locally — your code never leaves your machine.
 
-### Validated Results
+### Benchmark Results (SmartBugs-curated, 143 contracts)
 
-Benchmarked on SmartBugs-curated dataset (143 contracts) and 5,127 real-world contracts:
+| Metric | Slither alone | Mythril alone | MIESC |
+|--------|:------------:|:-------------:|:-----:|
+| Recall | 43.2% | 27.4% | **80.0%** |
+| Precision | 8.3% | 6.1% | 22.7% |
+| F1-Score | 13.9% | 10.0% | **35.4%** |
 
-| Metric | Slither alone | Mythril alone | MIESC (9 layers) |
-|--------|:------------:|:-------------:|:----------------:|
-| Precision | ~70% | ~65% | **89.5%** |
-| Recall | ~70% | ~60% | **86.2%** |
-| F1-Score | ~70% | ~62% | **87.8%** |
-| False Positive Rate | 15-20% | 10-15% | **<5%** |
+> **80% recall** — MIESC catches 4 out of 5 known vulnerabilities. Reentrancy: 90.6%, unchecked calls: 100%, time manipulation: 100%. Baseline comparison from [Durieux et al., ICSE 2020](https://doi.org/10.1145/3377811.3380364). [Full benchmark methodology](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md)
 
-> Cohen's Kappa = 0.847 (strong agreement with expert auditors). Validated on 5,127 contracts. [Full methodology](./docs/ARCHITECTURE.md)
+**Why recall matters more than precision for pre-audit triage**: High recall means fewer missed vulnerabilities. False positives are filtered in the triage step — missed vulnerabilities become exploits in production.
 
 ### The 9 Defense Layers
 
 ```
-Layer 1  Static Analysis        Slither, Aderyn, Solhint, Wake, Semgrep
-Layer 2  Dynamic Testing        Echidna, Foundry, Medusa, DogeFuzz
-Layer 3  Symbolic Execution     Mythril, Manticore, Halmos
-Layer 4  Formal Verification    Certora, SMTChecker, PropertyGPT
-Layer 5  Property Testing       Wake, Vertigo, Scribble
-Layer 6  AI/LLM Analysis        SmartLLM, GPTScan, LLMSmartAudit
-Layer 7  ML Pattern Detection   DA-GNN, SmartGuard, Clone Detector
-Layer 8  DeFi Security          MEV Detector, Flash Loan Analyzer
-Layer 9  Advanced AI Ensemble   Multi-LLM consensus, Exploit Synthesis
+Layer 1  Static Analysis        Slither, Aderyn, Solhint, Semgrep
+Layer 2  Dynamic Testing        Echidna, Foundry, Medusa
+Layer 3  Symbolic Execution     Mythril, Halmos, Manticore
+Layer 4  Formal Verification    SMTChecker, Scribble, Certora*
+Layer 5  AI/LLM Analysis        SmartLLM, GPTScan, LLMSmartAudit (Ollama)
+Layer 6  Pattern Detection      Gas Analyzer, Clone Detector, Threat Model
+Layer 7  DeFi Security          MEV Detector, Flash Loan Analyzer, Oracle Checker
+Layer 8  Exploit Validation     PoC Synthesizer (Foundry), Vulnerability Verifier
+Layer 9  Consensus & Reporting  Bayesian Consensus, RAG Enrichment, PDF Reports
 ```
+
+*Certora requires API key. All other tools are fully open-source.
+
+### What MIESC integrates
+
+| Category | Count | Examples |
+|----------|:-----:|---------|
+| **External security tools** | 13 | Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, Semgrep |
+| **LLM analysis modules** | 6 | SmartLLM, GPTScan, PropertyGPT (via local Ollama) |
+| **Internal analyzers** | 16 | MEV detector, gas analyzer, threat model, clone detector |
+| **Total analysis modules** | **35** | Across 9 complementary techniques |
 
 ### vs. SmartBugs 2.0 (closest competitor)
 
 | | MIESC | SmartBugs 2.0 |
 |---|---|---|
-| Tools | **50** | 19 |
-| AI/LLM correlation | Yes (RAG + Ollama) | No |
-| ML false-positive filter | Yes | No |
-| Multi-chain | 7 chains | EVM only |
+| External tools | 13 | 19 |
+| AI/LLM analysis | Yes (Ollama local) | No |
+| Internal analyzers | 16 | No |
+| False-positive filter | Yes (RAG + ML) | No |
 | Professional PDF reports | Yes | No |
 | Plugin system | Yes (PyPI) | No |
 | GitHub Action | Yes | No |
-| SARIF output | Yes | No |
+| SARIF output | Yes | Yes |
 
 ---
 
@@ -428,7 +438,7 @@ Contract.sol
 
 MIESC uses a dual-package architecture:
 - `miesc/` - Public API (stable, pip-installable)
-- `src/` - Internal implementation (50 adapters, ML pipeline, RAG, report generation)
+- `src/` - Internal implementation (35 analysis modules, ML pipeline, RAG, report generation)
 
 See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with Mermaid diagrams.
 
@@ -436,12 +446,13 @@ See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with
 
 ## Academic Validation
 
-MIESC was developed as a Master's thesis in Cyberdefense at [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). The framework was rigorously validated:
+MIESC was developed as a Master's thesis in Cyberdefense at [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). Evaluated on the SmartBugs-curated benchmark (Durieux et al., ICSE 2020):
 
-- **5,127 real-world contracts** analyzed
-- **Cohen's Kappa 0.847** (strong agreement with expert auditors)
-- **34% improvement** over single-tool analysis
-- **SmartBugs-curated benchmark**: 100% precision, 70% recall, F1 82.35%
+- **143 contracts**, 207 ground-truth vulnerabilities, 10 categories
+- **80% recall** (184/230 vulnerabilities detected) — best-in-class for multi-tool orchestration
+- **90.6% recall on reentrancy**, 100% on unchecked calls and time manipulation
+- **85% faster than running tools manually** (~1 sec/contract)
+- Full results: [SMARTBUGS_SCIENTIFIC_REPORT.md](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md)
 
 If you use MIESC in research, please cite:
 

@@ -88,47 +88,57 @@ Report saved to results.json
 
 **El problema**: Las auditorías profesionales de smart contracts cuestan entre $50K y $200K y llevan semanas. Mientras tanto, se pierden más de $1,500M al año por exploits. La mayoría de los proyectos salen a producción sin ninguna auditoría. Ejecutar Slither solo detecta ~70% de las vulnerabilidades con un 15-20% de falsos positivos. Cada herramienta tiene puntos ciegos. Los auditores ejecutan manualmente 5-10 herramientas, normalizan las salidas y correlacionan los hallazgos. Esto lleva horas.
 
-**MIESC hace accesible ese flujo de trabajo para todos.** Un comando orquesta 50 herramientas a través de 9 técnicas de análisis complementarias, deduplica hallazgos, filtra falsos positivos con ML y genera reportes profesionales. Gratuito, open-source, se ejecuta localmente — tu código nunca sale de tu máquina.
+**MIESC hace accesible ese flujo de trabajo para todos.** Un comando orquesta múltiples herramientas de seguridad a través de 9 técnicas de análisis complementarias, deduplica hallazgos y genera reportes profesionales. Gratuito, open-source, se ejecuta localmente — tu código nunca sale de tu máquina.
 
-### Resultados Validados
+### Resultados del Benchmark (SmartBugs-curated, 143 contratos)
 
-Evaluado con el dataset SmartBugs-curated (143 contratos) y 5,127 contratos del mundo real:
+| Métrica | Slither solo | Mythril solo | MIESC |
+|---------|:------------:|:------------:|:-----:|
+| Recall | 43.2% | 27.4% | **80.0%** |
+| Precisión | 8.3% | 6.1% | 22.7% |
+| F1-Score | 13.9% | 10.0% | **35.4%** |
 
-| Métrica | Slither solo | Mythril solo | MIESC (9 capas) |
-|---------|:------------:|:------------:|:---------------:|
-| Precisión | ~70% | ~65% | **89.5%** |
-| Recall | ~70% | ~60% | **86.2%** |
-| F1-Score | ~70% | ~62% | **87.8%** |
-| Tasa de Falsos Positivos | 15-20% | 10-15% | **<5%** |
+> **80% recall** — MIESC detecta 4 de cada 5 vulnerabilidades conocidas. Reentrancy: 90.6%, unchecked calls: 100%, time manipulation: 100%. Comparación baseline de [Durieux et al., ICSE 2020](https://doi.org/10.1145/3377811.3380364). [Metodología completa del benchmark](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md)
 
-> Cohen's Kappa = 0.847 (alta concordancia con auditores expertos). Validado en 5,127 contratos. [Metodología completa](./docs/ARCHITECTURE.md)
+**Por qué importa más el recall que la precisión en triaje pre-auditoría**: Alto recall significa menos vulnerabilidades perdidas. Los falsos positivos se filtran en la etapa de triaje — las vulnerabilidades perdidas se convierten en exploits en producción.
 
 ### Las 9 Capas de Defensa
 
 ```
-Capa 1  Análisis Estático        Slither, Aderyn, Solhint, Wake, Semgrep
-Capa 2  Testing Dinámico         Echidna, Foundry, Medusa, DogeFuzz
-Capa 3  Ejecución Simbólica      Mythril, Manticore, Halmos
-Capa 4  Verificación Formal      Certora, SMTChecker, PropertyGPT
-Capa 5  Testing de Propiedades   Wake, Vertigo, Scribble
-Capa 6  Análisis IA/LLM          SmartLLM, GPTScan, LLMSmartAudit
-Capa 7  Detección de Patrones ML DA-GNN, SmartGuard, Clone Detector
-Capa 8  Seguridad DeFi           MEV Detector, Flash Loan Analyzer
-Capa 9  Ensemble IA Avanzado     Consenso Multi-LLM, Síntesis de Exploits
+Capa 1  Análisis Estático        Slither, Aderyn, Solhint, Semgrep
+Capa 2  Testing Dinámico         Echidna, Foundry, Medusa
+Capa 3  Ejecución Simbólica      Mythril, Halmos, Manticore
+Capa 4  Verificación Formal      SMTChecker, Scribble, Certora*
+Capa 5  Análisis IA/LLM          SmartLLM, GPTScan, LLMSmartAudit (Ollama)
+Capa 6  Detección de Patrones    Gas Analyzer, Clone Detector, Threat Model
+Capa 7  Seguridad DeFi           MEV Detector, Flash Loan Analyzer, Oracle Checker
+Capa 8  Validación de Exploits   PoC Synthesizer (Foundry), Vulnerability Verifier
+Capa 9  Consenso y Reportes      Consenso Bayesiano, Enriquecimiento RAG, Reportes PDF
 ```
+
+*Certora requiere API key. Todas las demás herramientas son completamente open-source.
+
+### Qué integra MIESC
+
+| Categoría | Cantidad | Ejemplos |
+|-----------|:--------:|---------|
+| **Herramientas externas** | 13 | Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, Semgrep |
+| **Módulos de análisis LLM** | 6 | SmartLLM, GPTScan, PropertyGPT (via Ollama local) |
+| **Analizadores internos** | 16 | MEV detector, gas analyzer, threat model, clone detector |
+| **Total de módulos de análisis** | **35** | A través de 9 técnicas complementarias |
 
 ### vs. SmartBugs 2.0 (competidor más cercano)
 
 | | MIESC | SmartBugs 2.0 |
 |---|---|---|
-| Herramientas | **50** | 19 |
-| Correlación IA/LLM | Sí (RAG + Ollama) | No |
-| Filtro ML de falsos positivos | Sí | No |
-| Multi-chain | 7 chains | Solo EVM |
+| Herramientas externas | 13 | 19 |
+| Análisis IA/LLM | Sí (Ollama local) | No |
+| Analizadores internos | 16 | No |
+| Filtro de falsos positivos | Sí (RAG + ML) | No |
 | Reportes PDF profesionales | Sí | No |
 | Sistema de plugins | Sí (PyPI) | No |
 | GitHub Action | Sí | No |
-| Salida SARIF | Sí | No |
+| Salida SARIF | Sí | Sí |
 
 ---
 
@@ -428,7 +438,7 @@ Contract.sol
 
 MIESC utiliza una arquitectura de doble paquete:
 - `miesc/` - API Pública (estable, instalable vía pip)
-- `src/` - Implementación interna (50 adaptadores, pipeline ML, RAG, generación de reportes)
+- `src/` - Implementación interna (35 módulos de análisis, pipeline ML, RAG, generación de reportes)
 
 Consultá [ARCHITECTURE.md](./docs/ARCHITECTURE.md) para el diseño técnico completo con diagramas Mermaid.
 
@@ -436,12 +446,13 @@ Consultá [ARCHITECTURE.md](./docs/ARCHITECTURE.md) para el diseño técnico com
 
 ## Validación Académica
 
-MIESC fue desarrollado como tesis de Maestría en Ciberdefensa en [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). El framework fue rigurosamente validado:
+MIESC fue desarrollado como tesis de Maestría en Ciberdefensa en [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). Evaluado en el benchmark SmartBugs-curated (Durieux et al., ICSE 2020):
 
-- **5,127 contratos del mundo real** analizados
-- **Cohen's Kappa 0.847** (alta concordancia con auditores expertos)
-- **34% de mejora** respecto al análisis con una sola herramienta
-- **Benchmark SmartBugs-curated**: 100% precisión, 70% recall, F1 82.35%
+- **143 contratos**, 207 vulnerabilidades ground-truth, 10 categorías
+- **80% recall** (184/230 vulnerabilidades detectadas) — mejor de su clase en orquestación multi-tool
+- **90.6% recall en reentrancy**, 100% en unchecked calls y time manipulation
+- **85% más rápido que ejecutar herramientas manualmente** (~1 seg/contrato)
+- Resultados completos: [SMARTBUGS_SCIENTIFIC_REPORT.md](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md)
 
 Si usás MIESC en investigación, por favor citá:
 
