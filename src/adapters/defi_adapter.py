@@ -18,7 +18,7 @@ from typing import Any, Dict, List
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from detectors.defi_detectors import DeFiDetectorEngine, DeFiFinding  # noqa: E402
+from src.detectors.defi_detectors import DeFiDetectorEngine, DeFiFinding  # noqa: E402
 from src.core.tool_protocol import (  # noqa: E402
     ToolCapability,
     ToolCategory,

@@ -1,5 +1,5 @@
 # =============================================================================
-# MIESC v5.0.1 - Configuración Centralizada
+# MIESC v5.1.1 - Configuración Centralizada
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # v5.0.0 Changes:
@@ -96,112 +96,97 @@ chains:
     enabled: true
 
 # =============================================================================
-# Capas de Análisis - 9 Layers Defense (50 Tools)
+# Capas de Análisis - 9 Layers Defense
+# Total: 13 external tools + 6 LLM modules + 16 internal analyzers = 35 modules
 # =============================================================================
 layers:
-  # Layer 1: Static Analysis (6 tools)
+  # Layer 1: Static Analysis — External tools via subprocess
   static_analysis:
     enabled: true
     priority: 1
     tools:
-      - slither
-      - aderyn
-      - solhint
-      - semgrep
-      - wake
-      - fouranalyzer
+      - slither         # Trail of Bits (subprocess)
+      - aderyn          # Cyfrin Rust analyzer (subprocess)
+      - solhint         # Linter (subprocess)
+      - semgrep         # Pattern matching (subprocess)
 
-  # Layer 2: Dynamic Testing / Fuzzing (6 tools)
+  # Layer 2: Dynamic Testing — Fuzzing and property testing
   dynamic_testing:
     enabled: true
     priority: 2
     tools:
-      - echidna
-      - medusa
-      - foundry
-      - dogefuzz
-      - hardhat
-      - vertigo
+      - echidna         # Property-based fuzzing (subprocess)
+      - foundry         # Forge testing + fuzzing (subprocess)
+      - medusa          # Coverage-guided fuzzing (subprocess)
 
-  # Layer 3: Symbolic Execution (5 tools)
+  # Layer 3: Symbolic Execution — Path exploration with SMT solvers
   symbolic_execution:
     enabled: true
     priority: 3
     tools:
-      - mythril
-      - manticore
-      - halmos
-      - oyente
-      - pakala
+      - mythril         # ConsenSys Z3-based (subprocess)
+      - halmos          # a16z Foundry symbolic (subprocess)
+      - manticore       # Trail of Bits (subprocess, deprecated)
 
-  # Layer 4: Formal Verification (5 tools)
+  # Layer 4: Formal Verification — Mathematical proofs
   formal_verification:
     enabled: true
     priority: 4
     tools:
-      - certora
-      - smtchecker
-      - propertygpt
-      - scribble
-      - solcmc
+      - smtchecker      # Solidity built-in CHC (subprocess via solc)
+      - scribble        # ConsenSys runtime verification (subprocess)
+      - certora         # Commercial prover (requires API key)
+      - propertygpt     # LLM-generated properties (Ollama)
 
-  # Layer 5: AI Analysis (6 tools)
+  # Layer 5: AI/LLM Analysis — Semantic code understanding via local LLMs
   ai_analysis:
     enabled: true
     priority: 5
     tools:
-      - smartllm
-      - gptscan
-      - llmsmartaudit
-      - gptlens
-      - llamaaudit
-      - iaudit
+      - smartllm        # Local LLM analysis (Ollama)
+      - gptscan         # GPT-style scanning (Ollama, ICSE 2024)
+      - llmsmartaudit   # Multi-agent LLM audit (Ollama)
+      - gptlens         # Dual auditor-critic (Ollama)
+      - llamaaudit      # LlamaIndex-based (Ollama)
+      - iaudit          # Interactive audit agent (Ollama)
 
-  # Layer 6: ML Detection (5 tools)
-  ml_detection:
+  # Layer 6: Pattern Detection — Internal regex/AST analyzers
+  pattern_detection:
     enabled: true
     priority: 6
     tools:
-      - dagnn
-      - smartbugs_ml
-      - smartbugs_detector
-      - smartguard
-      - peculiar
+      - gas_analyzer            # 7 gas optimization patterns
+      - threat_model            # STRIDE/DREAD (14 patterns)
+      - contract_clone_detector # Jaccard + metric similarity
+      - smartbugs_detector      # SmartBugs category patterns
+      - dagnn                   # Graph analysis with Slither CFG
 
-  # Layer 7: Specialized Analysis (7 tools)
-  specialized:
+  # Layer 7: DeFi Security — Specialized DeFi attack detection
+  defi_security:
     enabled: true
     priority: 7
     tools:
-      - threat_model
-      - gas_analyzer
-      - mev_detector
-      - contract_clone_detector
-      - defi
-      - advanced_detector
-      - upgradability_checker
+      - mev_detector            # 12 MEV attack patterns
+      - defi                    # Flash loan, oracle, sandwich (5 detectors)
+      - upgradability_checker   # Proxy pattern analysis
+      - advanced_detector       # Cross-cutting patterns
 
-  # Layer 8: Cross-Chain & ZK Security (5 tools)
-  crosschain_zk:
+  # Layer 8: Exploit Validation — Confirm findings with PoC and Z3
+  exploit_validation:
     enabled: true
     priority: 8
     tools:
-      - crosschain
-      - zk_circuit
-      - bridge_monitor
-      - l2_validator
-      - circom_analyzer
+      - exploit_synthesizer     # Foundry PoC generation + execution
+      - vuln_verifier           # Z3 constraint solving + heuristic
+      - remediation_validator   # Patch verification
 
-  # Layer 9: Advanced AI Ensemble (5 tools)
-  advanced_ensemble:
+  # Layer 9: Consensus & Reporting — Cross-tool correlation
+  consensus_reporting:
     enabled: true
     priority: 9
     tools:
-      - llmbugscanner
-      - audit_consensus
-      - exploit_synthesizer
-      - vuln_verifier
-      - remediation_validator
+      - audit_consensus         # Bayesian meta-analysis (20+ tool weights)
+      - llmbugscanner           # LLM-based bug scanning (Ollama)
 
 # =============================================================================
 # Configuración de Adaptadores
