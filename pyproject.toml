@@ -253,6 +253,15 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --cov=src --cov-report=term-missing"
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::pytest.PytestCollectionWarning",
+    "ignore::DeprecationWarning:src",
+    "ignore::DeprecationWarning:sqlalchemy",
+    "ignore::DeprecationWarning:datetime",
+    "ignore:The \\`declarative_base:sqlalchemy.exc.MovedIn20Warning",
+    "ignore::ResourceWarning",
+    "ignore::RuntimeWarning:asyncio",
+]
 
 [tool.coverage.run]
 source = ["src"]
