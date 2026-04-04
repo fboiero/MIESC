@@ -28,21 +28,21 @@ from typing import Any, Dict, Optional
 DEFAULT_CONFIG = {
     "provider": "ollama",
     "host": "http://localhost:11434",
-    "default_model": "deepseek-coder:6.7b",
+    "default_model": "qwen2.5-coder:14b",
     "models": {
-        "code_analysis": "deepseek-coder:6.7b",
-        "property_generation": "deepseek-coder:6.7b",
-        "verification": "deepseek-coder:6.7b",
+        "code_analysis": "qwen2.5-coder:14b",
+        "property_generation": "qwen2.5-coder:14b",
+        "verification": "qwen2.5-coder:14b",
         "correlation": "deepseek-coder:6.7b",
-        "remediation": "deepseek-coder:6.7b",
+        "remediation": "qwen2.5-coder:14b",
     },
-    "fallback_models": ["codellama:13b", "codellama:7b", "llama3:8b"],
+    "fallback_models": ["deepseek-coder:6.7b", "codellama:13b", "codellama:7b"],
     "retry_attempts": 3,
     "retry_delay": 5,
     "options": {
         "temperature": 0.1,
         "top_p": 0.95,
-        "num_ctx": 8192,
+        "num_ctx": 16384,
         "num_predict": 4096,
     },
     "roles": {
