@@ -1363,7 +1363,7 @@ class TestDeepInvestigationWithFeatures:
         scan = ScanResult(
             tools_run=["slither"],
             filtered_findings=[
-                {"id": "f1", "title": "vuln", "type": "overflow", "severity": "high",
+                {"id": "f1", "title": "vuln", "type": "reentrancy", "severity": "high",
                  "location": {"function": "withdraw"}}
             ],
         )

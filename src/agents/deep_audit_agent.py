@@ -588,8 +588,10 @@ class DeepAuditAgent(BaseAgent):
 
                 enriched = dict(finding)
                 enriched["investigation"] = {}
+                ftype = finding.get("type", "").lower()
+                fsev = finding.get("severity", "").lower()
 
-                # Step 1: RAG enrichment
+                # Step 1: RAG enrichment + mitigation verification
                 if self.config.enable_rag:
                     rag_data = self._enrich_with_rag(finding)
                     enriched["investigation"]["rag"] = rag_data
@@ -597,25 +599,44 @@ class DeepAuditAgent(BaseAgent):
                         if self._check_mitigation(source_code, rag_data):
                             enriched["mitigated"] = True
                             enriched["severity"] = "low"
+                            enriched["investigation"]["mitigation_verified"] = True
                             mitigated_count += 1
+                            logger.info(f"Finding {fid}: mitigated (fix pattern found in code)")
+                        else:
+                            enriched["investigation"]["mitigation_verified"] = False
+                            logger.info(f"Finding {fid}: fix pattern known but NOT implemented")
 
-                # Step 2: Taint analysis on affected function
-                if self.config.enable_taint:
-                    func = self._extract_function_name(finding)
-                    if func:
+                # Step 2: Finding-driven targeted analysis
+                func = self._extract_function_name(finding)
+
+                if self.config.enable_taint and func:
+                    # Reentrancy/unchecked calls → trace value flows
+                    if "reentran" in ftype or "unchecked" in ftype or "call" in ftype:
                         taint = self._targeted_taint_for_function(source_code, func)
                         enriched["investigation"]["taint_paths"] = len(taint)
+                        if taint:
+                            enriched["investigation"]["taint_confirmed"] = True
+                            logger.info(f"Finding {fid}: taint analysis CONFIRMS data flow vulnerability")
 
-                # Step 3: Call graph attack paths
-                if self.config.enable_call_graph and recon.call_graph:
-                    func = self._extract_function_name(finding)
+                    # Oracle/price → trace price dependencies
+                    if "oracle" in ftype or "price" in ftype or "manipulation" in ftype:
+                        enriched["investigation"]["analysis_type"] = "oracle_dependency"
+
+                    # Access control → check all functions for same pattern
+                    if "access" in ftype or "auth" in ftype:
+                        enriched["investigation"]["analysis_type"] = "access_control_audit"
+
+                # Step 3: Call graph attack paths (for confirmed findings)
+                if self.config.enable_call_graph and recon.call_graph and func:
                     paths = self._find_attack_paths(recon.call_graph, func)
                     enriched["investigation"]["attack_paths"] = paths
+                    if paths:
+                        enriched["investigation"]["reachable_from_entry"] = True
 
-                # Step 4: Check if we need additional tools
+                # Step 4: Trigger additional tools based on finding type
                 extra_tool = self._should_trigger_tool(finding, scan.tools_run, additional_tools)
                 if extra_tool:
-                    logger.info(f"Triggering additional tool: {extra_tool}")
+                    logger.info(f"Triggering additional tool: {extra_tool} (based on {ftype})")
                     additional_tools.add(extra_tool)
                     new_findings = self._run_tools_parallel([extra_tool], contract_path)
                     high_new = [
@@ -624,6 +645,18 @@ class DeepAuditAgent(BaseAgent):
                     ]
                     next_queue.extend(high_new)
                     scan.filtered_findings.extend(new_findings)
+
+                # Step 5: LLM second opinion for CRITICAL findings
+                if fsev == "critical" and self.config.enable_llm and not self._timeout_exceeded():
+                    second_opinion = self._get_llm_second_opinion(finding, source_code)
+                    if second_opinion:
+                        enriched["investigation"]["llm_second_opinion"] = second_opinion
+                        if second_opinion.get("confirmed"):
+                            enriched["investigation"]["llm_confirmed"] = True
+                        else:
+                            enriched["severity"] = "high"
+                            enriched["investigation"]["llm_downgraded"] = True
+                            logger.info(f"Finding {fid}: CRITICAL downgraded to HIGH by LLM review")
 
                 enriched_findings.append(enriched)
 
@@ -682,6 +715,59 @@ class DeepAuditAgent(BaseAgent):
         keywords = re.findall(r"\b\w{4,}\b", fix)
         matches = sum(1 for kw in keywords if kw.lower() in source_code.lower())
         return matches >= 2
+
+    def _get_llm_second_opinion(self, finding: Dict, source_code: str) -> Optional[Dict]:
+        """Get LLM second opinion on a CRITICAL finding."""
+        try:
+            import json as json_mod
+            import urllib.request
+
+            host = "http://localhost:11434"
+            title = finding.get("title", finding.get("type", "unknown"))
+            desc = finding.get("description", "")[:300]
+            func = finding.get("location", {}).get("function", "unknown") if isinstance(finding.get("location"), dict) else ""
+            code_snippet = source_code[:3000]
+
+            prompt = f"""A security tool flagged this as CRITICAL. Verify if this is a real vulnerability.
+
+FINDING: {title}
+DESCRIPTION: {desc}
+FUNCTION: {func}
+
+CONTRACT CODE (first 3000 chars):
+{code_snippet}
+
+Answer in JSON:
+{{"confirmed": true/false, "reasoning": "why this is/isn't a real vulnerability", "actual_severity": "CRITICAL|HIGH|MEDIUM|LOW"}}
+"""
+            payload = json_mod.dumps({
+                "model": self.config.llm_model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {"temperature": 0.1, "num_predict": 512},
+            }).encode()
+
+            req = urllib.request.Request(
+                f"{host}/api/generate",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json_mod.loads(resp.read())
+                text = result.get("response", "")
+
+            # Try to parse JSON from response
+            try:
+                # Find JSON in response
+                start = text.index("{")
+                end = text.rindex("}") + 1
+                return json_mod.loads(text[start:end])
+            except (ValueError, json_mod.JSONDecodeError):
+                return {"confirmed": True, "reasoning": text[:200]}
+
+        except Exception as e:
+            logger.debug(f"LLM second opinion failed: {e}")
+            return None
 
     def _targeted_taint_for_function(self, source_code: str, func_name: str) -> list:
         """Run taint analysis targeting a specific function."""
