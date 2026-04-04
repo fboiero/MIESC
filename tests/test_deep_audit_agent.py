@@ -1494,6 +1494,37 @@ class TestSynthesisWithLLM:
 
 
 # ---------------------------------------------------------------------------
+# LLM Second Opinion
+# ---------------------------------------------------------------------------
+
+class TestLLMSecondOpinion:
+    def test_returns_none_on_connection_error(self, agent):
+        """LLM second opinion returns None when Ollama unavailable."""
+        agent.config.llm_model = "mistral:latest"
+        with patch("urllib.request.urlopen", side_effect=ConnectionError("refused")):
+            result = agent._get_llm_second_opinion(
+                {"title": "reentrancy", "severity": "critical", "description": "test"},
+                "contract code"
+            )
+            assert result is None
+
+    def test_returns_none_on_timeout(self, agent):
+        agent.config.llm_model = "mistral:latest"
+        with patch("urllib.request.urlopen", side_effect=TimeoutError("timeout")):
+            result = agent._get_llm_second_opinion(
+                {"title": "test", "severity": "critical"},
+                "code"
+            )
+            assert result is None
+
+    def test_handles_empty_finding(self, agent):
+        agent.config.llm_model = "mistral:latest"
+        with patch("urllib.request.urlopen", side_effect=Exception("any error")):
+            result = agent._get_llm_second_opinion({}, "")
+            assert result is None
+
+
+# ---------------------------------------------------------------------------
 # Framework detection edge cases
 # ---------------------------------------------------------------------------
 
