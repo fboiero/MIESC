@@ -90,7 +90,9 @@ Report saved to results.json
 
 **MIESC makes that workflow accessible to everyone.** One command orchestrates multiple security tools across 9 complementary analysis techniques, deduplicates findings, and generates professional reports. Free, open-source, runs locally — your code never leaves your machine.
 
-### Benchmark Results (SmartBugs-curated, 143 contracts)
+### Benchmark Results
+
+**SmartBugs-curated** (143 contracts, 207 ground-truth vulnerabilities):
 
 | Metric | Slither alone | Mythril alone | MIESC |
 |--------|:------------:|:-------------:|:-----:|
@@ -98,7 +100,16 @@ Report saved to results.json
 | Precision | 8.3% | 6.1% | 22.7% |
 | F1-Score | 13.9% | 10.0% | **35.4%** |
 
-> **80% recall** — MIESC catches 4 out of 5 known vulnerabilities. Reentrancy: 90.6%, unchecked calls: 100%, time manipulation: 100%. Baseline comparison from [Durieux et al., ICSE 2020](https://doi.org/10.1145/3377811.3380364). [Full benchmark methodology](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md)
+**Real-world exploits** (11 confirmed DeFi exploits, $3.3B total losses):
+
+| Vulnerability | Exploits | Detected | Recall | Examples |
+|---------------|:--------:|:--------:|:------:|----------|
+| Reentrancy | 3 | 3 | **100%** | Euler $197M, Rari $80M, Platypus $8.5M |
+| Access Control | 3 | 3 | **100%** | Parity $280M, Ronin $624M |
+| Flash Loan | 2 | 2 | **100%** | bZx $8.1M, Compound $80M |
+| Overall | 11 | 9 | **81.8%** | Cohen's Kappa: 0.773 |
+
+> **81.8% recall on real-world exploits** — MIESC would have flagged 9 of 11 multi-million dollar exploits before deployment. [Full methodology](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md) | [Exploit evaluation](./benchmarks/evaluate_exploits.py)
 
 **Why recall matters more than precision for pre-audit triage**: High recall means fewer missed vulnerabilities. False positives are filtered in the triage step — missed vulnerabilities become exploits in production.
 

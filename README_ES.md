@@ -90,7 +90,9 @@ Report saved to results.json
 
 **MIESC hace accesible ese flujo de trabajo para todos.** Un comando orquesta múltiples herramientas de seguridad a través de 9 técnicas de análisis complementarias, deduplica hallazgos y genera reportes profesionales. Gratuito, open-source, se ejecuta localmente — tu código nunca sale de tu máquina.
 
-### Resultados del Benchmark (SmartBugs-curated, 143 contratos)
+### Resultados del Benchmark
+
+**SmartBugs-curated** (143 contratos, 207 vulnerabilidades ground-truth):
 
 | Métrica | Slither solo | Mythril solo | MIESC |
 |---------|:------------:|:------------:|:-----:|
@@ -98,7 +100,16 @@ Report saved to results.json
 | Precisión | 8.3% | 6.1% | 22.7% |
 | F1-Score | 13.9% | 10.0% | **35.4%** |
 
-> **80% recall** — MIESC detecta 4 de cada 5 vulnerabilidades conocidas. Reentrancy: 90.6%, unchecked calls: 100%, time manipulation: 100%. Comparación baseline de [Durieux et al., ICSE 2020](https://doi.org/10.1145/3377811.3380364). [Metodología completa del benchmark](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md)
+**Exploits reales** (11 exploits DeFi confirmados, $3.3B en pérdidas totales):
+
+| Vulnerabilidad | Exploits | Detectados | Recall | Ejemplos |
+|----------------|:--------:|:----------:|:------:|----------|
+| Reentrancy | 3 | 3 | **100%** | Euler $197M, Rari $80M, Platypus $8.5M |
+| Access Control | 3 | 3 | **100%** | Parity $280M, Ronin $624M |
+| Flash Loan | 2 | 2 | **100%** | bZx $8.1M, Compound $80M |
+| General | 11 | 9 | **81.8%** | Cohen's Kappa: 0.773 |
+
+> **81.8% recall en exploits reales** — MIESC habría marcado 9 de 11 exploits multimillonarios antes del deploy. [Metodología completa](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md) | [Evaluación de exploits](./benchmarks/evaluate_exploits.py)
 
 **Por qué importa más el recall que la precisión en triaje pre-auditoría**: Alto recall significa menos vulnerabilidades perdidas. Los falsos positivos se filtran en la etapa de triaje — las vulnerabilidades perdidas se convierten en exploits en producción.
 
