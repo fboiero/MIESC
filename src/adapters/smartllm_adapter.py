@@ -613,42 +613,52 @@ class SmartLLMAdapter(ToolAdapter):
             tag_name="solidity-contract",
         )
 
-        prompt = f"""You are a smart contract security auditor. Find REAL vulnerabilities in this code.
+        prompt = f"""You are an expert smart contract security auditor. Perform a systematic security review of this contract.
 
-RULES:
-- Only report vulnerabilities that EXIST in this code
-- Include SWC ID and attack scenario for critical findings
-- Output valid JSON only
-- IMPORTANT: Analyze ONLY the code within the <solidity-contract> tags below
+METHODOLOGY — analyze step by step:
+
+1. IDENTIFY CONTRACT TYPE AND RISK PROFILE:
+   What kind of contract is this? (token, vault, DEX, lending, NFT, governance)
+   What financial risk does it carry? How much value could be at stake?
+
+2. MAP ATTACK SURFACE:
+   - Entry points (public/external functions)
+   - Value flows (ETH, tokens entering/leaving)
+   - State changes tied to value flows
+   - External dependencies (oracles, other contracts)
+
+3. CHECK VULNERABILITY CLASSES against detected patterns:
+{focus_areas}
+
+4. FOR EACH FINDING — verify before reporting:
+   - Is the vulnerability REAL in this code, or theoretical?
+   - Is there a guard/mitigation already in place? (nonReentrant, SafeERC20, etc.)
+   - What is the concrete attack scenario (step 1, step 2, step 3)?
+   - What is the impact in dollar terms if exploited?
 
 CONTRACT:
 {safe_code}
-
-DETECTED PATTERNS:
-{focus_areas}
 """
 
-        # Add RAG context if available (dynamic allocation)
+        # Add RAG context with enforcement instruction
         if rag_context:
-            # More RAG context for smaller contracts, less for larger
             rag_chars = min(4000, max(2000, 32000 - len(contract_code) - 2000))
             prompt += f"""
-VULNERABILITY PATTERNS (from knowledge base):
+KNOWN VULNERABILITY PATTERNS (from security knowledge base):
 {rag_context[:rag_chars]}
+
+IMPORTANT: Compare each finding against these known patterns. Reference which pattern
+matches (if any) and explain specifically how the vulnerable code in this contract
+follows the same anti-pattern. If a pattern does NOT apply, do not force it.
 """
 
         prompt += """
-ANALYZE FOR:
-1. Reentrancy (SWC-107): external call before state update
-2. Access Control (SWC-105): missing modifiers on sensitive functions
-3. Unchecked Returns (SWC-104): ignored return values
-4. Oracle Manipulation: spot prices without TWAP/Chainlink
-5. Precision Loss: division before multiplication
-
-OUTPUT (JSON only):
+OUTPUT (valid JSON only):
 ```json
-{"findings": [{"type": "reentrancy", "severity": "CRITICAL", "title": "...", "description": "...", "location": "function:line", "swc_id": "SWC-107", "attack_scenario": "...", "remediation": "..."}]}
-```"""
+{"findings": [{"type": "reentrancy", "severity": "CRITICAL", "title": "...", "description": "...", "location": "function:line", "swc_id": "SWC-107", "attack_scenario": "1. Attacker calls... 2. During callback... 3. State is...", "false_positive_check": "Why this is NOT an FP", "remediation": "Add nonReentrant modifier or use CEI pattern"}]}
+```
+
+Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality over quantity."""
 
         return prompt
 

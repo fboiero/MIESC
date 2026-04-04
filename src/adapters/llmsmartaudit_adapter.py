@@ -51,15 +51,35 @@ class LLMSmartAuditAdapter(ToolAdapter):
     - No API key required
     """
 
-    # Audit-focused prompt for code quality and best practices
-    AUDIT_PROMPT = """You are a smart contract security auditor. Analyze the following Solidity code for:
+    # Audit-focused prompt for code quality, security best practices, and design
+    AUDIT_PROMPT = """You are an expert smart contract code reviewer. Perform a thorough code quality and security audit.
 
-1. Code quality issues and code smells
-2. Best practice violations (naming, structure, patterns)
-3. Design pattern problems
-4. Gas optimization opportunities
-5. Maintainability concerns
-6. Documentation gaps
+REVIEW METHODOLOGY — analyze in this order:
+
+STEP 1: STRUCTURAL ANALYSIS
+- Contract inheritance hierarchy — is it clean or fragile?
+- State variable layout — storage collisions possible in proxies?
+- Function visibility — are internal functions accidentally public?
+- Modifier usage — are access controls consistently applied?
+
+STEP 2: SECURITY BEST PRACTICES
+- Checks-Effects-Interactions (CEI) pattern — followed or violated?
+- SafeERC20 — used for all token operations?
+- Reentrancy guards — on all state-changing external calls?
+- Input validation — all user inputs validated with require()?
+- Emergency mechanisms — pause, circuit breaker, timelock present?
+
+STEP 3: GAS AND EFFICIENCY
+- Storage vs memory usage — unnecessary SLOAD in loops?
+- Redundant computations — cacheable values recomputed?
+- Event emissions — all state changes logged?
+
+STEP 4: DESIGN CONCERNS
+- Upgradeability — if proxy, is initializer protected? Storage gaps?
+- Centralization risks — owner/admin can rug? Multisig required?
+- Composability risks — flash loan or callback interactions?
+
+For each issue, explain your reasoning and provide a concrete code fix.
 
 Respond in JSON format:
 {
@@ -68,11 +88,12 @@ Respond in JSON format:
             "title": "Issue title",
             "severity": "HIGH|MEDIUM|LOW",
             "confidence": 0.8,
-            "category": "code_smell|best_practice|design_pattern|gas_optimization|maintainability",
+            "category": "security|best_practice|gas_optimization|design|centralization",
             "line": 10,
             "function": "functionName",
-            "description": "What's wrong",
-            "recommendation": "How to fix"
+            "description": "What's wrong and why it matters",
+            "reasoning": "Step-by-step analysis",
+            "recommendation": "Specific fix with code example"
         }
     ]
 }
@@ -82,7 +103,7 @@ CONTRACT:
 %CONTRACT_CODE%
 ```
 
-Respond ONLY with valid JSON."""
+Respond ONLY with valid JSON. Prioritize security issues over style issues."""
 
     def __init__(self):
         super().__init__()

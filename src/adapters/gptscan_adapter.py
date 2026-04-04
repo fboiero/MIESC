@@ -46,18 +46,58 @@ class GPTScanAdapter(ToolAdapter):
     """
 
     # Vulnerability detection prompts based on GPTScan paper (ICSE 2024)
-    SECURITY_PROMPT = """Analyze this Solidity smart contract for security vulnerabilities.
+    # Enhanced with Chain-of-Thought reasoning and self-verification
+    SECURITY_PROMPT = """You are an expert smart contract security auditor performing a systematic code review.
 
-Focus on detecting:
-1. Reentrancy vulnerabilities (calls before state updates)
-2. Integer overflow/underflow
-3. Access control issues (missing modifiers, tx.origin usage)
-4. Unchecked external calls
-5. Logic errors in business logic
-6. Flash loan attack vectors
-7. Price manipulation risks
+ANALYSIS METHODOLOGY (follow these steps in order):
 
-For each vulnerability found, respond in this JSON format:
+STEP 1 — UNDERSTAND THE CONTRACT:
+- What is this contract's purpose? (token, vault, DEX, lending, governance, etc.)
+- What value does it handle? (ETH, ERC20 tokens, NFTs)
+- What are the entry points? (public/external functions)
+
+STEP 2 — TRACE VALUE FLOWS:
+- Where does value enter? (payable functions, token transfers in)
+- Where does value exit? (call{value:}, transfer, send, token transfers out)
+- Are there intermediate state changes between entry and exit?
+
+STEP 3 — CHECK EACH VULNERABILITY CLASS:
+For each, reason about whether it applies to THIS specific contract:
+
+a) REENTRANCY (SWC-107): Is there an external call BEFORE a state update?
+   Example: msg.sender.call{value: bal}("") followed by balances[msg.sender] = 0
+   Check: Is there a nonReentrant modifier or CEI pattern?
+
+b) ACCESS CONTROL (SWC-105): Can unauthorized users call sensitive functions?
+   Example: function setOwner(address) public { owner = newOwner; } — missing onlyOwner
+   Check: Are there modifiers (onlyOwner, onlyRole, auth)?
+
+c) UNCHECKED RETURNS (SWC-104): Are return values of external calls checked?
+   Example: token.transfer(to, amount) without checking bool return
+   Check: Using SafeERC20 or explicit require(success)?
+
+d) ORACLE MANIPULATION: Are spot prices used without TWAP or Chainlink?
+   Example: price = reserveA / reserveB — manipulable with flash loans
+   Check: latestRoundData() with staleness check? observe() for TWAP?
+
+e) FLASH LOAN RISK: Can the contract be exploited in a single transaction?
+   Example: Governance voting with flash-borrowed tokens
+   Check: Snapshot-based voting? Timelock on sensitive operations?
+
+f) PRECISION LOSS: Division before multiplication?
+   Example: reward = amount / totalSupply * rewardRate (loses precision)
+   Check: Multiplication first, then division? Using FixedPointMath?
+
+STEP 4 — SELF-VERIFICATION:
+For each finding, challenge yourself:
+- Could this be a false positive? (e.g., SafeMath makes overflow impossible in 0.8+)
+- Is the guard already implemented? (e.g., nonReentrant modifier present)
+- Is this exploitable in practice? (e.g., only owner can call, so access control is fine)
+
+KNOWN VULNERABILITY PATTERNS:
+%RAG_CONTEXT%
+
+OUTPUT FORMAT (JSON only):
 {
     "vulnerabilities": [
         {
@@ -66,8 +106,10 @@ For each vulnerability found, respond in this JSON format:
             "confidence": 0.9,
             "line": 42,
             "function": "withdraw",
-            "description": "Detailed description",
-            "recommendation": "How to fix"
+            "description": "Detailed description with exploitation steps",
+            "reasoning": "Step-by-step analysis of why this is vulnerable",
+            "false_positive_check": "Why this is NOT a false positive",
+            "recommendation": "Specific fix with code example"
         }
     ]
 }
@@ -77,7 +119,7 @@ CONTRACT CODE:
 %CONTRACT_CODE%
 ```
 
-Respond ONLY with valid JSON. No explanations outside JSON."""
+Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT about after self-verification."""
 
     def __init__(self):
         super().__init__()

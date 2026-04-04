@@ -399,37 +399,54 @@ class PropertyGPTAdapter(ToolAdapter):
             except Exception as e:
                 logger.debug(f"PropertyGPT: RAG context failed: {e}")
 
-        prompt = f"""You are PropertyGPT, an expert in formal verification and Certora Verification Language (CVL).
+        prompt = f"""You are PropertyGPT, an expert in formal verification of smart contracts.
+Based on the NDSS 2025 methodology (arXiv:2405.02580), generate formal properties.
 
-Your task is to analyze the following Solidity smart contract and generate formal properties in CVL format.
+CONTRACT: {contract_info['name']}
+Functions: {', '.join(f['name'] for f in contract_info['functions'][:10])}
+State Variables: {', '.join(v.get('name','?') for v in contract_info['state_vars'][:10])}
 
-CONTRACT INFORMATION:
-- Name: {contract_info['name']}
-- Functions: {len(contract_info['functions'])}
-- State Variables: {len(contract_info['state_vars'])}
-
-CONTRACT SOURCE:
 ```solidity
 {contract_source}
 ```
 
-INSTRUCTIONS:
-Generate CVL properties for this contract covering:
-1. **Invariants**: State properties that must always hold
-2. **Function correctness**: Pre/post conditions for public functions
-3. **Access control**: Authorization and permission properties
-4. **Economic properties**: Token conservation, balance integrity
+ANALYSIS STEPS:
+1. Identify what this contract MUST guarantee (invariants):
+   - Total supply conservation (if token)
+   - Balance consistency (sum of balances == totalSupply)
+   - Monotonicity (values that should only increase/decrease)
+   - Access control (only authorized callers for sensitive ops)
 
-For each property, provide:
-- Property type (invariant, rule, parametric_rule)
-- Property name (descriptive, camelCase)
-- CVL code (valid Certora syntax)
-- Description (what the property ensures)
-- Confidence score (0.0-1.0 based on contract analysis)
+2. For each public function, determine:
+   - Preconditions: What must be true BEFORE the call?
+   - Postconditions: What must be true AFTER the call?
+   - State transitions: What changes and what stays the same?
 
-Output format: JSON array of objects with keys: type, name, cvl_code, description, confidence
+3. Look for economic properties:
+   - No value creation from nothing (conservation laws)
+   - No extraction beyond entitlement (fair withdrawal)
+   - Bounded slippage (for AMMs/DEXs)
+
+EXAMPLE CVL PROPERTY (for reference):
+```cvl
+// Invariant: total supply equals sum of all balances
+invariant totalSupplyIsSumOfBalances()
+    totalSupply() == sum(balanceOf(address))
+    {{
+        preserved with (env e) {{
+            require e.msg.sender != 0;
+        }}
+    }}
+```
 {rag_context}
-Generate {self.max_properties} high-quality properties.
+Generate {self.max_properties} properties. For each:
+- type: invariant | rule | parametric_rule
+- name: descriptive camelCase
+- cvl_code: VALID Certora CVL syntax
+- description: what it verifies and WHY it matters for security
+- confidence: 0.0-1.0 (higher if property directly prevents known attacks)
+
+Output: JSON array. Only generate properties relevant to THIS contract's logic.
 """
         return prompt
 
