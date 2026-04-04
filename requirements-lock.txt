@@ -6,7 +6,7 @@
 #
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.13.3
+aiohttp==3.13.5
     # via web3
 aiosignal==1.4.0
     # via aiohttp
@@ -18,15 +18,15 @@ attrs==25.4.0
     # via aiohttp
 bitarray==3.8.0
     # via eth-account
-cbor2==5.8.0
+cbor2==5.9.0
     # via crytic-compile
-certifi==2026.1.4
+certifi==2026.2.25
     # via requests
-charset-normalizer==3.4.4
+charset-normalizer==3.4.6
     # via requests
-ckzg==2.1.5
+ckzg==2.1.7
     # via eth-account
-click==8.1.8
+click==8.3.1
     # via miesc (pyproject.toml)
 crytic-compile==0.3.11
     # via slither-analyzer
@@ -39,11 +39,11 @@ eth-abi==5.2.0
     #   web3
 eth-account==0.13.7
     # via web3
-eth-hash[pycryptodome]==0.7.1
+eth-hash[pycryptodome]==0.8.0
     # via
     #   eth-utils
     #   web3
-eth-keyfile==0.8.1
+eth-keyfile==0.9.1
     # via eth-account
 eth-keys==0.7.0
     # via
@@ -95,9 +95,9 @@ packaging==26.0
     # via
     #   slither-analyzer
     #   solc-select
-parsimonious==0.10.0
+parsimonious==0.11.0
     # via eth-abi
-prettytable==3.16.0
+prettytable==3.17.0
     # via slither-analyzer
 propcache==0.4.1
     # via
@@ -116,15 +116,15 @@ pydantic==2.12.5
     #   eth-utils
     #   miesc (pyproject.toml)
     #   web3
-pydantic-core==2.41.5
+pydantic-core==2.45.0
     # via pydantic
 pyunormalize==17.0.0
     # via web3
 pyyaml==6.0.3
     # via miesc (pyproject.toml)
-regex==2026.1.15
+regex==2026.3.32
     # via parsimonious
-requests==2.32.5
+requests==2.33.1
     # via
     #   solc-select
     #   web3
@@ -132,13 +132,13 @@ rlp==4.1.0
     # via
     #   eth-account
     #   eth-rlp
-slither-analyzer==0.11.4
+slither-analyzer==0.11.5
     # via miesc (pyproject.toml)
 solc-select==1.2.0
     # via crytic-compile
 toolz==1.1.0
     # via cytoolz
-types-requests==2.32.4.20260107
+types-requests==2.33.0.20260327
     # via web3
 typing-extensions==4.15.0
     # via
@@ -162,7 +162,7 @@ web3==7.14.1
     # via slither-analyzer
 websockets==15.0.1
     # via web3
-yarl==1.22.0
+yarl==1.23.0
     # via aiohttp
 zipp==3.23.0
     # via importlib-metadata
