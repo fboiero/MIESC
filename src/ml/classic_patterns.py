@@ -46,6 +46,9 @@ class ClassicVulnType(Enum):
     # v4.6.0 additional types
     INTEGER_OVERFLOW = "integer_overflow"
     INTEGER_UNDERFLOW = "integer_underflow"
+    # v5.1.1 additional types
+    ORACLE_MANIPULATION = "oracle_manipulation"
+    FLASH_LOAN = "flash_loan"
 
 
 @dataclass
@@ -329,6 +332,56 @@ CLASSIC_PATTERNS: Dict[ClassicVulnType, PatternConfig] = {
         swc_id="SWC-101",
         description="Integer underflow - subtraction results in negative value wrapping",
         recommendation="Use Solidity 0.8+ or SafeMath library, check value before subtraction",
+    ),
+    # =========================================================================
+    # ORACLE MANIPULATION (SWC-120) - BonqDAO $120M, Mango $114M
+    # =========================================================================
+    ClassicVulnType.ORACLE_MANIPULATION: PatternConfig(
+        vuln_type=ClassicVulnType.ORACLE_MANIPULATION,
+        patterns=[
+            r"getReserves\(\)",  # Uniswap V2 spot price (manipulable)
+            r"reserve\d?\s*/\s*reserve\d?",  # Direct reserve ratio
+            r"\.slot0\(\)",  # Uniswap V3 current tick (manipulable)
+            r"getPrice\([^)]*\)(?![^;]*require)",  # Unvalidated price
+            r"latestRoundData\(\)(?![^;]*answeredInRound)",  # Chainlink without round check
+            r"latestAnswer\(\)",  # Deprecated Chainlink function
+            r"price\s*=\s*\w+\s*/\s*\w+",  # Derived price without TWAP
+        ],
+        anti_patterns=[
+            r"\.observe\(",  # Uniswap V3 TWAP
+            r"TWAP|twap",  # Time-weighted average price
+            r"answeredInRound\s*>=\s*roundId",  # Chainlink freshness check
+            r"updatedAt\s*>\s*block\.timestamp\s*-",  # Staleness check
+            r"AggregatorV3Interface",  # Proper Chainlink usage (with checks)
+        ],
+        severity="critical",
+        swc_id="SWC-120",
+        description="Oracle/price manipulation - spot prices or stale oracles can be manipulated via flash loans",
+        recommendation="Use TWAP (Uniswap V3 observe()), validate Chainlink round completeness, add staleness checks",
+    ),
+    # =========================================================================
+    # FLASH LOAN VULNERABILITY (SWC-114) - bZx $8M, Cream $130M
+    # =========================================================================
+    ClassicVulnType.FLASH_LOAN: PatternConfig(
+        vuln_type=ClassicVulnType.FLASH_LOAN,
+        patterns=[
+            r"flashLoan\w*\(",  # Flash loan function call
+            r"executeOperation\(",  # Aave flash loan callback
+            r"uniswapV2Call\(",  # Uniswap V2 flash swap callback
+            r"onFlashLoan\(",  # ERC-3156 callback
+            r"pancakeCall\(",  # PancakeSwap flash swap
+            r"balanceOf\([^)]*\)\s*[><=].*balanceOf\(",  # Balance comparison (manipulation)
+        ],
+        anti_patterns=[
+            r"nonReentrant",  # Reentrancy protection
+            r"onlyFlashBorrower",  # Authorized callback
+            r"require\([^)]*msg\.sender\s*==\s*\w*[Pp]ool",  # Pool validation
+            r"IERC3156FlashLender",  # Standard flash loan interface
+        ],
+        severity="high",
+        swc_id="SWC-114",
+        description="Flash loan vulnerability - contract may be exploitable in single-transaction attacks",
+        recommendation="Validate flash loan callbacks, add reentrancy guards, use snapshot-based state",
     ),
     # =========================================================================
     # DOS (SWC-128) - improved patterns

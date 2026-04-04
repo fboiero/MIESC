@@ -139,6 +139,46 @@ class MEVDetectorAdapter(ToolAdapter):
             "impact": "MEV via delayed execution",
             "recommendation": "Add deadline parameter to prevent stale transactions",
         },
+        # ERC4626 inflation attack (first depositor manipulation)
+        "erc4626_inflation": {
+            "regex": r"(ERC4626|Vault)\b.*\{[^}]*(deposit|mint)\w*\([^)]*\)[^}]*(?!virtual\s+offset)",
+            "severity": "High",
+            "message": "ERC4626 vault without inflation attack protection",
+            "impact": "First depositor can steal subsequent deposits (Euler $197M pattern)",
+            "recommendation": "Add virtual offset (OpenZeppelin 4.9+) or seed initial deposit",
+        },
+        # Chainlink oracle without round completeness check
+        "chainlink_incomplete_round": {
+            "regex": r"latestRoundData\(\)[^;]*(?!answeredInRound)",
+            "severity": "High",
+            "message": "Chainlink oracle without round completeness validation",
+            "impact": "Stale or invalid price data (BonqDAO $120M pattern)",
+            "recommendation": "Check answeredInRound >= roundId and updatedAt > 0",
+        },
+        # Permit/approve frontrun (EIP-2612)
+        "permit_frontrun": {
+            "regex": r"function\s+permit\s*\([^)]*\)\s+[^{]*\{[^}]*approve",
+            "severity": "Medium",
+            "message": "Permit function may be frontrunnable",
+            "impact": "Attacker can frontrun permit with higher allowance",
+            "recommendation": "Use increaseAllowance/decreaseAllowance instead of approve",
+        },
+        # Unprotected callback (reentrancy via token hooks)
+        "token_callback_reentrancy": {
+            "regex": r"(onERC721Received|onERC1155Received|tokensReceived|onFlashLoan)\s*\(",
+            "severity": "High",
+            "message": "Token callback may enable reentrancy",
+            "impact": "Callback-based reentrancy (Cream $130M pattern)",
+            "recommendation": "Apply nonReentrant to functions that trigger callbacks",
+        },
+        # Governance without snapshot (flash loan voting)
+        "flashloan_governance": {
+            "regex": r"function\s+(vote|propose|castVote)\w*\([^)]*\)[^{]*\{[^}]*(balanceOf|votingPower)\(",
+            "severity": "Critical",
+            "message": "Governance uses current balance instead of snapshot",
+            "impact": "Flash loan governance attack (Beanstalk $182M pattern)",
+            "recommendation": "Use ERC20Snapshot or ERC20Votes with checkpoint system",
+        },
     }
 
     def get_metadata(self) -> ToolMetadata:

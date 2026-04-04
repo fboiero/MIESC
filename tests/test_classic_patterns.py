@@ -251,7 +251,7 @@ class TestClassicVulnType:
 
     def test_enum_count(self):
         """Test enum has expected number of values."""
-        assert len(ClassicVulnType) == 14
+        assert len(ClassicVulnType) == 16
 
     def test_core_types_exist(self):
         """Test that core vulnerability types exist."""
@@ -367,7 +367,7 @@ class TestClassicPatternsDB:
 
     def test_patterns_count(self):
         """Test that database has expected number of entries."""
-        assert len(CLASSIC_PATTERNS) == 14
+        assert len(CLASSIC_PATTERNS) == 16
 
     def test_all_enum_types_have_patterns(self):
         """Test that all enum types have pattern configs."""
