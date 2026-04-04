@@ -1,0 +1,40 @@
+{
+  "timestamp": "20260404_074510",
+  "miesc_version": "5.1.1",
+  "dataset": "Etherscan verified (SmartBugs-Wild)",
+  "sample_size": 50,
+  "total_available": 4990,
+  "execution_time_seconds": 6.54,
+  "contracts_with_findings": 50,
+  "total_findings": 274,
+  "severity_distribution": {
+    "info": 50,
+    "low": 128,
+    "high": 96
+  },
+  "top_categories": {
+    "centralization-risk": 57,
+    "solc-version": 50,
+    "unspecific-solidity-pragma": 26,
+    "unchecked-return": 22,
+    "send-ether-no-checks": 20,
+    "block-timestamp-deadline": 17,
+    "inconsistent-type-names": 16,
+    "push-zero-opcode": 11,
+    "unprotected-initializer": 11,
+    "useless-public-function": 10,
+    "unsafe-erc20-functions": 8,
+    "experimental-encoder": 6,
+    "unsafe-casting-detector": 6,
+    "tautology-or-contradiction": 5,
+    "storage-array-edit-with-memory": 3,
+    "uninitialized-state-variable": 2,
+    "arbitrary-transfer-from": 2,
+    "avoid-abi-encode-packed": 1,
+    "state-variable-shadowing": 1
+  },
+  "tool_distribution": {
+    "slither": 50,
+    "aderyn": 224
+  }
+}
