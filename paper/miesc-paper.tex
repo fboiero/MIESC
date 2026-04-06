@@ -57,7 +57,7 @@ smart contracts, blockchain security, vulnerability detection, defense-in-depth,
 
 Smart contracts govern over \$100 billion in decentralized finance (DeFi) protocols, yet vulnerabilities continue to cause catastrophic losses: the Wormhole bridge exploit (\$320M, 2022), the Euler Finance hack (\$197M, 2023), and the Curve Finance reentrancy attack (\$70M, 2023) underscore the urgency of rigorous security analysis before deployment~\cite{atzei2017survey}.
 
-Existing automated tools---Slither~\cite{feist2019slither}, Mythril~\cite{mueller2018smashing}, Echidna~\cite{grieco2020echidna}---each implement a single analysis technique and capture only a subset of vulnerabilities. Durieux et al.~\cite{durieux2020empirical} evaluated 9 tools on 47,587 contracts and found that no single tool achieved both high precision and high recall. Practitioners resort to manually running multiple tools and cross-referencing outputs, a time-consuming process that scales poorly.
+Existing automated tools---Slither~\cite{feist2019slither}, Mythril~\cite{mueller2018smashing}, Echidna~\cite{grieco2020echidna}---each implement a single analysis technique and capture only a subset of vulnerabilities. Durieux et al.~\cite{durieux2020empirical} evaluated 9 tools on 47,587 contracts and found that no single tool achieved both high precision and high recall. In practice, a security researcher preparing a pre-audit report runs 5--10 tools independently, normalizes their heterogeneous outputs by hand, and cross-references findings to filter duplicates---a workflow that takes 4--8 hours per contract and does not scale to the 50,000+ contracts deployed monthly on Ethereum alone.
 
 We address this gap with MIESC, a framework that:
 \begin{enumerate}
@@ -78,7 +78,7 @@ MIESC is designed as a \emph{pre-audit triage tool}, not a replacement for manua
 
 \textbf{Static analysis.} Slither~\cite{feist2019slither} uses intermediate representation (SlithIR) to detect vulnerability patterns with low false positive rates. Aderyn~\cite{aderyn2024} implements Rust-based AST analysis for high performance. Solhint provides Solidity-specific linting rules.
 
-\textbf{Dynamic testing.} Echidna~\cite{grieco2020echidna} performs property-based fuzzing using coverage-guided input generation. Foundry's \texttt{forge fuzz} combines unit testing with invariant checking. Medusa extends fuzzing with corpus-based strategies.
+\textbf{Dynamic testing.} Echidna~\cite{grieco2020echidna} performs property-based fuzzing using coverage-guided input generation. Foundry's \texttt{forge} combines unit testing with fuzz-based invariant checking. Medusa extends fuzzing with corpus-based strategies.
 
 \textbf{Symbolic execution.} Mythril~\cite{mueller2018smashing} explores execution paths using SMT solving to find reachable vulnerabilities. Halmos~\cite{halmos2023} enables symbolic testing within the Foundry framework. Manticore~\cite{mossberg2019manticore} combines symbolic execution with concrete execution.
 
@@ -92,7 +92,7 @@ MIESC differs from SmartBugs in three key aspects: (1)~it integrates 35 analysis
 
 \subsection{AI-Enhanced Security Analysis}
 
-GPTScan~\cite{sun2024gptscan} combines GPT-4 with static analysis for vulnerability detection. LLMSmartAudit uses multi-agent LLM collaboration. SmartLLM applies local LLMs for code analysis. These tools demonstrate the potential of AI but operate independently; MIESC integrates them as one layer within a comprehensive defense-in-depth strategy.
+GPTScan~\cite{sun2024gptscan} combines GPT-4 with static analysis for logic vulnerability detection, achieving results that complement pattern-based tools. Other recent approaches apply local LLMs for multi-agent auditing (LLMSmartAudit) and RAG-enhanced code analysis (SmartLLM). These tools demonstrate the potential of AI-assisted auditing but operate as standalone analyzers. MIESC integrates them as one layer within a broader multi-technique pipeline, using their outputs alongside static, dynamic, and symbolic results for cross-validated findings.
 
 % ===========================================================================
 \section{Architecture}
@@ -121,7 +121,7 @@ MIESC implements a \emph{defense-in-depth} architecture~\cite{saltzer1975protect
   & \textbf{Total} & \textbf{13} & \textbf{22} \\
 \bottomrule
 \end{tabular}
-\footnotesize{Ext.\ = external tools (subprocess). Int.\ = internal modules (LLM, pattern, ML).}
+\footnotesize{Ext.\ = third-party tools invoked as separate processes. Int.\ = built-in analysis modules (LLM, pattern matching, consensus).}
 \end{table}
 
 \subsection{Orchestration Pipeline}
@@ -140,7 +140,7 @@ The analysis pipeline proceeds as follows:
 \subsection{RAG System}
 \label{sec:rag}
 
-The RAG component uses ChromaDB as a vector store with the \texttt{all-MiniLM-L6-v2} sentence embedding model. It indexes 60 curated vulnerability patterns organized by category:
+The RAG component uses ChromaDB as a vector store with sentence embeddings (all-MiniLM-L6-v2, 384 dimensions). It indexes 60 curated vulnerability patterns organized by category:
 
 \begin{itemize}
     \item \textbf{Reentrancy} (6 patterns): classic, cross-function, read-only, Vyper-specific
@@ -298,18 +298,13 @@ Success rate & 100\% (0 errors) \\
 \section{Discussion}
 % ===========================================================================
 
-\subsection{Defense-in-Depth Effectiveness}
+\subsection{Layer Contribution Analysis}
 
-The 9-layer architecture is justified by the complementary nature of each technique. Static analysis (Layer~1) provides fast pattern matching but misses runtime behaviors. Dynamic testing (Layer~2) finds violations of runtime properties but requires test specifications. Symbolic execution (Layer~3) proves reachability but suffers from path explosion. By combining all techniques, MIESC achieves coverage that no single layer can provide independently.
+The jump from 54.6\% (static only) to 80\% (all layers) raises the question: which layers contribute the missing 25 percentage points? Our per-category results provide the answer. Reentrancy and access control are fully covered by Layer~1 (Slither's detectors are mature for these classes). The gain comes from categories where static analysis is blind: bad randomness requires reasoning about entropy sources (Layer~5 LLM), front-running requires understanding transaction ordering semantics (Layer~5), and arithmetic overflows in pre-0.8 contracts need path-sensitive analysis (Layer~3 Mythril). This suggests the layers are genuinely complementary rather than redundant---a concern often raised about multi-tool approaches.
 
-\subsection{False Positive Reduction}
+\subsection{False Positive Management}
 
-The RAG-enhanced FP filter reduces false positives by 43\% compared to raw tool output. This is achieved through:
-\begin{itemize}
-    \item Per-detector calibration (17+ tools with empirical FP rates)
-    \item Context-aware suppression (reentrancy guards, library usage)
-    \item Solidity version-aware filtering (0.8+ overflow protection)
-\end{itemize}
+Low precision (9--23\%) is the primary usability concern. The raw finding count on SmartBugs-curated is 810 findings for 143 contracts (5.7 per contract), dominated by informational issues (pragma version, naming conventions). The FP filter addresses this through three mechanisms: (1)~per-detector calibration based on empirical FP rates from our benchmark runs (e.g., Slither's \texttt{solc-version} detector has near-100\% FP rate on modern contracts), (2)~Solidity version awareness that suppresses integer overflow warnings for contracts using $\geq$0.8 (which has built-in overflow protection), and (3)~library detection that recognizes OpenZeppelin and Solmate safe patterns. After filtering, the actionable finding count drops to 2--3 per contract on average. Formally measuring the FP reduction rate requires per-finding human labels, which we plan as future work.
 
 \subsection{Practical Deployment}
 
@@ -349,20 +344,13 @@ Two real-world exploits were not detected: the BonqDAO oracle manipulation (\$12
 \section{Conclusion}
 % ===========================================================================
 
-This paper presented MIESC, an open-source framework that orchestrates 13 external security tools and 22 internal analysis modules across 9 complementary defense layers for automated smart contract security evaluation. Our key contributions are:
+The central finding of this work is that no single analysis technique suffices for smart contract security: static analysis alone misses half of known vulnerabilities (54.6\% recall), but orchestrating it with symbolic execution, AI/LLM semantic analysis, and pattern detection raises recall to 80\%. This is not a theoretical argument---we validated it against real exploits that cost \$3.3 billion, detecting 9 of 11 before they would have reached production.
 
-\begin{enumerate}
-    \item A \textbf{defense-in-depth orchestration architecture} that achieves 80\% recall on the SmartBugs-curated benchmark (143 contracts)---an 85\% improvement over Slither alone---by combining static analysis, symbolic execution, and AI/LLM semantic analysis.
-    \item \textbf{Validation against real-world exploits}: 81.8\% recall on 11 confirmed DeFi exploits totaling \$3.3~billion in losses (Cohen's $\kappa = 0.773$), with 100\% recall on reentrancy and access control---the two vulnerability classes responsible for the largest financial losses in blockchain history.
-    \item A \textbf{RAG-enhanced false positive filter} with 60 curated vulnerability patterns referencing real exploits, reducing informational noise while preserving critical findings.
-    \item An \textbf{agentic deep audit} loop that performs finding-driven investigation with targeted taint analysis, LLM second-opinion verification for critical findings, and Bayesian cross-tool consensus scoring.
-\end{enumerate}
+MIESC's practical contribution is reducing the gap between what individual tools can detect and what a human auditor would catch. The 100\% recall on reentrancy and access control---the two most exploited vulnerability classes---suggests the framework covers the highest-impact attack surface. The two misses (oracle manipulation, governance attacks) point to the frontier: vulnerabilities that require understanding protocol semantics, not just code patterns.
 
-The results demonstrate that multi-layer analysis is essential for comprehensive vulnerability detection: static analysis alone achieves 54.6\% recall, but adding AI/LLM and symbolic execution layers raises this to 80\%. No single technique achieves this coverage independently, validating the defense-in-depth approach.
+Three directions for future work emerge from these results. First, precision needs improvement---the current 2--3 actionable findings per contract after filtering is usable, but training a classifier on auditor-validated labels could reduce this further. Second, the 11-exploit evaluation should expand to 100+ contracts to strengthen statistical claims. Third, the framework should move beyond detection toward automated remediation: generating Foundry-verified fixes for confirmed vulnerabilities.
 
-\textbf{Future work.} Three directions are planned: (1)~improving precision through ML-based false positive classification trained on auditor-validated findings, (2)~expanding the real-world exploit benchmark to 100+ contracts with per-vulnerability ground truth, and (3)~integrating automated remediation generation with Foundry-verified fix validation.
-
-MIESC is freely available at \url{https://github.com/fboiero/MIESC} under AGPL-3.0 with Docker images, a GitHub Action for CI/CD integration, and a plugin system for community-driven detector development.
+MIESC is available at \url{https://github.com/fboiero/MIESC} under AGPL-3.0.
 
 % ===========================================================================
 \section*{Acknowledgment}
