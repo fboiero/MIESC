@@ -212,9 +212,9 @@ MIESC (static only) & 9.3\% & 54.6\% & 15.9\% \\
 \footnotesize{\textsuperscript{*}Baseline from Durieux et al.~\cite{durieux2020empirical}}
 \end{table}
 
-With static analysis only (Layer~1: Slither + Aderyn), MIESC achieves 54.6\% recall---already a 26\% improvement over Slither alone. When all 9 layers are enabled including AI/LLM analysis (Layer~5) and symbolic execution (Layer~3), recall reaches \textbf{80\%}, an 85\% improvement over single-tool analysis. This demonstrates the value of the multi-layer defense-in-depth approach: each additional analysis technique captures vulnerability classes that others miss.
+Table~\ref{tab:smartbugs} shows the results. With static analysis only (Layer~1: Slither + Aderyn), MIESC achieves 54.6\% recall---already a 26\% improvement over Slither alone. When all layers are enabled, recall reaches \textbf{80\%}. The 25-percentage-point gain from adding Layers~3--9 is not uniform across categories: reentrancy and access control are already at 100\% with Layer~1 alone (Table~\ref{tab:categories}), so the improvement comes entirely from categories that static analysis cannot cover---bad randomness (requires entropy analysis), front-running (requires transaction ordering reasoning), and arithmetic in pre-0.8 contracts (requires path-sensitive analysis). This demonstrates that the layers are \emph{complementary}, not redundant.
 
-The lower precision (9--23\%) is characteristic of static analysis tools that report informational findings alongside true vulnerabilities. For a \emph{pre-audit triage} tool, high recall is the priority metric---missed vulnerabilities become production exploits, while false positives are filtered during manual review.
+The lower precision (9--23\%) reflects informational findings (pragma version, naming conventions) that inflate the false positive count. For pre-audit triage, recall is the priority: missed vulnerabilities become production exploits costing millions, while false positives are filtered during manual review at negligible cost.
 
 \subsubsection{Category-Specific Detection}
 
@@ -300,7 +300,13 @@ Success rate & 100\% (0 errors) \\
 
 \subsection{Layer Contribution Analysis}
 
-The jump from 54.6\% (static only) to 80\% (all layers) raises the question: which layers contribute the missing 25 percentage points? Our per-category results provide the answer. Reentrancy and access control are fully covered by Layer~1 (Slither's detectors are mature for these classes). The gain comes from categories where static analysis is blind: bad randomness requires reasoning about entropy sources (Layer~5 LLM), front-running requires understanding transaction ordering semantics (Layer~5), and arithmetic overflows in pre-0.8 contracts need path-sensitive analysis (Layer~3 Mythril). This suggests the layers are genuinely complementary rather than redundant---a concern often raised about multi-tool approaches.
+The jump from 54.6\% (static only) to 80\% (all layers) raises the question: which layers contribute the missing 25 percentage points? Our per-category results provide the answer. Reentrancy and access control are fully covered by Layer~1 (Slither's detectors are mature for these classes). The gain comes from categories where static analysis is structurally limited: bad randomness requires reasoning about entropy sources (Layer~5 LLM analysis), front-running requires understanding transaction ordering semantics (Layer~5), and arithmetic overflows in pre-0.8 contracts need path-sensitive analysis (Layer~3 Mythril). This suggests the layers are genuinely complementary rather than redundant---a concern often raised about multi-tool approaches.
+
+\subsection{Comparison with SmartBugs 2.0}
+
+SmartBugs 2.0~\cite{smartbugs2023} is the closest comparable framework, integrating 25 analysis tools with Docker-based execution. However, SmartBugs focuses on providing a \emph{benchmarking platform} and does not publish detection metrics (precision, recall) on its own curated dataset. The tools it integrates (Mythril, Slither, Securify, Oyente, etc.) are individually benchmarked in Durieux et al.~\cite{durieux2020empirical}, where the best single tool achieves 43.2\% recall (Slither).
+
+MIESC differs in three ways beyond tool count: (1)~it adds AI/LLM semantic analysis layers that detect vulnerability classes invisible to pattern matching, (2)~it applies a RAG-enhanced false positive filter that reduces actionable findings to 2--3 per contract, and (3)~it produces production-ready outputs (PDF audit reports, GitHub Action, SARIF) rather than raw tool outputs. The 80\% recall we report uses a superset of the tools available in SmartBugs, augmented with these novel layers.
 
 \subsection{False Positive Management}
 
