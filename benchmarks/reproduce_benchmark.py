@@ -33,8 +33,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-DATASET_PATH = PROJECT_ROOT / "data" / "benchmarks" / "smartbugs-curated"
-ALT_DATASET_PATH = PROJECT_ROOT / "benchmarks" / "datasets" / "smartbugs-curated"
+DATASET_PATH = PROJECT_ROOT / "data" / "benchmarks" / "smartbugs-curated" / "dataset"
+ALT_DATASET_PATH = PROJECT_ROOT / "benchmarks" / "datasets" / "smartbugs-curated" / "dataset"
+LEGACY_PATH = PROJECT_ROOT / "data" / "benchmarks" / "smartbugs-curated"
 RESULTS_PATH = PROJECT_ROOT / "benchmarks" / "results"
 
 # Ground truth category to SWC mapping
@@ -59,9 +60,13 @@ for cat, swcs in CATEGORY_SWC.items():
 
 def find_dataset():
     """Find SmartBugs dataset."""
-    for path in [DATASET_PATH, ALT_DATASET_PATH]:
-        if path.exists():
-            return path
+    for path in [DATASET_PATH, ALT_DATASET_PATH, LEGACY_PATH]:
+        if path.exists() and any(path.iterdir()):
+            # Check if this has category subdirs or needs /dataset/
+            if (path / "access_control").exists() or (path / "reentrancy").exists():
+                return path
+            if (path / "dataset").exists():
+                return path / "dataset"
     print("ERROR: SmartBugs dataset not found.")
     print(f"Expected at: {DATASET_PATH}")
     print("Download: git clone https://github.com/smartbugs/smartbugs-curated")
@@ -116,33 +121,86 @@ def run_miesc_analysis(contract_path, tools=None):
 
 
 def classify_finding(finding):
-    """Map a MIESC finding to a SmartBugs category."""
+    """Map a MIESC finding to a SmartBugs category.
+
+    Uses SWC ID first, then check name, then description for richer matching.
+    Slither/Aderyn check names mapped to SmartBugs categories.
+    """
     # Try SWC ID first
     swc = finding.get("swc_id", finding.get("swc", ""))
     if swc and swc in SWC_TO_CATEGORY:
         return SWC_TO_CATEGORY[swc]
 
-    # Try type/check name
+    # Build full text for matching
     check = finding.get("check", finding.get("type", finding.get("title", ""))).lower()
+    desc = finding.get("description", "").lower()
+    all_text = check + " " + desc
 
-    if "reentran" in check:
+    # Slither/Aderyn check name to category mapping
+    SLITHER_MAP = {
+        # Reentrancy (SWC-107)
+        "reentrancy": "reentrancy",
+        "ether-lock": "reentrancy",
+        "contract-locks-ether": "reentrancy",
+        "send-ether-no-checks": "reentrancy",
+        "arbitrary-send": "reentrancy",
+        "arbitrary-send-eth": "reentrancy",
+        "controlled-delegatecall": "reentrancy",
+        # Access Control (SWC-105)
+        "unprotected-initializer": "access_control",
+        "unprotected-upgrade": "access_control",
+        "tx-origin": "access_control",
+        "suicidal": "access_control",
+        "protected-vars": "access_control",
+        "missing-access-control": "access_control",
+        # Unchecked calls (SWC-104)
+        "unchecked-return": "unchecked_low_level_calls",
+        "unchecked-lowlevel": "unchecked_low_level_calls",
+        "unchecked-send": "unchecked_low_level_calls",
+        "low-level-calls": "unchecked_low_level_calls",
+        "unsafe-erc20-functions": "unchecked_low_level_calls",
+        # Timestamp (SWC-116)
+        "timestamp": "time_manipulation",
+        "block-timestamp-deadline": "time_manipulation",
+        "weak-prng": "bad_randomness",
+        # Front running (SWC-114)
+        "front-running": "front_running",
+        "tautology-or-contradiction": "front_running",
+        # DoS (SWC-113)
+        "calls-loop": "denial_of_service",
+        "msg-value-loop": "denial_of_service",
+        # Arithmetic (SWC-101)
+        "divide-before-multiply": "arithmetic",
+        "overflow": "arithmetic",
+        "underflow": "arithmetic",
+    }
+
+    # Check exact match first
+    if check in SLITHER_MAP:
+        return SLITHER_MAP[check]
+
+    # Check partial match
+    for pattern, category in SLITHER_MAP.items():
+        if pattern in check:
+            return category
+
+    # Fallback text-based matching
+    if "reentran" in all_text or "external call" in all_text:
         return "reentrancy"
-    if "overflow" in check or "underflow" in check or "arithmetic" in check:
+    if "overflow" in all_text or "underflow" in all_text:
         return "arithmetic"
-    if "timestamp" in check or "block.timestamp" in check:
+    if "timestamp" in all_text or "block.timestamp" in all_text:
         return "time_manipulation"
-    if "unchecked" in check or "low-level" in check or "call-return" in check:
+    if "unchecked" in all_text or "low-level" in all_text or "return value" in all_text:
         return "unchecked_low_level_calls"
-    if "access" in check or "authorization" in check or "tx-origin" in check or "suicidal" in check:
+    if "access" in all_text or "auth" in all_text or "owner" in all_text or "tx.origin" in all_text:
         return "access_control"
-    if "random" in check or "weak-prng" in check:
+    if "random" in all_text or "prng" in all_text:
         return "bad_randomness"
-    if "front" in check or "frontrun" in check or "order" in check:
+    if "front" in all_text or "order" in all_text:
         return "front_running"
-    if "dos" in check or "denial" in check or "unbounded" in check:
+    if "dos" in all_text or "denial" in all_text or "loop" in all_text:
         return "denial_of_service"
-    if "short" in check or "address" in check:
-        return "short_addresses"
 
     return "other"
 

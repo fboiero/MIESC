@@ -621,6 +621,31 @@ class FalsePositiveFilter:
         message = finding.get("message", "") + " " + finding.get("description", "")
         matches.extend(self._check_library_patterns(message))
 
+        # Solidity version-aware filtering (v5.1.1)
+        # Integer overflow/underflow is impossible in Solidity >=0.8 (built-in checks)
+        if vuln_type in ("arithmetic", "integer_overflow", "integer_underflow", "overflow", "underflow"):
+            sol_version = self._detect_solidity_version(code_context)
+            if sol_version and sol_version >= (0, 8, 0):
+                matches.append(FPMatch(
+                    category=FPCategory.CONTEXT_SAFE,
+                    pattern="solidity_0.8+",
+                    confidence=0.95,
+                    reason=f"Solidity {'.'.join(map(str, sol_version))} has built-in overflow protection",
+                ))
+
+        # Optimization/style findings are low-value noise
+        check_name = finding.get("check", finding.get("type", "")).lower()
+        if any(kw in check_name for kw in [
+            "solc-version", "pragma", "naming-convention", "visibility",
+            "dead-code", "constable", "immutable", "push-zero", "experimental",
+        ]):
+            matches.append(FPMatch(
+                category=FPCategory.CONTEXT_SAFE,
+                pattern="optimization_noise",
+                confidence=0.7,
+                reason="Optimization/style finding, not a security vulnerability",
+            ))
+
         # RAG-enhanced validation (v5.1.0)
         rag_match = self._rag_validate_finding(finding, code_context)
         if rag_match:
@@ -633,7 +658,7 @@ class FalsePositiveFilter:
         is_likely_fp = fp_probability >= self.fp_threshold
 
         # Special handling for informational findings
-        if self.filter_informational and severity in ["info", "informational"]:
+        if self.filter_informational and severity in ["info", "informational", "optimization"]:
             is_likely_fp = True
             fp_probability = max(fp_probability, 0.6)
 
@@ -661,6 +686,17 @@ class FalsePositiveFilter:
             should_report=should_report,
             filter_reason=filter_reason,
         )
+
+    def _detect_solidity_version(self, code: str) -> Optional[tuple]:
+        """Extract Solidity version from pragma statement."""
+        if not code:
+            return None
+        m = re.search(r"pragma\s+solidity\s*[\^>=]*\s*(\d+)\.(\d+)\.?(\d*)", code)
+        if m:
+            major, minor = int(m.group(1)), int(m.group(2))
+            patch = int(m.group(3)) if m.group(3) else 0
+            return (major, minor, patch)
+        return None
 
     def _check_file_patterns(self, file_path: str) -> List[FPMatch]:
         """Check if file path indicates test/mock/interface."""
