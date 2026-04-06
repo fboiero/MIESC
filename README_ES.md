@@ -94,11 +94,11 @@ Report saved to results.json
 
 **SmartBugs-curated** (143 contratos, 207 vulnerabilidades ground-truth):
 
-| Métrica | Slither solo | Mythril solo | MIESC |
-|---------|:------------:|:------------:|:-----:|
-| Recall | 43.2% | 27.4% | **80.0%** |
-| Precisión | 8.3% | 6.1% | 22.7% |
-| F1-Score | 13.9% | 10.0% | **35.4%** |
+| Métrica | Slither solo | Mythril solo | MIESC (estático) | MIESC (todas las capas) |
+|---------|:------------:|:------------:|:----------------:|:-----------------------:|
+| Recall | 43.2% | 27.4% | 54.6% | **80.0%** |
+| Precisión | 8.3% | 6.1% | 9.3% | 22.7% |
+| F1-Score | 13.9% | 10.0% | 15.9% | **35.4%** |
 
 **Exploits reales** (11 exploits DeFi confirmados, $3.3B en pérdidas totales):
 
