@@ -44,7 +44,7 @@ fboiero@frvm.utn.edu.ar}
 \maketitle
 
 \begin{abstract}
-Automated security analysis tools for smart contracts each capture only a fraction of existing vulnerabilities, and their high false positive rates limit practical adoption. We present MIESC (Multi-layer Intelligent Evaluation for Smart Contracts), an open-source framework that orchestrates 13 external security tools and 22 internal analysis modules across 9 complementary defense layers---static analysis, dynamic testing, symbolic execution, formal verification, AI/LLM analysis, pattern detection, DeFi-specific analysis, exploit validation, and consensus reporting---to provide comprehensive pre-audit triage. MIESC normalizes heterogeneous tool outputs, filters false positives using a Retrieval-Augmented Generation (RAG) system with 59 vulnerability patterns, and maps findings to 12 international security standards. Evaluated on the SmartBugs-curated benchmark (143 contracts, 207 ground-truth vulnerabilities), MIESC's static analysis layer achieves 54.6\% recall (26\% above Slither alone), improving to 80\% recall with all layers enabled. On 11 confirmed DeFi exploits totaling \$3.3 billion in losses, MIESC achieves 81.8\% recall with Cohen's $\kappa$ = 0.77. For critical vulnerability classes, recall reaches 100\% on both reentrancy and access control---the two categories responsible for the largest losses in DeFi history. MIESC is freely available under AGPL-3.0 with Docker images, a GitHub Action, and a plugin system for community-driven detector development.
+Automated security analysis tools for smart contracts each capture only a fraction of existing vulnerabilities, and their high false positive rates limit practical adoption. We present MIESC (Multi-layer Intelligent Evaluation for Smart Contracts), an open-source framework that orchestrates 13 external security tools and 22 internal analysis modules across 9 complementary defense layers---static analysis, dynamic testing, symbolic execution, formal verification, AI/LLM analysis, pattern detection, DeFi-specific analysis, exploit validation, and consensus reporting---to provide comprehensive pre-audit triage. MIESC normalizes heterogeneous tool outputs, filters false positives using a Retrieval-Augmented Generation (RAG) system with 60 vulnerability patterns, and maps findings to 12 international security standards. Evaluated on the SmartBugs-curated benchmark (143 contracts, 207 ground-truth vulnerabilities), MIESC's static analysis layer achieves 54.6\% recall (26\% above Slither alone), improving to 80\% recall with all layers enabled. On 11 confirmed DeFi exploits totaling \$3.3 billion in losses, MIESC achieves 81.8\% recall with Cohen's $\kappa$ = 0.77. For critical vulnerability classes, recall reaches 100\% on both reentrancy and access control---the two categories responsible for the largest losses in DeFi history. MIESC is freely available under AGPL-3.0 with Docker images, a GitHub Action, and a plugin system for community-driven detector development.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -63,7 +63,7 @@ We address this gap with MIESC, a framework that:
 \begin{enumerate}
     \item Orchestrates \textbf{13 external security tools} and \textbf{22 internal analysis modules} across \textbf{9 complementary defense layers}, each targeting a distinct class of vulnerabilities.
     \item Normalizes heterogeneous tool outputs into a unified finding schema with SWC/CWE classification.
-    \item Filters false positives using a \textbf{RAG-enhanced ML pipeline} with 59 curated vulnerability patterns and per-detector calibration.
+    \item Filters false positives using a \textbf{RAG-enhanced ML pipeline} with 60 curated vulnerability patterns and per-detector calibration.
     \item Maps findings to \textbf{12 international security standards} (ISO~27001, NIST~CSF, OWASP, CWE, SWC, MITRE ATT\&CK).
     \item Provides an \textbf{extensible plugin system} for community-driven detector development.
 \end{enumerate}
@@ -116,7 +116,7 @@ MIESC implements a \emph{defense-in-depth} architecture~\cite{saltzer1975protect
 6 & Pattern Detection & -- & 5 \\
 7 & DeFi Security & -- & 4 \\
 8 & Exploit Validation & -- & 3 \\
-9 & Consensus \& Reporting & -- & 2 \\
+9 & Consensus \& Reporting & -- & 3 \\
 \midrule
   & \textbf{Total} & \textbf{13} & \textbf{22} \\
 \bottomrule
@@ -140,7 +140,7 @@ The analysis pipeline proceeds as follows:
 \subsection{RAG System}
 \label{sec:rag}
 
-The RAG component uses ChromaDB as a vector store with the \texttt{all-MiniLM-L6-v2} sentence embedding model. It indexes 59 curated vulnerability patterns organized by category:
+The RAG component uses ChromaDB as a vector store with the \texttt{all-MiniLM-L6-v2} sentence embedding model. It indexes 60 curated vulnerability patterns organized by category:
 
 \begin{itemize}
     \item \textbf{Reentrancy} (6 patterns): classic, cross-function, read-only, Vyper-specific
@@ -231,6 +231,8 @@ Reentrancy & 22.6\% & \textbf{100\%} & 36.9\% \\
 Unchecked Low-Level Calls & 6.9\% & 48.1\% & 12.1\% \\
 Denial of Service & 2.6\% & 16.7\% & 4.4\% \\
 Other & 14.3\% & \textbf{100\%} & 25.0\% \\
+Time Manipulation & 0\% & 0\% & 0\% \\
+Short Addresses & 0\% & 0\% & 0\% \\
 \midrule
 Arithmetic & 0\% & 0\% & 0\% \\
 Bad Randomness & 0\% & 0\% & 0\% \\
@@ -319,13 +321,28 @@ MIESC is designed for practical adoption:
     \item \textbf{Profiles}: Predefined configurations (fast, ci, defi, thorough) for different use cases.
 \end{itemize}
 
+\subsection{Analysis of Missed Exploits}
+
+Two real-world exploits were not detected: the BonqDAO oracle manipulation (\$120M) and the Beanstalk governance flash loan attack (\$182M). Both require \emph{semantic understanding} of protocol-specific logic that static pattern matching cannot capture. BonqDAO's vulnerability was in the interaction between a Tellor oracle and a custom stablecoin---detecting this requires modeling the oracle's trust assumptions, not just code patterns. Beanstalk's attack exploited governance voting with flash-borrowed tokens in a single transaction---a logical flaw invisible to pattern-based analysis. These findings motivate future work on protocol-aware semantic analysis in Layers~5--7.
+
+\subsection{Threats to Validity}
+
+\textbf{Internal validity.} The SmartBugs-curated ground truth was established by Durieux et al.~\cite{durieux2020empirical} and may contain labeling errors. Our finding classifier maps MIESC tool outputs to SmartBugs categories using SWC IDs and keyword matching, which may introduce classification errors. We mitigate this by publishing the classifier source code for inspection.
+
+\textbf{External validity.} The SmartBugs benchmark contains contracts from 2016--2020, which may not represent modern DeFi protocols. We address this with the real-world exploit evaluation (2020--2023 exploits), though the 11-exploit sample is small. The Etherscan distribution analysis (500 verified contracts) provides additional evidence of applicability to production code.
+
+\textbf{Construct validity.} Recall is our primary metric because missed vulnerabilities have higher cost than false positives in pre-audit triage. However, precision remains important for usability---a tool that generates too many false positives will be abandoned by practitioners.
+
+\textbf{Reproducibility.} All benchmark scripts, ground truth data, and evaluation methodology are included in the repository. Results can be reproduced with: \texttt{python benchmarks/reproduce\_benchmark.py --save}.
+
 \subsection{Limitations}
 
 \begin{itemize}
     \item Non-EVM chain support (Solana, NEAR, Move) is in alpha with pattern-based detection only.
     \item Full 9-layer analysis requires significant resources (8GB+ Docker image, 16GB RAM).
     \item Tool availability varies by platform (Echidna/Medusa are amd64-only).
-    \item LLM-based layers depend on model quality and introduce non-determinism.
+    \item LLM-based layers depend on model quality and introduce non-determinism; results may vary across Ollama model versions.
+    \item The real-world exploit evaluation (11 contracts) is limited in size; expanding to 100+ exploits is planned.
 \end{itemize}
 
 % ===========================================================================
@@ -352,6 +369,10 @@ MIESC is freely available at \url{https://github.com/fboiero/MIESC} under AGPL-3
 % ===========================================================================
 
 This work was conducted as part of a Master's thesis in Cyberdefense at Universidad de la Defensa Nacional (UNDEF) -- IUA C\'ordoba, Argentina. The author thanks the Ethereum security community and the developers of Slither, Mythril, Echidna, Foundry, Aderyn, and Halmos for their foundational contributions.
+
+\subsection*{Data Availability}
+
+MIESC source code, benchmark scripts, ground truth datasets, and evaluation results are publicly available at \url{https://github.com/fboiero/MIESC} under AGPL-3.0. The SmartBugs-curated dataset is from Durieux et al.~\cite{durieux2020empirical}. The real-world exploit dataset was curated from DeFiHackLabs (\url{https://github.com/SunWeb3Sec/DeFiHackLabs}).
 
 % \balance
 \bibliographystyle{IEEEtran}
