@@ -332,13 +332,20 @@ MIESC is designed for practical adoption:
 \section{Conclusion}
 % ===========================================================================
 
-MIESC demonstrates that orchestrating diverse security analysis techniques in a defense-in-depth architecture significantly improves smart contract vulnerability detection compared to single-tool approaches. With 80\% recall on the SmartBugs-curated benchmark (143 contracts) and 81.8\% recall on 11 real-world exploits totaling \$3.3 billion in losses (Cohen's $\kappa = 0.773$), the framework provides practical value as a pre-audit triage tool. MIESC would have flagged 9 of 11 multi-million dollar exploits before deployment.
+This paper presented MIESC, an open-source framework that orchestrates 13 external security tools and 22 internal analysis modules across 9 complementary defense layers for automated smart contract security evaluation. Our key contributions are:
 
-The open-source release (AGPL-3.0), Docker images, GitHub Action, and plugin system lower the barrier to comprehensive security analysis for the entire smart contract development community.
+\begin{enumerate}
+    \item A \textbf{defense-in-depth orchestration architecture} that achieves 80\% recall on the SmartBugs-curated benchmark (143 contracts)---an 85\% improvement over Slither alone---by combining static analysis, symbolic execution, and AI/LLM semantic analysis.
+    \item \textbf{Validation against real-world exploits}: 81.8\% recall on 11 confirmed DeFi exploits totaling \$3.3~billion in losses (Cohen's $\kappa = 0.773$), with 100\% recall on reentrancy and access control---the two vulnerability classes responsible for the largest financial losses in blockchain history.
+    \item A \textbf{RAG-enhanced false positive filter} with 60 curated vulnerability patterns referencing real exploits, reducing informational noise while preserving critical findings.
+    \item An \textbf{agentic deep audit} loop that performs finding-driven investigation with targeted taint analysis, LLM second-opinion verification for critical findings, and Bayesian cross-tool consensus scoring.
+\end{enumerate}
 
-Future work includes expanding multi-chain support to production readiness, integrating automated fix generation, and building a community-driven detector marketplace.
+The results demonstrate that multi-layer analysis is essential for comprehensive vulnerability detection: static analysis alone achieves 54.6\% recall, but adding AI/LLM and symbolic execution layers raises this to 80\%. No single technique achieves this coverage independently, validating the defense-in-depth approach.
 
-MIESC is available at \url{https://github.com/fboiero/MIESC}.
+\textbf{Future work.} Three directions are planned: (1)~improving precision through ML-based false positive classification trained on auditor-validated findings, (2)~expanding the real-world exploit benchmark to 100+ contracts with per-vulnerability ground truth, and (3)~integrating automated remediation generation with Foundry-verified fix validation.
+
+MIESC is freely available at \url{https://github.com/fboiero/MIESC} under AGPL-3.0 with Docker images, a GitHub Action for CI/CD integration, and a plugin system for community-driven detector development.
 
 % ===========================================================================
 \section*{Acknowledgment}
