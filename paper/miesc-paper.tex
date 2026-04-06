@@ -78,7 +78,7 @@ MIESC is designed as a \emph{pre-audit triage tool}, not a replacement for manua
 
 \textbf{Static analysis.} Slither~\cite{feist2019slither} uses intermediate representation (SlithIR) to detect vulnerability patterns with low false positive rates. Aderyn~\cite{aderyn2024} implements Rust-based AST analysis for high performance. Solhint provides Solidity-specific linting rules.
 
-\textbf{Dynamic testing.} Echidna~\cite{grieco2020echidna} performs property-based fuzzing using coverage-guided input generation. Foundry's \texttt{forge} combines unit testing with fuzz-based invariant checking. Medusa extends fuzzing with corpus-based strategies.
+\textbf{Dynamic testing.} Echidna~\cite{grieco2020echidna} performs property-based fuzzing using coverage-guided input generation. Foundry's forge tool combines unit testing with fuzz-based invariant checking. Medusa extends fuzzing with corpus-based strategies.
 
 \textbf{Symbolic execution.} Mythril~\cite{mueller2018smashing} explores execution paths using SMT solving to find reachable vulnerabilities. Halmos~\cite{halmos2023} enables symbolic testing within the Foundry framework. Manticore~\cite{mossberg2019manticore} combines symbolic execution with concrete execution.
 
@@ -231,9 +231,9 @@ Reentrancy & 22.6\% & \textbf{100\%} & 36.9\% \\
 Unchecked Low-Level Calls & 6.9\% & 48.1\% & 12.1\% \\
 Denial of Service & 2.6\% & 16.7\% & 4.4\% \\
 Other & 14.3\% & \textbf{100\%} & 25.0\% \\
+\midrule
 Time Manipulation & 0\% & 0\% & 0\% \\
 Short Addresses & 0\% & 0\% & 0\% \\
-\midrule
 Arithmetic & 0\% & 0\% & 0\% \\
 Bad Randomness & 0\% & 0\% & 0\% \\
 Front Running & 0\% & 0\% & 0\% \\
@@ -306,7 +306,7 @@ The jump from 54.6\% (static only) to 80\% (all layers) raises the question: whi
 
 SmartBugs 2.0~\cite{smartbugs2023} is the closest comparable framework, integrating 25 analysis tools with Docker-based execution. However, SmartBugs focuses on providing a \emph{benchmarking platform} and does not publish detection metrics (precision, recall) on its own curated dataset. The tools it integrates (Mythril, Slither, Securify, Oyente, etc.) are individually benchmarked in Durieux et al.~\cite{durieux2020empirical}, where the best single tool achieves 43.2\% recall (Slither).
 
-MIESC differs in three ways beyond tool count: (1)~it adds AI/LLM semantic analysis layers that detect vulnerability classes invisible to pattern matching, (2)~it applies a RAG-enhanced false positive filter that reduces actionable findings to 2--3 per contract, and (3)~it produces production-ready outputs (PDF audit reports, GitHub Action, SARIF) rather than raw tool outputs. The 80\% recall we report uses a superset of the tools available in SmartBugs, augmented with these novel layers.
+MIESC differs in three ways beyond tool count: (1)~it adds AI/LLM semantic analysis layers that detect vulnerability classes invisible to pattern matching, (2)~it applies a RAG-enhanced false positive filter that reduces actionable findings to 2--3 per contract, and (3)~it produces production-ready outputs (PDF audit reports, GitHub Action, SARIF) rather than raw tool outputs. A direct comparison of recall is not possible because SmartBugs does not publish detection metrics. However, the individual tools it integrates achieve at most 43.2\% recall when run independently~\cite{durieux2020empirical}. The incremental value of MIESC lies not in running more of the same tools, but in the AI/LLM layers that detect vulnerability classes---such as logic flaws and semantic issues---that no amount of static or symbolic analysis can reach.
 
 \subsection{False Positive Management}
 
@@ -334,7 +334,11 @@ Two real-world exploits were not detected: the BonqDAO oracle manipulation (\$12
 
 \textbf{Construct validity.} Recall is our primary metric because missed vulnerabilities have higher cost than false positives in pre-audit triage. However, precision remains important for usability---a tool that generates too many false positives will be abandoned by practitioners.
 
-\textbf{Reproducibility.} All benchmark scripts, ground truth data, and evaluation methodology are included in the repository. Results can be reproduced with: \verb|python benchmarks/reproduce_benchmark.py --save|.
+\textbf{Reproducibility.} All benchmark scripts, ground truth data, and evaluation methodology are included in the repository. Results can be reproduced with:
+
+\smallskip
+\noindent\texttt{python benchmarks/reproduce\_benchmark.py -{}-save}
+\smallskip
 
 \subsection{Limitations}
 
@@ -356,7 +360,7 @@ MIESC's practical contribution is reducing the gap between what individual tools
 
 Three directions for future work emerge from these results. First, precision needs improvement---the current 2--3 actionable findings per contract after filtering is usable, but training a classifier on auditor-validated labels could reduce this further. Second, the 11-exploit evaluation should expand to 100+ contracts to strengthen statistical claims. Third, the framework should move beyond detection toward automated remediation: generating Foundry-verified fixes for confirmed vulnerabilities.
 
-MIESC is available at \url{https://github.com/fboiero/MIESC} under AGPL-3.0.
+MIESC is available under AGPL-3.0 (see \emph{Data Availability}).
 
 % ===========================================================================
 \section*{Acknowledgment}
