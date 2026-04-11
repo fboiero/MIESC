@@ -230,31 +230,61 @@ docker run --rm ghcr.io/fboiero/miesc:latest doctor
 ```
 
 <details>
-<summary><strong>Docker + Ollama for AI-powered PDF reports</strong></summary>
+<summary><strong>Docker + Host Ollama (recommended for GPU acceleration)</strong></summary>
+
+MIESC's LLM layers (Layer 5) use Ollama for local AI analysis. The recommended setup runs Ollama on your host machine (with GPU access) and connects the Docker container via network:
 
 ```bash
-# 1. Start Ollama and pull the model
+# 1. Install and start Ollama on your HOST (not inside Docker)
+# Download from https://ollama.com
 ollama serve &
-ollama pull mistral:latest
+ollama pull qwen2.5-coder:14b   # Best model for code analysis
+ollama pull deepseek-coder:6.7b  # Lighter alternative
 
-# 2. Full audit
-docker run --rm -v $(pwd):/contracts \
-  ghcr.io/fboiero/miesc:full \
-  audit full /contracts/MyContract.sol -o /contracts/results.json
-
-# 3. Generate premium PDF with AI interpretation
+# 2. Scan with host Ollama (macOS)
 docker run --rm \
   -e OLLAMA_HOST=http://host.docker.internal:11434 \
-  -v $(pwd):/contracts \
+  -v $(pwd)/contracts:/contracts \
+  ghcr.io/fboiero/miesc:latest \
+  scan /contracts/MyContract.sol -o /contracts/results.json
+
+# 3. Scan with host Ollama (Linux)
+docker run --rm --network=host \
+  -e OLLAMA_HOST=http://localhost:11434 \
+  -v $(pwd)/contracts:/contracts \
+  ghcr.io/fboiero/miesc:latest \
+  scan /contracts/MyContract.sol
+
+# 4. Generate AI-powered premium PDF report
+docker run --rm \
+  -e OLLAMA_HOST=http://host.docker.internal:11434 \
+  -v $(pwd):/work \
   ghcr.io/fboiero/miesc:full \
-  report /contracts/results.json -t premium -f pdf \
-    --llm-interpret \
-    --client "Your Client" \
-    --auditor "Your Name" \
-    -o /contracts/audit_report.pdf
+  report /work/results.json -t premium -f pdf \
+    --llm-interpret -o /work/audit_report.pdf
 ```
 
-The premium report includes CVSS scoring, risk matrix, attack scenarios, deployment recommendation (GO/NO-GO), and AI-generated remediation roadmap. Comparable to Trail of Bits / OpenZeppelin report style.
+**Why host Ollama?** Docker containers don't have GPU access by default. Running Ollama on the host lets it use your GPU (Apple Silicon, NVIDIA CUDA) for 10-50x faster LLM inference.
+
+</details>
+
+<details>
+<summary><strong>Docker Compose (full stack with bundled Ollama)</strong></summary>
+
+For environments without a host Ollama, use docker-compose to run everything together:
+
+```bash
+# Start MIESC + Ollama + model initialization
+docker compose --profile llm up -d
+
+# Run analysis
+docker compose exec miesc miesc scan /contracts/MyContract.sol
+
+# Stop
+docker compose down
+```
+
+The compose stack automatically pulls `deepseek-coder:6.7b` and configures inter-service networking.
 
 </details>
 
