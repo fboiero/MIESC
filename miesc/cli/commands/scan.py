@@ -128,12 +128,21 @@ def scan(contract, output, ci, quiet):
 
     # Save output
     if output:
+        # Consolidate all findings into a single list
+        all_findings = []
+        for r in all_results:
+            for f in r.get("findings", []):
+                f.setdefault("tool", r.get("tool", "unknown"))
+                all_findings.append(f)
+
         data = {
             "contract": str(contract),
             "timestamp": datetime.now().isoformat(),
             "version": VERSION,
+            "success": True,
             "summary": summary,
             "total_findings": total,
+            "findings": all_findings,
             "results": all_results,
         }
         with open(output, "w") as f:

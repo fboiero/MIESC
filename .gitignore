@@ -232,3 +232,11 @@ data/datasets/rekt_exploits/_*/
 data/datasets/code4rena/contracts/
 data/datasets/code4rena/findings/
 data/datasets/code4rena/_*/
+
+# LaTeX build artifacts
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.out
+paper/*.log
+paper/missfont.log
