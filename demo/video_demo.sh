@@ -138,7 +138,11 @@ echo ""
 echo -e "  ${YELLOW}Generating AI interpretation with Ollama (qwen2.5-coder:14b)...${NC}"
 echo -e "  ${YELLOW}Generating Foundry PoC exploit templates...${NC}"
 echo ""
-miesc report scan_results.json -t premium -f pdf --llm-interpret -o audit_report.pdf 2>/dev/null
+miesc report scan_results.json -t premium -f pdf \
+  --llm-interpret \
+  --client "VulnerableDeFi Protocol" \
+  --auditor "Fernando Boiero — UTN FRVM" \
+  -o audit_report.pdf 2>/dev/null
 
 echo ""
 echo -e "  ${GREEN}✓${NC} Premium PDF: $(ls -lh audit_report.pdf | awk '{print $5}')"
