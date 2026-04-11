@@ -119,7 +119,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [5.0.0] - 2026-01-31
 
 ### Added
-- **9 Defense Layers with 50 Security Tools**: Expanded from 7 layers/32 tools to 9 layers/50 tools
+- **9 Defense Layers with 35 Analysis Modules**: Expanded from 7 layers/32 tools to 9 layers/50 tools
 - **17 new adapters**: fouranalyzer, oyente, pakala, scribble, solcmc, gptlens, llamaaudit, iaudit, peculiar, upgradability_checker, bridge_monitor, l2_validator, circom_analyzer, audit_consensus, exploit_synthesizer, vuln_verifier, remediation_validator
 - **MCP Server**: stdio-based FastMCP server for Claude Desktop integration with 18 tools
 - **Cross-Validation v3**: Bayesian scoring with intra/inter-layer confidence and Layer 9 meta-analysis

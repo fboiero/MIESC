@@ -3,7 +3,7 @@
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # v5.0.0 Changes:
-# - Expanded to 9 defense layers with 50 security tools
+# - Expanded to 9 defense layers with 35 Analysis Modules
 # - MCP server for Claude Desktop integration (stdio transport)
 # - New adapters: 4naly3er, pakala, scribble, solcmc, gptlens,
 #   llamaaudit, iaudit, peculiar, upgradability_checker,

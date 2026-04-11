@@ -1,0 +1,211 @@
+{
+  "summary": {
+    "num_contracts": 1,
+    "adapters_tested": [
+      "gptscan",
+      "smartllm",
+      "gptlens",
+      "llmbugscanner"
+    ],
+    "timestamp": "2026-02-06 16:06:07"
+  },
+  "rag_metrics": {
+    "avg_retrieval_time_ms": 0.0,
+    "avg_context_relevance": 0.0,
+    "total_retrievals": 0,
+    "retrieval_hit_rate": 0.0
+  },
+  "with_rag": {
+    "classification": {
+      "true_positives": 14,
+      "false_positives": 4,
+      "false_negatives": 10,
+      "true_negatives": 0
+    },
+    "retrieval": {
+      "precision": 0.7778,
+      "recall": 0.5833,
+      "f1_score": 0.6667
+    },
+    "ranking": {
+      "mrr": 0.0,
+      "ndcg": 0.0,
+      "map": 0.0
+    },
+    "rag": {
+      "context_relevance": 0.0,
+      "retrieval_latency_ms": 0.0
+    },
+    "performance": {
+      "inference_time_ms": 692092.27,
+      "total_tokens": 0
+    },
+    "metadata": {
+      "adapter": "",
+      "rag_enabled": true,
+      "model": ""
+    },
+    "by_severity": {}
+  },
+  "without_rag": {
+    "classification": {
+      "true_positives": 14,
+      "false_positives": 4,
+      "false_negatives": 10,
+      "true_negatives": 0
+    },
+    "retrieval": {
+      "precision": 0.7778,
+      "recall": 0.5833,
+      "f1_score": 0.6667
+    },
+    "ranking": {
+      "mrr": 0.0,
+      "ndcg": 0.0,
+      "map": 0.0
+    },
+    "rag": {
+      "context_relevance": 0.0,
+      "retrieval_latency_ms": 0.0
+    },
+    "performance": {
+      "inference_time_ms": 46252.82,
+      "total_tokens": 0
+    },
+    "metadata": {
+      "adapter": "",
+      "rag_enabled": false,
+      "model": ""
+    },
+    "by_severity": {}
+  },
+  "comparison": {
+    "precision_change_pct": 0.0,
+    "recall_change_pct": 0.0,
+    "f1_change_pct": 0.0,
+    "fp_reduction": 0,
+    "fn_reduction": 0,
+    "latency_increase_pct": 1396.32,
+    "summary": {
+      "baseline": {
+        "classification": {
+          "true_positives": 14,
+          "false_positives": 4,
+          "false_negatives": 10,
+          "true_negatives": 0
+        },
+        "retrieval": {
+          "precision": 0.7778,
+          "recall": 0.5833,
+          "f1_score": 0.6667
+        },
+        "ranking": {
+          "mrr": 0.0,
+          "ndcg": 0.0,
+          "map": 0.0
+        },
+        "rag": {
+          "context_relevance": 0.0,
+          "retrieval_latency_ms": 0.0
+        },
+        "performance": {
+          "inference_time_ms": 46252.82,
+          "total_tokens": 0
+        },
+        "metadata": {
+          "adapter": "",
+          "rag_enabled": false,
+          "model": ""
+        },
+        "by_severity": {}
+      },
+      "treatment": {
+        "classification": {
+          "true_positives": 14,
+          "false_positives": 4,
+          "false_negatives": 10,
+          "true_negatives": 0
+        },
+        "retrieval": {
+          "precision": 0.7778,
+          "recall": 0.5833,
+          "f1_score": 0.6667
+        },
+        "ranking": {
+          "mrr": 0.0,
+          "ndcg": 0.0,
+          "map": 0.0
+        },
+        "rag": {
+          "context_relevance": 0.0,
+          "retrieval_latency_ms": 0.0
+        },
+        "performance": {
+          "inference_time_ms": 692092.27,
+          "total_tokens": 0
+        },
+        "metadata": {
+          "adapter": "",
+          "rag_enabled": true,
+          "model": ""
+        },
+        "by_severity": {}
+      }
+    },
+    "recommendation": "Not recommended: RAG does not improve detection in this configuration."
+  },
+  "adapter_results": {
+    "gptscan": {
+      "with_rag": {
+        "tp": 5,
+        "fp": 1,
+        "fn": 1
+      },
+      "without_rag": {
+        "tp": 5,
+        "fp": 1,
+        "fn": 1
+      },
+      "contracts_tested": 1
+    },
+    "smartllm": {
+      "with_rag": {
+        "tp": 5,
+        "fp": 2,
+        "fn": 1
+      },
+      "without_rag": {
+        "tp": 5,
+        "fp": 2,
+        "fn": 1
+      },
+      "contracts_tested": 1
+    },
+    "gptlens": {
+      "with_rag": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 6
+      },
+      "without_rag": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 6
+      },
+      "contracts_tested": 1
+    },
+    "llmbugscanner": {
+      "with_rag": {
+        "tp": 4,
+        "fp": 1,
+        "fn": 2
+      },
+      "without_rag": {
+        "tp": 4,
+        "fp": 1,
+        "fn": 2
+      },
+      "contracts_tested": 1
+    }
+  }
+}

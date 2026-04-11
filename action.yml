@@ -304,7 +304,7 @@ runs:
           <details>
           <summary>What is MIESC?</summary>
 
-          [MIESC](https://github.com/fboiero/MIESC) orchestrates 50 security tools across 9 defense layers with AI-assisted correlation. This is an automated pre-audit triage — not a replacement for manual review.
+          [MIESC](https://github.com/fboiero/MIESC) orchestrates 35 Analysis Modules across 9 defense layers with AI-assisted correlation. This is an automated pre-audit triage — not a replacement for manual review.
 
           </details>
 

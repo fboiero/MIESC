@@ -11,7 +11,7 @@ Need help with MIESC? Here's how to get support.
 - [Quick Start Guide](docs/guides/QUICKSTART.md) - Get started in 5 minutes
 - [Full Documentation](https://fboiero.github.io/MIESC) - Complete user guide
 - [API Reference](docs/api/) - Developer documentation
-- [Tool Reference](docs/TOOLS.md) - All 50 security tools
+- [Tool Reference](docs/TOOLS.md) - All 35 Analysis Modules
 
 ### Community
 

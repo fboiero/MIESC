@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">MIESC</h1>
   <p align="center">
-    <strong>50 security tools. 9 defense layers. One command.</strong>
+    <strong>35 Analysis Modules. 9 defense layers. One command.</strong>
   </p>
   <p align="center">
     Enterprise-grade smart contract security, free and open to everyone.

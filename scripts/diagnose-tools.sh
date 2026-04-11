@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # MIESC Tool Diagnostic Script
-# Verifies availability and functionality of all 50 security tools
+# Verifies availability and functionality of all 35 Analysis Modules
 # Run inside Docker: docker run --rm ghcr.io/fboiero/miesc:full /app/scripts/diagnose-tools.sh
 # =============================================================================
 

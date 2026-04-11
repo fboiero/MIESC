@@ -188,7 +188,7 @@ class MCPToolRegistry:
                 name="miesc_run_audit",
                 description=(
                     "Execute comprehensive multi-layer security audit on a Solidity smart contract. "
-                    "Uses 9-layer defense-in-depth approach with 50 security tools: static analysis, "
+                    "Uses 9-layer defense-in-depth approach with 35 Analysis Modules: static analysis, "
                     "symbolic execution, fuzzing, formal verification, AI/ML detection, and advanced "
                     "ensemble methods. Returns normalized findings with severity, confidence scores, "
                     "and compliance mapping."

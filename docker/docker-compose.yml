@@ -170,7 +170,7 @@ services:
       - dev
 
   # ===========================================================================
-  # MIESC FULL - Complete image with ALL 50 security tools
+  # MIESC FULL - Complete image with ALL 35 Analysis Modules
   # Includes: Mythril, Manticore, Echidna, Halmos, PyTorch for ML
   # Image size: ~8GB | Memory required: 8GB+
   # ===========================================================================

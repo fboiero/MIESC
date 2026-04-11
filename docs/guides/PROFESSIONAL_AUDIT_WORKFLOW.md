@@ -23,7 +23,7 @@ This guide provides a structured workflow for conducting professional smart cont
 
 ## Overview
 
-MIESC integrates **50 security tools** across **9 defense layers** to provide comprehensive smart contract analysis:
+MIESC integrates **35 Analysis Modules** across **9 defense layers** to provide comprehensive smart contract analysis:
 
 | Layer | Focus | Key Tools |
 |-------|-------|-----------|
