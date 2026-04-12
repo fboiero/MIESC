@@ -329,7 +329,7 @@ adapters:
     enabled: true
     layer: property_testing
     timeout: 60
-    llm_model: deepseek-coder
+    llm_model: qwen2.5-coder:32b
     options:
       generate_invariants: true
       verify_properties: true
@@ -541,25 +541,25 @@ llm:
   host: http://localhost:11434
 
   # Modelo por defecto para todas las tareas
-  default_model: deepseek-coder:6.7b
+  default_model: qwen2.5-coder:32b
 
   # Modelos específicos por caso de uso (para optimizar calidad/velocidad)
   # El sistema intentará usar el modelo específico, si no está disponible usa default
   models:
     # Análisis de código y detección de vulnerabilidades
-    code_analysis: deepseek-coder:6.7b
+    code_analysis: qwen2.5-coder:32b
 
     # Generación de propiedades y invariantes (formal verification)
-    property_generation: deepseek-coder:6.7b
+    property_generation: qwen2.5-coder:32b
 
     # Verificación y validación de hallazgos
-    verification: deepseek-coder:6.7b
+    verification: qwen2.5-coder:32b
 
     # Correlación y síntesis de resultados
-    correlation: deepseek-coder:6.7b
+    correlation: qwen2.5-coder:32b
 
     # Generación de remediaciones y fixes
-    remediation: deepseek-coder:6.7b
+    remediation: qwen2.5-coder:32b
 
   # Modelos de fallback (en orden de preferencia)
   fallback_models:
@@ -886,7 +886,7 @@ intelligence:
   ensemble_detection:
     enabled: true
     models:
-      - deepseek-coder:6.7b
+      - qwen2.5-coder:32b
       - codellama:7b
       - llama3.1:8b
     voting_strategy: threshold  # majority, unanimous, threshold, weighted
@@ -896,7 +896,7 @@ intelligence:
   # Autonomous Auditor Agent
   auditor_agent:
     enabled: true
-    model: deepseek-coder:6.7b
+    model: qwen2.5-coder:32b
     checkpoint_dir: ~/.miesc/checkpoints
     verbose: true
     steps:
@@ -912,7 +912,7 @@ intelligence:
   # Vulnerability RAG - Retrieval-Augmented Generation
   vulnerability_rag:
     enabled: true
-    model: deepseek-coder:6.7b
+    model: qwen2.5-coder:32b
     top_k_similar: 3
     swc_registry: true
     exploit_examples: true
@@ -944,7 +944,7 @@ intelligence:
   # Remediation Generator
   remediation_generation:
     enabled: true
-    model: deepseek-coder:6.7b
+    model: qwen2.5-coder:32b
     generate_code_fixes: true
     generate_tests: true
     parallel: true
@@ -965,7 +965,7 @@ intelligence:
 llm_validation:
   enabled: true                  # Activar validación LLM
   provider: ollama
-  model: deepseek-coder:6.7b     # Modelo para validación
+  model: qwen2.5-coder:32b     # Modelo para validación
   ollama_host: http://localhost:11434
 
   # Configuración de validación

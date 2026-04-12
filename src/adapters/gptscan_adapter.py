@@ -124,7 +124,11 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
     def __init__(self):
         super().__init__()
         self._default_timeout = 120
-        self._ollama_model = "codellama:7b"  # Default model
+        try:
+            from src.core.llm_config import get_model, USE_CASE_CODE_ANALYSIS
+            self._ollama_model = get_model(USE_CASE_CODE_ANALYSIS)
+        except Exception:
+            self._ollama_model = "qwen2.5-coder:14b"
         self._ollama_url = get_ollama_host()
 
         # Initialize EmbeddingRAG if available
@@ -327,22 +331,25 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
 
                     # Priority order for security analysis
                     model_priority = [
-                        ("qwen2.5-coder", "qwen2.5-coder:7b"),
+                        ("qwen2.5-coder:32b", "qwen2.5-coder:32b"),
+                        ("qwen2.5-coder:14b", "qwen2.5-coder:14b"),
+                        ("qwen2.5-coder", "qwen2.5-coder:14b"),
+                        ("deepseek-coder:33b", "deepseek-coder:33b"),
                         ("deepseek-coder", "deepseek-coder:6.7b"),
+                        ("codellama:13b", "codellama:13b"),
                         ("codellama", "codellama:7b"),
-                        ("llama3", "llama3:8b"),
                     ]
 
                     for keyword, full_name in model_priority:
                         if keyword in models:
                             return full_name
 
-            return "codellama:7b"  # Default fallback
+            return "qwen2.5-coder:14b"  # Default fallback
         except Exception:
-            return "codellama:7b"
+            return "qwen2.5-coder:14b"
 
     def _run_ollama_analysis(
-        self, contract_code: str, model: str = "codellama:7b", timeout: int = 120
+        self, contract_code: str, model: str = "qwen2.5-coder:14b", timeout: int = 120
     ) -> str:
         """Execute security analysis using Ollama HTTP API."""
         import urllib.error

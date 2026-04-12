@@ -328,12 +328,12 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
                         if keyword in models:
                             return full_name
 
-            return "codellama:7b"
+            return "qwen2.5-coder:14b"
         except Exception:
-            return "codellama:7b"
+            return "qwen2.5-coder:14b"
 
     def _run_ollama_audit(
-        self, contract_code: str, model: str = "codellama:7b", timeout: int = 120
+        self, contract_code: str, model: str = "qwen2.5-coder:14b", timeout: int = 120
     ) -> str:
         """Execute audit using Ollama HTTP API."""
         import urllib.error

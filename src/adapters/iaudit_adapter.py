@@ -468,7 +468,7 @@ class IAuditAdapter(ToolAdapter):
     # Supported model names in priority order
     MODEL_PRIORITY = [
         "qwen2.5-coder:7b",
-        "deepseek-coder:6.7b",
+        "qwen2.5-coder:14b",
         "codellama:7b",
         "llama3:8b",
         "mistral:7b",
@@ -1170,7 +1170,7 @@ class IAuditAdapter(ToolAdapter):
             pass
 
         # Final fallback
-        return "codellama:7b"
+        return "qwen2.5-coder:14b"
 
     # ========================================================================
     # Response parsing

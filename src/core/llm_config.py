@@ -28,15 +28,15 @@ from typing import Any, Dict, Optional
 DEFAULT_CONFIG = {
     "provider": "ollama",
     "host": "http://localhost:11434",
-    "default_model": "qwen2.5-coder:14b",
+    "default_model": "qwen2.5-coder:32b",
     "models": {
-        "code_analysis": "qwen2.5-coder:14b",
+        "code_analysis": "qwen2.5-coder:32b",
         "property_generation": "qwen2.5-coder:14b",
-        "verification": "qwen2.5-coder:14b",
-        "correlation": "deepseek-coder:6.7b",
+        "verification": "qwen2.5-coder:32b",
+        "correlation": "qwen2.5-coder:14b",
         "remediation": "qwen2.5-coder:14b",
     },
-    "fallback_models": ["deepseek-coder:6.7b", "codellama:13b", "codellama:7b"],
+    "fallback_models": ["qwen2.5-coder:14b", "deepseek-coder:6.7b", "codellama:13b"],
     "retry_attempts": 3,
     "retry_delay": 5,
     "options": {
