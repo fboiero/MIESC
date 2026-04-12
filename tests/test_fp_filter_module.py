@@ -136,11 +136,32 @@ class TestFalsePositiveFilter:
         )
 
     def test_initialization(self, fp_filter):
-        """Test filter initialization."""
-        assert fp_filter.fp_threshold == 0.50
+        """Test filter initialization (default = medium strictness)."""
+        # Default preset = "medium": threshold=0.60 (was 0.50 before strictness presets)
+        assert fp_filter.fp_threshold == 0.60
         assert fp_filter.filter_test_files is True
         assert fp_filter.filter_interfaces is True
         assert fp_filter.filter_informational is True
+        assert fp_filter.strictness == "medium"
+
+    def test_strictness_presets(self):
+        """Test that each strictness preset has distinct thresholds."""
+        from src.ml.fp_filter import FalsePositiveFilter
+
+        off = FalsePositiveFilter(strictness="off", use_rag=False)
+        low = FalsePositiveFilter(strictness="low", use_rag=False)
+        medium = FalsePositiveFilter(strictness="medium", use_rag=False)
+        high = FalsePositiveFilter(strictness="high", use_rag=False)
+
+        # Off > low > medium > high (higher threshold = less filtering)
+        assert off.fp_threshold > low.fp_threshold
+        assert low.fp_threshold > medium.fp_threshold
+        assert medium.fp_threshold > high.fp_threshold
+
+        # Off doesn't filter informational
+        assert off.filter_informational is False
+        # Others do
+        assert medium.filter_informational is True
 
     def test_initialization_custom_threshold(self):
         """Test initialization with custom threshold."""

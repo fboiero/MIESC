@@ -43,7 +43,18 @@ if RICH_AVAILABLE:
 @click.option("--output", "-o", type=click.Path(), help="Output file for JSON report")
 @click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues found")
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output, only show summary")
-def scan(contract, output, ci, quiet):
+@click.option(
+    "--fp-strictness",
+    type=click.Choice(["off", "low", "medium", "high"], case_sensitive=False),
+    default="medium",
+    help="False positive filter strictness: off=report everything, low=permissive, medium=balanced (default), high=aggressive for CI",
+)
+@click.option(
+    "--llm-enhance",
+    is_flag=True,
+    help="Enhance top findings with AI insights (adds ~40s, requires Ollama)",
+)
+def scan(contract, output, ci, quiet, fp_strictness, llm_enhance):
     """Quick vulnerability scan for a Solidity contract.
 
     This is a simplified command for quick scans. For more options,
@@ -52,8 +63,9 @@ def scan(contract, output, ci, quiet):
     \b
     Examples:
         miesc scan MyContract.sol
-        miesc scan contracts/Token.sol --ci
-        miesc scan MyContract.sol -o report.json
+        miesc scan contracts/Token.sol --ci --fp-strictness high
+        miesc scan MyContract.sol --fp-strictness off -o full_report.json
+        miesc scan MyContract.sol --llm-enhance -o report.json
 
     \b
     Exit codes:
@@ -81,7 +93,10 @@ def scan(contract, output, ci, quiet):
 
             from concurrent.futures import ThreadPoolExecutor, as_completed
             with ThreadPoolExecutor(max_workers=len(QUICK_TOOLS)) as pool:
-                futures = {pool.submit(run_tool, tool, contract, 300): tool for tool in QUICK_TOOLS}
+                futures = {
+                    pool.submit(run_tool, tool, contract, 300, llm_enhance=llm_enhance): tool
+                    for tool in QUICK_TOOLS
+                }
                 for future in as_completed(futures):
                     tool = futures[future]
                     try:
@@ -102,6 +117,29 @@ def scan(contract, output, ci, quiet):
                     all_results.append(future.result())
                 except Exception as e:
                     all_results.append({"tool": futures[future], "status": "error", "error": str(e), "findings": []})
+
+    # Apply FP filter based on strictness (v5.1.2+)
+    if fp_strictness.lower() != "off":
+        try:
+            from src.ml.fp_filter import FalsePositiveFilter
+            with open(contract) as f:
+                code = f.read()
+            fp_filter = FalsePositiveFilter(strictness=fp_strictness.lower(), use_rag=False)
+            filtered_count = 0
+            for result in all_results:
+                kept = []
+                for finding in result.get("findings", []):
+                    fr = fp_filter.filter_finding(finding, code_context=code, file_path=contract)
+                    if not fr.is_likely_fp:
+                        kept.append(finding)
+                    else:
+                        filtered_count += 1
+                result["findings"] = kept
+            if not quiet and filtered_count > 0:
+                info(f"FP filter ({fp_strictness}): removed {filtered_count} likely false positives")
+        except Exception as e:
+            if not quiet:
+                info(f"FP filter skipped: {e}")
 
     summary = summarize_findings(all_results)
     total = sum(summary.values())

@@ -388,28 +388,72 @@ class FalsePositiveFilter:
         FPCategory.ABSTRACT: 0.30,
     }
 
+    # Strictness presets for user-facing configuration (v5.1.2+)
+    STRICTNESS_PRESETS = {
+        "off": {
+            "fp_threshold": 1.1,  # >1.0 = never filter (everything reported)
+            "filter_informational": False,
+            "filter_test_files": False,
+            "filter_interfaces": False,
+        },
+        "low": {
+            # Permissive — keep more findings, useful for deep audits
+            "fp_threshold": 0.70,
+            "filter_informational": False,
+            "filter_test_files": True,
+            "filter_interfaces": True,
+        },
+        "medium": {
+            # Balanced — default, drops only high-confidence FPs
+            "fp_threshold": 0.60,
+            "filter_informational": True,
+            "filter_test_files": True,
+            "filter_interfaces": True,
+        },
+        "high": {
+            # Aggressive — CI/CD mode, minimize noise
+            "fp_threshold": 0.40,
+            "filter_informational": True,
+            "filter_test_files": True,
+            "filter_interfaces": True,
+        },
+    }
+
     def __init__(
         self,
-        fp_threshold: float = 0.50,
-        filter_test_files: bool = True,
-        filter_interfaces: bool = True,
-        filter_informational: bool = True,
+        fp_threshold: float = None,
+        strictness: str = "medium",
+        filter_test_files: bool = None,
+        filter_interfaces: bool = None,
+        filter_informational: bool = None,
         use_rag: bool = True,
     ):
         """
         Initialize the false positive filter.
 
         Args:
-            fp_threshold: Probability threshold above which to filter (0.0-1.0)
-            filter_test_files: Whether to filter findings in test files
-            filter_interfaces: Whether to filter findings in interfaces
-            filter_informational: Whether to filter INFO severity findings
-            use_rag: Whether to use RAG-enhanced validation (v5.1.0)
+            fp_threshold: Probability threshold above which to filter (0.0-1.0).
+                If None, derived from `strictness` preset.
+            strictness: Preset level: "off", "low", "medium" (default), "high".
+                Explicit args (fp_threshold, filter_*) override preset values.
+            filter_test_files: Filter findings in test files.
+            filter_interfaces: Filter findings in interfaces.
+            filter_informational: Filter INFO severity findings.
+            use_rag: Use RAG-enhanced validation (v5.1.0).
         """
-        self.fp_threshold = fp_threshold
-        self.filter_test_files = filter_test_files
-        self.filter_interfaces = filter_interfaces
-        self.filter_informational = filter_informational
+        # Apply preset, then override with explicit args
+        preset = self.STRICTNESS_PRESETS.get(strictness, self.STRICTNESS_PRESETS["medium"])
+        self.strictness = strictness
+        self.fp_threshold = fp_threshold if fp_threshold is not None else preset["fp_threshold"]
+        self.filter_test_files = (
+            filter_test_files if filter_test_files is not None else preset["filter_test_files"]
+        )
+        self.filter_interfaces = (
+            filter_interfaces if filter_interfaces is not None else preset["filter_interfaces"]
+        )
+        self.filter_informational = (
+            filter_informational if filter_informational is not None else preset["filter_informational"]
+        )
         self.use_rag = use_rag
 
         # Compile regex patterns for performance
