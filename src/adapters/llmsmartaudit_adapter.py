@@ -79,6 +79,18 @@ STEP 4: DESIGN CONCERNS
 - Centralization risks — owner/admin can rug? Multisig required?
 - Composability risks — flash loan or callback interactions?
 
+FEW-SHOT DESIGN LESSONS (real incidents):
+- Parity multi-sig wallet ($280M frozen, 2017): library contract had an
+  unprotected initializer; anyone could become the owner of the library and
+  selfdestruct it, freezing every wallet that delegated to it. Lesson —
+  library / implementation contracts MUST be self-initialized or guarded.
+- Nomad Bridge ($190M, 2022): zero-hash was treated as a valid proven message
+  because of a missing non-zero check. Lesson — default / zero values are the
+  most common oversight in ACL and proof verification.
+- Audius governance (2022): upgradeable proxy's initializer was still callable
+  after deployment because the guard was only in the implementation, not the
+  storage layout. Lesson — verify initializer guards survive upgrades.
+
 For each issue, explain your reasoning and provide a concrete code fix.
 
 Respond in JSON format:

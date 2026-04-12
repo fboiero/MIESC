@@ -94,8 +94,37 @@ For each finding, challenge yourself:
 - Is the guard already implemented? (e.g., nonReentrant modifier present)
 - Is this exploitable in practice? (e.g., only owner can call, so access control is fine)
 
-KNOWN VULNERABILITY PATTERNS:
-%RAG_CONTEXT%
+FEW-SHOT EXAMPLES OF REAL EXPLOITS:
+
+Example 1 — Cream Finance reentrancy ($130M, 2021):
+```solidity
+function flashLoan(uint amount) external {
+    uint balanceBefore = token.balanceOf(address(this));
+    token.transfer(msg.sender, amount);           // external call
+    IFlashBorrower(msg.sender).onFlashLoan();     // callback into attacker
+    require(token.balanceOf(address(this)) >= balanceBefore);  // check AFTER callback
+}
+```
+Why vulnerable: the token-balance check happens after the attacker's callback,
+which can re-enter and drain other markets. Finding: REENTRANCY, CRITICAL.
+
+Example 2 — Euler Finance missing liquidity check ($197M, 2023):
+```solidity
+function donateToReserves(uint amount) external {
+    // no health check after moving balance into reserves
+    balances[msg.sender] -= amount;
+    reserves += amount;
+}
+```
+Why vulnerable: any borrower can self-liquidate by donating to reserves,
+bypassing the solvency invariant. Finding: ACCESS_CONTROL + invariant violation.
+
+Example 3 — BNB Chain bridge forged proof (2022, $586M):
+The contract verified Merkle proofs using a buggy IAVL verifier that accepted
+crafted inner-node proofs. Core lesson: NEVER trust off-the-shelf proof
+libraries for consensus-critical checks without fuzzing them exhaustively.
+
+%RAG_CONTEXT_PLACEHOLDER%
 
 OUTPUT FORMAT (JSON only):
 {
@@ -355,27 +384,31 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
         import urllib.error
         import urllib.request
 
-        # Build prompt with contract code
-        prompt = self.SECURITY_PROMPT.replace("%CONTRACT_CODE%", contract_code)
-
-        # Add RAG context if available
+        # Build RAG context first so we can inject it at the placeholder
+        rag_context = ""
         if self._use_rag and self._embedding_rag:
             try:
                 results = self._embedding_rag.search(query=contract_code[:2000], n_results=3)
                 if results:
-                    rag_context = "\n\nKNOWN VULNERABILITY PATTERNS:\n"
+                    rag_context = "KNOWN VULNERABILITY PATTERNS (from security knowledge base):\n"
                     for r in results:
                         rag_context += (
                             f"- {r.document.title} ({r.document.swc_id or 'Pattern'}): "
-                            f"{r.document.description[:150]}...\n"
+                            f"{r.document.description[:200]}\n"
                         )
-                    prompt = prompt.replace(
-                        "Respond ONLY with valid JSON.",
-                        f"{rag_context}\nRespond ONLY with valid JSON.",
+                    rag_context += (
+                        "\nIMPORTANT: Compare each finding against these patterns. "
+                        "Reference which pattern matches (if any) and explain specifically "
+                        "how the vulnerable code in this contract follows the same anti-pattern. "
+                        "If a pattern does NOT apply, do not force it."
                     )
                     logger.debug(f"GPTScan: Added RAG context ({len(results)} patterns)")
             except Exception as e:
                 logger.debug(f"GPTScan: RAG context failed: {e}")
+
+        # Build prompt: inject contract + RAG into their respective placeholders
+        prompt = self.SECURITY_PROMPT.replace("%CONTRACT_CODE%", contract_code)
+        prompt = prompt.replace("%RAG_CONTEXT_PLACEHOLDER%", rag_context)
 
         logger.info(f"GPTScan: Running Ollama analysis with {model}")
 

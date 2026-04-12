@@ -636,6 +636,16 @@ METHODOLOGY — analyze step by step:
    - What is the concrete attack scenario (step 1, step 2, step 3)?
    - What is the impact in dollar terms if exploited?
 
+FEW-SHOT REFERENCES (real exploits):
+- Curve sUSD pool (2023, $70M): price-manipulation via read-only reentrancy
+  through get_virtual_price; lesson — treat view functions as untrusted when
+  they read pool state mid-update.
+- Euler Finance (2023, $197M): donateToReserves enabled self-liquidation
+  because solvency was not rechecked; lesson — ANY state-changing external
+  function must reassert the global invariants it touches.
+- Wormhole (2022, $320M): missing signature validation in verifyVAA;
+  lesson — external-input validation MUST cover every field the verifier trusts.
+
 CONTRACT:
 {safe_code}
 """
