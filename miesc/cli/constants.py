@@ -82,8 +82,10 @@ LAYERS: Dict[int, Dict[str, Any]] = {
     },
 }
 
-# Quick scan tools (fast, high-value)
-QUICK_TOOLS: List[str] = ["slither", "aderyn", "solhint", "mythril"]
+# Quick scan tools (fast, high-value, all <10s per contract)
+# Mythril removed: too slow (~90s/contract) and often unavailable.
+# Use `miesc audit full` if you need symbolic execution (Mythril, Halmos, Manticore).
+QUICK_TOOLS: List[str] = ["slither", "aderyn", "solhint"]
 
 # Adapter class mapping (tool name -> adapter class name)
 ADAPTER_MAP: Dict[str, str] = {

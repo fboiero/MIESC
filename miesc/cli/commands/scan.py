@@ -74,19 +74,34 @@ def scan(contract, output, ci, quiet):
             BarColumn(),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         ) as progress:
-            task = progress.add_task("Scanning...", total=len(QUICK_TOOLS))
+            task = progress.add_task(
+                f"Running {len(QUICK_TOOLS)} tools in parallel...",
+                total=len(QUICK_TOOLS),
+            )
 
-            for tool in QUICK_TOOLS:
-                progress.update(task, description=f"Running {tool}...")
-                result = run_tool(tool, contract, 300)
-                all_results.append(result)
-                progress.advance(task)
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            with ThreadPoolExecutor(max_workers=len(QUICK_TOOLS)) as pool:
+                futures = {pool.submit(run_tool, tool, contract, 300): tool for tool in QUICK_TOOLS}
+                for future in as_completed(futures):
+                    tool = futures[future]
+                    try:
+                        result = future.result()
+                        all_results.append(result)
+                    except Exception as e:
+                        all_results.append({"tool": tool, "status": "error", "error": str(e), "findings": []})
+                    progress.update(task, description=f"Done: {tool}")
+                    progress.advance(task)
     else:
-        for tool in QUICK_TOOLS:
-            if not quiet:
-                info(f"Running {tool}...")
-            result = run_tool(tool, contract, 300)
-            all_results.append(result)
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        if not quiet:
+            info(f"Running {len(QUICK_TOOLS)} tools in parallel...")
+        with ThreadPoolExecutor(max_workers=len(QUICK_TOOLS)) as pool:
+            futures = {pool.submit(run_tool, tool, contract, 300): tool for tool in QUICK_TOOLS}
+            for future in as_completed(futures):
+                try:
+                    all_results.append(future.result())
+                except Exception as e:
+                    all_results.append({"tool": futures[future], "status": "error", "error": str(e), "findings": []})
 
     summary = summarize_findings(all_results)
     total = sum(summary.values())
