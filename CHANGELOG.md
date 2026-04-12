@@ -5,6 +5,51 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.2] - 2026-04-12
+
+### Added
+- **Tunable FP filter via `--fp-strictness` flag** (off/low/medium/high)
+  - `off`: report everything (threshold=1.1)
+  - `low`: permissive (0.70)
+  - `medium`: balanced, default (0.60)
+  - `high`: aggressive for CI (0.40)
+  - EtherStore.sol: off=14, low=14, medium=11, high=9 findings
+- **`--llm-enhance` flag** for opt-in AI insights (adds ~40s)
+- **Head-to-head competitor comparison** (`benchmarks/competitor_comparison.py`)
+  - Compares MIESC vs Slither, Aderyn, Solhint, Echidna on 5 contracts
+- **Honest comparison doc** (`docs/COMPARISON.md`) with pros/cons
+- **New strictness presets API** in `FalsePositiveFilter`
+
+### Changed
+- **60x speedup on scan**: 529s → 8.5s on 5-contract benchmark
+  - LLM enhancement now opt-in across 11 adapters (was auto-running)
+  - Parallelized QUICK_TOOLS with ThreadPoolExecutor
+  - Removed Mythril from QUICK_TOOLS (too slow, opt-in via `audit full`)
+- **Cross-tool dedup improved**: 40+ new aliases in `TYPE_ALIASES`
+  - Slither `suicidal` + Aderyn `selfdestruct-identifier` → 1 finding
+  - Slither `weak-prng` + Aderyn `weak-randomness` → 1 finding
+  - Slither `controlled-delegatecall` + Aderyn `delegate-call-unchecked-address` → 1 finding
+- **Quieter CLI output**: 8 init logs moved from INFO → DEBUG
+- **Ollama HTTP API** instead of CLI subprocess (cleaner LLM output)
+- **Slither path discovery**: added `/opt/homebrew/bin` for macOS Homebrew users
+
+### Fixed
+- Slither adapter: honor `--solc` path directly (works around bad-interpreter issue in solc-select wrapper)
+- ANSI escape codes garbled `llm_insights` field in JSON output
+- GPTScan model priority list (was returning `:7b` when `:32b` was available)
+
+### Performance
+- `miesc scan contract.sol`: **1.4s** (was 1:22 / 82s in v5.1.1)
+- Multi-contract benchmark (5 vulnerable contracts): **7.3s** (was 529s)
+- Still 2.15x more findings than Slither alone (97 vs 45), at 6x the time cost
+
+### OSS Quality
+- Root directory cleanup: **48 → 31 visible items**
+- Moved governance files (`CODE_OF_CONDUCT`, `CONTRIBUTING`, etc.) to `.github/`
+- Moved policy files (`PRIVACY`, `RESPONSIBLE_USE`) to `docs/policies/`
+- Removed 19 `.coverage*` snapshot files from git
+- Added comprehensive Troubleshooting section to README
+
 ## [5.1.1] - 2026-02-12
 
 ### Added

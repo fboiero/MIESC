@@ -392,7 +392,7 @@ def create_websocket_app() -> Optional["FastAPI"]:
     app = FastAPI(
         title="MIESC Real-Time API",
         description="WebSocket API for real-time audit updates",
-        version="5.1.1",
+        version="5.1.2",
     )
 
     # Security: CORS configuration with whitelist
@@ -516,7 +516,7 @@ def create_websocket_app() -> Optional["FastAPI"]:
             "websocket_available": True,
             "connections": len(manager.active_connections),
             "subscribed_audits": list(manager.audit_subscriptions.keys()),
-            "version": "5.1.1",
+            "version": "5.1.2",
         }
 
     return app

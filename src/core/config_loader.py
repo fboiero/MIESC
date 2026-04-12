@@ -79,7 +79,7 @@ class MIESCConfig:
     def _get_default_config(self) -> Dict[str, Any]:
         """Retorna configuración por defecto."""
         return {
-            "version": "5.1.1",
+            "version": "5.1.2",
             "global": {
                 "log_level": "INFO",
                 "max_workers": 4,
@@ -101,7 +101,7 @@ class MIESCConfig:
     @property
     def version(self) -> str:
         """Versión de la configuración."""
-        return self._config.get("version", "5.1.1")
+        return self._config.get("version", "5.1.2")
 
     @property
     def global_config(self) -> Dict[str, Any]:

@@ -210,7 +210,7 @@ class MIESCMetrics:
 
         # Info
         self.info = Info("miesc", "MIESC version and configuration info", registry=self.registry)
-        self.info.info({"version": "5.1.1", "layers": "7", "python_version": "3.11"})
+        self.info.info({"version": "5.1.2", "layers": "7", "python_version": "3.11"})
 
     def _init_internal_metrics(self):
         """Initialize internal-only metrics when Prometheus is unavailable."""

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MIESC v5.1.1 - Interactive Web Dashboard
+MIESC v5.1.2 - Interactive Web Dashboard
 Streamlit-based interface for smart contract security analysis
 
 Author: Fernando Boiero
@@ -34,7 +34,7 @@ from src.miesc_risk_engine import RiskEngine
 TRANSLATIONS = {
     "en": {
         # Header
-        "main_title": "MIESC v5.1.1",
+        "main_title": "MIESC v5.1.2",
         "subtitle": "Enterprise-grade smart contract security, open to everyone",
         # Sidebar
         "configuration": "Configuration",
@@ -134,7 +134,7 @@ TRANSLATIONS = {
         "select_contracts": "Select contracts to audit",
         "repo_error": "Could not clone repository. Verify the URL is correct and the repo is public.",
         # Footer
-        "footer": "MIESC v5.1.1 | Fernando Boiero | UNDEF - IUA Cordoba",
+        "footer": "MIESC v5.1.2 | Fernando Boiero | UNDEF - IUA Cordoba",
         # License activation
         "license_activation": "License Activation",
         "enter_license_key": "Enter your license key to access MIESC",
@@ -158,7 +158,7 @@ TRANSLATIONS = {
     },
     "es": {
         # Header
-        "main_title": "MIESC v5.1.1",
+        "main_title": "MIESC v5.1.2",
         "subtitle": "Seguridad de nivel empresarial para smart contracts, abierta para todos",
         # Sidebar
         "configuration": "Configuracion",
@@ -258,7 +258,7 @@ TRANSLATIONS = {
         "select_contracts": "Seleccionar contratos a auditar",
         "repo_error": "No se pudo clonar el repositorio. Verifica que la URL sea correcta y el repo sea publico.",
         # Footer
-        "footer": "MIESC v5.1.1 | Fernando Boiero | UNDEF - IUA Cordoba",
+        "footer": "MIESC v5.1.2 | Fernando Boiero | UNDEF - IUA Cordoba",
         # License activation
         "license_activation": "Activacion de Licencia",
         "enter_license_key": "Ingresa tu clave de licencia para acceder a MIESC",
@@ -482,7 +482,7 @@ def record_analysis():
 
 # Page configuration
 st.set_page_config(
-    page_title="MIESC v5.1.1", page_icon="", layout="wide", initial_sidebar_state="expanded"
+    page_title="MIESC v5.1.2", page_icon="", layout="wide", initial_sidebar_state="expanded"
 )
 
 # Initialize session state
@@ -555,7 +555,7 @@ if not st.session_state.license:
 
 # Sidebar (only shown when license is active)
 with st.sidebar:
-    st.image("https://img.shields.io/badge/version-5.1.1-blue", width=100)
+    st.image("https://img.shields.io/badge/version-5.1.2-blue", width=100)
 
     # Language selector at the top
     st.markdown("---")
@@ -1048,7 +1048,7 @@ with tab4:
         st.markdown("---")
         st.markdown(f"#### {t('miesc_info')}")
         st.markdown(f"""
-        - **{t('version')}:** 5.1.1
+        - **{t('version')}:** 5.1.2
         - **{t('adapters')}:** 50
         - **{t('layers')}:** 9
         - **{t('precision')}:** 89.5%
