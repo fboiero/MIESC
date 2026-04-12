@@ -5,6 +5,30 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.4] - 2026-04-12
+
+### Added
+- **Multi-chain support via `miesc analyze` command**
+  - Auto-detects chain from file extension
+  - Supports: Ethereum/EVM (.sol, .vy), Starknet (.cairo), Move (.move), Solana (.rs)
+- **New Cairo/Starknet analyzer** (`src/adapters/cairo_adapter.py`)
+  - 8 vulnerability types: felt overflow, L1/L2 message validation,
+    caller spoofing, storage collisions, proxy upgrade, reentrancy,
+    access control, arithmetic
+  - Detects issues in VulnerableVault.cairo demo contract
+- Example Cairo contract: `examples/contracts/cairo/VulnerableVault.cairo`
+
+### Usage
+```bash
+miesc analyze Token.sol           # Auto-detects EVM
+miesc analyze Vault.cairo         # Auto-detects Starknet
+miesc analyze MyModule.move       # Move (Sui/Aptos)
+miesc analyze program.rs --chain solana
+```
+
+### Tests
+13 new tests for Cairo analyzer. Total 4925 tests, 80.13% coverage.
+
 ## [5.1.3] - 2026-04-12
 
 ### Added
