@@ -537,13 +537,68 @@ The project is fully compliant with all 9 DPGA indicators: open license (AGPL-3.
 | [Installation Guide](./docs/INSTALLATION.md) | Complete setup instructions |
 | [Quick Start](./docs/guides/QUICKSTART.md) | Get running in 5 minutes |
 | [Architecture](./docs/ARCHITECTURE.md) | Technical design and layer details |
-| [Tool Reference](./docs/TOOLS.md) | All 50 tools and their capabilities |
+| [Tool Reference](./docs/TOOLS.md) | All 35 analysis modules and their capabilities |
 | [Report Guide](./docs/guides/REPORTS.md) | Report templates and customization |
 | [Custom Detectors](./docs/CUSTOM_DETECTORS.md) | Build your own detectors |
 | [Multi-Chain](./docs/MULTICHAIN.md) | Non-EVM chain analysis |
 | [API Reference](https://fboiero.github.io/MIESC/api/) | Auto-generated from docstrings |
-| [Contributing](./CONTRIBUTING.md) | Development guidelines |
-| [Roadmap](./ROADMAP.md) | What's coming next |
+| [Contributing](./.github/CONTRIBUTING.md) | Development guidelines |
+| [Roadmap](./docs/ROADMAP.md) | What's coming next |
+
+---
+
+## Troubleshooting
+
+<details>
+<summary><strong>Common Issues</strong></summary>
+
+**`miesc: command not found`**
+After `pip install miesc`, the entry point may not be on your PATH. Use:
+```bash
+python3 -m miesc.cli.main --help
+```
+Or add `~/.local/bin` (or your venv's `bin`) to your PATH.
+
+**`Tool 'mythril' not installed`**
+Optional tools must be installed separately. Either:
+```bash
+pip install miesc[full]              # All Python-based tools
+brew install mythril                 # System install
+docker run ghcr.io/fboiero/miesc:full  # Or use the full Docker image
+```
+
+**`Ollama API error: HTTP 404` or LLM analysis returns empty**
+The required model isn't pulled. Run:
+```bash
+ollama pull qwen2.5-coder:14b   # ~9 GB, recommended
+ollama pull qwen2.5-coder:32b   # ~20 GB, more accurate (needs 24+GB RAM)
+```
+Verify Ollama is running: `curl http://localhost:11434/api/tags`
+
+**Docker container can't reach Ollama on host (macOS)**
+```bash
+docker run -e OLLAMA_HOST=http://host.docker.internal:11434 ...
+```
+On Linux, use `--network=host` and `OLLAMA_HOST=http://localhost:11434`.
+
+**Slither errors with `solc not found` or version mismatch**
+Install solc-select:
+```bash
+pip install solc-select
+solc-select install 0.8.20 && solc-select use 0.8.20
+```
+
+**PDF report generation fails (`weasyprint` errors)**
+WeasyPrint needs system libraries:
+```bash
+brew install pango cairo gdk-pixbuf libffi   # macOS
+sudo apt install libpango-1.0-0 libpangoft2-1.0-0  # Linux
+```
+
+**`miesc audit full` runs slowly (>10 min per contract)**
+Heavy LLM models (32B) on small contracts. Use `qwen2.5-coder:14b` in `~/.miesc/config.yaml` or run quick scan: `miesc audit quick`.
+
+</details>
 
 ---
 
@@ -552,10 +607,10 @@ The project is fully compliant with all 9 DPGA indicators: open license (AGPL-3.
 ```bash
 git clone https://github.com/fboiero/MIESC.git
 cd MIESC && pip install -e .[dev]
-pytest tests/  # 4,700+ tests
+pytest tests/  # 4,800+ tests, 82% coverage
 ```
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines. [CONTRIBUTING_ES.md](./CONTRIBUTING_ES.md) disponible en espanol.
+See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for guidelines. [CONTRIBUTING_ES.md](./.github/CONTRIBUTING_ES.md) disponible en espanol.
 
 ---
 

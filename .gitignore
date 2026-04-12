@@ -240,3 +240,34 @@ paper/*.blg
 paper/*.out
 paper/*.log
 paper/missfont.log
+
+# Coverage artifacts (already in gitignore but being explicit)
+.coverage
+.coverage.*
+.coverage*
+htmlcov/
+coverage.xml
+coverage.json
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Streamlit artifacts
+.streamlit_cache/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Virtualenvs
+venv/
+venv*/
+.venv/
+.venv-test/
+
+evaluation_results/
+analysis/
+reports/
+CLAUDE.md
