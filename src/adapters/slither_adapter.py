@@ -41,12 +41,16 @@ def _find_slither_binary() -> str:
     priority_paths = [
         # User site-packages (pip install --user)
         os.path.expanduser("~/.local/bin/slither"),
-        os.path.expanduser("~/Library/Python/3.9/bin/slither"),
-        os.path.expanduser("~/Library/Python/3.10/bin/slither"),
-        os.path.expanduser("~/Library/Python/3.11/bin/slither"),
         os.path.expanduser("~/Library/Python/3.12/bin/slither"),
+        os.path.expanduser("~/Library/Python/3.11/bin/slither"),
+        os.path.expanduser("~/Library/Python/3.10/bin/slither"),
+        # Homebrew (most common on macOS)
+        "/opt/homebrew/bin/slither",
+        "/usr/local/Homebrew/bin/slither",
         # Virtual environment
         os.path.join(os.environ.get("VIRTUAL_ENV", ""), "bin", "slither"),
+        # Legacy Python 3.9
+        os.path.expanduser("~/Library/Python/3.9/bin/slither"),
     ]
 
     # Check priority paths first
@@ -261,9 +265,18 @@ class SlitherAdapter(ToolAdapter):
             # Build command with actual path (may be temp workspace)
             cmd = [self._slither_binary, actual_contract_path, "--json", output_path]
 
+            # Try to use solc directly from solc-select artifacts (avoids broken wrapper)
+            import os as _os
+            solc_artifact = _os.path.expanduser(
+                f"~/.solc-select/artifacts/solc-{solc_version or '0.8.20'}/solc-{solc_version or '0.8.20'}"
+            )
+            if Path(solc_artifact).exists():
+                cmd.extend(["--solc", solc_artifact])
+                logger.debug(f"Slither using direct solc binary: {solc_artifact}")
+
             if force_solc or legacy_solc or solc_version:
                 cmd.extend(["--compile-force-framework", "solc"])
-                if solc_version:
+                if solc_version and not Path(solc_artifact).exists():
                     cmd.extend(["--solc-solcs-select", solc_version])
             elif not temp_workspace:
                 # If not forcing solc, no workspace, and no project exists, create minimal Foundry project

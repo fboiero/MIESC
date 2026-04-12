@@ -1,0 +1,185 @@
+{
+  "comparison_date": "2026-04-12 09:08:36",
+  "miesc_version": "5.1.1",
+  "results": {
+    "EtherStore.sol": {
+      "slither": {
+        "findings": 4,
+        "time": 0.24532794952392578,
+        "installed": true
+      },
+      "aderyn": {
+        "findings": 5,
+        "time": 0.7502598762512207,
+        "installed": true
+      },
+      "solhint": {
+        "findings": 0,
+        "time": 0.3863790035247803,
+        "installed": true
+      },
+      "echidna": {
+        "findings": 0,
+        "time": 0.09551191329956055,
+        "installed": true
+      },
+      "miesc": {
+        "findings": 5,
+        "time": 39.32259202003479,
+        "installed": true,
+        "severity": {
+          "CRITICAL": 0,
+          "HIGH": 2,
+          "MEDIUM": 0,
+          "LOW": 3
+        }
+      }
+    },
+    "VulnerableDeFi.sol": {
+      "slither": {
+        "findings": 14,
+        "time": 0.28876280784606934,
+        "installed": true
+      },
+      "aderyn": {
+        "findings": 13,
+        "time": 0.7544960975646973,
+        "installed": true
+      },
+      "solhint": {
+        "findings": 0,
+        "time": 0.6354179382324219,
+        "installed": true
+      },
+      "echidna": {
+        "findings": 0,
+        "time": 0.14769721031188965,
+        "installed": true
+      },
+      "miesc": {
+        "findings": 5,
+        "time": 48.22021198272705,
+        "installed": true,
+        "severity": {
+          "CRITICAL": 0,
+          "HIGH": 4,
+          "MEDIUM": 0,
+          "LOW": 1
+        }
+      }
+    },
+    "AccessControlFlaws.sol": {
+      "slither": {
+        "findings": 21,
+        "time": 0.22921490669250488,
+        "installed": true
+      },
+      "aderyn": {
+        "findings": 13,
+        "time": 0.7647178173065186,
+        "installed": true
+      },
+      "solhint": {
+        "findings": 0,
+        "time": 0.39183878898620605,
+        "installed": true
+      },
+      "echidna": {
+        "findings": 0,
+        "time": 0.10971713066101074,
+        "installed": true
+      },
+      "miesc": {
+        "findings": 5,
+        "time": 43.62893104553223,
+        "installed": true,
+        "severity": {
+          "CRITICAL": 0,
+          "HIGH": 5,
+          "MEDIUM": 0,
+          "LOW": 0
+        }
+      }
+    },
+    "ReentrancyDAO.sol": {
+      "slither": {
+        "findings": 0,
+        "time": 0.20464801788330078,
+        "installed": true
+      },
+      "aderyn": {
+        "findings": 0,
+        "time": 0.1348869800567627,
+        "installed": true
+      },
+      "solhint": {
+        "findings": 0,
+        "time": 1.3296351432800293,
+        "installed": true
+      },
+      "echidna": {
+        "findings": 0,
+        "time": 0.09957313537597656,
+        "installed": true
+      },
+      "miesc": {
+        "findings": 5,
+        "time": 53.05799221992493,
+        "installed": true,
+        "severity": {
+          "CRITICAL": 0,
+          "HIGH": 5,
+          "MEDIUM": 0,
+          "LOW": 0
+        }
+      }
+    },
+    "FlashLoanAttack.sol": {
+      "slither": {
+        "findings": 6,
+        "time": 0.252518892288208,
+        "installed": true
+      },
+      "aderyn": {
+        "findings": 7,
+        "time": 0.7628989219665527,
+        "installed": true
+      },
+      "solhint": {
+        "findings": 0,
+        "time": 0.38028693199157715,
+        "installed": true
+      },
+      "echidna": {
+        "findings": 0,
+        "time": 0.10250091552734375,
+        "installed": true
+      },
+      "miesc": {
+        "findings": 5,
+        "time": 59.22118306159973,
+        "installed": true,
+        "severity": {
+          "CRITICAL": 0,
+          "HIGH": 2,
+          "MEDIUM": 0,
+          "LOW": 3
+        }
+      }
+    }
+  },
+  "totals": {
+    "slither": 45,
+    "aderyn": 38,
+    "solhint": 0,
+    "echidna": 0,
+    "miesc": 25
+  },
+  "times": {
+    "slither": 1.2204725742340088,
+    "aderyn": 3.167259693145752,
+    "solhint": 3.1235578060150146,
+    "echidna": 0.5550003051757812,
+    "miesc": 243.45091032981873
+  }
+}
