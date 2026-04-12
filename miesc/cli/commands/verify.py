@@ -15,6 +15,17 @@ import click
 from miesc.cli.utils import console, error, info, print_banner, success, warning
 
 
+def _find_foundry_root(start: Path) -> Optional[Path]:
+    """Walk up from `start` looking for foundry.toml. Returns project root or None."""
+    p = start.resolve()
+    if p.is_file():
+        p = p.parent
+    for candidate in [p, *p.parents]:
+        if (candidate / "foundry.toml").exists():
+            return candidate
+    return None
+
+
 @click.command()
 @click.argument("contract_path", type=click.Path(exists=True))
 @click.option(
@@ -113,12 +124,21 @@ def verify(contract_path, spec, tool, contract_name, timeout, output, quiet):
             error("certoraRun not installed; install from https://docs.certora.com/")
             sys.exit(1)
 
-    # Halmos — operates on the Foundry project dir
+    # Halmos — operates on the Foundry project dir (where foundry.toml lives)
     if tool_lower in ("all", "halmos"):
         if availability["halmos"]:
-            contract_dir = str(Path(contract_path).parent)
-            info(f"Running Halmos on {contract_dir}...") if not quiet else None
-            results["halmos"] = runner.run_halmos(contract_dir, timeout=timeout)
+            foundry_root = _find_foundry_root(Path(contract_path))
+            if foundry_root is None:
+                if tool_lower == "halmos":
+                    error(
+                        f"No foundry.toml found above {contract_path}. "
+                        "Halmos requires a Foundry project layout."
+                    )
+                    sys.exit(1)
+                warning("Skipping Halmos: no foundry.toml found upstream of contract.")
+            else:
+                info(f"Running Halmos on {foundry_root}...") if not quiet else None
+                results["halmos"] = runner.run_halmos(str(foundry_root), timeout=timeout)
         elif tool_lower == "halmos":
             error("halmos not installed; pip install halmos")
             sys.exit(1)
@@ -136,6 +156,7 @@ def verify(contract_path, spec, tool, contract_name, timeout, output, quiet):
                 "failed": "red",
                 "timeout": "yellow",
                 "error": "dim",
+                "no_tests": "yellow",
             }.get(r.status, "white")
             console.print(
                 f"  [{status_color}]{name}[/{status_color}]: {r.status} "

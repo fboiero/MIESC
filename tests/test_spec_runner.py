@@ -105,6 +105,15 @@ class TestHalmosParser:
         passed, failed, cex = SpecRunner._parse_halmos_output("")
         assert passed == 0 and failed == 0 and cex == []
 
+    def test_strips_ansi_codes(self):
+        # Halmos emits ANSI color codes — parser should ignore them
+        stdout = "\x1b[32m[PASS]\x1b[0m check_x\n\x1b[31m[FAIL]\x1b[0m check_y\nCounterexample: v = 1\x1b[0m"
+        passed, failed, cex = SpecRunner._parse_halmos_output(stdout)
+        assert passed == 1
+        assert failed == 1
+        # Counterexample should be cleaned of ANSI
+        assert cex == ["v = 1"]
+
 
 class TestSmtcheckerParser:
     def test_extracts_warnings(self):
@@ -195,3 +204,25 @@ class TestRunAllAvailable:
              patch.object(SpecRunner, "is_solc_available", return_value=False):
             results = run_all_available("contract.sol", spec_path="rules.spec")
             assert results == {}
+
+
+# ---------------------------------------------------------------------------
+# Status disambiguation (no_tests vs. failed)
+# ---------------------------------------------------------------------------
+
+
+class TestHalmosStatusLogic:
+    def test_zero_zero_is_no_tests_not_failed(self, tmp_path):
+        """If halmos runs but finds no tests, that's 'no_tests' not 'failed'."""
+        runner = SpecRunner()
+
+        class MockProc:
+            stdout = ""  # no [PASS]/[FAIL] markers
+            stderr = ""
+            returncode = 0
+
+        with patch.object(runner, "is_halmos_available", return_value=True), \
+             patch("src.formal.spec_runner.subprocess.run", return_value=MockProc()):
+            r = runner.run_halmos(str(tmp_path))
+            assert r.status == "no_tests"
+            assert r.rules_total == 0

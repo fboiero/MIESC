@@ -33,7 +33,7 @@ class VerificationResult:
 
     tool: str                      # "certora", "halmos", "smtchecker"
     spec_file: str
-    status: str                    # "passed" | "failed" | "timeout" | "error"
+    status: str                    # "passed" | "failed" | "timeout" | "error" | "no_tests"
     rules_passed: int = 0
     rules_failed: int = 0
     rules_total: int = 0
@@ -173,14 +173,23 @@ class SpecRunner:
             elapsed = time.time() - start
 
             passed, failed, counterexamples = self._parse_halmos_output(proc.stdout)
+            total = passed + failed
+
+            if total == 0:
+                # Halmos ran but found no tests — distinguish from actual failures
+                status = "no_tests"
+            elif failed == 0:
+                status = "passed"
+            else:
+                status = "failed"
 
             return VerificationResult(
                 tool="halmos",
                 spec_file=contract_dir,
-                status="passed" if failed == 0 and (passed + failed) > 0 else "failed",
+                status=status,
                 rules_passed=passed,
                 rules_failed=failed,
-                rules_total=passed + failed,
+                rules_total=total,
                 counterexamples=counterexamples,
                 stdout=proc.stdout[-2000:],
                 stderr=proc.stderr[-500:],
@@ -278,12 +287,24 @@ class SpecRunner:
         failed = len(re.findall(r"VIOLATED|FAILED", stdout + stderr, re.IGNORECASE))
         return passed, failed
 
+    # Strip ANSI color codes halmos emits to stdout
+    _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+    @staticmethod
+    def _strip_ansi(text: str) -> str:
+        return SpecRunner._ANSI_RE.sub("", text)
+
     @staticmethod
     def _parse_halmos_output(stdout: str) -> tuple[int, int, List[str]]:
         """Extract pass/fail + counterexamples from Halmos output."""
-        passed = len(re.findall(r"\[PASS\]|✓", stdout))
-        failed = len(re.findall(r"\[FAIL\]|✗", stdout))
-        counterexamples = re.findall(r"Counterexample:\s*(.*?)(?:\n|$)", stdout)
+        clean = SpecRunner._strip_ansi(stdout)
+        passed = len(re.findall(r"\[PASS\]|✓", clean))
+        failed = len(re.findall(r"\[FAIL\]|✗", clean))
+        counterexamples = [
+            c.strip() for c in re.findall(r"Counterexample:\s*(.*?)(?:\n|$)", clean)
+        ]
+        # Filter empties that sometimes appear from stripped ANSI residue
+        counterexamples = [c for c in counterexamples if c]
         return passed, failed, counterexamples[:10]
 
     @staticmethod
