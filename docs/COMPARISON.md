@@ -55,16 +55,24 @@ On 11 historical DeFi exploits ($3.3B in losses), MIESC achieves **81.8% recall*
 
 ## Where MIESC is WORSE
 
-### 1. Speed: 200x slower than Slither
-**MIESC: 529s vs Slither: 2.8s** for the same 5 contracts.
+### 1. Speed: ~80s startup overhead per scan
+**MIESC: 1:22 (with 0.6s actual analysis) vs Slither: 2.8s** total.
 
 The overhead comes from:
-- Running multiple tools sequentially (parallelization is partial)
-- LLM inference overhead (when `--llm-interpret` is used)
-- Mythril timeouts (90s default per contract)
-- Cross-validation and deduplication logic
+- **Adapter loader imports ~80s** (LLM clients, RAG, ChromaDB, sentence-transformers)
+- Tool execution itself is fast (slither: 0.6s, aderyn: 0.8s) and parallelized
+- This is a known issue tracked for v5.2: lazy imports for optional features
 
-**Recommendation:** Use `miesc scan` for fast checks; use `miesc audit full` only for deep analysis.
+**Workaround for speed-critical users:**
+```bash
+# Use Slither directly for sub-second feedback
+slither contract.sol
+
+# Use MIESC when you need cross-validation, normalized output, or AI insights
+miesc scan contract.sol
+```
+
+**v5.2 plan:** Lazy-load LLM/RAG dependencies only when `--llm-interpret` is used.
 
 ### 2. Aggressive false positive filtering
 Slither raw output: 14 findings on VulnerableDeFi.sol. MIESC reports 4 (after FP filter).
