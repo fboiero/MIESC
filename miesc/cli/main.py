@@ -45,6 +45,7 @@ from miesc.cli.commands.poc import poc as poc_group  # noqa: E402
 from miesc.cli.commands.report import report as report_cmd  # noqa: E402
 from miesc.cli.commands.scan import scan as scan_cmd  # noqa: E402
 from miesc.cli.commands.server import server as server_group  # noqa: E402
+from miesc.cli.commands.specs import specs as specs_cmd  # noqa: E402
 from miesc.cli.commands.tools import tools as tools_group  # noqa: E402
 from miesc.cli.commands.watch import watch as watch_cmd  # noqa: E402
 
@@ -114,6 +115,7 @@ cli.add_command(poc_group, name="poc")
 cli.add_command(report_cmd, name="report")
 cli.add_command(scan_cmd, name="scan")
 cli.add_command(server_group, name="server")
+cli.add_command(specs_cmd, name="specs")
 cli.add_command(tools_group, name="tools")
 cli.add_command(watch_cmd, name="watch")
 
