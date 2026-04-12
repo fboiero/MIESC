@@ -11,19 +11,28 @@ This document presents an honest comparison of MIESC against the most popular sm
 - **Tool versions:** Slither 0.11.3, Aderyn 0.6.x, Solhint 5.x, Echidna 2.3, MIESC 5.1.1
 - **MIESC mode:** `miesc scan` (Layer 1 only — Slither + Aderyn + Solhint + Mythril)
 
-## Quantitative Results (April 2026, post v5.1.2 optimizations)
+## Quantitative Results (April 2026, v5.1.2)
 
-| Tool | Total findings | Total time | Speed (findings/s) |
-|------|---------------|------------|---------------------|
-| Slither alone | 45 | 1.5s | 30 |
-| Aderyn alone | 38 | 3.1s | 12 |
-| **MIESC** (multi-tool) | **112** | **8.5s** | **13** |
-| Solhint | 0* | 3.5s | — |
-| Echidna | 0* | 0.5s | — |
+| Tool | Total findings | Total time | Notes |
+|------|---------------|------------|-------|
+| Slither alone | 45 | 1.2s | Fast baseline, 100 detectors |
+| Aderyn alone | 38 | 3.1s | Rust-based, Solidity 0.8+ only |
+| **MIESC** (multi-tool) | **97** | **7.3s** | Cross-validated, deduplicated |
+| Solhint | 0* | 3.7s | * Needs custom `.solhint.json` |
+| Echidna | 0* | 0.6s | * Needs property contracts |
 
-\* Solhint requires custom config; Echidna requires property contracts
+**Key insight:** MIESC finds **2.15x more findings** than Slither alone (97 vs 45) at **6x the time cost** (7.3s vs 1.2s). The cross-tool aggregation surfaces vulnerabilities that any single tool misses, while deduplication removes cross-tool duplicates.
 
-**Key insight:** MIESC finds **2.5x more findings** than Slither alone (112 vs 45) at **5.6x the time cost** (8.5s vs 1.5s). The cross-tool aggregation surfaces vulnerabilities that any single tool misses.
+### Tunable strictness (v5.1.2+)
+
+```bash
+miesc scan contract.sol --fp-strictness off     # Report everything
+miesc scan contract.sol --fp-strictness low     # Permissive
+miesc scan contract.sol --fp-strictness medium  # Default, balanced
+miesc scan contract.sol --fp-strictness high    # Aggressive for CI
+```
+
+EtherStore.sol by strictness: off=14, low=14, medium=11, high=9 findings.
 
 ## Where MIESC is BETTER
 
