@@ -20,6 +20,7 @@ Version: 1.0.0
 
 import json
 import logging
+import os
 import subprocess
 import time
 from dataclasses import dataclass
@@ -32,7 +33,7 @@ logger = logging.getLogger(__name__)
 class LLMConfig:
     """Configuration for LLM calls."""
 
-    model: str = "deepseek-coder"
+    model: str = "qwen2.5-coder:14b"
     temperature: float = 0.1  # Low for precise technical analysis
     max_tokens: int = 4000
     timeout: int = 120  # 2 minutes default
@@ -240,23 +241,39 @@ REMEDIATION ADVICE:"""
     # ============================================================================
 
     def _call_llm(self, prompt: str) -> Optional[str]:
-        """Call Ollama LLM with retry logic."""
+        """Call Ollama LLM via HTTP API (clean output, no ANSI escapes)."""
+        import urllib.request
+        import urllib.error
+
+        host = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+        if not host.startswith("http"):
+            host = f"http://{host}"
+
+        payload = json.dumps({
+            "model": self.config.model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.1,
+                "num_predict": 500,
+            },
+        }).encode()
+
         for attempt in range(1, self.config.retry_attempts + 1):
             try:
-                result = subprocess.run(
-                    ["ollama", "run", self.config.model, prompt],
-                    capture_output=True,
-                    timeout=self.config.timeout,
-                    text=True,
+                req = urllib.request.Request(
+                    f"{host}/api/generate",
+                    data=payload,
+                    headers={"Content-Type": "application/json"},
                 )
+                with urllib.request.urlopen(req, timeout=self.config.timeout) as resp:
+                    data = json.loads(resp.read())
+                    response = data.get("response", "").strip()
+                    if response:
+                        return response
 
-                if result.returncode == 0 and result.stdout:
-                    return result.stdout.strip()
-
-                logger.warning(f"LLM call attempt {attempt} failed: {result.stderr}")
-
-            except subprocess.TimeoutExpired:
-                logger.warning(f"LLM call attempt {attempt} timeout")
+            except (urllib.error.URLError, urllib.error.HTTPError) as e:
+                logger.warning(f"LLM HTTP attempt {attempt} failed: {e}")
             except Exception as e:
                 logger.error(f"LLM call attempt {attempt} error: {e}")
 

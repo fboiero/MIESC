@@ -3381,7 +3381,7 @@ class TestOpenLLaMAHelper:
         from src.llm.openllama_helper import LLMConfig
 
         config = LLMConfig()
-        assert config.model == "deepseek-coder"
+        assert config.model == "qwen2.5-coder:14b"
         assert config.temperature == 0.1
         assert config.max_tokens == 4000
         assert config.timeout == 120
@@ -3435,7 +3435,7 @@ class TestOpenLLaMAHelper:
         helper = OpenLLaMAHelper()
         helper._available = None
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=0, stdout="deepseek-coder")
+            mock_run.return_value = MagicMock(returncode=0, stdout="qwen2.5-coder:14b")
             result = helper.is_available()
             assert result
 
@@ -3545,26 +3545,37 @@ class TestOpenLLaMAHelper:
             assert "ReentrancyGuard" in result
 
     def test_call_llm_success(self):
-        """Test _call_llm with successful call."""
+        """Test _call_llm with successful HTTP call."""
         from src.llm.openllama_helper import OpenLLaMAHelper
+        import json as json_mod
 
         helper = OpenLLaMAHelper()
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=0, stdout="LLM response")
+        mock_response = json_mod.dumps({"response": "LLM response"}).encode()
+
+        class MockResponse:
+            def read(self):
+                return mock_response
+
+        class MockContextManager:
+            def __enter__(self):
+                return MockResponse()
+            def __exit__(self, *args):
+                return None
+
+        with patch("urllib.request.urlopen", return_value=MockContextManager()):
             result = helper._call_llm("test prompt")
             assert result == "LLM response"
 
     def test_call_llm_failure_retry(self):
-        """Test _call_llm with retry on failure."""
+        """Test _call_llm with retry on HTTP failure."""
+        import urllib.error
         from src.llm.openllama_helper import LLMConfig, OpenLLaMAHelper
 
         config = LLMConfig(retry_attempts=2, retry_delay=0.1)
         helper = OpenLLaMAHelper(config=config)
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="error")
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("connection refused")):
             result = helper._call_llm("test prompt")
             assert result is None
-            assert mock_run.call_count == 2
 
     def test_call_llm_timeout(self):
         """Test _call_llm with timeout."""
@@ -3572,8 +3583,7 @@ class TestOpenLLaMAHelper:
 
         config = LLMConfig(retry_attempts=1)
         helper = OpenLLaMAHelper(config=config)
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = subprocess.TimeoutExpired(cmd="ollama", timeout=120)
+        with patch("urllib.request.urlopen", side_effect=TimeoutError("timeout")):
             result = helper._call_llm("test prompt")
             assert result is None
 
