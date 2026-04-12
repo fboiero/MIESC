@@ -156,12 +156,12 @@ class SMTCheckerAdapter(ToolAdapter):
                 contract_code = ""
 
             # Enhance findings with OpenLLaMA insights (if available)
-            if contract_code and findings:
+            # LLM enhancement (opt-in via llm_enhance=True)
+            if kwargs.get("llm_enhance", False) and contract_code and findings:
                 try:
                     findings = enhance_findings_with_llm(
                         findings=findings, contract_code=contract_code, adapter_name="smtchecker"
                     )
-                    logger.info("OpenLLaMA: Enhanced SMTChecker findings with AI insights")
                 except Exception as e:
                     logger.debug(f"OpenLLaMA enhancement skipped: {e}")
 

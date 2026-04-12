@@ -326,18 +326,19 @@ class SlitherAdapter(ToolAdapter):
             # Normalize findings
             findings = self.normalize_findings(raw_output)
 
-            # Enhance findings with OpenLLaMA (optional)
-            try:
-                with open(contract_path, "r") as f:
-                    contract_code = f.read()
-
-                # Enhance top findings with LLM insights
-                if findings:
-                    findings = enhance_findings_with_llm(
-                        findings[:5], contract_code, "slither"  # Top 5 findings
-                    )
-            except Exception as e:
-                logger.debug(f"LLM enhancement failed: {e}")
+            # Enhance findings with OpenLLaMA (opt-in via llm_enhance=True)
+            # Default: SKIP — adds 8s per finding (5 findings = 40s overhead).
+            # Enable explicitly when generating reports for clients.
+            if kwargs.get("llm_enhance", False):
+                try:
+                    with open(contract_path, "r") as f:
+                        contract_code = f.read()
+                    if findings:
+                        findings = enhance_findings_with_llm(
+                            findings[:5], contract_code, "slither"
+                        )
+                except Exception as e:
+                    logger.debug(f"LLM enhancement failed: {e}")
 
             metadata = {
                 "contract_analyzed": contract_path,

@@ -285,7 +285,7 @@ class HardhatAdapter(ToolAdapter):
                     with open(contract_path, "r") as f:
                         contract_code = f.read()
 
-                    if findings:
+                    if findings and kwargs.get("llm_enhance", False):
                         findings = enhance_findings_with_llm(findings[:5], contract_code, "hardhat")
             except Exception as e:
                 logger.debug(f"LLM enhancement failed: {e}")

@@ -243,19 +243,18 @@ class SolhintAdapter(ToolAdapter):
 
             # Parse output
             findings = self._parse_output(result.stdout, result.stderr)
-
-            # Enhance findings with OpenLLaMA (optional)
-            try:
-                with open(contract_path, "r") as f:
-                    contract_code = f.read()
-
-                # Enhance top findings with LLM insights
-                if findings:
-                    findings = enhance_findings_with_llm(
-                        findings[:5], contract_code, "solhint"  # Top 5 findings
-                    )
-            except Exception as e:
-                logger.debug(f"LLM enhancement failed: {e}")
+            # Enhance findings with OpenLLaMA (opt-in via llm_enhance=True)
+            # Default: SKIP — adds 8s per finding. Enable for client reports.
+            if kwargs.get("llm_enhance", False):
+                try:
+                    with open(contract_path, "r") as fc:
+                        contract_code = fc.read()
+                    if findings:
+                        findings = enhance_findings_with_llm(
+                            findings[:5], contract_code, "solhint"
+                        )
+                except Exception as e:
+                    logger.debug(f"LLM enhancement failed: {e}")
 
             # Count issues by severity
             errors = sum(1 for f in findings if f.get("severity") == "high")

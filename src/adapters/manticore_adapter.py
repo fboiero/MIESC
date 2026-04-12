@@ -154,13 +154,13 @@ class ManticoreAdapter(ToolAdapter):
 
                 # Enhance findings with OpenLLaMA insights (if available)
                 if contract_code and findings:
-                    try:
-                        findings = enhance_findings_with_llm(
-                            findings=findings, contract_code=contract_code, adapter_name="manticore"
-                        )
-                        logger.info("OpenLLaMA: Enhanced Manticore findings with AI insights")
-                    except Exception as e:
-                        logger.debug(f"OpenLLaMA enhancement skipped: {e}")
+                    if kwargs.get("llm_enhance", False):
+                        try:
+                            findings = enhance_findings_with_llm(
+                                findings=findings, contract_code=contract_code, adapter_name="manticore"
+                            )
+                        except Exception as e:
+                            logger.debug(f"OpenLLaMA enhancement skipped: {e}")
 
                 return {
                     "tool": "manticore",
