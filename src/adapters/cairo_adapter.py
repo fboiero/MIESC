@@ -7,21 +7,30 @@ Adapter for analyzing Cairo smart contracts on Starknet.
 Features:
 - Parse Cairo module source code
 - Detect Cairo-specific vulnerabilities:
-  - Felt overflow (252-bit field element)
-  - Missing l1<->l2 message validation
-  - Storage var collisions
+  - Felt/u256 overflow (252-bit field element, custom u256)
+  - Missing L1<->L2 message validation
+  - Storage var collisions in components
   - Unchecked external calls to L1
   - Caller address spoofing (tx.caller vs get_caller_address)
-  - Proxy upgrade issues
+  - Proxy upgrade issues (replace_class_syscall)
+  - Pragma oracle staleness (zkLend Feb 2025 root cause)
+  - Unchecked syscall results
+  - Initializer / reinit vulnerabilities
+  - Signature replay in account abstraction
 
 References:
 - https://book.starknet.io/
 - https://docs.starknet.io/documentation/
 - https://github.com/crytic/caracal (Cairo static analyzer)
 
+Real-world exploits informing patterns:
+- zkLend (Feb 2025, $9.6M) → PRAGMA_ORACLE_STALE + UNCHECKED_U256
+- Braavos (2023)            → SIGNATURE_REPLAY + UPGRADE_NO_INIT_GUARD
+- Nostra (2024)             → ACCESS_CONTROL
+
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: April 2026
-Version: 1.0.0
+Version: 1.1.0
 License: AGPL-3.0
 """
 
@@ -49,6 +58,12 @@ class CairoVulnType(Enum):
     REENTRANCY = "reentrancy"
     ACCESS_CONTROL = "access_control"
     ARITHMETIC = "arithmetic"
+    # New in v1.1.0 — based on 2024-2026 real-world Starknet exploits
+    UNCHECKED_U256 = "unchecked_u256"
+    PRAGMA_ORACLE_STALE = "pragma_oracle_stale"
+    UPGRADE_NO_INIT_GUARD = "upgrade_no_init_guard"
+    UNCHECKED_SYSCALL_RESULT = "unchecked_syscall_result"
+    SIGNATURE_REPLAY = "signature_replay"
 
 
 @dataclass
@@ -177,6 +192,101 @@ CAIRO_PATTERNS: Dict[CairoVulnType, Dict[str, Any]] = {
         ),
         "recommendation": "Guard with onlyOwner or Upgradeable component.",
     },
+    # -----------------------------------------------------------------------
+    # New patterns informed by 2024-2026 real-world Starknet exploits
+    # -----------------------------------------------------------------------
+    CairoVulnType.UNCHECKED_U256: {
+        "patterns": [
+            # u256 arithmetic without overflowing_add / checked_add
+            r"u256\s*\{[^}]*\}\s*\+\s*u256",
+            r"let\s+\w+:\s*u256\s*=\s*\w+\s*[+\-*]\s*\w+(?!.*checked_|overflowing_)",
+        ],
+        "severity": "High",
+        "title": "Unchecked u256 arithmetic",
+        "description": (
+            "Cairo 1.0 u256 arithmetic can still produce silent overflows in "
+            "low-level operations. zkLend (Feb 2025, $9.6M) was partially "
+            "caused by unchecked u256 math in lending accumulator updates."
+        ),
+        "recommendation": (
+            "Prefer `integer::u256_checked_add`, `checked_sub`, or use the "
+            "`core::num::traits::CheckedAdd` trait. Avoid raw `+` / `-` on u256."
+        ),
+    },
+    CairoVulnType.PRAGMA_ORACLE_STALE: {
+        "patterns": [
+            # Pragma oracle calls without freshness validation
+            r"IPragmaOracle\w*Dispatcher.*\.get_data_median",
+            r"PragmaPricesResponse",
+            r"\.get_data\(DataType::",
+        ],
+        "severity": "High",
+        "title": "Pragma oracle price used without staleness check",
+        "description": (
+            "Reading Pragma oracle prices without validating `last_updated_timestamp` "
+            "or `num_sources_aggregated` exposes the contract to stale-price "
+            "manipulation. zkLend Feb 2025 exploit leveraged stale empty-market "
+            "state to drain funds."
+        ),
+        "recommendation": (
+            "Assert `get_block_timestamp() - response.last_updated_timestamp < MAX_AGE` "
+            "and `response.num_sources_aggregated >= MIN_SOURCES` before using prices."
+        ),
+    },
+    CairoVulnType.UPGRADE_NO_INIT_GUARD: {
+        "patterns": [
+            r"fn\s+initializ(e|er)\s*\([^)]*\)",
+            r"fn\s+__validate_deploy__",
+        ],
+        "severity": "High",
+        "title": "Initializer function may be callable more than once",
+        "description": (
+            "Initializer / validate_deploy functions must include a reinit guard. "
+            "Braavos account contracts (2023) were re-initialized after deployment "
+            "when the guard was missing, allowing full account takeover."
+        ),
+        "recommendation": (
+            "Track initialization in a bool storage var and assert it's false "
+            "at the start of the initializer (`assert(!self.initialized.read(), 'already initialized')`)."
+        ),
+    },
+    CairoVulnType.UNCHECKED_SYSCALL_RESULT: {
+        "patterns": [
+            # call_contract_syscall / library_call_syscall without .unwrap_syscall()
+            r"(call_contract_syscall|library_call_syscall)\([^)]*\)(?!\s*[.?])",
+            r"send_message_to_l1_syscall\([^)]*\)(?!\s*[.?])",
+        ],
+        "severity": "Medium",
+        "title": "Syscall result not checked",
+        "description": (
+            "Cairo syscalls return a `SyscallResult` that must be unwrapped or "
+            "propagated. Ignoring failures leaves the contract in an inconsistent "
+            "state (e.g. state written, external effect never happened)."
+        ),
+        "recommendation": (
+            "Use `.unwrap_syscall()` or propagate with `?`. Never silently drop "
+            "the result of a call_contract_syscall / library_call_syscall."
+        ),
+    },
+    CairoVulnType.SIGNATURE_REPLAY: {
+        "patterns": [
+            # Account abstraction __execute__ / is_valid_signature missing nonce
+            r"fn\s+is_valid_signature\s*\([^)]*\)(?!.*nonce)",
+            r"fn\s+__execute__\s*\([^)]*\)(?!.*nonce)",
+        ],
+        "severity": "High",
+        "title": "Account abstraction without nonce in signature scope",
+        "description": (
+            "Account contracts that validate signatures without binding a nonce "
+            "(or chain_id) allow replay across transactions / networks. The "
+            "Braavos account incident (2023) highlighted the criticality of "
+            "nonce-bound signature validation."
+        ),
+        "recommendation": (
+            "Include the current nonce and chain_id in the hashed payload before "
+            "calling `is_valid_signature`. Enforce monotonicity of nonce storage."
+        ),
+    },
 }
 
 
@@ -190,7 +300,7 @@ class CairoAnalyzer:
 
     name = "miesc-cairo"
     description = "Cairo/Starknet static analyzer"
-    version = "1.0.0"
+    version = "1.1.0"
 
     def analyze(self, contract_path: str) -> Dict[str, Any]:
         """Analyze a Cairo contract file and return findings."""

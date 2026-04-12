@@ -135,6 +135,11 @@ class TestCairoPatterns:
             CairoVulnType.REENTRANCY,
             CairoVulnType.ACCESS_CONTROL,
             CairoVulnType.PROXY_UPGRADE,
+            CairoVulnType.UNCHECKED_U256,
+            CairoVulnType.PRAGMA_ORACLE_STALE,
+            CairoVulnType.UPGRADE_NO_INIT_GUARD,
+            CairoVulnType.UNCHECKED_SYSCALL_RESULT,
+            CairoVulnType.SIGNATURE_REPLAY,
         ]:
             assert vuln_type in CAIRO_PATTERNS, f"Missing pattern for {vuln_type}"
             cfg = CAIRO_PATTERNS[vuln_type]
@@ -143,3 +148,117 @@ class TestCairoPatterns:
             assert cfg["title"]
             assert cfg["description"]
             assert cfg["recommendation"]
+
+
+# ---------------------------------------------------------------------------
+# Patterns informed by 2024-2026 real-world exploits
+# ---------------------------------------------------------------------------
+
+
+PRAGMA_ORACLE_VULNERABLE = """
+#[starknet::contract]
+mod LendingPool {
+    use pragma_lib::abi::{IPragmaOracleDispatcher, IPragmaOracleDispatcherTrait};
+    use pragma_lib::types::{DataType, PragmaPricesResponse};
+
+    #[external]
+    fn get_asset_price(self: @ContractState) -> u128 {
+        let oracle = IPragmaOracleDispatcher { contract_address: self.oracle.read() };
+        let response = oracle.get_data_median(DataType::SpotEntry('ETH/USD'));
+        response.price
+    }
+}
+"""
+
+
+INITIALIZER_NO_GUARD = """
+#[starknet::contract]
+mod MyAccount {
+    #[external]
+    fn initializer(ref self: ContractState, owner: ContractAddress) {
+        self.owner.write(owner);
+    }
+
+    fn __validate_deploy__(
+        self: @ContractState, class_hash: felt252, salt: felt252, pubkey: felt252
+    ) -> felt252 {
+        starknet::VALIDATED
+    }
+}
+"""
+
+
+UNCHECKED_U256_CODE = """
+#[starknet::contract]
+mod Vault {
+    #[external]
+    fn credit(ref self: ContractState, amount: u256) {
+        let prev: u256 = self.balance.read();
+        let total: u256 = prev + amount;
+        self.balance.write(total);
+    }
+}
+"""
+
+
+UNCHECKED_SYSCALL_CODE = """
+use starknet::syscalls::call_contract_syscall;
+
+#[starknet::contract]
+mod Router {
+    #[external]
+    fn hit(ref self: ContractState, target: ContractAddress, selector: felt252) {
+        call_contract_syscall(target, selector, array![].span());
+    }
+}
+"""
+
+
+SIGNATURE_REPLAY_CODE = """
+#[starknet::contract]
+mod AccountLike {
+    #[external]
+    fn is_valid_signature(self: @ContractState, hash: felt252, signature: Array<felt252>) -> felt252 {
+        starknet::VALIDATED
+    }
+
+    #[external]
+    fn __execute__(ref self: ContractState, calls: Array<Call>) -> Array<Span<felt252>> {
+        array![]
+    }
+}
+"""
+
+
+class TestRealWorldExploitPatterns:
+    @pytest.fixture
+    def analyzer(self):
+        return CairoAnalyzer()
+
+    def test_detects_pragma_oracle_stale(self, analyzer):
+        result = analyzer.analyze_source(PRAGMA_ORACLE_VULNERABLE)
+        types = [f["type"] for f in result["findings"]]
+        assert "pragma_oracle_stale" in types
+
+    def test_detects_initializer_no_guard(self, analyzer):
+        result = analyzer.analyze_source(INITIALIZER_NO_GUARD)
+        types = [f["type"] for f in result["findings"]]
+        assert "upgrade_no_init_guard" in types
+
+    def test_detects_unchecked_u256(self, analyzer):
+        result = analyzer.analyze_source(UNCHECKED_U256_CODE)
+        types = [f["type"] for f in result["findings"]]
+        assert "unchecked_u256" in types
+
+    def test_detects_unchecked_syscall(self, analyzer):
+        result = analyzer.analyze_source(UNCHECKED_SYSCALL_CODE)
+        types = [f["type"] for f in result["findings"]]
+        assert "unchecked_syscall_result" in types
+
+    def test_detects_signature_replay(self, analyzer):
+        result = analyzer.analyze_source(SIGNATURE_REPLAY_CODE)
+        types = [f["type"] for f in result["findings"]]
+        assert "signature_replay" in types
+
+    def test_analyzer_version_bumped(self, analyzer):
+        assert analyzer.version == "1.1.0"
