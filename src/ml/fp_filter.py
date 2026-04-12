@@ -475,8 +475,8 @@ class FalsePositiveFilter:
             except (RuntimeError, ValueError, OSError) as e:
                 logger.warning(f"FP Filter: RAG init failed: {e}")
 
-        logger.info(
-            f"FP Filter initialized with threshold={fp_threshold}, rag={self._rag_available}"
+        logger.debug(
+            f"FP Filter initialized: strictness={strictness}, threshold={self.fp_threshold}, rag={self._rag_available}"
         )
 
     def _compile_patterns(self):

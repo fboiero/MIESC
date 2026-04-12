@@ -149,7 +149,7 @@ class LLMBugScannerAdapter(ToolAdapter):
             try:
                 self._embedding_rag = EmbeddingRAG()
                 self._use_rag = True
-                logger.info("LLMBugScanner: EmbeddingRAG (ChromaDB) enabled")
+                logger.debug("LLMBugScanner: EmbeddingRAG (ChromaDB) enabled")
             except Exception as e:
                 logger.debug(f"LLMBugScanner: EmbeddingRAG unavailable: {e}")
 

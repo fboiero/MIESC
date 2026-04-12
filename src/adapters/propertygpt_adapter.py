@@ -113,7 +113,7 @@ class PropertyGPTAdapter(ToolAdapter):
             try:
                 self._embedding_rag = EmbeddingRAG()
                 self._use_rag = True
-                logger.info("PropertyGPT: EmbeddingRAG (ChromaDB) enabled")
+                logger.debug("PropertyGPT: EmbeddingRAG (ChromaDB) enabled")
             except Exception as e:
                 logger.debug(f"PropertyGPT: EmbeddingRAG unavailable: {e}")
 

@@ -58,7 +58,7 @@ class RateLimiter:
         self.calls = deque(maxlen=max_calls * 2)  # Store call timestamps
         self.lock = threading.Lock()
 
-        logger.info(
+        logger.debug(
             f"RateLimiter initialized: {max_calls} calls per {period}s "
             f"(burst: {self.burst_size})"
         )
@@ -205,7 +205,7 @@ class APIQuotaManager:
 
         self.lock = threading.Lock()
 
-        logger.info(
+        logger.debug(
             f"APIQuotaManager initialized - Daily limit: {daily_limit}, "
             f"Monthly limit: {monthly_limit}, Cost limit: ${daily_cost_limit}/day"
         )

@@ -138,7 +138,7 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             try:
                 self._embedding_rag = EmbeddingRAG()
                 self._use_rag = True
-                logger.info("GPTScan: EmbeddingRAG (ChromaDB) enabled")
+                logger.debug("GPTScan: EmbeddingRAG (ChromaDB) enabled")
             except Exception as e:
                 logger.debug(f"GPTScan: EmbeddingRAG unavailable: {e}")
 

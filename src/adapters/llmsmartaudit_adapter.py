@@ -118,7 +118,7 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
             try:
                 self._embedding_rag = EmbeddingRAG()
                 self._use_rag = True
-                logger.info("LLMSmartAudit: EmbeddingRAG (ChromaDB) enabled")
+                logger.debug("LLMSmartAudit: EmbeddingRAG (ChromaDB) enabled")
             except Exception as e:
                 logger.debug(f"LLMSmartAudit: EmbeddingRAG unavailable: {e}")
 

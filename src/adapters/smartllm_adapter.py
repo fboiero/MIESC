@@ -109,11 +109,11 @@ class SmartLLMAdapter(ToolAdapter):
             try:
                 self._embedding_rag = EmbeddingRAG()
                 self._use_embedding_rag = True
-                logger.info("EmbeddingRAG (ChromaDB) enabled for semantic search")
+                logger.debug("EmbeddingRAG (ChromaDB) enabled for semantic search")
             except Exception as e:
                 logger.warning(f"EmbeddingRAG initialization failed: {e}, using keyword RAG")
 
-        logger.info(
+        logger.debug(
             f"SmartLLMAdapter initialized with model={self._model}, host={self._ollama_host}"
         )
 

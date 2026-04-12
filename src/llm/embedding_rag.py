@@ -3508,7 +3508,7 @@ class EmbeddingRAG:
         self._cache_hits = 0
         self._cache_misses = 0
 
-        logger.info(
+        logger.debug(
             f"EmbeddingRAG configured with model={embedding_model}, top_k={top_k}, cache={enable_cache}"
         )
 
