@@ -123,7 +123,7 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
 
     def __init__(self):
         super().__init__()
-        self._default_timeout = 120
+        self._default_timeout = 300  # 5 min for large contracts with LLM
         try:
             from src.core.llm_config import get_model, USE_CASE_CODE_ANALYSIS
             self._ollama_model = get_model(USE_CASE_CODE_ANALYSIS)

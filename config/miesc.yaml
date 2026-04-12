@@ -547,19 +547,19 @@ llm:
   # El sistema intentará usar el modelo específico, si no está disponible usa default
   models:
     # Análisis de código y detección de vulnerabilidades
-    code_analysis: qwen2.5-coder:32b
+    code_analysis: qwen2.5-coder:14b
 
     # Generación de propiedades y invariantes (formal verification)
-    property_generation: qwen2.5-coder:32b
+    property_generation: qwen2.5-coder:14b
 
     # Verificación y validación de hallazgos
     verification: qwen2.5-coder:32b
 
     # Correlación y síntesis de resultados
-    correlation: qwen2.5-coder:32b
+    correlation: qwen2.5-coder:14b
 
     # Generación de remediaciones y fixes
-    remediation: qwen2.5-coder:32b
+    remediation: qwen2.5-coder:14b
 
   # Modelos de fallback (en orden de preferencia)
   fallback_models:
