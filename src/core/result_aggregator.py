@@ -105,32 +105,43 @@ class ResultAggregator:
         "optimization": 1,
     }
 
-    # Mapeo de tipos similares entre herramientas
+    # Cross-tool type aliases — maps Slither, Aderyn, Mythril, etc. to canonical types
+    # Updated v5.1.2 to improve cross-tool deduplication
     TYPE_ALIASES = {
         "reentrancy": [
-            "reentrancy",
-            "reentrant",
-            "reentrancy-eth",
-            "reentrancy-no-eth",
-            "reentrancy-benign",
+            "reentrancy", "reentrant", "reentrancy-eth", "reentrancy-no-eth",
+            "reentrancy-benign", "reentrancy-events",
         ],
         "overflow": [
-            "overflow",
-            "integer-overflow",
-            "arithmetic",
+            "overflow", "integer-overflow", "arithmetic",
             "integer-overflow-and-underflow",
         ],
         "underflow": ["underflow", "integer-underflow"],
-        "access-control": ["access-control", "unprotected-upgrade", "arbitrary-send", "suicidal"],
-        "unchecked-call": [
-            "unchecked-call",
-            "unchecked-lowlevel",
-            "unchecked-send",
-            "low-level-calls",
+        "access-control": [
+            "access-control", "unprotected-upgrade", "arbitrary-send", "suicidal",
+            "selfdestruct-identifier", "unprotected-initializer", "tx-origin",
+            "controlled-delegatecall", "delegate-call-unchecked-address",
         ],
-        "dos": ["dos", "denial-of-service", "locked-ether"],
-        "timestamp": ["timestamp", "block-timestamp", "weak-prng", "timestamp-dependency"],
+        "unchecked-call": [
+            "unchecked-call", "unchecked-lowlevel", "unchecked-send",
+            "low-level-calls", "unused-return", "unchecked-return",
+        ],
+        "dos": ["dos", "denial-of-service", "locked-ether", "contract-locks-ether"],
+        "timestamp": ["timestamp", "block-timestamp", "timestamp-dependency"],
+        "weak-randomness": ["weak-prng", "weak-randomness", "bad-randomness"],
         "front-running": ["front-running", "frontrunning", "transaction-order-dependence"],
+        "uninitialized-state": ["uninitialized-state", "uninitialized-state-variable"],
+        "missing-zero-check": ["missing-zero-check", "zero-address-check"],
+        "gas-optimization": [
+            "cache-array-length", "constable-states", "immutable-states",
+            "gas-optimization", "constants-instead-of-literals",
+            "useless-internal-function", "useless-public-function",
+            "push-zero-opcode",
+        ],
+        "code-quality": [
+            "solc-version", "unspecific-solidity-pragma", "too-many-digits",
+            "large-numeric-literal", "unindexed-events",
+        ],
     }
 
     def __init__(
