@@ -5,6 +5,33 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.3] - 2026-04-12
+
+### Added
+- **Formal verification spec auto-generator** (`src/formal/spec_generator.py`)
+  - Generates Certora CVL rules from MIESC findings
+  - Generates Scribble annotations
+  - Generates SMTChecker assertions
+- **New CLI command: `miesc specs`**
+  - `miesc specs results.json -f cvl -o my.spec`
+  - `miesc specs results.json -f scribble`
+  - `miesc specs results.json -f smtchecker`
+- Maps 7 vulnerability types to spec templates:
+  reentrancy, access-control, overflow, underflow, unchecked-call,
+  timestamp, weak-randomness
+
+### Use case
+Bridge between automated detection (MIESC) and formal verification
+(Certora Prover, Scribble, solc SMTChecker) — previously a gap.
+
+Workflow:
+  1. `miesc scan contract.sol -o results.json`
+  2. `miesc specs results.json -f cvl -o my.spec`
+  3. `certoraRun contract.sol --verify MyContract:my.spec`
+
+### Tests
+18 new tests for spec generation. Total 4912 tests, 82.38% coverage.
+
 ## [5.1.2] - 2026-04-12
 
 ### Added
