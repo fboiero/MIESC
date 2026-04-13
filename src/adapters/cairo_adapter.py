@@ -341,28 +341,53 @@ class CairoAnalyzer:
         }
 
     def _scan(self, code: str) -> List[CairoFinding]:
-        """Run all patterns against code."""
+        """Run all patterns against code (block-level, not line-by-line).
+
+        Scanning across line boundaries is necessary because many Cairo
+        patterns span multiple lines — e.g. `#[external]` followed by
+        `fn foo(...)` on the next line. The previous line-by-line
+        implementation silently missed those matches.
+        """
         findings: List[CairoFinding] = []
         lines = code.split("\n")
+        # Precompute cumulative line offsets so we can map match.start() -> line number.
+        line_starts = [0]
+        for line in lines:
+            line_starts.append(line_starts[-1] + len(line) + 1)  # +1 for the newline
+
+        def _line_from_offset(offset: int) -> int:
+            # Binary search could be cleaner but N is small (hundreds of lines max).
+            for i in range(len(line_starts) - 1):
+                if line_starts[i] <= offset < line_starts[i + 1]:
+                    return i + 1  # 1-indexed
+            return len(lines)
 
         for vuln_type, cfg in CAIRO_PATTERNS.items():
+            matched = False
             for pattern in cfg["patterns"]:
-                for i, line in enumerate(lines, 1):
-                    if re.search(pattern, line):
-                        # Extract function name if in a fn
-                        func = self._extract_function(lines, i)
-                        findings.append(
-                            CairoFinding(
-                                vuln_type=vuln_type,
-                                severity=cfg["severity"],
-                                title=cfg["title"],
-                                description=cfg["description"],
-                                line=i,
-                                function=func,
-                                recommendation=cfg["recommendation"],
-                            )
+                if matched:
+                    break  # One finding per vuln type per scan
+                try:
+                    # re.DOTALL lets `.` span newlines; `\s` already does.
+                    m = re.search(pattern, code, re.DOTALL)
+                except re.error:
+                    # Defensive: a malformed pattern should not break the whole scan
+                    continue
+                if m:
+                    line_num = _line_from_offset(m.start())
+                    func = self._extract_function(lines, line_num)
+                    findings.append(
+                        CairoFinding(
+                            vuln_type=vuln_type,
+                            severity=cfg["severity"],
+                            title=cfg["title"],
+                            description=cfg["description"],
+                            line=line_num,
+                            function=func,
+                            recommendation=cfg["recommendation"],
                         )
-                        break  # One finding per type per scan
+                    )
+                    matched = True
 
         return findings
 

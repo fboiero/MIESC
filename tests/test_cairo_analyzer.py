@@ -262,3 +262,57 @@ class TestRealWorldExploitPatterns:
 
     def test_analyzer_version_bumped(self, analyzer):
         assert analyzer.version == "1.1.0"
+
+
+# ---------------------------------------------------------------------------
+# Block-level scanning (v5.1.7 multi-line fix)
+# ---------------------------------------------------------------------------
+
+
+class TestMultiLineScanning:
+    """Regression tests for the line-by-line -> block-level scan refactor.
+
+    The previous implementation missed patterns that spanned multiple lines,
+    e.g. `#[external]` on one line followed by `fn foo(...)` on the next.
+    """
+
+    @pytest.fixture
+    def analyzer(self):
+        return CairoAnalyzer()
+
+    def test_external_fn_access_control_matches_across_lines(self, analyzer):
+        code = """
+#[starknet::contract]
+mod T {
+    #[external]
+    fn setOwner(ref self: ContractState, new_owner: ContractAddress) {
+        self.owner.write(new_owner);
+    }
+}
+"""
+        result = analyzer.analyze_source(code)
+        types = [f["type"] for f in result["findings"]]
+        assert "access_control" in types, (
+            "Pattern #[external]\\n fn ... should match across the newline "
+            "(regression — this silently failed in 1.1.0 line-by-line scanner)"
+        )
+
+    def test_line_number_reports_pattern_start(self, analyzer):
+        code = "// padding\n// padding\n// padding\nfn withdraw() { let a: u256 = b + c; }\n"
+        result = analyzer.analyze_source(code)
+        # The u256 arithmetic lives on line 4 of this snippet
+        u256_matches = [f for f in result["findings"] if f["type"] == "unchecked_u256"]
+        assert u256_matches, "unchecked_u256 should be detected in block scan"
+        assert u256_matches[0]["location"]["line"] >= 4
+
+    def test_malformed_pattern_does_not_abort_scan(self, analyzer, monkeypatch):
+        """A malformed regex in the registry must NOT break the whole scan."""
+        from src.adapters import cairo_adapter as mod
+        # Inject a broken pattern temporarily
+        original = mod.CAIRO_PATTERNS[CairoVulnType.FELT_OVERFLOW]["patterns"][0]
+        mod.CAIRO_PATTERNS[CairoVulnType.FELT_OVERFLOW]["patterns"][0] = "(unbalanced"
+        try:
+            result = analyzer.analyze_source("fn f() { selfdestruct(); replace_class_syscall(); }")
+            assert result["success"] is True  # did not crash
+        finally:
+            mod.CAIRO_PATTERNS[CairoVulnType.FELT_OVERFLOW]["patterns"][0] = original
