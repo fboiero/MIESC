@@ -1,0 +1,147 @@
+{
+  "totals": {
+    "targets": 11,
+    "detected_by_class": 9,
+    "findings_total": 293,
+    "needs_manual_review_total": 0,
+    "properties_generated_total": 0,
+    "defi_confirmed_total": 0,
+    "mitigated_total": 0,
+    "time_total_s": 2.5,
+    "recall_by_class": 81.8
+  },
+  "rows": [
+    {
+      "name": "Parity Wallet Freeze",
+      "expected": "access_control",
+      "path": "/Users/fboiero/Documents/GitHub/MIESC/data/datasets/rekt_exploits/contracts/Parity_kill_exp.sol",
+      "detected_by_class": true,
+      "findings_count": 14,
+      "needs_manual_review": 0,
+      "properties_generated": 0,
+      "defi_confirmed": 0,
+      "mitigated": 0,
+      "elapsed_s": 2.06
+    },
+    {
+      "name": "bZx Flash Loan",
+      "expected": "flash_loan",
+      "path": "/Users/fboiero/Documents/GitHub/MIESC/data/datasets/rekt_exploits/contracts/bzx_exp.sol",
+      "detected_by_class": false,
+      "findings_count": 15,
+      "needs_manual_review": 0,
+      "properties_generated": 0,
+      "defi_confirmed": 0,
+      "mitigated": 0,
+      "elapsed_s": 0.02
+    },
+    {
+      "name": "Ronin Bridge",
+      "expected": "access_control",
+      "path": "/Users/fboiero/Documents/GitHub/MIESC/data/datasets/rekt_exploits/contracts/Ronin_exp.sol",
+      "detected_by_class": true,
+      "findings_count": 13,
+      "needs_manual_review": 0,
+      "properties_generated": 0,
+      "defi_confirmed": 0,
+      "mitigated": 0,
+      "elapsed_s": 0.05
+    },
+    {
+      "name": "Beanstalk Flash Loan Governance",
+      "expected": "flash_loan_governance",
+      "path": "/Users/fboiero/Documents/GitHub/MIESC/data/datasets/rekt_exploits/contracts/Beanstalk_exp.sol",
+      "detected_by_class": true,
+      "findings_count": 27,
+      "needs_manual_review": 0,
+      "properties_generated": 0,
+      "defi_confirmed": 0,
+      "mitigated": 0,
+      "elapsed_s": 0.03
+    },
+    {
+      "name": "Euler Finance",
+      "expected": "reentrancy",
+      "path": "/Users/fboiero/Documents/GitHub/MIESC/data/datasets/rekt_exploits/contracts/Euler_exp.sol",
+      "detected_by_class": true,
+      "findings_count": 29,
+      "needs_manual_review": 0,
+      "properties_generated": 0,
+      "defi_confirmed": 0,
+      "mitigated": 0,
+      "elapsed_s": 0.03
+    },
+    {
+      "name": "Compound Governance",
+      "expected": "arithmetic",
+      "path": "/Users/fboiero/Documents/GitHub/MIESC/data/datasets/rekt_exploits/contracts/CompoundUni_exp.sol",
+      "detected_by_class": true,
+      "findings_count": 26,
+      "needs_manual_review": 0,
+      "properties_generated": 0,
+      "defi_confirmed": 0,
+      "mitigated": 0,
+      "elapsed_s": 0.03
+    },
+    {
+      "name": "BonqDAO Oracle",
+      "expected": "oracle_manipulation",
+      "path": "/Users/fboiero/Documents/GitHub/MIESC/data/datasets/rekt_exploits/contracts/BonqDAO_exp.sol",
+      "detected_by_class": false,
+      "findings_count": 70,
+      "needs_manual_review": 0,
+      "properties_generated": 0,
+      "defi_confirmed": 0,
+      "mitigated": 0,
+      "elapsed_s": 0.11
+    },
+    {
+      "name": "Platypus Finance",
+      "expected": "reentrancy",
+      "path": "/Users/fboiero/Documents/GitHub/MIESC/data/datasets/rekt_exploits/contracts/Platypus_exp.sol",
+      "detected_by_class": true,
+      "findings_count": 26,
+      "needs_manual_review": 0,
+      "properties_generated": 0,
+      "defi_confirmed": 0,
+      "mitigated": 0,
+      "elapsed_s": 0.02
+    },
+    {
+      "name": "Rari Capital (Fei)",
+      "expected": "reentrancy",
+      "path": "/Users/fboiero/Documents/GitHub/MIESC/data/datasets/rekt_exploits/contracts/RariCapital_exp.sol",
+      "detected_by_class": true,
+      "findings_count": 11,
+      "needs_manual_review": 0,
+      "properties_generated": 0,
+      "defi_confirmed": 0,
+      "mitigated": 0,
+      "elapsed_s": 0.02
+    },
+    {
+      "name": "Level Finance",
+      "expected": "access_control",
+      "path": "/Users/fboiero/Documents/GitHub/MIESC/data/datasets/rekt_exploits/contracts/Level_exp.sol",
+      "detected_by_class": true,
+      "findings_count": 32,
+      "needs_manual_review": 0,
+      "properties_generated": 0,
+      "defi_confirmed": 0,
+      "mitigated": 0,
+      "elapsed_s": 0.03
+    },
+    {
+      "name": "Yearn Finance v1",
+      "expected": "flash_loan",
+      "path": "/Users/fboiero/Documents/GitHub/MIESC/data/datasets/rekt_exploits/contracts/YearnFinance_exp.sol",
+      "detected_by_class": true,
+      "findings_count": 30,
+      "needs_manual_review": 0,
+      "properties_generated": 0,
+      "defi_confirmed": 0,
+      "mitigated": 0,
+      "elapsed_s": 0.12
+    }
+  ]
+}

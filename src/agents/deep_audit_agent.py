@@ -232,6 +232,10 @@ class DeepAuditAgent(BaseAgent):
             "additional_tools": investigation.get("additional_tools", []),
             "chains_detected": len(investigation.get("exploit_chains", [])),
             "mitigated": investigation.get("mitigated_count", 0),
+            # Bloque 3 counters — expose the new Phase 3 metrics in the top-level report
+            "properties_generated": investigation.get("properties_generated", 0),
+            "defi_confirmed": investigation.get("defi_confirmed_count", 0),
+            "needs_manual_review": investigation.get("needs_manual_review_count", 0),
         }
 
         if self._timeout_exceeded():
@@ -607,19 +611,31 @@ class DeepAuditAgent(BaseAgent):
                             logger.info(f"Finding {fid}: fix pattern known but NOT implemented")
 
                 # Step 2: Finding-driven targeted analysis
+                #
+                # Real-world tools tag findings with idiosyncratic names
+                # (Slither: arbitrary-send-eth, suicidal, controlled-delegatecall;
+                # Aderyn: unprotected-upgrade, tx-origin-auth). We match against
+                # a richer keyword set so Bloque-3 followups actually trigger on
+                # third-party findings, not just on MIESC-native findings.
                 func = self._extract_function_name(finding)
 
+                # Taint confirmation for call-flow / reentrancy shapes
                 if self.config.enable_taint and func:
-                    # Reentrancy/unchecked calls → trace value flows
-                    if "reentran" in ftype or "unchecked" in ftype or "call" in ftype:
+                    if any(k in ftype for k in (
+                        "reentran", "unchecked", "call", "delegatecall",
+                        "arbitrary-send", "low-level",
+                    )):
                         taint = self._targeted_taint_for_function(source_code, func)
                         enriched["investigation"]["taint_paths"] = len(taint)
                         if taint:
                             enriched["investigation"]["taint_confirmed"] = True
                             logger.info(f"Finding {fid}: taint analysis CONFIRMS data flow vulnerability")
 
-                # Oracle/price → run DeFi pattern detector targeted at the function
-                if ("oracle" in ftype or "price" in ftype or "manipulation" in ftype):
+                # Oracle/price → DeFi pattern detector
+                oracle_hits = any(k in ftype for k in (
+                    "oracle", "price", "manipulation", "spot", "flash",
+                ))
+                if oracle_hits:
                     defi_matches = self._targeted_defi_scan(source_code, func)
                     enriched["investigation"]["analysis_type"] = "oracle_dependency"
                     enriched["investigation"]["defi_patterns_matched"] = len(defi_matches)
@@ -632,7 +648,11 @@ class DeepAuditAgent(BaseAgent):
                         )
 
                 # Access control → generate a CVL rule the auditor can run
-                if "access" in ftype or "auth" in ftype:
+                access_hits = any(k in ftype for k in (
+                    "access", "auth", "owner", "privileg", "tx-origin", "tx.origin",
+                    "suicid", "selfdestruct", "unprotected", "arbitrary-send",
+                ))
+                if access_hits:
                     prop = self._targeted_property_for_function(finding, func)
                     enriched["investigation"]["analysis_type"] = "access_control_audit"
                     if prop is not None:
