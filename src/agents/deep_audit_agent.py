@@ -689,8 +689,10 @@ class DeepAuditAgent(BaseAgent):
                     next_queue.extend(high_new)
                     scan.filtered_findings.extend(new_findings)
 
-                # Step 5: Multi-LLM consensus for CRITICAL findings
-                if fsev == "critical" and self.config.enable_llm and not self._timeout_exceeded():
+                # Step 5: Multi-LLM consensus for CRITICAL and HIGH findings
+                # (HIGH included because real tools rarely emit CRITICAL — most
+                # reentrancy/access-control findings land at HIGH with Slither/Aderyn)
+                if fsev in ("critical", "high") and self.config.enable_llm and not self._timeout_exceeded():
                     consensus = self._get_llm_consensus(finding, source_code)
                     if consensus:
                         enriched["investigation"]["llm_consensus"] = consensus

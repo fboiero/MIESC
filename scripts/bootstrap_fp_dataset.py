@@ -89,10 +89,17 @@ def _severity_bucket(sev: str) -> str:
 def label_finding(
     f: Dict[str, Any],
     gt_class: Optional[str],
+    source: str = "",
 ) -> Optional[Tuple[bool, str]]:
     """
     Return (label, reason) where label=True for TP, False for FP, None to skip.
+
+    Uses the canonical taxonomy (src.core.finding_taxonomy) for class matching
+    so Slither's `arbitrary-send-eth` is correctly recognized as access_control,
+    etc.
     """
+    from src.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
+
     ftype = str(f.get("type", f.get("check", ""))).lower().strip()
     if not ftype:
         return None
@@ -105,12 +112,27 @@ def label_finding(
         if noise in ftype:
             return (False, f"noise-substring:{noise}")
 
-    # Rule 2: TP when high/critical AND the type matches the GT class
-    if gt_class and sev in ("high", "critical"):
-        if _type_matches_class(ftype, gt_class):
-            return (True, f"gt-match:{gt_class}")
+    # Look up canonical category AND expected class
+    canonical = normalize_finding_type(f)
+    gt_canonical = None
+    if gt_class:
+        # Normalize the GT string too (maps smartbugs 'arithmetic' -> ARITHMETIC, etc.)
+        gt_canonical = normalize_finding_type(gt_class.replace("_", "-"))
 
-    # Rule 3: severity=info on an unmatched type → likely FP
+    # Rule 2a: TP when canonical category matches GT category (any severity — SmartBugs
+    # contracts are victim-side code; any detector finding the intended vuln is a TP)
+    if canonical and gt_canonical and canonical == gt_canonical:
+        return (True, f"canonical-match:{canonical.value}")
+
+    # Rule 2b: Keyword fallback for cases the taxonomy missed
+    if gt_class and sev in ("high", "critical") and _type_matches_class(ftype, gt_class):
+        return (True, f"gt-keyword:{gt_class}")
+
+    # Rule 3a: [REMOVED in v5.1.7] — flagging off-category HIGH findings as FP
+    # was over-eager; a reentrancy finding in an access-control folder could
+    # be a genuine secondary vulnerability, not noise. Leave them unlabeled.
+
+    # Rule 3b: Info severity on unmatched type → FP (these ARE near-always noise)
     if sev in ("info",) and gt_class and not _type_matches_class(ftype, gt_class):
         return (False, "info-off-class")
 
@@ -165,7 +187,7 @@ def collect_from_rekt() -> List[Dict[str, Any]]:
         except Exception:
             context = ""
         for f in findings:
-            labeled = label_finding(f, vuln_class)
+            labeled = label_finding(f, vuln_class, source="rekt")
             if labeled is None:
                 continue
             label, reason = labeled
@@ -198,7 +220,7 @@ def collect_from_smartbugs() -> List[Dict[str, Any]]:
             except Exception:
                 context = ""
             for f in findings:
-                labeled = label_finding(f, category)
+                labeled = label_finding(f, category, source="smartbugs")
                 if labeled is None:
                     continue
                 label, reason = labeled
