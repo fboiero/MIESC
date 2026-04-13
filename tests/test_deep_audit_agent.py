@@ -785,9 +785,11 @@ class TestGetAvailableTools:
 
 class TestRunToolsParallel:
     def test_no_adapters(self, agent):
-        """When adapter loading fails, returns empty."""
+        """When adapter loading returns empty (all load attempts failed),
+        _run_tools_parallel must gracefully return []."""
         agent._start_time = time.monotonic()
-        result = agent._run_tools_parallel(["slither"], "/fake/path.sol")
+        with patch("miesc.cli.utils.load_adapters", return_value={}):
+            result = agent._run_tools_parallel(["slither"], "/fake/path.sol")
         assert result == []
 
     def test_with_mocked_adapters(self, agent):

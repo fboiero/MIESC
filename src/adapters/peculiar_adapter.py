@@ -235,14 +235,16 @@ class PeculiarAdapter(ToolAdapter):
         model_available = self._check_model_files()
         if model_available:
             logger.info("Peculiar: Pre-trained GNN model found at %s", self.model_dir)
-        else:
-            logger.warning(
-                "Peculiar: No GNN model found at %s. Using pattern-based fallback "
-                "(reduced accuracy). To enable full GNN inference, place model files "
-                "in %s/",
+        elif not getattr(self, "_fallback_warning_emitted", False):
+            # Log the fallback warning ONCE per process — otherwise every
+            # DeepAuditAgent.analyze() call spams this line.
+            logger.info(
+                "Peculiar: No GNN model at %s; using pattern-based fallback. "
+                "Drop model files in %s/ for full GNN inference.",
                 self.model_dir,
                 self.model_dir,
             )
+            self._fallback_warning_emitted = True
         return ToolStatus.AVAILABLE
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:

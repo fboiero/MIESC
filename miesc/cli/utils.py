@@ -432,3 +432,49 @@ def summarize_findings(all_results: List[Dict[str, Any]]) -> Dict[str, int]:
 def get_root_dir() -> Path:
     """Get the project root directory."""
     return ROOT_DIR
+
+
+# ---------------------------------------------------------------------------
+# Adapter loader — used by DeepAuditAgent for dynamic tool triggering
+# ---------------------------------------------------------------------------
+
+_ADAPTERS_CACHE: Optional[Dict[str, Any]] = None
+
+
+def load_adapters(force_reload: bool = False) -> Dict[str, Any]:
+    """
+    Load all MIESC adapter instances keyed by tool name.
+
+    Walks ADAPTER_MAP, imports each adapter module on demand, and instantiates
+    the class. Broken imports / constructor failures are logged at debug level
+    and the adapter is simply skipped — the caller receives a dict of whatever
+    loaded successfully.
+
+    Cached: the first call loads and caches; subsequent calls return the cached
+    dict unless `force_reload=True`.
+
+    Returns:
+        {tool_name: adapter_instance} — e.g. {"slither": SlitherAdapter()}
+    """
+    global _ADAPTERS_CACHE
+    if _ADAPTERS_CACHE is not None and not force_reload:
+        return _ADAPTERS_CACHE
+
+    result: Dict[str, Any] = {}
+    logger = logging.getLogger(__name__)
+
+    for tool_name, class_name in ADAPTER_MAP.items():
+        try:
+            module_name = f"src.adapters.{tool_name}_adapter"
+            module = importlib.import_module(module_name)
+            cls = getattr(module, class_name, None)
+            if cls is None:
+                logger.debug(f"load_adapters: {module_name} has no {class_name}")
+                continue
+            result[tool_name] = cls()
+        except Exception as e:
+            logger.debug(f"load_adapters: could not load {tool_name}: {e}")
+            continue
+
+    _ADAPTERS_CACHE = result
+    return result
