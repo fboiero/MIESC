@@ -5,6 +5,29 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.8] - 2026-04-13
+
+### Fixed — Critical regression in v5.1.7
+
+- **`pip install miesc` produced a broken CLI.** The 5.1.7 install missed
+  `rich` (which was in the `[cli]` optional extra), so any command that
+  printed via `console.print(...)` crashed with
+  `AttributeError: 'NoneType' object has no attribute 'print'`. Affected
+  commands include `analyze`, `report`, `audit`, `verify`, and several
+  others — totalling **137 console.print sites across miesc/cli/commands/**.
+
+  Fix has two parts:
+  1. **`rich>=13.0.0` is now a hard dependency** in `pyproject.toml`
+     (moved out of the `[cli]` optional extra).
+  2. **Defensive `_PlainConsole` fallback** in `miesc/cli/utils.py`:
+     even if `rich` is missing for any reason, `console.print(...)` calls
+     fall back to plain `print()` with markup stripped.
+
+  Discovered during the v5.1.7 post-release smoke test (fresh
+  `pip install miesc==5.1.7` in a clean venv → ran the README's Quick
+  Start commands → `miesc analyze` crashed). v5.1.7 is left on PyPI for
+  reproducibility but **users should upgrade to 5.1.8 immediately**.
+
 ## [5.1.7] - 2026-04-13
 
 ### Added — v5.1.7 Gates (closing the v5.1.6 benchmark report's three open items)

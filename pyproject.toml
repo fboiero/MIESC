@@ -42,6 +42,10 @@ dependencies = [
     "pyyaml>=6.0.0",
     "jinja2>=3.1.0",
     "slither-analyzer>=0.10.0",
+    # Required for CLI output (137 console.print sites across miesc/cli/commands/).
+    # Without rich the analyze/report/audit commands crash with
+    # AttributeError: 'NoneType' object has no attribute 'print'.
+    "rich>=13.0.0",
 ]
 
 [project.optional-dependencies]

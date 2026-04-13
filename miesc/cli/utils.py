@@ -32,7 +32,28 @@ try:
     console = Console()
 except ImportError:
     RICH_AVAILABLE = False
-    console = None  # type: ignore
+
+    # Fallback: minimal Console-compatible object so existing
+    # `console.print(...)` calls across 137 sites don't crash with
+    # AttributeError: 'NoneType' object has no attribute 'print'.
+    # rich is now a hard dependency in pyproject.toml, but this guard
+    # keeps the CLI usable in stripped-down install scenarios.
+    import re as _re
+
+    class _PlainConsole:
+        """Stdout fallback that strips rich markup."""
+
+        _MARKUP_RE = _re.compile(r"\[/?[^\]]+\]")
+
+        def print(self, *args, **kwargs):  # noqa: D401
+            for a in args:
+                text = self._MARKUP_RE.sub("", str(a))
+                print(text)
+
+        def log(self, *args, **kwargs):
+            self.print(*args, **kwargs)
+
+    console = _PlainConsole()  # type: ignore
 
 # Try to import YAML for config
 try:
