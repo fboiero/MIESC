@@ -5,6 +5,128 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.7] - 2026-04-13
+
+### Added — v5.1.7 Gates (closing the v5.1.6 benchmark report's three open items)
+
+- **Gate 2: Taxonomy normalization** (`src/core/finding_taxonomy.py`).
+  New `CanonicalCategory` enum (16 categories) + 70+ direct mappings
+  from tool-specific detector names (Slither's `arbitrary-send-eth`,
+  Aderyn's `unprotected-upgrade`, Mythril's `integer-overflow`, etc.)
+  to canonical categories. DeepAuditAgent's Phase-3 branches now route
+  via canonical category instead of substring matching, so follow-up
+  analysis fires on real-world tool output. Rekt benchmark:
+  `defi_confirmed` 0 → 19.
+
+- **Gate 1: Victim-side corpus + balanced FP dataset**.
+  Pulled the missing five SmartBugs-curated categories
+  (`access_control`, `bad_randomness`, `denial_of_service`, `reentrancy`,
+  `unchecked_low_level_calls`), bringing the in-repo corpus to the full
+  143 contracts. Reworked `scripts/bootstrap_fp_dataset.py` to use the
+  canonical taxonomy. Result: FP dataset grew 122 → 934 samples
+  (3 → 67 TPs), `AuditorTrainedFPClassifier` now produces non-degenerate
+  metrics.
+
+- **Gate 3: LLM-path benchmark with multi-LLM consensus**
+  (`benchmarks/deep_audit_rekt_llm.py`). Forces two distinct Ollama
+  models for the `code_analysis` vs `verification` use cases so the
+  consensus mechanism actually fires. Phase-3 consensus gate widened
+  from `severity == "critical"` to `("critical", "high")`. Full run on
+  11 Rekt exploits: **80 HIGH+CRITICAL findings → 4 needs_manual_review**
+  (5% triage queue density, 26 agree_rejected, 12 single_opinion).
+  BonqDAO oracle exploit produced 4/4 disagreements — exactly the case
+  multi-LLM consensus is designed to surface for human review.
+
+### Added — Test infrastructure (+321 tests vs. v5.1.6)
+
+- **`tests/test_security_regressions.py`** (22 tests):
+  command injection resistance, path traversal, prompt injection
+  sanitization, pickle safety, ReDoS resistance, LLM output validation,
+  secret redaction.
+- **`tests/test_scalability.py`** (12 tests):
+  large-contract scanning bounds, SpecRunner timeout enforcement,
+  RAG O(1) lookup, taxonomy throughput, concurrent agent safety.
+- **`tests/test_functionality_regressions.py`** (12 tests):
+  FP classifier persistence, multi-chain dispatcher, CanonicalCategory
+  contract, phase ordering, VulnerabilityExample fields, specs↔verify
+  shape.
+- **`tests/test_deep_audit_regressions.py`** (16 tests):
+  one regression per bug fixed (DeFi API, Phase-3 report block, consensus
+  gate, canonical routing, _start_time timeout).
+- **`tests/test_bootstrap_fp.py`** (22 tests): FP labeling heuristic.
+- **`tests/test_verify_command.py`** (11 tests): CLI contract.
+- **`tests/test_load_adapters.py`** (8 tests): shim regression.
+- **`tests/test_llm_location_coercion.py`** (18 tests): location field
+  coercion regression.
+- **`tests/test_finding_taxonomy.py`** (32 tests): taxonomy module.
+- **`tests/test_adapter_contracts.py`** (162 parametrized tests):
+  contract-level checks across the full ADAPTER_MAP — import clean,
+  is_available never raises, analyze on missing file returns error.
+
+### Fixed — Real bugs surfaced by the new test infrastructure
+
+- **LLM output validator rejected non-dict locations** (`src/security/
+  llm_output_validator.py`). SmartLLM was returning 0 findings on
+  every Rekt contract because Pydantic strictly required
+  `Optional[CodeLocation]` and the LLMs return `"function:line"`,
+  bare integers, plain function names, etc. Added
+  `@field_validator("location", mode="before")` that coerces common
+  shapes into a `CodeLocation` dict.
+
+- **`load_adapters` shim missing** (`miesc/cli/utils.py`). DeepAuditAgent
+  imported it on every `analyze()` call, the import failed, the warning
+  spammed logs, AND Phase-3 dynamic tool triggering silently degraded.
+  Added a 48-LOC shim that walks `ADAPTER_MAP`, imports each module,
+  instantiates the class, and caches the result. 50 adapters load
+  successfully in our local environment.
+
+- **Slither / Aderyn / Mythril stale-cache bug**
+  (`src/adapters/{slither,aderyn,mythril}_adapter.py`). When given a
+  nonexistent contract path, these adapters' subprocess calls failed —
+  but the post-processing then read `/tmp/{tool}_output.json`, a stale
+  file from a previous successful run on a DIFFERENT contract. Result:
+  findings for the wrong contract were returned. Discovered by
+  `tests/test_adapter_contracts.py` and fixed with explicit existence
+  checks at the top of each `analyze()`.
+
+- **`SecureFormatter` env-var redaction gap**
+  (`src/security/secure_logging.py`). Only matched 48-character
+  `sk-` keys and `api_key=`-style assignments. Missed the
+  `OPENAI_API_KEY=sk-...` env-var pattern (most common shape in real
+  logs). Added redaction for `_KEY=`, `_TOKEN=`, `_SECRET=` env-var
+  suffixes and shorter `sk-` keys.
+
+- **Peculiar adapter fallback warning spam**
+  (`src/adapters/peculiar_adapter.py`). Logged `WARNING: No GNN model
+  found...` on every `is_available()` check (called by every audit).
+  Now logged once per process at info level.
+
+### Improved — Code quality
+
+- Lint cleanup: 42 → 12 ruff issues (71% reduction). Remaining 12
+  are stylistic-only (`B905` zip-without-strict, `E402` intentional
+  sys.path manipulation, `I001` import order in conditional block).
+- Docker workflow now triggers on `v*.*.*` tag pushes and emits
+  semver Docker tags (`{{version}}`, `{{major}}.{{minor}}`) — future
+  releases auto-publish to GHCR.
+
+### Documentation
+
+- `docs/PRE_RELEASE_AUDIT_v5.1.7.md` — comprehensive audit covering
+  code quality, security, OSS compliance, and project alignment.
+  Includes prioritized action plan and bug-fix summary.
+- `benchmarks/results/v5.1.7_gates_report.md` — full per-contract
+  breakdown of the LLM consensus run on the Rekt corpus.
+- `paper/miesc-paper.tex` updated to reflect v5.1.6+v5.1.7 capabilities
+  (Cairo 1.1.0 with 13 vuln types, multi-LLM consensus mechanism,
+  formal-verification bridge, attack_steps + detection_heuristic in
+  the RAG knowledge base).
+
+### Tests
+
+5,306 passed, 5 skipped, 0 regressions across the ~25-commit
+pre-release sweep (was 4,985 in v5.1.6, +321 tests).
+
 ## [5.1.6] - 2026-04-12
 
 ### Added — Bloque 3 (DeepAuditAgent deep investigation)

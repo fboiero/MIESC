@@ -9,7 +9,7 @@ Institution: UNDEF - IUA Cordoba
 License: AGPL-3.0
 """
 
-__version__ = "5.1.6"
+__version__ = "5.1.7"
 __author__ = "Fernando Boiero"
 __email__ = "fboiero@frvm.utn.edu.ar"
 
