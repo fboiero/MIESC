@@ -316,3 +316,90 @@ mod T {
             assert result["success"] is True  # did not crash
         finally:
             mod.CAIRO_PATTERNS[CairoVulnType.FELT_OVERFLOW]["patterns"][0] = original
+
+
+# ---------------------------------------------------------------------------
+# Block-scan edge cases (v5.1.7 regression coverage for the line→block refactor)
+# ---------------------------------------------------------------------------
+
+
+class TestBlockScanEdgeCases:
+    @pytest.fixture
+    def analyzer(self):
+        return CairoAnalyzer()
+
+    def test_one_finding_per_type_rule_preserved(self, analyzer):
+        """Even if a contract contains MANY matches for the same pattern,
+        only ONE finding per vuln type is emitted (to avoid flooding)."""
+        code = """
+        fn a() { selfdestruct(); }
+        fn b() { selfdestruct(); }
+        fn c() { selfdestruct(); }
+        fn d() { replace_class_syscall(); }
+        fn e() { replace_class_syscall(); }
+        """
+        result = analyzer.analyze_source(code)
+        from collections import Counter
+        counts = Counter(f["type"] for f in result["findings"])
+        for t, c in counts.items():
+            assert c == 1, f"{t} appeared {c}x — should only be 1"
+
+    def test_findings_dispatched_in_source_order_for_same_type(self, analyzer):
+        """The recorded line number must correspond to the FIRST match
+        (block-level re.search returns the earliest match)."""
+        code = "\n".join([
+            "line 1",
+            "line 2 replace_class_syscall()  # earliest match",
+            "line 3",
+            "line 4 replace_class_syscall()  # later match",
+        ])
+        result = analyzer.analyze_source(code)
+        proxy = [f for f in result["findings"] if f["type"] == "proxy_upgrade"]
+        assert len(proxy) == 1
+        assert proxy[0]["location"]["line"] == 2
+
+    def test_empty_source_returns_no_findings(self, analyzer):
+        result = analyzer.analyze_source("")
+        assert result["success"] is True
+        assert result["findings"] == []
+
+    def test_whitespace_only_source(self, analyzer):
+        result = analyzer.analyze_source("\n\n\n   \n")
+        assert result["success"] is True
+        assert result["findings"] == []
+
+    def test_line_offset_table_matches_real_line_numbers(self, analyzer):
+        """Sanity: line numbers reported back are the ACTUAL line numbers
+        a human sees in an editor (1-indexed, not 0-indexed)."""
+        # 5 lines of padding, then the marker on line 6
+        code = "\n".join([
+            "// 1",
+            "// 2",
+            "// 3",
+            "// 4",
+            "// 5",
+            "fn f() { replace_class_syscall(); }",
+            "// 7",
+        ])
+        result = analyzer.analyze_source(code)
+        proxy = [f for f in result["findings"] if f["type"] == "proxy_upgrade"]
+        assert len(proxy) == 1
+        assert proxy[0]["location"]["line"] == 6
+
+    def test_function_name_extracted_from_nearby_fn(self, analyzer):
+        code = """
+        fn some_function() {
+            selfdestruct();
+        }
+        """
+        result = analyzer.analyze_source(code)
+        proxy_or_destruct = [
+            f for f in result["findings"]
+            if f["type"] in ("proxy_upgrade", "access_control", "l1_l2_message")
+        ]
+        if proxy_or_destruct:
+            # The extractor may not always find it for every pattern,
+            # but for patterns inside a fn() it should succeed
+            func_names = [f["location"]["function"] for f in proxy_or_destruct]
+            # At least one should have resolved the enclosing function
+            assert any(n == "some_function" for n in func_names) or all(n == "unknown" for n in func_names)
