@@ -5,6 +5,60 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.6] - 2026-04-12
+
+### Added — Bloque 3 (DeepAuditAgent deep investigation)
+
+- **Finding-driven tool triggering** now actually invokes the follow-up analyzers
+  instead of only setting labels:
+  - Oracle / price findings → `_targeted_defi_scan()` runs `DeFiPatternDetector`
+    scoped to the vulnerable function and attaches concrete pattern matches.
+  - Access-control findings → `_targeted_property_for_function()` generates a
+    Certora CVL rule targeting the function (pipes directly into `miesc verify`).
+- **Multi-LLM consensus** on CRITICAL findings (replaces the single second-opinion
+  path). Queries the primary code-analysis model AND the verification-use-case
+  model; reconciles into `agree_confirmed` / `agree_rejected` / `disagreement`
+  / `single_opinion` and applies bounded confidence adjustments (+0.20 on
+  agreement, -0.30 on joint rejection, -0.10 + `needs_manual_review=True` on
+  disagreement). Legacy `_get_llm_second_opinion()` is preserved as a shim.
+- Phase 3 result exposes new aggregate fields: `needs_manual_review_count`,
+  `properties_generated`, `defi_confirmed_count`.
+
+### Added — Bloque 4 (RAG knowledge base depth)
+
+- `VulnerabilityExample` dataclass extended with `attack_steps: List[str]` and
+  `detection_heuristic: Optional[str]`.
+- Enriched the 6 most common SWC patterns (SWC-107, -105, -106, -104, -115, -101)
+  and the two most impactful 2023 exploit case studies (Euler, Curve/Vyper) with
+  concrete step-by-step attack procedures and grep-level detection heuristics.
+- `VulnerabilityRAG.enhance_finding()` now surfaces `attack_steps` and
+  `detection_heuristic` in the LLM context block when the match provides them.
+
+### Fixes — Post-v5.1.5 polish
+
+- **Halmos verification fixed end-to-end**: CLI now walks up to `foundry.toml`
+  before invoking halmos. `SpecRunner.run_halmos()` returns `status="no_tests"`
+  when halmos finds no symbolic tests (previously misreported as `failed`).
+  Parser now strips ANSI color codes from counterexamples.
+- **GPTScan RAG placeholder bug**: `%RAG_CONTEXT%` stayed literal in the final
+  prompt because the RAG injection replaced a different string. Renamed to
+  `%RAG_CONTEXT_PLACEHOLDER%` with an explicit single-site replacement.
+- Added few-shot real-exploit references (Cream/Euler/BNB in GPTScan,
+  Curve/Euler/Wormhole in SmartLLM, Parity/Nomad/Audius in LLMSmartAudit).
+
+### Tests
+
+- `tests/test_deep_audit_agent.py`: +13 tests across 4 new classes
+  (TestTargetedDefiScan, TestTargetedPropertyGeneration, TestLLMConsensus,
+  TestPhase3FindingDrivenIntegration).
+- `tests/test_vulnerability_rag.py`: +16 tests covering the new dataclass
+  fields, attack_steps / detection_heuristic presence on top patterns, and
+  real_exploit coverage across all 60 registry entries.
+- `tests/test_gptscan_prompt.py` (new): 6 tests on prompt integrity + RAG
+  placeholder behavior.
+- `tests/test_spec_runner.py`: +2 tests (ANSI stripping, `no_tests` status).
+- Full suite: 4985 passed, 5 skipped, 0 regressions.
+
 ## [5.1.5] - 2026-04-12
 
 ### Added
