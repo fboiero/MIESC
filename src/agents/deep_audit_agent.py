@@ -612,30 +612,37 @@ class DeepAuditAgent(BaseAgent):
 
                 # Step 2: Finding-driven targeted analysis
                 #
-                # Real-world tools tag findings with idiosyncratic names
-                # (Slither: arbitrary-send-eth, suicidal, controlled-delegatecall;
-                # Aderyn: unprotected-upgrade, tx-origin-auth). We match against
-                # a richer keyword set so Bloque-3 followups actually trigger on
-                # third-party findings, not just on MIESC-native findings.
+                # Use the canonical taxonomy rather than substring keyword
+                # matching. This makes Phase-3 branches fire on real
+                # Slither/Aderyn detector names (arbitrary-send-eth,
+                # suicidal, unprotected-upgrade, reentrancy-eth, ...)
+                # not just MIESC-native vocabulary.
+                from src.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
+
+                canonical = normalize_finding_type(finding)
+                enriched["investigation"]["canonical_category"] = (
+                    canonical.value if canonical else None
+                )
                 func = self._extract_function_name(finding)
 
                 # Taint confirmation for call-flow / reentrancy shapes
                 if self.config.enable_taint and func:
-                    if any(k in ftype for k in (
-                        "reentran", "unchecked", "call", "delegatecall",
-                        "arbitrary-send", "low-level",
-                    )):
+                    if canonical in (
+                        CanonicalCategory.REENTRANCY,
+                        CanonicalCategory.UNCHECKED_CALL,
+                        CanonicalCategory.PROXY_UPGRADE,
+                    ):
                         taint = self._targeted_taint_for_function(source_code, func)
                         enriched["investigation"]["taint_paths"] = len(taint)
                         if taint:
                             enriched["investigation"]["taint_confirmed"] = True
                             logger.info(f"Finding {fid}: taint analysis CONFIRMS data flow vulnerability")
 
-                # Oracle/price → DeFi pattern detector
-                oracle_hits = any(k in ftype for k in (
-                    "oracle", "price", "manipulation", "spot", "flash",
-                ))
-                if oracle_hits:
+                # Oracle/price/flash-loan → DeFi pattern detector
+                if canonical in (
+                    CanonicalCategory.ORACLE_MANIPULATION,
+                    CanonicalCategory.FLASH_LOAN,
+                ):
                     defi_matches = self._targeted_defi_scan(source_code, func)
                     enriched["investigation"]["analysis_type"] = "oracle_dependency"
                     enriched["investigation"]["defi_patterns_matched"] = len(defi_matches)
@@ -648,11 +655,10 @@ class DeepAuditAgent(BaseAgent):
                         )
 
                 # Access control → generate a CVL rule the auditor can run
-                access_hits = any(k in ftype for k in (
-                    "access", "auth", "owner", "privileg", "tx-origin", "tx.origin",
-                    "suicid", "selfdestruct", "unprotected", "arbitrary-send",
-                ))
-                if access_hits:
+                if canonical in (
+                    CanonicalCategory.ACCESS_CONTROL,
+                    CanonicalCategory.CENTRALIZATION,
+                ):
                     prop = self._targeted_property_for_function(finding, func)
                     enriched["investigation"]["analysis_type"] = "access_control_audit"
                     if prop is not None:
@@ -955,16 +961,22 @@ Respond ONLY with JSON of the shape:
         try:
             from src.ml.defi_patterns import DeFiPatternDetector
             detector = DeFiPatternDetector()
-            matches = detector.detect(source_code) or []
+            matches = detector.analyze_code(source_code) or []
             matches_list: List[Dict[str, Any]] = []
             for m in matches:
                 # Normalize to dict (DeFiPatternMatch is a dataclass)
-                d = m.to_dict() if hasattr(m, "to_dict") else dict(m.__dict__)
+                if hasattr(m, "to_dict"):
+                    d = m.to_dict()
+                elif hasattr(m, "__dict__"):
+                    d = dict(m.__dict__)
+                    # Enums → plain strings for JSON safety
+                    if hasattr(d.get("vuln_type"), "value"):
+                        d["vuln_type"] = d["vuln_type"].value
+                else:
+                    d = {"match": str(m)}
                 if func_name:
-                    # Keep only matches whose location mentions the function, OR keep all
-                    # if we cannot locate the function (broader is safer than empty).
-                    loc = str(d.get("location", ""))
-                    if func_name in loc or not loc:
+                    loc = " ".join(str(v) for v in d.values()).lower()
+                    if func_name.lower() in loc:
                         matches_list.append(d)
                 else:
                     matches_list.append(d)
