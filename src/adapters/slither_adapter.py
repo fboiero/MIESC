@@ -216,6 +216,23 @@ class SlitherAdapter(ToolAdapter):
         temp_workspace = None  # Track for cleanup
         actual_contract_path = contract_path  # May change if workspace created
 
+        # Check that the target path exists BEFORE running anything.
+        # Otherwise slither exits with an error and the adapter reads
+        # /tmp/slither_output.json (a cached output from a previous run
+        # on a different contract) — returning findings for the WRONG file.
+        p = Path(contract_path)
+        if not p.exists():
+            return {
+                "tool": "slither",
+                "version": "1.0.0",
+                "status": "error",
+                "success": False,
+                "findings": [],
+                "metadata": {"contract_analyzed": contract_path},
+                "execution_time": time.time() - start_time,
+                "error": f"Contract path does not exist: {contract_path}",
+            }
+
         # Check availability first
         status = self.is_available()
         if status != ToolStatus.AVAILABLE:
@@ -223,6 +240,7 @@ class SlitherAdapter(ToolAdapter):
                 "tool": "slither",
                 "version": "1.0.0",
                 "status": "error",
+                "success": False,
                 "findings": [],
                 "metadata": {"tool_status": status.value},
                 "execution_time": time.time() - start_time,
