@@ -8,7 +8,7 @@ from pathlib import Path
 
 import click
 
-from miesc.cli.utils import console, error, info, print_banner, success
+from miesc.cli.utils import error, info, print_banner, success
 
 
 @click.command()

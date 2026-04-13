@@ -12,7 +12,6 @@ import click
 
 from miesc.cli.utils import console, error, info, print_banner, success
 
-
 # File extension → chain mapping
 CHAIN_BY_EXTENSION = {
     ".sol": "ethereum",

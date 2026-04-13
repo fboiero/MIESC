@@ -28,9 +28,6 @@ sys.path.insert(0, str(ROOT_DIR))
 # Import version from package
 from miesc import __version__ as VERSION  # noqa: E402
 
-# Import utilities needed for CLI setup
-from miesc.cli.utils import configure_logging, print_banner  # noqa: E402
-
 # Import command modules
 from miesc.cli.commands.analyze import analyze as analyze_cmd  # noqa: E402
 from miesc.cli.commands.audit import audit as audit_group  # noqa: E402
@@ -50,6 +47,9 @@ from miesc.cli.commands.specs import specs as specs_cmd  # noqa: E402
 from miesc.cli.commands.tools import tools as tools_group  # noqa: E402
 from miesc.cli.commands.verify import verify as verify_cmd  # noqa: E402
 from miesc.cli.commands.watch import watch as watch_cmd  # noqa: E402
+
+# Import utilities needed for CLI setup
+from miesc.cli.utils import configure_logging, print_banner  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

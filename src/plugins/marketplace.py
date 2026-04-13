@@ -91,19 +91,19 @@ def _validate_marketplace_url(url: str) -> str:
                 raise MarketplaceError(
                     f"Access to private/reserved IP addresses blocked: {ip}"
                 )
-    except ValueError:
+    except ValueError as ip_err:
         # Not an IP address, it's a hostname - check against whitelist
         if hostname not in ALLOWED_MARKETPLACE_HOSTS:
             # Also block cloud metadata endpoints
             if hostname in ("169.254.169.254", "metadata.google.internal"):
                 raise MarketplaceError(
                     f"Access to cloud metadata endpoints blocked: {hostname}"
-                )
+                ) from ip_err
 
             # Resolve hostname and check resulting IP
             try:
                 resolved_ips = socket.getaddrinfo(hostname, None)
-                for family, _, _, _, sockaddr in resolved_ips:
+                for _family, _, _, _, sockaddr in resolved_ips:
                     ip_str = sockaddr[0]
                     try:
                         ip = ipaddress.ip_address(ip_str)

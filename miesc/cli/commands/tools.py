@@ -11,8 +11,8 @@ import click
 
 from miesc.cli.constants import ADAPTER_MAP, LAYERS
 from miesc.cli.utils import (
-    AdapterLoader,
     RICH_AVAILABLE,
+    AdapterLoader,
     console,
     error,
     info,

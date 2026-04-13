@@ -121,7 +121,7 @@ def _get_swc_references(category: str, swc_id: str = "") -> list:
         num = swc_id.replace("SWC-", "").replace("SWC", "")
         refs.append(f"[{swc_id}](https://swcregistry.io/docs/SWC-{num})")
     else:
-        for key, (swc, url) in swc_map.items():
+        for key, (swc, _url) in swc_map.items():
             if key in cat:
                 refs.append(f"[{swc}](https://swcregistry.io/docs/{swc})")
                 break

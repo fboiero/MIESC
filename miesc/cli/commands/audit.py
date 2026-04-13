@@ -22,7 +22,6 @@ from miesc import __version__ as VERSION
 from miesc.cli.constants import ADAPTER_MAP, AVAILABLE_PROFILES, LAYERS, QUICK_TOOLS
 from miesc.cli.utils import (
     RICH_AVAILABLE,
-    AdapterLoader,
     console,
     error,
     get_correlation_api,
@@ -954,7 +953,7 @@ def audit_profile(profile_name, contract, output, fmt, ci):
             table.add_column("Timeout")
 
             for name, profile in profiles.items():
-                layers_str = ", ".join(str(l) for l in profile.get("layers", []))
+                layers_str = ", ".join(str(layer) for layer in profile.get("layers", []))
                 table.add_row(
                     name,
                     profile.get("description", "")[:50],
@@ -1097,7 +1096,6 @@ def audit_single(tool, contract, output, timeout):
     print_banner()
 
     # Validate tool exists
-    available_tools = AdapterLoader.get_available_tools()
     all_tools = list(ADAPTER_MAP.keys())
 
     if tool not in all_tools:
@@ -1595,7 +1593,7 @@ def audit_deep(contract, output, fmt, timeout, max_iterations, no_llm, no_rag, l
         else:
             # Markdown summary
             md = f"# Deep Audit Report\n\n{narrative}\n\n"
-            md += f"## Summary\n\n| Severity | Count |\n|---|---|\n"
+            md += "## Summary\n\n| Severity | Count |\n|---|---|\n"
             for sev in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]:
                 md += f"| {sev} | {summary.get(sev, 0)} |\n"
             md += f"\nTools used: {', '.join(summary.get('tools_used', []))}\n"

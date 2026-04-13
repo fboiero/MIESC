@@ -26,7 +26,6 @@ from miesc.cli.utils import (
 
 # Import Rich components if available
 if RICH_AVAILABLE:
-    from rich import box
     from rich.panel import Panel
     from rich.table import Table
     from rich.tree import Tree
@@ -696,7 +695,10 @@ def plugins_runtime(verbose):
     print_banner()
 
     try:
-        from src.plugins import PluginType, get_registry
+        from src.plugins import (  # noqa: F401  -- PluginType used downstream
+            PluginType,
+            get_registry,
+        )
     except ImportError as e:
         error("Plugin runtime system not available")
         raise SystemExit(1) from e
@@ -789,7 +791,7 @@ def plugins_load(plugin_path, enable):
 
         for loaded in loaded_plugins:
             # Initialize and register
-            instance = loader.load_and_initialize(loaded, context)
+            loader.load_and_initialize(loaded, context)
             entry = registry.register(loaded, enabled=enable)
 
             success(f"Loaded: {entry.name} v{entry.version} ({entry.plugin_type.value})")

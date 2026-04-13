@@ -1174,9 +1174,11 @@ Respond ONLY with JSON of the shape:
         try:
             import asyncio
             import os
+
             from src.llm.llm_orchestrator import (
-                AnthropicBackend, LLMConfig, LLMOrchestrator, LLMProvider,
-                OllamaBackend, OpenAIBackend,
+                LLMConfig,
+                LLMOrchestrator,
+                LLMProvider,
             )
 
             configs = []
@@ -1241,7 +1243,7 @@ Write for a non-technical executive audience."""
 
             result = asyncio.run(run())
             if result:
-                logger.info(f"LLM narrative generated via LLMOrchestrator")
+                logger.info("LLM narrative generated via LLMOrchestrator")
             return result
         except Exception as e:
             logger.debug(f"LLMOrchestrator narrative failed: {e}")

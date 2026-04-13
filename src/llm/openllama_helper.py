@@ -242,8 +242,8 @@ REMEDIATION ADVICE:"""
 
     def _call_llm(self, prompt: str) -> Optional[str]:
         """Call Ollama LLM via HTTP API (clean output, no ANSI escapes)."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         host = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         if not host.startswith("http"):

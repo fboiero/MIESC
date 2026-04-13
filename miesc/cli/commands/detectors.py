@@ -47,8 +47,8 @@ def detectors_list(verbose):
     try:
         # Also load example detectors and local plugins
         from miesc.detectors import (
-            examples,  # noqa: F401
-            get_all_detectors,
+            examples,  # noqa: F401  -- side-effect import: registers example detectors
+            get_all_detectors,  # noqa: F401  -- imported for downstream availability check
             list_detectors,
             load_local_plugins,
         )
@@ -120,11 +120,11 @@ def detectors_run(contract, detector, output, severity):
     try:
         # Load example detectors and local plugins
         from miesc.detectors import (
-            Severity,
-            examples,  # noqa: F401
+            Severity,  # noqa: F401  -- imported for type-import consistency
+            examples,  # noqa: F401  -- side-effect import
             get_all_detectors,
             load_local_plugins,
-            run_all_detectors,
+            run_all_detectors,  # noqa: F401  -- imported for downstream availability
             run_detector,
         )
 
