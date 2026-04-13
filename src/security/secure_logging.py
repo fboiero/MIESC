@@ -33,8 +33,13 @@ class SecureFormatter(logging.Formatter):
 
     # Pattern definitions: (regex_pattern, replacement)
     SENSITIVE_PATTERNS: List[Tuple[str, str]] = [
-        # OpenAI API keys (sk-...)
-        (r"(sk-[a-zA-Z0-9]{48})", r"sk-***REDACTED***"),
+        # OpenAI API keys (sk-...) — both legacy 48-char and shorter test/project keys
+        (r"(sk-[a-zA-Z0-9]{32,})", r"sk-***REDACTED***"),
+        (r"(sk-[a-zA-Z0-9]{16,31})", r"sk-***REDACTED***"),
+        # Env-var-style assignments (OPENAI_API_KEY=..., ANTHROPIC_API_KEY=..., etc.)
+        (r"([A-Z][A-Z0-9_]*_(?:API_)?KEY\s*[:=]\s*)([^\s]+)", r"\1***REDACTED***"),
+        (r"([A-Z][A-Z0-9_]*_TOKEN\s*[:=]\s*)([^\s]+)", r"\1***REDACTED***"),
+        (r"([A-Z][A-Z0-9_]*_SECRET\s*[:=]\s*)([^\s]+)", r"\1***REDACTED***"),
         # Generic API key patterns
         (r'(["\']?api[_-]?key["\']?\s*[:=]\s*["\']?)([a-zA-Z0-9_\-]{20,})', r"\1***REDACTED***"),
         (r'(["\']?apikey["\']?\s*[:=]\s*["\']?)([a-zA-Z0-9_\-]{20,})', r"\1***REDACTED***"),
