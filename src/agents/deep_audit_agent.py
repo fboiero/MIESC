@@ -618,13 +618,30 @@ class DeepAuditAgent(BaseAgent):
                             enriched["investigation"]["taint_confirmed"] = True
                             logger.info(f"Finding {fid}: taint analysis CONFIRMS data flow vulnerability")
 
-                    # Oracle/price → trace price dependencies
-                    if "oracle" in ftype or "price" in ftype or "manipulation" in ftype:
-                        enriched["investigation"]["analysis_type"] = "oracle_dependency"
+                # Oracle/price → run DeFi pattern detector targeted at the function
+                if ("oracle" in ftype or "price" in ftype or "manipulation" in ftype):
+                    defi_matches = self._targeted_defi_scan(source_code, func)
+                    enriched["investigation"]["analysis_type"] = "oracle_dependency"
+                    enriched["investigation"]["defi_patterns_matched"] = len(defi_matches)
+                    if defi_matches:
+                        enriched["investigation"]["defi_patterns"] = defi_matches
+                        enriched["investigation"]["oracle_dependency_confirmed"] = True
+                        logger.info(
+                            f"Finding {fid}: DeFi detector CONFIRMS oracle-dependency "
+                            f"({len(defi_matches)} pattern matches)"
+                        )
 
-                    # Access control → check all functions for same pattern
-                    if "access" in ftype or "auth" in ftype:
-                        enriched["investigation"]["analysis_type"] = "access_control_audit"
+                # Access control → generate a CVL rule the auditor can run
+                if "access" in ftype or "auth" in ftype:
+                    prop = self._targeted_property_for_function(finding, func)
+                    enriched["investigation"]["analysis_type"] = "access_control_audit"
+                    if prop is not None:
+                        enriched["investigation"]["generated_property"] = prop
+                        enriched["investigation"]["property_generated"] = True
+                        logger.info(
+                            f"Finding {fid}: Generated CVL rule '{prop.get('rule_name')}' "
+                            f"targeting {func}"
+                        )
 
                 # Step 3: Call graph attack paths (for confirmed findings)
                 if self.config.enable_call_graph and recon.call_graph and func:
@@ -646,17 +663,41 @@ class DeepAuditAgent(BaseAgent):
                     next_queue.extend(high_new)
                     scan.filtered_findings.extend(new_findings)
 
-                # Step 5: LLM second opinion for CRITICAL findings
+                # Step 5: Multi-LLM consensus for CRITICAL findings
                 if fsev == "critical" and self.config.enable_llm and not self._timeout_exceeded():
-                    second_opinion = self._get_llm_second_opinion(finding, source_code)
-                    if second_opinion:
-                        enriched["investigation"]["llm_second_opinion"] = second_opinion
-                        if second_opinion.get("confirmed"):
+                    consensus = self._get_llm_consensus(finding, source_code)
+                    if consensus:
+                        enriched["investigation"]["llm_consensus"] = consensus
+
+                        # Apply confidence delta to the finding
+                        base_conf = float(enriched.get("confidence", 0.7))
+                        new_conf = max(0.0, min(1.0, base_conf + consensus["confidence_delta"]))
+                        enriched["confidence"] = round(new_conf, 2)
+
+                        if consensus["consensus"] == "agree_confirmed":
                             enriched["investigation"]["llm_confirmed"] = True
-                        else:
+                            logger.info(
+                                f"Finding {fid}: consensus CONFIRMED by "
+                                f"{consensus['confirmed_count']} models — "
+                                f"confidence {base_conf:.2f} → {new_conf:.2f}"
+                            )
+                        elif consensus["consensus"] == "agree_rejected":
                             enriched["severity"] = "high"
                             enriched["investigation"]["llm_downgraded"] = True
-                            logger.info(f"Finding {fid}: CRITICAL downgraded to HIGH by LLM review")
+                            logger.info(
+                                f"Finding {fid}: consensus REJECTED — "
+                                f"downgraded CRITICAL → HIGH (confidence {new_conf:.2f})"
+                            )
+                        elif consensus["consensus"] == "disagreement":
+                            enriched["needs_manual_review"] = True
+                            enriched["investigation"]["manual_review_reason"] = (
+                                "Models disagree on whether this is a real vulnerability"
+                            )
+                            logger.warning(
+                                f"Finding {fid}: models DISAGREE — flagged for manual review "
+                                f"({consensus['confirmed_count']} confirm, "
+                                f"{consensus['rejected_count']} reject)"
+                            )
 
                 enriched_findings.append(enriched)
 
@@ -671,6 +712,17 @@ class DeepAuditAgent(BaseAgent):
                 ]
             )
 
+        # Aggregate counters
+        needs_review_count = sum(1 for f in enriched_findings if f.get("needs_manual_review"))
+        property_count = sum(
+            1 for f in enriched_findings
+            if f.get("investigation", {}).get("property_generated")
+        )
+        defi_confirmed = sum(
+            1 for f in enriched_findings
+            if f.get("investigation", {}).get("oracle_dependency_confirmed")
+        )
+
         return {
             "findings": enriched_findings + [
                 f for f in scan.filtered_findings
@@ -681,6 +733,9 @@ class DeepAuditAgent(BaseAgent):
             "enriched_count": len(enriched_findings),
             "additional_tools": list(additional_tools),
             "mitigated_count": mitigated_count,
+            "needs_manual_review_count": needs_review_count,
+            "properties_generated": property_count,
+            "defi_confirmed_count": defi_confirmed,
         }
 
     def _enrich_with_rag(self, finding: Dict) -> Dict[str, Any]:
@@ -716,19 +771,20 @@ class DeepAuditAgent(BaseAgent):
         matches = sum(1 for kw in keywords if kw.lower() in source_code.lower())
         return matches >= 2
 
-    def _get_llm_second_opinion(self, finding: Dict, source_code: str) -> Optional[Dict]:
-        """Get LLM second opinion on a CRITICAL finding."""
-        try:
-            import json as json_mod
-            import urllib.request
+    def _query_llm_verifier(
+        self, finding: Dict, source_code: str, model: str, host: str
+    ) -> Optional[Dict]:
+        """Query a specific Ollama model for finding verification. Returns parsed JSON or None."""
+        import json as json_mod
+        import urllib.request
 
-            host = "http://localhost:11434"
-            title = finding.get("title", finding.get("type", "unknown"))
-            desc = finding.get("description", "")[:300]
-            func = finding.get("location", {}).get("function", "unknown") if isinstance(finding.get("location"), dict) else ""
-            code_snippet = source_code[:3000]
+        title = finding.get("title", finding.get("type", "unknown"))
+        desc = finding.get("description", "")[:300]
+        loc_obj = finding.get("location", {})
+        func = loc_obj.get("function", "unknown") if isinstance(loc_obj, dict) else ""
+        code_snippet = source_code[:3000]
 
-            prompt = f"""A security tool flagged this as CRITICAL. Verify if this is a real vulnerability.
+        prompt = f"""A security tool flagged this as CRITICAL. Verify whether it is a real vulnerability.
 
 FINDING: {title}
 DESCRIPTION: {desc}
@@ -737,16 +793,16 @@ FUNCTION: {func}
 CONTRACT CODE (first 3000 chars):
 {code_snippet}
 
-Answer in JSON:
-{{"confirmed": true/false, "reasoning": "why this is/isn't a real vulnerability", "actual_severity": "CRITICAL|HIGH|MEDIUM|LOW"}}
+Respond ONLY with JSON of the shape:
+{{"confirmed": true|false, "reasoning": "<1-2 sentences>", "actual_severity": "CRITICAL|HIGH|MEDIUM|LOW"}}
 """
+        try:
             payload = json_mod.dumps({
-                "model": self.config.llm_model,
+                "model": model,
                 "prompt": prompt,
                 "stream": False,
                 "options": {"temperature": 0.1, "num_predict": 512},
             }).encode()
-
             req = urllib.request.Request(
                 f"{host}/api/generate",
                 data=payload,
@@ -754,20 +810,107 @@ Answer in JSON:
             )
             with urllib.request.urlopen(req, timeout=30) as resp:
                 result = json_mod.loads(resp.read())
-                text = result.get("response", "")
-
-            # Try to parse JSON from response
+            text = result.get("response", "")
             try:
-                # Find JSON in response
                 start = text.index("{")
                 end = text.rindex("}") + 1
-                return json_mod.loads(text[start:end])
+                parsed = json_mod.loads(text[start:end])
+                parsed["_model"] = model
+                return parsed
             except (ValueError, json_mod.JSONDecodeError):
-                return {"confirmed": True, "reasoning": text[:200]}
-
+                return {"confirmed": True, "reasoning": text[:200], "_model": model}
         except Exception as e:
-            logger.debug(f"LLM second opinion failed: {e}")
+            logger.debug(f"LLM verifier ({model}) failed: {e}")
             return None
+
+    def _get_llm_consensus(
+        self, finding: Dict, source_code: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Multi-LLM consensus check: query the primary code-analysis model AND a
+        verification-focused model, then reconcile their verdicts.
+
+        Returns a dict with keys:
+          - opinions: List[Dict] (raw model answers)
+          - models_queried: List[str]
+          - confirmed_count / rejected_count
+          - consensus: "agree_confirmed" | "agree_rejected" | "disagreement"
+          - confidence_delta: float — suggested boost/penalty to the finding's confidence
+          - needs_manual_review: bool
+        """
+        try:
+            from src.core.llm_config import (
+                USE_CASE_CODE_ANALYSIS,
+                USE_CASE_VERIFICATION,
+                get_model,
+                get_ollama_host,
+            )
+            primary_model = get_model(USE_CASE_CODE_ANALYSIS)
+            verifier_model = get_model(USE_CASE_VERIFICATION)
+            host = get_ollama_host()
+        except Exception:
+            primary_model = self.config.llm_model
+            verifier_model = self.config.llm_model
+            host = "http://localhost:11434"
+
+        models_queried: List[str] = []
+        opinions: List[Dict[str, Any]] = []
+
+        for model in dict.fromkeys([primary_model, verifier_model]):  # de-dup, preserve order
+            op = self._query_llm_verifier(finding, source_code, model, host)
+            models_queried.append(model)
+            if op is not None:
+                opinions.append(op)
+            if self._timeout_exceeded():
+                break
+
+        if not opinions:
+            return None
+
+        confirmed = [o for o in opinions if bool(o.get("confirmed"))]
+        rejected = [o for o in opinions if not bool(o.get("confirmed"))]
+
+        if len(opinions) == 1:
+            consensus = "single_opinion"
+            confidence_delta = 0.0
+            needs_manual_review = False
+        elif len(confirmed) == len(opinions):
+            consensus = "agree_confirmed"
+            confidence_delta = +0.20
+            needs_manual_review = False
+        elif len(rejected) == len(opinions):
+            consensus = "agree_rejected"
+            confidence_delta = -0.30
+            needs_manual_review = False
+        else:
+            consensus = "disagreement"
+            confidence_delta = -0.10
+            needs_manual_review = True
+
+        return {
+            "opinions": opinions,
+            "models_queried": models_queried,
+            "confirmed_count": len(confirmed),
+            "rejected_count": len(rejected),
+            "consensus": consensus,
+            "confidence_delta": confidence_delta,
+            "needs_manual_review": needs_manual_review,
+        }
+
+    # Kept for backwards compat (existing callers/tests); delegates to the new consensus flow.
+    def _get_llm_second_opinion(self, finding: Dict, source_code: str) -> Optional[Dict]:
+        consensus = self._get_llm_consensus(finding, source_code)
+        if consensus is None:
+            return None
+        if consensus.get("opinions"):
+            # Return the first opinion for legacy shape compatibility, but carry
+            # the consensus metadata alongside for newer callers.
+            merged = dict(consensus["opinions"][0])
+            merged["consensus"] = consensus["consensus"]
+            merged["needs_manual_review"] = consensus["needs_manual_review"]
+            merged["confidence_delta"] = consensus["confidence_delta"]
+            return merged
+        return None
 
     def _targeted_taint_for_function(self, source_code: str, func_name: str) -> list:
         """Run taint analysis targeting a specific function."""
@@ -780,6 +923,69 @@ Answer in JSON:
             return []
         except Exception:
             return []
+
+    def _targeted_defi_scan(self, source_code: str, func_name: Optional[str]) -> List[Dict[str, Any]]:
+        """
+        Run DeFi pattern detector focused on the vulnerable function.
+
+        Triggered when a finding is oracle-/price-related — gives us concrete
+        evidence (e.g. spot-price read, missing TWAP) to confirm the finding.
+        Returns a list of matched DeFi patterns serialized as dicts.
+        """
+        try:
+            from src.ml.defi_patterns import DeFiPatternDetector
+            detector = DeFiPatternDetector()
+            matches = detector.detect(source_code) or []
+            matches_list: List[Dict[str, Any]] = []
+            for m in matches:
+                # Normalize to dict (DeFiPatternMatch is a dataclass)
+                d = m.to_dict() if hasattr(m, "to_dict") else dict(m.__dict__)
+                if func_name:
+                    # Keep only matches whose location mentions the function, OR keep all
+                    # if we cannot locate the function (broader is safer than empty).
+                    loc = str(d.get("location", ""))
+                    if func_name in loc or not loc:
+                        matches_list.append(d)
+                else:
+                    matches_list.append(d)
+            return matches_list[:5]
+        except Exception as e:
+            logger.debug(f"Targeted DeFi scan failed: {e}")
+            return []
+
+    def _targeted_property_for_function(
+        self, finding: Dict[str, Any], func_name: Optional[str]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Generate a formal-verification property (CVL rule) targeting the function
+        that triggered an access-control finding.
+
+        The generated rule becomes actionable evidence the auditor can feed to
+        `certoraRun` / `miesc verify` directly.
+        """
+        if not func_name:
+            return None
+        try:
+            from src.formal.spec_generator import SpecFormat, SpecGenerator
+            generator = SpecGenerator()
+            # Force the function name into the finding so the generator targets it
+            enriched_input = dict(finding)
+            loc = dict(enriched_input.get("location", {})) if isinstance(enriched_input.get("location"), dict) else {}
+            loc["function"] = func_name
+            enriched_input["location"] = loc
+            specs = generator.generate_specs([enriched_input], format=SpecFormat.CVL)
+            if not specs:
+                return None
+            spec = specs[0]
+            return {
+                "format": "cvl",
+                "rule_name": getattr(spec, "rule_name", None) or spec.__dict__.get("rule_name"),
+                "content": getattr(spec, "content", None) or spec.__dict__.get("content"),
+                "target_function": func_name,
+            }
+        except Exception as e:
+            logger.debug(f"Property generation for {func_name} failed: {e}")
+            return None
 
     def _find_attack_paths(self, call_graph, func_name: str) -> List[str]:
         """Find attack paths from entry points to the vulnerable function."""

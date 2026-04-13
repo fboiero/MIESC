@@ -1578,3 +1578,258 @@ class TestTemplateNarrativeEdgeCases:
         narrative = agent._template_narrative(summary, chains)
         assert "3 exploit chain" in narrative
         assert "cascading" in narrative
+
+
+# ---------------------------------------------------------------------------
+# Bloque 3: finding-driven tool triggering + multi-LLM consensus
+# ---------------------------------------------------------------------------
+
+
+class TestTargetedDefiScan:
+    def test_returns_list_even_without_source(self, agent):
+        # With no DeFi patterns in the code, result is empty but never errors
+        result = agent._targeted_defi_scan("contract Empty {}", "someFunc")
+        assert isinstance(result, list)
+
+    def test_caps_matches_at_five(self, agent):
+        """Regardless of how many DeFi patterns match, we cap at 5 for payload size."""
+        fake_match = MagicMock()
+        fake_match.to_dict.return_value = {"pattern": "x", "location": "withdraw"}
+        with patch("src.ml.defi_patterns.DeFiPatternDetector") as Det:
+            Det.return_value.detect.return_value = [fake_match] * 20
+            result = agent._targeted_defi_scan("source", "withdraw")
+            assert len(result) <= 5
+
+
+class TestTargetedPropertyGeneration:
+    def test_returns_none_without_function(self, agent):
+        finding = {"type": "access-control", "severity": "high"}
+        assert agent._targeted_property_for_function(finding, None) is None
+
+    def test_generates_cvl_for_access_control(self, agent):
+        finding = {"type": "access-control", "severity": "high"}
+        fake_spec = MagicMock()
+        fake_spec.rule_name = "rule_accessControl"
+        fake_spec.content = "rule accessControl { ... }"
+        with patch("src.formal.spec_generator.SpecGenerator") as Gen:
+            Gen.return_value.generate_specs.return_value = [fake_spec]
+            result = agent._targeted_property_for_function(finding, "setOwner")
+            assert result is not None
+            assert result["format"] == "cvl"
+            assert result["target_function"] == "setOwner"
+
+
+class TestLLMConsensus:
+    @pytest.fixture(autouse=True)
+    def _reset_timer(self, agent):
+        """Prime the timeout clock so _timeout_exceeded() doesn't immediately fire."""
+        agent._start_time = time.monotonic()
+
+    def _mock_opinions(self, agent, opinions):
+        """Helper: patch _query_llm_verifier to return canned opinions in sequence."""
+        return patch.object(agent, "_query_llm_verifier", side_effect=opinions)
+
+    def test_agree_confirmed_boosts_confidence(self, agent):
+        op1 = {"confirmed": True, "reasoning": "yes", "actual_severity": "CRITICAL", "_model": "m1"}
+        op2 = {"confirmed": True, "reasoning": "yes again", "actual_severity": "CRITICAL", "_model": "m2"}
+        with self._mock_opinions(agent, [op1, op2]):
+            # Force two distinct models so both get queried
+            with patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]), \
+                 patch("src.core.llm_config.get_ollama_host", return_value="http://x"):
+                result = agent._get_llm_consensus({"title": "t"}, "src")
+        assert result is not None
+        assert result["consensus"] == "agree_confirmed"
+        assert result["confidence_delta"] > 0
+        assert result["needs_manual_review"] is False
+
+    def test_agree_rejected_penalizes_confidence(self, agent):
+        op1 = {"confirmed": False, "reasoning": "no", "actual_severity": "LOW", "_model": "m1"}
+        op2 = {"confirmed": False, "reasoning": "no either", "actual_severity": "LOW", "_model": "m2"}
+        with self._mock_opinions(agent, [op1, op2]):
+            with patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]), \
+                 patch("src.core.llm_config.get_ollama_host", return_value="http://x"):
+                result = agent._get_llm_consensus({"title": "t"}, "src")
+        assert result["consensus"] == "agree_rejected"
+        assert result["confidence_delta"] < 0
+        assert result["needs_manual_review"] is False
+
+    def test_disagreement_flags_manual_review(self, agent):
+        op1 = {"confirmed": True, "reasoning": "real bug", "actual_severity": "CRITICAL", "_model": "m1"}
+        op2 = {"confirmed": False, "reasoning": "mitigated", "actual_severity": "LOW", "_model": "m2"}
+        with self._mock_opinions(agent, [op1, op2]):
+            with patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]), \
+                 patch("src.core.llm_config.get_ollama_host", return_value="http://x"):
+                result = agent._get_llm_consensus({"title": "t"}, "src")
+        assert result["consensus"] == "disagreement"
+        assert result["needs_manual_review"] is True
+
+    def test_single_model_case(self, agent):
+        """If primary and verification map to the SAME model, only one query is made."""
+        op = {"confirmed": True, "reasoning": "y", "actual_severity": "CRITICAL", "_model": "m1"}
+        with patch.object(agent, "_query_llm_verifier", return_value=op):
+            with patch("src.core.llm_config.get_model", return_value="m1"), \
+                 patch("src.core.llm_config.get_ollama_host", return_value="http://x"):
+                result = agent._get_llm_consensus({"title": "t"}, "src")
+        assert result["consensus"] == "single_opinion"
+        assert result["confidence_delta"] == 0
+        assert len(result["opinions"]) == 1
+
+    def test_all_queries_fail_returns_none(self, agent):
+        with patch.object(agent, "_query_llm_verifier", return_value=None):
+            with patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]), \
+                 patch("src.core.llm_config.get_ollama_host", return_value="http://x"):
+                assert agent._get_llm_consensus({"title": "t"}, "src") is None
+
+
+class TestPhase3FindingDrivenIntegration:
+    """Exercise the Phase 3 loop end-to-end with injected mocks."""
+
+    @pytest.fixture
+    def agent_llm(self):
+        """Agent variant with LLM consensus enabled (Step 5 of Phase 3)."""
+        config = DeepAuditConfig(
+            timeout_seconds=60,
+            max_iterations=3,
+            enable_llm=True,
+            enable_rag=False,
+            enable_taint=False,
+            enable_call_graph=False,
+            enable_exploit_chains=False,
+        )
+        return DeepAuditAgent(config=config)
+
+    def test_oracle_finding_triggers_defi_detector(self, agent, tmp_contract):
+        """An oracle finding causes DeFi detector to run and record matches."""
+        agent._start_time = time.monotonic()
+        fake_match = {"pattern": "spot-price-read", "location": "getPrice", "severity": "high"}
+        with patch.object(agent, "_targeted_defi_scan", return_value=[fake_match]) as scan_mock:
+            recon = ReconResult()
+            scan = ScanResult(
+                tools_run=["slither"],
+                filtered_findings=[
+                    {
+                        "id": "o1",
+                        "title": "Oracle manipulation",
+                        "type": "oracle-manipulation",
+                        "severity": "High",
+                        "location": {"function": "getPrice"},
+                    },
+                ],
+            )
+            result = agent._phase_deep_investigation(
+                tmp_contract, VULNERABLE_CONTRACT, recon, scan
+            )
+
+        scan_mock.assert_called_once()
+        enriched = result["findings"][0]
+        assert enriched["investigation"]["oracle_dependency_confirmed"] is True
+        assert enriched["investigation"]["defi_patterns_matched"] == 1
+        assert result["defi_confirmed_count"] == 1
+
+    def test_access_control_finding_triggers_property_gen(self, agent, tmp_contract):
+        """An access-control finding causes a CVL rule to be generated."""
+        agent._start_time = time.monotonic()
+        fake_property = {
+            "format": "cvl",
+            "rule_name": "rule_onlyOwner",
+            "content": "rule onlyOwner { ... }",
+            "target_function": "setOwner",
+        }
+        with patch.object(
+            agent, "_targeted_property_for_function", return_value=fake_property
+        ) as prop_mock:
+            recon = ReconResult()
+            scan = ScanResult(
+                tools_run=["slither"],
+                filtered_findings=[
+                    {
+                        "id": "a1",
+                        "title": "Missing access control",
+                        "type": "access-control-missing",
+                        "severity": "High",
+                        "location": {"function": "setOwner"},
+                    },
+                ],
+            )
+            result = agent._phase_deep_investigation(
+                tmp_contract, VULNERABLE_CONTRACT, recon, scan
+            )
+
+        prop_mock.assert_called_once()
+        enriched = result["findings"][0]
+        assert enriched["investigation"]["property_generated"] is True
+        assert enriched["investigation"]["generated_property"]["rule_name"] == "rule_onlyOwner"
+        assert result["properties_generated"] == 1
+
+    def test_critical_disagreement_flags_manual_review(self, agent_llm, tmp_contract):
+        """When models disagree on a CRITICAL finding, it gets needs_manual_review=True."""
+        agent_llm._start_time = time.monotonic()
+        disagreement = {
+            "opinions": [{"_model": "m1", "confirmed": True}, {"_model": "m2", "confirmed": False}],
+            "models_queried": ["m1", "m2"],
+            "confirmed_count": 1,
+            "rejected_count": 1,
+            "consensus": "disagreement",
+            "confidence_delta": -0.1,
+            "needs_manual_review": True,
+        }
+        with patch.object(agent_llm, "_get_llm_consensus", return_value=disagreement):
+            recon = ReconResult()
+            scan = ScanResult(
+                tools_run=["slither"],
+                filtered_findings=[
+                    {
+                        "id": "c1",
+                        "title": "Reentrancy",
+                        "type": "reentrancy",
+                        "severity": "critical",
+                        "confidence": 0.8,
+                        "location": {"function": "withdraw"},
+                    },
+                ],
+            )
+            result = agent_llm._phase_deep_investigation(
+                tmp_contract, VULNERABLE_CONTRACT, recon, scan
+            )
+
+        enriched = result["findings"][0]
+        assert enriched["needs_manual_review"] is True
+        assert enriched["investigation"]["llm_consensus"]["consensus"] == "disagreement"
+        assert enriched["confidence"] == 0.70  # 0.80 - 0.10, rounded to 2dp
+        assert result["needs_manual_review_count"] == 1
+
+    def test_critical_agree_confirmed_boosts_confidence(self, agent_llm, tmp_contract):
+        """When both models CONFIRM a CRITICAL finding, confidence is boosted."""
+        agent_llm._start_time = time.monotonic()
+        agreement = {
+            "opinions": [{"_model": "m1", "confirmed": True}, {"_model": "m2", "confirmed": True}],
+            "models_queried": ["m1", "m2"],
+            "confirmed_count": 2,
+            "rejected_count": 0,
+            "consensus": "agree_confirmed",
+            "confidence_delta": +0.20,
+            "needs_manual_review": False,
+        }
+        with patch.object(agent_llm, "_get_llm_consensus", return_value=agreement):
+            recon = ReconResult()
+            scan = ScanResult(
+                tools_run=["slither"],
+                filtered_findings=[
+                    {
+                        "id": "c2",
+                        "title": "Reentrancy",
+                        "type": "reentrancy",
+                        "severity": "critical",
+                        "confidence": 0.7,
+                        "location": {"function": "withdraw"},
+                    },
+                ],
+            )
+            result = agent_llm._phase_deep_investigation(
+                tmp_contract, VULNERABLE_CONTRACT, recon, scan
+            )
+
+        enriched = result["findings"][0]
+        assert enriched["investigation"]["llm_confirmed"] is True
+        assert enriched["confidence"] == 0.90  # 0.70 + 0.20
+        assert enriched.get("needs_manual_review") is not True
