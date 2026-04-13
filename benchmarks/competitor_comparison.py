@@ -31,6 +31,12 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+# Read version dynamically so every benchmark run stamps the correct release
+try:
+    from miesc import __version__ as MIESC_VERSION
+except ImportError:
+    MIESC_VERSION = "unknown"
+
 # Test contracts (intentionally vulnerable, well-understood)
 TEST_CONTRACTS = [
     ("EtherStore.sol", "Classic reentrancy (DAO-style)"),
@@ -291,7 +297,7 @@ def main():
     # Save JSON
     output = {
         "comparison_date": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "miesc_version": "5.1.1",
+        "miesc_version": MIESC_VERSION,
         "results": all_results,
         "totals": totals,
         "times": times,
