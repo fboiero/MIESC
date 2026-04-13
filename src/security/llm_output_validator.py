@@ -136,6 +136,55 @@ class VulnerabilityFinding(BaseModel):
 
     # Location
     location: Optional[CodeLocation] = Field(default=None)
+
+    @field_validator("location", mode="before")
+    @classmethod
+    def coerce_location(cls, v: Any) -> Any:
+        """Coerce common LLM location shapes into a CodeLocation dict.
+
+        LLMs return wildly different formats for `location`:
+          - "function:line"       (Slither-style string)
+          - "L42" / "line 42"     (line-only string)
+          - "withdraw"            (function-only string)
+          - {"file": ..., "line": ...} (well-formed dict)
+          - 42                    (bare integer line)
+
+        Rather than reject anything non-dict (which produces 0 findings in
+        lenient mode), coerce to the nearest valid dict.
+        """
+        if v is None or isinstance(v, dict) or isinstance(v, CodeLocation):
+            return v
+        if isinstance(v, int):
+            return {"line": v if 0 <= v <= 1_000_000 else None}
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return None
+            # "function:line" shape
+            if ":" in s:
+                func, _, num = s.rpartition(":")
+                try:
+                    line = int(num.strip())
+                    return {"function": func.strip() or None, "line": line}
+                except (ValueError, TypeError):
+                    return {"function": s}
+            # "line 42" or "L42" or just "42"
+            import re as _re
+            m = _re.search(r"\d+", s)
+            if m:
+                try:
+                    line = int(m.group(0))
+                    # Treat "line 42" as line-only; "withdraw42" stays function-like
+                    if s.lower().startswith(("l", "line")) or s == str(line):
+                        return {"line": line}
+                    # Otherwise preserve both
+                    return {"function": s, "line": line}
+                except ValueError:
+                    pass
+            # Plain function name
+            return {"function": s}
+        # Unknown type → drop, not fail
+        return None
     line: Optional[int] = Field(default=None, ge=0, le=1_000_000)
     function: Optional[str] = Field(default=None, max_length=500)
     contract: Optional[str] = Field(default=None, max_length=500)
