@@ -44,7 +44,7 @@ fboiero@frvm.utn.edu.ar}
 \maketitle
 
 \begin{abstract}
-Automated security analysis tools for smart contracts each capture only a fraction of existing vulnerabilities, and their high false positive rates limit practical adoption. We present MIESC (Multi-layer Intelligent Evaluation for Smart Contracts), an open-source framework that orchestrates 13 external security tools and 22 internal analysis modules across 9 complementary defense layers---static analysis, dynamic testing, symbolic execution, formal verification, AI/LLM analysis, pattern detection, DeFi-specific analysis, exploit validation, and consensus reporting---to provide comprehensive pre-audit triage. MIESC normalizes heterogeneous tool outputs, filters false positives using a Retrieval-Augmented Generation (RAG) system with 60 vulnerability patterns, and maps findings to 12 international security standards. Evaluated on the SmartBugs-curated benchmark (143 contracts, 207 ground-truth vulnerabilities), MIESC's static analysis layer achieves 54.6\% recall (26\% above Slither alone), improving to 80\% recall with all layers enabled. On 11 confirmed DeFi exploits totaling \$3.3 billion in losses, MIESC achieves 81.8\% recall with Cohen's $\kappa$ = 0.77. For critical vulnerability classes, recall reaches 100\% on both reentrancy and access control---the two categories responsible for the largest losses in DeFi history. MIESC is freely available under AGPL-3.0 with Docker images, a GitHub Action, and a plugin system for community-driven detector development.
+Automated security analysis tools for smart contracts each capture only a fraction of existing vulnerabilities, and their high false positive rates limit practical adoption. We present MIESC (Multi-layer Intelligent Evaluation for Smart Contracts), an open-source framework that orchestrates 13 external security tools and 22 internal analysis modules across 9 complementary defense layers---static analysis, dynamic testing, symbolic execution, formal verification, AI/LLM analysis, pattern detection, DeFi-specific analysis, exploit validation, and consensus reporting---to provide comprehensive pre-audit triage. Beyond batch orchestration, MIESC ships (i)~an \emph{agentic} deep-audit mode with finding-driven tool triggering and multi-LLM consensus for critical findings, (ii)~a formal-verification bridge that auto-generates Certora~CVL / Scribble / SMTChecker specs from findings and executes them through a unified runner, and (iii)~first-class coverage of the Starknet (Cairo) ecosystem with 13 vulnerability classes informed by recent real-world exploits (zkLend, Braavos). MIESC normalizes heterogeneous tool outputs, filters false positives using a Retrieval-Augmented Generation (RAG) system with 60 vulnerability patterns---each carrying structured exploitation steps and grep-level detection heuristics---and maps findings to 12 international security standards. Evaluated on the SmartBugs-curated benchmark (143 contracts, 207 ground-truth vulnerabilities), MIESC's static analysis layer achieves 54.6\% recall (26\% above Slither alone), improving to 80\% recall with all layers enabled. On 11 confirmed DeFi exploits totaling \$3.3 billion in losses, MIESC achieves 81.8\% recall with Cohen's $\kappa$ = 0.77. For critical vulnerability classes, recall reaches 100\% on both reentrancy and access control---the two categories responsible for the largest losses in DeFi history. MIESC is freely available under AGPL-3.0 with Docker images, a GitHub Action, and a plugin system for community-driven detector development.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -66,6 +66,9 @@ We address this gap with MIESC, a framework that:
     \item Filters false positives using a \textbf{RAG-enhanced ML pipeline} with 60 curated vulnerability patterns and per-detector calibration.
     \item Maps findings to \textbf{12 international security standards} (ISO~27001, NIST~CSF, OWASP, CWE, SWC, MITRE ATT\&CK).
     \item Provides an \textbf{extensible plugin system} for community-driven detector development.
+    \item Implements an \textbf{agentic deep-audit loop} that, on CRITICAL findings, queries a primary code-analysis model plus a dedicated verification-role model and applies bounded confidence adjustments ($+0.20$ on agreement, $-0.30$ on joint rejection, $-0.10$ + manual-review flag on disagreement)---turning the LLM into a calibrated verifier rather than a single-shot labeler.
+    \item Closes the \textbf{specification-to-proof loop} by generating Certora CVL rules, Scribble annotations, and SMTChecker assertions directly from findings, and exposing a unified \texttt{miesc verify} command that runs the generated specs against the Certora Prover, Halmos, and solc's SMTChecker.
+    \item Extends coverage to the \textbf{Starknet / Cairo ecosystem} with 13 vulnerability classes informed by 2024--2026 real-world exploits (zkLend stale-price, Braavos account re-initialization, Cairo~1.0 unchecked \texttt{u256} arithmetic, dropped syscall results, account-abstraction signature replay).
 \end{enumerate}
 
 MIESC is designed as a \emph{pre-audit triage tool}, not a replacement for manual expert review. By automating the multi-tool orchestration and normalization workflow, it reduces audit preparation time and enables continuous security monitoring in CI/CD pipelines.
@@ -152,7 +155,7 @@ The RAG component uses ChromaDB as a vector store with sentence embeddings (all-
     \item \textbf{SWC patterns} (33): covering SWC-100 through SWC-136 (unchecked calls, integer overflow, tx.origin, delegatecall, etc.)
 \end{itemize}
 
-Each pattern includes the vulnerability description, severity, a real-world exploit reference (e.g., Curve \$70M, Euler \$197M, Ronin \$624M), detection heuristics, and fix templates. The system uses $O(1)$ lookup with an LRU cache (256 entries, 5-minute TTL) achieving 90\%+ cache hit rate in batch analysis.
+Each pattern includes the vulnerability description, severity, a real-world exploit reference (e.g., Curve \$70M, Euler \$197M, Ronin \$624M), structured attack steps (an ordered list of exploitation actions an attacker would take), a grep-level detection heuristic (specific code constructs the tool should look for), and fix templates. The attack steps and detection heuristics are surfaced verbatim in the LLM context block, giving the model an actionable procedure rather than a prose description. All 60 patterns carry a \texttt{real\_exploit} reference; the top 8 patterns---selected by exploit frequency---additionally carry explicit \texttt{attack\_steps} and \texttt{detection\_heuristic} fields. The system uses $O(1)$ lookup with an LRU cache (256 entries, 5-minute TTL) achieving 90\%+ cache hit rate in batch analysis.
 
 \subsection{False Positive Filter}
 
@@ -165,17 +168,45 @@ The FP filter employs a multi-signal approach:
 \end{itemize}
 
 \subsection{Agentic Deep Audit}
+\label{sec:deepaudit}
 
 Beyond batch orchestration, MIESC includes a \emph{DeepAuditAgent} that implements an autonomous 4-phase investigation loop inspired by intelligent agent architectures~\cite{wooldridge1995intelligent}. Agents communicate via a Model Context Protocol (MCP) bus~\cite{mcp2024}, enabling modular coordination:
 
 \begin{enumerate}
     \item \textbf{Reconnaissance}: Static call graph construction, taint analysis, risk profiling (DeFi, proxy, bridge, token), and attack surface scoring.
     \item \textbf{Targeted Scan}: Adaptive tool selection based on risk profile---e.g., DeFi contracts trigger oracle and MEV detectors; proxy contracts trigger upgradability checkers.
-    \item \textbf{Deep Investigation}: Iterative agentic loop over HIGH/CRITICAL findings with RAG enrichment, targeted taint analysis, and dynamic tool triggering (e.g., adding symbolic execution for reentrancy confirmation).
-    \item \textbf{Synthesis}: Cross-finding correlation, exploit chain detection, and optional LLM narrative generation (local-first via Ollama, with optional cloud API fallback).
+    \item \textbf{Deep Investigation}: Iterative agentic loop over HIGH/CRITICAL findings. Each finding triggers \emph{type-specific} follow-up analysis: oracle/price findings invoke a DeFi pattern detector scoped to the vulnerable function, access-control findings generate a Certora~CVL rule targeting the function (Section~\ref{sec:formalbridge}), and reentrancy/unchecked-call findings are confirmed by targeted taint analysis. RAG enrichment additionally validates whether a known mitigation is present in the code; when present, the finding is downgraded and marked \texttt{mitigated}.
+    \item \textbf{Synthesis}: Cross-finding correlation, exploit chain detection via graph traversal over the call graph, and optional LLM narrative generation (local-first via Ollama, with optional cloud API fallback).
 \end{enumerate}
 
-This agentic approach reduces manual triage by automatically investigating and correlating the most critical findings, detecting multi-step exploit chains that single-pass analysis would miss.
+\paragraph{Multi-LLM consensus for critical findings.}
+For every finding flagged as CRITICAL, Phase~3 runs a two-step LLM verification rather than a single-shot review. MIESC queries (i)~the model configured for the \texttt{code\_analysis} use case (primary) and (ii)~the model configured for the \texttt{verification} use case (verifier). When both models independently confirm the finding, the agent applies a $+0.20$ confidence boost and records \texttt{llm\_confirmed}. When both reject, the agent applies a $-0.30$ penalty and downgrades the severity from CRITICAL to HIGH. On disagreement, the agent applies a $-0.10$ penalty and raises a \texttt{needs\_manual\_review} flag with the model-level justifications attached, surfacing contested findings for human triage. If the two use cases map to the same model (common in lightweight local deployments), the agent records \texttt{consensus = single\_opinion} and leaves confidence unchanged---distinguishing one-model agreement from genuine multi-model agreement. This mechanism is designed to reduce the two failure modes of single-LLM verification: over-confident acceptance of model hallucinations and silent dismissal of real findings.
+
+This agentic approach reduces manual triage by automatically investigating and correlating the most critical findings, detecting multi-step exploit chains that single-pass analysis would miss, and explicitly flagging the subset of findings where automated verdicts disagree.
+
+\subsection{Formal Verification Bridge}
+\label{sec:formalbridge}
+
+A recurring friction point in smart-contract security work is the gap between \emph{finding a bug} and \emph{proving its absence after the fix}. MIESC narrows this gap with a two-command workflow:
+
+\begin{itemize}
+    \item \texttt{miesc specs} consumes a findings JSON and emits executable specifications in three formats: Certora~CVL rules (\texttt{rule noReentrancy \{ ... \}}), Scribble inline annotations (\texttt{/// \#if\_succeeds balances[msg.sender] $<$ old(balances[msg.sender])}), and SMTChecker assertions compatible with \texttt{solc --model-checker-engine chc}.
+    \item \texttt{miesc verify} executes those specifications against whichever prover is installed---the Certora Prover via \texttt{certoraRun}, Halmos via its Foundry integration, or SMTChecker via \texttt{solc}---and normalizes the outputs into a unified \texttt{VerificationResult} (status, rules passed, rules failed, counterexamples, elapsed seconds). A Foundry-root autodetector walks upward from the contract to locate \texttt{foundry.toml}, allowing Halmos to run on projects with standard layouts without additional configuration.
+\end{itemize}
+
+The agentic Phase~3 loop (Section~\ref{sec:deepaudit}) closes the inner cycle: when an access-control finding is produced, the agent automatically generates a CVL rule targeting the specific function and attaches it to the finding payload, ready for the operator to pipe into \texttt{miesc verify --tool certora}. This converts an informal finding into an actionable formal obligation in a single step, lowering the activation energy for formal verification in day-to-day audit work.
+
+\subsection{Multi-Chain Support}
+
+Although the SmartBugs-curated evaluation focuses on EVM/Solidity, MIESC's architecture treats the analysis chain as a first-class parameter. A \texttt{miesc analyze} dispatcher auto-detects the target language from the file extension and routes to the appropriate chain analyzer:
+
+\begin{itemize}
+    \item \textbf{EVM} (\texttt{.sol}, \texttt{.vy}): the 35-module pipeline described above.
+    \item \textbf{Starknet / Cairo} (\texttt{.cairo}): a purpose-built analyzer with 13~vulnerability types informed by real 2024--2026 exploits (zkLend \$9.6M stale-price read in an empty market; Braavos account re-initialization; Cairo~1.0 unchecked \texttt{u256} arithmetic; dropped \texttt{SyscallResult} from \texttt{call\_contract\_syscall} / \texttt{library\_call\_syscall}; account-abstraction signature replay without nonce binding; and classical felt-overflow / L1$\leftrightarrow$L2 message / caller spoofing / storage collision / proxy-upgrade / reentrancy / access-control).
+    \item \textbf{Move} (\texttt{.move}) and \textbf{Solana / Anchor} (\texttt{.rs}): scaffolded analyzers for Sui/Aptos and Solana ecosystems, currently surfaced for community contribution.
+\end{itemize}
+
+The chain-agnostic orchestration layer and the finding-normalization schema are shared across ecosystems, so pattern detection, RAG enrichment, and multi-LLM consensus apply uniformly regardless of target chain.
 
 % ===========================================================================
 \section{Evaluation}
@@ -344,11 +375,13 @@ Two real-world exploits were not detected: the BonqDAO oracle manipulation (\$12
 \subsection{Limitations}
 
 \begin{itemize}
-    \item Non-EVM chain support (Solana, NEAR, Move) is in alpha with pattern-based detection only.
+    \item The Starknet/Cairo analyzer uses line-by-line regex matching; patterns that span multiple lines (e.g., \texttt{\#[external]} followed by \texttt{fn foo(...)}) can be missed. A block-level scanner is planned to close this gap.
+    \item Move (Sui/Aptos) and Solana/Anchor analyzers are scaffolded for community contribution but not yet evaluated against ground-truth benchmarks.
     \item Full 9-layer analysis requires significant resources (8GB+ Docker image, 16GB RAM).
     \item Tool availability varies by platform (Echidna/Medusa are amd64-only).
-    \item LLM-based layers depend on model quality and introduce non-determinism; results may vary across Ollama model versions.
-    \item The real-world exploit evaluation (11 contracts) is limited in size; expanding to 100+ exploits is planned.
+    \item LLM-based layers depend on model quality and introduce non-determinism; the multi-LLM consensus mechanism (Section~\ref{sec:deepaudit}) mitigates but does not eliminate this; results may vary across Ollama model versions.
+    \item The trainable \texttt{AuditorTrainedFPClassifier} shipped with the framework is deployed but dormant: activating it requires a labeled corpus of auditor-validated findings, which we are collecting as an ongoing effort.
+    \item The real-world exploit evaluation (11 contracts) is limited in size; expanding to 100+ exploits and adding a Starknet-specific exploit corpus (zkLend, Braavos, Nostra) is planned.
 \end{itemize}
 
 % ===========================================================================
@@ -359,7 +392,9 @@ The central finding of this work is that no single analysis technique suffices f
 
 MIESC's practical contribution is reducing the gap between what individual tools can detect and what a human auditor would catch. The 100\% recall on reentrancy and access control---the two most exploited vulnerability classes---suggests the framework covers the highest-impact attack surface. The two misses (oracle manipulation, governance attacks) point to the frontier: vulnerabilities that require understanding protocol semantics, not just code patterns.
 
-Three directions for future work emerge from these results. First, precision needs improvement---the current 2--3 actionable findings per contract after filtering is usable, but training a classifier on auditor-validated labels could reduce this further. Second, the 11-exploit evaluation should expand to 100+ contracts to strengthen statistical claims. Third, the framework should move beyond detection toward automated remediation: generating Foundry-verified fixes for confirmed vulnerabilities.
+The framework's agentic and formal-verification components are designed around the same observation: an isolated LLM verdict or a standalone prover run is rarely sufficient, but combining them---with multi-LLM consensus on critical findings, and with automatically generated specifications that feed directly into provers---tightens the loop between detection and proof. The 2024--2026 Cairo exploit coverage extends this principle to a second ecosystem, encoding concrete lessons from zkLend (\$9.6M) and Braavos into machine-checkable patterns.
+
+Three directions for future work emerge from these results. First, precision needs improvement---the current 2--3 actionable findings per contract after filtering is usable, but the trainable FP classifier included in MIESC is waiting on a labeled auditor corpus to reduce this further. Second, the 11-exploit evaluation should expand to 100+ contracts (including a Starknet/Cairo exploit corpus) to strengthen statistical claims. Third, the framework should move beyond detection toward automated remediation: generating Foundry-verified fixes for confirmed vulnerabilities and closing the loop through \texttt{miesc verify} to prove the fix discharges the original CVL rule.
 
 MIESC is available under AGPL-3.0 (see \emph{Data Availability}).
 
