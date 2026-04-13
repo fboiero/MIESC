@@ -155,6 +155,19 @@ class MythrilAdapter(ToolAdapter):
         """
         start_time = time.time()
 
+        # Existence check BEFORE running mythril — same stale-cache bug as Slither.
+        if not Path(contract_path).exists():
+            return {
+                "tool": "mythril",
+                "version": "1.0.0",
+                "status": "error",
+                "success": False,
+                "findings": [],
+                "metadata": {"contract_analyzed": contract_path},
+                "execution_time": time.time() - start_time,
+                "error": f"Contract path does not exist: {contract_path}",
+            }
+
         # Check availability first
         status = self.is_available()
         if status != ToolStatus.AVAILABLE:
@@ -162,6 +175,7 @@ class MythrilAdapter(ToolAdapter):
                 "tool": "mythril",
                 "version": "1.0.0",
                 "status": "error",
+                "success": False,
                 "findings": [],
                 "metadata": {"tool_status": status.value},
                 "execution_time": time.time() - start_time,

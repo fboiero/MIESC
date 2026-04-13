@@ -31,6 +31,10 @@ HEAVY_DEPENDENCY_ADAPTERS = {
     # Need Ollama + specific model weights
     "gptlens", "gptscan", "llmsmartaudit", "llamaaudit", "iaudit",
     "smartllm", "llmbugscanner",
+    # Mythril needs the myth binary on PATH; aderyn needs aderyn binary.
+    # Both have the existence-check fix so the test on missing files passes
+    # without ever invoking the binary.
+    "mythril",
     # Heavy ML dependency / binary required
     "dagnn", "peculiar", "contract_clone_detector",
     # Need external service
@@ -39,6 +43,9 @@ HEAVY_DEPENDENCY_ADAPTERS = {
     "crosschain", "stellar", "algorand", "cardano", "near",
     # Requires Foundry with a valid project
     "halmos", "foundry", "vertigo",
+    # semgrep needs binary too but has the existence-check fix; exclude
+    # only if it errors out on construction (semgrep_adapter try-loads rules)
+    "semgrep",
     # Requires Python Solidity tools not shipped by default
     "oyente", "pakala", "manticore",
     # Need solc with model checker
@@ -66,8 +73,8 @@ HEAVY_DEPENDENCY_ADAPTERS = {
     "hardhat",
     # Experimental
     "foundry_ai",
-    # Remaining heavy
-    "wake", "solhint",
+    # solhint, wake, semgrep need their binaries on PATH
+    "solhint", "wake",
     # Cairo
     "cairo",
     # Echidna / Medusa need binaries
@@ -78,8 +85,8 @@ HEAVY_DEPENDENCY_ADAPTERS = {
     "semgrep",
     # Mythril external
     "mythril",
-    # Slither & Aderyn: not heavy but needs solc for full analyze
-    "aderyn",
+    # (slither + aderyn + mythril removed from heavy list — they have
+    # path-existence checks that work without solc)
 }
 
 

@@ -185,6 +185,21 @@ class AderynAdapter(ToolAdapter):
         start_time = time.time()
         temp_workspace = None
 
+        # Existence check BEFORE running aderyn — same stale-cache bug as Slither:
+        # without this, /tmp/aderyn_output.json from a prior run would leak into
+        # the response when the requested file is missing.
+        if not Path(contract_path).exists():
+            return {
+                "tool": "aderyn",
+                "version": "1.0.0",
+                "status": "error",
+                "success": False,
+                "findings": [],
+                "metadata": {"contract_analyzed": contract_path},
+                "execution_time": time.time() - start_time,
+                "error": f"Contract path does not exist: {contract_path}",
+            }
+
         # Check availability first
         status = self.is_available()
         if status != ToolStatus.AVAILABLE:
@@ -192,6 +207,7 @@ class AderynAdapter(ToolAdapter):
                 "tool": "aderyn",
                 "version": "1.0.0",
                 "status": "error",
+                "success": False,
                 "findings": [],
                 "metadata": {"tool_status": status.value},
                 "execution_time": time.time() - start_time,
