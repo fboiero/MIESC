@@ -11,16 +11,16 @@ Comprehensive tests for Slither IR parsing functionality including:
 import pytest
 
 from src.ml.slither_ir_parser import (
-    IROpcode,
-    IRVariable,
-    IRInstruction,
-    StateTransition,
     Call,
     FunctionIR,
+    IRInstruction,
+    IROpcode,
+    IRVariable,
     SlitherIRParser,
-    parse_slither_ir,
-    get_function_state_transitions,
+    StateTransition,
     get_external_calls,
+    get_function_state_transitions,
+    parse_slither_ir,
 )
 
 
@@ -768,14 +768,14 @@ class TestStateTracking:
     def test_track_state_read_pattern(self, parser):
         """Test tracking state variable reads."""
         ir_text = "REF_0(uint256) = balance(mapping(address => uint256))"
-        result = parser.parse_function_ir(ir_text, "test")
+        parser.parse_function_ir(ir_text, "test")
         # The pattern should detect 'balance' as a state read
         # Note: exact behavior depends on regex matching
 
     def test_track_state_write_pattern(self, parser):
         """Test tracking state variable writes."""
         ir_text = "balances(mapping(address => uint256))[msg.sender] = newValue"
-        result = parser.parse_function_ir(ir_text, "test")
+        parser.parse_function_ir(ir_text, "test")
         # Pattern should detect state write
 
     def test_exclude_temporary_variables(self, parser):
@@ -809,7 +809,7 @@ class TestEdgeCases:
     def test_unknown_opcode(self, parser):
         """Test handling of unknown opcodes."""
         ir_text = "UNKNOWN_OP arg1 arg2"
-        result = parser.parse_function_ir(ir_text, "test")
+        parser.parse_function_ir(ir_text, "test")
         # Unknown opcodes without matching patterns return None
         # so no instruction is added
 
@@ -895,7 +895,7 @@ class TestEdgeCases:
             }
         }
         # Should not crash
-        result = parser.parse_slither_output(slither_json)
+        parser.parse_slither_output(slither_json)
 
     def test_detector_non_function_element(self, parser):
         """Test detector with non-function elements."""

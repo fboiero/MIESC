@@ -5,10 +5,7 @@ Tests the benchmark framework for evaluating MIESC detection accuracy.
 """
 
 import json
-import tempfile
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List
 from unittest.mock import MagicMock, patch
 
 import pytest

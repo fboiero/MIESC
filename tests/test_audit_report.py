@@ -758,7 +758,7 @@ class TestRemediationSection:
 
 # Import required for new tests
 import tempfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 
 class TestPDFGeneration:
@@ -794,7 +794,7 @@ class TestPDFGeneration:
 
     def test_save_pdf_with_weasyprint(self, sample_metadata, sample_findings):
         """Test PDF generation with weasyprint available."""
-        gen = AuditReportGenerator(sample_metadata, sample_findings)
+        AuditReportGenerator(sample_metadata, sample_findings)
 
         # Mock weasyprint being available
         mock_html_class = MagicMock()
@@ -802,12 +802,13 @@ class TestPDFGeneration:
         mock_html_class.return_value = mock_html_instance
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            output_path = Path(tmpdir) / "report.pdf"
+            Path(tmpdir) / "report.pdf"
 
             with patch.dict('sys.modules', {'weasyprint': MagicMock()}):
                 with patch('src.reports.audit_report.HTML', mock_html_class, create=True):
                     # Import after patching
                     import importlib
+
                     import src.reports.audit_report as audit_module
                     importlib.reload(audit_module)
 
@@ -832,7 +833,7 @@ class TestPDFGeneration:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output_path = Path(tmpdir) / "nested" / "deep" / "report.pdf"
-            result = gen.save_pdf(output_path)
+            gen.save_pdf(output_path)
             # Parent directories should be created
             assert output_path.parent.exists()
 
@@ -880,7 +881,7 @@ class TestRiskLevels:
             for i in range(4)
         ]
         gen = AuditReportGenerator(sample_metadata, findings)
-        score = gen._calculate_risk_score()
+        gen._calculate_risk_score()
         # (6*10 + 4*1) / (10*10) * 100 = 64
         html = gen._generate_executive_summary()
         assert "HIGH RISK" in html

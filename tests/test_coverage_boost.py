@@ -15,9 +15,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # code_embeddings.py coverage
 # ---------------------------------------------------------------------------
-
 from src.ml.code_embeddings import (
-    CodeEmbedder,
     CodeEmbedding,
     SolidityTokenizer,
     VulnerabilityPatternDB,
@@ -166,7 +164,7 @@ class TestCodeEmbeddingSimilarityNormal:
 # tool_discovery.py coverage
 # ---------------------------------------------------------------------------
 
-from src.core.tool_discovery import ToolDiscovery, ToolInfo
+from src.core.tool_discovery import ToolDiscovery
 
 
 class TestToolDiscoveryFindAdaptersPathNotFound:
@@ -337,7 +335,6 @@ class TestToolDiscoveryAutoDiscover:
 
 from src.detectors.detector_api import (
     BaseDetector,
-    Category,
     DetectorRegistry,
     Finding,
     Severity,

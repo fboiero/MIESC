@@ -7,12 +7,7 @@ Author: Fernando Boiero
 License: AGPL-3.0
 """
 
-import json
-import os
-import tempfile
 from datetime import datetime
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -362,7 +357,7 @@ class TestFalsePositiveFilter:
     def test_initialization_creates_directory(self, tmp_path):
         """Test that initialization creates parent directory."""
         nested_path = tmp_path / "nested" / "dir" / "feedback.json"
-        fp_filter = FalsePositiveFilter(feedback_path=str(nested_path))
+        FalsePositiveFilter(feedback_path=str(nested_path))
         assert nested_path.parent.exists()
 
     def test_detect_solidity_version(self, fp_filter, tmp_path):
@@ -1095,9 +1090,9 @@ class TestIntegration:
         true_positives, filtered_fps = fp_filter.filter_findings(findings, threshold=0.5)
 
         # Critical reentrancy should likely be kept
-        critical_kept = any(f["_id"] == "1" for f in true_positives)
+        any(f["_id"] == "1" for f in true_positives)
         # Library finding should be filtered
-        library_filtered = any(f["_id"] == "4" for f in filtered_fps)
+        any(f["_id"] == "4" for f in filtered_fps)
 
         # Verify all findings processed
         assert len(true_positives) + len(filtered_fps) == 4

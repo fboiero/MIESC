@@ -4,7 +4,6 @@ Tests for Tool Discovery module.
 Tests the dynamic adapter discovery system.
 """
 
-import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -218,7 +217,7 @@ class TestToolDiscoveryLoadAdapter:
         mock_module.SlitherAdapter = mock_adapter
         mock_import.return_value = mock_module
 
-        result = discovery.load_adapter("slither")
+        discovery.load_adapter("slither")
 
         mock_import.assert_called_once_with("src.adapters.slither_adapter")
         mock_adapter.assert_called_once()
@@ -275,7 +274,7 @@ class TestToolDiscoveryFindAdaptersPath:
     def test_find_adapters_path_exists(self):
         """Test finding existing adapters path."""
         discovery = ToolDiscovery()
-        path = Path(discovery.adapters_path)
+        Path(discovery.adapters_path)
         # Should find some path
         assert discovery.adapters_path is not None
 

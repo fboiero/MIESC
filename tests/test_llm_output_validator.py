@@ -9,22 +9,21 @@ Comprehensive tests for LLM output validation including:
 - Validation helper functions
 """
 
-import pytest
 
 from src.security.llm_output_validator import (
-    Severity,
-    Confidence,
-    ValidationResult,
-    CodeLocation,
-    VulnerabilityFinding,
     AnalysisResponse,
+    CodeLocation,
+    Confidence,
+    Severity,
+    ValidationResult,
     VerificatorResponse,
+    VulnerabilityFinding,
+    create_safe_fallback_finding,
     extract_json_from_text,
     repair_common_json_errors,
     safe_parse_llm_json,
-    validate_vulnerability_finding,
     validate_analysis_response,
-    create_safe_fallback_finding,
+    validate_vulnerability_finding,
 )
 
 
@@ -750,7 +749,7 @@ class TestSafeParseWithRecoveryEdgeCases:
 
     def test_safe_parse_with_partial_data_has_warnings(self):
         """Test safe parsing with partial data generates warnings."""
-        from src.security.llm_output_validator import safe_parse_llm_json, VulnerabilityFinding
+        from src.security.llm_output_validator import VulnerabilityFinding, safe_parse_llm_json
 
         # Valid JSON but missing required fields
         content = '{"severity": "high"}'
@@ -765,7 +764,7 @@ class TestSafeParseWithRecoveryEdgeCases:
 
     def test_safe_parse_completely_invalid_json(self):
         """Test safe parsing with completely invalid JSON."""
-        from src.security.llm_output_validator import safe_parse_llm_json, VulnerabilityFinding
+        from src.security.llm_output_validator import VulnerabilityFinding, safe_parse_llm_json
 
         content = "This is not JSON at all"
 
@@ -776,7 +775,7 @@ class TestSafeParseWithRecoveryEdgeCases:
 
     def test_safe_parse_with_nested_errors(self):
         """Test safe parsing when nested structure causes errors."""
-        from src.security.llm_output_validator import safe_parse_llm_json, AnalysisResponse
+        from src.security.llm_output_validator import AnalysisResponse, safe_parse_llm_json
 
         # JSON with wrong types for nested fields
         content = '{"findings": "not a list", "summary": 123}'

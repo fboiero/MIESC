@@ -8,9 +8,7 @@ and the timed decorator.
 import json
 import logging
 import os
-import tempfile
 import time
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -314,7 +312,7 @@ class TestSetupLogging:
     def test_setup_logging_quiet(self):
         """Test quiet mode."""
         setup_logging(quiet=True)
-        logger = logging.getLogger()
+        logging.getLogger()
         # Should have fewer handlers in quiet mode
 
     def test_setup_logging_with_file(self, tmp_path):

@@ -19,7 +19,6 @@ from click.testing import CliRunner
 
 from miesc.cli.commands.verify import _find_foundry_root, verify
 
-
 # ---------------------------------------------------------------------------
 # _find_foundry_root
 # ---------------------------------------------------------------------------

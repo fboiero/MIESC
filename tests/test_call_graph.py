@@ -12,15 +12,15 @@ Comprehensive tests for call graph construction and analysis including:
 import pytest
 
 from src.ml.call_graph import (
-    Visibility,
-    Mutability,
-    FunctionNode,
     CallEdge,
-    CallPath,
     CallGraph,
     CallGraphBuilder,
-    build_call_graph,
+    CallPath,
+    FunctionNode,
+    Mutability,
+    Visibility,
     analyze_reentrancy_risk,
+    build_call_graph,
 )
 
 

@@ -4,9 +4,6 @@ Tests for Agent Registry module.
 Tests the agent registry and discovery system.
 """
 
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 

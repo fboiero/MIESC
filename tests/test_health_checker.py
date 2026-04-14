@@ -159,7 +159,7 @@ class TestHealthChecker:
 
     def test_adapter_map_format(self, checker):
         """Test adapter map format."""
-        for name, (module, cls) in checker.ADAPTER_MAP.items():
+        for _name, (module, cls) in checker.ADAPTER_MAP.items():
             assert module.startswith("src.adapters.")
             assert cls.endswith("Adapter")
 
@@ -185,7 +185,7 @@ class TestHealthCheckerLoadAdapter:
         mock_module.SlitherAdapter = mock_adapter
         mock_import.return_value = mock_module
 
-        result = checker._load_adapter("slither")
+        checker._load_adapter("slither")
 
         mock_adapter.assert_called_once()
 
@@ -261,9 +261,9 @@ class TestHealthCheckerCheckTool:
         mock_load.return_value = mock_adapter
 
         # First check
-        health1 = checker.check_tool("slither")
+        checker.check_tool("slither")
         # Second check (should use cache)
-        health2 = checker.check_tool("slither")
+        checker.check_tool("slither")
 
         # Adapter should only be loaded once
         assert mock_load.call_count == 1

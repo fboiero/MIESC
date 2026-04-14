@@ -5,7 +5,7 @@ Tests the observability metrics system for monitoring MIESC performance.
 """
 
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 

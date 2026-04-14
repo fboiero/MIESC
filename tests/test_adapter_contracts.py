@@ -17,12 +17,9 @@ Contract requirements (enforced by the tests):
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from miesc.cli.constants import ADAPTER_MAP
-
 
 # Adapters that require heavy optional dependencies or a running service.
 # We STILL import-test them (ensures Python-level correctness) but skip the
@@ -81,10 +78,6 @@ HEAVY_DEPENDENCY_ADAPTERS = {
     "echidna", "medusa",
     # SmartLLM RAG
     "smartllm_rag",
-    # Semgrep & aderyn have external binary; skip behavioral
-    "semgrep",
-    # Mythril external
-    "mythril",
     # (slither + aderyn + mythril removed from heavy list — they have
     # path-existence checks that work without solc)
 }

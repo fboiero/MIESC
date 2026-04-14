@@ -5,13 +5,8 @@ Tests the full flow: contract → analysis → findings → report
 using only Slither + Aderyn (fast, always available).
 """
 
-import json
-import tempfile
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
-
 
 REENTRANCY_CONTRACT = """
 // SPDX-License-Identifier: MIT
@@ -187,7 +182,7 @@ class TestClassicPatterns:
 
     def test_oracle_patterns_exist(self):
         """Oracle manipulation patterns should be defined."""
-        from src.ml.classic_patterns import ClassicVulnType, CLASSIC_PATTERNS
+        from src.ml.classic_patterns import CLASSIC_PATTERNS, ClassicVulnType
 
         assert ClassicVulnType.ORACLE_MANIPULATION in CLASSIC_PATTERNS
         config = CLASSIC_PATTERNS[ClassicVulnType.ORACLE_MANIPULATION]
@@ -196,7 +191,7 @@ class TestClassicPatterns:
 
     def test_flash_loan_patterns_exist(self):
         """Flash loan patterns should be defined."""
-        from src.ml.classic_patterns import ClassicVulnType, CLASSIC_PATTERNS
+        from src.ml.classic_patterns import CLASSIC_PATTERNS, ClassicVulnType
 
         assert ClassicVulnType.FLASH_LOAN in CLASSIC_PATTERNS
         config = CLASSIC_PATTERNS[ClassicVulnType.FLASH_LOAN]

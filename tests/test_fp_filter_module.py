@@ -7,15 +7,14 @@ Author: Fernando Boiero
 License: AGPL-3.0
 """
 
+
 import pytest
-from unittest.mock import MagicMock, patch
 
 from src.ml.fp_filter import (
     FalsePositiveFilter,
     FilterResult,
     FPCategory,
     FPMatch,
-    filter_false_positives,
 )
 
 

@@ -919,7 +919,6 @@ class TestPoCRunMethod:
     def test_run_success(self, generator, sample_poc, tmp_path):
         """Test successful PoC run."""
         from unittest.mock import MagicMock, patch
-        import subprocess
 
         # Create project structure
         test_dir = tmp_path / "test" / "exploits"
@@ -957,8 +956,8 @@ class TestPoCRunMethod:
 
     def test_run_timeout(self, generator, sample_poc, tmp_path):
         """Test PoC run timeout (lines 362-368)."""
-        from unittest.mock import patch
         import subprocess
+        from unittest.mock import patch
 
         test_dir = tmp_path / "test" / "exploits"
         test_dir.mkdir(parents=True)

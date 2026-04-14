@@ -268,7 +268,7 @@ class TestTaintAnalyzerAnalyze:
         """
         paths = analyzer.analyze(code)
         # Some paths should be sanitized due to require
-        sanitized = [p for p in paths if p.is_sanitized]
+        [p for p in paths if p.is_sanitized]
         # The analysis should find sanitizers
         assert len(paths) > 0
 
@@ -591,7 +591,7 @@ class TestEdgeCases:
             require(t > deadline);
         }
         """
-        paths = analyzer.analyze(code)
+        analyzer.analyze(code)
         # block.timestamp should be tracked but may not reach a sink
         assert analyzer._tainted_vars
 
@@ -603,7 +603,7 @@ class TestEdgeCases:
             require(origin == owner);
         }
         """
-        paths = analyzer.analyze(code)
+        analyzer.analyze(code)
         # tx.origin should be identified as source
         tx_origin_vars = [
             v for v in analyzer._tainted_vars.values() if v.source == TaintSource.TX_ORIGIN

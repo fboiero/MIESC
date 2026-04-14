@@ -15,16 +15,11 @@ Attack classes covered:
 
 from __future__ import annotations
 
-import json
-import pickle
-import subprocess
-import sys
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Command injection — subprocess args must be lists, never shell strings
@@ -101,6 +96,7 @@ class TestPathTraversalResistance:
         """Click's type=Path(exists=True) must reject nonexistent paths.
         Regression against accidentally removing `exists=True`."""
         from click.testing import CliRunner
+
         from miesc.cli.commands.verify import verify
         evil = str(tmp_path / ".." / ".." / "etc" / "passwd")
         result = CliRunner().invoke(verify, [evil, "--tool", "smtchecker", "--quiet"])
@@ -313,8 +309,9 @@ class TestLLMOutputValidation:
 
 class TestSecretRedaction:
     def test_secure_formatter_redacts_api_key_pattern(self):
-        from src.security.secure_logging import SecureFormatter
         import logging
+
+        from src.security.secure_logging import SecureFormatter
         record = logging.LogRecord(
             name="test", level=logging.INFO, pathname="", lineno=0,
             msg="request OPENAI_API_KEY=sk-1234567890abcdef details",
@@ -327,8 +324,9 @@ class TestSecretRedaction:
         )
 
     def test_secure_formatter_redacts_bearer_token(self):
-        from src.security.secure_logging import SecureFormatter
         import logging
+
+        from src.security.secure_logging import SecureFormatter
         record = logging.LogRecord(
             name="test", level=logging.INFO, pathname="", lineno=0,
             msg="Authorization: Bearer abc123xyz.very-secret-token",
@@ -338,8 +336,9 @@ class TestSecretRedaction:
         assert "very-secret-token" not in output
 
     def test_secure_formatter_preserves_nonsensitive_content(self):
-        from src.security.secure_logging import SecureFormatter
         import logging
+
+        from src.security.secure_logging import SecureFormatter
         record = logging.LogRecord(
             name="test", level=logging.INFO, pathname="", lineno=0,
             msg="Scan complete: 5 findings in 1.2s",

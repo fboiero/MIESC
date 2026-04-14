@@ -24,7 +24,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Large contract scanning
 # ---------------------------------------------------------------------------
@@ -88,9 +87,10 @@ class TestLargeContractScanning:
 class TestSpecRunnerTimeouts:
     def test_smtchecker_timeout_is_honored(self, tmp_path):
         """A short timeout must actually fire (not be silently ignored)."""
-        from src.formal.spec_runner import SpecRunner
-        from unittest.mock import patch
         import subprocess as _sub
+        from unittest.mock import patch
+
+        from src.formal.spec_runner import SpecRunner
 
         runner = SpecRunner()
         fake_exc = _sub.TimeoutExpired(cmd=["solc"], timeout=1)
@@ -105,9 +105,10 @@ class TestSpecRunnerTimeouts:
                 assert elapsed < 5.0
 
     def test_halmos_timeout_is_honored(self, tmp_path):
-        from src.formal.spec_runner import SpecRunner
-        from unittest.mock import patch
         import subprocess as _sub
+        from unittest.mock import patch
+
+        from src.formal.spec_runner import SpecRunner
 
         runner = SpecRunner()
         with patch("src.formal.spec_runner.subprocess.run",
@@ -134,7 +135,7 @@ class TestRAGLookupComplexity:
         # 1 lookup baseline
         start = time.monotonic()
         _ = SWC_REGISTRY[keys[0]]
-        single = time.monotonic() - start
+        time.monotonic() - start
 
         # 10,000 lookups
         start = time.monotonic()
@@ -237,7 +238,7 @@ class TestCacheBounds:
             pytest.skip("MLOrchestrator import path changed")
         orch = MLOrchestrator()
         # Force many distinct cache keys
-        for i in range(200):
+        for _i in range(200):
             try:
                 orch._cache_key  # attribute exists
             except AttributeError:
@@ -256,6 +257,7 @@ class TestCacheBounds:
 class TestCanonicalCategorySerialization:
     def test_enum_values_are_json_safe(self):
         import json
+
         from src.core.finding_taxonomy import CanonicalCategory
         for c in CanonicalCategory:
             # .value should json-roundtrip without needing custom encoders

@@ -90,7 +90,7 @@ class TestSeverityPredictor:
     def test_mitigating_patterns_defined(self, predictor):
         """Test mitigating patterns are defined."""
         assert len(predictor.MITIGATING_PATTERNS) > 0
-        for pattern, score, desc in predictor.MITIGATING_PATTERNS:
+        for _pattern, score, _desc in predictor.MITIGATING_PATTERNS:
             assert score < 0  # Mitigating should reduce severity
 
     def test_vuln_base_severity_mapping(self, predictor):

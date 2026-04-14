@@ -673,9 +673,9 @@ class TestDetectPromptInjectionEdgeCases:
     def test_detect_prompt_injection_empty_text(self):
         """Test detection on empty text."""
         from src.security.prompt_sanitizer import (
-            detect_prompt_injection,
             InjectionDetectionResult,
             InjectionRiskLevel,
+            detect_prompt_injection,
         )
 
         result = detect_prompt_injection("")

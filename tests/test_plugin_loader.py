@@ -26,7 +26,6 @@ from src.plugins.protocol import (
     MIESCPlugin,
     PluginContext,
     PluginMetadata,
-    PluginState,
     PluginType,
 )
 
@@ -231,7 +230,7 @@ class TestPluginLoaderInit:
     def test_auto_discover_true(self, mock_discover):
         """Test auto_discover=True calls discover_all."""
         mock_discover.return_value = DiscoveryResult()
-        loader = PluginLoader(auto_discover=True)
+        PluginLoader(auto_discover=True)
         mock_discover.assert_called_once()
 
 

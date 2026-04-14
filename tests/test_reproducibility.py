@@ -555,6 +555,7 @@ class TestExperimentLoggerMethods:
         """Test logger initialization."""
         import tempfile
         from pathlib import Path
+
         from src.security.reproducibility import ExperimentLogger
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -571,6 +572,7 @@ class TestExperimentLoggerMethods:
         """Test logger generates ID when not provided."""
         import tempfile
         from pathlib import Path
+
         from src.security.reproducibility import ExperimentLogger
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -582,6 +584,7 @@ class TestExperimentLoggerMethods:
         """Test logging a model."""
         import tempfile
         from pathlib import Path
+
         from src.security.reproducibility import ExperimentLogger
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -593,7 +596,6 @@ class TestExperimentLoggerMethods:
 
     def test_experiment_logger_log_input_file(self, tmp_path):
         """Test logging an input file."""
-        from pathlib import Path
         from src.security.reproducibility import ExperimentLogger
 
         # Create a test file
@@ -612,6 +614,7 @@ class TestExperimentLoggerMethods:
         """Test logging parameters."""
         import tempfile
         from pathlib import Path
+
         from src.security.reproducibility import ExperimentLogger
 
         with tempfile.TemporaryDirectory() as tmpdir:

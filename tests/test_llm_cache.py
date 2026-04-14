@@ -4,11 +4,8 @@ Tests for LLM Analysis Cache module.
 Tests the file-based caching system for LLM analysis results.
 """
 
-import json
-import tempfile
 import time
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -98,12 +95,12 @@ class TestLLMAnalysisCache:
     def test_cache_init_creates_directory(self, tmp_path):
         """Test cache creates directory if not exists."""
         cache_dir = tmp_path / "new_cache"
-        cache = LLMAnalysisCache(cache_dir=str(cache_dir), auto_cleanup=False)
+        LLMAnalysisCache(cache_dir=str(cache_dir), auto_cleanup=False)
         assert cache_dir.exists()
 
     def test_cache_init_creates_index(self, temp_cache_dir):
         """Test cache creates index file."""
-        cache = LLMAnalysisCache(cache_dir=temp_cache_dir, auto_cleanup=False)
+        LLMAnalysisCache(cache_dir=temp_cache_dir, auto_cleanup=False)
         index_file = Path(temp_cache_dir) / "index.json"
         assert index_file.exists()
 

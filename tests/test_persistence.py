@@ -4,7 +4,6 @@ Tests for Persistence module.
 Tests the SQLite persistence layer for audit results.
 """
 
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -558,7 +557,7 @@ class TestDatabaseSingleton:
     def test_reset_database(self, tmp_path):
         """Test resetting singleton."""
         db_path = str(tmp_path / "reset_test.db")
-        db1 = get_database(db_path)
+        get_database(db_path)
         reset_database()
         # After reset, a new call would create new instance
         # (though path might differ)

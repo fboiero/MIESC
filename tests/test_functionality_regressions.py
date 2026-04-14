@@ -15,10 +15,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # FP classifier persistence
@@ -177,7 +175,7 @@ class TestVulnerabilityExampleFields:
     def test_registry_enrichment_preserved(self):
         """At least the top-8 patterns enriched in v5.1.6 must still carry
         both attack_steps and detection_heuristic."""
-        from src.llm.vulnerability_rag import SWC_REGISTRY, EXPLOIT_EXAMPLES
+        from src.llm.vulnerability_rag import EXPLOIT_EXAMPLES, SWC_REGISTRY
         required_enriched = [
             ("SWC-107", SWC_REGISTRY),
             ("SWC-105", SWC_REGISTRY),

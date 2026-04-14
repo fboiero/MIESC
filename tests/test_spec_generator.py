@@ -1,7 +1,5 @@
 """Tests for src.formal.spec_generator — auto spec generation from findings."""
 
-import json
-from pathlib import Path
 
 import pytest
 

@@ -9,10 +9,7 @@ noise pollution in production logs.
 from __future__ import annotations
 
 import importlib
-import sys
 from unittest.mock import patch
-
-import pytest
 
 
 class TestLoadAdaptersBasic:
@@ -94,6 +91,7 @@ class TestDeepAuditIntegration:
 
     def test_deep_audit_no_load_adapters_warning(self, tmp_path, caplog):
         import logging
+
         from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
 
         caplog.set_level(logging.WARNING, logger="src.agents.deep_audit_agent")

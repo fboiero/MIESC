@@ -6,7 +6,6 @@ import pytest
 
 from src.formal.spec_runner import SpecRunner, VerificationResult, run_all_available
 
-
 # ---------------------------------------------------------------------------
 # VerificationResult
 # ---------------------------------------------------------------------------

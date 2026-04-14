@@ -2,14 +2,12 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from src.agents.auditor_agent import (
+    COT_PROMPTS,
     AuditContext,
     AuditFinding,
     AuditReport,
     AuditStep,
-    COT_PROMPTS,
     ContractType,
     FunctionInfo,
     ValueFlow,
@@ -192,7 +190,7 @@ class TestCOTPrompts:
             assert len(COT_PROMPTS[step]) > 50
 
     def test_prompts_contain_json_format(self):
-        for step, prompt in COT_PROMPTS.items():
+        for _step, prompt in COT_PROMPTS.items():
             assert "JSON" in prompt or "json" in prompt
 
 

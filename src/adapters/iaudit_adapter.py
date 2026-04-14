@@ -274,7 +274,6 @@ from src.adapters.iaudit_prompts import (  # noqa: E402
 )
 
 
-
 class IAuditAdapter(ToolAdapter):
     """
     iAudit multi-agent collaborative auditing adapter.

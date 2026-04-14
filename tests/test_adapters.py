@@ -3546,8 +3546,9 @@ class TestOpenLLaMAHelper:
 
     def test_call_llm_success(self):
         """Test _call_llm with successful HTTP call."""
-        from src.llm.openllama_helper import OpenLLaMAHelper
         import json as json_mod
+
+        from src.llm.openllama_helper import OpenLLaMAHelper
 
         helper = OpenLLaMAHelper()
         mock_response = json_mod.dumps({"response": "LLM response"}).encode()
@@ -3569,6 +3570,7 @@ class TestOpenLLaMAHelper:
     def test_call_llm_failure_retry(self):
         """Test _call_llm with retry on HTTP failure."""
         import urllib.error
+
         from src.llm.openllama_helper import LLMConfig, OpenLLaMAHelper
 
         config = LLMConfig(retry_attempts=2, retry_delay=0.1)

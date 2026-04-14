@@ -24,7 +24,6 @@ from src.adapters.smartllm_rag_knowledge import (
     get_vulnerability_context,
 )
 
-
 # ---------------------------------------------------------------------------
 # detect_contract_type
 # ---------------------------------------------------------------------------

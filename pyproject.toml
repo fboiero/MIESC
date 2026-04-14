@@ -239,6 +239,10 @@ ignore = [
 "miesc/cli/main.py" = ["F401", "E741", "F841"]
 "tests/test_rest_api.py" = ["F401"]
 "tests/test_licensing.py" = ["F401", "E722", "B007", "F841"]
+# Tests frequently define helpers with single-letter names, redefine classes
+# by coverage group, and use throwaway expressions. These are stylistic-only
+# and do not affect production code.
+"tests/*.py" = ["E402", "E741", "F811", "B018"]
 
 [tool.mypy]
 python_version = "3.12"

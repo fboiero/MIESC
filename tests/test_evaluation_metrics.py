@@ -4,21 +4,19 @@ Tests for MIESC evaluation metrics module.
 Tests the evaluation metrics used for measuring vulnerability detection effectiveness.
 """
 
-import math
-import pytest
 
 from src.evaluation.metrics import (
-    Finding,
     EvaluationMetrics,
+    Finding,
+    compare_metrics,
+    compute_dcg,
+    compute_f1,
+    compute_map,
+    compute_mrr,
+    compute_ndcg,
     compute_precision,
     compute_recall,
-    compute_f1,
-    compute_mrr,
-    compute_dcg,
-    compute_ndcg,
-    compute_map,
     evaluate_findings,
-    compare_metrics,
 )
 
 
@@ -44,7 +42,7 @@ class TestFinding:
         f1 = Finding(id="1", swc_id="SWC-107")
         f2 = Finding(id="2", swc_id="SWC-107")
         f3 = Finding(id="3", swc_id="SWC-106")
-        
+
         assert f1.matches(f2) is True
         assert f1.matches(f3) is False
 
@@ -53,7 +51,7 @@ class TestFinding:
         f1 = Finding(id="1", title="Reentrancy vulnerability")
         f2 = Finding(id="2", title="Reentrancy in withdraw")
         f3 = Finding(id="3", title="Integer overflow")
-        
+
         assert f1.matches(f2) is True  # "reentrancy" keyword
         assert f1.matches(f3) is False
 
@@ -61,7 +59,7 @@ class TestFinding:
         """Test matching by title substring."""
         f1 = Finding(id="1", title="Access control issue")
         f2 = Finding(id="2", title="Missing access control check")
-        
+
         assert f1.matches(f2) is True
 
     def test_matches_strict_mode(self):
@@ -69,7 +67,7 @@ class TestFinding:
         f1 = Finding(id="1", swc_id="SWC-107", location={"line": 10})
         f2 = Finding(id="2", swc_id="SWC-107", location={"line": 10})
         f3 = Finding(id="3", swc_id="SWC-107", location={"line": 20})
-        
+
         assert f1.matches(f2, strict=True) is True
         assert f1.matches(f3, strict=True) is False
 
@@ -77,7 +75,7 @@ class TestFinding:
         """Test no match when no identifiers."""
         f1 = Finding(id="1")
         f2 = Finding(id="2")
-        
+
         assert f1.matches(f2) is False
 
 
@@ -104,7 +102,7 @@ class TestEvaluationMetrics:
             rag_enabled=True,
         )
         d = m.to_dict()
-        
+
         assert d["classification"]["true_positives"] == 10
         assert d["retrieval"]["precision"] == 0.833
         assert d["metadata"]["adapter"] == "slither"
@@ -138,7 +136,7 @@ class TestBasicMetrics:
         """Test F1 score calculation."""
         # F1 = 2 * (0.8 * 0.8) / (0.8 + 0.8) = 0.8
         assert abs(compute_f1(0.8, 0.8) - 0.8) < 0.0001
-        
+
         # F1 = 2 * (1.0 * 0.5) / (1.0 + 0.5) = 0.667
         assert abs(compute_f1(1.0, 0.5) - 0.667) < 0.01
 
@@ -247,9 +245,9 @@ class TestEvaluateFindings:
             Finding(id="a", swc_id="SWC-107"),
             Finding(id="b", swc_id="SWC-101"),
         ]
-        
+
         metrics = evaluate_findings(predicted, ground_truth)
-        
+
         assert metrics.true_positives == 2
         assert metrics.false_positives == 0
         assert metrics.false_negatives == 0
@@ -268,9 +266,9 @@ class TestEvaluateFindings:
             Finding(id="a", swc_id="SWC-107"),
             Finding(id="b", swc_id="SWC-101"),
         ]
-        
+
         metrics = evaluate_findings(predicted, ground_truth)
-        
+
         assert metrics.true_positives == 2
         assert metrics.false_positives == 1
         assert metrics.false_negatives == 0
@@ -284,9 +282,9 @@ class TestEvaluateFindings:
             Finding(id="a", swc_id="SWC-107"),
             Finding(id="b", swc_id="SWC-101"),  # FN
         ]
-        
+
         metrics = evaluate_findings(predicted, ground_truth)
-        
+
         assert metrics.true_positives == 1
         assert metrics.false_positives == 0
         assert metrics.false_negatives == 1
@@ -295,9 +293,9 @@ class TestEvaluateFindings:
         """Test evaluation with no predictions."""
         predicted = []
         ground_truth = [Finding(id="a", swc_id="SWC-107")]
-        
+
         metrics = evaluate_findings(predicted, ground_truth)
-        
+
         assert metrics.true_positives == 0
         assert metrics.false_negatives == 1
 
@@ -305,9 +303,9 @@ class TestEvaluateFindings:
         """Test evaluation with no ground truth."""
         predicted = [Finding(id="1", swc_id="SWC-107")]
         ground_truth = []
-        
+
         metrics = evaluate_findings(predicted, ground_truth)
-        
+
         assert metrics.false_positives == 1
         assert metrics.false_negatives == 0
 
@@ -320,9 +318,9 @@ class TestEvaluateFindings:
         ground_truth = [
             Finding(id="a", swc_id="SWC-107", severity="HIGH"),
         ]
-        
+
         metrics = evaluate_findings(predicted, ground_truth)
-        
+
         assert "HIGH" in metrics.by_severity
         assert metrics.by_severity["HIGH"]["tp"] == 1
 
@@ -348,9 +346,9 @@ class TestCompareMetrics:
             false_negatives=3,
             inference_time_ms=150,
         )
-        
+
         comparison = compare_metrics(baseline, treatment)
-        
+
         assert comparison["precision_change_pct"] == 60.0  # 0.5 -> 0.8 = 60%
         assert comparison["fp_reduction"] == 6  # 10 -> 4
         assert comparison["fn_reduction"] == 2  # 5 -> 3
@@ -359,18 +357,18 @@ class TestCompareMetrics:
         """Test comparing metrics showing regression."""
         baseline = EvaluationMetrics(f1_score=0.8)
         treatment = EvaluationMetrics(f1_score=0.6)
-        
+
         comparison = compare_metrics(baseline, treatment)
-        
+
         assert comparison["f1_change_pct"] < 0  # Negative change
 
     def test_compare_generates_recommendation(self):
         """Test that comparison generates recommendation."""
         baseline = EvaluationMetrics(f1_score=0.5, inference_time_ms=100)
         treatment = EvaluationMetrics(f1_score=0.7, inference_time_ms=200)
-        
+
         comparison = compare_metrics(baseline, treatment)
-        
+
         assert "recommendation" in comparison
         assert len(comparison["recommendation"]) > 0
 
@@ -378,9 +376,9 @@ class TestCompareMetrics:
         """Test comparing when baseline is zero."""
         baseline = EvaluationMetrics(precision=0.0)
         treatment = EvaluationMetrics(precision=0.5)
-        
+
         comparison = compare_metrics(baseline, treatment)
-        
+
         # Should handle division by zero gracefully
         assert comparison["precision_change_pct"] == float("inf")
 
@@ -392,25 +390,25 @@ class TestRecommendations:
         """Test strong recommendation with significant improvement."""
         baseline = EvaluationMetrics(f1_score=0.5, inference_time_ms=100)
         treatment = EvaluationMetrics(f1_score=0.7, inference_time_ms=200)
-        
+
         comparison = compare_metrics(baseline, treatment)
-        
+
         assert "Strong recommendation" in comparison["recommendation"]
 
     def test_conditional_recommendation(self):
         """Test conditional recommendation with high latency."""
         baseline = EvaluationMetrics(f1_score=0.5, inference_time_ms=100)
         treatment = EvaluationMetrics(f1_score=0.7, inference_time_ms=2000)
-        
+
         comparison = compare_metrics(baseline, treatment)
-        
+
         assert "Conditional" in comparison["recommendation"]
 
     def test_not_recommended(self):
         """Test not recommended when no improvement."""
         baseline = EvaluationMetrics(f1_score=0.8)
         treatment = EvaluationMetrics(f1_score=0.7)
-        
+
         comparison = compare_metrics(baseline, treatment)
-        
+
         assert "Not recommended" in comparison["recommendation"]

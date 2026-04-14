@@ -5,20 +5,17 @@ Tests the RAG evaluation system for measuring effectiveness.
 """
 
 import json
-import os
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.evaluation.metrics import EvaluationMetrics, Finding
 from src.evaluation.rag_evaluator import (
     RAGEvaluationResult,
     RAGEvaluator,
     RAGRetrievalResult,
     create_sample_ground_truth,
 )
-from src.evaluation.metrics import EvaluationMetrics, Finding
 
 
 class TestRAGRetrievalResult:
@@ -193,7 +190,7 @@ class TestRAGEvaluator:
     def test_init_creates_results_dir(self, tmp_path):
         """Test results directory creation."""
         results_dir = tmp_path / "new_results"
-        evaluator = RAGEvaluator(results_dir=str(results_dir))
+        RAGEvaluator(results_dir=str(results_dir))
         assert results_dir.exists()
 
     def test_get_adapter_unknown(self, evaluator):

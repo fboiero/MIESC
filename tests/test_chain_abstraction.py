@@ -4,13 +4,11 @@ Tests for Chain Abstraction module.
 Tests the multi-chain smart contract abstraction layer.
 """
 
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.core.chain_abstraction import (
-    AbstractChainAnalyzer,
+    VULNERABILITY_MAPPINGS,
     AbstractContract,
     AbstractEvent,
     AbstractFunction,
@@ -25,14 +23,11 @@ from src.core.chain_abstraction import (
     SecurityProperty,
     TypeInfo,
     Visibility,
-    VulnerabilityMapping,
-    VULNERABILITY_MAPPINGS,
     get_analyzer_for_chain,
     get_analyzer_for_file,
     get_chain_registry,
     get_vulnerability_mapping,
     normalize_vulnerability_type,
-    register_chain_analyzer,
 )
 
 

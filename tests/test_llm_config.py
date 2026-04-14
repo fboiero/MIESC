@@ -5,9 +5,7 @@ Tests the centralized LLM configuration helper.
 """
 
 import os
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from src.core.llm_config import (
     DEFAULT_CONFIG,

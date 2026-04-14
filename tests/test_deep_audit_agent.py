@@ -6,21 +6,19 @@ deep investigation, and synthesis.
 """
 
 import time
-from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.agents.deep_audit_agent import (
+    RISK_PATTERNS,
     AuditPhase,
     DeepAuditAgent,
     DeepAuditConfig,
     ReconResult,
     ScanResult,
-    RISK_PATTERNS,
     run_deep_audit,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -738,7 +736,7 @@ class TestGetMLOrchestrator:
         mock_orch = MagicMock()
         mock_core = MagicMock()
         mock_core.MLOrchestrator.return_value = mock_orch
-        with patch("src.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator") as m:
+        with patch("src.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator"):
             # Test the actual fallback logic by calling the real method
             pass
 

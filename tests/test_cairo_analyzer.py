@@ -10,7 +10,6 @@ from src.adapters.cairo_adapter import (
     analyze_cairo_contract,
 )
 
-
 CAIRO_VULNERABLE = """
 #[starknet::contract]
 mod VulnVault {
