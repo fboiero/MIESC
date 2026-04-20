@@ -14,7 +14,7 @@ annotated-types==0.7.0
     # via pydantic
 async-timeout==5.0.1
     # via aiohttp
-attrs==25.4.0
+attrs==26.1.0
     # via aiohttp
 bitarray==3.8.1
     # via eth-account
