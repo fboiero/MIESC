@@ -10,6 +10,8 @@
 
 <p align="center">
   <a href="https://pypi.org/project/miesc/"><img src="https://img.shields.io/pypi/v/miesc?color=blue&label=PyPI" alt="PyPI"></a>
+  <a href="https://pepy.tech/project/miesc"><img src="https://static.pepy.tech/badge/miesc/month" alt="Downloads"></a>
+  <a href="https://pypi.org/project/miesc/"><img src="https://img.shields.io/pypi/pyversions/miesc" alt="Python"></a>
   <a href="https://github.com/fboiero/MIESC/actions/workflows/ci.yml"><img src="https://github.com/fboiero/MIESC/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://codecov.io/gh/fboiero/MIESC"><img src="https://codecov.io/gh/fboiero/MIESC/graph/badge.svg" alt="Coverage"></a>
   <a href="https://securityscorecards.dev/viewer/?uri=github.com/fboiero/MIESC"><img src="https://api.securityscorecards.dev/projects/github.com/fboiero/MIESC/badge" alt="OpenSSF"></a>

@@ -141,6 +141,18 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance):
             if not quiet:
                 info(f"FP filter skipped: {e}")
 
+    # Detect tool failures — help users who installed miesc without slither/aderyn
+    tools_succeeded = [r for r in all_results if r.get("status") != "error"]
+    tools_errored = [r for r in all_results if r.get("status") == "error"]
+
+    if tools_errored and not tools_succeeded and not quiet:
+        error("All analysis tools failed. Check tool availability:")
+        for r in tools_errored:
+            info(f"  {r.get('tool', '?')}: {r.get('error', 'unknown error')}")
+        info("")
+        info("Run 'miesc doctor' to check which tools are installed.")
+        info("Quick fix: pip install slither-analyzer  (most common)")
+
     summary = summarize_findings(all_results)
     total = sum(summary.values())
     critical_high = summary.get("CRITICAL", 0) + summary.get("HIGH", 0)
@@ -170,6 +182,11 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance):
             )
         elif total > 0:
             console.print(f"\n[yellow]Found {total} issues to review[/yellow]")
+        elif tools_errored:
+            console.print(
+                f"\n[dim]0 findings — but {len(tools_errored)}/{len(all_results)} "
+                f"tools errored. Run 'miesc doctor' to diagnose.[/dim]"
+            )
         else:
             console.print("\n[green]No issues found![/green]")
     else:
