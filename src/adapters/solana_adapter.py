@@ -77,6 +77,14 @@ class SolanaVulnerability(Enum):
     MISSING_RENT_EXEMPTION = "missing_rent_exemption"
     ARITHMETIC_OVERFLOW = "arithmetic_overflow"
     ORACLE_MANIPULATION = "oracle_manipulation"
+    # v5.1.9: 2024-2025 Anchor patterns from real exploits
+    ACCOUNT_CLOSURE_REENTRANCY = "account_closure_reentrancy"
+    MISSING_DISCRIMINATOR = "missing_discriminator"
+    TOKEN_AUTHORITY_MISMATCH = "token_authority_mismatch"
+    PROGRAM_UPGRADE_EXPOSURE = "program_upgrade_exposure"
+    UNCHECKED_CPI_RETURN = "unchecked_cpi_return"
+    FREEZE_AUTHORITY_MISSING = "freeze_authority_missing"
+    REMAINING_ACCOUNTS_UNVALIDATED = "remaining_accounts_unvalidated"
 
 
 @dataclass

@@ -75,6 +75,14 @@ class StellarVulnerability(Enum):
     EVENT_EMISSION_MISSING = "event_emission_missing"
     TTL_NOT_EXTENDED = "ttl_not_extended"
     ADMIN_UNPROTECTED = "admin_unprotected"
+    # v5.1.9: Soroban-specific patterns from 2024-2025 audits
+    FLASH_LOAN_SOROBAN = "flash_loan_soroban"
+    UNINITIALIZED_STORAGE = "uninitialized_storage"
+    ADMIN_KEY_NO_ROTATION = "admin_key_no_rotation"
+    APPROVE_RACE_CONDITION = "approve_race_condition"
+    I128_CONVERSION_OVERFLOW = "i128_conversion_overflow"
+    MISSING_INVOKE_RESULT_CHECK = "missing_invoke_result_check"
+    UNBOUNDED_LOOP = "unbounded_loop"
 
 
 @dataclass
@@ -210,6 +218,24 @@ class StellarPatternDetector:
         "saturating_sub": r"\.saturating_sub\s*\(",
         "wrapping_add": r"\.wrapping_add\s*\(",
         "unchecked_ops": r"\+\s*=|\-\s*=|\*\s*=",
+    }
+
+    # v5.1.9: Soroban-specific patterns from 2024-2025 audits
+    SOROBAN_2024_PATTERNS = {
+        # Flash loan: borrow + repay in single invoke without state lock
+        "flash_loan_pattern": r"fn\s+flash_loan|fn\s+flash_borrow|borrow.*repay",
+        # Uninitialized storage: env.storage().get() without prior .set() or has()
+        "storage_get_no_check": r"\.get\s*\(\s*&\w+\s*\)(?!.*\.unwrap_or|.*\.is_some|.*if\s+.*has)",
+        # Admin key without rotation: set_admin without rotate/update_admin capability
+        "admin_set_only": r"fn\s+set_admin|fn\s+initialize.*admin",
+        # Approve race condition: SEP-41 approve pattern without allowance check
+        "approve_no_allowance_check": r"fn\s+approve\s*\((?!.*allowance|.*get_allowance)",
+        # i128 to u64/i64 narrowing conversion (common Soroban precision bug)
+        "i128_narrow": r"as\s+u64|as\s+i64|as\s+u32|as\s+i32|\.try_into\(\)\.unwrap\(\)",
+        # Missing invoke() result check on cross-contract calls
+        "invoke_no_check": r"client\.\w+\s*\((?!.*let\s|.*=\s|.*if\s|.*match\s)",
+        # Unbounded loop over Vec/Map without gas limit awareness
+        "unbounded_iter": r"\.iter\(\)\.for_each|for\s+\w+\s+in\s+\w+\.iter\(\)",
     }
 
     @classmethod
@@ -875,6 +901,41 @@ class StellarAnalyzer(AbstractChainAnalyzer):
                     recommendation=f.get("recommendation"),
                 )
             )
+
+        # v5.1.9: Soroban 2024-2025 audit patterns
+        soroban_matches = StellarPatternDetector.find_patterns(
+            content, StellarPatternDetector.SOROBAN_2024_PATTERNS
+        )
+        soroban_vuln_map = {
+            "flash_loan_pattern": (StellarVulnerability.FLASH_LOAN_SOROBAN, "High",
+                "Flash loan pattern detected — ensure atomic state consistency"),
+            "storage_get_no_check": (StellarVulnerability.UNINITIALIZED_STORAGE, "Medium",
+                "Storage read without existence check — use .unwrap_or() or check .has() first"),
+            "admin_set_only": (StellarVulnerability.ADMIN_KEY_NO_ROTATION, "Medium",
+                "Admin key set but no rotation/update_admin function found"),
+            "approve_no_allowance_check": (StellarVulnerability.APPROVE_RACE_CONDITION, "Medium",
+                "Approve without allowance check — vulnerable to race condition (set to 0 first)"),
+            "i128_narrow": (StellarVulnerability.I128_CONVERSION_OVERFLOW, "High",
+                "Narrowing i128/u128 → u64/i64 conversion can silently truncate"),
+            "invoke_no_check": (StellarVulnerability.MISSING_INVOKE_RESULT_CHECK, "Medium",
+                "Cross-contract invoke() result not captured — errors pass silently"),
+            "unbounded_iter": (StellarVulnerability.UNBOUNDED_LOOP, "Medium",
+                "Unbounded iteration over dynamic collection — may exceed CPU budget"),
+        }
+        seen_soroban_types = set()
+        for pattern_name, line_no, matched in soroban_matches:
+            if pattern_name in soroban_vuln_map and pattern_name not in seen_soroban_types:
+                vuln, severity, msg = soroban_vuln_map[pattern_name]
+                findings.append(
+                    self.normalize_finding(
+                        vuln_type=vuln.value,
+                        severity=severity,
+                        message=msg,
+                        location=Location(file=contract.source_path, line=line_no),
+                        recommendation=msg,
+                    )
+                )
+                seen_soroban_types.add(pattern_name)
 
         return findings
 

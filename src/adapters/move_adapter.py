@@ -71,6 +71,14 @@ class MoveVulnerability(Enum):
     ARITHMETIC_OVERFLOW = "arithmetic_overflow"
     WITNESS_PATTERN_BYPASS = "witness_pattern_bypass"
     HOT_POTATO_ABUSE = "hot_potato_abuse"
+    # v5.1.9: Sui/Aptos 2024-2025 patterns
+    SHARED_OBJECT_RACE = "shared_object_race"
+    DYNAMIC_FIELD_MANIPULATION = "dynamic_field_manipulation"
+    PACKAGE_UPGRADE_ATTACK = "package_upgrade_attack"
+    CAPABILITY_DELEGATION_CHAIN = "capability_delegation_chain"
+    COIN_SPLIT_PRECISION = "coin_split_precision"
+    CLOCK_MANIPULATION = "clock_manipulation"
+    TRANSFER_POLICY_BYPASS = "transfer_policy_bypass"
 
 
 class MoveChainVariant(Enum):
