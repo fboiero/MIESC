@@ -220,6 +220,10 @@ class AderynAdapter(ToolAdapter):
             timeout = kwargs.get("timeout", 300)
             no_snippets = kwargs.get("no_snippets", False)
 
+            # Delete stale output from a previous run (same root cause as SlitherAdapter)
+            if Path(output_path).exists():
+                Path(output_path).unlink()
+
             contract_file = Path(contract_path)
 
             # Always copy contract to a clean temp directory for Aderyn

@@ -280,6 +280,13 @@ class SlitherAdapter(ToolAdapter):
                     temp_workspace, actual_contract_path = workspace_result
                     logger.info(f"Using workspace with dependencies: {temp_workspace}")
 
+            # Delete stale output from a previous run — otherwise the adapter
+            # reads the OLD file's findings if Slither fails silently on THIS run.
+            # This was the root cause of "0 findings on reentrancy.sol" — the
+            # output file had been written by a prior analyze() on a different contract.
+            if Path(output_path).exists():
+                Path(output_path).unlink()
+
             # Build command with actual path (may be temp workspace)
             cmd = [self._slither_binary, actual_contract_path, "--json", output_path]
 
