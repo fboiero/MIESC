@@ -141,6 +141,36 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance):
             if not quiet:
                 info(f"FP filter skipped: {e}")
 
+    # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
+    # zero-recall pattern detection, context-aware FP suppression,
+    # LLM↔static cross-validation, severity calibration.
+    try:
+        from src.core.intelligence import enhance_findings
+        all_findings_flat = []
+        for result in all_results:
+            for f in result.get("findings", []):
+                f.setdefault("tool", result.get("tool", "unknown"))
+                all_findings_flat.append(f)
+        if all_findings_flat:
+            try:
+                code_text = open(contract).read()
+            except Exception:
+                code_text = ""
+            enhanced = enhance_findings(all_findings_flat, source_code=code_text, file_path=str(contract))
+            # Replace all_results with a single synthetic result carrying enhanced findings
+            non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
+            suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
+            all_results = [{"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}]
+            if not quiet and suppressed_count > 0:
+                info(f"Intelligence engine: suppressed {suppressed_count} likely false positives")
+            if not quiet and len(non_suppressed) < len(all_findings_flat):
+                deduped = len(all_findings_flat) - len(enhanced)
+                if deduped > 0:
+                    info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
+    except Exception as e:
+        if not quiet:
+            info(f"Intelligence engine skipped: {e}")
+
     # Detect tool failures — help users who installed miesc without slither/aderyn
     tools_succeeded = [r for r in all_results if r.get("status") != "error"]
     tools_errored = [r for r in all_results if r.get("status") == "error"]
