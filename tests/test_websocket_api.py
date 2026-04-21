@@ -5,7 +5,7 @@ Tests event types, event creation, and connection manager logic.
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -488,8 +488,8 @@ class TestAuditProgressTrackerAsync:
     def test_complete_audit(self, tracker, mock_manager):
         """Test complete_audit sends completion."""
         tracker.findings_count = 15
-        # Mock start_time to naive datetime to match complete_audit implementation
-        tracker.start_time = datetime.now()
+        # start_time must be timezone-aware to match complete_audit's datetime.now(timezone.utc)
+        tracker.start_time = datetime.now(timezone.utc)
 
         asyncio.run(tracker.complete_audit({"summary": {"critical": 2}}))
 

@@ -336,7 +336,7 @@ class AuditProgressTracker:
 
     async def complete_audit(self, results: Dict) -> None:
         """Signal audit completion."""
-        duration = (datetime.utcnow() - self.start_time).total_seconds()
+        duration = (datetime.now(timezone.utc) - self.start_time).total_seconds()
 
         await self.manager.send_to_audit(
             self.audit_id,
