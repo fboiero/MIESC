@@ -5,6 +5,64 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.9] - 2026-04-21
+
+### Fixed — Critical: Slither stale-output silently missed reentrancy
+
+- **Slither adapter returned 0 findings on contracts with known
+  reentrancy vulnerabilities.** Root cause: `/tmp/slither_output.json`
+  from a previous `analyze()` call on a DIFFERENT contract was read
+  instead of the current run's output. A `ReentrancyVulnerable` contract
+  (SWC-107, `tests/fixtures/reentrancy.sol`) that Slither correctly
+  detects as HIGH reentrancy-eth was silently reported as "No issues
+  found" by MIESC.
+
+  Fix: delete the output file BEFORE running `subprocess.run`, so there
+  is never a stale file to fall back to. Applied to both Slither and
+  Aderyn (both use fixed `/tmp/{tool}_output.json` paths).
+
+  The v5.1.7 existence-check fix (commit `cdf81c7`) prevented stale
+  reads when the CONTRACT PATH was missing, but did NOT prevent stale
+  reads when the OUTPUT FILE was left over from a prior successful run.
+  This fix closes that remaining hole.
+
+  **Users should upgrade immediately**: `pip install --upgrade miesc`
+
+### Improved — UX for new users
+
+- **Scan failure guidance**: when all tools error (common first-run
+  scenario when slither/aderyn not installed), the CLI now shows:
+  ```
+  All analysis tools failed. Check tool availability:
+    slither: ...
+  Run 'miesc doctor' to check which tools are installed.
+  Quick fix: pip install slither-analyzer
+  ```
+  Previously: `No issues found!` (misleading when tools failed).
+
+- **README badges**: added monthly downloads badge (pepy.tech) and
+  Python versions badge. Both render live on the GitHub landing page.
+
+- **GitHub topics**: set 20 topics for discoverability (smart-contracts,
+  security, ethereum, starknet, cairo, llm, formal-verification, ...).
+
+- **GitHub description** updated to: "35 analysis modules, 9 defense
+  layers, one command. Pre-audit triage for Ethereum, Starknet, and
+  beyond."
+
+### Infrastructure
+
+- **Docker workflow fix**: `build-multiarch` and `build-full` jobs now
+  fire on tag pushes (`refs/tags/v*`), not just main-branch pushes.
+  v5.1.8 tag's multiarch build was silently skipped because the `if`
+  condition required `refs/heads/main`.
+
+- **Dependabot PRs**: merged 6 chore bumps (actions/checkout v6,
+  actions/setup-node v6, actions/setup-python v6, actions/github-script
+  v9, docker/setup-qemu-action v4, python-minor group, attrs, importlib-
+  metadata). 3 remaining (eth-utils major, npm conflicts, websockets
+  major).
+
 ## [5.1.8] - 2026-04-13
 
 ### Fixed — Critical regression in v5.1.7
