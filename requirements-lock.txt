@@ -91,7 +91,7 @@ multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
-packaging==26.0
+packaging==26.1
     # via
     #   slither-analyzer
     #   solc-select
@@ -110,13 +110,13 @@ pycryptodome==3.23.0
     #   eth-keyfile
     #   slither-analyzer
     #   solc-select
-pydantic==2.13.0
+pydantic==2.13.2
     # via
     #   eth-account
     #   eth-utils
     #   miesc (pyproject.toml)
     #   web3
-pydantic-core==2.46.0
+pydantic-core==2.46.2
     # via pydantic
 pyunormalize==17.0.0
     # via web3
@@ -164,5 +164,5 @@ websockets==15.0.1
     # via web3
 yarl==1.23.0
     # via aiohttp
-zipp==3.23.0
+zipp==3.23.1
     # via importlib-metadata
