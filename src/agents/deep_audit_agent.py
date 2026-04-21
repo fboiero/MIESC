@@ -422,6 +422,40 @@ class DeepAuditAgent(BaseAgent):
             result.raw_findings = self._run_tools_parallel(selected_tools, contract_path)
             result.filtered_findings = self._filter_false_positives(result.raw_findings)
 
+        # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
+        # zero-recall pattern detection, context-aware FP suppression,
+        # LLM↔static cross-validation, severity calibration.
+        try:
+            from src.core.intelligence import enhance_findings
+
+            if result.filtered_findings:
+                try:
+                    code_text = open(contract_path).read()
+                except Exception:
+                    code_text = ""
+                # Pass only the filename (not full path) to avoid false test-file
+                # suppression when the contract lives under a directory that
+                # contains "test" in its name (e.g. pytest tmp dirs).
+                enhanced = enhance_findings(
+                    result.filtered_findings,
+                    source_code=code_text,
+                    file_path=Path(contract_path).name,
+                )
+                non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
+                suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
+                deduped = len(result.filtered_findings) - len(enhanced)
+                result.filtered_findings = non_suppressed
+                if suppressed_count > 0:
+                    logger.info(
+                        f"Intelligence engine: suppressed {suppressed_count} likely false positives"
+                    )
+                if deduped > 0:
+                    logger.info(
+                        f"Intelligence engine: merged {deduped} duplicate findings across tools"
+                    )
+        except Exception as e:
+            logger.debug(f"Intelligence engine skipped in Phase 2: {e}")
+
         # Severity distribution
         for f in result.filtered_findings:
             sev = f.get("severity", "unknown").lower()

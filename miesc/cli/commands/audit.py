@@ -491,6 +491,38 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
             results = run_layer(layer, contract, timeout)
             all_results.extend(results)
 
+    # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
+    # zero-recall pattern detection, context-aware FP suppression,
+    # LLM↔static cross-validation, severity calibration.
+    try:
+        from src.core.intelligence import enhance_findings
+
+        all_findings_flat = []
+        for result in all_results:
+            for f in result.get("findings", []):
+                f.setdefault("tool", result.get("tool", "unknown"))
+                all_findings_flat.append(f)
+        if all_findings_flat:
+            try:
+                code_text = open(contract).read()
+            except Exception:
+                code_text = ""
+            enhanced = enhance_findings(
+                all_findings_flat, source_code=code_text, file_path=str(contract)
+            )
+            non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
+            suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
+            all_results = [
+                {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
+            ]
+            if suppressed_count > 0:
+                info(f"Intelligence engine: suppressed {suppressed_count} likely false positives")
+            deduped = len(all_findings_flat) - len(enhanced)
+            if deduped > 0:
+                info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
+    except Exception:
+        pass  # graceful degradation
+
     summary = summarize_findings(all_results)
     total = sum(summary.values())
 
@@ -601,6 +633,38 @@ def audit_quick(contract, output, fmt, ci, timeout):
             info(f"Running {tool}...")
             result = run_tool(tool, contract, timeout)
             all_results.append(result)
+
+    # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
+    # zero-recall pattern detection, context-aware FP suppression,
+    # LLM↔static cross-validation, severity calibration.
+    try:
+        from src.core.intelligence import enhance_findings
+
+        all_findings_flat = []
+        for result in all_results:
+            for f in result.get("findings", []):
+                f.setdefault("tool", result.get("tool", "unknown"))
+                all_findings_flat.append(f)
+        if all_findings_flat:
+            try:
+                code_text = open(contract).read()
+            except Exception:
+                code_text = ""
+            enhanced = enhance_findings(
+                all_findings_flat, source_code=code_text, file_path=str(contract)
+            )
+            non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
+            suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
+            all_results = [
+                {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
+            ]
+            if suppressed_count > 0:
+                info(f"Intelligence engine: suppressed {suppressed_count} likely false positives")
+            deduped = len(all_findings_flat) - len(enhanced)
+            if deduped > 0:
+                info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
+    except Exception:
+        pass  # graceful degradation
 
     summary = summarize_findings(all_results)
     total = sum(summary.values())
@@ -1032,6 +1096,38 @@ def audit_profile(profile_name, contract, output, fmt, ci):
             info(f"Running {tool}...")
             result = run_tool(tool, contract, timeout)
             all_results.append(result)
+
+    # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
+    # zero-recall pattern detection, context-aware FP suppression,
+    # LLM↔static cross-validation, severity calibration.
+    try:
+        from src.core.intelligence import enhance_findings
+
+        all_findings_flat = []
+        for result in all_results:
+            for f in result.get("findings", []):
+                f.setdefault("tool", result.get("tool", "unknown"))
+                all_findings_flat.append(f)
+        if all_findings_flat:
+            try:
+                code_text = open(contract).read()
+            except Exception:
+                code_text = ""
+            enhanced = enhance_findings(
+                all_findings_flat, source_code=code_text, file_path=str(contract)
+            )
+            non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
+            suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
+            all_results = [
+                {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
+            ]
+            if suppressed_count > 0:
+                info(f"Intelligence engine: suppressed {suppressed_count} likely false positives")
+            deduped = len(all_findings_flat) - len(enhanced)
+            if deduped > 0:
+                info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
+    except Exception:
+        pass  # graceful degradation
 
     summary = summarize_findings(all_results)
     total = sum(summary.values())
