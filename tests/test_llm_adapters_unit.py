@@ -1,0 +1,258 @@
+"""
+Unit tests for LLM adapter metadata, availability, and prompt construction.
+
+These tests exercise the 50-60% of LLM adapter code that does NOT require
+Ollama running. The goal: push gptlens/iaudit/llamaaudit from 17-24% to
+40-50% without any external service dependency.
+"""
+
+from __future__ import annotations
+
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from src.core.tool_protocol import ToolCategory, ToolStatus
+
+
+# ---------------------------------------------------------------------------
+# GPTLens Adapter
+# ---------------------------------------------------------------------------
+
+
+class TestGPTLensAdapter:
+    @pytest.fixture
+    def adapter(self):
+        from src.adapters.gptlens_adapter import GPTLensAdapter
+        return GPTLensAdapter()
+
+    def test_metadata_name(self, adapter):
+        meta = adapter.get_metadata()
+        assert meta.name == "gptlens"
+        assert meta.category == ToolCategory.AI_ANALYSIS
+
+    def test_metadata_capabilities(self, adapter):
+        meta = adapter.get_metadata()
+        assert len(meta.capabilities) >= 1
+        assert meta.requires_api_key is False
+
+    def test_is_available_returns_status(self, adapter):
+        status = adapter.is_available()
+        assert isinstance(status, ToolStatus)
+
+    def test_is_available_not_installed_when_ollama_down(self, adapter):
+        with patch("urllib.request.urlopen", side_effect=OSError("refused")):
+            status = adapter.is_available()
+            assert status in (ToolStatus.NOT_INSTALLED, ToolStatus.CONFIGURATION_ERROR)
+
+    def test_prompt_templates_are_strings(self):
+        from src.adapters.gptlens_adapter import AUDITOR_PROMPT_TEMPLATE, CRITIC_PROMPT_TEMPLATE
+        assert isinstance(AUDITOR_PROMPT_TEMPLATE, str)
+        assert isinstance(CRITIC_PROMPT_TEMPLATE, str)
+        assert "{contract_code}" in AUDITOR_PROMPT_TEMPLATE
+        assert "{contract_code}" in CRITIC_PROMPT_TEMPLATE
+
+    def test_prompt_templates_have_json_output_format(self):
+        from src.adapters.gptlens_adapter import AUDITOR_PROMPT_TEMPLATE
+        assert "JSON" in AUDITOR_PROMPT_TEMPLATE
+        assert "findings" in AUDITOR_PROMPT_TEMPLATE
+
+    def test_can_analyze_solidity(self, adapter):
+        assert adapter.can_analyze("contract.sol") is True
+
+    def test_cannot_analyze_non_solidity(self, adapter):
+        assert adapter.can_analyze("file.py") is False
+        assert adapter.can_analyze("file.txt") is False
+
+    def test_normalize_findings_empty(self, adapter):
+        result = adapter.normalize_findings(None)
+        assert result == [] or isinstance(result, list)
+
+    def test_normalize_findings_valid_json(self, adapter):
+        raw = {
+            "findings": [
+                {
+                    "type": "reentrancy",
+                    "severity": "High",
+                    "title": "Test",
+                    "description": "desc",
+                    "function": "withdraw",
+                    "line": 10,
+                }
+            ]
+        }
+        result = adapter.normalize_findings(raw)
+        assert isinstance(result, list)
+
+    def test_default_config(self, adapter):
+        config = adapter.get_default_config()
+        assert isinstance(config, dict)
+
+    def test_analyze_returns_error_on_nonexistent(self, adapter):
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
+            result = adapter.analyze("/nonexistent/path.sol")
+            assert isinstance(result, dict)
+            # Should contain error or empty findings
+            assert result.get("findings") == [] or result.get("error")
+
+
+# ---------------------------------------------------------------------------
+# iAudit Adapter
+# ---------------------------------------------------------------------------
+
+
+class TestIAuditAdapter:
+    @pytest.fixture
+    def adapter(self):
+        from src.adapters.iaudit_adapter import IAuditAdapter
+        return IAuditAdapter()
+
+    def test_metadata_name(self, adapter):
+        meta = adapter.get_metadata()
+        assert meta.name == "iaudit"
+        assert meta.category == ToolCategory.AI_ANALYSIS
+
+    def test_is_available_returns_status(self, adapter):
+        status = adapter.is_available()
+        assert isinstance(status, ToolStatus)
+
+    def test_prompt_templates_imported(self):
+        from src.adapters.iaudit_prompts import (
+            DETECTOR_PROMPT,
+            PLANNER_PROMPT,
+            REVIEWER_PROMPT,
+        )
+        assert "{contract_code}" in PLANNER_PROMPT
+        assert "{contract_code}" in DETECTOR_PROMPT
+        assert "{contract_code}" in REVIEWER_PROMPT
+        assert "{planner_output}" in DETECTOR_PROMPT
+        assert "{detector_findings}" in REVIEWER_PROMPT
+
+    def test_planner_prompt_has_json_schema(self):
+        from src.adapters.iaudit_prompts import PLANNER_PROMPT
+        assert "entry_points" in PLANNER_PROMPT
+        assert "attack_surface" in PLANNER_PROMPT
+
+    def test_model_priority_list(self, adapter):
+        assert hasattr(adapter, "MODEL_PRIORITY")
+        assert len(adapter.MODEL_PRIORITY) >= 3
+
+    def test_normalize_findings_empty(self, adapter):
+        result = adapter.normalize_findings([])
+        assert isinstance(result, list)
+
+
+# ---------------------------------------------------------------------------
+# LlamaAudit Adapter
+# ---------------------------------------------------------------------------
+
+
+class TestLlamaAuditAdapter:
+    @pytest.fixture
+    def adapter(self):
+        from src.adapters.llamaaudit_adapter import LlamaAuditAdapter
+        return LlamaAuditAdapter()
+
+    def test_metadata_name(self, adapter):
+        meta = adapter.get_metadata()
+        assert meta.name == "llamaaudit"
+
+    def test_is_available_returns_status(self, adapter):
+        status = adapter.is_available()
+        assert isinstance(status, ToolStatus)
+
+    def test_normalize_findings_handles_none(self, adapter):
+        result = adapter.normalize_findings(None)
+        assert isinstance(result, list)
+
+
+# ---------------------------------------------------------------------------
+# LLMBugScanner Adapter
+# ---------------------------------------------------------------------------
+
+
+class TestLLMBugScannerAdapter:
+    @pytest.fixture
+    def adapter(self):
+        from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
+        return LLMBugScannerAdapter()
+
+    def test_metadata_name(self, adapter):
+        meta = adapter.get_metadata()
+        assert meta.name == "llmbugscanner"
+
+    def test_is_available_returns_status(self, adapter):
+        status = adapter.is_available()
+        assert isinstance(status, ToolStatus)
+
+
+# ---------------------------------------------------------------------------
+# Peculiar Adapter (GNN-based)
+# ---------------------------------------------------------------------------
+
+
+class TestPeculiarAdapter:
+    @pytest.fixture
+    def adapter(self):
+        from src.adapters.peculiar_adapter import PeculiarAdapter
+        return PeculiarAdapter()
+
+    def test_metadata_name(self, adapter):
+        meta = adapter.get_metadata()
+        assert meta.name == "peculiar"
+
+    def test_is_available_returns_available(self, adapter):
+        status = adapter.is_available()
+        assert status == ToolStatus.AVAILABLE
+
+    def test_analyze_returns_dict(self, adapter, tmp_path):
+        c = tmp_path / "C.sol"
+        c.write_text("pragma solidity ^0.8.0; contract C { uint x; }")
+        result = adapter.analyze(str(c))
+        assert isinstance(result, dict)
+        assert "findings" in result or "status" in result
+
+    def test_analyze_nonexistent_returns_error(self, adapter):
+        result = adapter.analyze("/nonexistent.sol")
+        assert isinstance(result, dict)
+
+
+# ---------------------------------------------------------------------------
+# Cross-adapter contract: all LLM adapters share consistent shape
+# ---------------------------------------------------------------------------
+
+
+class TestLLMAdapterContract:
+    """Verify all LLM adapters implement the same basic protocol."""
+
+    @pytest.mark.parametrize("module,cls", [
+        ("src.adapters.gptlens_adapter", "GPTLensAdapter"),
+        ("src.adapters.iaudit_adapter", "IAuditAdapter"),
+        ("src.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
+        ("src.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
+        ("src.adapters.peculiar_adapter", "PeculiarAdapter"),
+    ])
+    def test_has_required_methods(self, module, cls):
+        import importlib
+        mod = importlib.import_module(module)
+        klass = getattr(mod, cls)
+        instance = klass()
+        assert hasattr(instance, "get_metadata")
+        assert hasattr(instance, "is_available")
+        assert hasattr(instance, "analyze")
+        assert hasattr(instance, "normalize_findings")
+
+    @pytest.mark.parametrize("module,cls", [
+        ("src.adapters.gptlens_adapter", "GPTLensAdapter"),
+        ("src.adapters.iaudit_adapter", "IAuditAdapter"),
+        ("src.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
+        ("src.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
+        ("src.adapters.peculiar_adapter", "PeculiarAdapter"),
+    ])
+    def test_metadata_has_name_and_category(self, module, cls):
+        import importlib
+        mod = importlib.import_module(module)
+        klass = getattr(mod, cls)
+        meta = klass().get_metadata()
+        assert meta.name
+        assert meta.category
