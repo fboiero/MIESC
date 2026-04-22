@@ -5,6 +5,31 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.0] - 2026-04-21
+
+### Added — Intelligence Engine (15 capabilities, `src/core/intelligence.py`)
+
+Post-detection engine: cross-tool Bayesian confidence, semantic dedup,
+15 zero-recall patterns, 6 FP suppression rules, LLM↔static cross-val,
+severity calibration, 14 recommendations, 10 fix-code templates, 10 exploit
+scenarios, report enrichment, SARIF enrichment, `--verbose` flag, directory
+scan, watch integration. ~30% noise reduction measured. DPGA-compatible.
+
+### Added — Multi-chain +35 vuln types (total 77)
+
+Stellar/Soroban +7, Solana/Anchor +7, Move/Sui/Aptos +7.
+EVM intelligence patterns 8→15.
+
+### Added — Plugin examples + gas analyzer (26 tests)
+
+### Added — Roadmap (`docs/ROADMAP_v5.2_v5.3.md`)
+
+### Fixed — 8 production bugs (stale-cache, rich deps, LLM validator, etc.)
+
+### Tests — 5913 passed, 87% coverage (+581 from v5.1.4)
+
+See v5.1.5–v5.1.9 entries below for per-release details.
+
 ## [5.1.9] - 2026-04-21
 
 ### Fixed — Critical: Slither stale-output silently missed reentrancy
