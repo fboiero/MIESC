@@ -500,25 +500,69 @@ def fix(results_file, contract_path, output, dry_run, quiet):
         sys.exit(1)
 
     # ------------------------------------------------------------------
-    # Apply fixes
+    # Apply fixes (track already-fixed functions to report skips cleanly)
     # ------------------------------------------------------------------
     applied = 0
     skipped = 0
+    already_fixed = 0
     patched_source = source
+    fixed_functions: set[tuple[str, str]] = set()  # (fn_name, fix_category)
 
     for finding in fixable:
         ftype = finding.get("type") or finding.get("title") or "unknown"
-        fn_name = finding.get("function") or finding.get("function_name") or "<unknown>"
+        # Resolve function name the same way apply_fix does
+        _unknown = {"", "unknown", "<unknown>", "none", "n/a"}
+        fn_name = finding.get("function") or finding.get("function_name") or ""
+        if fn_name.lower() in _unknown:
+            fn_name = ""
+        if not fn_name:
+            loc = finding.get("location", {})
+            if isinstance(loc, dict):
+                fn_name = loc.get("function", "")
+                if fn_name.lower() in _unknown:
+                    fn_name = ""
+        if not fn_name:
+            raw_line = finding.get("line") or finding.get("line_number")
+            if not raw_line:
+                loc = finding.get("location", {})
+                if isinstance(loc, dict):
+                    raw_line = loc.get("line")
+            if raw_line:
+                try:
+                    fn_name = _infer_function_at_line(source, int(raw_line))
+                except (TypeError, ValueError):
+                    pass
+
+        # Determine fix category for dedup
+        ftype_lower = ftype.lower().replace("-", "_")
+        if "reentrancy" in ftype_lower:
+            fix_cat = "reentrancy"
+        elif any(k in ftype_lower for k in ("access_control", "suicidal", "selfdestruct")):
+            fix_cat = "access_control"
+        elif "unchecked" in ftype_lower:
+            fix_cat = "unchecked_call"
+        else:
+            fix_cat = ftype_lower
+
+        fix_key = (fn_name, fix_cat)
+        if fn_name and fix_key in fixed_functions:
+            already_fixed += 1
+            if not quiet:
+                info(f"  ⊘ Already fixed: {ftype} in {fn_name}")
+            continue
+
         new_source, changed = apply_fix(patched_source, finding)
         if changed:
             patched_source = new_source
             applied += 1
+            if fn_name:
+                fixed_functions.add(fix_key)
             if not quiet:
-                info(f"  ✓ Applied fix: {ftype} in {fn_name}")
+                info(f"  ✓ Applied fix: {ftype} in {fn_name or '<inferred>'}")
         else:
             skipped += 1
             if not quiet:
-                warning(f"  ✗ Could not apply fix: {ftype} in {fn_name} (function not found?)")
+                warning(f"  ✗ Could not apply fix: {ftype} in {fn_name or '<unknown>'}")
 
     # ------------------------------------------------------------------
     # Dry-run: just print the diff summary
@@ -545,6 +589,9 @@ def fix(results_file, contract_path, output, dry_run, quiet):
         error(f"Cannot write output file: {exc}")
         sys.exit(1)
 
-    success(f"Applied {applied} fix(es) to {len(fixable)} finding(s) — written to {out_path}")
+    parts = [f"Applied {applied} fix(es)"]
+    if already_fixed:
+        parts.append(f"{already_fixed} already fixed")
     if skipped:
-        warning(f"{skipped} finding(s) could not be patched automatically.")
+        parts.append(f"{skipped} could not patch")
+    success(f"{', '.join(parts)} — written to {out_path}")

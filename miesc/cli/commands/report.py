@@ -1136,48 +1136,48 @@ def report(
         elif tool_status in ("failed", "error", "timeout"):
             layer_summary[layer_key]["tools_failed"] += 1
 
-    # If layer_summary is empty, build it from findings' tool/confirming_tools
-    if not layer_summary:
-        seen_tools_in_findings: set = set()
-        for f in findings:
-            # Collect tools from confirming_tools or tool field
-            f_tools = f.get("confirming_tools", [])
-            if not f_tools:
-                t = f.get("tool", "")
-                if t and t != "miesc-intelligence":
-                    f_tools = [t]
-            for tool_name in f_tools:
-                tool_name_lower = tool_name.lower().strip()
-                if tool_name_lower and tool_name_lower not in seen_tools_in_findings:
-                    seen_tools_in_findings.add(tool_name_lower)
-                    tool_layer = TOOL_LAYER_MAP.get(tool_name_lower, "unknown")
-                    layer_key = tool_layer if tool_layer else "unknown"
-                    if layer_key not in layer_summary:
-                        layer_summary[layer_key] = {
-                            "name": layer_names.get(layer_key, layer_key),
-                            "tools_executed": [],
-                            "tools_success": 0,
-                            "tools_failed": 0,
-                            "findings_count": 0,
-                        }
-                    if tool_name_lower not in [
-                        t.lower() for t in layer_summary[layer_key]["tools_executed"]
-                    ]:
-                        layer_summary[layer_key]["tools_executed"].append(tool_name)
-                        layer_summary[layer_key]["tools_success"] += 1
+    # Enrich layer_summary with tools/findings from confirming_tools metadata.
+    # This handles both the empty case (no tool_results) and the case where
+    # tool_results has per-tool metadata but findings are in a consolidated
+    # miesc-intelligence result.
+    seen_tools_in_findings: set = set()
+    for f in findings:
+        f_tools = f.get("confirming_tools", [])
+        if not f_tools:
+            t = f.get("tool", "")
+            if t and t != "miesc-intelligence":
+                f_tools = [t]
+        for tool_name in f_tools:
+            tool_name_lower = tool_name.lower().strip()
+            if tool_name_lower and tool_name_lower not in seen_tools_in_findings:
+                seen_tools_in_findings.add(tool_name_lower)
+                tool_layer = TOOL_LAYER_MAP.get(tool_name_lower, "unknown")
+                layer_key = tool_layer if tool_layer else "unknown"
+                if layer_key not in layer_summary:
+                    layer_summary[layer_key] = {
+                        "name": layer_names.get(layer_key, layer_key),
+                        "tools_executed": [],
+                        "tools_success": 0,
+                        "tools_failed": 0,
+                        "findings_count": 0,
+                    }
+                if tool_name_lower not in [
+                    t.lower() for t in layer_summary[layer_key]["tools_executed"]
+                ]:
+                    layer_summary[layer_key]["tools_executed"].append(tool_name)
+                    layer_summary[layer_key]["tools_success"] += 1
 
-        # Count findings per layer
-        for f in findings:
-            f_tools = f.get("confirming_tools", [])
-            if not f_tools:
-                t = f.get("tool", "")
-                if t and t != "miesc-intelligence":
-                    f_tools = [t]
-            # Attribute finding to the first tool's layer
-            if f_tools:
-                tool_layer = TOOL_LAYER_MAP.get(f_tools[0].lower().strip(), "unknown")
-                if tool_layer in layer_summary:
-                    layer_summary[tool_layer]["findings_count"] += 1
+    # Attribute findings to layers via their confirming tools
+    for f in findings:
+        f_tools = f.get("confirming_tools", [])
+        if not f_tools:
+            t = f.get("tool", "")
+            if t and t != "miesc-intelligence":
+                f_tools = [t]
+        if f_tools:
+            tool_layer = TOOL_LAYER_MAP.get(f_tools[0].lower().strip(), "unknown")
+            if tool_layer in layer_summary:
+                layer_summary[tool_layer]["findings_count"] += 1
 
     # Convert layer_summary to list sorted by layer order
     layer_order = [

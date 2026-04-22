@@ -2,14 +2,18 @@
 `miesc analyze` — multi-chain analysis (Solidity, Move, Cairo, Solana).
 
 Auto-detects the chain from file extension and routes to the right analyzer.
+Output schema matches `miesc scan` for downstream compatibility (report, fix,
+export, compliance).
 """
 
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import click
 
+from miesc import __version__ as VERSION
 from miesc.cli.utils import console, error, info, print_banner, success
 
 # File extension → chain mapping
@@ -41,8 +45,9 @@ def detect_chain(contract_path: str) -> str:
 @click.option(
     "--output", "-o", type=click.Path(), help="Output JSON file for findings"
 )
+@click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues found")
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output")
-def analyze(contract, chain, output, quiet):
+def analyze(contract, chain, output, ci, quiet):
     """Analyze smart contracts across multiple chains.
 
     \b
@@ -121,21 +126,25 @@ def analyze(contract, chain, output, quiet):
         error(f"Analysis failed: {e}")
         sys.exit(1)
 
-    # Show summary
+    # Normalize output to match `miesc scan` schema
     findings = result.get("findings", [])
     summary = result.get("summary", {})
+    # Convert Title-case keys to UPPER for scan compatibility
+    normalized_summary = {}
+    for sev_key in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"):
+        normalized_summary[sev_key] = summary.get(sev_key, 0) or summary.get(sev_key.title(), 0)
     total = len(findings)
+    critical_high = normalized_summary.get("CRITICAL", 0) + normalized_summary.get("HIGH", 0)
 
     if not quiet:
         console.print(f"\n  [bold]{chain.upper()} Analysis Complete[/bold]")
         console.print(f"  Total findings: {total}")
-        for sev in ["Critical", "High", "Medium", "Low", "Info"]:
-            count = summary.get(sev, 0)
+        for sev in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]:
+            count = normalized_summary.get(sev, 0)
             if count > 0:
-                color = "red" if sev in ("Critical", "High") else "yellow" if sev == "Medium" else "cyan"
+                color = "red" if sev in ("CRITICAL", "HIGH") else "yellow" if sev == "MEDIUM" else "cyan"
                 console.print(f"    [{color}]{sev:10s}[/{color}] {count}")
 
-        # Show top findings
         for f in findings[:5]:
             sev = f.get("severity", "?")
             title = f.get("title", f.get("type", "?"))
@@ -144,8 +153,25 @@ def analyze(contract, chain, output, quiet):
             console.print(f"    [{sev}] line {line}: {title}")
 
     if output:
-        Path(output).write_text(json.dumps(result, indent=2, default=str))
+        tool_name = result.get("tool", f"miesc-{chain}")
+        scan_compatible = {
+            "contract": str(contract),
+            "timestamp": datetime.now().isoformat(),
+            "version": VERSION,
+            "chain": chain,
+            "success": True,
+            "summary": normalized_summary,
+            "total_findings": total,
+            "tools": [tool_name],
+            "findings": findings,
+            "results": [{"tool": tool_name, "status": "success", "findings": findings}],
+        }
+        Path(output).write_text(json.dumps(scan_compatible, indent=2, default=str))
         success(f"Report saved to {output}")
+
+    # CI mode
+    if ci and critical_high > 0:
+        sys.exit(1)
 
 
 def _normalize_finding(f, chain: str) -> dict:
