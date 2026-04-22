@@ -38,7 +38,32 @@ pip install miesc
 miesc scan MyContract.sol
 ```
 
-That's it. MIESC runs Slither + Aderyn + Solhint and gives you a unified report in seconds.
+That's it. MIESC runs Slither + Aderyn + Solhint, deduplicates findings, and gives you a unified report with confidence scores in seconds.
+
+### Full pipeline: detect → fix → verify → comply
+
+```bash
+miesc scan contract.sol -o results.json           # Detect + intelligence
+miesc fix results.json -c contract.sol -o fixed.sol  # Auto-patch vulnerabilities
+miesc verify fixed.sol --tool smtchecker           # Prove fix works
+miesc compliance results.json --standard mica      # Map to MiCA/DORA/ISO 27001
+miesc report results.json -t premium -f pdf        # Professional audit report
+```
+
+### New in v5.3: Intelligence Engine
+
+```bash
+miesc scan contract.sol --verbose                  # Per-finding confidence + fix
+miesc scan contracts/ --recursive                  # Directory scanning
+miesc scan . --diff origin/main                    # PR-level: only changed files
+```
+
+The intelligence engine automatically:
+- **Deduplicates** cross-tool findings (Slither + Aderyn report same bug → 1 finding)
+- **Scores confidence** via Bayesian multi-tool agreement (2 tools = 85%, 3 = 95%)
+- **Generates fix code** — copy-pasteable Solidity patches for 10 vulnerability categories
+- **Suppresses false positives** — context-aware (onlyOwner, Solidity 0.8+, OpenZeppelin guards)
+- **Calibrates severity** across tools (Aderyn LOW → Medium when warranted)
 
 Want the full 9-layer analysis with AI correlation?
 
@@ -213,6 +238,44 @@ cd MIESC && pip install -e .[dev]
 ```
 
 Requirements: Python 3.12+. Slither installs automatically. Other tools are optional — MIESC uses whatever is available.
+
+---
+
+## Multi-Chain Support
+
+```bash
+miesc analyze Token.sol           # Auto-detects EVM (Solidity/Vyper)
+miesc analyze Vault.cairo         # Starknet/Cairo (13 vuln types, zkLend-informed)
+miesc analyze Program.rs          # Solana/Anchor (22 vuln types)
+miesc analyze Module.move         # Move/Sui/Aptos (19 vuln types)
+```
+
+**77 vulnerability types** across 4 ecosystems, informed by real 2024-2026 exploits (zkLend $9.6M, Braavos, Wormhole $326M, Ronin $624M).
+
+Bridge vulnerability detection:
+```bash
+miesc scan Bridge.sol             # Detects 7 bridge exploit patterns
+```
+
+---
+
+## All Commands
+
+| Command | Description |
+|---------|-------------|
+| `miesc scan` | Quick scan (3 tools + intelligence engine) |
+| `miesc scan --diff HEAD~1` | **NEW** PR-level: only changed .sol files |
+| `miesc scan contracts/` | **NEW** Directory scan (+ `--recursive`) |
+| `miesc audit quick\|full` | Multi-layer audit (4 or 50 tools) |
+| `miesc fix results.json` | **NEW** Auto-generate patched .sol files |
+| `miesc verify contract.sol` | Run Certora/Halmos/SMTChecker provers |
+| `miesc compliance results.json` | **NEW** Map to ISO/NIST/MiCA/DORA |
+| `miesc report results.json` | Professional PDF/HTML/Markdown report |
+| `miesc specs results.json` | Generate Certora CVL / Scribble specs |
+| `miesc export results.json` | SARIF (GitHub), CSV, HTML export |
+| `miesc analyze contract.cairo` | Multi-chain analysis |
+| `miesc doctor` | Check tool availability |
+| `miesc watch contracts/` | Live file watching + auto-scan |
 
 ---
 

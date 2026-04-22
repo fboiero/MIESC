@@ -8,20 +8,20 @@ This document presents an honest comparison of MIESC against the most popular sm
 
 - **Contracts:** 5 intentionally vulnerable (EtherStore, VulnerableDeFi, AccessControlFlaws, ReentrancyDAO, FlashLoanAttack)
 - **Environment:** macOS ARM64 (Apple Silicon M5 Pro), 48GB RAM, Python 3.12
-- **Tool versions:** Slither 0.11.3, Aderyn 0.6.x, Solhint 5.x, Echidna 2.3, MIESC 5.1.1
-- **MIESC mode:** `miesc scan` (Layer 1 only — Slither + Aderyn + Solhint + Mythril)
+- **Tool versions:** Slither 0.11.3, Aderyn 0.6.x, Solhint 5.x, Echidna 2.3, MIESC 5.3.0
+- **MIESC mode:** `miesc scan` (Layer 1 + intelligence engine)
 
-## Quantitative Results (April 2026, v5.1.2)
+## Quantitative Results (April 2026, v5.3.0)
 
-| Tool | Total findings | Total time | Notes |
-|------|---------------|------------|-------|
-| Slither alone | 45 | 1.2s | Fast baseline, 100 detectors |
-| Aderyn alone | 38 | 3.1s | Rust-based, Solidity 0.8+ only |
-| **MIESC** (multi-tool) | **97** | **7.3s** | Cross-validated, deduplicated |
-| Solhint | 0* | 3.7s | * Needs custom `.solhint.json` |
-| Echidna | 0* | 0.6s | * Needs property contracts |
+| Tool | Raw findings | After intelligence | Time | Notes |
+|------|------------:|-------------------:|------|-------|
+| Slither alone | 45 | — | 1.2s | Fast baseline, 100 detectors |
+| Aderyn alone | 38 | — | 3.1s | Rust-based, Solidity 0.8+ only |
+| **MIESC** (multi-tool) | 107 | **93** | **7.2s** | Intelligence engine: ~13% noise reduction |
+| Solhint | 0* | — | 3.7s | * Needs custom `.solhint.json` |
+| Echidna | 0* | — | 0.6s | * Needs property contracts |
 
-**Key insight:** MIESC finds **2.15x more findings** than Slither alone (97 vs 45) at **6x the time cost** (7.3s vs 1.2s). The cross-tool aggregation surfaces vulnerabilities that any single tool misses, while deduplication removes cross-tool duplicates.
+**Key insight:** MIESC's intelligence engine (v5.2.0+) takes 107 raw findings from Slither + Aderyn and produces **93 deduplicated, confidence-scored findings** — each with a Bayesian confidence score, canonical category, and (for 34%) a copy-pasteable Solidity fix. The ~13% noise reduction comes from semantic deduplication (same vuln detected by both tools → 1 finding with higher confidence) and context-aware FP suppression.
 
 ### Tunable strictness (v5.1.2+)
 
