@@ -185,6 +185,43 @@ ZERO_RECALL_PATTERNS = {
         "message": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
         "requires_no_safe_approve": True,
     },
+    # v5.2.0: Additional patterns for common vulnerability shapes
+    "unprotected_selfdestruct": {
+        "patterns": [
+            r"\bselfdestruct\s*\(",
+            r"\bsuicide\s*\(",
+        ],
+        "severity": "Critical",
+        "swc": "SWC-106",
+        "message": "selfdestruct/suicide found — if reachable by unauthorized caller, contract can be permanently destroyed.",
+    },
+    "delegatecall_to_untrusted": {
+        "patterns": [
+            r"\.delegatecall\s*\(",
+        ],
+        "severity": "High",
+        "swc": "SWC-112",
+        "message": "delegatecall to potentially untrusted address — storage layout collision or logic injection risk.",
+    },
+    "uninitialized_proxy": {
+        "patterns": [
+            r"function\s+initialize\s*\(",
+            r"function\s+__init\s*\(",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-109",
+        "message": "Initializer function detected — verify it cannot be called more than once (use OpenZeppelin's initializer modifier).",
+        "requires_no_initializer_guard": True,
+    },
+    "unchecked_return_value": {
+        "patterns": [
+            r"\.call\s*\{",
+            r"\.call\s*\(",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-104",
+        "message": "Low-level call without explicit success check — use require(success) or SafeERC20.",
+    },
 }
 
 
@@ -196,11 +233,14 @@ def detect_zero_recall_categories(
     code_lower = source_code.lower()
     has_safemath = "safemath" in code_lower or "using safemath" in code_lower
     has_safe_approve = "increaseallowance" in code_lower or "safeapprove" in code_lower
+    has_initializer_guard = "initializer" in code_lower and ("initialized" in code_lower or "initializable" in code_lower)
 
     for category, cfg in ZERO_RECALL_PATTERNS.items():
         if cfg.get("requires_no_safemath") and has_safemath:
             continue
         if cfg.get("requires_no_safe_approve") and has_safe_approve:
+            continue
+        if cfg.get("requires_no_initializer_guard") and has_initializer_guard:
             continue
 
         for pattern in cfg["patterns"]:
@@ -280,6 +320,17 @@ def context_aware_fp_check(
             func_context = _get_function_context(source_code, func_name)
             if "nonReentrant" in func_context or "nonreentrant" in func_context.lower():
                 return True, f"Function {func_name} has nonReentrant guard (OpenZeppelin)"
+
+    # Rule 5: Proxy upgrade findings when contract uses OpenZeppelin's
+    # Initializable or UUPSUpgradeable → likely already guarded
+    if canonical == CanonicalCategory.PROXY_UPGRADE:
+        if re.search(r"Initializable|UUPSUpgradeable|TransparentUpgradeableProxy", source_code):
+            return True, "Contract uses OpenZeppelin upgrade infrastructure"
+
+    # Rule 6: unchecked_call on SafeERC20-imported contracts → FP
+    if canonical == CanonicalCategory.UNCHECKED_CALL and _OZ_IMPORT.search(source_code):
+        if re.search(r"SafeERC20|safeTransfer|safeTransferFrom|safeApprove", source_code):
+            return True, "Contract uses SafeERC20 for token operations"
 
     return False, None
 
@@ -416,6 +467,9 @@ def enhance_findings(
 
         results.append(out)
 
+    # Enrich generic recommendations from the RAG knowledge base
+    _enrich_recommendations(results)
+
     # Sort: non-suppressed first, then by severity rank, then by confidence
     results.sort(
         key=lambda f: (
@@ -426,3 +480,38 @@ def enhance_findings(
     )
 
     return results
+
+
+# =============================================================================
+# 7. Recommendation enrichment from RAG
+# =============================================================================
+
+_CANONICAL_RECOMMENDATIONS: Dict[str, str] = {
+    "reentrancy": "Apply Checks-Effects-Interactions pattern: update state BEFORE external calls. Use OpenZeppelin's ReentrancyGuard (`nonReentrant` modifier).",
+    "access_control": "Add access control modifier (`onlyOwner`, `onlyRole`) or `require(msg.sender == owner)` check. Use OpenZeppelin's Ownable or AccessControl.",
+    "oracle_manipulation": "Use time-weighted average prices (TWAP) instead of spot prices. Add staleness checks on Chainlink `latestRoundData()`. Never use `getReserves()` for pricing.",
+    "flash_loan": "Add same-block protection (compare `block.number` at entry/exit). Use snapshot-based governance voting. Add timelock delays on sensitive operations.",
+    "arithmetic": "Use Solidity ≥0.8.0 (built-in overflow checks) or OpenZeppelin's SafeMath for older versions. Avoid `unchecked` blocks on user-controlled inputs.",
+    "unchecked_call": "Use SafeERC20 for token transfers. Check return values of `.call()`, `.send()`, `.delegatecall()` with `require(success)`.",
+    "initialization": "Add `initializer` modifier from OpenZeppelin. Use a storage flag (`initialized = true`) and assert it's false at the start.",
+    "signature_verification": "Use OpenZeppelin's ECDSA library. Check for `address(0)` after `ecrecover`. Include nonce + chain_id in signed payloads to prevent replay.",
+    "bad_randomness": "Use Chainlink VRF for verifiable randomness. Never use `block.timestamp`, `blockhash`, or `block.difficulty` as entropy sources.",
+    "time_manipulation": "Avoid relying on `block.timestamp` for critical logic — miners can manipulate by ±15 seconds. Use block numbers for ordering if precision needed.",
+    "denial_of_service": "Avoid unbounded loops over dynamic arrays. Use pull-over-push pattern for payouts. Set gas limits on external calls.",
+    "front_running": "Use commit-reveal scheme for sensitive operations. Use `increaseAllowance`/`decreaseAllowance` instead of `approve` to prevent race conditions.",
+    "proxy_upgrade": "Use OpenZeppelin's UUPSUpgradeable or TransparentUpgradeableProxy. Guard `upgradeTo` with admin-only access. Maintain storage layout compatibility.",
+    "centralization": "Implement multi-sig governance for admin functions. Add timelock delays on ownership transfers. Consider renouncing ownership when no longer needed.",
+}
+
+_GENERIC_RECOMMENDATIONS = {"review and fix", "review the", "check the", "see the"}
+
+
+def _enrich_recommendations(findings: List[Dict[str, Any]]) -> None:
+    """Replace generic recommendations with canonical per-category advice."""
+    for f in findings:
+        rec = (f.get("recommendation") or f.get("message") or "").strip().lower()
+        if not rec or any(g in rec for g in _GENERIC_RECOMMENDATIONS):
+            canonical = f.get("canonical_category", "")
+            better = _CANONICAL_RECOMMENDATIONS.get(canonical)
+            if better:
+                f["recommendation"] = better

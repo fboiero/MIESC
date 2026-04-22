@@ -54,7 +54,12 @@ if RICH_AVAILABLE:
     is_flag=True,
     help="Enhance top findings with AI insights (adds ~40s, requires Ollama)",
 )
-def scan(contract, output, ci, quiet, fp_strictness, llm_enhance):
+@click.option(
+    "--verbose", "-v",
+    is_flag=True,
+    help="Show confidence scores + remediation per finding",
+)
+def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose):
     """Quick vulnerability scan for a Solidity contract.
 
     This is a simplified command for quick scans. For more options,
@@ -225,6 +230,35 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance):
             if count > 0:
                 print(f"{sev}: {count}")  # noqa: T201
         print(f"TOTAL: {total}")  # noqa: T201
+
+    # Verbose mode: show per-finding details with confidence + remediation
+    if verbose and not quiet:
+        all_findings_verbose = []
+        for r in all_results:
+            all_findings_verbose.extend(r.get("findings", []))
+
+        if all_findings_verbose:
+            console.print("\n[bold]Detailed Findings[/bold]\n")
+            for i, f in enumerate(all_findings_verbose, 1):
+                sev = f.get("severity", "?")
+                ftype = f.get("type", f.get("title", "?"))
+                conf = f.get("confidence", "")
+                tools = f.get("confirming_tools", [f.get("tool", "?")])
+                rec = f.get("recommendation", f.get("message", ""))
+                canonical = f.get("canonical_category", "")
+
+                sev_color = {"Critical": "red", "High": "red", "Medium": "yellow",
+                             "Low": "cyan"}.get(sev, "white")
+                conf_str = f" conf={conf:.0%}" if isinstance(conf, float) else ""
+                tools_str = ", ".join(tools) if isinstance(tools, list) else str(tools)
+
+                console.print(f"  [bold]{i}.[/bold] [{sev_color}]{sev}[/{sev_color}] "
+                              f"[bold]{ftype}[/bold]{conf_str}")
+                if canonical:
+                    console.print(f"     Category: {canonical} | Tools: {tools_str}")
+                if rec and len(rec) > 5:
+                    console.print(f"     [dim]Fix: {rec[:200]}[/dim]")
+                console.print()
 
     # Save output
     if output:

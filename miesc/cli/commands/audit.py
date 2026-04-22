@@ -91,7 +91,10 @@ def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
                         "helpUri": (
                             finding.get("references", [""])[0] if finding.get("references") else ""
                         ),
-                        "properties": {"tool": tool_name},
+                        "properties": {
+                            "tool": tool_name,
+                            "canonicalCategory": finding.get("canonical_category", ""),
+                        },
                     }
                 )
                 rule_ids.add(rule_id)
@@ -124,7 +127,17 @@ def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
                             }
                         }
                     ],
-                    "properties": {"tool": tool_name, "confidence": finding.get("confidence", 0.5)},
+                    "properties": {
+                        "tool": tool_name,
+                        "confidence": finding.get("confidence", 0.5),
+                        # v5.2.0: intelligence engine metadata in SARIF
+                        "canonicalCategory": finding.get("canonical_category", ""),
+                        "confirmingTools": finding.get("confirming_tools", []),
+                        "toolCount": finding.get("tool_count", 1),
+                        "crossValidatedStatic": finding.get("cross_validated_static", False),
+                        "crossValidatedLLM": finding.get("cross_validated_llm", False),
+                        "fpSuppressed": finding.get("fp_suppressed", False),
+                    },
                 }
             )
 
