@@ -1570,16 +1570,20 @@ def report(
                 cvss_score = score.get("base_score")
                 break
 
-        # Get attack scenario if available
+        # Get attack scenario — first from global list, then from intelligence engine
         attack_scenario = None
         attack_steps = []
         for scenario in variables.get("attack_scenarios", []):
             if scenario.get("title") == title_field:
                 attack_scenario = scenario.get("scenario_description")
-                attack_steps = scenario.get("attack_steps", [])
+                attack_steps = scenario.get("attack_steps", scenario.get("steps", []))
                 break
+        # v5.2.0: fallback to intelligence engine's exploit_scenario field
+        if not attack_steps and finding.get("exploit_scenario"):
+            attack_steps = finding["exploit_scenario"]
+            attack_scenario = attack_steps[0] if attack_steps else None
 
-        # Get code remediation if available
+        # Get code remediation — first from global list, then from intelligence engine
         remediation_code = None
         remediation_effort = None
         fix_time = None
@@ -1589,6 +1593,9 @@ def report(
                 remediation_effort = remediation.get("effort")
                 fix_time = remediation.get("fix_time")
                 break
+        # v5.2.0: fallback to intelligence engine's fix_code field
+        if not remediation_code and finding.get("fix_code"):
+            remediation_code = finding["fix_code"]
 
         formatted_findings.append(
             {
@@ -1628,6 +1635,14 @@ def report(
                 "remediation_effort": remediation_effort,
                 "fix_time": fix_time,
                 "llm_interpretation": finding.get("llm_interpretation", ""),
+                # Intelligence engine fields (v5.2.0)
+                "confidence": finding.get("confidence", 0.5),
+                "confidence_pct": f"{finding.get('confidence', 0.5):.0%}" if isinstance(finding.get("confidence"), (int, float)) else "",
+                "canonical_category": finding.get("canonical_category", ""),
+                "confirming_tools": finding.get("confirming_tools", []),
+                "tool_count": finding.get("tool_count", 1),
+                "cross_validated_static": finding.get("cross_validated_static", False),
+                "cross_validated_llm": finding.get("cross_validated_llm", False),
                 # PoC fields
                 "poc_available": finding.get("poc_available", False),
                 "poc_name": finding.get("poc_name", ""),
