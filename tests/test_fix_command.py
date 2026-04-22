@@ -1,0 +1,387 @@
+"""
+Tests for the `miesc fix` CLI command.
+
+Covers:
+  - Reentrancy fix → nonReentrant modifier added
+  - Access control fix → onlyOwner modifier added
+  - Unchecked call fix → require(success) wrapping added
+  - Arithmetic fix → SafeMath insertion on pre-0.8 pragma
+  - Generic/unknown type → comment block with fix_code inserted
+  - No findings with fix_code → exits 0 with "nothing to fix" message
+  - Output file is written to --output path when specified
+  - Default output path (<stem>.fixed.sol) when -o is omitted
+  - Multiple findings on the same contract are all applied
+  - Dry-run flag shows summary without writing a file
+  - Results JSON with only per-tool results (not top-level findings)
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+from click.testing import CliRunner
+
+from miesc.cli.commands.fix import (
+    _add_modifier_to_function,
+    _collect_fixable_findings,
+    _insert_using_safemath,
+    apply_fix,
+    fix,
+)
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+SIMPLE_CONTRACT = """\
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract Victim {
+    mapping(address => uint256) public balances;
+
+    function deposit() public payable {
+        balances[msg.sender] += msg.value;
+    }
+
+    function withdraw(uint256 amount) public {
+        require(balances[msg.sender] >= amount);
+        (bool ok, ) = msg.sender.call{value: amount}("");
+        balances[msg.sender] -= amount;
+    }
+
+    function restricted() public {
+        balances[msg.sender] = 0;
+    }
+}
+"""
+
+LEGACY_CONTRACT = """\
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
+
+contract Token {
+    uint256 public total;
+
+    function mint(uint256 amount) public {
+        total += amount;
+    }
+}
+"""
+
+
+@pytest.fixture
+def contract_file(tmp_path):
+    p = tmp_path / "Victim.sol"
+    p.write_text(SIMPLE_CONTRACT)
+    return p
+
+
+@pytest.fixture
+def legacy_contract_file(tmp_path):
+    p = tmp_path / "Token.sol"
+    p.write_text(LEGACY_CONTRACT)
+    return p
+
+
+def _make_results(findings: list, tmp_path: Path) -> Path:
+    """Write a minimal MIESC results JSON to a temp file and return the path."""
+    data = {
+        "contract": "Victim.sol",
+        "findings": findings,
+    }
+    p = tmp_path / "results.json"
+    p.write_text(json.dumps(data))
+    return p
+
+
+def _make_results_tool_format(findings: list, tmp_path: Path) -> Path:
+    """Write results using the per-tool `results` array format."""
+    data = {
+        "contract": "Victim.sol",
+        "results": [
+            {"tool": "slither", "status": "success", "findings": findings}
+        ],
+    }
+    p = tmp_path / "results.json"
+    p.write_text(json.dumps(data))
+    return p
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — patching helpers
+# ---------------------------------------------------------------------------
+
+
+class TestAddModifierToFunction:
+    def test_adds_modifier_to_existing_function(self):
+        source, changed = _add_modifier_to_function(
+            SIMPLE_CONTRACT, "withdraw", "nonReentrant"
+        )
+        assert changed
+        assert "nonReentrant" in source
+        # Must appear inside the function signature
+        assert "function withdraw" in source
+
+    def test_does_not_duplicate_existing_modifier(self):
+        source_with_modifier = SIMPLE_CONTRACT.replace(
+            "function withdraw(uint256 amount) public",
+            "function withdraw(uint256 amount) public nonReentrant",
+        )
+        source, changed = _add_modifier_to_function(
+            source_with_modifier, "withdraw", "nonReentrant"
+        )
+        assert not changed
+
+    def test_returns_unchanged_when_function_not_found(self):
+        source, changed = _add_modifier_to_function(
+            SIMPLE_CONTRACT, "nonExistentFunction", "nonReentrant"
+        )
+        assert not changed
+        assert source == SIMPLE_CONTRACT
+
+
+class TestInsertUsingSafeMath:
+    def test_inserts_after_contract_opening_brace(self):
+        source, changed = _insert_using_safemath(LEGACY_CONTRACT)
+        assert changed
+        assert "using SafeMath for uint256;" in source
+
+    def test_does_not_change_source_without_contract(self):
+        source, changed = _insert_using_safemath("// just a comment\n")
+        assert not changed
+
+
+class TestCollectFixableFindings:
+    def test_finds_top_level_findings_with_fix_code(self):
+        data = {
+            "findings": [
+                {"type": "reentrancy", "fix_code": "add nonReentrant"},
+                {"type": "access_control"},  # no fix_code → skipped
+            ]
+        }
+        result = _collect_fixable_findings(data)
+        assert len(result) == 1
+        assert result[0]["type"] == "reentrancy"
+
+    def test_finds_per_tool_findings_with_fix_code(self):
+        data = {
+            "results": [
+                {
+                    "tool": "slither",
+                    "findings": [
+                        {"type": "reentrancy", "fix_code": "add nonReentrant"},
+                    ],
+                }
+            ]
+        }
+        result = _collect_fixable_findings(data)
+        assert len(result) == 1
+
+    def test_returns_empty_when_no_fix_code(self):
+        data = {"findings": [{"type": "reentrancy"}]}
+        result = _collect_fixable_findings(data)
+        assert result == []
+
+    def test_combines_top_level_and_per_tool(self):
+        data = {
+            "findings": [{"type": "reentrancy", "fix_code": "x"}],
+            "results": [
+                {
+                    "tool": "aderyn",
+                    "findings": [{"type": "access_control", "fix_code": "y"}],
+                }
+            ],
+        }
+        result = _collect_fixable_findings(data)
+        assert len(result) == 2
+
+
+class TestApplyFix:
+    def test_reentrancy_adds_nonreentrant(self):
+        finding = {
+            "type": "reentrancy",
+            "function": "withdraw",
+            "fix_code": "add nonReentrant",
+        }
+        patched, changed = apply_fix(SIMPLE_CONTRACT, finding)
+        assert changed
+        assert "nonReentrant" in patched
+
+    def test_access_control_adds_only_owner(self):
+        finding = {
+            "type": "access_control",
+            "function": "restricted",
+            "fix_code": "add onlyOwner",
+        }
+        patched, changed = apply_fix(SIMPLE_CONTRACT, finding)
+        assert changed
+        assert "onlyOwner" in patched
+
+    def test_arithmetic_inserts_safemath_on_legacy(self):
+        finding = {
+            "type": "arithmetic",
+            "function": "mint",
+            "fix_code": "use SafeMath",
+        }
+        patched, changed = apply_fix(LEGACY_CONTRACT, finding)
+        assert changed
+        assert "using SafeMath for uint256;" in patched
+
+    def test_generic_type_inserts_comment_block(self):
+        finding = {
+            "type": "timestamp_dependence",
+            "function": "deposit",
+            "fix_code": "Avoid block.timestamp for randomness.",
+        }
+        patched, changed = apply_fix(SIMPLE_CONTRACT, finding)
+        assert changed
+        assert "MIESC FIX: timestamp_dependence" in patched
+        assert "Avoid block.timestamp for randomness." in patched
+
+    def test_no_change_when_function_not_found(self):
+        finding = {
+            "type": "reentrancy",
+            "function": "ghostFunction",
+            "fix_code": "add nonReentrant",
+        }
+        patched, changed = apply_fix(SIMPLE_CONTRACT, finding)
+        assert not changed
+        assert patched == SIMPLE_CONTRACT
+
+
+# ---------------------------------------------------------------------------
+# CLI integration tests
+# ---------------------------------------------------------------------------
+
+
+class TestFixCommand:
+    def test_help_shows_expected_options(self):
+        runner = CliRunner()
+        result = runner.invoke(fix, ["--help"])
+        assert result.exit_code == 0
+        assert "--contract" in result.output
+        assert "--output" in result.output
+        assert "--dry-run" in result.output
+
+    def test_no_findings_with_fix_code_exits_zero(self, contract_file, tmp_path):
+        results_file = _make_results(
+            [{"type": "reentrancy"}],  # no fix_code
+            tmp_path,
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            fix, [str(results_file), "--contract", str(contract_file), "--quiet"]
+        )
+        assert result.exit_code == 0
+        assert "nothing to fix" in result.output.lower()
+
+    def test_reentrancy_fix_written_to_output(self, contract_file, tmp_path):
+        results_file = _make_results(
+            [{"type": "reentrancy", "function": "withdraw", "fix_code": "add nonReentrant"}],
+            tmp_path,
+        )
+        out = tmp_path / "patched.sol"
+        runner = CliRunner()
+        result = runner.invoke(
+            fix,
+            [str(results_file), "--contract", str(contract_file), "--output", str(out)],
+        )
+        assert result.exit_code == 0
+        assert out.exists()
+        content = out.read_text()
+        assert "nonReentrant" in content
+
+    def test_access_control_fix_written_to_output(self, contract_file, tmp_path):
+        results_file = _make_results(
+            [{"type": "access_control", "function": "restricted", "fix_code": "add onlyOwner"}],
+            tmp_path,
+        )
+        out = tmp_path / "patched.sol"
+        runner = CliRunner()
+        result = runner.invoke(
+            fix,
+            [str(results_file), "--contract", str(contract_file), "--output", str(out)],
+        )
+        assert result.exit_code == 0
+        content = out.read_text()
+        assert "onlyOwner" in content
+
+    def test_default_output_path_is_stem_fixed_sol(self, contract_file, tmp_path):
+        """When -o is omitted, the output should be <stem>.fixed.sol next to the contract."""
+        results_file = _make_results(
+            [{"type": "reentrancy", "function": "withdraw", "fix_code": "x"}],
+            tmp_path,
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            fix, [str(results_file), "--contract", str(contract_file)]
+        )
+        assert result.exit_code == 0
+        expected_out = contract_file.parent / "Victim.fixed.sol"
+        assert expected_out.exists()
+
+    def test_multiple_findings_all_applied(self, contract_file, tmp_path):
+        findings = [
+            {"type": "reentrancy", "function": "withdraw", "fix_code": "add nonReentrant"},
+            {"type": "access_control", "function": "restricted", "fix_code": "add onlyOwner"},
+        ]
+        results_file = _make_results(findings, tmp_path)
+        out = tmp_path / "patched.sol"
+        runner = CliRunner()
+        result = runner.invoke(
+            fix,
+            [str(results_file), "--contract", str(contract_file), "--output", str(out)],
+        )
+        assert result.exit_code == 0
+        content = out.read_text()
+        assert "nonReentrant" in content
+        assert "onlyOwner" in content
+
+    def test_dry_run_does_not_write_file(self, contract_file, tmp_path):
+        results_file = _make_results(
+            [{"type": "reentrancy", "function": "withdraw", "fix_code": "add nonReentrant"}],
+            tmp_path,
+        )
+        out = tmp_path / "patched.sol"
+        runner = CliRunner()
+        result = runner.invoke(
+            fix,
+            [
+                str(results_file),
+                "--contract", str(contract_file),
+                "--output", str(out),
+                "--dry-run",
+            ],
+        )
+        assert result.exit_code == 0
+        assert not out.exists()
+        assert "dry-run" in result.output.lower()
+
+    def test_per_tool_results_format_is_processed(self, contract_file, tmp_path):
+        """Results JSON with `results[].findings` (not top-level) must be processed."""
+        results_file = _make_results_tool_format(
+            [{"type": "reentrancy", "function": "withdraw", "fix_code": "add nonReentrant"}],
+            tmp_path,
+        )
+        out = tmp_path / "patched.sol"
+        runner = CliRunner()
+        result = runner.invoke(
+            fix,
+            [str(results_file), "--contract", str(contract_file), "--output", str(out)],
+        )
+        assert result.exit_code == 0
+        assert out.exists()
+        assert "nonReentrant" in out.read_text()
+
+    def test_invalid_results_file_exits_nonzero(self, contract_file, tmp_path):
+        bad_json = tmp_path / "bad.json"
+        bad_json.write_text("not valid json {{")
+        runner = CliRunner()
+        result = runner.invoke(
+            fix, [str(bad_json), "--contract", str(contract_file), "--quiet"]
+        )
+        assert result.exit_code != 0

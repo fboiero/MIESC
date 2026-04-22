@@ -32,11 +32,13 @@ from miesc import __version__ as VERSION  # noqa: E402
 from miesc.cli.commands.analyze import analyze as analyze_cmd  # noqa: E402
 from miesc.cli.commands.audit import audit as audit_group  # noqa: E402
 from miesc.cli.commands.benchmark import benchmark as benchmark_cmd  # noqa: E402
+from miesc.cli.commands.compliance import compliance as compliance_cmd  # noqa: E402
 from miesc.cli.commands.config import config as config_group  # noqa: E402
 from miesc.cli.commands.detect import detect as detect_cmd  # noqa: E402
 from miesc.cli.commands.detectors import detectors as detectors_group  # noqa: E402
 from miesc.cli.commands.doctor import doctor as doctor_cmd  # noqa: E402
 from miesc.cli.commands.export import export as export_cmd  # noqa: E402
+from miesc.cli.commands.fix import fix as fix_cmd  # noqa: E402
 from miesc.cli.commands.init import init as init_group  # noqa: E402
 from miesc.cli.commands.plugins import plugins as plugins_group  # noqa: E402
 from miesc.cli.commands.poc import poc as poc_group  # noqa: E402
@@ -107,11 +109,13 @@ def cli(ctx, version, no_banner, debug, quiet):
 cli.add_command(analyze_cmd, name="analyze")
 cli.add_command(audit_group, name="audit")
 cli.add_command(benchmark_cmd, name="benchmark")
+cli.add_command(compliance_cmd, name="compliance")
 cli.add_command(config_group, name="config")
 cli.add_command(detect_cmd, name="detect")
 cli.add_command(detectors_group, name="detectors")
 cli.add_command(doctor_cmd, name="doctor")
 cli.add_command(export_cmd, name="export")
+cli.add_command(fix_cmd, name="fix")
 cli.add_command(init_group, name="init")
 cli.add_command(plugins_group, name="plugins")
 cli.add_command(poc_group, name="poc")

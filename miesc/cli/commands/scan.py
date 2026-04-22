@@ -65,12 +65,20 @@ if RICH_AVAILABLE:
     is_flag=True,
     help="Recursively scan subdirectories when CONTRACT is a directory",
 )
-def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recursive):
+@click.option(
+    "--diff", "diff_ref",
+    default=None,
+    help="Only scan .sol files changed since this git ref (e.g., HEAD~1, main)",
+)
+def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recursive, diff_ref):
     """Quick vulnerability scan for a Solidity contract or directory.
 
     CONTRACT can be a single .sol file or a directory containing .sol files.
     When a directory is provided, all .sol files are scanned and findings are
     aggregated. Use --recursive to also scan subdirectories.
+
+    Use --diff to scan only files changed relative to a git ref — ideal for CI
+    on pull requests: miesc scan . --diff origin/main
 
     This is a simplified command for quick scans. For more options,
     use 'miesc audit quick' or 'miesc audit full'.
@@ -80,6 +88,7 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
         miesc scan MyContract.sol
         miesc scan contracts/
         miesc scan contracts/ --recursive
+        miesc scan contracts/ --diff origin/main
         miesc scan contracts/Token.sol --ci --fp-strictness high
         miesc scan MyContract.sol --fp-strictness off -o full_report.json
         miesc scan MyContract.sol --llm-enhance -o report.json
@@ -89,6 +98,74 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
         0 - Success (no critical/high issues, or CI mode disabled)
         1 - Critical or high severity issues found (CI mode only)
     """
+    # -------------------------------------------------------------------------
+    # --diff mode: restrict scan to .sol files changed since diff_ref
+    # -------------------------------------------------------------------------
+    if diff_ref is not None:
+        import subprocess
+
+        contract_path = Path(contract)
+        cwd = contract_path if contract_path.is_dir() else contract_path.parent
+
+        try:
+            result = subprocess.run(
+                ["git", "diff", "--name-only", diff_ref, "--", "*.sol"],
+                capture_output=True,
+                text=True,
+                cwd=str(cwd),
+            )
+            changed_names = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+        except Exception as exc:
+            error(f"git diff failed: {exc}")
+            sys.exit(1)
+
+        # Resolve paths relative to cwd (git outputs paths relative to repo root)
+        import subprocess as _sp
+        try:
+            repo_root_result = _sp.run(
+                ["git", "rev-parse", "--show-toplevel"],
+                capture_output=True,
+                text=True,
+                cwd=str(cwd),
+            )
+            repo_root = Path(repo_root_result.stdout.strip())
+        except Exception:
+            repo_root = cwd
+
+        sol_files = []
+        for name in changed_names:
+            candidate = repo_root / name
+            if candidate.suffix == ".sol" and candidate.exists():
+                sol_files.append(candidate)
+
+        if not sol_files:
+            info(f"No Solidity files changed since {diff_ref}")
+            sys.exit(0)
+
+        if not quiet:
+            print_banner()
+            info(f"Diff scan against {diff_ref!r}: {len(sol_files)} changed .sol file(s)")
+
+        all_results = []
+        for sol_file in sol_files:
+            if not quiet:
+                info(f"  → {sol_file}")
+            _scan_single_file(str(sol_file), all_results, quiet=quiet, llm_enhance=llm_enhance)
+
+        for result in all_results:
+            for finding in result.get("findings", []):
+                finding.setdefault("file", result.get("contract", str(contract)))
+
+        _display_and_save(
+            all_results,
+            contract=str(contract),
+            output=output,
+            quiet=quiet,
+            verbose=verbose,
+            ci=ci,
+        )
+        return
+
     contract_path = Path(contract)
 
     # -------------------------------------------------------------------------
