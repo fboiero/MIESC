@@ -5,6 +5,20 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.3.0] - 2026-04-21
+
+### Added — From Detection to Remediation Pipeline
+
+- **`miesc fix`** — auto-generates patched Solidity files from findings.
+  Adds `nonReentrant`/`onlyOwner` modifiers, wraps `.call{}` in
+  `require(success)`, inserts `SafeMath`. Verified E2E.
+- **`miesc compliance`** — maps findings to 12 standards (ISO 27001,
+  NIST CSF, OWASP, CWE, SWC, MITRE, MiCA Art.11, DORA Art.9).
+- **`miesc scan --diff <ref>`** — PR-level scanning for CI.
+- **7 bridge exploit patterns** — Wormhole, Ronin, BNB, Nomad ($1.7B+).
+
+### Tests — 5978 passed, 87% coverage
+
 ## [5.2.0] - 2026-04-21
 
 ### Added — Intelligence Engine (15 capabilities, `src/core/intelligence.py`)
