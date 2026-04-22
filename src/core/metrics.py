@@ -35,7 +35,7 @@ try:
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
-    logger.warning("prometheus_client not installed. Metrics will be collected internally only.")
+    logger.debug("prometheus_client not installed. Metrics will be collected internally only.")
 
 
 @dataclass

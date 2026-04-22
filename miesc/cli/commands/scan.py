@@ -352,10 +352,17 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
             except Exception:
                 code_text = ""
             enhanced = enhance_findings(all_findings_flat, source_code=code_text, file_path=str(contract))
-            # Replace all_results with a single synthetic result carrying enhanced findings
             non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
             suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
-            all_results = [{"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}]
+            # Preserve per-tool metadata (without findings) for report layer coverage,
+            # then add the consolidated intelligence result with all enhanced findings.
+            tool_metadata = [
+                {k: v for k, v in r.items() if k != "findings"}
+                for r in all_results
+            ]
+            all_results = tool_metadata + [
+                {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
+            ]
             if not quiet and suppressed_count > 0:
                 info(f"Intelligence engine: suppressed {suppressed_count} likely false positives")
             if not quiet and len(non_suppressed) < len(all_findings_flat):
@@ -553,6 +560,9 @@ def _display_and_save(
                 f.setdefault("tool", r.get("tool", "unknown"))
                 all_findings.append(f)
 
+        tools_used = sorted({r.get("tool", "") for r in all_results if r.get("status") != "error" and r.get("tool")})
+        tools_failed = sorted({r.get("tool", "") for r in all_results if r.get("status") == "error" and r.get("tool")})
+
         data = {
             "contract": str(contract),
             "timestamp": datetime.now().isoformat(),
@@ -560,6 +570,8 @@ def _display_and_save(
             "success": True,
             "summary": summary,
             "total_findings": total,
+            "tools": tools_used,
+            "tools_failed": tools_failed,
             "findings": all_findings,
             "results": all_results,
         }

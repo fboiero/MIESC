@@ -256,11 +256,16 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
     ftype = (finding.get("type") or finding.get("title") or "").lower().replace("-", "_")
 
     # Extract function name from multiple possible locations
+    _unknown = {"", "unknown", "<unknown>", "none", "n/a"}
     fn_name = finding.get("function") or finding.get("function_name") or ""
+    if fn_name.lower() in _unknown:
+        fn_name = ""
     if not fn_name:
         loc = finding.get("location", {})
         if isinstance(loc, dict):
             fn_name = loc.get("function", "")
+            if fn_name.lower() in _unknown:
+                fn_name = ""
 
     # Extract line number
     line_hint: Optional[int] = None

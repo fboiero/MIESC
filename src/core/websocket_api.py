@@ -46,7 +46,7 @@ except ImportError:
     WebSocketDisconnect = None  # type: ignore
     CORSMiddleware = None  # type: ignore
     uvicorn = None  # type: ignore
-    logger.warning("FastAPI/uvicorn not installed. WebSocket API unavailable.")
+    logger.debug("FastAPI/uvicorn not installed. WebSocket API unavailable.")
 
 
 class EventType(str, Enum):
