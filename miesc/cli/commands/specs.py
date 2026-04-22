@@ -59,6 +59,10 @@ def specs(results_file, format, output, contract_name, quiet):
         sys.exit(1)
 
     findings = data.get("findings", [])
+    # Also check results[].findings (audit output wraps in results array)
+    if not findings:
+        for r in data.get("results", []):
+            findings.extend(r.get("findings", []))
     if not findings:
         info("No findings in results file — nothing to generate")
         sys.exit(0)
