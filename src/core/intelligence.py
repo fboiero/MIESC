@@ -226,6 +226,68 @@ ZERO_RECALL_PATTERNS = {
         "swc": "SWC-104",
         "message": "Low-level call without explicit success check — use require(success) or SafeERC20.",
     },
+    # v5.2.0: More EVM patterns for parity with multi-chain analyzers
+    "tx_origin_auth": {
+        "patterns": [
+            r"\btx\.origin\b",
+        ],
+        "severity": "High",
+        "swc": "SWC-115",
+        "message": "tx.origin used for authentication — vulnerable to phishing via intermediate contracts. Use msg.sender instead.",
+    },
+    "hardcoded_gas": {
+        "patterns": [
+            r"\.transfer\s*\(",
+            r"\.send\s*\(",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-134",
+        "message": "transfer()/send() forwards only 2300 gas — will fail with contract recipients after EIP-1884. Use call{value:}() with reentrancy guard.",
+    },
+    "missing_event_emission": {
+        "patterns": [
+            r"function\s+set\w+\s*\([^)]*\)\s*(external|public)[^{]*\{(?!.*emit\b)",
+        ],
+        "severity": "Low",
+        "swc": "SWC-100",
+        "message": "State-changing function without event emission — limits off-chain monitoring and indexing.",
+    },
+    "storage_collision_proxy": {
+        "patterns": [
+            r"\bstorage\s+slot\b",
+            r"assembly\s*\{[^}]*sstore",
+            r"assembly\s*\{[^}]*sload",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-124",
+        "message": "Direct storage slot access (sload/sstore) — risk of collision in upgradeable proxy patterns.",
+    },
+    "dos_gas_limit": {
+        "patterns": [
+            r"for\s*\([^)]*\.length",
+            r"while\s*\([^)]*\.length",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-128",
+        "message": "Loop bounded by dynamic array length — may exceed block gas limit on large arrays. Consider pagination.",
+    },
+    "erc20_return_check": {
+        "patterns": [
+            r"\.transfer\s*\([^)]+\)(?!\s*;?\s*\n?\s*(require|assert|if))",
+            r"IERC20\([^)]+\)\.transfer\s*\(",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-104",
+        "message": "ERC20 transfer without return value check — some tokens (USDT) don't return bool. Use SafeERC20.",
+    },
+    "reentrancy_crossfunction": {
+        "patterns": [
+            r"\.call\s*\{value:",
+        ],
+        "severity": "High",
+        "swc": "SWC-107",
+        "message": "External call with value — potential cross-function reentrancy if state is shared. Verify CEI pattern across ALL functions that read the same state.",
+    },
 }
 
 

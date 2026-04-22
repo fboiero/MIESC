@@ -10,6 +10,7 @@ License: AGPL-3.0
 import json
 import sys
 from datetime import datetime
+from pathlib import Path
 
 import click
 
@@ -59,8 +60,17 @@ if RICH_AVAILABLE:
     is_flag=True,
     help="Show confidence scores + remediation per finding",
 )
-def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose):
-    """Quick vulnerability scan for a Solidity contract.
+@click.option(
+    "--recursive", "-r",
+    is_flag=True,
+    help="Recursively scan subdirectories when CONTRACT is a directory",
+)
+def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recursive):
+    """Quick vulnerability scan for a Solidity contract or directory.
+
+    CONTRACT can be a single .sol file or a directory containing .sol files.
+    When a directory is provided, all .sol files are scanned and findings are
+    aggregated. Use --recursive to also scan subdirectories.
 
     This is a simplified command for quick scans. For more options,
     use 'miesc audit quick' or 'miesc audit full'.
@@ -68,6 +78,8 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose):
     \b
     Examples:
         miesc scan MyContract.sol
+        miesc scan contracts/
+        miesc scan contracts/ --recursive
         miesc scan contracts/Token.sol --ci --fp-strictness high
         miesc scan MyContract.sol --fp-strictness off -o full_report.json
         miesc scan MyContract.sol --llm-enhance -o report.json
@@ -77,6 +89,107 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose):
         0 - Success (no critical/high issues, or CI mode disabled)
         1 - Critical or high severity issues found (CI mode only)
     """
+    contract_path = Path(contract)
+
+    # -------------------------------------------------------------------------
+    # Directory mode: collect all .sol files and aggregate results
+    # -------------------------------------------------------------------------
+    if contract_path.is_dir():
+        glob_pattern = "**/*.sol" if recursive else "*.sol"
+        sol_files = sorted(contract_path.glob(glob_pattern))
+
+        if not sol_files:
+            error(f"No .sol files found in {contract}" + (" (recursively)" if recursive else ""))
+            sys.exit(1)
+
+        if not quiet:
+            print_banner()
+            info(f"Scanning directory: {contract}")
+            info(f"Found {len(sol_files)} Solidity file(s)")
+            info(f"Tools: {', '.join(QUICK_TOOLS)}")
+
+        all_results = []
+        for sol_file in sol_files:
+            if not quiet:
+                info(f"  → {sol_file.name}")
+            _scan_single_file(
+                str(sol_file),
+                all_results,
+                quiet=quiet,
+                llm_enhance=llm_enhance,
+            )
+
+        # Tag each finding with its source file
+        for result in all_results:
+            for finding in result.get("findings", []):
+                finding.setdefault("file", result.get("contract", str(contract)))
+
+        # FP filter across all aggregated results (per-file code context)
+        if fp_strictness.lower() != "off":
+            try:
+                from src.ml.fp_filter import FalsePositiveFilter
+                fp_filter = FalsePositiveFilter(strictness=fp_strictness.lower(), use_rag=False)
+                filtered_count = 0
+                for result in all_results:
+                    file_path = result.get("contract", "")
+                    try:
+                        code = Path(file_path).read_text() if file_path else ""
+                    except Exception:
+                        code = ""
+                    kept = []
+                    for finding in result.get("findings", []):
+                        fr = fp_filter.filter_finding(finding, code_context=code, file_path=file_path)
+                        if not fr.is_likely_fp:
+                            kept.append(finding)
+                        else:
+                            filtered_count += 1
+                    result["findings"] = kept
+                if not quiet and filtered_count > 0:
+                    info(f"FP filter ({fp_strictness}): removed {filtered_count} likely false positives")
+            except Exception as e:
+                if not quiet:
+                    info(f"FP filter skipped: {e}")
+
+        # Intelligence engine on aggregated findings
+        try:
+            from src.core.intelligence import enhance_findings
+            all_findings_flat = []
+            for result in all_results:
+                for f in result.get("findings", []):
+                    f.setdefault("tool", result.get("tool", "unknown"))
+                    all_findings_flat.append(f)
+            if all_findings_flat:
+                enhanced = enhance_findings(
+                    all_findings_flat,
+                    source_code="",
+                    file_path=str(contract),
+                )
+                non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
+                suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
+                all_results = [{"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}]
+                if not quiet and suppressed_count > 0:
+                    info(f"Intelligence engine: suppressed {suppressed_count} likely false positives")
+                if not quiet and len(non_suppressed) < len(all_findings_flat):
+                    deduped = len(all_findings_flat) - len(enhanced)
+                    if deduped > 0:
+                        info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
+        except Exception as e:
+            if not quiet:
+                info(f"Intelligence engine skipped: {e}")
+
+        _display_and_save(
+            all_results,
+            contract=str(contract),
+            output=output,
+            quiet=quiet,
+            verbose=verbose,
+            ci=ci,
+        )
+        return
+
+    # -------------------------------------------------------------------------
+    # Single-file mode (original behavior — unchanged)
+    # -------------------------------------------------------------------------
     if not quiet:
         print_banner()
         info(f"Scanning {contract}")
@@ -176,6 +289,60 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose):
         if not quiet:
             info(f"Intelligence engine skipped: {e}")
 
+    _display_and_save(
+        all_results,
+        contract=str(contract),
+        output=output,
+        quiet=quiet,
+        verbose=verbose,
+        ci=ci,
+    )
+
+
+# =============================================================================
+# Private helpers
+# =============================================================================
+
+
+def _scan_single_file(
+    contract: str,
+    all_results: list,
+    *,
+    quiet: bool,
+    llm_enhance: bool,
+) -> None:
+    """Run QUICK_TOOLS against a single .sol file and append results to all_results.
+
+    Each result dict is tagged with the originating contract path so that
+    directory-mode callers can trace findings back to their source file.
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    with ThreadPoolExecutor(max_workers=len(QUICK_TOOLS)) as pool:
+        futures = {
+            pool.submit(run_tool, tool, contract, 300, llm_enhance=llm_enhance): tool
+            for tool in QUICK_TOOLS
+        }
+        for future in as_completed(futures):
+            tool = futures[future]
+            try:
+                result = future.result()
+            except Exception as e:
+                result = {"tool": tool, "status": "error", "error": str(e), "findings": []}
+            result["contract"] = contract
+            all_results.append(result)
+
+
+def _display_and_save(
+    all_results: list,
+    *,
+    contract: str,
+    output,
+    quiet: bool,
+    verbose: bool,
+    ci: bool,
+) -> None:
+    """Display the scan summary table, optionally save JSON, and handle CI exit."""
     # Detect tool failures — help users who installed miesc without slither/aderyn
     tools_succeeded = [r for r in all_results if r.get("status") != "error"]
     tools_errored = [r for r in all_results if r.get("status") == "error"]

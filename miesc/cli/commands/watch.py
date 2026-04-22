@@ -138,6 +138,20 @@ def watch(directory, profile, debounce, recursive):
                         console.print(f"  [yellow]{tool}[/yellow]: error")
 
             elapsed = time.time() - start_time
+
+            # v5.2.0: Apply intelligence engine (same as miesc scan)
+            try:
+                from src.core.intelligence import enhance_findings
+                if all_findings:
+                    try:
+                        code_text = open(file_path).read()
+                    except Exception:
+                        code_text = ""
+                    enhanced = enhance_findings(all_findings, source_code=code_text, file_path=file_path)
+                    all_findings = [f for f in enhanced if not f.get("fp_suppressed")]
+            except Exception:
+                pass
+
             summary = summarize_findings([{"findings": all_findings}])
 
             # Display summary
