@@ -1,7 +1,7 @@
 """
 MIESC Intelligence Engine — post-detection analysis for precision + recall.
 
-Six capabilities, all DPGA-compatible (100% local, no API keys):
+Eight capabilities, all DPGA-compatible (100% local, no API keys):
 
   1. Cross-tool confirmation scoring
   2. Semantic deduplication via canonical taxonomy
@@ -9,10 +9,14 @@ Six capabilities, all DPGA-compatible (100% local, no API keys):
   4. Context-aware false positive suppression
   5. LLM↔static cross-validation tagging
   6. Severity calibration across tools
+  7. Recommendation enrichment from canonical knowledge base
+  8. Fix-code generation (Solidity patches per finding)
+  9. Exploit scenario generation (step-by-step attack descriptions)
 
 Entry point: `enhance_findings(findings, source_code)` — takes raw
 findings from all tools and returns a refined list with boosted confidence,
-merged duplicates, suppressed FPs, and calibrated severity.
+merged duplicates, suppressed FPs, calibrated severity, fix_code, and
+exploit_scenario fields.
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 License: AGPL-3.0
@@ -410,7 +414,7 @@ def enhance_findings(
     file_path: str = "",
 ) -> List[Dict[str, Any]]:
     """
-    Run all 6 intelligence improvements on raw findings.
+    Run all intelligence improvements on raw findings.
 
     Returns a refined findings list with:
       - Duplicates merged (same canonical type + function + line bucket)
@@ -419,6 +423,8 @@ def enhance_findings(
       - Severity calibrated
       - Cross-validation tags (static + LLM)
       - Additional patterns for 0%-recall categories
+      - fix_code: copy-pasteable Solidity fix snippet (when category is known)
+      - exploit_scenario: step-by-step attack description (when category is known)
     """
     # Step 0: Add pattern-based findings for 0%-recall categories
     if source_code:
@@ -464,6 +470,16 @@ def enhance_findings(
             out["fp_reason"] = group.fp_suppression_reason
         else:
             out["fp_suppressed"] = False
+
+        # 7. Fix-code generation (capability 8)
+        fix = generate_fix_code(out, source_code)
+        if fix is not None:
+            out["fix_code"] = fix
+
+        # 8. Exploit scenario generation (capability 9)
+        scenario = generate_exploit_scenario(out)
+        if scenario is not None:
+            out["exploit_scenario"] = scenario
 
         results.append(out)
 
@@ -515,3 +531,379 @@ def _enrich_recommendations(findings: List[Dict[str, Any]]) -> None:
             better = _CANONICAL_RECOMMENDATIONS.get(canonical)
             if better:
                 f["recommendation"] = better
+
+
+# =============================================================================
+# 8. Fix-code generation (Solidity patches per finding)
+# =============================================================================
+
+_FIX_CODE_TEMPLATES: Dict[str, str] = {
+    "reentrancy": """\
+// Fix: Apply Checks-Effects-Interactions (CEI) pattern + ReentrancyGuard
+// 1. Import OpenZeppelin's ReentrancyGuard
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+contract SafeVault is ReentrancyGuard {
+    mapping(address => uint256) private balances;
+
+    function withdraw(uint256 amount) external nonReentrant {
+        // CHECKS
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+        // EFFECTS — update state BEFORE external call
+        balances[msg.sender] -= amount;
+        // INTERACTIONS — external call last
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
+    }
+}""",
+
+    "access_control": """\
+// Fix: Add onlyOwner modifier using OpenZeppelin Ownable
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract SecureContract is Ownable {
+    uint256 public sensitiveValue;
+
+    // Restrict sensitive function to owner only
+    function setSensitiveValue(uint256 newValue) external onlyOwner {
+        sensitiveValue = newValue;
+    }
+
+    // For role-based access, use AccessControl instead:
+    // import "@openzeppelin/contracts/access/AccessControl.sol";
+    // bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }
+}""",
+
+    "oracle_manipulation": """\
+// Fix: Use Chainlink latestRoundData with staleness and validity checks
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+
+contract SafeOracle {
+    AggregatorV3Interface public immutable priceFeed;
+    uint256 public constant STALENESS_THRESHOLD = 1 hours;
+
+    constructor(address _feed) {
+        priceFeed = AggregatorV3Interface(_feed);
+    }
+
+    function getPrice() public view returns (uint256) {
+        (
+            uint80 roundId,
+            int256 answer,
+            ,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        ) = priceFeed.latestRoundData();
+        require(answer > 0, "Invalid price");
+        require(updatedAt != 0, "Round not complete");
+        require(block.timestamp - updatedAt <= STALENESS_THRESHOLD, "Stale price");
+        require(answeredInRound >= roundId, "Round incomplete");
+        return uint256(answer);
+    }
+}""",
+
+    "arithmetic": """\
+// Fix for Solidity < 0.8: Use OpenZeppelin SafeMath
+// pragma solidity ^0.7.6;
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
+contract SafeArithmetic {
+    using SafeMath for uint256;
+
+    function safeAdd(uint256 a, uint256 b) external pure returns (uint256) {
+        return a.add(b);   // reverts on overflow
+    }
+
+    function safeSub(uint256 a, uint256 b) external pure returns (uint256) {
+        return a.sub(b);   // reverts on underflow
+    }
+}
+
+// Fix for Solidity >= 0.8: overflow is built-in; avoid unchecked on user input
+// pragma solidity ^0.8.0;
+// WARNING: only use `unchecked` blocks when overflow is mathematically impossible
+// contract Example {
+//     function counter(uint256 i) external pure returns (uint256) {
+//         unchecked { return i + 1; }  // SAFE only if i < type(uint256).max is guaranteed
+//     }
+// }""",
+
+    "unchecked_call": """\
+// Fix: Use SafeERC20 for token transfers; require(success) for low-level calls
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract SafeTransfer {
+    using SafeERC20 for IERC20;
+
+    function transferTokens(IERC20 token, address to, uint256 amount) external {
+        // SafeERC20 wraps transfer/transferFrom and reverts on failure
+        token.safeTransfer(to, amount);
+    }
+
+    function sendEther(address payable recipient, uint256 amount) external {
+        // Always check the return value of low-level calls
+        (bool success, ) = recipient.call{value: amount}("");
+        require(success, "ETH transfer failed");
+    }
+}""",
+
+    "bad_randomness": """\
+// Fix: Use Chainlink VRF v2 for verifiable on-chain randomness
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+
+contract SecureRandom is VRFConsumerBaseV2 {
+    VRFCoordinatorV2Interface public immutable coordinator;
+    uint64 public immutable subscriptionId;
+    bytes32 public immutable keyHash;
+    uint256 public randomResult;
+
+    constructor(address _coord, uint64 _subId, bytes32 _keyHash)
+        VRFConsumerBaseV2(_coord)
+    {
+        coordinator = VRFCoordinatorV2Interface(_coord);
+        subscriptionId = _subId;
+        keyHash = _keyHash;
+    }
+
+    function requestRandom() external returns (uint256 requestId) {
+        return coordinator.requestRandomWords(keyHash, subscriptionId, 3, 100000, 1);
+    }
+
+    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {
+        randomResult = randomWords[0];
+    }
+}""",
+
+    "time_manipulation": """\
+// Fix: Replace block.timestamp with block.number for ordering-sensitive logic
+// block.number cannot be manipulated by miners beyond normal mining variance
+
+contract TimeSafe {
+    uint256 public immutable deployBlock;
+    uint256 public constant LOCK_BLOCKS = 7200; // ~24 hours at 12s/block
+
+    constructor() {
+        deployBlock = block.number;
+    }
+
+    function isLockExpired() public view returns (bool) {
+        // Use block.number instead of block.timestamp for sequencing
+        return block.number >= deployBlock + LOCK_BLOCKS;
+    }
+
+    // If wall-clock time is truly required, document the ±15s miner tolerance:
+    // require(block.timestamp >= deadline, "Too early");  // acceptable for non-critical deadlines
+    // require(block.timestamp <= deadline + 15, "Too late with tolerance");
+}""",
+
+    "front_running": """\
+// Fix: Use increaseAllowance/decreaseAllowance instead of approve
+// Prevents the ERC-20 approval race condition (SWC-114)
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract SafeToken is ERC20 {
+    constructor() ERC20("SafeToken", "STK") {}
+
+    // Use increaseAllowance to avoid front-running on approve:
+    function safeIncreaseAllowance(address spender, uint256 addedValue) external {
+        _approve(msg.sender, spender, allowance(msg.sender, spender) + addedValue);
+    }
+
+    function safeDecreaseAllowance(address spender, uint256 subtractedValue) external {
+        uint256 current = allowance(msg.sender, spender);
+        require(current >= subtractedValue, "Allowance below zero");
+        _approve(msg.sender, spender, current - subtractedValue);
+    }
+    // NOTE: OpenZeppelin's ERC20 already includes increaseAllowance/decreaseAllowance
+}""",
+
+    "proxy_upgrade": """\
+// Fix: Use OpenZeppelin UUPSUpgradeable with _authorizeUpgrade access control
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
+contract MyContractV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
+    uint256 public value;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() { _disableInitializers(); }
+
+    function initialize(address initialOwner) public initializer {
+        __Ownable_init(initialOwner);
+        __UUPSUpgradeable_init();
+    }
+
+    // Only owner can authorize upgrades — critical access control
+    function _authorizeUpgrade(address newImpl) internal override onlyOwner {}
+
+    function setValue(uint256 v) external onlyOwner { value = v; }
+}""",
+
+    "initialization": """\
+// Fix: Use OpenZeppelin Initializable with initializer modifier
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
+contract SecureProxy is Initializable, OwnableUpgradeable {
+    uint256 public protectedValue;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        // Prevent the implementation contract from being initialized directly
+        _disableInitializers();
+    }
+
+    // initializer modifier ensures this can only be called once
+    function initialize(address owner, uint256 initial) public initializer {
+        __Ownable_init(owner);
+        protectedValue = initial;
+    }
+
+    // If re-initialization is needed for upgrades, use reinitializer(version):
+    // function initializeV2(uint256 v) public reinitializer(2) { ... }
+}""",
+}
+
+
+def generate_fix_code(
+    finding: Dict[str, Any],
+    source_code: str = "",
+) -> Optional[str]:
+    """
+    Return a copy-pasteable Solidity fix snippet for a given finding.
+
+    Looks up the finding's canonical_category (or normalizes it if absent)
+    against the FIX_CODE_TEMPLATES dictionary.  Returns None for unknown or
+    "other" categories so callers can omit the field cleanly.
+
+    Args:
+        finding: A finding dict (must contain at least 'canonical_category'
+                 or enough fields for normalize_finding_type to resolve one).
+        source_code: Optional contract source — reserved for future context-
+                     aware template selection (e.g. pragma version detection).
+
+    Returns:
+        Solidity code string, or None if no template exists for this category.
+    """
+    canonical = finding.get("canonical_category", "")
+    if not canonical or canonical == "other":
+        # Try to resolve from the finding itself
+        resolved = normalize_finding_type(finding)
+        if resolved is None or resolved.value == "other":
+            return None
+        canonical = resolved.value
+
+    return _FIX_CODE_TEMPLATES.get(canonical)
+
+
+# =============================================================================
+# 9. Exploit scenario generation
+# =============================================================================
+
+_EXPLOIT_SCENARIOS: Dict[str, List[str]] = {
+    "reentrancy": [
+        "1. Attacker deploys a malicious contract with a fallback/receive function that calls back into the victim.",
+        "2. Attacker calls the victim's withdraw() function with a valid balance.",
+        "3. Victim sends ETH to attacker — attacker's fallback immediately calls withdraw() again before state is updated.",
+        "4. Re-entry loop drains the contract balance in a single transaction (no per-call state update blocks it).",
+        "5. Attack ends when gas runs out or balance is exhausted; attacker keeps all drained ETH.",
+    ],
+    "access_control": [
+        "1. Attacker inspects the contract ABI and identifies a privileged function lacking an access modifier.",
+        "2. Attacker calls the unprotected function (e.g. setOwner, mint, pause) directly from any EOA.",
+        "3. Without an onlyOwner or role check, the call succeeds immediately.",
+        "4. Attacker takes ownership, mints unlimited tokens, or pauses the protocol at will.",
+        "5. Legitimate users lose access or funds; attacker drains or disables the contract.",
+    ],
+    "oracle_manipulation": [
+        "1. Attacker takes a flash loan of a large amount of the quote token from a lending protocol.",
+        "2. Attacker dumps the borrowed token into the DEX pool, crashing the spot price.",
+        "3. Victim contract reads the manipulated spot price via getReserves() or similar — treats it as market price.",
+        "4. Attacker exploits the mispriced collateral: borrows against inflated collateral or liquidates positions unfairly.",
+        "5. Attacker swaps back to restore the price, repays the flash loan, and pockets the arbitrage profit.",
+        "6. Entire attack is atomic — completes within a single transaction with no capital at risk.",
+    ],
+    "arithmetic": [
+        "1. Attacker identifies a Solidity <0.8 contract that performs arithmetic on user-supplied values without SafeMath.",
+        "2. Attacker provides a large uint256 value that, when added to an existing balance, wraps around to 0 or a small number.",
+        "3. Overflow causes the balance check (require(balance >= amount)) to pass with an effectively zeroed balance.",
+        "4. Attacker withdraws far more than their actual deposit.",
+        "5. For underflow: attacker triggers a subtraction that wraps to type(uint256).max, granting near-infinite allowance.",
+    ],
+    "unchecked_call": [
+        "1. Contract calls an external address using .call() or .send() but does not check the boolean return value.",
+        "2. The external call silently fails (e.g. recipient is a contract that reverts, or gas stipend is exceeded).",
+        "3. Because the return value is ignored, the contract continues execution and marks the operation as successful.",
+        "4. Tokens or ETH are never delivered, but the contract's internal state (balances, flags) is updated as if they were.",
+        "5. Attacker exploits the accounting discrepancy to double-spend or claim funds they should not have.",
+    ],
+    "bad_randomness": [
+        "1. Attacker inspects the on-chain randomness source (blockhash, block.timestamp, block.difficulty).",
+        "2. Before the target transaction is mined, attacker simulates possible block values to predict the 'random' outcome.",
+        "3. Attacker submits their exploit transaction in the same block as or immediately after the target, controlling the outcome.",
+        "4. For lottery contracts: attacker only submits when they know they will win; reverts otherwise (cost: only gas).",
+        "5. Attacker drains the prize pool repeatedly with a guaranteed-win strategy.",
+    ],
+    "time_manipulation": [
+        "1. Contract uses block.timestamp to enforce a time lock or deadline (e.g. 'require(block.timestamp >= unlock)').",
+        "2. Miner (or validator in PoS) can adjust block.timestamp within the ~15-second tolerance window.",
+        "3. Attacker who is also a miner sets the timestamp slightly ahead to satisfy the time condition prematurely.",
+        "4. Attacker calls the time-locked function before the intended unlock time, bypassing the control.",
+        "5. For auctions or games: manipulating the timestamp extends or shortens windows to benefit the attacker.",
+    ],
+    "front_running": [
+        "1. Victim calls token.approve(spender, 100) to change an existing approval from 50 to 100.",
+        "2. Attacker monitors the mempool and sees the approve transaction before it is mined.",
+        "3. Attacker front-runs by calling transferFrom(victim, attacker, 50) while the old allowance of 50 is still active.",
+        "4. After the victim's approve is mined, attacker calls transferFrom again using the new allowance of 100.",
+        "5. Attacker steals 150 tokens even though the victim intended to grant only 100.",
+        "6. Fix: use increaseAllowance/decreaseAllowance which are atomic and race-free.",
+    ],
+    "proxy_upgrade": [
+        "1. Proxy contract has a public upgradeTo(address) function without onlyOwner or equivalent guard.",
+        "2. Attacker deploys a malicious implementation contract with a drain() function.",
+        "3. Attacker calls upgradeTo(maliciousImpl) on the proxy — succeeds because there is no access check.",
+        "4. All calls to the proxy now delegate to the malicious implementation.",
+        "5. Attacker calls drain() through the proxy, stealing all ETH and tokens held by the proxy's storage.",
+        "6. Storage layout mismatch between old and new implementation can also corrupt state silently.",
+    ],
+    "initialization": [
+        "1. Upgradeable contract's initialize() function lacks the initializer modifier.",
+        "2. The implementation contract is deployed without calling initialize() (normal for proxy patterns).",
+        "3. Attacker calls initialize() directly on the implementation, setting themselves as owner.",
+        "4. Since the implementation is the logic target of a delegatecall-based proxy, attacker now controls admin functions.",
+        "5. Attacker calls selfdestruct on the implementation (if present), bricking the proxy permanently.",
+        "6. Alternatively, attacker upgrades to a malicious implementation and drains all proxy storage.",
+    ],
+}
+
+
+def generate_exploit_scenario(finding: Dict[str, Any]) -> Optional[List[str]]:
+    """
+    Return a step-by-step attack description for a given finding.
+
+    Uses the finding's canonical_category to look up a pre-defined scenario
+    modelled on the RAG attack_steps format.  Returns None for unknown or
+    "other" categories.
+
+    Args:
+        finding: A finding dict with at least 'canonical_category', or enough
+                 fields for normalize_finding_type to resolve a category.
+
+    Returns:
+        List of step strings, or None if no scenario exists for this category.
+    """
+    canonical = finding.get("canonical_category", "")
+    if not canonical or canonical == "other":
+        resolved = normalize_finding_type(finding)
+        if resolved is None or resolved.value == "other":
+            return None
+        canonical = resolved.value
+
+    scenario = _EXPLOIT_SCENARIOS.get(canonical)
+    return list(scenario) if scenario is not None else None

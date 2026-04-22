@@ -20,6 +20,8 @@ from src.core.intelligence import (
     context_aware_fp_check,
     detect_zero_recall_categories,
     enhance_findings,
+    generate_exploit_scenario,
+    generate_fix_code,
     semantic_dedup,
     tag_cross_validation,
 )
@@ -340,3 +342,231 @@ class TestEnhanceFindings:
         ]
         result = enhance_findings(findings)
         assert result[0]["severity"] == "Medium"  # Aderyn Low → Medium
+
+
+# ---------------------------------------------------------------------------
+# 8. Fix-code generation
+# ---------------------------------------------------------------------------
+
+
+class TestGenerateFixCode:
+    def test_reentrancy_returns_solidity_snippet(self):
+        finding = {"canonical_category": "reentrancy"}
+        code = generate_fix_code(finding)
+        assert code is not None
+        assert "nonReentrant" in code
+        assert "ReentrancyGuard" in code
+
+    def test_access_control_contains_onlyowner(self):
+        finding = {"canonical_category": "access_control"}
+        code = generate_fix_code(finding)
+        assert code is not None
+        assert "onlyOwner" in code
+
+    def test_oracle_manipulation_has_staleness_check(self):
+        finding = {"canonical_category": "oracle_manipulation"}
+        code = generate_fix_code(finding)
+        assert code is not None
+        assert "latestRoundData" in code
+        assert "STALENESS_THRESHOLD" in code
+
+    def test_arithmetic_has_safemath(self):
+        finding = {"canonical_category": "arithmetic"}
+        code = generate_fix_code(finding)
+        assert code is not None
+        assert "SafeMath" in code
+        assert "unchecked" in code
+
+    def test_unchecked_call_has_safeerc20(self):
+        finding = {"canonical_category": "unchecked_call"}
+        code = generate_fix_code(finding)
+        assert code is not None
+        assert "SafeERC20" in code
+        assert "safeTransfer" in code
+
+    def test_bad_randomness_has_vrf(self):
+        finding = {"canonical_category": "bad_randomness"}
+        code = generate_fix_code(finding)
+        assert code is not None
+        assert "VRF" in code
+        assert "requestRandomWords" in code
+
+    def test_time_manipulation_uses_block_number(self):
+        finding = {"canonical_category": "time_manipulation"}
+        code = generate_fix_code(finding)
+        assert code is not None
+        assert "block.number" in code
+
+    def test_front_running_has_increase_allowance(self):
+        finding = {"canonical_category": "front_running"}
+        code = generate_fix_code(finding)
+        assert code is not None
+        assert "increaseAllowance" in code or "safeIncreaseAllowance" in code
+
+    def test_proxy_upgrade_has_authorize_upgrade(self):
+        finding = {"canonical_category": "proxy_upgrade"}
+        code = generate_fix_code(finding)
+        assert code is not None
+        assert "_authorizeUpgrade" in code
+        assert "UUPSUpgradeable" in code
+
+    def test_initialization_has_initializer_modifier(self):
+        finding = {"canonical_category": "initialization"}
+        code = generate_fix_code(finding)
+        assert code is not None
+        assert "initializer" in code
+        assert "Initializable" in code
+
+    def test_other_category_returns_none(self):
+        finding = {"canonical_category": "other"}
+        assert generate_fix_code(finding) is None
+
+    def test_unknown_canonical_returns_none(self):
+        finding = {"canonical_category": "does_not_exist"}
+        assert generate_fix_code(finding) is None
+
+    def test_missing_canonical_falls_back_to_normalize(self):
+        # No canonical_category key — should resolve via normalize_finding_type
+        finding = {"type": "reentrancy-eth", "severity": "High", "tool": "slither"}
+        code = generate_fix_code(finding)
+        assert code is not None
+        assert "nonReentrant" in code
+
+    def test_fix_code_is_valid_solidity_string(self):
+        # Basic sanity: all templates should contain the contract keyword or import
+        for cat in ["reentrancy", "access_control", "oracle_manipulation",
+                    "arithmetic", "unchecked_call", "bad_randomness",
+                    "time_manipulation", "front_running", "proxy_upgrade",
+                    "initialization"]:
+            finding = {"canonical_category": cat}
+            code = generate_fix_code(finding)
+            assert code is not None, f"Missing template for {cat}"
+            assert len(code) >= 100, f"Template too short for {cat}"
+            assert (
+                "contract " in code or "import " in code
+            ), f"Not a Solidity snippet for {cat}"
+
+
+# ---------------------------------------------------------------------------
+# 9. Exploit scenario generation
+# ---------------------------------------------------------------------------
+
+
+class TestGenerateExploitScenario:
+    def test_reentrancy_has_enough_steps(self):
+        finding = {"canonical_category": "reentrancy"}
+        steps = generate_exploit_scenario(finding)
+        assert steps is not None
+        assert len(steps) >= 3
+
+    def test_access_control_steps(self):
+        finding = {"canonical_category": "access_control"}
+        steps = generate_exploit_scenario(finding)
+        assert steps is not None
+        assert len(steps) >= 3
+
+    def test_oracle_manipulation_steps(self):
+        finding = {"canonical_category": "oracle_manipulation"}
+        steps = generate_exploit_scenario(finding)
+        assert steps is not None
+        assert len(steps) >= 4  # oracle attacks typically have 4+ steps
+
+    def test_all_known_categories_have_scenario(self):
+        categories = [
+            "reentrancy", "access_control", "oracle_manipulation", "arithmetic",
+            "unchecked_call", "bad_randomness", "time_manipulation",
+            "front_running", "proxy_upgrade", "initialization",
+        ]
+        for cat in categories:
+            finding = {"canonical_category": cat}
+            steps = generate_exploit_scenario(finding)
+            assert steps is not None, f"Missing scenario for {cat}"
+            assert len(steps) >= 3, f"Too few steps for {cat}"
+
+    def test_other_category_returns_none(self):
+        finding = {"canonical_category": "other"}
+        assert generate_exploit_scenario(finding) is None
+
+    def test_unknown_canonical_returns_none(self):
+        finding = {"canonical_category": "nonexistent_category"}
+        assert generate_exploit_scenario(finding) is None
+
+    def test_steps_are_strings(self):
+        finding = {"canonical_category": "reentrancy"}
+        steps = generate_exploit_scenario(finding)
+        assert all(isinstance(s, str) for s in steps)
+
+    def test_fallback_to_normalize_without_canonical(self):
+        finding = {"type": "bad-randomness", "severity": "High", "tool": "slither"}
+        steps = generate_exploit_scenario(finding)
+        assert steps is not None
+        assert len(steps) >= 3
+
+    def test_returns_copy_not_reference(self):
+        # Modifying the returned list should not affect subsequent calls
+        finding = {"canonical_category": "reentrancy"}
+        steps1 = generate_exploit_scenario(finding)
+        steps1.append("extra step")
+        steps2 = generate_exploit_scenario(finding)
+        assert "extra step" not in steps2
+
+
+# ---------------------------------------------------------------------------
+# enhance_findings — fix_code and exploit_scenario integration
+# ---------------------------------------------------------------------------
+
+
+class TestEnhanceFindingsFixAndExploit:
+    def test_fix_code_populated_for_reentrancy(self):
+        findings = [
+            {"type": "reentrancy-eth", "severity": "High", "tool": "slither",
+             "location": {"file": "C.sol", "line": 10, "function": "withdraw"}},
+        ]
+        result = enhance_findings(findings)
+        reentrancy = next(
+            (f for f in result if f.get("canonical_category") == "reentrancy"), None
+        )
+        assert reentrancy is not None
+        assert "fix_code" in reentrancy
+        assert "nonReentrant" in reentrancy["fix_code"]
+
+    def test_exploit_scenario_populated_for_access_control(self):
+        findings = [
+            {"type": "access-control", "severity": "High", "tool": "slither",
+             "location": {"file": "C.sol", "line": 5, "function": "setOwner"}},
+        ]
+        result = enhance_findings(findings)
+        ac = next(
+            (f for f in result if f.get("canonical_category") == "access_control"), None
+        )
+        assert ac is not None
+        assert "exploit_scenario" in ac
+        assert len(ac["exploit_scenario"]) >= 3
+
+    def test_other_category_has_no_fix_code(self):
+        # A finding that maps to "other" should not have fix_code
+        findings = [
+            {"type": "totally-unknown-detector-xyz", "severity": "Low",
+             "tool": "custom", "location": {"file": "X.sol", "line": 1, "function": "f"}},
+        ]
+        result = enhance_findings(findings)
+        # Find the finding that ended up as "other"
+        other = next(
+            (f for f in result if f.get("canonical_category") == "other"), None
+        )
+        if other is not None:
+            assert "fix_code" not in other
+
+    def test_multiple_findings_each_get_fix_and_scenario(self):
+        findings = [
+            {"type": "reentrancy-eth", "severity": "High", "tool": "slither",
+             "location": {"file": "C.sol", "line": 10, "function": "withdraw"}},
+            {"type": "integer-overflow", "severity": "High", "tool": "mythril",
+             "location": {"file": "C.sol", "line": 50, "function": "add"}},
+        ]
+        result = enhance_findings(findings)
+        for f in result:
+            cat = f.get("canonical_category", "other")
+            if cat != "other":
+                assert "fix_code" in f, f"Missing fix_code for category={cat}"
+                assert "exploit_scenario" in f, f"Missing exploit_scenario for category={cat}"

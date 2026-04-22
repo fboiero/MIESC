@@ -99,6 +99,58 @@ def _get_recommendation(category: str, severity: str = "") -> str:
     return "Review and fix according to smart contract security best practices. See SWC Registry for detailed remediation guidance."
 
 
+def _extract_attack_scenarios(findings: list) -> list:
+    """Extract attack scenarios from intelligence-enhanced findings."""
+    scenarios = []
+    for f in findings:
+        exploit = f.get("exploit_scenario", [])
+        if exploit:
+            scenarios.append({
+                "title": f.get("type", "Unknown"),
+                "severity": f.get("severity", "Medium"),
+                "steps": exploit if isinstance(exploit, list) else [str(exploit)],
+                "confidence": f.get("confidence", 0.5),
+            })
+    return scenarios[:10]
+
+
+def _extract_remediations(findings: list) -> list:
+    """Extract code remediations from intelligence-enhanced findings."""
+    remediations = []
+    for f in findings:
+        fix = f.get("fix_code") or f.get("recommendation", "")
+        if fix and len(fix) > 20:
+            remediations.append({
+                "finding": f.get("type", "Unknown"),
+                "severity": f.get("severity", "Medium"),
+                "fix": fix,
+                "canonical_category": f.get("canonical_category", ""),
+            })
+    return remediations[:10]
+
+
+def _extract_category_summary(findings: list) -> list:
+    """Build per-category summary from intelligence metadata."""
+    from collections import Counter
+    cats = Counter(f.get("canonical_category", "other") for f in findings)
+    return [{"category": cat, "count": count} for cat, count in cats.most_common()]
+
+
+def _extract_confidence_level(findings: list) -> str:
+    """Overall confidence level from intelligence scores."""
+    if not findings:
+        return "N/A"
+    confs = [f.get("confidence", 0.5) for f in findings if isinstance(f.get("confidence"), (int, float))]
+    if not confs:
+        return "Medium"
+    avg = sum(confs) / len(confs)
+    if avg >= 0.85:
+        return "High"
+    if avg >= 0.60:
+        return "Medium"
+    return "Low"
+
+
 def _get_swc_references(category: str, swc_id: str = "") -> list:
     """Auto-generate references based on SWC/CWE classification."""
     refs = []
@@ -685,12 +737,12 @@ def report(
         "deployment_recommendation_bg": "#fff8e1",
         "quick_wins": [],
         "effort_impact_matrix": {},
-        "attack_scenarios": [],
-        "code_remediations": [],
-        "category_summary": [],
+        "attack_scenarios": _extract_attack_scenarios(findings),
+        "code_remediations": _extract_remediations(findings),
+        "category_summary": _extract_category_summary(findings),
         "exploitability_rating": "Medium",
         "business_impact": "Medium",
-        "confidence_level": "High",
+        "confidence_level": _extract_confidence_level(findings),
         "value_at_risk": None,
         "out_of_scope": [],
         "engagement_type": "Security Audit",
