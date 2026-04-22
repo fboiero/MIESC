@@ -366,6 +366,46 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
         if not quiet:
             info(f"Intelligence engine skipped: {e}")
 
+    # LLM enhancement: call Ollama to add plain-English interpretation
+    # to the top critical/high findings (opt-in via --llm-enhance)
+    if llm_enhance:
+        try:
+            from src.reports.llm_interpreter import LLMReportInterpreter
+            interp = LLMReportInterpreter()
+            if interp.is_available():
+                if not quiet:
+                    info("Enhancing top findings with LLM insights (Ollama)...")
+                try:
+                    code_text = open(contract).read()
+                except Exception:
+                    code_text = ""
+                critical_high = []
+                for r in all_results:
+                    for f in r.get("findings", []):
+                        sev = (f.get("severity") or "").upper()
+                        if sev in ("CRITICAL", "HIGH"):
+                            critical_high.append(f)
+                if critical_high:
+                    interpretations = interp.interpret_critical_findings(critical_high, contract_code=code_text)
+                    for interp_dict in interpretations:
+                        title = interp_dict.get("title", "")
+                        llm_text = interp_dict.get("llm_interpretation", "")
+                        if not llm_text:
+                            continue
+                        for f in critical_high:
+                            f_title = f.get("type") or f.get("title") or ""
+                            if f_title.lower() == title.lower():
+                                f["llm_interpretation"] = llm_text
+                                break
+                    enhanced_count = sum(1 for f in critical_high if f.get("llm_interpretation"))
+                    if not quiet:
+                        info(f"LLM insights added to {enhanced_count} critical/high findings")
+            elif not quiet:
+                warning("LLM enhance: Ollama not available at localhost:11434")
+        except Exception as e:
+            if not quiet:
+                info(f"LLM enhance skipped: {e}")
+
     _display_and_save(
         all_results,
         contract=str(contract),
