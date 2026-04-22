@@ -50,7 +50,7 @@ This document contains confidential security findings and is intended solely for
 # 1. Executive Summary 
 ## 1.1 Key Takeaways
 
-{{ llm_executive_summary | default('No AI summary available.') }}
+{{ key_takeaways | default(llm_executive_summary | default('No AI summary available.')) }}
 
 ## 1.2 Deployment Recommendation
 
@@ -250,10 +250,10 @@ The analyzed contract presents security concerns that should be addressed before
 # 4. Findings Overview 
 ## 4.1 Summary Table
 
-| ID | Title | Severity | Status | CVSS |
-|----|-------|----------|--------|-----:|
+| ID | Title | Severity | Confidence | Tools | Status | CVSS |
+|----|-------|----------|:----------:|------:|--------|-----:|
 {%- for finding in findings %}
-| {{ finding.id }} | {{ finding.title }} | {{ finding.severity_badge }} | {{ finding.status }} | {{ finding.cvss_score | default('--') }} |
+| {{ finding.id }} | {{ finding.title }} | {{ finding.severity_badge }} | {{ finding.confidence_pct | default('') }} | {{ finding.tool_count | default(1) }} | {{ finding.status }} | {{ finding.cvss_score | default('--') }} |
 {%- endfor %}
 
 ## 4.2 Category Distribution
@@ -282,11 +282,12 @@ The analyzed contract presents security concerns that should be addressed before
 | Property | Value |
 |----------|-------|
 | **Severity** | <span style="background: {{ finding.severity_color | default('#e0e0e0') }}; color: white; padding: 2px 8px; border-radius: 4px;">{{ finding.severity_badge }}</span> |
-| **Category** | {{ finding.category }} |
+| **Category** | {{ finding.canonical_category | default(finding.category) }} |
 | **CVSS Score** | {{ finding.cvss_score | default('N/A') }} |
+| **Confidence** | {{ finding.confidence_pct | default('N/A') }} |
 | **Location** | `{{ finding.location }}` |
 | **Status** | {{ finding.status }} |
-| **Detected By** | {{ finding.tool }} |
+| **Detected By** | {{ finding.confirming_tools | join(', ') if finding.confirming_tools else finding.tool }} |
 
 ### Description
 

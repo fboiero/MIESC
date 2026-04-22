@@ -654,6 +654,48 @@ def report(
         "MINIMAL": "**MINIMAL RISK**: No significant security issues were identified. The contract follows security best practices.",
     }
 
+    # =========================================================================
+    # Deduplicate findings by (type + location) — keep highest severity
+    # =========================================================================
+    severity_rank = {
+        "critical": 5, "high": 4, "medium": 3, "low": 2,
+        "info": 1, "informational": 1,
+    }
+
+    def _finding_dedup_key(f):
+        """Build deduplication key from type + location."""
+        f_type = f.get("type") or f.get("check") or f.get("title") or ""
+        loc = f.get("location", {})
+        if isinstance(loc, dict):
+            loc_str = f"{loc.get('file', '')}:{loc.get('line', '')}"
+        else:
+            loc_str = str(loc)
+        return (f_type.lower().strip(), loc_str.lower().strip())
+
+    seen_findings: Dict[tuple, dict] = {}
+    for f in findings:
+        key = _finding_dedup_key(f)
+        existing = seen_findings.get(key)
+        if existing is None:
+            seen_findings[key] = f
+        else:
+            # Keep the one with higher severity
+            cur_rank = severity_rank.get(f.get("severity", "").lower(), 0)
+            old_rank = severity_rank.get(existing.get("severity", "").lower(), 0)
+            if cur_rank > old_rank:
+                seen_findings[key] = f
+    findings = list(seen_findings.values())
+
+    # Recalculate severity counts after deduplication
+    if not summary:
+        critical_count = sum(1 for f in findings if f.get("severity", "").lower() == "critical")
+        high_count = sum(1 for f in findings if f.get("severity", "").lower() == "high")
+        medium_count = sum(1 for f in findings if f.get("severity", "").lower() == "medium")
+        low_count = sum(1 for f in findings if f.get("severity", "").lower() == "low")
+        info_count = sum(
+            1 for f in findings if f.get("severity", "").lower() in ("info", "informational")
+        )
+
     # Prepare template variables
     # CLI parameters override auto-detected values from results
     # Support multiple JSON formats: contract, contract_path, path
@@ -752,6 +794,58 @@ def report(
     }
 
     # =========================================================================
+    # Generate Key Takeaways (§1.1)
+    # =========================================================================
+    high_critical_count = critical_count + high_count
+    # Find top vulnerability type from findings
+    from collections import Counter
+    vuln_types = Counter()
+    for f in findings:
+        vtype = (
+            f.get("canonical_category")
+            or f.get("category")
+            or f.get("type")
+            or "general"
+        )
+        vuln_types[vtype] += 1
+    top_vuln_type = vuln_types.most_common(1)[0][0] if vuln_types else "general"
+
+    if critical_count > 0:
+        deploy_note = "Deployment must be halted until critical issues are resolved."
+    elif high_count > 0:
+        deploy_note = "Immediate remediation required before deployment."
+    elif medium_count > 0:
+        deploy_note = "Address medium-severity issues before production deployment."
+    elif low_count > 0:
+        deploy_note = "Minor improvements recommended; deployment acceptable."
+    else:
+        deploy_note = "No significant issues identified; contract is suitable for deployment."
+
+    if high_critical_count > 0:
+        key_takeaways = (
+            f"{high_critical_count} high-severity vulnerabilit{'ies' if high_critical_count != 1 else 'y'} "
+            f"identified, primarily {top_vuln_type.replace('-', ' ').replace('_', ' ')} issues. "
+            f"{deploy_note}"
+        )
+    elif medium_count > 0:
+        key_takeaways = (
+            f"{medium_count} medium-severity finding{'s' if medium_count != 1 else ''} detected, "
+            f"mainly related to {top_vuln_type.replace('-', ' ').replace('_', ' ')}. {deploy_note}"
+        )
+    elif len(findings) > 0:
+        key_takeaways = (
+            f"{len(findings)} low-severity or informational finding{'s' if len(findings) != 1 else ''} "
+            f"identified. {deploy_note}"
+        )
+    else:
+        key_takeaways = "No vulnerabilities identified during the audit. " + deploy_note
+
+    variables["key_takeaways"] = key_takeaways
+    # Also set llm_executive_summary if not already set by LLM
+    if not variables.get("llm_executive_summary"):
+        variables["llm_executive_summary"] = key_takeaways
+
+    # =========================================================================
     # Generate Files Analyzed / Files In Scope
     # =========================================================================
     files_analyzed = []
@@ -808,13 +902,32 @@ def report(
         lines = 0
         functions_count = 0
         try:
-            if contract_path and contract_path != "Unknown" and Path(contract_path).exists():
-                with open(contract_path, "r") as f:
-                    content = f.read()
-                    lines = len(content.splitlines())
-                    total_lines = lines
-                    # Count functions
-                    functions_count = len(re.findall(r"\bfunction\s+\w+\s*\(", content))
+            resolved_path = None
+            if contract_path and contract_path != "Unknown":
+                p = Path(contract_path)
+                if p.exists():
+                    resolved_path = p
+                else:
+                    # Try resolving relative to results file directory
+                    results_dir = Path(results_file).parent
+                    search_candidates = [
+                        results_dir / contract_path,
+                        results_dir.parent / contract_path,
+                        Path.cwd() / contract_path,
+                        Path("/contracts") / Path(contract_path).name,
+                        Path("/tmp") / Path(contract_path).name,
+                    ]
+                    for candidate in search_candidates:
+                        if candidate.exists():
+                            resolved_path = candidate
+                            break
+
+            if resolved_path and resolved_path.is_file():
+                content = resolved_path.read_text()
+                lines = len(content.splitlines())
+                total_lines = lines
+                # Count functions
+                functions_count = len(re.findall(r"\bfunction\s+\w+\s*\(", content))
         except Exception:
             lines = "N/A"
 
@@ -1012,6 +1125,49 @@ def report(
         elif tool_status in ("failed", "error", "timeout"):
             layer_summary[layer_key]["tools_failed"] += 1
 
+    # If layer_summary is empty, build it from findings' tool/confirming_tools
+    if not layer_summary:
+        seen_tools_in_findings: set = set()
+        for f in findings:
+            # Collect tools from confirming_tools or tool field
+            f_tools = f.get("confirming_tools", [])
+            if not f_tools:
+                t = f.get("tool", "")
+                if t and t != "miesc-intelligence":
+                    f_tools = [t]
+            for tool_name in f_tools:
+                tool_name_lower = tool_name.lower().strip()
+                if tool_name_lower and tool_name_lower not in seen_tools_in_findings:
+                    seen_tools_in_findings.add(tool_name_lower)
+                    tool_layer = TOOL_LAYER_MAP.get(tool_name_lower, "unknown")
+                    layer_key = tool_layer if tool_layer else "unknown"
+                    if layer_key not in layer_summary:
+                        layer_summary[layer_key] = {
+                            "name": layer_names.get(layer_key, layer_key),
+                            "tools_executed": [],
+                            "tools_success": 0,
+                            "tools_failed": 0,
+                            "findings_count": 0,
+                        }
+                    if tool_name_lower not in [
+                        t.lower() for t in layer_summary[layer_key]["tools_executed"]
+                    ]:
+                        layer_summary[layer_key]["tools_executed"].append(tool_name)
+                        layer_summary[layer_key]["tools_success"] += 1
+
+        # Count findings per layer
+        for f in findings:
+            f_tools = f.get("confirming_tools", [])
+            if not f_tools:
+                t = f.get("tool", "")
+                if t and t != "miesc-intelligence":
+                    f_tools = [t]
+            # Attribute finding to the first tool's layer
+            if f_tools:
+                tool_layer = TOOL_LAYER_MAP.get(f_tools[0].lower().strip(), "unknown")
+                if tool_layer in layer_summary:
+                    layer_summary[tool_layer]["findings_count"] += 1
+
     # Convert layer_summary to list sorted by layer order
     layer_order = [
         "static_analysis",
@@ -1043,9 +1199,69 @@ def report(
                 }
             )
 
+    # Expand "miesc-intelligence" entries in tools_execution_summary
+    # to show the actual underlying tools from findings' confirming_tools
+    actual_tools_from_findings: set = set()
+    for f in findings:
+        for t in f.get("confirming_tools", []):
+            if t and t.lower() != "miesc-intelligence":
+                actual_tools_from_findings.add(t.lower().strip())
+
+    if actual_tools_from_findings:
+        expanded_tools_summary = []
+        for entry in tools_execution_summary:
+            if entry["name"].lower() == "miesc-intelligence":
+                # Replace with actual tools
+                for actual_tool in sorted(actual_tools_from_findings):
+                    tool_layer = TOOL_LAYER_MAP.get(actual_tool, "unknown")
+                    expanded_tools_summary.append(
+                        {
+                            "name": actual_tool,
+                            "status": entry["status"],
+                            "status_icon": entry["status_icon"],
+                            "duration": entry["duration"],
+                            "findings_count": sum(
+                                1
+                                for f in findings
+                                if actual_tool in [
+                                    ct.lower().strip() for ct in f.get("confirming_tools", [])
+                                ]
+                            ),
+                            "layer": layer_names.get(tool_layer, tool_layer),
+                            "error": "",
+                        }
+                    )
+            else:
+                expanded_tools_summary.append(entry)
+        tools_execution_summary = expanded_tools_summary
+
     variables["tools_execution_summary"] = tools_execution_summary
     variables["layer_summary"] = layer_summary_list
     variables["total_tools_executed"] = len(tools_execution_summary)
+
+    # Populate layer coverage status for methodology section (§2.3)
+    layer_coverage_map = {
+        "static_analysis": "layer1_coverage",
+        "dynamic_testing": "layer2_coverage",
+        "symbolic_execution": "layer3_coverage",
+        "formal_verification": "layer4_coverage",
+        "property_testing": "layer5_coverage",
+        "ai_analysis": "layer6_coverage",
+        "ml_detection": "layer7_coverage",
+        "defi": "layer8_coverage",
+        "specialized": "layer9_coverage",
+    }
+    for lk, var_name in layer_coverage_map.items():
+        if lk in layer_summary:
+            ls = layer_summary[lk]
+            if ls["tools_success"] > 0 and ls["tools_failed"] == 0:
+                variables[var_name] = "✅ Complete"
+            elif ls["tools_success"] > 0:
+                variables[var_name] = "⚠️ Partial"
+            else:
+                variables[var_name] = "❌ Failed"
+        else:
+            variables[var_name] = "-- Not Run"
 
     # Populate tool_outputs for Appendix A (detailed tool execution)
     tool_outputs = []
@@ -1181,8 +1397,53 @@ def report(
         try:
             from src.reports.risk_calculator import calculate_premium_risk_data
 
+            # Enrich findings with category field for CVSS differentiation
+            # The risk calculator uses finding["category"] to select CVSS vectors.
+            # Many adapters store type info in "type", "check", or "canonical_category"
+            # but not always in "category".
+            for f in findings:
+                if not f.get("category"):
+                    f["category"] = (
+                        f.get("canonical_category")
+                        or f.get("type")
+                        or f.get("check")
+                        or "unknown"
+                    )
+
             # Calculate risk data
             risk_data = calculate_premium_risk_data(findings)
+
+            # Post-process risk score: cap by severity band
+            # Only reach 100 if there are CRITICAL findings
+            raw_score = risk_data.get("overall_risk_score", 0)
+            has_critical = critical_count > 0
+            has_high = high_count > 0
+            has_medium = medium_count > 0
+            has_low = low_count > 0
+            has_info_only = (
+                info_count > 0
+                and not has_low
+                and not has_medium
+                and not has_high
+                and not has_critical
+            )
+
+            if not findings:
+                capped_score = 0
+            elif has_critical:
+                capped_score = max(85, min(100, raw_score))
+            elif has_high:
+                capped_score = max(60, min(85, raw_score))
+            elif has_medium:
+                capped_score = max(40, min(60, raw_score))
+            elif has_low:
+                capped_score = max(20, min(40, raw_score))
+            elif has_info_only:
+                capped_score = max(10, min(20, raw_score))
+            else:
+                capped_score = min(20, raw_score)
+
+            risk_data["overall_risk_score"] = capped_score
 
             # Update variables with risk data
             variables.update(
@@ -1502,6 +1763,14 @@ def report(
                     try:
                         # Use per-finding source_contract (batch) or global contract name
                         target = finding.get("source_contract") or contract_name_for_poc
+                        # Fix #11: If target is still "Unknown", try to extract
+                        # the contract name from the finding's location
+                        if target == "Unknown":
+                            loc = finding.get("location", {})
+                            if isinstance(loc, dict) and loc.get("file"):
+                                target = loc["file"]
+                            elif isinstance(loc, str) and ":" in loc:
+                                target = loc.split(":")[0]
                         poc = poc_generator.generate(finding, target_contract=target)
                         finding["poc"] = poc.solidity_code
                         finding["poc_available"] = True
@@ -1597,6 +1866,43 @@ def report(
         if not remediation_code and finding.get("fix_code"):
             remediation_code = finding["fix_code"]
 
+        # Fix #5: Default remediation effort and fix_time based on severity
+        severity_effort_map = {
+            "critical": ("Immediate (1-2 hours)", "1-2 hours"),
+            "high": ("Immediate (1-2 hours)", "1-2 hours"),
+            "medium": ("Short-term (2-4 hours)", "2-4 hours"),
+            "low": ("Low priority (optional)", "Optional"),
+            "info": ("N/A (informational only)", "N/A"),
+            "informational": ("N/A (informational only)", "N/A"),
+        }
+        if not remediation_effort:
+            effort_tuple = severity_effort_map.get(severity_lower, ("Medium", "1-2 hours"))
+            remediation_effort = effort_tuple[0]
+        if not fix_time:
+            effort_tuple = severity_effort_map.get(severity_lower, ("Medium", "1-2 hours"))
+            fix_time = effort_tuple[1]
+
+        # Fix #4: Detected By — use confirming_tools if available
+        confirming = finding.get("confirming_tools", [])
+        if confirming:
+            detected_by = ", ".join(confirming)
+        else:
+            raw_tool = finding.get("tool", "unknown")
+            if raw_tool == "miesc-intelligence":
+                # Fall back to any tool info from the finding itself
+                detected_by = finding.get("original_tool", raw_tool)
+            else:
+                detected_by = raw_tool
+
+        # Fix #10: Include confidence in status display
+        raw_status = finding.get("status", "Open")
+        confidence_val = finding.get("confidence")
+        if isinstance(confidence_val, (int, float)) and confidence_val > 0:
+            conf_display = f"{confidence_val:.0%}"
+            status_display = f"{raw_status} ({conf_display} conf.)"
+        else:
+            status_display = raw_status
+
         formatted_findings.append(
             {
                 "id": f"F-{i:03d}",
@@ -1611,8 +1917,8 @@ def report(
                     if not finding.get("recommendation")
                     or finding.get("recommendation", "").startswith("Review and fix")
                     else finding["recommendation"],
-                "tool": finding.get("tool", "unknown"),
-                "status": finding.get("status", "open"),
+                "tool": detected_by,
+                "status": status_display,
                 "impact": _get_impact_description(severity_lower, category)
                     if not finding.get("impact")
                     or finding.get("impact", "").startswith("Significant financial")
