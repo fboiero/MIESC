@@ -19,7 +19,6 @@ import click
 from miesc import __version__ as VERSION
 from miesc.cli.utils import console, error, info, print_banner, success
 
-
 # Standard mapping from canonical categories to compliance frameworks
 COMPLIANCE_MAP = {
     "reentrancy": {
@@ -196,32 +195,32 @@ def compliance(results_file, standard, output, fmt, quiet):
         output_text = json.dumps(output_data, indent=2)
     else:
         lines = [
-            f"# MIESC Compliance Mapping Report",
-            f"",
+            "# MIESC Compliance Mapping Report",
+            "",
             f"**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
             f"**Source**: {results_file}",
             f"**MIESC Version**: {VERSION}",
             f"**Standard Filter**: {standard}",
             f"**Findings Mapped**: {len(mapped)} / {len(findings)}",
-            f"",
-            f"---",
-            f"",
+            "",
+            "---",
+            "",
         ]
         for i, m in enumerate(mapped, 1):
             lines.append(f"## {i}. [{m['severity']}] {m['finding_type']}")
-            lines.append(f"")
+            lines.append("")
             lines.append(f"**Category**: {m['canonical_category']} | **Confidence**: {m['confidence']:.0%}")
-            lines.append(f"")
-            lines.append(f"| Standard | Reference |")
-            lines.append(f"|----------|-----------|")
+            lines.append("")
+            lines.append("| Standard | Reference |")
+            lines.append("|----------|-----------|")
             for std_name, std_ref in m["standards"].items():
                 lines.append(f"| {std_name} | {std_ref} |")
-            lines.append(f"")
+            lines.append("")
             if m.get("recommendation"):
                 lines.append(f"**Recommendation**: {m['recommendation']}")
-                lines.append(f"")
-            lines.append(f"---")
-            lines.append(f"")
+                lines.append("")
+            lines.append("---")
+            lines.append("")
         output_text = "\n".join(lines)
 
     if output:

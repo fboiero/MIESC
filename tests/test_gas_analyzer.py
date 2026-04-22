@@ -12,13 +12,11 @@ Covers:
 
 import os
 import tempfile
-from pathlib import Path
 
 import pytest
 
 from src.adapters.gas_analyzer_adapter import GasAnalyzerAdapter
 from src.core.tool_protocol import ToolCategory, ToolStatus
-
 
 # ---------------------------------------------------------------------------
 # Shared fixtures

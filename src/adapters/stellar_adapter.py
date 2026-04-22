@@ -923,7 +923,7 @@ class StellarAnalyzer(AbstractChainAnalyzer):
                 "Unbounded iteration over dynamic collection — may exceed CPU budget"),
         }
         seen_soroban_types = set()
-        for pattern_name, line_no, matched in soroban_matches:
+        for pattern_name, line_no, _matched in soroban_matches:
             if pattern_name in soroban_vuln_map and pattern_name not in seen_soroban_types:
                 vuln, severity, msg = soroban_vuln_map[pattern_name]
                 findings.append(

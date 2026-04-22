@@ -9,14 +9,11 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 
 from __future__ import annotations
 
-import pytest
-
 from src.adapters.bridge_patterns import (
     BRIDGE_EXPLOIT_PATTERNS,
     BridgePattern,
     detect_bridge_vulnerabilities,
 )
-
 
 # =============================================================================
 # 1. Missing replay protection — Wormhole $326M

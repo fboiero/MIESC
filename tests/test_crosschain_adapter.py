@@ -3,7 +3,6 @@
 import pytest
 
 from src.adapters.crosschain_adapter import (
-    BRIDGE_PATTERNS,
     CROSSCHAIN_VULNERABILITY_PATTERNS,
     BridgeType,
     CrossChainAdapter,

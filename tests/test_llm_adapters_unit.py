@@ -8,12 +8,11 @@ Ollama running. The goal: push gptlens/iaudit/llamaaudit from 17-24% to
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from src.core.tool_protocol import ToolCategory, ToolStatus
-
 
 # ---------------------------------------------------------------------------
 # GPTLens Adapter

@@ -13,11 +13,9 @@ import pytest
 
 from src.benchmark.metrics_calculator import (
     ComparisonResult,
-    ConfusionMatrix,
-    MetricsDelta,
     MetricsCalculator,
+    MetricsDelta,
 )
-
 
 # ---------------------------------------------------------------------------
 # MetricsDelta

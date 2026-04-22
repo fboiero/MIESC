@@ -25,12 +25,10 @@ License: AGPL-3.0
 from __future__ import annotations
 
 import re
-from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
-
 
 # =============================================================================
 # 1. Cross-tool confirmation scoring

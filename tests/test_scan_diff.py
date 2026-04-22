@@ -14,16 +14,12 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 
 from __future__ import annotations
 
-import subprocess
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from click.testing import CliRunner
 
 from miesc.cli.commands.scan import scan
-
 
 # =============================================================================
 # Helpers
@@ -112,7 +108,7 @@ class TestDiffWithSolFiles:
              patch("miesc.cli.commands.scan._display_and_save") as mock_display:
             mock_scan.return_value = None
             mock_display.return_value = None
-            result = runner.invoke(scan, [str(tmp_path), "--diff", "HEAD~1", "--quiet"])
+            runner.invoke(scan, [str(tmp_path), "--diff", "HEAD~1", "--quiet"])
 
         # _scan_single_file should have been called for Token.sol
         assert mock_scan.call_count == 1
@@ -134,7 +130,7 @@ class TestDiffWithSolFiles:
              patch("miesc.cli.commands.scan._scan_single_file") as mock_scan, \
              patch("miesc.cli.commands.scan._display_and_save"):
             mock_scan.return_value = None
-            result = runner.invoke(scan, [str(tmp_path), "--diff", "main", "--quiet"])
+            runner.invoke(scan, [str(tmp_path), "--diff", "main", "--quiet"])
 
         assert mock_scan.call_count == 3
 

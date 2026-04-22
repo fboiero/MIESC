@@ -15,9 +15,8 @@ Covers:
 """
 
 import json
-import tempfile
 import os
-from pathlib import Path
+import tempfile
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -29,7 +28,6 @@ from src.adapters.invariant_synthesizer import (
     SynthesizedInvariant,
     synthesize_invariants,
 )
-
 
 # ---------------------------------------------------------------------------
 # Sample contracts for testing

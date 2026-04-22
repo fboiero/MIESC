@@ -28,7 +28,6 @@ import click
 
 from miesc.cli.utils import console, error, info, success, warning
 
-
 # ---------------------------------------------------------------------------
 # Patcher helpers
 # ---------------------------------------------------------------------------
@@ -53,7 +52,7 @@ def _add_modifier_to_function(
 
     Returns (patched_source, was_changed).
     """
-    lines = source.splitlines(keepends=True)
+    source.splitlines(keepends=True)
 
     # Build list of candidate match positions
     candidates = []
@@ -179,7 +178,7 @@ def _insert_comment_block(
         return source, False
 
     if line_hint and len(candidates) > 1:
-        lines = source.splitlines()
+        source.splitlines()
         best = min(
             candidates,
             key=lambda m: abs(source[: m.start()].count("\n") + 1 - line_hint),
@@ -212,9 +211,21 @@ _SAFEMATH_HINT = re.compile(r"pragma solidity\s+\^?0\.[0-7]\.", re.MULTILINE)
 def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
     """Apply a single finding's fix to `source`.  Returns (new_source, changed)."""
     ftype = (finding.get("type") or finding.get("title") or "").lower().replace("-", "_")
+
+    # Extract function name from multiple possible locations
     fn_name = finding.get("function") or finding.get("function_name") or ""
+    if not fn_name:
+        loc = finding.get("location", {})
+        if isinstance(loc, dict):
+            fn_name = loc.get("function", "")
+
+    # Extract line number
     line_hint: Optional[int] = None
     raw_line = finding.get("line") or finding.get("line_number")
+    if not raw_line:
+        loc = finding.get("location", {})
+        if isinstance(loc, dict):
+            raw_line = loc.get("line")
     if raw_line:
         try:
             line_hint = int(raw_line)

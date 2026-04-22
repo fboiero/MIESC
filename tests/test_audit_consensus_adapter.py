@@ -91,7 +91,7 @@ class TestGroupingAndConsensus:
         }
         result = adapter.analyze("C.sol", findings_map=findings_map)
         # Different types → separate groups → separate findings
-        types = {f.get("type") for f in result["findings"]}
+        {f.get("type") for f in result["findings"]}
         # May have 0, 1, or 2 findings depending on posterior threshold
         assert isinstance(result["findings"], list)
 

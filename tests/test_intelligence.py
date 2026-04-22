@@ -11,8 +11,6 @@ Tests for src.core.intelligence — the 6-improvement intelligence engine.
 
 from __future__ import annotations
 
-import pytest
-
 from src.core.intelligence import (
     MergedFinding,
     calibrate_severity,
@@ -25,7 +23,6 @@ from src.core.intelligence import (
     semantic_dedup,
     tag_cross_validation,
 )
-
 
 # ---------------------------------------------------------------------------
 # 1. Cross-tool confirmation scoring

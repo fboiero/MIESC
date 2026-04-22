@@ -11,15 +11,11 @@ Covers:
 
 import json
 import urllib.error
-from io import BytesIO
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.adapters.gptlens_adapter import GPTLensAdapter
-from src.core.tool_protocol import ToolStatus
-
 
 # ---------------------------------------------------------------------------
 # Helpers / fixtures

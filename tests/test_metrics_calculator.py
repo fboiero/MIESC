@@ -7,8 +7,6 @@ calculations which are the core computation.
 
 from __future__ import annotations
 
-import pytest
-
 from src.benchmark.metrics_calculator import ConfusionMatrix
 
 

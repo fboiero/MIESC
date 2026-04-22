@@ -14,7 +14,6 @@ from src.adapters.move_adapter import MoveAnalyzer, MoveVulnerability
 from src.adapters.solana_adapter import SolanaAnalyzer, SolanaVulnerability
 from src.adapters.stellar_adapter import StellarAnalyzer, StellarVulnerability
 
-
 # ---------------------------------------------------------------------------
 # Stellar / Soroban
 # ---------------------------------------------------------------------------

@@ -10,15 +10,12 @@ Covers:
 Author: Fernando Boiero
 """
 
-import json
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
 
 from miesc.cli.commands.scan import scan
-
 
 # ---------------------------------------------------------------------------
 # Shared fixtures

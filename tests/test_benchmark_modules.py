@@ -10,20 +10,16 @@ Covers:
 """
 
 from datetime import datetime
-from unittest.mock import MagicMock, patch
 
-import pytest
-
-from src.benchmark.benchmark_runner import DetectionMetrics, ContractResult, BenchmarkResult
+from src.benchmark.benchmark_runner import ContractResult
 from src.benchmark.dataset_loader import GroundTruth, VulnerabilityCategory, VulnerableContract
-from src.benchmark.slither_benchmark import SlitherBenchmarkRunner
 from src.benchmark.pattern_benchmark import (
     PatternBenchmarkResult,
     PatternBenchmarkRunner,
     PatternMatch,
     run_pattern_benchmark,
 )
-
+from src.benchmark.slither_benchmark import SlitherBenchmarkRunner
 
 # ---------------------------------------------------------------------------
 # Shared helpers
