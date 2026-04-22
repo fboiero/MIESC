@@ -196,7 +196,11 @@ packages = [
 ]
 
 [tool.setuptools.package-data]
-miesc = ["py.typed"]
+miesc = [
+    "py.typed",
+    "data/templates/reports/*.md",
+    "data/config/*.yaml",
+]
 
 [tool.black]
 line-length = 100

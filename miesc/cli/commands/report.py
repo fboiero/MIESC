@@ -22,6 +22,7 @@ from miesc.cli.utils import (
     RICH_AVAILABLE,
     console,
     error,
+    get_data_path,
     get_root_dir,
     info,
     print_banner,
@@ -552,10 +553,10 @@ def report(
 
     info(f"Loaded results from {results_file}")
 
-    # Locate template
-    templates_dir = ROOT_DIR / "docs" / "templates" / "reports"
-    template_file = templates_dir / f"{template}.md"
-
+    # Locate template (package data first, repo root fallback)
+    template_file = get_data_path("templates", "reports", f"{template}.md")
+    if not template_file.exists():
+        template_file = get_data_path("docs", "templates", "reports", f"{template}.md")
     if not template_file.exists():
         error(f"Template not found: {template_file}")
         info("Available templates: professional, executive, technical, github-pr, simple, premium")
@@ -643,6 +644,16 @@ def report(
     # Get tools used per layer
     tools_by_layer = results.get("tools_by_layer", {})
     tool_list = results.get("tools", [])
+    if not tool_list:
+        tool_set: set[str] = set()
+        for r in results.get("results", []):
+            if r.get("tool"):
+                tool_set.add(r["tool"])
+        for f in findings:
+            t = f.get("tool") or f.get("source", "")
+            if t:
+                tool_set.add(t)
+        tool_list = sorted(tool_set)
 
     # Generate risk summary based on findings
     overall_risk = _calculate_risk_level(summary)

@@ -94,6 +94,39 @@ def _add_modifier_to_function(
     return patched, patched != source
 
 
+def _ensure_reentrancy_guard_import(source: str) -> str:
+    """Add OZ ReentrancyGuard import + inheritance if not already present."""
+    if "ReentrancyGuard" in source:
+        return source
+    # Add import after the last existing import, or after pragma
+    import_line = 'import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";\n'
+    last_import = -1
+    for i, line in enumerate(source.splitlines()):
+        if line.strip().startswith("import "):
+            last_import = i
+    lines = source.splitlines(keepends=True)
+    if last_import >= 0:
+        lines.insert(last_import + 1, import_line)
+    else:
+        for i, line in enumerate(lines):
+            if line.strip().startswith("pragma "):
+                lines.insert(i + 1, "\n" + import_line)
+                break
+    source = "".join(lines)
+    # Add ReentrancyGuard to contract inheritance
+    contract_re = re.compile(r"(contract\s+\w+)\s*(\{)", re.MULTILINE)
+    is_re = re.compile(r"(contract\s+\w+\s+is\s+)([^{]+)(\{)", re.MULTILINE)
+    m_is = is_re.search(source)
+    if m_is:
+        if "ReentrancyGuard" not in m_is.group(2):
+            source = source[: m_is.start(2)] + m_is.group(2).rstrip() + ", ReentrancyGuard " + source[m_is.start(3):]
+    else:
+        m_contract = contract_re.search(source)
+        if m_contract:
+            source = source[: m_contract.end(1)] + " is ReentrancyGuard " + source[m_contract.start(2):]
+    return source
+
+
 def _insert_using_safemath(source: str) -> tuple[str, bool]:
     """Insert `using SafeMath for uint256;` after the first `contract Foo {` line."""
     contract_re = re.compile(r"(contract\s+\w+[^{]*\{)", re.MULTILINE)
@@ -208,6 +241,16 @@ def _insert_comment_block(
 _SAFEMATH_HINT = re.compile(r"pragma solidity\s+\^?0\.[0-7]\.", re.MULTILINE)
 
 
+def _infer_function_at_line(source: str, line: int) -> str:
+    """Find the nearest function declaration at or above `line`."""
+    lines = source.splitlines()
+    for i in range(min(line - 1, len(lines) - 1), -1, -1):
+        m = re.match(r"\s*function\s+(\w+)\s*\(", lines[i])
+        if m:
+            return m.group(1)
+    return ""
+
+
 def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
     """Apply a single finding's fix to `source`.  Returns (new_source, changed)."""
     ftype = (finding.get("type") or finding.get("title") or "").lower().replace("-", "_")
@@ -232,25 +275,34 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
         except (TypeError, ValueError):
             pass
 
+    # Infer function name from source when not provided but line is known
+    if not fn_name and line_hint:
+        fn_name = _infer_function_at_line(source, line_hint)
+
     fix_code = finding.get("fix_code", "")
 
     if "reentrancy" in ftype:
-        # 1. Insert a comment above the function
-        source, _ = _insert_above_function(
-            source, fn_name, "reentrancy", line_hint
-        )
-        # 2. Add nonReentrant modifier if there's a function to target
         if fn_name:
             source, changed = _add_modifier_to_function(
                 source, fn_name, "nonReentrant", line_hint
             )
+            if changed:
+                source = _ensure_reentrancy_guard_import(source)
             return source, changed
         return source, False
 
-    if "access_control" in ftype:
-        source, _ = _insert_above_function(
-            source, fn_name, "access_control", line_hint
-        )
+    if "suicidal" in ftype or (
+        "access_control" in ftype
+        and any(kw in ftype for kw in ("selfdestruct", "suicidal"))
+    ):
+        if fn_name:
+            source, changed = _add_modifier_to_function(
+                source, fn_name, "onlyOwner", line_hint
+            )
+            return source, changed
+        return source, False
+
+    if "access_control" in ftype or "selfdestruct" in ftype:
         if fn_name:
             source, changed = _add_modifier_to_function(
                 source, fn_name, "onlyOwner", line_hint
@@ -321,19 +373,34 @@ def _insert_above_function(
 # ---------------------------------------------------------------------------
 
 def _collect_fixable_findings(data: dict) -> list[dict]:
-    """Extract all findings with a `fix_code` field from the results JSON."""
+    """Extract deduplicated findings with a `fix_code` field from the results JSON."""
     fixable: list[dict] = []
+    seen: set[tuple] = set()
+
+    def _key(f: dict) -> tuple:
+        ftype = (f.get("type") or f.get("title") or "").lower()
+        line = f.get("line") or f.get("line_number") or ""
+        loc = f.get("location", {})
+        if isinstance(loc, dict):
+            line = line or loc.get("line", "")
+        return (ftype, str(line))
+
+    def _add(f: dict) -> None:
+        if not f.get("fix_code"):
+            return
+        k = _key(f)
+        if k not in seen:
+            seen.add(k)
+            fixable.append(f)
 
     # Top-level findings list (produced by `miesc scan -o`)
     for f in data.get("findings", []):
-        if f.get("fix_code"):
-            fixable.append(f)
+        _add(f)
 
     # Per-tool results list (produced by `miesc audit full -o`)
     for result in data.get("results", []):
         for f in result.get("findings", []):
-            if f.get("fix_code"):
-                fixable.append(f)
+            _add(f)
 
     return fixable
 

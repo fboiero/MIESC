@@ -23,6 +23,21 @@ ROOT_DIR = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT_DIR / "src"))
 sys.path.insert(0, str(ROOT_DIR))
 
+# Package data directory (works both in dev and when installed via pip)
+_PACKAGE_DATA_DIR = Path(__file__).parent.parent / "data"
+
+
+def get_data_path(*parts: str) -> Path:
+    """Resolve a data file path.
+
+    Checks the package-internal data dir first (pip install), then falls back
+    to the repo root layout (development).
+    """
+    pkg_path = _PACKAGE_DATA_DIR.joinpath(*parts)
+    if pkg_path.exists():
+        return pkg_path
+    return ROOT_DIR.joinpath(*parts)
+
 # Try to import Rich for beautiful output
 try:
     from rich.console import Console
@@ -213,7 +228,7 @@ def info(msg: str) -> None:
 
 def load_config() -> Dict[str, Any]:
     """Load MIESC configuration from config/miesc.yaml."""
-    config_path = ROOT_DIR / "config" / "miesc.yaml"
+    config_path = get_data_path("config", "miesc.yaml")
     if config_path.exists() and YAML_AVAILABLE:
         with open(config_path) as f:
             return yaml.safe_load(f) or {}
@@ -222,7 +237,7 @@ def load_config() -> Dict[str, Any]:
 
 def load_profiles() -> Dict[str, Any]:
     """Load analysis profiles from config/profiles.yaml."""
-    profiles_path = ROOT_DIR / "config" / "profiles.yaml"
+    profiles_path = get_data_path("config", "profiles.yaml")
     if profiles_path.exists() and YAML_AVAILABLE:
         with open(profiles_path) as f:
             data = yaml.safe_load(f) or {}
@@ -233,7 +248,7 @@ def load_profiles() -> Dict[str, Any]:
 def get_profile(name: str) -> Optional[Dict[str, Any]]:
     """Get a specific profile by name, handling aliases."""
     profiles = load_profiles()
-    profiles_path = ROOT_DIR / "config" / "profiles.yaml"
+    profiles_path = get_data_path("config", "profiles.yaml")
 
     if profiles_path.exists() and YAML_AVAILABLE:
         with open(profiles_path) as f:

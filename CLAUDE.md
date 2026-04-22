@@ -99,7 +99,7 @@ miesc export results.json -f json -o results.json
 ### Utilities
 ```bash
 miesc doctor                # Check tool availability
-miesc version               # Show version
+miesc -v                    # Show version
 miesc config show           # Show configuration
 ```
 
