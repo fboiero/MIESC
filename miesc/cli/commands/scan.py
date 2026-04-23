@@ -72,7 +72,13 @@ if RICH_AVAILABLE:
     default=None,
     help="Only scan .sol files changed since this git ref (e.g., HEAD~1, main)",
 )
-def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recursive, diff_ref):
+@click.option(
+    "--model", "frontier_model",
+    type=click.Choice(["claude", "gpt", "claude-opus", "claude-sonnet", "gpt-4o", "gpt-5"], case_sensitive=False),
+    default=None,
+    help="Use frontier LLM for deep semantic analysis (requires API key)",
+)
+def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recursive, diff_ref, frontier_model):
     """Quick vulnerability scan for a Solidity contract or directory.
 
     CONTRACT can be a single .sol file or a directory containing .sol files.
@@ -340,6 +346,40 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
         except Exception as e:
             if not quiet:
                 info(f"FP filter skipped: {e}")
+
+    # Frontier LLM analysis (opt-in via --model claude/gpt)
+    if frontier_model:
+        try:
+            from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+
+            provider_map = {
+                "claude": ("anthropic", "claude-sonnet-4-20250514"),
+                "claude-opus": ("anthropic", "claude-opus-4-20250514"),
+                "claude-sonnet": ("anthropic", "claude-sonnet-4-20250514"),
+                "gpt": ("openai", "gpt-4o"),
+                "gpt-4o": ("openai", "gpt-4o"),
+                "gpt-5": ("openai", "gpt-5"),
+            }
+            provider, model_id = provider_map.get(frontier_model.lower(), ("auto", None))
+            adapter = FrontierLLMAdapter(provider=provider)
+
+            if adapter.is_available() == __import__("src.core.tool_protocol", fromlist=["ToolStatus"]).ToolStatus.AVAILABLE:
+                if not quiet:
+                    info(f"Running frontier LLM analysis ({frontier_model})...")
+                kwargs = {"model": model_id} if model_id else {}
+                frontier_result = adapter.analyze(str(contract), **kwargs)
+                if frontier_result.get("status") == "success":
+                    frontier_findings = frontier_result.get("findings", [])
+                    if not quiet:
+                        info(f"Frontier LLM found {len(frontier_findings)} findings")
+                    all_results.append(frontier_result)
+                elif not quiet:
+                    warning(f"Frontier LLM error: {frontier_result.get('error', 'unknown')}")
+            elif not quiet:
+                warning(f"Frontier LLM not available — check API key (ANTHROPIC_API_KEY or OPENAI_API_KEY)")
+        except Exception as e:
+            if not quiet:
+                info(f"Frontier LLM skipped: {e}")
 
     # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
     # zero-recall pattern detection, context-aware FP suppression,

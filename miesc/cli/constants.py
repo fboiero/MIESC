@@ -122,6 +122,7 @@ ADAPTER_MAP: Dict[str, str] = {
     "gptlens": "GPTLensAdapter",
     "llamaaudit": "LlamaAuditAdapter",
     "iaudit": "IAuditAdapter",
+    "frontier_llm": "FrontierLLMAdapter",
     # Layer 6: ML Detection
     "dagnn": "DAGNNAdapter",
     "smartbugs_ml": "SmartBugsMLAdapter",
