@@ -181,13 +181,16 @@ class FrontierLLMAdapter(ToolAdapter):
             source_code = source_code[:max_chars] + "\n// ... (truncated)"
             logger.warning(f"FrontierLLM: Contract truncated to {max_chars} chars")
 
+        # RAG enrichment: inject protocol-specific vulnerability context
+        rag_context = self._get_rag_context(source_code)
+
         provider = self._get_provider()
 
         try:
             if provider == "anthropic":
-                findings = self._analyze_anthropic(source_code, **kwargs)
+                findings = self._analyze_anthropic(source_code, rag_context=rag_context, **kwargs)
             elif provider == "openai":
-                findings = self._analyze_openai(source_code, **kwargs)
+                findings = self._analyze_openai(source_code, rag_context=rag_context, **kwargs)
             else:
                 return self._error_result(start_time, f"Unknown provider: {provider}")
         except Exception as e:
@@ -229,24 +232,103 @@ class FrontierLLMAdapter(ToolAdapter):
             },
         }
 
+    def _get_rag_context(self, source_code: str) -> str:
+        """Build RAG context with protocol-specific exploit patterns."""
+        sections = []
+        code_lower = source_code.lower()
+
+        # Detect protocol type and add targeted exploit knowledge
+        if any(kw in code_lower for kw in ["swap", "liquidity", "amm", "pool", "reserve"]):
+            sections.append(
+                "KNOWN DEX/AMM EXPLOITS:\n"
+                "- Sandwich attacks via lack of slippage protection (no minAmountOut)\n"
+                "- Price manipulation through reserve ratio in single-block\n"
+                "- LP token inflation attacks (first depositor gets disproportionate shares)\n"
+                "- Rounding errors in fee calculations favoring repeated small trades\n"
+                "- Flash loan price manipulation of spot price oracles"
+            )
+        if any(kw in code_lower for kw in ["borrow", "lend", "collateral", "liquidat", "interest"]):
+            sections.append(
+                "KNOWN LENDING EXPLOITS:\n"
+                "- Oracle manipulation to inflate collateral value → borrow excess\n"
+                "- Interest rate calculation errors compounding over time\n"
+                "- Liquidation threshold bypass via flash-loan self-liquidation\n"
+                "- Share price manipulation in vault-style lending (ERC4626)\n"
+                "- Dust amounts preventing full repayment / unlock"
+            )
+        if any(kw in code_lower for kw in ["vote", "proposal", "govern", "quorum", "delegate"]):
+            sections.append(
+                "KNOWN GOVERNANCE EXPLOITS:\n"
+                "- Flash loan governance: borrow tokens → vote → repay in same block\n"
+                "- Proposal frontrunning: submit counter-proposal before execution\n"
+                "- Quorum manipulation via delegated/undelegated voting power\n"
+                "- Timelock bypass through parameter manipulation\n"
+                "- Checkpoint-based vs balance-based voting discrepancies"
+            )
+        if any(kw in code_lower for kw in ["stake", "unstake", "reward", "epoch", "claim"]):
+            sections.append(
+                "KNOWN STAKING EXPLOITS:\n"
+                "- Reward calculation errors when staking/unstaking near epoch boundaries\n"
+                "- Weight/share accounting bugs when market parameters update mid-epoch\n"
+                "- Stake-on-behalf attacks extending others' lock periods\n"
+                "- Reward draining via rapid stake→claim→unstake cycles\n"
+                "- Integer division in reward-per-token accumulating rounding losses"
+            )
+        if any(kw in code_lower for kw in ["nft", "erc721", "tokenid", "mint", "collection"]):
+            sections.append(
+                "KNOWN NFT EXPLOITS:\n"
+                "- Reentrancy via onERC721Received callback during safeMint\n"
+                "- Mint supply bypass: minting more than maxSupply via race condition\n"
+                "- Rental/plot occupation conflicts when multiple users target same ID\n"
+                "- Metadata manipulation if tokenURI is mutable without access control"
+            )
+        if any(kw in code_lower for kw in ["merge", "migrate", "exchange", "convert", "swap"]) and \
+           any(kw in code_lower for kw in ["deadline", "period", "expir", "timestamp"]):
+            sections.append(
+                "KNOWN TOKEN MIGRATION EXPLOITS:\n"
+                "- No cap enforcement: exchanging more tokens than allocated pool\n"
+                "- Missing deadline validation: exchange after period should revert\n"
+                "- Remaining token withdrawal before exchange period ends\n"
+                "- Double-exchange via reentrancy in migration function"
+            )
+
+        context = "\n\n".join(sections)
+        if len(context) > 3000:
+            context = context[:3000]
+        return context
+
+    def _build_user_prompt(self, source_code: str, rag_context: str = "") -> str:
+        """Build the user prompt with optional RAG context."""
+        prompt = AUDIT_USER_PROMPT.format(source_code=source_code)
+        if rag_context:
+            rag_section = (
+                "\n\n<known_vulnerability_patterns>\n"
+                "The following vulnerability patterns have been observed in similar protocols. "
+                "Use these as hints — check if any apply to this specific contract:\n\n"
+                f"{rag_context}\n"
+                "</known_vulnerability_patterns>\n"
+            )
+            prompt = rag_section + "\n" + prompt
+        return prompt
+
     def _analyze_anthropic(self, source_code: str, **kwargs) -> List[Dict]:
         """Call Anthropic Claude API."""
         import anthropic
 
         client = anthropic.Anthropic()
+        rag_context = kwargs.pop("rag_context", "")
         model = kwargs.get("model", "claude-sonnet-4-20250514")
         self._model = model
 
-        logger.info(f"FrontierLLM: Calling {model} ({len(source_code)} chars)")
+        user_prompt = self._build_user_prompt(source_code, rag_context)
+        rag_note = f" +RAG({len(rag_context)})" if rag_context else ""
+        logger.info(f"FrontierLLM: Calling {model} ({len(source_code)} chars{rag_note})")
 
         message = client.messages.create(
             model=model,
             max_tokens=4096,
             system=AUDIT_SYSTEM_PROMPT,
-            messages=[{
-                "role": "user",
-                "content": AUDIT_USER_PROMPT.format(source_code=source_code),
-            }],
+            messages=[{"role": "user", "content": user_prompt}],
         )
 
         return self._parse_response(message.content[0].text)
@@ -256,17 +338,20 @@ class FrontierLLMAdapter(ToolAdapter):
         import openai
 
         client = openai.OpenAI()
+        rag_context = kwargs.pop("rag_context", "")
         model = kwargs.get("model", "gpt-4o")
         self._model = model
 
-        logger.info(f"FrontierLLM: Calling {model} ({len(source_code)} chars)")
+        user_prompt = self._build_user_prompt(source_code, rag_context)
+        rag_note = f" +RAG({len(rag_context)})" if rag_context else ""
+        logger.info(f"FrontierLLM: Calling {model} ({len(source_code)} chars{rag_note})")
 
         response = client.chat.completions.create(
             model=model,
             max_tokens=4096,
             messages=[
                 {"role": "system", "content": AUDIT_SYSTEM_PROMPT},
-                {"role": "user", "content": AUDIT_USER_PROMPT.format(source_code=source_code)},
+                {"role": "user", "content": user_prompt},
             ],
         )
 
