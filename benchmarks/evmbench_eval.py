@@ -125,7 +125,7 @@ def _try_build_project(repo_dir):
     return None
 
 
-def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None):
+def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None, frontier_model=None):
     """Run miesc scan on the Solidity files."""
     if not sol_files:
         return {"findings": [], "error": "no .sol files found"}
@@ -136,10 +136,20 @@ def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None):
         if framework:
             print(f"  Built project ({framework})")
 
-    # For multi-file projects, scan the directory containing the most .sol files
+    # For frontier models, scan individual .sol files (not directory)
+    # because the frontier adapter only fires in single-file mode.
+    # For static-only, use directory mode for batch scanning.
     from collections import Counter
     dirs = Counter(str(Path(f).parent) for f in sol_files)
     best_dir = dirs.most_common(1)[0][0]
+
+    # If using frontier model, scan the largest .sol file directly
+    # (frontier models need the full contract, not a directory)
+    scan_target = best_dir
+    if frontier_model:
+        source_files = [f for f in sol_files if "/test" not in f.lower() and "/mock" not in f.lower()]
+        if source_files:
+            scan_target = max(source_files, key=lambda f: os.path.getsize(f))
 
     project_root = Path(__file__).parent.parent
     env = {
@@ -148,13 +158,15 @@ def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None):
     }
 
     cmd = [
-        sys.executable, "-m", "miesc.cli.main", "scan", best_dir,
+        sys.executable, "-m", "miesc.cli.main", "scan", scan_target,
         "--quiet", "-o", str(output_path), "--fp-strictness", "low",
     ]
+    if frontier_model:
+        cmd.extend(["--model", frontier_model])
     if llm_enhance:
         cmd.append("--llm-enhance")
 
-    timeout = 300 if llm_enhance else 120
+    timeout = 300 if (llm_enhance or frontier_model) else 120
 
     try:
         result = subprocess.run(
@@ -172,52 +184,89 @@ def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None):
 
 
 def match_finding_to_vuln(finding, vuln):
-    """Check if a MIESC finding matches an EVMBench vulnerability (keyword matching)."""
+    """Check if a MIESC finding matches an EVMBench vulnerability.
+
+    Uses multi-signal matching: keyword overlap, semantic category,
+    function name, and concept synonyms.
+    """
     finding_text = " ".join([
         str(finding.get("type", "")),
         str(finding.get("title", "")),
         str(finding.get("description", "")),
         str(finding.get("message", "")),
         str(finding.get("recommendation", "")),
+        str(finding.get("exploit_scenario", "")),
     ]).lower()
 
     vuln_text = vuln["description"].lower()
 
-    # Extract keywords from vuln description (words > 4 chars, skip common words)
+    # Signal 1: Function name match (strongest signal)
+    vuln_functions = set()
+    import re
+    for m in re.finditer(r'\b([a-z][a-zA-Z0-9]*(?:_[a-zA-Z0-9]+)*)\s*\(', vuln_text):
+        fn = m.group(1)
+        if len(fn) > 3 and fn not in ("this", "that", "with", "from"):
+            vuln_functions.add(fn.lower())
+
+    finding_fn = ""
+    loc = finding.get("location", {})
+    if isinstance(loc, dict):
+        finding_fn = loc.get("function", "").lower()
+
+    if finding_fn and any(fn in finding_fn or finding_fn in fn for fn in vuln_functions):
+        return True
+
+    # Signal 2: Semantic category mapping (expanded)
+    category_synonyms = {
+        "reentrancy": ["reenter", "reentr", "recursive", "callback", "state update after",
+                        "external call before", "cross-function"],
+        "access_control": ["access", "owner", "unauthorized", "permiss", "restrict",
+                           "anyone can", "no access check", "missing modifier"],
+        "oracle": ["oracle", "price", "twap", "chainlink", "manipulat", "stale", "latestRound"],
+        "flash_loan": ["flash", "flashloan", "same block", "atomic"],
+        "overflow": ["overflow", "underflow", "arithmetic", "truncat"],
+        "front_running": ["frontrun", "front-run", "sandwich", "mev", "slippage"],
+        "logic": ["incorrect", "wrong", "miscalcul", "rounding", "accounting",
+                   "invariant", "broken", "inconsisten", "edge case"],
+        "stuck_funds": ["stuck", "locked", "unable to withdraw", "freeze", "trapped"],
+        "validation": ["invalid", "bypass", "skip", "missing check", "no validation"],
+        "state": ["dirty", "flag", "update", "stale state", "not updated"],
+    }
+
+    for cat, keywords in category_synonyms.items():
+        vuln_matches = sum(1 for kw in keywords if kw in vuln_text)
+        finding_matches = sum(1 for kw in keywords if kw in finding_text)
+        if vuln_matches >= 1 and finding_matches >= 1:
+            return True
+
+    # Signal 3: Keyword overlap (relaxed)
     stop_words = {"could", "would", "should", "their", "there", "which", "about",
                   "other", "after", "before", "under", "through", "function",
-                  "contract", "users", "funds", "tokens", "value", "calls"}
+                  "contract", "users", "funds", "tokens", "value", "calls",
+                  "allow", "allows", "cause", "causes", "result", "results",
+                  "using", "being", "where", "while"}
     vuln_words = set()
     for word in vuln_text.split():
-        word = word.strip(".,()[]{}\"'`")
+        word = word.strip(".,()[]{}\"'`").lower()
         if len(word) > 4 and word not in stop_words:
             vuln_words.add(word)
 
-    # Check for category-level matches
-    category_keywords = {
-        "reentrancy": ["reenter", "reentr", "recursive", "callback"],
-        "access_control": ["access", "owner", "unauthorized", "permiss", "restrict"],
-        "oracle": ["oracle", "price", "twap", "chainlink", "manipulat"],
-        "flash_loan": ["flash", "flashloan"],
-        "overflow": ["overflow", "underflow", "arithmetic"],
-        "front_running": ["frontrun", "front-run", "sandwich", "mev"],
-        "logic": ["incorrect", "wrong", "miscalcul", "rounding", "accounting"],
-    }
+    finding_words = set()
+    for word in finding_text.split():
+        word = word.strip(".,()[]{}\"'`").lower()
+        if len(word) > 4:
+            finding_words.add(word)
 
-    # Score: keyword overlap
-    overlap = len(vuln_words & set(finding_text.split()))
-    category_match = False
-    for cat, keywords in category_keywords.items():
-        if any(kw in vuln_text for kw in keywords) and any(kw in finding_text for kw in keywords):
-            category_match = True
-            break
+    overlap = len(vuln_words & finding_words)
+    if overlap >= 2:
+        return True
 
-    return overlap >= 2 or category_match
+    return False
 
 
-def evaluate_audit(audit_id, audit_data, llm_enhance=False):
+def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None):
     """Evaluate MIESC on a single EVMBench audit."""
-    mode = "static+LLM" if llm_enhance else "static"
+    mode = f"static+{frontier_model}" if frontier_model else ("static+LLM" if llm_enhance else "static")
     print(f"\n{'='*60}")
     print(f"Audit: {audit_id} ({audit_data['sloc']} SLOC, {audit_data['n_contracts']} contracts) [{mode}]")
     print(f"Vulns: {len(audit_data['vulns'])}")
@@ -241,7 +290,8 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False):
     # Run MIESC
     output_path = Path(tempfile.mktemp(suffix=".json"))
     print(f"  Running MIESC scan ({mode})...")
-    scan_result = run_miesc_scan(sol_files, output_path, llm_enhance=llm_enhance, repo_dir=repo_dir)
+    scan_result = run_miesc_scan(sol_files, output_path, llm_enhance=llm_enhance,
+                                     repo_dir=repo_dir, frontier_model=frontier_model)
     findings = scan_result.get("findings", [])
     print(f"  MIESC found {len(findings)} findings")
 
@@ -281,6 +331,8 @@ def main():
     parser.add_argument("--max-audits", type=int, default=10, help="Max audits to evaluate")
     parser.add_argument("--audit", type=str, help="Single audit to evaluate")
     parser.add_argument("--llm", action="store_true", help="Enable LLM enhancement (Ollama)")
+    parser.add_argument("--model", type=str, default=None,
+                        help="Frontier model: claude, claude-opus, gpt, gpt-4o")
     args = parser.parse_args()
 
     if not EVMBENCH_AUDITS.exists():
@@ -289,13 +341,13 @@ def main():
         sys.exit(1)
 
     audits = load_audits(max_audits=args.max_audits, single_audit=args.audit)
-    mode = "static+LLM" if args.llm else "static"
+    mode = f"static+{args.model}" if args.model else ("static+LLM" if args.llm else "static")
     print(f"Evaluating MIESC on {len(audits)} EVMBench audits [{mode}]")
     print(f"Total vulnerabilities: {sum(len(a['vulns']) for a in audits.values())}")
 
     results = []
     for audit_id, audit_data in audits.items():
-        result = evaluate_audit(audit_id, audit_data, llm_enhance=args.llm)
+        result = evaluate_audit(audit_id, audit_data, llm_enhance=args.llm, frontier_model=args.model)
         results.append(result)
 
     # Aggregate
