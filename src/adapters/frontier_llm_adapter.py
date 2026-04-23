@@ -62,8 +62,10 @@ Follow this step-by-step analysis process:
 2. **Trace value flows** — Where does ETH/tokens enter and exit? Who controls the flow?
 3. **Check access control** — Which functions are privileged? Can they be called by unauthorized users?
 4. **Analyze external interactions** — Are there reentrancy risks? Unchecked return values?
-5. **Look for economic exploits** — Flash loan attacks? Oracle manipulation? Rounding errors?
-6. **Check edge cases** — What happens with zero values? Max values? Empty arrays?
+5. **Look for economic exploits** — Flash loan attacks? Oracle manipulation? Rounding errors? Can governance be exploited?
+6. **Check edge cases** — What happens with zero values? Max values? Empty arrays? What if a limit or cap is exceeded? What if called at boundary conditions (exact deadlines, exactly full arrays)?
+7. **Check state consistency** — Are state variables updated correctly in all paths? Are there dirty flags or counters that could get out of sync? Can state be manipulated by calling functions in unexpected order?
+8. **Check multi-contract interactions** — If the contract interacts with external contracts or tokens, can those interactions be exploited? Can callbacks change state unexpectedly?
 
 For each vulnerability found, respond with ONLY a JSON array:
 ```json

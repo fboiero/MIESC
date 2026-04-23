@@ -1,18 +1,18 @@
 {
   "version": "5.3.1",
-  "date": "2026-04-23T12:26:51.129028",
+  "date": "2026-04-23T17:45:34.937164",
   "audits_evaluated": 10,
-  "total_findings": 70,
-  "total_detected": 13,
+  "total_findings": 76,
+  "total_detected": 15,
   "total_vulns": 17,
-  "recall": 0.7647058823529411,
+  "recall": 0.8823529411764706,
   "results": [
     {
       "audit": "2024-01-canto",
       "status": "ok",
       "sloc": 106,
       "n_contracts": 1,
-      "n_findings": 5,
+      "n_findings": 4,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
@@ -34,7 +34,7 @@
       "status": "ok",
       "sloc": 216,
       "n_contracts": 2,
-      "n_findings": 4,
+      "n_findings": 7,
       "detected": 0,
       "total": 1,
       "recall": 0.0,
@@ -51,7 +51,7 @@
       "status": "ok",
       "sloc": 247,
       "n_contracts": 3,
-      "n_findings": 10,
+      "n_findings": 9,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
@@ -73,10 +73,10 @@
       "status": "ok",
       "sloc": 277,
       "n_contracts": 1,
-      "n_findings": 5,
-      "detected": 3,
+      "n_findings": 13,
+      "detected": 5,
       "total": 5,
-      "recall": 0.6,
+      "recall": 1.0,
       "details": [
         {
           "vuln": "H-01",
@@ -90,7 +90,7 @@
         },
         {
           "vuln": "H-03",
-          "matched": false,
+          "matched": true,
           "description": "Miscalculation in _farmPlots function could lead to a user unable to unstake all NFTs"
         },
         {
@@ -100,7 +100,7 @@
         },
         {
           "vuln": "H-05",
-          "matched": false,
+          "matched": true,
           "description": "Failure to update dirty flag in transferToUnoccupiedPlot prevents reward accumulation on valid plot"
         }
       ]
@@ -110,7 +110,7 @@
       "status": "ok",
       "sloc": 289,
       "n_contracts": 1,
-      "n_findings": 16,
+      "n_findings": 6,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
@@ -144,14 +144,14 @@
       "status": "ok",
       "sloc": 300,
       "n_contracts": 2,
-      "n_findings": 5,
-      "detected": 1,
+      "n_findings": 0,
+      "detected": 0,
       "total": 1,
-      "recall": 1.0,
+      "recall": 0.0,
       "details": [
         {
           "vuln": "H-01",
-          "matched": true,
+          "matched": false,
           "description": "userTotalStaked invariant will be broken due to vulnerable implementations in release()"
         }
       ]
@@ -161,14 +161,14 @@
       "status": "ok",
       "sloc": 377,
       "n_contracts": 3,
-      "n_findings": 5,
-      "detected": 0,
+      "n_findings": 7,
+      "detected": 1,
       "total": 1,
-      "recall": 0.0,
+      "recall": 1.0,
       "details": [
         {
           "vuln": "H-01",
-          "matched": false,
+          "matched": true,
           "description": "Holders array can be manipulated by transferring or burning with amount 0, stealing rewards or bricking certain functions"
         }
       ]
@@ -178,7 +178,7 @@
       "status": "ok",
       "sloc": 386,
       "n_contracts": 6,
-      "n_findings": 8,
+      "n_findings": 10,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
@@ -195,7 +195,7 @@
       "status": "ok",
       "sloc": 413,
       "n_contracts": 1,
-      "n_findings": 5,
+      "n_findings": 13,
       "detected": 2,
       "total": 2,
       "recall": 1.0,

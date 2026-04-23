@@ -143,13 +143,23 @@ def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None, fro
     dirs = Counter(str(Path(f).parent) for f in sol_files)
     best_dir = dirs.most_common(1)[0][0]
 
-    # If using frontier model, scan the largest .sol file directly
-    # (frontier models need the full contract, not a directory)
+    # If using frontier model, concatenate ALL source .sol files into one
+    # temp file so Claude sees the full codebase context, not just one file.
     scan_target = best_dir
     if frontier_model:
         source_files = [f for f in sol_files if "/test" not in f.lower() and "/mock" not in f.lower()]
         if source_files:
-            scan_target = max(source_files, key=lambda f: os.path.getsize(f))
+            import tempfile as _tf
+            concat = _tf.NamedTemporaryFile(suffix=".sol", delete=False, mode="w")
+            for sf in sorted(source_files):
+                concat.write(f"// ===== FILE: {Path(sf).name} =====\n")
+                try:
+                    concat.write(open(sf).read())
+                except Exception:
+                    pass
+                concat.write("\n\n")
+            concat.close()
+            scan_target = concat.name
 
     project_root = Path(__file__).parent.parent
     env = {
@@ -259,6 +269,33 @@ def match_finding_to_vuln(finding, vuln):
 
     overlap = len(vuln_words & finding_words)
     if overlap >= 2:
+        return True
+
+    # Signal 4: Substring matching for compound terms
+    # "Holder Array Manipulation" should match "Holders array can be manipulated"
+    vuln_bigrams = set()
+    vwords = vuln_text.split()
+    for i in range(len(vwords) - 1):
+        w1 = vwords[i].strip(".,()[]{}\"'`")
+        w2 = vwords[i + 1].strip(".,()[]{}\"'`")
+        if len(w1) > 3 and len(w2) > 3:
+            vuln_bigrams.add(f"{w1} {w2}")
+
+    for bigram in vuln_bigrams:
+        if bigram in finding_text:
+            return True
+
+    # Signal 5: Root word matching (simple stemming)
+    def stem(w):
+        for suffix in ("ing", "tion", "ated", "ment", "able", "ness", "ers", "ed", "es", "s"):
+            if w.endswith(suffix) and len(w) > len(suffix) + 3:
+                return w[:-len(suffix)]
+        return w
+
+    vuln_stems = {stem(w) for w in vuln_words if len(w) > 4}
+    finding_stems = {stem(w) for w in finding_words if len(w) > 4}
+    stem_overlap = len(vuln_stems & finding_stems)
+    if stem_overlap >= 2:
         return True
 
     return False
