@@ -286,6 +286,92 @@ ZERO_RECALL_PATTERNS = {
         "swc": "SWC-107",
         "message": "External call with value — potential cross-function reentrancy if state is shared. Verify CEI pattern across ALL functions that read the same state.",
     },
+    # v5.3.1: Business logic patterns (EVMBench-informed)
+    "price_oracle_stale": {
+        "patterns": [
+            r"latestRoundData\s*\(",
+        ],
+        "severity": "High",
+        "swc": "SWC-120",
+        "message": "Chainlink latestRoundData() without staleness/validity check — price can be stale or zero. Check updatedAt, answeredInRound, and answer > 0.",
+    },
+    "flash_loan_governance": {
+        "patterns": [
+            r"balanceOf\s*\(\s*msg\.sender\s*\).*vote|vote.*balanceOf\s*\(\s*msg\.sender\s*\)",
+        ],
+        "severity": "Critical",
+        "swc": "SWC-120",
+        "message": "Governance voting based on current balance — vulnerable to flash loan attack. Use snapshot-based voting (ERC20Votes) with timelock.",
+    },
+    "unprotected_initialize": {
+        "patterns": [
+            r"function\s+initialize\s*\([^)]*\)\s*(external|public)(?!.*initializer)",
+        ],
+        "severity": "Critical",
+        "swc": "SWC-118",
+        "message": "Public initialize() without initializer modifier — can be called by anyone to take ownership. Use OpenZeppelin's Initializable.",
+        "requires_no_initializer_guard": True,
+    },
+    "arbitrary_token_transfer": {
+        "patterns": [
+            r"transferFrom\s*\(\s*\w+\s*,\s*\w+\s*,\s*\w+\s*\)(?!.*require|.*assert)",
+        ],
+        "severity": "High",
+        "swc": "SWC-104",
+        "message": "transferFrom with user-controlled from address — attacker can transfer other users' approved tokens.",
+    },
+    "rounding_error_division": {
+        "patterns": [
+            r"\*\s*\w+\s*/\s*\w+",
+            r"/\s*\w+\s*\*\s*\w+",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-101",
+        "message": "Division before multiplication — Solidity integer division truncates. Multiply first to preserve precision.",
+    },
+    "missing_slippage_check": {
+        "patterns": [
+            r"swap\s*\([^)]*\)(?!.*minAmount|.*deadline|.*amountOutMin)",
+        ],
+        "severity": "High",
+        "swc": "SWC-120",
+        "message": "Swap without slippage protection (no minAmountOut/deadline) — vulnerable to sandwich attacks and MEV extraction.",
+    },
+    "unchecked_mint_burn": {
+        "patterns": [
+            r"\b_mint\s*\([^)]*\)(?!.*require|.*onlyOwner|.*onlyRole)",
+            r"\b_burn\s*\([^)]*\)(?!.*require|.*balanceOf)",
+        ],
+        "severity": "High",
+        "swc": "SWC-105",
+        "message": "Unrestricted _mint() or _burn() — can cause inflation/deflation attacks. Add access control or balance checks.",
+    },
+    "return_value_token": {
+        "patterns": [
+            r"IERC20\([^)]+\)\.approve\s*\(",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-104",
+        "message": "ERC20 approve() before transferFrom — vulnerable to allowance front-running. Use increaseAllowance/decreaseAllowance or SafeERC20.",
+        "requires_no_safe_approve": True,
+    },
+    "signature_replay": {
+        "patterns": [
+            r"ecrecover\s*\(",
+            r"ECDSA\.recover\s*\(",
+        ],
+        "severity": "High",
+        "swc": "SWC-121",
+        "message": "Signature verification without nonce/deadline — replay attacks possible. Include nonce, chainId, and deadline in signed payload.",
+    },
+    "withdrawal_rug": {
+        "patterns": [
+            r"function\s+withdraw\w*\s*\([^)]*\)\s*(external|public).*onlyOwner",
+        ],
+        "severity": "High",
+        "swc": "SWC-105",
+        "message": "Owner-only withdrawal of user funds — centralization risk / rug vector. Consider timelock or multi-sig governance.",
+    },
 }
 
 
@@ -577,6 +663,15 @@ _CANONICAL_RECOMMENDATIONS: Dict[str, str] = {
     "front_running": "Use commit-reveal scheme for sensitive operations. Use `increaseAllowance`/`decreaseAllowance` instead of `approve` to prevent race conditions.",
     "proxy_upgrade": "Use OpenZeppelin's UUPSUpgradeable or TransparentUpgradeableProxy. Guard `upgradeTo` with admin-only access. Maintain storage layout compatibility.",
     "centralization": "Implement multi-sig governance for admin functions. Add timelock delays on ownership transfers. Consider renouncing ownership when no longer needed.",
+    "price_oracle_stale": "Add staleness check: `require(updatedAt > block.timestamp - MAX_DELAY)`. Check `answer > 0` and `answeredInRound >= roundId`.",
+    "flash_loan_governance": "Use ERC20Votes with block-number snapshots for governance. Add timelock (48h+) on proposals. Check `getVotes(account, blockNumber)` at proposal creation.",
+    "unprotected_initialize": "Use OpenZeppelin's `initializer` modifier. Add `require(!initialized)` guard. Call in constructor or deployment script only.",
+    "arbitrary_token_transfer": "Validate that `from == msg.sender` or use SafeERC20. Never let external callers specify arbitrary `from` addresses.",
+    "rounding_error_division": "Multiply before dividing to preserve precision. Use `(a * b) / c` instead of `(a / c) * b`. Consider using fixed-point math libraries.",
+    "missing_slippage_check": "Add `minAmountOut` parameter and deadline check. `require(amountOut >= minAmountOut, 'slippage')`. Use DEX router with built-in protection.",
+    "unchecked_mint_burn": "Restrict _mint/_burn with access control (onlyOwner, onlyRole). Add supply caps for mint. Verify balance >= amount for burn.",
+    "signature_replay": "Include nonce (auto-increment), chainId, deadline, and contract address in the signed payload. Use EIP-712 typed data signing.",
+    "withdrawal_rug": "Replace onlyOwner withdrawal with timelock + multi-sig. Implement pull-over-push pattern where users withdraw their own funds.",
 }
 
 _GENERIC_RECOMMENDATIONS = {"review and fix", "review the", "check the", "see the"}
