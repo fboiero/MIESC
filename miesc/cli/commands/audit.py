@@ -525,7 +525,12 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
             )
             non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
             suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
-            all_results = [
+            # Preserve per-tool metadata for report layer coverage
+            tool_metadata = [
+                {k: v for k, v in r.items() if k != "findings"}
+                for r in all_results
+            ]
+            all_results = tool_metadata + [
                 {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
             ]
             if suppressed_count > 0:
@@ -576,10 +581,26 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
         elif fmt == "markdown":
             data = _to_markdown(all_results, contract)
         else:
+            # Normalize to scan-compatible schema for report/fix/export
+            all_findings = []
+            for r in all_results:
+                for f in r.get("findings", []):
+                    f.setdefault("tool", r.get("tool", "unknown"))
+                    all_findings.append(f)
+            tools_used = sorted({
+                r.get("tool", "") for r in all_results
+                if r.get("status") == "success" and r.get("tool")
+            })
             data = {
-                "results": all_results,
-                "summary": summary,
+                "contract": str(contract),
+                "timestamp": datetime.now().isoformat(),
                 "version": VERSION,
+                "success": True,
+                "summary": summary,
+                "total_findings": total,
+                "tools": tools_used,
+                "findings": all_findings,
+                "results": all_results,
                 "layers": layer_list,
                 "ml_enabled": False,
             }
@@ -668,7 +689,12 @@ def audit_quick(contract, output, fmt, ci, timeout):
             )
             non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
             suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
-            all_results = [
+            # Preserve per-tool metadata for report layer coverage
+            tool_metadata = [
+                {k: v for k, v in r.items() if k != "findings"}
+                for r in all_results
+            ]
+            all_results = tool_metadata + [
                 {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
             ]
             if suppressed_count > 0:
@@ -734,7 +760,7 @@ def audit_quick(contract, output, fmt, ci, timeout):
     "--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown"]), default="json"
 )
 @click.option(
-    "--layers", "-l", type=str, default="1,2,3,4,5,6,7", help="Layers to run (comma-separated)"
+    "--layers", "-l", type=str, default="1,2,3,4,5,6,7,8,9", help="Layers to run (comma-separated, default: all 9)"
 )
 @click.option("--timeout", "-t", type=int, default=600, help="Timeout per tool in seconds")
 @click.option("--skip-unavailable", is_flag=True, default=True, help="Skip unavailable tools")
@@ -1131,7 +1157,12 @@ def audit_profile(profile_name, contract, output, fmt, ci):
             )
             non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
             suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
-            all_results = [
+            # Preserve per-tool metadata for report layer coverage
+            tool_metadata = [
+                {k: v for k, v in r.items() if k != "findings"}
+                for r in all_results
+            ]
+            all_results = tool_metadata + [
                 {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
             ]
             if suppressed_count > 0:

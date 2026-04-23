@@ -72,10 +72,10 @@ J.~F. Ferreira, P.~Cruz, T.~Durieux, and R.~Abreu, ``{SmartBugs}: A framework
 
 \bibitem{smartbugs2023}
 M.~di~Angelo, T.~Durieux, J.~F. Ferreira, and G.~Salzer, ``{SmartBugs} 2.0: An
-  execution framework for weakness detection in {Ethereum} smart contracts,'' in
-  \emph{Proceedings of the 38th IEEE/ACM International Conference on Automated
-  Software Engineering (ASE)}.\hskip 1em plus 0.5em minus 0.4em\relax IEEE,
-  2023, pp. 2102--2105.
+  execution framework for weakness detection in {Ethereum} smart contracts,''
+  in \emph{Proceedings of the 38th IEEE/ACM International Conference on
+  Automated Software Engineering (ASE)}.\hskip 1em plus 0.5em minus 0.4em\relax
+  IEEE, 2023, pp. 2102--2105.
 
 \bibitem{sun2024gptscan}
 Y.~Sun, D.~Wu, Y.~Xue, H.~Liu, H.~Wang, Z.~Xu, X.~Xie, and Y.~Liu, ``{GPTScan}:
