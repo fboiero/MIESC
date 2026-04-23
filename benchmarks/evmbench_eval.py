@@ -95,22 +95,70 @@ def find_sol_files(repo_dir):
     return sol_files
 
 
-def run_miesc_scan(sol_files, output_path):
+def _try_build_project(repo_dir):
+    """Try to build the project with Foundry or Hardhat before scanning."""
+    foundry_toml = repo_dir / "foundry.toml"
+    package_json = repo_dir / "package.json"
+    hardhat_config = repo_dir / "hardhat.config.js"
+    hardhat_config_ts = repo_dir / "hardhat.config.ts"
+
+    if foundry_toml.exists():
+        try:
+            subprocess.run(
+                ["forge", "build"], cwd=str(repo_dir),
+                capture_output=True, timeout=120,
+            )
+            return "foundry"
+        except Exception:
+            pass
+
+    if hardhat_config.exists() or hardhat_config_ts.exists() or package_json.exists():
+        try:
+            subprocess.run(
+                ["npm", "install", "--silent"], cwd=str(repo_dir),
+                capture_output=True, timeout=120,
+            )
+            return "hardhat"
+        except Exception:
+            pass
+
+    return None
+
+
+def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None):
     """Run miesc scan on the Solidity files."""
     if not sol_files:
         return {"findings": [], "error": "no .sol files found"}
+
+    # Try building the project first
+    if repo_dir:
+        framework = _try_build_project(Path(repo_dir))
+        if framework:
+            print(f"  Built project ({framework})")
 
     # For multi-file projects, scan the directory containing the most .sol files
     from collections import Counter
     dirs = Counter(str(Path(f).parent) for f in sol_files)
     best_dir = dirs.most_common(1)[0][0]
 
+    project_root = Path(__file__).parent.parent
+    env = {
+        **os.environ,
+        "PYTHONPATH": f"{project_root}:{project_root / 'src'}",
+    }
+
+    cmd = [
+        sys.executable, "-m", "miesc.cli.main", "scan", best_dir,
+        "--quiet", "-o", str(output_path), "--fp-strictness", "low",
+    ]
+    if llm_enhance:
+        cmd.append("--llm-enhance")
+
+    timeout = 300 if llm_enhance else 120
+
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "miesc.cli.main", "scan", best_dir,
-             "--quiet", "-o", str(output_path), "--fp-strictness", "low"],
-            capture_output=True, text=True, timeout=120,
-            env={**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent)},
+            cmd, capture_output=True, text=True, timeout=timeout, env=env,
         )
         if output_path.exists():
             with open(output_path) as f:
@@ -167,10 +215,11 @@ def match_finding_to_vuln(finding, vuln):
     return overlap >= 2 or category_match
 
 
-def evaluate_audit(audit_id, audit_data):
+def evaluate_audit(audit_id, audit_data, llm_enhance=False):
     """Evaluate MIESC on a single EVMBench audit."""
+    mode = "static+LLM" if llm_enhance else "static"
     print(f"\n{'='*60}")
-    print(f"Audit: {audit_id} ({audit_data['sloc']} SLOC, {audit_data['n_contracts']} contracts)")
+    print(f"Audit: {audit_id} ({audit_data['sloc']} SLOC, {audit_data['n_contracts']} contracts) [{mode}]")
     print(f"Vulns: {len(audit_data['vulns'])}")
     for v in audit_data["vulns"]:
         print(f"  {v['id']}: {v['description'][:80]}")
@@ -191,8 +240,8 @@ def evaluate_audit(audit_id, audit_data):
 
     # Run MIESC
     output_path = Path(tempfile.mktemp(suffix=".json"))
-    print(f"  Running MIESC scan...")
-    scan_result = run_miesc_scan(sol_files, output_path)
+    print(f"  Running MIESC scan ({mode})...")
+    scan_result = run_miesc_scan(sol_files, output_path, llm_enhance=llm_enhance, repo_dir=repo_dir)
     findings = scan_result.get("findings", [])
     print(f"  MIESC found {len(findings)} findings")
 
@@ -231,6 +280,7 @@ def main():
     parser = argparse.ArgumentParser(description="EVMBench evaluation for MIESC")
     parser.add_argument("--max-audits", type=int, default=10, help="Max audits to evaluate")
     parser.add_argument("--audit", type=str, help="Single audit to evaluate")
+    parser.add_argument("--llm", action="store_true", help="Enable LLM enhancement (Ollama)")
     args = parser.parse_args()
 
     if not EVMBENCH_AUDITS.exists():
@@ -239,12 +289,13 @@ def main():
         sys.exit(1)
 
     audits = load_audits(max_audits=args.max_audits, single_audit=args.audit)
-    print(f"Evaluating MIESC on {len(audits)} EVMBench audits")
+    mode = "static+LLM" if args.llm else "static"
+    print(f"Evaluating MIESC on {len(audits)} EVMBench audits [{mode}]")
     print(f"Total vulnerabilities: {sum(len(a['vulns']) for a in audits.values())}")
 
     results = []
     for audit_id, audit_data in audits.items():
-        result = evaluate_audit(audit_id, audit_data)
+        result = evaluate_audit(audit_id, audit_data, llm_enhance=args.llm)
         results.append(result)
 
     # Aggregate
@@ -254,7 +305,7 @@ def main():
     ok_count = sum(1 for r in results if r["status"] == "ok")
 
     print(f"\n{'='*60}")
-    print(f"EVMBench Results — MIESC v5.3.1")
+    print(f"EVMBench Results — MIESC v5.3.1 [{mode}]")
     print(f"{'='*60}")
     print(f"Audits evaluated: {ok_count}/{len(audits)}")
     print(f"Total findings: {total_findings}")
