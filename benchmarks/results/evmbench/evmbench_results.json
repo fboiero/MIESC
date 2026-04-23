@@ -1,30 +1,30 @@
 {
   "version": "5.3.1",
-  "date": "2026-04-23T17:45:34.937164",
+  "date": "2026-04-23T18:43:50.379917",
   "audits_evaluated": 10,
-  "total_findings": 76,
-  "total_detected": 15,
+  "total_findings": 54,
+  "total_detected": 12,
   "total_vulns": 17,
-  "recall": 0.8823529411764706,
+  "recall": 0.7058823529411765,
   "results": [
     {
       "audit": "2024-01-canto",
       "status": "ok",
       "sloc": 106,
       "n_contracts": 1,
-      "n_findings": 4,
-      "detected": 2,
+      "n_findings": 0,
+      "detected": 0,
       "total": 2,
-      "recall": 1.0,
+      "recall": 0.0,
       "details": [
         {
           "vuln": "H-01",
-          "matched": true,
+          "matched": false,
           "description": "update_market() market weight incorrect"
         },
         {
           "vuln": "H-02",
-          "matched": true,
+          "matched": false,
           "description": "update_market() nextEpoch calculation incorrect"
         }
       ]
@@ -34,14 +34,14 @@
       "status": "ok",
       "sloc": 216,
       "n_contracts": 2,
-      "n_findings": 7,
-      "detected": 0,
+      "n_findings": 8,
+      "detected": 1,
       "total": 1,
-      "recall": 0.0,
+      "recall": 1.0,
       "details": [
         {
           "vuln": "H-01",
-          "matched": false,
+          "matched": true,
           "description": "MergeTgt has no handling if TGTTOEXCHANGE is exceeded during the exchange period"
         }
       ]
@@ -51,7 +51,7 @@
       "status": "ok",
       "sloc": 247,
       "n_contracts": 3,
-      "n_findings": 9,
+      "n_findings": 11,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
@@ -73,7 +73,7 @@
       "status": "ok",
       "sloc": 277,
       "n_contracts": 1,
-      "n_findings": 13,
+      "n_findings": 11,
       "detected": 5,
       "total": 5,
       "recall": 1.0,
@@ -110,7 +110,7 @@
       "status": "ok",
       "sloc": 289,
       "n_contracts": 1,
-      "n_findings": 6,
+      "n_findings": 3,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
@@ -127,14 +127,14 @@
       "status": "ok",
       "sloc": 296,
       "n_contracts": 1,
-      "n_findings": 7,
-      "detected": 1,
+      "n_findings": 0,
+      "detected": 0,
       "total": 1,
-      "recall": 1.0,
+      "recall": 0.0,
       "details": [
         {
           "vuln": "H-01",
-          "matched": true,
+          "matched": false,
           "description": "Availability of deposit invariant can be bypassed"
         }
       ]
@@ -161,14 +161,14 @@
       "status": "ok",
       "sloc": 377,
       "n_contracts": 3,
-      "n_findings": 7,
-      "detected": 1,
+      "n_findings": 0,
+      "detected": 0,
       "total": 1,
-      "recall": 1.0,
+      "recall": 0.0,
       "details": [
         {
           "vuln": "H-01",
-          "matched": true,
+          "matched": false,
           "description": "Holders array can be manipulated by transferring or burning with amount 0, stealing rewards or bricking certain functions"
         }
       ]
@@ -178,7 +178,7 @@
       "status": "ok",
       "sloc": 386,
       "n_contracts": 6,
-      "n_findings": 10,
+      "n_findings": 9,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
@@ -195,7 +195,7 @@
       "status": "ok",
       "sloc": 413,
       "n_contracts": 1,
-      "n_findings": 13,
+      "n_findings": 12,
       "detected": 2,
       "total": 2,
       "recall": 1.0,

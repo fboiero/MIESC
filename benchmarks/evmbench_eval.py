@@ -147,19 +147,38 @@ def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None, fro
     # temp file so Claude sees the full codebase context, not just one file.
     scan_target = best_dir
     if frontier_model:
-        source_files = [f for f in sol_files if "/test" not in f.lower() and "/mock" not in f.lower()]
+        source_files = [f for f in sol_files if "/test" not in f.lower() and "/mock" not in f.lower()
+                        and "/interface" not in f.lower()]
         if source_files:
             import tempfile as _tf
+            # Budget: ~100KB max concat (fits in Claude's context with room for prompt)
+            MAX_CONCAT_BYTES = 100_000
+            # Sort by size descending, take the most important files first
+            source_files_sized = sorted(source_files, key=lambda f: os.path.getsize(f), reverse=True)
+            # Skip pure interface files (I*.sol) and keep implementation files
+            impl_files = [f for f in source_files_sized if not Path(f).name.startswith("I")]
+            if not impl_files:
+                impl_files = source_files_sized
+
             concat = _tf.NamedTemporaryFile(suffix=".sol", delete=False, mode="w")
-            for sf in sorted(source_files):
+            total_written = 0
+            files_included = 0
+            for sf in impl_files:
+                file_size = os.path.getsize(sf)
+                if total_written + file_size > MAX_CONCAT_BYTES and files_included > 0:
+                    break
                 concat.write(f"// ===== FILE: {Path(sf).name} =====\n")
                 try:
-                    concat.write(open(sf).read())
+                    content = open(sf).read()
+                    concat.write(content)
+                    total_written += len(content)
+                    files_included += 1
                 except Exception:
                     pass
                 concat.write("\n\n")
             concat.close()
             scan_target = concat.name
+            print(f"  Concat: {files_included} files, {total_written/1024:.0f}KB")
 
     project_root = Path(__file__).parent.parent
     env = {
