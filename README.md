@@ -455,25 +455,29 @@ module.exports = {
 };
 ```
 
-### MCP Server
+### MCP Server (Claude Desktop / Cursor / Claude Code)
 
-MIESC integrates with AI agents via the [Model Context Protocol](https://modelcontextprotocol.io):
+MIESC exposes its 9-layer security analysis as MCP tools via [Model Context Protocol](https://modelcontextprotocol.io):
 
 ```bash
-miesc server mcp  # Start MCP WebSocket server
+pip install 'miesc[mcp]'   # Install with MCP support
+miesc-mcp                   # Start stdio MCP server
 ```
 
+Add to your Claude Desktop `config.json`:
+
 ```json
-// Claude Desktop / MCP client config
 {
   "mcpServers": {
     "miesc": {
-      "command": "miesc",
-      "args": ["server", "mcp"]
+      "command": "miesc-mcp",
+      "env": {"OLLAMA_HOST": "http://localhost:11434"}
     }
   }
 }
 ```
+
+**Available MCP tools:** `miesc_quick_scan`, `miesc_deep_scan`, `miesc_deep_audit`, `miesc_run_tool`, `miesc_run_layer`, `miesc_analyze_defi`, `miesc_list_tools`, `miesc_doctor`
 
 ### Python API
 
