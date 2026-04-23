@@ -20,11 +20,13 @@ from miesc.cli.utils import (
     RICH_AVAILABLE,
     console,
     error,
+    get_max_workers,
     info,
     print_banner,
     run_tool,
     success,
     summarize_findings,
+    warning,
 )
 
 # Import Rich components if available
@@ -272,6 +274,9 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
         info(f"Scanning {contract}")
         info(f"Tools: {', '.join(QUICK_TOOLS)}")
 
+    # Pre-flight: warn if the contract has obvious syntax errors
+    _preflight_syntax_check(contract, quiet)
+
     all_results = []
 
     if RICH_AVAILABLE and not quiet:
@@ -287,7 +292,7 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
             )
 
             from concurrent.futures import ThreadPoolExecutor, as_completed
-            with ThreadPoolExecutor(max_workers=len(QUICK_TOOLS)) as pool:
+            with ThreadPoolExecutor(max_workers=get_max_workers(default=len(QUICK_TOOLS))) as pool:
                 futures = {
                     pool.submit(run_tool, tool, contract, 300, llm_enhance=llm_enhance): tool
                     for tool in QUICK_TOOLS
@@ -305,7 +310,7 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
         from concurrent.futures import ThreadPoolExecutor, as_completed
         if not quiet:
             info(f"Running {len(QUICK_TOOLS)} tools in parallel...")
-        with ThreadPoolExecutor(max_workers=len(QUICK_TOOLS)) as pool:
+        with ThreadPoolExecutor(max_workers=get_max_workers(default=len(QUICK_TOOLS))) as pool:
             futures = {pool.submit(run_tool, tool, contract, 300): tool for tool in QUICK_TOOLS}
             for future in as_completed(futures):
                 try:
@@ -423,6 +428,46 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
     )
 
 
+def _preflight_syntax_check(contract: str, quiet: bool) -> None:
+    """Warn the user if the Solidity file has syntax errors.
+
+    Runs ``solc --stop-after parsing`` if solc is available. Never blocks
+    the scan — this is advisory only.
+    """
+    import subprocess as _sp
+
+    # Find solc: prefer solc-select artifact, then PATH
+    from pathlib import Path as _Path
+    solc_candidates = [
+        _Path.home() / ".solc-select" / "global-version",
+    ]
+    solc = None
+    # Try solc-select first
+    global_ver = _Path.home() / ".solc-select" / "global-version"
+    if global_ver.exists():
+        ver = global_ver.read_text().strip()
+        candidate = _Path.home() / ".solc-select" / "artifacts" / f"solc-{ver}" / f"solc-{ver}"
+        if candidate.exists():
+            solc = str(candidate)
+    if not solc:
+        import shutil
+        solc = shutil.which("solc")
+    if not solc:
+        return
+
+    try:
+        result = _sp.run(
+            [solc, "--stop-after", "parsing", contract],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode != 0 and not quiet:
+            warning("Contract has syntax errors — analysis may be incomplete:")
+            for line in result.stderr.strip().splitlines()[:5]:
+                info(f"  {line}")
+    except Exception:
+        pass  # solc not usable — skip silently
+
+
 # =============================================================================
 # Private helpers
 # =============================================================================
@@ -442,7 +487,7 @@ def _scan_single_file(
     """
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    with ThreadPoolExecutor(max_workers=len(QUICK_TOOLS)) as pool:
+    with ThreadPoolExecutor(max_workers=get_max_workers(default=len(QUICK_TOOLS))) as pool:
         futures = {
             pool.submit(run_tool, tool, contract, 300, llm_enhance=llm_enhance): tool
             for tool in QUICK_TOOLS

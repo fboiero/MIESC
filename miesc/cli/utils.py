@@ -245,6 +245,31 @@ def load_profiles() -> Dict[str, Any]:
     return {}
 
 
+_CONFIG_CACHE: Optional[Dict[str, Any]] = None
+
+
+def _get_config() -> Dict[str, Any]:
+    """Return cached MIESC config."""
+    global _CONFIG_CACHE
+    if _CONFIG_CACHE is None:
+        _CONFIG_CACHE = load_config()
+    return _CONFIG_CACHE
+
+
+def get_tool_timeout(tool: str, default: int = 300) -> int:
+    """Get the configured timeout for a tool from miesc.yaml."""
+    cfg = _get_config()
+    adapters = cfg.get("adapters", {})
+    tool_cfg = adapters.get(tool, {})
+    return int(tool_cfg.get("timeout", default))
+
+
+def get_max_workers(default: int = 4) -> int:
+    """Get the configured max_workers from miesc.yaml global section."""
+    cfg = _get_config()
+    return int(cfg.get("global", {}).get("max_workers", default))
+
+
 def get_profile(name: str) -> Optional[Dict[str, Any]]:
     """Get a specific profile by name, handling aliases."""
     profiles = load_profiles()
@@ -350,19 +375,21 @@ class AdapterLoader:
 # =============================================================================
 
 
-def run_tool(tool: str, contract: str, timeout: int = 300, **kwargs: Any) -> Dict[str, Any]:
+def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[str, Any]:
     """
     Run a security tool using its adapter.
 
     Args:
         tool: Tool name (e.g., 'slither', 'mythril')
         contract: Path to Solidity contract
-        timeout: Timeout in seconds
+        timeout: Timeout in seconds (0 = use config or default 300)
         **kwargs: Additional tool-specific parameters
 
     Returns:
         Normalized results dictionary
     """
+    if timeout <= 0:
+        timeout = get_tool_timeout(tool, default=300)
     start_time = datetime.now()
 
     # Get adapter for tool

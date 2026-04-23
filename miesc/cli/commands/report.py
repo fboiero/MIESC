@@ -2039,13 +2039,18 @@ def report(
                     success(f"PDF report saved to {output_path}")
                     return
                 except FileNotFoundError:
-                    warning("pandoc not found, saving as HTML instead")
+                    warning(
+                        "PDF generation requires weasyprint or pandoc. "
+                        "Install with: pip install weasyprint"
+                    )
                     output_path = output_path.with_suffix(".html")
                     output_content = html_content
+                    warning(f"Saved as HTML instead: {output_path}")
                 except subprocess.CalledProcessError as e:
                     warning(f"PDF generation failed: {e}")
                     output_path = output_path.with_suffix(".html")
                     output_content = html_content
+                    warning(f"Saved as HTML instead: {output_path}")
 
         output_path.write_text(output_content)
         success(f"Report saved to {output_path}")

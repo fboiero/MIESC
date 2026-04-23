@@ -71,10 +71,12 @@ def watch(directory, profile, debounce, recursive):
     scan_lock = threading.Lock()
 
     # Determine tools based on profile
+    # Watch mode caps timeouts at 30s to keep feedback fast
+    WATCH_TIMEOUT = 30
     profile_tools = {
         "quick": QUICK_TOOLS,
         "fast": ["slither", "aderyn"],
-        "balanced": ["slither", "aderyn", "solhint", "mythril"],
+        "balanced": ["slither", "aderyn", "solhint"],
     }
     tools_to_run = profile_tools.get(profile, QUICK_TOOLS)
 
@@ -120,7 +122,7 @@ def watch(directory, profile, debounce, recursive):
             start_time = time.time()
 
             for tool in tools_to_run:
-                result = run_tool(tool, file_path, timeout=60)
+                result = run_tool(tool, file_path, timeout=WATCH_TIMEOUT)
 
                 if result["status"] == "success":
                     findings = result.get("findings", [])
@@ -149,8 +151,9 @@ def watch(directory, profile, debounce, recursive):
                         code_text = ""
                     enhanced = enhance_findings(all_findings, source_code=code_text, file_path=file_path)
                     all_findings = [f for f in enhanced if not f.get("fp_suppressed")]
-            except Exception:
-                pass
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).debug(f"Intelligence engine skipped in watch: {e}")
 
             summary = summarize_findings([{"findings": all_findings}])
 
