@@ -1,4 +1,4 @@
-# MIESC v5.1.1 - Optimized Docker Deployment
+# MIESC v5.3.1 - Optimized Docker Deployment
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile creates a complete, production-ready environment with:
@@ -55,7 +55,7 @@ RUN foundryup
 FROM python:3.12-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.1.1"
+LABEL version="5.3.1"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 
 # Copy aderyn from aderyn-builder

@@ -1,4 +1,4 @@
-# MIESC v5.1.1 - Full x86_64 Docker Deployment
+# MIESC v5.3.1 - Full x86_64 Docker Deployment
 # Forces x86_64 architecture for 100% tool compatibility
 #
 # Build command:
@@ -15,7 +15,7 @@
 FROM --platform=linux/amd64 python:3.10-slim-bookworm AS builder
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.1.1"
+LABEL version="5.3.1"
 LABEL description="MIESC - Full x86_64 build with all security tools"
 LABEL architecture="linux/amd64"
 
@@ -48,7 +48,7 @@ RUN cargo install aderyn
 FROM --platform=linux/amd64 python:3.10-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.1.1"
+LABEL version="5.3.1"
 LABEL description="MIESC - Full x86_64 build with all security tools"
 
 # Copy Rust and Foundry binaries from builder

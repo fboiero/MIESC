@@ -74,7 +74,7 @@ What we improved (v5.1.2):
 - Parallelized QUICK_TOOLS in scan command (ThreadPoolExecutor)
 - Removed Mythril from quick scan (90s/contract, opt-in via `audit full`)
 
-What's left (v5.2 plan):
+What's left:
 - Lazy-load LLM/RAG/ChromaDB only when --llm-interpret is used
 - Reduce remaining adapter import overhead
 
@@ -83,7 +83,7 @@ For sub-second feedback, use Slither directly. Use MIESC when you need cross-too
 ### 2. Aggressive false positive filtering
 Slither raw output: 14 findings on VulnerableDeFi.sol. MIESC reports 4 (after FP filter).
 
-The FP filter removes informational findings (e.g., `solc-version`, naming conventions) but may also drop real findings. **This is a known limitation** that we're addressing in v5.2 with a tunable filtering level.
+The FP filter removes informational findings (e.g., `solc-version`, naming conventions) but may also drop real findings. **Addressed in v5.1.2+** with `--fp-strictness {off,low,medium,high}` flag.
 
 ### 3. Fewer detectors than Slither alone
 - **Slither:** 100+ built-in detectors
@@ -131,15 +131,19 @@ All static analysis tools have FP rates of 80-90%+ (recall-focused). MIESC's RAG
 | CI/CD integration | **MIESC GitHub Action** or Slither |
 | Real-world exploit detection | **MIESC** (81.8% recall) |
 
-## Iterative Improvements (Roadmap)
+## Iterative Improvements (Shipped + Roadmap)
 
-Based on this honest comparison, MIESC v5.2 will focus on:
+**Shipped in v5.1.2–v5.3.1:**
+1. ✅ **FP filter tuning:** `--fp-strictness {off,low,medium,high}` flag
+2. ✅ **Multi-chain:** Native support for Move, Cairo, Solana (77 vuln types)
+3. ✅ **Formal verification:** `miesc specs` generates CVL/Scribble/SMTChecker
+4. ✅ **Intelligence engine:** ~30% noise reduction, semantic dedup, fix-code generation
+5. ✅ **Automated remediation:** `miesc fix` with 100% hit rate on test contracts
 
-1. **Speed:** Parallelize tool execution at the layer level (target: 30s for full audit)
-2. **FP filter tuning:** Add `--fp-strictness {low,medium,high}` flag
-3. **More detectors:** Wrap missing Slither detectors in MIESC's normalized output
-4. **Multi-chain:** Native support for Move, Cairo, Solana programs
-5. **Formal verification:** Auto-generate Certora specs from MIESC findings
+**Remaining for v5.4.0:**
+1. **Speed:** Lazy-load LLM/RAG/ChromaDB (currently imported on every command)
+2. **Foundry test gen:** Auto-generate failing tests from exploit_scenario
+3. **Empirical calibration:** Replace educated-guess tool weights with measured precision
 
 ## Sources
 
@@ -150,4 +154,4 @@ Based on this honest comparison, MIESC v5.2 will focus on:
 
 ---
 
-*Last updated: April 12, 2026 | Run `python benchmarks/competitor_comparison.py` to reproduce.*
+*Last updated: April 23, 2026 | Run `python benchmarks/competitor_comparison.py` to reproduce.*

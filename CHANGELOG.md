@@ -5,6 +5,44 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.3.1] - 2026-04-22
+
+### Fixed — Packaging Hotfix + UX Improvements
+
+- **Templates bundled in PyPI wheel** — `miesc report` was failing on pip
+  installs because `docs/templates/reports/` was not included in the package.
+  Created `miesc/data/` with `get_data_path()` resolver (package-first,
+  repo-root fallback for dev).
+- **`--llm-enhance` wired to Ollama** — flag existed but was a no-op.
+  Now calls `LLMReportInterpreter.interpret_critical_findings()` on the
+  top 5 critical/high findings via Ollama.
+- **`miesc fix` hit rate 33% → 100%** — fixed function inference for
+  "unknown" names, deduplicated findings, added ReentrancyGuard import,
+  skip detection for already-fixed functions.
+- **Report tool count** — executive report showed "0 integrated tools".
+  Now extracts from `findings[].tool` and `results[].tool`.
+- **Warnings silenced** — `prometheus_client`/`FastAPI` import warnings
+  downgraded from WARNING to DEBUG for new users.
+- **Pre-flight syntax check** — `solc --stop-after parsing` warns about
+  broken contracts before tools run.
+- **Config YAML wired** — `get_tool_timeout()` and `get_max_workers()`
+  read from `config/miesc.yaml` into scan/audit pipeline.
+- **PDF fallback warning** — explicit install instructions when
+  weasyprint/pandoc missing (was silent rename to .html).
+- **Watch command** — 30s timeout cap, intelligence engine failures
+  logged, removed mythril from balanced profile.
+- **Docker CI** — scoped BuildX cache per job to prevent eviction on
+  long multi-arch builds.
+- **Premium report layer coverage** — Layer 1 shows "✅ Complete"
+  instead of "Not Run" for scan output.
+- **Multi-chain output normalized** — `miesc analyze` for Cairo/Move/
+  Solana produces scan-compatible JSON. Added `--ci` flag.
+
+### Tests — 6031 passed, 88% coverage (+53 from v5.3.0)
+
+- 29 new tests: watch command (7), audit→report e2e (6),
+  llmbugscanner adapter (16)
+
 ## [5.3.0] - 2026-04-21
 
 ### Added — From Detection to Remediation Pipeline

@@ -1,6 +1,6 @@
 # CLAUDE.md - Project Instructions for Claude Code
 
-## Project: MIESC v5.3.0
+## Project: MIESC v5.3.1
 Multi-layer Intelligent Evaluation for Smart Contracts
 
 ## Auto-Approval Permissions
