@@ -1,8 +1,8 @@
 {
   "version": "5.3.1",
-  "date": "2026-04-23T21:04:30.383113",
+  "date": "2026-04-24T20:06:08.804803",
   "audits_evaluated": 10,
-  "total_findings": 98,
+  "total_findings": 48,
   "total_detected": 17,
   "total_vulns": 17,
   "recall": 1.0,
@@ -12,10 +12,13 @@
       "status": "ok",
       "sloc": 106,
       "n_contracts": 1,
-      "n_findings": 7,
+      "n_findings": 5,
+      "n_findings_raw": 7,
+      "n_filtered": 2,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
+      "precision": 0.4,
       "details": [
         {
           "vuln": "H-01",
@@ -34,10 +37,13 @@
       "status": "ok",
       "sloc": 216,
       "n_contracts": 2,
-      "n_findings": 7,
+      "n_findings": 4,
+      "n_findings_raw": 7,
+      "n_filtered": 3,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
+      "precision": 0.25,
       "details": [
         {
           "vuln": "H-01",
@@ -51,10 +57,13 @@
       "status": "ok",
       "sloc": 247,
       "n_contracts": 3,
-      "n_findings": 11,
+      "n_findings": 9,
+      "n_findings_raw": 11,
+      "n_filtered": 2,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
+      "precision": 0.2222222222222222,
       "details": [
         {
           "vuln": "H-01",
@@ -73,10 +82,13 @@
       "status": "ok",
       "sloc": 277,
       "n_contracts": 1,
-      "n_findings": 13,
+      "n_findings": 7,
+      "n_findings_raw": 13,
+      "n_filtered": 6,
       "detected": 5,
       "total": 5,
       "recall": 1.0,
+      "precision": 0.7142857142857143,
       "details": [
         {
           "vuln": "H-01",
@@ -110,10 +122,13 @@
       "status": "ok",
       "sloc": 289,
       "n_contracts": 1,
-      "n_findings": 8,
+      "n_findings": 4,
+      "n_findings_raw": 6,
+      "n_filtered": 2,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
+      "precision": 0.25,
       "details": [
         {
           "vuln": "H-01",
@@ -127,10 +142,13 @@
       "status": "ok",
       "sloc": 296,
       "n_contracts": 1,
-      "n_findings": 10,
+      "n_findings": 4,
+      "n_findings_raw": 7,
+      "n_filtered": 3,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
+      "precision": 0.25,
       "details": [
         {
           "vuln": "H-01",
@@ -144,10 +162,13 @@
       "status": "ok",
       "sloc": 300,
       "n_contracts": 2,
-      "n_findings": 6,
+      "n_findings": 1,
+      "n_findings_raw": 1,
+      "n_filtered": 0,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
+      "precision": 1.0,
       "details": [
         {
           "vuln": "H-01",
@@ -161,10 +182,13 @@
       "status": "ok",
       "sloc": 377,
       "n_contracts": 3,
-      "n_findings": 9,
+      "n_findings": 5,
+      "n_findings_raw": 8,
+      "n_filtered": 3,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
+      "precision": 0.2,
       "details": [
         {
           "vuln": "H-01",
@@ -178,10 +202,13 @@
       "status": "ok",
       "sloc": 386,
       "n_contracts": 6,
-      "n_findings": 13,
+      "n_findings": 5,
+      "n_findings_raw": 9,
+      "n_filtered": 4,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
+      "precision": 0.2,
       "details": [
         {
           "vuln": "H-01",
@@ -195,10 +222,13 @@
       "status": "ok",
       "sloc": 413,
       "n_contracts": 1,
-      "n_findings": 14,
+      "n_findings": 4,
+      "n_findings_raw": 11,
+      "n_filtered": 7,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
+      "precision": 0.5,
       "details": [
         {
           "vuln": "H-01",
