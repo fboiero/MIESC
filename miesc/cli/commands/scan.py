@@ -262,6 +262,56 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
             if not quiet:
                 info(f"Intelligence engine skipped: {e}")
 
+        # Frontier LLM in directory mode: concatenate top source files
+        if frontier_model:
+            try:
+                from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+                from src.core.tool_protocol import ToolStatus
+
+                provider_map = {
+                    "claude": ("anthropic", "claude-sonnet-4-20250514"),
+                    "claude-opus": ("anthropic", "claude-opus-4-20250514"),
+                    "claude-sonnet": ("anthropic", "claude-sonnet-4-20250514"),
+                    "gpt": ("openai", "gpt-4o"),
+                    "gpt-4o": ("openai", "gpt-4o"),
+                    "gpt-5": ("openai", "gpt-5"),
+                }
+                provider, model_id = provider_map.get(frontier_model.lower(), ("auto", None))
+                adapter = FrontierLLMAdapter(provider=provider)
+
+                if adapter.is_available() == ToolStatus.AVAILABLE:
+                    if not quiet:
+                        info(f"Running frontier LLM on directory ({frontier_model})...")
+                    # Concat top source files up to 100KB
+                    import tempfile as _tf
+                    impl_files = [f for f in sol_files if not f.name.startswith("I")]
+                    if not impl_files:
+                        impl_files = list(sol_files)
+                    impl_files.sort(key=lambda f: f.stat().st_size, reverse=True)
+
+                    concat = _tf.NamedTemporaryFile(suffix=".sol", delete=False, mode="w")
+                    total_written = 0
+                    for sf in impl_files:
+                        content = sf.read_text()
+                        if total_written + len(content) > 100_000 and total_written > 0:
+                            break
+                        concat.write(f"// ===== FILE: {sf.name} =====\n{content}\n\n")
+                        total_written += len(content)
+                    concat.close()
+
+                    kwargs = {"model": model_id} if model_id else {}
+                    frontier_result = adapter.analyze(concat.name, **kwargs)
+                    Path(concat.name).unlink(missing_ok=True)
+
+                    if frontier_result.get("status") == "success":
+                        frontier_findings = frontier_result.get("findings", [])
+                        if not quiet:
+                            info(f"Frontier LLM found {len(frontier_findings)} findings")
+                        all_results.append(frontier_result)
+            except Exception as e:
+                if not quiet:
+                    info(f"Frontier LLM skipped: {e}")
+
         _display_and_save(
             all_results,
             contract=str(contract),

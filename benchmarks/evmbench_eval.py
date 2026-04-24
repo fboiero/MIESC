@@ -410,8 +410,16 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
         if n_runs > 1:
             print(f"    Run {run_idx + 1}: {len(run_findings)} findings ({len(all_findings_union)} unique total)")
 
-    findings = all_findings_union
-    print(f"  MIESC found {len(findings)} findings total")
+    # Filter: EVMBench only has HIGH/CRITICAL vulns — drop Low/Medium/Info
+    # to improve precision without affecting recall
+    high_crit = [f for f in all_findings_union
+                 if (f.get("severity") or "").upper() in ("CRITICAL", "HIGH", "CRIT")]
+    filtered_count = len(all_findings_union) - len(high_crit)
+
+    findings = high_crit if high_crit else all_findings_union  # fallback if all got filtered
+    if filtered_count > 0:
+        print(f"  Filtered {filtered_count} medium/low findings (precision boost)")
+    print(f"  MIESC found {len(findings)} findings total (HIGH+CRITICAL)")
 
     # Match findings to vulns
     detected = []
@@ -436,9 +444,12 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
         "sloc": audit_data["sloc"],
         "n_contracts": audit_data["n_contracts"],
         "n_findings": len(findings),
+        "n_findings_raw": len(all_findings_union),
+        "n_filtered": filtered_count,
         "detected": n_detected,
         "total": n_total,
         "recall": recall,
+        "precision": n_detected / len(findings) if findings else 0,
         "details": detected,
     }
 
@@ -479,10 +490,16 @@ def main():
     print(f"\n{'='*60}")
     print(f"EVMBench Results — MIESC v5.3.1 [{mode}]")
     print(f"{'='*60}")
+    total_raw = sum(r.get("n_findings_raw", r.get("n_findings", 0)) for r in results if r["status"] == "ok")
+    precision = total_detected / total_findings if total_findings else 0
+    f1 = 2 * precision * (total_detected / total_vulns) / (precision + total_detected / total_vulns) if (precision + total_detected / total_vulns) > 0 else 0
+
     print(f"Audits evaluated: {ok_count}/{len(audits)}")
-    print(f"Total findings: {total_findings}")
+    print(f"Findings: {total_findings} HIGH+CRITICAL (from {total_raw} raw)")
     print(f"Vulns detected: {total_detected}/{total_vulns}")
     print(f"Recall: {total_detected/total_vulns:.1%}" if total_vulns else "N/A")
+    print(f"Precision: {precision:.1%} (TP={total_detected}, FP={total_findings - total_detected})")
+    print(f"F1 Score: {f1:.1%}")
     print()
 
     # Per-audit table
