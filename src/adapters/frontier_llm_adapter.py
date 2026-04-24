@@ -232,10 +232,25 @@ class FrontierLLMAdapter(ToolAdapter):
                 "swc_id": f.get("swc_id") or f.get("swc") or "",
             })
 
+        # Deduplicate findings by (function, type) — LLMs often report
+        # the same issue with different wording
+        deduped = []
+        seen_keys = set()
+        for f in normalized:
+            fn = f.get("location", {}).get("function", "").lower()
+            ftype = f.get("type", "").lower()
+            key = (fn, ftype) if fn and fn != "unknown" else (f.get("title", "").lower()[:30],)
+            if key not in seen_keys:
+                seen_keys.add(key)
+                deduped.append(f)
+
+        if len(deduped) < len(normalized):
+            logger.info(f"FrontierLLM: Deduped {len(normalized)} → {len(deduped)} findings")
+
         return {
             "tool": f"frontier-{provider}",
             "status": "success",
-            "findings": normalized,
+            "findings": deduped,
             "execution_time": elapsed,
             "metadata": {
                 "provider": provider,
