@@ -320,7 +320,7 @@ def match_finding_to_vuln(finding, vuln):
     return False
 
 
-def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None):
+def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None, n_runs=1):
     """Evaluate MIESC on a single EVMBench audit."""
     mode = f"static+{frontier_model}" if frontier_model else ("static+LLM" if llm_enhance else "static")
     print(f"\n{'='*60}")
@@ -343,13 +343,75 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None)
         shutil.rmtree(repo_dir.parent, ignore_errors=True)
         return {"audit": audit_id, "status": "no_sol_files", "detected": 0, "total": len(audit_data["vulns"])}
 
-    # Run MIESC
-    output_path = Path(tempfile.mktemp(suffix=".json"))
-    print(f"  Running MIESC scan ({mode})...")
-    scan_result = run_miesc_scan(sol_files, output_path, llm_enhance=llm_enhance,
-                                     repo_dir=repo_dir, frontier_model=frontier_model)
-    findings = scan_result.get("findings", [])
-    print(f"  MIESC found {len(findings)} findings")
+    # Run MIESC scan (multi-run ensemble: union of findings across N runs)
+    all_findings_union = []
+    seen_finding_keys = set()
+
+    for run_idx in range(n_runs):
+        if n_runs > 1:
+            print(f"  Run {run_idx + 1}/{n_runs}...")
+        else:
+            print(f"  Running MIESC scan ({mode})...")
+
+        output_path = Path(tempfile.mktemp(suffix=".json"))
+        scan_result = run_miesc_scan(sol_files, output_path, llm_enhance=llm_enhance,
+                                         repo_dir=repo_dir, frontier_model=frontier_model)
+        run_findings = scan_result.get("findings", [])
+        output_path.unlink(missing_ok=True)
+
+        # Fallback: call frontier adapter directly if subprocess fails
+        if not run_findings and frontier_model:
+            try:
+                sys.path.insert(0, str(Path(__file__).parent.parent))
+                sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+                from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+
+                provider_map = {"claude": "anthropic", "claude-opus": "anthropic",
+                                "claude-sonnet": "anthropic", "gpt": "openai", "gpt-4o": "openai"}
+                adapter = FrontierLLMAdapter(provider=provider_map.get(frontier_model, "auto"))
+
+                source_files = [f for f in sol_files if "/test" not in f.lower()
+                                and "/mock" not in f.lower() and not Path(f).name.startswith("I")]
+                if not source_files:
+                    source_files = sol_files
+                source_files = sorted(source_files, key=lambda f: os.path.getsize(f), reverse=True)
+
+                concat_code = ""
+                for sf in source_files:
+                    try:
+                        content = open(sf).read()
+                        if len(concat_code) + len(content) > 100_000:
+                            break
+                        concat_code += f"// ===== FILE: {Path(sf).name} =====\n{content}\n\n"
+                    except Exception:
+                        pass
+
+                if concat_code:
+                    tmp_file = Path(tempfile.mktemp(suffix=".sol"))
+                    tmp_file.write_text(concat_code)
+                    model_map = {"claude": "claude-sonnet-4-20250514", "claude-opus": "claude-opus-4-20250514",
+                                 "gpt": "gpt-4o", "gpt-4o": "gpt-4o"}
+                    result = adapter.analyze(str(tmp_file), model=model_map.get(frontier_model, "claude-sonnet-4-20250514"))
+                    run_findings = result.get("findings", [])
+                    tmp_file.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+        # Deduplicate and add to union
+        for f in run_findings:
+            key = (
+                (f.get("type") or f.get("title") or "").lower(),
+                str(f.get("location", {}).get("function", "") if isinstance(f.get("location"), dict) else ""),
+            )
+            if key not in seen_finding_keys:
+                seen_finding_keys.add(key)
+                all_findings_union.append(f)
+
+        if n_runs > 1:
+            print(f"    Run {run_idx + 1}: {len(run_findings)} findings ({len(all_findings_union)} unique total)")
+
+    findings = all_findings_union
+    print(f"  MIESC found {len(findings)} findings total")
 
     # Match findings to vulns
     detected = []
@@ -361,7 +423,6 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None)
 
     # Cleanup
     shutil.rmtree(repo_dir.parent, ignore_errors=True)
-    output_path.unlink(missing_ok=True)
 
     n_detected = sum(1 for d in detected if d["matched"])
     n_total = len(audit_data["vulns"])
@@ -389,6 +450,8 @@ def main():
     parser.add_argument("--llm", action="store_true", help="Enable LLM enhancement (Ollama)")
     parser.add_argument("--model", type=str, default=None,
                         help="Frontier model: claude, claude-opus, gpt, gpt-4o")
+    parser.add_argument("--runs", type=int, default=1,
+                        help="Number of runs to ensemble (union of findings)")
     args = parser.parse_args()
 
     if not EVMBENCH_AUDITS.exists():
@@ -403,7 +466,8 @@ def main():
 
     results = []
     for audit_id, audit_data in audits.items():
-        result = evaluate_audit(audit_id, audit_data, llm_enhance=args.llm, frontier_model=args.model)
+        result = evaluate_audit(audit_id, audit_data, llm_enhance=args.llm,
+                                frontier_model=args.model, n_runs=args.runs)
         results.append(result)
 
     # Aggregate

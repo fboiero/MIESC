@@ -358,31 +358,70 @@ class FrontierLLMAdapter(ToolAdapter):
         return self._parse_response(response.choices[0].message.content)
 
     def _parse_response(self, text: str) -> List[Dict]:
-        """Parse JSON findings from LLM response."""
-        # Try to extract JSON array from response
+        """Parse JSON findings from LLM response.
+
+        Handles multiple response formats:
+        - Raw JSON array: [...]
+        - Markdown code block: ```json [...] ```
+        - Wrapped dict: {"vulnerabilities": [...]}
+        - Mixed text with embedded JSON
+        """
+        import re
+
         text = text.strip()
 
-        # Find JSON array in the response
-        start = text.find("[")
-        end = text.rfind("]")
-        if start != -1 and end != -1 and end > start:
-            json_str = text[start:end + 1]
+        # Strip markdown code fences
+        text_clean = re.sub(r"```(?:json)?\s*", "", text)
+        text_clean = text_clean.strip()
+
+        # Try multiple extraction strategies
+        for attempt_text in [text_clean, text]:
+            # Strategy 1: Find outermost JSON array
+            start = attempt_text.find("[")
+            end = attempt_text.rfind("]")
+            if start != -1 and end != -1 and end > start:
+                json_str = attempt_text[start:end + 1]
+                try:
+                    findings = json.loads(json_str)
+                    if isinstance(findings, list):
+                        valid = [f for f in findings if isinstance(f, dict)]
+                        if valid:
+                            return valid
+                except json.JSONDecodeError:
+                    # Try fixing common JSON issues (trailing commas)
+                    fixed = re.sub(r",\s*([}\]])", r"\1", json_str)
+                    try:
+                        findings = json.loads(fixed)
+                        if isinstance(findings, list):
+                            return [f for f in findings if isinstance(f, dict)]
+                    except json.JSONDecodeError:
+                        pass
+
+            # Strategy 2: Parse as dict with vulnerabilities key
             try:
-                findings = json.loads(json_str)
-                if isinstance(findings, list):
-                    return [f for f in findings if isinstance(f, dict)]
+                result = json.loads(attempt_text)
+                if isinstance(result, list):
+                    return [f for f in result if isinstance(f, dict)]
+                if isinstance(result, dict):
+                    for key in ("vulnerabilities", "findings", "results"):
+                        if key in result and isinstance(result[key], list):
+                            return [f for f in result[key] if isinstance(f, dict)]
             except json.JSONDecodeError:
                 pass
 
-        # Try parsing the whole response as JSON
-        try:
-            result = json.loads(text)
-            if isinstance(result, list):
-                return [f for f in result if isinstance(f, dict)]
-            if isinstance(result, dict) and "vulnerabilities" in result:
-                return result["vulnerabilities"]
-        except json.JSONDecodeError:
-            pass
+        # Strategy 3: Extract individual JSON objects line by line
+        findings = []
+        for line in text.split("\n"):
+            line = line.strip().rstrip(",")
+            if line.startswith("{") and line.endswith("}"):
+                try:
+                    obj = json.loads(line)
+                    if isinstance(obj, dict) and ("title" in obj or "type" in obj):
+                        findings.append(obj)
+                except json.JSONDecodeError:
+                    pass
+        if findings:
+            return findings
 
         logger.warning(f"FrontierLLM: Could not parse response ({len(text)} chars)")
         return []
