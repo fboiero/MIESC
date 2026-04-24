@@ -544,7 +544,8 @@ def main():
     print(f"{'='*60}")
     total_raw = sum(r.get("n_findings_raw", r.get("n_findings", 0)) for r in results if r["status"] == "ok")
     precision = total_detected / total_findings if total_findings else 0
-    f1 = 2 * precision * (total_detected / total_vulns) / (precision + total_detected / total_vulns) if (precision + total_detected / total_vulns) > 0 else 0
+    recall_val = total_detected / total_vulns if total_vulns else 0
+    f1 = 2 * precision * recall_val / (precision + recall_val) if (precision + recall_val) > 0 else 0
 
     print(f"Audits evaluated: {ok_count}/{len(audits)}")
     print(f"Findings: {total_findings} HIGH+CRITICAL (from {total_raw} raw)")

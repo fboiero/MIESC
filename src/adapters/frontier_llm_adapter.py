@@ -199,25 +199,37 @@ class FrontierLLMAdapter(ToolAdapter):
 
         elapsed = time.time() - start_time
 
-        # Normalize findings
+        # Normalize findings — handle diverse key names from different LLM responses
         normalized = []
         for f in findings:
+            title = f.get("title") or f.get("vulnerability") or f.get("name") or f.get("type") or "Unknown"
+            ftype = f.get("type") or f.get("category") or f.get("vulnerability_type") or "logic_error"
+            severity = f.get("severity") or "Medium"
+            loc = f.get("location") or f.get("function") or "unknown"
+            line = f.get("line") or f.get("line_number") or 0
+            if isinstance(loc, str) and ":" in loc:
+                parts = loc.split(":")
+                loc = parts[0]
+                try:
+                    line = int(parts[-1])
+                except ValueError:
+                    pass
             normalized.append({
-                "type": f.get("type", "logic_error"),
-                "title": f.get("title", "Unknown"),
-                "severity": f.get("severity", "Medium").capitalize(),
+                "type": ftype.lower().replace(" ", "_"),
+                "title": title,
+                "severity": str(severity).capitalize(),
                 "tool": f"frontier-{provider}",
                 "confidence": 0.80,
                 "location": {
                     "file": contract_path,
-                    "line": f.get("line", 0),
-                    "function": f.get("function", "unknown"),
+                    "line": line,
+                    "function": loc if isinstance(loc, str) else "unknown",
                 },
                 "description": f.get("description", ""),
                 "message": f.get("impact", ""),
-                "recommendation": f.get("recommendation", ""),
-                "exploit_scenario": f.get("proof_of_concept", ""),
-                "swc_id": "",
+                "recommendation": f.get("recommendation") or f.get("fix") or f.get("remediation") or "",
+                "exploit_scenario": f.get("proof_of_concept") or f.get("attack_scenario") or f.get("exploit") or "",
+                "swc_id": f.get("swc_id") or f.get("swc") or "",
             })
 
         return {
@@ -416,7 +428,7 @@ class FrontierLLMAdapter(ToolAdapter):
             if line.startswith("{") and line.endswith("}"):
                 try:
                     obj = json.loads(line)
-                    if isinstance(obj, dict) and ("title" in obj or "type" in obj):
+                    if isinstance(obj, dict) and any(k in obj for k in ("title", "type", "vulnerability", "description")):
                         findings.append(obj)
                 except json.JSONDecodeError:
                     pass
