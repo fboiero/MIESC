@@ -212,6 +212,47 @@ def run_miesc_scan(sol_files, output_path, llm_enhance=False, repo_dir=None, fro
     return {"findings": [], "error": f"scan failed: {result.stderr[:200]}"}
 
 
+def _llm_judge_match(finding: dict, vuln: dict) -> bool:
+    """Use Claude as a judge to determine if a finding matches a vulnerability.
+
+    This is more accurate than keyword matching but costs ~$0.001 per comparison.
+    Falls back to keyword matching if API is unavailable.
+    """
+    import os
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return False
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+
+        finding_text = (
+            f"Title: {finding.get('title') or finding.get('type', '?')}\n"
+            f"Severity: {finding.get('severity', '?')}\n"
+            f"Description: {finding.get('description', '')[:500]}\n"
+            f"Function: {finding.get('location', {}).get('function', '?') if isinstance(finding.get('location'), dict) else '?'}"
+        )
+        vuln_text = vuln["description"]
+
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=10,
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"Does this security finding describe the SAME vulnerability?\n\n"
+                    f"GROUND TRUTH VULNERABILITY:\n{vuln_text}\n\n"
+                    f"DETECTED FINDING:\n{finding_text}\n\n"
+                    f"Answer ONLY 'yes' or 'no'."
+                ),
+            }],
+        )
+        answer = msg.content[0].text.strip().lower()
+        return answer.startswith("yes")
+    except Exception:
+        return False
+
+
 def match_finding_to_vuln(finding, vuln):
     """Check if a MIESC finding matches an EVMBench vulnerability.
 
@@ -317,7 +358,14 @@ def match_finding_to_vuln(finding, vuln):
     if stem_overlap >= 2:
         return True
 
+    # Signal 6: LLM judge as final fallback (opt-in, costs ~$0.001 per check)
+    if _USE_LLM_JUDGE and _llm_judge_match(finding, vuln):
+        return True
+
     return False
+
+
+_USE_LLM_JUDGE = False  # Set via --judge flag
 
 
 def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None, n_runs=1):
@@ -463,6 +511,8 @@ def main():
                         help="Frontier model: claude, claude-opus, gpt, gpt-4o")
     parser.add_argument("--runs", type=int, default=1,
                         help="Number of runs to ensemble (union of findings)")
+    parser.add_argument("--judge", action="store_true",
+                        help="Use Claude Haiku as LLM judge for matching (more accurate)")
     args = parser.parse_args()
 
     if not EVMBENCH_AUDITS.exists():
@@ -470,6 +520,8 @@ def main():
         print("Clone: git clone --recurse https://github.com/paradigmxyz/evmbench /tmp/evmbench")
         sys.exit(1)
 
+    global _USE_LLM_JUDGE
+    _USE_LLM_JUDGE = args.judge
     audits = load_audits(max_audits=args.max_audits, single_audit=args.audit)
     mode = f"static+{args.model}" if args.model else ("static+LLM" if args.llm else "static")
     print(f"Evaluating MIESC on {len(audits)} EVMBench audits [{mode}]")
