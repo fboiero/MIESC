@@ -28,6 +28,25 @@ from pathlib import Path
 
 EVMBENCH_AUDITS = Path("/tmp/evmbench/frontier-evals/project/evmbench/audits")
 RESULTS_DIR = Path(__file__).parent / "results" / "evmbench"
+PROJECT_ROOT = Path(__file__).parent.parent
+
+
+def _load_api_keys():
+    """Load API keys from apik.sh if not already in env."""
+    apik = PROJECT_ROOT / "apik.sh"
+    if not apik.exists():
+        return
+    for line in apik.read_text().splitlines():
+        line = line.strip()
+        if line.startswith("export ") and "=" in line:
+            key_val = line[len("export "):]
+            key, _, val = key_val.partition("=")
+            val = val.strip("'\"")
+            if key and val and key not in os.environ:
+                os.environ[key] = val
+
+
+_load_api_keys()
 
 
 def load_audits(max_audits=None, single_audit=None):
@@ -395,55 +414,68 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
     all_findings_union = []
     seen_finding_keys = set()
 
+    # Prepare frontier adapter once (if using frontier model)
+    _frontier_adapter = None
+    _frontier_concat = None
+    if frontier_model:
+        sys.path.insert(0, str(PROJECT_ROOT))
+        sys.path.insert(0, str(PROJECT_ROOT / "src"))
+        from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+
+        provider_map = {"claude": "anthropic", "claude-opus": "anthropic",
+                        "claude-sonnet": "anthropic", "gpt": "openai", "gpt-4o": "openai"}
+        _frontier_adapter = FrontierLLMAdapter(provider=provider_map.get(frontier_model, "auto"))
+
+        # Build concat file once (up to 150KB for large audits)
+        source_files = [f for f in sol_files if "/test" not in f.lower()
+                        and "/mock" not in f.lower() and not Path(f).name.startswith("I")]
+        if not source_files:
+            source_files = list(sol_files)
+        source_files = sorted(source_files, key=lambda f: os.path.getsize(f), reverse=True)
+
+        concat_code = ""
+        for sf in source_files:
+            try:
+                content = open(sf).read()
+                if len(concat_code) + len(content) > 150_000 and concat_code:
+                    break
+                concat_code += f"// ===== FILE: {Path(sf).name} =====\n{content}\n\n"
+            except Exception:
+                pass
+
+        if concat_code:
+            _frontier_concat = Path(tempfile.mktemp(suffix=".sol"))
+            _frontier_concat.write_text(concat_code)
+            print(f"  Concat: {len(source_files)} src files, {len(concat_code)//1024}KB")
+
     for run_idx in range(n_runs):
         if n_runs > 1:
             print(f"  Run {run_idx + 1}/{n_runs}...")
         else:
             print(f"  Running MIESC scan ({mode})...")
 
-        output_path = Path(tempfile.mktemp(suffix=".json"))
-        scan_result = run_miesc_scan(sol_files, output_path, llm_enhance=llm_enhance,
-                                         repo_dir=repo_dir, frontier_model=frontier_model)
-        run_findings = scan_result.get("findings", [])
-        output_path.unlink(missing_ok=True)
+        run_findings = []
 
-        # Fallback: call frontier adapter directly if subprocess fails
-        if not run_findings and frontier_model:
+        # Strategy A: Direct frontier adapter (reliable, no subprocess issues)
+        if _frontier_adapter and _frontier_concat:
             try:
-                sys.path.insert(0, str(Path(__file__).parent.parent))
-                sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-                from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+                model_map = {"claude": "claude-sonnet-4-20250514", "claude-opus": "claude-opus-4-20250514",
+                             "gpt": "gpt-4o", "gpt-4o": "gpt-4o"}
+                result = _frontier_adapter.analyze(
+                    str(_frontier_concat),
+                    model=model_map.get(frontier_model, "claude-sonnet-4-20250514"),
+                )
+                run_findings = result.get("findings", [])
+            except Exception as e:
+                print(f"    Frontier adapter error: {e}")
 
-                provider_map = {"claude": "anthropic", "claude-opus": "anthropic",
-                                "claude-sonnet": "anthropic", "gpt": "openai", "gpt-4o": "openai"}
-                adapter = FrontierLLMAdapter(provider=provider_map.get(frontier_model, "auto"))
-
-                source_files = [f for f in sol_files if "/test" not in f.lower()
-                                and "/mock" not in f.lower() and not Path(f).name.startswith("I")]
-                if not source_files:
-                    source_files = sol_files
-                source_files = sorted(source_files, key=lambda f: os.path.getsize(f), reverse=True)
-
-                concat_code = ""
-                for sf in source_files:
-                    try:
-                        content = open(sf).read()
-                        if len(concat_code) + len(content) > 100_000:
-                            break
-                        concat_code += f"// ===== FILE: {Path(sf).name} =====\n{content}\n\n"
-                    except Exception:
-                        pass
-
-                if concat_code:
-                    tmp_file = Path(tempfile.mktemp(suffix=".sol"))
-                    tmp_file.write_text(concat_code)
-                    model_map = {"claude": "claude-sonnet-4-20250514", "claude-opus": "claude-opus-4-20250514",
-                                 "gpt": "gpt-4o", "gpt-4o": "gpt-4o"}
-                    result = adapter.analyze(str(tmp_file), model=model_map.get(frontier_model, "claude-sonnet-4-20250514"))
-                    run_findings = result.get("findings", [])
-                    tmp_file.unlink(missing_ok=True)
-            except Exception:
-                pass
+        # Strategy B: Subprocess scan (for static analysis, or fallback)
+        if not run_findings:
+            output_path = Path(tempfile.mktemp(suffix=".json"))
+            scan_result = run_miesc_scan(sol_files, output_path, llm_enhance=llm_enhance,
+                                             repo_dir=repo_dir, frontier_model=frontier_model)
+            run_findings = scan_result.get("findings", [])
+            output_path.unlink(missing_ok=True)
 
         # Deduplicate and add to union
         for f in run_findings:
@@ -478,6 +510,8 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
         print(f"  {status} {vuln['id']}: {vuln['description'][:60]}")
 
     # Cleanup
+    if _frontier_concat:
+        _frontier_concat.unlink(missing_ok=True)
     shutil.rmtree(repo_dir.parent, ignore_errors=True)
 
     n_detected = sum(1 for d in detected if d["matched"])
