@@ -97,4 +97,12 @@ M.~Wooldridge and N.~R. Jennings, ``Intelligent agents: Theory and practice,''
 {Anthropic}, ``Model context protocol specification,''
   \url{https://modelcontextprotocol.io}, 2024.
 
+\bibitem{evmbench2026}
+\BIBentryALTinterwordspacing
+A.~Gupta, V.~Gottimukkala, D.~Robinson, Paradigm, and OpenAI, ``{EVMBench}:
+  Evaluating {AI} agents on smart contract security,'' \emph{arXiv preprint
+  arXiv:2603.04915}, 2026. [Online]. Available:
+  \url{https://github.com/paradigmxyz/evmbench}
+\BIBentrySTDinterwordspacing
+
 \end{thebibliography}
