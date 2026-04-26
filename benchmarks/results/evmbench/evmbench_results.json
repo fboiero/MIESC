@@ -1,24 +1,24 @@
 {
   "version": "5.3.1",
-  "date": "2026-04-26T12:45:30.813655",
-  "audits_evaluated": 39,
-  "total_findings": 199,
-  "total_detected": 85,
-  "total_vulns": 118,
-  "recall": 0.7203389830508474,
+  "date": "2026-04-26T13:11:56.601589",
+  "audits_evaluated": 38,
+  "total_findings": 202,
+  "total_detected": 79,
+  "total_vulns": 114,
+  "recall": 0.6929824561403509,
   "results": [
     {
       "audit": "2024-01-canto",
       "status": "ok",
       "sloc": 106,
       "n_contracts": 1,
-      "n_findings": 4,
-      "n_findings_raw": 4,
+      "n_findings": 6,
+      "n_findings_raw": 6,
       "n_filtered": 0,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
-      "precision": 0.5,
+      "precision": 0.3333333333333333,
       "details": [
         {
           "vuln": "H-01",
@@ -37,17 +37,17 @@
       "status": "ok",
       "sloc": 216,
       "n_contracts": 2,
-      "n_findings": 2,
-      "n_findings_raw": 2,
+      "n_findings": 4,
+      "n_findings_raw": 4,
       "n_filtered": 0,
-      "detected": 1,
+      "detected": 0,
       "total": 1,
-      "recall": 1.0,
-      "precision": 0.5,
+      "recall": 0.0,
+      "precision": 0.0,
       "details": [
         {
           "vuln": "H-01",
-          "matched": true,
+          "matched": false,
           "description": "MergeTgt has no handling if TGTTOEXCHANGE is exceeded during the exchange period"
         }
       ]
@@ -57,13 +57,13 @@
       "status": "ok",
       "sloc": 247,
       "n_contracts": 3,
-      "n_findings": 7,
-      "n_findings_raw": 7,
+      "n_findings": 5,
+      "n_findings_raw": 5,
       "n_filtered": 0,
       "detected": 1,
       "total": 2,
       "recall": 0.5,
-      "precision": 0.14285714285714285,
+      "precision": 0.2,
       "details": [
         {
           "vuln": "H-01",
@@ -82,17 +82,17 @@
       "status": "ok",
       "sloc": 277,
       "n_contracts": 1,
-      "n_findings": 9,
-      "n_findings_raw": 9,
-      "n_filtered": 0,
-      "detected": 5,
+      "n_findings": 5,
+      "n_findings_raw": 11,
+      "n_filtered": 6,
+      "detected": 4,
       "total": 5,
-      "recall": 1.0,
-      "precision": 0.5555555555555556,
+      "recall": 0.8,
+      "precision": 0.8,
       "details": [
         {
           "vuln": "H-01",
-          "matched": true,
+          "matched": false,
           "description": "Single plot can be occupied by multiple renters"
         },
         {
@@ -122,17 +122,17 @@
       "status": "ok",
       "sloc": 289,
       "n_contracts": 1,
-      "n_findings": 5,
-      "n_findings_raw": 6,
-      "n_filtered": 1,
-      "detected": 1,
+      "n_findings": 3,
+      "n_findings_raw": 3,
+      "n_filtered": 0,
+      "detected": 0,
       "total": 1,
-      "recall": 1.0,
-      "precision": 0.2,
+      "recall": 0.0,
+      "precision": 0.0,
       "details": [
         {
           "vuln": "H-01",
-          "matched": true,
+          "matched": false,
           "description": "Reentrancy in burn allows stablecoin pool drainage"
         }
       ]
@@ -162,17 +162,17 @@
       "status": "ok",
       "sloc": 300,
       "n_contracts": 2,
-      "n_findings": 0,
-      "n_findings_raw": 0,
+      "n_findings": 4,
+      "n_findings_raw": 4,
       "n_filtered": 0,
-      "detected": 0,
+      "detected": 1,
       "total": 1,
-      "recall": 0.0,
-      "precision": 0,
+      "recall": 1.0,
+      "precision": 0.25,
       "details": [
         {
           "vuln": "H-01",
-          "matched": false,
+          "matched": true,
           "description": "userTotalStaked invariant will be broken due to vulnerable implementations in release()"
         }
       ]
@@ -182,13 +182,13 @@
       "status": "ok",
       "sloc": 377,
       "n_contracts": 3,
-      "n_findings": 6,
-      "n_findings_raw": 6,
-      "n_filtered": 0,
+      "n_findings": 7,
+      "n_findings_raw": 10,
+      "n_filtered": 3,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
-      "precision": 0.16666666666666666,
+      "precision": 0.14285714285714285,
       "details": [
         {
           "vuln": "H-01",
@@ -202,13 +202,13 @@
       "status": "ok",
       "sloc": 386,
       "n_contracts": 6,
-      "n_findings": 7,
-      "n_findings_raw": 8,
-      "n_filtered": 1,
+      "n_findings": 6,
+      "n_findings_raw": 6,
+      "n_filtered": 0,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
-      "precision": 0.14285714285714285,
+      "precision": 0.16666666666666666,
       "details": [
         {
           "vuln": "H-01",
@@ -222,13 +222,13 @@
       "status": "ok",
       "sloc": 413,
       "n_contracts": 1,
-      "n_findings": 8,
-      "n_findings_raw": 8,
-      "n_filtered": 0,
+      "n_findings": 4,
+      "n_findings_raw": 11,
+      "n_filtered": 7,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
-      "precision": 0.25,
+      "precision": 0.5,
       "details": [
         {
           "vuln": "H-01",
@@ -272,17 +272,17 @@
       "status": "ok",
       "sloc": 472,
       "n_contracts": 6,
-      "n_findings": 6,
-      "n_findings_raw": 6,
+      "n_findings": 7,
+      "n_findings_raw": 7,
       "n_filtered": 0,
-      "detected": 0,
+      "detected": 1,
       "total": 1,
-      "recall": 0.0,
-      "precision": 0.0,
+      "recall": 1.0,
+      "precision": 0.14285714285714285,
       "details": [
         {
           "vuln": "H-01",
-          "matched": false,
+          "matched": true,
           "description": "Cross-chain signature replay attack due to user-supplied domainSeparator and missing deadline check"
         }
       ]
@@ -292,27 +292,27 @@
       "status": "ok",
       "sloc": 477,
       "n_contracts": 1,
-      "n_findings": 1,
-      "n_findings_raw": 2,
-      "n_filtered": 1,
-      "detected": 0,
+      "n_findings": 4,
+      "n_findings_raw": 4,
+      "n_filtered": 0,
+      "detected": 3,
       "total": 3,
-      "recall": 0.0,
-      "precision": 0.0,
+      "recall": 1.0,
+      "precision": 0.75,
       "details": [
         {
           "vuln": "H-01",
-          "matched": false,
+          "matched": true,
           "description": "Cross-chain voucher replay allows draining channels across Tempo networks"
         },
         {
           "vuln": "H-02",
-          "matched": false,
+          "matched": true,
           "description": "Cumulative amount underflow in close() allows draining channel deposits"
         },
         {
           "vuln": "H-03",
-          "matched": false,
+          "matched": true,
           "description": "Authorized signer validation bypass via zero address signature recovery"
         }
       ]
@@ -322,22 +322,22 @@
       "status": "ok",
       "sloc": 495,
       "n_contracts": 2,
-      "n_findings": 6,
-      "n_findings_raw": 6,
+      "n_findings": 3,
+      "n_findings_raw": 3,
       "n_filtered": 0,
-      "detected": 3,
+      "detected": 1,
       "total": 3,
-      "recall": 1.0,
-      "precision": 0.5,
+      "recall": 0.3333333333333333,
+      "precision": 0.3333333333333333,
       "details": [
         {
           "vuln": "H-02",
-          "matched": true,
+          "matched": false,
           "description": "Missing authorization in cancel() allows anyone to cancel any order"
         },
         {
           "vuln": "H-03",
-          "matched": true,
+          "matched": false,
           "description": "Linked list corruption enables double refund via incomplete order cleanup"
         },
         {
@@ -352,13 +352,13 @@
       "status": "ok",
       "sloc": 553,
       "n_contracts": 5,
-      "n_findings": 3,
-      "n_findings_raw": 3,
+      "n_findings": 5,
+      "n_findings_raw": 5,
       "n_filtered": 0,
-      "detected": 2,
+      "detected": 3,
       "total": 4,
-      "recall": 0.5,
-      "precision": 0.6666666666666666,
+      "recall": 0.75,
+      "precision": 0.6,
       "details": [
         {
           "vuln": "H-02",
@@ -367,7 +367,7 @@
         },
         {
           "vuln": "H-03",
-          "matched": false,
+          "matched": true,
           "description": "Attack to make CurveSubject to be a HoneyPot"
         },
         {
@@ -387,13 +387,13 @@
       "status": "ok",
       "sloc": 769,
       "n_contracts": 7,
-      "n_findings": 9,
-      "n_findings_raw": 9,
+      "n_findings": 6,
+      "n_findings_raw": 6,
       "n_filtered": 0,
       "detected": 3,
       "total": 3,
       "recall": 1.0,
-      "precision": 0.3333333333333333,
+      "precision": 0.5,
       "details": [
         {
           "vuln": "H-01",
@@ -417,13 +417,13 @@
       "status": "ok",
       "sloc": 786,
       "n_contracts": 7,
-      "n_findings": 4,
-      "n_findings_raw": 7,
-      "n_filtered": 3,
+      "n_findings": 5,
+      "n_findings_raw": 5,
+      "n_filtered": 0,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
-      "precision": 0.25,
+      "precision": 0.2,
       "details": [
         {
           "vuln": "H-01",
@@ -437,17 +437,17 @@
       "status": "ok",
       "sloc": 880,
       "n_contracts": 6,
-      "n_findings": 8,
-      "n_findings_raw": 8,
+      "n_findings": 5,
+      "n_findings_raw": 5,
       "n_filtered": 0,
-      "detected": 2,
+      "detected": 1,
       "total": 2,
-      "recall": 1.0,
-      "precision": 0.25,
+      "recall": 0.5,
+      "precision": 0.2,
       "details": [
         {
           "vuln": "H-02",
-          "matched": true,
+          "matched": false,
           "description": "Griefing attack on seller\u2019s airdrop benefits"
         },
         {
@@ -465,14 +465,14 @@
       "n_findings": 8,
       "n_findings_raw": 8,
       "n_filtered": 0,
-      "detected": 1,
+      "detected": 0,
       "total": 1,
-      "recall": 1.0,
-      "precision": 0.125,
+      "recall": 0.0,
+      "precision": 0.0,
       "details": [
         {
           "vuln": "H-01",
-          "matched": true,
+          "matched": false,
           "description": "If a gauge that a user has voted for gets removed, their voting power allocated for that gauge will be lost"
         }
       ]
@@ -483,12 +483,12 @@
       "sloc": 1265,
       "n_contracts": 8,
       "n_findings": 4,
-      "n_findings_raw": 4,
-      "n_filtered": 0,
-      "detected": 1,
+      "n_findings_raw": 43,
+      "n_filtered": 39,
+      "detected": 2,
       "total": 2,
-      "recall": 0.5,
-      "precision": 0.25,
+      "recall": 1.0,
+      "precision": 0.5,
       "details": [
         {
           "vuln": "H-01",
@@ -497,7 +497,7 @@
         },
         {
           "vuln": "H-02",
-          "matched": false,
+          "matched": true,
           "description": "Attacker can drain all ETH from AuctionDemo when block.timestamp == auctionEndTime"
         }
       ]
@@ -507,13 +507,13 @@
       "status": "ok",
       "sloc": 1327,
       "n_contracts": 22,
-      "n_findings": 5,
-      "n_findings_raw": 6,
-      "n_filtered": 1,
-      "detected": 0,
+      "n_findings": 6,
+      "n_findings_raw": 11,
+      "n_filtered": 5,
+      "detected": 1,
       "total": 2,
-      "recall": 0.0,
-      "precision": 0.0,
+      "recall": 0.5,
+      "precision": 0.16666666666666666,
       "details": [
         {
           "vuln": "H-01",
@@ -522,7 +522,7 @@
         },
         {
           "vuln": "H-03",
-          "matched": false,
+          "matched": true,
           "description": "Adversary can prevent the launch of any ILO pool with enough raised capital at any moment by providing single-sided liquidity"
         }
       ]
@@ -532,13 +532,13 @@
       "status": "ok",
       "sloc": 1517,
       "n_contracts": 3,
-      "n_findings": 2,
-      "n_findings_raw": 2,
-      "n_filtered": 0,
+      "n_findings": 4,
+      "n_findings_raw": 9,
+      "n_filtered": 5,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
-      "precision": 1.0,
+      "precision": 0.5,
       "details": [
         {
           "vuln": "H-01",
@@ -557,13 +557,13 @@
       "status": "ok",
       "sloc": 1530,
       "n_contracts": 3,
-      "n_findings": 4,
-      "n_findings_raw": 4,
+      "n_findings": 3,
+      "n_findings_raw": 3,
       "n_filtered": 0,
-      "detected": 5,
+      "detected": 3,
       "total": 5,
-      "recall": 1.0,
-      "precision": 1.25,
+      "recall": 0.6,
+      "precision": 1.0,
       "details": [
         {
           "vuln": "H-01",
@@ -577,12 +577,12 @@
         },
         {
           "vuln": "H-03",
-          "matched": true,
+          "matched": false,
           "description": "Natural logarithm function silently accepts invalid non-positive inputs"
         },
         {
           "vuln": "H-04",
-          "matched": true,
+          "matched": false,
           "description": "Unwrapping while equating inside the eq function fails to account for the set L_MATISSA_FLAG"
         },
         {
@@ -597,13 +597,13 @@
       "status": "ok",
       "sloc": 1546,
       "n_contracts": 9,
-      "n_findings": 5,
-      "n_findings_raw": 5,
-      "n_filtered": 0,
+      "n_findings": 10,
+      "n_findings_raw": 13,
+      "n_filtered": 3,
       "detected": 5,
       "total": 6,
       "recall": 0.8333333333333334,
-      "precision": 1.0,
+      "precision": 0.5,
       "details": [
         {
           "vuln": "H-01",
@@ -643,8 +643,8 @@
       "sloc": 1663,
       "n_contracts": 12,
       "n_findings": 6,
-      "n_findings_raw": 6,
-      "n_filtered": 0,
+      "n_findings_raw": 9,
+      "n_filtered": 3,
       "detected": 5,
       "total": 6,
       "recall": 0.8333333333333334,
@@ -687,13 +687,13 @@
       "status": "ok",
       "sloc": 2260,
       "n_contracts": 20,
-      "n_findings": 4,
-      "n_findings_raw": 4,
-      "n_filtered": 0,
-      "detected": 4,
+      "n_findings": 7,
+      "n_findings_raw": 12,
+      "n_filtered": 5,
+      "detected": 3,
       "total": 4,
-      "recall": 1.0,
-      "precision": 1.0,
+      "recall": 0.75,
+      "precision": 0.42857142857142855,
       "details": [
         {
           "vuln": "H-01",
@@ -707,7 +707,7 @@
         },
         {
           "vuln": "H-03",
-          "matched": true,
+          "matched": false,
           "description": "Users who deposited MIM and USDB tokens into BlastOnboarding may incur losses when the pool is created via bootstrap"
         },
         {
@@ -722,13 +722,13 @@
       "status": "ok",
       "sloc": 2334,
       "n_contracts": 22,
-      "n_findings": 6,
-      "n_findings_raw": 6,
-      "n_filtered": 0,
+      "n_findings": 8,
+      "n_findings_raw": 11,
+      "n_filtered": 3,
       "detected": 3,
       "total": 3,
       "recall": 1.0,
-      "precision": 0.5,
+      "precision": 0.375,
       "details": [
         {
           "vuln": "H-01",
@@ -752,13 +752,13 @@
       "status": "ok",
       "sloc": 2414,
       "n_contracts": 3,
-      "n_findings": 1,
-      "n_findings_raw": 1,
+      "n_findings": 0,
+      "n_findings_raw": 0,
       "n_filtered": 0,
-      "detected": 1,
+      "detected": 0,
       "total": 2,
-      "recall": 0.5,
-      "precision": 1.0,
+      "recall": 0.0,
+      "precision": 0,
       "details": [
         {
           "vuln": "H-01",
@@ -767,7 +767,7 @@
         },
         {
           "vuln": "H-02",
-          "matched": true,
+          "matched": false,
           "description": "Incorrectly assigned decimal1 parameter upon decoding"
         }
       ]
@@ -777,13 +777,13 @@
       "status": "ok",
       "sloc": 2578,
       "n_contracts": 32,
-      "n_findings": 2,
-      "n_findings_raw": 2,
-      "n_filtered": 0,
+      "n_findings": 4,
+      "n_findings_raw": 6,
+      "n_filtered": 2,
       "detected": 3,
       "total": 4,
       "recall": 0.75,
-      "precision": 1.5,
+      "precision": 0.75,
       "details": [
         {
           "vuln": "H-01",
@@ -818,17 +818,17 @@
       "status": "ok",
       "sloc": 3603,
       "n_contracts": 27,
-      "n_findings": 6,
-      "n_findings_raw": 7,
-      "n_filtered": 1,
-      "detected": 1,
+      "n_findings": 5,
+      "n_findings_raw": 8,
+      "n_filtered": 3,
+      "detected": 0,
       "total": 1,
-      "recall": 1.0,
-      "precision": 0.16666666666666666,
+      "recall": 0.0,
+      "precision": 0.0,
       "details": [
         {
           "vuln": "H-01",
-          "matched": true,
+          "matched": false,
           "description": "Adversary can make honest parties unable to retrieve their assertion stakes if the required amount is decreased"
         }
       ]
@@ -838,13 +838,13 @@
       "status": "ok",
       "sloc": 3721,
       "n_contracts": 20,
-      "n_findings": 7,
-      "n_findings_raw": 7,
-      "n_filtered": 0,
+      "n_findings": 6,
+      "n_findings_raw": 10,
+      "n_filtered": 4,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
-      "precision": 0.2857142857142857,
+      "precision": 0.3333333333333333,
       "details": [
         {
           "vuln": "H-01",
@@ -863,9 +863,9 @@
       "status": "ok",
       "sloc": 3784,
       "n_contracts": 19,
-      "n_findings": 2,
-      "n_findings_raw": 2,
-      "n_filtered": 0,
+      "n_findings": 6,
+      "n_findings_raw": 9,
+      "n_filtered": 3,
       "detected": 0,
       "total": 1,
       "recall": 0.0,
@@ -883,22 +883,22 @@
       "status": "ok",
       "sloc": 3964,
       "n_contracts": 28,
-      "n_findings": 2,
-      "n_findings_raw": 2,
-      "n_filtered": 0,
-      "detected": 0,
+      "n_findings": 8,
+      "n_findings_raw": 54,
+      "n_filtered": 46,
+      "detected": 2,
       "total": 2,
-      "recall": 0.0,
-      "precision": 0.0,
+      "recall": 1.0,
+      "precision": 0.25,
       "details": [
         {
           "vuln": "H-01",
-          "matched": false,
+          "matched": true,
           "description": "pointsSum.slope Not Updated After Nominee Removal and Votes Revocation"
         },
         {
           "vuln": "H-02",
-          "matched": false,
+          "matched": true,
           "description": "Arbitrary tokens and data can be bridged to GnosisTargetDispenserL2 to manipulate staking incentives"
         }
       ]
@@ -908,13 +908,13 @@
       "status": "ok",
       "sloc": 3999,
       "n_contracts": 41,
-      "n_findings": 5,
-      "n_findings_raw": 5,
-      "n_filtered": 0,
-      "detected": 13,
+      "n_findings": 6,
+      "n_findings_raw": 9,
+      "n_filtered": 3,
+      "detected": 14,
       "total": 20,
-      "recall": 0.65,
-      "precision": 2.6,
+      "recall": 0.7,
+      "precision": 2.3333333333333335,
       "details": [
         {
           "vuln": "H-01",
@@ -928,12 +928,12 @@
         },
         {
           "vuln": "H-04",
-          "matched": false,
+          "matched": true,
           "description": "executeWithdraw may be blocked if any of the users are blacklisted from the baseToken"
         },
         {
           "vuln": "H-05",
-          "matched": true,
+          "matched": false,
           "description": "Loss of funds in PendleConnector.depositIntoMarket()"
         },
         {
@@ -1003,7 +1003,7 @@
         },
         {
           "vuln": "H-21",
-          "matched": false,
+          "matched": true,
           "description": "Decreasing a position in PendleConnector will remove it even if there\u2019s still a stake at Penpie"
         },
         {
@@ -1024,8 +1024,8 @@
       "sloc": 4630,
       "n_contracts": 34,
       "n_findings": 5,
-      "n_findings_raw": 5,
-      "n_filtered": 0,
+      "n_findings_raw": 8,
+      "n_filtered": 3,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
@@ -1048,22 +1048,22 @@
       "status": "ok",
       "sloc": 4855,
       "n_contracts": 42,
-      "n_findings": 8,
-      "n_findings_raw": 8,
-      "n_filtered": 0,
-      "detected": 5,
+      "n_findings": 6,
+      "n_findings_raw": 7,
+      "n_filtered": 1,
+      "detected": 3,
       "total": 7,
-      "recall": 0.7142857142857143,
-      "precision": 0.625,
+      "recall": 0.42857142857142855,
+      "precision": 0.5,
       "details": [
         {
           "vuln": "H-01",
-          "matched": true,
+          "matched": false,
           "description": "Mismatch between yield amount deposited in shares calculation and getAccountYieldBalance()"
         },
         {
           "vuln": "H-02",
-          "matched": false,
+          "matched": true,
           "description": "isolateRepay() lack of check onBehalf == nftOwner"
         },
         {
@@ -1073,12 +1073,12 @@
         },
         {
           "vuln": "H-04",
-          "matched": true,
+          "matched": false,
           "description": "Revert due to underflow error, leading to lock of the liquidated NFT"
         },
         {
           "vuln": "H-06",
-          "matched": true,
+          "matched": false,
           "description": "Users cannot unstake from YiedlETHStakingEtherfi.sol, because YieldAccount.sol is incompatible with ether.fi\u2019s WithdrawRequestNFT.sol"
         },
         {
@@ -1095,51 +1095,22 @@
     },
     {
       "audit": "2025-04-virtuals",
-      "status": "ok",
-      "sloc": 5238,
-      "n_contracts": 43,
-      "n_findings": 9,
-      "n_findings_raw": 9,
-      "n_filtered": 0,
-      "detected": 2,
-      "total": 4,
-      "recall": 0.5,
-      "precision": 0.2222222222222222,
-      "details": [
-        {
-          "vuln": "H-01",
-          "matched": true,
-          "description": "Lack of access control in AgentNftV2::addValidator() enables unauthorized validator injection and causes reward accounting inconsistencies"
-        },
-        {
-          "vuln": "H-03",
-          "matched": true,
-          "description": "Public ServiceNft::updateImpact call leads to cascading issue"
-        },
-        {
-          "vuln": "H-04",
-          "matched": false,
-          "description": "Public ContributionNft::mint leads to cascading issues / loss of funds"
-        },
-        {
-          "vuln": "H-05",
-          "matched": false,
-          "description": "ValidatorRegistry::validatorScore/getPastValidatorScore allows validator to earn full rewards without actually engaging with the protocol"
-        }
-      ]
+      "status": "clone_failed",
+      "detected": 0,
+      "total": 4
     },
     {
       "audit": "2024-03-taiko",
       "status": "ok",
       "sloc": 7442,
       "n_contracts": 80,
-      "n_findings": 8,
-      "n_findings_raw": 8,
-      "n_filtered": 0,
-      "detected": 2,
+      "n_findings": 3,
+      "n_findings_raw": 7,
+      "n_filtered": 4,
+      "detected": 1,
       "total": 5,
-      "recall": 0.4,
-      "precision": 0.25,
+      "recall": 0.2,
+      "precision": 0.3333333333333333,
       "details": [
         {
           "vuln": "H-01",
@@ -1163,7 +1134,7 @@
         },
         {
           "vuln": "H-05",
-          "matched": true,
+          "matched": false,
           "description": "Signatures can be replayed in withdraw() to withdraw more tokens than the user originally intended."
         }
       ]
@@ -1173,13 +1144,13 @@
       "status": "ok",
       "sloc": 10108,
       "n_contracts": 116,
-      "n_findings": 6,
-      "n_findings_raw": 6,
-      "n_filtered": 0,
+      "n_findings": 9,
+      "n_findings_raw": 14,
+      "n_filtered": 5,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
-      "precision": 0.16666666666666666,
+      "precision": 0.1111111111111111,
       "details": [
         {
           "vuln": "H-02",
