@@ -172,6 +172,7 @@ class FrontierLLMAdapter(ToolAdapter):
         """
         start_time = time.time()
         deep = kwargs.pop("deep", False)
+        debate = kwargs.pop("debate", False)
 
         if self.is_available() != ToolStatus.AVAILABLE:
             return self._error_result(start_time, "FrontierLLM not available")
@@ -292,6 +293,11 @@ class FrontierLLMAdapter(ToolAdapter):
                     })
                 logger.info(f"FrontierLLM: Deep pass found {len(deep_findings)} additional findings")
 
+        # F: 2-agent debate (opt-in via debate=True)
+        if debate and deduped:
+            logger.info(f"FrontierLLM: Running debate verification on {len(deduped)} findings...")
+            deduped = self._debate_verify(source_code, deduped, provider, **kwargs)
+
         return {
             "tool": f"frontier-{provider}",
             "status": "success",
@@ -408,6 +414,82 @@ Respond with a JSON array."""
         except Exception as e:
             logger.warning(f"FrontierLLM deep pass failed: {e}")
         return []
+
+    def _debate_verify(self, source_code: str, findings: List[Dict],
+                       provider: str, **kwargs) -> List[Dict]:
+        """F: 2-agent debate — challenger verifies each finding.
+
+        For each finding, a second LLM call asks: "Is this a real
+        vulnerability or a false positive? Explain why."
+        Findings confirmed by the challenger get boosted confidence;
+        rejected findings are downgraded.
+        """
+        if not findings:
+            return findings
+
+        verified = []
+        for f in findings:
+            title = f.get("title") or f.get("type", "Unknown")
+            desc = f.get("description", "")[:500]
+            fn = f.get("location", {}).get("function", "?") if isinstance(f.get("location"), dict) else "?"
+
+            challenge_prompt = (
+                f"A security auditor reported this vulnerability in a smart contract:\n\n"
+                f"Title: {title}\nFunction: {fn}\nDescription: {desc}\n\n"
+                f"Contract code:\n{source_code[:50_000]}\n\n"
+                f"As a CHALLENGER, determine if this is a REAL vulnerability or a FALSE POSITIVE.\n"
+                f"Consider: Is the exploit actually reachable? Are there existing mitigations? "
+                f"Is the severity accurate?\n\n"
+                f"Answer with JSON: {{\"verdict\": \"confirmed\" or \"rejected\", \"reason\": \"...\"}}"
+            )
+
+            try:
+                if provider == "anthropic":
+                    import anthropic
+                    client = anthropic.Anthropic()
+                    msg = client.messages.create(
+                        model="claude-haiku-4-5-20251001",  # Cheaper model for verification
+                        max_tokens=500,
+                        messages=[{"role": "user", "content": challenge_prompt}],
+                    )
+                    response = msg.content[0].text
+                elif provider == "openai":
+                    import openai
+                    client = openai.OpenAI()
+                    resp = client.chat.completions.create(
+                        model="gpt-4o-mini",  # Cheaper model for verification
+                        max_tokens=500,
+                        messages=[{"role": "user", "content": challenge_prompt}],
+                    )
+                    response = resp.choices[0].message.content
+                else:
+                    verified.append(f)
+                    continue
+
+                # Parse verdict
+                resp_lower = response.lower()
+                if "confirmed" in resp_lower:
+                    f["debate_verdict"] = "confirmed"
+                    f["confidence"] = min(0.95, f.get("confidence", 0.80) + 0.10)
+                    verified.append(f)
+                elif "rejected" in resp_lower:
+                    f["debate_verdict"] = "rejected"
+                    f["confidence"] = max(0.20, f.get("confidence", 0.80) - 0.30)
+                    # Still include but with low confidence — let the user decide
+                    verified.append(f)
+                else:
+                    f["debate_verdict"] = "uncertain"
+                    verified.append(f)
+
+            except Exception as e:
+                logger.debug(f"Debate verification failed for {title}: {e}")
+                verified.append(f)  # Keep finding if debate fails
+
+        confirmed = sum(1 for f in verified if f.get("debate_verdict") == "confirmed")
+        rejected = sum(1 for f in verified if f.get("debate_verdict") == "rejected")
+        logger.info(f"FrontierLLM debate: {confirmed} confirmed, {rejected} rejected, "
+                     f"{len(verified) - confirmed - rejected} uncertain")
+        return verified
 
     def _get_rag_context(self, source_code: str) -> str:
         """Build RAG context with protocol-specific exploit patterns."""
