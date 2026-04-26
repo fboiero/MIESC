@@ -630,7 +630,13 @@ METHODOLOGY — analyze step by step:
 3. CHECK VULNERABILITY CLASSES against detected patterns:
 {focus_areas}
 
-4. FOR EACH FINDING — verify before reporting:
+4. CHECK STATE CONSISTENCY:
+   - When a token/position is transferred, are ALL mappings + struct fields updated?
+   - Are hardcoded caps/limits enforced? What if total deposits exceed the cap?
+   - Check every subtraction: can it underflow if actual exceeds expected?
+   - Are time boundaries enforced? (deadline, exchange period, epoch)
+
+5. FOR EACH FINDING — verify before reporting:
    - Is the vulnerability REAL in this code, or theoretical?
    - Is there a guard/mitigation already in place? (nonReentrant, SafeERC20, etc.)
    - What is the concrete attack scenario (step 1, step 2, step 3)?

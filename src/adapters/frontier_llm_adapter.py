@@ -63,9 +63,10 @@ Follow this step-by-step analysis process:
 3. **Check access control** — Which functions are privileged? Can they be called by unauthorized users?
 4. **Analyze external interactions** — Are there reentrancy risks? Unchecked return values?
 5. **Look for economic exploits** — Flash loan attacks? Oracle manipulation? Rounding errors? Can governance be exploited?
-6. **Check edge cases** — What happens with zero values? Max values? Empty arrays? What if a limit or cap is exceeded? What if called at boundary conditions (exact deadlines, exactly full arrays)?
-7. **Check state consistency** — Are state variables updated correctly in all paths? Are there dirty flags or counters that could get out of sync? Can state be manipulated by calling functions in unexpected order?
-8. **Check multi-contract interactions** — If the contract interacts with external contracts or tokens, can those interactions be exploited? Can callbacks change state unexpectedly?
+6. **Check boundary conditions and caps** — Are there hardcoded limits (max supply, cap, deadline)? What happens if the total exceeds the cap? Will later users be unable to withdraw? Will arithmetic underflow? Check EVERY subtraction for potential underflow when actual > expected.
+7. **Check state consistency after EVERY state-changing operation** — When a token/position is transferred, are ALL related mappings and struct fields updated? Specifically: if a function moves an item from A to B, does it update BOTH the source AND destination state? Are flags (occupied, active, dirty) correctly synced? Can calling functions in a specific order leave state inconsistent?
+8. **Check multi-contract interactions** — If the contract interacts with external contracts or tokens, can those interactions be exploited? Can callbacks change state unexpectedly? Are return values from external calls checked?
+9. **Check time-bounded operations** — If there are exchange periods, deadlines, or time windows: what happens at exact boundaries? Can operations continue after the period ends? Are remaining funds safely handled?
 
 For each vulnerability found, respond with ONLY a JSON array:
 ```json
@@ -586,6 +587,35 @@ Respond with a JSON array."""
                 "- State not reset after refund → double refund attack\n"
                 "- Race condition between deposit and withdrawal in same block\n"
                 "- Claim function not checking if already claimed (missing flag update)"
+            )
+        # Patterns from EVMBench missed vulns analysis
+        if any(kw in code_lower for kw in ["hardcoded", "constant", "cap", "limit", "max_", "total_"]):
+            sections.append(
+                "KNOWN BOUNDARY/CAP EXPLOITS:\n"
+                "- Hardcoded cap without enforcement: if deposits exceed the cap,\n"
+                "  later withdrawals underflow (e.g., remainingAmount - totalClaimable)\n"
+                "- Missing check that sum of all user deposits <= hardcoded pool size\n"
+                "- Rate calculation using hardcoded ratio that becomes invalid when cap is exceeded\n"
+                "- withdrawRemaining() reverts when actual balance < expected balance due to overcapping"
+            )
+        if any(kw in code_lower for kw in ["transfer", "move", "migrate", "plotid", "tokenid"]) and \
+           any(kw in code_lower for kw in ["struct", "state", "mapping"]):
+            sections.append(
+                "KNOWN TRANSFER STATE EXPLOITS:\n"
+                "- Transfer function updates destination but NOT source state struct\n"
+                "  (e.g., moves token to new plot but plotId in ToilerState unchanged)\n"
+                "- Occupied/available flags not synced after transfer → double occupancy\n"
+                "- Old references (mappings) not cleaned up after move/migrate\n"
+                "- Struct fields partially updated leaving inconsistent state"
+            )
+        if any(kw in code_lower for kw in ["exchange", "convert", "merge", "swap"]) and \
+           any(kw in code_lower for kw in ["period", "deadline", "timestamp", "block.timestamp"]):
+            sections.append(
+                "KNOWN TIME-BOUNDED EXCHANGE EXPLOITS:\n"
+                "- No cap enforcement during exchange period → total exchanged exceeds pool\n"
+                "- Missing deadline check → exchange after period should revert but doesn't\n"
+                "- Remaining token withdrawal before exchange period ends → premature drain\n"
+                "- Underflow in withdrawal calculation when actual exchanges > expected cap"
             )
 
         context = "\n\n".join(sections)
