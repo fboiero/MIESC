@@ -642,15 +642,28 @@ METHODOLOGY — analyze step by step:
    - What is the concrete attack scenario (step 1, step 2, step 3)?
    - What is the impact in dollar terms if exploited?
 
-FEW-SHOT REFERENCES (real exploits):
-- Curve sUSD pool (2023, $70M): price-manipulation via read-only reentrancy
-  through get_virtual_price; lesson — treat view functions as untrusted when
-  they read pool state mid-update.
-- Euler Finance (2023, $197M): donateToReserves enabled self-liquidation
-  because solvency was not rechecked; lesson — ANY state-changing external
-  function must reassert the global invariants it touches.
-- Wormhole (2022, $320M): missing signature validation in verifyVAA;
-  lesson — external-input validation MUST cover every field the verifier trusts.
+FEW-SHOT EXAMPLES — analyze like these real-world exploits:
+
+EXAMPLE 1 — Reentrancy ($70M Curve, 2023):
+  Contract: StableSwap pool with get_virtual_price() view function
+  Bug: get_virtual_price reads pool state during a callback (remove_liquidity)
+  Analysis: "function withdraw() calls _burn which triggers fallback;
+  during fallback, attacker calls get_virtual_price() which reads stale D value"
+  Finding: {{"type":"reentrancy","severity":"CRITICAL","title":"Read-only reentrancy in virtual price","function":"get_virtual_price"}}
+
+EXAMPLE 2 — State inconsistency ($197M Euler, 2023):
+  Contract: Lending pool with donateToReserves() + liquidation
+  Bug: donateToReserves reduces borrower's debt without checking solvency
+  Analysis: "donateToReserves() decreases the debt position but does NOT call
+  checkAccountHealth(); this leaves the account underwater, enabling self-liquidation"
+  Finding: {{"type":"logic_error","severity":"CRITICAL","title":"Missing solvency check after debt donation","function":"donateToReserves"}}
+
+EXAMPLE 3 — Missing cap enforcement (ThorWallet, 2025):
+  Contract: Token migration with hardcoded TGTTOEXCHANGE limit
+  Bug: No check that total deposited TGT <= TGTTOEXCHANGE
+  Analysis: "Users deposit TGT without limit, total exceeds cap;
+  withdrawRemainingTitn() underflows: remainingAfter1Year - totalClaimable"
+  Finding: {{"type":"logic_error","severity":"HIGH","title":"Hardcoded cap not enforced, underflow on withdrawal","function":"withdrawRemainingTitn"}}
 
 CONTRACT:
 {safe_code}
