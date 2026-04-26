@@ -78,7 +78,12 @@ if RICH_AVAILABLE:
     default=None,
     help="Use frontier LLM for deep semantic analysis (requires API key)",
 )
-def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recursive, diff_ref, frontier_model):
+@click.option(
+    "--deep",
+    is_flag=True,
+    help="Multi-pass analysis: second pass targets functions from first pass (2x cost, higher recall)",
+)
+def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recursive, diff_ref, frontier_model, deep):
     """Quick vulnerability scan for a Solidity contract or directory.
 
     CONTRACT can be a single .sol file or a directory containing .sol files.
@@ -300,6 +305,8 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
                     concat.close()
 
                     kwargs = {"model": model_id} if model_id else {}
+                    if deep:
+                        kwargs["deep"] = True
                     frontier_result = adapter.analyze(concat.name, **kwargs)
                     Path(concat.name).unlink(missing_ok=True)
 
@@ -417,6 +424,8 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
                 if not quiet:
                     info(f"Running frontier LLM analysis ({frontier_model})...")
                 kwargs = {"model": model_id} if model_id else {}
+                if deep:
+                    kwargs["deep"] = True
                 frontier_result = adapter.analyze(str(contract), **kwargs)
                 if frontier_result.get("status") == "success":
                     frontier_findings = frontier_result.get("findings", [])

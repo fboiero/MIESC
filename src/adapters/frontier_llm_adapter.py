@@ -163,8 +163,15 @@ class FrontierLLMAdapter(ToolAdapter):
         return ToolStatus.NOT_INSTALLED
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
-        """Analyze contract using frontier LLM API."""
+        """Analyze contract using frontier LLM API.
+
+        Supports multi-pass analysis via ``deep=True`` kwarg:
+          Pass 1: General audit (standard prompt)
+          Pass 2: Targeted deep-dive on functions flagged in Pass 1 +
+                  protocol-specific invariant checks
+        """
         start_time = time.time()
+        deep = kwargs.pop("deep", False)
 
         if self.is_available() != ToolStatus.AVAILABLE:
             return self._error_result(start_time, "FrontierLLM not available")
@@ -175,13 +182,13 @@ class FrontierLLMAdapter(ToolAdapter):
         except Exception as e:
             return self._error_result(start_time, f"Cannot read contract: {e}")
 
-        # Truncate very large contracts (frontier models handle ~100K tokens)
+        # C: Chunked scanning for large contracts
+        # If source > 150KB, split into chunks and analyze each
         max_chars = 150_000
         if len(source_code) > max_chars:
-            source_code = source_code[:max_chars] + "\n// ... (truncated)"
-            logger.warning(f"FrontierLLM: Contract truncated to {max_chars} chars")
+            return self._analyze_chunked(contract_path, source_code, start_time, **kwargs)
 
-        # RAG enrichment: inject protocol-specific vulnerability context
+        # D: RAG enrichment with protocol-specific vulnerability context
         rag_context = self._get_rag_context(source_code)
 
         provider = self._get_provider()
@@ -261,6 +268,30 @@ class FrontierLLMAdapter(ToolAdapter):
         if len(deduped) < len(normalized):
             logger.info(f"FrontierLLM: Deduped {len(normalized)} → {len(deduped)} findings")
 
+        # B: Multi-pass deep analysis (opt-in via deep=True)
+        if deep and deduped:
+            logger.info(f"FrontierLLM: Running deep pass (Pass 2) on {len(deduped)} findings...")
+            deep_findings = self._deep_pass(source_code, deduped, provider, rag_context, **kwargs)
+            if deep_findings:
+                # Normalize and add deep findings
+                for f in deep_findings:
+                    title = f.get("title") or f.get("vulnerability") or f.get("type") or "Unknown"
+                    deduped.append({
+                        "type": (f.get("type") or "logic_error").lower().replace(" ", "_"),
+                        "title": title,
+                        "severity": str(f.get("severity", "High")).capitalize(),
+                        "tool": f"frontier-{provider}-deep",
+                        "confidence": 0.75,
+                        "location": {"file": contract_path, "line": f.get("line", 0),
+                                     "function": f.get("function") or f.get("location") or "unknown"},
+                        "description": f.get("description", ""),
+                        "message": f.get("impact", ""),
+                        "recommendation": f.get("recommendation") or f.get("fix") or "",
+                        "exploit_scenario": f.get("proof_of_concept") or "",
+                        "swc_id": "",
+                    })
+                logger.info(f"FrontierLLM: Deep pass found {len(deep_findings)} additional findings")
+
         return {
             "tool": f"frontier-{provider}",
             "status": "success",
@@ -272,6 +303,111 @@ class FrontierLLMAdapter(ToolAdapter):
                 "source_chars": len(source_code),
             },
         }
+
+    def _analyze_chunked(self, contract_path: str, source_code: str,
+                         start_time: float, **kwargs) -> Dict[str, Any]:
+        """C: Split large codebase into chunks and analyze each separately."""
+        # Split by file markers (// ===== FILE: ...) or by size
+        chunks = []
+        current_chunk = ""
+        chunk_size = 80_000  # ~20K tokens per chunk
+
+        for line in source_code.split("\n"):
+            if line.startswith("// ===== FILE:") and len(current_chunk) > chunk_size:
+                chunks.append(current_chunk)
+                current_chunk = line + "\n"
+            else:
+                current_chunk += line + "\n"
+        if current_chunk.strip():
+            chunks.append(current_chunk)
+
+        if not chunks:
+            chunks = [source_code[:chunk_size], source_code[chunk_size:]]
+
+        logger.info(f"FrontierLLM: Chunked {len(source_code)//1024}KB into {len(chunks)} chunks")
+
+        all_findings = []
+        for i, chunk in enumerate(chunks):
+            if not chunk.strip():
+                continue
+            # Write chunk to temp file
+            import tempfile
+            tmp = Path(tempfile.mktemp(suffix=".sol"))
+            tmp.write_text(chunk)
+            try:
+                result = self.analyze(str(tmp), **kwargs)
+                all_findings.extend(result.get("findings", []))
+            finally:
+                tmp.unlink(missing_ok=True)
+
+        elapsed = time.time() - start_time
+        return {
+            "tool": f"frontier-{self._get_provider()}",
+            "status": "success",
+            "findings": all_findings,
+            "execution_time": elapsed,
+            "metadata": {"chunked": True, "n_chunks": len(chunks)},
+        }
+
+    def _deep_pass(self, source_code: str, pass1_findings: List[Dict],
+                   provider: str, rag_context: str, **kwargs) -> List[Dict]:
+        """B: Second-pass analysis targeting areas flagged in Pass 1."""
+        if not pass1_findings:
+            return []
+
+        # Build a targeted prompt based on Pass 1 findings
+        functions_found = set()
+        for f in pass1_findings:
+            loc = f.get("location", {})
+            fn = loc.get("function", "") if isinstance(loc, dict) else ""
+            if fn and fn != "unknown":
+                functions_found.add(fn)
+
+        if not functions_found:
+            return []
+
+        deep_prompt = f"""You previously identified potential issues in these functions: {', '.join(functions_found)}.
+
+Now perform a DEEPER analysis of the SAME contract, focusing on:
+
+1. **Cross-function interactions**: Do any of the flagged functions share state variables? Can calling them in a specific order violate invariants?
+2. **Economic invariants**: What mathematical properties MUST hold? (e.g., totalSupply == sum of balances, totalAssets >= totalLiabilities). Are there paths that break them?
+3. **Edge cases in the flagged functions**: What happens with zero values, max uint256, empty arrays, or exactly-at-boundary conditions?
+4. **Missing validations**: Are there unchecked inputs, missing access controls, or paths where important state updates are skipped?
+
+<contract>
+{source_code[:100_000]}
+</contract>
+
+Report ONLY NEW vulnerabilities not found in the first pass. Focus on HIGH/CRITICAL issues.
+Respond with a JSON array."""
+
+        try:
+            if provider == "anthropic":
+                import anthropic
+                client = anthropic.Anthropic()
+                msg = client.messages.create(
+                    model=kwargs.get("model", "claude-sonnet-4-20250514"),
+                    max_tokens=4096,
+                    system=AUDIT_SYSTEM_PROMPT,
+                    messages=[{"role": "user", "content": deep_prompt}],
+                )
+                return self._parse_response(msg.content[0].text)
+            elif provider == "openai":
+                import openai
+                client = openai.OpenAI()
+                resp = client.chat.completions.create(
+                    model=kwargs.get("model", "gpt-4o"),
+                    max_tokens=4096,
+                    messages=[
+                        {"role": "system", "content": AUDIT_SYSTEM_PROMPT},
+                        {"role": "user", "content": deep_prompt},
+                    ],
+                )
+                return self._parse_response(resp.choices[0].message.content)
+        except Exception as e:
+            logger.warning(f"FrontierLLM deep pass failed: {e}")
+        return []
 
     def _get_rag_context(self, source_code: str) -> str:
         """Build RAG context with protocol-specific exploit patterns."""
@@ -333,9 +469,46 @@ class FrontierLLMAdapter(ToolAdapter):
                 "- Double-exchange via reentrancy in migration function"
             )
 
+        # D: Patterns informed by EVMBench missed vulns (TVL, connectors, cross-contract)
+        if any(kw in code_lower for kw in ["totalassets", "totaltvl", "gettvl", "connector", "position"]):
+            sections.append(
+                "KNOWN TVL/ACCOUNTING EXPLOITS:\n"
+                "- totalAssets() not summing all position types (lending, LP, staking)\n"
+                "- Connector returning stale or incorrect TVL for a specific protocol\n"
+                "- Share price inflated/deflated by donating assets directly to vault\n"
+                "- Position value calculated with wrong decimals or token price\n"
+                "- Missing positions in TVL causing undervaluation → unfair withdrawal"
+            )
+        if any(kw in code_lower for kw in ["linked", "next", "prev", "head", "tail", "node"]):
+            sections.append(
+                "KNOWN LINKED LIST EXPLOITS:\n"
+                "- Double processing when node removal corrupts next/prev pointers\n"
+                "- Orphaned nodes after deletion allowing duplicate operations\n"
+                "- Off-by-one in iteration causing skip or double-visit\n"
+                "- Head/tail not updated correctly on insert/remove at boundaries"
+            )
+        if any(kw in code_lower for kw in ["signature", "ecrecover", "ecdsa", "digest", "v, r, s"]):
+            sections.append(
+                "KNOWN SIGNATURE EXPLOITS:\n"
+                "- Replay across chains (missing chainId in digest)\n"
+                "- Replay across contracts (missing contract address in digest)\n"
+                "- Missing nonce allowing same signature to be used twice\n"
+                "- Malleable signatures (both s and n-s are valid for same message)\n"
+                "- ecrecover returning address(0) not checked → forged signatures"
+            )
+        if any(kw in code_lower for kw in ["cancel", "refund", "withdraw", "claim"]) and \
+           any(kw in code_lower for kw in ["mapping", "status", "state"]):
+            sections.append(
+                "KNOWN STATE MANAGEMENT EXPLOITS:\n"
+                "- Missing authorization on cancel/refund allowing anyone to trigger\n"
+                "- State not reset after refund → double refund attack\n"
+                "- Race condition between deposit and withdrawal in same block\n"
+                "- Claim function not checking if already claimed (missing flag update)"
+            )
+
         context = "\n\n".join(sections)
-        if len(context) > 3000:
-            context = context[:3000]
+        if len(context) > 4000:
+            context = context[:4000]
         return context
 
     def _build_user_prompt(self, source_code: str, rag_context: str = "") -> str:

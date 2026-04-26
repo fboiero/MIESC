@@ -387,7 +387,7 @@ def match_finding_to_vuln(finding, vuln):
 _USE_LLM_JUDGE = False  # Set via --judge flag
 
 
-def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None, n_runs=1):
+def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None, n_runs=1, deep=False):
     """Evaluate MIESC on a single EVMBench audit."""
     mode = f"static+{frontier_model}" if frontier_model else ("static+LLM" if llm_enhance else "static")
     print(f"\n{'='*60}")
@@ -464,6 +464,7 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
                 result = _frontier_adapter.analyze(
                     str(_frontier_concat),
                     model=model_map.get(frontier_model, "claude-sonnet-4-20250514"),
+                    deep=deep,
                 )
                 run_findings = result.get("findings", [])
             except Exception as e:
@@ -547,6 +548,8 @@ def main():
                         help="Number of runs to ensemble (union of findings)")
     parser.add_argument("--judge", action="store_true",
                         help="Use Claude Haiku as LLM judge for matching (more accurate)")
+    parser.add_argument("--deep", action="store_true",
+                        help="Multi-pass analysis (Pass 2 targets flagged functions, 2x cost)")
     args = parser.parse_args()
 
     if not EVMBENCH_AUDITS.exists():
@@ -564,7 +567,7 @@ def main():
     results = []
     for audit_id, audit_data in audits.items():
         result = evaluate_audit(audit_id, audit_data, llm_enhance=args.llm,
-                                frontier_model=args.model, n_runs=args.runs)
+                                frontier_model=args.model, n_runs=args.runs, deep=args.deep)
         results.append(result)
 
     # Aggregate
