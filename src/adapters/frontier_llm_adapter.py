@@ -194,8 +194,22 @@ class FrontierLLMAdapter(ToolAdapter):
             else:
                 return self._error_result(start_time, f"Unknown provider: {provider}")
         except Exception as e:
-            logger.error(f"FrontierLLM API error: {e}")
-            return self._error_result(start_time, str(e))
+            # Auto-fallback: if primary provider fails, try the other one
+            fallback = "openai" if provider == "anthropic" else "anthropic"
+            fallback_key = "OPENAI_API_KEY" if fallback == "openai" else "ANTHROPIC_API_KEY"
+            if os.environ.get(fallback_key):
+                logger.warning(f"FrontierLLM: {provider} failed ({e}), falling back to {fallback}")
+                try:
+                    if fallback == "openai":
+                        findings = self._analyze_openai(source_code, rag_context=rag_context, **kwargs)
+                    else:
+                        findings = self._analyze_anthropic(source_code, rag_context=rag_context, **kwargs)
+                except Exception as e2:
+                    logger.error(f"FrontierLLM: Both providers failed. {provider}: {e}, {fallback}: {e2}")
+                    return self._error_result(start_time, f"{provider}: {e} | {fallback}: {e2}")
+            else:
+                logger.error(f"FrontierLLM API error: {e}")
+                return self._error_result(start_time, str(e))
 
         elapsed = time.time() - start_time
 
