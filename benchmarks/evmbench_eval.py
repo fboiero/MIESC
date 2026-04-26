@@ -377,7 +377,8 @@ def match_finding_to_vuln(finding, vuln):
     if stem_overlap >= 2:
         return True
 
-    # Signal 6: LLM judge as final fallback (opt-in, costs ~$0.001 per check)
+    # Signal 6: LLM judge (opt-in via --judge)
+    # When enabled, this is the DEFINITIVE answer — more accurate than keywords
     if _USE_LLM_JUDGE and _llm_judge_match(finding, vuln):
         return True
 
@@ -469,6 +470,30 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
                 run_findings = result.get("findings", [])
             except Exception as e:
                 print(f"    Frontier adapter error: {e}")
+
+        # Strategy A2: If concat produced 0 findings, try scanning top files individually
+        if not run_findings and _frontier_adapter:
+            source_files_sorted = [f for f in sol_files if "/test" not in f.lower()
+                                   and "/mock" not in f.lower() and not Path(f).name.startswith("I")]
+            if not source_files_sorted:
+                source_files_sorted = list(sol_files)
+            source_files_sorted = sorted(source_files_sorted, key=lambda f: os.path.getsize(f), reverse=True)
+
+            # Scan top 5 largest files individually
+            for sf in source_files_sorted[:5]:
+                try:
+                    model_map = {"claude": "claude-sonnet-4-20250514", "claude-opus": "claude-opus-4-20250514",
+                                 "gpt": "gpt-4o", "gpt-4o": "gpt-4o"}
+                    result = _frontier_adapter.analyze(
+                        sf, model=model_map.get(frontier_model, "claude-sonnet-4-20250514"),
+                    )
+                    file_findings = result.get("findings", [])
+                    if file_findings:
+                        run_findings.extend(file_findings)
+                except Exception:
+                    pass
+            if run_findings:
+                print(f"    Multi-file scan: {len(run_findings)} findings from individual files")
 
         # Strategy B: Subprocess scan (for static analysis, or fallback)
         if not run_findings:
