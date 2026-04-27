@@ -460,11 +460,11 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
         # Strategy A: Direct frontier adapter (reliable, no subprocess issues)
         if _frontier_adapter and _frontier_concat:
             try:
-                model_map = {"claude": "claude-sonnet-4-20250514", "claude-opus": "claude-opus-4-20250514",
+                model_map = {"claude": "claude-sonnet-4-6", "claude-opus": "claude-opus-4-6",
                              "gpt": "gpt-4o", "gpt-4o": "gpt-4o"}
                 result = _frontier_adapter.analyze(
                     str(_frontier_concat),
-                    model=model_map.get(frontier_model, "claude-sonnet-4-20250514"),
+                    model=model_map.get(frontier_model, "claude-sonnet-4-6"),
                     deep=deep,
                 )
                 run_findings = result.get("findings", [])
@@ -482,10 +482,10 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
             # Scan top 5 largest files individually
             for sf in source_files_sorted[:5]:
                 try:
-                    model_map = {"claude": "claude-sonnet-4-20250514", "claude-opus": "claude-opus-4-20250514",
+                    model_map = {"claude": "claude-sonnet-4-6", "claude-opus": "claude-opus-4-6",
                                  "gpt": "gpt-4o", "gpt-4o": "gpt-4o"}
                     result = _frontier_adapter.analyze(
-                        sf, model=model_map.get(frontier_model, "claude-sonnet-4-20250514"),
+                        sf, model=model_map.get(frontier_model, "claude-sonnet-4-6"),
                     )
                     file_findings = result.get("findings", [])
                     if file_findings:

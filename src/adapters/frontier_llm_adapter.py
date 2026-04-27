@@ -402,7 +402,7 @@ Respond with a JSON array."""
                 import anthropic
                 client = anthropic.Anthropic()
                 msg = client.messages.create(
-                    model=kwargs.get("model", "claude-sonnet-4-20250514"),
+                    model=kwargs.get("model", "claude-sonnet-4-6"),
                     max_tokens=4096,
                     system=AUDIT_SYSTEM_PROMPT,
                     messages=[{"role": "user", "content": deep_prompt}],
@@ -653,7 +653,7 @@ Respond with a JSON array."""
 
         client = anthropic.Anthropic()
         rag_context = kwargs.pop("rag_context", "")
-        model = kwargs.get("model", "claude-sonnet-4-20250514")
+        model = kwargs.get("model", "claude-sonnet-4-6")
         self._model = model
 
         user_prompt = self._build_user_prompt(source_code, rag_context)

@@ -274,9 +274,9 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
                 from src.core.tool_protocol import ToolStatus
 
                 provider_map = {
-                    "claude": ("anthropic", "claude-sonnet-4-20250514"),
-                    "claude-opus": ("anthropic", "claude-opus-4-20250514"),
-                    "claude-sonnet": ("anthropic", "claude-sonnet-4-20250514"),
+                    "claude": ("anthropic", "claude-sonnet-4-6"),
+                    "claude-opus": ("anthropic", "claude-opus-4-6"),
+                    "claude-sonnet": ("anthropic", "claude-sonnet-4-6"),
                     "gpt": ("openai", "gpt-4o"),
                     "gpt-4o": ("openai", "gpt-4o"),
                     "gpt-5": ("openai", "gpt-5"),
@@ -410,9 +410,9 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
             from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
 
             provider_map = {
-                "claude": ("anthropic", "claude-sonnet-4-20250514"),
-                "claude-opus": ("anthropic", "claude-opus-4-20250514"),
-                "claude-sonnet": ("anthropic", "claude-sonnet-4-20250514"),
+                "claude": ("anthropic", "claude-sonnet-4-6"),
+                "claude-opus": ("anthropic", "claude-opus-4-6"),
+                "claude-sonnet": ("anthropic", "claude-sonnet-4-6"),
                 "gpt": ("openai", "gpt-4o"),
                 "gpt-4o": ("openai", "gpt-4o"),
                 "gpt-5": ("openai", "gpt-5"),
