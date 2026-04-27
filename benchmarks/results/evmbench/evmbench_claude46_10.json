@@ -1,0 +1,246 @@
+{
+  "version": "5.3.1",
+  "date": "2026-04-27T20:29:20.846294",
+  "audits_evaluated": 10,
+  "total_findings": 64,
+  "total_detected": 16,
+  "total_vulns": 17,
+  "recall": 0.9411764705882353,
+  "results": [
+    {
+      "audit": "2024-01-canto",
+      "status": "ok",
+      "sloc": 106,
+      "n_contracts": 1,
+      "n_findings": 5,
+      "n_findings_raw": 5,
+      "n_filtered": 0,
+      "detected": 2,
+      "total": 2,
+      "recall": 1.0,
+      "precision": 0.4,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "update_market() market weight incorrect"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "update_market() nextEpoch calculation incorrect"
+        }
+      ]
+    },
+    {
+      "audit": "2025-02-thorwallet",
+      "status": "ok",
+      "sloc": 216,
+      "n_contracts": 2,
+      "n_findings": 3,
+      "n_findings_raw": 3,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 1,
+      "recall": 1.0,
+      "precision": 0.3333333333333333,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "MergeTgt has no handling if TGTTOEXCHANGE is exceeded during the exchange period"
+        }
+      ]
+    },
+    {
+      "audit": "2024-03-canto",
+      "status": "ok",
+      "sloc": 247,
+      "n_contracts": 3,
+      "n_findings": 6,
+      "n_findings_raw": 6,
+      "n_filtered": 0,
+      "detected": 2,
+      "total": 2,
+      "recall": 1.0,
+      "precision": 0.3333333333333333,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Native gas tokens can become stuck in ASDRouter contract"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Dual transaction nature of composed message transfer allows anyone to steal user funds"
+        }
+      ]
+    },
+    {
+      "audit": "2024-07-munchables",
+      "status": "ok",
+      "sloc": 277,
+      "n_contracts": 1,
+      "n_findings": 3,
+      "n_findings_raw": 3,
+      "n_filtered": 0,
+      "detected": 4,
+      "total": 5,
+      "recall": 0.8,
+      "precision": 1.3333333333333333,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": false,
+          "description": "Single plot can be occupied by multiple renters"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Invalid validation in _farmPlots function allowing a malicious user repeated farming without locked funds"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "Miscalculation in _farmPlots function could lead to a user unable to unstake all NFTs"
+        },
+        {
+          "vuln": "H-04",
+          "matched": true,
+          "description": "in farmPlots() an underflow in edge case leading to freeze of funds (NFT)"
+        },
+        {
+          "vuln": "H-05",
+          "matched": true,
+          "description": "Failure to update dirty flag in transferToUnoccupiedPlot prevents reward accumulation on valid plot"
+        }
+      ]
+    },
+    {
+      "audit": "2026-01-tempo-feeamm",
+      "status": "ok",
+      "sloc": 289,
+      "n_contracts": 1,
+      "n_findings": 6,
+      "n_findings_raw": 6,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 1,
+      "recall": 1.0,
+      "precision": 0.16666666666666666,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Reentrancy in burn allows stablecoin pool drainage"
+        }
+      ]
+    },
+    {
+      "audit": "2024-05-loop",
+      "status": "ok",
+      "sloc": 296,
+      "n_contracts": 1,
+      "n_findings": 5,
+      "n_findings_raw": 5,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 1,
+      "recall": 1.0,
+      "precision": 0.2,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Availability of deposit invariant can be bypassed"
+        }
+      ]
+    },
+    {
+      "audit": "2024-03-gitcoin",
+      "status": "ok",
+      "sloc": 300,
+      "n_contracts": 2,
+      "n_findings": 1,
+      "n_findings_raw": 1,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 1,
+      "recall": 1.0,
+      "precision": 1.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "userTotalStaked invariant will be broken due to vulnerable implementations in release()"
+        }
+      ]
+    },
+    {
+      "audit": "2024-02-althea-liquid-infrastructure",
+      "status": "ok",
+      "sloc": 377,
+      "n_contracts": 3,
+      "n_findings": 6,
+      "n_findings_raw": 6,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 1,
+      "recall": 1.0,
+      "precision": 0.16666666666666666,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Holders array can be manipulated by transferring or burning with amount 0, stealing rewards or bricking certain functions"
+        }
+      ]
+    },
+    {
+      "audit": "2025-01-liquid-ron",
+      "status": "ok",
+      "sloc": 386,
+      "n_contracts": 6,
+      "n_findings": 4,
+      "n_findings_raw": 4,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 1,
+      "recall": 1.0,
+      "precision": 0.25,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "The calculation of totalAssets() could be wrong if operatorFeeAmount > 0, this can cause potential loss for the new depositors"
+        }
+      ]
+    },
+    {
+      "audit": "2024-05-munchables",
+      "status": "ok",
+      "sloc": 413,
+      "n_contracts": 1,
+      "n_findings": 25,
+      "n_findings_raw": 26,
+      "n_filtered": 1,
+      "detected": 2,
+      "total": 2,
+      "recall": 1.0,
+      "precision": 0.08,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Malicious User can call lockOnBehalf repeatedly extend a users unlockTime, removing their ability to withdraw previously locked tokens"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Invalid validation allows users to unlock early"
+        }
+      ]
+    }
+  ]
+}
