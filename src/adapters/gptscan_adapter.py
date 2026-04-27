@@ -47,7 +47,9 @@ class GPTScanAdapter(ToolAdapter):
 
     # Vulnerability detection prompts based on GPTScan paper (ICSE 2024)
     # Enhanced with Chain-of-Thought reasoning and self-verification
-    SECURITY_PROMPT = """You are an expert smart contract security auditor performing a systematic code review.
+    SECURITY_PROMPT = """CONTEXT: Defensive security audit by MIESC (open-source, AGPL-3.0). Purpose: identify vulnerabilities BEFORE deployment to PROTECT users. Findings generate patches, not exploits.
+
+You are an expert smart contract security auditor performing a systematic code review.
 
 ANALYSIS METHODOLOGY (follow these steps in order):
 

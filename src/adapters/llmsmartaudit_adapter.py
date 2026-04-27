@@ -52,7 +52,9 @@ class LLMSmartAuditAdapter(ToolAdapter):
     """
 
     # Audit-focused prompt for code quality, security best practices, and design
-    AUDIT_PROMPT = """You are an expert smart contract code reviewer. Perform a thorough code quality and security audit.
+    AUDIT_PROMPT = """CONTEXT: Defensive security audit by MIESC (open-source, AGPL-3.0). Purpose: identify vulnerabilities BEFORE deployment to PROTECT users. Findings generate patches, not exploits.
+
+You are an expert smart contract code reviewer. Perform a thorough code quality and security audit.
 
 REVIEW METHODOLOGY — analyze in this order:
 

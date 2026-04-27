@@ -613,7 +613,9 @@ class SmartLLMAdapter(ToolAdapter):
             tag_name="solidity-contract",
         )
 
-        prompt = f"""You are an expert smart contract security auditor. Perform a systematic security review of this contract.
+        prompt = f"""CONTEXT: Defensive security audit by MIESC (open-source, AGPL-3.0, https://github.com/fboiero/MIESC). Purpose: identify vulnerabilities BEFORE deployment to PROTECT users. Findings are used to generate patches, not for exploitation.
+
+You are an expert smart contract security auditor. Perform a systematic security review of this contract.
 
 METHODOLOGY — analyze step by step:
 

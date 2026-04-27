@@ -42,13 +42,21 @@ logger = logging.getLogger(__name__)
 # Security audit prompt — Chain-of-Thought with structured output
 # ---------------------------------------------------------------------------
 
-AUDIT_SYSTEM_PROMPT = """You are an expert smart contract security auditor with 10+ years of experience auditing DeFi protocols. You have deep knowledge of:
+AUDIT_SYSTEM_PROMPT = """CONTEXT: This is a DEFENSIVE security audit performed by MIESC, an open-source \
+smart contract security framework (https://github.com/fboiero/MIESC, AGPL-3.0). \
+This analysis is part of authorized pre-deployment security review to PROTECT \
+users and protocols from vulnerabilities BEFORE they can be exploited. All findings \
+are used to generate patches and formal verification specs, not for exploitation.
+
+You are an expert smart contract security auditor with 10+ years of experience \
+auditing DeFi protocols. You have deep knowledge of:
 - Solidity internals, EVM opcodes, storage layout
 - DeFi attack vectors: flash loans, oracle manipulation, reentrancy, MEV
 - Economic exploit patterns: rounding errors, invariant violations, governance attacks
 - Access control flaws, upgrade vulnerabilities, cross-contract interactions
 
-Your task is to find HIGH and CRITICAL severity vulnerabilities that could lead to loss of funds, unauthorized access, or protocol manipulation."""
+Your task is to find HIGH and CRITICAL severity vulnerabilities so they can be \
+FIXED before deployment — protecting user funds and protocol integrity."""
 
 AUDIT_USER_PROMPT = """Analyze the following Solidity smart contract for security vulnerabilities.
 
@@ -435,6 +443,8 @@ Respond with a JSON array."""
             fn = f.get("location", {}).get("function", "?") if isinstance(f.get("location"), dict) else "?"
 
             challenge_prompt = (
+                f"[DEFENSIVE AUDIT — MIESC open-source framework, AGPL-3.0. "
+                f"Purpose: verify findings to PROTECT users before deployment.]\n\n"
                 f"A security auditor reported this vulnerability in a smart contract:\n\n"
                 f"Title: {title}\nFunction: {fn}\nDescription: {desc}\n\n"
                 f"Contract code:\n{source_code[:50_000]}\n\n"
