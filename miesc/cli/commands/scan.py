@@ -74,7 +74,8 @@ if RICH_AVAILABLE:
 )
 @click.option(
     "--model", "frontier_model",
-    type=click.Choice(["claude", "gpt", "claude-opus", "claude-sonnet", "gpt-4o", "gpt-5"], case_sensitive=False),
+    type=click.Choice(["claude", "gpt", "claude-opus", "claude-sonnet", "gpt-4o", "gpt-5",
+                        "ollama", "qwen32b", "qwen14b", "codellama"], case_sensitive=False),
     default=None,
     help="Use frontier LLM for deep semantic analysis (requires API key)",
 )
@@ -280,6 +281,10 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
                     "gpt": ("openai", "gpt-4o"),
                     "gpt-4o": ("openai", "gpt-4o"),
                     "gpt-5": ("openai", "gpt-5"),
+                    "ollama": ("ollama", "qwen2.5-coder:32b"),
+                    "qwen32b": ("ollama", "qwen2.5-coder:32b"),
+                    "qwen14b": ("ollama", "qwen2.5-coder:14b"),
+                    "codellama": ("ollama", "codellama:13b"),
                 }
                 provider, model_id = provider_map.get(frontier_model.lower(), ("auto", None))
                 adapter = FrontierLLMAdapter(provider=provider)
@@ -416,6 +421,10 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
                 "gpt": ("openai", "gpt-4o"),
                 "gpt-4o": ("openai", "gpt-4o"),
                 "gpt-5": ("openai", "gpt-5"),
+                "ollama": ("ollama", "qwen2.5-coder:32b"),
+                "qwen32b": ("ollama", "qwen2.5-coder:32b"),
+                "qwen14b": ("ollama", "qwen2.5-coder:14b"),
+                "codellama": ("ollama", "codellama:13b"),
             }
             provider, model_id = provider_map.get(frontier_model.lower(), ("auto", None))
             adapter = FrontierLLMAdapter(provider=provider)

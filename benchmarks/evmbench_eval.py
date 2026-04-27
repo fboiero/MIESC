@@ -424,7 +424,8 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
         from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
 
         provider_map = {"claude": "anthropic", "claude-opus": "anthropic",
-                        "claude-sonnet": "anthropic", "gpt": "openai", "gpt-4o": "openai"}
+                        "claude-sonnet": "anthropic", "gpt": "openai", "gpt-4o": "openai",
+                        "ollama": "ollama", "qwen32b": "ollama", "qwen14b": "ollama", "codellama": "ollama"}
         _frontier_adapter = FrontierLLMAdapter(provider=provider_map.get(frontier_model, "auto"))
 
         # Build concat file once (up to 150KB for large audits)
@@ -461,7 +462,9 @@ def evaluate_audit(audit_id, audit_data, llm_enhance=False, frontier_model=None,
         if _frontier_adapter and _frontier_concat:
             try:
                 model_map = {"claude": "claude-sonnet-4-6", "claude-opus": "claude-opus-4-6",
-                             "gpt": "gpt-4o", "gpt-4o": "gpt-4o"}
+                             "gpt": "gpt-4o", "gpt-4o": "gpt-4o",
+                             "ollama": "qwen2.5-coder:32b", "qwen32b": "qwen2.5-coder:32b",
+                             "qwen14b": "qwen2.5-coder:14b", "codellama": "codellama:13b"}
                 result = _frontier_adapter.analyze(
                     str(_frontier_concat),
                     model=model_map.get(frontier_model, "claude-sonnet-4-6"),

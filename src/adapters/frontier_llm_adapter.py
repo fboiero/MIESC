@@ -138,6 +138,16 @@ class FrontierLLMAdapter(ToolAdapter):
             return "openai"
         return None
 
+    def _check_ollama(self) -> bool:
+        """Check if Ollama is running and has models."""
+        import urllib.request
+        try:
+            resp = urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3)
+            data = json.loads(resp.read())
+            return len(data.get("models", [])) > 0
+        except Exception:
+            return False
+
     def _get_provider(self) -> Optional[str]:
         if self._provider == "auto":
             return self._detect_provider()
@@ -158,6 +168,9 @@ class FrontierLLMAdapter(ToolAdapter):
             except ImportError:
                 logger.info("FrontierLLM: anthropic SDK not installed. pip install anthropic")
                 return ToolStatus.NOT_INSTALLED
+
+        if provider == "ollama":
+            return ToolStatus.AVAILABLE if self._check_ollama() else ToolStatus.NOT_INSTALLED
 
         if provider == "openai":
             try:
@@ -208,6 +221,8 @@ class FrontierLLMAdapter(ToolAdapter):
                 findings = self._analyze_anthropic(source_code, rag_context=rag_context, **kwargs)
             elif provider == "openai":
                 findings = self._analyze_openai(source_code, rag_context=rag_context, **kwargs)
+            elif provider == "ollama":
+                findings = self._analyze_ollama(source_code, rag_context=rag_context, **kwargs)
             else:
                 return self._error_result(start_time, f"Unknown provider: {provider}")
         except Exception as e:
@@ -692,6 +707,36 @@ Respond with a JSON array."""
         )
 
         return self._parse_response(response.choices[0].message.content)
+
+    def _analyze_ollama(self, source_code: str, **kwargs) -> List[Dict]:
+        """Call local Ollama model with the same audit prompt as frontier models."""
+        import urllib.request
+
+        rag_context = kwargs.pop("rag_context", "")
+        model = kwargs.get("model", "qwen2.5-coder:32b")
+        self._model = model
+
+        user_prompt = self._build_user_prompt(source_code, rag_context)
+        full_prompt = f"{AUDIT_SYSTEM_PROMPT}\n\n{user_prompt}"
+
+        rag_note = f" +RAG({len(rag_context)})" if rag_context else ""
+        logger.info(f"FrontierLLM: Calling Ollama {model} ({len(source_code)} chars{rag_note})")
+
+        data = json.dumps({
+            "model": model,
+            "prompt": full_prompt,
+            "stream": False,
+            "options": {"temperature": 0.1, "num_predict": 4096},
+        }).encode()
+
+        req = urllib.request.Request(
+            "http://localhost:11434/api/generate",
+            data=data,
+            headers={"Content-Type": "application/json"},
+        )
+        resp = urllib.request.urlopen(req, timeout=300)
+        result = json.loads(resp.read())
+        return self._parse_response(result.get("response", ""))
 
     def _parse_response(self, text: str) -> List[Dict]:
         """Parse JSON findings from LLM response.
