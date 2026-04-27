@@ -751,8 +751,18 @@ Respond with a JSON array."""
 
         text = text.strip()
 
-        # Strip markdown code fences
-        text_clean = re.sub(r"```(?:json)?\s*", "", text)
+        # Strip OUTER markdown code fences only (preserve inner ones in strings)
+        # Match: starts with ```json, ends with ```
+        text_clean = text
+        if text_clean.startswith("```"):
+            # Remove opening fence
+            first_newline = text_clean.find("\n")
+            if first_newline > 0:
+                text_clean = text_clean[first_newline + 1:]
+            # Remove closing fence
+            last_fence = text_clean.rfind("```")
+            if last_fence > 0:
+                text_clean = text_clean[:last_fence]
         text_clean = text_clean.strip()
 
         # Try multiple extraction strategies
@@ -762,6 +772,9 @@ Respond with a JSON array."""
             end = attempt_text.rfind("]")
             if start != -1 and end != -1 and end > start:
                 json_str = attempt_text[start:end + 1]
+                # Sanitize: escape inner backticks and control chars in string values
+                json_str = json_str.replace("```solidity", "").replace("```", "")
+                json_str = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', ' ', json_str)
                 try:
                     findings = json.loads(json_str)
                     if isinstance(findings, list):
@@ -769,8 +782,9 @@ Respond with a JSON array."""
                         if valid:
                             return valid
                 except json.JSONDecodeError:
-                    # Try fixing common JSON issues (trailing commas)
+                    # Try fixing common JSON issues (trailing commas, unescaped newlines)
                     fixed = re.sub(r",\s*([}\]])", r"\1", json_str)
+                    fixed = re.sub(r'(?<!\\)\n', '\\n', fixed)
                     try:
                         findings = json.loads(fixed)
                         if isinstance(findings, list):
