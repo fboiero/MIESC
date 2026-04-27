@@ -782,9 +782,8 @@ Respond with a JSON array."""
                         if valid:
                             return valid
                 except json.JSONDecodeError:
-                    # Try fixing common JSON issues (trailing commas, unescaped newlines)
+                    # Try fixing common JSON issues
                     fixed = re.sub(r",\s*([}\]])", r"\1", json_str)
-                    fixed = re.sub(r'(?<!\\)\n', '\\n', fixed)
                     try:
                         findings = json.loads(fixed)
                         if isinstance(findings, list):
@@ -815,6 +814,31 @@ Respond with a JSON array."""
                         findings.append(obj)
                 except json.JSONDecodeError:
                     pass
+        if findings:
+            return findings
+
+        # Strategy 4: Extract objects by matching balanced braces
+        depth = 0
+        obj_start = -1
+        for i, ch in enumerate(text_clean):
+            if ch == '{':
+                if depth == 0:
+                    obj_start = i
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0 and obj_start >= 0:
+                    obj_str = text_clean[obj_start:i + 1]
+                    # Clean up common issues in extracted objects
+                    obj_str = obj_str.replace('```solidity', '').replace('```', '')
+                    obj_str = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', ' ', obj_str)
+                    try:
+                        obj = json.loads(obj_str)
+                        if isinstance(obj, dict) and any(k in obj for k in ("title", "type", "vulnerability", "description", "severity")):
+                            findings.append(obj)
+                    except json.JSONDecodeError:
+                        pass
+                    obj_start = -1
         if findings:
             return findings
 
