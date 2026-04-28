@@ -231,11 +231,18 @@ class FrontierLLMAdapter(ToolAdapter):
             fallback_key = "OPENAI_API_KEY" if fallback == "openai" else "ANTHROPIC_API_KEY"
             if os.environ.get(fallback_key):
                 logger.warning(f"FrontierLLM: {provider} failed ({e}), falling back to {fallback}")
+                # Use the correct default model for the fallback provider
+                fallback_kwargs = dict(kwargs)
+                fallback_kwargs.pop("model", None)
+                if fallback == "openai":
+                    fallback_kwargs["model"] = "gpt-4o"
+                else:
+                    fallback_kwargs["model"] = "claude-sonnet-4-6"
                 try:
                     if fallback == "openai":
-                        findings = self._analyze_openai(source_code, rag_context=rag_context, **kwargs)
+                        findings = self._analyze_openai(source_code, rag_context=rag_context, **fallback_kwargs)
                     else:
-                        findings = self._analyze_anthropic(source_code, rag_context=rag_context, **kwargs)
+                        findings = self._analyze_anthropic(source_code, rag_context=rag_context, **fallback_kwargs)
                 except Exception as e2:
                     logger.error(f"FrontierLLM: Both providers failed. {provider}: {e}, {fallback}: {e2}")
                     return self._error_result(start_time, f"{provider}: {e} | {fallback}: {e2}")
