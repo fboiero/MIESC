@@ -88,20 +88,29 @@ def clone_audit(audit_id):
     work_dir = Path(tempfile.mkdtemp(prefix=f"evmbench_{audit_id}_"))
     repo_url = f"https://github.com/evmbench-org/{audit_id}.git"
 
-    try:
-        # Clone without submodules (they hang on large repos like Chainlink/OZ)
-        # Source files are in the main repo; submodules are dependencies
-        result = subprocess.run(
-            ["git", "clone", "--depth", "1", repo_url, str(work_dir / "repo")],
-            capture_output=True, text=True, timeout=60,
-        )
-        if result.returncode != 0:
+    for attempt in range(2):
+        try:
+            result = subprocess.run(
+                ["git", "clone", "--depth", "1", "--single-branch", repo_url, str(work_dir / "repo")],
+                capture_output=True, text=True, timeout=30,
+            )
+            if result.returncode == 0:
+                return work_dir / "repo"
+            if attempt == 0:
+                shutil.rmtree(work_dir / "repo", ignore_errors=True)
+                continue
             print(f"  WARN: Clone failed for {audit_id}: {result.stderr[:200]}")
             return None
-        return work_dir / "repo"
-    except Exception as e:
-        print(f"  WARN: Clone error for {audit_id}: {e}")
-        return None
+        except subprocess.TimeoutExpired:
+            if attempt == 0:
+                shutil.rmtree(work_dir / "repo", ignore_errors=True)
+                continue
+            print(f"  WARN: Clone timeout for {audit_id}")
+            return None
+        except Exception as e:
+            print(f"  WARN: Clone error for {audit_id}: {e}")
+            return None
+    return None
 
 
 def find_sol_files(repo_dir):
