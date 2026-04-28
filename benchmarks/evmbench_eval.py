@@ -91,9 +91,9 @@ def clone_audit(audit_id):
     for attempt in range(2):
         try:
             result = subprocess.run(
-                ["git", "clone", "--depth", "1", "--recurse-submodules", "--shallow-submodules",
-                 "-j4", repo_url, str(work_dir / "repo")],
-                capture_output=True, text=True, timeout=120,
+                ["git", "clone", "--depth", "1", "--recurse-submodules",
+                 repo_url, str(work_dir / "repo")],
+                capture_output=True, text=True, timeout=180,
             )
             if result.returncode == 0:
                 return work_dir / "repo"
