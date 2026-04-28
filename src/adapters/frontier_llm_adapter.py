@@ -138,6 +138,120 @@ class FrontierLLMAdapter(ToolAdapter):
             return "openai"
         return None
 
+    def _preprocess_codebase(self, source_code: str) -> str:
+        """Build a protocol map from code structure analysis.
+
+        Extracts: contract hierarchy, function signatures, state variables,
+        external calls, and likely invariants. This context helps ANY LLM
+        understand the protocol before analyzing individual vulnerabilities.
+        """
+        import re
+        lines = source_code.split("\n")
+        sections = []
+
+        # 1. Contract hierarchy + imports
+        contracts = []
+        for m in re.finditer(
+            r"(?:// ===== FILE: (\S+) =====\n)?.*?contract\s+(\w+)(?:\s+is\s+([^{]+))?\s*\{",
+            source_code, re.DOTALL
+        ):
+            file_name = m.group(1) or ""
+            name = m.group(2)
+            inherits = m.group(3).strip() if m.group(3) else ""
+            contracts.append((name, inherits, file_name))
+
+        if contracts:
+            hierarchy = "CONTRACT HIERARCHY:\n"
+            for name, inherits, fname in contracts[:15]:
+                if inherits:
+                    hierarchy += f"  {name} is {inherits}"
+                else:
+                    hierarchy += f"  {name}"
+                if fname:
+                    hierarchy += f"  (in {fname})"
+                hierarchy += "\n"
+            sections.append(hierarchy)
+
+        # 2. External calls (potential cross-contract interactions)
+        external_calls = set()
+        for m in re.finditer(r"(\w+)\.(call|delegatecall|staticcall|transfer|send)\s*[({]", source_code):
+            external_calls.add(m.group(0)[:60])
+        for m in re.finditer(r"I(\w+)\((\w+)\)\.(\w+)\(", source_code):
+            external_calls.add(f"{m.group(1)}.{m.group(3)}() via interface")
+        for m in re.finditer(r"IERC20\([^)]+\)\.(\w+)\(", source_code):
+            external_calls.add(f"ERC20.{m.group(1)}()")
+
+        if external_calls:
+            ext = "EXTERNAL CALLS (cross-contract interaction points):\n"
+            for call in sorted(external_calls)[:15]:
+                ext += f"  • {call}\n"
+            sections.append(ext)
+
+        # 3. State-changing functions (high-risk)
+        state_fns = []
+        for m in re.finditer(
+            r"function\s+(\w+)\s*\([^)]*\)\s*(external|public)(?![^{]*\bview\b)(?![^{]*\bpure\b)[^{]*\{",
+            source_code
+        ):
+            fn_name = m.group(1)
+            if fn_name not in ("constructor", "receive", "fallback"):
+                state_fns.append(fn_name)
+
+        if state_fns:
+            fns = "STATE-CHANGING FUNCTIONS (audit priority):\n"
+            for fn in state_fns[:20]:
+                fns += f"  • {fn}()\n"
+            sections.append(fns)
+
+        # 4. Likely invariants
+        invariants = []
+        code_lower = source_code.lower()
+        if "totalsupply" in code_lower and "balanceof" in code_lower:
+            invariants.append("totalSupply() == sum of all balanceOf(account)")
+        if "totalassets" in code_lower:
+            invariants.append("totalAssets() >= totalLiabilities (solvency)")
+            if "totalsupply" in code_lower:
+                invariants.append("sharePrice = totalAssets() / totalSupply() must be monotonically non-decreasing")
+        if "gettvl" in code_lower or "totaltvl" in code_lower:
+            invariants.append("getTVL() must equal sum of all position values across connectors")
+        if "collateral" in code_lower and "borrow" in code_lower:
+            invariants.append("For every borrower: collateralValue * LTV >= borrowedAmount")
+        if "stake" in code_lower and "reward" in code_lower:
+            invariants.append("rewardPerToken accumulator must only increase")
+        if re.search(r"mapping.*balance", code_lower):
+            invariants.append("sum of all user balances <= contract.balance (no inflation)")
+
+        if invariants:
+            inv = "INVARIANTS TO VERIFY (likely correctness properties):\n"
+            for i in invariants:
+                inv += f"  ✓ {i}\n"
+            inv += "  → Check if ANY code path can violate these properties\n"
+            sections.append(inv)
+
+        # 5. Value flow summary
+        has_eth = "msg.value" in source_code or ".call{value:" in source_code
+        has_erc20 = "transfer(" in source_code or "transferFrom(" in source_code
+        has_mint = "_mint(" in source_code
+        has_burn = "_burn(" in source_code
+
+        if has_eth or has_erc20:
+            flow = "VALUE FLOWS:\n"
+            if has_eth:
+                flow += "  ETH: enters via payable functions, exits via .call{value:}\n"
+            if has_erc20:
+                flow += "  ERC20: transfer/transferFrom interactions\n"
+            if has_mint:
+                flow += "  MINT: new tokens created (_mint)\n"
+            if has_burn:
+                flow += "  BURN: tokens destroyed (_burn)\n"
+            flow += "  → Verify: can an attacker extract more value than they deposited?\n"
+            sections.append(flow)
+
+        result = "\n".join(sections)
+        if len(result) > 2000:
+            result = result[:2000]
+        return result
+
     def _check_ollama(self) -> bool:
         """Check if Ollama is running and has models."""
         import urllib.request
@@ -211,8 +325,13 @@ class FrontierLLMAdapter(ToolAdapter):
         if len(source_code) > max_chars:
             return self._analyze_chunked(contract_path, source_code, start_time, **kwargs)
 
+        # Pre-analysis: build protocol map from code structure
+        protocol_map = self._preprocess_codebase(source_code)
+
         # D: RAG enrichment with protocol-specific vulnerability context
         rag_context = self._get_rag_context(source_code)
+        if protocol_map:
+            rag_context = protocol_map + "\n\n" + rag_context
 
         provider = self._get_provider()
 
