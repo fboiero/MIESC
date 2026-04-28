@@ -89,9 +89,11 @@ def clone_audit(audit_id):
     repo_url = f"https://github.com/evmbench-org/{audit_id}.git"
 
     try:
+        # Clone without submodules (they hang on large repos like Chainlink/OZ)
+        # Source files are in the main repo; submodules are dependencies
         result = subprocess.run(
-            ["git", "clone", "--depth", "1", "--recurse-submodules", repo_url, str(work_dir / "repo")],
-            capture_output=True, text=True, timeout=120,
+            ["git", "clone", "--depth", "1", repo_url, str(work_dir / "repo")],
+            capture_output=True, text=True, timeout=60,
         )
         if result.returncode != 0:
             print(f"  WARN: Clone failed for {audit_id}: {result.stderr[:200]}")
