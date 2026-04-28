@@ -83,8 +83,17 @@ def load_audits(max_audits=None, single_audit=None):
     return sorted_audits
 
 
+PRECACHED_REPOS = Path("/tmp/evmbench_repos")
+
+
 def clone_audit(audit_id):
-    """Clone the audit codebase from evmbench-org."""
+    """Get audit codebase — use pre-cached repo if available, otherwise clone."""
+    # Check pre-cached repos first (avoids network hangs)
+    cached = PRECACHED_REPOS / audit_id
+    if cached.exists() and any(cached.glob("**/*.sol")):
+        return cached
+
+    # Fall back to fresh clone
     work_dir = Path(tempfile.mkdtemp(prefix=f"evmbench_{audit_id}_"))
     repo_url = f"https://github.com/evmbench-org/{audit_id}.git"
 
