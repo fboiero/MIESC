@@ -842,27 +842,36 @@ Respond with a JSON array."""
         model = kwargs.get("model", "qwen2.5-coder:32b")
         self._model = model
 
-        user_prompt = self._build_user_prompt(source_code, rag_context)
-        full_prompt = f"{AUDIT_SYSTEM_PROMPT}\n\n{user_prompt}"
+        # For local models: trim source to 80KB max (32B models have ~32K context)
+        max_local_chars = 80_000
+        trimmed = source_code[:max_local_chars] if len(source_code) > max_local_chars else source_code
 
-        rag_note = f" +RAG({len(rag_context)})" if rag_context else ""
-        logger.info(f"FrontierLLM: Calling Ollama {model} ({len(source_code)} chars{rag_note})")
+        # Build prompt with trimmed RAG (keep it shorter for local models)
+        rag_trimmed = rag_context[:1500] if rag_context else ""
+        user_prompt = self._build_user_prompt(trimmed, rag_trimmed)
 
+        rag_note = f" +RAG({len(rag_trimmed)})" if rag_trimmed else ""
+        logger.info(f"FrontierLLM: Calling Ollama {model} ({len(trimmed)} chars{rag_note})")
+
+        # Use chat endpoint (handles system/user roles better than generate)
         data = json.dumps({
             "model": model,
-            "prompt": full_prompt,
+            "messages": [
+                {"role": "system", "content": AUDIT_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
             "stream": False,
             "options": {"temperature": 0.1, "num_predict": 4096},
         }).encode()
 
         req = urllib.request.Request(
-            "http://localhost:11434/api/generate",
+            "http://localhost:11434/api/chat",
             data=data,
             headers={"Content-Type": "application/json"},
         )
-        resp = urllib.request.urlopen(req, timeout=300)
+        resp = urllib.request.urlopen(req, timeout=600)
         result = json.loads(resp.read())
-        return self._parse_response(result.get("response", ""))
+        return self._parse_response(result.get("message", {}).get("content", ""))
 
     def _parse_response(self, text: str) -> List[Dict]:
         """Parse JSON findings from LLM response.
