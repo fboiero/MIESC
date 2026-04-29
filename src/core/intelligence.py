@@ -372,6 +372,83 @@ ZERO_RECALL_PATTERNS = {
         "swc": "SWC-105",
         "message": "Owner-only withdrawal of user funds — centralization risk / rug vector. Consider timelock or multi-sig governance.",
     },
+    # v5.3.1: SmartBugs-informed patterns for remaining gaps
+    "bad_randomness_blockhash": {
+        "patterns": [
+            r"\bblockhash\s*\(",
+            r"\bblock\.blockhash\s*\(",
+        ],
+        "severity": "High",
+        "swc": "SWC-120",
+        "message": "blockhash used for randomness — predictable by miners within 256 blocks. Use Chainlink VRF for secure randomness.",
+    },
+    "bad_randomness_block_vars": {
+        "patterns": [
+            r"block\.(timestamp|number|difficulty|coinbase)\s*%",
+            r"(uint|int).*=.*block\.(timestamp|number|difficulty)",
+        ],
+        "severity": "High",
+        "swc": "SWC-120",
+        "message": "Block variable used as entropy source — predictable/manipulable by miners. Use Chainlink VRF.",
+    },
+    "incorrect_constructor_name": {
+        "patterns": [
+            r"function\s+(\w+)\s*\(\s*\)\s*(public|external)?\s*\{[^}]*(owner|admin)\s*=\s*msg\.sender",
+        ],
+        "severity": "Critical",
+        "swc": "SWC-118",
+        "message": "Function assigns ownership but may not be the constructor — in Solidity <0.4.22, constructors were functions with the contract name. A typo means anyone can call it and become owner.",
+    },
+    "dos_unbounded_loop": {
+        "patterns": [
+            r"for\s*\([^)]*\w+\.length",
+            r"while\s*\([^)]*<\s*\w+\.length",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-128",
+        "message": "Loop bounded by dynamic array length — may exceed block gas limit. Use pagination or pull pattern.",
+    },
+    "dos_send_in_loop": {
+        "patterns": [
+            r"for\s*\([^)]*\{[^}]*\.(send|transfer|call)\s*\(",
+        ],
+        "severity": "High",
+        "swc": "SWC-113",
+        "message": "External call inside loop — single failure reverts entire batch. Use pull-over-push (let recipients withdraw individually).",
+    },
+    "dos_push_unbounded": {
+        "patterns": [
+            r"\w+\.push\s*\(",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-128",
+        "message": "Unbounded array push in public function — array can grow until iteration exceeds gas limit. Consider max length or pagination.",
+    },
+    "dos_send_require": {
+        "patterns": [
+            r"require\s*\(\s*\w+\.(send|transfer)\s*\(",
+        ],
+        "severity": "High",
+        "swc": "SWC-113",
+        "message": "External send/transfer inside require — if recipient reverts, entire function is blocked (DoS). Use pull pattern instead.",
+    },
+    "dos_dynamic_array_resize": {
+        "patterns": [
+            r"\w+\.length\s*(\+|-)=",
+            r"\w+\.length\s*=\s*\w+\.length\s*\+",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-128",
+        "message": "Dynamic array resize — unbounded growth can exceed gas limit. Consider fixed-size or pagination.",
+    },
+    "access_control_initwallet": {
+        "patterns": [
+            r"function\s+init\w*\s*\([^)]*\)\s*(public|external)",
+        ],
+        "severity": "Critical",
+        "swc": "SWC-118",
+        "message": "Public init/initialize function without access restriction — anyone can call and take ownership. Use initializer modifier or require(!initialized).",
+    },
 }
 
 
