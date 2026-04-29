@@ -811,7 +811,7 @@ Respond with a JSON array."""
         return self._parse_response(message.content[0].text)
 
     def _analyze_openai(self, source_code: str, **kwargs) -> List[Dict]:
-        """Call OpenAI API."""
+        """Call OpenAI API (supports GPT-4o, GPT-4.1, GPT-5, o-series)."""
         import openai
 
         client = openai.OpenAI()
@@ -823,13 +823,20 @@ Respond with a JSON array."""
         rag_note = f" +RAG({len(rag_context)})" if rag_context else ""
         logger.info(f"FrontierLLM: Calling {model} ({len(source_code)} chars{rag_note})")
 
+        # GPT-5 and o-series use max_completion_tokens instead of max_tokens
+        token_param = {}
+        if model.startswith(("gpt-5", "o1", "o3", "o4")):
+            token_param["max_completion_tokens"] = 16384
+        else:
+            token_param["max_tokens"] = 4096
+
         response = client.chat.completions.create(
             model=model,
-            max_tokens=4096,
             messages=[
                 {"role": "system", "content": AUDIT_SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
+            **token_param,
         )
 
         return self._parse_response(response.choices[0].message.content)
