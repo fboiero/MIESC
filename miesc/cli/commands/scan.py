@@ -84,7 +84,12 @@ if RICH_AVAILABLE:
     is_flag=True,
     help="Multi-pass analysis: second pass targets functions from first pass (2x cost, higher recall)",
 )
-def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recursive, diff_ref, frontier_model, deep):
+@click.option(
+    "--ensemble",
+    is_flag=True,
+    help="Multi-provider ensemble: runs Claude + GPT-4o + Ollama local, merges findings (highest recall)",
+)
+def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recursive, diff_ref, frontier_model, deep, ensemble):
     """Quick vulnerability scan for a Solidity contract or directory.
 
     CONTRACT can be a single .sol file or a directory containing .sol files.
@@ -409,6 +414,59 @@ def scan(contract, output, ci, quiet, fp_strictness, llm_enhance, verbose, recur
         except Exception as e:
             if not quiet:
                 info(f"FP filter skipped: {e}")
+
+    # Ensemble mode: run multiple providers and merge findings
+    if ensemble:
+        frontier_model = None  # ensemble handles its own providers
+        try:
+            from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+            from src.core.tool_protocol import ToolStatus
+
+            ensemble_providers = [
+                ("anthropic", "claude-sonnet-4-6", "Claude"),
+                ("openai", "gpt-4o", "GPT-4o"),
+                ("ollama", "qwen2.5-coder:32b", "Ollama"),
+            ]
+            ensemble_findings = []
+            seen_keys = set()
+
+            for provider, model_id, label in ensemble_providers:
+                adapter = FrontierLLMAdapter(provider=provider)
+                if adapter.is_available() != ToolStatus.AVAILABLE:
+                    if not quiet:
+                        info(f"  Ensemble: {label} not available, skipping")
+                    continue
+                if not quiet:
+                    info(f"  Ensemble: running {label} ({model_id})...")
+                try:
+                    result = adapter.analyze(str(contract), model=model_id)
+                    if result.get("status") == "success":
+                        for f in result.get("findings", []):
+                            key = (
+                                (f.get("type") or f.get("title") or "").lower()[:30],
+                                (f.get("location", {}).get("function", "") if isinstance(f.get("location"), dict) else "").lower(),
+                            )
+                            if key not in seen_keys:
+                                seen_keys.add(key)
+                                f["ensemble_source"] = label
+                                ensemble_findings.append(f)
+                        if not quiet:
+                            info(f"  Ensemble: {label} found {len(result.get('findings', []))} findings")
+                except Exception as e:
+                    if not quiet:
+                        info(f"  Ensemble: {label} failed: {e}")
+
+            if ensemble_findings:
+                all_results.append({
+                    "tool": "frontier-ensemble",
+                    "status": "success",
+                    "findings": ensemble_findings,
+                })
+                if not quiet:
+                    info(f"Ensemble: {len(ensemble_findings)} unique findings from {len(ensemble_providers)} providers")
+        except Exception as e:
+            if not quiet:
+                info(f"Ensemble skipped: {e}")
 
     # Frontier LLM analysis (opt-in via --model claude/gpt)
     if frontier_model:

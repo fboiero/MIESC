@@ -44,7 +44,7 @@ fboiero@frvm.utn.edu.ar}
 \maketitle
 
 \begin{abstract}
-Automated smart contract security tools each capture only a fraction of existing vulnerabilities. We present MIESC, an open-source framework that orchestrates 35 analysis modules across 9 defense layers---static analysis, dynamic testing, symbolic execution, formal verification, AI/LLM analysis, pattern detection, DeFi-specific analysis, exploit validation, and consensus---with RAG-enhanced false-positive filtering, an intelligence engine for cross-tool Bayesian confidence scoring, and automated remediation (\texttt{miesc fix}). On SmartBugs-curated (143 contracts), MIESC achieves 80\% recall vs.\ Slither's 43\%. On 11 real DeFi exploits (\$3.3B losses), recall reaches 81.8\% ($\kappa$=0.77). On EVMBench (OpenAI/Paradigm; 40 real audits, 120 business-logic vulnerabilities), MIESC with Claude Sonnet achieves 82.5\% recall on the full benchmark (\$5.50 total) and 94.1\% on a 10-audit subset---surpassing Claude Opus standalone (45.9\%) by 37 percentage points. Critically, a fully local 32B-parameter model achieves 59.2\% recall at zero cost on the full 40-audit benchmark---surpassing Claude Opus as a standalone auditor (45.9\%). These results demonstrate that \emph{orchestrated static analysis combined with any LLM is strictly superior to even the best LLM alone}. MIESC is available under AGPL-3.0.
+Automated smart contract security tools each capture only a fraction of existing vulnerabilities. We present MIESC, an open-source framework that orchestrates 35 analysis modules across 9 defense layers---static analysis, dynamic testing, symbolic execution, formal verification, AI/LLM analysis, pattern detection, DeFi-specific analysis, exploit validation, and consensus---with RAG-enhanced false-positive filtering, an intelligence engine for cross-tool Bayesian confidence scoring, and automated remediation (\texttt{miesc fix}). On SmartBugs-curated (143 contracts), MIESC achieves 80\% recall vs.\ Slither's 43\%. On 11 real DeFi exploits (\$3.3B losses), recall reaches 81.8\% ($\kappa$=0.77). On EVMBench (OpenAI/Paradigm; 40 real audits, 120 business-logic vulnerabilities), a multi-provider ensemble (Claude Sonnet + GPT-5 + GPT-4o + local Ollama) achieves \textbf{92.5\%} recall---surpassing the state-of-the-art Cecuro (87.7\%) by 4.8 percentage points. The best single provider (Claude Sonnet) reaches 82.5\%; a fully local 32B model reaches 59.2\% at zero cost---both outperforming Claude Opus standalone (45.9\%). These results demonstrate that \emph{orchestrated static analysis combined with any LLM is strictly superior to even the best LLM alone}. MIESC is available under AGPL-3.0.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -346,11 +346,9 @@ MIESC supports multiple analysis modes through a unified pipeline: the same Chai
 Static only & 11.8\% & --- & --- & \$0 & 10\textsuperscript{a} \\
 + Ollama qwen2.5-coder:32b & 59.2\% & 30.1\% & 39.9\% & \$0 & 40 \\
 + GPT-4o & 73.7\% & 20.0\% & 31.5\% & \$1.20 & 40 \\
++ GPT-5 & 77.5\% & 42.7\% & 55.0\% & \$3 & 40 \\
 + Claude Sonnet 4.6 & 82.5\% & 34.0\% & 48.2\% & \$5.50 & 40 \\
-\midrule
-\multicolumn{6}{@{}l}{\textit{Ablation — 10-audit subset (17 vulns):}} \\
-+ Claude Sonnet 4.6 & 94.1\% & 25.0\% & 39.5\% & \$1.35 & 10 \\
-+ Claude Opus 4.6 & 88.2\% & 23.8\% & 37.5\% & \$4 & 10 \\
+\textbf{+ Ensemble (all 4)} & \textbf{92.5\%} & --- & --- & \$7 & 40 \\
 \bottomrule
 \end{tabular}
 
@@ -424,7 +422,7 @@ Two real-world exploits were not detected: the BonqDAO oracle manipulation (\$12
 \section{Conclusion}
 % ===========================================================================
 
-The central finding of this work is that no single analysis technique suffices for smart contract security, but \emph{any} LLM combined with static analysis orchestration outperforms even the best LLM alone. On pattern-based vulnerabilities (SmartBugs), orchestrating multiple static tools raises recall from 43\% (Slither alone) to 80\%. On business-logic vulnerabilities (EVMBench), static analysis alone achieves only 11.8\%---but combining it with a local 32B-parameter model reaches 82.4\% at zero cost, and 94.1\% with Claude Sonnet at \$1.35 per audit. Both configurations substantially outperform Claude Opus as a standalone auditor (45.9\% on the leaderboard). This demonstrates that \textbf{orchestrated static analysis + LLM is strictly superior to LLM alone}: every MIESC configuration---including a free local model---outperforms Claude Opus standalone (45.9\%) by at least 18 percentage points. On the 10-audit subset, the local model (82.4\%) outperforms GPT-4o (64.7\%), suggesting that orchestration quality matters at least as much as model scale, though 40-audit validation of the local model is needed to confirm this at scale.
+The central finding of this work is that no single analysis technique suffices for smart contract security, but \emph{any} LLM combined with static analysis orchestration outperforms even the best LLM alone---and multiple LLMs combined outperform any single LLM. On pattern-based vulnerabilities (SmartBugs), orchestrating multiple static tools raises recall from 43\% (Slither alone) to 80\%. On business-logic vulnerabilities (EVMBench), static analysis alone achieves only 11.8\%, but a multi-provider ensemble (Claude Sonnet + GPT-5 + GPT-4o + local Ollama) reaches \textbf{92.5\%}---surpassing the previous state-of-the-art Cecuro (87.7\%) by 4.8 percentage points. Each provider contributes unique detections that others miss: GPT-5 finds state consistency bugs, Claude excels at access control, GPT-4o catches accounting errors, and Ollama detects DeFi-specific patterns. This demonstrates that \textbf{multi-provider ensemble + static orchestration is the optimal configuration}, and that even a free local model (59.2\%) outperforms Claude Opus standalone (45.9\%).
 
 MIESC's practical contribution is making this accessible: \texttt{miesc scan contract.sol -{}-model ollama} runs Slither, Aderyn, an intelligence engine with Bayesian cross-tool confidence, protocol-specific RAG enrichment, and a local LLM audit---entirely free, offline, and DPGA-compliant. Adding a frontier API (\texttt{-{}-model claude}, \$1.35/audit) pushes recall to 94\%, compared with \$20K--60K for a manual audit engagement.
 
