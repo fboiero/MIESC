@@ -28,6 +28,9 @@
     numberstyle=\tiny,
 }
 
+\setlength{\textfloatsep}{6pt plus 1pt minus 1pt}
+\setlength{\floatsep}{6pt plus 1pt minus 1pt}
+\setlength{\intextsep}{6pt plus 1pt minus 1pt}
 \begin{document}
 
 \title{MIESC: A Multi-layer Framework for Automated Smart Contract Security Evaluation}
@@ -101,8 +104,29 @@ GPTScan~\cite{sun2024gptscan} combines GPT-4 with static analysis for logic vuln
 \section{Architecture}
 % ===========================================================================
 
-% TODO: Add Figure 1 — architecture pipeline diagram (Input → 9 Layers → RAG/ML → Report)
-MIESC implements a \emph{defense-in-depth} architecture organized into 9 layers, following the principle that multiple independent security mechanisms provide stronger protection than any single mechanism~\cite{saltzer1975protection}. Each layer targets complementary vulnerability classes (Table~\ref{tab:layers}).
+MIESC implements a \emph{defense-in-depth} architecture organized into 9 layers, following the principle that multiple independent security mechanisms provide stronger protection than any single mechanism~\cite{saltzer1975protection}. Figure~\ref{fig:arch} illustrates the analysis pipeline; each layer targets complementary vulnerability classes (Table~\ref{tab:layers}).
+
+\begin{figure}[htbp]
+\centering
+\footnotesize
+\setlength{\fboxsep}{2pt}
+\setlength{\fboxrule}{0.3pt}
+\begin{tabular}{c}
+\fbox{\textbf{Source code} {\scriptsize (.sol / .cairo / .move / .rs)}} \\[2pt]
+$\downarrow$ \\[1pt]
+\fbox{{\scriptsize \textbf{L1--4}: Slither $\cdot$ Aderyn $\cdot$ Mythril $\cdot$ Halmos $\cdot$ Echidna $\cdot$ Certora}} \\[2pt]
+$\downarrow$ \\[1pt]
+\fbox{{\scriptsize \textbf{L5--6}: Multi-provider LLM ensemble + RAG + Protocol map}} \\[2pt]
+$\downarrow$ \\[1pt]
+\fbox{{\scriptsize \textbf{Intelligence}: Bayesian confidence $\cdot$ Dedup $\cdot$ FP suppression}} \\[2pt]
+$\downarrow$ \\[1pt]
+\fbox{{\scriptsize \textbf{L7--9}: DeFi patterns $\cdot$ Exploit validation $\cdot$ Consensus}} \\[2pt]
+$\downarrow$ \\[1pt]
+\fbox{{\scriptsize \textbf{Output}: Report $\cdot$ SARIF $\cdot$ \texttt{fix} $\cdot$ \texttt{test-gen} $\cdot$ \texttt{verify} $\cdot$ \texttt{compliance}}}
+\end{tabular}
+\caption{MIESC pipeline: 9 defense layers with multi-provider LLM ensemble and intelligence engine for cross-tool confidence scoring.}
+\label{fig:arch}
+\end{figure}
 
 \begin{table}[htbp]
 \caption{MIESC's 9 Defense Layers}
@@ -381,16 +405,6 @@ A direct recall comparison is not possible because SmartBugs does not publish de
 \subsection{False Positive Management}
 
 Low precision (9--23\%) is the primary usability concern. The raw finding count on SmartBugs-curated is 810 findings for 143 contracts (5.7 per contract), dominated by informational issues (pragma version, naming conventions). The FP filter addresses this through three mechanisms: (1)~per-detector calibration based on empirical FP rates from our benchmark runs (e.g., Slither's \texttt{solc-version} detector has near-100\% FP rate on modern contracts), (2)~Solidity version awareness that suppresses integer overflow warnings for contracts using $\geq$0.8 (which has built-in overflow protection), and (3)~library detection that recognizes OpenZeppelin and Solmate safe patterns. After filtering, the actionable finding count drops to 2--3 per contract on average. Since v5.2.0, an intelligence engine performs semantic deduplication, context-aware FP suppression, and cross-tool Bayesian confidence scoring, achieving approximately 30\% noise reduction in practice. A trainable FP classifier (GradientBoosting) is included but awaits a larger labeled auditor corpus for production deployment.
-
-\subsection{Practical Deployment}
-
-MIESC is designed for practical adoption:
-\begin{itemize}
-    \item \textbf{GitHub Action}: One-line CI/CD integration with SARIF upload to GitHub Security tab.
-    \item \textbf{Docker images}: Standard (3GB, multi-arch) and full (8GB, all tools) images on GHCR.
-    \item \textbf{Plugin system}: PyPI-based entry points for community detectors.
-    \item \textbf{Profiles}: Predefined configurations (fast, ci, defi, thorough) for different use cases.
-\end{itemize}
 
 \subsection{Analysis of Missed Exploits}
 
