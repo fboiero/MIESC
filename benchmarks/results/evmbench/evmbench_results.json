@@ -1,24 +1,24 @@
 {
   "version": "5.3.1",
-  "date": "2026-04-26T14:23:56.117728",
-  "audits_evaluated": 10,
-  "total_findings": 42,
-  "total_detected": 15,
-  "total_vulns": 17,
-  "recall": 0.8823529411764706,
+  "date": "2026-04-29T12:46:01.624449",
+  "audits_evaluated": 40,
+  "total_findings": 218,
+  "total_detected": 93,
+  "total_vulns": 120,
+  "recall": 0.775,
   "results": [
     {
       "audit": "2024-01-canto",
       "status": "ok",
       "sloc": 106,
       "n_contracts": 1,
-      "n_findings": 3,
-      "n_findings_raw": 4,
-      "n_filtered": 1,
+      "n_findings": 1,
+      "n_findings_raw": 1,
+      "n_filtered": 0,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
-      "precision": 0.6666666666666666,
+      "precision": 2.0,
       "details": [
         {
           "vuln": "H-01",
@@ -57,13 +57,13 @@
       "status": "ok",
       "sloc": 247,
       "n_contracts": 3,
-      "n_findings": 5,
-      "n_findings_raw": 5,
+      "n_findings": 2,
+      "n_findings_raw": 2,
       "n_filtered": 0,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
-      "precision": 0.4,
+      "precision": 1.0,
       "details": [
         {
           "vuln": "H-01",
@@ -82,17 +82,17 @@
       "status": "ok",
       "sloc": 277,
       "n_contracts": 1,
-      "n_findings": 5,
-      "n_findings_raw": 5,
+      "n_findings": 4,
+      "n_findings_raw": 4,
       "n_filtered": 0,
-      "detected": 4,
+      "detected": 5,
       "total": 5,
-      "recall": 0.8,
-      "precision": 0.8,
+      "recall": 1.0,
+      "precision": 1.25,
       "details": [
         {
           "vuln": "H-01",
-          "matched": false,
+          "matched": true,
           "description": "Single plot can be occupied by multiple renters"
         },
         {
@@ -122,17 +122,17 @@
       "status": "ok",
       "sloc": 289,
       "n_contracts": 1,
-      "n_findings": 2,
-      "n_findings_raw": 3,
-      "n_filtered": 1,
-      "detected": 0,
+      "n_findings": 5,
+      "n_findings_raw": 5,
+      "n_filtered": 0,
+      "detected": 1,
       "total": 1,
-      "recall": 0.0,
-      "precision": 0.0,
+      "recall": 1.0,
+      "precision": 0.2,
       "details": [
         {
           "vuln": "H-01",
-          "matched": false,
+          "matched": true,
           "description": "Reentrancy in burn allows stablecoin pool drainage"
         }
       ]
@@ -142,13 +142,13 @@
       "status": "ok",
       "sloc": 296,
       "n_contracts": 1,
-      "n_findings": 3,
-      "n_findings_raw": 6,
-      "n_filtered": 3,
+      "n_findings": 5,
+      "n_findings_raw": 5,
+      "n_filtered": 0,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
-      "precision": 0.3333333333333333,
+      "precision": 0.2,
       "details": [
         {
           "vuln": "H-01",
@@ -162,13 +162,13 @@
       "status": "ok",
       "sloc": 300,
       "n_contracts": 2,
-      "n_findings": 1,
-      "n_findings_raw": 1,
+      "n_findings": 4,
+      "n_findings_raw": 4,
       "n_filtered": 0,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
-      "precision": 1.0,
+      "precision": 0.25,
       "details": [
         {
           "vuln": "H-01",
@@ -182,13 +182,13 @@
       "status": "ok",
       "sloc": 377,
       "n_contracts": 3,
-      "n_findings": 7,
-      "n_findings_raw": 7,
+      "n_findings": 3,
+      "n_findings_raw": 3,
       "n_filtered": 0,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
-      "precision": 0.14285714285714285,
+      "precision": 0.3333333333333333,
       "details": [
         {
           "vuln": "H-01",
@@ -202,13 +202,13 @@
       "status": "ok",
       "sloc": 386,
       "n_contracts": 6,
-      "n_findings": 5,
-      "n_findings_raw": 5,
+      "n_findings": 2,
+      "n_findings_raw": 2,
       "n_filtered": 0,
       "detected": 1,
       "total": 1,
       "recall": 1.0,
-      "precision": 0.2,
+      "precision": 0.5,
       "details": [
         {
           "vuln": "H-01",
@@ -222,13 +222,13 @@
       "status": "ok",
       "sloc": 413,
       "n_contracts": 1,
-      "n_findings": 8,
-      "n_findings_raw": 8,
+      "n_findings": 2,
+      "n_findings_raw": 2,
       "n_filtered": 0,
       "detected": 2,
       "total": 2,
       "recall": 1.0,
-      "precision": 0.25,
+      "precision": 1.0,
       "details": [
         {
           "vuln": "H-01",
@@ -239,6 +239,971 @@
           "vuln": "H-02",
           "matched": true,
           "description": "Invalid validation allows users to unlock early"
+        }
+      ]
+    },
+    {
+      "audit": "2025-06-panoptic",
+      "status": "ok",
+      "sloc": 444,
+      "n_contracts": 2,
+      "n_findings": 3,
+      "n_findings_raw": 3,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 2,
+      "recall": 0.5,
+      "precision": 0.3333333333333333,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": false,
+          "description": "The poolExposure for token1 is erroneously calculated as shortPremium - longPremium;"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "NAV calculation inconsistency due to underlying token position in pool configuration"
+        }
+      ]
+    },
+    {
+      "audit": "2025-01-next-generation",
+      "status": "ok",
+      "sloc": 472,
+      "n_contracts": 6,
+      "n_findings": 1,
+      "n_findings_raw": 1,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 1,
+      "recall": 1.0,
+      "precision": 1.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Cross-chain signature replay attack due to user-supplied domainSeparator and missing deadline check"
+        }
+      ]
+    },
+    {
+      "audit": "2026-01-tempo-mpp-streams",
+      "status": "ok",
+      "sloc": 477,
+      "n_contracts": 1,
+      "n_findings": 2,
+      "n_findings_raw": 2,
+      "n_filtered": 0,
+      "detected": 3,
+      "total": 3,
+      "recall": 1.0,
+      "precision": 1.5,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Cross-chain voucher replay allows draining channels across Tempo networks"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Cumulative amount underflow in close() allows draining channel deposits"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "Authorized signer validation bypass via zero address signature recovery"
+        }
+      ]
+    },
+    {
+      "audit": "2026-01-tempo-stablecoin-dex",
+      "status": "ok",
+      "sloc": 495,
+      "n_contracts": 2,
+      "n_findings": 2,
+      "n_findings_raw": 2,
+      "n_filtered": 0,
+      "detected": 3,
+      "total": 3,
+      "recall": 1.0,
+      "precision": 1.5,
+      "details": [
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Missing authorization in cancel() allows anyone to cancel any order"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "Linked list corruption enables double refund via incomplete order cleanup"
+        },
+        {
+          "vuln": "H-04",
+          "matched": true,
+          "description": "Integer underflow in balance subtraction allows draining DEX liquidity"
+        }
+      ]
+    },
+    {
+      "audit": "2024-01-curves",
+      "status": "ok",
+      "sloc": 553,
+      "n_contracts": 5,
+      "n_findings": 2,
+      "n_findings_raw": 2,
+      "n_filtered": 0,
+      "detected": 2,
+      "total": 4,
+      "recall": 0.5,
+      "precision": 1.0,
+      "details": [
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Unrestricted claiming of fees due to missing balance updates in FeeSplitter"
+        },
+        {
+          "vuln": "H-03",
+          "matched": false,
+          "description": "Attack to make CurveSubject to be a HoneyPot"
+        },
+        {
+          "vuln": "H-04",
+          "matched": true,
+          "description": "Unauthorized Access to setCurves Function"
+        },
+        {
+          "vuln": "H-05",
+          "matched": false,
+          "description": "Malformed equate statement"
+        }
+      ]
+    },
+    {
+      "audit": "2024-12-secondswap",
+      "status": "ok",
+      "sloc": 769,
+      "n_contracts": 7,
+      "n_findings": 25,
+      "n_findings_raw": 26,
+      "n_filtered": 1,
+      "detected": 3,
+      "total": 3,
+      "recall": 1.0,
+      "precision": 0.12,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "SecondSwap_Marketplace vesting listing order affects how much the vesting buyers can claim at a given step"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "transferVesting creates an incorrect vesting for new users when they purchase a vesting, because stepsClaimed is the same for all sales, allowing an attacker to prematurely unlock too many tokens"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "In transferVesting, the grantorVesting.releaseRate is calculated incorrectly, which leads to the sender being able to unlock more tokens than were initially locked."
+        }
+      ]
+    },
+    {
+      "audit": "2024-03-coinbase",
+      "status": "ok",
+      "sloc": 786,
+      "n_contracts": 7,
+      "n_findings": 1,
+      "n_findings_raw": 1,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 1,
+      "recall": 1.0,
+      "precision": 1.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Remove owner calls can be replayed to remove a different owner at the same index, leading to severe issues when combined with lack of last owner guard"
+        }
+      ]
+    },
+    {
+      "audit": "2024-07-traitforge",
+      "status": "ok",
+      "sloc": 880,
+      "n_contracts": 6,
+      "n_findings": 28,
+      "n_findings_raw": 28,
+      "n_filtered": 0,
+      "detected": 2,
+      "total": 2,
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "details": [
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Griefing attack on seller\u2019s airdrop benefits"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "Incorrect percentage calculation in NukeFund and EntityForging when taxCut is changed from default value"
+        }
+      ]
+    },
+    {
+      "audit": "2024-03-neobase",
+      "status": "ok",
+      "sloc": 895,
+      "n_contracts": 4,
+      "n_findings": 2,
+      "n_findings_raw": 2,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 1,
+      "recall": 1.0,
+      "precision": 0.5,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "If a gauge that a user has voted for gets removed, their voting power allocated for that gauge will be lost"
+        }
+      ]
+    },
+    {
+      "audit": "2023-10-nextgen",
+      "status": "ok",
+      "sloc": 1265,
+      "n_contracts": 8,
+      "n_findings": 2,
+      "n_findings_raw": 2,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 2,
+      "recall": 0.5,
+      "precision": 0.5,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Attacker can reenter to mint all the collection supply"
+        },
+        {
+          "vuln": "H-02",
+          "matched": false,
+          "description": "Attacker can drain all ETH from AuctionDemo when block.timestamp == auctionEndTime"
+        }
+      ]
+    },
+    {
+      "audit": "2024-06-vultisig",
+      "status": "ok",
+      "sloc": 1327,
+      "n_contracts": 22,
+      "n_findings": 2,
+      "n_findings_raw": 2,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 2,
+      "recall": 0.5,
+      "precision": 0.5,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": false,
+          "description": "Most users won\u2019t be able to claim their share of Uniswap fees"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "Adversary can prevent the launch of any ILO pool with enough raised capital at any moment by providing single-sided liquidity"
+        }
+      ]
+    },
+    {
+      "audit": "2024-06-thorchain",
+      "status": "ok",
+      "sloc": 1517,
+      "n_contracts": 3,
+      "n_findings": 1,
+      "n_findings_raw": 1,
+      "n_filtered": 0,
+      "detected": 2,
+      "total": 2,
+      "recall": 1.0,
+      "precision": 2.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "A malicious user can steal money out of the vault and other users"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "ThorChain will be informed wrongly about the unsuccessful ETH transfers due to the incorrect events emissions"
+        }
+      ]
+    },
+    {
+      "audit": "2025-04-forte",
+      "status": "ok",
+      "sloc": 1530,
+      "n_contracts": 3,
+      "n_findings": 2,
+      "n_findings_raw": 2,
+      "n_filtered": 0,
+      "detected": 4,
+      "total": 5,
+      "recall": 0.8,
+      "precision": 2.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Early 72-digit adjustment in sqrt will lead to incorrect result exponent calculation"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Sqrt function silently reverts the entire control flow when a packed float of 0 value is passed"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "Natural logarithm function silently accepts invalid non-positive inputs"
+        },
+        {
+          "vuln": "H-04",
+          "matched": true,
+          "description": "Unwrapping while equating inside the eq function fails to account for the set L_MATISSA_FLAG"
+        },
+        {
+          "vuln": "H-05",
+          "matched": false,
+          "description": "Precision loss in toPackedFloat function when mantissa is in range (MAX_M_DIGIT_NUMBER, MIN_L_DIGIT_NUMBER)"
+        }
+      ]
+    },
+    {
+      "audit": "2024-08-phi",
+      "status": "ok",
+      "sloc": 1546,
+      "n_contracts": 9,
+      "n_findings": 19,
+      "n_findings_raw": 20,
+      "n_filtered": 1,
+      "detected": 6,
+      "total": 6,
+      "recall": 1.0,
+      "precision": 0.3157894736842105,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Signature replay in signatureClaim results in unauthorized claiming of rewards"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Signature replay in createArt allows to impersonate artist and steal royalties"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "shareBalance bloating eventually blocks curator rewards distribution"
+        },
+        {
+          "vuln": "H-04",
+          "matched": true,
+          "description": "Forced endTime extension in updateArtSettings() allows attacker to mint more tokens"
+        },
+        {
+          "vuln": "H-06",
+          "matched": true,
+          "description": "Reentrancy in creating Creds allows an attacker to steal all Ether from the Cred contract"
+        },
+        {
+          "vuln": "H-07",
+          "matched": true,
+          "description": "Unrestricted changes to token settings allow artists to alter critical features"
+        }
+      ]
+    },
+    {
+      "audit": "2024-01-renft",
+      "status": "ok",
+      "sloc": 1663,
+      "n_contracts": 12,
+      "n_findings": 2,
+      "n_findings_raw": 2,
+      "n_filtered": 0,
+      "detected": 6,
+      "total": 6,
+      "recall": 1.0,
+      "precision": 3.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "All orders can be hijacked to lock rental assets forever by tipping a malicious ERC20"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "An attacker is able to hijack any ERC721 / ERC1155 he borrows because guard is missing validation on the address supplied to function call\u00a0setFallbackHandler()"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "An attacker can hijack any ERC1155 token he rents due to a design issue in reNFT via reentrancy exploitation"
+        },
+        {
+          "vuln": "H-05",
+          "matched": true,
+          "description": "Malicious actor can steal any actively rented NFT and freeze the rental payments (of the affected rentals) in the\u00a0escrow\u00a0contract"
+        },
+        {
+          "vuln": "H-06",
+          "matched": true,
+          "description": "Escrow contract can be drained by creating rentals that bypass execution invariant checks"
+        },
+        {
+          "vuln": "H-07",
+          "matched": true,
+          "description": "Attacker can lock lender NFTs and ERC20 in the safe if the offer is set to partial"
+        }
+      ]
+    },
+    {
+      "audit": "2024-03-abracadabra-money",
+      "status": "ok",
+      "sloc": 2260,
+      "n_contracts": 20,
+      "n_findings": 22,
+      "n_findings_raw": 22,
+      "n_filtered": 0,
+      "detected": 4,
+      "total": 4,
+      "recall": 1.0,
+      "precision": 0.18181818181818182,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Anyone making use of the MagicLP\u2019s TWAP to determine token prices will be exploitable."
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Attacker can amplify a rounding error in MagicLP to break the I invariant and cause malicious pricing"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "Users who deposited MIM and USDB tokens into BlastOnboarding may incur losses when the pool is created via bootstrap"
+        },
+        {
+          "vuln": "H-04",
+          "matched": true,
+          "description": "Oracle price can be manipulated"
+        }
+      ]
+    },
+    {
+      "audit": "2024-01-init-capital-invitational",
+      "status": "ok",
+      "sloc": 2334,
+      "n_contracts": 22,
+      "n_findings": 3,
+      "n_findings_raw": 3,
+      "n_filtered": 0,
+      "detected": 3,
+      "total": 3,
+      "recall": 1.0,
+      "precision": 1.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "MarginTradingHook#updateOrder lacks access control"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Order\u2019s creator can update tokenOut to arbitrary token"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "fillOrder executor can be front-run by the order creator by changing order\u2019s limitPrice_e36, the executor\u2019s assets can be stolen"
+        }
+      ]
+    },
+    {
+      "audit": "2024-07-basin",
+      "status": "ok",
+      "sloc": 2414,
+      "n_contracts": 3,
+      "n_findings": 9,
+      "n_findings_raw": 10,
+      "n_filtered": 1,
+      "detected": 1,
+      "total": 2,
+      "recall": 0.5,
+      "precision": 0.1111111111111111,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": false,
+          "description": "WellUpgradeable can be upgraded by anyone"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Incorrectly assigned decimal1 parameter upon decoding"
+        }
+      ]
+    },
+    {
+      "audit": "2024-06-size",
+      "status": "ok",
+      "sloc": 2578,
+      "n_contracts": 32,
+      "n_findings": 2,
+      "n_findings_raw": 2,
+      "n_filtered": 0,
+      "detected": 3,
+      "total": 4,
+      "recall": 0.75,
+      "precision": 1.5,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "When sellCreditMarket() is called to sell credit for a specific cash amount, the protocol might receive a lower swapping fee than expected"
+        },
+        {
+          "vuln": "H-02",
+          "matched": false,
+          "description": "Risk of overpayment due to race condition between repay and liquidateWithReplacement transactions"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "The collateral remainder cap is incorrectly calculated during liquidation"
+        },
+        {
+          "vuln": "H-04",
+          "matched": true,
+          "description": "Users won\u2019t liquidate positions because the logic used to calculate the liquidator\u2019s profit is incorrect"
+        }
+      ]
+    },
+    {
+      "audit": "2023-07-pooltogether",
+      "status": "ok",
+      "sloc": 3324,
+      "n_contracts": 14,
+      "n_findings": 2,
+      "n_findings_raw": 2,
+      "n_filtered": 0,
+      "detected": 2,
+      "total": 2,
+      "recall": 1.0,
+      "precision": 1.0,
+      "details": [
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "A malicious user can steal other user\u2019s deposits from Vault.sol"
+        },
+        {
+          "vuln": "H-04",
+          "matched": true,
+          "description": "Vault.mintYieldFee function can be called by anyone to mint Vault Shares to any recipient address"
+        }
+      ]
+    },
+    {
+      "audit": "2024-05-arbitrum-foundation",
+      "status": "ok",
+      "sloc": 3603,
+      "n_contracts": 27,
+      "n_findings": 1,
+      "n_findings_raw": 1,
+      "n_filtered": 0,
+      "detected": 0,
+      "total": 1,
+      "recall": 0.0,
+      "precision": 0.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": false,
+          "description": "Adversary can make honest parties unable to retrieve their assertion stakes if the required amount is decreased"
+        }
+      ]
+    },
+    {
+      "audit": "2023-12-ethereumcreditguild",
+      "status": "ok",
+      "sloc": 3721,
+      "n_contracts": 20,
+      "n_findings": 1,
+      "n_findings_raw": 1,
+      "n_filtered": 0,
+      "detected": 0,
+      "total": 2,
+      "recall": 0.0,
+      "precision": 0.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": false,
+          "description": "The userGaugeProfitIndex is not set correctly, allowing an attacker to receive rewards without waiting"
+        },
+        {
+          "vuln": "H-02",
+          "matched": false,
+          "description": "Anyone can steal all distributed rewards"
+        }
+      ]
+    },
+    {
+      "audit": "2024-08-wildcat",
+      "status": "ok",
+      "sloc": 3784,
+      "n_contracts": 19,
+      "n_findings": 4,
+      "n_findings_raw": 4,
+      "n_filtered": 0,
+      "detected": 0,
+      "total": 1,
+      "recall": 0.0,
+      "precision": 0.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": false,
+          "description": "User could withdraw more than supposed to, forcing last user withdraw to fail"
+        }
+      ]
+    },
+    {
+      "audit": "2024-05-olas",
+      "status": "ok",
+      "sloc": 3964,
+      "n_contracts": 28,
+      "n_findings": 5,
+      "n_findings_raw": 5,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 2,
+      "recall": 0.5,
+      "precision": 0.2,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": false,
+          "description": "pointsSum.slope Not Updated After Nominee Removal and Votes Revocation"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Arbitrary tokens and data can be bridged to GnosisTargetDispenserL2 to manipulate staking incentives"
+        }
+      ]
+    },
+    {
+      "audit": "2024-04-noya",
+      "status": "ok",
+      "sloc": 3999,
+      "n_contracts": 41,
+      "n_findings": 3,
+      "n_findings_raw": 3,
+      "n_filtered": 0,
+      "detected": 15,
+      "total": 20,
+      "recall": 0.75,
+      "precision": 5.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Value of asset token can be incorrect when usage of ETH/USD Chainlink oracle is needed"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "NoyaValueOracle.getValue returns an incorrect price when a multi-token route is used"
+        },
+        {
+          "vuln": "H-04",
+          "matched": true,
+          "description": "executeWithdraw may be blocked if any of the users are blacklisted from the baseToken"
+        },
+        {
+          "vuln": "H-05",
+          "matched": false,
+          "description": "Loss of funds in PendleConnector.depositIntoMarket()"
+        },
+        {
+          "vuln": "H-06",
+          "matched": false,
+          "description": "Incomplete TVL Calculation in AerodromeConnector::_getPositionTVL Function"
+        },
+        {
+          "vuln": "H-07",
+          "matched": true,
+          "description": "PendleConnector incorrectly sends the redeemed PT tokens to the market"
+        },
+        {
+          "vuln": "H-08",
+          "matched": true,
+          "description": "A Vault can steal all funds from another Vault through the Registry\u2019s flash loan contract due to insufficient access control in Connector.sendTokensToTrustedAddress()"
+        },
+        {
+          "vuln": "H-09",
+          "matched": false,
+          "description": "PrismaConnector are not able to claim surplus collateral in recovery mode"
+        },
+        {
+          "vuln": "H-10",
+          "matched": true,
+          "description": "AccountingManager::resetMiddle will not behave as expected"
+        },
+        {
+          "vuln": "H-11",
+          "matched": true,
+          "description": "SNXConnector.sol TVL calculation is incorrect"
+        },
+        {
+          "vuln": "H-12",
+          "matched": true,
+          "description": "Registry.sol#updateHoldingPosition remove position logic is incorrect: should use ownerConnector instead of calculatorConnector when calculating holdingPositionId"
+        },
+        {
+          "vuln": "H-13",
+          "matched": true,
+          "description": "BalancerConnector::_getPositionTVL is calculated incorrectly"
+        },
+        {
+          "vuln": "H-14",
+          "matched": true,
+          "description": "BalancerConnector has incorrect implementation of totalSupply, positionTVL and total TVL will be invalid"
+        },
+        {
+          "vuln": "H-15",
+          "matched": true,
+          "description": "SiloConnector _getPositionTVL miscalculate the TVL position"
+        },
+        {
+          "vuln": "H-16",
+          "matched": true,
+          "description": "It is possible to open insolvent position in Silo connector, due to missing check in borrow function"
+        },
+        {
+          "vuln": "H-18",
+          "matched": true,
+          "description": "In Dolomite, when opening a borrow position, the holding position in the Registry will never be updated due to the removePosition flag being set to true"
+        },
+        {
+          "vuln": "H-19",
+          "matched": false,
+          "description": "Numerous errors when calculating the TVL for the MorphoBlue connector"
+        },
+        {
+          "vuln": "H-21",
+          "matched": false,
+          "description": "Decreasing a position in PendleConnector will remove it even if there\u2019s still a stake at Penpie"
+        },
+        {
+          "vuln": "H-22",
+          "matched": true,
+          "description": "Invalid calculation of position TVL in Pendle connector"
+        },
+        {
+          "vuln": "H-23",
+          "matched": true,
+          "description": "Invalid handling of holding positions in DolomiteConnector::transferBetweenAccounts"
+        }
+      ]
+    },
+    {
+      "audit": "2025-10-sequence",
+      "status": "ok",
+      "sloc": 4630,
+      "n_contracts": 34,
+      "n_findings": 10,
+      "n_findings_raw": 10,
+      "n_filtered": 0,
+      "detected": 2,
+      "total": 2,
+      "recall": 1.0,
+      "precision": 0.2,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Chained signature with checkpoint usage disabled can bypass all checkpointer validation"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Partial signature replay/frontrunning attack on session calls"
+        }
+      ]
+    },
+    {
+      "audit": "2024-07-benddao",
+      "status": "ok",
+      "sloc": 4855,
+      "n_contracts": 42,
+      "n_findings": 1,
+      "n_findings_raw": 1,
+      "n_filtered": 0,
+      "detected": 4,
+      "total": 7,
+      "recall": 0.5714285714285714,
+      "precision": 4.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Mismatch between yield amount deposited in shares calculation and getAccountYieldBalance()"
+        },
+        {
+          "vuln": "H-02",
+          "matched": false,
+          "description": "isolateRepay() lack of check onBehalf == nftOwner"
+        },
+        {
+          "vuln": "H-03",
+          "matched": false,
+          "description": "erc721DecreaseIsolateSupplyOnLiquidate() missing clear lockerAddr"
+        },
+        {
+          "vuln": "H-04",
+          "matched": false,
+          "description": "Revert due to underflow error, leading to lock of the liquidated NFT"
+        },
+        {
+          "vuln": "H-06",
+          "matched": true,
+          "description": "Users cannot unstake from YiedlETHStakingEtherfi.sol, because YieldAccount.sol is incompatible with ether.fi\u2019s WithdrawRequestNFT.sol"
+        },
+        {
+          "vuln": "H-07",
+          "matched": true,
+          "description": "Anyone can get the NFT collateral token after an Auction without bidding due to missing check on msg.sender"
+        },
+        {
+          "vuln": "H-08",
+          "matched": true,
+          "description": "The bot won\u2019t be able to unstake or repay risky positions in the yield contract"
+        }
+      ]
+    },
+    {
+      "audit": "2025-04-virtuals",
+      "status": "ok",
+      "sloc": 5238,
+      "n_contracts": 43,
+      "n_findings": 28,
+      "n_findings_raw": 30,
+      "n_filtered": 2,
+      "detected": 3,
+      "total": 4,
+      "recall": 0.75,
+      "precision": 0.10714285714285714,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": true,
+          "description": "Lack of access control in AgentNftV2::addValidator() enables unauthorized validator injection and causes reward accounting inconsistencies"
+        },
+        {
+          "vuln": "H-03",
+          "matched": true,
+          "description": "Public ServiceNft::updateImpact call leads to cascading issue"
+        },
+        {
+          "vuln": "H-04",
+          "matched": false,
+          "description": "Public ContributionNft::mint leads to cascading issues / loss of funds"
+        },
+        {
+          "vuln": "H-05",
+          "matched": true,
+          "description": "ValidatorRegistry::validatorScore/getPastValidatorScore allows validator to earn full rewards without actually engaging with the protocol"
+        }
+      ]
+    },
+    {
+      "audit": "2024-03-taiko",
+      "status": "ok",
+      "sloc": 7442,
+      "n_contracts": 80,
+      "n_findings": 1,
+      "n_findings_raw": 1,
+      "n_filtered": 0,
+      "detected": 1,
+      "total": 5,
+      "recall": 0.2,
+      "precision": 1.0,
+      "details": [
+        {
+          "vuln": "H-01",
+          "matched": false,
+          "description": "Gas issuance is inflated and will halt the chain or lead to incorrect base fee"
+        },
+        {
+          "vuln": "H-02",
+          "matched": true,
+          "description": "Prover Loss"
+        },
+        {
+          "vuln": "H-03",
+          "matched": false,
+          "description": "Airdrop Frozen"
+        },
+        {
+          "vuln": "H-04",
+          "matched": false,
+          "description": "Taiko L1 - Proposer can maliciously cause loss of funds by forcing someone else to pay prover\u2019s fee"
+        },
+        {
+          "vuln": "H-05",
+          "matched": false,
+          "description": "Signatures can be replayed in withdraw() to withdraw more tokens than the user originally intended."
+        }
+      ]
+    },
+    {
+      "audit": "2025-05-blackhole",
+      "status": "ok",
+      "sloc": 10108,
+      "n_contracts": 116,
+      "n_findings": 1,
+      "n_findings_raw": 1,
+      "n_filtered": 0,
+      "detected": 0,
+      "total": 1,
+      "recall": 0.0,
+      "precision": 0.0,
+      "details": [
+        {
+          "vuln": "H-02",
+          "matched": false,
+          "description": "Reward token in GaugeFactoryCL can be drained by anyone"
         }
       ]
     }
