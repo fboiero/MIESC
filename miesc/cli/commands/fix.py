@@ -39,6 +39,25 @@ _FUNCTION_RE = re.compile(
 )
 
 
+def _ensure_modifier_defined(source: str, modifier: str) -> str:
+    """If a modifier is used but not defined, inline it."""
+    if modifier == "onlyOwner" and "modifier onlyOwner" not in source:
+        # Check if there's an owner state variable
+        if re.search(r"address\s+(public\s+)?owner\b", source):
+            inline = (
+                "\n    // MIESC: Inline onlyOwner modifier\n"
+                "    modifier onlyOwner() {\n"
+                '        require(msg.sender == owner, "Not owner");\n'
+                "        _;\n"
+                "    }\n"
+            )
+            # Insert after the first state variable block (before first function)
+            m = re.search(r"(function\s+)", source)
+            if m:
+                source = source[:m.start()] + inline + "\n    " + source[m.start():]
+    return source
+
+
 def _add_modifier_to_function(
     source: str,
     function_name: str,
@@ -94,12 +113,43 @@ def _add_modifier_to_function(
     return patched, patched != source
 
 
+_INLINE_REENTRANCY_GUARD = """
+// MIESC: Inline reentrancy guard (no external dependency required)
+abstract contract MiescReentrancyGuard {
+    uint256 private _reentrancyStatus;
+    modifier nonReentrant() {
+        require(_reentrancyStatus != 2, "ReentrancyGuard: reentrant call");
+        _reentrancyStatus = 2;
+        _;
+        _reentrancyStatus = 1;
+    }
+    constructor() { _reentrancyStatus = 1; }
+}
+"""
+
+
 def _ensure_reentrancy_guard_import(source: str) -> str:
-    """Add OZ ReentrancyGuard import + inheritance if not already present."""
+    """Add inline ReentrancyGuard + inheritance if not already present.
+
+    Uses an inline implementation instead of an OZ import so the fixed
+    contract compiles without external dependencies (Foundry/Hardhat).
+    """
     if "ReentrancyGuard" in source:
         return source
-    # Add import after the last existing import, or after pragma
-    import_line = 'import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";\n'
+
+    # Check if OZ is likely available (import already exists)
+    has_oz = "@openzeppelin" in source
+
+    if has_oz:
+        # OZ available — use import
+        import_line = 'import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";\n'
+        guard_name = "ReentrancyGuard"
+    else:
+        # No OZ — inline the guard so it compiles standalone
+        import_line = _INLINE_REENTRANCY_GUARD
+        guard_name = "MiescReentrancyGuard"
+
+    # Insert after last import or after pragma
     last_import = -1
     for i, line in enumerate(source.splitlines()):
         if line.strip().startswith("import "):
@@ -113,17 +163,24 @@ def _ensure_reentrancy_guard_import(source: str) -> str:
                 lines.insert(i + 1, "\n" + import_line)
                 break
     source = "".join(lines)
+
     # Add ReentrancyGuard to contract inheritance
     contract_re = re.compile(r"(contract\s+\w+)\s*(\{)", re.MULTILINE)
     is_re = re.compile(r"(contract\s+\w+\s+is\s+)([^{]+)(\{)", re.MULTILINE)
-    m_is = is_re.search(source)
-    if m_is:
-        if "ReentrancyGuard" not in m_is.group(2):
-            source = source[: m_is.start(2)] + m_is.group(2).rstrip() + ", ReentrancyGuard " + source[m_is.start(3):]
-    else:
-        m_contract = contract_re.search(source)
-        if m_contract:
-            source = source[: m_contract.end(1)] + " is ReentrancyGuard " + source[m_contract.start(2):]
+    # Find the TARGET contract (skip the inline guard itself)
+    for m_contract in contract_re.finditer(source):
+        contract_name = source[m_contract.start(1):m_contract.end(1)].split()[-1]
+        if contract_name in ("ReentrancyGuard", "MiescReentrancyGuard"):
+            continue  # Skip the guard definition itself
+        m_is_check = re.search(
+            r"(contract\s+" + re.escape(contract_name) + r"\s+is\s+)([^{]+)(\{)", source
+        )
+        if m_is_check:
+            if guard_name not in m_is_check.group(2):
+                source = source[: m_is_check.start(2)] + m_is_check.group(2).rstrip() + ", " + guard_name + " " + source[m_is_check.start(3):]
+        else:
+            source = source[: m_contract.end(1)] + " is " + guard_name + " " + source[m_contract.start(2):]
+        break  # Only modify the first real contract
     return source
 
 
@@ -304,6 +361,8 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             source, changed = _add_modifier_to_function(
                 source, fn_name, "onlyOwner", line_hint
             )
+            if changed:
+                source = _ensure_modifier_defined(source, "onlyOwner")
             return source, changed
         return source, False
 
@@ -312,6 +371,8 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             source, changed = _add_modifier_to_function(
                 source, fn_name, "onlyOwner", line_hint
             )
+            if changed:
+                source = _ensure_modifier_defined(source, "onlyOwner")
             return source, changed
         return source, False
 
