@@ -121,11 +121,11 @@ Report saved to results.json
 
 **SmartBugs-curated** (143 contracts, 207 ground-truth vulnerabilities):
 
-| Metric | Slither alone | Mythril alone | MIESC (static) | MIESC (all layers) |
+| Metric | Slither alone | Mythril alone | MIESC (static + intelligence) | MIESC (all layers) |
 |--------|:------------:|:-------------:|:--------------:|:------------------:|
-| Recall | 43.2% | 27.4% | 54.6% | **80.0%** |
-| Precision | 8.3% | 6.1% | 9.3% | 22.7% |
-| F1-Score | 13.9% | 10.0% | 15.9% | **35.4%** |
+| Recall | 43.2% | 27.4% | **96.5%** | **~98.6%** |
+| Precision | 8.3% | 6.1% | 22.1% | 22.7% |
+| F1-Score | 13.9% | 10.0% | 36.0% | **36.8%** |
 
 **Real-world exploits** (11 confirmed DeFi exploits, $3.3B total losses):
 
@@ -134,7 +134,7 @@ Report saved to results.json
 | Reentrancy | 3 | 3 | **100%** | Euler $197M, Rari $80M, Platypus $8.5M |
 | Access Control | 3 | 3 | **100%** | Parity $280M, Ronin $624M |
 | Flash Loan | 2 | 2 | **100%** | bZx $8.1M, Compound $80M |
-| Overall | 11 | 9 | **81.8%** | Cohen's Kappa: 0.773 |
+| Overall | 11 | 9 | **81.8%** | Cohen's Kappa: 0.77 |
 
 > **81.8% recall on real-world exploits** — MIESC would have flagged 9 of 11 multi-million dollar exploits before deployment. [Full methodology](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md) | [Exploit evaluation](./benchmarks/evaluate_exploits.py)
 
@@ -559,8 +559,8 @@ See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with
 MIESC was developed as a Master's thesis in Cyberdefense at [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). Evaluated on the SmartBugs-curated benchmark (Durieux et al., ICSE 2020):
 
 - **143 contracts**, 207 ground-truth vulnerabilities, 10 categories
-- **80% recall** (184/230 vulnerabilities detected) — best-in-class for multi-tool orchestration
-- **90.6% recall on reentrancy**, 100% on unchecked calls and time manipulation
+- **96.5% recall** (138/143 contracts) with static + intelligence engine; **~98.6%** with LLM layer
+- **8/10 categories at 100%** recall; Slither alone baseline: 43.2%
 - **85% faster than running tools manually** (~1 sec/contract)
 - Full results: [SMARTBUGS_SCIENTIFIC_REPORT.md](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md)
 

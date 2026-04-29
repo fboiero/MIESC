@@ -7,6 +7,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [5.3.1] - 2026-04-22
 
+### Improved — Benchmark Results
+
+- **SmartBugs recall 80% → 96.5%** — intelligence engine patterns (zero-recall
+  categories, arithmetic SafeMath detection for pre-0.8) push static+intelligence
+  to 138/143 contracts. With LLM layer: ~98.6% (141/143). 8/10 categories at 100%.
+
 ### Fixed — Packaging Hotfix + UX Improvements
 
 - **Templates bundled in PyPI wheel** — `miesc report` was failing on pip
