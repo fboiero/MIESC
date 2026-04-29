@@ -568,17 +568,26 @@ def context_aware_fp_check(
     func_name = loc.get("function", "") if isinstance(loc, dict) else ""
 
     # Rule 1: access-control findings on functions with admin modifiers → FP
-    if canonical == CanonicalCategory.ACCESS_CONTROL and func_name:
-        func_pattern = re.compile(
-            rf"function\s+{re.escape(func_name)}\s*\([^)]*\)[^{{]*\{{",
-            re.DOTALL,
-        )
-        match = func_pattern.search(source_code)
-        if match:
-            # Check the function signature + first 200 chars of body for admin modifiers
-            context = source_code[match.start():match.start() + 500]
-            if _ADMIN_MODIFIERS.search(context):
-                return True, f"Function {func_name} has admin modifier"
+    if canonical == CanonicalCategory.ACCESS_CONTROL:
+        if func_name and func_name not in ("unknown", "<unknown>"):
+            func_pattern = re.compile(
+                rf"function\s+{re.escape(func_name)}\s*\([^)]*\)[^{{]*\{{",
+                re.DOTALL,
+            )
+            match = func_pattern.search(source_code)
+            if match:
+                context = source_code[match.start():match.start() + 500]
+                if _ADMIN_MODIFIERS.search(context):
+                    return True, f"Function {func_name} has admin modifier"
+        # For selfdestruct/suicidal without function name — check if destroy/selfdestruct functions have guard
+        ftype = (finding.get("type") or finding.get("title") or "").lower()
+        if "selfdestruct" in ftype or "suicidal" in ftype:
+            for fn in ("destroy", "kill", "close", "shutdown"):
+                fn_match = re.search(rf"function\s+{fn}\s*\([^)]*\)[^{{]*\{{", source_code, re.DOTALL)
+                if fn_match:
+                    context = source_code[fn_match.start():fn_match.start() + 300]
+                    if _ADMIN_MODIFIERS.search(context):
+                        return True, f"Function {fn}() has admin modifier — selfdestruct guarded"
 
     # Rule 2: findings in test/mock files → FP
     if file_path and _TEST_FILE.search(file_path):
@@ -592,13 +601,17 @@ def context_aware_fp_check(
             if major > 0 or minor >= 8:
                 return True, "Arithmetic overflow impossible in Solidity >= 0.8"
 
-    # Rule 4: OpenZeppelin-imported contract with reentrancy finding
-    # AND the function has nonReentrant modifier → FP
-    if canonical == CanonicalCategory.REENTRANCY and _OZ_IMPORT.search(source_code):
+    # Rule 4: reentrancy finding on function with nonReentrant modifier → FP
+    # Works for both OZ ReentrancyGuard and MIESC inline guard
+    if canonical == CanonicalCategory.REENTRANCY:
         if func_name:
             func_context = _get_function_context(source_code, func_name)
             if "nonReentrant" in func_context or "nonreentrant" in func_context.lower():
-                return True, f"Function {func_name} has nonReentrant guard (OpenZeppelin)"
+                return True, f"Function {func_name} has nonReentrant guard"
+        # Also suppress if the contract inherits ReentrancyGuard and finding has no specific function
+        if not func_name or func_name in ("unknown", "<unknown>"):
+            if "ReentrancyGuard" in source_code or "MiescReentrancyGuard" in source_code:
+                return True, "Contract has ReentrancyGuard — reentrancy mitigated"
 
     # Rule 5: Proxy upgrade findings when contract uses OpenZeppelin's
     # Initializable or UUPSUpgradeable → likely already guarded
