@@ -475,6 +475,23 @@ ZERO_RECALL_PATTERNS = {
         "swc": "SWC-104",
         "message": "Return value of low-level .call() not checked — use (bool success,) = addr.call() + require(success).",
     },
+    "arithmetic_raw_op_with_safemath": {
+        "patterns": [
+            r"uint\d*\s+\w+\s*=\s*(?:uint\d*\()?\s*\w+\s*\*\s*\w+",
+        ],
+        "severity": "High",
+        "swc": "SWC-101",
+        "message": "Raw arithmetic (*) outside SafeMath — even if SafeMath is imported, this specific operation can overflow. Use .mul() consistently.",
+        "requires_no_safemath": False,
+    },
+    "access_control_newowner_public": {
+        "patterns": [
+            r"function\s+\w*[Oo]wner\w*\s*\([^)]*address[^)]*\)\s*(external|public)\b(?!.*onlyOwner)",
+        ],
+        "severity": "Critical",
+        "swc": "SWC-105",
+        "message": "Public function to add/change owner without onlyOwner modifier — anyone can add themselves as owner.",
+    },
 }
 
 
