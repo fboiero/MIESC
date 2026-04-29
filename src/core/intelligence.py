@@ -281,6 +281,7 @@ ZERO_RECALL_PATTERNS = {
     "reentrancy_crossfunction": {
         "patterns": [
             r"\.call\s*\{value:",
+            r"\.call\.value\s*\(",
         ],
         "severity": "High",
         "swc": "SWC-107",
@@ -448,6 +449,31 @@ ZERO_RECALL_PATTERNS = {
         "severity": "Critical",
         "swc": "SWC-118",
         "message": "Public init/initialize function without access restriction — anyone can call and take ownership. Use initializer modifier or require(!initialized).",
+    },
+    "access_control_owner_reassign": {
+        "patterns": [
+            r"function\s+\w*[Oo]wner\w*\s*\([^)]*\)\s*(external|public)\s*[^{]*\{[^}]*owner\s*=",
+        ],
+        "severity": "Critical",
+        "swc": "SWC-105",
+        "message": "Public function reassigns owner without access control modifier — anyone can become owner.",
+    },
+    "unchecked_send_pattern": {
+        "patterns": [
+            r"\w+\.send\s*\([^)]*\)\s*;",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-104",
+        "message": "Return value of .send() not checked — transfer can silently fail. Use require(addr.send(amount)) or addr.transfer(amount).",
+    },
+    "unchecked_call_pattern": {
+        "patterns": [
+            r"\w+\.call\s*\([^)]*\)\s*;",
+            r"\w+\.call\.value\s*\([^)]*\)\s*\([^)]*\)\s*;",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-104",
+        "message": "Return value of low-level .call() not checked — use (bool success,) = addr.call() + require(success).",
     },
 }
 
