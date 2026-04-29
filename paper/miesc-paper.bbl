@@ -84,6 +84,14 @@ Y.~Sun, D.~Wu, Y.~Xue, H.~Liu, H.~Wang, Z.~Xu, X.~Xie, and Y.~Liu, ``{GPTScan}:
   Conference on Software Engineering (ICSE)}.\hskip 1em plus 0.5em minus
   0.4em\relax ACM, 2024, pp. 1--13.
 
+\bibitem{evmbench2026}
+\BIBentryALTinterwordspacing
+A.~Gupta, V.~Gottimukkala, D.~Robinson, Paradigm, and OpenAI, ``{EVMBench}:
+  Evaluating {AI} agents on smart contract security,'' \emph{arXiv preprint
+  arXiv:2603.04915}, 2026. [Online]. Available:
+  \url{https://github.com/paradigmxyz/evmbench}
+\BIBentrySTDinterwordspacing
+
 \bibitem{saltzer1975protection}
 J.~H. Saltzer and M.~D. Schroeder, ``The protection of information in computer
   systems,'' \emph{Proceedings of the IEEE}, vol.~63, no.~9, pp. 1278--1308,
@@ -96,13 +104,5 @@ M.~Wooldridge and N.~R. Jennings, ``Intelligent agents: Theory and practice,''
 \bibitem{mcp2024}
 {Anthropic}, ``Model context protocol specification,''
   \url{https://modelcontextprotocol.io}, 2024.
-
-\bibitem{evmbench2026}
-\BIBentryALTinterwordspacing
-A.~Gupta, V.~Gottimukkala, D.~Robinson, Paradigm, and OpenAI, ``{EVMBench}:
-  Evaluating {AI} agents on smart contract security,'' \emph{arXiv preprint
-  arXiv:2603.04915}, 2026. [Online]. Available:
-  \url{https://github.com/paradigmxyz/evmbench}
-\BIBentrySTDinterwordspacing
 
 \end{thebibliography}
