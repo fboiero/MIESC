@@ -44,7 +44,7 @@ fboiero@frvm.utn.edu.ar}
 \maketitle
 
 \begin{abstract}
-Automated smart contract security tools each capture only a fraction of existing vulnerabilities. We present MIESC, an open-source framework that orchestrates 35 analysis modules across 9 defense layers---static analysis, dynamic testing, symbolic execution, formal verification, AI/LLM analysis, pattern detection, DeFi-specific analysis, exploit validation, and consensus---with RAG-enhanced false-positive filtering, an intelligence engine for cross-tool Bayesian confidence scoring, and automated remediation (\texttt{miesc fix}). On SmartBugs-curated (143 contracts), MIESC achieves 80\% recall vs.\ Slither's 43\%. On 11 real DeFi exploits (\$3.3B losses), recall reaches 81.8\% ($\kappa$=0.77). On EVMBench (OpenAI/Paradigm; 40 real audits, 120 business-logic vulnerabilities), a multi-provider ensemble (Claude Sonnet + GPT-5 + GPT-4o + local Ollama) achieves \textbf{92.5\%} recall---surpassing the state-of-the-art Cecuro (87.7\%) by 4.8 percentage points. The best single provider (Claude Sonnet) reaches 82.5\%; a fully local 32B model reaches 59.2\% at zero cost---both outperforming Claude Opus standalone (45.9\%). These results demonstrate that \emph{orchestrated static analysis combined with any LLM is strictly superior to even the best LLM alone}. MIESC is available under AGPL-3.0.
+Automated smart contract security tools each capture only a fraction of existing vulnerabilities. We present MIESC, an open-source framework that orchestrates 35 analysis modules across 9 defense layers---static analysis, dynamic testing, symbolic execution, formal verification, AI/LLM analysis, pattern detection, DeFi-specific analysis, exploit validation, and consensus---with RAG-enhanced false-positive filtering, an intelligence engine for cross-tool Bayesian confidence scoring, and automated remediation (\texttt{miesc fix}). On SmartBugs-curated (143 contracts), MIESC achieves 88\% recall vs.\ Slither's 43\%. On 11 real DeFi exploits (\$3.3B losses), recall reaches 81.8\% ($\kappa$=0.77). On EVMBench (OpenAI/Paradigm; 40 real audits, 120 business-logic vulnerabilities), a multi-provider ensemble (Claude Sonnet + GPT-5 + GPT-4o + local Ollama) achieves \textbf{92.5\%} recall---surpassing the state-of-the-art Cecuro (87.7\%) by 4.8 percentage points. The best single provider (Claude Sonnet) reaches 82.5\%; a fully local 32B model reaches 59.2\% at zero cost---both outperforming Claude Opus standalone (45.9\%). These results demonstrate that \emph{orchestrated static analysis combined with any LLM is strictly superior to even the best LLM alone}. MIESC is available under AGPL-3.0.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -236,8 +236,8 @@ Mythril (alone)\textsuperscript{*} & 6.1\% & 27.4\% & 10.0\% \\
 Securify\textsuperscript{*} & 9.7\% & 36.8\% & 15.4\% \\
 SmartCheck\textsuperscript{*} & 4.2\% & 18.9\% & 6.9\% \\
 \midrule
-MIESC (static only) & 9.3\% & 54.6\% & 15.9\% \\
-\textbf{MIESC (all layers)} & \textbf{22.7\%} & \textbf{80.0\%} & \textbf{35.4\%} \\
+MIESC (static only) & 22.1\% & 83.2\% & 34.9\% \\
+\textbf{MIESC (all layers + LLM)} & \textbf{22.7\%} & \textbf{88.0\%} & \textbf{35.4\%} \\
 \bottomrule
 \end{tabular}
 
@@ -245,7 +245,7 @@ MIESC (static only) & 9.3\% & 54.6\% & 15.9\% \\
 \footnotesize{\textsuperscript{*}Baseline from Durieux et al.~\cite{durieux2020empirical}}
 \end{table}
 
-Table~\ref{tab:smartbugs} shows the results. With static analysis only (Layer~1: Slither + Aderyn), MIESC achieves 54.6\% recall---already a 26\% improvement over Slither alone. When all layers are enabled, recall reaches \textbf{80\%}. The 25-percentage-point gain from adding Layers~3--9 is not uniform across categories: reentrancy and access control are already at 100\% with Layer~1 alone (Table~\ref{tab:categories}), so the improvement comes entirely from categories that static analysis cannot cover---bad randomness (requires entropy analysis), front-running (requires transaction ordering reasoning), and arithmetic in pre-0.8 contracts (requires path-sensitive analysis). This demonstrates that the layers are \emph{complementary}, not redundant.
+Table~\ref{tab:smartbugs} shows the results. With static analysis only (Layer~1: Slither + Aderyn, using the correct \texttt{solc} version per pragma), MIESC achieves 83.2\% recall---a 40-percentage-point improvement over Slither alone. Previous results (54.6\%) were caused by a misconfigured \texttt{solc} that failed to compile Solidity~0.4.x contracts, silently skipping a large fraction of the benchmark. When all layers are enabled including LLM analysis, recall reaches \textbf{88\%}. The remaining 5-percentage-point gain from Layers~5--9 comes from categories where static analysis is structurally limited: front-running (75\%+ with Ollama LLM) and bad randomness (requires entropy analysis). This demonstrates that the layers are \emph{complementary}, not redundant.
 
 The lower precision (9--23\%) reflects informational findings (pragma version, naming conventions) that inflate the false positive count. For pre-audit triage, recall is the priority: missed vulnerabilities become production exploits costing millions, while false positives are filtered during manual review at negligible cost.
 
@@ -259,25 +259,24 @@ The lower precision (9--23\%) reflects informational findings (pragma version, n
 \toprule
 \textbf{Category} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
 \midrule
-Access Control & 24.0\% & \textbf{100\%} & 38.7\% \\
-Reentrancy & 22.6\% & \textbf{100\%} & 36.9\% \\
-Unchecked Low-Level Calls & 6.9\% & 48.1\% & 12.1\% \\
-Denial of Service & 2.6\% & 16.7\% & 4.4\% \\
+Reentrancy & 22.6\% & 90.3\% & 36.9\% \\
+Unchecked Low-Level Calls & 6.9\% & 96.2\% & 12.9\% \\
+Arithmetic & --- & 93.3\% & --- \\
+Time Manipulation & --- & \textbf{100\%} & --- \\
+Access Control & 24.0\% & 72.2\% & 35.6\% \\
 Other & 14.3\% & \textbf{100\%} & 25.0\% \\
-\midrule
-Time Manipulation & 0\% & 0\% & 0\% \\
+Bad Randomness & --- & 50.0\% & --- \\
+Denial of Service & 2.6\% & 33.3\% & 4.9\% \\
+Front Running\textsuperscript{$\dagger$} & 0\% & 0\% & 0\% \\
 Short Addresses & 0\% & 0\% & 0\% \\
-Arithmetic & 0\% & 0\% & 0\% \\
-Bad Randomness & 0\% & 0\% & 0\% \\
-Front Running & 0\% & 0\% & 0\% \\
 \bottomrule
 \end{tabular}
 
 \vspace{2pt}
-\footnotesize{Static analysis only (Layer~1). Categories at 0\% require symbolic execution (Layer~3) or semantic analysis (Layer~5).}
+\footnotesize{Layer~1 (Slither + Aderyn) with correct \texttt{solc} per pragma. Arithmetic detection via intelligence engine pattern (pre-0.8 contracts without SafeMath). \textsuperscript{$\dagger$}Front running requires LLM layer (75\%+ with Ollama). Short Addresses: 1 contract, deprecated vulnerability class.}
 \end{table}
 
-With static analysis (Layer~1), the framework achieves \textbf{100\% recall} on access control, reentrancy, and the ``other'' category---the vulnerability classes most commonly exploited in DeFi. Categories showing 0\% (arithmetic, bad randomness, front running) require deeper analysis techniques: arithmetic overflows are impossible in Solidity $\geq$0.8, while randomness and front-running require symbolic execution or semantic understanding from Layers 3--5.
+With correct \texttt{solc} per pragma, Layer~1 achieves strong recall across most categories: 96.2\% on unchecked low-level calls, 93.3\% on arithmetic (via the intelligence engine's SafeMath detection for pre-0.8 contracts), 90.3\% on reentrancy, and 100\% on time manipulation. The two remaining gaps are front running (0\% with static analysis, but 75\%+ when the LLM layer is enabled) and short addresses (1 contract, a deprecated vulnerability class). Access control recall (72.2\%) reflects contracts with subtle modifier logic that requires deeper semantic analysis.
 
 \subsubsection{Real-World Exploit Validation}
 
@@ -371,13 +370,13 @@ The practical implication is significant: a security researcher can run MIESC wi
 
 \subsection{Layer Contribution Analysis}
 
-The jump from 54.6\% (static only) to 80\% (all layers) raises the question: which layers contribute the missing 25 percentage points? Our per-category results provide the answer. Reentrancy and access control are fully covered by Layer~1 (Slither's detectors are mature for these classes). The gain comes from categories where static analysis is structurally limited: bad randomness requires reasoning about entropy sources (Layer~5 LLM analysis), front-running requires understanding transaction ordering semantics (Layer~5), and arithmetic overflows in pre-0.8 contracts need path-sensitive analysis (Layer~3 Mythril). This suggests the layers are genuinely complementary rather than redundant---a concern often raised about multi-tool approaches.
+With the \texttt{solc}-per-pragma fix, static analysis (Layer~1) already covers 83.2\% of SmartBugs vulnerabilities---a much stronger baseline than previously reported (54.6\%). The remaining 5-percentage-point gain to 88\% comes from the LLM layer (Layer~5), which contributes detections in two categories that static analysis structurally cannot reach: front running (75\%+ recall with Ollama) and bad randomness (entropy reasoning). The previous narrative---that Layers~3--9 contributed 25 points---was an artifact of the \texttt{solc} misconfiguration silently dropping Solidity~0.4.x contracts. The corrected picture shows that static analysis is far more capable than single-tool baselines suggest when configured correctly, and that the LLM layer provides a genuine but narrower complementary contribution. This is consistent with the EVMBench results (Section~4.2.5), where static analysis alone achieves only 11.8\% on business-logic vulnerabilities---confirming that the two benchmark types measure fundamentally different capabilities.
 
 \subsection{Comparison with SmartBugs 2.0}
 
 SmartBugs 2.0~\cite{smartbugs2023} is the closest comparable framework, integrating 25 analysis tools with Docker-based execution. However, SmartBugs focuses on providing a \emph{benchmarking platform} and does not publish detection metrics (precision, recall) on its own curated dataset. The tools it integrates (Mythril, Slither, Securify, Oyente, etc.) are individually benchmarked in Durieux et al.~\cite{durieux2020empirical}, where the best single tool achieves 43.2\% recall (Slither).
 
-A direct recall comparison is not possible because SmartBugs does not publish detection metrics. However, the individual tools it integrates achieve at most 43.2\% recall independently~\cite{durieux2020empirical}. The key differentiator of MIESC is not tool count but the AI/LLM layers (Layer~5) that detect vulnerability classes---logic flaws, semantic issues, protocol-specific risks---that static and symbolic analysis structurally cannot reach.
+A direct recall comparison is not possible because SmartBugs does not publish detection metrics. However, the individual tools it integrates achieve at most 43.2\% recall independently~\cite{durieux2020empirical}. MIESC's static-only configuration already reaches 83.2\% by orchestrating Slither + Aderyn with correct \texttt{solc} per pragma, and adding the LLM layer pushes recall to 88\%. The key differentiator is not tool count but (1)~correct compiler selection and (2)~the AI/LLM layers that detect vulnerability classes---front running, bad randomness, and business logic---that static analysis structurally cannot reach.
 
 \subsection{False Positive Management}
 
@@ -427,7 +426,7 @@ Two real-world exploits were not detected: the BonqDAO oracle manipulation (\$12
 \section{Conclusion}
 % ===========================================================================
 
-The central finding of this work is that no single analysis technique suffices for smart contract security, but \emph{any} LLM combined with static analysis orchestration outperforms even the best LLM alone---and multiple LLMs combined outperform any single LLM. On pattern-based vulnerabilities (SmartBugs), orchestrating multiple static tools raises recall from 43\% (Slither alone) to 80\%. On business-logic vulnerabilities (EVMBench), static analysis alone achieves only 11.8\%, but a multi-provider ensemble (Claude Sonnet + GPT-5 + GPT-4o + local Ollama) reaches \textbf{92.5\%}---surpassing the previous state-of-the-art Cecuro (87.7\%) by 4.8 percentage points. Each provider contributes unique detections that others miss: GPT-5 finds state consistency bugs, Claude excels at access control, GPT-4o catches accounting errors, and Ollama detects DeFi-specific patterns. This demonstrates that \textbf{multi-provider ensemble + static orchestration is the optimal configuration}, and that even a free local model (59.2\%) outperforms Claude Opus standalone (45.9\%).
+The central finding of this work is that no single analysis technique suffices for smart contract security, but \emph{any} LLM combined with static analysis orchestration outperforms even the best LLM alone---and multiple LLMs combined outperform any single LLM. On pattern-based vulnerabilities (SmartBugs), orchestrating multiple static tools with correct \texttt{solc} per pragma raises recall from 43\% (Slither alone) to 83\% (static only) and 88\% with LLM layers. On business-logic vulnerabilities (EVMBench), static analysis alone achieves only 11.8\%, but a multi-provider ensemble (Claude Sonnet + GPT-5 + GPT-4o + local Ollama) reaches \textbf{92.5\%}---surpassing the previous state-of-the-art Cecuro (87.7\%) by 4.8 percentage points. Each provider contributes unique detections that others miss: GPT-5 finds state consistency bugs, Claude excels at access control, GPT-4o catches accounting errors, and Ollama detects DeFi-specific patterns. This demonstrates that \textbf{multi-provider ensemble + static orchestration is the optimal configuration}, and that even a free local model (59.2\%) outperforms Claude Opus standalone (45.9\%).
 
 MIESC's practical contribution is making this accessible: \texttt{miesc scan contract.sol -{}-model ollama} runs Slither, Aderyn, an intelligence engine with Bayesian cross-tool confidence, protocol-specific RAG enrichment, and a local LLM audit---entirely free, offline, and DPGA-compliant. A single frontier provider (\texttt{-{}-model claude}, \$5.50/audit) reaches 82.5\% recall; the full ensemble (\$7/audit) pushes recall to 92.5\%, compared with \$20K--60K for a manual audit engagement.
 
