@@ -484,6 +484,15 @@ ZERO_RECALL_PATTERNS = {
         "message": "Raw arithmetic (*) outside SafeMath — even if SafeMath is imported, this specific operation can overflow. Use .mul() consistently.",
         "requires_no_safemath": False,
     },
+    "arithmetic_raw_subtraction": {
+        "patterns": [
+            r"uint\d*\s+\w+\s*=\s*\w+\s*-\s*\w+",
+            r"uint\d*\s+\w+\s*=\s*\w+\s*\+\s*\w+",
+        ],
+        "severity": "Medium",
+        "swc": "SWC-101",
+        "message": "Unchecked arithmetic (+ or -) in Solidity <0.8 — can overflow/underflow silently. Use SafeMath or Solidity >=0.8.",
+    },
     "access_control_newowner_public": {
         "patterns": [
             r"function\s+\w*[Oo]wner\w*\s*\([^)]*address[^)]*\)\s*(external|public)\b(?!.*onlyOwner)",
