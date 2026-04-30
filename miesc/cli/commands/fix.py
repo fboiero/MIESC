@@ -184,10 +184,7 @@ def _ensure_reentrancy_guard_import(source: str) -> str:
 
 
 def _insert_using_safemath(source: str) -> tuple[str, bool]:
-    """Insert `using SafeMath for uint256;` — only if SafeMath is already defined/imported."""
-    # Don't insert if SafeMath is not available in the contract
-    if "SafeMath" not in source and "safemath" not in source.lower():
-        return source, False
+    """Insert `using SafeMath for uint256;` for pre-0.8 contracts."""
     if "using SafeMath" in source:
         return source, False  # Already present
     contract_re = re.compile(r"(contract\s+\w+[^{]*\{)", re.MULTILINE)
