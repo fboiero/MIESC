@@ -477,6 +477,68 @@ def run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, A
     return results
 
 
+def run_plugins(contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
+    """Run all enabled plugin detectors on a contract.
+
+    Discovers plugins via entry points (miesc.detectors group) and local
+    plugins (~/.miesc/plugins/), then executes each enabled detector.
+
+    Returns list of tool-result dicts compatible with run_layer output.
+    """
+    results = []
+
+    try:
+        from miesc.plugins import PluginManager
+
+        manager = PluginManager()
+        enabled_detectors = manager.get_enabled_detectors()
+
+        if not enabled_detectors:
+            return results
+
+        import time as _time
+
+        for detector_name, detector_class in enabled_detectors:
+            info(f"Running plugin: {detector_name}...")
+            start = _time.perf_counter()
+            try:
+                detector = detector_class()
+                findings = detector.analyze(contract, timeout=timeout)
+                elapsed = _time.perf_counter() - start
+
+                # Normalize findings
+                normalized = []
+                for f in (findings or []):
+                    if isinstance(f, dict):
+                        f.setdefault("tool", f"plugin:{detector_name}")
+                        normalized.append(f)
+
+                result = {
+                    "tool": f"plugin:{detector_name}",
+                    "status": "success",
+                    "findings": normalized,
+                    "execution_time": round(elapsed, 2),
+                }
+                results.append(result)
+                success(f"plugin:{detector_name}: {len(normalized)} findings in {elapsed:.1f}s")
+
+            except Exception as e:
+                elapsed = _time.perf_counter() - start
+                results.append({
+                    "tool": f"plugin:{detector_name}",
+                    "status": "error",
+                    "findings": [],
+                    "error": str(e),
+                    "execution_time": round(elapsed, 2),
+                })
+                warning(f"plugin:{detector_name}: {e}")
+
+    except ImportError:
+        pass  # Plugin system not available
+
+    return results
+
+
 def summarize_findings(all_results: List[Dict[str, Any]]) -> Dict[str, int]:
     """Summarize findings by severity."""
     summary = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}

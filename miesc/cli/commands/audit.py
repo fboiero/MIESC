@@ -31,6 +31,7 @@ from miesc.cli.utils import (
     load_profiles,
     print_banner,
     run_layer,
+    run_plugins,
     run_tool,
     success,
     summarize_findings,
@@ -515,6 +516,15 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
                 r["_layer_time_s"] = layer_timing[layer]
 
             all_results.extend(results)
+
+    # v5.4.0: Run enabled plugin detectors
+    plugin_start = _time.perf_counter()
+    plugin_results = run_plugins(contract, timeout)
+    if plugin_results:
+        plugin_elapsed = _time.perf_counter() - plugin_start
+        layer_timing["plugins"] = round(plugin_elapsed, 3)
+        all_results.extend(plugin_results)
+        info(f"Plugins: {len(plugin_results)} detectors executed")
 
     # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
     # zero-recall pattern detection, context-aware FP suppression,
