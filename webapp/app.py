@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
     from miesc import __version__ as MIESC_VERSION
 except ImportError:
-    MIESC_VERSION = "5.1.5"
+    MIESC_VERSION = "5.4.0"
 
 # Licensing system
 from src.licensing import LicenseManager, QuotaChecker
@@ -561,7 +561,7 @@ if not st.session_state.license:
 
 # Sidebar (only shown when license is active)
 with st.sidebar:
-    st.image("https://img.shields.io/badge/version-5.1.2-blue", width=100)
+    st.image("https://img.shields.io/badge/version-5.4.0-blue", width=100)
 
     # Language selector at the top
     st.markdown("---")
@@ -1054,7 +1054,7 @@ with tab4:
         st.markdown("---")
         st.markdown(f"#### {t('miesc_info')}")
         st.markdown(f"""
-        - **{t('version')}:** 5.1.2
+        - **{t('version')}:** 5.4.0
         - **{t('adapters')}:** 50
         - **{t('layers')}:** 9
         - **{t('precision')}:** 89.5%

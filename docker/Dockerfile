@@ -1,4 +1,4 @@
-# MIESC v5.3.1 - Optimized Docker Deployment
+# MIESC v5.4.0 - Optimized Docker Deployment
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile creates a complete, production-ready environment with:
@@ -16,7 +16,7 @@
 # has protobuf compatibility issues on Python 3.12.
 #
 # Build with BuildKit for parallel stages and cache mounts:
-#   DOCKER_BUILDKIT=1 docker build -t miesc:5.1.0 -f Dockerfile .
+#   DOCKER_BUILDKIT=1 docker build -t miesc:5.4.0 -f Dockerfile .
 
 # ============================================================
 # Stage 1a: aderyn-builder (runs in parallel with foundry-builder)

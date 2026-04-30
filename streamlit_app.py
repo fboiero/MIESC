@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MIESC v5.1.2 - Streamlit Cloud Entry Point
+MIESC v5.4.0 - Streamlit Cloud Entry Point
 
 Streamlit Cloud automatically detects and runs streamlit_app.py from the repo root.
 This file bootstraps the webapp/app.py dashboard.

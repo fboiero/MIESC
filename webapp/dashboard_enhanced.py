@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MIESC v5.1.2 - Enhanced Interactive Dashboard
+MIESC v5.4.0 - Enhanced Interactive Dashboard
 Advanced analytics and real-time visualization for smart contract security.
 
 Features:
@@ -39,7 +39,7 @@ from src.miesc_risk_engine import RiskEngine
 # =============================================================================
 
 st.set_page_config(
-    page_title="MIESC Dashboard v5.1.2",
+    page_title="MIESC Dashboard v5.4.0",
     page_icon="",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -467,7 +467,7 @@ st.markdown(
 
 # Sidebar
 with st.sidebar:
-    st.image("https://img.shields.io/badge/MIESC-v5.1.2-blue?style=for-the-badge", width=150)
+    st.image("https://img.shields.io/badge/MIESC-v5.4.0-blue?style=for-the-badge", width=150)
 
     st.markdown("---")
     st.markdown("### Configuration")
@@ -1006,6 +1006,6 @@ with tab5:
 # Footer
 st.markdown("---")
 st.markdown(
-    '<p class="footer">MIESC Enhanced Dashboard v5.1.2 | Fernando Boiero | UNDEF - IUA Cordoba</p>',
+    '<p class="footer">MIESC Enhanced Dashboard v5.4.0 | Fernando Boiero | UNDEF - IUA Cordoba</p>',
     unsafe_allow_html=True,
 )

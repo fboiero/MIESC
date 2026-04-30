@@ -26,7 +26,7 @@ gh repo fork fboiero/MIESC --clone
 3. Fill in the form:
    - **Repository**: `<your-github-user>/MIESC`
    - **Branch**: `main`
-   - **Main file path**: `webapp/app.py`
+   - **Main file path**: `streamlit_app.py`
    - **Python version**: `3.11` (recommended)
    - **App URL** (optional): `miesc-dashboard`
 4. Click **"Deploy"**.
@@ -115,7 +115,7 @@ streamlit run webapp/app.py
 
 ## Maintenance Checklist
 
-- On every release (e.g. v5.1.5), `webapp/app.py` now reads `miesc.__version__` dynamically — no manual version bump needed.
+- On every release (e.g. v5.4.0), `webapp/app.py` now reads `miesc.__version__` dynamically — no manual version bump needed.
 - If a new dashboard feature requires a new dependency, add it to `webapp/requirements.txt` AND the root `pyproject.toml`.
 - Keep `webapp/requirements.txt` pinned lightly (use `>=` not `==`) so Streamlit Cloud can resolve compatible versions.
 
