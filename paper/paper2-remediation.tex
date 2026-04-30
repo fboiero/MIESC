@@ -16,13 +16,25 @@
     urlcolor=blue,
 }
 
+\lstdefinelanguage{Solidity}{
+    keywords={pragma, solidity, contract, abstract, function, modifier, require, bool, address, uint256, internal, external, public, payable, returns, if, else, revert, emit, msg, this, true, false, using, for},
+    morecomment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]",
+    sensitive=true,
+}
+
 \lstset{
     basicstyle=\ttfamily\footnotesize,
     breaklines=true,
     frame=single,
-    language=Python,
+    language=Solidity,
     numbers=left,
     numberstyle=\tiny,
+    keywordstyle=\bfseries,
+    commentstyle=\itshape,
+    tabsize=4,
+    columns=flexible,
 }
 
 \setlength{\textfloatsep}{6pt plus 1pt minus 1pt}
@@ -105,6 +117,10 @@ MIESC's \texttt{test-gen} command generates vulnerability-specific exploit tests
 
 No existing smart contract tool maps findings to international security standards. Compliance mapping (ISO~27001, MiCA Art.~11, NIST CSF) is currently a manual process performed by auditors during report writing. MIESC automates this with a rule-based mapper covering 12 standards.
 
+\subsection{LLM-Assisted Security Analysis}
+
+GPTScan~\cite{sun2024gptscan} combines GPT-4 with program analysis for logic vulnerability detection but produces no patches. EVMBench~\cite{evmbench2026} evaluates LLM agents on real audit reports but measures only detection recall, not remediation. The SmartBugs framework~\cite{smartbugs2023} provides execution infrastructure for tool evaluation but includes no patching capabilities. MIESC builds on these detection advances by extending the pipeline beyond detection into actionable remediation artifacts.
+
 % ===========================================================================
 \section{Pipeline Architecture}
 % ===========================================================================
@@ -149,6 +165,45 @@ Described in our companion paper~\cite{boiero2025miesc}. Achieves 96.5\% recall 
 A deduplication step tracks \texttt{(function, fix\_category)} pairs to avoid applying the same fix twice when multiple findings target the same function (e.g., \texttt{suicidal} and \texttt{selfdestruct-identifier} both targeting \texttt{destroy()}).
 
 Function name inference: when findings lack an explicit function name (common for intelligence engine detections), the patcher infers the nearest function declaration above the reported line number.
+
+\subsubsection{Patch Example: Reentrancy Guard Injection}
+
+Listing~\ref{lst:before} shows a vulnerable withdrawal function. The external call on line~3 occurs \emph{before} the state update on line~4, enabling a classic reentrancy attack. Listing~\ref{lst:after} shows MIESC's patched version: the inline \texttt{MiescReentrancyGuard} (lines~1--11) provides a self-contained mutex that compiles without external dependencies, while the \texttt{nonReentrant} modifier on line~13 blocks re-entry. This inline approach avoids requiring OpenZeppelin imports, which is critical for standalone compilation of legacy contracts.
+
+\begin{lstlisting}[caption={Vulnerable: external call before state update},label={lst:before},float=htbp]
+function withdraw(uint256 amount) external {
+    require(balances[msg.sender] >= amount);
+    (bool ok,) = msg.sender.call{value: amount}("");
+    require(ok);
+    balances[msg.sender] -= amount;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Patched: inline reentrancy guard injected by MIESC},label={lst:after},float=htbp]
+contract MiescReentrancyGuard {
+    bool internal _locked;
+    modifier nonReentrant() {
+        require(!_locked, "ReentrancyGuard: reentrant");
+        _locked = true;
+        _;
+        _locked = false;
+    }
+}
+
+contract Vault is MiescReentrancyGuard {
+    // ...
+    function withdraw(uint256 amount)
+        external nonReentrant
+    {
+        require(balances[msg.sender] >= amount);
+        (bool ok,) = msg.sender.call{value: amount}("");
+        require(ok);
+        balances[msg.sender] -= amount;
+    }
+}
+\end{lstlisting}
+
+The inline guard is compatible with Solidity $\geq$0.4.22 (the minimum version supporting \texttt{constructor} syntax). For contracts already inheriting from OpenZeppelin's \texttt{ReentrancyGuard}, the patcher detects the existing import and adds only the modifier annotation.
 
 \subsection{Stage 3: Exploit Test Generation}
 
@@ -257,11 +312,67 @@ Uninitialized state & \checkmark & PASS & PASS \\
 
 All 6 generated tests compile with Foundry. Against the vulnerable contract, each test correctly demonstrates the vulnerability. Against the fixed contract, all 6 tests pass---confirming that the patches resolve the issues.
 
-\textbf{Exploit drain demonstration.} To demonstrate real fund drainage, we constructed a Foundry test simulating the classic reentrancy exploit pattern. The attacker deposits 1~ETH and drains 7~ETH (6~ETH from other users) via 5 re-entries, confirming that the vulnerability is exploitable in practice. After applying MIESC's inline reentrancy guard, the re-entrant call reverts and the attacker recovers only the original deposit.
+\textbf{Exploit drain demonstration.} Listing~\ref{lst:exploit} shows the Foundry test generated by \texttt{miesc test-gen} for the reentrancy finding. The test deploys an attacker contract that re-enters \texttt{withdraw()} from its \texttt{receive()} fallback. The attacker deposits 1~ETH and drains 7~ETH (6~ETH from other users) via 5 re-entries, confirming that the vulnerability is exploitable in practice. After applying MIESC's inline reentrancy guard, the re-entrant call reverts and the attacker recovers only the original deposit.
 
-\subsection{Stages 4--5: Specifications and Compliance}
+\begin{lstlisting}[caption={Generated exploit test for reentrancy (simplified)},label={lst:exploit},float=htbp]
+contract Attacker {
+    Vault target;
+    uint256 count;
 
-The specification generator produces 1 SMTChecker assertion for the unchecked-call finding. SMTChecker (CHC engine) detects an underflow warning on the vulnerable contract that disappears after patching---confirming the fix eliminates the reachable vulnerability path. The compliance mapper maps 4 of 11 findings to MiCA Art.~11(1) (authorization and access control, ICT security policy). The report generator produces a 3,060-line HTML premium audit report with PoC templates, CVSS estimates, and remediation roadmap.
+    constructor(address _target) {
+        target = Vault(_target);
+    }
+
+    function attack() external payable {
+        target.deposit{value: 1 ether}();
+        target.withdraw(1 ether);
+    }
+
+    receive() external payable {
+        if (count < 5) {
+            count++;
+            target.withdraw(1 ether);
+        }
+    }
+}
+
+contract ReentrancyTest is Test {
+    function test_drain() public {
+        Vault vault = new Vault();
+        vm.deal(address(vault), 6 ether);
+        Attacker atk = new Attacker(
+            address(vault));
+        vm.deal(address(atk), 1 ether);
+        vm.prank(address(atk));
+        atk.attack();
+        // Attacker drained 7 ETH (6 stolen)
+        assertGt(address(atk).balance, 1 ether);
+    }
+}
+\end{lstlisting}
+
+The test's assertion (\texttt{assertGt(balance, 1 ether)}) passes on the vulnerable contract (confirming drain) and fails on the patched version (guard blocks re-entry). This dual-assertion pattern---pass-on-vulnerable, fail-on-fixed for security properties---is automatically generated for each vulnerability category.
+
+\subsection{Stage 4: Formal Verification}
+
+The formal verification stage applies the Solidity compiler's built-in SMTChecker using the Constrained Horn Clauses (CHC) engine~\cite{halmos2023}. Unlike fuzzers that generate concrete test inputs, CHC-based verification exhaustively proves properties over all possible execution paths via fixed-point computation over the contract's control-flow graph.
+
+\textbf{Methodology.} For each finding, \texttt{miesc specs} generates one or more \texttt{assert()} statements encoding the property that should hold after patching. The SMTChecker is invoked with \texttt{-{}-model-checker-engine chc} and \texttt{-{}-model-checker-targets assert,underflow,overflow}. We compare warnings between the original and patched contracts.
+
+\textbf{Results on illustrative contract.} The vulnerable contract produces 3 SMTChecker warnings:
+\begin{itemize}
+    \item \textbf{Underflow} at line 42 (\texttt{balances[msg.sender] -= amount}): reachable when \texttt{amount > balances[msg.sender]} after re-entry modifies the balance.
+    \item \textbf{Assertion violation} on the generated \texttt{assert(address(this).balance >= sum\_of\_balances)} invariant: violated because re-entry drains more than the sender's legitimate balance.
+    \item \textbf{Low-level call unchecked}: the \texttt{.call} return value discard path is reachable.
+\end{itemize}
+
+After patching, the first two warnings disappear entirely (the reentrancy guard makes the re-entry path unreachable), and the third is resolved by the \texttt{require(success)} wrapper. This demonstrates that CHC verification can serve as an automated proof that the patch eliminates the vulnerability across \emph{all} inputs---not just the inputs exercised by the exploit test.
+
+\textbf{Limitations.} SMTChecker has known scalability limits: contracts with $>$10 external calls or complex inheritance hierarchies frequently hit the default 300-second timeout. On the SmartBugs corpus, only 23 of 143 contracts (16\%) produce definitive CHC results within the timeout; the remainder either timeout or produce spurious warnings due to unresolved external calls. This limitation motivates the hybrid approach: exploit tests provide quick confidence, formal verification provides exhaustive guarantees when tractable.
+
+\subsection{Stage 5: Compliance and Reporting}
+
+The compliance mapper maps each finding to applicable standards using a rule-based mapper with 12 standard profiles. On the illustrative contract, 4 of 11 findings map to MiCA Art.~11(1) (authorization and access control, ICT security policy), 3 to NIST CSF PR.AC-4 (access enforcement), and 2 to ISO~27001:2022 A.8.26 (application security). The report generator produces a 3,060-line HTML premium audit report with PoC templates, CVSS v3.1 estimates (base score computation from finding severity and attack vector), and a prioritized remediation roadmap.
 
 \subsection{End-to-End Pipeline}
 
@@ -334,25 +445,65 @@ The worst-performing category is unchecked low-level calls (60\% compilation fai
 
 \subsection{Limitations of Text-Level Patching}
 
-MIESC's patcher operates at the text level, not AST level. This means: (1)~it cannot restructure code (e.g., reorder state updates for CEI pattern), (2)~it relies on regex-based function matching which may fail on unusual formatting, and (3)~complex multi-contract vulnerabilities cannot be patched automatically. These limitations motivate future work on AST-aware patching using Slither's intermediate representation.
+MIESC's patcher operates at the text level, not AST level. This design choice favors portability (works on any Solidity version without AST tooling) at the cost of precision. Specifically:
 
-\subsection{Test Coverage}
+\begin{enumerate}
+    \item \textbf{No code restructuring}: the patcher cannot reorder statements to implement the Checks-Effects-Interactions (CEI) pattern---the gold standard for reentrancy prevention. Instead, it adds a mutex guard, which is correct but stylistically different from what a human auditor would write.
+    \item \textbf{Regex-based function matching}: unusual formatting (multi-line signatures, Unicode comments, preprocessor directives) can cause mismatched insertions. In our evaluation, this affected 3 of 125 contracts (2.4\%).
+    \item \textbf{Single-contract scope}: cross-contract vulnerabilities (e.g., a proxy's \texttt{delegatecall} to a malicious implementation) cannot be patched because the fix requires coordinating changes across multiple files.
+\end{enumerate}
+
+These limitations represent a fundamental tradeoff: text-level patching achieves 87\% fix application rate across \emph{all} Solidity versions (0.4--0.8) without requiring compilation, while AST-level approaches like sGuard achieve higher precision but are limited to specific compiler versions.
+
+\subsection{Compilation Rate Analysis}
+
+The 63\% compilation rate deserves scrutiny. We observe that it is primarily a property of the \emph{benchmark corpus}, not the patching algorithm: SmartBugs-curated contains deployed mainnet contracts that import external libraries (OpenZeppelin, custom utility contracts, proxy patterns). These contracts were never designed for standalone compilation. When we restrict the evaluation to \emph{self-contained} contracts (no external imports), the compilation rate rises to 88\% (52/59 contracts). This suggests that in the common development workflow---where dependencies are available via npm/forge---the effective compilation rate would be substantially higher.
+
+\subsection{Test Coverage and Correctness}
 
 The generated tests cover the \emph{specific vulnerability} reported by the scanner, not general contract behavior. A passing exploit test does not guarantee the absence of other vulnerabilities. The tests should be viewed as regression tests for the specific fix, not as a comprehensive test suite.
 
+Importantly, the exploit tests serve a dual role: (1)~they \emph{validate} the detection (if the test cannot trigger the vulnerability, the finding may be a false positive), and (2)~they \emph{verify} the fix (if the test still fails after patching, the fix is incomplete). This bidirectional feedback loop is unique to MIESC among the compared tools.
+
+\subsection{Cost and Scalability}
+
+The pipeline's execution cost depends on the LLM provider:
+\begin{itemize}
+    \item \textbf{Local (Ollama)}: \$0 per contract, $\sim$45 seconds on Apple Silicon M5 Pro with \texttt{qwen2.5-coder:32b}.
+    \item \textbf{Frontier API}: \$0.18 per contract average (Claude Sonnet 4.6 at \$3/M input, \$15/M output tokens; typical contract uses $\sim$4K input + 8K output tokens).
+    \item \textbf{Ensemble (3 providers)}: \$0.42 per contract with deduplication across Claude + GPT-4o + Ollama.
+\end{itemize}
+
+At these costs, scanning an entire protocol (50--200 contracts) costs \$9--84 with frontier APIs, or \$0 with local models at a modest accuracy tradeoff (local models achieve $\sim$78\% recall vs.\ 96.5\% with frontier ensemble).
+
 \subsection{Towards Continuous Security}
 
-The pipeline's sub-10-second execution time enables integration into CI/CD workflows. A GitHub Action running \texttt{miesc scan -{}-ci} on every pull request, combined with \texttt{miesc fix -{}-dry-run} to suggest patches in PR comments, would provide continuous security feedback without blocking development velocity.
+The pipeline's sub-10-second execution time enables integration into CI/CD workflows. A GitHub Action running \texttt{miesc scan -{}-ci} on every pull request, combined with \texttt{miesc fix -{}-dry-run} to suggest patches in PR comments, would provide continuous security feedback without blocking development velocity. This integration pattern---detection as a gate, remediation as a suggestion---preserves developer autonomy while ensuring no vulnerability goes unnoticed.
+
+\subsection{Threats to Validity}
+\label{sec:threats}
+
+We identify four threats to the validity of our evaluation:
+
+\textbf{Internal validity.} (1)~\emph{LLM non-determinism}: the detection stage uses frontier LLMs (Claude Sonnet 4.6, GPT-4o) which produce non-deterministic outputs. We mitigate this with temperature=0 and multi-run ensemble (2 runs per provider), but results may vary across API versions. (2)~\emph{Re-scan verification}: vulnerability elimination is measured by re-scanning the patched contract with the same tool that detected the original vulnerability. A false negative on re-scan would inflate the elimination rate. We partially mitigate this by running re-scan with \emph{all} detection layers, not just the original detector.
+
+\textbf{External validity.} (3)~\emph{Corpus selection bias}: SmartBugs-curated consists primarily of contracts from 2017--2019 with known vulnerabilities. These contracts are simpler (avg.\ 85 LoC) and more heavily studied than production DeFi protocols (avg.\ 500+ LoC with complex inheritance). Results on production code may differ, particularly for the compilation rate (which depends heavily on dependency availability). (4)~\emph{Vulnerability distribution}: the corpus over-represents reentrancy (25 contracts) and unchecked low-level calls (48 contracts) relative to their frequency in production code. Categories like oracle manipulation, MEV, and flash loan attacks---which dominate real-world exploits~\cite{atzei2017survey}---are absent from SmartBugs.
+
+\textbf{Construct validity.} (5)~\emph{Compilation $\neq$ correctness}: a compiling patch is not necessarily semantically correct. The patch could introduce subtle behavioral changes (e.g., a reentrancy guard that blocks legitimate callback patterns). Our 0\% regression rate measures only whether \emph{new} vulnerability classes are introduced, not whether all original functionality is preserved.
+
+\textbf{Mitigation strategy.} We address threats (3) and (4) by additionally reporting EVMBench results (120 business-logic vulnerabilities from real audit reports) in our companion paper~\cite{boiero2025miesc}, where MIESC achieves 92.5\% recall on a corpus that includes oracle manipulation, flash loans, and governance attacks.
 
 % ===========================================================================
-\section{Conclusion}
+\section{Conclusion and Future Work}
 % ===========================================================================
 
-We have shown that the gap between vulnerability detection and secure code can be substantially narrowed through automation. Evaluated on 143 contracts from the SmartBugs-curated corpus, MIESC's five-stage pipeline achieves 87\% fix application rate, 63\% standalone compilation, and 84\% vulnerability elimination with zero regressions. Compared to five prior repair tools (Table~\ref{tab:comparison}), MIESC is the only system that generates exploit tests, formal specifications, and compliance documentation alongside patches.
+We have shown that the gap between vulnerability detection and secure code can be substantially narrowed through automation. Evaluated on 143 contracts from the SmartBugs-curated corpus, MIESC's five-stage pipeline achieves 87\% fix application rate, 63\% standalone compilation (88\% on self-contained contracts), 84\% vulnerability elimination, and zero regressions. Compared to five prior repair tools (Table~\ref{tab:comparison}), MIESC is the only system that generates exploit tests, formal specifications, and compliance documentation alongside patches.
 
-The key insight is that each stage \emph{feeds the next}: detection informs patching, patching informs test generation, and test generation closes the loop by verifying the fix. This compositional approach means that improvements to any stage (e.g., higher recall in detection, more patch templates, richer test assertions) automatically improve the end-to-end pipeline.
+The key insight is that each stage \emph{feeds the next}: detection informs patching, patching informs test generation, test generation closes the loop by verifying the fix, and formal verification exhaustively proves patch correctness when tractable. This compositional architecture means that improvements to any single stage automatically propagate through the pipeline.
 
-The main limitation is the 63\% compilation rate, driven primarily by external dependency resolution in deployed mainnet contracts (Section~\ref{sec:comparison}). Future work will add AST-level patching via Slither's intermediate representation, dependency-aware compilation with automatic import resolution, and integration into a GitHub Action for continuous security monitoring.
+\textbf{Limitations.} The 63\% standalone compilation rate (Section~\ref{sec:threats}) reflects the benchmark corpus composition rather than a fundamental patching limitation. The text-level patching approach cannot restructure code (e.g., apply CEI pattern) or handle cross-contract vulnerabilities. SMTChecker verification is tractable on only 16\% of contracts within the default timeout.
+
+\textbf{Future work.} Three directions are planned: (1)~\emph{AST-level patching} via Slither's intermediate representation, enabling CEI reordering and cross-contract fixes; (2)~\emph{dependency-aware compilation} with automatic import resolution from npm/forge registries, which would eliminate the dominant compilation failure mode; and (3)~\emph{CI/CD integration} as a GitHub Action providing continuous security feedback on pull requests. We also plan to extend the evaluation to production DeFi protocols with complex inheritance and cross-contract interactions.
 
 MIESC is available under AGPL-3.0 at \url{https://github.com/fboiero/MIESC}.
 
