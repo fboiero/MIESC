@@ -35,7 +35,7 @@ from miesc.cli.utils import (
     "--format",
     "-f",
     "fmt",
-    type=click.Choice(["sarif", "markdown", "csv", "html"]),
+    type=click.Choice(["sarif", "markdown", "csv", "html", "jsonl"]),
     required=True,
 )
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
@@ -50,12 +50,14 @@ def export(input_file, fmt, output):
       - markdown: Human-readable Markdown report
       - csv: Spreadsheet-compatible CSV
       - html: Standalone HTML report
+      - jsonl: One JSON object per finding (for ML pipelines)
 
     Examples:
       miesc export results.json -f sarif -o results.sarif.json
       miesc export results.json -f markdown -o report.md
       miesc export results.json -f csv -o findings.csv
       miesc export results.json -f html -o report.html
+      miesc export results.json -f jsonl -o findings.jsonl
     """
     print_banner()
 
@@ -145,6 +147,37 @@ def export(input_file, fmt, output):
 """
         output_str += "</body></html>"
         ext = ".html"
+    elif fmt == "jsonl":
+        lines = []
+        for result in results:
+            tool = result.get("tool", "unknown")
+            for finding in result.get("findings", []):
+                location = finding.get("location", {})
+                if isinstance(location, dict):
+                    loc_file = location.get("file", "")
+                    loc_line = location.get("line", 0)
+                    loc_fn = location.get("function", "")
+                else:
+                    loc_file = str(location)
+                    loc_line = 0
+                    loc_fn = ""
+
+                record = {
+                    "tool": tool,
+                    "severity": finding.get("severity", "INFO"),
+                    "type": finding.get("type", finding.get("title", "")),
+                    "title": finding.get("title", finding.get("type", "")),
+                    "description": finding.get("description", finding.get("message", "")),
+                    "file": loc_file,
+                    "line": loc_line,
+                    "function": loc_fn,
+                    "confidence": finding.get("confidence", None),
+                    "category": finding.get("canonical_category", finding.get("type", "")),
+                    "contract": contract,
+                }
+                lines.append(json.dumps(record))
+        output_str = "\n".join(lines) + "\n" if lines else ""
+        ext = ".jsonl"
     else:
         error(f"Format {fmt} not supported")
         return

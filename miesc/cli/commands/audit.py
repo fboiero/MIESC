@@ -488,7 +488,10 @@ def _run_full_audit_with_correlation(contract, output, fmt, layer_list, timeout,
 
 def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
     """Run full audit in basic mode (no ML/correlation)."""
+    import time as _time
+
     all_results = []
+    layer_timing = {}  # layer_num → elapsed_seconds
 
     for layer in layer_list:
         if layer in LAYERS:
@@ -501,7 +504,16 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
             else:
                 print(f"\n=== Layer {layer}: {layer_info['name']} ===")
 
+            layer_start = _time.perf_counter()
             results = run_layer(layer, contract, timeout)
+            layer_elapsed = _time.perf_counter() - layer_start
+            layer_timing[layer] = round(layer_elapsed, 3)
+
+            # Tag each result with timing metadata
+            for r in results:
+                r["_layer"] = layer
+                r["_layer_time_s"] = layer_timing[layer]
+
             all_results.extend(results)
 
     # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
@@ -603,6 +615,10 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
                 "results": all_results,
                 "layers": layer_list,
                 "ml_enabled": False,
+                "timing": {
+                    "per_layer": {str(k): v for k, v in layer_timing.items()},
+                    "total_s": round(sum(layer_timing.values()), 3),
+                },
             }
 
         with open(output, "w") as f:
