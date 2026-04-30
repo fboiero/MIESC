@@ -4,8 +4,8 @@
 **Institution**: Universidad Tecnológica Nacional (UTN), Villa María, Argentina
 **Email**: fboiero@frvm.utn.edu.ar
 **Repository**: https://github.com/fboiero/MIESC
-**Package**: https://pypi.org/project/miesc/ (v5.1.8+, AGPL-3.0)
-**Downloads**: 611 / month (growing — 463 last week)
+**Package**: https://pypi.org/project/miesc/ (v5.4.0, AGPL-3.0)
+**Downloads**: 611 / month (growing)
 
 ---
 
@@ -15,8 +15,8 @@ MIESC ships **the first production-ready static analyzer for Cairo/Starknet
 with 2024–2026 real-exploit coverage**. We detect 13 vulnerability classes
 informed by the exact incidents that have cost the Starknet ecosystem real
 money (zkLend — $9.6M, Braavos accounts, Pragma oracle staleness). The
-code is already public, tested (5,332 unit + integration tests, 0
-regressions), MIT/AGPL-licensed, and published on PyPI. We are requesting
+code is already public, tested (5,300+ unit + integration tests, 0
+regressions), AGPL-licensed, and published on PyPI. We are requesting
 funding to:
 
 1. Expand from 13 to 30+ Cairo vulnerability classes, with a reproducible
@@ -36,7 +36,7 @@ funding to:
 
 ## What we already ship
 
-### Cairo coverage (v5.1.6+, fully implemented)
+### Cairo coverage (v5.4.0, fully implemented)
 
 Thirteen vulnerability types with block-level scanning
 (`src/adapters/cairo_adapter.py`, 97% tested):
@@ -64,21 +64,35 @@ coverage.
 
 ### Infrastructure already delivered
 
-- **60 adapters** integrated (Slither, Aderyn, Mythril, Halmos, Certora
-  Prover, Scribble, Caracal, ...) — MIESC is an orchestration layer, not
-  a single-tool reimplementation.
-- **9 defense layers**: static, dynamic, symbolic, formal, AI/LLM,
-  pattern-detection, DeFi-specific, exploit validation, consensus.
+- **35 analysis modules** integrated across 13 external tools (Slither,
+  Aderyn, Mythril, Halmos, Certora Prover, Scribble, Caracal, ...) and
+  22 internal modules — MIESC is an orchestration layer, not a
+  single-tool reimplementation.
+- **9 defense layers** with per-layer timing instrumentation: static,
+  dynamic, symbolic, formal, AI/LLM, pattern-detection, DeFi-specific,
+  exploit validation, consensus.
+- **Plugin system**: third-party detector plugins via PyPI entry points
+  (`miesc.detectors` group) — researchers can publish and share custom
+  detectors without forking MIESC.
+- **Scientific evaluation framework** (`miesc evaluate`): corpus
+  evaluation, ablation studies, run comparison, dataset info, and
+  benchmark dataset download (`miesc evaluate download smartbugs`).
+  Experiment cards for full reproducibility.
 - **Multi-LLM consensus**: queries a primary + a verification-role
   model, reports disagreement as `needs_manual_review`. Measured on 11
   Rekt exploits: 80 HIGH+CRITICAL findings → 4 flagged for human review
   (5% triage queue density).
 - **Formal verification bridge**: `miesc specs` generates Certora CVL
   rules from findings; `miesc verify` executes them.
-- **Benchmarks with honest framing**: 80% recall on SmartBugs-curated
-  (143 contracts), 81.8% recall on 11 confirmed DeFi exploits totalling
-  $3.3B in losses, Cohen's κ = 0.77.
-- **Paper** (arXiv submission in progress) with reproducible methodology.
+- **Automated fix pipeline**: 87% of fixes applied, 63% compile, 84%
+  eliminate the vulnerability, 0% regression.
+- **Benchmarks with honest framing**: 96.5% recall on SmartBugs-curated
+  (static+intelligence layers), ~98.6% with LLM; 92.5% ensemble recall
+  on EVMBench (#1, beating Cecuro at 87.7%); 81.8% recall on 11
+  confirmed DeFi exploits totalling $3.3B in losses, Cohen's κ = 0.77.
+- **Two academic papers**: Paper 1 on multi-layer evaluation methodology
+  (arXiv), Paper 2 on remediation pipeline (7 pages). Both with
+  reproducible methodology.
 
 All of this is **already deployed on PyPI** and downloadable now:
 
@@ -183,9 +197,11 @@ ecosystem integration stay permanent.
 
 - **Code**: https://github.com/fboiero/MIESC
 - **PyPI**: https://pypi.org/project/miesc/
-- **Paper (arXiv in submission)**: `paper/miesc-paper.pdf`
+- **Paper 1** (multi-layer evaluation): `paper/miesc-paper.pdf`
+- **Paper 2** (remediation pipeline, 7 pages): `paper/miesc-paper2.pdf`
 - **Cairo benchmark fixture**: `examples/contracts/cairo/Modern2024Exploits.cairo`
-- **Pre-release audit**: `docs/PRE_RELEASE_AUDIT_v5.1.7.md`
-- **Test suite**: `pytest tests/ -q` → 5,332 passed
+- **Test suite**: `pytest tests/ -q` → 5,300+ passed
 - **License**: AGPL-3.0 (`LICENSE`)
-- **Reproducibility**: `python3 benchmarks/deep_audit_rekt.py --timeout 90`
+- **Reproducibility**: `miesc evaluate corpus` / `miesc evaluate ablation`
+- **Research Guide**: `docs/guides/RESEARCH.md`
+- **Plugin Guide**: `docs/guides/PLUGINS.md`

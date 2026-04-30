@@ -21,23 +21,31 @@ no cloud dependency for the core analysis pipeline. Optional large
 language model (LLM) integration is local-first via Ollama, with
 explicit cloud-provider opt-in only if the user configures it.
 
-MIESC orchestrates 13 external security tools (Slither, Mythril,
-Echidna, Halmos, Certora Prover, ...) and 22 internal modules across 9
-complementary analysis layers. It unifies their heterogeneous outputs
-into a single finding schema, filters false positives using a
-RAG-enhanced ML pipeline (60 curated vulnerability patterns), and maps
-findings to 12 international security standards (ISO 27001, NIST CSF,
-OWASP, SWC, CWE, MITRE ATT&CK).
+MIESC orchestrates **35 analysis modules** — 13 external security tools
+(Slither, Mythril, Echidna, Halmos, Certora Prover, ...) and 22
+internal modules — across 9 complementary analysis layers with per-layer
+timing instrumentation. It unifies their heterogeneous outputs into a
+single finding schema, filters false positives using a RAG-enhanced ML
+pipeline (59 curated vulnerability patterns), and maps findings to 12
+international security standards (ISO 27001, NIST CSF, OWASP, SWC, CWE,
+MITRE ATT&CK). v5.4.0 adds a scientific evaluation framework (`miesc
+evaluate` with corpus evaluation, ablation studies, experiment cards), a
+plugin system for third-party detectors via PyPI entry points, and JSONL
+export for ML pipelines.
 
-Evaluated on SmartBugs-curated (143 contracts, 207 ground-truth
-vulnerabilities), MIESC achieves 80% recall with Cohen's κ = 0.77
-against 11 confirmed DeFi exploits totalling $3.3B in losses.
+Evaluated on SmartBugs-curated, MIESC achieves **96.5% recall**
+(static+intelligence layers), ~98.6% with LLM enrichment. On EVMBench:
+**92.5% ensemble recall** (#1, beating Cecuro at 87.7%). On 11 confirmed
+DeFi exploits totalling $3.3B in losses: 81.8% recall, Cohen's
+κ = 0.77. The automated fix pipeline achieves 87% applied, 63% compile,
+84% vulnerability eliminated, 0% regression.
 
-The tool is published under **AGPL-3.0** on PyPI
-(`pip install miesc`) and Docker Hub (GHCR). It is currently aligned with
-the **Digital Public Goods Alliance (DPGA)** standard (certification in
-progress). This grant funds three sovereign-tech hardening work
-packages below.
+The tool is published under **AGPL-3.0** on PyPI (`pip install miesc`,
+v5.4.0) and GHCR. Two academic papers document the methodology (Paper 1:
+multi-layer evaluation, Paper 2: remediation pipeline). It is currently
+aligned with the **Digital Public Goods Alliance (DPGA)** standard
+(certification in progress). This grant funds four sovereign-tech
+hardening work packages below.
 
 ---
 
@@ -49,7 +57,7 @@ packages below.
 | **Privacy** | Contract code never leaves the developer's machine unless they explicitly opt in to cloud LLMs |
 | **Open source** | AGPL-3.0 (copyleft, cannot be appropriated) |
 | **European relevance** | Significant DeFi deployment in EU (Aave, Morpho, Gnosis Chain, ...); regulatory pressure from MiCA requires verifiable security analysis |
-| **Reusable** | Published on PyPI, packaged in Docker, integrated with Foundry/Hardhat/Remix |
+| **Reusable** | Published on PyPI (v5.4.0), packaged in Docker, integrated with Foundry/Hardhat/Remix, extensible via plugin system |
 | **No vendor lock-in** | LLM layer is pluggable: Ollama (local), Anthropic, OpenAI — all optional |
 
 MIESC is not a Web3 marketing vehicle. It is **security infrastructure
@@ -87,8 +95,8 @@ privacy review needs to:
 - Produce a sworn declaration (sandbox reviewer or independent audit).
 
 **Deliverable**: signed privacy-by-design assessment + a hardened
-release (v6.0.x) with tmpfs output paths, explicit network-flag
-boundaries, and a tested offline mode.
+release with tmpfs output paths, explicit network-flag boundaries, and
+a tested offline mode.
 
 ### WP3 — EU regulatory alignment — MiCA / DORA (months 3–6, €20 000)
 
@@ -165,8 +173,10 @@ No VC money. No proprietary fork. Ever.
 
 ## Supporting materials
 
-- **Paper** (arXiv submission in progress): `paper/miesc-paper.pdf`
-- **Pre-release audit**: `docs/PRE_RELEASE_AUDIT_v5.1.7.md`
+- **Paper 1** (multi-layer evaluation): `paper/miesc-paper.pdf`
+- **Paper 2** (remediation pipeline, 7 pages): `paper/miesc-paper2.pdf`
+- **Research Guide**: `docs/guides/RESEARCH.md`
+- **Plugin Guide**: `docs/guides/PLUGINS.md`
 - **License**: `LICENSE` (AGPL-3.0 verbatim)
 - **Privacy statement**: in `CLAUDE.md` and `docs/policies/SBOM.md`
 - **DPGA self-assessment** (already passes 8/9 indicators): available

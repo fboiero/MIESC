@@ -10,15 +10,20 @@
 
 ## Project summary (≤ 3 sentences)
 
-MIESC is an open-source pre-audit triage framework that orchestrates 13
-external security tools (Slither, Aderyn, Mythril, Echidna, Halmos,
-Certora Prover, Scribble, SMTChecker, ...) and 22 internal analysis
-modules across 9 complementary defense layers. It normalizes
-heterogeneous tool outputs into a unified finding schema, reduces false
-positives with RAG-enhanced filtering (60 vulnerability patterns), and
-closes the loop from detection to proof via `miesc specs` + `miesc
-verify`. Evaluated on SmartBugs-curated (80% recall, κ = 0.77 on 11
-confirmed $3.3B DeFi exploits) and published as open source at
+MIESC is an open-source pre-audit triage framework that orchestrates 35
+analysis modules — 13 external security tools (Slither, Aderyn, Mythril,
+Echidna, Halmos, Certora Prover, Scribble, SMTChecker, ...) and 22
+internal modules — across 9 complementary defense layers with per-layer
+timing instrumentation. It normalizes heterogeneous tool outputs into a
+unified finding schema, reduces false positives with RAG-enhanced
+filtering (59 vulnerability patterns), and closes the loop from
+detection to proof via `miesc specs` + `miesc verify`. v5.4.0 adds a
+scientific evaluation framework (`miesc evaluate`), a plugin system for
+third-party detectors via PyPI entry points, JSONL export for ML
+pipelines, and two academic papers. Evaluated on SmartBugs-curated
+(96.5% recall static+intelligence, ~98.6% with LLM), EVMBench (92.5%
+ensemble recall, #1), and 11 confirmed $3.3B DeFi exploits (81.8%
+recall, κ = 0.77). Published as open source at
 https://github.com/fboiero/MIESC.
 
 ---
@@ -34,9 +39,8 @@ MIESC is squarely inside ESP's "Developer Tooling / Security" wheelhouse:
    missing layer — consistent schema, RAG-backed FP filter, formal-
    verification bridge.
 3. **Evidence, not promises**: the tool ships today
-   (`pip install miesc`), 5,332 passing tests, four PyPI releases this
-   week alone, honest benchmark numbers in the paper (no inflated
-   precision).
+   (`pip install miesc`, v5.4.0 on PyPI), 5,300+ passing tests, honest
+   benchmark numbers in two academic papers (no inflated precision).
 4. **Runs locally**: no telemetry, no cloud dependency. Ollama is
    optional; everything works with local Python.
 
@@ -56,14 +60,15 @@ label findings they already adjudicate. Build a pipeline that ingests
 their judgements (TP / FP / mitigated) and re-trains the classifier.
 
 **Output**: public anonymised corpus of 2 000+ labelled findings + a
-retrained classifier that reduces FP rate on SmartBugs-curated from the
-current 22.7% precision baseline to ≥ 35%.
+retrained classifier that further improves the FP rate beyond the
+current precision baseline on SmartBugs-curated.
 
 ### Deliverable B — Victim-side exploit corpus (months 2–3)
 
-**Problem**: MIESC's Rekt benchmark (11 contracts, 81.8% recall) uses
-attacker-harness contracts rather than the original victim code. We
-explicitly flagged this in our paper's limitations section.
+**Problem**: MIESC's Rekt benchmark (11 contracts, 81.8% recall,
+κ = 0.77) uses attacker-harness contracts rather than the original
+victim code. We explicitly flagged this in our paper's limitations
+section.
 
 **Plan**: Source the pre-exploit victim contracts for Euler, Ronin,
 Curve, Beanstalk, Platypus, Compound Governance, BonqDAO, Rari Capital,
@@ -76,15 +81,15 @@ static analyzer can benchmark against. Target: 30+ contracts.
 
 ### Deliverable C — Multi-LLM consensus at scale (months 3–4)
 
-**Problem**: MIESC's multi-LLM consensus mechanism (v5.1.6+) currently
+**Problem**: MIESC's multi-LLM consensus mechanism (v5.4.0) currently
 uses two local Ollama models. Scaling to hosted frontier models
 (GPT-4-class, Claude Sonnet, Gemini Pro) was deferred because no
 labelled dataset existed to measure precision delta.
 
 **Plan**: Once Deliverable A is shipping, run the consensus across 4+
 models on the Rekt corpus + SmartBugs. Quantify the precision-recall
-curve and the cost curve (tokens × pricing). Publish as a measured
-improvement in the paper's v2.
+curve and the cost curve (tokens x pricing). Publish as a measured
+improvement in Paper 2 (remediation pipeline).
 
 **Output**: an empirical answer to "does a second LLM meaningfully
 reduce false positives, and at what cost" — something currently
@@ -152,12 +157,13 @@ who have reviewed MIESC internally.
 
 ## Why I'm asking now, not later
 
-MIESC today has: benchmarks, a published package, a paper in arXiv
-submission, four releases this week alone, and 5,332 passing tests. It
-does not have: the funding runway to work on it full-time for 12
-months. With an ESP grant I finish the thesis, the paper, and the v6
-release cycle as a unit rather than in snatches between teaching
-commitments. Without it I keep shipping, just slower.
+MIESC today has: benchmarks, a published package (v5.4.0 on PyPI), two
+academic papers (evaluation methodology + remediation pipeline), a
+scientific evaluation framework, a plugin system for third-party
+detectors, and 5,300+ passing tests. It does not have: the funding
+runway to work on it full-time for 12 months. With an ESP grant I
+finish the thesis, the papers, and the v6 release cycle as a unit
+rather than in snatches between teaching commitments. Without it I keep shipping, just slower.
 
 Either way, MIESC ships. The grant is about speed + evidence depth
 (real labelled datasets require someone to actually sit with auditors
@@ -167,9 +173,8 @@ and tag findings — that takes weeks of labour).
 
 ## Supporting materials
 
-- `paper/miesc-paper.pdf` — current preprint, benchmarks and honest
-  framing of limitations
-- `docs/PRE_RELEASE_AUDIT_v5.1.7.md` — full audit of the published
-  package
-- `benchmarks/results/v5.1.7_gates_report.md` — recent benchmark data
-- `https://github.com/fboiero/MIESC/releases/tag/v5.1.8` — latest release
+- `paper/miesc-paper.pdf` — Paper 1: multi-layer evaluation methodology
+- `paper/miesc-paper2.pdf` — Paper 2: remediation pipeline (7 pages)
+- `docs/guides/RESEARCH.md` — Research guide with evaluation framework
+- `docs/guides/PLUGINS.md` — Plugin development guide
+- `https://github.com/fboiero/MIESC/releases/tag/v5.4.0` — latest release
