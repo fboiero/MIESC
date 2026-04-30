@@ -44,7 +44,7 @@ fboiero@frvm.utn.edu.ar}
 \maketitle
 
 \begin{abstract}
-Current smart contract security tools stop at detection: they report vulnerabilities but leave developers to manually write patches, tests, and compliance documentation. We present MIESC's automated remediation pipeline, which extends vulnerability detection into a complete find--fix--prove loop. Given a Solidity contract, the pipeline: (1)~detects vulnerabilities across 9 defense layers (96.5\% recall on SmartBugs-curated, 92.5\% on EVMBench with multi-provider ensemble), (2)~generates self-contained patches that compile without external dependencies (100\% compilation rate, 100\% of HIGH vulnerabilities eliminated), (3)~produces Foundry exploit tests that \emph{confirm} each vulnerability on the original contract and \emph{verify} its absence on the patched version (6/6 tests valid), (4)~generates formal verification specifications (CVL, Scribble, SMTChecker), and (5)~maps findings to 12 international security standards for compliance reporting. The entire pipeline executes with a single command and costs \$0 with local models or \$0.18/contract with frontier APIs. We evaluate each pipeline stage independently and end-to-end, demonstrating that automated remediation reduces the gap between vulnerability detection and provably secure code. MIESC is available under AGPL-3.0.
+Current smart contract security tools stop at detection: they report vulnerabilities but leave developers to manually write patches, tests, and compliance documentation. We present MIESC's automated remediation pipeline, which extends vulnerability detection into a complete find--fix--prove loop. Given a Solidity contract, the pipeline: (1)~detects vulnerabilities across 9 defense layers (96.5\% recall on SmartBugs-curated, 92.5\% on EVMBench with multi-provider ensemble), (2)~generates self-contained patches (87\% fix rate on 143 contracts, 63\% compilation, 84\% vulnerability elimination), (3)~produces Foundry exploit tests that \emph{confirm} each vulnerability on the original contract and \emph{verify} its absence on the patched version, (4)~generates formal verification specifications (CVL, Scribble, SMTChecker), and (5)~maps findings to 12 international security standards for compliance reporting. We evaluate each pipeline stage on the SmartBugs-curated corpus (143 contracts, 10 vulnerability categories) and compare against five prior automated repair tools. MIESC is the only tool that generates exploit tests, formal specifications, and compliance documentation alongside patches. The pipeline executes with a single command and costs \$0 with local models or \$0.18/contract with frontier APIs. MIESC is available under AGPL-3.0.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -75,14 +75,14 @@ miesc compliance results.json --standard mica
 miesc report results.json -t premium -f pdf
 \end{verbatim}
 
-We evaluate each stage independently and measure the end-to-end pipeline on real contracts. Our contributions are:
+We evaluate each stage independently on the SmartBugs-curated corpus (143 contracts, 10 vulnerability categories) and compare against five prior automated repair tools. Our contributions are:
 
 \begin{enumerate}
-    \item \textbf{Self-contained patch generation} (\texttt{miesc fix}): text-level Solidity patches that compile without external dependencies. Inline reentrancy guards and access control modifiers when OpenZeppelin is not present. 100\% of HIGH vulnerabilities eliminated with 0 regressions.
-    \item \textbf{Exploit test generation} (\texttt{miesc test-gen}): Foundry test templates that \emph{fail} on the vulnerable contract (confirming the exploit) and \emph{pass} on the patched version (verifying the fix). 6/6 generated tests compile and behave correctly.
+    \item \textbf{Self-contained patch generation} (\texttt{miesc fix}): text-level Solidity patches that compile without external dependencies. Evaluated on 143 contracts: 87\% fix application rate, 63\% compilation, 84\% vulnerability elimination, 0\% regression.
+    \item \textbf{Exploit test generation} (\texttt{miesc test-gen}): Foundry test templates that \emph{fail} on the vulnerable contract (confirming the exploit) and \emph{pass} on the patched version (verifying the fix).
     \item \textbf{Formal specification generation} (\texttt{miesc specs}): auto-generated Certora CVL rules, Scribble annotations, and SMTChecker assertions from findings.
     \item \textbf{Compliance mapping} (\texttt{miesc compliance}): automated mapping to 12 international standards (ISO~27001, NIST~CSF, OWASP, MiCA, DORA, CWE, SWC).
-    \item \textbf{End-to-end evaluation}: we measure compilation rate, fix correctness, test validity, and regression rate across the full pipeline.
+    \item \textbf{Corpus-scale evaluation with comparison}: systematic evaluation against SCRepair, sGuard, Elysium, ACFIX, and SCPatcher, showing MIESC is the only tool that generates exploit tests, formal specifications, and compliance documentation alongside patches.
 \end{enumerate}
 
 % ===========================================================================
@@ -91,9 +91,9 @@ We evaluate each stage independently and measure the end-to-end pipeline on real
 
 \subsection{Automated Program Repair for Smart Contracts}
 
-SCRepair~\cite{screpair2020} uses genetic programming to mutate Solidity source code until tests pass, but requires pre-existing test suites. sGuard~\cite{nguyen2021sguard} inserts runtime checks (reentrancy locks, integer overflow guards) but does not generate tests to verify the fix. Elysium~\cite{elysium2022} combines static analysis with template-based patching but is limited to specific vulnerability patterns.
+SCRepair~\cite{screpair2020} uses genetic programming to mutate Solidity source code until tests pass, but requires pre-existing test suites. sGuard~\cite{nguyen2021sguard} inserts runtime checks (reentrancy locks, integer overflow guards) at near-100\% compilation but does not generate tests to verify the fix. Elysium~\cite{elysium2022} operates at the bytecode level, achieving +30\% fix rate over its predecessor Shield but limited to 7~SWC categories. ACFIX~\cite{acfix2024} uses LLMs guided by mined RBAC practices to fix access control vulnerabilities, achieving 94.9\% fix rate but targeting only a single vulnerability class. SCPatcher~\cite{scpatcher2025} applies RAG-enhanced LLMs to general-purpose patching, reporting 81.5\% fix rate and 91\% compilation.
 
-MIESC differs in three ways: (1)~patches are \emph{self-contained} (compile without external dependencies), (2)~exploit tests are generated alongside patches to \emph{prove} the fix, and (3)~the pipeline extends beyond patching to formal specifications and compliance mapping.
+MIESC differs in three ways: (1)~patches are \emph{self-contained} (compile without external dependencies), (2)~exploit tests are generated alongside patches to \emph{prove} the fix, and (3)~the pipeline extends beyond patching to formal specifications and compliance mapping. Section~\ref{sec:comparison} provides a detailed feature comparison.
 
 \subsection{Test Generation for Smart Contracts}
 
@@ -182,34 +182,53 @@ Templates exist for reentrancy (deploys attacker contract with re-entrant \textt
 
 \subsection{Experimental Setup}
 
-We evaluate the pipeline on a test contract (\texttt{AuditTarget.sol}) containing 5 intentional vulnerabilities: reentrancy, missing access control, unprotected selfdestruct, missing zero-address check, and centralized emergency withdrawal. We measure each stage independently.
+We evaluate the pipeline on the SmartBugs-curated corpus~\cite{ferreira2020smartbugs}: 143 contracts spanning 10 vulnerability categories (reentrancy, access control, unchecked low-level calls, arithmetic, denial of service, front running, short addresses, time manipulation, bad randomness, and other). We report aggregate and per-category metrics for each pipeline stage.
+
+As an illustrative example, we also trace the full pipeline end-to-end on a single test contract (\texttt{AuditTarget.sol}) containing 5 intentional vulnerabilities (reentrancy, missing access control, unprotected selfdestruct, missing zero-address check, and centralized emergency withdrawal).
 
 \textbf{Environment}: macOS ARM64 (Apple Silicon M5 Pro), 48GB RAM, Foundry v1.3.5, Solidity 0.8.20.
 
 \subsection{Stage 2: Patch Quality}
 
 \begin{table}[htbp]
-\caption{Patch Generation Results}
+\caption{Aggregate Patch Generation Results (143 contracts)}
 \label{tab:fix}
 \centering
-\begin{tabular}{@{}lc@{}}
+\begin{tabular}{@{}lcc@{}}
 \toprule
-\textbf{Metric} & \textbf{Value} \\
+\textbf{Metric} & \textbf{Count} & \textbf{Rate} \\
 \midrule
-Findings with fix\_code & 6 \\
-Patches applied & 3 \\
-Already fixed (dedup) & 2 \\
-Could not patch & 1 \\
-\midrule
-Compilation (standalone) & \checkmark \\
-HIGH vulns eliminated & 3/3 (100\%) \\
-New vulns introduced & 0 \\
-External dependencies & 0 \\
+Fix applied & 125/143 & 87\% \\
+Compilation (standalone) & 79/125 & 63\% \\
+Vulnerability eliminated & 105/125 & 84\% \\
+No regression introduced & 125/125 & 100\% \\
+Fix failed & 0/125 & 0\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The patched contract compiles standalone with \texttt{solc} without requiring Foundry, Hardhat, or OpenZeppelin. All three HIGH-severity vulnerabilities (reentrancy, selfdestruct $\times$2) are eliminated in the re-scan. No new vulnerabilities are introduced (the scan of the fixed contract shows 0 HIGH findings vs.\ 3 in the original).
+Table~\ref{tab:fix} shows aggregate results across the 143-contract corpus. Of the 143 contracts, 125 receive a successfully applied patch (87\%). Of those 125, 79 compile standalone without external dependencies (63\%), 105 eliminate the targeted vulnerability upon re-scan (84\%), and none introduce new vulnerabilities (100\% no-regression rate).
+
+\begin{table}[htbp]
+\caption{Per-Category Patch Results}
+\label{tab:fix-category}
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Category} & \textbf{Applied} & \textbf{Compile} & \textbf{Eliminated} & \textbf{No Regr.} \\
+\midrule
+Reentrancy & 25 & 20 (80\%) & 24 (96\%) & 25 (100\%) \\
+Access Control & 15 & 12 (80\%) & 14 (93\%) & 15 (100\%) \\
+Unchecked Calls & 48 & 19 (40\%) & 48 (100\%) & 48 (100\%) \\
+Arithmetic & 15 & 13 (87\%) & 5 (33\%) & 15 (100\%) \\
+Others (5 cats) & 22 & 15 (68\%) & 14 (64\%) & 22 (100\%) \\
+\midrule
+\textbf{Total} & \textbf{125} & \textbf{79 (63\%)} & \textbf{105 (84\%)} & \textbf{125 (100\%)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:fix-category} breaks down results by category. Reentrancy and access control achieve the highest compilation rates (80\%) because these contracts tend to be simpler, standalone files. Unchecked low-level calls show the lowest compilation rate (40\%) but the highest vulnerability elimination rate (100\%), as the fix pattern (\texttt{require(success)}) is mechanical. Arithmetic shows low elimination (33\%) because many pre-0.8 contracts use custom SafeMath libraries that the patcher's \texttt{using SafeMath} directive cannot fully resolve without the library source.
 
 \subsection{Stage 3: Test Validity}
 
@@ -238,14 +257,16 @@ Uninitialized state & \checkmark & PASS & PASS \\
 
 All 6 generated tests compile with Foundry. Against the vulnerable contract, each test correctly demonstrates the vulnerability. Against the fixed contract, all 6 tests pass---confirming that the patches resolve the issues.
 
+\textbf{Exploit drain demonstration.} To demonstrate real fund drainage, we constructed a Foundry test simulating the classic reentrancy exploit pattern. The attacker deposits 1~ETH and drains 7~ETH (6~ETH from other users) via 5 re-entries, confirming that the vulnerability is exploitable in practice. After applying MIESC's inline reentrancy guard, the re-entrant call reverts and the attacker recovers only the original deposit.
+
 \subsection{Stages 4--5: Specifications and Compliance}
 
-The specification generator produces 1 SMTChecker assertion for the unchecked-call finding. The compliance mapper maps 4 of 11 findings to MiCA Art.~11(1) (authorization and access control, ICT security policy). The report generator produces a 3,060-line HTML premium audit report with PoC templates, CVSS estimates, and remediation roadmap.
+The specification generator produces 1 SMTChecker assertion for the unchecked-call finding. SMTChecker (CHC engine) detects an underflow warning on the vulnerable contract that disappears after patching---confirming the fix eliminates the reachable vulnerability path. The compliance mapper maps 4 of 11 findings to MiCA Art.~11(1) (authorization and access control, ICT security policy). The report generator produces a 3,060-line HTML premium audit report with PoC templates, CVSS estimates, and remediation roadmap.
 
 \subsection{End-to-End Pipeline}
 
 \begin{table}[htbp]
-\caption{End-to-End Pipeline Metrics}
+\caption{End-to-End Pipeline Metrics (illustrative single contract)}
 \label{tab:e2e}
 \centering
 \begin{tabular}{@{}lc@{}}
@@ -254,22 +275,58 @@ The specification generator produces 1 SMTChecker assertion for the unchecked-ca
 \midrule
 Total findings & 11 (1C, 4H, 4M, 2L) \\
 Patches applied & 3 (+ 2 dedup) \\
-HIGH vulns: original & 3 \\
-HIGH vulns: after fix & 0 \\
-Tests generated & 6 \\
-Tests compile & 6/6 \\
-Tests valid (vuln) & 6/6 \\
-Tests valid (fixed) & 6/6 \\
-Specs generated & 1 \\
+HIGH vulns: original $\rightarrow$ after fix & 3 $\rightarrow$ 0 \\
+Tests generated / compile / valid & 6 / 6 / 6 \\
+Specs generated & 1 (SMTChecker) \\
 Standards mapped & MiCA (4 findings) \\
 Report generated & HTML, 3060 lines \\
-Total pipeline time & $<$ 10 seconds \\
-Cost (local) & \$0 \\
+Pipeline time & $<$ 10 seconds \\
+Cost (local / API) & \$0 / \$0.18 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The complete pipeline---from scan to report---executes in under 10 seconds on a single contract. The output includes: a patched Solidity file, 6 Foundry exploit tests, formal verification specs, compliance mapping, and a professional audit report.
+Table~\ref{tab:e2e} traces the full pipeline on a single illustrative contract. The complete pipeline---from scan to report---executes in under 10 seconds. For corpus-scale results, see Tables~\ref{tab:fix}--\ref{tab:fix-category}. Across the 143-contract corpus, the pipeline applies fixes to 87\% of contracts, compiles 63\%, and eliminates vulnerabilities in 84\%, with zero regressions.
+
+\subsection{Comparison with Prior Work}
+\label{sec:comparison}
+
+\begin{table}[htbp]
+\caption{Feature comparison with prior repair tools. T/S/C~= generates exploit tests / formal specs / compliance mapping.}
+\label{tab:comparison}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Tool} & \textbf{Yr} & \textbf{Vulns} & \textbf{Fix\%} & \textbf{Comp.\%} & \textbf{T} & \textbf{S/C} \\
+\midrule
+SCRepair~\cite{screpair2020} & '20 & GP & --- & --- & Req\textsuperscript{a} & \texttimes/\texttimes \\
+sGuard~\cite{nguyen2021sguard} & '21 & 4 & --- & ${\sim}$100 & \texttimes & \texttimes/\texttimes \\
+Elysium~\cite{elysium2022} & '22 & 7 SWC & +30\textsuperscript{b} & --- & \texttimes & \texttimes/\texttimes \\
+ACFIX~\cite{acfix2024} & '24 & 1 & 94.9 & --- & \texttimes & \texttimes/\texttimes \\
+SCPatcher~\cite{scpatcher2025} & '25 & Gen. & 81.5 & 91 & \texttimes & \texttimes/\texttimes \\
+\textbf{MIESC} & \textbf{'25} & \textbf{9 lay.} & \textbf{87} & \textbf{63} & \checkmark & \checkmark/\checkmark \\
+\bottomrule
+\end{tabular}
+
+\vspace{2pt}
+\scriptsize{\textsuperscript{a}Requires pre-existing test suite. \textsuperscript{b}Relative to Shield.}
+\end{table}
+
+Table~\ref{tab:comparison} compares MIESC against five prior automated repair tools. While SCPatcher achieves a higher compilation rate (91\% vs.\ 63\%), it does not generate exploit tests, formal specifications, or compliance documentation. ACFIX achieves the highest fix rate (94.9\%) but is limited to a single vulnerability class (RBAC). MIESC is the only tool in the comparison that covers the full remediation lifecycle: from patch generation through exploit testing, formal verification, and compliance mapping.
+
+\subsection{Failure Analysis}
+
+Of the 125 contracts where a fix was applied, 46 (37\%) fail to compile. Analysis of the compilation failures reveals three root causes:
+
+\begin{itemize}
+    \item \textbf{External dependencies (60\%)}: contracts import libraries (OpenZeppelin, custom utility contracts) that are not available in standalone compilation. These are deployed mainnet contracts with complex import chains.
+    \item \textbf{Solidity version incompatibility (25\%)}: pre-0.8 contracts (Solidity 0.4.x--0.5.x) use features incompatible with the inline guard syntax generated by the patcher (e.g., \texttt{constructor} vs.\ \texttt{function ContractName}).
+    \item \textbf{Undefined references (15\%)}: the fix introduces a reference to a variable or function not defined in the contract scope. This class of failures is addressed in v5.3.1 with scope-aware patching.
+\end{itemize}
+
+The worst-performing category is unchecked low-level calls (60\% compilation failure): these are typically deployed mainnet contracts with complex import chains that break standalone compilation. The best-performing categories---reentrancy and access control (80\% compile)---consist primarily of simpler standalone contracts.
 
 % ===========================================================================
 \section{Discussion}
@@ -291,11 +348,11 @@ The pipeline's sub-10-second execution time enables integration into CI/CD workf
 \section{Conclusion}
 % ===========================================================================
 
-We have shown that the gap between vulnerability detection and secure code can be substantially narrowed through automation. MIESC's five-stage pipeline transforms a raw vulnerability finding into: a compilable patch (100\% of HIGH vulns eliminated), a Foundry exploit test (6/6 valid), a formal specification, compliance documentation, and a professional audit report---all in under 10 seconds at zero cost.
+We have shown that the gap between vulnerability detection and secure code can be substantially narrowed through automation. Evaluated on 143 contracts from the SmartBugs-curated corpus, MIESC's five-stage pipeline achieves 87\% fix application rate, 63\% standalone compilation, and 84\% vulnerability elimination with zero regressions. Compared to five prior repair tools (Table~\ref{tab:comparison}), MIESC is the only system that generates exploit tests, formal specifications, and compliance documentation alongside patches.
 
 The key insight is that each stage \emph{feeds the next}: detection informs patching, patching informs test generation, and test generation closes the loop by verifying the fix. This compositional approach means that improvements to any stage (e.g., higher recall in detection, more patch templates, richer test assertions) automatically improve the end-to-end pipeline.
 
-Future work will scale the evaluation to 100+ contracts, add AST-level patching for complex vulnerabilities, and integrate the pipeline into a GitHub Action for continuous security monitoring.
+The main limitation is the 63\% compilation rate, driven primarily by external dependency resolution in deployed mainnet contracts (Section~\ref{sec:comparison}). Future work will add AST-level patching via Slither's intermediate representation, dependency-aware compilation with automatic import resolution, and integration into a GitHub Action for continuous security monitoring.
 
 MIESC is available under AGPL-3.0 at \url{https://github.com/fboiero/MIESC}.
 
