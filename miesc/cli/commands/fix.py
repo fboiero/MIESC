@@ -114,16 +114,15 @@ def _add_modifier_to_function(
 
 
 _INLINE_REENTRANCY_GUARD = """
-// MIESC: Inline reentrancy guard (no external dependency required)
-abstract contract MiescReentrancyGuard {
-    uint256 private _reentrancyStatus;
+// MIESC: Inline reentrancy guard (Solidity >=0.4.0 compatible)
+contract MiescReentrancyGuard {
+    bool internal _locked;
     modifier nonReentrant() {
-        require(_reentrancyStatus != 2, "ReentrancyGuard: reentrant call");
-        _reentrancyStatus = 2;
+        require(!_locked);
+        _locked = true;
         _;
-        _reentrancyStatus = 1;
+        _locked = false;
     }
-    constructor() { _reentrancyStatus = 1; }
 }
 """
 
@@ -185,7 +184,12 @@ def _ensure_reentrancy_guard_import(source: str) -> str:
 
 
 def _insert_using_safemath(source: str) -> tuple[str, bool]:
-    """Insert `using SafeMath for uint256;` after the first `contract Foo {` line."""
+    """Insert `using SafeMath for uint256;` — only if SafeMath is already defined/imported."""
+    # Don't insert if SafeMath is not available in the contract
+    if "SafeMath" not in source and "safemath" not in source.lower():
+        return source, False
+    if "using SafeMath" in source:
+        return source, False  # Already present
     contract_re = re.compile(r"(contract\s+\w+[^{]*\{)", re.MULTILINE)
     m = contract_re.search(source)
     if not m:
