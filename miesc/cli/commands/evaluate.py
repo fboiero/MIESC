@@ -874,6 +874,90 @@ def evaluate_ablation(directory, layers, timeout, skip_unavailable, output, json
     success(f"Ablation complete in {total_time:.1f}s")
 
 
+@evaluate.command("download")
+@click.argument("dataset", type=click.Choice(["smartbugs", "solidifi", "dvd"]))
+@click.option("--output", "-o", type=click.Path(), default=None,
+              help="Output directory (default: ./benchmarks/datasets/<dataset>/)")
+def evaluate_download(dataset, output):
+    """Download a benchmark dataset for evaluation.
+
+    Available datasets:
+      - smartbugs: SmartBugs-curated (143 contracts, 10 categories)
+      - solidifi: SolidiFI benchmark (50 contracts with injected bugs)
+      - dvd: Damn Vulnerable DeFi (challenges with known vulnerabilities)
+
+    Examples:
+
+      miesc evaluate download smartbugs
+
+      miesc evaluate download solidifi -o ./my_benchmarks/solidifi/
+    """
+    import subprocess
+
+    print_banner()
+
+    DATASET_REPOS = {
+        "smartbugs": {
+            "url": "https://github.com/smartbugs/smartbugs-curated.git",
+            "default_dir": "benchmarks/datasets/smartbugs-curated",
+            "description": "SmartBugs Curated — 143 contracts, 10 vulnerability categories",
+            "eval_subdir": "dataset",
+        },
+        "solidifi": {
+            "url": "https://github.com/smartbugs/SolidiFI-benchmark.git",
+            "default_dir": "benchmarks/datasets/solidifi-benchmark",
+            "description": "SolidiFI — 50 contracts with injected vulnerabilities",
+            "eval_subdir": ".",
+        },
+        "dvd": {
+            "url": "https://github.com/damn-vulnerable-defi/damn-vulnerable-defi.git",
+            "default_dir": "benchmarks/datasets/damn-vulnerable-defi",
+            "description": "Damn Vulnerable DeFi — challenge contracts with known vulns",
+            "eval_subdir": "contracts",
+        },
+    }
+
+    ds = DATASET_REPOS[dataset]
+    target_dir = Path(output) if output else Path(ds["default_dir"])
+
+    if target_dir.exists() and any(target_dir.iterdir()):
+        info(f"Dataset already exists at {target_dir}")
+        eval_dir = target_dir / ds["eval_subdir"]
+        if eval_dir.exists():
+            sol_count = len(list(eval_dir.rglob("*.sol")))
+            success(f"Ready: {sol_count} .sol files in {eval_dir}")
+            info(f"Evaluate with: miesc evaluate corpus {eval_dir}")
+        return
+
+    info(f"Downloading: {ds['description']}")
+    info(f"From: {ds['url']}")
+    info(f"To: {target_dir}")
+
+    target_dir.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        result = subprocess.run(
+            ["git", "clone", "--depth", "1", ds["url"], str(target_dir)],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode != 0:
+            error(f"Clone failed: {result.stderr.strip()}")
+            sys.exit(1)
+    except subprocess.TimeoutExpired:
+        error("Clone timed out (120s). Try downloading manually.")
+        sys.exit(1)
+    except FileNotFoundError:
+        error("git not found. Install git to download datasets.")
+        sys.exit(1)
+
+    eval_dir = target_dir / ds["eval_subdir"]
+    sol_count = len(list(eval_dir.rglob("*.sol")))
+    success(f"Downloaded: {sol_count} .sol files")
+    info(f"Evaluate with: miesc evaluate corpus {eval_dir}")
+
+
 @evaluate.command("info")
 @click.argument("directory", type=click.Path(exists=True))
 def evaluate_info(directory):
