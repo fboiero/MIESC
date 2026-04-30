@@ -1,0 +1,150 @@
+# Example: Research Evaluation Workflow
+#
+# Copy this to your repository's .github/workflows/ to run MIESC
+# benchmark evaluations automatically. Useful for:
+# - Measuring recall/precision on your custom corpus
+# - Tracking detection improvements across versions
+# - Generating publishable evaluation data
+#
+# For more information: https://github.com/fboiero/MIESC/docs/guides/RESEARCH.md
+
+name: Research Evaluation
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'miesc/**', 'config/**']
+  workflow_dispatch:
+    inputs:
+      layers:
+        description: 'Layers to evaluate (comma-separated)'
+        default: '1,5,7,9'
+      limit:
+        description: 'Max contracts to evaluate (empty = all)'
+        default: ''
+      categories:
+        description: 'Categories to evaluate (empty = all)'
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    name: Benchmark Evaluation
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install MIESC
+        run: |
+          pip install -e .
+          pip install pyyaml
+          miesc doctor
+
+      - name: Install external tools
+        run: |
+          # Slither (static analysis)
+          pip install slither-analyzer
+          # Aderyn (Rust-based)
+          curl -L https://github.com/Cyfrin/aderyn/releases/latest/download/aderyn-linux-amd64 -o /usr/local/bin/aderyn
+          chmod +x /usr/local/bin/aderyn
+
+      - name: Run evaluation
+        env:
+          MIESC_SEED: "42"
+          # Add API keys as GitHub Secrets if using LLM layers:
+          # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          LAYERS="${{ github.event.inputs.layers || '1,5,7,9' }}"
+          LIMIT="${{ github.event.inputs.limit }}"
+          CATEGORIES="${{ github.event.inputs.categories }}"
+
+          CMD="miesc evaluate corpus benchmarks/datasets/smartbugs-curated/dataset"
+          CMD="$CMD --layers $LAYERS"
+          CMD="$CMD --output evaluation_results.json"
+          CMD="$CMD --jsonl evaluation_stream.jsonl"
+          CMD="$CMD --timeout 120"
+
+          [ -n "$LIMIT" ] && CMD="$CMD --limit $LIMIT"
+          [ -n "$CATEGORIES" ] && CMD="$CMD --categories $CATEGORIES"
+
+          echo "Running: $CMD"
+          eval $CMD
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-results-${{ github.sha }}
+          path: |
+            evaluation_results.json
+            evaluation_stream.jsonl
+          retention-days: 90
+
+      - name: Print summary
+        if: always()
+        run: |
+          if [ -f evaluation_results.json ]; then
+            echo "## Evaluation Results" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            python3 -c "
+          import json
+          with open('evaluation_results.json') as f:
+              data = json.load(f)
+          agg = data.get('aggregate', {})
+          print(f'| Metric | Value |')
+          print(f'|--------|-------|')
+          print(f'| Recall | {agg.get(\"recall\", 0):.1%} |')
+          print(f'| Precision | {agg.get(\"precision\", 0):.1%} |')
+          print(f'| F1 | {agg.get(\"f1\", 0):.1%} |')
+          print(f'| Hit Rate | {agg.get(\"hit_rate\", 0):.1%} |')
+          print(f'| Contracts | {agg.get(\"contracts_evaluated\", 0)} |')
+          print(f'| Time | {agg.get(\"total_time_s\", 0):.0f}s |')
+          " >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Optional: Run ablation study on schedule
+  ablation:
+    name: Ablation Study
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install MIESC
+        run: |
+          pip install -e .
+          pip install slither-analyzer
+
+      - name: Run ablation
+        env:
+          MIESC_SEED: "42"
+        run: |
+          miesc evaluate ablation benchmarks/datasets/smartbugs-curated/dataset \
+            --layers 1,3,5,7,9 \
+            --output ablation_results.json \
+            --limit 50
+
+      - name: Upload ablation results
+        uses: actions/upload-artifact@v4
+        with:
+          name: ablation-results-${{ github.sha }}
+          path: ablation_results.json
+          retention-days: 90
