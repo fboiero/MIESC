@@ -462,7 +462,9 @@ def evaluate():
               help="Filter to specific categories (comma-separated)")
 @click.option("--limit", type=int, default=None,
               help="Limit number of contracts evaluated (for quick testing)")
-def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl, categories, limit):
+@click.option("--config", type=click.Path(exists=True), default=None,
+              help="Experiment config YAML file (overrides CLI flags)")
+def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl, categories, limit, config):
     """Evaluate MIESC against an annotated benchmark corpus.
 
     The corpus directory must follow the SmartBugs-curated structure:
@@ -477,8 +479,38 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
       miesc evaluate corpus benchmarks/datasets/smartbugs-curated/ --layers 1,5 --jsonl results.jsonl
 
       miesc evaluate corpus benchmarks/datasets/smartbugs-curated/ --categories reentrancy,arithmetic --limit 10
+
+      miesc evaluate corpus benchmarks/datasets/smartbugs-curated/ --config experiment.yaml
     """
     print_banner()
+
+    # Load experiment config if provided (overrides CLI flags)
+    if config:
+        try:
+            import yaml
+            with open(config) as f:
+                cfg = yaml.safe_load(f)
+            layers = cfg.get("layers", layers)
+            if isinstance(layers, list):
+                layers = ",".join(str(l) for l in layers)
+            timeout = cfg.get("timeout", timeout)
+            skip_unavailable = cfg.get("skip_unavailable", skip_unavailable)
+            categories = cfg.get("categories", categories)
+            if isinstance(categories, list):
+                categories = ",".join(categories)
+            limit = cfg.get("limit", limit)
+            output = cfg.get("output", output)
+            jsonl = cfg.get("jsonl", jsonl)
+            # Set environment variables from config
+            for key, val in cfg.get("env", {}).items():
+                os.environ[key] = str(val)
+            info(f"Loaded experiment config from {config}")
+        except ImportError:
+            warning("PyYAML not installed, --config requires: pip install pyyaml")
+        except Exception as e:
+            error(f"Failed to load config: {e}")
+            sys.exit(1)
+
     corpus_dir = Path(directory).resolve()
 
     # Parse layers
@@ -840,6 +872,78 @@ def evaluate_ablation(directory, layers, timeout, skip_unavailable, output, json
         success(f"Ablation results saved to {output}")
 
     success(f"Ablation complete in {total_time:.1f}s")
+
+
+@evaluate.command("info")
+@click.argument("directory", type=click.Path(exists=True))
+def evaluate_info(directory):
+    """Show dataset information: contract count, category distribution, Solidity versions.
+
+    Useful for understanding the corpus before running evaluation.
+
+    Examples:
+
+      miesc evaluate info benchmarks/datasets/smartbugs-curated/dataset/
+    """
+    print_banner()
+    corpus_dir = Path(directory).resolve()
+
+    ground_truth = _load_ground_truth(corpus_dir)
+    if not ground_truth:
+        error(f"No ground truth found in {corpus_dir}")
+        sys.exit(1)
+
+    # Count per category
+    category_counts = defaultdict(int)
+    for cats in ground_truth.values():
+        for cat in cats:
+            category_counts[cat] += 1
+
+    # Detect Solidity versions
+    version_counts = defaultdict(int)
+    for contract_rel in ground_truth:
+        contract_path = corpus_dir / contract_rel
+        if contract_path.exists():
+            try:
+                first_lines = contract_path.read_text(errors="ignore")[:500]
+                import re
+                match = re.search(r"pragma\s+solidity\s+[\^>=<]*\s*([\d.]+)", first_lines)
+                if match:
+                    major_minor = ".".join(match.group(1).split(".")[:2])
+                    version_counts[major_minor] += 1
+                else:
+                    version_counts["unknown"] += 1
+            except Exception:
+                version_counts["unknown"] += 1
+
+    total = len(ground_truth)
+
+    if RICH_AVAILABLE:
+        # Category distribution
+        table = Table(title=f"Dataset: {corpus_dir.name} ({total} contracts)", box=box.ROUNDED)
+        table.add_column("Category", style="cyan")
+        table.add_column("Contracts", justify="right")
+        table.add_column("Share", justify="right")
+
+        for cat, count in sorted(category_counts.items(), key=lambda x: -x[1]):
+            table.add_row(cat, str(count), f"{count/total:.0%}")
+        table.add_row("TOTAL", str(total), "100%", style="bold")
+        console.print(table)
+
+        # Solidity version distribution
+        ver_table = Table(title="Solidity Version Distribution", box=box.ROUNDED)
+        ver_table.add_column("Version", style="cyan")
+        ver_table.add_column("Count", justify="right")
+
+        for ver, count in sorted(version_counts.items()):
+            ver_table.add_row(f"^{ver}" if ver != "unknown" else ver, str(count))
+        console.print(ver_table)
+    else:
+        print(f"\n=== Dataset: {corpus_dir.name} ({total} contracts) ===")  # noqa: T201
+        for cat, count in sorted(category_counts.items(), key=lambda x: -x[1]):
+            print(f"  {cat}: {count} ({count/total:.0%})")  # noqa: T201
+
+    success(f"Dataset has {total} contracts across {len(category_counts)} categories")
 
 
 @evaluate.command("compare")

@@ -1,0 +1,37 @@
+# MIESC Experiment Configuration
+# ================================
+# Use with: miesc evaluate corpus <dir> --config experiment.yaml
+#
+# This file captures ALL parameters needed to reproduce an evaluation run.
+# Share this alongside your results for full reproducibility.
+
+# Evaluation parameters
+layers: [1, 5, 7, 9]          # Which defense layers to run
+timeout: 120                   # Seconds per tool
+skip_unavailable: true         # Skip tools not installed on this machine
+limit: null                    # null = all contracts, or integer to limit
+
+# Category filter (null = all categories)
+categories: null
+# categories: [reentrancy, arithmetic, access_control]
+
+# Output paths
+output: results/evaluation_results.json
+jsonl: results/evaluation_stream.jsonl
+
+# Environment variables (set before evaluation starts)
+env:
+  MIESC_SEED: "42"
+  MIESC_LLM_PROVIDER: "anthropic"
+  MIESC_LLM_MODEL: "claude-sonnet-4-6"
+  # ANTHROPIC_API_KEY: "sk-..."  # Do NOT commit API keys
+  # OPENAI_API_KEY: "sk-..."
+  # OLLAMA_HOST: "http://localhost:11434"
+
+# Metadata (not used by MIESC, but useful for tracking)
+metadata:
+  experiment_name: "SmartBugs Full Evaluation"
+  researcher: "Your Name"
+  date: "2026-04-29"
+  notes: "Baseline evaluation with Layer 1+5+7+9, Claude Sonnet 4.6"
+  hypothesis: "Adding Layer 5 (AI) improves recall by >20% over static-only (Layer 1)"
