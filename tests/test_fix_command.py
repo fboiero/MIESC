@@ -219,6 +219,7 @@ class TestApplyFix:
         patched, changed = apply_fix(SIMPLE_CONTRACT, finding)
         assert changed
         assert "onlyOwner" in patched
+        assert "address public owner = msg.sender;" in patched
 
     def test_arithmetic_inserts_safemath_on_legacy(self):
         finding = {
@@ -229,6 +230,44 @@ class TestApplyFix:
         patched, changed = apply_fix(LEGACY_CONTRACT, finding)
         assert changed
         assert "using SafeMath for uint256;" in patched
+
+    def test_reentrancy_line_inference_uses_original_source_after_safemath_insert(self, tmp_path):
+        source = """\
+pragma solidity ^0.6.12;
+
+contract Vault {
+    mapping(address => uint256) public balances;
+
+    function withdraw(uint256 amount) public {
+        require(balances[msg.sender] >= amount);
+        (bool ok, ) = msg.sender.call("");
+        require(ok);
+        balances[msg.sender] -= amount;
+    }
+}
+"""
+        contract = tmp_path / "Vault.sol"
+        contract.write_text(source)
+        results = _make_results(
+            [
+                {"type": "arithmetic", "line": 9, "fix_code": "use SafeMath"},
+                {"type": "reentrancy", "line": 6, "fix_code": "add nonReentrant"},
+            ],
+            tmp_path,
+        )
+        out = tmp_path / "patched.sol"
+
+        runner = CliRunner()
+        result = runner.invoke(
+            fix,
+            [str(results), "--contract", str(contract), "--output", str(out), "--quiet"],
+        )
+
+        assert result.exit_code == 0
+        patched = out.read_text()
+        assert "function withdraw(uint256 amount) nonReentrant public" in patched
+        assert "function add(uint256 a, uint256 b) nonReentrant" not in patched
+        assert "function sub(uint256 a, uint256 b) nonReentrant" not in patched
 
     def test_generic_type_inserts_comment_block(self):
         finding = {

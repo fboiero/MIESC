@@ -114,6 +114,12 @@ benchmarks/results/evmbench/*
 !benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.jsonl
 !benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.json
 !benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.jsonl
+!benchmarks/results/fix_eval_results.json
+!benchmarks/results/paper2_claims_matrix.json
+!benchmarks/results/paper2_compile_failure_by_category.json
+!benchmarks/results/paper2_compile_failure_taxonomy.json
+!benchmarks/results/paper2_experiment_audit.json
+!benchmarks/results/paper2_patch_quality_by_transform.json
 !benchmarks/results/tooling_smoke_layers_1_6.json
 !benchmarks/results/tooling_smoke_layers_1_6.jsonl
 !benchmarks/results/evmbench/evmbench_ensemble_40.json

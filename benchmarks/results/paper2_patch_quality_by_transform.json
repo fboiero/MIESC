@@ -1,0 +1,114 @@
+{
+  "artifact": "paper2_patch_quality_by_transform",
+  "generated_at": "2026-05-07T12:52:40.101361+00:00",
+  "source_artifact": "benchmarks/results/fix_eval_results.json",
+  "scope": "Paper 2 remediation only; does not modify Paper 1 detection evidence.",
+  "limitations": "Transform classes are derived from SmartBugs categories and current patcher behavior, not from per-finding AST diffs.",
+  "transforms": {
+    "generic_manual_remediation_block": {
+      "status": "derived_from_category_mapping",
+      "categories": [
+        "bad_randomness",
+        "denial_of_service",
+        "front_running",
+        "other",
+        "short_addresses",
+        "time_manipulation"
+      ],
+      "metrics": {
+        "contracts": 27,
+        "fix_applied": 27,
+        "fix_compiles": 14,
+        "vuln_eliminated": 15,
+        "no_regression": 17,
+        "fix_failed": 0
+      },
+      "rates": {
+        "application": 1.0,
+        "standalone_compilation": 0.5185,
+        "vulnerability_elimination": 0.5556,
+        "no_regression": 0.6296
+      }
+    },
+    "onlyOwner_modifier_insertion": {
+      "status": "derived_from_category_mapping",
+      "categories": [
+        "access_control"
+      ],
+      "metrics": {
+        "contracts": 18,
+        "fix_applied": 17,
+        "fix_compiles": 11,
+        "vuln_eliminated": 9,
+        "no_regression": 8,
+        "fix_failed": 0
+      },
+      "rates": {
+        "application": 0.9444,
+        "standalone_compilation": 0.6471,
+        "vulnerability_elimination": 0.5294,
+        "no_regression": 0.4706
+      }
+    },
+    "reentrancy_guard_injection": {
+      "status": "derived_from_category_mapping",
+      "categories": [
+        "reentrancy"
+      ],
+      "metrics": {
+        "contracts": 31,
+        "fix_applied": 31,
+        "fix_compiles": 30,
+        "vuln_eliminated": 30,
+        "no_regression": 22,
+        "fix_failed": 0
+      },
+      "rates": {
+        "application": 1.0,
+        "standalone_compilation": 0.9677,
+        "vulnerability_elimination": 0.9677,
+        "no_regression": 0.7097
+      }
+    },
+    "require_success_wrapper": {
+      "status": "derived_from_category_mapping",
+      "categories": [
+        "unchecked_low_level_calls"
+      ],
+      "metrics": {
+        "contracts": 52,
+        "fix_applied": 51,
+        "fix_compiles": 20,
+        "vuln_eliminated": 38,
+        "no_regression": 42,
+        "fix_failed": 0
+      },
+      "rates": {
+        "application": 0.9808,
+        "standalone_compilation": 0.3922,
+        "vulnerability_elimination": 0.7451,
+        "no_regression": 0.8235
+      }
+    },
+    "safemath_or_checked_arithmetic_comment": {
+      "status": "derived_from_category_mapping",
+      "categories": [
+        "arithmetic"
+      ],
+      "metrics": {
+        "contracts": 15,
+        "fix_applied": 15,
+        "fix_compiles": 15,
+        "vuln_eliminated": 1,
+        "no_regression": 2,
+        "fix_failed": 0
+      },
+      "rates": {
+        "application": 1.0,
+        "standalone_compilation": 1.0,
+        "vulnerability_elimination": 0.0667,
+        "no_regression": 0.1333
+      }
+    }
+  }
+}

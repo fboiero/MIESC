@@ -47,20 +47,22 @@ Sebastian Norberto Mussetta
 
 ---
 
-## Paper 2: Remediation (paper2-arxiv.tar.gz)
+## Paper 2: Verifiable Remediation Artifacts (paper2-arxiv.tar.gz)
 
 ### Title
 ```
-From Detection to Remediation: An Automated Pipeline for Smart Contract Security
+From Findings to Verifiable Remediation Artifacts: A Smart Contract Security Pipeline
 ```
 
 ### Authors
 ```
 Fernando Boiero
+Sebastian Norberto Mussetta
 ```
 
 - **Affiliation**: Universidad Tecnologica Nacional (UTN), Facultad Regional Villa Maria
-- **Email**: fboiero@frvm.utn.edu.ar
+- **Emails**: fboiero@frvm.utn.edu.ar, smussetta@frvm.utn.edu.ar
+- **ORCID**: Fernando Boiero — 0009-0005-7935-2758; Sebastian Norberto Mussetta — 0009-0007-8025-9846
 
 ### Abstract
 *(copy verbatim from `paper2-remediation.tex`)*
@@ -71,7 +73,7 @@ Fernando Boiero
 
 ### Comments
 ```
-7 pages, 3 code listings, 5 tables. Automated find-fix-prove pipeline evaluated on 143 SmartBugs contracts: 87% fix rate, 84% vuln elimination, 0% regression. Companion paper to [Paper 1 arXiv ID]. Framework: https://github.com/fboiero/MIESC (AGPL-3.0).
+7 pages, 3 code listings, 5 tables. Automated find-fix-verify pipeline evaluated on 143 SmartBugs contracts: 141/143 fix application, 90/141 standalone compilation, 93/141 vulnerability elimination, 91/141 bounded no-regression criterion. Companion paper to [Paper 1 arXiv ID]. Framework: https://github.com/fboiero/MIESC (AGPL-3.0).
 ```
 
 ### License
@@ -81,12 +83,12 @@ Fernando Boiero
 
 | Metric | Result |
 |--------|--------|
-| Fix application rate | 87% (125/143 contracts) |
-| Compilation (standalone) | 63% (88% on self-contained) |
-| Vulnerability eliminated | 84% |
-| No regression | 100% |
+| Fix application rate | 99% (141/143 contracts) |
+| Compilation (standalone) | 64% (90/141 patched contracts) |
+| Vulnerability eliminated | 66% (93/141 patched contracts) |
+| No-regression criterion | 65% (91/141 patched contracts) |
 | Exploit tests generated | 6/6 compile, all confirm vuln |
-| Comparison | Only tool with tests + specs + compliance |
+| Comparison | Only evaluated tool with tests + specs + compliance |
 
 ---
 

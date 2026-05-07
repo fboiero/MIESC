@@ -42,19 +42,20 @@ _FUNCTION_RE = re.compile(
 def _ensure_modifier_defined(source: str, modifier: str) -> str:
     """If a modifier is used but not defined, inline it."""
     if modifier == "onlyOwner" and "modifier onlyOwner" not in source:
-        # Check if there's an owner state variable
-        if re.search(r"address\s+(public\s+)?owner\b", source):
-            inline = (
-                "\n    // MIESC: Inline onlyOwner modifier\n"
-                "    modifier onlyOwner() {\n"
-                '        require(msg.sender == owner, "Not owner");\n'
-                "        _;\n"
-                "    }\n"
-            )
-            # Insert after the first state variable block (before first function)
-            m = re.search(r"(function\s+)", source)
-            if m:
-                source = source[:m.start()] + inline + "\n    " + source[m.start():]
+        has_owner = re.search(r"address\s+(?:public\s+)?owner\b", source)
+        inline = "\n    // MIESC: Inline onlyOwner modifier\n"
+        if not has_owner:
+            inline += "    address public owner = msg.sender;\n"
+        inline += (
+            "    modifier onlyOwner() {\n"
+            '        require(msg.sender == owner, "Not owner");\n'
+            "        _;\n"
+            "    }\n"
+        )
+        # Insert after the first state variable block (before first function)
+        m = re.search(r"(function\s+)", source)
+        if m:
+            source = source[:m.start()] + inline + "\n    " + source[m.start():]
     return source
 
 
@@ -126,6 +127,40 @@ contract MiescReentrancyGuard {
 }
 """
 
+_INLINE_SAFE_MATH = """
+// MIESC: Inline SafeMath subset for standalone legacy compilation
+library SafeMath {
+    function add(uint256 a, uint256 b) internal pure returns (uint256) {
+        uint256 c = a + b;
+        require(c >= a);
+        return c;
+    }
+
+    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+        require(b <= a);
+        return a - b;
+    }
+
+    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+        if (a == 0) {
+            return 0;
+        }
+        uint256 c = a * b;
+        require(c / a == b);
+        return c;
+    }
+
+    function div(uint256 a, uint256 b) internal pure returns (uint256) {
+        require(b > 0);
+        return a / b;
+    }
+}
+"""
+
+
+def _has_contract_definition(source: str, name: str) -> bool:
+    return bool(re.search(r"\b(?:contract|library|interface)\s+" + re.escape(name) + r"\b", source))
+
 
 def _ensure_reentrancy_guard_import(source: str) -> str:
     """Add inline ReentrancyGuard + inheritance if not already present.
@@ -133,7 +168,11 @@ def _ensure_reentrancy_guard_import(source: str) -> str:
     Uses an inline implementation instead of an OZ import so the fixed
     contract compiles without external dependencies (Foundry/Hardhat).
     """
-    if "ReentrancyGuard" in source:
+    has_reentrancy_definition = _has_contract_definition(source, "ReentrancyGuard")
+    has_miesc_definition = _has_contract_definition(source, "MiescReentrancyGuard")
+    has_oz_import = bool(re.search(r"import\s+[^;]*ReentrancyGuard[^;]*;", source))
+
+    if has_reentrancy_definition or has_miesc_definition or has_oz_import:
         return source
 
     # Check if OZ is likely available (import already exists)
@@ -142,6 +181,13 @@ def _ensure_reentrancy_guard_import(source: str) -> str:
     if has_oz:
         # OZ available — use import
         import_line = 'import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";\n'
+        guard_name = "ReentrancyGuard"
+    elif re.search(r"\bis\s+[^{};]*\bReentrancyGuard\b", source):
+        # The contract already inherits from ReentrancyGuard, but no definition
+        # or import is available. Inline that exact base name.
+        import_line = _INLINE_REENTRANCY_GUARD.replace(
+            "contract MiescReentrancyGuard", "contract ReentrancyGuard"
+        )
         guard_name = "ReentrancyGuard"
     else:
         # No OZ — inline the guard so it compiles standalone
@@ -165,7 +211,6 @@ def _ensure_reentrancy_guard_import(source: str) -> str:
 
     # Add ReentrancyGuard to contract inheritance
     contract_re = re.compile(r"(contract\s+\w+)\s*(\{)", re.MULTILINE)
-    is_re = re.compile(r"(contract\s+\w+\s+is\s+)([^{]+)(\{)", re.MULTILINE)
     # Find the TARGET contract (skip the inline guard itself)
     for m_contract in contract_re.finditer(source):
         contract_name = source[m_contract.start(1):m_contract.end(1)].split()[-1]
@@ -191,9 +236,15 @@ def _insert_using_safemath(source: str) -> tuple[str, bool]:
     m = contract_re.search(source)
     if not m:
         return source, False
+    patched = source
+    if not _has_contract_definition(patched, "SafeMath") and "library SafeMath" not in patched:
+        patched = patched[:m.start()] + _INLINE_SAFE_MATH + "\n" + patched[m.start():]
+        m = contract_re.search(patched)
+        if not m:
+            return source, False
     insert_pos = m.end()
     snippet = "\n    using SafeMath for uint256;"
-    patched = source[:insert_pos] + snippet + source[insert_pos:]
+    patched = patched[:insert_pos] + snippet + patched[insert_pos:]
     return patched, True
 
 
@@ -613,7 +664,11 @@ def fix(results_file, contract_path, output, dry_run, quiet):
                 info(f"  ⊘ Already fixed: {ftype} in {fn_name}")
             continue
 
-        new_source, changed = apply_fix(patched_source, finding)
+        normalized_finding = dict(finding)
+        if fn_name:
+            normalized_finding["function"] = fn_name
+
+        new_source, changed = apply_fix(patched_source, normalized_finding)
         if changed:
             patched_source = new_source
             applied += 1

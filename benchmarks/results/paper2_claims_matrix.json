@@ -1,0 +1,294 @@
+{
+  "artifact": "paper2_claims_matrix",
+  "generated_at": "2026-05-07T12:52:40.100738+00:00",
+  "purpose": "Trace Paper 2 remediation claims to local artifacts.",
+  "paper1_compatibility_rule": "Paper 2 may inherit Paper 1 detection claims but must not regenerate or change Paper 1 detection evidence.",
+  "claims": [
+    {
+      "claim_id": "fix_application_rate",
+      "paper_claim": "MIESC applies fixes to 141 of 143 SmartBugs contracts.",
+      "source_artifact": "benchmarks/results/fix_eval_results.json",
+      "status": "supported",
+      "scope": "corpus_wide",
+      "paper1_dependency": null,
+      "metric_definition": "The patcher produced a modified Solidity source file for at least one fixable HIGH/CRITICAL finding.",
+      "unit": "contracts",
+      "value": {
+        "fix_applied": 141,
+        "contracts": 143,
+        "rate": 0.986
+      }
+    },
+    {
+      "claim_id": "standalone_compilation_rate",
+      "paper_claim": "90 of 141 patched contracts compile standalone.",
+      "source_artifact": "benchmarks/results/fix_eval_results.json",
+      "status": "supported",
+      "scope": "corpus_wide",
+      "paper1_dependency": null,
+      "metric_definition": "The patched source compiled as a standalone file, without restoring the original project dependency tree.",
+      "unit": "patched contracts",
+      "value": {
+        "fix_compiles": 90,
+        "fix_applied": 141,
+        "rate": 0.6383
+      }
+    },
+    {
+      "claim_id": "vulnerability_elimination_rate",
+      "paper_claim": "93 of 141 patched contracts reduce HIGH/CRITICAL findings on re-scan.",
+      "source_artifact": "benchmarks/results/fix_eval_results.json",
+      "status": "supported",
+      "scope": "corpus_wide_bounded_rescan",
+      "paper1_dependency": null,
+      "metric_definition": "A re-scan reported fewer HIGH/CRITICAL findings for the target category.",
+      "unit": "patched contracts",
+      "value": {
+        "vuln_eliminated": 93,
+        "fix_applied": 141,
+        "rate": 0.6596
+      }
+    },
+    {
+      "claim_id": "no_regression_rate",
+      "paper_claim": "No-regression criterion holds for 91 of 141 patched contracts.",
+      "source_artifact": "benchmarks/results/fix_eval_results.json",
+      "status": "supported_with_note",
+      "scope": "corpus_wide_bounded_rescan",
+      "paper1_dependency": null,
+      "metric_definition": "The patched contract did not materially increase finding count under the same scanner; this is not semantic equivalence.",
+      "notes": "Regression is measured by finding-count growth on re-scan, allowing up to two extra informational findings caused by inline guard code.",
+      "unit": "patched contracts",
+      "value": {
+        "no_regression": 91,
+        "fix_applied": 141,
+        "rate": 0.6454
+      }
+    },
+    {
+      "claim_id": "fix_failed_count",
+      "paper_claim": "The recorded fix evaluation reports zero failed fix applications after filtering.",
+      "source_artifact": "benchmarks/results/fix_eval_results.json",
+      "status": "supported_with_note",
+      "scope": "corpus_wide",
+      "paper1_dependency": null,
+      "notes": "Contracts without fixable HIGH/CRITICAL findings are skipped before fix application.",
+      "unit": "contracts",
+      "value": 0
+    },
+    {
+      "claim_id": "per_category_patch_metrics",
+      "paper_claim": "Per-category patch metrics are derived from fix_eval_results.json.",
+      "source_artifact": "benchmarks/results/fix_eval_results.json",
+      "status": "supported",
+      "scope": "corpus_wide",
+      "paper1_dependency": null,
+      "unit": "mixed metrics",
+      "value": {
+        "access_control": {
+          "contracts": 18,
+          "fix_applied": 17,
+          "fix_compiles": 11,
+          "vuln_eliminated": 9,
+          "no_regression": 8,
+          "fix_failed": 0
+        },
+        "arithmetic": {
+          "contracts": 15,
+          "fix_applied": 15,
+          "fix_compiles": 15,
+          "vuln_eliminated": 1,
+          "no_regression": 2,
+          "fix_failed": 0
+        },
+        "bad_randomness": {
+          "contracts": 8,
+          "fix_applied": 8,
+          "fix_compiles": 3,
+          "vuln_eliminated": 6,
+          "no_regression": 7,
+          "fix_failed": 0
+        },
+        "denial_of_service": {
+          "contracts": 6,
+          "fix_applied": 6,
+          "fix_compiles": 4,
+          "vuln_eliminated": 2,
+          "no_regression": 2,
+          "fix_failed": 0
+        },
+        "front_running": {
+          "contracts": 4,
+          "fix_applied": 4,
+          "fix_compiles": 2,
+          "vuln_eliminated": 2,
+          "no_regression": 3,
+          "fix_failed": 0
+        },
+        "other": {
+          "contracts": 3,
+          "fix_applied": 3,
+          "fix_compiles": 1,
+          "vuln_eliminated": 2,
+          "no_regression": 2,
+          "fix_failed": 0
+        },
+        "reentrancy": {
+          "contracts": 31,
+          "fix_applied": 31,
+          "fix_compiles": 30,
+          "vuln_eliminated": 30,
+          "no_regression": 22,
+          "fix_failed": 0
+        },
+        "short_addresses": {
+          "contracts": 1,
+          "fix_applied": 1,
+          "fix_compiles": 1,
+          "vuln_eliminated": 0,
+          "no_regression": 0,
+          "fix_failed": 0
+        },
+        "time_manipulation": {
+          "contracts": 5,
+          "fix_applied": 5,
+          "fix_compiles": 3,
+          "vuln_eliminated": 3,
+          "no_regression": 3,
+          "fix_failed": 0
+        },
+        "unchecked_low_level_calls": {
+          "contracts": 52,
+          "fix_applied": 51,
+          "fix_compiles": 20,
+          "vuln_eliminated": 38,
+          "no_regression": 42,
+          "fix_failed": 0
+        }
+      }
+    },
+    {
+      "claim_id": "compile_failure_taxonomy",
+      "paper_claim": "Standalone compile failures are classified from preserved solc stderr when paper2_compile_failure_taxonomy.json is present.",
+      "source_artifact": "benchmarks/results/paper2_compile_failure_taxonomy.json",
+      "status": "supported",
+      "scope": "failed_patched_contracts",
+      "paper1_dependency": null,
+      "unit": "compiler failure classes",
+      "value": {
+        "other_compile_error": 9,
+        "undefined_symbol": 42
+      }
+    },
+    {
+      "claim_id": "experiment_validity_audit",
+      "paper_claim": "Paper 2 reports original-vs-patched standalone compilation, joint success metrics, and no-regression threshold sensitivity.",
+      "source_artifact": "benchmarks/results/paper2_experiment_audit.json",
+      "status": "supported",
+      "scope": "experiment_validity",
+      "paper1_dependency": null,
+      "unit": "validity audit metrics",
+      "value": {
+        "totals": {
+          "patched_contracts": 141,
+          "original_standalone_compiles": 141,
+          "patched_standalone_compiles": 90,
+          "patched_compiles_given_original_compiles": 90
+        },
+        "rates": {
+          "original_standalone_compilation": 1.0,
+          "patched_standalone_compilation": 0.6383,
+          "patched_compilation_conditional_on_original_compilation": 0.6383
+        },
+        "compile_transitions": {
+          "original_compiles__patched_compiles": 90,
+          "original_compiles__patched_fails": 51
+        },
+        "joint_success_metrics": {
+          "compile_and_eliminate": {
+            "count": 42,
+            "rate": 0.2979
+          },
+          "compile_and_no_regression": {
+            "count": 40,
+            "rate": 0.2837
+          },
+          "eliminate_and_no_regression": {
+            "count": 81,
+            "rate": 0.5745
+          },
+          "compile_eliminate_and_no_regression": {
+            "count": 30,
+            "rate": 0.2128
+          }
+        },
+        "no_regression_sensitivity": {
+          "0": {
+            "passing_contracts": 64,
+            "rate": 0.4539
+          },
+          "1": {
+            "passing_contracts": 72,
+            "rate": 0.5106
+          },
+          "2": {
+            "passing_contracts": 91,
+            "rate": 0.6454
+          },
+          "5": {
+            "passing_contracts": 139,
+            "rate": 0.9858
+          },
+          "10": {
+            "passing_contracts": 141,
+            "rate": 1.0
+          }
+        }
+      }
+    },
+    {
+      "claim_id": "paper1_detection_input",
+      "paper_claim": "Paper 2 inherits detection evidence from Paper 1: SmartBugs recall 93.7% and EVMBench local high-severity ensemble recall 92.5%.",
+      "source_artifact": "paper/PAPER1_REPRODUCIBILITY.md; benchmarks/results/paper1_claims_matrix.json",
+      "status": "inherited_from_paper1",
+      "scope": "detection_input_only",
+      "paper1_dependency": {
+        "smartbugs_recall": 0.937,
+        "evmbench_recall": 0.925,
+        "rule": "Do not regenerate or reinterpret Paper 1 detection evidence in Paper 2."
+      },
+      "unit": "detection metrics",
+      "value": null
+    },
+    {
+      "claim_id": "no_semantic_equivalence_claim",
+      "paper_claim": "Paper 2 does not claim full semantic equivalence of patched contracts.",
+      "source_artifact": "benchmarks/results/fix_eval_results.json",
+      "status": "limitation",
+      "scope": "construct_validity",
+      "paper1_dependency": null,
+      "unit": "limitation",
+      "value": null
+    },
+    {
+      "claim_id": "no_corpus_wide_formal_proof_claim",
+      "paper_claim": "Paper 2 does not claim corpus-wide formal proof coverage.",
+      "source_artifact": "benchmarks/results/fix_eval_results.json",
+      "status": "limitation",
+      "scope": "artifact_granularity",
+      "paper1_dependency": null,
+      "unit": "limitation",
+      "value": null
+    },
+    {
+      "claim_id": "no_dependency_aware_compilation_claim",
+      "paper_claim": "Paper 2 currently reports standalone compilation, not dependency-aware compilation.",
+      "source_artifact": "benchmarks/results/fix_eval_results.json",
+      "status": "limitation",
+      "scope": "compilation_model",
+      "paper1_dependency": null,
+      "unit": "limitation",
+      "value": null
+    }
+  ]
+}
