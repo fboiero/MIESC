@@ -50,6 +50,15 @@ from .remediation_engine import (
     RemediationReport,
     enrich_with_remediations,
 )
+from .remediation_pipeline import (
+    CompileEvidence,
+    RemediationEvidence,
+    RescanEvidence,
+    classify_compile_failure,
+    compile_contract,
+    count_high_findings,
+    remediate_contract,
+)
 from .remediations import (
     Remediation,
     get_all_remediations,
@@ -126,6 +135,14 @@ __all__ = [
     "FixEffort",
     "FixRisk",
     "enrich_with_remediations",
+    # Remediation evidence pipeline
+    "CompileEvidence",
+    "RescanEvidence",
+    "RemediationEvidence",
+    "classify_compile_failure",
+    "compile_contract",
+    "count_high_findings",
+    "remediate_contract",
 ]
 
 __version__ = "1.2.0"

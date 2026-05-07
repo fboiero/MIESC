@@ -1,10 +1,20 @@
-"""MIESC CLI - Command Line Interface for Smart Contract Security Audits."""
+"""MIESC CLI package."""
 
-try:
-    from miesc.cli.main import cli
+from __future__ import annotations
 
-    __all__ = ["cli"]
-except ImportError:
-    # Allow package to be imported even if dependencies missing
-    cli = None
-    __all__ = []
+from typing import Any
+
+__all__ = ["cli"]
+
+
+def __getattr__(name: str) -> Any:
+    """Load the Click entrypoint lazily.
+
+    Avoid importing `miesc.cli.main` while Python is preparing to execute it via
+    `python -m miesc.cli.main`, which otherwise triggers a runpy warning.
+    """
+    if name == "cli":
+        from miesc.cli.main import cli
+
+        return cli
+    raise AttributeError(name)

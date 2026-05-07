@@ -3,7 +3,7 @@ MIESC API Module - Django REST Framework API
 
 Provides REST endpoints for smart contract security analysis:
 - POST /api/v1/analyze/quick/ - Quick 4-tool scan
-- POST /api/v1/analyze/full/ - Complete 7-layer audit
+- POST /api/v1/analyze/full/ - Complete configured multi-layer audit
 - POST /api/v1/analyze/layer/{n}/ - Run specific layer
 - POST /api/v1/analyze/tool/{name}/ - Run single tool
 - GET /api/v1/tools/ - List available tools

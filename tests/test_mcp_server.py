@@ -24,9 +24,12 @@ sys.modules.setdefault("mcp.server.fastmcp", _fake_mcp_mod.server.fastmcp)
 from miesc.mcp_server import (  # noqa: E402
     _summarize_results,
     _validate_contract_path,
+    miesc_apply_fix,
     miesc_get_status,
     miesc_get_tool_info,
     miesc_list_tools,
+    miesc_remediation_evidence_bundle,
+    miesc_validate_remediation,
 )
 
 SAMPLE_SOL = "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\ncontract S {}\n"
@@ -159,3 +162,70 @@ class TestMCPTools:
         data = json.loads(asyncio.run(miesc_get_tool_info("slither")))
         assert data["name"] == "slither"
         assert data["status"] == "adapter_not_loaded"
+
+    def test_miesc_apply_fix_returns_evidence(self, tmp_path):
+        sol = tmp_path / "Victim.sol"
+        sol.write_text(
+            """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+contract Victim {
+    mapping(address => uint256) public balances;
+    function withdraw(uint256 amount) public {
+        require(balances[msg.sender] >= amount);
+        (bool ok, ) = msg.sender.call{value: amount}("");
+        require(ok);
+        balances[msg.sender] -= amount;
+    }
+}
+"""
+        )
+        results = {
+            "findings": [
+                {
+                    "type": "reentrancy",
+                    "function": "withdraw",
+                    "severity": "High",
+                    "fix_code": "add nonReentrant",
+                }
+            ]
+        }
+
+        data = json.loads(asyncio.run(miesc_apply_fix(json.dumps(results), str(sol))))
+        assert data["status"] == "patch_applied"
+        assert data["fixes_applied"] == 1
+        assert data["compile"]["checked"] is False
+
+    def test_miesc_validate_remediation_can_skip_heavy_checks(self, tmp_path):
+        sol = tmp_path / "Victim.sol"
+        sol.write_text("pragma solidity ^0.8.0; contract Victim { function f() public {} }")
+        results = {"findings": [{"type": "reentrancy"}]}
+
+        data = json.loads(
+            asyncio.run(
+                miesc_validate_remediation(
+                    json.dumps(results),
+                    str(sol),
+                    compile_check=False,
+                    rescan_check=False,
+                )
+            )
+        )
+        assert data["status"] == "no_fixable_findings"
+        assert data["compile"]["checked"] is False
+
+    def test_miesc_remediation_evidence_bundle_alias(self, tmp_path):
+        sol = tmp_path / "Victim.sol"
+        sol.write_text("pragma solidity ^0.8.0; contract Victim { function f() public {} }")
+        results = {"findings": [{"type": "reentrancy"}]}
+
+        data = json.loads(
+            asyncio.run(
+                miesc_remediation_evidence_bundle(
+                    json.dumps(results),
+                    str(sol),
+                    compile_check=False,
+                    rescan_check=False,
+                )
+            )
+        )
+        assert data["status"] == "no_fixable_findings"

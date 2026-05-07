@@ -4,6 +4,12 @@
 **Version:** v4.1.0 - v4.2.0
 **Destino:** Equipo OSS para mantenimiento DPGA
 
+> Nota historica: esta evidencia corresponde al periodo post-tesis v4.1/v4.2.
+> Puede contener metricas y endpoints anteriores a los papers actuales. Para
+> claims de investigacion vigentes usar `../../paper/PAPER1_REPRODUCIBILITY.md`,
+> `../../paper/PAPER2_REPRODUCIBILITY.md` y
+> `../../benchmarks/results/paper*_claims_matrix.json`.
+
 ---
 
 ## Proposito

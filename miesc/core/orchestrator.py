@@ -1,7 +1,10 @@
 """
-MIESC Orchestrator
+MIESC compatibility orchestrator.
 
-Coordinates execution of security analysis tools across 7 defense layers.
+This module preserves the historical `MIESCOrchestrator` API for callers that
+import from `miesc.core`. The primary platform execution path is the adapter
+based CLI/API/MCP stack; this wrapper exposes only the direct subprocess tools
+implemented below.
 """
 
 import json
@@ -12,32 +15,24 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
+from miesc import __version__ as VERSION
+from miesc.cli.constants import LAYERS as CONFIGURED_LAYERS
+
 logger = logging.getLogger(__name__)
+
+IMPLEMENTED_TOOLS = frozenset({"slither", "mythril"})
 
 
 class MIESCOrchestrator:
     """
-    Main orchestrator for MIESC security analysis.
+    Compatibility orchestrator for MIESC security analysis.
 
-    Coordinates execution of 25 security tools across 7 defense layers:
-        Layer 1: Static Analysis (Slither, Aderyn, Solhint)
-        Layer 2: Dynamic Testing (Echidna, Medusa, Foundry)
-        Layer 3: Symbolic Execution (Mythril, Manticore, Halmos)
-        Layer 4: Invariant Testing (Scribble)
-        Layer 5: Formal Verification (SMTChecker, Certora)
-        Layer 6: Property Testing (PropertyGPT)
-        Layer 7: AI Analysis (SmartLLM, ThreatModel)
+    It uses the shared layer metadata declared in `miesc.cli.constants`, but it
+    only executes tools implemented in this module. Use the CLI/API/MCP adapter
+    flows for the complete platform pipeline.
     """
 
-    LAYERS = {
-        1: {"name": "Static Analysis", "tools": ["slither", "aderyn", "solhint"]},
-        2: {"name": "Dynamic Testing", "tools": ["echidna", "medusa", "foundry"]},
-        3: {"name": "Symbolic Execution", "tools": ["mythril", "manticore", "halmos"]},
-        4: {"name": "Invariant Testing", "tools": ["scribble"]},
-        5: {"name": "Formal Verification", "tools": ["smtchecker", "certora"]},
-        6: {"name": "Property Testing", "tools": ["propertygpt"]},
-        7: {"name": "AI Analysis", "tools": ["smartllm", "threatmodel"]},
-    }
+    LAYERS = CONFIGURED_LAYERS
 
     def __init__(self):
         """Initialize the orchestrator."""
@@ -51,11 +46,6 @@ class MIESCOrchestrator:
         checks = {
             "slither": ["slither", "--version"],
             "mythril": ["myth", "version"],
-            "echidna": ["echidna", "--version"],
-            "solhint": ["solhint", "--version"],
-            "aderyn": ["aderyn", "--version"],
-            "foundry": ["forge", "--version"],
-            "halmos": ["halmos", "--version"],
         }
 
         for tool, cmd in checks.items():
@@ -96,7 +86,7 @@ class MIESCOrchestrator:
 
         Args:
             contract_path: Path to Solidity contract
-            layers: Layers to run (1-7, default: all)
+            layers: Layers to run (default: all configured layers)
             tools: Specific tools to run
             timeout: Timeout in seconds
             verbose: Verbose output
@@ -113,7 +103,9 @@ class MIESCOrchestrator:
         results = {
             "contract": contract_path,
             "timestamp": self.start_time.isoformat(),
-            "miesc_version": "4.0.0",
+            "miesc_version": VERSION,
+            "orchestrator_mode": "compatibility",
+            "supported_tools": sorted(IMPLEMENTED_TOOLS),
             "layers_run": [],
             "findings": [],
             "summary": {},
@@ -157,6 +149,7 @@ class MIESCOrchestrator:
             "layer": layer_num,
             "name": layer_info["name"],
             "tools_run": [],
+            "tools_skipped": [],
             "findings": [],
         }
 
@@ -164,7 +157,14 @@ class MIESCOrchestrator:
             if tools and tool not in tools:
                 continue
 
+            if tool not in IMPLEMENTED_TOOLS:
+                layer_results["tools_skipped"].append(
+                    {"tool": tool, "reason": "not_implemented_in_compatibility_orchestrator"}
+                )
+                continue
+
             if not self.available_tools.get(tool, False):
+                layer_results["tools_skipped"].append({"tool": tool, "reason": "unavailable"})
                 if verbose:
                     logger.warning(f"Tool not available: {tool}")
                 continue

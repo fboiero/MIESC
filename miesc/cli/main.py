@@ -43,6 +43,7 @@ from miesc.cli.commands.fix import fix as fix_cmd  # noqa: E402
 from miesc.cli.commands.init import init as init_group  # noqa: E402
 from miesc.cli.commands.plugins import plugins as plugins_group  # noqa: E402
 from miesc.cli.commands.poc import poc as poc_group  # noqa: E402
+from miesc.cli.commands.remediate import remediate as remediate_cmd  # noqa: E402
 from miesc.cli.commands.report import report as report_cmd  # noqa: E402
 from miesc.cli.commands.scan import scan as scan_cmd  # noqa: E402
 from miesc.cli.commands.server import server as server_group  # noqa: E402
@@ -122,6 +123,7 @@ cli.add_command(fix_cmd, name="fix")
 cli.add_command(init_group, name="init")
 cli.add_command(plugins_group, name="plugins")
 cli.add_command(poc_group, name="poc")
+cli.add_command(remediate_cmd, name="remediate")
 cli.add_command(report_cmd, name="report")
 cli.add_command(scan_cmd, name="scan")
 cli.add_command(server_group, name="server")

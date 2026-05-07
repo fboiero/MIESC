@@ -45,12 +45,13 @@ That's it. MIESC runs Slither + Aderyn + Solhint, deduplicates findings, and giv
 ```bash
 miesc scan contract.sol -o results.json           # Detect + intelligence
 miesc fix results.json -c contract.sol -o fixed.sol  # Auto-patch vulnerabilities
+miesc remediate results.json -c contract.sol --compile --rescan  # Patch + evidence bundle
 miesc verify fixed.sol --tool smtchecker           # Prove fix works
 miesc compliance results.json --standard mica      # Map to MiCA/DORA/ISO 27001
 miesc report results.json -t premium -f pdf        # Professional audit report
 ```
 
-### New in v5.3: Intelligence Engine
+### Current research pipeline: Intelligence Engine
 
 ```bash
 miesc scan contract.sol --verbose                  # Per-finding confidence + fix
@@ -121,11 +122,13 @@ Report saved to results.json
 
 **SmartBugs-curated** (143 contracts, 207 ground-truth vulnerabilities):
 
-| Metric | Slither alone | Mythril alone | MIESC (static + intelligence) | MIESC (all layers) |
-|--------|:------------:|:-------------:|:--------------:|:------------------:|
-| Recall | 43.2% | 27.4% | **93.7%** | Paper 1 SmartBugs profile |
-| Precision | 8.3% | 6.1% | **19.1%** | Paper 1 SmartBugs profile |
-| F1-Score | 13.9% | 10.0% | **31.7%** | Paper 1 SmartBugs profile |
+| Metric | Slither alone | Mythril alone | MIESC Paper 1 reproducible profile | Evidence scope |
+|--------|:------------:|:-------------:|:---------------------------------:|:--------------|
+| Recall | 43.2% | 27.4% | **93.7%** | Full SmartBugs-curated corpus |
+| Precision | 8.3% | 6.1% | **19.1%** | Full SmartBugs-curated corpus |
+| F1-Score | 13.9% | 10.0% | **31.7%** | Full SmartBugs-curated corpus |
+
+The full-corpus SmartBugs result is the reproducible Paper 1 profile. The 9-layer run is reported separately as an end-to-end integration smoke run, not as a corpus-wide claim.
 
 **Real-world exploits** (11 confirmed DeFi exploits, $3.3B total losses):
 
@@ -136,9 +139,22 @@ Report saved to results.json
 | Flash Loan | 2 | 2 | **100%** | bZx $8.1M, Compound $80M |
 | Overall | 11 | 9 | **81.8%** | Cohen's Kappa: 0.77 |
 
-> **81.8% recall on real-world exploits** — MIESC would have flagged 9 of 11 multi-million dollar exploits before deployment. [Full methodology](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md) | [Exploit evaluation](./benchmarks/evaluate_exploits.py)
+> **81.8% recall on real-world exploits** — MIESC would have flagged 9 of 11 multi-million dollar exploits before deployment. [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md) | [Exploit evaluation](./benchmarks/evaluate_exploits.py)
 
 **Why recall matters more than precision for pre-audit triage**: High recall means fewer missed vulnerabilities. False positives are filtered in the triage step — missed vulnerabilities become exploits in production.
+
+### Research Papers and Reproducible Claims
+
+MIESC has two linked research tracks. Paper 1 evaluates detection and multi-layer security assessment. Paper 2 extends that evidence into automatic remediation artifacts and independent verification steps. Paper 2 does not replace or invalidate Paper 1; it starts from the same detection pipeline and measures what happens after a finding is converted into a patch candidate.
+
+| Paper | Focus | Main reproducible evidence | Artifacts |
+|-------|-------|----------------------------|-----------|
+| [Paper 1](./paper/miesc-paper.pdf) | Multi-layer smart contract security evaluation | SmartBugs: 93.7% recall on 143 contracts; DeFi exploits: 81.8% recall on 11 incidents; EVMBench ensemble: 111/120 high-severity findings, 92.5% recall | [Reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper1_claims_matrix.json) |
+| [Paper 2](./paper/paper2-remediation.pdf) | Verifiable remediation artifacts | 141/143 fixes applied; 90/141 standalone patched contracts compile; 93/141 eliminate the original finding by re-scan; 91/141 pass bounded no-regression | [Reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper2_claims_matrix.json), [experiment audit](./benchmarks/results/paper2_experiment_audit.json) |
+
+For research citation and review, the canonical current claims are the two paper PDFs, their reproducibility notes, and the `benchmarks/results/paper*_claims_matrix.json` files. The platform alignment plan maps these paper results into CLI, API, MCP, RAG, and remediation workflow requirements: [Paper learnings and platform alignment](./docs/roadmap/PAPER_LEARNINGS_PLATFORM_ALIGNMENT.md). RAG source selection and weighting are governed by the [RAG source policy](./docs/guides/RAG_SOURCE_POLICY.md). Older release notes, thesis drafts, and roadmap documents are kept for project history and may contain previous benchmark runs or version-specific metrics.
+
+Current technical-debt cleanup and remaining platform work are tracked in the [technical debt remediation plan](./docs/roadmap/TECHNICAL_DEBT_REMEDIATION_PLAN.md).
 
 ### The 9 Defense Layers
 
@@ -267,7 +283,8 @@ miesc scan Bridge.sol             # Detects 7 bridge exploit patterns
 | `miesc scan --diff HEAD~1` | **NEW** PR-level: only changed .sol files |
 | `miesc scan contracts/` | **NEW** Directory scan (+ `--recursive`) |
 | `miesc audit quick\|full` | Multi-layer audit (4 or 50 tools) |
-| `miesc fix results.json` | **NEW** Auto-generate patched .sol files |
+| `miesc fix results.json` | Auto-generate patched .sol files |
+| `miesc remediate results.json` | **NEW** Generate patched files plus compile/re-scan evidence |
 | `miesc verify contract.sol` | Run Certora/Halmos/SMTChecker provers |
 | `miesc compliance results.json` | **NEW** Map to ISO/NIST/MiCA/DORA |
 | `miesc report results.json` | Professional PDF/HTML/Markdown report |
@@ -435,7 +452,7 @@ miesc detectors list                         # List all available detectors
 # Pre-commit hook (.pre-commit-config.yaml)
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v5.1.1
+    rev: v5.4.0
     hooks:
       - id: miesc-quick
         args: ['--ci']
@@ -477,7 +494,18 @@ Add to your Claude Desktop `config.json`:
 }
 ```
 
-**Available MCP tools:** `miesc_quick_scan`, `miesc_deep_scan`, `miesc_deep_audit`, `miesc_run_tool`, `miesc_run_layer`, `miesc_analyze_defi`, `miesc_list_tools`, `miesc_doctor`
+**Available MCP tools:** `miesc_quick_scan`, `miesc_deep_scan`, `miesc_deep_audit`, `miesc_run_tool`, `miesc_run_layer`, `miesc_analyze_defi`, `miesc_apply_fix`, `miesc_validate_remediation`, `miesc_remediation_evidence_bundle`, `miesc_list_tools`, `miesc_doctor`
+
+### REST API Remediation
+
+The API exposes the same remediation evidence schema as the CLI:
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/v1/remediate/` | Apply fix candidates and return an evidence bundle |
+| `POST /api/v1/validate-remediation/` | Apply fixes with compile/re-scan validation enabled by default |
+
+Examples: [Remediation API and MCP guide](./docs/guides/REMEDIATION_API_MCP.md).
 
 ### Python API
 
@@ -556,13 +584,14 @@ See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with
 
 ## Academic Validation
 
-MIESC was developed as a Master's thesis in Cyberdefense at [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). Evaluated on the SmartBugs-curated benchmark (Durieux et al., ICSE 2020):
+MIESC was developed as a Master's thesis in Cyberdefense at [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). The current research claims are consolidated in [Paper 1](./paper/miesc-paper.pdf), [Paper 2](./paper/paper2-remediation.pdf), and their reproducibility artifacts:
 
 - **143 contracts**, 207 ground-truth vulnerabilities, 10 categories
 - **93.7% recall** on the latest full-corpus reproducible local SmartBugs profile; Slither alone baseline: 43.2%
 - Paper 1 now treats EVMBench as the primary business-logic benchmark: static-only reaches 22/120 (18.3%), while the reproducible four-provider ensemble reaches 111/120 (92.5%)
+- Paper 2 evaluates remediation artifacts: 141/143 fixes applied, 90/141 patched contracts compile standalone, 93/141 eliminate the original finding by re-scan, and 91/141 pass bounded no-regression
 - Reproducible SmartBugs profile runs in 273.4s total (~1.91 sec/contract)
-- Full results: [SMARTBUGS_SCIENTIFIC_REPORT.md](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md)
+- Canonical results: [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [Paper 2 reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [Paper 1 claims matrix](./benchmarks/results/paper1_claims_matrix.json), [Paper 2 claims matrix](./benchmarks/results/paper2_claims_matrix.json)
 
 If you use MIESC in research, please cite:
 
@@ -676,7 +705,8 @@ Heavy LLM models (32B) on small contracts. Use `qwen2.5-coder:14b` in `~/.miesc/
 ```bash
 git clone https://github.com/fboiero/MIESC.git
 cd MIESC && pip install -e .[dev]
-pytest tests/  # 4,800+ tests, 82% coverage
+pytest tests/ --no-cov              # Fast local run
+pytest tests/ --cov=src --cov-report=term-missing  # Coverage run
 ```
 
 See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for guidelines. [CONTRIBUTING_ES.md](./.github/CONTRIBUTING_ES.md) disponible en espanol.

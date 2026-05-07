@@ -649,6 +649,100 @@ async def miesc_remediate(findings_json: str, contract_name: str = "") -> str:
 
 
 @mcp.tool()
+async def miesc_apply_fix(
+    results_json: str,
+    contract_path: str,
+    output_path: Optional[str] = None,
+) -> str:
+    """
+    Apply MIESC fix candidates and return a remediation evidence bundle.
+
+    Input:
+      - results_json: JSON output from `miesc scan` or `miesc audit`
+      - contract_path: original Solidity contract path
+      - output_path: optional patched Solidity output path
+    """
+    try:
+        results = json.loads(results_json)
+    except json.JSONDecodeError:
+        return json.dumps({"error": "Invalid results_json"})
+
+    try:
+        from src.security.remediation_pipeline import remediate_contract
+
+        contract = Path(_validate_contract_path(contract_path))
+        patched = Path(output_path) if output_path else contract.with_name(f"{contract.stem}.fixed.sol")
+        evidence = remediate_contract(
+            contract_path=contract,
+            results=results,
+            output_path=patched,
+            compile_check=False,
+            rescan_check=False,
+        )
+        return json.dumps(evidence.to_dict(), indent=2, default=str)
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+@mcp.tool()
+async def miesc_validate_remediation(
+    results_json: str,
+    contract_path: str,
+    output_path: Optional[str] = None,
+    compile_check: bool = True,
+    rescan_check: bool = True,
+    no_regression_bound: int = 2,
+) -> str:
+    """
+    Apply fixes and validate them with optional compile/re-scan evidence.
+
+    Returns the same Paper 2-style remediation evidence schema used by the CLI
+    and REST API.
+    """
+    try:
+        results = json.loads(results_json)
+    except json.JSONDecodeError:
+        return json.dumps({"error": "Invalid results_json"})
+
+    try:
+        from src.security.remediation_pipeline import remediate_contract
+
+        contract = Path(_validate_contract_path(contract_path))
+        patched = Path(output_path) if output_path else contract.with_name(f"{contract.stem}.fixed.sol")
+        evidence = remediate_contract(
+            contract_path=contract,
+            results=results,
+            output_path=patched,
+            compile_check=compile_check,
+            rescan_check=rescan_check,
+            no_regression_bound=no_regression_bound,
+        )
+        return json.dumps(evidence.to_dict(), indent=2, default=str)
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+@mcp.tool()
+async def miesc_remediation_evidence_bundle(
+    results_json: str,
+    contract_path: str,
+    output_path: Optional[str] = None,
+    compile_check: bool = True,
+    rescan_check: bool = True,
+    no_regression_bound: int = 2,
+) -> str:
+    """Return the Paper 2-style remediation evidence bundle."""
+    return await miesc_validate_remediation(
+        results_json=results_json,
+        contract_path=contract_path,
+        output_path=output_path,
+        compile_check=compile_check,
+        rescan_check=rescan_check,
+        no_regression_bound=no_regression_bound,
+    )
+
+
+@mcp.tool()
 async def miesc_get_metrics() -> str:
     """
     Retrieve MIESC's scientific validation metrics.

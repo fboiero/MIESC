@@ -18,6 +18,7 @@ del Paper 2 sobre remediacion automatizada.
 | `benchmarks/results/paper2_compile_failure_by_category.json` | Fallas de compilacion standalone derivadas por categoria. |
 | `benchmarks/results/paper2_compile_failure_taxonomy.json` | Detalle por contrato con stderr de `solc` y taxonomia de fallas. |
 | `benchmarks/results/paper2_experiment_audit.json` | Auditoria experimental: compilacion original, transiciones compile, metricas conjuntas y umbrales. |
+| `docs/guides/RAG_SOURCE_POLICY.md` | Politica canonica de fuentes RAG usada para contexto, clasificacion y mitigacion; no introduce claims cuantitativos del Paper 2. |
 | `tests/test_fix_command.py` | Tests unitarios e integracion del comando `miesc fix`. |
 | `tests/test_spec_generator.py` | Tests de generacion CVL/Scribble/SMTChecker. |
 | `tests/test_compliance_command.py` | Tests de mapeo de compliance. |

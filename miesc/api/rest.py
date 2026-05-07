@@ -14,6 +14,7 @@ License: AGPL-3.0
 """
 
 import importlib
+import json
 import logging
 import os
 import sys
@@ -553,6 +554,10 @@ if DRF_AVAILABLE:
                         "layer": "/api/v1/analyze/layer/{layer_num}/",
                         "tool": "/api/v1/analyze/tool/{tool_name}/",
                     },
+                    "remediation": {
+                        "remediate": "/api/v1/remediate/",
+                        "validate": "/api/v1/validate-remediation/",
+                    },
                     "tools": {"list": "/api/v1/tools/", "info": "/api/v1/tools/{tool_name}/"},
                     "layers": "/api/v1/layers/",
                     "health": "/api/v1/health/",
@@ -627,12 +632,12 @@ if DRF_AVAILABLE:
     @permission_classes([AllowAny])
     def analyze_full(request: Request) -> Response:
         """
-        Run a complete 7-layer audit with all 29 tools.
+        Run a complete configured multi-layer audit.
 
         Request Body:
             - contract_code: str - Solidity source code
             - contract_path: str - Path to contract file (alternative)
-            - layers: list[int] - Specific layers to run (default: 1-7)
+            - layers: list[int] - Specific layers to run (default: all configured layers)
             - timeout: int - Timeout per tool in seconds (default: 600)
             - format: str - Output format: json, sarif (default: json)
         """
@@ -652,7 +657,8 @@ if DRF_AVAILABLE:
         valid_layers = [l for l in layers if l in LAYERS]
         if not valid_layers:
             return Response(
-                {"error": "Invalid layers. Valid layers: 1-7"}, status=status.HTTP_400_BAD_REQUEST
+                {"error": f"Invalid layers. Valid layers: {sorted(LAYERS)}"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # If code is provided, save to temp file
@@ -680,11 +686,11 @@ if DRF_AVAILABLE:
     @permission_classes([AllowAny])
     def analyze_layer(request: Request, layer_num: int) -> Response:
         """
-        Run all tools in a specific layer (1-7).
+        Run all tools in a specific configured layer.
         """
         if layer_num not in LAYERS:
             return Response(
-                {"error": f"Invalid layer: {layer_num}. Valid layers: 1-7"},
+                {"error": f"Invalid layer: {layer_num}. Valid layers: {sorted(LAYERS)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -727,6 +733,107 @@ if DRF_AVAILABLE:
         finally:
             if contract_code and contract_path and os.path.exists(contract_path):
                 os.unlink(contract_path)
+
+    def _remediate_request(request: Request, *, default_validate: bool = False) -> Response:
+        """Shared remediation endpoint implementation."""
+        from src.security.remediation_pipeline import remediate_contract
+
+        results = request.data.get("results")
+        results_json = request.data.get("results_json")
+        contract_code = request.data.get("contract_code")
+        contract_path = request.data.get("contract_path")
+        output_path = request.data.get("output_path")
+        compile_check = bool(request.data.get("compile", default_validate))
+        rescan_check = bool(request.data.get("rescan", default_validate))
+        no_regression_bound = int(request.data.get("no_regression_bound", 2))
+
+        if results is None and results_json:
+            try:
+                results = json.loads(results_json)
+            except json.JSONDecodeError:
+                return Response(
+                    {"error": "Invalid results_json"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if not isinstance(results, dict):
+            return Response(
+                {"error": "results or results_json is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not contract_code and not contract_path:
+            return Response(
+                {"error": "Either contract_code or contract_path is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        temp_dir = tempfile.TemporaryDirectory()
+        temp_path = Path(temp_dir.name)
+        created_temp_contract = False
+
+        try:
+            if contract_code:
+                contract = temp_path / "Contract.sol"
+                contract.write_text(contract_code)
+                created_temp_contract = True
+            else:
+                contract = Path(contract_path)
+
+            if output_path:
+                patched_path = Path(output_path)
+            else:
+                patched_path = temp_path / f"{contract.stem}.fixed.sol"
+
+            evidence = remediate_contract(
+                contract_path=contract,
+                results=results,
+                output_path=patched_path,
+                compile_check=compile_check,
+                rescan_check=rescan_check,
+                no_regression_bound=no_regression_bound,
+            )
+
+            response_data = {
+                "status": evidence.status,
+                "evidence": evidence.to_dict(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "version": VERSION,
+            }
+            if patched_path.exists() and (created_temp_contract or not output_path):
+                response_data["patched_source"] = patched_path.read_text(errors="ignore")
+
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Remediation error: {e}", exc_info=True)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        finally:
+            temp_dir.cleanup()
+
+    @api_view(["POST"])
+    @permission_classes([AllowAny])
+    def remediate_contract_view(request: Request) -> Response:
+        """
+        Apply fixes and return a Paper 2-style remediation evidence bundle.
+
+        Request Body:
+            - results: dict - MIESC scan/audit JSON result
+            - results_json: str - JSON string alternative to results
+            - contract_code: str - Solidity source code
+            - contract_path: str - Path to contract file (alternative)
+            - output_path: str - Optional patched .sol destination
+            - compile: bool - Run standalone compile check
+            - rescan: bool - Re-scan patched source and compare findings
+            - no_regression_bound: int - Finding-count tolerance for no-regression
+        """
+        return _remediate_request(request, default_validate=False)
+
+    @api_view(["POST"])
+    @permission_classes([AllowAny])
+    def validate_remediation_view(request: Request) -> Response:
+        """Alias for remediation evidence generation with validation flags enabled."""
+        return _remediate_request(request, default_validate=True)
 
     @api_view(["POST"])
     @permission_classes([AllowAny])
@@ -895,7 +1002,7 @@ if DRF_AVAILABLE:
     @permission_classes([AllowAny])
     def layers_list(request: Request) -> Response:
         """
-        Get information about all 7 defense layers.
+        Get information about all configured defense layers.
         """
         AdapterLoader.load_all()
 
@@ -1061,6 +1168,13 @@ if DJANGO_AVAILABLE:
             path("api/v1/analyze/full/", analyze_full, name="analyze-full"),
             path("api/v1/analyze/layer/<int:layer_num>/", analyze_layer, name="analyze-layer"),
             path("api/v1/analyze/tool/<str:tool_name>/", analyze_tool, name="analyze-tool"),
+            # Remediation endpoints
+            path("api/v1/remediate/", remediate_contract_view, name="remediate-contract"),
+            path(
+                "api/v1/validate-remediation/",
+                validate_remediation_view,
+                name="validate-remediation",
+            ),
             # Tools endpoints
             path("api/v1/tools/", tools_list, name="tools-list"),
             path("api/v1/tools/<str:tool_name>/", tools_info, name="tools-info"),

@@ -17,7 +17,8 @@ del Paper 1.
 | `benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.json` | Smoke reproducible de las 9 capas completas sobre un contrato SmartBugs. |
 | `benchmarks/results/tooling_smoke_layers_1_6.json` | Smoke test de herramientas faltantes: Semgrep, Wake, DA-GNN y SmartGuard integrados en el pipeline. |
 | `src/llm/embedding_rag.py` | Base RAG versionada para evidencia LLM y recuperacion hibrida. |
-| `paper/RAG_SOURCE_SELECTION_CRITERIA.md` | Criterio documentado para seleccionar y ponderar fuentes RAG. |
+| `docs/guides/RAG_SOURCE_POLICY.md` | Politica canonica para seleccionar, ponderar y usar fuentes RAG. |
+| `paper/RAG_SOURCE_SELECTION_CRITERIA.md` | Criterio detallado historico usado durante la expansion del corpus RAG del Paper 1. |
 
 ## Comandos
 
@@ -288,11 +289,12 @@ La recuperacion usa una jerarquia de fuentes:
 | `audit_guide` | Smart Contract Security Field Guide, Code4rena y Sherlock para razonamiento y proceso de auditoria. |
 | `legacy_taxonomy` | SWC solo como compatibilidad historica, no como autoridad unica. |
 
-El criterio completo de inclusion, exclusion y ponderacion esta documentado en
-`paper/RAG_SOURCE_SELECTION_CRITERIA.md`. La regla editorial es que las fuentes
-RAG respaldan interpretacion, clasificacion, mitigacion y priorizacion; no
-sustituyen la evidencia experimental directa de SmartBugs, EVMBench ni la matriz
-de claims.
+La politica canonica de inclusion, exclusion, ponderacion y uso esta documentada
+en `docs/guides/RAG_SOURCE_POLICY.md`. El detalle historico de la expansion del
+corpus del Paper 1 se preserva en `paper/RAG_SOURCE_SELECTION_CRITERIA.md`. La
+regla editorial es que las fuentes RAG respaldan interpretacion, clasificacion,
+mitigacion y priorizacion; no sustituyen la evidencia experimental directa de
+SmartBugs, EVMBench ni la matriz de claims.
 
 Las fuentes OpenZeppelin no se tratan como una unica referencia generica. El RAG
 incluye documentos separados para Contracts/Security Center, Access Control,

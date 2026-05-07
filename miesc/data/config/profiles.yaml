@@ -9,7 +9,7 @@
 # Available profiles:
 #   - fast: Quick check with essential tools only (1-2 min)
 #   - balanced: Good coverage with reasonable time (3-5 min)
-#   - thorough: Comprehensive analysis with all layers (10-15 min)
+#   - thorough: Comprehensive analysis with configured layers (10-15 min)
 #   - security: Security-focused with formal verification (15-20 min)
 #   - ci: Optimized for CI/CD pipelines (2-3 min)
 #   - audit: Full audit preparation (20-30 min)
@@ -47,10 +47,10 @@ profiles:
       - "Good for pre-commit checks"
       - "Covers ~80% of common vulnerabilities"
 
-  # Thorough profile - Full coverage
+  # Thorough profile - Full configured coverage
   thorough:
-    description: "Comprehensive analysis across all 7 layers"
-    layers: [1, 2, 3, 4, 5, 6, 7]
+    description: "Comprehensive analysis across configured layers"
+    layers: [1, 2, 3, 4, 5, 6, 7, 8, 9]
     tools: "all"
     timeout: 900  # 15 minutes
     parallel: true
@@ -118,7 +118,7 @@ profiles:
   # Full audit preparation
   audit:
     description: "Complete audit preparation with all tools and documentation"
-    layers: [1, 2, 3, 4, 5, 6, 7]
+    layers: [1, 2, 3, 4, 5, 6, 7, 8, 9]
     tools: "all"
     timeout: 1800  # 30 minutes
     parallel: true
@@ -201,7 +201,7 @@ profiles:
 # Profile aliases for convenience
 aliases:
   q: fast
-  f: full
+  f: thorough
   s: security
   t: thorough
   b: balanced
@@ -214,6 +214,6 @@ default: balanced
 
 # Profile metadata
 metadata:
-  version: "1.0.0"
-  last_updated: "2025-01-15"
-  description: "MIESC Analysis Profiles v4.2.0"
+  version: "1.1.0"
+  last_updated: "2026-05-07"
+  description: "MIESC Analysis Profiles v5.4.0"

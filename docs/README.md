@@ -4,6 +4,11 @@
 
 This directory contains all documentation for the MIESC project, organized by purpose and timeline.
 
+> Historical note: `docs/tesis`, `docs/evidence`, and older roadmap/release
+> documents preserve v4.x/v5.1 project history. Current research claims are the
+> Paper 1/Paper 2 PDFs, `paper/PAPER*_REPRODUCIBILITY.md`, and
+> `benchmarks/results/paper*_claims_matrix.json`.
+
 ---
 
 ## Documentation Structure

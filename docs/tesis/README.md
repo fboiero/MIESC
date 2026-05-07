@@ -3,6 +3,12 @@
 **Presentada al Tribunal:** 23 de Octubre 2025
 **Defensa:** 18 de Diciembre 2025
 
+> Nota historica: esta carpeta preserva la tesis v4.0.0 y puede contener
+> metricas, lenguaje de 7 capas y resultados previos. Los claims actuales para
+> revision y publicacion estan en `../../paper/PAPER1_REPRODUCIBILITY.md`,
+> `../../paper/PAPER2_REPRODUCIBILITY.md` y las matrices
+> `../../benchmarks/results/paper*_claims_matrix.json`.
+
 ---
 
 ## Institucion

@@ -13,6 +13,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
+from miesc import __version__ as VERSION
+from miesc.cli.constants import QUICK_TOOLS
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,7 +29,7 @@ class QuickScanner:
     Typical execution time: ~30 seconds
     """
 
-    TOOLS = ["slither", "aderyn", "solhint"]
+    TOOLS = QUICK_TOOLS
 
     def __init__(self):
         """Initialize quick scanner."""
@@ -70,7 +73,7 @@ class QuickScanner:
         results = {
             "contract": contract_path,
             "timestamp": start_time.isoformat(),
-            "miesc_version": "5.1.2",
+            "miesc_version": VERSION,
             "scan_type": "quick",
             "tools_run": [],
             "findings": [],
