@@ -26,7 +26,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-EVMBENCH_AUDITS = Path("/tmp/evmbench/frontier-evals/project/evmbench/audits")
+EVMBENCH_AUDITS = Path(
+    os.environ.get(
+        "EVMBENCH_AUDITS_DIR",
+        "/tmp/evmbench/frontier-evals/project/evmbench/audits",
+    )
+)
 RESULTS_DIR = Path(__file__).parent / "results" / "evmbench"
 PROJECT_ROOT = Path(__file__).parent.parent
 
@@ -599,6 +604,8 @@ def main():
                         help="Use Claude Haiku as LLM judge for matching (more accurate)")
     parser.add_argument("--deep", action="store_true",
                         help="Multi-pass analysis (Pass 2 targets flagged functions, 2x cost)")
+    parser.add_argument("--output", type=Path, default=None,
+                        help="Output JSON path. Defaults to benchmarks/results/evmbench/evmbench_results.json")
     args = parser.parse_args()
 
     if not EVMBENCH_AUDITS.exists():
@@ -653,7 +660,8 @@ def main():
 
     # Save results
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    output_file = RESULTS_DIR / "evmbench_results.json"
+    output_file = args.output or (RESULTS_DIR / "evmbench_results.json")
+    output_file.parent.mkdir(parents=True, exist_ok=True)
     with open(output_file, "w") as f:
         json.dump({
             "version": "5.3.1",

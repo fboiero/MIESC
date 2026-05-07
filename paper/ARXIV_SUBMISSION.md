@@ -14,10 +14,12 @@ MIESC: A Multi-layer Framework for Automated Smart Contract Security Evaluation
 ### Authors
 ```
 Fernando Boiero
+Sebastian Norberto Mussetta
 ```
 
 - **Affiliation**: Universidad Tecnologica Nacional (UTN), Facultad Regional Villa Maria
-- **Email**: fboiero@frvm.utn.edu.ar
+- **Emails**: fboiero@frvm.utn.edu.ar, smussetta@frvm.utn.edu.ar
+- **ORCID**: Fernando Boiero — 0009-0005-7935-2758; Sebastian Norberto Mussetta — 0009-0007-8025-9846
 
 ### Abstract
 *(copy verbatim from `miesc-paper.tex`)*
@@ -28,7 +30,7 @@ Fernando Boiero
 
 ### Comments
 ```
-7 pages, 1 figure, 7 tables. Multi-provider ensemble achieves 92.5% recall on EVMBench (120 business-logic vulns), surpassing Cecuro (87.7%). SmartBugs: 96.5% recall (143 contracts). Framework: https://github.com/fboiero/MIESC (AGPL-3.0, PyPI: pip install miesc). Reproducible benchmarks included.
+8 pages, 1 figure, 7 tables. Reproducible four-provider ensemble achieves 111/120 detections (92.5% recall) on an EVMBench local high-severity extraction; SmartBugs latest full-corpus reproducible profile: 93.7% recall (143 contracts). Framework: https://github.com/fboiero/MIESC (AGPL-3.0, PyPI: pip install miesc). Reproducibility artifacts included.
 ```
 
 ### License
@@ -38,10 +40,10 @@ Fernando Boiero
 
 | Benchmark | Result | Context |
 |-----------|--------|---------|
-| SmartBugs (143 contracts) | 96.5% recall | Static+intelligence; ~98.6% with LLM |
+| SmartBugs (143 contracts) | 93.7% recall | Latest full-corpus reproducible local profile |
 | Real exploits ($3.3B) | 81.8% recall, kappa=0.77 | 11 confirmed DeFi exploits |
-| EVMBench (40 audits, 120 vulns) | **92.5% ensemble** | Cecuro: 87.7%, Claude standalone: 45.9% |
-| Cost | $0.18/audit (API), $0 local | vs $20K-60K manual audit |
+| EVMBench local extraction (40 audits, 120 findings) | **111/120 = 92.5% ensemble** | Static-only baseline: 22/120 = 18.3%; union artifact generated from provider JSONs |
+| Cost | ~$7/audit full ensemble, $0 local | vs $20K-60K manual audit |
 
 ---
 

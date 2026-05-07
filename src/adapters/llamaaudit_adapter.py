@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.core.llm_config import get_ollama_host
+from src.core.ollama_models import select_ollama_model
 from src.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -404,23 +405,24 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                 data = json.loads(resp.read().decode("utf-8"))
                 models = data.get("models", [])
 
-                # Check if codellama is among available models
                 model_names = [m.get("name", "").lower() for m in models]
-                has_codellama = any("codellama" in name for name in model_names)
-
-                if has_codellama:
-                    logger.info("LlamaAudit: codellama model available via Ollama")
+                selected = select_ollama_model(
+                    [
+                        "codellama:13b",
+                        "codellama",
+                        "qwen2.5-coder:32b",
+                        "qwen2.5-coder:14b",
+                        "qwen2.5-coder",
+                        "llama3.2:3b",
+                        "mistral:7b",
+                        "mistral",
+                    ],
+                    installed=model_names,
+                )
+                if selected:
+                    self._model = selected
+                    logger.info("LlamaAudit: using Ollama model %s", self._model)
                     return ToolStatus.AVAILABLE
-
-                # Check for alternative compatible models
-                compatible = ["llama3", "deepseek-coder", "qwen2.5-coder"]
-                for alt in compatible:
-                    if any(alt in name for name in model_names):
-                        self._model = alt
-                        logger.info(
-                            f"LlamaAudit: Using alternative model '{alt}' " f"(codellama not found)"
-                        )
-                        return ToolStatus.AVAILABLE
 
                 logger.warning("LlamaAudit: No suitable model found. " "Run: ollama pull codellama")
                 return ToolStatus.CONFIGURATION_ERROR
@@ -471,7 +473,11 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
 
         if ollama_status == ToolStatus.AVAILABLE:
             # Primary path: LLM-based analysis via Ollama HTTP API
-            result = self._analyze_with_ollama(contract_code, contract_path, timeout, **kwargs)
+            ollama_kwargs = dict(kwargs)
+            ollama_kwargs.pop("timeout", None)
+            result = self._analyze_with_ollama(
+                contract_code, contract_path, timeout, **ollama_kwargs
+            )
         elif use_fallback:
             # Fallback path: pattern-based analysis
             logger.warning("LlamaAudit: Ollama unavailable, using pattern-based fallback")

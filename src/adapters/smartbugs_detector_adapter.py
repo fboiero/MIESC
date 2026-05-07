@@ -45,7 +45,7 @@ class SmartBugsDetectorAdapter:
     """
 
     name = "smartbugs-detector"
-    layer = 9  # Layer 9: Advanced Detection
+    layer = 6  # Layer 6: ML and specialized benchmark detectors
     description = "SmartBugs-specific vulnerability detection"
 
     SEVERITY_MAP = {
@@ -186,7 +186,7 @@ class SmartBugsDetectorAdapter:
     def get_detector_info() -> Dict[str, Any]:
         """Return detector information."""
         return {
-            "layer": 2,
+            "layer": 6,
             "name": "SmartBugs-Specific Detection",
             "description": "Targets SmartBugs vulnerability categories with historically low recall",
             "detectors": [

@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.core.llm_config import get_default_model
+from src.core.ollama_models import select_ollama_model
 from src.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -207,7 +208,15 @@ class SmartGuardAdapter(ToolAdapter):
         super().__init__()
         self._cache_dir = Path.home() / ".miesc" / "smartguard_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
-        self._model = get_default_model()
+        self._model = select_ollama_model(
+            get_default_model(),
+            fallback=[
+                "qwen2.5-coder:32b",
+                "qwen2.5-coder:14b",
+                "codellama:13b",
+                "mistral:7b",
+            ],
+        )
         self._max_tokens = 8000
         self._similarity_threshold = 0.6
 
@@ -264,7 +273,7 @@ class SmartGuardAdapter(ToolAdapter):
             if result.returncode != 0:
                 return ToolStatus.CONFIGURATION_ERROR
 
-            if "deepseek-coder" in result.stdout:
+            if self._model in result.stdout:
                 return ToolStatus.AVAILABLE
             else:
                 logger.warning(f"Model {self._model} not found. Run: ollama pull {self._model}")
@@ -302,7 +311,8 @@ class SmartGuardAdapter(ToolAdapter):
                 return self._error_result(f"Could not read contract: {contract_path}", start_time)
 
             # Check cache
-            cache_key = hashlib.sha256(contract_code.encode()).hexdigest()
+            cache_payload = f"smartguard-v6|{self._model}|{contract_code}"
+            cache_key = hashlib.sha256(cache_payload.encode()).hexdigest()
             cached = self._get_cached(cache_key)
             if cached:
                 cached["from_cache"] = True
@@ -522,26 +532,28 @@ Fix: {vuln.fix_suggestion}
                 return []
 
             json_str = response[json_start:json_end]
-            parsed = json.loads(json_str)
+            parsed = json.loads(self._sanitize_json_response(json_str), strict=False)
 
             analysis = parsed.get("analysis", {})
-            cot = analysis.get("chain_of_thought", "")
+            cot = self._clean_llm_text(analysis.get("chain_of_thought", ""))
             vulns = analysis.get("vulnerabilities", [])
 
             for idx, vuln in enumerate(vulns):
                 finding = {
                     "id": f"smartguard-{func_name}-{idx+1}",
-                    "title": f"{vuln.get('type', 'Issue')} in {func_name}",
-                    "description": vuln.get("description", ""),
+                    "title": f"{self._clean_llm_text(vuln.get('type', 'Issue'))} in {func_name}",
+                    "description": self._clean_llm_text(vuln.get("description", "")),
                     "severity": vuln.get("severity", "MEDIUM").upper(),
                     "confidence": 0.80,  # CoT provides good confidence
-                    "category": vuln.get("type", "security_issue"),
+                    "category": self._clean_llm_text(vuln.get("type", "security_issue")),
                     "location": {
                         "file": contract_path,
                         "function": func_name,
-                        "details": vuln.get("location", func_name),
+                        "details": self._clean_llm_text(vuln.get("location", func_name)),
                     },
-                    "recommendation": vuln.get("fix", "Review and fix the identified issue"),
+                    "recommendation": self._clean_llm_text(
+                        vuln.get("fix", "Review and fix the identified issue")
+                    ),
                     "chain_of_thought": cot,
                     "methodology": "SmartGuard RAG+CoT",
                     "references": ["SmartGuard: Expert Systems with Applications (2025)"],
@@ -554,6 +566,19 @@ Fix: {vuln.fix_suggestion}
             logger.error(f"Error parsing CoT response: {e}")
 
         return findings
+
+    def _sanitize_json_response(self, json_str: str) -> str:
+        """Remove characters that commonly make local LLM JSON invalid."""
+        return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", json_str)
+
+    def _clean_llm_text(self, value: Any) -> str:
+        """Normalize terminal artifacts and whitespace from local model output."""
+        text = str(value)
+        text = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", " ", text)
+        text = re.sub(r"\s*\[\d+[A-Z]\s*\[K\s*", " ", text)
+        text = re.sub(r"\s*\[K\s*", " ", text)
+        text = re.sub(r"[\x00-\x1f\x7f]", " ", text)
+        return re.sub(r"\s+", " ", text).strip()
 
     def _deduplicate_findings(self, findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Remove duplicate findings based on type and location."""

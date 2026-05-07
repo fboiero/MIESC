@@ -1,0 +1,183 @@
+{
+  "artifact": "paper1_claims_matrix",
+  "claims": [
+    {
+      "claim_id": "smartbugs_latest_reproducible",
+      "notes": "Fresh 2026-05-06 miesc evaluate corpus run over 143 SmartBugs contracts using layers 1,6,7 after Slither solc selection was fixed to respect Solidity pragma ranges. Layer 6 activates SmartBugs-specific detectors, DA-GNN, SmartBugs-ML, SmartGuard availability, and related specialized analyzers.",
+      "paper_claim": "MIESC latest local SmartBugs run reports 93.7% recall.",
+      "source_artifact": "benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json",
+      "status": "supported",
+      "unit": "recall",
+      "value": {
+        "avg_time_per_contract_s": 1.91,
+        "contracts_evaluated": 143,
+        "f1": 0.3168,
+        "fn": 9,
+        "fp": 569,
+        "layers_evaluated": [
+          1,
+          6,
+          7
+        ],
+        "precision": 0.1906,
+        "recall": 0.9371,
+        "total_time_s": 273.4,
+        "tp": 134
+      }
+    },
+    {
+      "claim_id": "evmbench_claude_sonnet_4_6",
+      "paper_claim": "Claude Sonnet 4.6 reaches 82.5% recall on EVMBench local extraction.",
+      "source_artifact": "benchmarks/results/evmbench/evmbench_claude46_40_FINAL.json",
+      "status": "supported",
+      "unit": "recall",
+      "value": 0.825
+    },
+    {
+      "claim_id": "evmbench_gpt_5",
+      "paper_claim": "GPT-5 reaches 77.5% recall on EVMBench local extraction.",
+      "source_artifact": "benchmarks/results/evmbench/evmbench_gpt5_40.json",
+      "status": "supported",
+      "unit": "recall",
+      "value": 0.775
+    },
+    {
+      "claim_id": "evmbench_gpt_4o",
+      "notes": "Provider file evaluates all 40 audit entries but one clone_failed entry has 0/2 detected.",
+      "paper_claim": "GPT-4o reaches approximately 73.7% recall on EVMBench local extraction.",
+      "source_artifact": "benchmarks/results/evmbench/evmbench_gpt4o_40.json",
+      "status": "supported_with_note",
+      "unit": "recall",
+      "value": 0.7372881355932204
+    },
+    {
+      "claim_id": "evmbench_ollama_qwen32b",
+      "paper_claim": "Ollama qwen2.5-coder:32b reaches 59.2% recall on EVMBench local extraction.",
+      "source_artifact": "benchmarks/results/evmbench/evmbench_ollama_qwen32b_40_FINAL.json",
+      "status": "supported",
+      "unit": "recall",
+      "value": 0.5916666666666667
+    },
+    {
+      "claim_id": "evmbench_static_only",
+      "notes": "Static-only detected 22 of 120 vulnerabilities with 152 HIGH/CRITICAL findings.",
+      "paper_claim": "Static-only MIESC reaches 18.3% recall on EVMBench local extraction.",
+      "source_artifact": "benchmarks/results/evmbench/evmbench_static_40.json",
+      "status": "supported",
+      "unit": "recall",
+      "value": 0.18333333333333332
+    },
+    {
+      "claim_id": "evmbench_ensemble_union",
+      "notes": "Union detected 111 of 120 audit:vulnerability keys.",
+      "paper_claim": "The four-provider ensemble reaches union recall on EVMBench local extraction.",
+      "source_artifact": "benchmarks/results/evmbench/evmbench_ensemble_40.json",
+      "status": "supported",
+      "unit": "recall",
+      "value": 0.925
+    },
+    {
+      "claim_id": "evmbench_table_metrics",
+      "paper_claim": "EVMBench table precision, recall, F1, counts, and n values are derived from local JSON artifacts.",
+      "source_artifact": [
+        "benchmarks/results/evmbench/evmbench_static_40.json",
+        "benchmarks/results/evmbench/evmbench_ensemble_40.json",
+        "benchmarks/results/evmbench/evmbench_claude46_40_FINAL.json",
+        "benchmarks/results/evmbench/evmbench_gpt5_40.json",
+        "benchmarks/results/evmbench/evmbench_gpt4o_40.json",
+        "benchmarks/results/evmbench/evmbench_ollama_qwen32b_40_FINAL.json"
+      ],
+      "status": "supported",
+      "unit": "mixed metrics",
+      "value": {
+        "claude_sonnet_4_6": {
+          "audits_evaluated": 40,
+          "f1": 0.4817518248175183,
+          "precision": 0.3402061855670103,
+          "recall": 0.825,
+          "total_detected": 99,
+          "total_findings": 291,
+          "total_vulns": 120
+        },
+        "ensemble_union": {
+          "audits_evaluated": 40,
+          "recall": 0.925,
+          "total_detected": 111,
+          "total_vulns": 120
+        },
+        "gpt_4o": {
+          "audits_evaluated": 39,
+          "f1": 0.31521739130434784,
+          "precision": 0.20046082949308755,
+          "recall": 0.7372881355932204,
+          "total_detected": 87,
+          "total_findings": 434,
+          "total_vulns": 118
+        },
+        "gpt_5": {
+          "audits_evaluated": 40,
+          "f1": 0.5502958579881657,
+          "precision": 0.42660550458715596,
+          "recall": 0.775,
+          "total_detected": 93,
+          "total_findings": 218,
+          "total_vulns": 120
+        },
+        "ollama_qwen2_5_coder_32b": {
+          "audits_evaluated": 40,
+          "f1": 0.39887640449438205,
+          "precision": 0.3008474576271186,
+          "recall": 0.5916666666666667,
+          "total_detected": 71,
+          "total_findings": 236,
+          "total_vulns": 120
+        },
+        "static_only": {
+          "audits_evaluated": 40,
+          "f1": 0.16176470588235292,
+          "precision": 0.14473684210526316,
+          "recall": 0.18333333333333332,
+          "total_detected": 22,
+          "total_findings": 152,
+          "total_vulns": 120
+        }
+      }
+    },
+    {
+      "claim_id": "evmbench_ensemble_diversity",
+      "paper_claim": "The ensemble has 13 one-provider, 16 two-provider, 23 three-provider, and 59 four-provider detections, with 9 misses.",
+      "source_artifact": "benchmarks/results/evmbench/evmbench_ensemble_40.json",
+      "status": "supported",
+      "unit": "vulnerability count",
+      "value": {
+        "detected_by_provider_count": {
+          "1": 13,
+          "2": 16,
+          "3": 23,
+          "4": 59
+        },
+        "missed": 9
+      }
+    },
+    {
+      "claim_id": "evmbench_official_size",
+      "notes": "Paper should distinguish official EVMBench size from the local 120 high-severity finding extraction.",
+      "paper_claim": "Official EVMBench describes 117 curated vulnerabilities from 40 repositories/audits.",
+      "source_artifact": "https://arxiv.org/abs/2603.04915",
+      "status": "external_primary_source",
+      "unit": "curated vulnerabilities",
+      "value": 117
+    },
+    {
+      "claim_id": "cecuro_877",
+      "notes": "Use as reported benchmark, not peer-reviewed state-of-the-art claim.",
+      "paper_claim": "Cecuro reports 87.7% recall on EVMBench detect task.",
+      "source_artifact": "https://chainwire.org/2026/04/16/ai-audit-firm-cecuro-outperforms-nearest-rival-by-2x-on-openai-smart-contract-exploit-benchmark/",
+      "status": "external_secondary_source",
+      "unit": "recall",
+      "value": 0.877
+    }
+  ],
+  "generated_at": "2026-05-07T00:59:50.506287+00:00",
+  "purpose": "Trace Paper 1 quantitative claims to local artifacts or external sources."
+}

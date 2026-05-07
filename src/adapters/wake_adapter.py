@@ -12,6 +12,7 @@ Version: 2.0.0 (Matured)
 
 import logging
 import re
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -43,6 +44,13 @@ class WakeAdapter(ToolAdapter):
     def __init__(self):
         super().__init__()
         self._default_timeout = 300  # 5 minutes
+        self._wake_bin = self._find_wake_binary()
+
+    def _find_wake_binary(self) -> str:
+        repo_tool = Path(__file__).resolve().parents[2] / ".tools" / "wake" / "bin" / "wake"
+        if repo_tool.exists():
+            return str(repo_tool)
+        return shutil.which("wake") or "wake"
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -78,7 +86,7 @@ class WakeAdapter(ToolAdapter):
         """Check if Wake is installed and functional."""
         try:
             result = subprocess.run(
-                ["wake", "--version"], capture_output=True, timeout=5, text=True
+                [self._wake_bin, "--version"], capture_output=True, timeout=5, text=True
             )
 
             if result.returncode == 0:

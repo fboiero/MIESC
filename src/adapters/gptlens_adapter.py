@@ -38,6 +38,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.core.llm_config import get_ollama_host
+from src.core.ollama_models import list_ollama_models, select_ollama_model
 from src.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -359,7 +360,40 @@ class GPTLensAdapter(ToolAdapter):
             )
             with urllib.request.urlopen(req, timeout=OLLAMA_HEALTH_TIMEOUT) as resp:
                 if resp.status == 200:
-                    logger.info("GPTLens: Ollama is available at %s", self._ollama_url)
+                    installed = list_ollama_models()
+                    self._auditor_model = select_ollama_model(
+                        [
+                            self._auditor_model,
+                            "deepseek-coder",
+                            "qwen2.5-coder:32b",
+                            "qwen2.5-coder:14b",
+                            "qwen2.5-coder",
+                            "codellama:13b",
+                            "codellama",
+                            "llama3.2:3b",
+                        ],
+                        installed=installed,
+                        fallback=self._auditor_model,
+                    )
+                    self._critic_model = select_ollama_model(
+                        [
+                            self._critic_model,
+                            "qwen2.5-coder:32b",
+                            "qwen2.5-coder:14b",
+                            "qwen2.5-coder",
+                            "codellama:13b",
+                            "codellama",
+                            "llama3.2:3b",
+                        ],
+                        installed=installed,
+                        fallback=self._critic_model,
+                    )
+                    logger.info(
+                        "GPTLens: Ollama is available at %s (auditor=%s, critic=%s)",
+                        self._ollama_url,
+                        self._auditor_model,
+                        self._critic_model,
+                    )
                     return ToolStatus.AVAILABLE
                 else:
                     logger.warning("GPTLens: Ollama returned status %d", resp.status)

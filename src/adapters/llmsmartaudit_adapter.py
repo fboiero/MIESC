@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.core.llm_config import get_ollama_host
+from src.core.ollama_models import select_ollama_model
 from src.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -29,12 +30,13 @@ from src.core.tool_protocol import (
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
-    from src.llm.embedding_rag import EmbeddingRAG
+    from src.llm.embedding_rag import KNOWLEDGE_BASE_VERSION, EmbeddingRAG
 
     _EMBEDDING_RAG_AVAILABLE = True
 except ImportError:
     _EMBEDDING_RAG_AVAILABLE = False
     EmbeddingRAG = None
+    KNOWLEDGE_BASE_VERSION = "unavailable"
 
 logger = logging.getLogger(__name__)
 
@@ -237,18 +239,19 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
                     "error": f"Could not read contract file: {contract_path}",
                 }
 
+            # Get configuration before cache lookup so model/RAG changes invalidate
+            # stale degraded results.
+            timeout = kwargs.get("timeout", self._default_timeout)
+            model = kwargs.get("model", self._detect_best_model())
+
             # Check cache
-            cache_key = self._get_cache_key(contract_code)
+            cache_key = self._get_cache_key(contract_code, model)
             cached_result = self._get_cached_result(cache_key)
             if cached_result:
                 logger.info(f"LLM-SmartAudit: Using cached result for {contract_path}")
                 cached_result["from_cache"] = True
                 cached_result["execution_time"] = time.time() - start_time
                 return cached_result
-
-            # Get configuration
-            timeout = kwargs.get("timeout", self._default_timeout)
-            model = kwargs.get("model", self._detect_best_model())
 
             # Run Ollama analysis
             raw_output = self._run_ollama_audit(contract_code, model=model, timeout=timeout)
@@ -329,18 +332,22 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
             with urllib.request.urlopen(req, timeout=5) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read().decode())
-                    models = " ".join([m.get("name", "") for m in data.get("models", [])]).lower()
-
-                    # Priority order
-                    model_priority = [
-                        ("qwen2.5-coder", "qwen2.5-coder:7b"),
-                        ("codellama", "codellama:7b"),
-                        ("llama3", "llama3:8b"),
-                    ]
-
-                    for keyword, full_name in model_priority:
-                        if keyword in models:
-                            return full_name
+                    installed = [m.get("name", "") for m in data.get("models", [])]
+                    return select_ollama_model(
+                        [
+                            "qwen2.5-coder:32b",
+                            "qwen2.5-coder:14b",
+                            "qwen2.5-coder",
+                            "codellama:13b",
+                            "codellama",
+                            "llama3.2:3b",
+                            "llama3.2:1b",
+                            "mistral:7b",
+                            "mistral",
+                        ],
+                        installed=installed,
+                        fallback="qwen2.5-coder:14b",
+                    )
 
             return "qwen2.5-coder:14b"
         except Exception:
@@ -495,9 +502,12 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
 
         return findings
 
-    def _get_cache_key(self, contract_code: str) -> str:
-        """Generate cache key from contract code."""
-        return hashlib.sha256(contract_code.encode()).hexdigest()
+    def _get_cache_key(self, contract_code: str, model: str) -> str:
+        """Generate cache key from contract code, model, and RAG mode."""
+        rag_mode = "embedding" if self._use_rag and self._embedding_rag else "keyword"
+        return hashlib.sha256(
+            f"{model}:{rag_mode}:{KNOWLEDGE_BASE_VERSION}:{contract_code}".encode()
+        ).hexdigest()
 
     def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """Retrieve cached result if available."""

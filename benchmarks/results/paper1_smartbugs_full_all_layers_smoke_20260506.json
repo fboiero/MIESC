@@ -1,0 +1,237 @@
+{
+  "experiment_card": {
+    "tool": "MIESC",
+    "version": "5.4.0",
+    "timestamp": "2026-05-06T21:44:52.816311",
+    "corpus": "/Users/fboiero/Documents/GitHub/MIESC/data/benchmarks/smartbugs-curated/dataset",
+    "corpus_size": 1,
+    "layers_evaluated": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "layer_names": {
+      "1": "Static Analysis",
+      "2": "Dynamic Testing",
+      "3": "Symbolic Execution",
+      "4": "Formal Verification",
+      "5": "AI Analysis",
+      "6": "ML Detection",
+      "7": "Specialized Analysis",
+      "8": "Cross-Chain & ZK Security",
+      "9": "Advanced AI Ensemble"
+    },
+    "timeout_per_tool_s": 180,
+    "skip_unavailable": true,
+    "total_duration_s": 183.7,
+    "python_version": "3.14.4",
+    "platform": "darwin"
+  },
+  "reproducibility": {
+    "command": "miesc evaluate /Users/fboiero/Documents/GitHub/MIESC/data/benchmarks/smartbugs-curated/dataset --layers 1,2,3,4,5,6,7,8,9 --timeout 180",
+    "seed": "not_set",
+    "llm_provider": "not_set",
+    "llm_model": "not_set"
+  },
+  "aggregate": {
+    "tp": 1,
+    "fp": 5,
+    "fn": 0,
+    "precision": 0.1667,
+    "recall": 1.0,
+    "f1": 0.2857,
+    "contracts_evaluated": 1,
+    "total_time_s": 183.7,
+    "avg_time_per_contract_s": 183.67,
+    "hit_rate": 1.0
+  },
+  "per_category": {
+    "arithmetic": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "bad_randomness": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "denial_of_service": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "reentrancy": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "time_manipulation": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "unchecked_low_level_calls": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  },
+  "per_contract": [
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/data/benchmarks/smartbugs-curated/dataset/bad_randomness/random_number_generator.sol",
+      "ground_truth": [
+        "bad_randomness"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 8,
+          "detected_categories": [
+            "time_manipulation",
+            "arithmetic",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.905
+        },
+        "2": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 6,
+          "time_seconds": 1.997
+        },
+        "3": {
+          "findings_count": 1,
+          "detected_categories": [
+            "time_manipulation"
+          ],
+          "tools_run": 5,
+          "time_seconds": 0.38
+        },
+        "4": {
+          "findings_count": 1,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 128.859
+        },
+        "5": {
+          "findings_count": 11,
+          "detected_categories": [
+            "denial_of_service",
+            "reentrancy",
+            "arithmetic",
+            "unchecked_low_level_calls",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 42.725
+        },
+        "6": {
+          "findings_count": 15,
+          "detected_categories": [
+            "time_manipulation",
+            "arithmetic",
+            "bad_randomness"
+          ],
+          "tools_run": 5,
+          "time_seconds": 1.745
+        },
+        "7": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 7,
+          "time_seconds": 0.009
+        },
+        "8": {
+          "findings_count": 0,
+          "detected_categories": [],
+          "tools_run": 5,
+          "time_seconds": 0.033
+        },
+        "9": {
+          "findings_count": 2,
+          "detected_categories": [
+            "bad_randomness"
+          ],
+          "tools_run": 5,
+          "time_seconds": 0.007
+        },
+        "intelligence": {
+          "findings_count": 30,
+          "detected_categories": [
+            "denial_of_service",
+            "reentrancy",
+            "arithmetic",
+            "time_manipulation",
+            "unchecked_low_level_calls",
+            "bad_randomness"
+          ],
+          "new_categories": [],
+          "suppressed": 0,
+          "time_seconds": 0.006
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "denial_of_service",
+          "unchecked_low_level_calls",
+          "reentrancy",
+          "arithmetic",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 38
+      },
+      "timing": {
+        "layer_1": 7.905,
+        "layer_2": 1.997,
+        "layer_3": 0.38,
+        "layer_4": 128.859,
+        "layer_5": 42.725,
+        "layer_6": 1.745,
+        "layer_7": 0.009,
+        "layer_8": 0.033,
+        "layer_9": 0.007,
+        "intelligence": 0.006
+      },
+      "match": {
+        "tp": [
+          "bad_randomness"
+        ],
+        "fp": [
+          "denial_of_service",
+          "reentrancy",
+          "arithmetic",
+          "time_manipulation",
+          "unchecked_low_level_calls"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    }
+  ]
+}

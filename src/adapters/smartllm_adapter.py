@@ -45,6 +45,7 @@ from src.security.prompt_sanitizer import (
 # Try to import EmbeddingRAG (optional dependency)
 try:
     from src.llm.embedding_rag import (
+        KNOWLEDGE_BASE_VERSION,
         EmbeddingRAG,
         batch_get_context_for_findings,
         get_context_for_finding,
@@ -54,6 +55,7 @@ try:
 except ImportError:
     _EMBEDDING_RAG_AVAILABLE = False
     EmbeddingRAG = None
+    KNOWLEDGE_BASE_VERSION = "unavailable"
     get_context_for_finding = None
     batch_get_context_for_findings = None
 from src.core.llm_config import (
@@ -248,7 +250,8 @@ class SmartLLMAdapter(ToolAdapter):
                     "error": f"Could not read contract file: {contract_path}",
                 }
 
-            # Check cache
+            # Check cache. Include model and RAG mode so installing EmbeddingRAG
+            # does not reuse stale keyword-only cache entries.
             cache_key = self._get_cache_key(contract_code)
             cached_result = self._get_cached_result(cache_key)
             if cached_result:
@@ -1614,8 +1617,11 @@ Based on your step-by-step analysis, conclude with exactly one of:
 Your analysis:"""
 
     def _get_cache_key(self, contract_code: str) -> str:
-        """Generate cache key from contract code."""
-        return hashlib.sha256(contract_code.encode()).hexdigest()
+        """Generate cache key from contract code, model, and RAG mode."""
+        rag_mode = "embedding" if self._use_embedding_rag and self._embedding_rag else "keyword"
+        return hashlib.sha256(
+            f"{self._model}:{rag_mode}:{KNOWLEDGE_BASE_VERSION}:{contract_code}".encode()
+        ).hexdigest()
 
     def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """Retrieve cached result if available."""

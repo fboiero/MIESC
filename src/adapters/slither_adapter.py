@@ -261,10 +261,14 @@ class SlitherAdapter(ToolAdapter):
                 if external_imports:
                     logger.info(f"Detected external imports: {external_imports}")
 
-            # Support for legacy Solidity versions (0.4.x, 0.5.x)
-            # Forces direct solc compilation instead of Foundry/Hardhat detection
+            # Support for legacy Solidity versions (0.4.x, 0.5.x).
+            # Pick a solc-select artifact compatible with the file pragma before
+            # building the Slither command. Without this, standalone SmartBugs
+            # contracts with pragma ^0.4.x are compiled with the default 0.8.20.
             legacy_solc = kwargs.get("legacy_solc", False)
             solc_version = kwargs.get("solc_version")
+            if solc_version is None and Path(contract_path).is_file():
+                solc_version = self._detect_solidity_version(contract_path)
             force_solc = kwargs.get("force_solc", None)
 
             # Auto-detect if we should force solc compilation
@@ -721,20 +725,98 @@ auto_detect_solc = false
             return None
 
     def _detect_solidity_version(self, contract_path: str) -> str:
-        """Detect Solidity version from pragma statement."""
+        """Detect the best installed Solidity compiler for the file pragma."""
         try:
             with open(contract_path, "r") as f:
                 content = f.read()
 
-            # Match pragma solidity ^0.8.19; or similar
-            match = re.search(r"pragma\s+solidity\s*[\^~>=<]*\s*([\d.]+)", content)
+            match = re.search(r"pragma\s+solidity\s+([^;]+);", content)
             if match:
-                return match.group(1)
+                pragma = match.group(1).strip()
+                compatible = self._select_installed_solc(pragma)
+                if compatible:
+                    return compatible
+
+                # Fallback to the first mentioned version. This keeps existing
+                # --solc-solcs-select behavior for environments where the exact
+                # version is installed outside ~/.solc-select/artifacts.
+                version_match = re.search(r"(\d+\.\d+\.\d+)", pragma)
+                if version_match:
+                    return version_match.group(1)
         except Exception:
             pass
 
         # Default to 0.8.20 if not detected
         return "0.8.20"
+
+    def _select_installed_solc(self, pragma: str) -> Optional[str]:
+        """Return the highest installed solc-select version satisfying pragma."""
+        installed = self._installed_solc_versions()
+        if not installed:
+            return None
+
+        constraints = self._parse_pragma_constraints(pragma)
+        if not constraints:
+            return None
+
+        compatible = [
+            version
+            for version in installed
+            if all(self._satisfies_constraint(version, op, target) for op, target in constraints)
+        ]
+        if not compatible:
+            return None
+        return ".".join(map(str, compatible[-1]))
+
+    def _installed_solc_versions(self) -> List[Tuple[int, int, int]]:
+        """List solc-select artifact versions as sorted semantic tuples."""
+        artifacts = Path(os.path.expanduser("~/.solc-select/artifacts"))
+        versions: List[Tuple[int, int, int]] = []
+        if not artifacts.exists():
+            return versions
+        for item in artifacts.iterdir():
+            match = re.fullmatch(r"solc-(\d+)\.(\d+)\.(\d+)", item.name)
+            if match:
+                versions.append(tuple(int(part) for part in match.groups()))
+        return sorted(versions)
+
+    def _parse_pragma_constraints(self, pragma: str) -> List[Tuple[str, Tuple[int, int, int]]]:
+        """Parse common Solidity pragma expressions into comparable constraints."""
+        constraints: List[Tuple[str, Tuple[int, int, int]]] = []
+        for raw_op, version_text in re.findall(r"(\^|~|>=|<=|>|<|=)?\s*(\d+\.\d+\.\d+)", pragma):
+            op = raw_op or "="
+            version = tuple(int(part) for part in version_text.split("."))
+
+            if op == "^":
+                constraints.append((">=", version))
+                major, minor, _ = version
+                if major == 0:
+                    constraints.append(("<", (0, minor + 1, 0)))
+                else:
+                    constraints.append(("<", (major + 1, 0, 0)))
+            elif op == "~":
+                constraints.append((">=", version))
+                major, minor, _ = version
+                constraints.append(("<", (major, minor + 1, 0)))
+            else:
+                constraints.append((op, version))
+        return constraints
+
+    def _satisfies_constraint(
+        self,
+        version: Tuple[int, int, int],
+        op: str,
+        target: Tuple[int, int, int],
+    ) -> bool:
+        if op == ">=":
+            return version >= target
+        if op == "<=":
+            return version <= target
+        if op == ">":
+            return version > target
+        if op == "<":
+            return version < target
+        return version == target
 
     def _detect_imports(self, contract_path: str) -> Set[str]:
         """

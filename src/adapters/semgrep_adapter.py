@@ -20,6 +20,8 @@ Version: 1.0.0
 
 import json
 import logging
+import os
+import shutil
 import subprocess
 import tempfile
 import time
@@ -280,8 +282,34 @@ class SemgrepAdapter(ToolAdapter):
         self.max_target_bytes = self.config.get("max_target_bytes", 1000000)
         self.exclude = self.config.get("exclude", ["**/node_modules/**", "**/test/**"])
         self.use_custom_rules = self.config.get("use_custom_rules", True)
+        self.semgrep_bin = self.config.get("semgrep_bin") or self._find_semgrep_binary()
 
         logger.debug(f"Semgrep adapter initialized (rules={self.rules})")
+
+    def _find_semgrep_binary(self) -> str:
+        repo_tool = Path(__file__).resolve().parents[2] / ".tools" / "semgrep" / "bin" / "semgrep"
+        if repo_tool.exists():
+            return str(repo_tool)
+        return shutil.which("semgrep") or "semgrep"
+
+    def _semgrep_env(self) -> Dict[str, str]:
+        env = os.environ.copy()
+        tool_root = Path(__file__).resolve().parents[2] / ".tools" / "semgrep"
+        cert_file = tool_root / "lib" / "python3.14" / "site-packages" / "certifi" / "cacert.pem"
+        if cert_file.exists():
+            env.setdefault("SSL_CERT_FILE", str(cert_file))
+        env.setdefault("SEMGREP_LOG_FILE", str(Path(tempfile.gettempdir()) / "miesc-semgrep.log"))
+        env.setdefault(
+            "SEMGREP_SETTINGS_FILE",
+            str(Path(tempfile.gettempdir()) / "miesc-semgrep-settings.yaml"),
+        )
+        env.setdefault(
+            "SEMGREP_VERSION_CACHE_PATH",
+            str(Path(tempfile.gettempdir()) / "miesc-semgrep-version"),
+        )
+        env.setdefault("SEMGREP_SEND_METRICS", "off")
+        env.setdefault("SEMGREP_ENABLE_VERSION_CHECK", "0")
+        return env
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -323,7 +351,11 @@ class SemgrepAdapter(ToolAdapter):
         """Check if Semgrep is installed and available"""
         try:
             result = subprocess.run(
-                ["semgrep", "--version"], capture_output=True, timeout=10, text=True
+                [self.semgrep_bin, "--version"],
+                capture_output=True,
+                timeout=10,
+                text=True,
+                env=self._semgrep_env(),
             )
             if result.returncode == 0:
                 version = result.stdout.strip()
@@ -374,7 +406,7 @@ class SemgrepAdapter(ToolAdapter):
 
         try:
             # Build semgrep command
-            cmd = ["semgrep"]
+            cmd = [self.semgrep_bin]
 
             # Use custom rules or registry
             rules = kwargs.get("rules", self.rules)
@@ -426,6 +458,7 @@ class SemgrepAdapter(ToolAdapter):
                 capture_output=True,
                 timeout=self.timeout + 30,  # Extra buffer for timeout
                 text=True,
+                env=self._semgrep_env(),
             )
 
             duration = time.time() - start_time

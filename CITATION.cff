@@ -1,23 +1,30 @@
 cff-version: 1.2.0
 message: "If you use MIESC in your research, please cite it as follows."
 title: "MIESC: Multi-layer Intelligent Evaluation for Smart Contracts"
-version: 5.1.1
-date-released: "2026-02-12"
+version: 5.4.0
+date-released: "2026-05-06"
 authors:
   - family-names: Boiero
     given-names: Fernando
     email: fboiero@frvm.utn.edu.ar
-    affiliation: "Universidad de la Defensa Nacional (UNDEF) - IUA Córdoba"
+    orcid: "https://orcid.org/0009-0005-7935-2758"
+    affiliation: "Universidad Tecnológica Nacional (UTN) - Facultad Regional Villa María"
+  - family-names: Mussetta
+    given-names: Sebastian Norberto
+    email: smussetta@frvm.utn.edu.ar
+    orcid: "https://orcid.org/0009-0007-8025-9846"
+    affiliation: "Universidad Tecnológica Nacional (UTN) - Facultad Regional Villa María"
 repository-code: "https://github.com/fboiero/MIESC"
 url: "https://github.com/fboiero/MIESC"
 abstract: >
   MIESC is an open-source framework that brings enterprise-grade smart contract
   security analysis to every developer. It orchestrates 13 external security tools
-  and 22 internal analysis modules across 9 defense layers, achieving 80% recall
-  on the SmartBugs-curated benchmark (143 contracts) — an 85% improvement over
-  single-tool analysis. MIESC runs entirely locally, maps findings to 12
-  international security standards, and is freely available to help secure Web3
-  for everyone.
+  and 22 internal analysis modules across 9 defense layers. The latest
+  full-corpus reproducible SmartBugs profile reaches 93.7% recall on 143
+  contracts, and a reproducible four-provider EVMBench local-extraction ensemble
+  reaches 111/120 detections (92.5% recall). MIESC runs locally by default, maps
+  findings to 12 international security standards, and is freely available to
+  help secure Web3 for everyone.
 keywords:
   - smart contracts
   - blockchain security

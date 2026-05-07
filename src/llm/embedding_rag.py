@@ -30,6 +30,19 @@ logger = logging.getLogger(__name__)
 _chromadb = None
 _sentence_transformers = None
 
+KNOWLEDGE_BASE_VERSION = "2026-05-06-paper1-source-review-v4"
+
+SOURCE_TIER_WEIGHTS = {
+    "standard": 1.00,
+    "official_docs": 0.95,
+    "benchmark": 0.90,
+    "incident": 0.85,
+    "audit_guide": 0.80,
+    "tool_docs": 0.78,
+    "legacy_taxonomy": 0.65,
+    "curated": 0.70,
+}
+
 
 def _get_chromadb():
     """Lazy import for chromadb."""
@@ -84,6 +97,8 @@ class VulnerabilityDocument:
     real_exploit: str = ""
     tags: List[str] = field(default_factory=list)
     references: List[str] = field(default_factory=list)
+    source_tier: str = "curated"
+    source_type: str = "pattern"
 
     def to_text(self) -> str:
         """Convert to searchable text representation."""
@@ -91,6 +106,8 @@ class VulnerabilityDocument:
             f"Title: {self.title}",
             f"Category: {self.category}",
             f"Severity: {self.severity}",
+            f"Source Tier: {self.source_tier}",
+            f"Source Type: {self.source_type}",
             f"Description: {self.description}",
         ]
         if self.swc_id:
@@ -99,8 +116,12 @@ class VulnerabilityDocument:
             parts.append(f"CWE: {self.cwe_id}")
         if self.vulnerable_code:
             parts.append(f"Vulnerable Code Pattern:\n{self.vulnerable_code}")
+        if self.fixed_code:
+            parts.append(f"Fixed Code Pattern:\n{self.fixed_code}")
         if self.attack_scenario:
             parts.append(f"Attack Scenario: {self.attack_scenario}")
+        if self.references:
+            parts.append(f"References: {', '.join(self.references)}")
         if self.tags:
             parts.append(f"Tags: {', '.join(self.tags)}")
         return "\n".join(parts)
@@ -114,9 +135,16 @@ class VulnerabilityDocument:
             "severity": self.severity,
             "category": self.category,
             "tags": ",".join(self.tags),
+            "references": ",".join(self.references),
+            "source_tier": self.source_tier,
+            "source_type": self.source_type,
             "has_exploit": bool(self.real_exploit),
             "has_fix": bool(self.fixed_code),
         }
+
+    def source_weight(self) -> float:
+        """Return ranking weight for this document's source quality tier."""
+        return SOURCE_TIER_WEIGHTS.get(self.source_tier, SOURCE_TIER_WEIGHTS["curated"])
 
 
 @dataclass
@@ -126,15 +154,21 @@ class RetrievalResult:
     document: VulnerabilityDocument
     similarity_score: float
     relevance_reason: str
+    retrieval_steps: List[str] = field(default_factory=list)
 
     def to_context(self) -> str:
         """Convert to LLM context string."""
+        steps = "; ".join(self.retrieval_steps) if self.retrieval_steps else "semantic search"
+        references = ", ".join(self.document.references[:3]) or "N/A"
         return (
             f"**{self.document.title}** (Score: {self.similarity_score:.2f})\n"
             f"- Category: {self.document.category}\n"
             f"- Severity: {self.document.severity}\n"
+            f"- Source: {self.document.source_tier} / {self.document.source_type}\n"
             f"- Description: {self.document.description[:300]}...\n"
             f"- Relevance: {self.relevance_reason}\n"
+            f"- Retrieval Steps: {steps}\n"
+            f"- References: {references}\n"
             f"- Real Exploit: {self.document.real_exploit or 'N/A'}"
         )
 
@@ -3437,6 +3471,952 @@ function depositWithPermit(
         real_exploit="OpenSea permit phishing - $1.7M stolen (2022)",
         tags=["permit", "phishing", "erc2612", "signature", "approval", "gasless"],
     ),
+    VulnerabilityDocument(
+        id="EVMBENCH-ROLE-INVARIANT-BYPASS",
+        title="Role Invariant Bypass in Multi-Step Flows",
+        description=(
+            "Administrative checks can be correct on one entry point but absent on a later state "
+            "transition. Audits should track the full path from initialization to the final effect, "
+            "including delegated calls and cached role flags."
+        ),
+        vulnerable_code="""
+function queue(address target, bytes calldata data) external onlyOwner {
+    queued[target] = data;
+}
+
+function execute(address target) external {
+    (bool ok,) = target.call(queued[target]);
+    require(ok, "call failed");
+}
+""",
+        fixed_code="""
+function execute(address target) external onlyOwner {
+    bytes memory data = queued[target];
+    delete queued[target];
+    (bool ok,) = target.call(data);
+    require(ok, "call failed");
+}
+""",
+        attack_scenario=(
+            "A privileged account queues a sensitive operation. Any external account later calls "
+            "execute and triggers the privileged effect because the final transition has no role check."
+        ),
+        severity="high",
+        category="access_control",
+        tags=["evmbench", "authorization", "invariant", "multi-step", "delegatecall"],
+        references=["EVMBench local benchmark artifacts"],
+        source_tier="benchmark",
+        source_type="local_reproducibility_artifact",
+    ),
+    VulnerabilityDocument(
+        id="EVMBENCH-SHARE-ACCOUNTING-INFLATION",
+        title="Share Accounting Inflation Through Donation",
+        description=(
+            "Vaults that compute shares from live token balances can be manipulated when external "
+            "donations change total assets without minting proportional shares. The invariant is "
+            "conservation between accounting state and token state."
+        ),
+        vulnerable_code="""
+function deposit(uint256 assets) external {
+    uint256 shares = assets * totalSupply() / token.balanceOf(address(this));
+    token.transferFrom(msg.sender, address(this), assets);
+    _mint(msg.sender, shares);
+}
+""",
+        fixed_code="""
+function deposit(uint256 assets) external {
+    uint256 assetsBefore = totalManagedAssets;
+    token.transferFrom(msg.sender, address(this), assets);
+    uint256 shares = assetsBefore == 0 ? assets : assets * totalSupply() / assetsBefore;
+    totalManagedAssets = assetsBefore + assets;
+    _mint(msg.sender, shares);
+}
+""",
+        attack_scenario=(
+            "An attacker donates tokens before a victim deposit or redemption, skewing share price "
+            "and extracting value from users who rely on the manipulated exchange rate."
+        ),
+        severity="critical",
+        category="defi",
+        tags=["evmbench", "vault", "shares", "accounting", "donation", "erc4626"],
+        references=["EVMBench local benchmark artifacts"],
+        source_tier="benchmark",
+        source_type="local_reproducibility_artifact",
+    ),
+    VulnerabilityDocument(
+        id="EVMBENCH-ORACLE-SPOT-PRICE-MANIPULATION",
+        title="Spot Oracle Manipulation in DeFi Accounting",
+        description=(
+            "Protocols that read AMM spot prices inside lending, minting, liquidation, or reward "
+            "logic can be manipulated within one transaction. The relevant evidence is the economic "
+            "path: capital source, price move, vulnerable state update, and unwind."
+        ),
+        vulnerable_code="""
+function collateralValue(address user) public view returns (uint256) {
+    uint256 spot = pair.reserve1() * 1e18 / pair.reserve0();
+    return collateral[user] * spot / 1e18;
+}
+""",
+        fixed_code="""
+function collateralValue(address user) public view returns (uint256) {
+    uint256 price = twapOracle.consult(address(collateralToken), TWAP_WINDOW);
+    return collateral[user] * price / 1e18;
+}
+""",
+        attack_scenario=(
+            "A flash-loan funded trade distorts the pool price, the protocol accepts inflated "
+            "collateral value, and the attacker borrows or liquidates before restoring the pool."
+        ),
+        severity="critical",
+        category="oracle",
+        tags=["evmbench", "oracle", "amm", "spot-price", "flash-loan", "twap"],
+        references=["EVMBench local benchmark artifacts"],
+        source_tier="benchmark",
+        source_type="local_reproducibility_artifact",
+    ),
+    VulnerabilityDocument(
+        id="EVMBENCH-LIQUIDATION-HEALTH-FACTOR-DRIFT",
+        title="Liquidation Health Factor Drift",
+        description=(
+            "Liquidation code can use stale debt, stale collateral, or inconsistent rounding across "
+            "borrow and repay paths. Reviewers should check that the same health-factor invariant is "
+            "enforced before and after liquidation."
+        ),
+        vulnerable_code="""
+function liquidate(address user, uint256 repay) external {
+    require(healthFactor(user) < 1e18, "healthy");
+    debt[user] -= repay;
+    collateral[user] -= repay * liquidationBonus / price();
+}
+""",
+        fixed_code="""
+function liquidate(address user, uint256 repay) external {
+    accrueInterest(user);
+    uint256 beforeHealth = healthFactor(user);
+    require(beforeHealth < 1e18, "healthy");
+    _repayAndSeize(user, repay);
+    require(healthFactor(user) >= beforeHealth, "bad liquidation");
+}
+""",
+        attack_scenario=(
+            "A liquidator chooses repayment and rounding boundaries that make the protocol seize "
+            "too much collateral or leave the position worse after liquidation."
+        ),
+        severity="high",
+        category="defi",
+        tags=["evmbench", "liquidation", "health-factor", "rounding", "interest"],
+        references=["EVMBench local benchmark artifacts"],
+        source_tier="benchmark",
+        source_type="local_reproducibility_artifact",
+    ),
+    VulnerabilityDocument(
+        id="SMARTBUGS-FRONT-RUNNING-COMMIT-REVEAL",
+        title="Front-Running Without Commit-Reveal Protection",
+        description=(
+            "Contracts that reveal the winning action directly in calldata allow observers to copy "
+            "or outbid the transaction before it is mined. Static syntax alone rarely proves this; "
+            "the evaluator must connect mempool visibility to the value transfer."
+        ),
+        vulnerable_code="""
+function solve(bytes32 answer) external {
+    require(answer == secretHash, "wrong");
+    payable(msg.sender).transfer(address(this).balance);
+}
+""",
+        fixed_code="""
+function commit(bytes32 commitment) external {
+    commits[msg.sender] = commitment;
+}
+
+function reveal(bytes32 answer, bytes32 salt) external {
+    require(commits[msg.sender] == keccak256(abi.encode(answer, salt)), "bad commit");
+    require(answer == secretHash, "wrong");
+    payable(msg.sender).transfer(address(this).balance);
+}
+""",
+        attack_scenario=(
+            "A searcher sees the answer in the mempool, submits the same answer with higher gas, "
+            "and receives the reward before the original transaction."
+        ),
+        severity="medium",
+        category="front_running",
+        tags=["smartbugs", "front-running", "mempool", "commit-reveal", "auction"],
+        references=["SmartBugs curated dataset"],
+        source_tier="benchmark",
+        source_type="curated_benchmark_case",
+    ),
+    VulnerabilityDocument(
+        id="SMARTBUGS-SHORT-ADDRESS-LEGACY-ABI",
+        title="Short Address Legacy ABI Decoding",
+        description=(
+            "Legacy token interfaces and manually decoded calldata can be vulnerable when calldata "
+            "length is not validated. The detector must preserve this older EVM context even when "
+            "modern Solidity versions add stricter ABI checks."
+        ),
+        vulnerable_code="""
+function transfer(address to, uint256 value) public returns (bool) {
+    balances[msg.sender] -= value;
+    balances[to] += value;
+    return true;
+}
+""",
+        fixed_code="""
+modifier validPayloadSize(uint256 size) {
+    require(msg.data.length >= size + 4, "short calldata");
+    _;
+}
+
+function transfer(address to, uint256 value)
+    public
+    validPayloadSize(64)
+    returns (bool)
+{
+    balances[msg.sender] -= value;
+    balances[to] += value;
+    return true;
+}
+""",
+        attack_scenario=(
+            "A malformed short address shifts the decoded amount field, causing a token transfer "
+            "for a value different from the one intended by the caller or exchange integration."
+        ),
+        severity="medium",
+        category="short_addresses",
+        tags=["smartbugs", "short-address", "legacy", "abi", "calldata"],
+        references=["SmartBugs curated dataset"],
+        source_tier="benchmark",
+        source_type="curated_benchmark_case",
+    ),
+    VulnerabilityDocument(
+        id="GOVERNANCE-FLASHLOAN-VOTE-CAPTURE",
+        title="Flash-Loan Governance Vote Capture",
+        description=(
+            "Voting power based on current token balance can be borrowed for a single transaction. "
+            "The exploit path often combines flash liquidity, proposal execution, and asset transfer "
+            "rather than a single vulnerable line."
+        ),
+        vulnerable_code="""
+function execute(uint256 proposalId) external {
+    require(token.balanceOf(msg.sender) > quorum, "no quorum");
+    proposals[proposalId].target.call(proposals[proposalId].data);
+}
+""",
+        fixed_code="""
+function execute(uint256 proposalId) external {
+    require(votes.getPastVotes(msg.sender, proposals[proposalId].snapshot) > quorum, "no quorum");
+    timelock.execute(proposals[proposalId].target, proposals[proposalId].data);
+}
+""",
+        attack_scenario=(
+            "The attacker borrows governance tokens, reaches quorum, executes a malicious proposal, "
+            "moves protocol assets, and repays the loan in the same transaction."
+        ),
+        severity="critical",
+        category="governance",
+        real_exploit="Beanstalk governance attack pattern",
+        tags=["governance", "flash-loan", "snapshot", "timelock", "defi"],
+        references=["EEA EthTrust Security Levels", "OWASP SCSVS", "DeFi incident reports"],
+        source_tier="incident",
+        source_type="real_world_exploit_pattern",
+    ),
+    VulnerabilityDocument(
+        id="CALLBACK-STATE-CONFUSION",
+        title="Cross-Contract Callback State Confusion",
+        description=(
+            "Protocols that rely on callbacks from token, pool, or receiver contracts can update "
+            "state in an order that exposes partially trusted balances or permissions. This is a "
+            "workflow bug even when every individual function appears guarded."
+        ),
+        vulnerable_code="""
+function deposit(uint256 amount) external {
+    token.transferFrom(msg.sender, address(this), amount);
+    shares[msg.sender] += amount;
+}
+
+function onTokenReceived(address from, uint256 amount) external {
+    require(msg.sender == address(token), "bad token");
+    bonus[from] += amount / 100;
+}
+""",
+        fixed_code="""
+function deposit(uint256 amount) external nonReentrant {
+    shares[msg.sender] += amount;
+    token.transferFrom(msg.sender, address(this), amount);
+}
+
+function onTokenReceived(address from, uint256 amount) external nonReentrant {
+    require(msg.sender == address(token), "bad token");
+    require(shares[from] >= amount, "untracked deposit");
+    bonus[from] += amount / 100;
+}
+""",
+        attack_scenario=(
+            "A malicious token or receiver callback observes an intermediate state and triggers "
+            "a second protocol action before accounting invariants are restored."
+        ),
+        severity="high",
+        category="reentrancy",
+        tags=["callback", "cross-contract", "state-machine", "reentrancy", "workflow"],
+        references=["EEA EthTrust Security Levels", "Solidity Security Considerations"],
+        source_tier="official_docs",
+        source_type="security_guidance_pattern",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-EEA-ETHTRUST-V3",
+        title="EEA EthTrust Security Levels v3",
+        description=(
+            "Maintained Solidity smart-contract security specification for reviewer-facing checks. "
+            "Use it as a high-authority source for broad security requirements, including access "
+            "control, upgrades, oracles, external interactions, signatures, gas, and known attack classes."
+        ),
+        attack_scenario=(
+            "When a finding maps to a certification-style control, prefer this source over legacy "
+            "taxonomies because it reflects a maintained review standard."
+        ),
+        severity="informational",
+        category="standard",
+        tags=["eea", "ethtrust", "standard", "review", "certification", "solidity"],
+        references=["https://entethalliance.org/specs/ethtrust-sl/v3/"],
+        source_tier="standard",
+        source_type="maintained_security_standard",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-OWASP-SCSVS",
+        title="OWASP Smart Contract Security Verification Standard",
+        description=(
+            "Verification standard for EVM smart contracts and DeFi systems. Use it to frame findings "
+            "as testable requirements across architecture, access control, blockchain data, arithmetic, "
+            "malicious input, gas, business logic, denial of service, tokens, and test coverage."
+        ),
+        attack_scenario=(
+            "When evidence needs a checklist-style reviewer rationale, map the suspected issue to the "
+            "closest SCSVS domain and explain the unmet verification requirement."
+        ),
+        severity="informational",
+        category="standard",
+        tags=["owasp", "scsvs", "standard", "checklist", "verification", "defi"],
+        references=["https://scs.owasp.org/SCSVS/"],
+        source_tier="standard",
+        source_type="verification_standard",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-SOLIDITY-SECURITY-CONSIDERATIONS",
+        title="Solidity Security Considerations",
+        description=(
+            "Official Solidity language security guidance. Use it for language-level semantics such as "
+            "reentrancy, private information, randomness, gas limits, call-stack behavior, authorized "
+            "proxies, tx.origin, and arithmetic or ABI assumptions."
+        ),
+        attack_scenario=(
+            "When a finding depends on Solidity semantics rather than protocol economics, this source "
+            "should be weighted above community examples."
+        ),
+        severity="informational",
+        category="standard",
+        tags=["solidity", "official-docs", "language", "semantics", "security-considerations"],
+        references=["https://docs.soliditylang.org/en/latest/security-considerations.html"],
+        source_tier="official_docs",
+        source_type="language_security_documentation",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-SWC-LEGACY-TAXONOMY",
+        title="SWC Registry as Legacy Taxonomy",
+        description=(
+            "SWC remains useful for stable identifiers and historical SmartBugs-style labeling, but it "
+            "is no longer actively maintained and should not be the sole authority for modern DeFi or "
+            "business-logic findings."
+        ),
+        attack_scenario=(
+            "Use SWC IDs for compatibility with older datasets and reports, then cross-check modern "
+            "relevance against EEA EthTrust, OWASP SCSVS, Solidity docs, or benchmark evidence."
+        ),
+        severity="informational",
+        category="taxonomy",
+        tags=["swc", "legacy", "taxonomy", "smartbugs", "classification"],
+        references=["https://swcregistry.io/", "https://github.com/SmartContractSecurity/SWC-registry"],
+        source_tier="legacy_taxonomy",
+        source_type="legacy_classification",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-DEFIHACKLABS-INCIDENT-CORPUS",
+        title="DeFiHackLabs Incident Corpus",
+        description=(
+            "Real exploit reproductions are useful for validating economic attack paths that static "
+            "rules miss, especially flash-loan-assisted oracle manipulation, governance capture, "
+            "accounting drift, and complex cross-protocol interactions."
+        ),
+        attack_scenario=(
+            "When a suspected issue requires a transaction-level exploit path, retrieve incident "
+            "patterns to reason about capital source, manipulated state, profit extraction, and unwind."
+        ),
+        severity="informational",
+        category="incident",
+        tags=["defihacklabs", "incident", "exploit", "defi", "flash-loan", "oracle", "governance"],
+        references=["https://github.com/SunWeb3Sec/DeFiHackLabs"],
+        source_tier="incident",
+        source_type="exploit_reproduction_corpus",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-OWASP-SMART-CONTRACT-TOP-10-2026",
+        title="OWASP Smart Contract Top 10 2026",
+        description=(
+            "Current OWASP awareness ranking for smart-contract risk. Use it for priority signals "
+            "and reviewer framing when a finding maps to access control, business logic, price "
+            "oracles, flash-loan facilitated attacks, input validation, unchecked external calls, "
+            "arithmetic, reentrancy, integer wrapping, or proxy upgradeability."
+        ),
+        attack_scenario=(
+            "When multiple candidate findings compete for context space, this source helps prioritize "
+            "issues that align with recent OWASP incident and practitioner data."
+        ),
+        severity="informational",
+        category="standard",
+        tags=[
+            "owasp",
+            "top-10",
+            "2026",
+            "access-control",
+            "business-logic",
+            "oracle",
+            "flash-loan",
+            "upgradeability",
+        ],
+        references=["https://scs.owasp.org/sctop10/"],
+        source_tier="standard",
+        source_type="risk_prioritization_standard",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-OWASP-SCWE-SCSTG-CHECKLIST",
+        title="OWASP SCWE, SCSTG, and SCS Checklist",
+        description=(
+            "Companion OWASP resources to SCSVS for weakness enumeration, testing guidance, and "
+            "checklist-style verification. Use them when the RAG must translate a detected issue "
+            "into repeatable tests or compliance-oriented evidence."
+        ),
+        attack_scenario=(
+            "A reviewer can map an issue to a weakness class, then ask for the concrete test or "
+            "checklist item that would reproduce or disprove the suspected vulnerability."
+        ),
+        severity="informational",
+        category="standard",
+        tags=["owasp", "scwe", "scstg", "checklist", "verification", "testing"],
+        references=[
+            "https://scs.owasp.org/SCWE/",
+            "https://scs.owasp.org/SCSTG/",
+            "https://scs.owasp.org/checklists/",
+        ],
+        source_tier="standard",
+        source_type="weakness_and_testing_standard",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-ETHEREUM-ORG-SMART-CONTRACT-SECURITY",
+        title="ethereum.org Smart Contract Security Guide",
+        description=(
+            "Ethereum ecosystem guidance for secure smart contract development, including access "
+            "controls, audit preparation, compiler warnings, static analysis, documentation, testing, "
+            "and post-deployment limitations caused by immutability."
+        ),
+        attack_scenario=(
+            "Use this source when a finding depends on Ethereum deployment reality or secure "
+            "development process rather than a single Solidity code pattern."
+        ),
+        severity="informational",
+        category="standard",
+        tags=["ethereum", "official-docs", "security", "development-process", "audit"],
+        references=["https://ethereum.org/developers/docs/smart-contracts/security/"],
+        source_tier="official_docs",
+        source_type="ecosystem_security_guidance",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-SCSFG-DEVELOPERS",
+        title="Smart Contract Security Field Guide for Developers",
+        description=(
+            "Regularly updated audit-oriented guide covering audit preparation, documentation, "
+            "defensive programming, dependencies, deployment, monitoring, system design, testing, "
+            "and upgradeability. Use it for manual-review reasoning and natural-language invariants."
+        ),
+        attack_scenario=(
+            "When code evidence is ambiguous, retrieve this source to reason about system controls, "
+            "cross-contract dependencies, event semantics, documented invariants, and audit scope."
+        ),
+        severity="informational",
+        category="audit",
+        tags=[
+            "field-guide",
+            "audit-preparation",
+            "documentation",
+            "invariants",
+            "system-design",
+            "defensive-programming",
+        ],
+        references=[
+            "https://scsfg.io/developers/",
+            "https://scsfg.io/developers/documentation/",
+            "https://scsfg.io/developers/system-design/",
+        ],
+        source_tier="audit_guide",
+        source_type="manual_review_guidance",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-SCSFG-HACKERS",
+        title="Smart Contract Security Field Guide for Hackers",
+        description=(
+            "Offensive security guide for concrete exploit classes including ABI hash collisions, "
+            "approval vulnerabilities, frontrunning, oracle manipulation, reentrancy, signature "
+            "issues, unexpected Ether transfers, unprotected swaps, and tx.origin risks."
+        ),
+        attack_scenario=(
+            "Use this source when the evaluator needs to build an exploit narrative from a suspected "
+            "bug rather than only classify the bug family."
+        ),
+        severity="informational",
+        category="audit",
+        tags=[
+            "field-guide",
+            "offensive-security",
+            "oracle",
+            "reentrancy",
+            "signature",
+            "approval",
+            "frontrunning",
+        ],
+        references=["https://scsfg.io/hackers/"],
+        source_tier="audit_guide",
+        source_type="exploit_reasoning_guide",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-OPENZEPPELIN-CONTRACTS-DOCS",
+        title="OpenZeppelin Contracts Documentation and Security Center",
+        description=(
+            "Widely used implementation reference for ERC standards, access control, governance, "
+            "security utilities, upgradeability patterns, and battle-tested library usage. Use it "
+            "to distinguish custom risky code from established library patterns."
+        ),
+        attack_scenario=(
+            "When a contract reimplements common security logic, compare it against OpenZeppelin "
+            "patterns such as access roles, reentrancy guards, pausable controls, and upgrade safety."
+        ),
+        severity="informational",
+        category="library",
+        tags=[
+            "openzeppelin",
+            "contracts",
+            "access-control",
+            "governance",
+            "reentrancyguard",
+            "pausable",
+            "upgradeability",
+        ],
+        references=[
+            "https://docs.openzeppelin.com/contracts",
+            "https://contracts.openzeppelin.com/security",
+        ],
+        source_tier="official_docs",
+        source_type="library_reference_and_security_process",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-OPENZEPPELIN-ACCESS-CONTROL",
+        title="OpenZeppelin Access Control",
+        description=(
+            "OpenZeppelin guidance for Ownable, Ownable2Step, AccessControl, TimelockController, "
+            "and AccessManager. Use it to reason about least privilege, default admin risk, delayed "
+            "operations, role guardians, and system-wide permission management."
+        ),
+        attack_scenario=(
+            "If a finding involves admin roles, minting, pausing, upgrades, governance execution, "
+            "or fragmented permissions across contracts, retrieve this source before lower-quality "
+            "role-pattern examples."
+        ),
+        severity="informational",
+        category="access_control",
+        tags=[
+            "openzeppelin",
+            "access-control",
+            "ownable",
+            "accesscontrol",
+            "accessmanager",
+            "timelock",
+            "least-privilege",
+        ],
+        references=[
+            "https://docs.openzeppelin.com/contracts/5.x/access-control",
+            "https://docs.openzeppelin.com/contracts/api/access",
+        ],
+        source_tier="official_docs",
+        source_type="access_control_reference",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-OPENZEPPELIN-SECURITY-UTILITIES",
+        title="OpenZeppelin Security Utilities",
+        description=(
+            "OpenZeppelin security modules such as PullPayment, ReentrancyGuard, and Pausable. "
+            "Use it to compare custom emergency stops, withdrawal flows, and reentrancy mitigations "
+            "against established library patterns."
+        ),
+        attack_scenario=(
+            "When an external call or withdrawal path is flagged, retrieve this source to check if "
+            "the design should use pull payments, explicit reentrancy guards, or pause controls."
+        ),
+        severity="informational",
+        category="reentrancy",
+        tags=[
+            "openzeppelin",
+            "security",
+            "reentrancyguard",
+            "pausable",
+            "pullpayment",
+            "emergency-stop",
+        ],
+        references=["https://docs.openzeppelin.com/contracts/4.x/api/security"],
+        source_tier="official_docs",
+        source_type="security_utility_reference",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-OPENZEPPELIN-PROXY-UPGRADEABILITY",
+        title="OpenZeppelin Proxy and Upgradeability Documentation",
+        description=(
+            "OpenZeppelin reference for ERC-1967 proxies, transparent proxies, UUPS, beacon proxies, "
+            "storage slots, delegatecall behavior, and upgrade workflows. Use it for proxy selector "
+            "clashes, storage-layout risk, initializer misuse, implementation ownership, and admin flow."
+        ),
+        attack_scenario=(
+            "If a finding touches delegatecall, proxy admin, upgrade authorization, storage collision, "
+            "initializer exposure, or implementation destruction, retrieve this source as a primary "
+            "OpenZeppelin reference."
+        ),
+        severity="informational",
+        category="proxy",
+        tags=[
+            "openzeppelin",
+            "proxy",
+            "upgradeability",
+            "erc1967",
+            "transparent-proxy",
+            "uups",
+            "beacon",
+            "delegatecall",
+        ],
+        references=[
+            "https://docs.openzeppelin.com/contracts/5.x/api/proxy",
+            "https://docs.openzeppelin.com/learn/upgrading-smart-contracts",
+            "https://docs.openzeppelin.com/upgrades-plugins/foundry/api/Upgrades",
+        ],
+        source_tier="official_docs",
+        source_type="upgradeability_reference",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-OPENZEPPELIN-GOVERNANCE-TIMELOCK",
+        title="OpenZeppelin Governance and Timelock",
+        description=(
+            "OpenZeppelin Governor and TimelockController guidance for voting modules, quorum, "
+            "proposal lifecycle, timelock execution, proposer/executor/admin roles, and delayed "
+            "governance decisions."
+        ),
+        attack_scenario=(
+            "When a vulnerability involves governance capture, proposal execution, timelock bypass, "
+            "quorum manipulation, or unsafe role assignment, retrieve this source to frame the expected "
+            "governance control flow."
+        ),
+        severity="informational",
+        category="governance",
+        tags=[
+            "openzeppelin",
+            "governor",
+            "timelockcontroller",
+            "quorum",
+            "proposal",
+            "votes",
+            "governance",
+        ],
+        references=[
+            "https://docs.openzeppelin.com/contracts/5.x/governance",
+            "https://docs.openzeppelin.com/contracts/5.x/api/governance",
+        ],
+        source_tier="official_docs",
+        source_type="governance_reference",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-OPENZEPPELIN-ERC4626-INFLATION",
+        title="OpenZeppelin ERC4626 Inflation Attack Guidance",
+        description=(
+            "OpenZeppelin ERC4626 guide explaining tokenized vault share accounting and inflation "
+            "attack security considerations. Use it for vault donation, exchange-rate manipulation, "
+            "rounding, virtual shares/assets, and first-deposit attack analysis."
+        ),
+        attack_scenario=(
+            "When a finding involves vault shares or asset/share conversion, retrieve this source to "
+            "check whether the issue is a known ERC4626 inflation or exchange-rate manipulation path."
+        ),
+        severity="informational",
+        category="defi",
+        tags=[
+            "openzeppelin",
+            "erc4626",
+            "vault",
+            "shares",
+            "inflation-attack",
+            "donation",
+            "rounding",
+        ],
+        references=["https://docs.openzeppelin.com/contracts/4.x/erc4626"],
+        source_tier="official_docs",
+        source_type="vault_security_reference",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-SLITHER-DETECTOR-DOCUMENTATION",
+        title="Slither Detector Documentation",
+        description=(
+            "Primary detector reference for Slither findings, including detector identifiers, impact, "
+            "confidence, descriptions, exploit scenarios, and recommendations. Use it to explain or "
+            "calibrate static-analysis evidence."
+        ),
+        attack_scenario=(
+            "When Slither reports a finding, retrieve this source to align the LLM context with the "
+            "detector's documented impact and confidence instead of treating all alerts equally."
+        ),
+        severity="informational",
+        category="tooling",
+        tags=["slither", "static-analysis", "detectors", "impact", "confidence", "tool-evidence"],
+        references=[
+            "https://github.com/crytic/slither/wiki/Detector-Documentation",
+            "https://crytic.github.io/slither/slither.html",
+        ],
+        source_tier="tool_docs",
+        source_type="static_analyzer_detector_reference",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-CONSENSYS-BEST-PRACTICES-ARCHIVE",
+        title="ConsenSys Diligence Smart Contract Best Practices Archive",
+        description=(
+            "Historically influential Solidity security guide covering philosophy, development "
+            "recommendations, known attacks, and tooling. It is useful for historical context but "
+            "should be weighted below maintained sources because the project points readers to the "
+            "Smart Contract Security Field Guide for current guidance."
+        ),
+        attack_scenario=(
+            "Use this source for compatibility with older literature and known attack explanations, "
+            "then cross-check modern recommendations against SCSFG, OWASP, Solidity docs, or EthTrust."
+        ),
+        severity="informational",
+        category="legacy",
+        tags=[
+            "consensys",
+            "diligence",
+            "best-practices",
+            "legacy",
+            "reentrancy",
+            "oracle",
+            "frontrunning",
+        ],
+        references=[
+            "https://consensysdiligence.github.io/smart-contract-best-practices/",
+            "https://github.com/ConsenSysDiligence/smart-contract-best-practices",
+        ],
+        source_tier="legacy_taxonomy",
+        source_type="legacy_best_practices_archive",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-CHAINLINK-DATA-FEEDS-ORACLE-SECURITY",
+        title="Chainlink Data Feeds and Oracle Security",
+        description=(
+            "Chainlink guidance for decentralized price feeds, market coverage, data-source "
+            "aggregation, outlier filtering, node decentralization, and defense-in-depth oracle "
+            "design. Use it to distinguish protocol oracle misuse from manipulation of a thin market."
+        ),
+        attack_scenario=(
+            "When a lending, liquidation, minting, or settlement path reads an oracle, retrieve this "
+            "source to check data freshness, market coverage, single-source dependence, and whether "
+            "a manipulated venue can influence the reported price."
+        ),
+        severity="informational",
+        category="oracle",
+        tags=[
+            "chainlink",
+            "data-feeds",
+            "oracle",
+            "market-coverage",
+            "vwap",
+            "outlier-filtering",
+            "decentralization",
+        ],
+        references=[
+            "https://docs.chain.link/",
+            "https://chain.link/data-feeds",
+            "https://chain.link/education-hub/market-manipulation-vs-oracle-exploits",
+        ],
+        source_tier="official_docs",
+        source_type="oracle_security_reference",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-CHAINLINK-VRF-RANDOMNESS",
+        title="Chainlink VRF Verifiable Randomness",
+        description=(
+            "Chainlink VRF documentation and security rationale for verifiable on-chain randomness. "
+            "Use it when comparing block variables, timestamps, blockhash, or commit-reveal schemes "
+            "against a cryptographically verifiable randomness source."
+        ),
+        attack_scenario=(
+            "When a contract uses predictable entropy for games, NFTs, lotteries, allocations, or "
+            "reward selection, retrieve this source to reason about unpredictability, proof verification, "
+            "oracle withholding, and consumer callback safety."
+        ),
+        severity="informational",
+        category="randomness",
+        tags=["chainlink", "vrf", "randomness", "blockhash", "timestamp", "nft", "lottery"],
+        references=[
+            "https://docs.chain.link/",
+            "https://blog.chain.link/chainlink-vrf-on-chain-verifiable-randomness/",
+            "https://vrf.chain.link/",
+        ],
+        source_tier="official_docs",
+        source_type="randomness_security_reference",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-UNISWAP-V2-V3-ORACLES",
+        title="Uniswap V2/V3 TWAP Oracle Documentation",
+        description=(
+            "Uniswap documentation for TWAP oracle construction, cumulative prices, observation "
+            "windows, liquidity history, and manipulation resistance. Use it to evaluate AMM spot "
+            "price reads and whether a protocol uses an adequate averaging window."
+        ),
+        attack_scenario=(
+            "When code reads reserves, slot0, or pool prices directly, retrieve this source to compare "
+            "that integration against TWAP-style oracle patterns and the cost model of manipulation."
+        ),
+        severity="informational",
+        category="oracle",
+        tags=["uniswap", "twap", "amm", "oracle", "spot-price", "cumulative-price", "liquidity"],
+        references=[
+            "https://developers.uniswap.org/docs/protocols/v2/guides/building-an-oracle",
+            "https://developers.uniswap.org/docs/protocols/v3/concepts/price-oracles",
+            "https://blog.uniswap.org/uniswap-v3-oracles",
+        ],
+        source_tier="official_docs",
+        source_type="amm_oracle_reference",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-TRAILOFBITS-CRYTIC-SLITHER",
+        title="Trail of Bits Crytic and Slither Security Tooling",
+        description=(
+            "Trail of Bits/Crytic documentation for Slither, detector impact/confidence, SlithIR, "
+            "framework integration, and the Ethereum security toolbox. Use it to calibrate static "
+            "findings and explain why a detector is high-confidence, noisy, or incomplete."
+        ),
+        attack_scenario=(
+            "When a tool finding contributes to an ensemble decision, retrieve this source to preserve "
+            "tool provenance, detector semantics, and limits of static analysis."
+        ),
+        severity="informational",
+        category="tooling",
+        tags=["trail-of-bits", "crytic", "slither", "static-analysis", "detectors", "slithir"],
+        references=[
+            "https://github.com/crytic/slither",
+            "https://crytic.github.io/slither/slither.html",
+            "https://github.com/crytic/slither/wiki/Detector-Documentation",
+        ],
+        source_tier="tool_docs",
+        source_type="static_analysis_tool_reference",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-CODE4RENA-AUDIT-REPORTS",
+        title="Code4rena Competitive Audit Reports",
+        description=(
+            "Code4rena public reports and documentation provide a large corpus of judged smart "
+            "contract findings from competitive audits. Use it for real audit phrasing, severity "
+            "examples, mechanism review, architecture recommendations, centralization risks, and "
+            "mitigation review patterns."
+        ),
+        attack_scenario=(
+            "When a finding is a business-logic or protocol-design issue, retrieve this source to "
+            "anchor the narrative in how competitive audits document root cause, impact, proof of "
+            "concept, and remediation."
+        ),
+        severity="informational",
+        category="audit",
+        tags=[
+            "code4rena",
+            "competitive-audit",
+            "audit-report",
+            "business-logic",
+            "severity",
+            "mitigation-review",
+        ],
+        references=[
+            "https://docs.code4rena.com/",
+            "https://code4rena.com/reports",
+            "https://code4rena.com/",
+        ],
+        source_tier="audit_guide",
+        source_type="competitive_audit_corpus",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-SHERLOCK-AUDIT-CONTESTS",
+        title="Sherlock Audit Contest Methodology",
+        description=(
+            "Sherlock documentation describes scoped audit contests, senior review, global researcher "
+            "push, judging, deduplication, remediation, and fix verification. Use it for evidence "
+            "process, not vulnerability taxonomy."
+        ),
+        attack_scenario=(
+            "When explaining why judged multi-researcher evidence is useful, retrieve this source to "
+            "frame scope control, duplicate handling, severity correction, and post-fix review."
+        ),
+        severity="informational",
+        category="audit",
+        tags=[
+            "sherlock",
+            "audit-contest",
+            "scope",
+            "judging",
+            "deduplication",
+            "fix-review",
+            "remediation",
+        ],
+        references=[
+            "https://docs.sherlock.xyz/audits/protocols/how-it-works-for-protocols",
+            "https://sherlock.xyz/audit-contests",
+        ],
+        source_tier="audit_guide",
+        source_type="audit_process_reference",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-IMMUNEFI-LOSS-REPORTS",
+        title="Immunefi Crypto Loss and Incident Reports",
+        description=(
+            "Immunefi incident and loss reports help prioritize exploit classes by observed financial "
+            "impact. Use them as macro risk context only; do not use aggregate loss numbers as proof "
+            "that a specific contract is vulnerable."
+        ),
+        attack_scenario=(
+            "When ranking findings for paper discussion or reviewer-facing motivation, retrieve this "
+            "source to explain why exploit impact and post-incident damage matter beyond the initial bug."
+        ),
+        severity="informational",
+        category="incident",
+        tags=["immunefi", "loss-report", "incident", "risk-prioritization", "financial-impact"],
+        references=["https://immunefi.com/reports/"],
+        source_tier="incident",
+        source_type="loss_report_context",
+    ),
+    VulnerabilityDocument(
+        id="SOURCE-SLOWMIST-HACKED-ARCHIVE",
+        title="SlowMist Hacked Incident Archive",
+        description=(
+            "SlowMist's incident archive is useful for cross-checking exploit timelines, affected "
+            "protocols, root-cause labels, and ecosystem-level incident trends. Use it as incident "
+            "context alongside reproducible PoCs or benchmark artifacts."
+        ),
+        attack_scenario=(
+            "When a finding resembles a known exploit family, retrieve this source to look for similar "
+            "historical incidents, but keep the final technical evidence tied to code, traces, or tests."
+        ),
+        severity="informational",
+        category="incident",
+        tags=["slowmist", "hacked", "incident", "exploit-archive", "root-cause"],
+        references=["https://hacked.slowmist.io/"],
+        source_tier="incident",
+        source_type="incident_archive",
+    ),
 ]
 
 
@@ -3533,16 +4513,29 @@ class EmbeddingRAG:
             # Get or create collection with optimized HNSW parameters
             self._collection = self._client.get_or_create_collection(
                 name=self.COLLECTION_NAME,
-                metadata={
-                    "hnsw:space": "cosine",
-                    "hnsw:search_ef": 50,  # Better recall (default 10)
-                    "hnsw:M": 16,  # Default, good balance
-                },
+                metadata=self._collection_metadata(),
             )
 
             # Check if we need to populate the knowledge base
-            if self._collection.count() == 0:
+            expected_count = len(VULNERABILITY_KNOWLEDGE_BASE)
+            current_count = self._collection.count()
+            current_version = (getattr(self._collection, "metadata", None) or {}).get(
+                "knowledge_base_version"
+            )
+            if current_count == 0:
                 logger.info("Indexing vulnerability knowledge base...")
+                self._index_knowledge_base()
+            elif current_count != expected_count or current_version != KNOWLEDGE_BASE_VERSION:
+                logger.info(
+                    "Reindexing vulnerability knowledge base "
+                    f"(current_count={current_count}, expected_count={expected_count}, "
+                    f"current_version={current_version}, expected_version={KNOWLEDGE_BASE_VERSION})"
+                )
+                self._client.delete_collection(self.COLLECTION_NAME)
+                self._collection = self._client.create_collection(
+                    name=self.COLLECTION_NAME,
+                    metadata=self._collection_metadata(),
+                )
                 self._index_knowledge_base()
             else:
                 logger.info(f"Using existing index with {self._collection.count()} documents")
@@ -3554,6 +4547,17 @@ class EmbeddingRAG:
                 f"Required dependency not found: {e}. "
                 "Install with: pip install chromadb sentence-transformers"
             ) from e
+
+    def _collection_metadata(self) -> Dict[str, Any]:
+        """Metadata used to decide whether a persisted Chroma index is current."""
+        return {
+            "hnsw:space": "cosine",
+            "hnsw:search_ef": 50,  # Better recall (default 10)
+            "hnsw:M": 16,  # Default, good balance
+            "knowledge_base_version": KNOWLEDGE_BASE_VERSION,
+            "knowledge_base_count": len(VULNERABILITY_KNOWLEDGE_BASE),
+            "embedding_model": self.embedding_model_name,
+        }
 
     def _build_doc_index(self) -> None:
         """Build O(1) lookup index for vulnerability documents."""
@@ -3571,9 +4575,12 @@ class EmbeddingRAG:
         filter_category: Optional[str],
         filter_severity: Optional[str],
         n_results: int,
+        strategy: str = "semantic",
     ) -> str:
         """Generate cache key for a search query."""
         key_parts = [
+            KNOWLEDGE_BASE_VERSION,
+            strategy,
             query[:200],  # Truncate long queries
             str(filter_category),
             str(filter_severity),
@@ -3607,6 +4614,121 @@ class EmbeddingRAG:
 
         self._query_cache[cache_key] = (time.time(), results)
         self._cache_misses += 1
+
+    def _source_quality(self, doc: VulnerabilityDocument) -> float:
+        """Score source quality independently from semantic similarity."""
+        score = doc.source_weight()
+        if doc.references:
+            score += 0.03
+        if doc.real_exploit:
+            score += 0.03
+        if doc.fixed_code:
+            score += 0.02
+        return min(score, 1.0)
+
+    def _rank_result(
+        self,
+        result: "RetrievalResult",
+        *,
+        original_query: str,
+        step: str = "semantic",
+    ) -> "RetrievalResult":
+        """Re-rank a retrieval result by similarity, source quality, and exact evidence cues."""
+        doc = result.document
+        query_lower = original_query.lower()
+        exact_cues = 0.0
+
+        for cue in [doc.category, doc.swc_id or "", doc.cwe_id or "", *doc.tags[:8]]:
+            cue_lower = cue.lower()
+            if cue_lower and cue_lower in query_lower:
+                exact_cues += 0.025
+
+        weighted_score = (result.similarity_score * 0.78) + (self._source_quality(doc) * 0.22)
+        weighted_score = min(weighted_score + min(exact_cues, 0.12), 1.0)
+
+        steps = [*result.retrieval_steps, step, f"source_tier={doc.source_tier}"]
+        return RetrievalResult(
+            document=doc,
+            similarity_score=weighted_score,
+            relevance_reason=result.relevance_reason,
+            retrieval_steps=steps,
+        )
+
+    def _dedupe_and_rank(
+        self,
+        results: List["RetrievalResult"],
+        *,
+        original_query: str,
+        step: str,
+        n_results: int,
+    ) -> List["RetrievalResult"]:
+        """Deduplicate by document id and preserve the best ranked evidence."""
+        best_by_id: Dict[str, RetrievalResult] = {}
+        for result in results:
+            ranked = self._rank_result(result, original_query=original_query, step=step)
+            existing = best_by_id.get(ranked.document.id)
+            if existing is None or ranked.similarity_score > existing.similarity_score:
+                best_by_id[ranked.document.id] = ranked
+
+        ranked_results = sorted(best_by_id.values(), key=lambda r: -r.similarity_score)
+        return ranked_results[:n_results]
+
+    def _expand_query(self, query: str) -> List[str]:
+        """Generate reviewer-style retrieval probes from a finding query."""
+        query_lower = query.lower()
+        expansions = [query]
+
+        expansion_rules = [
+            (
+                ("oracle", "price", "twap", "amm"),
+                "oracle manipulation AMM spot price TWAP flash loan collateral valuation",
+            ),
+            (
+                ("share", "vault", "erc4626", "deposit", "withdraw"),
+                "vault share accounting donation inflation exchange rate invariant ERC4626",
+            ),
+            (
+                ("reentrancy", "callback", "external call"),
+                "cross-contract callback reentrancy checks effects interactions state confusion",
+            ),
+            (
+                ("access", "owner", "role", "admin", "authorization"),
+                "access control role invariant privilege bypass authorization multi-step workflow",
+            ),
+            (
+                ("front", "mempool", "auction", "commit"),
+                "front-running mempool transaction ordering missing commit reveal auction reward",
+            ),
+            (
+                ("random", "blockhash", "timestamp", "entropy"),
+                "weak randomness block variables miner influence predictable entropy",
+            ),
+            (
+                ("short address", "calldata", "abi"),
+                "short address legacy ABI calldata length validation token transfer",
+            ),
+            (
+                ("governance", "vote", "proposal", "timelock"),
+                "governance flash loan vote snapshot timelock malicious proposal execution",
+            ),
+        ]
+
+        for triggers, expansion in expansion_rules:
+            if any(trigger in query_lower for trigger in triggers):
+                expansions.append(expansion)
+
+        expansions.append(
+            "EEA EthTrust OWASP SCSVS Solidity security considerations exploit pattern mitigation"
+        )
+
+        seen = set()
+        unique_expansions = []
+        for expansion in expansions:
+            normalized = expansion.lower()
+            if normalized not in seen:
+                seen.add(normalized)
+                unique_expansions.append(expansion)
+        return unique_expansions
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache performance statistics."""
@@ -3728,10 +4850,73 @@ class EmbeddingRAG:
                         )
                     )
 
+        retrieval_results = self._dedupe_and_rank(
+            retrieval_results,
+            original_query=query,
+            step="semantic",
+            n_results=n,
+        )
+
         # Cache the results
         self._cache_result(cache_key, retrieval_results)
 
         return retrieval_results
+
+    def multi_step_search(
+        self,
+        query: str,
+        filter_category: Optional[str] = None,
+        filter_severity: Optional[str] = None,
+        n_results: Optional[int] = None,
+    ) -> List[RetrievalResult]:
+        """
+        Evidence-aware retrieval pipeline for reviewer-facing LLM context.
+
+        Steps:
+        1. Search the direct finding text.
+        2. Expand the query with audit-domain probes.
+        3. Re-rank by semantic match plus source quality.
+        4. Deduplicate so one source cluster does not dominate the context.
+        """
+        self._ensure_initialized()
+        n = n_results or self.top_k
+
+        cache_key = self._get_cache_key(
+            query, filter_category, filter_severity, n, strategy="multi_step"
+        )
+        cached = self._get_cached_result(cache_key)
+        if cached is not None:
+            logger.debug(f"Cache hit for multi-step query (key={cache_key[:8]})")
+            return cached
+
+        all_results: List[RetrievalResult] = []
+        expanded_queries = self._expand_query(query)
+        for idx, expanded_query in enumerate(expanded_queries):
+            step = "direct_query" if idx == 0 else f"expanded_query_{idx}"
+            step_results = self.search(
+                expanded_query,
+                filter_category=filter_category,
+                filter_severity=filter_severity,
+                n_results=max(n * 2, 6),
+            )
+            all_results.extend(
+                RetrievalResult(
+                    document=result.document,
+                    similarity_score=result.similarity_score,
+                    relevance_reason=result.relevance_reason,
+                    retrieval_steps=[*result.retrieval_steps, step],
+                )
+                for result in step_results
+            )
+
+        ranked = self._dedupe_and_rank(
+            all_results,
+            original_query=query,
+            step="evidence_rerank",
+            n_results=n,
+        )
+        self._cache_result(cache_key, ranked)
+        return ranked
 
     def batch_search(
         self,
@@ -3824,10 +5009,16 @@ class EmbeddingRAG:
                             )
                             similarity = 1 - distance
                             retrieval_results.append(
-                                RetrievalResult(
-                                    document=original_doc,
-                                    similarity_score=similarity,
-                                    relevance_reason=self._explain_relevance(query, original_doc),
+                                self._rank_result(
+                                    RetrievalResult(
+                                        document=original_doc,
+                                        similarity_score=similarity,
+                                        relevance_reason=self._explain_relevance(
+                                            query, original_doc
+                                        ),
+                                    ),
+                                    original_query=query,
+                                    step="batch_semantic",
                                 )
                             )
 
@@ -3880,7 +5071,7 @@ class EmbeddingRAG:
         elif "oracle" in vuln_type or "price" in vuln_type:
             category = "oracle"
 
-        return self.search(query, filter_category=category)
+        return self.multi_step_search(query, filter_category=category)
 
     def get_context_for_llm(
         self,
@@ -3978,7 +5169,12 @@ class EmbeddingRAG:
             "embedding_model": self.embedding_model_name,
             "persist_directory": str(self.persist_dir),
             "categories": list({d.category for d in VULNERABILITY_KNOWLEDGE_BASE}),
-            "knowledge_base_version": "1.0.0",
+            "source_tiers": {
+                tier: sum(1 for d in VULNERABILITY_KNOWLEDGE_BASE if d.source_tier == tier)
+                for tier in sorted({d.source_tier for d in VULNERABILITY_KNOWLEDGE_BASE})
+            },
+            "knowledge_base_version": KNOWLEDGE_BASE_VERSION,
+            "source_documents": len(VULNERABILITY_KNOWLEDGE_BASE),
         }
 
     def reindex(self) -> None:
@@ -3990,7 +5186,7 @@ class EmbeddingRAG:
 
         # Recreate
         self._collection = self._client.create_collection(
-            name=self.COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
+            name=self.COLLECTION_NAME, metadata=self._collection_metadata()
         )
 
         # Reindex
@@ -4286,5 +5482,7 @@ __all__ = [
     "get_context_for_finding",
     "batch_get_context_for_findings",
     # Knowledge base
+    "KNOWLEDGE_BASE_VERSION",
+    "SOURCE_TIER_WEIGHTS",
     "VULNERABILITY_KNOWLEDGE_BASE",
 ]

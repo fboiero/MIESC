@@ -1,0 +1,1487 @@
+{
+  "artifact": "evmbench_ensemble_40",
+  "audits_evaluated": 40,
+  "detected_by_provider_count": {
+    "1": 13,
+    "2": 16,
+    "3": 23,
+    "4": 59
+  },
+  "generated_at": "2026-05-07T00:59:50.503027+00:00",
+  "input_files": {
+    "claude_sonnet_4_6": "benchmarks/results/evmbench/evmbench_claude46_40_FINAL.json",
+    "gpt_4o": "benchmarks/results/evmbench/evmbench_gpt4o_40.json",
+    "gpt_5": "benchmarks/results/evmbench/evmbench_gpt5_40.json",
+    "ollama_qwen2_5_coder_32b": "benchmarks/results/evmbench/evmbench_ollama_qwen32b_40_FINAL.json"
+  },
+  "method": "Union over matched vulnerabilities keyed by audit_id:vulnerability_id from the four provider result files. A vulnerability is counted as detected if any provider marks it as matched=true.",
+  "missed": 9,
+  "provider_summary": {
+    "claude_sonnet_4_6": {
+      "audits_evaluated": 40,
+      "date": "2026-04-28T11:02:30.795983",
+      "recall": 0.825,
+      "source": "benchmarks/results/evmbench/evmbench_claude46_40_FINAL.json",
+      "total_detected": 99,
+      "total_findings": 291,
+      "total_vulns": 120,
+      "version": "5.3.1"
+    },
+    "gpt_4o": {
+      "audits_evaluated": 39,
+      "date": "2026-04-27T10:17:27.467450",
+      "recall": 0.7372881355932204,
+      "source": "benchmarks/results/evmbench/evmbench_gpt4o_40.json",
+      "total_detected": 87,
+      "total_findings": 434,
+      "total_vulns": 118,
+      "version": "5.3.1"
+    },
+    "gpt_5": {
+      "audits_evaluated": 40,
+      "date": "2026-04-29T12:46:01.624449",
+      "recall": 0.775,
+      "source": "benchmarks/results/evmbench/evmbench_gpt5_40.json",
+      "total_detected": 93,
+      "total_findings": 218,
+      "total_vulns": 120,
+      "version": "5.3.1"
+    },
+    "ollama_qwen2_5_coder_32b": {
+      "audits_evaluated": 40,
+      "date": "2026-04-28T23:37:00.299932",
+      "recall": 0.5916666666666667,
+      "source": "benchmarks/results/evmbench/evmbench_ollama_qwen32b_40_FINAL.json",
+      "total_detected": 71,
+      "total_findings": 236,
+      "total_vulns": 120,
+      "version": "5.3.1"
+    }
+  },
+  "recall": 0.925,
+  "total_detected": 111,
+  "total_vulns": 120,
+  "vulnerabilities": [
+    {
+      "audit": "2023-07-pooltogether",
+      "description": "A malicious user can steal other user\u2019s deposits from Vault.sol",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2023-07-pooltogether",
+      "description": "Vault.mintYieldFee function can be called by anyone to mint Vault Shares to any recipient address",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-04"
+    },
+    {
+      "audit": "2023-10-nextgen",
+      "description": "Attacker can reenter to mint all the collection supply",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2023-10-nextgen",
+      "description": "Attacker can drain all ETH from AuctionDemo when block.timestamp == auctionEndTime",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "claude_sonnet_4_6"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2023-12-ethereumcreditguild",
+      "description": "The userGaugeProfitIndex is not set correctly, allowing an attacker to receive rewards without waiting",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2023-12-ethereumcreditguild",
+      "description": "Anyone can steal all distributed rewards",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-01-canto",
+      "description": "update_market() market weight incorrect",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-01-canto",
+      "description": "update_market() nextEpoch calculation incorrect",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-01-curves",
+      "description": "Unrestricted claiming of fees due to missing balance updates in FeeSplitter",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-01-curves",
+      "description": "Attack to make CurveSubject to be a HoneyPot",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2024-01-curves",
+      "description": "Unauthorized Access to setCurves Function",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-04"
+    },
+    {
+      "audit": "2024-01-curves",
+      "description": "Malformed equate statement",
+      "matched": false,
+      "n_providers_detected": 0,
+      "providers_detected": [],
+      "vuln": "H-05"
+    },
+    {
+      "audit": "2024-01-init-capital-invitational",
+      "description": "MarginTradingHook#updateOrder lacks access control",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-01-init-capital-invitational",
+      "description": "Order\u2019s creator can update tokenOut to arbitrary token",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-01-init-capital-invitational",
+      "description": "fillOrder executor can be front-run by the order creator by changing order\u2019s limitPrice_e36, the executor\u2019s assets can be stolen",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2024-01-renft",
+      "description": "All orders can be hijacked to lock rental assets forever by tipping a malicious ERC20",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-01-renft",
+      "description": "An attacker is able to hijack any ERC721 / ERC1155 he borrows because guard is missing validation on the address supplied to function call\u00a0setFallbackHandler()",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-01-renft",
+      "description": "An attacker can hijack any ERC1155 token he rents due to a design issue in reNFT via reentrancy exploitation",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2024-01-renft",
+      "description": "Malicious actor can steal any actively rented NFT and freeze the rental payments (of the affected rentals) in the\u00a0escrow\u00a0contract",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-05"
+    },
+    {
+      "audit": "2024-01-renft",
+      "description": "Escrow contract can be drained by creating rentals that bypass execution invariant checks",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-06"
+    },
+    {
+      "audit": "2024-01-renft",
+      "description": "Attacker can lock lender NFTs and ERC20 in the safe if the offer is set to partial",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-07"
+    },
+    {
+      "audit": "2024-02-althea-liquid-infrastructure",
+      "description": "Holders array can be manipulated by transferring or burning with amount 0, stealing rewards or bricking certain functions",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-03-abracadabra-money",
+      "description": "Anyone making use of the MagicLP\u2019s TWAP to determine token prices will be exploitable.",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-03-abracadabra-money",
+      "description": "Attacker can amplify a rounding error in MagicLP to break the I invariant and cause malicious pricing",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-03-abracadabra-money",
+      "description": "Users who deposited MIM and USDB tokens into BlastOnboarding may incur losses when the pool is created via bootstrap",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2024-03-abracadabra-money",
+      "description": "Oracle price can be manipulated",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-04"
+    },
+    {
+      "audit": "2024-03-canto",
+      "description": "Native gas tokens can become stuck in ASDRouter contract",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-03-canto",
+      "description": "Dual transaction nature of composed message transfer allows anyone to steal user funds",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-03-coinbase",
+      "description": "Remove owner calls can be replayed to remove a different owner at the same index, leading to severe issues when combined with lack of last owner guard",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-03-gitcoin",
+      "description": "userTotalStaked invariant will be broken due to vulnerable implementations in release()",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-03-neobase",
+      "description": "If a gauge that a user has voted for gets removed, their voting power allocated for that gauge will be lost",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-03-taiko",
+      "description": "Gas issuance is inflated and will halt the chain or lead to incorrect base fee",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-03-taiko",
+      "description": "Prover Loss",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "gpt_5"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-03-taiko",
+      "description": "Airdrop Frozen",
+      "matched": false,
+      "n_providers_detected": 0,
+      "providers_detected": [],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2024-03-taiko",
+      "description": "Taiko L1 - Proposer can maliciously cause loss of funds by forcing someone else to pay prover\u2019s fee",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "claude_sonnet_4_6"
+      ],
+      "vuln": "H-04"
+    },
+    {
+      "audit": "2024-03-taiko",
+      "description": "Signatures can be replayed in withdraw() to withdraw more tokens than the user originally intended.",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "claude_sonnet_4_6"
+      ],
+      "vuln": "H-05"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "Value of asset token can be incorrect when usage of ETH/USD Chainlink oracle is needed",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "NoyaValueOracle.getValue returns an incorrect price when a multi-token route is used",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "executeWithdraw may be blocked if any of the users are blacklisted from the baseToken",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5"
+      ],
+      "vuln": "H-04"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "Loss of funds in PendleConnector.depositIntoMarket()",
+      "matched": false,
+      "n_providers_detected": 0,
+      "providers_detected": [],
+      "vuln": "H-05"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "Incomplete TVL Calculation in AerodromeConnector::_getPositionTVL Function",
+      "matched": false,
+      "n_providers_detected": 0,
+      "providers_detected": [],
+      "vuln": "H-06"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "PendleConnector incorrectly sends the redeemed PT tokens to the market",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-07"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "A Vault can steal all funds from another Vault through the Registry\u2019s flash loan contract due to insufficient access control in Connector.sendTokensToTrustedAddress()",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-08"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "PrismaConnector are not able to claim surplus collateral in recovery mode",
+      "matched": false,
+      "n_providers_detected": 0,
+      "providers_detected": [],
+      "vuln": "H-09"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "AccountingManager::resetMiddle will not behave as expected",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-10"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "SNXConnector.sol TVL calculation is incorrect",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-11"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "Registry.sol#updateHoldingPosition remove position logic is incorrect: should use ownerConnector instead of calculatorConnector when calculating holdingPositionId",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-12"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "BalancerConnector::_getPositionTVL is calculated incorrectly",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-13"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "BalancerConnector has incorrect implementation of totalSupply, positionTVL and total TVL will be invalid",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-14"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "SiloConnector _getPositionTVL miscalculate the TVL position",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-15"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "It is possible to open insolvent position in Silo connector, due to missing check in borrow function",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-16"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "In Dolomite, when opening a borrow position, the holding position in the Registry will never be updated due to the removePosition flag being set to true",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-18"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "Numerous errors when calculating the TVL for the MorphoBlue connector",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "gpt_4o"
+      ],
+      "vuln": "H-19"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "Decreasing a position in PendleConnector will remove it even if there\u2019s still a stake at Penpie",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "claude_sonnet_4_6"
+      ],
+      "vuln": "H-21"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "Invalid calculation of position TVL in Pendle connector",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-22"
+    },
+    {
+      "audit": "2024-04-noya",
+      "description": "Invalid handling of holding positions in DolomiteConnector::transferBetweenAccounts",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-23"
+    },
+    {
+      "audit": "2024-05-arbitrum-foundation",
+      "description": "Adversary can make honest parties unable to retrieve their assertion stakes if the required amount is decreased",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-05-loop",
+      "description": "Availability of deposit invariant can be bypassed",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-05-munchables",
+      "description": "Malicious User can call lockOnBehalf repeatedly extend a users unlockTime, removing their ability to withdraw previously locked tokens",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-05-munchables",
+      "description": "Invalid validation allows users to unlock early",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-05-olas",
+      "description": "pointsSum.slope Not Updated After Nominee Removal and Votes Revocation",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-05-olas",
+      "description": "Arbitrary tokens and data can be bridged to GnosisTargetDispenserL2 to manipulate staking incentives",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-06-size",
+      "description": "When sellCreditMarket() is called to sell credit for a specific cash amount, the protocol might receive a lower swapping fee than expected",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-06-size",
+      "description": "Risk of overpayment due to race condition between repay and liquidateWithReplacement transactions",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "gpt_4o"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-06-size",
+      "description": "The collateral remainder cap is incorrectly calculated during liquidation",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2024-06-size",
+      "description": "Users won\u2019t liquidate positions because the logic used to calculate the liquidator\u2019s profit is incorrect",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-04"
+    },
+    {
+      "audit": "2024-06-thorchain",
+      "description": "A malicious user can steal money out of the vault and other users",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-06-thorchain",
+      "description": "ThorChain will be informed wrongly about the unsuccessful ETH transfers due to the incorrect events emissions",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-06-vultisig",
+      "description": "Most users won\u2019t be able to claim their share of Uniswap fees",
+      "matched": false,
+      "n_providers_detected": 0,
+      "providers_detected": [],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-06-vultisig",
+      "description": "Adversary can prevent the launch of any ILO pool with enough raised capital at any moment by providing single-sided liquidity",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "gpt_5"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2024-07-basin",
+      "description": "WellUpgradeable can be upgraded by anyone",
+      "matched": false,
+      "n_providers_detected": 0,
+      "providers_detected": [],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-07-basin",
+      "description": "Incorrectly assigned decimal1 parameter upon decoding",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-07-benddao",
+      "description": "Mismatch between yield amount deposited in shares calculation and getAccountYieldBalance()",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-07-benddao",
+      "description": "isolateRepay() lack of check onBehalf == nftOwner",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-07-benddao",
+      "description": "erc721DecreaseIsolateSupplyOnLiquidate() missing clear lockerAddr",
+      "matched": false,
+      "n_providers_detected": 0,
+      "providers_detected": [],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2024-07-benddao",
+      "description": "Revert due to underflow error, leading to lock of the liquidated NFT",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-04"
+    },
+    {
+      "audit": "2024-07-benddao",
+      "description": "Users cannot unstake from YiedlETHStakingEtherfi.sol, because YieldAccount.sol is incompatible with ether.fi\u2019s WithdrawRequestNFT.sol",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5"
+      ],
+      "vuln": "H-06"
+    },
+    {
+      "audit": "2024-07-benddao",
+      "description": "Anyone can get the NFT collateral token after an Auction without bidding due to missing check on msg.sender",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-07"
+    },
+    {
+      "audit": "2024-07-benddao",
+      "description": "The bot won\u2019t be able to unstake or repay risky positions in the yield contract",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-08"
+    },
+    {
+      "audit": "2024-07-munchables",
+      "description": "Single plot can be occupied by multiple renters",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "gpt_5"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-07-munchables",
+      "description": "Invalid validation in _farmPlots function allowing a malicious user repeated farming without locked funds",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-07-munchables",
+      "description": "Miscalculation in _farmPlots function could lead to a user unable to unstake all NFTs",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2024-07-munchables",
+      "description": "in farmPlots() an underflow in edge case leading to freeze of funds (NFT)",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-04"
+    },
+    {
+      "audit": "2024-07-munchables",
+      "description": "Failure to update dirty flag in transferToUnoccupiedPlot prevents reward accumulation on valid plot",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-05"
+    },
+    {
+      "audit": "2024-07-traitforge",
+      "description": "Griefing attack on seller\u2019s airdrop benefits",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-07-traitforge",
+      "description": "Incorrect percentage calculation in NukeFund and EntityForging when taxCut is changed from default value",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2024-08-phi",
+      "description": "Signature replay in signatureClaim results in unauthorized claiming of rewards",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-08-phi",
+      "description": "Signature replay in createArt allows to impersonate artist and steal royalties",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-08-phi",
+      "description": "shareBalance bloating eventually blocks curator rewards distribution",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2024-08-phi",
+      "description": "Forced endTime extension in updateArtSettings() allows attacker to mint more tokens",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-04"
+    },
+    {
+      "audit": "2024-08-phi",
+      "description": "Reentrancy in creating Creds allows an attacker to steal all Ether from the Cred contract",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-06"
+    },
+    {
+      "audit": "2024-08-phi",
+      "description": "Unrestricted changes to token settings allow artists to alter critical features",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-07"
+    },
+    {
+      "audit": "2024-08-wildcat",
+      "description": "User could withdraw more than supposed to, forcing last user withdraw to fail",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "gpt_4o"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-12-secondswap",
+      "description": "SecondSwap_Marketplace vesting listing order affects how much the vesting buyers can claim at a given step",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2024-12-secondswap",
+      "description": "transferVesting creates an incorrect vesting for new users when they purchase a vesting, because stepsClaimed is the same for all sales, allowing an attacker to prematurely unlock too many tokens",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2024-12-secondswap",
+      "description": "In transferVesting, the grantorVesting.releaseRate is calculated incorrectly, which leads to the sender being able to unlock more tokens than were initially locked.",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2025-01-liquid-ron",
+      "description": "The calculation of totalAssets() could be wrong if operatorFeeAmount > 0, this can cause potential loss for the new depositors",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2025-01-next-generation",
+      "description": "Cross-chain signature replay attack due to user-supplied domainSeparator and missing deadline check",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2025-02-thorwallet",
+      "description": "MergeTgt has no handling if TGTTOEXCHANGE is exceeded during the exchange period",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2025-04-forte",
+      "description": "Early 72-digit adjustment in sqrt will lead to incorrect result exponent calculation",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2025-04-forte",
+      "description": "Sqrt function silently reverts the entire control flow when a packed float of 0 value is passed",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2025-04-forte",
+      "description": "Natural logarithm function silently accepts invalid non-positive inputs",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2025-04-forte",
+      "description": "Unwrapping while equating inside the eq function fails to account for the set L_MATISSA_FLAG",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5"
+      ],
+      "vuln": "H-04"
+    },
+    {
+      "audit": "2025-04-forte",
+      "description": "Precision loss in toPackedFloat function when mantissa is in range (MAX_M_DIGIT_NUMBER, MIN_L_DIGIT_NUMBER)",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "claude_sonnet_4_6"
+      ],
+      "vuln": "H-05"
+    },
+    {
+      "audit": "2025-04-virtuals",
+      "description": "Lack of access control in AgentNftV2::addValidator() enables unauthorized validator injection and causes reward accounting inconsistencies",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2025-04-virtuals",
+      "description": "Public ServiceNft::updateImpact call leads to cascading issue",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2025-04-virtuals",
+      "description": "Public ContributionNft::mint leads to cascading issues / loss of funds",
+      "matched": true,
+      "n_providers_detected": 1,
+      "providers_detected": [
+        "gpt_4o"
+      ],
+      "vuln": "H-04"
+    },
+    {
+      "audit": "2025-04-virtuals",
+      "description": "ValidatorRegistry::validatorScore/getPastValidatorScore allows validator to earn full rewards without actually engaging with the protocol",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5"
+      ],
+      "vuln": "H-05"
+    },
+    {
+      "audit": "2025-05-blackhole",
+      "description": "Reward token in GaugeFactoryCL can be drained by anyone",
+      "matched": true,
+      "n_providers_detected": 2,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2025-06-panoptic",
+      "description": "The poolExposure for token1 is erroneously calculated as shortPremium - longPremium;",
+      "matched": false,
+      "n_providers_detected": 0,
+      "providers_detected": [],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2025-06-panoptic",
+      "description": "NAV calculation inconsistency due to underlying token position in pool configuration",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2025-10-sequence",
+      "description": "Chained signature with checkpoint usage disabled can bypass all checkpointer validation",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2025-10-sequence",
+      "description": "Partial signature replay/frontrunning attack on session calls",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2026-01-tempo-feeamm",
+      "description": "Reentrancy in burn allows stablecoin pool drainage",
+      "matched": true,
+      "n_providers_detected": 3,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2026-01-tempo-mpp-streams",
+      "description": "Cross-chain voucher replay allows draining channels across Tempo networks",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-01"
+    },
+    {
+      "audit": "2026-01-tempo-mpp-streams",
+      "description": "Cumulative amount underflow in close() allows draining channel deposits",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2026-01-tempo-mpp-streams",
+      "description": "Authorized signer validation bypass via zero address signature recovery",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2026-01-tempo-stablecoin-dex",
+      "description": "Missing authorization in cancel() allows anyone to cancel any order",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-02"
+    },
+    {
+      "audit": "2026-01-tempo-stablecoin-dex",
+      "description": "Linked list corruption enables double refund via incomplete order cleanup",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-03"
+    },
+    {
+      "audit": "2026-01-tempo-stablecoin-dex",
+      "description": "Integer underflow in balance subtraction allows draining DEX liquidity",
+      "matched": true,
+      "n_providers_detected": 4,
+      "providers_detected": [
+        "claude_sonnet_4_6",
+        "gpt_4o",
+        "gpt_5",
+        "ollama_qwen2_5_coder_32b"
+      ],
+      "vuln": "H-04"
+    }
+  ]
+}

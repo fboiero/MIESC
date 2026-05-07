@@ -29,6 +29,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from src.core.llm_config import get_ollama_host
+from src.core.ollama_models import list_ollama_models, select_ollama_model
 from src.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -101,7 +102,7 @@ class PropertyGPTAdapter(ToolAdapter):
         super().__init__()
         self.config = config or {}
         self.llm_backend = self.config.get("llm_backend", "ollama")
-        self.ollama_model = self.config.get("ollama_model", "openhermes")
+        self.ollama_model = self.config.get("ollama_model", "qwen2.5-coder:32b")
         self.max_properties = self.config.get("max_properties", 10)
         self.min_confidence = self.config.get("min_confidence", 0.7)
         self.enable_validation = self.config.get("enable_validation", True)
@@ -164,15 +165,32 @@ class PropertyGPTAdapter(ToolAdapter):
                     if resp.status == 200:
                         data = json.loads(resp.read().decode())
                         models = [m.get("name", "") for m in data.get("models", [])]
-                        model_names = " ".join(models).lower()
+                        selected = select_ollama_model(
+                            [
+                                self.ollama_model,
+                                "qwen2.5-coder:32b",
+                                "qwen2.5-coder:14b",
+                                "qwen2.5-coder",
+                                "codellama:13b",
+                                "codellama",
+                                "mistral:7b",
+                                "mistral",
+                                "llama3.2:3b",
+                            ],
+                            installed=models,
+                        )
 
-                        if self.ollama_model.lower() in model_names or "deepseek" in model_names:
-                            logger.info(f"PropertyGPT: Ollama available at {ollama_host}")
+                        if selected:
+                            self.ollama_model = selected
+                            logger.info(
+                                "PropertyGPT: Ollama available at %s with model %s",
+                                ollama_host,
+                                self.ollama_model,
+                            )
                             return ToolStatus.AVAILABLE
                         else:
                             logger.warning(
-                                f"PropertyGPT: Model '{self.ollama_model}' not found. "
-                                f"Run: ollama pull {self.ollama_model}"
+                                "PropertyGPT: no compatible local Ollama model found."
                             )
                             return ToolStatus.NOT_INSTALLED
                     else:
@@ -456,6 +474,12 @@ Output: JSON array. Only generate properties relevant to THIS contract's logic.
         import urllib.request
 
         try:
+            if self.llm_backend == "ollama" and not self.ollama_model:
+                self.ollama_model = select_ollama_model(
+                    ["qwen2.5-coder:32b", "qwen2.5-coder", "codellama", "mistral"],
+                    installed=list_ollama_models(),
+                )
+
             ollama_host = get_ollama_host()
             generate_url = f"{ollama_host}/api/generate"
 

@@ -13,6 +13,7 @@ Fecha: 2025-01-09
 import json
 import logging
 import os
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List
@@ -43,6 +44,10 @@ class VertigoAdapter(ToolAdapter):
     - Require/assert removal
     - Return value mutations
     """
+
+    def __init__(self):
+        super().__init__()
+        self._vertigo_cmd = self._find_vertigo()
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -77,6 +82,10 @@ class VertigoAdapter(ToolAdapter):
     def is_available(self) -> ToolStatus:
         """Verifica si Vertigo está disponible (via Foundry)"""
         try:
+            if not self._vertigo_cmd:
+                logger.info("Vertigo not installed. Install: pip install eth-vertigo")
+                return ToolStatus.NOT_INSTALLED
+
             # Vertigo requires Foundry for running tests
             result = subprocess.run(
                 ["forge", "--version"], capture_output=True, timeout=5, text=True
@@ -121,6 +130,8 @@ class VertigoAdapter(ToolAdapter):
             sample_ratio = kwargs.get("sample_ratio", 0.1)
             timeout = kwargs.get("timeout", 30)
             output_dir = kwargs.get("output_dir", "/tmp/vertigo_output")
+            Path(output_dir).mkdir(parents=True, exist_ok=True)
+            output_file = os.path.join(output_dir, "vertigo_results.json")
 
             # Detectar directorio del proyecto
             if os.path.isfile(contract_path):
@@ -130,25 +141,20 @@ class VertigoAdapter(ToolAdapter):
 
             # Ejecutar Vertigo
             cmd = [
-                "vertigo",
+                self._vertigo_cmd or "vertigo",
                 "run",
-                "--project-dir",
-                project_dir,
-                "--test-command",
-                test_command,
                 "--sample-ratio",
                 str(sample_ratio),
-                "--mutation-count",
-                str(mutation_count),
-                "--timeout",
-                str(timeout),
                 "--output",
-                output_dir,
-                "--format",
-                "json",
+                output_file,
             ]
 
-            logger.info(f"Running Vertigo: {' '.join(cmd)}")
+            logger.info(
+                "Running Vertigo: %s (cwd=%s, test_command=%s)",
+                " ".join(cmd),
+                project_dir,
+                test_command,
+            )
 
             result = subprocess.run(
                 cmd,
@@ -164,7 +170,6 @@ class VertigoAdapter(ToolAdapter):
                 logger.warning(f"Vertigo finished with code {result.returncode}")
 
             # Parsear output JSON
-            output_file = os.path.join(output_dir, "vertigo_results.json")
             if os.path.exists(output_file):
                 with open(output_file, "r") as f:
                     raw_output = json.load(f)
@@ -173,11 +178,27 @@ class VertigoAdapter(ToolAdapter):
                 try:
                     raw_output = json.loads(result.stdout)
                 except json.JSONDecodeError:
+                    if "could not find supported project directory" in result.stdout.lower():
+                        return {
+                            "tool": "vertigo",
+                            "version": "1.0.0",
+                            "status": "success",
+                            "findings": [],
+                            "metadata": {
+                                "skipped": True,
+                                "reason": "No supported Truffle/Hardhat project directory found",
+                                "project_dir": project_dir,
+                            },
+                            "execution_time": time.time() - start,
+                        }
                     return {
                         "tool": "vertigo",
                         "version": "1.0.0",
                         "status": "error",
-                        "error": f"No JSON output found. stderr: {result.stderr}",
+                        "error": (
+                            "No JSON output found. "
+                            f"stdout: {result.stdout[:500]} stderr: {result.stderr[:500]}"
+                        ),
                         "findings": [],
                         "execution_time": time.time() - start,
                     }
@@ -225,6 +246,18 @@ class VertigoAdapter(ToolAdapter):
                 "findings": [],
                 "execution_time": time.time() - start,
             }
+
+    def _find_vertigo(self) -> str:
+        """Find Vertigo in PATH or in the repository virtual environment."""
+        direct = shutil.which("vertigo")
+        if direct:
+            return direct
+
+        repo_candidate = Path(__file__).resolve().parents[2] / ".venv" / "bin" / "vertigo"
+        if repo_candidate.exists():
+            return str(repo_candidate)
+
+        return ""
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         """

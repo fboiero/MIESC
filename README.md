@@ -123,9 +123,9 @@ Report saved to results.json
 
 | Metric | Slither alone | Mythril alone | MIESC (static + intelligence) | MIESC (all layers) |
 |--------|:------------:|:-------------:|:--------------:|:------------------:|
-| Recall | 43.2% | 27.4% | **96.5%** | **~98.6%** |
-| Precision | 8.3% | 6.1% | 22.1% | 22.7% |
-| F1-Score | 13.9% | 10.0% | 36.0% | **36.8%** |
+| Recall | 43.2% | 27.4% | **93.7%** | Paper 1 SmartBugs profile |
+| Precision | 8.3% | 6.1% | **19.1%** | Paper 1 SmartBugs profile |
+| F1-Score | 13.9% | 10.0% | **31.7%** | Paper 1 SmartBugs profile |
 
 **Real-world exploits** (11 confirmed DeFi exploits, $3.3B total losses):
 
@@ -559,9 +559,9 @@ See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with
 MIESC was developed as a Master's thesis in Cyberdefense at [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). Evaluated on the SmartBugs-curated benchmark (Durieux et al., ICSE 2020):
 
 - **143 contracts**, 207 ground-truth vulnerabilities, 10 categories
-- **96.5% recall** (138/143 contracts) with static + intelligence engine; **~98.6%** with LLM layer
-- **8/10 categories at 100%** recall; Slither alone baseline: 43.2%
-- **85% faster than running tools manually** (~1 sec/contract)
+- **93.7% recall** on the latest full-corpus reproducible local SmartBugs profile; Slither alone baseline: 43.2%
+- Paper 1 now treats EVMBench as the primary business-logic benchmark: static-only reaches 22/120 (18.3%), while the reproducible four-provider ensemble reaches 111/120 (92.5%)
+- Reproducible SmartBugs profile runs in 273.4s total (~1.91 sec/contract)
 - Full results: [SMARTBUGS_SCIENTIFIC_REPORT.md](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md)
 
 If you use MIESC in research, please cite:
@@ -654,7 +654,7 @@ On Linux, use `--network=host` and `OLLAMA_HOST=http://localhost:11434`.
 Install solc-select:
 ```bash
 pip install solc-select
-solc-select install 0.8.20 && solc-select use 0.8.20
+solc-select install 0.4.26 0.5.17 0.8.20
 ```
 
 **PDF report generation fails (`weasyprint` errors)**

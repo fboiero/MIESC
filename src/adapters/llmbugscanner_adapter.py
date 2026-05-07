@@ -24,6 +24,7 @@ Date: 2025-01-15
 import hashlib
 import json
 import logging
+import socket
 import subprocess
 import time
 from dataclasses import dataclass
@@ -63,9 +64,9 @@ class ModelConfig:
 
 # Default ensemble configuration (local Ollama models)
 DEFAULT_ENSEMBLE = [
-    ModelConfig(name="deepseek-coder", weight=0.45, timeout=300, specialization="code_analysis"),
-    ModelConfig(name="codellama", weight=0.35, timeout=300, specialization="code_understanding"),
-    ModelConfig(name="mistral", weight=0.20, timeout=180, specialization="reasoning"),
+    ModelConfig(name="deepseek-coder", weight=0.45, timeout=90, specialization="code_analysis"),
+    ModelConfig(name="codellama", weight=0.35, timeout=90, specialization="code_understanding"),
+    ModelConfig(name="mistral", weight=0.20, timeout=60, specialization="reasoning"),
 ]
 
 # Vulnerability categories for consensus analysis
@@ -139,8 +140,9 @@ class LLMBugScannerAdapter(ToolAdapter):
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._ensemble = ensemble or DEFAULT_ENSEMBLE
         self._consensus_threshold = 0.35  # Minimum weighted consensus for a finding
-        self._max_retries = 2
+        self._max_retries = 1
         self._available_models: Set[str] = set()
+        self._model_aliases: Dict[str, str] = {}
 
         # Initialize EmbeddingRAG if available
         self._embedding_rag = None
@@ -222,10 +224,12 @@ class LLMBugScannerAdapter(ToolAdapter):
 
                     # Check which ensemble models are available
                     self._available_models.clear()
+                    self._model_aliases.clear()
                     for model in self._ensemble:
                         for available_model in models:
-                            if model.name in available_model:
+                            if model.name in available_model.lower():
                                 self._available_models.add(model.name)
+                                self._model_aliases[model.name] = available_model
                                 break
 
                     if len(self._available_models) >= 1:
@@ -289,7 +293,17 @@ class LLMBugScannerAdapter(ToolAdapter):
             contract_code = self._truncate_code(contract_code)
 
             # Get available ensemble models
-            active_ensemble = [m for m in self._ensemble if m.name in self._available_models]
+            per_adapter_timeout = int(kwargs.get("timeout", self.get_default_config()["timeout"]))
+            active_ensemble = [
+                ModelConfig(
+                    name=self._model_aliases.get(m.name, m.name),
+                    weight=m.weight,
+                    timeout=max(15, min(m.timeout, per_adapter_timeout)),
+                    specialization=m.specialization,
+                )
+                for m in self._ensemble
+                if m.name in self._available_models
+            ]
             logger.info(f"LLMBugScanner: Running ensemble with {len(active_ensemble)} models")
 
             # STAGE 1: Run each model in parallel (simulated sequential for reliability)
@@ -361,7 +375,7 @@ class LLMBugScannerAdapter(ToolAdapter):
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
         return {
-            "timeout": 900,  # 15 minutes for ensemble
+            "timeout": 180,
             "consensus_threshold": 0.5,
             "cross_validate": True,
             "max_retries": 2,
@@ -406,12 +420,7 @@ class LLMBugScannerAdapter(ToolAdapter):
 
         for attempt in range(1, self._max_retries + 1):
             try:
-                result = subprocess.run(
-                    ["ollama", "run", model.name, prompt],
-                    capture_output=True,
-                    timeout=model.timeout,
-                    text=True,
-                )
+                result = self._run_ollama_prompt(model.name, prompt, model.timeout)
 
                 if result.returncode == 0 and result.stdout:
                     findings = self._parse_llm_response(
@@ -432,6 +441,64 @@ class LLMBugScannerAdapter(ToolAdapter):
             time.sleep(1)
 
         return []
+
+    def _run_ollama_prompt(
+        self, model_name: str, prompt: str, timeout: int
+    ) -> subprocess.CompletedProcess[str]:
+        """Run Ollama through its HTTP API with a bounded request timeout."""
+        import urllib.error
+        import urllib.request
+
+        generate_url = f"{get_ollama_host()}/api/generate"
+        payload = json.dumps(
+            {
+                "model": model_name,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "num_ctx": 8192,
+                    "num_predict": 1536,
+                },
+            }
+        ).encode("utf-8")
+        req = urllib.request.Request(
+            generate_url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                body = resp.read().decode("utf-8", errors="replace")
+                if resp.status != 200:
+                    return subprocess.CompletedProcess(
+                        args=["ollama", "api", model_name],
+                        returncode=resp.status,
+                        stdout="",
+                        stderr=body,
+                    )
+                data = json.loads(body)
+                stdout = data.get("response", "")
+                stderr = data.get("error", "")
+            return subprocess.CompletedProcess(
+                args=["ollama", "api", model_name],
+                returncode=0 if stdout else 1,
+                stdout=stdout,
+                stderr=stderr,
+            )
+        except (TimeoutError, socket.timeout) as exc:
+            raise subprocess.TimeoutExpired(["ollama", "api", model_name], timeout) from exc
+        except urllib.error.URLError as exc:
+            if isinstance(exc.reason, TimeoutError):
+                raise subprocess.TimeoutExpired(["ollama", "api", model_name], timeout) from exc
+            return subprocess.CompletedProcess(
+                args=["ollama", "api", model_name],
+                returncode=1,
+                stdout="",
+                stderr=str(exc),
+            )
 
     def _generate_analysis_prompt(self, contract_code: str, specialization: str) -> str:
         """Generate analysis prompt tailored to model specialization."""
@@ -718,9 +785,7 @@ Is this finding VALID (true vulnerability) or FALSE POSITIVE?
 Respond with ONLY: VALID or FALSE_POSITIVE"""
 
         try:
-            result = subprocess.run(
-                ["ollama", "run", verifier.name, prompt], capture_output=True, timeout=60, text=True
-            )
+            result = self._run_ollama_prompt(verifier.name, prompt, 60)
 
             if result.returncode == 0:
                 response = result.stdout.strip().upper()
@@ -734,7 +799,10 @@ Respond with ONLY: VALID or FALSE_POSITIVE"""
     def _get_cache_key(self, contract_code: str) -> str:
         """Generate cache key from contract code."""
         models_str = "_".join(sorted(self._available_models))
-        return hashlib.sha256(f"{contract_code}{models_str}".encode()).hexdigest()
+        aliases_str = "_".join(f"{k}:{v}" for k, v in sorted(self._model_aliases.items()))
+        return hashlib.sha256(
+            f"{contract_code}{models_str}{aliases_str}http-api-v2".encode()
+        ).hexdigest()
 
     def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """Retrieve cached result if available."""
