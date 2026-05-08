@@ -497,6 +497,8 @@ class GPTLensAdapter(ToolAdapter):
                 len(pattern_findings),
             )
 
+            timeout = int(kwargs.get("timeout", AUDITOR_TIMEOUT))
+
             # Step 2: Run LLM analysis
             auditor_prompt = AUDITOR_PROMPT_TEMPLATE.format(
                 contract_code=contract_code,
@@ -504,7 +506,7 @@ class GPTLensAdapter(ToolAdapter):
             auditor_response = self._call_ollama(
                 model=auditor_model,
                 prompt=auditor_prompt,
-                timeout=AUDITOR_TIMEOUT,
+                timeout=timeout,
             )
 
             # Parse auditor findings
@@ -548,6 +550,7 @@ class GPTLensAdapter(ToolAdapter):
                     contract_code=contract_code,
                     findings=raw_findings,
                     critic_model=critic_model,
+                    timeout=min(timeout, CRITIC_TIMEOUT),
                 )
                 logger.info(
                     "GPTLens Phase 2 complete: %d/%d findings confirmed as TP",
@@ -860,6 +863,7 @@ class GPTLensAdapter(ToolAdapter):
         contract_code: str,
         findings: List[Dict[str, Any]],
         critic_model: str,
+        timeout: int = CRITIC_TIMEOUT,
     ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """
         Evaluate findings using the Critic LLM role.
@@ -890,6 +894,7 @@ class GPTLensAdapter(ToolAdapter):
                 contract_code=contract_code,
                 finding=finding,
                 critic_model=critic_model,
+                timeout=timeout,
             )
 
             # Check if this is a DeFi-related or high-severity finding
@@ -985,6 +990,7 @@ class GPTLensAdapter(ToolAdapter):
         contract_code: str,
         finding: Dict[str, Any],
         critic_model: str,
+        timeout: int = CRITIC_TIMEOUT,
     ) -> Tuple[str, str]:
         """
         Ask the Critic LLM to judge a single finding.
@@ -1017,7 +1023,7 @@ class GPTLensAdapter(ToolAdapter):
         response = self._call_ollama(
             model=critic_model,
             prompt=prompt,
-            timeout=CRITIC_TIMEOUT,
+            timeout=timeout,
         )
 
         if not response:
@@ -1140,13 +1146,14 @@ class GPTLensAdapter(ToolAdapter):
             }
         ).encode("utf-8")
 
-        for attempt in range(1, self._max_retries + 1):
+        max_attempts = 1 if timeout < 30 else self._max_retries
+        for attempt in range(1, max_attempts + 1):
             try:
                 logger.debug(
                     "GPTLens: Calling Ollama %s (attempt %d/%d)",
                     model,
                     attempt,
-                    self._max_retries,
+                    max_attempts,
                 )
 
                 req = urllib.request.Request(
@@ -1208,12 +1215,12 @@ class GPTLensAdapter(ToolAdapter):
                 )
 
             # Wait before retry
-            if attempt < self._max_retries:
+            if attempt < max_attempts:
                 time.sleep(self._retry_delay)
 
         logger.error(
             "GPTLens: All %d attempts failed for model %s",
-            self._max_retries,
+            max_attempts,
             model,
         )
         return None

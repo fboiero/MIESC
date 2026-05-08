@@ -610,9 +610,15 @@ class IAuditAdapter(ToolAdapter):
         # Truncate contract if necessary
         truncated_code = self._truncate_code(contract_code)
 
+        cli_timeout = kwargs.get("timeout")
         planner_timeout = kwargs.get("planner_timeout", self._planner_timeout)
         detector_timeout = kwargs.get("detector_timeout", self._detector_timeout)
         reviewer_timeout = kwargs.get("reviewer_timeout", self._reviewer_timeout)
+        if cli_timeout:
+            cli_timeout = int(cli_timeout)
+            planner_timeout = min(int(planner_timeout), cli_timeout)
+            detector_timeout = min(int(detector_timeout), cli_timeout)
+            reviewer_timeout = min(int(reviewer_timeout), cli_timeout)
         skip_reviewer = kwargs.get("skip_reviewer", False)
 
         metadata = {

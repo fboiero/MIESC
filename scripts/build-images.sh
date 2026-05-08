@@ -10,7 +10,7 @@
 
 set -e
 
-VERSION="5.1.1"
+VERSION="5.4.0"
 REGISTRY="ghcr.io/fboiero"
 
 # Colors
@@ -62,8 +62,12 @@ build_full() {
         echo -e "${YELLOW}║  WARNING: Building full image on ARM (${MIESC_HOST_ARCH})              ║${NC}"
         echo -e "${YELLOW}╚══════════════════════════════════════════════════════════╝${NC}"
         echo ""
-        echo "  z3-solver compilation on ARM can take 30-60 minutes."
-        echo "  The resulting image will run at native speed."
+        echo "  Native ARM full builds skip Echidna, Medusa, Mythril, Manticore, Halmos, and Semgrep by default"
+        echo "  because upstream releases are amd64-only, require long z3 source builds,"
+        echo "  or ship ARM wheels that are not reliable in Docker."
+        echo "  To force them on ARM, pass MIESC_BUILD_MYTHRIL=true,"
+        echo "  MIESC_BUILD_MANTICORE=true, MIESC_BUILD_HALMOS=true, and/or"
+        echo "  MIESC_BUILD_SEMGREP=true as build args."
         echo ""
         echo "  Alternatives:"
         echo "    - Pull the pre-built amd64 image (runs under QEMU, ~3-5x slower):"
@@ -88,6 +92,11 @@ build_full() {
 
     docker build \
         "${platform_flag[@]}" \
+        --build-arg MIESC_BASE_IMAGE=miesc:${VERSION} \
+        --build-arg MIESC_BUILD_MYTHRIL="${MIESC_BUILD_MYTHRIL:-auto}" \
+        --build-arg MIESC_BUILD_MANTICORE="${MIESC_BUILD_MANTICORE:-auto}" \
+        --build-arg MIESC_BUILD_HALMOS="${MIESC_BUILD_HALMOS:-auto}" \
+        --build-arg MIESC_BUILD_SEMGREP="${MIESC_BUILD_SEMGREP:-auto}" \
         -f "$PROJECT_DIR/docker/Dockerfile.full" \
         -t miesc:${VERSION}-full \
         -t miesc:full \

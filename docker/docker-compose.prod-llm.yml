@@ -1,4 +1,4 @@
-# MIESC v5.1.1 - Production Docker Compose with LLM Support
+# MIESC v5.4.0 - Production Docker Compose with LLM Support
 # Multi-layer Intelligent Evaluation for Smart Contracts
 # SmartLLM: deepseek-coder (code analysis) + mistral (general interpretation)
 #
@@ -11,18 +11,16 @@
 #
 # Quick Start:
 #   # CPU-only mode
-#   docker-compose -f docker-compose.prod-llm.yml up -d
+#   docker compose -f docker/docker-compose.prod-llm.yml up -d
 #
 #   # With GPU support (uncomment GPU sections first)
-#   docker-compose -f docker-compose.prod-llm.yml up -d
+#   docker compose -f docker/docker-compose.prod-llm.yml up -d
 #
 #   # Run audit with premium report
-#   docker-compose -f docker-compose.prod-llm.yml exec miesc \
+#   docker compose -f docker/docker-compose.prod-llm.yml exec miesc \
 #     miesc audit full /app/contracts/MyContract.sol -o /data/results.json
-#   docker-compose -f docker-compose.prod-llm.yml exec miesc \
+#   docker compose -f docker/docker-compose.prod-llm.yml exec miesc \
 #     miesc report /data/results.json -t premium --llm-interpret -o /data/report.md
-
-version: '3.8'
 
 services:
   # ===========================================================================
@@ -30,14 +28,14 @@ services:
   # ===========================================================================
   miesc:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
       args:
         - BUILDKIT_INLINE_CACHE=1
-    image: ghcr.io/fboiero/miesc:v5.1.1
+    image: ghcr.io/fboiero/miesc:5.4.0
     container_name: miesc-prod
     environment:
-      - MIESC_VERSION=5.1.1
+      - MIESC_VERSION=5.4.0
       - MIESC_ENV=production
       - PYTHONUNBUFFERED=1
       # Ollama LLM configuration
@@ -48,7 +46,7 @@ services:
       - MIESC_LLM_TIMEOUT=180
     volumes:
       - miesc-data:/data
-      - ./contracts:/app/contracts:ro
+      - ../contracts:/app/contracts:ro
     networks:
       - miesc-prod-network
     depends_on:
@@ -135,15 +133,15 @@ services:
 
         # Function to pull model with progress
         pull_model() {
-          local model="$1"
-          local desc="$2"
+          local model="$$1"
+          local desc="$$2"
           echo ""
-          echo ">>> Downloading $model ($desc)..."
-          if ollama list 2>/dev/null | grep -q "$model"; then
+          echo ">>> Downloading $$model ($$desc)..."
+          if ollama list 2>/dev/null | grep -q "$$model"; then
             echo "    ✓ Already available"
             return 0
           fi
-          if ollama pull "$model"; then
+          if ollama pull "$$model"; then
             echo "    ✓ Downloaded successfully"
             return 0
           else
@@ -215,31 +213,31 @@ services:
   # ===========================================================================
   miesc-api:
     build:
-      context: .
-      dockerfile: Dockerfile
-    image: ghcr.io/fboiero/miesc:v5.1.1
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: ghcr.io/fboiero/miesc:5.4.0
     container_name: miesc-api-prod
     environment:
-      - MIESC_VERSION=5.1.1
+      - MIESC_VERSION=5.4.0
       - MIESC_ENV=production-api
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
       - MIESC_LLM_MODEL=mistral:latest
       - MIESC_CODE_MODEL=deepseek-coder:6.7b
       - MIESC_LLM_TIMEOUT=180
-    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+    command: server rest --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     volumes:
       - miesc-data:/data
-      - ./contracts:/app/contracts:ro
+      - ../contracts:/app/contracts:ro
     networks:
       - miesc-prod-network
     depends_on:
       ollama-ready:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -274,28 +272,28 @@ volumes:
 # ===========================================================================
 #
 # 1. Start all services (first run will download ~8GB of models):
-#    docker-compose -f docker-compose.prod-llm.yml up -d
+#    docker compose -f docker/docker-compose.prod-llm.yml up -d
 #
 # 2. Check status:
-#    docker-compose -f docker-compose.prod-llm.yml ps
-#    docker-compose -f docker-compose.prod-llm.yml logs -f ollama-init
+#    docker compose -f docker/docker-compose.prod-llm.yml ps
+#    docker compose -f docker/docker-compose.prod-llm.yml logs -f ollama-init
 #
 # 3. Run a quick audit:
-#    docker-compose -f docker-compose.prod-llm.yml exec miesc \
+#    docker compose -f docker/docker-compose.prod-llm.yml exec miesc \
 #      miesc audit quick /app/contracts/VulnerableBank.sol -o /data/results.json
 #
 # 4. Generate premium report:
-#    docker-compose -f docker-compose.prod-llm.yml exec miesc \
+#    docker compose -f docker/docker-compose.prod-llm.yml exec miesc \
 #      miesc report /data/results.json -t premium --llm-interpret -o /data/report.md
 #
 # 5. Copy report to host:
 #    docker cp miesc-prod:/data/report.md ./audit-report.md
 #
 # 6. Enable API server:
-#    docker-compose -f docker-compose.prod-llm.yml --profile api up -d
+#    docker compose -f docker/docker-compose.prod-llm.yml --profile api up -d
 #
 # 7. Stop all services:
-#    docker-compose -f docker-compose.prod-llm.yml down
+#    docker compose -f docker/docker-compose.prod-llm.yml down
 #
 # 8. Clean up (removes data):
-#    docker-compose -f docker-compose.prod-llm.yml down -v
+#    docker compose -f docker/docker-compose.prod-llm.yml down -v

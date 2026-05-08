@@ -4,7 +4,7 @@
 # Author: Fernando Boiero - UNDEF
 # Thesis: Master's in Cyberdefense
 
-.PHONY: help install test lint audit experiments clean docs docker mcp build publish release sphinx-build sphinx-serve sphinx-clean sphinx-api mutate mutate-run mutate-results mutate-html mutate-check
+.PHONY: help install test lint audit experiments clean docs docker mcp build publish release sphinx-build sphinx-serve sphinx-clean sphinx-api mutate mutate-run mutate-results mutate-html mutate-check docker-build docker-run researcher-bootstrap researcher-smoke verify reproducibility citation version
 
 # Default target
 .DEFAULT_GOAL := help
@@ -210,19 +210,34 @@ release: build build-check  ## Full release pipeline (build + check)
 
 docker-build:  ## Build Docker image
 	@echo "$(BLUE)Building Docker image...$(NC)"
-	docker build -t miesc:latest .
+	docker build -f docker/Dockerfile -t miesc:5.4.0 -t miesc:latest .
 	@echo "$(GREEN)✓ Docker image built$(NC)"
 
 docker-run:  ## Run MIESC in Docker
 	@echo "$(BLUE)Running MIESC in Docker...$(NC)"
-	docker run --rm -v $(PWD):/workspace miesc:latest
+	docker run --rm -v $(PWD):/workspace miesc:5.4.0 --help
+
+researcher-bootstrap:  ## Install isolated full-tool researcher dependencies
+	@echo "$(BLUE)Bootstrapping researcher toolchain...$(NC)"
+	./scripts/bootstrap_researcher_tools.sh
+
+researcher-smoke:  ## Run full 9-layer researcher smoke test
+	@echo "$(BLUE)Running full researcher smoke test...$(NC)"
+	.venv/bin/python -m miesc.cli.main doctor
+	.venv/bin/python -m miesc.cli.main audit full tests/fixtures/reentrancy.sol \
+		-o /tmp/miesc-full-smoke.json \
+		-f json \
+		-t 5 \
+		--skip-unavailable \
+		--no-ml \
+		--no-correlate
 
 verify:  ## Verify installation
 	@echo "$(BLUE)Verifying MIESC installation...$(NC)"
 	@echo "  → Python version"
 	python --version
 	@echo "  → MIESC version"
-	python src/miesc_cli.py --version
+	python -m miesc.cli.main --version
 	@echo "  → Checking tools..."
 	@which slither > /dev/null && echo "    ✓ Slither installed" || echo "    ✗ Slither not found"
 	@which myth > /dev/null && echo "    ✓ Mythril installed" || echo "    ✗ Mythril not found"
@@ -245,7 +260,7 @@ citation:  ## Show citation information
 
 version:  ## Show version information
 	@echo "$(BLUE)MIESC Version Information:$(NC)"
-	@echo "Version: 5.1.1"
+	@echo "Version: 5.4.0"
 	@echo "Author: Fernando Boiero"
 	@echo "Institution: UNDEF - IUA Córdoba"
 	@echo "License: AGPL-3.0-only"

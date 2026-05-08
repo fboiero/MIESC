@@ -2,24 +2,23 @@
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This image includes advanced security analysis tools:
-# - Mythril (symbolic execution for Solidity)
-# - Halmos (formal verification / symbolic testing)
+# - Mythril (symbolic execution for Solidity; amd64 by default, optional on ARM)
+# - Halmos (formal verification / symbolic testing; amd64 by default, optional on ARM)
 # - Echidna (property-based fuzzer, x86 only)
 # - Medusa (parallel fuzzer, x86 only)
 # - Wake (Ackee Blockchain's Python testing framework)
+# - Manticore (isolated Python 3.9 runtime; amd64 by default, optional on ARM)
+# - Certora CLI (isolated runtime; API key supplied at run time)
 # - PyTorch + GNN libraries (for DAGNN, Peculiar ML models)
 # - scikit-learn (for SmartBugs-ML)
-# - Semgrep (pattern-based analysis)
+# - Semgrep (pattern-based analysis; amd64 by default, optional on ARM)
 #
-# NOTE: Manticore is DEPRECATED due to Python 3.12 incompatibility
-# (pysha3 fails to compile - missing pystrhex.h header)
-#
-# Image size: ~4GB
-# Build time: ~10-15 minutes (x86), ~20-25 minutes (ARM due to z3)
+# Image size: ~8GB
+# Build time: ~20-30 minutes depending on architecture and cache
 # Memory requirement: 8GB+ RAM recommended
 #
 # PREREQUISITE: Build the standard image first:
-#   docker build -t ghcr.io/fboiero/miesc:5.4.0 -f docker/Dockerfile docker/
+#   docker build -t miesc:5.4.0 -t ghcr.io/fboiero/miesc:5.4.0 -f docker/Dockerfile .
 #
 # Then build this full image:
 #   docker build -t ghcr.io/fboiero/miesc:5.4.0-full -f docker/Dockerfile.full .
@@ -27,12 +26,19 @@
 # Or use the build script:
 #   ./scripts/build-images.sh --full
 
-# Security: Use specific version tag instead of :latest for reproducibility
-FROM ghcr.io/fboiero/miesc:5.4.0
+# Security: Use a versioned base image instead of :latest for reproducibility.
+# The default points to the local image built by scripts/build-images.sh and
+# docker compose; release builds may override it with ghcr.io/fboiero/miesc:5.4.0.
+ARG MIESC_BASE_IMAGE=miesc:5.4.0
+FROM ${MIESC_BASE_IMAGE}
+ARG MIESC_BUILD_MYTHRIL=auto
+ARG MIESC_BUILD_MANTICORE=auto
+ARG MIESC_BUILD_HALMOS=auto
+ARG MIESC_BUILD_SEMGREP=auto
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
 LABEL version="5.4.0-full"
-LABEL description="MIESC FULL - Extended with Mythril, Echidna, Halmos, PyTorch for ML Analysis"
+LABEL description="MIESC FULL - Researcher image with 9-layer smart-contract security tooling"
 
 # ==========================================
 # SYSTEM DEPENDENCIES
@@ -46,6 +52,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     z3 \
     libopenblas-dev \
     libgmp-dev \
+    python3-venv \
     # For downloading release binaries
     curl \
     ca-certificates \
@@ -92,31 +99,64 @@ RUN mkdir -p /home/miesc/.cache/pip /home/miesc/.cache/puccinialin && \
 
 USER miesc
 
-# Install Mythril (symbolic execution for Solidity)
-# Using --no-cache-dir to avoid cache mount permission issues
-# z3-solver will compile from source on ARM (~15-20 min)
-RUN pip install --user --no-cache-dir 'mythril>=0.24.0' && \
-    echo "Mythril installed successfully" || \
-    echo "WARNING: Mythril installation failed - symbolic execution will be limited"
+# Install Mythril in an isolated Python 3.11 runtime. Native ARM Mythril builds
+# compile z3-solver from source and can take 30-60+ minutes while exhausting
+# Docker storage, so ARM skips it by default. Set
+# --build-arg MIESC_BUILD_MYTHRIL=true to force the source build.
+RUN ARCH="$(dpkg --print-architecture)" && \
+    if [ "$ARCH" = "amd64" ] || [ "$MIESC_BUILD_MYTHRIL" = "true" ]; then \
+        python3.11 -m venv /app/.tools/mythril && \
+        /app/.tools/mythril/bin/pip install --no-cache-dir --upgrade pip 'setuptools<81' wheel mythril && \
+        MPLCONFIGDIR=/tmp/miesc-matplotlib /app/.tools/mythril/bin/myth version; \
+    else \
+        echo "WARNING: Mythril native build skipped for $ARCH. Use amd64 full image or local bootstrap for Mythril."; \
+    fi
 
-# Install Halmos (formal verification / symbolic testing)
-# Works well on both x86 and ARM after z3 compiles
-RUN pip install --user --no-cache-dir halmos && \
-    echo "Halmos installed successfully"
+# Install uv so Manticore can use Python 3.9. Manticore 0.3.x depends on
+# legacy packages that do not work reliably on Python 3.12+. Native ARM builds
+# currently pull z3-solver source packages that fail with the distro compiler,
+# so ARM skips Manticore by default. Set
+# --build-arg MIESC_BUILD_MANTICORE=true to force the source build.
+RUN ARCH="$(dpkg --print-architecture)" && \
+    if [ "$ARCH" = "amd64" ] || [ "$MIESC_BUILD_MANTICORE" = "true" ]; then \
+        pip install --user --no-cache-dir uv && \
+        /home/miesc/.local/bin/uv python install 3.9 && \
+        /home/miesc/.local/bin/uv venv --python 3.9 /app/.tools/manticore39 && \
+        /app/.tools/manticore39/bin/python -m ensurepip --upgrade && \
+        /app/.tools/manticore39/bin/pip3 install --no-cache-dir --upgrade pip 'setuptools<81' wheel manticore 'protobuf<3.21' && \
+        PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python /app/.tools/manticore39/bin/manticore --version; \
+    else \
+        echo "WARNING: Manticore native build skipped for $ARCH. Use amd64 full image or local bootstrap for Manticore."; \
+    fi
+
+# Install Halmos (formal verification / symbolic testing). Native ARM builds
+# can spend a long time compiling z3-solver from source, so ARM skips it by
+# default. Set --build-arg MIESC_BUILD_HALMOS=true to force the source build.
+RUN ARCH="$(dpkg --print-architecture)" && \
+    if [ "$ARCH" = "amd64" ] || [ "$MIESC_BUILD_HALMOS" = "true" ]; then \
+        pip install --user --no-cache-dir halmos && \
+        echo "Halmos installed successfully"; \
+    else \
+        echo "WARNING: Halmos native build skipped for $ARCH. Use amd64 full image or local bootstrap for Halmos."; \
+    fi
 
 # ==========================================
 # LAYER 4: FORMAL VERIFICATION / TESTING
 # ==========================================
 
-# Install Wake (Ackee Blockchain's Python-based testing framework)
-# https://getwake.io
-RUN pip install --user --no-cache-dir eth-wake && \
+# Install Wake (Ackee Blockchain's Python-based testing framework) in an
+# isolated runtime. eth-wake pins older web3/eth-* dependencies that conflict
+# with Slither and the main MIESC runtime.
+RUN python -m venv /app/.tools/wake && \
+    /app/.tools/wake/bin/pip install --no-cache-dir --upgrade pip setuptools wheel eth-wake && \
+    /app/.tools/wake/bin/wake --version && \
     echo "Wake (eth-wake) installed successfully"
 
-# NOTE: Manticore is DEPRECATED and NOT installed
-# Reason: pysha3 dependency fails on Python 3.12 (missing pystrhex.h)
-# The Manticore project is in maintenance-only mode
-# Use Halmos or Mythril instead for symbolic execution
+# Install Certora CLI. A Certora API key must be provided at run time via
+# CERTORAKEY or CERTORA_KEY; it is never baked into the image.
+RUN python -m venv /app/.tools/certora && \
+    /app/.tools/certora/bin/pip install --no-cache-dir --upgrade pip setuptools wheel certora-cli && \
+    /app/.tools/certora/bin/certoraRun --version
 
 # ==========================================
 # LAYER 6: ML ANALYSIS TOOLS
@@ -140,18 +180,28 @@ RUN pip install --user --no-cache-dir \
     numpy \
     && echo "scikit-learn installed for ML adapters"
 
-# Install ChromaDB and sentence-transformers for EmbeddingRAG
-# Provides semantic search for vulnerability knowledge base
+# Install ChromaDB and sentence-transformers for EmbeddingRAG.
+# PyTorch is already installed from the CPU-only index above, so pip should not
+# resolve the default CUDA-enabled torch dependency chain here.
 RUN pip install --user --no-cache-dir \
     chromadb>=0.4.0 \
     sentence-transformers>=2.2.0 \
     rank-bm25>=0.2.2 \
     && echo "RAG dependencies installed (ChromaDB, sentence-transformers)"
 
-# Install Semgrep (pattern-based analysis)
-# Has native wheels for both x86 and ARM
-RUN pip install --user --no-cache-dir semgrep && \
-    echo "Semgrep installed"
+# Install Semgrep (pattern-based analysis) in an isolated runtime. Recent
+# Semgrep releases pin click/opentelemetry versions that can conflict with the
+# CLI stack when installed into the main environment. Native ARM wheels may
+# fail with illegal-instruction errors in Docker, so ARM skips it by default.
+RUN ARCH="$(dpkg --print-architecture)" && \
+    if [ "$ARCH" = "amd64" ] || [ "$MIESC_BUILD_SEMGREP" = "true" ]; then \
+        python -m venv /app/.tools/semgrep && \
+        /app/.tools/semgrep/bin/pip install --no-cache-dir --upgrade pip setuptools wheel semgrep && \
+        /app/.tools/semgrep/bin/semgrep --version && \
+        echo "Semgrep installed"; \
+    else \
+        echo "WARNING: Semgrep native build skipped for $ARCH. Use amd64 full image or local bootstrap for Semgrep."; \
+    fi
 
 # ==========================================
 # ENVIRONMENT CONFIGURATION
@@ -159,9 +209,9 @@ RUN pip install --user --no-cache-dir semgrep && \
 
 ENV MIESC_VERSION="5.4.0-full"
 ENV MIESC_ENV="docker-full"
-
-# Mark deprecated tools
-ENV MIESC_DEPRECATED_TOOLS="manticore,oyente"
+ENV PATH="/app/.tools/mythril/bin:/app/.tools/manticore39/bin:/app/.tools/wake/bin:/app/.tools/certora/bin:/app/.tools/semgrep/bin:/home/miesc/.local/bin:${PATH}"
+ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION="python"
+ENV MPLCONFIGDIR="/tmp/miesc-matplotlib"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

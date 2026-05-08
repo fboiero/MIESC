@@ -256,9 +256,11 @@ class PropertyGPTAdapter(ToolAdapter):
             # Extract contract metadata
             contract_info = self._analyze_contract_structure(contract_source)
 
+            timeout = int(kwargs.get("timeout", 120))
+
             # Generate properties using LLM
             logger.info(f"Generating formal properties using {self.llm_backend}...")
-            properties = self._generate_properties_llm(contract_source, contract_info)
+            properties = self._generate_properties_llm(contract_source, contract_info, timeout=timeout)
 
             # Filter by confidence threshold
             high_confidence_properties = [
@@ -373,7 +375,7 @@ class PropertyGPTAdapter(ToolAdapter):
         return info
 
     def _generate_properties_llm(
-        self, contract_source: str, contract_info: Dict
+        self, contract_source: str, contract_info: Dict, timeout: int = 120
     ) -> List[Dict[str, Any]]:
         """
         Generate formal properties using LLM backend.
@@ -385,7 +387,7 @@ class PropertyGPTAdapter(ToolAdapter):
 
         # Call LLM backend
         if self.llm_backend == "ollama":
-            properties = self._generate_with_ollama(prompt)
+            properties = self._generate_with_ollama(prompt, timeout=timeout)
         elif self.llm_backend == "gpt-4":
             properties = self._generate_with_openai(prompt)
         elif self.llm_backend == "claude":
@@ -468,7 +470,7 @@ Output: JSON array. Only generate properties relevant to THIS contract's logic.
 """
         return prompt
 
-    def _generate_with_ollama(self, prompt: str) -> List[Dict[str, Any]]:
+    def _generate_with_ollama(self, prompt: str, timeout: int = 120) -> List[Dict[str, Any]]:
         """Generate properties using local Ollama HTTP API."""
         import urllib.error
         import urllib.request
@@ -502,7 +504,7 @@ Output: JSON array. Only generate properties relevant to THIS contract's logic.
                 method="POST",
             )
 
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read().decode())
                     response_text = data.get("response", "").strip()

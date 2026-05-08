@@ -66,6 +66,7 @@ Thumbs.db
 .env.local
 local.env
 config.local.yml
+apik.sh
 *.key
 *.pem
 *.crt

@@ -6,8 +6,7 @@
 # - Security tools: Slither, Aderyn
 # - Foundry toolchain (forge, cast, anvil)
 # - Solidity compiler (solc) + Solhint linter
-# - ML Pipeline: FP filtering, severity prediction, clustering
-# - All MIESC dependencies + OpenLLaMA support
+# - CLI, web/API, LLM connectors, MCP, and PDF report generation
 # - PDF generation with weasyprint
 # - Complete test suite
 #
@@ -55,8 +54,10 @@ RUN foundryup
 FROM python:3.12-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.3.1"
+LABEL version="5.4.0"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
+ARG TARGETARCH
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Copy aderyn from aderyn-builder
 COPY --from=aderyn-builder /root/.cargo/bin/aderyn /usr/local/bin/
@@ -71,7 +72,6 @@ COPY --from=foundry-builder /root/.foundry/bin/anvil /usr/local/bin/
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
-    wget \
     libssl3 \
     ca-certificates \
     build-essential \
@@ -81,8 +81,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgmp-dev \
     cmake \
     pkg-config \
-    software-properties-common \
-    gnupg \
     nodejs \
     npm \
     # WeasyPrint dependencies for PDF generation
@@ -98,10 +96,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Solhint (Solidity linter) - pinned version for reproducibility
 RUN npm install -g solhint@5.0.3
 
-# Install Solc from Ethereum PPA (native binary for ARM/x86)
-RUN curl -fsSL https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.20+commit.a1b79de6 -o /usr/local/bin/solc-0.8.20 || \
-    (apt-get update && apt-get install -y solc && rm -rf /var/lib/apt/lists/*) && \
-    chmod +x /usr/local/bin/solc-0.8.20 2>/dev/null || true
+# Install Solidity compiler.
+# linux/amd64 gets the native Solidity binary. Other architectures use solcjs
+# as a functional fallback; solc-select downloads x86_64 binaries and is skipped
+# later on non-amd64 images.
+RUN if [ "${TARGETARCH:-$(dpkg --print-architecture)}" = "amd64" ]; then \
+        curl -fsSL https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.20+commit.a1b79de6 -o /usr/local/bin/solc-0.8.20 && \
+        chmod +x /usr/local/bin/solc-0.8.20 && \
+        ln -sf /usr/local/bin/solc-0.8.20 /usr/local/bin/solc; \
+    else \
+        npm install -g solc@0.8.20 && \
+        ln -sf /usr/local/bin/solcjs /usr/local/bin/solc; \
+    fi
 
 # Create non-root user for security
 RUN useradd -m -u 1000 -s /bin/bash miesc && \
@@ -118,6 +124,8 @@ USER miesc
 RUN mkdir -p /home/miesc/.tmp && chmod 755 /home/miesc/.tmp
 ENV TMPDIR="/home/miesc/.tmp"
 ENV PIP_CACHE_DIR="/home/miesc/.cache/pip"
+# Make user-installed CLI tools available during dependency installation and runtime.
+ENV PATH="/home/miesc/.local/bin:${PATH}"
 
 # Copy package definition + wrapper package (stable, changes rarely)
 COPY --chown=miesc:miesc pyproject.toml README.md ./
@@ -125,15 +133,18 @@ COPY --chown=miesc:miesc miesc/ miesc/
 
 # Create src package stubs so setuptools can resolve declared packages.
 # Real source code is copied later; this just satisfies the editable install.
-RUN mkdir -p src/adapters src/agents/audit_readiness src/core src/detectors \
-             src/llm src/mcp_core src/ml/fine_tuning src/security \
-             src/poc/validators src/plugins src/reports src/utils && \
+RUN mkdir -p src/adapters src/agents/audit_readiness src/benchmark src/cache \
+             src/core src/dashboard src/detectors src/evaluation src/formal \
+             src/integration src/knowledge_base src/licensing src/llm \
+             src/mcp_core src/ml/fine_tuning src/security src/poc/validators \
+             src/plugins src/reports src/utils && \
     find src -type d -exec sh -c 'touch "$1/__init__.py"' _ {} \;
 
-# Install MIESC dependencies (cached unless pyproject.toml changes)
-# Using [dev,full] to include prometheus-client, FastAPI, uvicorn, and all features
+# Install MIESC dependencies (cached unless pyproject.toml changes).
+# Keep the standard image CPU/lightweight: EmbeddingRAG and ML libraries live in
+# Dockerfile.full, where PyTorch is installed from the CPU-only index first.
 RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
-    pip install --user -e ".[dev,full]"
+    pip install --user -e ".[web,django,pdf,llm,metrics]"
 
 # Install MCP server dependencies
 RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
@@ -143,18 +154,22 @@ RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
 COPY --chown=miesc:miesc . .
 
 # Reinstall in editable mode with no-deps (just re-links, takes seconds)
-RUN pip install --no-deps --user -e .
-
-# Add user's local bin to PATH (needed for tools installed above)
-ENV PATH="/home/miesc/.local/bin:${PATH}"
+RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
+    pip install --no-deps --user -e .
 
 # Note: slither-analyzer and crytic-compile are already installed via pyproject.toml
 
-# Install solc versions (common versions for smart contract analysis)
-RUN solc-select install 0.8.0 && \
-    solc-select install 0.8.17 && \
-    solc-select install 0.8.20 && \
-    solc-select use 0.8.20
+# Install solc versions on amd64 only. On ARM, solc-select installs x86_64
+# compiler binaries that fail without a matching userspace, so the image keeps
+# the solcjs fallback installed above.
+RUN if [ "${TARGETARCH:-$(dpkg --print-architecture)}" = "amd64" ]; then \
+        solc-select install 0.8.0 && \
+        solc-select install 0.8.17 && \
+        solc-select install 0.8.20 && \
+        solc-select use 0.8.20; \
+    else \
+        solc --version; \
+    fi
 
 # Install weasyprint for PDF generation
 RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
@@ -162,7 +177,7 @@ RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
     echo "WeasyPrint installed successfully"
 
 # Environment variables for MIESC
-ENV MIESC_VERSION="5.1.1"
+ENV MIESC_VERSION="5.4.0"
 ENV MIESC_ENV="docker"
 ENV PYTHONPATH="/app"
 ENV PYTHONUNBUFFERED=1

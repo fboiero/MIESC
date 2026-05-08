@@ -103,8 +103,10 @@ llm = [
 # RAG with embeddings and vector database
 rag = [
     "chromadb>=0.4.0",
-    "sentence-transformers>=2.2.0",
     "rank-bm25>=0.2.2",
+]
+rag-embeddings = [
+    "sentence-transformers>=2.2.0",
 ]
 # Web frameworks for API servers and web UI
 web = [
@@ -138,12 +140,16 @@ full = [
     "plotly>=5.18.0",
     "weasyprint>=60.0",
     "markdown>=3.5.0",
-    # RAG dependencies
+    # Lightweight RAG dependencies. Semantic embeddings are split into
+    # rag-embeddings so CPU-only Docker builds do not accidentally pull CUDA
+    # PyTorch wheels from the default package index.
     "chromadb>=0.4.0",
-    "sentence-transformers>=2.2.0",
     "rank-bm25>=0.2.2",
     # Note: mythril and django excluded due to dependency conflicts
     # Install separately: pip install mythril django djangorestframework
+]
+researcher = [
+    "miesc[full,rag-embeddings]",
 ]
 
 [project.urls]
@@ -170,6 +176,7 @@ access-control = "miesc.detectors.builtin:AccessControlDetector"
 version = {attr = "miesc.__version__"}
 
 [tool.setuptools]
+include-package-data = false
 packages = [
     "miesc",
     "miesc.core",
@@ -182,24 +189,42 @@ packages = [
     "miesc.ml",
     "miesc.mcp",
     "miesc.llm",
+    "miesc.detectors",
+    "miesc.plugins",
+    "miesc.plugins.templates",
     "src",
     "src.adapters",
     "src.agents",
     "src.agents.audit_readiness",
+    "src.benchmark",
+    "src.cache",
     "src.core",
+    "src.dashboard",
     "src.detectors",
+    "src.evaluation",
+    "src.formal",
+    "src.integration",
+    "src.knowledge_base",
+    "src.licensing",
     "src.llm",
     "src.mcp_core",
     "src.ml",
     "src.ml.fine_tuning",
-    "src.security"
+    "src.plugins",
+    "src.poc",
+    "src.poc.validators",
+    "src.reports",
+    "src.security",
+    "src.utils",
 ]
 
 [tool.setuptools.package-data]
 miesc = [
-    "py.typed",
     "data/templates/reports/*.md",
     "data/config/*.yaml",
+]
+"src.knowledge_base" = [
+    "*.json",
 ]
 
 [tool.black]

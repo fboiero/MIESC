@@ -74,13 +74,14 @@ caller needs Paper 2 style evidence:
 
 The remediation evidence contract is:
 
-- `source_path`, `patched_path`
-- `source_sha256`, `patched_sha256`
-- `fix_applied`, `patched_changed`
-- `patches`
+- `status`
+- `original_path`, `patched_path`
+- `original_sha256`, `patched_sha256`
+- `findings_input`, `fixable_findings`
+- `fixes_applied`, `fixes_skipped`
 - `compile`
 - `rescan`
-- `no_regression`
+- `generated_at`, `miesc_version`
 - `errors`
 
 REST, MCP, CLI, and benchmark code should preserve this contract so paper

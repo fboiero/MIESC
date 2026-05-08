@@ -255,6 +255,17 @@ cd MIESC && pip install -e .[dev]
 
 Requirements: Python 3.12+. Slither installs automatically. Other tools are optional — MIESC uses whatever is available.
 
+For a full researcher workstation with isolated Mythril, Manticore, Certora CLI, Wake, Semgrep, and formal-verification tooling:
+
+```bash
+git clone https://github.com/fboiero/MIESC.git
+cd MIESC
+./scripts/bootstrap_researcher_tools.sh
+make researcher-smoke
+```
+
+See [Researcher Packaging Guide](./docs/guides/RESEARCHER_PACKAGING.md) for the recommended PyPI + Docker + local bootstrap distribution model.
+
 ---
 
 ## Multi-Chain Support
@@ -357,13 +368,13 @@ For environments without a host Ollama, use docker-compose to run everything tog
 
 ```bash
 # Start MIESC + Ollama + model initialization
-docker compose --profile llm up -d
+docker compose -f docker/docker-compose.yml --profile llm up -d
 
 # Run analysis
-docker compose exec miesc miesc scan /contracts/MyContract.sol
+docker compose -f docker/docker-compose.yml exec miesc miesc scan /app/contracts/MyContract.sol
 
 # Stop
-docker compose down
+docker compose -f docker/docker-compose.yml down
 ```
 
 The compose stack automatically pulls `deepseek-coder:6.7b` and configures inter-service networking.
@@ -373,10 +384,25 @@ The compose stack automatically pulls `deepseek-coder:6.7b` and configures inter
 <details>
 <summary><strong>ARM / Apple Silicon notes</strong></summary>
 
-The **standard** image runs natively on ARM. The **full** image is amd64-only in the registry (runs under QEMU emulation). Build natively with:
+The **standard** image runs natively on ARM. The registry **full** image is intended as amd64 for maximum tool parity. Native ARM full builds skip Echidna, Medusa, Mythril, Manticore, Halmos, and Semgrep by default because upstream releases are amd64-only, require long Z3 source builds, or ship ARM wheels that are not reliable in Docker. Build natively with:
 
 ```bash
-./scripts/build-images.sh full  # ~30-60 min, but native speed
+./scripts/build-images.sh full
+```
+
+For full ARM workstation parity, prefer the local bootstrap:
+
+```bash
+./scripts/bootstrap_researcher_tools.sh
+```
+
+To force native ARM Mythril, Manticore, Halmos, or Semgrep builds inside Docker:
+
+```bash
+MIESC_BUILD_MYTHRIL=true ./scripts/build-images.sh full
+MIESC_BUILD_MANTICORE=true ./scripts/build-images.sh full
+MIESC_BUILD_HALMOS=true ./scripts/build-images.sh full
+MIESC_BUILD_SEMGREP=true ./scripts/build-images.sh full
 ```
 
 </details>

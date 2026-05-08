@@ -230,9 +230,21 @@ class ZKCircuitAdapter(ToolAdapter):
         framework = self._detect_framework(path)
 
         if framework is None:
-            return self._error_result(
-                start_time, f"Unsupported file type: {path.suffix}. Supported: .circom, .nr"
-            )
+            return {
+                "tool": "zk_circuit_analyzer",
+                "version": "1.0.0",
+                "status": "success",
+                "findings": [],
+                "execution_time": time.time() - start_time,
+                "metadata": {
+                    "skipped": True,
+                    "skipped_reason": (
+                        f"Unsupported file type: {path.suffix}. Supported: .circom, .nr"
+                    ),
+                    "file_type": path.suffix,
+                },
+                "error": None,
+            }
 
         try:
             # Read circuit file

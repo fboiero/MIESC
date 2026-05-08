@@ -15,6 +15,8 @@ Version: 2.0.0 (Matured)
 import logging
 import os
 import re
+import shlex
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -79,15 +81,27 @@ class CertoraAdapter(ToolAdapter):
 
     def is_available(self) -> ToolStatus:
         """Check if Certora Prover is installed and licensed."""
+        certora_cmd = self._certora_cmd()
+        if not certora_cmd:
+            logger.info(
+                "Certora not installed. Requires commercial license from https://www.certora.com"
+            )
+            return ToolStatus.NOT_INSTALLED
+
         try:
             # Check if certoraRun command exists
             result = subprocess.run(
-                ["certoraRun", "--version"], capture_output=True, timeout=10, text=True
+                [certora_cmd, "--version"],
+                capture_output=True,
+                timeout=10,
+                text=True,
+                env=self._certora_env(),
             )
 
             if result.returncode == 0:
                 # Check for API key
-                api_key = os.getenv("CERTORAKEY") or os.getenv("CERTORA_KEY")
+                env = self._certora_env()
+                api_key = env.get("CERTORAKEY") or env.get("CERTORA_KEY")
                 if not api_key:
                     logger.warning("CERTORAKEY environment variable not set")
                     return ToolStatus.CONFIGURATION_ERROR
@@ -108,6 +122,49 @@ class CertoraAdapter(ToolAdapter):
         except Exception as e:
             logger.error(f"Error checking Certora: {e}")
             return ToolStatus.CONFIGURATION_ERROR
+
+    def _certora_cmd(self) -> Optional[str]:
+        repo_root = Path(__file__).resolve().parents[2]
+        candidates = [
+            Path(".tools/certora/bin/certoraRun"),
+            repo_root / ".tools" / "certora" / "bin" / "certoraRun",
+        ]
+        path_cmd = shutil.which("certoraRun")
+        if path_cmd:
+            candidates.append(Path(path_cmd))
+
+        for candidate in candidates:
+            if candidate.exists() and os.access(candidate, os.X_OK):
+                return str(candidate.resolve())
+
+        return None
+
+    def _certora_env(self) -> Dict[str, str]:
+        env = os.environ.copy()
+        repo_root = Path(__file__).resolve().parents[2]
+        api_files = [Path("apik.sh"), repo_root / "apik.sh"]
+        api_file = next((path for path in api_files if path.exists()), None)
+        if not api_file:
+            return env
+
+        try:
+            for raw_line in api_file.read_text(encoding="utf-8").splitlines():
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if line.startswith("export "):
+                    line = line[len("export ") :].strip()
+                if "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                if key not in {"CERTORAKEY", "CERTORA_KEY"}:
+                    continue
+                env[key] = shlex.split(value, posix=True)[0] if value.strip() else ""
+        except Exception as e:
+            logger.debug(f"Could not load Certora API key file: {e}")
+
+        return env
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -239,7 +296,7 @@ class CertoraAdapter(ToolAdapter):
         """Execute Certora Prover verification."""
 
         cmd = [
-            "certoraRun",
+            self._certora_cmd() or "certoraRun",
             contract_path,
             "--verify",
             f"{Path(contract_path).stem}:{spec_file}",
@@ -253,7 +310,12 @@ class CertoraAdapter(ToolAdapter):
         logger.info(f"Certora: Running formal verification (timeout={timeout}s)")
 
         result = subprocess.run(
-            cmd, capture_output=True, timeout=timeout, text=True, cwd=Path(contract_path).parent
+            cmd,
+            capture_output=True,
+            timeout=timeout,
+            text=True,
+            cwd=Path(contract_path).parent,
+            env=self._certora_env(),
         )
 
         # Certora returns non-zero for violations (expected)

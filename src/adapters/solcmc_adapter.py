@@ -19,6 +19,7 @@ License: AGPL-3.0
 
 import hashlib
 import logging
+import os
 import re
 import shutil
 import subprocess
@@ -141,10 +142,40 @@ class SolCMCAdapter(ToolAdapter):
         )
 
     def is_available(self) -> ToolStatus:
-        solc = shutil.which("solc")
+        solc = self._find_working_solc()
         if not solc:
             return ToolStatus.NOT_INSTALLED
 
+        return ToolStatus.AVAILABLE
+
+    def _find_working_solc(self) -> Optional[str]:
+        candidates = []
+        seen = set()
+        for path_dir in os.environ.get("PATH", "").split(os.pathsep):
+            candidate = Path(path_dir) / "solc"
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            if candidate.exists() and os.access(candidate, os.X_OK):
+                candidates.append(str(candidate))
+
+        homebrew_solc = Path("/opt/homebrew/bin/solc")
+        if homebrew_solc.exists() and str(homebrew_solc) not in candidates:
+            candidates.append(str(homebrew_solc))
+
+        for solc in candidates:
+            version = self._read_solc_version(solc)
+            if not version:
+                continue
+            parts = version.split(".")
+            if int(parts[0]) == 0 and int(parts[1]) >= 8:
+                self._solc_version = version
+                self._solc_path = solc
+                return solc
+
+        return None
+
+    def _read_solc_version(self, solc: str) -> Optional[str]:
         try:
             result = subprocess.run(
                 [solc, "--version"],
@@ -153,16 +184,9 @@ class SolCMCAdapter(ToolAdapter):
                 timeout=10,
             )
             version_match = re.search(r"(\d+\.\d+\.\d+)", result.stdout)
-            if version_match:
-                self._solc_version = version_match.group(1)
-                self._solc_path = solc
-                parts = self._solc_version.split(".")
-                if int(parts[0]) == 0 and int(parts[1]) >= 8:
-                    return ToolStatus.AVAILABLE
+            return version_match.group(1) if version_match else None
         except Exception:
-            pass
-
-        return ToolStatus.NOT_INSTALLED
+            return None
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         start_time = time.time()

@@ -849,11 +849,11 @@ def audit_full(contract, output, fmt, layers, timeout, skip_unavailable, ml, cor
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
 @click.option("--timeout", "-t", type=int, default=300, help="Timeout per tool in seconds")
 def audit_layer(layer_num, contract, output, timeout):
-    """Run a specific layer's tools (1-7)."""
+    """Run a specific layer's tools (1-9)."""
     print_banner()
 
     if layer_num not in LAYERS:
-        error(f"Invalid layer: {layer_num}. Valid layers: 1-7")
+        error(f"Invalid layer: {layer_num}. Valid layers: {', '.join(map(str, LAYERS))}")
         for num, layer_info in LAYERS.items():
             info(f"  Layer {num}: {layer_info['name']}")
         sys.exit(1)

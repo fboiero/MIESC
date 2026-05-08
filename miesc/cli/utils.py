@@ -496,14 +496,33 @@ def run_plugins(contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
         if not enabled_detectors:
             return results
 
+        import inspect
         import time as _time
+
+        try:
+            source_code = Path(contract).read_text(encoding="utf-8")
+        except Exception:
+            source_code = contract
 
         for detector_name, detector_class in enabled_detectors:
             info(f"Running plugin: {detector_name}...")
             start = _time.perf_counter()
             try:
                 detector = detector_class()
-                findings = detector.analyze(contract, timeout=timeout)
+                analyze_sig = inspect.signature(detector.analyze)
+                params = analyze_sig.parameters
+                first_param = next(iter(params.values()), None)
+                first_arg = (
+                    contract
+                    if first_param and first_param.name in {"contract", "contract_path", "path"}
+                    else source_code
+                )
+                call_kwargs: Dict[str, Any] = {}
+                if "file_path" in params:
+                    call_kwargs["file_path"] = contract
+                if "timeout" in params:
+                    call_kwargs["timeout"] = timeout
+                findings = detector.analyze(first_arg, **call_kwargs)
                 elapsed = _time.perf_counter() - start
 
                 # Normalize findings
@@ -512,6 +531,14 @@ def run_plugins(contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
                     if isinstance(f, dict):
                         f.setdefault("tool", f"plugin:{detector_name}")
                         normalized.append(f)
+                    elif hasattr(f, "to_dict"):
+                        item = f.to_dict()
+                        item.setdefault("tool", f"plugin:{detector_name}")
+                        normalized.append(item)
+                    elif hasattr(f, "__dict__"):
+                        item = dict(f.__dict__)
+                        item.setdefault("tool", f"plugin:{detector_name}")
+                        normalized.append(item)
 
                 result = {
                     "tool": f"plugin:{detector_name}",

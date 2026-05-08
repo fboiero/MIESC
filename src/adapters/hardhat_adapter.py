@@ -242,10 +242,14 @@ class HardhatAdapter(ToolAdapter):
             if not project_dir:
                 return {
                     "tool": "hardhat",
-                    "status": "error",
+                    "status": "success",
                     "findings": [],
                     "execution_time": time.time() - start_time,
-                    "error": "No Hardhat project found (missing hardhat.config.js)",
+                    "metadata": {
+                        "skipped": True,
+                        "skipped_reason": "No Hardhat project found (missing hardhat.config.js)",
+                    },
+                    "error": None,
                 }
 
             verbose = kwargs.get("verbose", True)

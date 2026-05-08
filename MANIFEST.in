@@ -12,13 +12,9 @@ include requirements.txt
 recursive-include miesc *.py
 recursive-include src *.py
 
-# Include type hints
-recursive-include miesc py.typed
-recursive-include src py.typed
-
 # Include configuration files
-recursive-include miesc *.yaml *.json
-recursive-include src *.yaml *.json
+recursive-include miesc *.yaml
+recursive-include src *.json
 
 # Exclude development and build artifacts
 prune tests

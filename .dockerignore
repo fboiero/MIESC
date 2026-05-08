@@ -10,14 +10,16 @@ __pycache__
 dist
 build
 *.egg
-.pytest_cache
 .coverage
 htmlcov
-.mypy_cache
 .ruff_cache
 .venv
 venv
 env
+.tools
+.uv
+.mypy_cache
+.pytest_cache
 
 # Node
 node_modules
@@ -61,6 +63,10 @@ validation_results
 tests
 contracts
 data
+outputs
+artifacts
+tmp
+temp
 *.pdf
 *.html
 *.json

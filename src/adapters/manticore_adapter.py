@@ -11,6 +11,8 @@ Version: 2.0.0 (Matured)
 """
 
 import logging
+import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -82,9 +84,18 @@ class ManticoreAdapter(ToolAdapter):
 
     def is_available(self) -> ToolStatus:
         """Check if Manticore is installed and functional."""
+        manticore_cmd = self._manticore_cmd()
+        if not manticore_cmd:
+            logger.info("Manticore not installed. Install: pip install manticore")
+            return ToolStatus.NOT_INSTALLED
+
         try:
             result = subprocess.run(
-                ["manticore", "--version"], capture_output=True, timeout=5, text=True
+                [manticore_cmd, "--version"],
+                capture_output=True,
+                timeout=10,
+                text=True,
+                env={**os.environ, "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": "python"},
             )
 
             if result.returncode == 0:
@@ -102,6 +113,24 @@ class ManticoreAdapter(ToolAdapter):
         except Exception as e:
             logger.error(f"Error checking Manticore: {e}")
             return ToolStatus.CONFIGURATION_ERROR
+
+    def _manticore_cmd(self) -> str | None:
+        repo_root = Path(__file__).resolve().parents[2]
+        candidates = [
+            Path(".tools/manticore39/bin/manticore"),
+            repo_root / ".tools" / "manticore39" / "bin" / "manticore",
+            Path(".tools/manticore310/bin/manticore"),
+            repo_root / ".tools" / "manticore310" / "bin" / "manticore",
+        ]
+        path_cmd = shutil.which("manticore")
+        if path_cmd:
+            candidates.append(Path(path_cmd))
+
+        for candidate in candidates:
+            if candidate.exists() and os.access(candidate, os.X_OK):
+                return str(candidate.resolve())
+
+        return None
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -131,6 +160,7 @@ class ManticoreAdapter(ToolAdapter):
             # Get configuration
             timeout = kwargs.get("timeout", self._default_timeout)
             max_depth = kwargs.get("max_depth", self._max_depth)
+            contract_name = kwargs.get("contract_name") or self._detect_contract_name(contract_path)
 
             # Create temporary workspace
             temp_dir = tempfile.mkdtemp(prefix="manticore_")
@@ -138,7 +168,11 @@ class ManticoreAdapter(ToolAdapter):
             try:
                 # Run Manticore analysis
                 raw_output = self._run_manticore(
-                    contract_path, temp_dir, timeout=timeout, max_depth=max_depth
+                    contract_path,
+                    temp_dir,
+                    timeout=timeout,
+                    max_depth=max_depth,
+                    contract_name=contract_name,
                 )
 
                 # Parse findings
@@ -167,7 +201,12 @@ class ManticoreAdapter(ToolAdapter):
                     "version": "2.0.0",
                     "status": "success",
                     "findings": findings,
-                    "metadata": {"timeout": timeout, "max_depth": max_depth, "workspace": temp_dir},
+                    "metadata": {
+                        "timeout": timeout,
+                        "max_depth": max_depth,
+                        "workspace": temp_dir,
+                        "contract_name": contract_name,
+                    },
                     "execution_time": time.time() - start_time,
                 }
 
@@ -215,24 +254,38 @@ class ManticoreAdapter(ToolAdapter):
     # ============================================================================
 
     def _run_manticore(
-        self, contract_path: str, workspace: str, timeout: int = 600, max_depth: int = 100
+        self,
+        contract_path: str,
+        workspace: str,
+        timeout: int = 600,
+        max_depth: int = 100,
+        contract_name: str | None = None,
     ) -> str:
         """Execute Manticore analysis."""
 
         cmd = [
-            "manticore",
-            contract_path,
+            self._manticore_cmd() or "manticore",
+            str(Path(contract_path).resolve()),
             "--workspace",
             workspace,
-            "--maxdepth",
-            str(max_depth),
-            "--quick-mode",  # Faster analysis
+            "--core.timeout",
+            str(timeout),
+            "--txlimit",
+            str(max(1, min(max_depth, 3))),
+            "--no-testcases",
         ]
+        if contract_name:
+            cmd.extend(["--contract", contract_name])
 
         logger.info(f"Manticore: Running analysis (timeout={timeout}s)")
 
         result = subprocess.run(
-            cmd, capture_output=True, timeout=timeout, text=True, cwd=Path(contract_path).parent
+            cmd,
+            capture_output=True,
+            timeout=timeout,
+            text=True,
+            cwd=Path(contract_path).parent,
+            env={**os.environ, "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": "python"},
         )
 
         if result.returncode != 0:
@@ -248,8 +301,12 @@ class ManticoreAdapter(ToolAdapter):
 
         # Parse textual output for key indicators
         lines = output.split("\n")
+        if "usage: manticore" in output and "error: unrecognized arguments" in output:
+            return findings
 
         for _i, line in enumerate(lines):
+            if "Traceback" in line or "manticore.exceptions." in line or "Failed to build" in line:
+                continue
             # Detect assertion failures
             if "REVERT" in line or "INVALID" in line or "ASSERTION" in line:
                 findings.append(
@@ -332,6 +389,22 @@ class ManticoreAdapter(ToolAdapter):
 
         logger.info(f"Manticore: Extracted {len(findings)} findings")
         return findings
+
+    def _detect_contract_name(self, contract_path: str) -> str | None:
+        """Select a concrete contract when a Solidity file contains multiple contracts."""
+        try:
+            code = Path(contract_path).read_text(encoding="utf-8")
+        except Exception:
+            return None
+
+        code = re.sub(r"/\*.*?\*/", "", code, flags=re.DOTALL)
+        code = re.sub(r"//.*", "", code)
+        names = re.findall(r"\bcontract\s+([A-Za-z_][A-Za-z0-9_]*)", code)
+        if not names:
+            return None
+
+        non_test_names = [name for name in names if not name.lower().endswith(("attacker", "test"))]
+        return non_test_names[0] if non_test_names else names[0]
 
 
 __all__ = ["ManticoreAdapter"]

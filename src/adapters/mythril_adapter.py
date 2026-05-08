@@ -13,7 +13,10 @@ Version: 1.0.0
 
 import json
 import logging
+import os
+import shutil
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -107,8 +110,19 @@ class MythrilAdapter(ToolAdapter):
             ToolStatus.AVAILABLE if mythril is installed and working
             ToolStatus.NOT_INSTALLED otherwise
         """
+        myth_cmd = self._myth_cmd()
+        if not myth_cmd:
+            logger.info("Mythril not installed (optional tool)")
+            return ToolStatus.NOT_INSTALLED
+
         try:
-            result = subprocess.run(["myth", "version"], capture_output=True, text=True, timeout=10)
+            result = subprocess.run(
+                [myth_cmd, "version"],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                env=self._myth_env(),
+            )
 
             if result.returncode == 0:
                 version = result.stdout.strip()
@@ -127,6 +141,27 @@ class MythrilAdapter(ToolAdapter):
         except Exception as e:
             logger.error(f"Error checking Mythril availability: {e}")
             return ToolStatus.CONFIGURATION_ERROR
+
+    def _myth_cmd(self) -> Optional[str]:
+        repo_root = Path(__file__).resolve().parents[2]
+        candidates = [
+            Path(".tools/mythril/bin/myth"),
+            repo_root / ".tools" / "mythril" / "bin" / "myth",
+        ]
+        path_cmd = shutil.which("myth")
+        if path_cmd:
+            candidates.append(Path(path_cmd))
+
+        for candidate in candidates:
+            if candidate.exists() and os.access(candidate, os.X_OK):
+                return str(candidate.resolve())
+
+        return None
+
+    def _myth_env(self) -> dict[str, str]:
+        env = os.environ.copy()
+        env.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "miesc-matplotlib"))
+        return env
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -191,8 +226,9 @@ class MythrilAdapter(ToolAdapter):
             solver_timeout = kwargs.get("solver_timeout", 100000)
 
             # Build command
+            myth_cmd = self._myth_cmd() or "myth"
             cmd = [
-                "myth",
+                myth_cmd,
                 "analyze",
                 contract_path,
                 "-o",
@@ -218,7 +254,12 @@ class MythrilAdapter(ToolAdapter):
 
             # Execute Mythril with streaming output
             process = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                env=self._myth_env(),
             )
 
             stdout_data = []

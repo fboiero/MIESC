@@ -1,12 +1,13 @@
-# MIESC v5.1.1 - Docker Compose Configuration
+# MIESC v5.4.0 - Docker Compose Configuration
 # Multi-layer Intelligent Evaluation for Smart Contracts
 # Now with ML Pipeline: FP filtering, severity prediction, clustering
 # Plus: Ollama LLM integration for AI-powered report interpretation
 # SmartLLM: Uses deepseek-coder for code analysis, mistral for general interpretation
 #
 # Architecture / Platform Notes:
-#   - miesc:latest (standard) is multi-arch (amd64 + arm64) - works natively everywhere
-#   - miesc:full is amd64-only in the registry; on ARM hosts it runs under QEMU
+#   - miesc:5.4.0 (standard) is multi-arch capable and runs natively on ARM.
+#   - miesc:5.4.0-full is amd64-oriented for complete tool parity in the
+#     registry. Native ARM full builds skip selected upstream tools by default.
 #   - ollama/ollama:latest is multi-arch - works natively everywhere
 #   - Platform selection is NOT set via 'platform:' keys in this file to avoid
 #     compatibility issues with Compose < v2.20 (empty values cause errors).
@@ -16,39 +17,37 @@
 #     1) Emulated amd64 (QEMU), 2) Native arm64 build, 3) Skip full image
 #
 # Usage:
-#   Build and run:     docker-compose up --build
-#   Run tests:         docker-compose run miesc-test
-#   Run API server:    docker-compose up miesc-api
-#   Run ML CLI:        docker-compose run miesc-ml
-#   Interactive shell: docker-compose run miesc-shell
+#   Build and run:     docker compose -f docker/docker-compose.yml up --build
+#   Run tests:         docker compose -f docker/docker-compose.yml run miesc-test
+#   Run API server:    docker compose -f docker/docker-compose.yml up miesc-api
+#   Run ML CLI:        docker compose -f docker/docker-compose.yml run miesc-ml
+#   Interactive shell: docker compose -f docker/docker-compose.yml run miesc-shell
 #
 # LLM-Enhanced Reports:
 #   # Start Ollama with both models
-#   docker-compose --profile llm up -d ollama ollama-init
+#   docker compose -f docker/docker-compose.yml --profile llm up -d ollama ollama-init
 #
 #   # Or use the setup script
 #   ./scripts/docker-setup.sh
 #
 #   # Run audit with LLM interpretation
-#   docker-compose run miesc-shell
+#   docker compose -f docker/docker-compose.yml run miesc-shell
 #   miesc audit full /app/contracts/MyContract.sol -o /data/results.json
 #   miesc report /data/results.json -t professional --llm-interpret -o /data/report.md
 #   miesc report /data/results.json -t premium --llm-interpret -o /data/premium-report.md
-
-version: '3.8'
 
 services:
   # Main MIESC service (runs tests by default)
   miesc:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
       args:
         - BUILDKIT_INLINE_CACHE=1
-    image: miesc:5.1.1
+    image: miesc:5.4.0
     container_name: miesc-main
     environment:
-      - MIESC_VERSION=5.1.1
+      - MIESC_VERSION=5.4.0
       - MIESC_ENV=docker
       - PYTHONUNBUFFERED=1
       # Ollama configuration (when using LLM features)
@@ -61,7 +60,7 @@ services:
       # Mount data directory for analysis results
       - miesc-data:/data
       # Mount contracts directory (if analyzing local contracts)
-      - ./contracts:/app/contracts:ro
+      - ../contracts:/app/contracts:ro
     networks:
       - miesc-network
     healthcheck:
@@ -74,20 +73,20 @@ services:
   # MIESC ML CLI (ML-enhanced analysis)
   miesc-ml:
     build:
-      context: .
-      dockerfile: Dockerfile
-    image: miesc:5.1.1
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: miesc:5.4.0
     container_name: miesc-ml
     environment:
-      - MIESC_VERSION=5.1.1
+      - MIESC_VERSION=5.4.0
       - MIESC_ENV=docker-ml
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
       - MIESC_LLM_MODEL=mistral:latest
-    command: python -m src.miesc_ml_cli --help
+    command: python -m miesc.cli.main --help
     volumes:
       - miesc-data:/data
-      - ./contracts:/app/contracts:ro
+      - ../contracts:/app/contracts:ro
     networks:
       - miesc-network
     profiles:
@@ -96,20 +95,21 @@ services:
   # MIESC Test Runner (explicitly runs test suite)
   miesc-test:
     build:
-      context: .
-      dockerfile: Dockerfile
-    image: miesc:5.1.1
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: miesc:5.4.0
     container_name: miesc-test
     environment:
-      - MIESC_VERSION=5.1.1
+      - MIESC_VERSION=5.4.0
       - MIESC_ENV=docker-test
       - PYTHONUNBUFFERED=1
     command: >
-      sh -c "echo '=== MIESC v5.1.1 - Test Suite ===' &&
+      sh -c "echo '=== MIESC v5.4.0 - Test Suite ===' &&
              echo 'Running comprehensive tests including ML pipeline...' &&
              python -m pytest tests/ -v --tb=short --maxfail=5 --cov=src --cov-report=term-missing"
     volumes:
       - miesc-data:/data
+      - ../tests:/app/tests:ro
     networks:
       - miesc-network
     profiles:
@@ -118,12 +118,12 @@ services:
   # MIESC API Server (FastAPI)
   miesc-api:
     build:
-      context: .
-      dockerfile: Dockerfile
-    image: miesc:5.1.1
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: miesc:5.4.0
     container_name: miesc-api
     environment:
-      - MIESC_VERSION=5.1.1
+      - MIESC_VERSION=5.4.0
       - MIESC_ENV=docker-api
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
@@ -133,7 +133,7 @@ services:
       - "8000:8000"
     volumes:
       - miesc-data:/data
-      - ./contracts:/app/contracts:ro
+      - ../contracts:/app/contracts:ro
     networks:
       - miesc-network
     healthcheck:
@@ -148,12 +148,12 @@ services:
   # MIESC Interactive Shell (for development)
   miesc-shell:
     build:
-      context: .
-      dockerfile: Dockerfile
-    image: miesc:5.1.1
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: miesc:5.4.0
     container_name: miesc-shell
     environment:
-      - MIESC_VERSION=5.1.1
+      - MIESC_VERSION=5.4.0
       - MIESC_ENV=docker-shell
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
@@ -163,7 +163,7 @@ services:
     tty: true
     volumes:
       - miesc-data:/data
-      - ./contracts:/app/contracts
+      - ../contracts:/app/contracts
     networks:
       - miesc-network
     profiles:
@@ -176,14 +176,19 @@ services:
   # ===========================================================================
   miesc-full:
     build:
-      context: .
-      dockerfile: Dockerfile.full
+      context: ..
+      dockerfile: docker/Dockerfile.full
       args:
         - BUILDKIT_INLINE_CACHE=1
-    image: miesc:5.1.1-full
+        - MIESC_BASE_IMAGE=miesc:5.4.0
+        - MIESC_BUILD_MYTHRIL=${MIESC_BUILD_MYTHRIL:-auto}
+        - MIESC_BUILD_MANTICORE=${MIESC_BUILD_MANTICORE:-auto}
+        - MIESC_BUILD_HALMOS=${MIESC_BUILD_HALMOS:-auto}
+        - MIESC_BUILD_SEMGREP=${MIESC_BUILD_SEMGREP:-auto}
+    image: miesc:5.4.0-full
     container_name: miesc-full
     environment:
-      - MIESC_VERSION=5.1.1-full
+      - MIESC_VERSION=5.4.0-full
       - MIESC_ENV=docker-full
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
@@ -193,7 +198,10 @@ services:
     tty: true
     volumes:
       - miesc-data:/data
-      - ./contracts:/app/contracts
+      - ../contracts:/app/contracts
+      # Optional local Certora key file. Prefer passing secrets at run time:
+      # docker compose --profile full run -e CERTORAKEY miesc-full
+      # - ../apik.sh:/app/apik.sh:ro
     networks:
       - miesc-network
     profiles:
@@ -202,24 +210,24 @@ services:
   # MIESC Analyzer (analyze specific contract)
   miesc-analyzer:
     build:
-      context: .
-      dockerfile: Dockerfile
-    image: miesc:5.1.1
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: miesc:5.4.0
     container_name: miesc-analyzer
     environment:
-      - MIESC_VERSION=5.1.1
+      - MIESC_VERSION=5.4.0
       - MIESC_ENV=docker-analyzer
       - PYTHONUNBUFFERED=1
       - CONTRACT_PATH=${CONTRACT_PATH:-/app/contracts/example.sol}
       - OLLAMA_HOST=http://ollama:11434
       - MIESC_LLM_MODEL=mistral:latest
     command: >
-      sh -c "echo '=== MIESC v5.1.1 - Contract Analyzer ===' &&
-             echo 'Analyzing: ${CONTRACT_PATH}' &&
-             python -m src.cli.miesc_cli analyze ${CONTRACT_PATH} --output /data/report.json"
+      sh -c "echo '=== MIESC v5.4.0 - Contract Analyzer ===' &&
+             echo 'Analyzing: $${CONTRACT_PATH}' &&
+             miesc scan $${CONTRACT_PATH} -o /data/report.json"
     volumes:
       - miesc-data:/data
-      - ./contracts:/app/contracts:ro
+      - ../contracts:/app/contracts:ro
     networks:
       - miesc-network
     profiles:
@@ -329,29 +337,29 @@ volumes:
 # ================
 #
 # 1. Build and run default (tests):
-#    docker-compose up --build
+#    docker compose -f docker/docker-compose.yml up --build
 #
 # 2. Run test suite explicitly:
-#    docker-compose run miesc-test
+#    docker compose -f docker/docker-compose.yml run miesc-test
 #
 # 3. Run API server:
-#    docker-compose --profile api up miesc-api
+#    docker compose -f docker/docker-compose.yml --profile api up miesc-api
 #
 # 4. Interactive shell for development:
-#    docker-compose --profile dev run miesc-shell
+#    docker compose -f docker/docker-compose.yml --profile dev run miesc-shell
 #
 # 5. Analyze a specific contract:
-#    CONTRACT_PATH=/app/contracts/MyToken.sol docker-compose --profile analyze run miesc-analyzer
+#    CONTRACT_PATH=/app/contracts/MyToken.sol docker compose -f docker/docker-compose.yml --profile analyze run miesc-analyzer
 #
 # 6. Start Ollama for LLM-powered reports:
-#    docker-compose --profile llm up -d ollama ollama-init
+#    docker compose -f docker/docker-compose.yml --profile llm up -d ollama ollama-init
 #
 # 7. Generate report with LLM interpretation:
-#    docker-compose --profile dev run miesc-shell
+#    docker compose -f docker/docker-compose.yml --profile dev run miesc-shell
 #    # Inside container:
 #    miesc audit full /app/contracts/MyContract.sol -o /data/results.json
 #    miesc report /data/results.json -t professional --llm-interpret -o /data/report.md
 #
 # 8. Clean up:
-#    docker-compose down -v
-#    docker rmi miesc:5.1.1
+#    docker compose -f docker/docker-compose.yml down -v
+#    docker rmi miesc:5.4.0
