@@ -396,9 +396,32 @@ ZERO_RECALL_PATTERNS = {
         "patterns": [
             r"function\s+(\w+)\s*\(\s*\)\s*(public|external)?\s*\{[^}]*(owner|admin)\s*=\s*msg\.sender",
         ],
+        "multiline_patterns": [
+            r"function\s+\w+\s*\([^)]*\)\s*(public|external)[^{]*\{[^}]*(owner|admin)\s*=\s*msg\.sender",
+        ],
         "severity": "Critical",
         "swc": "SWC-118",
         "message": "Function assigns ownership but may not be the constructor — in Solidity <0.4.22, constructors were functions with the contract name. A typo means anyone can call it and become owner.",
+    },
+    "delegatecall_unprotected": {
+        "multiline_patterns": [
+            r"function\s+\w+\s*\([^)]*\)\s*public[^{]*\{[^}]*\.delegatecall\s*\(",
+        ],
+        "severity": "Critical",
+        "swc": "SWC-112",
+        "message": "Unprotected delegatecall in public function — attacker can change implementation to malicious contract.",
+    },
+    "mapping_write_arbitrary": {
+        "patterns": [
+            r"\w+\.length\s*=\s*key",
+            r"map\.length\s*=\s*\w+",
+        ],
+        "multiline_patterns": [
+            r"function\s+\w+\s*\([^)]*uint256\s+key[^)]*\)\s*public[^{]*\{[^}]*\.length\s*=\s*key",
+        ],
+        "severity": "High",
+        "swc": "SWC-124",
+        "message": "Arbitrary storage write via dynamic array length manipulation — attacker can overwrite any storage slot.",
     },
     "dos_unbounded_loop": {
         "patterns": [
@@ -522,7 +545,12 @@ def detect_zero_recall_categories(
         if cfg.get("requires_no_initializer_guard") and has_initializer_guard:
             continue
 
-        for pattern in cfg["patterns"]:
+        matched = False
+
+        # Line-by-line patterns
+        for pattern in cfg.get("patterns", []):
+            if matched:
+                break
             for i, line in enumerate(source_code.split("\n"), 1):
                 if re.search(pattern, line):
                     findings.append({
@@ -536,7 +564,30 @@ def detect_zero_recall_categories(
                         "description": cfg["message"],
                         "recommendation": cfg["message"],
                     })
+                    matched = True
                     break  # One per category
+
+        # Multiline patterns (re.DOTALL) — for cross-line constructs
+        for pattern in cfg.get("multiline_patterns", []):
+            if matched:
+                break
+            m = re.search(pattern, source_code, re.DOTALL)
+            if m:
+                # Estimate line number from match position
+                line_num = source_code[: m.start()].count("\n") + 1
+                findings.append({
+                    "type": category,
+                    "severity": cfg["severity"],
+                    "swc_id": cfg.get("swc"),
+                    "tool": "miesc-intelligence",
+                    "confidence": 0.65,
+                    "location": {"file": "", "line": line_num, "function": "unknown"},
+                    "message": cfg["message"],
+                    "description": cfg["message"],
+                    "recommendation": cfg["message"],
+                })
+                matched = True
+
     return findings
 
 
