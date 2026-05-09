@@ -1,13 +1,18 @@
 # MIESC Documentation
 
-**Last Updated:** 2026-03-31
+**Last Updated:** 2026-05-09
 
-This directory contains all documentation for the MIESC project, organized by purpose and timeline.
+This directory contains the MIESC documentation set, split between current
+project documentation and historical archive material.
 
-> Historical note: `docs/tesis`, `docs/evidence`, and older roadmap/release
-> documents preserve v4.x/v5.1 project history. Current research claims are the
-> Paper 1/Paper 2 PDFs, `paper/PAPER*_REPRODUCIBILITY.md`, and
+> Current research claims are the Paper 1/Paper 2 PDFs,
+> `paper/PAPER*_REPRODUCIBILITY.md`, and
 > `benchmarks/results/paper*_claims_matrix.json`.
+>
+> Historical material in `docs/tesis`, `docs/evidence`, older release notes, and
+> older roadmap files is preserved for traceability. It can contain v4.x/v5.1
+> metrics, 7-layer wording, or version-specific statements that are not current
+> claims.
 
 ---
 
@@ -16,19 +21,19 @@ This directory contains all documentation for the MIESC project, organized by pu
 ```
 docs/
 ├── README.md                     # This file - documentation index
-├── tesis/                        # THESIS (v4.0.0 - 23 Oct 2025)
+├── guides/                       # Current user, researcher, and maintainer guides
+├── architecture/                 # Current architecture docs
+├── policies/                     # Current governance, security, privacy, DPG docs
+├── adr/                          # Architecture decision records
+├── roadmap/                      # Current and historical planning notes
+├── evidence/                     # Historical post-thesis OSS evidence archive
+├── tesis/                        # Historical thesis archive (v4.0.0)
 │   ├── README.md                 # Thesis structure guide
 │   ├── INDICE_TESIS.md          # Complete thesis index
 │   ├── PORTADA_TESIS.md         # Cover page
 │   ├── CAPITULO_*.md            # Thesis chapters (1-8)
 │   ├── APENDICE_*.md            # Appendices
 │   └── figures/                  # Thesis figures
-├── evidence/                     # POST-THESIS for OSS Team (v4.1.0+)
-│   ├── README.md                 # Evidence guide
-│   ├── THESIS_VS_POSTWORK_SEPARATION.md  # Key separation document
-│   ├── HANDOFF_REPORT_OSS.md    # OSS team handoff (DPGA compliance)
-│   ├── demo_*.py                 # Component demos
-│   └── output_*.*                # Demo outputs
 ├── DEFENSA_TESIS_SLIDES.md      # Defense presentation (Marp)
 ├── figures/                      # General diagrams
 ├── openapi.yaml                  # API spec (post-thesis)
@@ -43,15 +48,38 @@ docs/
 
 ## Key Documents
 
+### Current Research and Platform Claims
+
+| Document | Location | Description |
+|----------|----------|-------------|
+| Paper index | `../paper/README.md` | Current paper artifacts and reproducibility map |
+| Paper 1 reproducibility | `../paper/PAPER1_REPRODUCIBILITY.md` | Detection evidence and commands |
+| Paper 2 reproducibility | `../paper/PAPER2_REPRODUCIBILITY.md` | Remediation evidence and commands |
+| Paper/platform alignment | `roadmap/PAPER_LEARNINGS_PLATFORM_ALIGNMENT.md` | How paper evidence maps to CLI/API/MCP/RAG |
+| Technical debt plan | `roadmap/TECHNICAL_DEBT_REMEDIATION_PLAN.md` | Completed and remaining cleanup work |
+
 ### Current Project Maintenance
 
 | Document | Location | Description |
 |----------|----------|-------------|
-| Repository Hygiene | `guides/REPOSITORY_HYGIENE.md` | What belongs in Git, what is generated/local, and how to keep evidence curated |
+| Repository Hygiene | `guides/REPOSITORY_HYGIENE.md` | What belongs in Git, what is generated/local, and how evidence is curated |
 | Researcher Packaging | `guides/RESEARCHER_PACKAGING.md` | How researchers should install and run the full toolchain |
 | Testing Guide | `guides/TESTING.md` | Test strategy and validation commands |
+| RAG Source Policy | `guides/RAG_SOURCE_POLICY.md` | Source selection and weighting criteria |
+| Remediation API/MCP | `guides/REMEDIATION_API_MCP.md` | Evidence-producing remediation workflows |
 
-### For Thesis Defense (Dec 18, 2025)
+### Current User Documentation
+
+| Document | Location | Description |
+|----------|----------|-------------|
+| Quickstart | `guides/QUICKSTART.md` | Fast path for users |
+| Installation | `guides/INSTALL.md` | Local installation and dependencies |
+| Research workflow | `guides/RESEARCH.md` | Benchmark and paper-oriented workflows |
+| Reports | `guides/REPORTS.md` | Report generation and templates |
+| Architecture | `ARCHITECTURE.md` | High-level architecture |
+| Tools | `TOOLS.md` | Tool inventory |
+
+### Historical Thesis Archive
 
 | Document | Location | Description |
 |----------|----------|-------------|
@@ -65,9 +93,9 @@ docs/
 | AI/LLM Justification | `tesis/CAPITULO_JUSTIFICACION_IA_LLM_SOBERANO.md` | Sovereign AI |
 | MCP Justification | `tesis/CAPITULO_JUSTIFICACION_MCP.md` | Protocol integration |
 | Future Work | `tesis/CAPITULO_TRABAJOS_FUTUROS.md` | Proposed lines |
-| **Separation Document** | `evidence/THESIS_VS_POSTWORK_SEPARATION.md` | Thesis vs Post-thesis |
+| Separation Document | `evidence/THESIS_VS_POSTWORK_SEPARATION.md` | Thesis vs post-thesis work |
 
-### For OSS Team Handoff
+### Historical OSS Handoff Archive
 
 | Document | Location | Description |
 |----------|----------|-------------|
@@ -80,7 +108,7 @@ docs/
 
 ---
 
-## Timeline
+## Historical Timeline
 
 | Date | Event | Version |
 |------|-------|---------|
@@ -121,4 +149,4 @@ docs/
 
 ---
 
-*MIESC v5.1.1 - Maestria en Ciberdefensa, UNDEF/IUA*
+*MIESC documentation index - current project docs plus historical thesis/archive material*
