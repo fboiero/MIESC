@@ -1,6 +1,6 @@
 Section,Question,Response
 General Information,Name of Digital Solution,MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
-General Information,Description,"MIESC is an open-source multi-agent framework for comprehensive smart contract security analysis. It integrates 25+ security tools across 7 defense layers (static analysis, linting, symbolic execution, fuzzing, formal verification, property testing, AI analysis) with local LLM support via Ollama for data sovereignty."
+General Information,Description,"MIESC is an open-source multi-agent framework for comprehensive smart contract security analysis. It integrates 35 analysis modules across 9 defense layers (static analysis, dynamic testing, symbolic execution, formal verification, AI/LLM analysis, pattern detection, DeFi-specific analysis, exploit validation, consensus) with multi-provider LLM support (Claude, GPT, Ollama local) and automated remediation. Achieves 95.1% recall on SmartBugs-curated (143 contracts) and 92.5% on EVMBench (120 business-logic vulnerabilities). Available on PyPI (pip install miesc) and Docker (ghcr.io/fboiero/miesc)."
 General Information,Website,https://fboiero.github.io/MIESC/
 General Information,GitHub Repository,https://github.com/fboiero/MIESC
 General Information,Type of Digital Solution,Software
@@ -14,7 +14,7 @@ General Information,Type of Digital Solution,Software
 3. Clear Ownership,Country,Argentina
 3. Clear Ownership,Own all code,Yes
 3. Clear Ownership,Right to redistribute,"Yes. Original work by Fernando Boiero under AGPL-3.0. Third-party dependencies use compatible open-source licenses."
-4. Platform Independence,Core Technologies,"Python 3.9+, Solidity Compiler, Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, SMTChecker, Ollama, Flask, Streamlit, JSON, SARIF"
+4. Platform Independence,Core Technologies,"Python 3.12+, Solidity Compiler, Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, SMTChecker, Certora, Ollama, Claude API, OpenAI API, Streamlit, ChromaDB, MCP, JSON, SARIF"
 4. Platform Independence,Closed Components,No
 5. Documentation,Documentation Links,"https://github.com/fboiero/MIESC/blob/main/README.md, https://fboiero.github.io/MIESC/, https://github.com/fboiero/MIESC/blob/main/CONTRIBUTING.md, https://github.com/fboiero/MIESC/blob/main/docs/openapi.yaml"
 6. Data Extraction,Collects non-PII data,Yes
@@ -33,4 +33,4 @@ Scale,Deployed Countries,Argentina
 Scale,Users,"Universidad de la Defensa Nacional (UNDEF), Universidad Tecnologica Nacional - FRVM, open-source community"
 Scale,Multilingual,Yes
 Scale,Languages,"English, Spanish"
-Scale,Highlights,"https://fboiero.github.io/MIESC/, https://github.com/fboiero/MIESC, 7-layer defense architecture, 25+ tools, 94.5% precision, local LLM support"
+Scale,Highlights,"https://github.com/fboiero/MIESC, PyPI: pip install miesc, Docker: ghcr.io/fboiero/miesc:5.4.1, 9-layer defense architecture, 35 analysis modules, 95.1% recall SmartBugs, 92.5% recall EVMBench (#1 on leaderboard), 2 academic papers, plugin system for community detectors, $0 with local models"
