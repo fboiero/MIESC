@@ -57,6 +57,8 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.0.0",
     "mutmut>=2.4.0",
+    "build>=1.2.0",
+    "twine>=5.0.0",
 ]
 # Note: mythril has conflicting dependencies with slither-analyzer and Flask.
 # Install separately in isolated environment: pip install mythril

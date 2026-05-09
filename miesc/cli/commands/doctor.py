@@ -69,18 +69,18 @@ def doctor(verbose):
         console.print(dep_table)
         console.print("")
 
+        total_tools = sum(len(layer_info["tools"]) for layer_info in LAYERS.values())
+
         # Security tools table
-        tools_table = Table(title="Security Tools (29 Total)", box=box.ROUNDED)
+        tools_table = Table(title=f"Security Tools ({total_tools} Total)", box=box.ROUNDED)
         tools_table.add_column("Layer", style="bold", width=8)
         tools_table.add_column("Tool", width=25)
-        tools_table.add_column("Status", width=15)
+        tools_table.add_column("Status", width=20)
 
         total_available = 0
-        total_tools = 0
 
         for layer_num, layer_info in LAYERS.items():
             for tool in layer_info["tools"]:
-                total_tools += 1
                 status_info = AdapterLoader.check_tool_status(tool)
 
                 if status_info.get("available"):

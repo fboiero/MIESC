@@ -4,7 +4,7 @@
 # Author: Fernando Boiero - UNDEF
 # Thesis: Master's in Cyberdefense
 
-.PHONY: help install test lint audit experiments clean docs docker mcp build publish release sphinx-build sphinx-serve sphinx-clean sphinx-api mutate mutate-run mutate-results mutate-html mutate-check docker-build docker-run researcher-bootstrap researcher-smoke verify reproducibility citation version
+.PHONY: help install test lint audit experiments clean clean-build clean-all docs docker mcp build build-check publish-test publish release sphinx-build sphinx-serve sphinx-clean sphinx-api mutate mutate-run mutate-results mutate-html mutate-check docker-build docker-run researcher-bootstrap researcher-smoke verify reproducibility citation version
 
 # Default target
 .DEFAULT_GOAL := help
@@ -16,6 +16,8 @@ YELLOW := \033[1;33m
 RED := \033[0;31m
 NC := \033[0m# No Color
 
+PYTHON ?= python3
+
 help:  ## Show this help message
 	@echo "$(BLUE)MIESC - Multi-layer Intelligent Evaluation for Smart Contracts$(NC)"
 	@echo "================================================================"
@@ -26,25 +28,25 @@ help:  ## Show this help message
 
 install:  ## Install dependencies
 	@echo "$(BLUE)Installing MIESC dependencies...$(NC)"
-	pip install -r requirements/requirements.txt
-	pip install -r requirements/requirements_core.txt
-	pip install -r requirements/requirements_agents.txt
+	$(PYTHON) -m pip install -r requirements/requirements.txt
+	$(PYTHON) -m pip install -r requirements/requirements_core.txt
+	$(PYTHON) -m pip install -r requirements/requirements_agents.txt
 	@echo "$(GREEN)✓ Dependencies installed$(NC)"
 
 install-dev:  ## Install development dependencies
 	@echo "$(BLUE)Installing development dependencies...$(NC)"
-	pip install -r requirements/requirements.txt
-	pip install pytest pytest-cov black flake8 mypy
+	$(PYTHON) -m pip install -r requirements/requirements.txt
+	$(PYTHON) -m pip install pytest pytest-cov black flake8 mypy
 	@echo "$(GREEN)✓ Development dependencies installed$(NC)"
 
 test:  ## Run unit tests
 	@echo "$(BLUE)Running MIESC tests...$(NC)"
-	python -m pytest tests/ -v --cov=src --cov-report=term-missing
+	$(PYTHON) -m pytest tests/ -v --cov=src --cov-report=term-missing
 	@echo "$(GREEN)✓ Tests complete$(NC)"
 
 test-quick:  ## Run quick tests (no coverage)
 	@echo "$(BLUE)Running quick tests...$(NC)"
-	python -m pytest tests/ -v -x
+	$(PYTHON) -m pytest tests/ -v -x
 	@echo "$(GREEN)✓ Quick tests complete$(NC)"
 
 lint:  ## Run linters (flake8, black, mypy)
@@ -76,28 +78,28 @@ audit-fast:  ## Run fast audit (no AI)
 
 experiments:  ## Run thesis experiments
 	@echo "$(BLUE)Setting up experiments...$(NC)"
-	python analysis/experiments/00_setup_experiments.py
+	$(PYTHON) analysis/experiments/00_setup_experiments.py
 	@echo "$(GREEN)✓ Experiments ready$(NC)"
 	@echo "$(YELLOW)Run 'make experiments-run' to execute$(NC)"
 
 experiments-run:  ## Execute experiments
 	@echo "$(BLUE)Running experiments (this may take a while)...$(NC)"
-	python analysis/experiments/10_run_experiments.py
+	$(PYTHON) analysis/experiments/10_run_experiments.py
 	@echo "$(GREEN)✓ Experiments complete$(NC)"
 
 experiments-analyze:  ## Analyze experiment results
 	@echo "$(BLUE)Analyzing results...$(NC)"
-	python analysis/experiments/20_analyze_results.py
+	$(PYTHON) analysis/experiments/20_analyze_results.py
 	@echo "$(GREEN)✓ Analysis complete$(NC)"
 
 mcp-manifest:  ## Generate MCP manifest
 	@echo "$(BLUE)Generating MCP manifest...$(NC)"
-	python src/miesc_cli.py mcp-server --export-manifest
+	$(PYTHON) src/miesc_cli.py mcp-server --export-manifest
 	@echo "$(GREEN)✓ Manifest generated: mcp/manifest.json$(NC)"
 
 mcp-server:  ## Start MCP server
 	@echo "$(BLUE)Starting MIESC MCP server...$(NC)"
-	python src/mcp_core/server.py
+	$(PYTHON) src/mcp_core/server.py
 
 docs:  ## Serve documentation locally with MkDocs
 	@echo "$(BLUE)Starting MkDocs development server...$(NC)"
@@ -164,7 +166,12 @@ clean:  ## Clean temporary files
 	find . -type f -name ".coverage" -delete
 	@echo "$(GREEN)✓ Cleaned$(NC)"
 
-clean-all: clean  ## Clean all generated files
+clean-build:  ## Clean Python packaging artifacts
+	@echo "$(BLUE)Cleaning Python build artifacts...$(NC)"
+	rm -rf dist/ build/ *.egg-info
+	@echo "$(GREEN)✓ Build artifacts cleaned$(NC)"
+
+clean-all: clean clean-build  ## Clean all generated files
 	@echo "$(BLUE)Cleaning all generated files...$(NC)"
 	rm -rf analysis/results/*.json
 	rm -rf analysis/results/*.html
@@ -175,21 +182,21 @@ clean-all: clean  ## Clean all generated files
 # PyPI BUILD & PUBLISH (v4.3.0+)
 # ============================================
 
-build:  ## Build Python packages (wheel + sdist)
+build: clean-build  ## Build Python packages (wheel + sdist)
 	@echo "$(BLUE)Building MIESC packages...$(NC)"
-	@rm -rf dist/ build/ *.egg-info
-	@python -m build
+	@$(PYTHON) -m build
 	@echo "$(GREEN)✓ Packages built in dist/$(NC)"
 	@ls -la dist/
 
 build-check:  ## Check package integrity before publish
 	@echo "$(BLUE)Checking package integrity...$(NC)"
-	@twine check dist/*
+	@$(PYTHON) -m twine check dist/*
+	@$(PYTHON) scripts/check_distribution_contents.py dist
 	@echo "$(GREEN)✓ Package checks passed$(NC)"
 
 publish-test:  ## Upload to TestPyPI (for testing)
 	@echo "$(BLUE)Uploading to TestPyPI...$(NC)"
-	@twine upload --repository testpypi dist/*
+	@$(PYTHON) -m twine upload --repository testpypi dist/*
 	@echo "$(GREEN)✓ Uploaded to TestPyPI$(NC)"
 	@echo "$(YELLOW)Install with: pip install --index-url https://test.pypi.org/simple/ miesc$(NC)"
 
@@ -197,7 +204,7 @@ publish:  ## Upload to PyPI (production release)
 	@echo "$(BLUE)Uploading to PyPI...$(NC)"
 	@echo "$(RED)WARNING: This will publish to the real PyPI!$(NC)"
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ]
-	@twine upload dist/*
+	@$(PYTHON) -m twine upload dist/*
 	@echo "$(GREEN)✓ Published to PyPI$(NC)"
 	@echo "$(YELLOW)Install with: pip install miesc$(NC)"
 
@@ -235,9 +242,9 @@ researcher-smoke:  ## Run full 9-layer researcher smoke test
 verify:  ## Verify installation
 	@echo "$(BLUE)Verifying MIESC installation...$(NC)"
 	@echo "  → Python version"
-	python --version
+	$(PYTHON) --version
 	@echo "  → MIESC version"
-	python -m miesc.cli.main --version
+	$(PYTHON) -m miesc.cli.main --version
 	@echo "  → Checking tools..."
 	@which slither > /dev/null && echo "    ✓ Slither installed" || echo "    ✗ Slither not found"
 	@which myth > /dev/null && echo "    ✓ Mythril installed" || echo "    ✗ Mythril not found"
@@ -295,7 +302,7 @@ security-secrets:  ## Scan for secrets
 
 policy-check:  ## Run PolicyAgent compliance validation
 	@echo "$(BLUE)Running PolicyAgent...$(NC)"
-	@python src/miesc_policy_agent.py \
+	@$(PYTHON) src/miesc_policy_agent.py \
 		--repo-path . \
 		--output-json analysis/policy/compliance_report.json \
 		--output-md analysis/policy/compliance_report.md
@@ -325,7 +332,7 @@ test-coverage:  ## Run tests with detailed coverage report
 security-report:  ## Generate comprehensive security report
 	@echo "$(BLUE)Generating security report...$(NC)"
 	@mkdir -p analysis/security
-	@python src/miesc_security_checks.py > analysis/security/security_scan.json
+	@$(PYTHON) src/miesc_security_checks.py > analysis/security/security_scan.json
 	@echo "$(GREEN)✓ Security report: analysis/security/security_scan.json$(NC)"
 
 shift-left:  ## Run complete Shift-Left security pipeline locally
@@ -344,11 +351,11 @@ shift-left:  ## Run complete Shift-Left security pipeline locally
 
 mcp-rest:  ## Start MCP REST API server (Flask)
 	@echo "$(BLUE)Starting MIESC MCP REST API on port 5001...$(NC)"
-	@python src/miesc_mcp_rest.py --host 0.0.0.0 --port 5001
+	@$(PYTHON) src/miesc_mcp_rest.py --host 0.0.0.0 --port 5001
 
 mcp-test:  ## Test MCP endpoints
 	@echo "$(BLUE)Testing MCP endpoints...$(NC)"
-	@curl -s http://localhost:5001/mcp/capabilities | python -m json.tool
+	@curl -s http://localhost:5001/mcp/capabilities | $(PYTHON) -m json.tool
 	@echo "$(GREEN)✓ MCP test complete$(NC)"
 
 demo:  ## Run interactive demo (5 minutes)
@@ -359,7 +366,7 @@ demo:  ## Run interactive demo (5 minutes)
 
 demo-simple:  ## Run simple demo (1 contract only)
 	@echo "$(BLUE)Running simple demo...$(NC)"
-	@python src/miesc_cli.py run-audit demo/sample_contracts/Reentrancy.sol \
+	@$(PYTHON) src/miesc_cli.py run-audit demo/sample_contracts/Reentrancy.sol \
 		--output demo/expected_outputs/simple_demo.json
 	@echo "$(GREEN)✓ Simple demo complete$(NC)"
 
@@ -384,17 +391,17 @@ quick-check:  ## Quick check before commit (fast)
 
 bench:  ## Run statistical benchmarking and evaluation
 	@echo "$(BLUE)Running statistical evaluation...$(NC)"
-	@python scripts/eval_stats.py --input analysis/results/ --output analysis/results/stats.json
+	@$(PYTHON) scripts/eval_stats.py --input analysis/results/ --output analysis/results/stats.json
 	@echo "$(GREEN)✓ Statistical results saved to analysis/results/stats.json$(NC)"
 
 ablation:  ## Run ablation study (AI on/off comparison)
 	@echo "$(BLUE)Running ablation study...$(NC)"
 	@echo "  Phase 1: Baseline (no AI)"
-	@python scripts/run_benchmark.py --no-ai --output analysis/results/baseline_no_ai.json
+	@$(PYTHON) scripts/run_benchmark.py --no-ai --output analysis/results/baseline_no_ai.json
 	@echo "  Phase 2: With AI correlation"
-	@python scripts/run_benchmark.py --enable-ai --output analysis/results/baseline_with_ai.json
+	@$(PYTHON) scripts/run_benchmark.py --enable-ai --output analysis/results/baseline_with_ai.json
 	@echo "  Phase 3: Computing differences"
-	@python scripts/eval_stats.py --ablation --input analysis/results/
+	@$(PYTHON) scripts/eval_stats.py --ablation --input analysis/results/
 	@echo "$(GREEN)✓ Ablation study complete$(NC)"
 
 sbom:  ## Generate Software Bill of Materials (SBOM)
@@ -404,7 +411,7 @@ sbom:  ## Generate Software Bill of Materials (SBOM)
 		echo "$(GREEN)✓ SBOM generated: sbom.json$(NC)"; \
 	else \
 		echo "$(YELLOW)⚠ syft not found. Install: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh$(NC)"; \
-		pip freeze > requirements_frozen.txt; \
+		$(PYTHON) -m pip freeze > requirements_frozen.txt; \
 		echo "$(GREEN)✓ Fallback: requirements_frozen.txt generated$(NC)"; \
 	fi
 
@@ -417,7 +424,7 @@ reproduce:  ## Run complete reproducibility pipeline
 	@make install
 	@echo ""
 	@echo "$(YELLOW)Phase 2: Dataset Validation$(NC)"
-	@python scripts/verify_dataset_integrity.py || echo "$(YELLOW)⚠ Dataset verification script not found - skipping$(NC)"
+	@$(PYTHON) scripts/verify_dataset_integrity.py || echo "$(YELLOW)⚠ Dataset verification script not found - skipping$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Phase 3: Statistical Evaluation$(NC)"
 	@make bench
@@ -442,7 +449,7 @@ reproduce:  ## Run complete reproducibility pipeline
 
 dataset-verify:  ## Verify dataset integrity (SHA-256 checksums)
 	@echo "$(BLUE)Verifying dataset integrity...$(NC)"
-	@python scripts/verify_dataset_integrity.py || echo "$(YELLOW)⚠ Script not found - create scripts/verify_dataset_integrity.py$(NC)"
+	@$(PYTHON) scripts/verify_dataset_integrity.py || echo "$(YELLOW)⚠ Script not found - create scripts/verify_dataset_integrity.py$(NC)"
 
 academic-report:  ## Generate comprehensive academic report
 	@echo "$(BLUE)Generating academic validation report...$(NC)"
@@ -499,7 +506,7 @@ mutate-show:  ## Show details of surviving mutants
 
 mutate-check:  ## Check mutation score meets threshold (CI)
 	@echo "$(BLUE)Checking mutation score against threshold...$(NC)"
-	@python -c "import subprocess; import re; \
+	@$(PYTHON) -c "import subprocess; import re; \
 		result = subprocess.run(['mutmut', 'results'], capture_output=True, text=True); \
 		match = re.search(r'(\d+)/(\d+)', result.stdout); \
 		if match: \

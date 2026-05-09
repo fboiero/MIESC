@@ -157,6 +157,51 @@ class TestZeroRecallPatterns:
     def test_empty_code(self):
         assert detect_zero_recall_categories("") == []
 
+    def test_detects_multiline_incorrect_constructor_name(self):
+        code = """
+        pragma solidity ^0.4.21;
+        contract Wallet {
+            address public owner;
+            function Walet()
+                public
+            {
+                owner = msg.sender;
+            }
+        }
+        """
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "incorrect_constructor_name" in types
+
+    def test_detects_multiline_unprotected_delegatecall(self):
+        code = """
+        contract Proxy {
+            function execute(address target, bytes data)
+                public
+            {
+                target.delegatecall(data);
+            }
+        }
+        """
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "delegatecall_unprotected" in types
+
+    def test_detects_multiline_arbitrary_mapping_write(self):
+        code = """
+        contract C {
+            uint256[] public map;
+            function write(uint256 key)
+                public
+            {
+                map.length = key;
+            }
+        }
+        """
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "mapping_write_arbitrary" in types
+
 
 # ---------------------------------------------------------------------------
 # 4. Context-aware FP suppression

@@ -18,6 +18,8 @@ recursive-include src *.json
 
 # Exclude development and build artifacts
 prune tests
+prune src/tests
+prune src/miesc_tests
 prune docs
 prune benchmarks
 prune venv

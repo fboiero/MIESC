@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          python -m pip install -e ".[dev]"
 
       - name: Run tests
         run: |
@@ -61,13 +61,13 @@ jobs:
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip
-          pip install build twine
+          python -m pip install build twine
 
       - name: Build package
-        run: python -m build
+        run: make build
 
       - name: Check package
-        run: twine check dist/*
+        run: make build-check
 
       - name: Generate checksums
         id: hash
