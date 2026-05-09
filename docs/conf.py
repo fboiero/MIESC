@@ -25,8 +25,8 @@ try:
     version = __version__
     release = __version__
 except ImportError:
-    version = "5.1.1"
-    release = "5.1.1"
+    version = "5.4.1"
+    release = "5.4.1"
 
 # -- General configuration ---------------------------------------------------
 

@@ -36,7 +36,7 @@ def tools():
 @click.option("--layer", "-l", type=int, help="Filter by layer (1-9)")
 @click.option("--available-only", "-a", is_flag=True, help="Show only installed tools")
 def tools_list(layer, available_only):
-    """List all 35 Analysis Modules."""
+    """List all configured tool adapters."""
     print_banner()
 
     if layer and layer in LAYERS:

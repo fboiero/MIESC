@@ -8,6 +8,7 @@ MIESC Core - Compatibility shim for webapp imports.
 
 import warnings
 
+from miesc import __version__ as MIESC_VERSION
 from src.core.optimized_orchestrator import OptimizedOrchestrator
 
 warnings.warn(
@@ -64,7 +65,7 @@ class MIESCCore:
                     "tools_failed": result.tools_failed if hasattr(result, "tools_failed") else [],
                     "total_findings": result.total_findings if hasattr(result, "total_findings") else len(findings),
                     "layers_executed": 9,
-                    "version": "5.1.1",
+                    "version": MIESC_VERSION,
                 },
                 "summary": result.severity_counts if hasattr(result, "severity_counts") else {},
                 "success": True,
@@ -93,4 +94,4 @@ class MIESCCore:
 
     def get_version(self) -> str:
         """Return MIESC version."""
-        return "5.1.1"
+        return MIESC_VERSION

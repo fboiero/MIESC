@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">MIESC</h1>
   <p align="center">
-    <strong>35 Analysis Modules. 9 defense layers. One command.</strong>
+    <strong>50 tool adapters. 9 defense layers. One command.</strong>
   </p>
   <p align="center">
     Enterprise-grade smart contract security, free and open to everyone.
@@ -293,7 +293,7 @@ miesc scan Bridge.sol             # Detects 7 bridge exploit patterns
 | `miesc scan` | Quick scan (3 tools + intelligence engine) |
 | `miesc scan --diff HEAD~1` | **NEW** PR-level: only changed .sol files |
 | `miesc scan contracts/` | **NEW** Directory scan (+ `--recursive`) |
-| `miesc audit quick\|full` | Multi-layer audit (4 or 50 tools) |
+| `miesc audit quick\|full` | Multi-layer audit (3 quick tools or 50 configured adapters) |
 | `miesc fix results.json` | Auto-generate patched .sol files |
 | `miesc remediate results.json` | **NEW** Generate patched files plus compile/re-scan evidence |
 | `miesc verify contract.sol` | Run Certora/Halmos/SMTChecker provers |
@@ -478,7 +478,7 @@ miesc detectors list                         # List all available detectors
 # Pre-commit hook (.pre-commit-config.yaml)
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v5.4.0
+    rev: v5.4.1
     hooks:
       - id: miesc-quick
         args: ['--ci']

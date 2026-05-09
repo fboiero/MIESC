@@ -140,7 +140,7 @@ All static analysis tools have FP rates of 80-90%+ (recall-focused). MIESC's RAG
 4. ✅ **Intelligence engine:** ~30% noise reduction, semantic dedup, fix-code generation
 5. ✅ **Automated remediation:** `miesc fix` with 100% hit rate on test contracts
 
-**Remaining for v5.4.0:**
+**Remaining after v5.4.x:**
 1. **Speed:** Lazy-load LLM/RAG/ChromaDB (currently imported on every command)
 2. **Foundry test gen:** Auto-generate failing tests from exploit_scenario
 3. **Empirical calibration:** Replace educated-guess tool weights with measured precision

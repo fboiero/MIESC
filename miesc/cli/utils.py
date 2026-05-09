@@ -182,11 +182,11 @@ def print_banner(version: Optional[str] = None) -> None:
         console.print(
             f"[cyan]v{version}[/cyan] - Multi-layer Intelligent Evaluation for Smart Contracts"
         )
-        console.print("[dim]9 Defense Layers | 35 Analysis Modules | AI-Powered Analysis[/dim]\n")
+        console.print("[dim]9 Defense Layers | 50 Tool Adapters | AI-Powered Analysis[/dim]\n")
     else:
         print(BANNER)  # noqa: T201
         print(f"v{version} - Multi-layer Intelligent Evaluation for Smart Contracts")  # noqa: T201
-        print("9 Defense Layers | 35 Analysis Modules | AI-Powered Analysis\n")  # noqa: T201
+        print("9 Defense Layers | 50 Tool Adapters | AI-Powered Analysis\n")  # noqa: T201
 
 
 def success(msg: str) -> None:

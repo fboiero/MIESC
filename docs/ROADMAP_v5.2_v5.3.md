@@ -1,4 +1,4 @@
-# MIESC Roadmap — v5.2.0 → v5.3.1 (Completed) + v5.4.0 Plan
+# MIESC Roadmap — v5.2.0 → v5.3.1 (Completed) + v5.4.x Plan
 
 **Last updated**: 2026-04-23
 **Author**: Fernando Boiero
@@ -30,9 +30,9 @@
 | # | Item | Status | Notes |
 |---|------|:------:|-------|
 | 1.1 | `miesc fix` command | ✅ | Text-level patching: nonReentrant, onlyOwner, require(success), SafeMath |
-| 1.2 | Foundry test generation | ⬜ | Deferred to v5.4.0 |
-| 1.3 | `miesc verify --before-after` | ⬜ | Deferred to v5.4.0 |
-| 1.4 | `miesc audit --fix --verify` | ⬜ | Deferred to v5.4.0 |
+| 1.2 | Foundry test generation | ⬜ | Deferred to v5.4.x |
+| 1.3 | `miesc verify --before-after` | ⬜ | Deferred to v5.4.x |
+| 1.4 | `miesc audit --fix --verify` | ⬜ | Deferred to v5.4.x |
 
 ### Track 2: CI Integration
 
@@ -86,7 +86,7 @@
 
 ---
 
-## 🔜 v5.4.0 — Next Release (target: Jun 2026)
+## 🔜 v5.4.x — Release Track
 
 **Theme**: _Close the find→fix→verify loop + distribution._
 
@@ -130,7 +130,7 @@ v5.3.0 (Apr 21) ✅ Fix + compliance + bridge patterns
      │
 v5.3.1 (Apr 22) ✅ Packaging hotfix + UX + 29 tests
      │
-v5.4.0 (Jun)    → Paper v2 + grants + Foundry test gen
+v5.4.x          → Paper v2 + grants + Foundry test gen
      │
 v6.0.0 (Q4)     → Hosted SaaS, multi-language, collaborative audit
 ```

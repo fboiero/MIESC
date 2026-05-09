@@ -116,6 +116,6 @@ Check that MIESC is installed correctly:
 .. code-block:: bash
 
     miesc --version
-    miesc tools status
+    miesc tools list
 
 This will show the version and available tools.

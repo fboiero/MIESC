@@ -26,6 +26,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Set
 
+from miesc import __version__ as MIESC_VERSION
+
 try:
     import websockets
     from websockets.server import WebSocketServerProtocol
@@ -195,7 +197,7 @@ class MIESCWebSocketServer:
                 timestamp=datetime.now(timezone.utc),
                 data={
                     "client_id": client_id,
-                    "server_version": "5.1.1",
+                    "server_version": MIESC_VERSION,
                     "available_commands": [
                         "start_audit",
                         "subscribe",

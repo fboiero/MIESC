@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # MIESC Tool Diagnostic Script
-# Verifies availability and functionality of all 35 Analysis Modules
+# Verifies availability and functionality of configured MIESC tool adapters
 # Run inside Docker: docker run --rm ghcr.io/fboiero/miesc:full /app/scripts/diagnose-tools.sh
 # =============================================================================
 
@@ -26,7 +26,7 @@ declare -a FAIL_LIST
 declare -a SKIP_LIST
 
 echo "=============================================="
-echo "MIESC Tool Diagnostic v5.4.0"
+echo "MIESC Tool Diagnostic v5.4.1"
 echo "=============================================="
 echo ""
 

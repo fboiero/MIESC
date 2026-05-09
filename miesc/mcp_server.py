@@ -58,7 +58,7 @@ mcp = FastMCP(
     "miesc",
     instructions=(
         f"MIESC v{__version__} - Multi-layer Intelligent Evaluation for Smart Contracts. "
-        "9 defense layers, 35 Analysis Modules, AI-powered correlation."
+        "9 defense layers, 50 configured tool adapters, AI-powered correlation."
     ),
 )
 

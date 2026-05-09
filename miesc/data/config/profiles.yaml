@@ -216,4 +216,4 @@ default: balanced
 metadata:
   version: "1.1.0"
   last_updated: "2026-05-07"
-  description: "MIESC Analysis Profiles v5.4.0"
+  description: "MIESC Analysis Profiles v5.4.1"

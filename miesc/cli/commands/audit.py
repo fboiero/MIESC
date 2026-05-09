@@ -517,7 +517,7 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
 
             all_results.extend(results)
 
-    # v5.4.0: Run enabled plugin detectors
+    # v5.4.x: Run enabled plugin detectors
     plugin_start = _time.perf_counter()
     plugin_results = run_plugins(contract, timeout)
     if plugin_results:

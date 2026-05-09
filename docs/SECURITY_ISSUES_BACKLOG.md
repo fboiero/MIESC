@@ -279,7 +279,7 @@ FROM ghcr.io/fboiero/miesc:latest
 
 **Required Fix:**
 ```dockerfile
-FROM ghcr.io/fboiero/miesc:5.1.1
+FROM ghcr.io/fboiero/miesc:5.4.1
 ```
 
 **Effort:** 15 minutes

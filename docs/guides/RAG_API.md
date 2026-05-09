@@ -1,4 +1,4 @@
-# RAG API Guide - MIESC v5.4.0
+# RAG API Guide - MIESC v5.4.1
 
 This guide covers the Retrieval-Augmented Generation (RAG) system for vulnerability analysis in MIESC.
 

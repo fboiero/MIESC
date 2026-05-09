@@ -7,7 +7,7 @@ A professional CLI for smart contract security audits targeting:
 - Security Researchers: Deep analysis, custom configurations
 - Auditors: Full reports, compliance mapping
 
-Integrates 35 Analysis Modules across 9 defense layers.
+Integrates 50 configured tool adapters across 9 defense layers.
 
 Author: Fernando Boiero
 Institution: UNDEF - IUA Cordoba
@@ -76,7 +76,7 @@ def cli(ctx, version, no_banner, debug, quiet):
     """
     MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
-    A comprehensive blockchain security framework with 35 Analysis Modules
+    A comprehensive blockchain security framework with 50 configured tool adapters
     across 9 defense layers.
 
     Quick Start:

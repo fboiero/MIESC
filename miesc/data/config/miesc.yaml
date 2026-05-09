@@ -1,9 +1,9 @@
 # =============================================================================
-# MIESC v5.4.0 - Configuración Centralizada
+# MIESC v5.4.1 - Configuración Centralizada
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # v5.0.0 Changes:
-# - Expanded to 9 defense layers with 35 Analysis Modules
+# - Expanded to 9 defense layers with configured tool adapters
 # - MCP server for Claude Desktop integration (stdio transport)
 # - New adapters: 4naly3er, pakala, scribble, solcmc, gptlens,
 #   llamaaudit, iaudit, peculiar, upgradability_checker,

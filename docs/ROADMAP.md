@@ -4,7 +4,7 @@ This document outlines the development roadmap for MIESC.
 
 ---
 
-## Current Version: 5.1.1
+## Current Version: 5.4.1
 
 Released: February 2026
 
@@ -91,7 +91,7 @@ Released: February 2026
 
 ### v4.x (2025)
 
-- [x] 35 Analysis Modules integration
+- [x] 50 configured tool adapters across 9 defense layers
 - [x] 9 defense layers
 - [x] MCP protocol support
 - [x] ML-based false positive reduction
