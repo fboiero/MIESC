@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MIESC v5.1.1 - WebSocket Server for Real-time Audit Streaming
+MIESC - WebSocket Server for Real-time Audit Streaming
 
 Provides real-time progress updates during multi-layer security audits.
 Implements the Model Context Protocol (MCP) over WebSocket for agent integration.

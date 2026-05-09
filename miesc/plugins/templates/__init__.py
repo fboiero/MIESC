@@ -60,7 +60,7 @@ class {class_name}(BaseDetector):
         """
         findings: list[Finding] = []
 
-        # TODO: Implement your detection logic here
+        # Add project-specific detection logic here.
         # Example:
         # if "dangerous_pattern" in source_code:
         #     findings.append(Finding(

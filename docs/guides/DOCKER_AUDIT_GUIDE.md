@@ -222,7 +222,7 @@ start my_contracts\audit_report.pdf
 The professional PDF report (Trail of Bits / OpenZeppelin style) includes:
 
 - **Cover page** with confidentiality classification
-- **Executive summary** with AI-generated business risk analysis
+- **Executive summary** with model-assisted business risk analysis
 - **Deployment recommendation**: GO / NO-GO / CONDITIONAL
 - **Risk matrix** with CVSS-like scoring
 - **Detailed findings** with step-by-step attack scenarios

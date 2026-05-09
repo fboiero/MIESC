@@ -86,7 +86,7 @@ def status_label(status: ToolStatus) -> str:
 def print_header():
     """Print diagnostic header."""
     print("=" * 70)
-    print("MIESC Adapter Diagnostic Tool v5.1.1")
+    print("MIESC Adapter Diagnostic Tool v5.4.0")
     print(f"Timestamp: {datetime.now().isoformat()}")
     print(f"OLLAMA_HOST: {os.environ.get('OLLAMA_HOST', 'not set')}")
     print("=" * 70)

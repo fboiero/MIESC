@@ -40,7 +40,7 @@ pip install miesc[pdf]
 
 ### For LLM-Enhanced Reports
 
-For AI-generated insights (executive summary, attack scenarios):
+For model-assisted insights (executive summary, attack scenarios):
 ```bash
 # Requires Ollama running locally
 ollama pull mistral

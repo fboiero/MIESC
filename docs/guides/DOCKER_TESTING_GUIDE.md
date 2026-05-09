@@ -1,4 +1,4 @@
-# Testing MIESC Docker Images v5.1.1
+# Testing MIESC Docker Images v5.4.0
 
 **[Versión en Español](DOCKER_TESTING_GUIDE_ES.md)**
 

@@ -7,7 +7,7 @@ lang: es
 # MIESC - Evaluación Inteligente Multicapa para Smart Contracts
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MIESC-v5.1.1-blue?style=for-the-badge" alt="MIESC v5.1.1">
+  <img src="https://img.shields.io/badge/MIESC-v5.4.0-blue?style=for-the-badge" alt="MIESC v5.4.0">
   <img src="https://img.shields.io/pypi/v/miesc?style=for-the-badge&label=PyPI" alt="PyPI">
   <img src="https://img.shields.io/badge/Licencia-AGPL--3.0-green?style=for-the-badge" alt="Licencia">
   <img src="https://img.shields.io/badge/Python-3.12+-yellow?style=for-the-badge" alt="Python">
@@ -77,9 +77,9 @@ lang: es
 
 **MIESC** es un framework de seguridad de smart contracts de grado de producción que implementa una **arquitectura Defense-in-Depth de 9 capas**, integrando **50 herramientas de seguridad especializadas** con **correlación potenciada por IA** y **detección basada en ML** para ofrecer detección integral de vulnerabilidades con precisión líder en la industria.
 
-### Logros Principales (v5.1.1)
+### Logros Principales (v5.4.0)
 
-- **31 Herramientas Integradas** en 9 capas de defensa
+- **50 Herramientas Integradas** en 9 capas de defensa
 - **95.7% de Precisión de Detección ML** con Redes Neuronales de Grafos DA-GNN
 - **100% Precisión**, **70% Recall**, **F1-Score 82.35%** (benchmark SmartBugs-curated)
 - **91.4% Índice de Cumplimiento** en 12 estándares internacionales
@@ -259,14 +259,14 @@ Static Dynamic Symbolic Formal
 
 ## Métricas de Rendimiento
 
-### Resultados v5.1.1 (Benchmark SmartBugs-curated)
+### Resultados v5.4.0 (Benchmark SmartBugs-curated)
 
 | Métrica | Valor | Notas |
 |---------|-------|-------|
 | **Precisión** | 100% | 0 falsos positivos |
 | **Recall** | 70% | 35/50 vulnerabilidades detectadas |
 | **F1-Score** | 82.35% | Benchmark de 50 contratos |
-| **Herramientas** | 31 | Operativas en 9 capas |
+| **Herramientas** | 50 | Adaptadores configurados en 9 capas |
 | **Categorías con 100% Recall** | 3 | arithmetic, bad_randomness, front_running |
 
 ### Suite de Tests
@@ -274,7 +274,7 @@ Static Dynamic Symbolic Formal
 - **117 tests pasando**
 - **80.8% cobertura de código**
 - **0 vulnerabilidades críticas**
-- **50/50 herramientas operativas**
+- **50 adaptadores de herramientas configurados en 9 capas**
 
 ---
 
@@ -295,7 +295,7 @@ Static Dynamic Symbolic Formal
 ### Contribuciones de Investigación
 
 1. **Arquitectura Defense-in-Depth de 9 Capas** para seguridad de smart contracts
-2. **Integración de 31 Herramientas** bajo protocolo unificado ToolAdapter
+2. **Integración de 50 Herramientas** bajo protocolo unificado ToolAdapter
 3. **Sistema de Normalización Triple** (SWC/CWE/OWASP) con 97.1% de precisión
 4. **Backend de IA Soberano** con Ollama para soberanía de datos
 5. **Servidor MCP** para integración con asistentes de IA
@@ -477,7 +477,7 @@ Asegura que el framework permanezca open-source. Permite uso comercial con atrib
 ---
 
 <p align="center">
-  <strong>MIESC v5.1.1</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
+  <strong>MIESC v5.4.0</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
 </p>
 
 <p align="center">

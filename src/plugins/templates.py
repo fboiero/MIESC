@@ -485,7 +485,7 @@ class {class_name}Adapter(AdapterPlugin):
         """
         findings = []
 
-        # TODO: Implement parsing logic for your tool's output
+        # Add tool-specific parsing logic here.
         # Example:
         # import json
         # data = json.loads(stdout)

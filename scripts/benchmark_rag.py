@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-RAG Performance Benchmark - MIESC v5.1.1
+RAG Performance Benchmark - MIESC v5.4.0
 
 Measures the performance improvements from:
 - Query caching (5-min TTL, 256-entry LRU)

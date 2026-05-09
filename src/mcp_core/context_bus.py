@@ -9,7 +9,7 @@ Design Philosophy:
 - Minimal but functional implementation
 - Thread-safe message storage
 - Supports both synchronous and asynchronous communication patterns
-- Compatible with MIESC's 7-layer architecture
+- Compatible with MIESC's configurable multi-layer architecture
 """
 
 import logging

@@ -7,7 +7,7 @@ info:
     ML-enhanced MCP-compatible blockchain security framework API.
 
     ## Features
-    - Smart contract security analysis with 7-layer defense-in-depth
+    - Smart contract security analysis with a configurable multi-layer pipeline
     - ML-powered false positive filtering and severity prediction
     - Smart Correlation Engine for cross-tool validation
     - Exploit Chain Analysis for attack path detection
@@ -957,7 +957,7 @@ components:
       properties:
         agent_id:
           type: string
-          example: miesc-agent-v4.0.0
+          example: miesc-agent-v5.4.0
         protocol:
           type: string
           example: mcp/1.0

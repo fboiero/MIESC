@@ -1,5 +1,5 @@
 # =============================================================================
-# MIESC v5.1.2 - Configuración Centralizada
+# MIESC v5.4.0 - Configuración Centralizada
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # v5.0.0 Changes:
@@ -622,8 +622,8 @@ reports:
 
     # Features to include when LLM interpretation is enabled
     features:
-      executive_summary: true      # AI-generated executive summary
-      risk_narrative: true         # AI-generated risk narrative
+      executive_summary: true      # model-assisted executive summary
+      risk_narrative: true         # model-assisted risk narrative
       critical_interpretations: true  # Detailed interpretation of critical findings
       remediation_priority: true   # AI-suggested remediation order
 

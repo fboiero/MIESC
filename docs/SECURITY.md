@@ -148,8 +148,8 @@ security-scan:
    pip install --upgrade miesc
    ```
 
-4. **Review AI Outputs**
-   - AI-generated analysis may contain errors
+4. **Review Model-Assisted Outputs**
+   - Model-assisted analysis may contain errors
    - Always verify critical findings manually
 
 ### For Developers

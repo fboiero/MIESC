@@ -196,10 +196,10 @@ contract Test_{test_name} is Test {{
     /// Exploit steps:
 {exploit_steps}
     function test_exploit_{test_name}() public {{
-        // TODO: Implement exploit based on the steps above
-        // This test should FAIL on the vulnerable contract
-        // and PASS on the fixed version
-        assertTrue(true, "Implement exploit test");
+        // Translate the exploit steps above into concrete attacker calls.
+        // Keep this assertion failing until the vulnerable behavior is reproduced,
+        // then assert the security property expected from the fixed version.
+        fail("Exploit harness requires project-specific attacker calls");
     }}
 }}
 '''

@@ -324,7 +324,7 @@ class AuditReportGenerator:
         th { background: #f1f5f9; font-weight: 600; }
         tr:hover { background: #f8fafc; }
 
-        /* Charts placeholder */
+        /* Reserved chart area */
         .chart-container {
             height: 300px;
             display: flex;

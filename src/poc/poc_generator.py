@@ -566,8 +566,8 @@ contract {{CONTRACT_NAME}}ExploitTest is Test {
 
         vm.startPrank(attacker);
 
-        // TODO: Implement exploit logic for {{VULNERABILITY_TYPE}}
-        // Call vulnerable function: target.{{TARGET_FUNCTION}}()
+        // Bind the project-specific exploit path for {{VULNERABILITY_TYPE}}.
+        // Typical entry point: target.{{TARGET_FUNCTION}}()
 
         vm.stopPrank();
 

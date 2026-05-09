@@ -6,7 +6,7 @@ title: MIESC - Smart Contract Security Framework
 # MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MIESC-v5.1.1-blue?style=for-the-badge" alt="MIESC v5.1.1">
+  <img src="https://img.shields.io/badge/MIESC-v5.4.0-blue?style=for-the-badge" alt="MIESC v5.4.0">
   <img src="https://img.shields.io/pypi/v/miesc?style=for-the-badge&label=PyPI" alt="PyPI">
   <img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Python-3.12+-yellow?style=for-the-badge" alt="Python">
@@ -74,11 +74,11 @@ title: MIESC - Smart Contract Security Framework
 
 ## Overview
 
-**MIESC** is a production-grade smart contract security framework that implements a **9-layer Defense-in-Depth architecture**, integrating **31 specialized security tools** with **AI-powered correlation** and **ML-based detection** to deliver comprehensive vulnerability detection with industry-leading accuracy.
+**MIESC** is a production-grade smart contract security framework that implements a **9-layer Defense-in-Depth architecture**, integrating **50 specialized security tools** with **AI-powered correlation** and **ML-based detection** to deliver comprehensive vulnerability detection with industry-leading accuracy.
 
-### Key Achievements (v5.1.1)
+### Key Achievements (v5.4.0)
 
-- **31 Integrated Tools** across 9 defense layers
+- **50 Integrated Tools** across 9 defense layers
 - **95.7% ML Detection Accuracy** with DA-GNN Graph Neural Networks
 - **100% Precision**, **70% Recall**, **F1-Score 82.35%** (SmartBugs-curated benchmark)
 - **91.4% Compliance Index** across 12 international standards
@@ -260,14 +260,14 @@ Static Dynamic Symbolic Formal
 
 ## Performance Metrics
 
-### v5.1.1 Results (SmartBugs-curated Benchmark)
+### v5.4.0 Results (SmartBugs-curated Benchmark)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
 | **Precision** | 100% | 0 false positives |
 | **Recall** | 70% | 35/50 vulnerabilities detected |
 | **F1-Score** | 82.35% | 50 contract benchmark |
-| **Tools** | 31 | Operational across 9 layers |
+| **Tools** | 50 | Configured adapters across 9 layers |
 | **Categories with 100% Recall** | 3 | arithmetic, bad_randomness, front_running |
 
 ### Test Suite
@@ -275,7 +275,7 @@ Static Dynamic Symbolic Formal
 - **117 tests passing**
 - **80.8% code coverage**
 - **0 critical vulnerabilities**
-- **50/50 tools operational**
+- **50 tool adapters configured across 9 layers**
 
 ---
 
@@ -475,7 +475,7 @@ Ensures framework remains open-source. Allows commercial use with attribution. D
 ---
 
 <p align="center">
-  <strong>MIESC v5.1.1</strong> | Master's Thesis in Cyberdefense | AGPL-3.0 License
+  <strong>MIESC v5.4.0</strong> | Master's Thesis in Cyberdefense | AGPL-3.0 License
 </p>
 
 <p align="center">

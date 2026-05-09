@@ -1,4 +1,4 @@
-# Instrucciones para release y publicación — MIESC v5.1.1
+# Instrucciones para release y publicación — MIESC v5.4.0
 
 ## 1. Publicar en PyPI (URGENTE)
 

@@ -1,6 +1,6 @@
 # Professional Smart Contract Audit Workflow
 
-**MIESC v5.1.1** | Professional Auditor Guide
+**MIESC v5.4.0** | Professional Auditor Guide
 
 This guide provides a structured workflow for conducting professional smart contract security audits using MIESC.
 
@@ -346,7 +346,7 @@ After audit, document false positives for client:
 
 With `--llm-interpret`, reports include:
 
-- **Executive Summary:** AI-generated overview of security posture
+- **Executive Summary:** model-assisted overview of security posture
 - **Attack Scenarios:** Realistic exploitation paths
 - **Remediation Guidance:** Detailed fix recommendations
 - **Risk Assessment:** Business impact analysis

@@ -62,9 +62,9 @@ MIESC is a **dual-use security tool**. Like any vulnerability scanner, it can be
 
 MIESC integrates AI/LLM capabilities for enhanced analysis. Responsible AI practices include:
 
-- **Transparency:** AI-generated findings are clearly labeled in reports (AI Disclosure section)
+- **Transparency:** model-assisted findings are clearly labeled in reports
 - **Reproducibility:** Seeds and model versioning enable reproducible results
-- **Hallucination detection:** Built-in cross-validation reduces false AI-generated findings
+- **Hallucination detection:** Built-in cross-validation reduces unsupported model-assisted findings
 - **Local execution:** Default Ollama integration ensures code stays on the user's machine
 - **Prompt sanitization:** Input sanitization prevents prompt injection attacks
 
