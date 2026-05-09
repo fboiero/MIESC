@@ -103,10 +103,11 @@ broadcast/
 # Analysis Results (Generated Data)
 # -----------------------------------------------------------------------------
 audit_results/
-reports/
+/reports/
 benchmarks/results/
 !benchmarks/results/
 benchmarks/results/*
+!benchmarks/results/README.md
 !benchmarks/results/evmbench/
 benchmarks/results/evmbench/*
 !benchmarks/results/paper1_claims_matrix.json
@@ -124,6 +125,10 @@ benchmarks/results/evmbench/*
 !benchmarks/results/paper2_patch_quality_by_transform.json
 !benchmarks/results/tooling_smoke_layers_1_6.json
 !benchmarks/results/tooling_smoke_layers_1_6.jsonl
+!benchmarks/results/v5.1.6_benchmark_report.md
+!benchmarks/results/v5.1.6_deep_audit_rekt_report.md
+!benchmarks/results/v5.1.6_fp_dataset_pilot.md
+!benchmarks/results/v5.1.7_gates_report.md
 !benchmarks/results/evmbench/evmbench_ensemble_40.json
 !benchmarks/results/evmbench/evmbench_static_40.json
 data/benchmark_history/
@@ -223,13 +228,13 @@ crytic-export/
 # AI Assistant Configuration (Local Only)
 # -----------------------------------------------------------------------------
 CLAUDE.md
+.claude/
 
 # -----------------------------------------------------------------------------
 # Miscellaneous
 # -----------------------------------------------------------------------------
 =*
 .python-version
-benchmarks/datasets/smartbugs-curated/
 benchmarks/datasets/solidifi-benchmark/
 analysis/
 
@@ -237,9 +242,11 @@ analysis/
 # Generated Academic Documents
 # -----------------------------------------------------------------------------
 *.docx
+!docs/*.docx
 *.csv
-generate_*_report.py
-miesc-quick
+!docs/DPGA_Application_Responses.csv
+/generate_*_report.py
+/miesc-quick
 
 # Virtual environments (additional patterns)
 venv*/
@@ -247,6 +254,7 @@ vscode-extension/node_modules/
 
 # Sphinx build output
 docs/_build/
+docs/reports/
 
 # Downloaded benchmark datasets (too large for git)
 data/datasets/etherscan/contracts/
@@ -264,6 +272,10 @@ paper/*.blg
 paper/*.out
 paper/*.log
 paper/missfont.log
+paper/*-arxiv.tar.gz
+paper/*.synctex.gz
+paper/*.fls
+paper/*.fdb_latexmk
 
 # Coverage artifacts (already in gitignore but being explicit)
 .coverage
@@ -293,6 +305,6 @@ venv*/
 
 evaluation_results/
 analysis/
-reports/
+/reports/
 CLAUDE.md
 apik.sh

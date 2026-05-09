@@ -43,6 +43,14 @@ docs/
 
 ## Key Documents
 
+### Current Project Maintenance
+
+| Document | Location | Description |
+|----------|----------|-------------|
+| Repository Hygiene | `guides/REPOSITORY_HYGIENE.md` | What belongs in Git, what is generated/local, and how to keep evidence curated |
+| Researcher Packaging | `guides/RESEARCHER_PACKAGING.md` | How researchers should install and run the full toolchain |
+| Testing Guide | `guides/TESTING.md` | Test strategy and validation commands |
+
 ### For Thesis Defense (Dec 18, 2025)
 
 | Document | Location | Description |

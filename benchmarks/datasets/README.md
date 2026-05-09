@@ -1,18 +1,26 @@
 # Benchmark Datasets
 
-This directory contains external benchmark datasets for evaluating MIESC's vulnerability detection capabilities. These datasets are excluded from version control due to their size.
+This directory contains benchmark datasets for evaluating MIESC's vulnerability
+detection capabilities.
+
+Small curated fixtures that support reproducible papers and regression tests are
+versioned in Git. Large downloaded corpora, raw crawls, and generated dataset
+outputs stay local and are ignored.
 
 ## Available Datasets
 
 ### SmartBugs-Curated
 
 Peer-reviewed academic benchmark containing 143 contracts with verified security flaws.
+The curated contract set under `smartbugs-curated/dataset/` is intentionally
+kept in Git because it is small and is referenced by the paper reproducibility
+workflow.
 
 **Source:** [SmartBugs-curated](https://github.com/smartbugs/smartbugs-curated)
 **Paper:** ICSE 2020 - "SmartBugs: A Framework to Analyze Solidity Smart Contracts"
 
 ```bash
-# Download
+# Refresh from upstream if needed
 git clone https://github.com/smartbugs/smartbugs-curated.git smartbugs-curated
 ```
 
@@ -52,13 +60,10 @@ git clone https://github.com/DependableSystemsLab/SolidiFI-benchmark.git solidif
 
 ## Quick Setup
 
-Download all datasets:
+Download external datasets:
 
 ```bash
 cd benchmarks/datasets/
-
-# SmartBugs-curated (ICSE 2020)
-git clone https://github.com/smartbugs/smartbugs-curated.git
 
 # SolidiFI (ISSTA 2020)
 git clone https://github.com/DependableSystemsLab/SolidiFI-benchmark.git solidifi-benchmark
