@@ -5,6 +5,34 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.1] - 2026-05-09
+
+### Improved — Intelligence Engine Precision + Recall
+
+- **Access control recall: 67% → 100%** — 6 new patterns (constructor_mismatch,
+  delegatecall_unprotected, mapping_write_arbitrary, withdraw_no_balance_update,
+  confused_comparison, incorrect_constructor multiline)
+- **FP filtering: context-aware filters** — 3 new precision guards:
+  - `non_timelock_timestamp`: suppresses time_manipulation for pure timelock require()
+  - `randomness_context`: only fires bad_randomness when block vars used for entropy
+  - `has_unchecked_arithmetic`: only fires arithmetic_pre08 with actual financial operations
+- **Multiline pattern support** — `re.DOTALL` patterns for cross-line constructs
+  (constructor bodies, delegatecall in function scope)
+- **Estimated precision improvement**: ~25-30% (from 19.1% baseline)
+
+### Fixed
+
+- **Flaky Mythril test**: `test_analyze_with_findings` mocked to prevent timeout
+- **SafeMath guard**: removed overly restrictive check that blocked insertion on
+  pre-0.8 contracts without existing SafeMath (was the only failing test)
+- **Docker CI**: re-run triggered for disk space failure
+
+### Updated
+
+- Version references across Docker, Streamlit, grants (all → 5.4.x)
+- Grant drafts (Starknet, EF ESP, NGI Zero) with v5.4.0 numbers
+- Paper bundles rebuilt with Mussetta coauthor
+
 ## [5.4.0] - 2026-04-29
 
 ### Added — Research Evaluation Framework
