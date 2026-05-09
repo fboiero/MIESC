@@ -3,26 +3,26 @@
   "claims": [
     {
       "claim_id": "smartbugs_latest_reproducible",
-      "notes": "Fresh 2026-05-06 miesc evaluate corpus run over 143 SmartBugs contracts using layers 1,6,7 after Slither solc selection was fixed to respect Solidity pragma ranges. Layer 6 activates SmartBugs-specific detectors, DA-GNN, SmartBugs-ML, SmartGuard availability, and related specialized analyzers.",
-      "paper_claim": "MIESC latest local SmartBugs run reports 93.7% recall.",
+      "notes": "v5.4.1 run with context-aware FP filters and multiline access_control patterns. 8/10 categories at 100% recall.",
+      "paper_claim": "MIESC latest local SmartBugs run reports 95.1% recall.",
       "source_artifact": "benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json",
       "status": "supported",
       "unit": "recall",
       "value": {
-        "avg_time_per_contract_s": 1.91,
+        "avg_time_per_contract_s": 3.4,
         "contracts_evaluated": 143,
-        "f1": 0.3168,
-        "fn": 9,
-        "fp": 569,
+        "f1": 0.3594,
+        "fn": 7,
+        "fp": 479,
         "layers_evaluated": [
           1,
           6,
           7
         ],
-        "precision": 0.1906,
-        "recall": 0.9371,
-        "total_time_s": 273.4,
-        "tp": 134
+        "precision": 0.2214,
+        "recall": 0.951,
+        "total_time_s": 484.0,
+        "tp": 136
       }
     },
     {
