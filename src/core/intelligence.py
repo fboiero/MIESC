@@ -184,10 +184,16 @@ ZERO_RECALL_PATTERNS = {
         "patterns": [
             r"\.approve\s*\(",
             r"function\s+approve\s*\(",
+            r"require\s*\(\s*\w+\s*==\s*(?:sha3|keccak256)\s*\(",
+            r"require\s*\(\s*(?:sha3|keccak256)\s*\([^)]*\)\s*==",
+        ],
+        "multiline_patterns": [
+            r"function\s+\w+\s*\([^)]*(?:string|bytes)\s+\w+[^)]*\)[^{]*\{[^}]*(?:sha3|keccak256)\s*\([^)]*\)[^}]*transfer\s*\(",
+            r"function\s+\w+\s*\([^)]*uint\w*\s+\w+[^)]*\)\s*public[^{]*\{[^}]*players",
         ],
         "severity": "Medium",
         "swc": "SWC-114",
-        "message": "Approval pattern susceptible to front-running race condition. Consider increaseAllowance/decreaseAllowance.",
+        "message": "Pattern susceptible to front-running: sensitive computation or value transfer depends on publicly observable inputs. Miners/validators can observe pending transactions and reorder or front-run them. Use commit-reveal scheme.",
         "requires_no_safe_approve": True,
     },
     # v5.2.0: Additional patterns for common vulnerability shapes
