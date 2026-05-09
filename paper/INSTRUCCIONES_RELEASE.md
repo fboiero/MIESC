@@ -1,8 +1,8 @@
-# Instrucciones para release y publicación — MIESC v5.4.1
+# Instrucciones para release y publicación — MIESC v5.4.2
 
 ## 1. Publicar en PyPI (URGENTE)
 
-El package en PyPI está en v5.0.3, hay que actualizar a 5.4.1.
+El package en PyPI está en v5.0.3, hay que actualizar a 5.4.2.
 
 ```bash
 cd /Users/fboiero/Documents/GitHub/MIESC
@@ -11,40 +11,40 @@ cd /Users/fboiero/Documents/GitHub/MIESC
 python3 -m build
 
 # Upload (necesita credenciales de PyPI)
-python3 -m twine upload dist/miesc-5.4.1*
+python3 -m twine upload dist/miesc-5.4.2*
 ```
 
 Si no hay cuenta PyPI configurada:
 ```bash
 # Crear token en https://pypi.org/manage/account/token/
 # Guardar en ~/.pypirc o usar --username __token__ --password pypi-...
-python3 -m twine upload --username __token__ --password pypi-XXXXX dist/miesc-5.4.1*
+python3 -m twine upload --username __token__ --password pypi-XXXXX dist/miesc-5.4.2*
 ```
 
 Verificar después:
 ```bash
-pip install miesc==5.4.1
-miesc --version  # debe decir 5.4.1
+pip install miesc==5.4.2
+miesc --version  # debe decir 5.4.2
 ```
 
 ## 2. Docker: Retagear latest en GHCR
 
-La imagen `ghcr.io/fboiero/miesc:5.4.1` existe pero `latest` no apunta a ella.
+La imagen `ghcr.io/fboiero/miesc:5.4.2` existe pero `latest` no apunta a ella.
 
 ```bash
 # Login a GHCR
 echo $GITHUB_TOKEN | docker login ghcr.io -u fboiero --password-stdin
 
 # Pull, retag, push
-docker pull ghcr.io/fboiero/miesc:5.4.1
-docker tag ghcr.io/fboiero/miesc:5.4.1 ghcr.io/fboiero/miesc:latest
+docker pull ghcr.io/fboiero/miesc:5.4.2
+docker tag ghcr.io/fboiero/miesc:5.4.2 ghcr.io/fboiero/miesc:latest
 docker push ghcr.io/fboiero/miesc:latest
 ```
 
 Verificar:
 ```bash
 docker run --rm ghcr.io/fboiero/miesc:latest --version
-# Debe decir MIESC version 5.4.1
+# Debe decir MIESC version 5.4.2
 ```
 
 ## 3. Publicar paper (ver INSTRUCCIONES_PUBLICACION.md)
@@ -73,7 +73,7 @@ pero muestran warnings. No es bloqueante.
 
 | # | Acción | Impacto | Esfuerzo |
 |---|--------|---------|----------|
-| 1 | Publicar PyPI 5.4.1 | ALTO — pip install funciona | 5 min |
+| 1 | Publicar PyPI 5.4.2 | ALTO — pip install funciona | 5 min |
 | 2 | Retagear Docker latest | ALTO — docker run funciona | 5 min |
 | 3 | Paper TechRxiv + arXiv | ALTO — citeable | 30 min |
 | 4 | Webapp Streamlit Cloud | MEDIO — demo online | 10 min |

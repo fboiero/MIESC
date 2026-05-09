@@ -29,7 +29,7 @@ info:
     - OWASP Smart Contract Top 10
     - Digital Public Good (DPG) Standards
 
-  version: "5.4.1"
+  version: "5.4.2"
   contact:
     name: Fernando Boiero
     email: fboiero@frvm.utn.edu.ar
@@ -957,7 +957,7 @@ components:
       properties:
         agent_id:
           type: string
-          example: miesc-agent-v5.4.1
+          example: miesc-agent-v5.4.2
         protocol:
           type: string
           example: mcp/1.0

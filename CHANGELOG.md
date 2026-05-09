@@ -5,6 +5,20 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.2] - 2026-05-09
+
+### Fixed
+
+- Aligned release documentation, CLI banners, OpenAPI metadata, Docker examples,
+  release verification instructions, and package fallbacks with the final
+  release surface.
+- Kept the release tag target consistent with the final commit intended for
+  GitHub Release, PyPI, and Docker publication.
+
+### Updated
+
+- Includes the SmartBugs benchmark refresh published after v5.4.1.
+
 ## [5.4.1] - 2026-05-09
 
 ### Improved — Intelligence Engine Precision + Recall

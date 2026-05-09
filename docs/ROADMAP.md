@@ -4,7 +4,7 @@ This document outlines the development roadmap for MIESC.
 
 ---
 
-## Current Version: 5.4.1
+## Current Version: 5.4.2
 
 Released: February 2026
 

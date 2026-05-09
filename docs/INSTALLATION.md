@@ -1,4 +1,4 @@
-# MIESC v5.4.1 - Complete Installation Guide
+# MIESC v5.4.2 - Complete Installation Guide
 
 **[Versión en Español](INSTALLATION_ES.md)**
 
@@ -431,4 +431,4 @@ After installation:
 
 ---
 
-**Version**: 5.4.1 | **Last Updated**: May 2026
+**Version**: 5.4.2 | **Last Updated**: May 2026

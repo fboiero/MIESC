@@ -478,7 +478,7 @@ miesc detectors list                         # List all available detectors
 # Pre-commit hook (.pre-commit-config.yaml)
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v5.4.1
+    rev: v5.4.2
     hooks:
       - id: miesc-quick
         args: ['--ci']

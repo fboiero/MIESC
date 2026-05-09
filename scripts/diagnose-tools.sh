@@ -26,7 +26,7 @@ declare -a FAIL_LIST
 declare -a SKIP_LIST
 
 echo "=============================================="
-echo "MIESC Tool Diagnostic v5.4.1"
+echo "MIESC Tool Diagnostic v5.4.2"
 echo "=============================================="
 echo ""
 

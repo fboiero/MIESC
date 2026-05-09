@@ -1,4 +1,4 @@
-# Testing MIESC Docker Images v5.4.1
+# Testing MIESC Docker Images v5.4.2
 
 **[Versión en Español](DOCKER_TESTING_GUIDE_ES.md)**
 
@@ -26,7 +26,7 @@ docker run --rm ghcr.io/fboiero/miesc:full --version
 docker run --rm ghcr.io/fboiero/miesc:full doctor
 ```
 
-Both commands should show **MIESC version 5.4.1**.
+Both commands should show **MIESC version 5.4.2**.
 
 ## 3. Run a test scan
 
@@ -38,10 +38,10 @@ docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:latest scan /contract
 
 | Tag | Contents |
 |-----|----------|
-| `miesc:latest` / `miesc:5.4.1` | Standard: Slither, Aderyn, Solhint, Foundry (~15 tools) |
-| `miesc:full` / `miesc:5.4.1-full` | Full: + Mythril, Manticore, Echidna, Halmos, PyTorch (~30 tools) |
+| `miesc:latest` / `miesc:5.4.2` | Standard: Slither, Aderyn, Solhint, Foundry (~15 tools) |
+| `miesc:full` / `miesc:5.4.2-full` | Full: + Mythril, Manticore, Echidna, Halmos, PyTorch (~30 tools) |
 
-> **Note:** Ignore any older versions (pre-5.4.1) that may appear in the registry. Always use the tags listed above.
+> **Note:** Ignore any older versions (pre-5.4.2) that may appear in the registry. Always use the tags listed above.
 
 ## 5. ARM / Apple Silicon
 

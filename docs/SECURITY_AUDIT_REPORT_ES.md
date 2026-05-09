@@ -1,6 +1,6 @@
 # Informe de Auditoría de Seguridad - MIESC
 
-**Versión:** 5.4.1
+**Versión:** 5.4.2
 **Fecha de Auditoría:** 16 de Febrero de 2026
 **Auditor:** Revisión Interna de Seguridad
 **Clasificación:** Uso Interno

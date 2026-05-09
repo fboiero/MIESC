@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 try:
     from miesc import __version__ as MIESC_VERSION
 except ImportError:
-    MIESC_VERSION = "5.4.1"  # Fallback version
+    MIESC_VERSION = "5.4.2"  # Fallback version
 
 
 @dataclass

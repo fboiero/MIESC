@@ -1,6 +1,6 @@
 # MIESC Security Audit Report
 
-**Version:** 5.4.1
+**Version:** 5.4.2
 **Audit Date:** February 16, 2026
 **Auditor:** Internal Security Review
 **Classification:** Internal Use
