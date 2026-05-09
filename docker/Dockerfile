@@ -1,4 +1,4 @@
-# MIESC v5.4.0 - Optimized Docker Deployment
+# MIESC v5.4.2 - Optimized Docker Deployment
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # This Dockerfile creates a complete, production-ready environment with:
@@ -15,27 +15,40 @@
 # has protobuf compatibility issues on Python 3.12.
 #
 # Build with BuildKit for parallel stages and cache mounts:
-#   DOCKER_BUILDKIT=1 docker build -t miesc:5.4.0 -f Dockerfile .
+#   DOCKER_BUILDKIT=1 docker build -t miesc:5.4.2 -f Dockerfile .
 
 # ============================================================
-# Stage 1a: aderyn-builder (runs in parallel with foundry-builder)
+# Stage 1a: aderyn-downloader (runs in parallel with foundry-builder)
 # ============================================================
-FROM python:3.12-slim-bookworm AS aderyn-builder
+FROM python:3.12-slim-bookworm AS aderyn-downloader
+ARG TARGETARCH
+ARG ADERYN_VERSION=0.6.8
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential git curl ca-certificates libssl-dev pkg-config \
+    curl ca-certificates xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Security Note: rustup from official source with TLS verification
-# For high-security environments, consider using distro packages instead
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-RUN --mount=type=cache,target=/root/.cargo/registry \
-    cargo install aderyn
+# Aderyn publishes official Linux binaries for amd64 and arm64. Downloading the
+# pinned release avoids a long Rust source build inside Docker and keeps ARM
+# builds reproducible.
+RUN set -eux; \
+    case "${TARGETARCH:-$(dpkg --print-architecture)}" in \
+        amd64) aderyn_arch="x86_64-unknown-linux-gnu" ;; \
+        arm64|aarch64) aderyn_arch="aarch64-unknown-linux-gnu" ;; \
+        *) echo "Unsupported architecture for Aderyn: ${TARGETARCH:-unknown}" >&2; exit 1 ;; \
+    esac; \
+    asset="aderyn-${aderyn_arch}.tar.xz"; \
+    base_url="https://github.com/Cyfrin/aderyn/releases/download/aderyn-v${ADERYN_VERSION}"; \
+    curl -fsSLo "/tmp/${asset}" "${base_url}/${asset}"; \
+    curl -fsSLo "/tmp/${asset}.sha256" "${base_url}/${asset}.sha256"; \
+    cd /tmp; \
+    sha256sum -c "${asset}.sha256"; \
+    tar -xJf "${asset}" -C /usr/local/bin --strip-components=1 "aderyn-${aderyn_arch}/aderyn"; \
+    chmod +x /usr/local/bin/aderyn; \
+    /usr/local/bin/aderyn --version
 
 # ============================================================
-# Stage 1b: foundry-builder (runs in parallel with aderyn-builder)
+# Stage 1b: foundry-builder (runs in parallel with aderyn-downloader)
 # ============================================================
 FROM python:3.12-slim-bookworm AS foundry-builder
 
@@ -54,13 +67,14 @@ RUN foundryup
 FROM python:3.12-slim-bookworm
 
 LABEL maintainer="Fernando Boiero <fboiero@frvm.utn.edu.ar>"
-LABEL version="5.4.0"
+ARG MIESC_VERSION=5.4.2
+LABEL version="${MIESC_VERSION}"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Copy aderyn from aderyn-builder
-COPY --from=aderyn-builder /root/.cargo/bin/aderyn /usr/local/bin/
+# Copy Aderyn from the pinned release downloader
+COPY --from=aderyn-downloader /usr/local/bin/aderyn /usr/local/bin/
 
 # Copy Foundry binaries from foundry-builder
 COPY --from=foundry-builder /root/.foundry/bin/forge /usr/local/bin/
@@ -177,7 +191,7 @@ RUN --mount=type=cache,target=/home/miesc/.cache/pip,uid=1000 \
     echo "WeasyPrint installed successfully"
 
 # Environment variables for MIESC
-ENV MIESC_VERSION="5.4.0"
+ENV MIESC_VERSION="${MIESC_VERSION}"
 ENV MIESC_ENV="docker"
 ENV PYTHONPATH="/app"
 ENV PYTHONUNBUFFERED=1
