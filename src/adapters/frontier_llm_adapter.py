@@ -916,6 +916,10 @@ Respond with a JSON array."""
                 json_str = attempt_text[start:end + 1]
                 # Sanitize: escape inner backticks and control chars in string values
                 json_str = json_str.replace("```solidity", "").replace("```", "")
+                # Fix literal newlines/tabs inside JSON string values (common with local LLMs)
+                # Replace actual newlines inside strings with \\n
+                json_str = re.sub(r'(?<=": ")(.*?)(?="[,\s*\}])', lambda m: m.group(0).replace('\n', '\\n').replace('\t', '\\t'), json_str, flags=re.DOTALL)
+                # Fallback: replace ALL raw control chars with spaces
                 json_str = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', ' ', json_str)
                 try:
                     findings = json.loads(json_str)
@@ -924,8 +928,10 @@ Respond with a JSON array."""
                         if valid:
                             return valid
                 except json.JSONDecodeError:
-                    # Try fixing common JSON issues
+                    # Try fixing common JSON issues: trailing commas + raw newlines
                     fixed = re.sub(r",\s*([}\]])", r"\1", json_str)
+                    # Nuclear option: replace ALL newlines that aren't between [ and ]
+                    fixed = fixed.replace("\n", "\\n")
                     try:
                         findings = json.loads(fixed)
                         if isinstance(findings, list):
@@ -983,6 +989,37 @@ Respond with a JSON array."""
                     obj_start = -1
         if findings:
             return findings
+
+        # Strategy 5: Find JSON array anywhere in the text using regex
+        # Handles cases where model outputs explanation text before/after JSON
+        json_array_match = re.search(r'\[\s*\{', text)
+        if json_array_match:
+            # Find the matching closing bracket
+            start_pos = json_array_match.start()
+            bracket_depth = 0
+            end_pos = start_pos
+            for i in range(start_pos, len(text)):
+                if text[i] == '[':
+                    bracket_depth += 1
+                elif text[i] == ']':
+                    bracket_depth -= 1
+                    if bracket_depth == 0:
+                        end_pos = i + 1
+                        break
+            if end_pos > start_pos:
+                json_str = text[start_pos:end_pos]
+                json_str = json_str.replace('```solidity', '').replace('```', '')
+                json_str = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', ' ', json_str)
+                # Fix trailing commas
+                json_str = re.sub(r",\s*([}\]])", r"\1", json_str)
+                try:
+                    findings = json.loads(json_str)
+                    if isinstance(findings, list):
+                        valid = [f for f in findings if isinstance(f, dict)]
+                        if valid:
+                            return valid
+                except json.JSONDecodeError:
+                    pass
 
         logger.warning(f"FrontierLLM: Could not parse response ({len(text)} chars)")
         return []
