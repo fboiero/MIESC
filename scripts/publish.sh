@@ -7,7 +7,7 @@
 #
 # Requirements:
 #   - PyPI/TestPyPI API tokens configured in ~/.pypirc or environment
-#   - python-build and twine installed
+#   - build and twine installed in the active Python environment
 #
 # Author: Fernando Boiero
 # Institution: UNDEF - IUA Cordoba
@@ -45,32 +45,26 @@ fi
 
 python3 -m pip show build &> /dev/null || {
     echo -e "${YELLOW}Installing python-build...${NC}"
-    pip3 install build
+    python3 -m pip install build
 }
 
 python3 -m pip show twine &> /dev/null || {
     echo -e "${YELLOW}Installing twine...${NC}"
-    pip3 install twine
+    python3 -m pip install twine
 }
 
 echo -e "${GREEN}✓ Dependencies ready${NC}"
 echo ""
 
-# Clean previous builds
-echo -e "${YELLOW}Cleaning previous builds...${NC}"
-rm -rf dist/ build/ *.egg-info miesc.egg-info
-echo -e "${GREEN}✓ Cleaned${NC}"
-
 # Build packages
 echo -e "${YELLOW}Building packages...${NC}"
-python3 -m build
+make build
 echo -e "${GREEN}✓ Built successfully${NC}"
-ls -la dist/
 echo ""
 
 # Check package
 echo -e "${YELLOW}Checking package integrity...${NC}"
-python3 -m twine check dist/*
+make build-check
 echo -e "${GREEN}✓ Package checks passed${NC}"
 echo ""
 
@@ -112,8 +106,8 @@ else
     echo "  ./scripts/publish.sh prod   # Upload to PyPI (production)"
     echo ""
     echo "Or manually:"
-    echo "  twine upload --repository testpypi dist/*  # TestPyPI"
-    echo "  twine upload dist/*                         # PyPI"
+    echo "  python3 -m twine upload --repository testpypi dist/*  # TestPyPI"
+    echo "  python3 -m twine upload dist/*                         # PyPI"
     echo ""
 fi
 
