@@ -1,14 +1,14 @@
 {
   "aggregate": {
-    "tp": 136,
-    "fp": 479,
-    "fn": 7,
-    "precision": 0.2211,
-    "recall": 0.951,
-    "f1": 0.3588,
+    "tp": 137,
+    "fp": 481,
+    "fn": 6,
+    "precision": 0.2219,
+    "recall": 0.958,
+    "f1": 0.3604,
     "contracts_evaluated": 143,
-    "total_time_s": 484.0,
-    "avg_time_per_contract_s": 3.38
+    "total_time_s": 737.0,
+    "avg_time_per_contract_s": 5.15
   },
   "per_category": {
     "access_control": {
@@ -19,22 +19,6 @@
       "recall": 1.0,
       "f1": 0.4337
     },
-    "reentrancy": {
-      "tp": 31,
-      "fp": 109,
-      "fn": 0,
-      "precision": 0.2214,
-      "recall": 1.0,
-      "f1": 0.3626
-    },
-    "unchecked_low_level_calls": {
-      "tp": 52,
-      "fp": 63,
-      "fn": 0,
-      "precision": 0.4522,
-      "recall": 1.0,
-      "f1": 0.6228
-    },
     "arithmetic": {
       "tp": 15,
       "fp": 128,
@@ -42,6 +26,22 @@
       "precision": 0.1049,
       "recall": 1.0,
       "f1": 0.1899
+    },
+    "unchecked_low_level_calls": {
+      "tp": 52,
+      "fp": 64,
+      "fn": 0,
+      "precision": 0.4483,
+      "recall": 1.0,
+      "f1": 0.619
+    },
+    "reentrancy": {
+      "tp": 31,
+      "fp": 109,
+      "fn": 0,
+      "precision": 0.2214,
+      "recall": 1.0,
+      "f1": 0.3626
     },
     "denial_of_service": {
       "tp": 6,
@@ -51,14 +51,6 @@
       "recall": 1.0,
       "f1": 0.2069
     },
-    "time_manipulation": {
-      "tp": 5,
-      "fp": 35,
-      "fn": 0,
-      "precision": 0.125,
-      "recall": 1.0,
-      "f1": 0.2222
-    },
     "bad_randomness": {
       "tp": 8,
       "fp": 46,
@@ -67,13 +59,21 @@
       "recall": 1.0,
       "f1": 0.2581
     },
+    "time_manipulation": {
+      "tp": 5,
+      "fp": 35,
+      "fn": 0,
+      "precision": 0.125,
+      "recall": 1.0,
+      "f1": 0.2222
+    },
     "front_running": {
-      "tp": 1,
+      "tp": 2,
       "fp": 5,
-      "fn": 3,
-      "precision": 0.1667,
-      "recall": 0.25,
-      "f1": 0.2
+      "fn": 2,
+      "recall": 0.5,
+      "precision": 0.2857,
+      "f1": 0.3636
     },
     "other": {
       "tp": 0,
@@ -101,5 +101,5 @@
     "smartbugs_detector"
   ],
   "version": "5.4.1",
-  "timestamp": "2026-05-09T15:05:13"
+  "timestamp": "2026-05-09T17:25:42"
 }
