@@ -570,6 +570,34 @@ class TestFormatInvariants:
         result = synthesizer._to_foundry(accounting_inv)
         assert "invariant_balance_conservation" in result
 
+    def test_generated_formats_use_safe_identifiers(self, synthesizer):
+        inv = SynthesizedInvariant(
+            name="123 unsafe-name!",
+            description="Unsafe names should not leak into callable identifiers",
+            category=InvariantCategory.ACCOUNTING,
+            importance="HIGH",
+            natural_language="Generated invariant names are valid in target formats",
+        )
+
+        assert "function echidna_inv_123_unsafe_name" in synthesizer._to_echidna(inv)
+        assert "function invariant_inv_123_unsafe_name" in synthesizer._to_foundry(inv)
+        assert "invariant inv_123_unsafe_name" in synthesizer._to_certora(inv)
+
+    def test_generated_formats_mark_candidate_bindings(self, synthesizer, accounting_inv):
+        output = "\n".join(
+            [
+                synthesizer._to_solidity(accounting_inv),
+                synthesizer._to_certora(accounting_inv),
+                synthesizer._to_echidna(accounting_inv),
+                synthesizer._to_halmos(accounting_inv),
+                synthesizer._to_foundry(accounting_inv),
+            ]
+        )
+
+        assert "TODO" not in output
+        assert "Candidate property" in output
+        assert "Bind protocol-specific state variables" in output
+
     def test_format_invariants_solidity_only(self, synthesizer, accounting_inv):
         result = synthesizer._format_invariants([accounting_inv], [InvariantFormat.SOLIDITY])
         assert result[0].solidity_assertion is not None

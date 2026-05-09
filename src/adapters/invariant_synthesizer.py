@@ -614,21 +614,44 @@ IMPORTANT RULES:
 
         return invariants
 
+    @staticmethod
+    def _format_identifier(name: str) -> str:
+        """Return a Solidity/CVL-safe identifier for generated artifacts."""
+        identifier = re.sub(r"\W+", "_", name.strip())
+        identifier = re.sub(r"_+", "_", identifier).strip("_")
+        if not identifier:
+            return "generated_invariant"
+        if identifier[0].isdigit():
+            identifier = f"inv_{identifier}"
+        return identifier
+
+    @staticmethod
+    def _candidate_note(inv: SynthesizedInvariant) -> str:
+        """Explain that a generated snippet is a candidate requiring project bindings."""
+        return (
+            f"Candidate property ({inv.importance.lower()} confidence={inv.confidence:.2f}). "
+            "Bind protocol-specific state variables and actors before using as evidence."
+        )
+
     def _to_solidity(self, inv: SynthesizedInvariant) -> str:
         """Convert invariant to Solidity assertion."""
+        name = self._format_identifier(inv.name)
+        note = self._candidate_note(inv)
+
         # Generate based on category
         if inv.category == InvariantCategory.ACCOUNTING:
             return f"""// Invariant: {inv.name}
 // {inv.natural_language}
-function check_{inv.name}() internal view {{
-    // TODO: Implement specific check
-    // assert(condition);
+// {note}
+function check_{name}() internal view {{
+    // Example binding: assert(totalSupply() == sumTrackedBalances());
 }}"""
 
         elif inv.category == InvariantCategory.REENTRANCY:
             return f"""// Invariant: {inv.name}
 // {inv.natural_language}
-modifier checkReentrancy_{inv.name}() {{
+// {note}
+modifier checkReentrancy_{name}() {{
     require(!_locked, "Reentrancy detected");
     _locked = true;
     _;
@@ -638,82 +661,92 @@ modifier checkReentrancy_{inv.name}() {{
         else:
             return f"""// Invariant: {inv.name}
 // {inv.natural_language}
+// {note}
 // Formal spec: {inv.description}"""
 
     def _to_certora(self, inv: SynthesizedInvariant) -> str:
         """Convert invariant to Certora CVL specification."""
         formal_spec = inv.metadata.get("formal_spec", inv.description)
+        name = self._format_identifier(inv.name)
+        note = self._candidate_note(inv)
 
         if inv.category == InvariantCategory.ACCOUNTING:
             return f"""// {inv.natural_language}
-invariant {inv.name}()
+// {note}
+invariant {name}()
     // {formal_spec}
-    true  // TODO: Implement formal specification
+    totalSupply() == sumTrackedBalances()
 {{
     preserved {{
-        requireInvariant {inv.name}();
+        requireInvariant {name}();
     }}
 }}"""
 
         elif inv.category == InvariantCategory.ACCESS_CONTROL:
             return f"""// {inv.natural_language}
-rule {inv.name}(method f, address caller) {{
+// {note}
+rule {name}(method f, address caller) {{
     env e;
     require e.msg.sender == caller;
 
     // {formal_spec}
-    // TODO: Add specific access control checks
+    // Replace protectedMethod with the project-specific privileged entrypoint.
+    protectedMethod(e);
 
-    satisfy true;
+    assert caller == owner();
 }}"""
 
         else:
             return f"""// Invariant: {inv.name}
 // {inv.natural_language}
 // {formal_spec}
+// {note}
 
-invariant {inv.name}()
-    true  // TODO: Implement
+invariant {name}()
+    candidatePredicate()
 {{
     preserved {{
-        // Preservation proof
+        requireInvariant {name}();
     }}
 }}"""
 
     def _to_echidna(self, inv: SynthesizedInvariant) -> str:
         """Convert invariant to Echidna property test."""
+        name = self._format_identifier(inv.name)
+        note = self._candidate_note(inv)
         return f"""// Property: {inv.name}
 // {inv.natural_language}
-function echidna_{inv.name}() public view returns (bool) {{
+// {note}
+function echidna_{name}() public view returns (bool) {{
     // {inv.description}
-    // TODO: Implement property check
-    return true;
+    return candidatePredicate();
 }}"""
 
     def _to_halmos(self, inv: SynthesizedInvariant) -> str:
         """Convert invariant to Halmos symbolic test."""
+        name = self._format_identifier(inv.name)
+        note = self._candidate_note(inv)
         return f"""/// @custom:halmos --solver-timeout-assertion 60000
-function check_{inv.name}(uint256 x) public {{
+function check_{name}(uint256 x) public {{
     // Invariant: {inv.natural_language}
     // {inv.description}
+    // {note}
 
-    // TODO: Set up symbolic state
-    // vm.assume(preconditions);
-
-    // TODO: Execute operations
-
-    // TODO: Assert invariant holds
-    // assert(postcondition);
+    vm.assume(preconditions(x));
+    executeCandidateTransition(x);
+    assert(candidatePredicate());
 }}"""
 
     def _to_foundry(self, inv: SynthesizedInvariant) -> str:
         """Convert invariant to Foundry invariant test."""
+        name = self._format_identifier(inv.name)
+        note = self._candidate_note(inv)
         return f"""// Invariant: {inv.name}
 // {inv.natural_language}
-function invariant_{inv.name}() public {{
+// {note}
+function invariant_{name}() public {{
     // {inv.description}
-    // TODO: Implement invariant check
-    // assertTrue(condition);
+    assertTrue(candidatePredicate());
 }}"""
 
     def _create_from_pattern(self, pattern_name: str) -> Optional[SynthesizedInvariant]:
