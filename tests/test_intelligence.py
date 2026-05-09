@@ -112,8 +112,23 @@ class TestSemanticDedup:
 
 
 class TestZeroRecallPatterns:
-    def test_detects_block_timestamp(self):
+    def test_timelock_require_not_flagged(self):
+        """Pure timelock require(block.timestamp > deadline) is NOT a vulnerability."""
         code = "function f() { require(block.timestamp > deadline); }"
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "time_manipulation" not in types
+
+    def test_detects_timestamp_in_assignment(self):
+        """block.timestamp used in assignment IS a vulnerability."""
+        code = "uint seed = block.timestamp;"
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "time_manipulation" in types
+
+    def test_detects_timestamp_in_arithmetic(self):
+        """block.timestamp used in arithmetic IS a vulnerability."""
+        code = "uint lockEnd = block.timestamp + lockDuration;\nrequire(block.timestamp > lockEnd);"
         findings = detect_zero_recall_categories(code)
         types = [f["type"] for f in findings]
         assert "time_manipulation" in types
@@ -124,11 +139,38 @@ class TestZeroRecallPatterns:
         types = [f["type"] for f in findings]
         assert "bad_randomness" in types
 
+    def test_blockhash_without_randomness_context_not_flagged(self):
+        """blockhash used for replay protection, not randomness — should not flag bad_randomness_blockhash."""
+        code = "require(blockhash(blockNumber) == expectedHash);"
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "bad_randomness_blockhash" not in types
+
+    def test_block_timestamp_simple_gating_not_flagged_as_randomness(self):
+        """block.timestamp used in require() for time gating — not randomness."""
+        code = "require(block.timestamp > lastUpdate + cooldown);"
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "bad_randomness_block_vars" not in types
+
+    def test_block_vars_modulo_is_randomness(self):
+        """block.timestamp % N is clearly used for pseudo-randomness."""
+        code = "uint winner = block.timestamp % participants.length;"
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "bad_randomness_block_vars" in types
+
     def test_detects_pre_08_arithmetic(self):
         code = "pragma solidity ^0.7.0;\ncontract C { uint x = a + b; }"
         findings = detect_zero_recall_categories(code)
         types = [f["type"] for f in findings]
         assert "arithmetic_pre08" in types
+
+    def test_pre_08_without_arithmetic_not_flagged_as_overflow(self):
+        code = "pragma solidity ^0.7.0;\ncontract C { address owner; }"
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "arithmetic_pre08" not in types
 
     def test_no_arithmetic_on_08_plus(self):
         code = "pragma solidity ^0.8.0;\ncontract C { uint x = a + b; }"
@@ -156,6 +198,16 @@ class TestZeroRecallPatterns:
 
     def test_empty_code(self):
         assert detect_zero_recall_categories("") == []
+
+    def test_blockhash_without_randomness_context_not_flagged(self):
+        code = "function previous() external view returns (bytes32) { return blockhash(block.number - 1); }"
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "bad_randomness" not in types
+
+    def test_comment_only_timestamp_not_flagged(self):
+        code = "// block.timestamp is mentioned in documentation"
+        assert detect_zero_recall_categories(code) == []
 
     def test_detects_multiline_incorrect_constructor_name(self):
         code = """
@@ -201,6 +253,53 @@ class TestZeroRecallPatterns:
         findings = detect_zero_recall_categories(code)
         types = [f["type"] for f in findings]
         assert "mapping_write_arbitrary" in types
+
+    def test_detects_constructor_mismatch_creator_assignment(self):
+        code = """
+        pragma solidity ^0.4.21;
+        contract DynamicPyramid {
+            address public creator;
+            function DynamicPyramids() public {
+                creator = msg.sender;
+            }
+        }
+        """
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "constructor_mismatch" in types
+
+    def test_detects_withdraw_without_balance_reset(self):
+        code = """
+        contract Vault {
+            mapping(address => uint256) public balances;
+            function withdraw() public {
+                msg.sender.transfer(balances[msg.sender]);
+            }
+        }
+        """
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "withdraw_no_balance_update" in types
+
+    def test_balance_reset_suppresses_withdraw_no_balance_update(self):
+        code = """
+        contract Vault {
+            mapping(address => uint256) public balances;
+            function withdraw() public {
+                msg.sender.transfer(balances[msg.sender]);
+                balances[msg.sender] = 0;
+            }
+        }
+        """
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "withdraw_no_balance_update" not in types
+
+    def test_detects_confused_balance_comparison(self):
+        code = "function withdraw(uint amount) public { require(amount >= balances[msg.sender]); }"
+        findings = detect_zero_recall_categories(code)
+        types = [f["type"] for f in findings]
+        assert "confused_comparison" in types
 
 
 # ---------------------------------------------------------------------------
@@ -345,11 +444,27 @@ class TestEnhanceFindings:
         assert result[0]["confidence"] > 0.5
 
     def test_adds_zero_recall_patterns(self):
-        code = "pragma solidity ^0.7.0;\nfunction f() { require(block.timestamp > x); }"
+        code = (
+            "pragma solidity ^0.7.0;\n"
+            "function f(uint a, uint b) { uint c = a + b; uint t = block.timestamp; }"
+        )
         result = enhance_findings([], source_code=code)
         types = [f["type"] for f in result]
         assert "time_manipulation" in types
         assert "arithmetic_pre08" in types
+
+    def test_timelock_not_flagged_in_enhance(self):
+        """Timelock require() with timestamp does not produce time_manipulation."""
+        code = (
+            "pragma solidity ^0.7.0;\n"
+            "function f(uint a, uint b) { uint c = a + b; require(block.timestamp > x); }"
+        )
+        result = enhance_findings([], source_code=code)
+        types = [f["type"] for f in result]
+        # arithmetic_pre08 still fires (uint c = a + b is unchecked arithmetic)
+        assert "arithmetic_pre08" in types
+        # time_manipulation does NOT fire (pure timelock require)
+        assert "time_manipulation" not in types
 
     def test_suppressed_findings_last(self):
         code = """

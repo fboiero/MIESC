@@ -155,6 +155,7 @@ ZERO_RECALL_PATTERNS = {
         "severity": "Medium",
         "swc": "SWC-116",
         "message": "Block timestamp/number used — manipulable by miners (±15 seconds).",
+        "context_filter": "non_timelock_timestamp",
     },
     "bad_randomness": {
         "patterns": [
@@ -167,6 +168,7 @@ ZERO_RECALL_PATTERNS = {
         "severity": "High",
         "swc": "SWC-120",
         "message": "On-chain randomness source is predictable — use Chainlink VRF or commit-reveal.",
+        "context_filter": "randomness_context",
     },
     "arithmetic_pre08": {
         "patterns": [
@@ -176,6 +178,7 @@ ZERO_RECALL_PATTERNS = {
         "swc": "SWC-101",
         "message": "Solidity <0.8 without SafeMath — integer overflow/underflow possible.",
         "requires_no_safemath": True,
+        "context_filter": "has_unchecked_arithmetic",
     },
     "front_running": {
         "patterns": [
@@ -382,6 +385,7 @@ ZERO_RECALL_PATTERNS = {
         "severity": "High",
         "swc": "SWC-120",
         "message": "blockhash used for randomness — predictable by miners within 256 blocks. Use Chainlink VRF for secure randomness.",
+        "context_filter": "randomness_context",
     },
     "bad_randomness_block_vars": {
         "patterns": [
@@ -391,13 +395,14 @@ ZERO_RECALL_PATTERNS = {
         "severity": "High",
         "swc": "SWC-120",
         "message": "Block variable used as entropy source — predictable/manipulable by miners. Use Chainlink VRF.",
+        "context_filter": "randomness_context",
     },
     "incorrect_constructor_name": {
         "patterns": [
-            r"function\s+(\w+)\s*\(\s*\)\s*(public|external)?\s*\{[^}]*(owner|admin)\s*=\s*msg\.sender",
+            r"function\s+(\w+)\s*\(\s*\)\s*(public|external)?\s*\{[^}]*(owner|admin|creator)\s*=\s*msg\.sender",
         ],
         "multiline_patterns": [
-            r"function\s+\w+\s*\([^)]*\)\s*(public|external)[^{]*\{[^}]*(owner|admin)\s*=\s*msg\.sender",
+            r"function\s+\w+\s*\([^)]*\)\s*(public|external)[^{]*\{[^}]*(owner|admin|creator)\s*=\s*msg\.sender",
         ],
         "severity": "Critical",
         "swc": "SWC-118",
@@ -524,7 +529,169 @@ ZERO_RECALL_PATTERNS = {
         "swc": "SWC-105",
         "message": "Public function to add/change owner without onlyOwner modifier — anyone can add themselves as owner.",
     },
+    # v5.3.1: SmartBugs access_control gap-closing patterns
+    "constructor_mismatch": {
+        "multiline_patterns": [
+            r"contract\s+(\w+)\s*\{.*?function\s+(?!\1\b)(\w+)\s*\(\s*\)\s*(?:public|external)?\s*\{[^}]*(creator|owner|admin)\s*=\s*msg\.sender",
+        ],
+        "severity": "Critical",
+        "swc": "SWC-118",
+        "message": "Constructor name mismatch — function name differs from contract name in Solidity <0.4.22. Anyone can call it to seize ownership (e.g., Rubixi/DynamicPyramid bug).",
+    },
+    "withdraw_no_balance_update": {
+        "multiline_patterns": [
+            r"function\s+(?:refund|withdraw\w*)\s*\([^)]*\)\s*(?:public|external)[^{]*\{([^}]*)\.transfer\s*\(\s*balances\s*\[[^\]]*\]\s*\)",
+        ],
+        "severity": "Critical",
+        "swc": "SWC-105",
+        "message": "Refund/withdraw function sends ETH based on balance mapping but never resets it — allows repeated withdrawals to drain the contract.",
+        "requires_no_balance_subtraction": True,
+    },
+    "confused_comparison": {
+        "patterns": [
+            r"require\s*\(\s*\w+\s*>=\s*balances\s*\[",
+        ],
+        "severity": "Critical",
+        "swc": "SWC-105",
+        "message": "Confused comparison operator (>= instead of <=) in balance/withdrawal check — allows anyone to withdraw arbitrary amounts exceeding their balance.",
+    },
 }
+
+
+_TIMELOCK_REQUIRE_RE = re.compile(
+    r"require\s*\([^)]*(?:block\.timestamp|now)\s*(?:>|<|>=|<=|==|!=)[^)]*\)",
+)
+_TIMESTAMP_KEYWORDS_RE = re.compile(r"\bblock\.timestamp\b|\bnow\b")
+
+_BLOCK_VAR_IN_KECCAK_RE = re.compile(
+    r"(?:keccak256|sha3)\s*\([^)]*(?:blockhash|block\.(?:timestamp|number|difficulty|coinbase|prevrandao))",
+)
+_BLOCK_VAR_MODULO_RE = re.compile(
+    r"(?:blockhash|block\.(?:timestamp|number|difficulty|coinbase|prevrandao))[^;\n]*%",
+)
+_BLOCK_VAR_ENTROPY_ASSIGN_RE = re.compile(
+    r"(?:uint|int)\w*\s+\w*(?:random|seed|entropy|hash|nonce)\w*\s*=\s*[^;]*"
+    r"(?:blockhash|block\.(?:timestamp|number|difficulty|coinbase|prevrandao))",
+    re.IGNORECASE,
+)
+_BLOCK_VAR_CAST_HASH_RE = re.compile(
+    r"uint\d*\s*\(\s*(?:keccak256|sha3)\s*\([^)]*(?:blockhash|block\.)",
+)
+_RANDOMNESS_INDICATORS_RE = re.compile(
+    r"\b(?:random|rand|seed|entropy|lottery|winner|dice|shuffle|gambl|raffle|bet)\b",
+    re.IGNORECASE,
+)
+
+_ARITHMETIC_FINANCIAL_RE = re.compile(
+    r"(?:"
+    # Financial variable names with arithmetic operators
+    r"(?:balance|amount|total|supply|reserve|allowance|stake|reward|deposit|"
+    r"debt|fee|price|value|count|shares|weight)\w*\s*(?:[\+\-\*]=|=\s*[^;]*[\+\-\*]\s*\w+)"
+    r"|"
+    # Mapping access with arithmetic: mapping[x] op= or = ... op ...
+    r"\w+\s*\[[^\]]+\]\s*(?:[\+\-\*]=|=\s*[^;]*[\+\-\*]\s*\w+)"
+    r"|"
+    # uint/int variable = expression with +/-/* operators
+    r"(?:uint|int)\d*\s+\w+\s*=\s*[^;]*(?:\+|-(?!-)|\*)\s*\w+"
+    r"|"
+    # Compound assignment operators on any variable
+    r"\w+\s*(?:\+=|-=|\*=)\s*\w+"
+    r"|"
+    # Simple assignment with arithmetic: x = a + b / a - b / a * b
+    r"\w+\s*=\s*\w+\s*[\+\-\*]\s*\w+"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _passes_zero_recall_context_filter(
+    filter_name: Optional[str],
+    source_code: str,
+    matched_text: str,
+) -> bool:
+    """Apply precision-focused context filters before emitting recall-boost findings.
+
+    Returns True if the finding should fire (vulnerable context confirmed).
+    Returns False to suppress (benign context detected).
+
+    Filters:
+      - non_timelock_timestamp: suppress if ALL timestamp usages are in
+        require(block.timestamp > deadline) style timelocks.
+      - randomness_context: only fire if block variables are used in
+        keccak256, modulo, or assigned to randomness-named variables.
+      - has_unchecked_arithmetic: only fire if there are actual arithmetic
+        operations (not just the pragma version).
+    """
+    if not filter_name:
+        return True
+
+    matched_lower = matched_text.lower()
+    stripped = matched_lower.strip()
+
+    # Skip commented-out lines
+    if stripped.startswith("//") or stripped.startswith("*"):
+        return False
+
+    if filter_name == "non_timelock_timestamp":
+        # Check if block.timestamp/now usage in the source code is ONLY in
+        # require() timelock patterns. If so, suppress (not a vulnerability).
+        has_non_timelock_usage = False
+        lines = source_code.split("\n")
+        for line in lines:
+            if not _TIMESTAMP_KEYWORDS_RE.search(line):
+                continue
+            line_stripped = line.strip()
+            # Skip comments
+            if line_stripped.startswith("//") or line_stripped.startswith("*"):
+                continue
+            # If this line is purely a require with time comparison → timelock
+            if _TIMELOCK_REQUIRE_RE.search(line_stripped):
+                # Remove require parts and check if timestamp is used elsewhere
+                without_require = re.sub(r"require\s*\([^)]*\)", "", line_stripped)
+                if not _TIMESTAMP_KEYWORDS_RE.search(without_require):
+                    continue  # This line is a pure timelock, skip it
+            # This line has timestamp in a non-timelock context → vulnerable
+            has_non_timelock_usage = True
+            break
+        return has_non_timelock_usage
+
+    if filter_name == "randomness_context":
+        # Only fire if block variables are used in randomness/entropy context:
+        # - Inside keccak256/sha3
+        # - With modulo operator (%)
+        # - Assigned to randomness-named variable
+        # - Cast in uint(keccak256(...block...))
+        # - On same line as randomness keywords
+        if _BLOCK_VAR_IN_KECCAK_RE.search(source_code):
+            return True
+        if _BLOCK_VAR_MODULO_RE.search(source_code):
+            return True
+        if _BLOCK_VAR_ENTROPY_ASSIGN_RE.search(source_code):
+            return True
+        if _BLOCK_VAR_CAST_HASH_RE.search(source_code):
+            return True
+        # Check for randomness keywords near block variables (same line)
+        for line in source_code.split("\n"):
+            if re.search(r"blockhash|block\.(?:timestamp|number|difficulty|coinbase|prevrandao)", line):
+                if _RANDOMNESS_INDICATORS_RE.search(line):
+                    return True
+        return False
+
+    if filter_name == "has_unchecked_arithmetic":
+        # Require actual arithmetic operations in the code — not just the pragma.
+        # Skip pragma lines and comments when checking.
+        lines = source_code.split("\n")
+        for line in lines:
+            stripped_line = line.strip()
+            if stripped_line.startswith("//") or stripped_line.startswith("*"):
+                continue
+            if "pragma" in stripped_line.lower():
+                continue
+            if _ARITHMETIC_FINANCIAL_RE.search(line):
+                return True
+        return False
+
+    return True
 
 
 def detect_zero_recall_categories(
@@ -553,6 +720,12 @@ def detect_zero_recall_categories(
                 break
             for i, line in enumerate(source_code.split("\n"), 1):
                 if re.search(pattern, line):
+                    if not _passes_zero_recall_context_filter(
+                        cfg.get("context_filter"),
+                        source_code,
+                        line,
+                    ):
+                        continue
                     findings.append({
                         "type": category,
                         "severity": cfg["severity"],
@@ -573,6 +746,20 @@ def detect_zero_recall_categories(
                 break
             m = re.search(pattern, source_code, re.DOTALL)
             if m:
+                if not _passes_zero_recall_context_filter(
+                    cfg.get("context_filter"),
+                    source_code,
+                    m.group(0),
+                ):
+                    continue
+                # Post-match filter: skip if balance subtraction present
+                if cfg.get("requires_no_balance_subtraction"):
+                    function_context = source_code[m.start() : source_code.find("}", m.start()) + 1]
+                    if re.search(
+                        r"balances\s*\[[^\]]*\]\s*(-=|=\s*0)",
+                        function_context or m.group(0),
+                    ):
+                        continue
                 # Estimate line number from match position
                 line_num = source_code[: m.start()].count("\n") + 1
                 findings.append({
