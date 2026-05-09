@@ -565,9 +565,19 @@ class TestFullFlow:
         assert result["phases"]["reconnaissance"]["risk_profile"]["has_selfdestruct"] is True
 
     @patch("src.mcp_core.context_bus.get_context_bus")
+    @patch("src.agents.deep_audit_agent.DeepAuditAgent._run_tools_parallel")
     @patch("src.agents.deep_audit_agent.DeepAuditAgent._get_ml_orchestrator")
-    def test_analyze_with_findings(self, mock_orch, mock_bus, tmp_contract):
+    def test_analyze_with_findings(self, mock_orch, mock_run_tools, mock_bus, tmp_contract):
         mock_bus.return_value = MagicMock()
+
+        # Mock _run_tools_parallel so Phase 3 does not invoke real tools
+        # (e.g. Mythril symbolic execution which times out)
+        mock_run_tools.return_value = [
+            {"id": "mythril-1", "title": "State change after external call",
+             "type": "reentrancy", "severity": "High",
+             "description": "SWC-107: reentrancy confirmed via symbolic execution",
+             "tool": "mythril"},
+        ]
 
         config = DeepAuditConfig(
             timeout_seconds=30,
