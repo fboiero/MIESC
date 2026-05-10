@@ -48,8 +48,7 @@ jobs:
           print(f'All {len(slugs)} slugs are unique')
           "
 
-      - name: Verify PyPI packages exist
-        continue-on-error: true
+      - name: Verify PyPI packages exist (advisory)
         run: |
           python3 -c "
           import json
@@ -60,8 +59,10 @@ jobs:
               index = json.load(f)
 
           errors = []
+          checked = 0
           for plugin in index['plugins']:
               pkg = plugin['pypi_package']
+              checked += 1
               url = f'https://pypi.org/pypi/{pkg}/json'
               try:
                   req = urllib.request.Request(url, headers={'User-Agent': 'MIESC-CI'})
@@ -78,4 +79,10 @@ jobs:
           if errors:
               print(f'\\nWarning: {len(errors)} package(s) not found on PyPI')
               print('This is expected for new submissions not yet published')
+
+          with open('${GITHUB_STEP_SUMMARY}', 'a') as summary:
+              summary.write('## Marketplace PyPI advisory check\\n\\n')
+              summary.write(f'Checked packages: {checked}\\n\\n')
+              summary.write(f'Packages not found yet: {len(errors)}\\n\\n')
+              summary.write('Missing PyPI packages are advisory for marketplace pull requests because new submissions may be reviewed before publication.\\n')
           "

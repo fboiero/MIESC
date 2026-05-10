@@ -141,6 +141,8 @@ The main CI workflow separates blocking gates from advisory signals:
 | Type checking | Advisory | Mypy runs on every CI execution and is summarized, but it does not block while legacy annotations are normalized. |
 | Docker vulnerability scan | Advisory | Trivy SARIF upload should not block release packaging when the image build and smoke tests pass. |
 | Documentation links | Advisory | Link rot is reported but does not block code releases. |
+| Marketplace PyPI availability | Advisory | Marketplace PRs may reference packages before publication; JSON schema and slug uniqueness remain blocking. |
+| Smart-contract analysis workflow | Finding gate | Tool execution is best-effort across optional analyzers; the combined report fails on critical/high findings. |
 
 This policy keeps release-blocking checks explicit while preserving visibility
 for work that is still being hardened.
