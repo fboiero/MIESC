@@ -27,9 +27,9 @@
 #   ./scripts/build-images.sh --full
 
 # Security: Use a versioned base image instead of :latest for reproducibility.
-# The default points to the local image built by scripts/build-images.sh and
-# docker compose; release builds may override it with ghcr.io/fboiero/miesc:5.4.2.
-ARG MIESC_BASE_IMAGE=miesc:5.4.2
+# CI overrides this ARG to use the image built in the same workflow run.
+# For local builds, pull from the registry first: docker pull ghcr.io/fboiero/miesc:latest
+ARG MIESC_BASE_IMAGE=ghcr.io/fboiero/miesc:latest
 FROM ${MIESC_BASE_IMAGE}
 ARG MIESC_BUILD_MYTHRIL=auto
 ARG MIESC_BUILD_MANTICORE=auto
