@@ -150,6 +150,12 @@ jobs:
       packages: write
 
     steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h /
+
       - name: Checkout repository
         uses: actions/checkout@v6
 
@@ -209,7 +215,7 @@ jobs:
   # =============================================================================
   security-scan:
     name: Security Scan (Trivy)
-    needs: [build-multiarch, build-full]
+    needs: [build-multiarch]
     if: always() && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
