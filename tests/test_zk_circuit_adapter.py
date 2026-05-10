@@ -452,8 +452,9 @@ class TestZKCircuitAdapterEdgeCases:
         f = tmp_path / "code.sol"
         f.write_text("contract X {}")
         result = adapter.analyze(str(f))
-        assert result["status"] == "error"
-        assert "Unsupported file type" in result["error"]
+        assert result["status"] == "success"
+        assert result["metadata"]["skipped"] is True
+        assert "Unsupported file type" in result["metadata"]["skipped_reason"]
 
     def test_analyze_empty_circom_file(self, adapter, tmp_path):
         f = tmp_path / "empty.circom"

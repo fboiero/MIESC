@@ -674,17 +674,18 @@ class TestAnalyze:
         assert result["findings"] == []
 
     def test_analyze_no_project_found(self, adapter, tmp_path):
-        """Test analyze returns error when no project found."""
+        """Test analyze skips gracefully when no project is found."""
         no_project = tmp_path / "no_project"
         no_project.mkdir()
 
         with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
             result = adapter.analyze(str(no_project), verbose=False)
 
-        assert result["status"] == "error"
+        assert result["status"] == "success"
+        assert result["metadata"]["skipped"] is True
         assert (
-            "hardhat project" in result["error"].lower()
-            or "hardhat.config" in result["error"].lower()
+            "hardhat project" in result["metadata"]["skipped_reason"].lower()
+            or "hardhat.config" in result["metadata"]["skipped_reason"].lower()
         )
 
     def test_analyze_success_with_findings(

@@ -741,7 +741,8 @@ class TestMythrilAdapterComprehensive(TestAdapterBase):
                 returncode=0, stdout="Mythril version v0.24.0", stderr=""
             )
             adapter = MythrilAdapter()
-            status = adapter.is_available()
+            with patch.object(adapter, "_myth_cmd", return_value="myth"):
+                status = adapter.is_available()
             assert status == ToolStatus.AVAILABLE
 
 
@@ -1985,7 +1986,10 @@ class TestManticoreAdapterExtended(TestAdapterBase):
         from src.core.tool_protocol import ToolStatus
 
         adapter = ManticoreAdapter()
-        with patch("subprocess.run") as mock_run:
+        with (
+            patch.object(adapter, "_manticore_cmd", return_value="manticore"),
+            patch("subprocess.run") as mock_run,
+        ):
             mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="error")
             result = adapter.is_available()
             assert result == ToolStatus.CONFIGURATION_ERROR
@@ -2007,7 +2011,10 @@ class TestManticoreAdapterExtended(TestAdapterBase):
         from src.core.tool_protocol import ToolStatus
 
         adapter = ManticoreAdapter()
-        with patch("subprocess.run") as mock_run:
+        with (
+            patch.object(adapter, "_manticore_cmd", return_value="manticore"),
+            patch("subprocess.run") as mock_run,
+        ):
             mock_run.side_effect = subprocess.TimeoutExpired(cmd="manticore", timeout=5)
             result = adapter.is_available()
             assert result == ToolStatus.CONFIGURATION_ERROR
@@ -2018,7 +2025,10 @@ class TestManticoreAdapterExtended(TestAdapterBase):
         from src.core.tool_protocol import ToolStatus
 
         adapter = ManticoreAdapter()
-        with patch("subprocess.run") as mock_run:
+        with (
+            patch.object(adapter, "_manticore_cmd", return_value="manticore"),
+            patch("subprocess.run") as mock_run,
+        ):
             mock_run.side_effect = Exception("Unknown error")
             result = adapter.is_available()
             assert result == ToolStatus.CONFIGURATION_ERROR

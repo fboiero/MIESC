@@ -354,12 +354,12 @@ class TestAnalyzeWithMockedOllama:
         auditor_text = self._auditor_json()
         critic_text = "TRUE_POSITIVE: This is clearly exploitable."
 
-        call_count = {"n": 0}
+        generate_calls = {"n": 0}
 
         def fake_urlopen(req, timeout=None):
-            call_count["n"] += 1
             if req.get_full_url().endswith("/api/generate"):
-                return _make_ollama_resp(auditor_text if call_count["n"] == 1 else critic_text)
+                generate_calls["n"] += 1
+                return _make_ollama_resp(auditor_text if generate_calls["n"] == 1 else critic_text)
             # health check
             return _make_health_resp()
 

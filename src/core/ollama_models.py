@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import urllib.error
 import urllib.request
 from typing import Iterable, List, Optional, Union
 
@@ -16,10 +17,14 @@ def list_ollama_models(timeout: int = 5) -> List[str]:
     """Return installed Ollama model names exactly as reported by /api/tags."""
     tags_url = f"{get_ollama_host()}/api/tags"
     req = urllib.request.Request(tags_url, method="GET")
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        if resp.status != 200:
-            return []
-        data = json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            if resp.status != 200:
+                return []
+            data = json.loads(resp.read().decode("utf-8"))
+    except (OSError, urllib.error.URLError, json.JSONDecodeError, TypeError) as exc:
+        logger.debug("Could not list Ollama models from %s: %s", tags_url, exc)
+        return []
     return [m.get("name", "") for m in data.get("models", []) if m.get("name")]
 
 
@@ -67,7 +72,7 @@ def select_ollama_model(
             break
 
     if not selected:
-        selected = models[0] if models else ""
+        selected = models[0] if models else (fallback_candidates[0] if fallback_candidates else "")
     if selected:
         logger.warning("No preferred Ollama model found; using %s", selected)
     return selected
