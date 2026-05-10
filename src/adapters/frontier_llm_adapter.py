@@ -872,12 +872,47 @@ Respond with a JSON array."""
             logger.warning(f"FrontierLLM: Could not pull model '{model}': {e}")
             return False
 
+    def _select_best_ollama_model(self) -> str:
+        """Select the best available Ollama model for security auditing.
+
+        Priority: qwen2.5-coder:32b > qwen2.5-coder:14b > codellama:13b > mistral:7b
+        """
+        import urllib.request
+
+        # Ordered by audit quality (best first)
+        preferred = [
+            "qwen2.5-coder:32b",
+            "qwen2.5-coder:14b",
+            "codellama:13b",
+            "mistral:7b",
+            "llama3.2:3b",
+        ]
+
+        try:
+            req = urllib.request.Request("http://localhost:11434/api/tags")
+            resp = urllib.request.urlopen(req, timeout=5)
+            data = json.loads(resp.read())
+            installed = [m["name"] for m in data.get("models", [])]
+
+            for model in preferred:
+                if model in installed:
+                    return model
+                # Fuzzy match (e.g., "qwen2.5-coder:32b" matches "qwen2.5-coder:32b-fp16")
+                base = model.split(":")[0]
+                for m in installed:
+                    if base in m:
+                        return m
+        except Exception:
+            pass
+
+        return preferred[0]  # Default to best, will be auto-pulled
+
     def _analyze_ollama(self, source_code: str, **kwargs) -> List[Dict]:
         """Call local Ollama model with the same audit prompt as frontier models."""
         import urllib.request
 
         rag_context = kwargs.pop("rag_context", "")
-        model = kwargs.get("model", "qwen2.5-coder:32b")
+        model = kwargs.get("model") or self._select_best_ollama_model()
         self._model = model
 
         # Ensure model is available (auto-pull if needed)
