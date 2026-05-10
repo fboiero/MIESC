@@ -30,7 +30,7 @@ Sebastian Norberto Mussetta
 
 ### Comments
 ```
-8 pages, 1 figure, 7 tables. Reproducible four-provider ensemble achieves 111/120 detections (92.5% recall) on an EVMBench local high-severity extraction; SmartBugs latest full-corpus reproducible profile: 93.7% recall (143 contracts). Framework: https://github.com/fboiero/MIESC (AGPL-3.0, PyPI: pip install miesc). Reproducibility artifacts included.
+8 pages, 1 figure, 7 tables. Reproducible four-provider ensemble achieves 111/120 detections (92.5% recall) on an EVMBench local high-severity extraction; SmartBugs latest full-corpus reproducible profile: 95.8% recall (143 contracts), with a local Ollama follow-up reported at 97.9%. Framework: https://github.com/fboiero/MIESC (AGPL-3.0, PyPI: pip install miesc). Reproducibility artifacts included.
 ```
 
 ### License
@@ -40,7 +40,7 @@ Sebastian Norberto Mussetta
 
 | Benchmark | Result | Context |
 |-----------|--------|---------|
-| SmartBugs (143 contracts) | 93.7% recall | Latest full-corpus reproducible local profile |
+| SmartBugs (143 contracts) | 95.8% recall | Latest full-corpus reproducible local profile; local Ollama follow-up reported at 97.9% |
 | Real exploits ($3.3B) | 81.8% recall, kappa=0.77 | 11 confirmed DeFi exploits |
 | EVMBench local extraction (40 audits, 120 findings) | **111/120 = 92.5% ensemble** | Static-only baseline: 22/120 = 18.3%; union artifact generated from provider JSONs |
 | Cost | ~$7/audit full ensemble, $0 local | vs $20K-60K manual audit |

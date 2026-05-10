@@ -8,8 +8,12 @@ as a consistent platform contract.
 
 Paper 1 establishes the detection and evidence baseline:
 
-- SmartBugs-curated full-corpus reproducible profile: 143 contracts, 93.7%
-  recall, 19.1% precision, 31.7% F1.
+- SmartBugs-curated full-corpus reproducible profile: 143 contracts, 95.8%
+  recall, 22.2% precision, 36.0% F1.
+- Paper 1 also reports a local Ollama follow-up over residual SmartBugs misses
+  that raises the editorial reading to 97.9% recall; platform metrics should
+  continue to treat 95.8% as the primary machine-readable corpus artifact until
+  a dedicated lift artifact is published.
 - Real DeFi exploits: 11 incidents, 81.8% recall.
 - EVMBench local high-severity extraction: 111/120 findings detected by the
   reproducible four-provider ensemble.

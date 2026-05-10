@@ -116,12 +116,18 @@ hallazgos de seguridad bajo el mismo pipeline.
 Paper 2 usa Paper 1 solo como etapa de deteccion. La claim de deteccion que debe
 heredar es:
 
-- SmartBugs full-corpus reproducible profile: 93.7% recall, 19.1% precision,
-  31.7% F1.
+- SmartBugs full-corpus reproducible profile: 95.8% recall, 22.2% precision,
+  36.0% F1.
 - EVMBench local high-severity extraction: ensemble 111/120 = 92.5% recall.
 
-No debe reutilizar claims historicas de 96.5% o 98.6% salvo que exista un nuevo
-artefacto reproducible que las sostenga.
+Actualizado al cierre de Paper 1, la entrada reproducible machine-readable para
+deteccion es SmartBugs 95.8% recall, 22.2% precision y 36.0% F1. Paper 1
+tambien reporta un follow-up local con Ollama sobre los falsos negativos
+residuales que eleva la lectura editorial a 97.9% recall, pero Paper 2 hereda
+el artefacto de corpus completo de 95.8% para su etapa de deteccion.
+
+No debe reutilizar claims historicas de 93.7%, 95.1%, 96.5% o 98.6% salvo que
+exista un nuevo artefacto reproducible que las sostenga.
 
 Las mejoras futuras de Paper 2 no deben requerir nueva evidencia de Paper 1. En
 particular, no deben cambiar recall, precision, F1, datasets, providers, capas o

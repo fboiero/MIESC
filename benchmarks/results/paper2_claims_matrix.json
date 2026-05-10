@@ -248,14 +248,17 @@
     },
     {
       "claim_id": "paper1_detection_input",
-      "paper_claim": "Paper 2 inherits detection evidence from Paper 1: SmartBugs recall 93.7% and EVMBench local high-severity ensemble recall 92.5%.",
+      "paper_claim": "Paper 2 inherits detection evidence from Paper 1: SmartBugs full-corpus reproducible recall 95.8% and EVMBench local high-severity ensemble recall 92.5%.",
       "source_artifact": "paper/PAPER1_REPRODUCIBILITY.md; benchmarks/results/paper1_claims_matrix.json",
       "status": "inherited_from_paper1",
       "scope": "detection_input_only",
       "paper1_dependency": {
-        "smartbugs_recall": 0.937,
+        "smartbugs_f1": 0.3604,
+        "smartbugs_local_ollama_followup_recall": 0.979,
+        "smartbugs_precision": 0.2219,
+        "smartbugs_recall": 0.958,
         "evmbench_recall": 0.925,
-        "rule": "Do not regenerate or reinterpret Paper 1 detection evidence in Paper 2."
+        "rule": "Paper 2 inherits the 95.8% machine-readable SmartBugs detection evidence; the 97.9% local Ollama follow-up is reported by Paper 1 but is not used to recalculate remediation metrics."
       },
       "unit": "detection metrics",
       "value": null

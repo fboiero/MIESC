@@ -1,6 +1,6 @@
 # Paper 1 Reproducibility
 
-Fecha: 2026-05-06
+Fecha: 2026-05-10
 
 Este documento fija los artefactos que respaldan los resultados cuantitativos
 del Paper 1.
@@ -13,7 +13,7 @@ del Paper 1.
 | `benchmarks/results/evmbench/evmbench_ensemble_40.json` | Union reproducible de detecciones EVMBench por proveedor. |
 | `benchmarks/results/evmbench/evmbench_static_40.json` | Baseline static-only EVMBench reproducido sobre 40 audits. |
 | `benchmarks/results/paper1_claims_matrix.json` | Matriz de claims cuantitativos y fuentes. |
-| `benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json` | Corrida SmartBugs completa del 2026-05-06 con seleccion `solc` por `pragma` y Layer 6 especializado. |
+| `benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json` | Corrida SmartBugs completa con seleccion `solc` por `pragma` y Layer 6 especializado. |
 | `benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.json` | Smoke reproducible de las 9 capas completas sobre un contrato SmartBugs. |
 | `benchmarks/results/tooling_smoke_layers_1_6.json` | Smoke test de herramientas faltantes: Semgrep, Wake, DA-GNN y SmartGuard integrados en el pipeline. |
 | `src/llm/embedding_rag.py` | Base RAG versionada para evidencia LLM y recuperacion hibrida. |
@@ -131,12 +131,12 @@ Resumen:
 ```json
 {
   "contracts_evaluated": 143,
-  "precision": 0.191,
-  "recall": 0.937,
-  "f1": 0.317,
-  "tp": 134,
-  "fp": 569,
-  "fn": 9
+  "precision": 0.2219,
+  "recall": 0.958,
+  "f1": 0.3604,
+  "tp": 137,
+  "fp": 481,
+  "fn": 6
 }
 ```
 
@@ -150,10 +150,17 @@ python3 -m miesc.cli.main evaluate corpus data/benchmarks/smartbugs-curated/data
   --jsonl benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.jsonl
 ```
 
-La corrida completa finalizo en 273.4s. La seleccion de compilador de Slither
+La corrida completa finalizo en 737.0s. La seleccion de compilador de Slither
 se hace por `pragma`: para contratos SmartBugs legacy el adaptador selecciona
 un artefacto instalado compatible de `solc-select` como `0.4.26`, `0.4.25` o
 `0.5.17` en lugar de forzar `0.8.20`.
+
+El paper tambien reporta un seguimiento con Ollama local sobre los 6 misses del
+perfil reproducible. Ese seguimiento agrega 3 verdaderos positivos (front
+running y reentrancy), elevando la lectura editorial a 140/143 = 97.9% recall
+sin costo de API. Hasta publicar un artefacto JSON dedicado para ese lift, la
+claim reproducible primaria para tablas y matrices sigue siendo 137/143 =
+95.8%.
 
 El resultado anterior `paper1_smartbugs_eval.json` queda preservado como
 baseline historico `1,5,7,9` (89.5% recall, 22.3% precision, 35.6% F1). El

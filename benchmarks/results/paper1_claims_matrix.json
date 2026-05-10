@@ -3,26 +3,45 @@
   "claims": [
     {
       "claim_id": "smartbugs_latest_reproducible",
-      "notes": "v5.4.1 run with context-aware FP filters and multiline access_control patterns. 8/10 categories at 100% recall.",
-      "paper_claim": "MIESC latest local SmartBugs run reports 95.1% recall.",
+      "notes": "v5.4.1 final local run with context-aware FP filters and multiline access_control/front_running patterns. 7/10 categories reached 100% recall; front_running reached 50%.",
+      "paper_claim": "MIESC latest local SmartBugs run reports 95.8% recall (137/143).",
       "source_artifact": "benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json",
       "status": "supported",
       "unit": "recall",
       "value": {
-        "avg_time_per_contract_s": 3.4,
+        "avg_time_per_contract_s": 5.15,
         "contracts_evaluated": 143,
-        "f1": 0.3594,
-        "fn": 7,
-        "fp": 479,
+        "f1": 0.3604,
+        "fn": 6,
+        "fp": 481,
         "layers_evaluated": [
           1,
           6,
           7
         ],
-        "precision": 0.2214,
-        "recall": 0.951,
-        "total_time_s": 484.0,
-        "tp": 136
+        "precision": 0.2219,
+        "recall": 0.958,
+        "total_time_s": 737.0,
+        "tp": 137
+      }
+    },
+    {
+      "claim_id": "smartbugs_local_ollama_followup",
+      "notes": "Paper 1 reports a local qwen2.5-coder:32b/Ollama follow-up over the six misses of the reproducible 1,6,7 profile. This is a secondary follow-up claim until a dedicated machine-readable lift artifact is published.",
+      "paper_claim": "Adding local Ollama analysis over the residual SmartBugs misses raises recall to 97.9% (140/143) at zero API cost.",
+      "source_artifact": [
+        "paper/miesc-paper.tex",
+        "benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json"
+      ],
+      "status": "supported_with_note",
+      "unit": "recall",
+      "value": {
+        "base_contracts_evaluated": 143,
+        "base_tp": 137,
+        "final_tp": 140,
+        "local_ollama_additional_tp": 3,
+        "recall": 0.979,
+        "residual_misses": 3
       }
     },
     {
