@@ -34,6 +34,7 @@ platform with the current Paper 1 and Paper 2 evidence.
 | API/MCP remediation examples | Remediation endpoints existed but reviewer-facing usage examples were missing. | Added `docs/guides/REMEDIATION_API_MCP.md` and linked it from README. |
 | Paper 2 artifact regression | Claim generation lacked a focused test around the expected schema and Paper 1 compatibility rule. | Added `tests/test_generate_paper2_artifacts.py` with temporary output paths. |
 | Generated/cache artifact hygiene | Local ignored artifacts were hard to inspect without a long `git status --ignored` dump. | Added `make local-artifacts`, `DETAIL=1 make local-artifacts`, and `make clean-local-artifacts`; documented the workflow in `docs/guides/REPOSITORY_HYGIENE.md`. |
+| CI gate ambiguity | The CI workflow used `continue-on-error` without a clear release policy, especially around type checking. | Documented blocking vs advisory gates in `docs/policies/RELEASE_VERIFICATION.md` and made the mypy step explicitly advisory in CI summaries. |
 
 ## Remaining Debt
 

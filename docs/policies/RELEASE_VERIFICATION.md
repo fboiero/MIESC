@@ -128,6 +128,35 @@ While full reproducibility is not yet implemented, you can verify the build proc
 2. **Audit logs**: GitHub provides audit logs for all workflow executions
 3. **Attestations**: SLSA attestations are planned for future releases
 
+## CI Gate Policy
+
+The main CI workflow separates blocking gates from advisory signals:
+
+| Gate | Blocking | Notes |
+|------|----------|-------|
+| Lint and formatting | Yes | Ruff, Black, and import ordering must pass. |
+| Unit tests | Yes | Coverage threshold is enforced in CI. |
+| Integration tests | Yes | Optional tool installation may warn, but the tests themselves must pass. |
+| Security dependency checks | Yes for high/critical pip-audit findings | Safety output is retained as an advisory report. |
+| Type checking | Advisory | Mypy runs on every CI execution and is summarized, but it does not block while legacy annotations are normalized. |
+| Docker vulnerability scan | Advisory | Trivy SARIF upload should not block release packaging when the image build and smoke tests pass. |
+| Documentation links | Advisory | Link rot is reported but does not block code releases. |
+
+This policy keeps release-blocking checks explicit while preserving visibility
+for work that is still being hardened.
+
+## Paper Reproducibility Baseline
+
+The current paper evidence baseline is tagged as:
+
+```bash
+paper-reproducibility-baseline-2026-05-10
+```
+
+That tag points to the commit used as the stable review baseline for Paper 1 and
+Paper 2 evidence. Later experiments should be additive and should not overwrite
+the tagged paper artifacts.
+
 ---
 
 ## Supply Chain Security
@@ -203,4 +232,4 @@ If you discover a security issue with the release process:
 
 ---
 
-*Last updated: February 2026*
+*Last updated: May 2026*

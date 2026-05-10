@@ -66,8 +66,20 @@ jobs:
           pip install mypy types-PyYAML types-requests
 
       - name: Run mypy
+        id: mypy
         run: mypy src/ miesc/ --ignore-missing-imports
-        continue-on-error: true  # TODO: Fix type annotations and remove this
+        continue-on-error: true
+
+      - name: Record type-check status
+        if: always()
+        run: |
+          echo "## Type Check" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Mypy is currently an advisory signal while legacy type annotations are normalized." >> "$GITHUB_STEP_SUMMARY"
+          echo "Result: \`${{ steps.mypy.outcome }}\`" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.mypy.outcome }}" != "success" ]; then
+            echo "::warning::Mypy is advisory for now; lint, tests, integration, and security remain blocking gates."
+          fi
 
   # =============================================================================
   # Unit Tests
@@ -348,13 +360,14 @@ jobs:
   notify:
     name: Notify Status
     runs-on: ubuntu-latest
-    needs: [lint, test, integration, security]
+    needs: [lint, typecheck, test, integration, security]
     if: always()
 
     steps:
       - name: Check job statuses
         run: |
           echo "Lint: ${{ needs.lint.result }}"
+          echo "Type Check: ${{ needs.typecheck.result }} (advisory)"
           echo "Test: ${{ needs.test.result }}"
           echo "Integration: ${{ needs.integration.result }}"
           echo "Security: ${{ needs.security.result }}"
@@ -366,6 +379,7 @@ jobs:
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Type Check | ${{ needs.typecheck.result }} (advisory mypy step) |" >> $GITHUB_STEP_SUMMARY
           echo "| Unit Tests | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Integration | ${{ needs.integration.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
