@@ -528,7 +528,9 @@ def evaluate():
               help="Experiment config YAML file (overrides CLI flags)")
 @click.option("--no-intelligence", is_flag=True, default=False,
               help="Disable intelligence engine (test raw tool output only)")
-def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl, categories, limit, config, no_intelligence):
+@click.option("--with-llm", type=str, default=None,
+              help="Run LLM on missed contracts (e.g., --with-llm ollama or --with-llm claude)")
+def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl, categories, limit, config, no_intelligence, with_llm):
     """Evaluate MIESC against an annotated benchmark corpus.
 
     The corpus directory must follow the SmartBugs-curated structure:
@@ -807,6 +809,55 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
         with open(jsonl, "a") as f:
             f.write(json.dumps({"type": "summary", **aggregate}) + "\n")
         success(f"JSONL streamed to {jsonl}")
+
+    # Optional: run LLM on missed contracts to measure hybrid recall
+    if with_llm and total_fn > 0:
+        info(f"\n--- LLM follow-up on {total_fn} missed contracts ({with_llm}) ---")
+        try:
+            from src.adapters.frontier_llm_adapter import FrontierLLMAdapter
+
+            provider_map = {"ollama": "ollama", "claude": "anthropic", "gpt": "openai"}
+            provider = provider_map.get(with_llm.lower(), with_llm.lower())
+            adapter = FrontierLLMAdapter(provider=provider)
+
+            llm_recovered = 0
+            for result in all_results:
+                if result["match"]["hit"]:
+                    continue
+                fn_cats = set(result["match"]["fn"])
+                contract_path = Path(result["contract"])
+                if not contract_path.exists():
+                    continue
+                try:
+                    llm_result = adapter.analyze(str(contract_path), timeout=120)
+                    llm_findings = llm_result.get("findings", [])
+                    llm_cats = set()
+                    for f in llm_findings:
+                        cat = _normalize_category(
+                            f.get("type", ""), f.get("title", ""),
+                            f.get("description", ""),
+                        )
+                        if cat:
+                            llm_cats.add(cat)
+                    recovered = fn_cats & llm_cats
+                    if recovered:
+                        llm_recovered += len(recovered)
+                        info(f"  HIT {contract_path.name}: LLM found {list(recovered)}")
+                    else:
+                        info(f"  MISS {contract_path.name}: LLM did not find {list(fn_cats)}")
+                except Exception as e:
+                    warning(f"  ERROR {contract_path.name}: {e}")
+
+            hybrid_tp = total_tp + llm_recovered
+            hybrid_fn = total_fn - llm_recovered
+            hybrid_recall = hybrid_tp / (hybrid_tp + hybrid_fn) if (hybrid_tp + hybrid_fn) > 0 else 0
+            info(f"\n  LLM recovered {llm_recovered} additional TP")
+            success(f"  Hybrid recall (static+intelligence+LLM): {hybrid_recall:.1%} "
+                    f"({hybrid_tp}/{hybrid_tp + hybrid_fn})")
+        except ImportError:
+            warning("FrontierLLMAdapter not available")
+        except Exception as e:
+            warning(f"LLM follow-up failed: {e}")
 
     success(f"Evaluation complete: recall={aggregate['recall']:.1%}, "
             f"precision={aggregate['precision']:.1%}, F1={aggregate['f1']:.1%}")
