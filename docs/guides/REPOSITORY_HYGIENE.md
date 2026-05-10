@@ -61,6 +61,20 @@ under `docs/roadmap/` with a date and clear status.
 
 ## Release Checklist
 
+Inspect ignored local artifacts without deleting them:
+
+```bash
+make local-artifacts
+DETAIL=1 make local-artifacts
+```
+
+Clean local caches and generated outputs while preserving paper PDFs, paper
+sources, and canonical benchmark evidence:
+
+```bash
+make clean-local-artifacts
+```
+
 Before committing:
 
 ```bash

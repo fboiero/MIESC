@@ -4,7 +4,7 @@
 # Author: Fernando Boiero - UNDEF
 # Thesis: Master's in Cyberdefense
 
-.PHONY: help install test lint audit experiments clean clean-build clean-all docs docker mcp build build-check publish-test publish release sphinx-build sphinx-serve sphinx-clean sphinx-api mutate mutate-run mutate-results mutate-html mutate-check docker-build docker-run researcher-bootstrap researcher-smoke verify reproducibility citation version
+.PHONY: help install test lint audit experiments clean clean-build clean-all clean-local-artifacts local-artifacts docs docker mcp build build-check publish-test publish release sphinx-build sphinx-serve sphinx-clean sphinx-api mutate mutate-run mutate-results mutate-html mutate-check docker-build docker-run researcher-bootstrap researcher-smoke verify reproducibility citation version
 
 # Default target
 .DEFAULT_GOAL := help
@@ -177,6 +177,25 @@ clean-all: clean clean-build  ## Clean all generated files
 	rm -rf analysis/results/*.html
 	rm -rf venv/
 	@echo "$(GREEN)✓ All cleaned$(NC)"
+
+local-artifacts:  ## Summarize ignored local artifacts without deleting them
+	@echo "$(BLUE)Ignored local artifacts currently present:$(NC)"
+	@if [ "$(DETAIL)" = "1" ]; then \
+		git status --ignored --short | awk '/^!! / {print substr($$0, 4)}' | sort; \
+	else \
+		git status --ignored --short | awk '/^!! / {print substr($$0, 4)}' | \
+			awk -F/ '{print $$1}' | sed 's/^"//' | sed 's/"$$//' | sort | uniq -c | sort -nr; \
+		echo ""; \
+		echo "$(YELLOW)Use DETAIL=1 make local-artifacts to list every ignored path.$(NC)"; \
+	fi
+
+clean-local-artifacts: clean clean-build sphinx-clean  ## Clean local caches/build outputs, preserving paper evidence
+	@echo "$(BLUE)Cleaning local generated artifacts...$(NC)"
+	rm -rf .ruff_cache .pytest_cache .mypy_cache htmlcov coverage .coverage .coverage.* .coverage\ *
+	rm -rf reports evaluation_results docs/reports site
+	find . -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
+	find paper -maxdepth 1 -type f \( -name "*.aux" -o -name "*.bbl" -o -name "*.blg" -o -name "*.log" -o -name "*.out" -o -name "*.synctex.gz" -o -name "*.fls" -o -name "*.fdb_latexmk" \) -delete
+	@echo "$(GREEN)✓ Local generated artifacts cleaned; canonical paper PDFs, sources, and benchmark evidence were preserved$(NC)"
 
 # ============================================
 # PyPI BUILD & PUBLISH (v4.3.0+)
