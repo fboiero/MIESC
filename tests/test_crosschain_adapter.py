@@ -358,9 +358,7 @@ class TestCrossChainAdapterAnalyze:
         result = adapter.analyze(bridge_sol_file)
         assert result["execution_time"] >= 0
 
-    def test_analyze_bridge_contract_findings_have_required_fields(
-        self, adapter, bridge_sol_file
-    ):
+    def test_analyze_bridge_contract_findings_have_required_fields(self, adapter, bridge_sol_file):
         result = adapter.analyze(bridge_sol_file)
         for finding in result["findings"]:
             assert "id" in finding

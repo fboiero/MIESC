@@ -15,6 +15,7 @@ from unittest.mock import patch
 class TestLoadAdaptersBasic:
     def test_load_adapters_returns_dict(self):
         from miesc.cli.utils import load_adapters
+
         result = load_adapters(force_reload=True)
         assert isinstance(result, dict)
         assert len(result) > 0
@@ -23,20 +24,21 @@ class TestLoadAdaptersBasic:
         """At least slither + aderyn must load — they ship with the package
         and have no heavy dependencies."""
         from miesc.cli.utils import load_adapters
+
         adapters = load_adapters(force_reload=True)
         assert "slither" in adapters
         assert "aderyn" in adapters
 
     def test_adapters_have_is_available_method(self):
         from miesc.cli.utils import load_adapters
+
         adapters = load_adapters(force_reload=True)
         for name, adapter in adapters.items():
-            assert hasattr(adapter, "is_available"), (
-                f"{name} adapter missing is_available()"
-            )
+            assert hasattr(adapter, "is_available"), f"{name} adapter missing is_available()"
 
     def test_result_is_cached_by_default(self):
         from miesc.cli.utils import load_adapters
+
         a = load_adapters(force_reload=True)
         b = load_adapters()  # no force_reload
         # Same dict object (cached)
@@ -44,6 +46,7 @@ class TestLoadAdaptersBasic:
 
     def test_force_reload_yields_fresh_dict(self):
         from miesc.cli.utils import load_adapters
+
         a = load_adapters(force_reload=True)
         b = load_adapters(force_reload=True)
         # Different dict objects (rebuilt)
@@ -56,6 +59,7 @@ class TestLoadAdaptersRobustness:
         continue loading the others — otherwise a single bad adapter breaks
         the whole DeepAuditAgent."""
         from miesc.cli import utils
+
         original = importlib.import_module
 
         def broken_import(name, *args, **kwargs):
@@ -75,6 +79,7 @@ class TestLoadAdaptersRobustness:
         """ADAPTER_MAP says ClassName but the module doesn't export it —
         loader should skip, not raise."""
         from miesc.cli import utils
+
         # Can't easily mock getattr without complex scaffolding; the real
         # code path returns None from getattr() and logs. Simplest: verify
         # that load_adapters doesn't raise even if ADAPTER_MAP has a bogus
@@ -96,8 +101,12 @@ class TestDeepAuditIntegration:
 
         caplog.set_level(logging.WARNING, logger="src.agents.deep_audit_agent")
         cfg = DeepAuditConfig(
-            timeout_seconds=30, enable_llm=False, enable_rag=False,
-            enable_taint=False, enable_call_graph=False, enable_exploit_chains=False,
+            timeout_seconds=30,
+            enable_llm=False,
+            enable_rag=False,
+            enable_taint=False,
+            enable_call_graph=False,
+            enable_exploit_chains=False,
         )
         agent = DeepAuditAgent(config=cfg)
 
@@ -106,9 +115,8 @@ class TestDeepAuditIntegration:
         agent.analyze(str(c))
 
         load_adapter_warnings = [
-            r.getMessage() for r in caplog.records
-            if "Could not load adapters" in r.getMessage()
+            r.getMessage() for r in caplog.records if "Could not load adapters" in r.getMessage()
         ]
-        assert not load_adapter_warnings, (
-            f"load_adapters warning still fires: {load_adapter_warnings}"
-        )
+        assert (
+            not load_adapter_warnings
+        ), f"load_adapters warning still fires: {load_adapter_warnings}"

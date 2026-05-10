@@ -4,7 +4,6 @@ Tests for Agent Registry module.
 Tests the agent registry and discovery system.
 """
 
-
 import pytest
 
 from src.core.agent_protocol import (

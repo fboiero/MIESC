@@ -69,7 +69,7 @@ def compute_cross_tool_confidence(
     weights = [TOOL_WEIGHT.get(t, 0.50) for t in tools_confirming]
     combined = 1.0
     for w in weights:
-        combined *= (1.0 - w)
+        combined *= 1.0 - w
     posterior = 1.0 - combined
     return min(round(posterior, 3), 0.99)
 
@@ -595,17 +595,13 @@ _ARITHMETIC_FINANCIAL_RE = re.compile(
     r"debt|fee|price|value|count|shares|weight)\w*\s*(?:[\+\-\*]=|=\s*[^;]*[\+\-\*]\s*\w+)"
     r"|"
     # Mapping access with arithmetic: mapping[x] op= or = ... op ...
-    r"\w+\s*\[[^\]]+\]\s*(?:[\+\-\*]=|=\s*[^;]*[\+\-\*]\s*\w+)"
-    r"|"
+    r"\w+\s*\[[^\]]+\]\s*(?:[\+\-\*]=|=\s*[^;]*[\+\-\*]\s*\w+)" r"|"
     # uint/int variable = expression with +/-/* operators
-    r"(?:uint|int)\d*\s+\w+\s*=\s*[^;]*(?:\+|-(?!-)|\*)\s*\w+"
-    r"|"
+    r"(?:uint|int)\d*\s+\w+\s*=\s*[^;]*(?:\+|-(?!-)|\*)\s*\w+" r"|"
     # Compound assignment operators on any variable
-    r"\w+\s*(?:\+=|-=|\*=)\s*\w+"
-    r"|"
+    r"\w+\s*(?:\+=|-=|\*=)\s*\w+" r"|"
     # Simple assignment with arithmetic: x = a + b / a - b / a * b
-    r"\w+\s*=\s*\w+\s*[\+\-\*]\s*\w+"
-    r")",
+    r"\w+\s*=\s*\w+\s*[\+\-\*]\s*\w+" r")",
     re.IGNORECASE,
 )
 
@@ -678,7 +674,9 @@ def _passes_zero_recall_context_filter(
             return True
         # Check for randomness keywords near block variables (same line)
         for line in source_code.split("\n"):
-            if re.search(r"blockhash|block\.(?:timestamp|number|difficulty|coinbase|prevrandao)", line):
+            if re.search(
+                r"blockhash|block\.(?:timestamp|number|difficulty|coinbase|prevrandao)", line
+            ):
                 if _RANDOMNESS_INDICATORS_RE.search(line):
                     return True
         return False
@@ -708,7 +706,9 @@ def detect_zero_recall_categories(
     code_lower = source_code.lower()
     has_safemath = "safemath" in code_lower or "using safemath" in code_lower
     has_safe_approve = "increaseallowance" in code_lower or "safeapprove" in code_lower
-    has_initializer_guard = "initializer" in code_lower and ("initialized" in code_lower or "initializable" in code_lower)
+    has_initializer_guard = "initializer" in code_lower and (
+        "initialized" in code_lower or "initializable" in code_lower
+    )
 
     for category, cfg in ZERO_RECALL_PATTERNS.items():
         if cfg.get("requires_no_safemath") and has_safemath:
@@ -732,17 +732,19 @@ def detect_zero_recall_categories(
                         line,
                     ):
                         continue
-                    findings.append({
-                        "type": category,
-                        "severity": cfg["severity"],
-                        "swc_id": cfg.get("swc"),
-                        "tool": "miesc-intelligence",
-                        "confidence": 0.65,
-                        "location": {"file": "", "line": i, "function": "unknown"},
-                        "message": cfg["message"],
-                        "description": cfg["message"],
-                        "recommendation": cfg["message"],
-                    })
+                    findings.append(
+                        {
+                            "type": category,
+                            "severity": cfg["severity"],
+                            "swc_id": cfg.get("swc"),
+                            "tool": "miesc-intelligence",
+                            "confidence": 0.65,
+                            "location": {"file": "", "line": i, "function": "unknown"},
+                            "message": cfg["message"],
+                            "description": cfg["message"],
+                            "recommendation": cfg["message"],
+                        }
+                    )
                     matched = True
                     break  # One per category
 
@@ -768,17 +770,19 @@ def detect_zero_recall_categories(
                         continue
                 # Estimate line number from match position
                 line_num = source_code[: m.start()].count("\n") + 1
-                findings.append({
-                    "type": category,
-                    "severity": cfg["severity"],
-                    "swc_id": cfg.get("swc"),
-                    "tool": "miesc-intelligence",
-                    "confidence": 0.65,
-                    "location": {"file": "", "line": line_num, "function": "unknown"},
-                    "message": cfg["message"],
-                    "description": cfg["message"],
-                    "recommendation": cfg["message"],
-                })
+                findings.append(
+                    {
+                        "type": category,
+                        "severity": cfg["severity"],
+                        "swc_id": cfg.get("swc"),
+                        "tool": "miesc-intelligence",
+                        "confidence": 0.65,
+                        "location": {"file": "", "line": line_num, "function": "unknown"},
+                        "message": cfg["message"],
+                        "description": cfg["message"],
+                        "recommendation": cfg["message"],
+                    }
+                )
                 matched = True
 
     return findings
@@ -820,16 +824,18 @@ def context_aware_fp_check(
             )
             match = func_pattern.search(source_code)
             if match:
-                context = source_code[match.start():match.start() + 500]
+                context = source_code[match.start() : match.start() + 500]
                 if _ADMIN_MODIFIERS.search(context):
                     return True, f"Function {func_name} has admin modifier"
         # For selfdestruct/suicidal without function name — check if destroy/selfdestruct functions have guard
         ftype = (finding.get("type") or finding.get("title") or "").lower()
         if "selfdestruct" in ftype or "suicidal" in ftype:
             for fn in ("destroy", "kill", "close", "shutdown"):
-                fn_match = re.search(rf"function\s+{fn}\s*\([^)]*\)[^{{]*\{{", source_code, re.DOTALL)
+                fn_match = re.search(
+                    rf"function\s+{fn}\s*\([^)]*\)[^{{]*\{{", source_code, re.DOTALL
+                )
                 if fn_match:
-                    context = source_code[fn_match.start():fn_match.start() + 300]
+                    context = source_code[fn_match.start() : fn_match.start() + 300]
                     if _ADMIN_MODIFIERS.search(context):
                         return True, f"Function {fn}() has admin modifier — selfdestruct guarded"
 
@@ -874,7 +880,7 @@ def context_aware_fp_check(
 def _get_function_context(source_code: str, func_name: str, chars: int = 500) -> str:
     match = re.search(rf"function\s+{re.escape(func_name)}", source_code)
     if match:
-        return source_code[match.start():match.start() + chars]
+        return source_code[match.start() : match.start() + chars]
     return ""
 
 
@@ -882,10 +888,27 @@ def _get_function_context(source_code: str, func_name: str, chars: int = 500) ->
 # 5. LLM↔static cross-validation tagging
 # =============================================================================
 
-STATIC_TOOLS = {"slither", "aderyn", "solhint", "mythril", "halmos", "echidna",
-                "semgrep", "wake", "foundry", "solcmc"}
-LLM_TOOLS = {"smartllm", "gptscan", "iaudit", "gptlens", "llamaaudit",
-             "llmbugscanner", "audit_consensus"}
+STATIC_TOOLS = {
+    "slither",
+    "aderyn",
+    "solhint",
+    "mythril",
+    "halmos",
+    "echidna",
+    "semgrep",
+    "wake",
+    "foundry",
+    "solcmc",
+}
+LLM_TOOLS = {
+    "smartllm",
+    "gptscan",
+    "iaudit",
+    "gptlens",
+    "llamaaudit",
+    "llmbugscanner",
+    "audit_consensus",
+}
 
 
 def tag_cross_validation(merged: MergedFinding) -> None:
@@ -922,17 +945,21 @@ def calibrate_severity(finding: Dict[str, Any]) -> str:
         return calibrated
 
     severity_map = {
-        "critical": "Critical", "high": "High", "medium": "Medium",
-        "low": "Low", "info": "Info", "informational": "Info",
-        "optimization": "Info", "warning": "Low", "error": "Medium",
+        "critical": "Critical",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low",
+        "info": "Info",
+        "informational": "Info",
+        "optimization": "Info",
+        "warning": "Low",
+        "error": "Medium",
     }
     return severity_map.get(raw_severity.lower(), raw_severity)
 
 
 def _severity_rank(severity: str) -> int:
-    return {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}.get(
-        severity.lower(), 0
-    )
+    return {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}.get(severity.lower(), 0)
 
 
 # =============================================================================
@@ -974,9 +1001,7 @@ def enhance_findings(
 
         # 4. Context-aware FP check
         if source_code:
-            is_fp, reason = context_aware_fp_check(
-                group.representative, source_code, file_path
-            )
+            is_fp, reason = context_aware_fp_check(group.representative, source_code, file_path)
             if is_fp:
                 group.is_fp_suppressed = True
                 group.fp_suppression_reason = reason
@@ -1097,7 +1122,6 @@ contract SafeVault is ReentrancyGuard {
         require(success, "Transfer failed");
     }
 }""",
-
     "access_control": """\
 // Fix: Add onlyOwner modifier using OpenZeppelin Ownable
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -1115,7 +1139,6 @@ contract SecureContract is Ownable {
     // bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     // function setSensitiveValue(uint256 v) external onlyRole(ADMIN_ROLE) { ... }
 }""",
-
     "oracle_manipulation": """\
 // Fix: Use Chainlink latestRoundData with staleness and validity checks
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
@@ -1143,7 +1166,6 @@ contract SafeOracle {
         return uint256(answer);
     }
 }""",
-
     "arithmetic": """\
 // Fix for Solidity < 0.8: Use OpenZeppelin SafeMath
 // pragma solidity ^0.7.6;
@@ -1169,7 +1191,6 @@ contract SafeArithmetic {
 //         unchecked { return i + 1; }  // SAFE only if i < type(uint256).max is guaranteed
 //     }
 // }""",
-
     "unchecked_call": """\
 // Fix: Use SafeERC20 for token transfers; require(success) for low-level calls
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -1189,7 +1210,6 @@ contract SafeTransfer {
         require(success, "ETH transfer failed");
     }
 }""",
-
     "bad_randomness": """\
 // Fix: Use Chainlink VRF v2 for verifiable on-chain randomness
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
@@ -1217,7 +1237,6 @@ contract SecureRandom is VRFConsumerBaseV2 {
         randomResult = randomWords[0];
     }
 }""",
-
     "time_manipulation": """\
 // Fix: Replace block.timestamp with block.number for ordering-sensitive logic
 // block.number cannot be manipulated by miners beyond normal mining variance
@@ -1239,7 +1258,6 @@ contract TimeSafe {
     // require(block.timestamp >= deadline, "Too early");  // acceptable for non-critical deadlines
     // require(block.timestamp <= deadline + 15, "Too late with tolerance");
 }""",
-
     "front_running": """\
 // Fix: Use increaseAllowance/decreaseAllowance instead of approve
 // Prevents the ERC-20 approval race condition (SWC-114)
@@ -1261,7 +1279,6 @@ contract SafeToken is ERC20 {
     }
     // NOTE: OpenZeppelin's ERC20 already includes increaseAllowance/decreaseAllowance
 }""",
-
     "proxy_upgrade": """\
 // Fix: Use OpenZeppelin UUPSUpgradeable with _authorizeUpgrade access control
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -1284,7 +1301,6 @@ contract MyContractV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     function setValue(uint256 v) external onlyOwner { value = v; }
 }""",
-
     "initialization": """\
 // Fix: Use OpenZeppelin Initializable with initializer modifier
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";

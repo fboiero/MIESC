@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class DeepAuditConfig:
     """Configuration for the agentic deep audit.
@@ -68,6 +69,7 @@ class AuditPhase(Enum):
 # Internal result dataclasses
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ReconResult:
     """Phase 1 output."""
@@ -100,23 +102,46 @@ class ScanResult:
 
 RISK_PATTERNS = {
     "defi": [
-        r"\bswap\b", r"\bliquidity\b", r"\bpool\b", r"\boracle\b",
-        r"\bflash\s*loan\b", r"\bprice\b", r"\bamm\b", r"\bvault\b",
-        r"\byield\b", r"\bstake\b", r"\blend\b", r"\bborrow\b",
+        r"\bswap\b",
+        r"\bliquidity\b",
+        r"\bpool\b",
+        r"\boracle\b",
+        r"\bflash\s*loan\b",
+        r"\bprice\b",
+        r"\bamm\b",
+        r"\bvault\b",
+        r"\byield\b",
+        r"\bstake\b",
+        r"\blend\b",
+        r"\bborrow\b",
     ],
     "token": [
-        r"\bTransfer\b", r"\bApproval\b", r"\bbalanceOf\b",
-        r"\btotalSupply\b", r"\bmint\b", r"\bburn\b",
-        r"\bERC20\b", r"\bERC721\b", r"\bERC1155\b",
+        r"\bTransfer\b",
+        r"\bApproval\b",
+        r"\bbalanceOf\b",
+        r"\btotalSupply\b",
+        r"\bmint\b",
+        r"\bburn\b",
+        r"\bERC20\b",
+        r"\bERC721\b",
+        r"\bERC1155\b",
     ],
     "proxy": [
-        r"\bdelegatecall\b", r"\bimplementation\b", r"\bupgradeTo\b",
-        r"\bUUPS\b", r"\bBeacon\b", r"\bTransparentProxy\b",
+        r"\bdelegatecall\b",
+        r"\bimplementation\b",
+        r"\bupgradeTo\b",
+        r"\bUUPS\b",
+        r"\bBeacon\b",
+        r"\bTransparentProxy\b",
         r"\bInitializable\b",
     ],
     "bridge": [
-        r"\block\b.*\bunlock\b", r"\brelay\b", r"\bcrosschain\b",
-        r"\bmessage\b.*\bpass\b", r"\bbridge\b", r"\bwormhole\b",
+        r"\block\b.*\bunlock\b",
+        r"\brelay\b",
+        r"\bcrosschain\b",
+        r"\bmessage\b.*\bpass\b",
+        r"\bbridge\b",
+        r"\bwormhole\b",
     ],
 }
 
@@ -124,6 +149,7 @@ RISK_PATTERNS = {
 # ---------------------------------------------------------------------------
 # DeepAuditAgent
 # ---------------------------------------------------------------------------
+
 
 class DeepAuditAgent(BaseAgent):
     """
@@ -210,10 +236,13 @@ class DeepAuditAgent(BaseAgent):
             "severity_distribution": scan.severity_distribution,
             "duration_ms": scan.duration_ms,
         }
-        self.publish_findings("deep_audit_initial_findings", {
-            "findings": scan.filtered_findings,
-            "tools_run": scan.tools_run,
-        })
+        self.publish_findings(
+            "deep_audit_initial_findings",
+            {
+                "findings": scan.filtered_findings,
+                "tools_run": scan.tools_run,
+            },
+        )
 
         if self._timeout_exceeded():
             report["findings"] = scan.filtered_findings
@@ -223,9 +252,7 @@ class DeepAuditAgent(BaseAgent):
         # Phase 3: Deep Investigation (agentic loop)
         self._current_phase = AuditPhase.DEEP_INVESTIGATION
         logger.info("Phase 3: Deep Investigation (agentic loop)")
-        investigation = self._phase_deep_investigation(
-            contract_path, source_code, recon, scan
-        )
+        investigation = self._phase_deep_investigation(contract_path, source_code, recon, scan)
         report["phases"]["deep_investigation"] = {
             "iterations": investigation.get("iterations", 0),
             "findings_enriched": investigation.get("enriched_count", 0),
@@ -247,9 +274,7 @@ class DeepAuditAgent(BaseAgent):
         # Phase 4: Synthesis
         self._current_phase = AuditPhase.SYNTHESIS
         logger.info("Phase 4: Synthesis")
-        synthesis = self._phase_synthesis(
-            contract_path, source_code, recon, scan, investigation
-        )
+        synthesis = self._phase_synthesis(contract_path, source_code, recon, scan, investigation)
         report["findings"] = synthesis.get("findings", [])
         report["exploit_chains"] = synthesis.get("exploit_chains", [])
         report["phases"]["synthesis"] = {
@@ -280,8 +305,8 @@ class DeepAuditAgent(BaseAgent):
 
         # Call graph analysis
         if self.config.enable_call_graph:
-            result.call_graph, result.entry_points, result.external_calls = (
-                self._build_call_graph(source_code)
+            result.call_graph, result.entry_points, result.external_calls = self._build_call_graph(
+                source_code
             )
 
         # Taint analysis
@@ -310,9 +335,12 @@ class DeepAuditAgent(BaseAgent):
         """Build call graph and extract entry points."""
         try:
             from src.ml.call_graph import CallGraphBuilder
+
             builder = CallGraphBuilder()
             cg = builder.build_from_source(source_code)
-            entries = [n.name for n in cg.get_entry_points()] if hasattr(cg, "get_entry_points") else []
+            entries = (
+                [n.name for n in cg.get_entry_points()] if hasattr(cg, "get_entry_points") else []
+            )
             ext_calls = []
             if hasattr(cg, "external_call_chains"):
                 for chain in cg.external_call_chains():
@@ -326,6 +354,7 @@ class DeepAuditAgent(BaseAgent):
         """Run taint analysis to find data flow vulnerabilities."""
         try:
             from src.ml.taint_analysis import TaintAnalyzer
+
             analyzer = TaintAnalyzer()
             return analyzer.analyze(source_code)
         except Exception as e:
@@ -349,7 +378,9 @@ class DeepAuditAgent(BaseAgent):
             "is_token": scores.get("token", 0) >= 2,
             "is_proxy": scores.get("proxy", 0) >= 1,
             "is_bridge": scores.get("bridge", 0) >= 1,
-            "has_external_calls": bool(re.search(r"\.call\{|\.delegatecall|\.send\(|\.transfer\(", source_code)),
+            "has_external_calls": bool(
+                re.search(r"\.call\{|\.delegatecall|\.send\(|\.transfer\(", source_code)
+            ),
             "has_selfdestruct": "selfdestruct" in code_lower,
             "has_assembly": "assembly" in code_lower,
             "solidity_version": self._extract_solidity_version(source_code),
@@ -394,25 +425,35 @@ class DeepAuditAgent(BaseAgent):
         selected_tools = self._select_tools(recon)
         result.tools_run = selected_tools
 
-        logger.info(f"Selected tools for profile '{recon.risk_profile.get('primary')}': {selected_tools}")
+        logger.info(
+            f"Selected tools for profile '{recon.risk_profile.get('primary')}': {selected_tools}"
+        )
 
         # Use MLOrchestrator for reliable tool execution (same as audit smart)
         ml_orch = self._get_ml_orchestrator()
         if ml_orch:
             try:
-                timeout_per_tool = int(self._remaining_seconds() * 0.7 / max(len(selected_tools), 1))
+                timeout_per_tool = int(
+                    self._remaining_seconds() * 0.7 / max(len(selected_tools), 1)
+                )
                 ml_result = ml_orch.analyze(
                     contract_path=contract_path,
                     tools=selected_tools,
                     timeout=max(timeout_per_tool, 30),
                 )
-                result.raw_findings = ml_result.raw_findings if hasattr(ml_result, "raw_findings") else []
+                result.raw_findings = (
+                    ml_result.raw_findings if hasattr(ml_result, "raw_findings") else []
+                )
                 result.filtered_findings = (
                     ml_result.ml_filtered_findings
                     if hasattr(ml_result, "ml_filtered_findings")
                     else result.raw_findings
                 )
-                result.tools_run = ml_result.tools_success if hasattr(ml_result, "tools_success") else selected_tools
+                result.tools_run = (
+                    ml_result.tools_success
+                    if hasattr(ml_result, "tools_success")
+                    else selected_tools
+                )
             except Exception as e:
                 logger.warning(f"MLOrchestrator failed, falling back to direct execution: {e}")
                 result.raw_findings = self._run_tools_parallel(selected_tools, contract_path)
@@ -472,10 +513,12 @@ class DeepAuditAgent(BaseAgent):
         """Get MLOrchestrator instance (same as audit smart)."""
         try:
             from miesc.cli.utils import get_ml_orchestrator
+
             return get_ml_orchestrator()
         except Exception:
             try:
                 from src.core.ml_orchestrator import MLOrchestrator
+
                 return MLOrchestrator()
             except Exception:
                 return None
@@ -513,6 +556,7 @@ class DeepAuditAgent(BaseAgent):
         """Get list of actually available/installed tools."""
         try:
             from miesc.cli.utils import load_adapters
+
             adapters = load_adapters()
             available = []
             for name, adapter in adapters.items():
@@ -527,15 +571,14 @@ class DeepAuditAgent(BaseAgent):
         except Exception:
             return ["slither", "aderyn"]
 
-    def _run_tools_parallel(
-        self, tools: List[str], contract_path: str
-    ) -> List[Dict[str, Any]]:
+    def _run_tools_parallel(self, tools: List[str], contract_path: str) -> List[Dict[str, Any]]:
         """Run multiple tools in parallel and collect findings."""
         all_findings: List[Dict[str, Any]] = []
         remaining = self._remaining_seconds() * 0.8
 
         try:
             from miesc.cli.utils import load_adapters
+
             adapters = load_adapters()
         except Exception as e:
             logger.warning(f"Could not load adapters: {e}")
@@ -582,6 +625,7 @@ class DeepAuditAgent(BaseAgent):
         """Apply FP filter to findings."""
         try:
             from src.ml.fp_filter import FalsePositiveFilter
+
             fp = FalsePositiveFilter()
             source = Path(self.contract_path).read_text() if self.contract_path else ""
             result = fp.filter_findings(findings, source)
@@ -608,14 +652,17 @@ class DeepAuditAgent(BaseAgent):
 
         # Start with HIGH/CRITICAL from initial scan
         queue = [
-            f for f in scan.filtered_findings
+            f
+            for f in scan.filtered_findings
             if f.get("severity", "").lower() in ("critical", "high")
         ]
 
         iteration = 0
         while queue and iteration < self.config.max_iterations and not self._timeout_exceeded():
             iteration += 1
-            logger.info(f"Investigation iteration {iteration}: {len(queue)} findings to investigate")
+            logger.info(
+                f"Investigation iteration {iteration}: {len(queue)} findings to investigate"
+            )
             next_queue: List[Dict] = []
 
             for finding in queue:
@@ -670,7 +717,9 @@ class DeepAuditAgent(BaseAgent):
                         enriched["investigation"]["taint_paths"] = len(taint)
                         if taint:
                             enriched["investigation"]["taint_confirmed"] = True
-                            logger.info(f"Finding {fid}: taint analysis CONFIRMS data flow vulnerability")
+                            logger.info(
+                                f"Finding {fid}: taint analysis CONFIRMS data flow vulnerability"
+                            )
 
                 # Oracle/price/flash-loan → DeFi pattern detector
                 if canonical in (
@@ -717,7 +766,8 @@ class DeepAuditAgent(BaseAgent):
                     additional_tools.add(extra_tool)
                     new_findings = self._run_tools_parallel([extra_tool], contract_path)
                     high_new = [
-                        f for f in new_findings
+                        f
+                        for f in new_findings
                         if f.get("severity", "").lower() in ("critical", "high")
                     ]
                     next_queue.extend(high_new)
@@ -726,7 +776,11 @@ class DeepAuditAgent(BaseAgent):
                 # Step 5: Multi-LLM consensus for CRITICAL and HIGH findings
                 # (HIGH included because real tools rarely emit CRITICAL — most
                 # reentrancy/access-control findings land at HIGH with Slither/Aderyn)
-                if fsev in ("critical", "high") and self.config.enable_llm and not self._timeout_exceeded():
+                if (
+                    fsev in ("critical", "high")
+                    and self.config.enable_llm
+                    and not self._timeout_exceeded()
+                ):
                     consensus = self._get_llm_consensus(finding, source_code)
                     if consensus:
                         enriched["investigation"]["llm_consensus"] = consensus
@@ -752,9 +806,9 @@ class DeepAuditAgent(BaseAgent):
                             )
                         elif consensus["consensus"] == "disagreement":
                             enriched["needs_manual_review"] = True
-                            enriched["investigation"]["manual_review_reason"] = (
-                                "Models disagree on whether this is a real vulnerability"
-                            )
+                            enriched["investigation"][
+                                "manual_review_reason"
+                            ] = "Models disagree on whether this is a real vulnerability"
                             logger.warning(
                                 f"Finding {fid}: models DISAGREE — flagged for manual review "
                                 f"({consensus['confirmed_count']} confirm, "
@@ -768,8 +822,10 @@ class DeepAuditAgent(BaseAgent):
         # Exploit chain detection
         if self.config.enable_exploit_chains:
             exploit_chains = self._detect_exploit_chains(
-                enriched_findings + [
-                    f for f in scan.filtered_findings
+                enriched_findings
+                + [
+                    f
+                    for f in scan.filtered_findings
                     if f.get("severity", "").lower() not in ("critical", "high")
                 ]
             )
@@ -777,17 +833,19 @@ class DeepAuditAgent(BaseAgent):
         # Aggregate counters
         needs_review_count = sum(1 for f in enriched_findings if f.get("needs_manual_review"))
         property_count = sum(
-            1 for f in enriched_findings
-            if f.get("investigation", {}).get("property_generated")
+            1 for f in enriched_findings if f.get("investigation", {}).get("property_generated")
         )
         defi_confirmed = sum(
-            1 for f in enriched_findings
+            1
+            for f in enriched_findings
             if f.get("investigation", {}).get("oracle_dependency_confirmed")
         )
 
         return {
-            "findings": enriched_findings + [
-                f for f in scan.filtered_findings
+            "findings": enriched_findings
+            + [
+                f
+                for f in scan.filtered_findings
                 if f.get("id", f.get("title", "")) not in investigated
             ],
             "exploit_chains": exploit_chains,
@@ -804,6 +862,7 @@ class DeepAuditAgent(BaseAgent):
         """Enrich a finding with RAG vulnerability knowledge."""
         try:
             from src.llm.embedding_rag import EmbeddingRAG
+
             rag = EmbeddingRAG()
             results = rag.search_by_finding(finding)
             if not results:
@@ -859,12 +918,14 @@ Respond ONLY with JSON of the shape:
 {{"confirmed": true|false, "reasoning": "<1-2 sentences>", "actual_severity": "CRITICAL|HIGH|MEDIUM|LOW"}}
 """
         try:
-            payload = json_mod.dumps({
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {"temperature": 0.1, "num_predict": 512},
-            }).encode()
+            payload = json_mod.dumps(
+                {
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.1, "num_predict": 512},
+                }
+            ).encode()
             req = urllib.request.Request(
                 f"{host}/api/generate",
                 data=payload,
@@ -885,9 +946,7 @@ Respond ONLY with JSON of the shape:
             logger.debug(f"LLM verifier ({model}) failed: {e}")
             return None
 
-    def _get_llm_consensus(
-        self, finding: Dict, source_code: str
-    ) -> Optional[Dict[str, Any]]:
+    def _get_llm_consensus(self, finding: Dict, source_code: str) -> Optional[Dict[str, Any]]:
         """
         Multi-LLM consensus check: query the primary code-analysis model AND a
         verification-focused model, then reconcile their verdicts.
@@ -907,6 +966,7 @@ Respond ONLY with JSON of the shape:
                 get_model,
                 get_ollama_host,
             )
+
             primary_model = get_model(USE_CASE_CODE_ANALYSIS)
             verifier_model = get_model(USE_CASE_VERIFICATION)
             host = get_ollama_host()
@@ -978,6 +1038,7 @@ Respond ONLY with JSON of the shape:
         """Run taint analysis targeting a specific function."""
         try:
             from src.ml.taint_analysis import TaintAnalyzer
+
             analyzer = TaintAnalyzer()
             results = analyzer.analyze(source_code)
             if isinstance(results, list):
@@ -986,7 +1047,9 @@ Respond ONLY with JSON of the shape:
         except Exception:
             return []
 
-    def _targeted_defi_scan(self, source_code: str, func_name: Optional[str]) -> List[Dict[str, Any]]:
+    def _targeted_defi_scan(
+        self, source_code: str, func_name: Optional[str]
+    ) -> List[Dict[str, Any]]:
         """
         Run DeFi pattern detector focused on the vulnerable function.
 
@@ -996,6 +1059,7 @@ Respond ONLY with JSON of the shape:
         """
         try:
             from src.ml.defi_patterns import DeFiPatternDetector
+
             detector = DeFiPatternDetector()
             matches = detector.analyze_code(source_code) or []
             matches_list: List[Dict[str, Any]] = []
@@ -1035,10 +1099,15 @@ Respond ONLY with JSON of the shape:
             return None
         try:
             from src.formal.spec_generator import SpecFormat, SpecGenerator
+
             generator = SpecGenerator()
             # Force the function name into the finding so the generator targets it
             enriched_input = dict(finding)
-            loc = dict(enriched_input.get("location", {})) if isinstance(enriched_input.get("location"), dict) else {}
+            loc = (
+                dict(enriched_input.get("location", {}))
+                if isinstance(enriched_input.get("location"), dict)
+                else {}
+            )
             loc["function"] = func_name
             enriched_input["location"] = loc
             specs = generator.generate_specs([enriched_input], format=SpecFormat.CVL)
@@ -1091,11 +1160,19 @@ Respond ONLY with JSON of the shape:
             return None
 
         # Reentrancy without symbolic execution confirmation
-        if "reentran" in ftype and "mythril" not in tools_run and "mythril" not in already_triggered:
+        if (
+            "reentran" in ftype
+            and "mythril" not in tools_run
+            and "mythril" not in already_triggered
+        ):
             return "mythril"
 
         # Delegatecall without formal verification
-        if "delegatecall" in ftype and "halmos" not in tools_run and "halmos" not in already_triggered:
+        if (
+            "delegatecall" in ftype
+            and "halmos" not in tools_run
+            and "halmos" not in already_triggered
+        ):
             return "halmos"
 
         # Access control without fuzzing
@@ -1108,6 +1185,7 @@ Respond ONLY with JSON of the shape:
         """Detect exploit chains across findings."""
         try:
             from src.ml.correlation_engine import ExploitChainAnalyzer
+
             analyzer = ExploitChainAnalyzer()
             chains = analyzer.analyze(findings)
             if isinstance(chains, list):
@@ -1171,6 +1249,7 @@ Respond ONLY with JSON of the shape:
         """Correlate and deduplicate findings."""
         try:
             from src.ml.correlation_engine import correlate_findings
+
             result = correlate_findings(findings)
             if isinstance(result, dict):
                 return result.get("findings", findings)
@@ -1178,9 +1257,7 @@ Respond ONLY with JSON of the shape:
         except Exception:
             return findings
 
-    def _generate_narrative(
-        self, findings: List[Dict], summary: Dict, chains: List[Dict]
-    ) -> str:
+    def _generate_narrative(self, findings: List[Dict], summary: Dict, chains: List[Dict]) -> str:
         """Generate LLM narrative using available provider (local-first).
 
         Priority: Ollama (local) -> Anthropic Claude -> OpenAI -> template.
@@ -1201,9 +1278,7 @@ Respond ONLY with JSON of the shape:
 
         return ""
 
-    def _try_llm_orchestrator(
-        self, findings: List[Dict], summary: Dict, chains: List[Dict]
-    ) -> str:
+    def _try_llm_orchestrator(self, findings: List[Dict], summary: Dict, chains: List[Dict]) -> str:
         """Try LLMOrchestrator with multi-provider fallback."""
         try:
             import asyncio
@@ -1220,27 +1295,33 @@ Respond ONLY with JSON of the shape:
 
             # Local-first: always add Ollama
             if provider in ("auto", "ollama"):
-                configs.append(LLMConfig(
-                    provider=LLMProvider.OLLAMA,
-                    model=self.config.llm_model,
-                    base_url="http://localhost:11434",
-                ))
+                configs.append(
+                    LLMConfig(
+                        provider=LLMProvider.OLLAMA,
+                        model=self.config.llm_model,
+                        base_url="http://localhost:11434",
+                    )
+                )
 
             # Anthropic Claude (optional, if API key available)
             if provider in ("auto", "anthropic") and os.getenv("ANTHROPIC_API_KEY"):
-                configs.append(LLMConfig(
-                    provider=LLMProvider.ANTHROPIC,
-                    model="claude-sonnet-4-20250514",
-                    api_key=os.getenv("ANTHROPIC_API_KEY"),
-                ))
+                configs.append(
+                    LLMConfig(
+                        provider=LLMProvider.ANTHROPIC,
+                        model="claude-sonnet-4-20250514",
+                        api_key=os.getenv("ANTHROPIC_API_KEY"),
+                    )
+                )
 
             # OpenAI (optional, if API key available)
             if provider in ("auto", "openai") and os.getenv("OPENAI_API_KEY"):
-                configs.append(LLMConfig(
-                    provider=LLMProvider.OPENAI,
-                    model="gpt-4o",
-                    api_key=os.getenv("OPENAI_API_KEY"),
-                ))
+                configs.append(
+                    LLMConfig(
+                        provider=LLMProvider.OPENAI,
+                        model="gpt-4o",
+                        api_key=os.getenv("OPENAI_API_KEY"),
+                    )
+                )
 
             if not configs:
                 return ""
@@ -1287,6 +1368,7 @@ Write for a non-technical executive audience."""
         """Try Ollama via LLMReportInterpreter (existing module)."""
         try:
             from src.reports.llm_interpreter import LLMReportInterpreter
+
             interp = LLMReportInterpreter()
             if not interp.is_available():
                 return ""
@@ -1349,6 +1431,7 @@ Write for a non-technical executive audience."""
 # Convenience function
 # ---------------------------------------------------------------------------
 
+
 def run_deep_audit(contract_path: str, **kwargs) -> Dict[str, Any]:
     """Run a deep agentic audit on a contract.
 
@@ -1359,9 +1442,8 @@ def run_deep_audit(contract_path: str, **kwargs) -> Dict[str, Any]:
     Returns:
         Dict with findings, exploit chains, summary, and narrative.
     """
-    config = DeepAuditConfig(**{
-        k: v for k, v in kwargs.items()
-        if k in DeepAuditConfig.__dataclass_fields__
-    })
+    config = DeepAuditConfig(
+        **{k: v for k, v in kwargs.items() if k in DeepAuditConfig.__dataclass_fields__}
+    )
     agent = DeepAuditAgent(config=config)
     return agent.analyze(contract_path)

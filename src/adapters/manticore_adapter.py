@@ -191,7 +191,9 @@ class ManticoreAdapter(ToolAdapter):
                     if kwargs.get("llm_enhance", False):
                         try:
                             findings = enhance_findings_with_llm(
-                                findings=findings, contract_code=contract_code, adapter_name="manticore"
+                                findings=findings,
+                                contract_code=contract_code,
+                                adapter_name="manticore",
                             )
                         except Exception as e:
                             logger.debug(f"OpenLLaMA enhancement skipped: {e}")

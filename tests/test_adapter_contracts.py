@@ -26,56 +26,83 @@ from miesc.cli.constants import ADAPTER_MAP
 # behavioral tests because they can't run without the external.
 HEAVY_DEPENDENCY_ADAPTERS = {
     # Need Ollama + specific model weights
-    "gptlens", "gptscan", "llmsmartaudit", "llamaaudit", "iaudit",
-    "smartllm", "llmbugscanner",
+    "gptlens",
+    "gptscan",
+    "llmsmartaudit",
+    "llamaaudit",
+    "iaudit",
+    "smartllm",
+    "llmbugscanner",
     # Mythril needs the myth binary on PATH; aderyn needs aderyn binary.
     # Both have the existence-check fix so the test on missing files passes
     # without ever invoking the binary.
     "mythril",
     # Heavy ML dependency / binary required
-    "dagnn", "peculiar", "contract_clone_detector",
+    "dagnn",
+    "peculiar",
+    "contract_clone_detector",
     # Need external service
     "certora",
     # Chain-specific external deps
-    "crosschain", "stellar", "algorand", "cardano", "near",
+    "crosschain",
+    "stellar",
+    "algorand",
+    "cardano",
+    "near",
     # Requires Foundry with a valid project
-    "halmos", "foundry", "vertigo",
+    "halmos",
+    "foundry",
+    "vertigo",
     # semgrep needs binary too but has the existence-check fix; exclude
     # only if it errors out on construction (semgrep_adapter try-loads rules)
     "semgrep",
     # Requires Python Solidity tools not shipped by default
-    "oyente", "pakala", "manticore",
+    "oyente",
+    "pakala",
+    "manticore",
     # Need solc with model checker
-    "smtchecker", "solcmc",
+    "smtchecker",
+    "solcmc",
     # Requires Docker or a live LLM
-    "dogefuzz", "exploit_synthesizer",
+    "dogefuzz",
+    "exploit_synthesizer",
     # Has special runtime setup
-    "scribble", "ferriagro", "audit_consensus",
+    "scribble",
+    "ferriagro",
+    "audit_consensus",
     # Solana / Move that need rustup / specific toolchains
-    "solana", "move",
+    "solana",
+    "move",
     # Requires scribble + foundry or network
     "propertygpt",
     # Requires Ollama running
     "invariant_synthesizer",
     # Circom / ZK toolchains
-    "zk_circuit", "circom_analyzer",
+    "zk_circuit",
+    "circom_analyzer",
     # Specialized MEV / bridge detectors
-    "mev_detector", "bridge_monitor",
+    "mev_detector",
+    "bridge_monitor",
     # Requires Etherscan API key
     "etherscan_enrichment",
     # Network or API required
-    "smartbugs_detector", "smartbugs_ml", "defi", "advanced_detector",
+    "smartbugs_detector",
+    "smartbugs_ml",
+    "defi",
+    "advanced_detector",
     "fouranalyzer",
     # Requires Hardhat project layout
     "hardhat",
     # Experimental
     "foundry_ai",
     # solhint, wake, semgrep need their binaries on PATH
-    "solhint", "wake",
+    "solhint",
+    "wake",
     # Cairo
     "cairo",
     # Echidna / Medusa need binaries
-    "echidna", "medusa",
+    "echidna",
+    "medusa",
     # SmartLLM RAG
     "smartllm_rag",
     # (slither + aderyn + mythril removed from heavy list — they have
@@ -86,6 +113,7 @@ HEAVY_DEPENDENCY_ADAPTERS = {
 def _import_adapter(tool_name: str, class_name: str):
     """Try to import and return the adapter class, or None on failure."""
     import importlib
+
     try:
         module = importlib.import_module(f"src.adapters.{tool_name}_adapter")
     except ImportError:
@@ -104,6 +132,7 @@ class TestAdapterImportContract:
         """Adapter module either imports cleanly OR raises ImportError
         that our loader will catch — no other exceptions allowed at import time."""
         import importlib
+
         try:
             module = importlib.import_module(f"src.adapters.{tool_name}_adapter")
         except ImportError:
@@ -213,7 +242,5 @@ class TestAnalyzeContract:
         assert isinstance(result, dict)
         # Must carry some form of failure signal
         assert (
-            result.get("success") is False
-            or result.get("error")
-            or result.get("findings") == []
+            result.get("success") is False or result.get("error") or result.get("findings") == []
         ), f"{class_name}.analyze() on missing file returned no failure signal: {result}"

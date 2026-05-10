@@ -230,9 +230,9 @@ class TestZKFrameworkEnum:
 
     def test_all_values_are_lowercase(self):
         for member in ZKFramework:
-            assert member.value == member.value.lower(), (
-                f"ZKFramework.{member.name} value '{member.value}' is not lowercase"
-            )
+            assert (
+                member.value == member.value.lower()
+            ), f"ZKFramework.{member.name} value '{member.value}' is not lowercase"
 
 
 # ---------------------------------------------------------------------------
@@ -371,16 +371,12 @@ class TestZKCircuitAdapterAnalyzeCircom:
         categories = [f["category"] for f in result["findings"]]
         assert "unused_signal" in categories
 
-    def test_analyze_circom_division_detects_division_by_zero(
-        self, adapter, circom_division_file
-    ):
+    def test_analyze_circom_division_detects_division_by_zero(self, adapter, circom_division_file):
         result = adapter.analyze(circom_division_file)
         categories = [f["category"] for f in result["findings"]]
         assert "division_by_zero" in categories
 
-    def test_analyze_circom_unconstrained_output(
-        self, adapter, circom_unconstrained_output_file
-    ):
+    def test_analyze_circom_unconstrained_output(self, adapter, circom_unconstrained_output_file):
         result = adapter.analyze(circom_unconstrained_output_file)
         categories = [f["category"] for f in result["findings"]]
         assert "unconstrained_output" in categories

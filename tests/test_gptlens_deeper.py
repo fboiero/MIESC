@@ -21,6 +21,7 @@ from src.adapters.gptlens_adapter import GPTLensAdapter
 # Helpers / fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def adapter(tmp_path):
     """Return adapter with a temp cache dir so tests don't touch ~/.miesc."""
@@ -31,7 +32,7 @@ def adapter(tmp_path):
     )
     a._cache_dir = tmp_path / "gptlens_cache"
     a._cache_dir.mkdir(parents=True, exist_ok=True)
-    a._max_retries = 1   # speed up failure tests
+    a._max_retries = 1  # speed up failure tests
     a._retry_delay = 0
     return a
 
@@ -47,7 +48,7 @@ def sample_contract(tmp_path):
         "    mapping(address => uint) public balances;\n"
         "    function withdraw() external {\n"
         "        uint amount = balances[msg.sender];\n"
-        "        (bool ok,) = msg.sender.call{value: amount}(\"\");\n"
+        '        (bool ok,) = msg.sender.call{value: amount}("");\n'
         "        require(ok);\n"
         "        balances[msg.sender] = 0;\n"  # state update AFTER call
         "    }\n"
@@ -80,35 +81,38 @@ def _make_health_resp() -> MagicMock:
 # _parse_auditor_response
 # ---------------------------------------------------------------------------
 
+
 class TestParseAuditorResponse:
 
     def test_valid_json_block_two_findings(self, adapter, tmp_path):
         contract_path = str(tmp_path / "C.sol")
-        response = json.dumps({
-            "findings": [
-                {
-                    "type": "reentrancy",
-                    "severity": "Critical",
-                    "confidence": 0.9,
-                    "title": "Reentrancy in withdraw()",
-                    "description": "External call before state update.",
-                    "function": "withdraw",
-                    "line": 7,
-                    "attack_scenario": "Attacker re-enters before balance zeroed.",
-                    "impact": "Drain funds.",
-                    "recommendation": "Use checks-effects-interactions.",
-                },
-                {
-                    "type": "access_control",
-                    "severity": "High",
-                    "confidence": 0.8,
-                    "title": "Missing access control",
-                    "description": "Owner function not protected.",
-                    "function": "setOwner",
-                    "line": 15,
-                },
-            ]
-        })
+        response = json.dumps(
+            {
+                "findings": [
+                    {
+                        "type": "reentrancy",
+                        "severity": "Critical",
+                        "confidence": 0.9,
+                        "title": "Reentrancy in withdraw()",
+                        "description": "External call before state update.",
+                        "function": "withdraw",
+                        "line": 7,
+                        "attack_scenario": "Attacker re-enters before balance zeroed.",
+                        "impact": "Drain funds.",
+                        "recommendation": "Use checks-effects-interactions.",
+                    },
+                    {
+                        "type": "access_control",
+                        "severity": "High",
+                        "confidence": 0.8,
+                        "title": "Missing access control",
+                        "description": "Owner function not protected.",
+                        "function": "setOwner",
+                        "line": 15,
+                    },
+                ]
+            }
+        )
         findings = adapter._parse_auditor_response(response, contract_path)
         assert len(findings) == 2
         assert findings[0]["type"] == "reentrancy"
@@ -116,16 +120,18 @@ class TestParseAuditorResponse:
 
     def test_valid_json_in_code_block_markers(self, adapter, tmp_path):
         contract_path = str(tmp_path / "C.sol")
-        inner = json.dumps({
-            "findings": [
-                {
-                    "type": "tx_origin",
-                    "severity": "Medium",
-                    "title": "tx.origin misuse",
-                    "line": 5,
-                }
-            ]
-        })
+        inner = json.dumps(
+            {
+                "findings": [
+                    {
+                        "type": "tx_origin",
+                        "severity": "Medium",
+                        "title": "tx.origin misuse",
+                        "line": 5,
+                    }
+                ]
+            }
+        )
         response = f"Here are the findings:\n```json\n{inner}\n```"
         findings = adapter._parse_auditor_response(response, contract_path)
         assert len(findings) == 1
@@ -166,6 +172,7 @@ class TestParseAuditorResponse:
 # ---------------------------------------------------------------------------
 # _normalize_auditor_finding
 # ---------------------------------------------------------------------------
+
 
 class TestNormalizeAuditorFinding:
 
@@ -231,7 +238,13 @@ class TestNormalizeAuditorFinding:
         assert finding is not None
 
     def test_severity_normalization_case_insensitive(self, adapter, tmp_path):
-        for raw_sev, expected in [("critical", "Critical"), ("HIGH", "High"), ("medium", "Medium"), ("LOW", "Low"), ("informational", "Info")]:
+        for raw_sev, expected in [
+            ("critical", "Critical"),
+            ("HIGH", "High"),
+            ("medium", "Medium"),
+            ("LOW", "Low"),
+            ("informational", "Info"),
+        ]:
             raw = {"type": "reentrancy", "severity": raw_sev}
             finding = adapter._normalize_auditor_finding(raw, str(tmp_path / "C.sol"))
             assert finding["severity"] == expected, f"Failed for {raw_sev}"
@@ -240,6 +253,7 @@ class TestNormalizeAuditorFinding:
 # ---------------------------------------------------------------------------
 # _parse_critic_verdict
 # ---------------------------------------------------------------------------
+
 
 class TestParseCriticVerdict:
 
@@ -275,7 +289,9 @@ class TestParseCriticVerdict:
 
     def test_heuristic_not_vulnerable_keyword(self, adapter):
         # "NOT VULNERABLE" is in the FALSE_POSITIVE heuristic list
-        verdict, _ = adapter._parse_critic_verdict("NOT VULNERABLE: the guard prevents exploitation.")
+        verdict, _ = adapter._parse_critic_verdict(
+            "NOT VULNERABLE: the guard prevents exploitation."
+        )
         assert verdict == "FALSE_POSITIVE"
 
     def test_heuristic_no_vulnerability_keyword(self, adapter):
@@ -301,34 +317,37 @@ class TestParseCriticVerdict:
 # analyze() — mocked Ollama HTTP API
 # ---------------------------------------------------------------------------
 
+
 class TestAnalyzeWithMockedOllama:
 
     def _auditor_json(self):
-        return json.dumps({
-            "findings": [
-                {
-                    "type": "reentrancy",
-                    "severity": "Critical",
-                    "confidence": 0.9,
-                    "title": "Reentrancy in withdraw()",
-                    "description": "External call before state update.",
-                    "function": "withdraw",
-                    "line": 7,
-                    "attack_scenario": "Drain funds via re-entry.",
-                    "impact": "Loss of ETH.",
-                    "recommendation": "Update state before external call.",
-                },
-                {
-                    "type": "access_control",
-                    "severity": "High",
-                    "confidence": 0.8,
-                    "title": "Unprotected setOwner",
-                    "description": "Anyone can call setOwner.",
-                    "function": "setOwner",
-                    "line": 20,
-                },
-            ]
-        })
+        return json.dumps(
+            {
+                "findings": [
+                    {
+                        "type": "reentrancy",
+                        "severity": "Critical",
+                        "confidence": 0.9,
+                        "title": "Reentrancy in withdraw()",
+                        "description": "External call before state update.",
+                        "function": "withdraw",
+                        "line": 7,
+                        "attack_scenario": "Drain funds via re-entry.",
+                        "impact": "Loss of ETH.",
+                        "recommendation": "Update state before external call.",
+                    },
+                    {
+                        "type": "access_control",
+                        "severity": "High",
+                        "confidence": 0.8,
+                        "title": "Unprotected setOwner",
+                        "description": "Anyone can call setOwner.",
+                        "function": "setOwner",
+                        "line": 20,
+                    },
+                ]
+            }
+        )
 
     def test_valid_response_returns_findings(self, adapter, sample_contract):
         """Full auditor + critic flow with two findings both confirmed TRUE_POSITIVE."""
@@ -340,9 +359,7 @@ class TestAnalyzeWithMockedOllama:
         def fake_urlopen(req, timeout=None):
             call_count["n"] += 1
             if req.get_full_url().endswith("/api/generate"):
-                return _make_ollama_resp(
-                    auditor_text if call_count["n"] == 1 else critic_text
-                )
+                return _make_ollama_resp(auditor_text if call_count["n"] == 1 else critic_text)
             # health check
             return _make_health_resp()
 
@@ -371,6 +388,7 @@ class TestAnalyzeWithMockedOllama:
 
     def test_network_error_returns_error_status(self, adapter, sample_contract):
         """When Ollama is unreachable (OSError), analyze() returns an error result."""
+
         def fake_urlopen(req, timeout=None):
             raise OSError("Connection refused")
 
@@ -382,6 +400,7 @@ class TestAnalyzeWithMockedOllama:
 
     def test_url_error_returns_error_status(self, adapter, sample_contract):
         """When Ollama is unavailable (URLError), analyze() returns an error result."""
+
         def fake_urlopen(req, timeout=None):
             raise urllib.error.URLError("Name or service not known")
 
@@ -477,6 +496,7 @@ class TestAnalyzeWithMockedOllama:
 
     def test_nonexistent_contract_returns_error(self, adapter):
         """Passing a non-existent file path returns error, not crash."""
+
         def fake_urlopen(req, timeout=None):
             return _make_health_resp()
 

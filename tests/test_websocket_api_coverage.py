@@ -100,17 +100,13 @@ class TestConnectionManager:
 
     @pytest.mark.asyncio
     async def test_send_to_audit_no_subs(self, manager):
-        await manager.send_to_audit(
-            "none", WebSocketEvent(type=EventType.HEARTBEAT, data={})
-        )
+        await manager.send_to_audit("none", WebSocketEvent(type=EventType.HEARTBEAT, data={}))
 
 
 class TestAuditProgressTracker:
     @pytest.fixture
     def tracker(self):
-        return AuditProgressTracker(
-            manager=ConnectionManager(), audit_id="t1", total_layers=9
-        )
+        return AuditProgressTracker(manager=ConnectionManager(), audit_id="t1", total_layers=9)
 
     def test_init(self, tracker):
         assert tracker.audit_id == "t1"
@@ -143,6 +139,7 @@ class TestAuditProgressTracker:
     @pytest.mark.asyncio
     async def test_complete_audit(self, tracker):
         from datetime import datetime, timezone
+
         # Prime start_time with timezone-aware datetime (matches internal timezone.utc)
         tracker.start_time = datetime.now(timezone.utc)
         with patch.object(tracker.manager, "send_to_audit", new_callable=AsyncMock):

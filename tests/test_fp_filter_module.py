@@ -7,7 +7,6 @@ Author: Fernando Boiero
 License: AGPL-3.0
 """
 
-
 import pytest
 
 from src.ml.fp_filter import (

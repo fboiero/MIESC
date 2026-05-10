@@ -50,17 +50,28 @@ class TestSubstringFallback:
     """Fuzzy fallbacks for detector names we haven't mapped explicitly."""
 
     def test_readonly_reentrancy_caught(self):
-        assert normalize_finding_type("readonly-reentrancy-balancer-v2") is CanonicalCategory.REENTRANCY
+        assert (
+            normalize_finding_type("readonly-reentrancy-balancer-v2")
+            is CanonicalCategory.REENTRANCY
+        )
 
     def test_flash_loan_variants(self):
-        assert normalize_finding_type("flash-loan-governance-attack") is CanonicalCategory.FLASH_LOAN
+        assert (
+            normalize_finding_type("flash-loan-governance-attack") is CanonicalCategory.FLASH_LOAN
+        )
 
     def test_ecrecover_generic(self):
-        assert normalize_finding_type("custom-ecrecover-check-missing") is CanonicalCategory.SIGNATURE_VERIFICATION
+        assert (
+            normalize_finding_type("custom-ecrecover-check-missing")
+            is CanonicalCategory.SIGNATURE_VERIFICATION
+        )
 
     def test_unknown_returns_default(self):
         assert normalize_finding_type("totally-made-up-detector") is None
-        assert normalize_finding_type("xyz", default=CanonicalCategory.OTHER) is CanonicalCategory.OTHER
+        assert (
+            normalize_finding_type("xyz", default=CanonicalCategory.OTHER)
+            is CanonicalCategory.OTHER
+        )
 
 
 class TestFindingDict:
@@ -96,7 +107,9 @@ class TestIsCategory:
         assert is_category("arbitrary-send-eth", CanonicalCategory.REENTRANCY) is False
 
     def test_predicate_on_unknown(self):
-        assert is_category("totally-made-up", CanonicalCategory.OTHER) is False  # default is None, not OTHER
+        assert (
+            is_category("totally-made-up", CanonicalCategory.OTHER) is False
+        )  # default is None, not OTHER
 
 
 class TestEnumContract:

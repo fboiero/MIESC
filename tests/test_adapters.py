@@ -3560,6 +3560,7 @@ class TestOpenLLaMAHelper:
         class MockContextManager:
             def __enter__(self):
                 return MockResponse()
+
             def __exit__(self, *args):
                 return None
 
@@ -3575,7 +3576,9 @@ class TestOpenLLaMAHelper:
 
         config = LLMConfig(retry_attempts=2, retry_delay=0.1)
         helper = OpenLLaMAHelper(config=config)
-        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("connection refused")):
+        with patch(
+            "urllib.request.urlopen", side_effect=urllib.error.URLError("connection refused")
+        ):
             result = helper._call_llm("test prompt")
             assert result is None
 

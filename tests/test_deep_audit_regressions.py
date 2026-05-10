@@ -90,6 +90,7 @@ class TestDefiScanApi:
         silently returning []. Now must call analyze_code().
         """
         from src.ml.defi_patterns import DeFiPatternDetector
+
         det = DeFiPatternDetector()
         # The contract MUST use analyze_code, not detect.
         assert hasattr(det, "analyze_code")
@@ -149,8 +150,13 @@ class TestPhase3ReportBlockExposure:
         """Must not break downstream consumers that read the pre-v5.1.7 keys."""
         result = agent_no_llm.analyze(contract_path)
         block = result["phases"]["deep_investigation"]
-        for key in ("iterations", "findings_enriched", "additional_tools",
-                    "chains_detected", "mitigated"):
+        for key in (
+            "iterations",
+            "findings_enriched",
+            "additional_tools",
+            "chains_detected",
+            "mitigated",
+        ):
             assert key in block, f"report block dropped legacy key: {key}"
 
 
@@ -182,13 +188,15 @@ class TestConsensusGateHighInclusion:
         with patch.object(agent_llm, "_get_llm_consensus", return_value=fake_consensus) as m:
             scan = ScanResult(
                 tools_run=["slither"],
-                filtered_findings=[{
-                    "id": "h1",
-                    "title": "reentrancy",
-                    "type": "reentrancy-eth",
-                    "severity": "High",                  # HIGH, not CRITICAL
-                    "location": {"function": "withdraw"},
-                }],
+                filtered_findings=[
+                    {
+                        "id": "h1",
+                        "title": "reentrancy",
+                        "type": "reentrancy-eth",
+                        "severity": "High",  # HIGH, not CRITICAL
+                        "location": {"function": "withdraw"},
+                    }
+                ],
             )
             agent_llm._phase_deep_investigation(
                 contract_path,
@@ -213,12 +221,14 @@ class TestConsensusGateHighInclusion:
         with patch.object(agent_llm, "_get_llm_consensus", return_value=fake_consensus) as m:
             scan = ScanResult(
                 tools_run=["slither"],
-                filtered_findings=[{
-                    "id": "c1",
-                    "type": "reentrancy-eth",
-                    "severity": "critical",
-                    "location": {"function": "withdraw"},
-                }],
+                filtered_findings=[
+                    {
+                        "id": "c1",
+                        "type": "reentrancy-eth",
+                        "severity": "critical",
+                        "location": {"function": "withdraw"},
+                    }
+                ],
             )
             agent_llm._phase_deep_investigation(
                 contract_path,
@@ -235,12 +245,14 @@ class TestConsensusGateHighInclusion:
         with patch.object(agent_llm, "_get_llm_consensus") as m:
             scan = ScanResult(
                 tools_run=["slither"],
-                filtered_findings=[{
-                    "id": "m1",
-                    "type": "reentrancy-eth",
-                    "severity": "Medium",
-                    "location": {"function": "withdraw"},
-                }],
+                filtered_findings=[
+                    {
+                        "id": "m1",
+                        "type": "reentrancy-eth",
+                        "severity": "Medium",
+                        "location": {"function": "withdraw"},
+                    }
+                ],
             )
             agent_llm._phase_deep_investigation(
                 contract_path,
@@ -268,16 +280,23 @@ class TestCanonicalCategoryRouting:
         with patch.object(
             agent_no_llm,
             "_targeted_property_for_function",
-            return_value={"format": "cvl", "rule_name": "r", "content": "...", "target_function": "withdraw"},
+            return_value={
+                "format": "cvl",
+                "rule_name": "r",
+                "content": "...",
+                "target_function": "withdraw",
+            },
         ) as prop_mock:
             scan = ScanResult(
                 tools_run=["slither"],
-                filtered_findings=[{
-                    "id": "a1",
-                    "type": "arbitrary-send-eth",     # Slither vocabulary, not 'access-control'
-                    "severity": "High",
-                    "location": {"function": "withdraw"},
-                }],
+                filtered_findings=[
+                    {
+                        "id": "a1",
+                        "type": "arbitrary-send-eth",  # Slither vocabulary, not 'access-control'
+                        "severity": "High",
+                        "location": {"function": "withdraw"},
+                    }
+                ],
             )
             result = agent_no_llm._phase_deep_investigation(
                 contract_path,
@@ -296,16 +315,23 @@ class TestCanonicalCategoryRouting:
         with patch.object(
             agent_no_llm,
             "_targeted_property_for_function",
-            return_value={"format": "cvl", "rule_name": "r", "content": "...", "target_function": "kill"},
+            return_value={
+                "format": "cvl",
+                "rule_name": "r",
+                "content": "...",
+                "target_function": "kill",
+            },
         ) as prop_mock:
             scan = ScanResult(
                 tools_run=["slither"],
-                filtered_findings=[{
-                    "id": "s1",
-                    "type": "suicidal",
-                    "severity": "High",
-                    "location": {"function": "kill"},
-                }],
+                filtered_findings=[
+                    {
+                        "id": "s1",
+                        "type": "suicidal",
+                        "severity": "High",
+                        "location": {"function": "kill"},
+                    }
+                ],
             )
             agent_no_llm._phase_deep_investigation(
                 contract_path,
@@ -319,12 +345,14 @@ class TestCanonicalCategoryRouting:
         agent_no_llm._start_time = time.monotonic()
         scan = ScanResult(
             tools_run=["slither"],
-            filtered_findings=[{
-                "id": "a1",
-                "type": "reentrancy-eth",
-                "severity": "High",
-                "location": {"function": "withdraw"},
-            }],
+            filtered_findings=[
+                {
+                    "id": "a1",
+                    "type": "reentrancy-eth",
+                    "severity": "High",
+                    "location": {"function": "withdraw"},
+                }
+            ],
         )
         result = agent_no_llm._phase_deep_investigation(
             contract_path,

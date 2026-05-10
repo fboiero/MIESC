@@ -678,9 +678,7 @@ class TestDiscoverAll:
             loader = PluginLoader(plugin_dirs=[Path(tmpdir)])
 
             with patch.object(loader, "discover_from_entry_points") as mock_ep:
-                mock_ep.return_value = DiscoveryResult(
-                    sources_searched=["entry_points:test"]
-                )
+                mock_ep.return_value = DiscoveryResult(sources_searched=["entry_points:test"])
 
                 result = loader.discover_all()
                 assert str(tmpdir) in result.sources_searched[0]

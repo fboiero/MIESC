@@ -804,12 +804,13 @@ class TestPDFGeneration:
         with tempfile.TemporaryDirectory() as tmpdir:
             Path(tmpdir) / "report.pdf"
 
-            with patch.dict('sys.modules', {'weasyprint': MagicMock()}):
-                with patch('src.reports.audit_report.HTML', mock_html_class, create=True):
+            with patch.dict("sys.modules", {"weasyprint": MagicMock()}):
+                with patch("src.reports.audit_report.HTML", mock_html_class, create=True):
                     # Import after patching
                     import importlib
 
                     import src.reports.audit_report as audit_module
+
                     importlib.reload(audit_module)
 
                     # The mock should work, but we can't fully test weasyprint
@@ -824,7 +825,7 @@ class TestPDFGeneration:
 
             result = gen.save_pdf(output_path)
             # Either PDF was generated (weasyprint available) or HTML fallback was created
-            html_path = output_path.with_suffix('.html')
+            html_path = output_path.with_suffix(".html")
             assert result == output_path or html_path.exists()
 
     def test_save_pdf_creates_parent_directories(self, sample_metadata, sample_findings):
@@ -889,37 +890,41 @@ class TestRiskLevels:
     def test_medium_risk_level(self, sample_metadata):
         """Test MEDIUM risk level (40-59)."""
         # Create findings that give a risk score between 40-59
-        findings = [
-            Finding(
-                id=f"C-{i}",
-                title="Critical Issue",
-                severity="Critical",
-                category="Test",
-                description="Critical",
-                location="test.sol:1",
-            )
-            for i in range(3)
-        ] + [
-            Finding(
-                id=f"M-{i}",
-                title="Medium Issue",
-                severity="Medium",
-                category="Test",
-                description="Medium",
-                location="test.sol:1",
-            )
-            for i in range(2)
-        ] + [
-            Finding(
-                id=f"L-{i}",
-                title="Low Issue",
-                severity="Low",
-                category="Test",
-                description="Low",
-                location="test.sol:1",
-            )
-            for i in range(5)
-        ]
+        findings = (
+            [
+                Finding(
+                    id=f"C-{i}",
+                    title="Critical Issue",
+                    severity="Critical",
+                    category="Test",
+                    description="Critical",
+                    location="test.sol:1",
+                )
+                for i in range(3)
+            ]
+            + [
+                Finding(
+                    id=f"M-{i}",
+                    title="Medium Issue",
+                    severity="Medium",
+                    category="Test",
+                    description="Medium",
+                    location="test.sol:1",
+                )
+                for i in range(2)
+            ]
+            + [
+                Finding(
+                    id=f"L-{i}",
+                    title="Low Issue",
+                    severity="Low",
+                    category="Test",
+                    description="Low",
+                    location="test.sol:1",
+                )
+                for i in range(5)
+            ]
+        )
         gen = AuditReportGenerator(sample_metadata, findings)
         # (3*10 + 2*2 + 5*1) / (10*10) * 100 = 39%
         # Need to adjust to get 40-59
@@ -1037,9 +1042,7 @@ class TestEdgeCases:
     def test_contract_source_stored(self, sample_metadata):
         """Test that contract source is stored."""
         source = "pragma solidity ^0.8.20; contract Test {}"
-        gen = AuditReportGenerator(
-            sample_metadata, [], contract_source=source
-        )
+        gen = AuditReportGenerator(sample_metadata, [], contract_source=source)
         assert gen.contract_source == source
 
     def test_tool_summary_sorted_by_count(self, sample_metadata):
@@ -1074,6 +1077,7 @@ class TestVersionImportFallback:
         # We can't easily force the import to fail, but we can
         # verify the fallback constant exists in the module
         from src.reports.audit_report import MIESC_VERSION
+
         assert MIESC_VERSION is not None
         assert len(MIESC_VERSION) > 0
         # Version should match semantic versioning pattern

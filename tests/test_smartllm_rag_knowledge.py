@@ -30,22 +30,40 @@ from src.adapters.smartllm_rag_knowledge import (
 
 
 class TestDetectContractType:
-    @pytest.mark.parametrize("code,expected", [
-        # DeFi
-        ("contract Vault { function deposit() external {} function withdraw() external {} }", "defi"),
-        ("contract Pool { function swap() external {} function getreserves() external {} }", "defi"),
-        ("contract Lender { function borrow() external {} function liquidate() external {} }", "defi"),
-        # Governance
-        ("contract DAO { function propose() external {} function vote() external {} }", "governance"),
-        ("contract Timelock { function queue() external {} function execute() external {} }", "governance"),
-        # NFT
-        ("contract MyNFT is ERC721 { function mint() external {} }", "nft"),
-        ("contract Card is ERC1155 { function safeTransferFrom() external {} }", "nft"),
-        # Token
-        ("contract Token is ERC20 { function transfer() external {} }", "token"),
-        # General fallback
-        ("contract Empty { function f() external {} }", "general"),
-    ])
+    @pytest.mark.parametrize(
+        "code,expected",
+        [
+            # DeFi
+            (
+                "contract Vault { function deposit() external {} function withdraw() external {} }",
+                "defi",
+            ),
+            (
+                "contract Pool { function swap() external {} function getreserves() external {} }",
+                "defi",
+            ),
+            (
+                "contract Lender { function borrow() external {} function liquidate() external {} }",
+                "defi",
+            ),
+            # Governance
+            (
+                "contract DAO { function propose() external {} function vote() external {} }",
+                "governance",
+            ),
+            (
+                "contract Timelock { function queue() external {} function execute() external {} }",
+                "governance",
+            ),
+            # NFT
+            ("contract MyNFT is ERC721 { function mint() external {} }", "nft"),
+            ("contract Card is ERC1155 { function safeTransferFrom() external {} }", "nft"),
+            # Token
+            ("contract Token is ERC20 { function transfer() external {} }", "token"),
+            # General fallback
+            ("contract Empty { function f() external {} }", "general"),
+        ],
+    )
     def test_classification(self, code, expected):
         assert detect_contract_type(code) == expected
 
@@ -75,19 +93,36 @@ class TestGetRelevantKnowledge:
         assert len(result) > 0
 
     def test_defi_contract_includes_defi_section(self):
-        defi_code = "contract Pool { function swap() external {} function getreserves() external {} }"
+        defi_code = (
+            "contract Pool { function swap() external {} function getreserves() external {} }"
+        )
         result = get_relevant_knowledge(defi_code)
         # Should reference DeFi-specific concepts
-        assert any(kw in result.lower() for kw in (
-            "defi", "swap", "oracle", "flash", "liquidity", "pool",
-        ))
+        assert any(
+            kw in result.lower()
+            for kw in (
+                "defi",
+                "swap",
+                "oracle",
+                "flash",
+                "liquidity",
+                "pool",
+            )
+        )
 
     def test_governance_contract_includes_governance_section(self):
         gov_code = "contract DAO { function propose() external {} function vote() external {} }"
         result = get_relevant_knowledge(gov_code)
-        assert any(kw in result.lower() for kw in (
-            "governance", "vote", "proposal", "quorum", "timelock",
-        ))
+        assert any(
+            kw in result.lower()
+            for kw in (
+                "governance",
+                "vote",
+                "proposal",
+                "quorum",
+                "timelock",
+            )
+        )
 
     def test_returns_general_knowledge_for_simple_contract(self):
         result = get_relevant_knowledge("contract X { uint256 x; }")
@@ -105,16 +140,30 @@ class TestSpecializedKnowledge:
         out = get_defi_knowledge()
         assert isinstance(out, str)
         # Should mention common DeFi vuln categories
-        assert any(kw in out.lower() for kw in (
-            "flash", "oracle", "reentran", "manipul", "price",
-        ))
+        assert any(
+            kw in out.lower()
+            for kw in (
+                "flash",
+                "oracle",
+                "reentran",
+                "manipul",
+                "price",
+            )
+        )
 
     def test_governance_knowledge_contains_patterns(self):
         out = get_governance_knowledge()
         assert isinstance(out, str)
-        assert any(kw in out.lower() for kw in (
-            "vote", "proposal", "timelock", "quorum", "delegat",
-        ))
+        assert any(
+            kw in out.lower()
+            for kw in (
+                "vote",
+                "proposal",
+                "timelock",
+                "quorum",
+                "delegat",
+            )
+        )
 
     def test_advanced_knowledge_returns_content(self):
         out = get_advanced_knowledge()

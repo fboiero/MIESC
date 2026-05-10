@@ -249,15 +249,17 @@ REMEDIATION ADVICE:"""
         if not host.startswith("http"):
             host = f"http://{host}"
 
-        payload = json.dumps({
-            "model": self.config.model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.1,
-                "num_predict": 500,
-            },
-        }).encode()
+        payload = json.dumps(
+            {
+                "model": self.config.model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "num_predict": 500,
+                },
+            }
+        ).encode()
 
         for attempt in range(1, self.config.retry_attempts + 1):
             try:

@@ -30,6 +30,7 @@ class TestFPClassifierPersistence:
     def test_predict_identical_across_instances_after_save(self, tmp_path):
         """Save with one instance, load with another, verify same prediction."""
         from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier, create_sample_dataset
+
         data = tmp_path / "labels.jsonl"
         create_sample_dataset(data, n=40)
         model_path = tmp_path / "clf.pkl"
@@ -43,14 +44,13 @@ class TestFPClassifierPersistence:
         p1 = clf1.predict_fp_probability(finding, "pragma solidity ^0.8.20;")
         p2 = clf2.predict_fp_probability(finding, "pragma solidity ^0.8.20;")
 
-        assert abs(p1 - p2) < 1e-9, (
-            f"Predictions diverged after save/load: {p1} vs {p2}"
-        )
+        assert abs(p1 - p2) < 1e-9, f"Predictions diverged after save/load: {p1} vs {p2}"
 
     def test_heuristic_fallback_when_no_sklearn(self, tmp_path):
         """When sklearn import fails, classifier must fall back gracefully,
         not crash callers."""
         from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier
+
         clf = AuditorTrainedFPClassifier(model_path=tmp_path / "absent.pkl")
         clf._sklearn_available = False
         clf.model = None
@@ -73,10 +73,12 @@ class TestMultiChainDispatch:
     @pytest.fixture
     def runner(self):
         from click.testing import CliRunner
+
         return CliRunner()
 
     def test_cairo_extension_routes_to_cairo_analyzer(self, runner, tmp_path):
         from miesc.cli.commands.analyze import analyze
+
         c = tmp_path / "vuln.cairo"
         c.write_text(
             "#[starknet::contract]\nmod V { #[external] fn f() { replace_class_syscall(); } }\n"
@@ -89,6 +91,7 @@ class TestMultiChainDispatch:
 
     def test_unknown_extension_errors_cleanly(self, runner, tmp_path):
         from miesc.cli.commands.analyze import analyze
+
         c = tmp_path / "mystery.xyz"
         c.write_text("unknown content")
         result = runner.invoke(analyze, [str(c), "--quiet"])
@@ -105,6 +108,7 @@ class TestCanonicalCategoryContract:
         """Every enum value MUST be a string — we JSON-serialize this in
         the investigation report and in the FP classifier's features."""
         from src.core.finding_taxonomy import CanonicalCategory
+
         for c in CanonicalCategory:
             assert isinstance(c.value, str)
             assert c.value == c.value.lower()
@@ -113,11 +117,24 @@ class TestCanonicalCategoryContract:
         """Lock in the current enum set so an accidental rename/removal
         surfaces here, not in the agent at runtime."""
         from src.core.finding_taxonomy import CanonicalCategory
+
         required = {
-            "reentrancy", "access_control", "oracle_manipulation", "flash_loan",
-            "arithmetic", "unchecked_call", "initialization", "signature_verification",
-            "bad_randomness", "time_manipulation", "denial_of_service", "front_running",
-            "proxy_upgrade", "centralization", "input_validation", "other",
+            "reentrancy",
+            "access_control",
+            "oracle_manipulation",
+            "flash_loan",
+            "arithmetic",
+            "unchecked_call",
+            "initialization",
+            "signature_verification",
+            "bad_randomness",
+            "time_manipulation",
+            "denial_of_service",
+            "front_running",
+            "proxy_upgrade",
+            "centralization",
+            "input_validation",
+            "other",
         }
         actual = {c.value for c in CanonicalCategory}
         missing = required - actual
@@ -135,9 +152,14 @@ class TestPhaseOrdering:
 
     def test_phases_in_correct_order(self, tmp_path):
         from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+
         cfg = DeepAuditConfig(
-            timeout_seconds=60, enable_llm=False, enable_rag=False,
-            enable_taint=False, enable_call_graph=False, enable_exploit_chains=False,
+            timeout_seconds=60,
+            enable_llm=False,
+            enable_rag=False,
+            enable_taint=False,
+            enable_call_graph=False,
+            enable_exploit_chains=False,
         )
         agent = DeepAuditAgent(config=cfg)
         c = tmp_path / "C.sol"
@@ -146,9 +168,7 @@ class TestPhaseOrdering:
 
         phase_keys = list(result.get("phases", {}).keys())
         expected = ["reconnaissance", "targeted_scan", "deep_investigation", "synthesis"]
-        assert phase_keys == expected, (
-            f"Phase order broken: expected {expected}, got {phase_keys}"
-        )
+        assert phase_keys == expected, f"Phase order broken: expected {expected}, got {phase_keys}"
 
 
 # ---------------------------------------------------------------------------
@@ -162,10 +182,18 @@ class TestVulnerabilityExampleFields:
 
     def test_has_attack_steps_field(self):
         from src.llm.vulnerability_rag import VulnerabilityExample
+
         ex = VulnerabilityExample(
-            id="x", swc_id=None, cwe_id=None, title="t", description="d",
-            vulnerable_code="", fixed_code=None, attack_scenario=None,
-            severity="low", category="x",
+            id="x",
+            swc_id=None,
+            cwe_id=None,
+            title="t",
+            description="d",
+            vulnerable_code="",
+            fixed_code=None,
+            attack_scenario=None,
+            severity="low",
+            category="x",
         )
         assert hasattr(ex, "attack_steps")
         assert hasattr(ex, "detection_heuristic")
@@ -176,6 +204,7 @@ class TestVulnerabilityExampleFields:
         """At least the top-8 patterns enriched in v5.1.6 must still carry
         both attack_steps and detection_heuristic."""
         from src.llm.vulnerability_rag import EXPLOIT_EXAMPLES, SWC_REGISTRY
+
         required_enriched = [
             ("SWC-107", SWC_REGISTRY),
             ("SWC-105", SWC_REGISTRY),
@@ -202,17 +231,22 @@ class TestSpecsVerifyIntegrationShape:
 
     def test_specs_emits_cvl_with_rule_block(self, tmp_path):
         from src.formal.spec_generator import SpecFormat, SpecGenerator
-        findings = [{
-            "type": "reentrancy-eth",
-            "severity": "High",
-            "swc_id": "SWC-107",
-            "location": {"function": "withdraw"},
-        }]
+
+        findings = [
+            {
+                "type": "reentrancy-eth",
+                "severity": "High",
+                "swc_id": "SWC-107",
+                "location": {"function": "withdraw"},
+            }
+        ]
         generator = SpecGenerator()
         out = tmp_path / "rules.spec"
         count = generator.generate_spec_file(
-            findings=findings, output_path=out,
-            contract_name="MyContract", format=SpecFormat.CVL,
+            findings=findings,
+            output_path=out,
+            contract_name="MyContract",
+            format=SpecFormat.CVL,
         )
         assert count >= 1
         assert out.exists()
@@ -222,12 +256,20 @@ class TestSpecsVerifyIntegrationShape:
 
     def test_spec_runner_result_has_required_fields_for_verify_json(self):
         from src.formal.spec_runner import VerificationResult
+
         r = VerificationResult(tool="halmos", spec_file="/x", status="passed")
         d = r.to_dict()
         # `miesc verify -o out.json` writes r.to_dict() — verify the shape
-        for key in ("tool", "spec_file", "status", "rules_passed",
-                    "rules_failed", "rules_total", "counterexamples",
-                    "elapsed_seconds"):
+        for key in (
+            "tool",
+            "spec_file",
+            "status",
+            "rules_passed",
+            "rules_failed",
+            "rules_total",
+            "counterexamples",
+            "elapsed_seconds",
+        ):
             assert key in d, f"verify JSON missing key: {key}"
 
 
@@ -241,6 +283,7 @@ class TestBootstrapClassifierInterop:
         """The JSONL the bootstrap script writes must be trainable by
         AuditorTrainedFPClassifier without any schema transformation."""
         import importlib.util
+
         spec = importlib.util.spec_from_file_location(
             "bootstrap_fp_dataset",
             Path(__file__).parent.parent / "scripts" / "bootstrap_fp_dataset.py",
@@ -251,23 +294,32 @@ class TestBootstrapClassifierInterop:
         # Synthesize a small balanced dataset the bootstrap script would produce
         samples = []
         for _ in range(10):
-            samples.append({
-                "finding": {"type": "reentrancy-eth", "severity": "High", "tool": "slither"},
-                "context": "pragma solidity ^0.8.20;",
-                "label": True,
-                "_reason": "canonical-match:reentrancy",
-            })
+            samples.append(
+                {
+                    "finding": {"type": "reentrancy-eth", "severity": "High", "tool": "slither"},
+                    "context": "pragma solidity ^0.8.20;",
+                    "label": True,
+                    "_reason": "canonical-match:reentrancy",
+                }
+            )
         for _ in range(10):
-            samples.append({
-                "finding": {"type": "useless-public-function", "severity": "low", "tool": "aderyn"},
-                "context": "pragma solidity ^0.8.20;",
-                "label": False,
-                "_reason": "noise-type:useless-public-function",
-            })
+            samples.append(
+                {
+                    "finding": {
+                        "type": "useless-public-function",
+                        "severity": "low",
+                        "tool": "aderyn",
+                    },
+                    "context": "pragma solidity ^0.8.20;",
+                    "label": False,
+                    "_reason": "noise-type:useless-public-function",
+                }
+            )
         out = tmp_path / "labels.jsonl"
         out.write_text("\n".join(json.dumps(s) for s in samples))
 
         from src.ml.fp_ml_classifier import AuditorTrainedFPClassifier
+
         clf = AuditorTrainedFPClassifier(model_path=tmp_path / "m.pkl")
         metrics = clf.train(str(out))
         assert "accuracy" in metrics

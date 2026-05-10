@@ -12,12 +12,10 @@ License: AGPL-3.0
 import json
 import os
 import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -131,9 +129,7 @@ class TestScanJsonIngestedByReport:
         """Run scan mock output through report command, verify no crash."""
         data = _make_scan_output()
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(data, f)
             json_path = f.name
 
@@ -141,9 +137,7 @@ class TestScanJsonIngestedByReport:
             from miesc.cli.commands.report import report
 
             # Patch get_data_path to return our simple template
-            with patch(
-                "miesc.cli.commands.report.get_data_path", return_value=simple_template
-            ):
+            with patch("miesc.cli.commands.report.get_data_path", return_value=simple_template):
                 result = runner.invoke(report, [json_path, "-t", "simple"])
 
             # Should not crash — exit code 0
@@ -162,18 +156,14 @@ class TestAuditQuickJsonIngestedByReport:
         """Verify audit-quick output format works with report command."""
         data = _make_audit_quick_output()
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(data, f)
             json_path = f.name
 
         try:
             from miesc.cli.commands.report import report
 
-            with patch(
-                "miesc.cli.commands.report.get_data_path", return_value=simple_template
-            ):
+            with patch("miesc.cli.commands.report.get_data_path", return_value=simple_template):
                 result = runner.invoke(report, [json_path, "-t", "simple"])
 
             assert result.exit_code == 0, f"Report failed: {result.output}"

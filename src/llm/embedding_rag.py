@@ -3833,7 +3833,10 @@ function onTokenReceived(address from, uint256 amount) external nonReentrant {
         severity="informational",
         category="taxonomy",
         tags=["swc", "legacy", "taxonomy", "smartbugs", "classification"],
-        references=["https://swcregistry.io/", "https://github.com/SmartContractSecurity/SWC-registry"],
+        references=[
+            "https://swcregistry.io/",
+            "https://github.com/SmartContractSecurity/SWC-registry",
+        ],
         source_tier="legacy_taxonomy",
         source_type="legacy_classification",
     ),

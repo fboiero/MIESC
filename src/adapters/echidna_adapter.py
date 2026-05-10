@@ -214,9 +214,7 @@ class EchidnaAdapter(ToolAdapter):
                     with open(contract_path, "r") as fc:
                         contract_code = fc.read()
                     if findings:
-                        findings = enhance_findings_with_llm(
-                            findings[:5], contract_code, "echidna"
-                        )
+                        findings = enhance_findings_with_llm(findings[:5], contract_code, "echidna")
                 except Exception as e:
                     logger.debug(f"LLM enhancement failed: {e}")
 

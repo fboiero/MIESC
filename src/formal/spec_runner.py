@@ -30,9 +30,9 @@ logger = logging.getLogger(__name__)
 class VerificationResult:
     """Result of running a formal verification spec."""
 
-    tool: str                      # "certora", "halmos", "smtchecker"
+    tool: str  # "certora", "halmos", "smtchecker"
     spec_file: str
-    status: str                    # "passed" | "failed" | "timeout" | "error" | "no_tests"
+    status: str  # "passed" | "failed" | "timeout" | "error" | "no_tests"
     rules_passed: int = 0
     rules_failed: int = 0
     rules_total: int = 0
@@ -90,6 +90,7 @@ class SpecRunner:
             )
 
         import time
+
         start = time.time()
         try:
             proc = subprocess.run(
@@ -156,6 +157,7 @@ class SpecRunner:
             )
 
         import time
+
         start = time.time()
         cmd = ["halmos"]
         if test_contract:
@@ -229,6 +231,7 @@ class SpecRunner:
             )
 
         import time
+
         start = time.time()
         try:
             proc = subprocess.run(
@@ -299,9 +302,7 @@ class SpecRunner:
         clean = SpecRunner._strip_ansi(stdout)
         passed = len(re.findall(r"\[PASS\]|✓", clean))
         failed = len(re.findall(r"\[FAIL\]|✗", clean))
-        counterexamples = [
-            c.strip() for c in re.findall(r"Counterexample:\s*(.*?)(?:\n|$)", clean)
-        ]
+        counterexamples = [c.strip() for c in re.findall(r"Counterexample:\s*(.*?)(?:\n|$)", clean)]
         # Filter empties that sometimes appear from stripped ANSI residue
         counterexamples = [c for c in counterexamples if c]
         return passed, failed, counterexamples[:10]

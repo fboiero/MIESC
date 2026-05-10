@@ -23,6 +23,7 @@ class TestGPTLensAdapter:
     @pytest.fixture
     def adapter(self):
         from src.adapters.gptlens_adapter import GPTLensAdapter
+
         return GPTLensAdapter()
 
     def test_metadata_name(self, adapter):
@@ -46,6 +47,7 @@ class TestGPTLensAdapter:
 
     def test_prompt_templates_are_strings(self):
         from src.adapters.gptlens_adapter import AUDITOR_PROMPT_TEMPLATE, CRITIC_PROMPT_TEMPLATE
+
         assert isinstance(AUDITOR_PROMPT_TEMPLATE, str)
         assert isinstance(CRITIC_PROMPT_TEMPLATE, str)
         assert "{contract_code}" in AUDITOR_PROMPT_TEMPLATE
@@ -53,6 +55,7 @@ class TestGPTLensAdapter:
 
     def test_prompt_templates_have_json_output_format(self):
         from src.adapters.gptlens_adapter import AUDITOR_PROMPT_TEMPLATE
+
         assert "JSON" in AUDITOR_PROMPT_TEMPLATE
         assert "findings" in AUDITOR_PROMPT_TEMPLATE
 
@@ -104,6 +107,7 @@ class TestIAuditAdapter:
     @pytest.fixture
     def adapter(self):
         from src.adapters.iaudit_adapter import IAuditAdapter
+
         return IAuditAdapter()
 
     def test_metadata_name(self, adapter):
@@ -121,6 +125,7 @@ class TestIAuditAdapter:
             PLANNER_PROMPT,
             REVIEWER_PROMPT,
         )
+
         assert "{contract_code}" in PLANNER_PROMPT
         assert "{contract_code}" in DETECTOR_PROMPT
         assert "{contract_code}" in REVIEWER_PROMPT
@@ -129,6 +134,7 @@ class TestIAuditAdapter:
 
     def test_planner_prompt_has_json_schema(self):
         from src.adapters.iaudit_prompts import PLANNER_PROMPT
+
         assert "entry_points" in PLANNER_PROMPT
         assert "attack_surface" in PLANNER_PROMPT
 
@@ -150,6 +156,7 @@ class TestLlamaAuditAdapter:
     @pytest.fixture
     def adapter(self):
         from src.adapters.llamaaudit_adapter import LlamaAuditAdapter
+
         return LlamaAuditAdapter()
 
     def test_metadata_name(self, adapter):
@@ -174,6 +181,7 @@ class TestLLMBugScannerAdapter:
     @pytest.fixture
     def adapter(self):
         from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
+
         return LLMBugScannerAdapter()
 
     def test_metadata_name(self, adapter):
@@ -194,6 +202,7 @@ class TestPeculiarAdapter:
     @pytest.fixture
     def adapter(self):
         from src.adapters.peculiar_adapter import PeculiarAdapter
+
         return PeculiarAdapter()
 
     def test_metadata_name(self, adapter):
@@ -224,15 +233,19 @@ class TestPeculiarAdapter:
 class TestLLMAdapterContract:
     """Verify all LLM adapters implement the same basic protocol."""
 
-    @pytest.mark.parametrize("module,cls", [
-        ("src.adapters.gptlens_adapter", "GPTLensAdapter"),
-        ("src.adapters.iaudit_adapter", "IAuditAdapter"),
-        ("src.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
-        ("src.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
-        ("src.adapters.peculiar_adapter", "PeculiarAdapter"),
-    ])
+    @pytest.mark.parametrize(
+        "module,cls",
+        [
+            ("src.adapters.gptlens_adapter", "GPTLensAdapter"),
+            ("src.adapters.iaudit_adapter", "IAuditAdapter"),
+            ("src.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
+            ("src.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
+            ("src.adapters.peculiar_adapter", "PeculiarAdapter"),
+        ],
+    )
     def test_has_required_methods(self, module, cls):
         import importlib
+
         mod = importlib.import_module(module)
         klass = getattr(mod, cls)
         instance = klass()
@@ -241,15 +254,19 @@ class TestLLMAdapterContract:
         assert hasattr(instance, "analyze")
         assert hasattr(instance, "normalize_findings")
 
-    @pytest.mark.parametrize("module,cls", [
-        ("src.adapters.gptlens_adapter", "GPTLensAdapter"),
-        ("src.adapters.iaudit_adapter", "IAuditAdapter"),
-        ("src.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
-        ("src.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
-        ("src.adapters.peculiar_adapter", "PeculiarAdapter"),
-    ])
+    @pytest.mark.parametrize(
+        "module,cls",
+        [
+            ("src.adapters.gptlens_adapter", "GPTLensAdapter"),
+            ("src.adapters.iaudit_adapter", "IAuditAdapter"),
+            ("src.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
+            ("src.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
+            ("src.adapters.peculiar_adapter", "PeculiarAdapter"),
+        ],
+    )
     def test_metadata_has_name_and_category(self, module, cls):
         import importlib
+
         mod = importlib.import_module(module)
         klass = getattr(mod, cls)
         meta = klass().get_metadata()

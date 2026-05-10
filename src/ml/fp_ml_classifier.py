@@ -62,17 +62,35 @@ logger = logging.getLogger(__name__)
 
 
 SEVERITY_ORDINAL = {
-    "critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0, "informational": 0,
+    "critical": 4,
+    "high": 3,
+    "medium": 2,
+    "low": 1,
+    "info": 0,
+    "informational": 0,
 }
 
 KNOWN_TOOLS = [
-    "slither", "aderyn", "mythril", "solhint", "semgrep", "halmos",
-    "echidna", "manticore", "smartllm", "gptscan",
+    "slither",
+    "aderyn",
+    "mythril",
+    "solhint",
+    "semgrep",
+    "halmos",
+    "echidna",
+    "manticore",
+    "smartllm",
+    "gptscan",
 ]
 
 KNOWN_LIBRARIES = [
-    "openzeppelin", "solmate", "@openzeppelin", "safeerc20",
-    "reentrancyguard", "ownable", "access control",
+    "openzeppelin",
+    "solmate",
+    "@openzeppelin",
+    "safeerc20",
+    "reentrancyguard",
+    "ownable",
+    "access control",
 ]
 
 
@@ -181,6 +199,7 @@ class AuditorTrainedFPClassifier:
     def _check_sklearn() -> bool:
         try:
             import sklearn  # noqa: F401
+
             return True
         except ImportError:
             logger.debug("scikit-learn not installed; using rule-based fallback")
@@ -215,9 +234,7 @@ class AuditorTrainedFPClassifier:
         Returns training metrics: accuracy, precision, recall.
         """
         if not self._sklearn_available:
-            raise RuntimeError(
-                "scikit-learn required for training. Install: pip install miesc[ml]"
-            )
+            raise RuntimeError("scikit-learn required for training. Install: pip install miesc[ml]")
 
         from sklearn.ensemble import GradientBoostingClassifier
         from sklearn.metrics import precision_recall_fscore_support
@@ -352,6 +369,7 @@ def create_sample_dataset(output_path: Path, n: int = 20) -> int:
     collected over time.
     """
     import random
+
     random.seed(42)
 
     samples = []

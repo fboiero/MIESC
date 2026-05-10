@@ -104,6 +104,7 @@ class TestStructuredFormatter:
         """Reset context before each test."""
         clear_log_context()
         from src.core.logging_config import _correlation_id
+
         _correlation_id.set(None)
 
     def test_basic_format(self):
@@ -195,6 +196,7 @@ class TestRichFormatter:
         """Reset context before each test."""
         clear_log_context()
         from src.core.logging_config import _correlation_id
+
         _correlation_id.set(None)
 
     def test_basic_format(self):

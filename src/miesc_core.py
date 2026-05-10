@@ -61,9 +61,15 @@ class MIESCCore:
                 "findings": findings,
                 "metadata": {
                     "contract": contract_path,
-                    "tools_used": result.tools_success if hasattr(result, "tools_success") else (tools or []),
+                    "tools_used": (
+                        result.tools_success if hasattr(result, "tools_success") else (tools or [])
+                    ),
                     "tools_failed": result.tools_failed if hasattr(result, "tools_failed") else [],
-                    "total_findings": result.total_findings if hasattr(result, "total_findings") else len(findings),
+                    "total_findings": (
+                        result.total_findings
+                        if hasattr(result, "total_findings")
+                        else len(findings)
+                    ),
                     "layers_executed": 9,
                     "version": MIESC_VERSION,
                 },

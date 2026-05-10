@@ -12,42 +12,43 @@ from typing import Any
 
 def _get_finding_title(finding: dict) -> str:
     """Get finding title with fallbacks for different adapter formats."""
-    return (finding.get("title") or 
-            finding.get("type") or 
-            finding.get("message", "Unknown")[:100])
-
-
+    return finding.get("title") or finding.get("type") or finding.get("message", "Unknown")[:100]
 
 
 class AttackVector(Enum):
     """Attack vector component."""
+
     NETWORK = "N"  # Remote/network exploitable
     ADJACENT = "A"  # Adjacent network
-    LOCAL = "L"    # Local access needed
+    LOCAL = "L"  # Local access needed
     PHYSICAL = "P"  # Physical access needed
 
 
 class AttackComplexity(Enum):
     """Attack complexity component."""
-    LOW = "L"   # Easy to exploit
+
+    LOW = "L"  # Easy to exploit
     HIGH = "H"  # Complex conditions required
 
 
 class PrivilegesRequired(Enum):
     """Privileges required component."""
+
     NONE = "N"  # No privileges needed
-    LOW = "L"   # Low privileges (e.g., user account)
+    LOW = "L"  # Low privileges (e.g., user account)
     HIGH = "H"  # High privileges (e.g., admin)
 
 
 class UserInteraction(Enum):
     """User interaction component."""
-    NONE = "N"      # No user interaction
+
+    NONE = "N"  # No user interaction
     REQUIRED = "R"  # User must take action
 
 
 class Impact(Enum):
     """Impact level for C/I/A."""
+
     NONE = "N"
     LOW = "L"
     HIGH = "H"
@@ -56,6 +57,7 @@ class Impact(Enum):
 @dataclass
 class CVSSVector:
     """CVSS-like vector for smart contract vulnerabilities."""
+
     attack_vector: AttackVector = AttackVector.NETWORK
     attack_complexity: AttackComplexity = AttackComplexity.LOW
     privileges_required: PrivilegesRequired = PrivilegesRequired.NONE
@@ -80,6 +82,7 @@ class CVSSVector:
 @dataclass
 class CVSSScore:
     """CVSS score result."""
+
     finding_id: str
     title: str
     base_score: float
@@ -92,6 +95,7 @@ class CVSSScore:
 @dataclass
 class RiskMatrixCell:
     """Cell in the risk matrix."""
+
     impact: str
     likelihood: str
     count: int = 0
@@ -309,19 +313,19 @@ class RiskCalculator:
     def calculate_exploitability(self, vector: CVSSVector) -> float:
         """Calculate exploitability subscore."""
         return (
-            8.22 *
-            self.ATTACK_VECTOR_WEIGHTS[vector.attack_vector] *
-            self.ATTACK_COMPLEXITY_WEIGHTS[vector.attack_complexity] *
-            self.PRIVILEGES_REQUIRED_WEIGHTS[vector.privileges_required] *
-            self.USER_INTERACTION_WEIGHTS[vector.user_interaction]
+            8.22
+            * self.ATTACK_VECTOR_WEIGHTS[vector.attack_vector]
+            * self.ATTACK_COMPLEXITY_WEIGHTS[vector.attack_complexity]
+            * self.PRIVILEGES_REQUIRED_WEIGHTS[vector.privileges_required]
+            * self.USER_INTERACTION_WEIGHTS[vector.user_interaction]
         )
 
     def calculate_impact(self, vector: CVSSVector) -> float:
         """Calculate impact subscore."""
         isc_base = 1 - (
-            (1 - self.IMPACT_WEIGHTS[vector.confidentiality_impact]) *
-            (1 - self.IMPACT_WEIGHTS[vector.integrity_impact]) *
-            (1 - self.IMPACT_WEIGHTS[vector.availability_impact])
+            (1 - self.IMPACT_WEIGHTS[vector.confidentiality_impact])
+            * (1 - self.IMPACT_WEIGHTS[vector.integrity_impact])
+            * (1 - self.IMPACT_WEIGHTS[vector.availability_impact])
         )
 
         if isc_base <= 0:
@@ -349,11 +353,7 @@ class RiskCalculator:
                 return severity
         return "Info"
 
-    def adjust_vector_by_severity(
-        self,
-        vector: CVSSVector,
-        severity: str
-    ) -> CVSSVector:
+    def adjust_vector_by_severity(self, vector: CVSSVector, severity: str) -> CVSSVector:
         """Adjust vector lightly based on reported severity.
 
         Only nudge the vector if the category mapping is the default.
@@ -415,17 +415,11 @@ class RiskCalculator:
             impact_subscore=round(impact, 1),
         )
 
-    def calculate_all_scores(
-        self,
-        findings: list[dict[str, Any]]
-    ) -> list[CVSSScore]:
+    def calculate_all_scores(self, findings: list[dict[str, Any]]) -> list[CVSSScore]:
         """Calculate CVSS scores for all findings."""
         return [self.calculate_finding_score(f) for f in findings]
 
-    def generate_risk_matrix(
-        self,
-        findings: list[dict[str, Any]]
-    ) -> dict[str, int]:
+    def generate_risk_matrix(self, findings: list[dict[str, Any]]) -> dict[str, int]:
         """
         Generate a 3x3 risk matrix based on impact and likelihood.
 
@@ -433,9 +427,15 @@ class RiskCalculator:
         containing counts of findings in each cell.
         """
         matrix = {
-            "high_high": 0, "high_med": 0, "high_low": 0,
-            "med_high": 0, "med_med": 0, "med_low": 0,
-            "low_high": 0, "low_med": 0, "low_low": 0,
+            "high_high": 0,
+            "high_med": 0,
+            "high_low": 0,
+            "med_high": 0,
+            "med_med": 0,
+            "med_low": 0,
+            "low_high": 0,
+            "low_med": 0,
+            "low_low": 0,
         }
 
         for finding in findings:
@@ -459,10 +459,7 @@ class RiskCalculator:
 
         return matrix
 
-    def calculate_overall_risk_score(
-        self,
-        findings: list[dict[str, Any]]
-    ) -> int:
+    def calculate_overall_risk_score(self, findings: list[dict[str, Any]]) -> int:
         """
         Calculate overall risk score (0-100).
 
@@ -490,26 +487,16 @@ class RiskCalculator:
         return min(100, total_weight)
 
     def get_deployment_recommendation(
-        self,
-        findings: list[dict[str, Any]]
+        self, findings: list[dict[str, Any]]
     ) -> tuple[str, str, str, str]:
         """
         Generate deployment recommendation based on findings.
 
         Returns (recommendation, justification, border_color, background_color).
         """
-        critical_count = sum(
-            1 for f in findings
-            if f.get("severity", "").lower() == "critical"
-        )
-        high_count = sum(
-            1 for f in findings
-            if f.get("severity", "").lower() == "high"
-        )
-        medium_count = sum(
-            1 for f in findings
-            if f.get("severity", "").lower() == "medium"
-        )
+        critical_count = sum(1 for f in findings if f.get("severity", "").lower() == "critical")
+        high_count = sum(1 for f in findings if f.get("severity", "").lower() == "high")
+        medium_count = sum(1 for f in findings if f.get("severity", "").lower() == "medium")
 
         if critical_count > 0:
             return (
@@ -517,7 +504,7 @@ class RiskCalculator:
                 f"Contract has {critical_count} critical vulnerabilities that "
                 "must be fixed before deployment. Immediate remediation required.",
                 "#dc3545",  # Red border
-                "#fef2f2"   # Light red background
+                "#fef2f2",  # Light red background
             )
 
         if high_count >= 2:
@@ -526,7 +513,7 @@ class RiskCalculator:
                 f"Contract has {high_count} high severity vulnerabilities. "
                 "Fix all high severity issues before deployment.",
                 "#dc3545",  # Red border
-                "#fef2f2"   # Light red background
+                "#fef2f2",  # Light red background
             )
 
         if high_count == 1 or medium_count >= 3:
@@ -536,7 +523,7 @@ class RiskCalculator:
                 "severity findings. Address these issues and re-audit before "
                 "production deployment.",
                 "#ff9800",  # Orange border
-                "#fff8e1"   # Light orange background
+                "#fff8e1",  # Light orange background
             )
 
         if medium_count > 0:
@@ -545,7 +532,7 @@ class RiskCalculator:
                 f"Contract has {medium_count} medium severity findings. "
                 "Review and address these issues before deployment.",
                 "#ffc107",  # Yellow border
-                "#fffde7"   # Light yellow background
+                "#fffde7",  # Light yellow background
             )
 
         return (
@@ -553,7 +540,7 @@ class RiskCalculator:
             "No critical or high severity issues found. Contract appears "
             "suitable for deployment after addressing any minor findings.",
             "#28a745",  # Green border
-            "#f0fdf4"   # Light green background
+            "#f0fdf4",  # Light green background
         )
 
     # Effort classification for vulnerability types
@@ -649,10 +636,7 @@ class RiskCalculator:
             return "medium"
         return "low"
 
-    def generate_effort_impact_matrix(
-        self,
-        findings: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def generate_effort_impact_matrix(self, findings: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Generate effort vs impact matrix for prioritization.
 
@@ -688,18 +672,17 @@ class RiskCalculator:
 
             if key in matrix:
                 matrix[key]["count"] += 1
-                matrix[key]["findings"].append({
-                    "id": finding.get("id", "?"),
-                    "title": _get_finding_title(finding)[:50],
-                    "severity": finding.get("severity", "Unknown"),
-                })
+                matrix[key]["findings"].append(
+                    {
+                        "id": finding.get("id", "?"),
+                        "title": _get_finding_title(finding)[:50],
+                        "severity": finding.get("severity", "Unknown"),
+                    }
+                )
 
         return matrix
 
-    def identify_quick_wins(
-        self,
-        findings: list[dict[str, Any]]
-    ) -> list[dict[str, str]]:
+    def identify_quick_wins(self, findings: list[dict[str, Any]]) -> list[dict[str, str]]:
         """
         Identify quick win fixes - high impact, low effort.
 
@@ -726,19 +709,18 @@ class RiskCalculator:
 
             for pattern, description in quick_fix_patterns:
                 if pattern in combined:
-                    quick_wins.append({
-                        "title": _get_finding_title(finding),
-                        "description": description,
-                        "finding_id": finding.get("id", "?"),
-                    })
+                    quick_wins.append(
+                        {
+                            "title": _get_finding_title(finding),
+                            "description": description,
+                            "finding_id": finding.get("id", "?"),
+                        }
+                    )
                     break
 
         return quick_wins[:5]  # Return top 5 quick wins
 
-    def get_severity_percentages(
-        self,
-        findings: list[dict[str, Any]]
-    ) -> dict[str, float]:
+    def get_severity_percentages(self, findings: list[dict[str, Any]]) -> dict[str, float]:
         """Calculate percentage of findings by severity."""
         total = len(findings) if findings else 1
 
@@ -757,10 +739,7 @@ class RiskCalculator:
             if severity in counts:
                 counts[severity] += 1
 
-        return {
-            f"{k}_percent": round(v / total * 100, 1)
-            for k, v in counts.items()
-        }
+        return {f"{k}_percent": round(v / total * 100, 1) for k, v in counts.items()}
 
 
 def calculate_premium_risk_data(findings: list[dict[str, Any]]) -> dict[str, Any]:
@@ -782,7 +761,9 @@ def calculate_premium_risk_data(findings: list[dict[str, Any]]) -> dict[str, Any
     overall_score = calculator.calculate_overall_risk_score(findings)
 
     # Deployment recommendation
-    recommendation, justification, color, bg_color = calculator.get_deployment_recommendation(findings)
+    recommendation, justification, color, bg_color = calculator.get_deployment_recommendation(
+        findings
+    )
 
     # Quick wins
     quick_wins = calculator.identify_quick_wins(findings)

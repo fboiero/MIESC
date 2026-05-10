@@ -47,10 +47,9 @@ class TestLargeContractScanning:
 
     def test_large_cairo_source_scans_under_10s(self, tmp_path):
         from src.adapters.cairo_adapter import CairoAnalyzer
+
         # 5000-line Cairo source
-        code = "\n".join(
-            f"fn f{i}() {{ let a: u256 = b + c; }}" for i in range(5000)
-        )
+        code = "\n".join(f"fn f{i}() {{ let a: u256 = b + c; }}" for i in range(5000))
         analyzer = CairoAnalyzer()
         start = time.monotonic()
         result = analyzer.analyze_source(code)
@@ -62,6 +61,7 @@ class TestLargeContractScanning:
         """The bootstrap label_finding logic must handle scan output from
         a large contract without choking."""
         import importlib.util
+
         spec = importlib.util.spec_from_file_location(
             "bootstrap_fp_dataset",
             Path(__file__).parent.parent / "scripts" / "bootstrap_fp_dataset.py",
@@ -69,9 +69,7 @@ class TestLargeContractScanning:
         bootstrap = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(bootstrap)
         # Simulate 1000 scan findings
-        findings = [
-            {"type": "reentrancy-eth", "severity": "High"} for _ in range(1000)
-        ]
+        findings = [{"type": "reentrancy-eth", "severity": "High"} for _ in range(1000)]
         start = time.monotonic()
         for f in findings:
             bootstrap.label_finding(f, gt_class="reentrancy")
@@ -111,8 +109,10 @@ class TestSpecRunnerTimeouts:
         from src.formal.spec_runner import SpecRunner
 
         runner = SpecRunner()
-        with patch("src.formal.spec_runner.subprocess.run",
-                   side_effect=_sub.TimeoutExpired(cmd=["halmos"], timeout=1)):
+        with patch(
+            "src.formal.spec_runner.subprocess.run",
+            side_effect=_sub.TimeoutExpired(cmd=["halmos"], timeout=1),
+        ):
             with patch.object(runner, "is_halmos_available", return_value=True):
                 result = runner.run_halmos(str(tmp_path), timeout=1)
                 assert result.status == "timeout"
@@ -156,6 +156,7 @@ class TestRAGLookupComplexity:
 class TestTaxonomyThroughput:
     def test_normalize_10k_findings_in_under_2s(self):
         from src.core.finding_taxonomy import normalize_finding_type
+
         finding = {
             "type": "arbitrary-send-eth",
             "severity": "High",
@@ -171,6 +172,7 @@ class TestTaxonomyThroughput:
         """Substring fallback loop must terminate quickly even on completely
         unknown types (worst-case iteration)."""
         from src.core.finding_taxonomy import normalize_finding_type
+
         start = time.monotonic()
         for i in range(5000):
             normalize_finding_type(f"completely-unknown-detector-variant-{i}")
@@ -188,9 +190,14 @@ class TestAgentBatchThroughput:
         """Each analyze() must reset _start_time. Without that, the second
         call's timeout fires immediately even though the first just finished."""
         from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+
         cfg = DeepAuditConfig(
-            timeout_seconds=60, enable_llm=False, enable_rag=False,
-            enable_taint=False, enable_call_graph=False, enable_exploit_chains=False,
+            timeout_seconds=60,
+            enable_llm=False,
+            enable_rag=False,
+            enable_taint=False,
+            enable_call_graph=False,
+            enable_exploit_chains=False,
         )
         agent = DeepAuditAgent(config=cfg)
         c = tmp_path / "C.sol"
@@ -204,9 +211,14 @@ class TestAgentBatchThroughput:
         """Running two DeepAuditAgent instances on different contracts at the
         same time must not corrupt each other's _start_time or finding lists."""
         from src.agents.deep_audit_agent import DeepAuditAgent, DeepAuditConfig
+
         cfg = DeepAuditConfig(
-            timeout_seconds=60, enable_llm=False, enable_rag=False,
-            enable_taint=False, enable_call_graph=False, enable_exploit_chains=False,
+            timeout_seconds=60,
+            enable_llm=False,
+            enable_rag=False,
+            enable_taint=False,
+            enable_call_graph=False,
+            enable_exploit_chains=False,
         )
 
         def run():
@@ -259,6 +271,7 @@ class TestCanonicalCategorySerialization:
         import json
 
         from src.core.finding_taxonomy import CanonicalCategory
+
         for c in CanonicalCategory:
             # .value should json-roundtrip without needing custom encoders
             roundtrip = json.loads(json.dumps(c.value))
@@ -266,6 +279,7 @@ class TestCanonicalCategorySerialization:
 
     def test_enum_can_be_stored_in_dict_key_or_value(self):
         from src.core.finding_taxonomy import CanonicalCategory
+
         # As values
         d = {"cat": CanonicalCategory.REENTRANCY.value}
         assert d["cat"] == "reentrancy"

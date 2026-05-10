@@ -25,6 +25,7 @@ from src.benchmark.slither_benchmark import SlitherBenchmarkRunner
 # Shared helpers
 # ---------------------------------------------------------------------------
 
+
 def make_gt(category_str: str, lines=None) -> GroundTruth:
     return GroundTruth(
         category=VulnerabilityCategory.from_string(category_str),
@@ -46,6 +47,7 @@ def make_contract(name="TestContract", source_code="", vuln_category="reentrancy
 # ===========================================================================
 # SlitherBenchmarkRunner tests
 # ===========================================================================
+
 
 class TestSlitherBenchmarkRunner:
 
@@ -257,6 +259,7 @@ class TestSlitherBenchmarkRunner:
 # PatternMatch dataclass
 # ===========================================================================
 
+
 class TestPatternMatch:
 
     def test_create_pattern_match(self):
@@ -265,7 +268,7 @@ class TestPatternMatch:
             category="reentrancy",
             line=42,
             confidence=0.8,
-            code_snippet="msg.sender.call{value: amount}(\"\");",
+            code_snippet='msg.sender.call{value: amount}("");',
         )
         assert pm.pattern_name == "reentrancy-call"
         assert pm.category == "reentrancy"
@@ -276,6 +279,7 @@ class TestPatternMatch:
 # ===========================================================================
 # PatternBenchmarkResult dataclass
 # ===========================================================================
+
 
 class TestPatternBenchmarkResult:
 
@@ -328,6 +332,7 @@ class TestPatternBenchmarkResult:
 # ===========================================================================
 # PatternBenchmarkRunner — _detect_patterns
 # ===========================================================================
+
 
 class TestPatternBenchmarkRunnerDetect:
 
@@ -421,11 +426,12 @@ class TestPatternBenchmarkRunnerDetect:
 # PatternBenchmarkRunner — run() integration
 # ===========================================================================
 
+
 class TestPatternBenchmarkRunnerRun:
 
     def test_run_with_matching_contract(self):
         runner = PatternBenchmarkRunner(line_tolerance=10)
-        code = "function withdraw() {\n    msg.sender.call{value: amount}(\"\");\n    balances[msg.sender] = 0;\n}"
+        code = 'function withdraw() {\n    msg.sender.call{value: amount}("");\n    balances[msg.sender] = 0;\n}'
         contract = VulnerableContract(
             name="Reentrancy",
             path="/tmp/R.sol",

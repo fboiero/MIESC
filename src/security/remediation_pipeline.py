@@ -93,7 +93,7 @@ def classify_compile_failure(stderr: str, stdout: str = "") -> str:
         return "solidity_version_mismatch"
     if "requires different compiler version" in text:
         return "solidity_version_mismatch"
-    if "source \"" in text and "not found" in text:
+    if 'source "' in text and "not found" in text:
         return "missing_import_or_dependency"
     if "file not found" in text or "no such file" in text:
         return "missing_import_or_dependency"
@@ -165,9 +165,9 @@ def compile_contract(sol_path: Path, timeout: int = 15) -> CompileEvidence:
             returncode=result.returncode,
             stdout=result.stdout[:MAX_ERROR_CHARS],
             stderr=result.stderr[:MAX_ERROR_CHARS],
-            failure_class=None
-            if compiles
-            else classify_compile_failure(result.stderr, result.stdout),
+            failure_class=(
+                None if compiles else classify_compile_failure(result.stderr, result.stdout)
+            ),
         )
     except subprocess.TimeoutExpired as exc:
         stdout = exc.stdout if isinstance(exc.stdout, str) else ""
@@ -330,4 +330,3 @@ def remediate_contract(
         compile=compile_evidence,
         rescan=rescan_evidence,
     )
-

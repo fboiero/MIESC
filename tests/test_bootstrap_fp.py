@@ -35,15 +35,18 @@ FP_TYPES = bootstrap.FP_TYPES
 
 
 class TestNoiseTypes:
-    @pytest.mark.parametrize("ftype", [
-        "solc-version",
-        "naming-convention",
-        "useless-public-function",
-        "constants-instead-of-literals",
-        "push-zero-opcode",
-        "unspecific-solidity-pragma",
-        "magic-number",
-    ])
+    @pytest.mark.parametrize(
+        "ftype",
+        [
+            "solc-version",
+            "naming-convention",
+            "useless-public-function",
+            "constants-instead-of-literals",
+            "push-zero-opcode",
+            "unspecific-solidity-pragma",
+            "magic-number",
+        ],
+    )
     def test_known_noise_types_marked_fp(self, ftype):
         f = {"type": ftype, "severity": "low"}
         label, reason = label_finding(f, gt_class="reentrancy")

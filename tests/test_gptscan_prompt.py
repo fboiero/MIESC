@@ -12,6 +12,7 @@ import pytest
 def adapter():
     # Import lazily to avoid triggering Ollama availability checks during collection
     from src.adapters.gptscan_adapter import GPTScanAdapter
+
     return GPTScanAdapter()
 
 
@@ -78,7 +79,9 @@ class TestRAGInjection:
         fake_result = MagicMock()
         fake_result.document.title = "Reentrancy via external call"
         fake_result.document.swc_id = "SWC-107"
-        fake_result.document.description = "External call before state update enables reentrant withdrawal."
+        fake_result.document.description = (
+            "External call before state update enables reentrant withdrawal."
+        )
 
         adapter._use_rag = True
         adapter._embedding_rag = MagicMock()

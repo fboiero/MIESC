@@ -319,9 +319,7 @@ class AderynAdapter(ToolAdapter):
                     with open(contract_path, "r") as f:
                         contract_code = f.read()
                     if findings:
-                        findings = enhance_findings_with_llm(
-                            findings[:5], contract_code, "aderyn"
-                        )
+                        findings = enhance_findings_with_llm(findings[:5], contract_code, "aderyn")
                 except Exception as e:
                     logger.debug(f"LLM enhancement failed: {e}")
 

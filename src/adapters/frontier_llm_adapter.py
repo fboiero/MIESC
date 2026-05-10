@@ -26,6 +26,7 @@ import json
 import logging
 import os
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.core.tool_protocol import (
@@ -121,8 +122,14 @@ class FrontierLLMAdapter(ToolAdapter):
                 ToolCapability(
                     name="semantic_audit",
                     description="Deep semantic vulnerability detection using frontier models",
-                    detection_types=["business_logic", "economic_exploit", "access_control",
-                                     "reentrancy", "oracle_manipulation", "governance"],
+                    detection_types=[
+                        "business_logic",
+                        "economic_exploit",
+                        "access_control",
+                        "reentrancy",
+                        "oracle_manipulation",
+                        "governance",
+                    ],
                 ),
             ],
             cost=0.01,  # ~$0.01 per contract (depends on size)
@@ -146,14 +153,15 @@ class FrontierLLMAdapter(ToolAdapter):
         understand the protocol before analyzing individual vulnerabilities.
         """
         import re
-        lines = source_code.split("\n")
+
         sections = []
 
         # 1. Contract hierarchy + imports
         contracts = []
         for m in re.finditer(
             r"(?:// ===== FILE: (\S+) =====\n)?.*?contract\s+(\w+)(?:\s+is\s+([^{]+))?\s*\{",
-            source_code, re.DOTALL
+            source_code,
+            re.DOTALL,
         ):
             file_name = m.group(1) or ""
             name = m.group(2)
@@ -174,7 +182,9 @@ class FrontierLLMAdapter(ToolAdapter):
 
         # 2. External calls (potential cross-contract interactions)
         external_calls = set()
-        for m in re.finditer(r"(\w+)\.(call|delegatecall|staticcall|transfer|send)\s*[({]", source_code):
+        for m in re.finditer(
+            r"(\w+)\.(call|delegatecall|staticcall|transfer|send)\s*[({]", source_code
+        ):
             external_calls.add(m.group(0)[:60])
         for m in re.finditer(r"I(\w+)\((\w+)\)\.(\w+)\(", source_code):
             external_calls.add(f"{m.group(1)}.{m.group(3)}() via interface")
@@ -191,7 +201,7 @@ class FrontierLLMAdapter(ToolAdapter):
         state_fns = []
         for m in re.finditer(
             r"function\s+(\w+)\s*\([^)]*\)\s*(external|public)(?![^{]*\bview\b)(?![^{]*\bpure\b)[^{]*\{",
-            source_code
+            source_code,
         ):
             fn_name = m.group(1)
             if fn_name not in ("constructor", "receive", "fallback"):
@@ -211,7 +221,9 @@ class FrontierLLMAdapter(ToolAdapter):
         if "totalassets" in code_lower:
             invariants.append("totalAssets() >= totalLiabilities (solvency)")
             if "totalsupply" in code_lower:
-                invariants.append("sharePrice = totalAssets() / totalSupply() must be monotonically non-decreasing")
+                invariants.append(
+                    "sharePrice = totalAssets() / totalSupply() must be monotonically non-decreasing"
+                )
         if "gettvl" in code_lower or "totaltvl" in code_lower:
             invariants.append("getTVL() must equal sum of all position values across connectors")
         if "collateral" in code_lower and "borrow" in code_lower:
@@ -255,6 +267,7 @@ class FrontierLLMAdapter(ToolAdapter):
     def _check_ollama(self) -> bool:
         """Check if Ollama is running and has models."""
         import urllib.request
+
         try:
             resp = urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3)
             data = json.loads(resp.read())
@@ -276,6 +289,7 @@ class FrontierLLMAdapter(ToolAdapter):
         if provider == "anthropic":
             try:
                 import anthropic  # noqa: F401
+
                 if not os.environ.get("ANTHROPIC_API_KEY"):
                     return ToolStatus.CONFIGURATION_ERROR
                 return ToolStatus.AVAILABLE
@@ -289,6 +303,7 @@ class FrontierLLMAdapter(ToolAdapter):
         if provider == "openai":
             try:
                 import openai  # noqa: F401
+
                 if not os.environ.get("OPENAI_API_KEY"):
                     return ToolStatus.CONFIGURATION_ERROR
                 return ToolStatus.AVAILABLE
@@ -359,11 +374,17 @@ class FrontierLLMAdapter(ToolAdapter):
                     fallback_kwargs["model"] = "claude-sonnet-4-6"
                 try:
                     if fallback == "openai":
-                        findings = self._analyze_openai(source_code, rag_context=rag_context, **fallback_kwargs)
+                        findings = self._analyze_openai(
+                            source_code, rag_context=rag_context, **fallback_kwargs
+                        )
                     else:
-                        findings = self._analyze_anthropic(source_code, rag_context=rag_context, **fallback_kwargs)
+                        findings = self._analyze_anthropic(
+                            source_code, rag_context=rag_context, **fallback_kwargs
+                        )
                 except Exception as e2:
-                    logger.error(f"FrontierLLM: Both providers failed. {provider}: {e}, {fallback}: {e2}")
+                    logger.error(
+                        f"FrontierLLM: Both providers failed. {provider}: {e}, {fallback}: {e2}"
+                    )
                     return self._error_result(start_time, f"{provider}: {e} | {fallback}: {e2}")
             else:
                 logger.error(f"FrontierLLM API error: {e}")
@@ -374,8 +395,16 @@ class FrontierLLMAdapter(ToolAdapter):
         # Normalize findings — handle diverse key names from different LLM responses
         normalized = []
         for f in findings:
-            title = f.get("title") or f.get("vulnerability") or f.get("name") or f.get("type") or "Unknown"
-            ftype = f.get("type") or f.get("category") or f.get("vulnerability_type") or "logic_error"
+            title = (
+                f.get("title")
+                or f.get("vulnerability")
+                or f.get("name")
+                or f.get("type")
+                or "Unknown"
+            )
+            ftype = (
+                f.get("type") or f.get("category") or f.get("vulnerability_type") or "logic_error"
+            )
             severity = f.get("severity") or "Medium"
             loc = f.get("location") or f.get("function") or "unknown"
             line = f.get("line") or f.get("line_number") or 0
@@ -386,23 +415,31 @@ class FrontierLLMAdapter(ToolAdapter):
                     line = int(parts[-1])
                 except ValueError:
                     pass
-            normalized.append({
-                "type": ftype.lower().replace(" ", "_"),
-                "title": title,
-                "severity": str(severity).capitalize(),
-                "tool": f"frontier-{provider}",
-                "confidence": 0.80,
-                "location": {
-                    "file": contract_path,
-                    "line": line,
-                    "function": loc if isinstance(loc, str) else "unknown",
-                },
-                "description": f.get("description", ""),
-                "message": f.get("impact", ""),
-                "recommendation": f.get("recommendation") or f.get("fix") or f.get("remediation") or "",
-                "exploit_scenario": f.get("proof_of_concept") or f.get("attack_scenario") or f.get("exploit") or "",
-                "swc_id": f.get("swc_id") or f.get("swc") or "",
-            })
+            normalized.append(
+                {
+                    "type": ftype.lower().replace(" ", "_"),
+                    "title": title,
+                    "severity": str(severity).capitalize(),
+                    "tool": f"frontier-{provider}",
+                    "confidence": 0.80,
+                    "location": {
+                        "file": contract_path,
+                        "line": line,
+                        "function": loc if isinstance(loc, str) else "unknown",
+                    },
+                    "description": f.get("description", ""),
+                    "message": f.get("impact", ""),
+                    "recommendation": f.get("recommendation")
+                    or f.get("fix")
+                    or f.get("remediation")
+                    or "",
+                    "exploit_scenario": f.get("proof_of_concept")
+                    or f.get("attack_scenario")
+                    or f.get("exploit")
+                    or "",
+                    "swc_id": f.get("swc_id") or f.get("swc") or "",
+                }
+            )
 
         # Deduplicate findings by (function, type) — LLMs often report
         # the same issue with different wording
@@ -427,21 +464,28 @@ class FrontierLLMAdapter(ToolAdapter):
                 # Normalize and add deep findings
                 for f in deep_findings:
                     title = f.get("title") or f.get("vulnerability") or f.get("type") or "Unknown"
-                    deduped.append({
-                        "type": (f.get("type") or "logic_error").lower().replace(" ", "_"),
-                        "title": title,
-                        "severity": str(f.get("severity", "High")).capitalize(),
-                        "tool": f"frontier-{provider}-deep",
-                        "confidence": 0.75,
-                        "location": {"file": contract_path, "line": f.get("line", 0),
-                                     "function": f.get("function") or f.get("location") or "unknown"},
-                        "description": f.get("description", ""),
-                        "message": f.get("impact", ""),
-                        "recommendation": f.get("recommendation") or f.get("fix") or "",
-                        "exploit_scenario": f.get("proof_of_concept") or "",
-                        "swc_id": "",
-                    })
-                logger.info(f"FrontierLLM: Deep pass found {len(deep_findings)} additional findings")
+                    deduped.append(
+                        {
+                            "type": (f.get("type") or "logic_error").lower().replace(" ", "_"),
+                            "title": title,
+                            "severity": str(f.get("severity", "High")).capitalize(),
+                            "tool": f"frontier-{provider}-deep",
+                            "confidence": 0.75,
+                            "location": {
+                                "file": contract_path,
+                                "line": f.get("line", 0),
+                                "function": f.get("function") or f.get("location") or "unknown",
+                            },
+                            "description": f.get("description", ""),
+                            "message": f.get("impact", ""),
+                            "recommendation": f.get("recommendation") or f.get("fix") or "",
+                            "exploit_scenario": f.get("proof_of_concept") or "",
+                            "swc_id": "",
+                        }
+                    )
+                logger.info(
+                    f"FrontierLLM: Deep pass found {len(deep_findings)} additional findings"
+                )
 
         # F: 2-agent debate (opt-in via debate=True)
         if debate and deduped:
@@ -460,8 +504,9 @@ class FrontierLLMAdapter(ToolAdapter):
             },
         }
 
-    def _analyze_chunked(self, contract_path: str, source_code: str,
-                         start_time: float, **kwargs) -> Dict[str, Any]:
+    def _analyze_chunked(
+        self, contract_path: str, source_code: str, start_time: float, **kwargs
+    ) -> Dict[str, Any]:
         """C: Split large codebase into chunks and analyze each separately."""
         # Split by file markers (// ===== FILE: ...) or by size
         chunks = []
@@ -483,11 +528,12 @@ class FrontierLLMAdapter(ToolAdapter):
         logger.info(f"FrontierLLM: Chunked {len(source_code)//1024}KB into {len(chunks)} chunks")
 
         all_findings = []
-        for i, chunk in enumerate(chunks):
+        for chunk in chunks:
             if not chunk.strip():
                 continue
             # Write chunk to temp file
             import tempfile
+
             tmp = Path(tempfile.mktemp(suffix=".sol"))
             tmp.write_text(chunk)
             try:
@@ -505,8 +551,14 @@ class FrontierLLMAdapter(ToolAdapter):
             "metadata": {"chunked": True, "n_chunks": len(chunks)},
         }
 
-    def _deep_pass(self, source_code: str, pass1_findings: List[Dict],
-                   provider: str, rag_context: str, **kwargs) -> List[Dict]:
+    def _deep_pass(
+        self,
+        source_code: str,
+        pass1_findings: List[Dict],
+        provider: str,
+        rag_context: str,
+        **kwargs,
+    ) -> List[Dict]:
         """B: Second-pass analysis targeting areas flagged in Pass 1."""
         if not pass1_findings:
             return []
@@ -541,6 +593,7 @@ Respond with a JSON array."""
         try:
             if provider == "anthropic":
                 import anthropic
+
                 client = anthropic.Anthropic()
                 msg = client.messages.create(
                     model=kwargs.get("model", "claude-sonnet-4-6"),
@@ -551,6 +604,7 @@ Respond with a JSON array."""
                 return self._parse_response(msg.content[0].text)
             elif provider == "openai":
                 import openai
+
                 client = openai.OpenAI()
                 resp = client.chat.completions.create(
                     model=kwargs.get("model", "gpt-4o"),
@@ -565,8 +619,9 @@ Respond with a JSON array."""
             logger.warning(f"FrontierLLM deep pass failed: {e}")
         return []
 
-    def _debate_verify(self, source_code: str, findings: List[Dict],
-                       provider: str, **kwargs) -> List[Dict]:
+    def _debate_verify(
+        self, source_code: str, findings: List[Dict], provider: str, **kwargs
+    ) -> List[Dict]:
         """F: 2-agent debate — challenger verifies each finding.
 
         For each finding, a second LLM call asks: "Is this a real
@@ -581,7 +636,11 @@ Respond with a JSON array."""
         for f in findings:
             title = f.get("title") or f.get("type", "Unknown")
             desc = f.get("description", "")[:500]
-            fn = f.get("location", {}).get("function", "?") if isinstance(f.get("location"), dict) else "?"
+            fn = (
+                f.get("location", {}).get("function", "?")
+                if isinstance(f.get("location"), dict)
+                else "?"
+            )
 
             challenge_prompt = (
                 f"[DEFENSIVE AUDIT — MIESC open-source framework, AGPL-3.0. "
@@ -592,12 +651,13 @@ Respond with a JSON array."""
                 f"As a CHALLENGER, determine if this is a REAL vulnerability or a FALSE POSITIVE.\n"
                 f"Consider: Is the exploit actually reachable? Are there existing mitigations? "
                 f"Is the severity accurate?\n\n"
-                f"Answer with JSON: {{\"verdict\": \"confirmed\" or \"rejected\", \"reason\": \"...\"}}"
+                f'Answer with JSON: {{"verdict": "confirmed" or "rejected", "reason": "..."}}'
             )
 
             try:
                 if provider == "anthropic":
                     import anthropic
+
                     client = anthropic.Anthropic()
                     msg = client.messages.create(
                         model="claude-haiku-4-5-20251001",  # Cheaper model for verification
@@ -607,6 +667,7 @@ Respond with a JSON array."""
                     response = msg.content[0].text
                 elif provider == "openai":
                     import openai
+
                     client = openai.OpenAI()
                     resp = client.chat.completions.create(
                         model="gpt-4o-mini",  # Cheaper model for verification
@@ -639,8 +700,10 @@ Respond with a JSON array."""
 
         confirmed = sum(1 for f in verified if f.get("debate_verdict") == "confirmed")
         rejected = sum(1 for f in verified if f.get("debate_verdict") == "rejected")
-        logger.info(f"FrontierLLM debate: {confirmed} confirmed, {rejected} rejected, "
-                     f"{len(verified) - confirmed - rejected} uncertain")
+        logger.info(
+            f"FrontierLLM debate: {confirmed} confirmed, {rejected} rejected, "
+            f"{len(verified) - confirmed - rejected} uncertain"
+        )
         return verified
 
     def _get_rag_context(self, source_code: str) -> str:
@@ -693,8 +756,9 @@ Respond with a JSON array."""
                 "- Rental/plot occupation conflicts when multiple users target same ID\n"
                 "- Metadata manipulation if tokenURI is mutable without access control"
             )
-        if any(kw in code_lower for kw in ["merge", "migrate", "exchange", "convert", "swap"]) and \
-           any(kw in code_lower for kw in ["deadline", "period", "expir", "timestamp"]):
+        if any(
+            kw in code_lower for kw in ["merge", "migrate", "exchange", "convert", "swap"]
+        ) and any(kw in code_lower for kw in ["deadline", "period", "expir", "timestamp"]):
             sections.append(
                 "KNOWN TOKEN MIGRATION EXPLOITS:\n"
                 "- No cap enforcement: exchanging more tokens than allocated pool\n"
@@ -704,7 +768,10 @@ Respond with a JSON array."""
             )
 
         # D: Patterns informed by EVMBench missed vulns (TVL, connectors, cross-contract)
-        if any(kw in code_lower for kw in ["totalassets", "totaltvl", "gettvl", "connector", "position"]):
+        if any(
+            kw in code_lower
+            for kw in ["totalassets", "totaltvl", "gettvl", "connector", "position"]
+        ):
             sections.append(
                 "KNOWN TVL/ACCOUNTING EXPLOITS:\n"
                 "- totalAssets() not summing all position types (lending, LP, staking)\n"
@@ -730,8 +797,9 @@ Respond with a JSON array."""
                 "- Malleable signatures (both s and n-s are valid for same message)\n"
                 "- ecrecover returning address(0) not checked → forged signatures"
             )
-        if any(kw in code_lower for kw in ["cancel", "refund", "withdraw", "claim"]) and \
-           any(kw in code_lower for kw in ["mapping", "status", "state"]):
+        if any(kw in code_lower for kw in ["cancel", "refund", "withdraw", "claim"]) and any(
+            kw in code_lower for kw in ["mapping", "status", "state"]
+        ):
             sections.append(
                 "KNOWN STATE MANAGEMENT EXPLOITS:\n"
                 "- Missing authorization on cancel/refund allowing anyone to trigger\n"
@@ -740,7 +808,9 @@ Respond with a JSON array."""
                 "- Claim function not checking if already claimed (missing flag update)"
             )
         # Patterns from EVMBench missed vulns analysis
-        if any(kw in code_lower for kw in ["hardcoded", "constant", "cap", "limit", "max_", "total_"]):
+        if any(
+            kw in code_lower for kw in ["hardcoded", "constant", "cap", "limit", "max_", "total_"]
+        ):
             sections.append(
                 "KNOWN BOUNDARY/CAP EXPLOITS:\n"
                 "- Hardcoded cap without enforcement: if deposits exceed the cap,\n"
@@ -749,8 +819,9 @@ Respond with a JSON array."""
                 "- Rate calculation using hardcoded ratio that becomes invalid when cap is exceeded\n"
                 "- withdrawRemaining() reverts when actual balance < expected balance due to overcapping"
             )
-        if any(kw in code_lower for kw in ["transfer", "move", "migrate", "plotid", "tokenid"]) and \
-           any(kw in code_lower for kw in ["struct", "state", "mapping"]):
+        if any(
+            kw in code_lower for kw in ["transfer", "move", "migrate", "plotid", "tokenid"]
+        ) and any(kw in code_lower for kw in ["struct", "state", "mapping"]):
             sections.append(
                 "KNOWN TRANSFER STATE EXPLOITS:\n"
                 "- Transfer function updates destination but NOT source state struct\n"
@@ -759,8 +830,9 @@ Respond with a JSON array."""
                 "- Old references (mappings) not cleaned up after move/migrate\n"
                 "- Struct fields partially updated leaving inconsistent state"
             )
-        if any(kw in code_lower for kw in ["exchange", "convert", "merge", "swap"]) and \
-           any(kw in code_lower for kw in ["period", "deadline", "timestamp", "block.timestamp"]):
+        if any(kw in code_lower for kw in ["exchange", "convert", "merge", "swap"]) and any(
+            kw in code_lower for kw in ["period", "deadline", "timestamp", "block.timestamp"]
+        ):
             sections.append(
                 "KNOWN TIME-BOUNDED EXCHANGE EXPLOITS:\n"
                 "- No cap enforcement during exchange period → total exchanged exceeds pool\n"
@@ -920,7 +992,9 @@ Respond with a JSON array."""
 
         # For local models: trim source to 80KB max (32B models have ~32K context)
         max_local_chars = 80_000
-        trimmed = source_code[:max_local_chars] if len(source_code) > max_local_chars else source_code
+        trimmed = (
+            source_code[:max_local_chars] if len(source_code) > max_local_chars else source_code
+        )
 
         # Build prompt with trimmed RAG (keep it shorter for local models)
         rag_trimmed = rag_context[:1500] if rag_context else ""
@@ -930,15 +1004,17 @@ Respond with a JSON array."""
         logger.info(f"FrontierLLM: Calling Ollama {model} ({len(trimmed)} chars{rag_note})")
 
         # Use chat endpoint (handles system/user roles better than generate)
-        data = json.dumps({
-            "model": model,
-            "messages": [
-                {"role": "system", "content": AUDIT_SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            "stream": False,
-            "options": {"temperature": 0.1, "num_predict": 4096},
-        }).encode()
+        data = json.dumps(
+            {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": AUDIT_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "stream": False,
+                "options": {"temperature": 0.1, "num_predict": 4096},
+            }
+        ).encode()
 
         req = urllib.request.Request(
             "http://localhost:11434/api/chat",
@@ -969,7 +1045,7 @@ Respond with a JSON array."""
             # Remove opening fence
             first_newline = text_clean.find("\n")
             if first_newline > 0:
-                text_clean = text_clean[first_newline + 1:]
+                text_clean = text_clean[first_newline + 1 :]
             # Remove closing fence
             last_fence = text_clean.rfind("```")
             if last_fence > 0:
@@ -982,14 +1058,19 @@ Respond with a JSON array."""
             start = attempt_text.find("[")
             end = attempt_text.rfind("]")
             if start != -1 and end != -1 and end > start:
-                json_str = attempt_text[start:end + 1]
+                json_str = attempt_text[start : end + 1]
                 # Sanitize: escape inner backticks and control chars in string values
                 json_str = json_str.replace("```solidity", "").replace("```", "")
                 # Fix literal newlines/tabs inside JSON string values (common with local LLMs)
                 # Replace actual newlines inside strings with \\n
-                json_str = re.sub(r'(?<=": ")(.*?)(?="[,\s*\}])', lambda m: m.group(0).replace('\n', '\\n').replace('\t', '\\t'), json_str, flags=re.DOTALL)
+                json_str = re.sub(
+                    r'(?<=": ")(.*?)(?="[,\s*\}])',
+                    lambda m: m.group(0).replace("\n", "\\n").replace("\t", "\\t"),
+                    json_str,
+                    flags=re.DOTALL,
+                )
                 # Fallback: replace ALL raw control chars with spaces
-                json_str = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', ' ', json_str)
+                json_str = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", json_str)
                 try:
                     findings = json.loads(json_str)
                     if isinstance(findings, list):
@@ -1027,7 +1108,9 @@ Respond with a JSON array."""
             if line.startswith("{") and line.endswith("}"):
                 try:
                     obj = json.loads(line)
-                    if isinstance(obj, dict) and any(k in obj for k in ("title", "type", "vulnerability", "description")):
+                    if isinstance(obj, dict) and any(
+                        k in obj for k in ("title", "type", "vulnerability", "description")
+                    ):
                         findings.append(obj)
                 except json.JSONDecodeError:
                     pass
@@ -1038,20 +1121,23 @@ Respond with a JSON array."""
         depth = 0
         obj_start = -1
         for i, ch in enumerate(text_clean):
-            if ch == '{':
+            if ch == "{":
                 if depth == 0:
                     obj_start = i
                 depth += 1
-            elif ch == '}':
+            elif ch == "}":
                 depth -= 1
                 if depth == 0 and obj_start >= 0:
-                    obj_str = text_clean[obj_start:i + 1]
+                    obj_str = text_clean[obj_start : i + 1]
                     # Clean up common issues in extracted objects
-                    obj_str = obj_str.replace('```solidity', '').replace('```', '')
-                    obj_str = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', ' ', obj_str)
+                    obj_str = obj_str.replace("```solidity", "").replace("```", "")
+                    obj_str = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", obj_str)
                     try:
                         obj = json.loads(obj_str)
-                        if isinstance(obj, dict) and any(k in obj for k in ("title", "type", "vulnerability", "description", "severity")):
+                        if isinstance(obj, dict) and any(
+                            k in obj
+                            for k in ("title", "type", "vulnerability", "description", "severity")
+                        ):
                             findings.append(obj)
                     except json.JSONDecodeError:
                         pass
@@ -1061,24 +1147,24 @@ Respond with a JSON array."""
 
         # Strategy 5: Find JSON array anywhere in the text using regex
         # Handles cases where model outputs explanation text before/after JSON
-        json_array_match = re.search(r'\[\s*\{', text)
+        json_array_match = re.search(r"\[\s*\{", text)
         if json_array_match:
             # Find the matching closing bracket
             start_pos = json_array_match.start()
             bracket_depth = 0
             end_pos = start_pos
             for i in range(start_pos, len(text)):
-                if text[i] == '[':
+                if text[i] == "[":
                     bracket_depth += 1
-                elif text[i] == ']':
+                elif text[i] == "]":
                     bracket_depth -= 1
                     if bracket_depth == 0:
                         end_pos = i + 1
                         break
             if end_pos > start_pos:
                 json_str = text[start_pos:end_pos]
-                json_str = json_str.replace('```solidity', '').replace('```', '')
-                json_str = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', ' ', json_str)
+                json_str = json_str.replace("```solidity", "").replace("```", "")
+                json_str = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", json_str)
                 # Fix trailing commas
                 json_str = re.sub(r",\s*([}\]])", r"\1", json_str)
                 try:

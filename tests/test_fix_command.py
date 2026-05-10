@@ -101,9 +101,7 @@ def _make_results_tool_format(findings: list, tmp_path: Path) -> Path:
     """Write results using the per-tool `results` array format."""
     data = {
         "contract": "Victim.sol",
-        "results": [
-            {"tool": "slither", "status": "success", "findings": findings}
-        ],
+        "results": [{"tool": "slither", "status": "success", "findings": findings}],
     }
     p = tmp_path / "results.json"
     p.write_text(json.dumps(data))
@@ -117,9 +115,7 @@ def _make_results_tool_format(findings: list, tmp_path: Path) -> Path:
 
 class TestAddModifierToFunction:
     def test_adds_modifier_to_existing_function(self):
-        source, changed = _add_modifier_to_function(
-            SIMPLE_CONTRACT, "withdraw", "nonReentrant"
-        )
+        source, changed = _add_modifier_to_function(SIMPLE_CONTRACT, "withdraw", "nonReentrant")
         assert changed
         assert "nonReentrant" in source
         # Must appear inside the function signature
@@ -355,9 +351,7 @@ class TestFixCommand:
             tmp_path,
         )
         runner = CliRunner()
-        result = runner.invoke(
-            fix, [str(results_file), "--contract", str(contract_file)]
-        )
+        result = runner.invoke(fix, [str(results_file), "--contract", str(contract_file)])
         assert result.exit_code == 0
         expected_out = contract_file.parent / "Victim.fixed.sol"
         assert expected_out.exists()
@@ -390,8 +384,10 @@ class TestFixCommand:
             fix,
             [
                 str(results_file),
-                "--contract", str(contract_file),
-                "--output", str(out),
+                "--contract",
+                str(contract_file),
+                "--output",
+                str(out),
                 "--dry-run",
             ],
         )
@@ -419,7 +415,5 @@ class TestFixCommand:
         bad_json = tmp_path / "bad.json"
         bad_json.write_text("not valid json {{")
         runner = CliRunner()
-        result = runner.invoke(
-            fix, [str(bad_json), "--contract", str(contract_file), "--quiet"]
-        )
+        result = runner.invoke(fix, [str(bad_json), "--contract", str(contract_file), "--quiet"])
         assert result.exit_code != 0

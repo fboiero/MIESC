@@ -189,9 +189,7 @@ class PropertyGPTAdapter(ToolAdapter):
                             )
                             return ToolStatus.AVAILABLE
                         else:
-                            logger.warning(
-                                "PropertyGPT: no compatible local Ollama model found."
-                            )
+                            logger.warning("PropertyGPT: no compatible local Ollama model found.")
                             return ToolStatus.NOT_INSTALLED
                     else:
                         logger.warning(f"PropertyGPT: Ollama returned status {resp.status}")
@@ -260,7 +258,9 @@ class PropertyGPTAdapter(ToolAdapter):
 
             # Generate properties using LLM
             logger.info(f"Generating formal properties using {self.llm_backend}...")
-            properties = self._generate_properties_llm(contract_source, contract_info, timeout=timeout)
+            properties = self._generate_properties_llm(
+                contract_source, contract_info, timeout=timeout
+            )
 
             # Filter by confidence threshold
             high_confidence_properties = [

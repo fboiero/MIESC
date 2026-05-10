@@ -50,6 +50,7 @@ class TestPeculiarAdapterDeeper:
     @pytest.fixture
     def adapter(self):
         from src.adapters.peculiar_adapter import PeculiarAdapter
+
         return PeculiarAdapter()
 
     def test_metadata(self, adapter):
@@ -120,6 +121,7 @@ class TestLlamaAuditAdapterDeeper:
     @pytest.fixture
     def adapter(self):
         from src.adapters.llamaaudit_adapter import LlamaAuditAdapter
+
         return LlamaAuditAdapter()
 
     def test_metadata(self, adapter):
@@ -133,7 +135,9 @@ class TestLlamaAuditAdapterDeeper:
             assert isinstance(status, ToolStatus)
 
     def test_is_available_ollama_up_with_model(self, adapter):
-        with patch("urllib.request.urlopen", return_value=mock_ollama_tags("codellama:7b", "llama3:8b")):
+        with patch(
+            "urllib.request.urlopen", return_value=mock_ollama_tags("codellama:7b", "llama3:8b")
+        ):
             status = adapter.is_available()
             assert isinstance(status, ToolStatus)
 
@@ -144,8 +148,13 @@ class TestLlamaAuditAdapterDeeper:
     def test_normalize_findings_valid(self, adapter):
         raw = {
             "findings": [
-                {"type": "reentrancy", "severity": "High", "title": "Test",
-                 "description": "desc", "line": 10}
+                {
+                    "type": "reentrancy",
+                    "severity": "High",
+                    "title": "Test",
+                    "description": "desc",
+                    "line": 10,
+                }
             ]
         }
         result = adapter.normalize_findings(raw)
@@ -168,12 +177,20 @@ class TestLlamaAuditAdapterDeeper:
     def test_analyze_with_mock_llm(self, adapter, tmp_path):
         c = tmp_path / "C.sol"
         c.write_text("pragma solidity ^0.8.0; contract C { function f() external {} }")
-        llm_response = json.dumps({
-            "findings": [
-                {"type": "access-control", "severity": "Medium", "title": "No modifier",
-                 "description": "Missing access control", "function": "f", "line": 1}
-            ]
-        })
+        llm_response = json.dumps(
+            {
+                "findings": [
+                    {
+                        "type": "access-control",
+                        "severity": "Medium",
+                        "title": "No modifier",
+                        "description": "Missing access control",
+                        "function": "f",
+                        "line": 1,
+                    }
+                ]
+            }
+        )
         with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE):
             with patch("urllib.request.urlopen", return_value=mock_ollama_response(llm_response)):
                 result = adapter.analyze(str(c))
@@ -190,6 +207,7 @@ class TestLLMBugScannerAdapterDeeper:
     @pytest.fixture
     def adapter(self):
         from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
+
         return LLMBugScannerAdapter()
 
     def test_metadata(self, adapter):
@@ -234,13 +252,17 @@ class TestOllamaDownGracefulDegradation:
     """When Ollama is unreachable, all LLM adapters must return a dict
     with empty findings, not crash."""
 
-    @pytest.mark.parametrize("module,cls", [
-        ("src.adapters.peculiar_adapter", "PeculiarAdapter"),
-        ("src.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
-        ("src.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
-    ])
+    @pytest.mark.parametrize(
+        "module,cls",
+        [
+            ("src.adapters.peculiar_adapter", "PeculiarAdapter"),
+            ("src.adapters.llamaaudit_adapter", "LlamaAuditAdapter"),
+            ("src.adapters.llmbugscanner_adapter", "LLMBugScannerAdapter"),
+        ],
+    )
     def test_analyze_with_ollama_unreachable(self, module, cls, tmp_path):
         import importlib
+
         mod = importlib.import_module(module)
         adapter = getattr(mod, cls)()
         c = tmp_path / "C.sol"

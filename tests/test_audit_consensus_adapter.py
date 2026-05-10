@@ -51,8 +51,11 @@ class TestGroupingAndConsensus:
     def test_single_tool_single_finding(self, adapter):
         findings_map = {
             "slither": [
-                {"type": "reentrancy-eth", "severity": "High",
-                 "location": {"file": "C.sol", "line": 10}},
+                {
+                    "type": "reentrancy-eth",
+                    "severity": "High",
+                    "location": {"file": "C.sol", "line": 10},
+                },
             ],
         }
         result = adapter.analyze("C.sol", findings_map=findings_map)
@@ -65,12 +68,18 @@ class TestGroupingAndConsensus:
         posterior confidence should be higher than either alone."""
         findings_map = {
             "slither": [
-                {"type": "reentrancy-eth", "severity": "High",
-                 "location": {"file": "C.sol", "line": 10}},
+                {
+                    "type": "reentrancy-eth",
+                    "severity": "High",
+                    "location": {"file": "C.sol", "line": 10},
+                },
             ],
             "aderyn": [
-                {"type": "reentrancy-eth", "severity": "High",
-                 "location": {"file": "C.sol", "line": 10}},
+                {
+                    "type": "reentrancy-eth",
+                    "severity": "High",
+                    "location": {"file": "C.sol", "line": 10},
+                },
             ],
         }
         result = adapter.analyze("C.sol", findings_map=findings_map)
@@ -81,12 +90,18 @@ class TestGroupingAndConsensus:
     def test_different_types_not_grouped(self, adapter):
         findings_map = {
             "slither": [
-                {"type": "reentrancy-eth", "severity": "High",
-                 "location": {"file": "C.sol", "line": 10}},
+                {
+                    "type": "reentrancy-eth",
+                    "severity": "High",
+                    "location": {"file": "C.sol", "line": 10},
+                },
             ],
             "aderyn": [
-                {"type": "access-control", "severity": "High",
-                 "location": {"file": "C.sol", "line": 50}},
+                {
+                    "type": "access-control",
+                    "severity": "High",
+                    "location": {"file": "C.sol", "line": 50},
+                },
             ],
         }
         result = adapter.analyze("C.sol", findings_map=findings_map)
@@ -99,12 +114,18 @@ class TestGroupingAndConsensus:
         """Slither's reentrancy-eth and a generic 'reentrancy' should group together."""
         findings_map = {
             "slither": [
-                {"type": "reentrancy-eth", "severity": "High",
-                 "location": {"file": "C.sol", "line": 10}},
+                {
+                    "type": "reentrancy-eth",
+                    "severity": "High",
+                    "location": {"file": "C.sol", "line": 10},
+                },
             ],
             "custom": [
-                {"type": "reentrancy", "severity": "High",
-                 "location": {"file": "C.sol", "line": 12}},
+                {
+                    "type": "reentrancy",
+                    "severity": "High",
+                    "location": {"file": "C.sol", "line": 12},
+                },
             ],
         }
         result = adapter.analyze("C.sol", findings_map=findings_map)
@@ -126,8 +147,11 @@ class TestEdgeCases:
                 "not a dict",
                 42,
                 None,
-                {"type": "reentrancy-eth", "severity": "High",
-                 "location": {"file": "C.sol", "line": 10}},
+                {
+                    "type": "reentrancy-eth",
+                    "severity": "High",
+                    "location": {"file": "C.sol", "line": 10},
+                },
             ],
         }
         result = adapter.analyze("C.sol", findings_map=findings_map)
@@ -145,16 +169,18 @@ class TestEdgeCases:
     def test_non_list_findings_value_skipped(self, adapter):
         findings_map = {
             "slither": "not a list",
-            "aderyn": [{"type": "x", "severity": "High",
-                        "location": {"file": "C.sol", "line": 1}}],
+            "aderyn": [{"type": "x", "severity": "High", "location": {"file": "C.sol", "line": 1}}],
         }
         result = adapter.analyze("C.sol", findings_map=findings_map)
         assert result["status"] == "success"
 
     def test_many_tools_aggregation(self, adapter):
         """5 tools reporting the same finding → high consensus."""
-        finding = {"type": "reentrancy", "severity": "High",
-                   "location": {"file": "C.sol", "line": 15}}
+        finding = {
+            "type": "reentrancy",
+            "severity": "High",
+            "location": {"file": "C.sol", "line": 15},
+        }
         findings_map = {f"tool_{i}": [dict(finding)] for i in range(5)}
         result = adapter.analyze("C.sol", findings_map=findings_map)
         assert result["metadata"]["total_input_findings"] == 5
@@ -174,13 +200,19 @@ class TestNormalizedShape:
     def test_normalized_finding_has_required_keys(self, adapter):
         findings_map = {
             "slither": [
-                {"type": "reentrancy-eth", "severity": "High",
-                 "location": {"file": "C.sol", "line": 10},
-                 "description": "External call before state update"},
+                {
+                    "type": "reentrancy-eth",
+                    "severity": "High",
+                    "location": {"file": "C.sol", "line": 10},
+                    "description": "External call before state update",
+                },
             ],
             "aderyn": [
-                {"type": "reentrancy", "severity": "High",
-                 "location": {"file": "C.sol", "line": 10}},
+                {
+                    "type": "reentrancy",
+                    "severity": "High",
+                    "location": {"file": "C.sol", "line": 10},
+                },
             ],
         }
         result = adapter.analyze("C.sol", findings_map=findings_map)

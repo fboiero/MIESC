@@ -907,20 +907,41 @@ class StellarAnalyzer(AbstractChainAnalyzer):
             content, StellarPatternDetector.SOROBAN_2024_PATTERNS
         )
         soroban_vuln_map = {
-            "flash_loan_pattern": (StellarVulnerability.FLASH_LOAN_SOROBAN, "High",
-                "Flash loan pattern detected — ensure atomic state consistency"),
-            "storage_get_no_check": (StellarVulnerability.UNINITIALIZED_STORAGE, "Medium",
-                "Storage read without existence check — use .unwrap_or() or check .has() first"),
-            "admin_set_only": (StellarVulnerability.ADMIN_KEY_NO_ROTATION, "Medium",
-                "Admin key set but no rotation/update_admin function found"),
-            "approve_no_allowance_check": (StellarVulnerability.APPROVE_RACE_CONDITION, "Medium",
-                "Approve without allowance check — vulnerable to race condition (set to 0 first)"),
-            "i128_narrow": (StellarVulnerability.I128_CONVERSION_OVERFLOW, "High",
-                "Narrowing i128/u128 → u64/i64 conversion can silently truncate"),
-            "invoke_no_check": (StellarVulnerability.MISSING_INVOKE_RESULT_CHECK, "Medium",
-                "Cross-contract invoke() result not captured — errors pass silently"),
-            "unbounded_iter": (StellarVulnerability.UNBOUNDED_LOOP, "Medium",
-                "Unbounded iteration over dynamic collection — may exceed CPU budget"),
+            "flash_loan_pattern": (
+                StellarVulnerability.FLASH_LOAN_SOROBAN,
+                "High",
+                "Flash loan pattern detected — ensure atomic state consistency",
+            ),
+            "storage_get_no_check": (
+                StellarVulnerability.UNINITIALIZED_STORAGE,
+                "Medium",
+                "Storage read without existence check — use .unwrap_or() or check .has() first",
+            ),
+            "admin_set_only": (
+                StellarVulnerability.ADMIN_KEY_NO_ROTATION,
+                "Medium",
+                "Admin key set but no rotation/update_admin function found",
+            ),
+            "approve_no_allowance_check": (
+                StellarVulnerability.APPROVE_RACE_CONDITION,
+                "Medium",
+                "Approve without allowance check — vulnerable to race condition (set to 0 first)",
+            ),
+            "i128_narrow": (
+                StellarVulnerability.I128_CONVERSION_OVERFLOW,
+                "High",
+                "Narrowing i128/u128 → u64/i64 conversion can silently truncate",
+            ),
+            "invoke_no_check": (
+                StellarVulnerability.MISSING_INVOKE_RESULT_CHECK,
+                "Medium",
+                "Cross-contract invoke() result not captured — errors pass silently",
+            ),
+            "unbounded_iter": (
+                StellarVulnerability.UNBOUNDED_LOOP,
+                "Medium",
+                "Unbounded iteration over dynamic collection — may exceed CPU budget",
+            ),
         }
         seen_soroban_types = set()
         for pattern_name, line_no, _matched in soroban_matches:

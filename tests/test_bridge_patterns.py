@@ -411,7 +411,16 @@ class TestBridgePatternsGeneral:
 
     def test_finding_schema_completeness(self):
         """Every finding returned by detect_bridge_vulnerabilities has the required keys."""
-        required_keys = {"type", "severity", "description", "exploit_ref", "fix", "line", "tool", "confidence"}
+        required_keys = {
+            "type",
+            "severity",
+            "description",
+            "exploit_ref",
+            "fix",
+            "line",
+            "tool",
+            "confidence",
+        }
         # Use the most obviously vulnerable code
         findings = detect_bridge_vulnerabilities(REPLAY_VULNERABLE + RONIN_VULNERABLE)
         for f in findings:

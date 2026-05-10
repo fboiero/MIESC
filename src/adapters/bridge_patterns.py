@@ -27,17 +27,18 @@ from typing import Any, Dict, List, Optional
 # Pattern definitions
 # =============================================================================
 
+
 @dataclass
 class BridgePattern:
     """Definition of a single bridge vulnerability pattern."""
 
     name: str
-    severity: str               # Critical | High | Medium | Low
+    severity: str  # Critical | High | Medium | Low
     swc_id: Optional[str]
     description: str
-    exploit_ref: str            # Real-world incident reference
+    exploit_ref: str  # Real-world incident reference
     fix: str
-    patterns: List[str]         # Regex patterns to match in Solidity source
+    patterns: List[str]  # Regex patterns to match in Solidity source
     absence_patterns: List[str] = field(default_factory=list)  # Must NOT match if present
 
 
@@ -73,7 +74,6 @@ BRIDGE_EXPLOIT_PATTERNS: Dict[str, BridgePattern] = {
             r"nonce\s*[\+\-]?=|nonceUsed|_usedNonce",
         ],
     ),
-
     # -------------------------------------------------------------------------
     # 2. Insufficient signature validation (Ronin $624M, Mar 2022)
     # Validator set had only 5 keys controlled by the team; attacker compromised
@@ -100,7 +100,6 @@ BRIDGE_EXPLOIT_PATTERNS: Dict[str, BridgePattern] = {
         ],
         absence_patterns=[],
     ),
-
     # -------------------------------------------------------------------------
     # 3. Hash collision in proof verification (BNB Bridge $586M, Oct 2022)
     # IAVL Merkle proof library had a bug that allowed forging arbitrary proofs
@@ -130,7 +129,6 @@ BRIDGE_EXPLOIT_PATTERNS: Dict[str, BridgePattern] = {
             r"0x00.*keccak|leaf.*0x00|leafHash",
         ],
     ),
-
     # -------------------------------------------------------------------------
     # 4. Missing cross-chain message origin validation (Nomad $190M, Aug 2022)
     # Nomad accepted a zero-hash root as a valid Merkle root, which meant ANY
@@ -159,7 +157,6 @@ BRIDGE_EXPLOIT_PATTERNS: Dict[str, BridgePattern] = {
             r"trustedRemote|allowedSender|originSender",
         ],
     ),
-
     # -------------------------------------------------------------------------
     # 5. Unprotected relay function (generic)
     # A relay/execute function that any EOA can call without access control.
@@ -184,7 +181,6 @@ BRIDGE_EXPLOIT_PATTERNS: Dict[str, BridgePattern] = {
             r"onlyRelayer|onlyOwner|onlyRole|whenNotPaused|nonReentrant|require\s*\(\s*msg\.sender",
         ],
     ),
-
     # -------------------------------------------------------------------------
     # 6. Missing amount bounds (generic)
     # No maximum per-transfer limit — attacker drains the bridge in one tx.
@@ -209,7 +205,6 @@ BRIDGE_EXPLOIT_PATTERNS: Dict[str, BridgePattern] = {
             r"maxTransfer|transferLimit|MAX_AMOUNT|dailyLimit|require\s*\([^)]*amount\s*<=",
         ],
     ),
-
     # -------------------------------------------------------------------------
     # 7. Token mapping inconsistency (generic)
     # Source chain token address mapped to a wrong destination token, or no
@@ -291,18 +286,20 @@ def detect_bridge_vulnerabilities(source_code: str) -> List[Dict[str, Any]]:
         if mitigated:
             continue
 
-        findings.append({
-            "type": pattern_name,
-            "severity": bp.severity,
-            "swc_id": bp.swc_id,
-            "description": bp.description,
-            "exploit_ref": bp.exploit_ref,
-            "fix": bp.fix,
-            "line": trigger_line,
-            "tool": "bridge-patterns",
-            "confidence": 0.80,
-            "message": bp.description,
-            "recommendation": bp.fix,
-        })
+        findings.append(
+            {
+                "type": pattern_name,
+                "severity": bp.severity,
+                "swc_id": bp.swc_id,
+                "description": bp.description,
+                "exploit_ref": bp.exploit_ref,
+                "fix": bp.fix,
+                "line": trigger_line,
+                "tool": "bridge-patterns",
+                "confidence": 0.80,
+                "message": bp.description,
+                "recommendation": bp.fix,
+            }
+        )
 
     return findings

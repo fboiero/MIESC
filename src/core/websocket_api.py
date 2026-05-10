@@ -412,7 +412,9 @@ def create_websocket_app() -> Optional["FastAPI"]:
     async def websocket_endpoint(websocket: WebSocket):
         """Main WebSocket endpoint."""
         # Security: Validate authentication token if required
-        token = websocket.query_params.get("token") or websocket.headers.get("Authorization", "").replace("Bearer ", "")
+        token = websocket.query_params.get("token") or websocket.headers.get(
+            "Authorization", ""
+        ).replace("Bearer ", "")
         if not _validate_websocket_token(token):
             await websocket.close(code=1008, reason="Unauthorized")
             return
@@ -465,7 +467,9 @@ def create_websocket_app() -> Optional["FastAPI"]:
     async def audit_websocket(websocket: WebSocket, audit_id: str):
         """WebSocket endpoint for specific audit."""
         # Security: Validate authentication token if required
-        token = websocket.query_params.get("token") or websocket.headers.get("Authorization", "").replace("Bearer ", "")
+        token = websocket.query_params.get("token") or websocket.headers.get(
+            "Authorization", ""
+        ).replace("Bearer ", "")
         if not _validate_websocket_token(token):
             await websocket.close(code=1008, reason="Unauthorized")
             return

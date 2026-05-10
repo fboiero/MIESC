@@ -12,12 +12,26 @@ from miesc.cli.commands.compliance import COMPLIANCE_MAP, compliance
 def results_json(tmp_path):
     data = {
         "findings": [
-            {"type": "reentrancy-eth", "severity": "High", "confidence": 0.98,
-             "canonical_category": "reentrancy", "recommendation": "Apply CEI"},
-            {"type": "access-control", "severity": "High", "confidence": 0.85,
-             "canonical_category": "access_control", "recommendation": "Add onlyOwner"},
-            {"type": "unknown-type", "severity": "Low", "confidence": 0.5,
-             "canonical_category": "other"},
+            {
+                "type": "reentrancy-eth",
+                "severity": "High",
+                "confidence": 0.98,
+                "canonical_category": "reentrancy",
+                "recommendation": "Apply CEI",
+            },
+            {
+                "type": "access-control",
+                "severity": "High",
+                "confidence": 0.85,
+                "canonical_category": "access_control",
+                "recommendation": "Add onlyOwner",
+            },
+            {
+                "type": "unknown-type",
+                "severity": "Low",
+                "confidence": 0.5,
+                "canonical_category": "other",
+            },
         ],
     }
     p = tmp_path / "results.json"
@@ -38,8 +52,14 @@ class TestComplianceMap:
             assert "SWC" in mapping, f"{cat} missing SWC"
 
     def test_map_covers_top_categories(self):
-        expected = {"reentrancy", "access_control", "oracle_manipulation",
-                    "arithmetic", "unchecked_call", "flash_loan"}
+        expected = {
+            "reentrancy",
+            "access_control",
+            "oracle_manipulation",
+            "arithmetic",
+            "unchecked_call",
+            "flash_loan",
+        }
         assert expected.issubset(COMPLIANCE_MAP.keys())
 
 

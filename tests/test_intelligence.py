@@ -63,10 +63,18 @@ class TestCrossToolConfidence:
 class TestSemanticDedup:
     def test_same_type_same_function_merged(self):
         findings = [
-            {"type": "reentrancy-eth", "severity": "High", "tool": "slither",
-             "location": {"file": "C.sol", "line": 27, "function": "withdraw"}},
-            {"type": "reentrancy", "severity": "High", "tool": "aderyn",
-             "location": {"file": "C.sol", "line": 25, "function": "withdraw"}},
+            {
+                "type": "reentrancy-eth",
+                "severity": "High",
+                "tool": "slither",
+                "location": {"file": "C.sol", "line": 27, "function": "withdraw"},
+            },
+            {
+                "type": "reentrancy",
+                "severity": "High",
+                "tool": "aderyn",
+                "location": {"file": "C.sol", "line": 25, "function": "withdraw"},
+            },
         ]
         merged = semantic_dedup(findings)
         assert len(merged) == 1
@@ -74,20 +82,36 @@ class TestSemanticDedup:
 
     def test_different_types_not_merged(self):
         findings = [
-            {"type": "reentrancy-eth", "severity": "High", "tool": "slither",
-             "location": {"file": "C.sol", "line": 10, "function": "withdraw"}},
-            {"type": "access-control", "severity": "High", "tool": "aderyn",
-             "location": {"file": "C.sol", "line": 50, "function": "setOwner"}},
+            {
+                "type": "reentrancy-eth",
+                "severity": "High",
+                "tool": "slither",
+                "location": {"file": "C.sol", "line": 10, "function": "withdraw"},
+            },
+            {
+                "type": "access-control",
+                "severity": "High",
+                "tool": "aderyn",
+                "location": {"file": "C.sol", "line": 50, "function": "setOwner"},
+            },
         ]
         merged = semantic_dedup(findings)
         assert len(merged) == 2
 
     def test_same_type_distant_lines_not_merged(self):
         findings = [
-            {"type": "reentrancy-eth", "severity": "High", "tool": "slither",
-             "location": {"file": "C.sol", "line": 10, "function": "foo"}},
-            {"type": "reentrancy-eth", "severity": "High", "tool": "aderyn",
-             "location": {"file": "C.sol", "line": 200, "function": "bar"}},
+            {
+                "type": "reentrancy-eth",
+                "severity": "High",
+                "tool": "slither",
+                "location": {"file": "C.sol", "line": 10, "function": "foo"},
+            },
+            {
+                "type": "reentrancy-eth",
+                "severity": "High",
+                "tool": "aderyn",
+                "location": {"file": "C.sol", "line": 200, "function": "bar"},
+            },
         ]
         merged = semantic_dedup(findings)
         assert len(merged) == 2
@@ -97,10 +121,18 @@ class TestSemanticDedup:
 
     def test_representative_takes_highest_severity(self):
         findings = [
-            {"type": "reentrancy", "severity": "Medium", "tool": "aderyn",
-             "location": {"file": "C.sol", "line": 10, "function": "f"}},
-            {"type": "reentrancy-eth", "severity": "High", "tool": "slither",
-             "location": {"file": "C.sol", "line": 10, "function": "f"}},
+            {
+                "type": "reentrancy",
+                "severity": "Medium",
+                "tool": "aderyn",
+                "location": {"file": "C.sol", "line": 10, "function": "f"},
+            },
+            {
+                "type": "reentrancy-eth",
+                "severity": "High",
+                "tool": "slither",
+                "location": {"file": "C.sol", "line": 10, "function": "f"},
+            },
         ]
         merged = semantic_dedup(findings)
         assert merged[0].representative["severity"] == "High"
@@ -314,8 +346,11 @@ class TestContextAwareFP:
             owner = newOwner;
         }
         """
-        finding = {"type": "access-control", "severity": "High",
-                   "location": {"function": "setOwner"}}
+        finding = {
+            "type": "access-control",
+            "severity": "High",
+            "location": {"function": "setOwner"},
+        }
         is_fp, reason = context_aware_fp_check(finding, code)
         assert is_fp is True
         assert "admin modifier" in reason
@@ -326,8 +361,11 @@ class TestContextAwareFP:
             payable(msg.sender).transfer(amount);
         }
         """
-        finding = {"type": "access-control", "severity": "High",
-                   "location": {"function": "withdraw"}}
+        finding = {
+            "type": "access-control",
+            "severity": "High",
+            "location": {"function": "withdraw"},
+        }
         is_fp, _ = context_aware_fp_check(finding, code)
         assert is_fp is False
 
@@ -351,8 +389,11 @@ class TestContextAwareFP:
             msg.sender.call{value: amount}("");
         }
         """
-        finding = {"type": "reentrancy-eth", "severity": "High",
-                   "location": {"function": "withdraw"}}
+        finding = {
+            "type": "reentrancy-eth",
+            "severity": "High",
+            "location": {"function": "withdraw"},
+        }
         is_fp, reason = context_aware_fp_check(finding, code)
         assert is_fp is True
         assert "nonReentrant" in reason
@@ -431,10 +472,18 @@ class TestSeverityCalibration:
 class TestEnhanceFindings:
     def test_basic_enhancement(self):
         findings = [
-            {"type": "reentrancy-eth", "severity": "High", "tool": "slither",
-             "location": {"file": "C.sol", "line": 10, "function": "withdraw"}},
-            {"type": "reentrancy", "severity": "Low", "tool": "aderyn",
-             "location": {"file": "C.sol", "line": 10, "function": "withdraw"}},
+            {
+                "type": "reentrancy-eth",
+                "severity": "High",
+                "tool": "slither",
+                "location": {"file": "C.sol", "line": 10, "function": "withdraw"},
+            },
+            {
+                "type": "reentrancy",
+                "severity": "Low",
+                "tool": "aderyn",
+                "location": {"file": "C.sol", "line": 10, "function": "withdraw"},
+            },
         ]
         result = enhance_findings(findings, source_code="pragma solidity ^0.8.0;")
         # Should merge into 1 finding (same function, same category)
@@ -474,10 +523,18 @@ class TestEnhanceFindings:
         function setOwner(address a) external onlyOwner { owner = a; }
         """
         findings = [
-            {"type": "reentrancy-eth", "severity": "High", "tool": "slither",
-             "location": {"file": "C.sol", "line": 4, "function": "withdraw"}},
-            {"type": "access-control", "severity": "High", "tool": "slither",
-             "location": {"file": "C.sol", "line": 5, "function": "setOwner"}},
+            {
+                "type": "reentrancy-eth",
+                "severity": "High",
+                "tool": "slither",
+                "location": {"file": "C.sol", "line": 4, "function": "withdraw"},
+            },
+            {
+                "type": "access-control",
+                "severity": "High",
+                "tool": "slither",
+                "location": {"file": "C.sol", "line": 5, "function": "setOwner"},
+            },
         ]
         result = enhance_findings(findings, source_code=code)
         # Suppressed findings should sort to the end
@@ -494,8 +551,12 @@ class TestEnhanceFindings:
 
     def test_severity_calibrated(self):
         findings = [
-            {"type": "reentrancy", "severity": "Low", "tool": "aderyn",
-             "location": {"file": "C.sol", "line": 10, "function": "f"}},
+            {
+                "type": "reentrancy",
+                "severity": "Low",
+                "tool": "aderyn",
+                "location": {"file": "C.sol", "line": 10, "function": "f"},
+            },
         ]
         result = enhance_findings(findings)
         assert result[0]["severity"] == "Medium"  # Aderyn Low → Medium
@@ -591,17 +652,23 @@ class TestGenerateFixCode:
 
     def test_fix_code_is_valid_solidity_string(self):
         # Basic sanity: all templates should contain the contract keyword or import
-        for cat in ["reentrancy", "access_control", "oracle_manipulation",
-                    "arithmetic", "unchecked_call", "bad_randomness",
-                    "time_manipulation", "front_running", "proxy_upgrade",
-                    "initialization"]:
+        for cat in [
+            "reentrancy",
+            "access_control",
+            "oracle_manipulation",
+            "arithmetic",
+            "unchecked_call",
+            "bad_randomness",
+            "time_manipulation",
+            "front_running",
+            "proxy_upgrade",
+            "initialization",
+        ]:
             finding = {"canonical_category": cat}
             code = generate_fix_code(finding)
             assert code is not None, f"Missing template for {cat}"
             assert len(code) >= 100, f"Template too short for {cat}"
-            assert (
-                "contract " in code or "import " in code
-            ), f"Not a Solidity snippet for {cat}"
+            assert "contract " in code or "import " in code, f"Not a Solidity snippet for {cat}"
 
 
 # ---------------------------------------------------------------------------
@@ -630,9 +697,16 @@ class TestGenerateExploitScenario:
 
     def test_all_known_categories_have_scenario(self):
         categories = [
-            "reentrancy", "access_control", "oracle_manipulation", "arithmetic",
-            "unchecked_call", "bad_randomness", "time_manipulation",
-            "front_running", "proxy_upgrade", "initialization",
+            "reentrancy",
+            "access_control",
+            "oracle_manipulation",
+            "arithmetic",
+            "unchecked_call",
+            "bad_randomness",
+            "time_manipulation",
+            "front_running",
+            "proxy_upgrade",
+            "initialization",
         ]
         for cat in categories:
             finding = {"canonical_category": cat}
@@ -676,26 +750,30 @@ class TestGenerateExploitScenario:
 class TestEnhanceFindingsFixAndExploit:
     def test_fix_code_populated_for_reentrancy(self):
         findings = [
-            {"type": "reentrancy-eth", "severity": "High", "tool": "slither",
-             "location": {"file": "C.sol", "line": 10, "function": "withdraw"}},
+            {
+                "type": "reentrancy-eth",
+                "severity": "High",
+                "tool": "slither",
+                "location": {"file": "C.sol", "line": 10, "function": "withdraw"},
+            },
         ]
         result = enhance_findings(findings)
-        reentrancy = next(
-            (f for f in result if f.get("canonical_category") == "reentrancy"), None
-        )
+        reentrancy = next((f for f in result if f.get("canonical_category") == "reentrancy"), None)
         assert reentrancy is not None
         assert "fix_code" in reentrancy
         assert "nonReentrant" in reentrancy["fix_code"]
 
     def test_exploit_scenario_populated_for_access_control(self):
         findings = [
-            {"type": "access-control", "severity": "High", "tool": "slither",
-             "location": {"file": "C.sol", "line": 5, "function": "setOwner"}},
+            {
+                "type": "access-control",
+                "severity": "High",
+                "tool": "slither",
+                "location": {"file": "C.sol", "line": 5, "function": "setOwner"},
+            },
         ]
         result = enhance_findings(findings)
-        ac = next(
-            (f for f in result if f.get("canonical_category") == "access_control"), None
-        )
+        ac = next((f for f in result if f.get("canonical_category") == "access_control"), None)
         assert ac is not None
         assert "exploit_scenario" in ac
         assert len(ac["exploit_scenario"]) >= 3
@@ -703,23 +781,33 @@ class TestEnhanceFindingsFixAndExploit:
     def test_other_category_has_no_fix_code(self):
         # A finding that maps to "other" should not have fix_code
         findings = [
-            {"type": "totally-unknown-detector-xyz", "severity": "Low",
-             "tool": "custom", "location": {"file": "X.sol", "line": 1, "function": "f"}},
+            {
+                "type": "totally-unknown-detector-xyz",
+                "severity": "Low",
+                "tool": "custom",
+                "location": {"file": "X.sol", "line": 1, "function": "f"},
+            },
         ]
         result = enhance_findings(findings)
         # Find the finding that ended up as "other"
-        other = next(
-            (f for f in result if f.get("canonical_category") == "other"), None
-        )
+        other = next((f for f in result if f.get("canonical_category") == "other"), None)
         if other is not None:
             assert "fix_code" not in other
 
     def test_multiple_findings_each_get_fix_and_scenario(self):
         findings = [
-            {"type": "reentrancy-eth", "severity": "High", "tool": "slither",
-             "location": {"file": "C.sol", "line": 10, "function": "withdraw"}},
-            {"type": "integer-overflow", "severity": "High", "tool": "mythril",
-             "location": {"file": "C.sol", "line": 50, "function": "add"}},
+            {
+                "type": "reentrancy-eth",
+                "severity": "High",
+                "tool": "slither",
+                "location": {"file": "C.sol", "line": 10, "function": "withdraw"},
+            },
+            {
+                "type": "integer-overflow",
+                "severity": "High",
+                "tool": "mythril",
+                "location": {"file": "C.sol", "line": 50, "function": "add"},
+            },
         ]
         result = enhance_findings(findings)
         for f in result:

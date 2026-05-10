@@ -452,7 +452,9 @@ class FalsePositiveFilter:
             filter_interfaces if filter_interfaces is not None else preset["filter_interfaces"]
         )
         self.filter_informational = (
-            filter_informational if filter_informational is not None else preset["filter_informational"]
+            filter_informational
+            if filter_informational is not None
+            else preset["filter_informational"]
         )
         self.use_rag = use_rag
 
@@ -667,28 +669,48 @@ class FalsePositiveFilter:
 
         # Solidity version-aware filtering (v5.1.1)
         # Integer overflow/underflow is impossible in Solidity >=0.8 (built-in checks)
-        if vuln_type in ("arithmetic", "integer_overflow", "integer_underflow", "overflow", "underflow"):
+        if vuln_type in (
+            "arithmetic",
+            "integer_overflow",
+            "integer_underflow",
+            "overflow",
+            "underflow",
+        ):
             sol_version = self._detect_solidity_version(code_context)
             if sol_version and sol_version >= (0, 8, 0):
-                matches.append(FPMatch(
-                    category=FPCategory.CONTEXT_SAFE,
-                    pattern="solidity_0.8+",
-                    confidence=0.95,
-                    reason=f"Solidity {'.'.join(map(str, sol_version))} has built-in overflow protection",
-                ))
+                matches.append(
+                    FPMatch(
+                        category=FPCategory.CONTEXT_SAFE,
+                        pattern="solidity_0.8+",
+                        confidence=0.95,
+                        reason=f"Solidity {'.'.join(map(str, sol_version))} has built-in overflow protection",
+                    )
+                )
 
         # Optimization/style findings are low-value noise
         check_name = finding.get("check", finding.get("type", "")).lower()
-        if any(kw in check_name for kw in [
-            "solc-version", "pragma", "naming-convention", "visibility",
-            "dead-code", "constable", "immutable", "push-zero", "experimental",
-        ]):
-            matches.append(FPMatch(
-                category=FPCategory.CONTEXT_SAFE,
-                pattern="optimization_noise",
-                confidence=0.7,
-                reason="Optimization/style finding, not a security vulnerability",
-            ))
+        if any(
+            kw in check_name
+            for kw in [
+                "solc-version",
+                "pragma",
+                "naming-convention",
+                "visibility",
+                "dead-code",
+                "constable",
+                "immutable",
+                "push-zero",
+                "experimental",
+            ]
+        ):
+            matches.append(
+                FPMatch(
+                    category=FPCategory.CONTEXT_SAFE,
+                    pattern="optimization_noise",
+                    confidence=0.7,
+                    reason="Optimization/style finding, not a security vulnerability",
+                )
+            )
 
         # RAG-enhanced validation (v5.1.0)
         rag_match = self._rag_validate_finding(finding, code_context)

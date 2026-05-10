@@ -88,15 +88,18 @@ class TestRegressionBehavior:
     """End-to-end: the same shapes that used to produce 0 findings now
     produce valid VulnerabilityFinding objects."""
 
-    @pytest.mark.parametrize("location", [
-        "withdraw:15",
-        "L22",
-        42,
-        "myFunction",
-        {"function": "myFunction", "line": 42},
-        "",
-        None,
-    ])
+    @pytest.mark.parametrize(
+        "location",
+        [
+            "withdraw:15",
+            "L22",
+            42,
+            "myFunction",
+            {"function": "myFunction", "line": 42},
+            "",
+            None,
+        ],
+    )
     def test_all_shapes_accepted_in_lenient_mode(self, location):
         """All these used to reject. Now they all parse into a valid finding."""
         data = {**BASE, "location": location}

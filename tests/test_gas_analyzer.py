@@ -199,9 +199,9 @@ class TestPatternDetection:
             result = adapter.analyze(path)
             assert result["status"] == "success"
             patterns = [f["pattern"] for f in result["findings"]]
-            assert "repeated_external_call" in patterns, (
-                f"Expected repeated_external_call, got: {patterns}"
-            )
+            assert (
+                "repeated_external_call" in patterns
+            ), f"Expected repeated_external_call, got: {patterns}"
         finally:
             os.unlink(path)
 

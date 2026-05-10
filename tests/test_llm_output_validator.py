@@ -9,7 +9,6 @@ Comprehensive tests for LLM output validation including:
 - Validation helper functions
 """
 
-
 from src.security.llm_output_validator import (
     AnalysisResponse,
     CodeLocation,

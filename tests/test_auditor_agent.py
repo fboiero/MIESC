@@ -59,18 +59,21 @@ def mock_bus():
 @pytest.fixture
 def agent(mock_bus):
     from src.agents.auditor_agent import AutonomousAuditorAgent
+
     return AutonomousAuditorAgent()
 
 
 @pytest.fixture
 def agent_no_verbose(mock_bus):
     from src.agents.auditor_agent import AutonomousAuditorAgent
+
     return AutonomousAuditorAgent(verbose=False)
 
 
 @pytest.fixture
 def contract_file():
     import os
+
     with tempfile.NamedTemporaryFile(suffix=".sol", mode="w", delete=False) as f:
         f.write(SIMPLE_CONTRACT)
         f.flush()
@@ -82,6 +85,7 @@ def contract_file():
 @pytest.fixture
 def empty_contract_file():
     import os
+
     with tempfile.NamedTemporaryFile(suffix=".sol", mode="w", delete=False) as f:
         f.write(EMPTY_CONTRACT)
         f.flush()
@@ -99,6 +103,7 @@ def checkpoint_dir():
 # ===========================================================================
 # Enums
 # ===========================================================================
+
 
 class TestEnums:
     def test_audit_steps(self):
@@ -130,6 +135,7 @@ class TestEnums:
 # ===========================================================================
 # Dataclasses
 # ===========================================================================
+
 
 class TestFunctionInfo:
     def test_creation(self):
@@ -247,9 +253,17 @@ class TestAuditContext:
 
     def test_with_data(self):
         func = FunctionInfo(
-            name="test", visibility="public", modifiers=[], parameters=[],
-            returns=[], state_mutability="nonpayable", is_entry_point=True,
-            handles_value=False, changes_state=True, code="", line_number=1,
+            name="test",
+            visibility="public",
+            modifiers=[],
+            parameters=[],
+            returns=[],
+            state_mutability="nonpayable",
+            is_entry_point=True,
+            handles_value=False,
+            changes_state=True,
+            code="",
+            line_number=1,
         )
         ctx = AuditContext(
             contract_path="/tmp/test.sol",
@@ -349,11 +363,13 @@ class TestCOTPrompts:
 # AutonomousAuditorAgent - Initialization
 # ===========================================================================
 
+
 class TestAutonomousAuditorAgentInit:
     @patch("src.mcp_core.context_bus.get_context_bus")
     def test_init_defaults(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from src.agents.auditor_agent import AutonomousAuditorAgent
+
         agent = AutonomousAuditorAgent()
         assert agent.agent_name == "AutonomousAuditor"
         assert agent.model == "deepseek-coder:6.7b"
@@ -364,6 +380,7 @@ class TestAutonomousAuditorAgentInit:
     def test_init_custom(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from src.agents.auditor_agent import AutonomousAuditorAgent
+
         agent = AutonomousAuditorAgent(
             model="mistral:latest",
             timeout=60,
@@ -377,6 +394,7 @@ class TestAutonomousAuditorAgentInit:
     def test_audit_steps_list(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from src.agents.auditor_agent import AutonomousAuditorAgent
+
         assert len(AutonomousAuditorAgent.AUDIT_STEPS) == 8
         assert AutonomousAuditorAgent.AUDIT_STEPS[0] == AuditStep.UNDERSTAND_CONTRACT
         assert AutonomousAuditorAgent.AUDIT_STEPS[-1] == AuditStep.GENERATE_RECOMMENDATIONS
@@ -385,6 +403,7 @@ class TestAutonomousAuditorAgentInit:
     def test_get_context_types(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from src.agents.auditor_agent import AutonomousAuditorAgent
+
         agent = AutonomousAuditorAgent()
         types = agent.get_context_types()
         assert isinstance(types, list)
@@ -394,6 +413,7 @@ class TestAutonomousAuditorAgentInit:
     def test_capabilities(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from src.agents.auditor_agent import AutonomousAuditorAgent
+
         agent = AutonomousAuditorAgent()
         assert "full_audit" in agent.capabilities
         assert "vulnerability_detection" in agent.capabilities
@@ -402,6 +422,7 @@ class TestAutonomousAuditorAgentInit:
     def test_agent_type_is_ai(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from src.agents.auditor_agent import AutonomousAuditorAgent
+
         agent = AutonomousAuditorAgent()
         assert agent.agent_type == "ai"
 
@@ -409,6 +430,7 @@ class TestAutonomousAuditorAgentInit:
     def test_checkpoint_dir_created(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from src.agents.auditor_agent import AutonomousAuditorAgent
+
         with tempfile.TemporaryDirectory() as d:
             checkpoint_path = Path(d) / "checkpoints"
             agent = AutonomousAuditorAgent(checkpoint_dir=str(checkpoint_path))
@@ -419,6 +441,7 @@ class TestAutonomousAuditorAgentInit:
     def test_all_step_handlers_registered(self, mock_bus):
         mock_bus.return_value = MagicMock()
         from src.agents.auditor_agent import AutonomousAuditorAgent
+
         agent = AutonomousAuditorAgent()
         for step in AuditStep:
             assert step in agent._step_handlers
@@ -427,6 +450,7 @@ class TestAutonomousAuditorAgentInit:
 # ===========================================================================
 # Helper Methods
 # ===========================================================================
+
 
 class TestHelperMethods:
     def test_extract_contract_name(self, agent):
@@ -480,7 +504,7 @@ class TestHelperMethods:
         assert result["num"] == 42
 
     def test_parse_json_response_with_surrounding_text(self, agent):
-        content = "Here is the JSON:\n{\"contract_type\": \"erc20\"}\nDone."
+        content = 'Here is the JSON:\n{"contract_type": "erc20"}\nDone.'
         result = agent._parse_json_response(content)
         assert result["contract_type"] == "erc20"
 
@@ -497,6 +521,7 @@ class TestHelperMethods:
 # ===========================================================================
 # Report Generation
 # ===========================================================================
+
 
 class TestGenerateReport:
     def test_report_with_no_findings(self, agent):
@@ -542,9 +567,14 @@ class TestGenerateReport:
         # 5 criticals = 125 -> capped at 100
         ctx.validated_findings = [
             AuditFinding(
-                id=f"V{i}", step=AuditStep.DETECT_VULNERABILITIES,
-                type="reentrancy", severity="critical",
-                title="Critical", description="...", location={}, validated=True,
+                id=f"V{i}",
+                step=AuditStep.DETECT_VULNERABILITIES,
+                type="reentrancy",
+                severity="critical",
+                title="Critical",
+                description="...",
+                location={},
+                validated=True,
             )
             for i in range(5)
         ]
@@ -575,6 +605,7 @@ class TestGenerateReport:
 # Async Context Initialization
 # ===========================================================================
 
+
 class TestInitializeContext:
     def test_initialize_context_success(self, agent, contract_file):
         ctx = asyncio.run(agent._initialize_context(contract_file))
@@ -599,9 +630,11 @@ class TestInitializeContext:
 # Checkpoint Save/Load
 # ===========================================================================
 
+
 class TestCheckpoints:
     def test_save_checkpoint(self, mock_bus, contract_file):
         from src.agents.auditor_agent import AutonomousAuditorAgent
+
         with tempfile.TemporaryDirectory() as d:
             agent = AutonomousAuditorAgent(checkpoint_dir=d)
             ctx = AuditContext(
@@ -628,6 +661,7 @@ class TestCheckpoints:
 
     def test_load_checkpoint(self, mock_bus, contract_file):
         from src.agents.auditor_agent import AutonomousAuditorAgent
+
         with tempfile.TemporaryDirectory() as d:
             agent = AutonomousAuditorAgent(checkpoint_dir=d)
             ctx = AuditContext(
@@ -699,8 +733,18 @@ class TestStepHandlers:
     def test_step_identify_entry_points(self, agent, ctx):
         llm_response = {
             "entry_points": [
-                {"name": "transfer", "visibility": "external", "modifiers": [], "handles_value": False},
-                {"name": "withdraw", "visibility": "external", "modifiers": [], "handles_value": True},
+                {
+                    "name": "transfer",
+                    "visibility": "external",
+                    "modifiers": [],
+                    "handles_value": False,
+                },
+                {
+                    "name": "withdraw",
+                    "visibility": "external",
+                    "modifiers": [],
+                    "handles_value": True,
+                },
             ]
         }
         with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
@@ -720,8 +764,13 @@ class TestStepHandlers:
     def test_step_trace_value_flows(self, agent, ctx):
         llm_response = {
             "value_flows": [
-                {"source": "user", "destination": "contract", "asset_type": "ETH",
-                 "protection": "none", "risk_level": "high"},
+                {
+                    "source": "user",
+                    "destination": "contract",
+                    "asset_type": "ETH",
+                    "protection": "none",
+                    "risk_level": "high",
+                },
             ],
             "total_value_risk": "high",
         }
@@ -816,8 +865,12 @@ class TestStepHandlers:
         ctx.findings = [finding]
         llm_response = {
             "validated_findings": [
-                {"id": "V001", "is_valid": True, "adjusted_severity": "critical",
-                 "validation_reason": "Confirmed exploitable"}
+                {
+                    "id": "V001",
+                    "is_valid": True,
+                    "adjusted_severity": "critical",
+                    "validation_reason": "Confirmed exploitable",
+                }
             ]
         }
         with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
@@ -889,6 +942,7 @@ class TestStepHandlers:
 # analyze() sync wrapper
 # ===========================================================================
 
+
 class TestAnalyzeMethod:
     def test_analyze_calls_audit(self, agent, contract_file):
         """analyze() is a sync wrapper around audit(); verify it delegates correctly."""
@@ -918,6 +972,7 @@ class TestAnalyzeMethod:
 # ===========================================================================
 # Full audit with all steps mocked
 # ===========================================================================
+
 
 class TestFullAuditFlow:
     def test_audit_skips_completed_steps(self, agent, contract_file):
@@ -950,7 +1005,9 @@ class TestFullAuditFlow:
     def test_audit_handles_step_error_gracefully(self, agent, contract_file):
         """A step failure should not abort the whole audit."""
         with patch("src.agents.auditor_agent.COT_PROMPTS", SAFE_PROMPTS):
-            with patch.object(agent, "_query_llm", new=AsyncMock(side_effect=RuntimeError("LLM timeout"))):
+            with patch.object(
+                agent, "_query_llm", new=AsyncMock(side_effect=RuntimeError("LLM timeout"))
+            ):
                 report = asyncio.run(agent.audit(contract_file))
         # Should still return a report (errors are caught per-step)
         assert isinstance(report, AuditReport)

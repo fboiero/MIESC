@@ -170,6 +170,7 @@ class VulnerabilityFinding(BaseModel):
                     return {"function": s}
             # "line 42" or "L42" or just "42"
             import re as _re
+
             m = _re.search(r"\d+", s)
             if m:
                 try:
@@ -185,6 +186,7 @@ class VulnerabilityFinding(BaseModel):
             return {"function": s}
         # Unknown type → drop, not fail
         return None
+
     line: Optional[int] = Field(default=None, ge=0, le=1_000_000)
     function: Optional[str] = Field(default=None, max_length=500)
     contract: Optional[str] = Field(default=None, max_length=500)

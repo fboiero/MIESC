@@ -130,8 +130,14 @@ contract Generic {
 def synthesizer():
     """Create InvariantSynthesizer with mocked dependencies."""
     with patch("src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"):
-        with patch("src.adapters.invariant_synthesizer.get_ollama_host", return_value="http://localhost:11434"):
-            with patch("src.adapters.invariant_synthesizer.get_retry_config", return_value={"attempts": 2, "delay": 1}):
+        with patch(
+            "src.adapters.invariant_synthesizer.get_ollama_host",
+            return_value="http://localhost:11434",
+        ):
+            with patch(
+                "src.adapters.invariant_synthesizer.get_retry_config",
+                return_value={"attempts": 2, "delay": 1},
+            ):
                 synth = InvariantSynthesizer()
                 return synth
 
@@ -170,6 +176,7 @@ def generic_file():
 # Enums
 # ===========================================================================
 
+
 class TestInvariantFormat:
     def test_all_formats(self):
         assert InvariantFormat.SOLIDITY.value == "solidity"
@@ -204,6 +211,7 @@ class TestInvariantCategory:
 # ===========================================================================
 # SynthesizedInvariant dataclass
 # ===========================================================================
+
 
 class TestSynthesizedInvariant:
     def test_defaults(self):
@@ -289,6 +297,7 @@ class TestSynthesizedInvariant:
 # InvariantSynthesizer initialization
 # ===========================================================================
 
+
 class TestInvariantSynthesizerInit:
     def test_init_creates_instance(self, synthesizer):
         assert synthesizer is not None
@@ -310,6 +319,7 @@ class TestInvariantSynthesizerInit:
 # ===========================================================================
 # Contract type detection
 # ===========================================================================
+
 
 class TestDetectContractType:
     def test_detect_erc20(self, synthesizer):
@@ -357,6 +367,7 @@ class TestDetectContractType:
 # Pattern-based invariant detection
 # ===========================================================================
 
+
 class TestDetectPatternInvariants:
     def test_erc20_finds_supply_invariants(self, synthesizer):
         invariants = synthesizer._detect_pattern_invariants(ERC20_CONTRACT)
@@ -376,12 +387,16 @@ class TestDetectPatternInvariants:
 
     def test_reentrancy_guard_detected(self, synthesizer):
         invariants = synthesizer._detect_pattern_invariants(REENTRANCY_CONTRACT)
-        reentrancy_invs = [inv for inv in invariants if inv.category == InvariantCategory.REENTRANCY]
+        reentrancy_invs = [
+            inv for inv in invariants if inv.category == InvariantCategory.REENTRANCY
+        ]
         assert len(reentrancy_invs) > 0
 
     def test_owner_pattern_detected(self, synthesizer):
         invariants = synthesizer._detect_pattern_invariants(REENTRANCY_CONTRACT)
-        access_invs = [inv for inv in invariants if inv.category == InvariantCategory.ACCESS_CONTROL]
+        access_invs = [
+            inv for inv in invariants if inv.category == InvariantCategory.ACCESS_CONTROL
+        ]
         assert len(access_invs) > 0
 
     def test_cei_violation_detected(self, synthesizer):
@@ -410,6 +425,7 @@ class TestDetectPatternInvariants:
 # ===========================================================================
 # Merge and deduplication
 # ===========================================================================
+
 
 class TestMergeInvariants:
     def _make_inv(self, name, importance="HIGH", natural_language="A unique description"):
@@ -444,7 +460,9 @@ class TestMergeInvariants:
     def test_merge_sorts_by_importance(self, synthesizer):
         p = [
             self._make_inv("low_inv", importance="LOW", natural_language="Low importance thing"),
-            self._make_inv("critical_inv", importance="CRITICAL", natural_language="Critical safety property"),
+            self._make_inv(
+                "critical_inv", importance="CRITICAL", natural_language="Critical safety property"
+            ),
         ]
         merged = synthesizer._merge_invariants(p, [])
         assert merged[0].importance == "CRITICAL"
@@ -462,7 +480,9 @@ class TestMergeInvariants:
     def test_merge_only_llm(self, synthesizer):
         l = [
             self._make_inv("l1", natural_language="Balance conservation across transfers"),
-            self._make_inv("l2", natural_language="Reentrancy guard prevents callback exploitation"),
+            self._make_inv(
+                "l2", natural_language="Reentrancy guard prevents callback exploitation"
+            ),
         ]
         merged = synthesizer._merge_invariants([], l)
         assert len(merged) == 2
@@ -472,11 +492,15 @@ class TestMergeInvariants:
 # Semantic similarity check
 # ===========================================================================
 
+
 class TestSemanticSimilarity:
     def _inv(self, natural_language):
         return SynthesizedInvariant(
-            name="x", description="d", category=InvariantCategory.ACCOUNTING,
-            importance="HIGH", natural_language=natural_language,
+            name="x",
+            description="d",
+            category=InvariantCategory.ACCOUNTING,
+            importance="HIGH",
+            natural_language=natural_language,
         )
 
     def test_identical_texts_are_similar(self, synthesizer):
@@ -499,6 +523,7 @@ class TestSemanticSimilarity:
 # ===========================================================================
 # Format output generation
 # ===========================================================================
+
 
 class TestFormatInvariants:
     @pytest.fixture
@@ -631,6 +656,7 @@ class TestFormatInvariants:
 # Parse LLM invariants
 # ===========================================================================
 
+
 class TestParseLlmInvariants:
     def test_parse_valid_json_block(self, synthesizer):
         response = """
@@ -655,32 +681,36 @@ Here are the invariants:
         assert result[0].category == InvariantCategory.ACCOUNTING
 
     def test_parse_raw_json(self, synthesizer):
-        response = json.dumps({
-            "invariants": [
-                {
-                    "name": "inv_one",
-                    "category": "reentrancy",
-                    "importance": "HIGH",
-                    "natural_language": "Reentrancy locked",
-                    "formal_spec": "lock == true during execution",
-                }
-            ]
-        })
+        response = json.dumps(
+            {
+                "invariants": [
+                    {
+                        "name": "inv_one",
+                        "category": "reentrancy",
+                        "importance": "HIGH",
+                        "natural_language": "Reentrancy locked",
+                        "formal_spec": "lock == true during execution",
+                    }
+                ]
+            }
+        )
         result = synthesizer._parse_llm_invariants(response)
         assert len(result) == 1
         assert result[0].category == InvariantCategory.REENTRANCY
 
     def test_parse_unknown_category_defaults_to_custom(self, synthesizer):
-        response = json.dumps({
-            "invariants": [
-                {
-                    "name": "weird_inv",
-                    "category": "totally_unknown",
-                    "importance": "MEDIUM",
-                    "natural_language": "Something weird",
-                }
-            ]
-        })
+        response = json.dumps(
+            {
+                "invariants": [
+                    {
+                        "name": "weird_inv",
+                        "category": "totally_unknown",
+                        "importance": "MEDIUM",
+                        "natural_language": "Something weird",
+                    }
+                ]
+            }
+        )
         result = synthesizer._parse_llm_invariants(response)
         assert result[0].category == InvariantCategory.CUSTOM
 
@@ -693,10 +723,20 @@ Here are the invariants:
         assert result == []
 
     def test_parse_non_dict_items_skipped(self, synthesizer):
-        response = json.dumps({
-            "invariants": ["not_a_dict", None, {"name": "valid_inv", "category": "accounting",
-                           "importance": "LOW", "natural_language": "Valid"}]
-        })
+        response = json.dumps(
+            {
+                "invariants": [
+                    "not_a_dict",
+                    None,
+                    {
+                        "name": "valid_inv",
+                        "category": "accounting",
+                        "importance": "LOW",
+                        "natural_language": "Valid",
+                    },
+                ]
+            }
+        )
         result = synthesizer._parse_llm_invariants(response)
         # Only the dict item should be parsed
         assert len(result) == 1
@@ -705,6 +745,7 @@ Here are the invariants:
 # ===========================================================================
 # Cache helpers
 # ===========================================================================
+
 
 class TestCacheHelpers:
     def test_cache_key_deterministic(self, synthesizer):
@@ -761,6 +802,7 @@ class TestCacheHelpers:
 
     def test_error_result_structure(self, synthesizer):
         import time
+
         start = time.time()
         result = synthesizer._error_result("something went wrong", start)
         assert result["status"] == "error"
@@ -772,6 +814,7 @@ class TestCacheHelpers:
 # ===========================================================================
 # Ollama availability and call
 # ===========================================================================
+
 
 class TestOllamaInteraction:
     def test_ollama_not_available_when_subprocess_fails(self, synthesizer):
@@ -805,6 +848,7 @@ class TestOllamaInteraction:
 
     def test_call_ollama_timeout_returns_none(self, synthesizer):
         import subprocess
+
         with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("ollama", 180)):
             result = synthesizer._call_ollama("test prompt")
         assert result is None
@@ -821,6 +865,7 @@ class TestOllamaInteraction:
 # ===========================================================================
 # synthesize() end-to-end (Ollama mocked as unavailable → pattern-only)
 # ===========================================================================
+
 
 class TestSynthesizeEndToEnd:
     def test_synthesize_erc20_pattern_only(self, synthesizer, erc20_file):
@@ -884,17 +929,19 @@ class TestSynthesizeEndToEnd:
         assert result["from_cache"] is False
 
     def test_synthesize_with_llm_response(self, synthesizer, erc20_file):
-        llm_response = json.dumps({
-            "invariants": [
-                {
-                    "name": "llm_generated_inv",
-                    "category": "accounting",
-                    "importance": "HIGH",
-                    "natural_language": "LLM generated invariant",
-                    "formal_spec": "balances[user] >= 0",
-                }
-            ]
-        })
+        llm_response = json.dumps(
+            {
+                "invariants": [
+                    {
+                        "name": "llm_generated_inv",
+                        "category": "accounting",
+                        "importance": "HIGH",
+                        "natural_language": "LLM generated invariant",
+                        "formal_spec": "balances[user] >= 0",
+                    }
+                ]
+            }
+        )
         with patch.object(synthesizer, "_is_ollama_available", return_value=True):
             with patch.object(synthesizer, "_call_ollama", return_value=llm_response):
                 result = synthesizer.synthesize(erc20_file, use_cache=False)
@@ -919,36 +966,80 @@ class TestSynthesizeEndToEnd:
 # Convenience function
 # ===========================================================================
 
+
 class TestSynthesizeInvariantsConvenience:
     def test_synthesize_invariants_with_path(self, erc20_file):
-        with patch("src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"):
-            with patch("src.adapters.invariant_synthesizer.get_ollama_host", return_value="http://localhost:11434"):
-                with patch("src.adapters.invariant_synthesizer.get_retry_config", return_value={"attempts": 2, "delay": 1}):
-                    with patch("src.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available", return_value=False):
+        with patch(
+            "src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
+        ):
+            with patch(
+                "src.adapters.invariant_synthesizer.get_ollama_host",
+                return_value="http://localhost:11434",
+            ):
+                with patch(
+                    "src.adapters.invariant_synthesizer.get_retry_config",
+                    return_value={"attempts": 2, "delay": 1},
+                ):
+                    with patch(
+                        "src.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                        return_value=False,
+                    ):
                         result = synthesize_invariants(erc20_file)
         assert result["status"] == "success"
 
     def test_synthesize_invariants_with_formats(self, erc20_file):
-        with patch("src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"):
-            with patch("src.adapters.invariant_synthesizer.get_ollama_host", return_value="http://localhost:11434"):
-                with patch("src.adapters.invariant_synthesizer.get_retry_config", return_value={"attempts": 2, "delay": 1}):
-                    with patch("src.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available", return_value=False):
+        with patch(
+            "src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
+        ):
+            with patch(
+                "src.adapters.invariant_synthesizer.get_ollama_host",
+                return_value="http://localhost:11434",
+            ):
+                with patch(
+                    "src.adapters.invariant_synthesizer.get_retry_config",
+                    return_value={"attempts": 2, "delay": 1},
+                ):
+                    with patch(
+                        "src.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                        return_value=False,
+                    ):
                         result = synthesize_invariants(erc20_file, formats=["solidity", "echidna"])
         assert result["status"] == "success"
         assert "solidity" in result["summary"]["formats_generated"]
 
     def test_synthesize_invariants_unknown_format_skipped(self, erc20_file):
-        with patch("src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"):
-            with patch("src.adapters.invariant_synthesizer.get_ollama_host", return_value="http://localhost:11434"):
-                with patch("src.adapters.invariant_synthesizer.get_retry_config", return_value={"attempts": 2, "delay": 1}):
-                    with patch("src.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available", return_value=False):
+        with patch(
+            "src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
+        ):
+            with patch(
+                "src.adapters.invariant_synthesizer.get_ollama_host",
+                return_value="http://localhost:11434",
+            ):
+                with patch(
+                    "src.adapters.invariant_synthesizer.get_retry_config",
+                    return_value={"attempts": 2, "delay": 1},
+                ):
+                    with patch(
+                        "src.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                        return_value=False,
+                    ):
                         # "fakeformat" should be skipped gracefully
-                        result = synthesize_invariants(erc20_file, formats=["solidity", "fakeformat"])
+                        result = synthesize_invariants(
+                            erc20_file, formats=["solidity", "fakeformat"]
+                        )
         assert result["status"] == "success"
 
     def test_synthesize_invariants_nonexistent_returns_error(self):
-        with patch("src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"):
-            with patch("src.adapters.invariant_synthesizer.get_ollama_host", return_value="http://localhost:11434"):
-                with patch("src.adapters.invariant_synthesizer.get_retry_config", return_value={"attempts": 2, "delay": 1}):
+        with patch(
+            "src.adapters.invariant_synthesizer.get_model", return_value="deepseek-coder:6.7b"
+        ):
+            with patch(
+                "src.adapters.invariant_synthesizer.get_ollama_host",
+                return_value="http://localhost:11434",
+            ):
+                with patch(
+                    "src.adapters.invariant_synthesizer.get_retry_config",
+                    return_value={"attempts": 2, "delay": 1},
+                ):
                     result = synthesize_invariants("/nonexistent/file.sol")
         assert result["status"] == "error"

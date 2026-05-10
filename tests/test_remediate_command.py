@@ -87,4 +87,3 @@ def test_remediate_is_registered_in_main_cli():
     result = runner.invoke(cli, ["--no-banner", "--help"])
     assert result.exit_code == 0
     assert "remediate" in result.output
-

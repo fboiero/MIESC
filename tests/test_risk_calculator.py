@@ -639,8 +639,8 @@ class TestCalculateOverallRiskScore:
         """Test mixed severity findings."""
         findings = [
             {"severity": "Critical"},  # 25
-            {"severity": "High"},      # 15
-            {"severity": "Medium"},    # 8
+            {"severity": "High"},  # 15
+            {"severity": "Medium"},  # 8
         ]
         score = calc.calculate_overall_risk_score(findings)
         assert score == 48
@@ -794,9 +794,7 @@ class TestGenerateEffortImpactMatrix:
 
     def test_low_effort_high_impact(self, calc):
         """Test low effort high impact classification."""
-        findings = [
-            {"id": "1", "title": "Event emission missing", "severity": "Critical"}
-        ]
+        findings = [{"id": "1", "title": "Event emission missing", "severity": "Critical"}]
         matrix = calc.generate_effort_impact_matrix(findings)
         # Event is medium effort, critical is high impact
         assert matrix["medium_high"]["count"] == 1
@@ -840,10 +838,7 @@ class TestIdentifyQuickWins:
 
     def test_max_5_quick_wins(self, calc):
         """Test maximum 5 quick wins returned."""
-        findings = [
-            {"id": str(i), "title": f"Pragma issue {i}"}
-            for i in range(10)
-        ]
+        findings = [{"id": str(i), "title": f"Pragma issue {i}"} for i in range(10)]
         quick_wins = calc.identify_quick_wins(findings)
         assert len(quick_wins) <= 5
 

@@ -12,16 +12,11 @@ License: AGPL-3.0
 
 import json
 import subprocess
-import time
 import urllib.error
 import urllib.request
-from io import BytesIO
-from unittest.mock import MagicMock, patch, PropertyMock
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from src.core.tool_protocol import ToolStatus
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -135,9 +130,7 @@ class TestParseFindingsValidJson:
             }
         )
 
-        findings = adapter._parse_llm_response(
-            llm_response, "/tmp/Contract.sol", "deepseek-coder"
-        )
+        findings = adapter._parse_llm_response(llm_response, "/tmp/Contract.sol", "deepseek-coder")
 
         assert len(findings) == 1
         assert findings[0]["title"] == "Reentrancy in withdraw()"
@@ -160,9 +153,7 @@ class TestParseFindingsMalformedJson:
 
         malformed = "This is not valid JSON at all { broken"
 
-        findings = adapter._parse_llm_response(
-            malformed, "/tmp/Contract.sol", "codellama"
-        )
+        findings = adapter._parse_llm_response(malformed, "/tmp/Contract.sol", "codellama")
 
         assert findings == []
 
@@ -172,9 +163,7 @@ class TestParseFindingsMalformedJson:
 
         partial = '{"findings": [{"type": "reentrancy", "severity": '
 
-        findings = adapter._parse_llm_response(
-            partial, "/tmp/Contract.sol", "codellama"
-        )
+        findings = adapter._parse_llm_response(partial, "/tmp/Contract.sol", "codellama")
 
         assert findings == []
 
@@ -189,9 +178,7 @@ class TestParseFindingsEmptyResponse:
         """_parse_llm_response with empty string -> empty list."""
         adapter = _make_adapter()
 
-        findings = adapter._parse_llm_response(
-            "", "/tmp/Contract.sol", "mistral"
-        )
+        findings = adapter._parse_llm_response("", "/tmp/Contract.sol", "mistral")
 
         assert findings == []
 
@@ -219,8 +206,12 @@ class TestConsensusVoteAgreement:
         adapter = _make_adapter()
 
         ensemble = [
-            ModelConfig(name="deepseek-coder", weight=0.45, timeout=300, specialization="code_analysis"),
-            ModelConfig(name="codellama", weight=0.35, timeout=300, specialization="code_understanding"),
+            ModelConfig(
+                name="deepseek-coder", weight=0.45, timeout=300, specialization="code_analysis"
+            ),
+            ModelConfig(
+                name="codellama", weight=0.35, timeout=300, specialization="code_understanding"
+            ),
             ModelConfig(name="mistral", weight=0.20, timeout=180, specialization="reasoning"),
         ]
 
@@ -253,9 +244,7 @@ class TestConsensusVoteAgreement:
             "mistral": [],
         }
 
-        result = adapter._aggregate_with_consensus(
-            all_findings, ensemble, threshold=0.35
-        )
+        result = adapter._aggregate_with_consensus(all_findings, ensemble, threshold=0.35)
 
         # Two models agree on reentrancy → should pass consensus
         assert len(result) >= 1
@@ -280,8 +269,12 @@ class TestConsensusVoteDisagreement:
         adapter = _make_adapter()
 
         ensemble = [
-            ModelConfig(name="deepseek-coder", weight=0.45, timeout=300, specialization="code_analysis"),
-            ModelConfig(name="codellama", weight=0.35, timeout=300, specialization="code_understanding"),
+            ModelConfig(
+                name="deepseek-coder", weight=0.45, timeout=300, specialization="code_analysis"
+            ),
+            ModelConfig(
+                name="codellama", weight=0.35, timeout=300, specialization="code_understanding"
+            ),
             ModelConfig(name="mistral", weight=0.20, timeout=180, specialization="reasoning"),
         ]
 
@@ -326,9 +319,7 @@ class TestConsensusVoteDisagreement:
         }
 
         # High threshold (0.6) = need multiple models to agree
-        result = adapter._aggregate_with_consensus(
-            all_findings, ensemble, threshold=0.6
-        )
+        result = adapter._aggregate_with_consensus(all_findings, ensemble, threshold=0.6)
 
         # No group has enough weight to pass 0.6 threshold
         # deepseek=0.45, codellama=0.35, mistral=0.20 — all below 0.6
@@ -342,8 +333,12 @@ class TestConsensusVoteDisagreement:
         adapter = _make_adapter()
 
         ensemble = [
-            ModelConfig(name="deepseek-coder", weight=0.45, timeout=300, specialization="code_analysis"),
-            ModelConfig(name="codellama", weight=0.35, timeout=300, specialization="code_understanding"),
+            ModelConfig(
+                name="deepseek-coder", weight=0.45, timeout=300, specialization="code_analysis"
+            ),
+            ModelConfig(
+                name="codellama", weight=0.35, timeout=300, specialization="code_understanding"
+            ),
         ]
 
         all_findings = {
@@ -374,9 +369,7 @@ class TestConsensusVoteDisagreement:
         }
 
         # Very high threshold → no consensus group passes
-        result = adapter._aggregate_with_consensus(
-            all_findings, ensemble, threshold=0.99
-        )
+        result = adapter._aggregate_with_consensus(all_findings, ensemble, threshold=0.99)
 
         # Fallback includes CRITICAL and HIGH severity single-model findings
         assert len(result) >= 1
@@ -413,9 +406,10 @@ class TestAnalyzeTimeout:
         contract_code = "pragma solidity ^0.8.0; contract Test {}"
 
         # _analyze_with_model calls subprocess.run which may timeout
-        with patch(
-            "subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="ollama", timeout=1)
-        ), patch("time.sleep"):  # Skip retry delay
+        with (
+            patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="ollama", timeout=1)),
+            patch("time.sleep"),
+        ):  # Skip retry delay
             findings = adapter._analyze_with_model(
                 contract_code,
                 "/tmp/Test.sol",
@@ -441,27 +435,25 @@ class TestAnalyzeTimeout:
         )
 
         # Mock is_available to return AVAILABLE
-        resp = _make_http_response(
-            {"models": [{"name": "deepseek-coder:latest"}]}
-        )
+        resp = _make_http_response({"models": [{"name": "deepseek-coder:latest"}]})
 
         # Create a temp contract file
-        import tempfile
         import os
+        import tempfile
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".sol", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sol", delete=False) as f:
             f.write("pragma solidity ^0.8.0;\ncontract Test { }")
             contract_path = f.name
 
         try:
-            with patch("urllib.request.urlopen", return_value=resp), \
-                 patch(
-                     "subprocess.run",
-                     side_effect=subprocess.TimeoutExpired(cmd="ollama", timeout=1),
-                 ), \
-                 patch("time.sleep"):  # Skip retry delay
+            with (
+                patch("urllib.request.urlopen", return_value=resp),
+                patch(
+                    "subprocess.run",
+                    side_effect=subprocess.TimeoutExpired(cmd="ollama", timeout=1),
+                ),
+                patch("time.sleep"),
+            ):  # Skip retry delay
                 result = adapter.analyze(contract_path)
 
             # Should complete without crash

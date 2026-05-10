@@ -382,9 +382,7 @@ class TestDetectorRegistryPluginLoading:
         registry._detectors = {}
         registry._loaded_plugins = False
 
-        with patch(
-            "importlib.metadata.entry_points", side_effect=Exception("no metadata")
-        ):
+        with patch("importlib.metadata.entry_points", side_effect=Exception("no metadata")):
             registry._load_plugins()
 
         assert registry._loaded_plugins is True

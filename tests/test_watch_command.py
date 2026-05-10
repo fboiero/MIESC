@@ -8,14 +8,11 @@ Author: Fernando Boiero
 License: AGPL-3.0
 """
 
-import sys
 import time
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import pytest
 from click.testing import CliRunner
-
 
 # ---------------------------------------------------------------------------
 # 1. test_watch_missing_watchdog
@@ -71,12 +68,6 @@ def _make_event(src_path, is_directory=False):
 
 def _build_handler(tools_to_run, debounce, last_scan_time, scan_lock, run_tool_mock):
     """Build a SolidityHandler-equivalent using the watch.py logic."""
-    import threading
-    from collections import defaultdict
-    from datetime import datetime
-    from pathlib import Path
-
-    from miesc.cli.utils import RICH_AVAILABLE, console, summarize_findings
 
     class SolidityHandler:
         def on_modified(self, event):
@@ -152,9 +143,7 @@ class TestSolidityHandlerFiltering:
         import threading
         from collections import defaultdict
 
-        run_tool_mock = MagicMock(
-            return_value={"status": "success", "findings": []}
-        )
+        run_tool_mock = MagicMock(return_value={"status": "success", "findings": []})
         handler = _build_handler(
             tools_to_run=["slither"],
             debounce=1.0,
@@ -179,9 +168,7 @@ class TestSolidityHandlerDebounce:
         import threading
         from collections import defaultdict
 
-        run_tool_mock = MagicMock(
-            return_value={"status": "success", "findings": []}
-        )
+        run_tool_mock = MagicMock(return_value={"status": "success", "findings": []})
         last_scan_time = defaultdict(float)
         handler = _build_handler(
             tools_to_run=["slither"],
@@ -247,9 +234,7 @@ class TestIntelligenceEngineFailure:
         from collections import defaultdict
 
         finding = {"severity": "HIGH", "title": "Reentrancy"}
-        run_tool_mock = MagicMock(
-            return_value={"status": "success", "findings": [finding]}
-        )
+        run_tool_mock = MagicMock(return_value={"status": "success", "findings": [finding]})
         handler = _build_handler(
             tools_to_run=["slither"],
             debounce=1.0,

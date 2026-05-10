@@ -64,7 +64,6 @@ _DIRECT_MAP: Dict[str, CanonicalCategory] = {
     "external-call-before-state-change": CanonicalCategory.REENTRANCY,
     "read-only-reentrancy": CanonicalCategory.REENTRANCY,
     "SWC-107": CanonicalCategory.REENTRANCY,
-
     # ----- Access control / authorization -----
     "arbitrary-send-eth": CanonicalCategory.ACCESS_CONTROL,
     "arbitrary-send-erc20": CanonicalCategory.ACCESS_CONTROL,
@@ -82,7 +81,6 @@ _DIRECT_MAP: Dict[str, CanonicalCategory] = {
     "SWC-105": CanonicalCategory.ACCESS_CONTROL,
     "SWC-106": CanonicalCategory.ACCESS_CONTROL,
     "SWC-115": CanonicalCategory.ACCESS_CONTROL,
-
     # ----- Oracle / price manipulation -----
     "oracle-manipulation": CanonicalCategory.ORACLE_MANIPULATION,
     "price-oracle": CanonicalCategory.ORACLE_MANIPULATION,
@@ -92,13 +90,11 @@ _DIRECT_MAP: Dict[str, CanonicalCategory] = {
     "chainlink-stale": CanonicalCategory.ORACLE_MANIPULATION,
     "twap-missing": CanonicalCategory.ORACLE_MANIPULATION,
     "pragma_oracle_stale": CanonicalCategory.ORACLE_MANIPULATION,
-
     # ----- Flash loan -----
     "flash-loan": CanonicalCategory.FLASH_LOAN,
     "flash-loan-attack": CanonicalCategory.FLASH_LOAN,
     "flash-loan-governance": CanonicalCategory.FLASH_LOAN,
     "single-tx-vote": CanonicalCategory.FLASH_LOAN,
-
     # ----- Arithmetic -----
     "integer-overflow": CanonicalCategory.ARITHMETIC,
     "integer-underflow": CanonicalCategory.ARITHMETIC,
@@ -107,7 +103,6 @@ _DIRECT_MAP: Dict[str, CanonicalCategory] = {
     "overflow": CanonicalCategory.ARITHMETIC,
     "underflow": CanonicalCategory.ARITHMETIC,
     "SWC-101": CanonicalCategory.ARITHMETIC,
-
     # ----- Unchecked calls -----
     "unchecked-transfer": CanonicalCategory.UNCHECKED_CALL,
     "unchecked-lowlevel": CanonicalCategory.UNCHECKED_CALL,
@@ -117,34 +112,29 @@ _DIRECT_MAP: Dict[str, CanonicalCategory] = {
     "unused-return": CanonicalCategory.UNCHECKED_CALL,
     "unchecked_syscall_result": CanonicalCategory.UNCHECKED_CALL,
     "SWC-104": CanonicalCategory.UNCHECKED_CALL,
-
     # ----- Initialization -----
     "uninitialized-local": CanonicalCategory.INITIALIZATION,
     "uninitialized-state": CanonicalCategory.INITIALIZATION,
     "uninitialized-storage": CanonicalCategory.INITIALIZATION,
     "upgrade_no_init_guard": CanonicalCategory.INITIALIZATION,
     "missing-initializer-guard": CanonicalCategory.INITIALIZATION,
-
     # ----- Signature verification -----
     "ecrecover-malleable": CanonicalCategory.SIGNATURE_VERIFICATION,
     "ecrecover-no-zero-check": CanonicalCategory.SIGNATURE_VERIFICATION,
     "signature-malleability": CanonicalCategory.SIGNATURE_VERIFICATION,
     "signature_replay": CanonicalCategory.SIGNATURE_VERIFICATION,
     "merkle-proof-forge": CanonicalCategory.SIGNATURE_VERIFICATION,
-
     # ----- Randomness -----
     "weak-prng": CanonicalCategory.BAD_RANDOMNESS,
     "bad-randomness": CanonicalCategory.BAD_RANDOMNESS,
     "weak-randomness": CanonicalCategory.BAD_RANDOMNESS,
     "block-other-parameters": CanonicalCategory.BAD_RANDOMNESS,
     "SWC-120": CanonicalCategory.BAD_RANDOMNESS,
-
     # ----- Time manipulation -----
     "timestamp": CanonicalCategory.TIME_MANIPULATION,
     "time-manipulation": CanonicalCategory.TIME_MANIPULATION,
     "block.timestamp": CanonicalCategory.TIME_MANIPULATION,
     "SWC-116": CanonicalCategory.TIME_MANIPULATION,
-
     # ----- DoS -----
     "msg-value-loop": CanonicalCategory.DENIAL_OF_SERVICE,
     "calls-loop": CanonicalCategory.DENIAL_OF_SERVICE,
@@ -152,13 +142,11 @@ _DIRECT_MAP: Dict[str, CanonicalCategory] = {
     "dos": CanonicalCategory.DENIAL_OF_SERVICE,
     "SWC-113": CanonicalCategory.DENIAL_OF_SERVICE,
     "SWC-128": CanonicalCategory.DENIAL_OF_SERVICE,
-
     # ----- Front-running -----
     "front-running": CanonicalCategory.FRONT_RUNNING,
     "race-condition": CanonicalCategory.FRONT_RUNNING,
     "tod": CanonicalCategory.FRONT_RUNNING,
     "SWC-114": CanonicalCategory.FRONT_RUNNING,
-
     # ----- Proxy / upgrade -----
     "delegatecall-loop": CanonicalCategory.PROXY_UPGRADE,
     "delegate-call-unchecked-address": CanonicalCategory.PROXY_UPGRADE,
@@ -166,7 +154,6 @@ _DIRECT_MAP: Dict[str, CanonicalCategory] = {
     "proxy_upgrade": CanonicalCategory.PROXY_UPGRADE,
     "storage-collision": CanonicalCategory.PROXY_UPGRADE,
     "SWC-112": CanonicalCategory.PROXY_UPGRADE,
-
     # ----- Centralization -----
     "centralization-risk": CanonicalCategory.CENTRALIZATION,
     "owner-privileged": CanonicalCategory.CENTRALIZATION,

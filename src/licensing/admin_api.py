@@ -46,9 +46,9 @@ app.add_middleware(
 ADMIN_API_KEY = os.getenv("MIESC_ADMIN_API_KEY")
 if not ADMIN_API_KEY:
     import warnings
+
     warnings.warn(
-        "MIESC_ADMIN_API_KEY not set. Using development key. "
-        "DO NOT use in production!",
+        "MIESC_ADMIN_API_KEY not set. Using development key. " "DO NOT use in production!",
         RuntimeWarning,
         stacklevel=2,
     )

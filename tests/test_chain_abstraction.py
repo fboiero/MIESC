@@ -4,7 +4,6 @@ Tests for Chain Abstraction module.
 Tests the multi-chain smart contract abstraction layer.
 """
 
-
 import pytest
 
 from src.core.chain_abstraction import (

@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LLMInterpreterConfig:
     """Configuration for LLM Report Interpreter."""
+
     model: str = "mistral:latest"
     ollama_host: str = "http://localhost:11434"
     temperature: float = 0.2  # Slightly creative for summaries
@@ -76,10 +77,7 @@ class LLMReportInterpreter:
 
                 # Check if our model is available
                 model_base = self.config.model.split(":")[0]
-                model_found = any(
-                    self.config.model in m or model_base in m
-                    for m in models
-                )
+                model_found = any(self.config.model in m or model_base in m for m in models)
 
                 if model_found:
                     self._available = True
@@ -102,10 +100,7 @@ class LLMReportInterpreter:
         return self._available
 
     def generate_executive_interpretation(
-        self,
-        findings: List[Dict[str, Any]],
-        summary: Dict[str, Any],
-        contract_name: str
+        self, findings: List[Dict[str, Any]], summary: Dict[str, Any], contract_name: str
     ) -> str:
         """
         Generate an executive-level interpretation of the audit findings.
@@ -165,9 +160,7 @@ EXECUTIVE SUMMARY:"""
         return response if response else ""
 
     def generate_risk_narrative(
-        self,
-        summary: Dict[str, Any],
-        findings: List[Dict[str, Any]]
+        self, summary: Dict[str, Any], findings: List[Dict[str, Any]]
     ) -> str:
         """
         Generate a risk narrative explaining the overall security posture.
@@ -192,7 +185,12 @@ EXECUTIVE SUMMARY:"""
             cat = f.get("category") or f.get("type", "General")
             categories[cat] = categories.get(cat, 0) + 1
 
-        categories_text = "\n".join([f"- {cat}: {count} issues" for cat, count in sorted(categories.items(), key=lambda x: -x[1])[:8]])
+        categories_text = "\n".join(
+            [
+                f"- {cat}: {count} issues"
+                for cat, count in sorted(categories.items(), key=lambda x: -x[1])[:8]
+            ]
+        )
 
         prompt = f"""You are a security analyst explaining audit results to a development team.
 
@@ -218,9 +216,7 @@ RISK NARRATIVE:"""
         return response if response else ""
 
     def interpret_critical_findings(
-        self,
-        critical_findings: List[Dict[str, Any]],
-        contract_code: str = ""
+        self, critical_findings: List[Dict[str, Any]], contract_code: str = ""
     ) -> List[Dict[str, Any]]:
         """
         Interpret critical/high findings with detailed context.
@@ -272,20 +268,21 @@ ANALYSIS:"""
 
             interpretation = self._call_llm(prompt)
 
-            interpreted.append({
-                "title": title,
-                "severity": severity,
-                "location": loc_str,
-                "original_description": description,
-                "llm_interpretation": interpretation if interpretation else "Analysis not available",
-            })
+            interpreted.append(
+                {
+                    "title": title,
+                    "severity": severity,
+                    "location": loc_str,
+                    "original_description": description,
+                    "llm_interpretation": (
+                        interpretation if interpretation else "Analysis not available"
+                    ),
+                }
+            )
 
         return interpreted
 
-    def suggest_remediation_priority(
-        self,
-        findings: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    def suggest_remediation_priority(self, findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Suggest prioritized remediation order with justification.
 
@@ -334,8 +331,8 @@ JSON:"""
 
         try:
             # Extract JSON from response
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
+            json_start = response.find("{")
+            json_end = response.rfind("}") + 1
 
             if json_start == -1 or json_end == 0:
                 return []
@@ -348,12 +345,14 @@ JSON:"""
                 idx = item.get("index", 0) - 1  # Convert to 0-based
                 if 0 <= idx < len(findings):
                     f = findings[idx]
-                    priorities.append({
-                        "priority": item.get("priority", idx + 1),
-                        "title": f.get("title") or f.get("type") or "Unknown",
-                        "severity": f.get("severity", "unknown"),
-                        "reason": item.get("reason", ""),
-                    })
+                    priorities.append(
+                        {
+                            "priority": item.get("priority", idx + 1),
+                            "title": f.get("title") or f.get("type") or "Unknown",
+                            "severity": f.get("severity", "unknown"),
+                            "reason": item.get("reason", ""),
+                        }
+                    )
 
             return sorted(priorities, key=lambda x: x["priority"])
 
@@ -361,11 +360,7 @@ JSON:"""
             logger.error(f"Error parsing priority response: {e}")
             return []
 
-    def generate_tool_output_explanation(
-        self,
-        tool_name: str,
-        tool_output: str
-    ) -> str:
+    def generate_tool_output_explanation(self, tool_name: str, tool_output: str) -> str:
         """
         Explain technical tool output in accessible language.
 
@@ -401,9 +396,7 @@ EXPLANATION:"""
     # =========================================================================
 
     def generate_attack_scenario(
-        self,
-        finding: Dict[str, Any],
-        contract_code: str = ""
+        self, finding: Dict[str, Any], contract_code: str = ""
     ) -> Dict[str, Any]:
         """
         Generate detailed attack scenario for a vulnerability.
@@ -465,8 +458,8 @@ JSON:"""
             return {}
 
         try:
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
+            json_start = response.find("{")
+            json_end = response.rfind("}") + 1
             if json_start == -1 or json_end == 0:
                 return {}
 
@@ -476,9 +469,7 @@ JSON:"""
             return {}
 
     def generate_code_remediation(
-        self,
-        finding: Dict[str, Any],
-        contract_code: str
+        self, finding: Dict[str, Any], contract_code: str
     ) -> Dict[str, Any]:
         """
         Generate code remediation with before/after diff.
@@ -503,10 +494,10 @@ JSON:"""
             line = 0
 
         # Extract relevant code section
-        lines = contract_code.split('\n')
+        lines = contract_code.split("\n")
         start = max(0, line - 10)
         end = min(len(lines), line + 15)
-        code_excerpt = '\n'.join(lines[start:end])
+        code_excerpt = "\n".join(lines[start:end])
 
         prompt = f"""You are a Solidity security expert providing code remediation.
 
@@ -538,8 +529,8 @@ JSON:"""
             return {}
 
         try:
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
+            json_start = response.find("{")
+            json_end = response.rfind("}") + 1
             if json_start == -1 or json_end == 0:
                 return {}
 
@@ -549,9 +540,7 @@ JSON:"""
             return {}
 
     def generate_deployment_recommendation(
-        self,
-        findings: List[Dict[str, Any]],
-        summary: Dict[str, Any]
+        self, findings: List[Dict[str, Any]], summary: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Generate deployment recommendation (GO/NO-GO/CONDITIONAL).
@@ -567,7 +556,7 @@ JSON:"""
             return {
                 "recommendation": "UNKNOWN",
                 "justification": "LLM not available for analysis",
-                "action_items": []
+                "action_items": [],
             }
 
         critical = summary.get("critical", 0)
@@ -626,17 +615,17 @@ JSON:"""
             return {
                 "recommendation": "CONDITIONAL",
                 "justification": "Unable to generate LLM recommendation",
-                "action_items": ["Review findings manually"]
+                "action_items": ["Review findings manually"],
             }
 
         try:
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
+            json_start = response.find("{")
+            json_end = response.rfind("}") + 1
             if json_start == -1 or json_end == 0:
                 return {
                     "recommendation": "CONDITIONAL",
                     "justification": "Unable to parse LLM response",
-                    "action_items": ["Review findings manually"]
+                    "action_items": ["Review findings manually"],
                 }
 
             return json.loads(response[json_start:json_end])
@@ -645,13 +634,11 @@ JSON:"""
             return {
                 "recommendation": "CONDITIONAL",
                 "justification": f"Parse error: {str(e)[:50]}",
-                "action_items": ["Review findings manually"]
+                "action_items": ["Review findings manually"],
             }
 
     def generate_premium_finding_analysis(
-        self,
-        finding: Dict[str, Any],
-        contract_code: str = ""
+        self, finding: Dict[str, Any], contract_code: str = ""
     ) -> Dict[str, Any]:
         """
         Generate comprehensive premium analysis for a single finding.
@@ -697,15 +684,17 @@ JSON:"""
         """Call Ollama LLM via HTTP API with retry logic."""
         url = f"{self.config.ollama_host}/api/generate"
 
-        payload = json.dumps({
-            "model": self.config.model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": self.config.temperature,
-                "num_predict": self.config.max_tokens,
+        payload = json.dumps(
+            {
+                "model": self.config.model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": self.config.temperature,
+                    "num_predict": self.config.max_tokens,
+                },
             }
-        }).encode("utf-8")
+        ).encode("utf-8")
 
         for attempt in range(1, self.config.retry_attempts + 1):
             try:
@@ -738,12 +727,13 @@ JSON:"""
 # Convenience Functions
 # =============================================================================
 
+
 def generate_llm_report_insights(
     findings: List[Dict[str, Any]],
     summary: Dict[str, Any],
     contract_name: str,
     contract_code: str = "",
-    config: Optional[LLMInterpreterConfig] = None
+    config: Optional[LLMInterpreterConfig] = None,
 ) -> Dict[str, Any]:
     """
     Generate all LLM insights for a report in one call.
@@ -766,7 +756,7 @@ def generate_llm_report_insights(
         "risk_narrative": interpreter.generate_risk_narrative(summary, findings),
         "critical_interpretations": interpreter.interpret_critical_findings(
             [f for f in findings if f.get("severity", "").lower() in ("critical", "high")][:5],
-            contract_code
+            contract_code,
         ),
         "remediation_priority": interpreter.suggest_remediation_priority(findings[:10]),
     }
@@ -777,7 +767,7 @@ def generate_premium_report_insights(
     summary: Dict[str, Any],
     contract_name: str,
     contract_code: str = "",
-    config: Optional[LLMInterpreterConfig] = None
+    config: Optional[LLMInterpreterConfig] = None,
 ) -> Dict[str, Any]:
     """
     Generate comprehensive LLM insights for premium audit reports.
@@ -813,11 +803,13 @@ def generate_premium_report_insights(
     for finding in critical_high[:3]:  # Limit to top 3
         scenario = interpreter.generate_attack_scenario(finding, contract_code)
         if scenario:
-            attack_scenarios.append({
-                "finding_id": finding.get("id", "UNK"),
-                "title": finding.get("title") or finding.get("type", "Unknown"),
-                **scenario
-            })
+            attack_scenarios.append(
+                {
+                    "finding_id": finding.get("id", "UNK"),
+                    "title": finding.get("title") or finding.get("type", "Unknown"),
+                    **scenario,
+                }
+            )
 
     # Generate code remediations if code is provided
     code_remediations = []
@@ -825,11 +817,13 @@ def generate_premium_report_insights(
         for finding in findings[:5]:  # Limit to top 5
             remediation = interpreter.generate_code_remediation(finding, contract_code)
             if remediation:
-                code_remediations.append({
-                    "finding_id": finding.get("id", "UNK"),
-                    "title": finding.get("title") or finding.get("type", "Unknown"),
-                    **remediation
-                })
+                code_remediations.append(
+                    {
+                        "finding_id": finding.get("id", "UNK"),
+                        "title": finding.get("title") or finding.get("type", "Unknown"),
+                        **remediation,
+                    }
+                )
 
     # Add effort estimates to remediation priority
     enhanced_priority = []

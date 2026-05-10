@@ -74,9 +74,7 @@ def _validate_marketplace_url(url: str) -> str:
                 f"Only HTTPS URLs allowed for marketplace. Got: {parsed.scheme}://"
             )
     elif parsed.scheme != "https":
-        raise MarketplaceError(
-            f"Invalid URL scheme for marketplace: {parsed.scheme}. Use HTTPS."
-        )
+        raise MarketplaceError(f"Invalid URL scheme for marketplace: {parsed.scheme}. Use HTTPS.")
 
     hostname = parsed.hostname
     if not hostname:
@@ -88,9 +86,7 @@ def _validate_marketplace_url(url: str) -> str:
         # Block private, loopback, reserved IPs (except localhost for dev)
         if ip.is_private or ip.is_reserved or ip.is_multicast or ip.is_link_local:
             if str(ip) not in ("127.0.0.1", "::1"):
-                raise MarketplaceError(
-                    f"Access to private/reserved IP addresses blocked: {ip}"
-                )
+                raise MarketplaceError(f"Access to private/reserved IP addresses blocked: {ip}")
     except ValueError as ip_err:
         # Not an IP address, it's a hostname - check against whitelist
         if hostname not in ALLOWED_MARKETPLACE_HOSTS:
@@ -118,8 +114,7 @@ def _validate_marketplace_url(url: str) -> str:
                 pass
 
             logger.warning(
-                "Marketplace URL host '%s' not in whitelist. "
-                "Allowed hosts: %s",
+                "Marketplace URL host '%s' not in whitelist. " "Allowed hosts: %s",
                 hostname,
                 ", ".join(sorted(ALLOWED_MARKETPLACE_HOSTS)),
             )

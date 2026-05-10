@@ -185,6 +185,7 @@ def agent(config):
 # Configuration Tests
 # ---------------------------------------------------------------------------
 
+
 class TestDeepAuditConfig:
     def test_defaults(self):
         cfg = DeepAuditConfig()
@@ -225,6 +226,7 @@ class TestAuditPhase:
 # Agent Initialization
 # ---------------------------------------------------------------------------
 
+
 class TestDeepAuditAgentInit:
     def test_initialization(self, agent):
         assert agent.agent_name == "DeepAuditAgent"
@@ -249,6 +251,7 @@ class TestDeepAuditAgentInit:
 # ---------------------------------------------------------------------------
 # Phase 1: Reconnaissance
 # ---------------------------------------------------------------------------
+
 
 class TestReconnaissance:
     def test_risk_profile_general(self, agent, tmp_contract):
@@ -307,14 +310,18 @@ class TestReconnaissance:
 # Phase 2: Targeted Scan
 # ---------------------------------------------------------------------------
 
+
 class TestTargetedScan:
     def test_tool_selection_general(self, agent):
         recon = ReconResult(
             risk_profile={
                 "primary": "general",
-                "is_defi": False, "is_token": False,
-                "is_proxy": False, "is_bridge": False,
-                "has_external_calls": True, "has_selfdestruct": True,
+                "is_defi": False,
+                "is_token": False,
+                "is_proxy": False,
+                "is_bridge": False,
+                "has_external_calls": True,
+                "has_selfdestruct": True,
             }
         )
         tools = agent._select_tools(recon)
@@ -326,9 +333,12 @@ class TestTargetedScan:
         recon = ReconResult(
             risk_profile={
                 "primary": "defi",
-                "is_defi": True, "is_token": False,
-                "is_proxy": False, "is_bridge": False,
-                "has_external_calls": True, "has_selfdestruct": False,
+                "is_defi": True,
+                "is_token": False,
+                "is_proxy": False,
+                "is_bridge": False,
+                "has_external_calls": True,
+                "has_selfdestruct": False,
             }
         )
         tools = agent._select_tools(recon)
@@ -339,9 +349,12 @@ class TestTargetedScan:
         recon = ReconResult(
             risk_profile={
                 "primary": "proxy",
-                "is_defi": False, "is_token": False,
-                "is_proxy": True, "is_bridge": False,
-                "has_external_calls": True, "has_selfdestruct": False,
+                "is_defi": False,
+                "is_token": False,
+                "is_proxy": True,
+                "is_bridge": False,
+                "has_external_calls": True,
+                "has_selfdestruct": False,
             }
         )
         tools = agent._select_tools(recon)
@@ -351,9 +364,12 @@ class TestTargetedScan:
         recon = ReconResult(
             risk_profile={
                 "primary": "bridge",
-                "is_defi": False, "is_token": False,
-                "is_proxy": False, "is_bridge": True,
-                "has_external_calls": False, "has_selfdestruct": False,
+                "is_defi": False,
+                "is_token": False,
+                "is_proxy": False,
+                "is_bridge": True,
+                "has_external_calls": False,
+                "has_selfdestruct": False,
             }
         )
         tools = agent._select_tools(recon)
@@ -364,9 +380,12 @@ class TestTargetedScan:
         recon = ReconResult(
             risk_profile={
                 "primary": "general",
-                "is_defi": False, "is_token": False,
-                "is_proxy": False, "is_bridge": False,
-                "has_external_calls": True, "has_selfdestruct": True,
+                "is_defi": False,
+                "is_token": False,
+                "is_proxy": False,
+                "is_bridge": False,
+                "has_external_calls": True,
+                "has_selfdestruct": True,
                 "has_assembly": True,
             }
         )
@@ -377,6 +396,7 @@ class TestTargetedScan:
 # ---------------------------------------------------------------------------
 # Phase 3: Deep Investigation
 # ---------------------------------------------------------------------------
+
 
 class TestDeepInvestigation:
     def test_extract_function_name_dict(self, agent):
@@ -437,9 +457,8 @@ class TestDeepInvestigation:
     def test_investigation_empty_queue(self, agent, tmp_contract):
         recon = ReconResult()
         scan = ScanResult(tools_run=["slither"], filtered_findings=[])
-        result = agent._phase_deep_investigation(
-            tmp_contract, VULNERABLE_CONTRACT, recon, scan
-        )
+        with patch.object(agent, "_run_tools_parallel", return_value=[]):
+            result = agent._phase_deep_investigation(tmp_contract, VULNERABLE_CONTRACT, recon, scan)
         assert result["iterations"] == 0
         assert result["enriched_count"] == 0
 
@@ -455,9 +474,8 @@ class TestDeepInvestigation:
                 {"id": "f3", "title": "info", "type": "solc-version", "severity": "low"},
             ],
         )
-        result = agent._phase_deep_investigation(
-            tmp_contract, VULNERABLE_CONTRACT, recon, scan
-        )
+        with patch.object(agent, "_run_tools_parallel", return_value=[]):
+            result = agent._phase_deep_investigation(tmp_contract, VULNERABLE_CONTRACT, recon, scan)
         assert result["iterations"] >= 1
         assert result["enriched_count"] == 2  # Only HIGH findings enriched
 
@@ -466,15 +484,28 @@ class TestDeepInvestigation:
 # Phase 4: Synthesis
 # ---------------------------------------------------------------------------
 
+
 class TestSynthesis:
     def test_template_narrative_critical(self, agent):
-        summary = {"CRITICAL": 2, "HIGH": 3, "total": 10, "tools_used": ["slither"], "iterations": 2}
+        summary = {
+            "CRITICAL": 2,
+            "HIGH": 3,
+            "total": 10,
+            "tools_used": ["slither"],
+            "iterations": 2,
+        }
         narrative = agent._template_narrative(summary, [])
         assert "CRITICAL" in narrative
         assert "Immediate remediation" in narrative
 
     def test_template_narrative_high(self, agent):
-        summary = {"CRITICAL": 0, "HIGH": 2, "total": 5, "tools_used": ["slither", "aderyn"], "iterations": 1}
+        summary = {
+            "CRITICAL": 0,
+            "HIGH": 2,
+            "total": 5,
+            "tools_used": ["slither", "aderyn"],
+            "iterations": 1,
+        }
         narrative = agent._template_narrative(summary, [])
         assert "HIGH" in narrative
         assert "mainnet deployment" in narrative
@@ -493,9 +524,12 @@ class TestSynthesis:
 
     def test_synthesis_no_llm(self, agent, tmp_contract):
         recon = ReconResult(risk_profile={"primary": "general"})
-        scan = ScanResult(tools_run=["slither"], filtered_findings=[
-            {"id": "f1", "severity": "high", "title": "test"},
-        ])
+        scan = ScanResult(
+            tools_run=["slither"],
+            filtered_findings=[
+                {"id": "f1", "severity": "high", "title": "test"},
+            ],
+        )
         investigation = {
             "findings": scan.filtered_findings,
             "exploit_chains": [],
@@ -514,6 +548,7 @@ class TestSynthesis:
 # ---------------------------------------------------------------------------
 # Timeout Management
 # ---------------------------------------------------------------------------
+
 
 class TestTimeout:
     def test_timeout_not_exceeded(self, agent):
@@ -538,6 +573,7 @@ class TestTimeout:
 # ---------------------------------------------------------------------------
 # Full Flow (Mocked)
 # ---------------------------------------------------------------------------
+
 
 class TestFullFlow:
     @patch("src.mcp_core.context_bus.get_context_bus")
@@ -573,10 +609,14 @@ class TestFullFlow:
         # Mock _run_tools_parallel so Phase 3 does not invoke real tools
         # (e.g. Mythril symbolic execution which times out)
         mock_run_tools.return_value = [
-            {"id": "mythril-1", "title": "State change after external call",
-             "type": "reentrancy", "severity": "High",
-             "description": "SWC-107: reentrancy confirmed via symbolic execution",
-             "tool": "mythril"},
+            {
+                "id": "mythril-1",
+                "title": "State change after external call",
+                "type": "reentrancy",
+                "severity": "High",
+                "description": "SWC-107: reentrancy confirmed via symbolic execution",
+                "tool": "mythril",
+            },
         ]
 
         config = DeepAuditConfig(
@@ -594,20 +634,56 @@ class TestFullFlow:
         mock_ml = MagicMock()
         mock_ml.analyze.return_value = MagicMock(
             raw_findings=[
-                {"id": "1", "title": "reentrancy", "type": "reentrancy", "severity": "High",
-                 "description": "Reentrancy in withdraw", "tool": "slither"},
-                {"id": "2", "title": "selfdestruct", "type": "selfdestruct", "severity": "High",
-                 "description": "Unprotected selfdestruct", "tool": "aderyn"},
-                {"id": "3", "title": "pragma", "type": "solc-version", "severity": "Info",
-                 "description": "Old solc", "tool": "slither"},
+                {
+                    "id": "1",
+                    "title": "reentrancy",
+                    "type": "reentrancy",
+                    "severity": "High",
+                    "description": "Reentrancy in withdraw",
+                    "tool": "slither",
+                },
+                {
+                    "id": "2",
+                    "title": "selfdestruct",
+                    "type": "selfdestruct",
+                    "severity": "High",
+                    "description": "Unprotected selfdestruct",
+                    "tool": "aderyn",
+                },
+                {
+                    "id": "3",
+                    "title": "pragma",
+                    "type": "solc-version",
+                    "severity": "Info",
+                    "description": "Old solc",
+                    "tool": "slither",
+                },
             ],
             ml_filtered_findings=[
-                {"id": "1", "title": "reentrancy", "type": "reentrancy", "severity": "High",
-                 "description": "Reentrancy in withdraw", "tool": "slither"},
-                {"id": "2", "title": "selfdestruct", "type": "selfdestruct", "severity": "High",
-                 "description": "Unprotected selfdestruct", "tool": "aderyn"},
-                {"id": "3", "title": "pragma", "type": "solc-version", "severity": "Info",
-                 "description": "Old solc", "tool": "slither"},
+                {
+                    "id": "1",
+                    "title": "reentrancy",
+                    "type": "reentrancy",
+                    "severity": "High",
+                    "description": "Reentrancy in withdraw",
+                    "tool": "slither",
+                },
+                {
+                    "id": "2",
+                    "title": "selfdestruct",
+                    "type": "selfdestruct",
+                    "severity": "High",
+                    "description": "Unprotected selfdestruct",
+                    "tool": "aderyn",
+                },
+                {
+                    "id": "3",
+                    "title": "pragma",
+                    "type": "solc-version",
+                    "severity": "Info",
+                    "description": "Old solc",
+                    "tool": "slither",
+                },
             ],
             tools_success=["slither", "aderyn"],
         )
@@ -624,6 +700,7 @@ class TestFullFlow:
 # Convenience Function
 # ---------------------------------------------------------------------------
 
+
 class TestRunDeepAudit:
     @patch("src.agents.deep_audit_agent.DeepAuditAgent.analyze")
     def test_run_deep_audit(self, mock_analyze, tmp_contract):
@@ -636,6 +713,7 @@ class TestRunDeepAudit:
 # ---------------------------------------------------------------------------
 # Risk Patterns
 # ---------------------------------------------------------------------------
+
 
 class TestRiskPatterns:
     def test_defi_patterns_exist(self):
@@ -659,16 +737,25 @@ class TestRiskPatterns:
 # Internal Methods - _build_call_graph
 # ---------------------------------------------------------------------------
 
+
 class TestBuildCallGraph:
     def test_success(self, agent):
         mock_cg = MagicMock()
-        mock_cg.get_entry_points.return_value = [MagicMock(name="withdraw"), MagicMock(name="deposit")]
+        mock_cg.get_entry_points.return_value = [
+            MagicMock(name="withdraw"),
+            MagicMock(name="deposit"),
+        ]
         mock_cg.external_call_chains.return_value = [["call1", "call2"]]
         mock_builder = MagicMock()
         mock_builder.build_from_source.return_value = mock_cg
 
-        with patch("src.agents.deep_audit_agent.CallGraphBuilder", mock_builder.__class__, create=True):
-            with patch.dict("sys.modules", {"src.ml.call_graph": MagicMock(CallGraphBuilder=lambda: mock_builder)}):
+        with patch(
+            "src.agents.deep_audit_agent.CallGraphBuilder", mock_builder.__class__, create=True
+        ):
+            with patch.dict(
+                "sys.modules",
+                {"src.ml.call_graph": MagicMock(CallGraphBuilder=lambda: mock_builder)},
+            ):
                 cg, entries, ext = agent._build_call_graph("contract code")
                 assert cg is mock_cg
                 assert len(entries) == 2
@@ -706,6 +793,7 @@ class TestBuildCallGraph:
 # Internal Methods - _run_taint_analysis
 # ---------------------------------------------------------------------------
 
+
 class TestRunTaintAnalysis:
     def test_success(self, agent):
         mock_analyzer = MagicMock()
@@ -733,12 +821,16 @@ class TestRunTaintAnalysis:
 # Internal Methods - _get_ml_orchestrator
 # ---------------------------------------------------------------------------
 
+
 class TestGetMLOrchestrator:
     def test_primary_import(self, agent):
         mock_orch = MagicMock()
         mock_utils = MagicMock()
         mock_utils.get_ml_orchestrator.return_value = mock_orch
-        with patch.dict("sys.modules", {"miesc.cli.utils": mock_utils, "miesc.cli": MagicMock(), "miesc": MagicMock()}):
+        with patch.dict(
+            "sys.modules",
+            {"miesc.cli.utils": mock_utils, "miesc.cli": MagicMock(), "miesc": MagicMock()},
+        ):
             result = agent._get_ml_orchestrator()
             assert result is mock_orch
 
@@ -753,6 +845,7 @@ class TestGetMLOrchestrator:
         # Direct test: primary fails, fallback succeeds
         def fail_primary():
             raise ImportError("no miesc.cli.utils")
+
         with patch("builtins.__import__", side_effect=ImportError):
             result = agent._get_ml_orchestrator()
             assert result is None  # Both imports fail
@@ -768,6 +861,7 @@ class TestGetMLOrchestrator:
 # Internal Methods - _get_available_tools
 # ---------------------------------------------------------------------------
 
+
 class TestGetAvailableTools:
     def test_fallback_default(self, agent):
         """When imports fail, returns default tools."""
@@ -781,7 +875,10 @@ class TestGetAvailableTools:
         mock_adapter2 = MagicMock(spec=[])  # No is_available
         mock_utils = MagicMock()
         mock_utils.load_adapters.return_value = {"slither": mock_adapter1, "aderyn": mock_adapter2}
-        with patch.dict("sys.modules", {"miesc.cli.utils": mock_utils, "miesc.cli": MagicMock(), "miesc": MagicMock()}):
+        with patch.dict(
+            "sys.modules",
+            {"miesc.cli.utils": mock_utils, "miesc.cli": MagicMock(), "miesc": MagicMock()},
+        ):
             result = agent._get_available_tools()
             assert "slither" in result
             assert "aderyn" in result
@@ -790,6 +887,7 @@ class TestGetAvailableTools:
 # ---------------------------------------------------------------------------
 # Internal Methods - _run_tools_parallel
 # ---------------------------------------------------------------------------
+
 
 class TestRunToolsParallel:
     def test_no_adapters(self, agent):
@@ -808,7 +906,10 @@ class TestRunToolsParallel:
         }
         mock_utils = MagicMock()
         mock_utils.load_adapters.return_value = {"slither": mock_adapter}
-        with patch.dict("sys.modules", {"miesc.cli.utils": mock_utils, "miesc.cli": MagicMock(), "miesc": MagicMock()}):
+        with patch.dict(
+            "sys.modules",
+            {"miesc.cli.utils": mock_utils, "miesc.cli": MagicMock(), "miesc": MagicMock()},
+        ):
             result = agent._run_tools_parallel(["slither"], "/fake.sol")
             assert len(result) == 1
             assert result[0]["tool"] == "slither"
@@ -817,7 +918,10 @@ class TestRunToolsParallel:
         agent._start_time = time.monotonic()
         mock_utils = MagicMock()
         mock_utils.load_adapters.return_value = {}
-        with patch.dict("sys.modules", {"miesc.cli.utils": mock_utils, "miesc.cli": MagicMock(), "miesc": MagicMock()}):
+        with patch.dict(
+            "sys.modules",
+            {"miesc.cli.utils": mock_utils, "miesc.cli": MagicMock(), "miesc": MagicMock()},
+        ):
             result = agent._run_tools_parallel(["nonexistent"], "/fake.sol")
             assert result == []
 
@@ -827,7 +931,10 @@ class TestRunToolsParallel:
         mock_adapter.analyze.side_effect = RuntimeError("crash")
         mock_utils = MagicMock()
         mock_utils.load_adapters.return_value = {"slither": mock_adapter}
-        with patch.dict("sys.modules", {"miesc.cli.utils": mock_utils, "miesc.cli": MagicMock(), "miesc": MagicMock()}):
+        with patch.dict(
+            "sys.modules",
+            {"miesc.cli.utils": mock_utils, "miesc.cli": MagicMock(), "miesc": MagicMock()},
+        ):
             result = agent._run_tools_parallel(["slither"], "/fake.sol")
             assert result == []
 
@@ -836,12 +943,11 @@ class TestRunToolsParallel:
 # Internal Methods - _run_single_tool
 # ---------------------------------------------------------------------------
 
+
 class TestRunSingleTool:
     def test_success(self, agent):
         adapter = MagicMock()
-        adapter.analyze.return_value = {
-            "findings": [{"title": "overflow", "severity": "medium"}]
-        }
+        adapter.analyze.return_value = {"findings": [{"title": "overflow", "severity": "medium"}]}
         result = agent._run_single_tool(adapter, "mythril", "/path.sol", 60.0)
         assert len(result) == 1
         assert result[0]["title"] == "overflow"
@@ -875,12 +981,15 @@ class TestRunSingleTool:
 # Internal Methods - _filter_false_positives
 # ---------------------------------------------------------------------------
 
+
 class TestFilterFalsePositives:
     def test_success(self, agent, tmp_contract):
         agent.contract_path = tmp_contract
         findings = [{"title": "test", "severity": "high"}]
         mock_fp = MagicMock()
-        mock_fp.filter_findings.return_value = {"filtered": [{"title": "test", "severity": "high", "fp_score": 0.2}]}
+        mock_fp.filter_findings.return_value = {
+            "filtered": [{"title": "test", "severity": "high", "fp_score": 0.2}]
+        }
         mock_mod = MagicMock()
         mock_mod.FalsePositiveFilter.return_value = mock_fp
         with patch.dict("sys.modules", {"src.ml.fp_filter": mock_mod}):
@@ -909,6 +1018,7 @@ class TestFilterFalsePositives:
 # ---------------------------------------------------------------------------
 # Internal Methods - _enrich_with_rag
 # ---------------------------------------------------------------------------
+
 
 class TestEnrichWithRAG:
     def test_success_with_results(self, agent):
@@ -963,7 +1073,13 @@ class TestEnrichWithRAG:
     def test_non_dict_result_object(self, agent):
         """RAG returns object with __dict__."""
         mock_result = MagicMock()
-        mock_result.__dict__ = {"title": "obj", "fixed_code": "fix", "severity": "low", "real_exploit": "", "similarity": 0.5}
+        mock_result.__dict__ = {
+            "title": "obj",
+            "fixed_code": "fix",
+            "severity": "low",
+            "real_exploit": "",
+            "similarity": 0.5,
+        }
         mock_rag = MagicMock()
         mock_rag.search_by_finding.return_value = [mock_result]
         mock_mod = MagicMock()
@@ -976,6 +1092,7 @@ class TestEnrichWithRAG:
 # ---------------------------------------------------------------------------
 # Internal Methods - _targeted_taint_for_function
 # ---------------------------------------------------------------------------
+
 
 class TestTargetedTaintForFunction:
     def test_success_with_match(self, agent):
@@ -1018,6 +1135,7 @@ class TestTargetedTaintForFunction:
 # Internal Methods - _find_attack_paths
 # ---------------------------------------------------------------------------
 
+
 class TestFindAttackPaths:
     def test_success(self, agent):
         mock_cg = MagicMock()
@@ -1057,6 +1175,7 @@ class TestFindAttackPaths:
 # ---------------------------------------------------------------------------
 # Internal Methods - _detect_exploit_chains
 # ---------------------------------------------------------------------------
+
 
 class TestDetectExploitChains:
     def test_success(self, agent):
@@ -1098,6 +1217,7 @@ class TestDetectExploitChains:
 # Internal Methods - _correlate_findings
 # ---------------------------------------------------------------------------
 
+
 class TestCorrelateFindings:
     def test_success(self, agent):
         mock_mod = MagicMock()
@@ -1127,6 +1247,7 @@ class TestCorrelateFindings:
 # Internal Methods - _generate_narrative
 # ---------------------------------------------------------------------------
 
+
 class TestGenerateNarrative:
     def test_auto_tries_orchestrator_first(self, agent):
         agent.config.enable_llm = True
@@ -1138,24 +1259,30 @@ class TestGenerateNarrative:
     def test_auto_falls_back_to_ollama(self, agent):
         agent.config.enable_llm = True
         agent.config.llm_provider = "auto"
-        with patch.object(agent, "_try_llm_orchestrator", return_value=""), \
-             patch.object(agent, "_try_ollama_interpreter", return_value="Ollama narrative"):
+        with (
+            patch.object(agent, "_try_llm_orchestrator", return_value=""),
+            patch.object(agent, "_try_ollama_interpreter", return_value="Ollama narrative"),
+        ):
             result = agent._generate_narrative([], {}, [])
             assert result == "Ollama narrative"
 
     def test_auto_returns_empty_when_all_fail(self, agent):
         agent.config.enable_llm = True
         agent.config.llm_provider = "auto"
-        with patch.object(agent, "_try_llm_orchestrator", return_value=""), \
-             patch.object(agent, "_try_ollama_interpreter", return_value=""):
+        with (
+            patch.object(agent, "_try_llm_orchestrator", return_value=""),
+            patch.object(agent, "_try_ollama_interpreter", return_value=""),
+        ):
             result = agent._generate_narrative([], {}, [])
             assert result == ""
 
     def test_ollama_provider_skips_orchestrator(self, agent):
         agent.config.enable_llm = True
         agent.config.llm_provider = "ollama"
-        with patch.object(agent, "_try_llm_orchestrator") as mock_orch, \
-             patch.object(agent, "_try_ollama_interpreter", return_value="ollama result"):
+        with (
+            patch.object(agent, "_try_llm_orchestrator") as mock_orch,
+            patch.object(agent, "_try_ollama_interpreter", return_value="ollama result"),
+        ):
             result = agent._generate_narrative([], {}, [])
             mock_orch.assert_not_called()
             assert result == "ollama result"
@@ -1171,6 +1298,7 @@ class TestGenerateNarrative:
 # ---------------------------------------------------------------------------
 # Internal Methods - _try_llm_orchestrator
 # ---------------------------------------------------------------------------
+
 
 class TestTryLLMOrchestrator:
     def test_no_configs_returns_empty(self, agent):
@@ -1201,6 +1329,7 @@ class TestTryLLMOrchestrator:
 # ---------------------------------------------------------------------------
 # Internal Methods - _try_ollama_interpreter
 # ---------------------------------------------------------------------------
+
 
 class TestTryOllamaInterpreter:
     def test_success(self, agent):
@@ -1257,6 +1386,7 @@ class TestTryOllamaInterpreter:
 # Phase 2: _phase_targeted_scan with mocked orchestrator
 # ---------------------------------------------------------------------------
 
+
 class TestPhaseTargetedScan:
     def test_with_ml_orchestrator(self, agent, tmp_contract):
         agent._start_time = time.monotonic()
@@ -1264,9 +1394,12 @@ class TestPhaseTargetedScan:
         recon = ReconResult(
             risk_profile={
                 "primary": "general",
-                "is_defi": False, "is_token": False,
-                "is_proxy": False, "is_bridge": False,
-                "has_external_calls": False, "has_selfdestruct": False,
+                "is_defi": False,
+                "is_token": False,
+                "is_proxy": False,
+                "is_bridge": False,
+                "has_external_calls": False,
+                "has_selfdestruct": False,
             }
         )
         mock_ml = MagicMock()
@@ -1290,16 +1423,21 @@ class TestPhaseTargetedScan:
         recon = ReconResult(
             risk_profile={
                 "primary": "general",
-                "is_defi": False, "is_token": False,
-                "is_proxy": False, "is_bridge": False,
-                "has_external_calls": False, "has_selfdestruct": False,
+                "is_defi": False,
+                "is_token": False,
+                "is_proxy": False,
+                "is_bridge": False,
+                "has_external_calls": False,
+                "has_selfdestruct": False,
             }
         )
         mock_ml = MagicMock()
         mock_ml.analyze.side_effect = RuntimeError("MLOrchestrator crash")
-        with patch.object(agent, "_get_ml_orchestrator", return_value=mock_ml), \
-             patch.object(agent, "_run_tools_parallel", return_value=[]), \
-             patch.object(agent, "_filter_false_positives", return_value=[]):
+        with (
+            patch.object(agent, "_get_ml_orchestrator", return_value=mock_ml),
+            patch.object(agent, "_run_tools_parallel", return_value=[]),
+            patch.object(agent, "_filter_false_positives", return_value=[]),
+        ):
             result = agent._phase_targeted_scan(tmp_contract, recon)
             assert isinstance(result, ScanResult)
             assert result.raw_findings == []
@@ -1310,14 +1448,19 @@ class TestPhaseTargetedScan:
         recon = ReconResult(
             risk_profile={
                 "primary": "general",
-                "is_defi": False, "is_token": False,
-                "is_proxy": False, "is_bridge": False,
-                "has_external_calls": False, "has_selfdestruct": False,
+                "is_defi": False,
+                "is_token": False,
+                "is_proxy": False,
+                "is_bridge": False,
+                "has_external_calls": False,
+                "has_selfdestruct": False,
             }
         )
-        with patch.object(agent, "_get_ml_orchestrator", return_value=None), \
-             patch.object(agent, "_run_tools_parallel", return_value=[{"severity": "medium"}]), \
-             patch.object(agent, "_filter_false_positives", return_value=[{"severity": "medium"}]):
+        with (
+            patch.object(agent, "_get_ml_orchestrator", return_value=None),
+            patch.object(agent, "_run_tools_parallel", return_value=[{"severity": "medium"}]),
+            patch.object(agent, "_filter_false_positives", return_value=[{"severity": "medium"}]),
+        ):
             result = agent._phase_targeted_scan(tmp_contract, recon)
             assert isinstance(result, ScanResult)
             # Intelligence engine adds zero-recall patterns + calibrates severity
@@ -1327,6 +1470,7 @@ class TestPhaseTargetedScan:
 # ---------------------------------------------------------------------------
 # Phase 3: Investigation with RAG/taint enabled
 # ---------------------------------------------------------------------------
+
 
 class TestDeepInvestigationWithFeatures:
     def test_with_rag_enrichment(self, tmp_contract):
@@ -1351,10 +1495,15 @@ class TestDeepInvestigationWithFeatures:
                 {"id": "f1", "title": "reentrancy", "type": "reentrancy", "severity": "high"}
             ],
         )
-        with patch.object(agent, "_enrich_with_rag", return_value={"matched": True, "fix_pattern_present": False}):
-            result = agent._phase_deep_investigation(
-                tmp_contract, VULNERABLE_CONTRACT, recon, scan
-            )
+        with (
+            patch.object(
+                agent,
+                "_enrich_with_rag",
+                return_value={"matched": True, "fix_pattern_present": False},
+            ),
+            patch.object(agent, "_run_tools_parallel", return_value=[]),
+        ):
+            result = agent._phase_deep_investigation(tmp_contract, VULNERABLE_CONTRACT, recon, scan)
             assert result["enriched_count"] == 1
 
     def test_with_taint_and_call_graph(self, tmp_contract):
@@ -1377,15 +1526,21 @@ class TestDeepInvestigationWithFeatures:
         scan = ScanResult(
             tools_run=["slither"],
             filtered_findings=[
-                {"id": "f1", "title": "vuln", "type": "reentrancy", "severity": "high",
-                 "location": {"function": "withdraw"}}
+                {
+                    "id": "f1",
+                    "title": "vuln",
+                    "type": "reentrancy",
+                    "severity": "high",
+                    "location": {"function": "withdraw"},
+                }
             ],
         )
-        with patch.object(agent, "_targeted_taint_for_function", return_value=[{"taint": True}]), \
-             patch.object(agent, "_find_attack_paths", return_value=["entry -> withdraw"]):
-            result = agent._phase_deep_investigation(
-                tmp_contract, VULNERABLE_CONTRACT, recon, scan
-            )
+        with (
+            patch.object(agent, "_targeted_taint_for_function", return_value=[{"taint": True}]),
+            patch.object(agent, "_find_attack_paths", return_value=["entry -> withdraw"]),
+            patch.object(agent, "_run_tools_parallel", return_value=[]),
+        ):
+            result = agent._phase_deep_investigation(tmp_contract, VULNERABLE_CONTRACT, recon, scan)
             assert result["enriched_count"] == 1
             enriched = result["findings"][0]
             assert enriched["investigation"]["taint_paths"] == 1
@@ -1414,10 +1569,13 @@ class TestDeepInvestigationWithFeatures:
                 {"id": "f2", "type": "unchecked-call", "severity": "medium"},
             ],
         )
-        with patch.object(agent, "_detect_exploit_chains", return_value=[{"chain": "reentrancy+unchecked"}]):
-            result = agent._phase_deep_investigation(
-                tmp_contract, VULNERABLE_CONTRACT, recon, scan
-            )
+        with (
+            patch.object(
+                agent, "_detect_exploit_chains", return_value=[{"chain": "reentrancy+unchecked"}]
+            ),
+            patch.object(agent, "_run_tools_parallel", return_value=[]),
+        ):
+            result = agent._phase_deep_investigation(tmp_contract, VULNERABLE_CONTRACT, recon, scan)
             assert len(result["exploit_chains"]) == 1
 
     def test_rag_mitigation_downgrades_severity(self, tmp_contract):
@@ -1442,12 +1600,17 @@ class TestDeepInvestigationWithFeatures:
                 {"id": "f1", "title": "reentrancy", "type": "reentrancy", "severity": "high"}
             ],
         )
-        rag_data = {"matched": True, "fix_pattern_present": True, "fix_pattern": "Use nonReentrant modifier from ReentrancyGuard"}
-        with patch.object(agent, "_enrich_with_rag", return_value=rag_data), \
-             patch.object(agent, "_check_mitigation", return_value=True):
-            result = agent._phase_deep_investigation(
-                tmp_contract, VULNERABLE_CONTRACT, recon, scan
-            )
+        rag_data = {
+            "matched": True,
+            "fix_pattern_present": True,
+            "fix_pattern": "Use nonReentrant modifier from ReentrancyGuard",
+        }
+        with (
+            patch.object(agent, "_enrich_with_rag", return_value=rag_data),
+            patch.object(agent, "_check_mitigation", return_value=True),
+            patch.object(agent, "_run_tools_parallel", return_value=[]),
+        ):
+            result = agent._phase_deep_investigation(tmp_contract, VULNERABLE_CONTRACT, recon, scan)
             assert result["mitigated_count"] == 1
             enriched = result["findings"][0]
             assert enriched.get("mitigated") is True
@@ -1457,6 +1620,7 @@ class TestDeepInvestigationWithFeatures:
 # ---------------------------------------------------------------------------
 # Phase 4: Synthesis with LLM
 # ---------------------------------------------------------------------------
+
 
 class TestSynthesisWithLLM:
     def test_synthesis_with_llm(self, tmp_contract):
@@ -1476,8 +1640,10 @@ class TestSynthesisWithLLM:
             "exploit_chains": [{"name": "flash+oracle"}],
             "iterations": 2,
         }
-        with patch.object(agent, "_correlate_findings", side_effect=lambda f: f), \
-             patch.object(agent, "_generate_narrative", return_value="AI-generated summary"):
+        with (
+            patch.object(agent, "_correlate_findings", side_effect=lambda f: f),
+            patch.object(agent, "_generate_narrative", return_value="AI-generated summary"),
+        ):
             result = agent._phase_synthesis(
                 tmp_contract, VULNERABLE_CONTRACT, recon, scan, investigation
             )
@@ -1498,8 +1664,10 @@ class TestSynthesisWithLLM:
         recon = ReconResult(risk_profile={"primary": "general"}, attack_surface_score=20.0)
         scan = ScanResult(tools_run=["slither"])
         investigation = {"findings": [], "exploit_chains": [], "iterations": 0}
-        with patch.object(agent, "_correlate_findings", side_effect=lambda f: f), \
-             patch.object(agent, "_generate_narrative", return_value=""):
+        with (
+            patch.object(agent, "_correlate_findings", side_effect=lambda f: f),
+            patch.object(agent, "_generate_narrative", return_value=""),
+        ):
             result = agent._phase_synthesis(
                 tmp_contract, VULNERABLE_CONTRACT, recon, scan, investigation
             )
@@ -1511,6 +1679,7 @@ class TestSynthesisWithLLM:
 # LLM Second Opinion
 # ---------------------------------------------------------------------------
 
+
 class TestLLMSecondOpinion:
     def test_returns_none_on_connection_error(self, agent):
         """LLM second opinion returns None when Ollama unavailable."""
@@ -1518,7 +1687,7 @@ class TestLLMSecondOpinion:
         with patch("urllib.request.urlopen", side_effect=ConnectionError("refused")):
             result = agent._get_llm_second_opinion(
                 {"title": "reentrancy", "severity": "critical", "description": "test"},
-                "contract code"
+                "contract code",
             )
             assert result is None
 
@@ -1526,8 +1695,7 @@ class TestLLMSecondOpinion:
         agent.config.llm_model = "mistral:latest"
         with patch("urllib.request.urlopen", side_effect=TimeoutError("timeout")):
             result = agent._get_llm_second_opinion(
-                {"title": "test", "severity": "critical"},
-                "code"
+                {"title": "test", "severity": "critical"}, "code"
             )
             assert result is None
 
@@ -1541,6 +1709,7 @@ class TestLLMSecondOpinion:
 # ---------------------------------------------------------------------------
 # Framework detection edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestFrameworkDetectionEdgeCases:
     def test_solmate(self, agent, tmp_path):
@@ -1561,6 +1730,7 @@ class TestFrameworkDetectionEdgeCases:
 # Extract function name edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestExtractFunctionNameEdgeCases:
     def test_from_location_string_with_function(self, agent):
         finding = {"location": "function transfer(address to, uint256 amount)"}
@@ -1579,9 +1749,16 @@ class TestExtractFunctionNameEdgeCases:
 # Template narrative edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestTemplateNarrativeEdgeCases:
     def test_medium_risk(self, agent):
-        summary = {"CRITICAL": 0, "HIGH": 0, "total": 3, "tools_used": ["slither", "aderyn"], "iterations": 1}
+        summary = {
+            "CRITICAL": 0,
+            "HIGH": 0,
+            "total": 3,
+            "tools_used": ["slither", "aderyn"],
+            "iterations": 1,
+        }
         narrative = agent._template_narrative(summary, [])
         assert "MEDIUM" in narrative
         assert "Review findings" in narrative
@@ -1645,11 +1822,18 @@ class TestLLMConsensus:
 
     def test_agree_confirmed_boosts_confidence(self, agent):
         op1 = {"confirmed": True, "reasoning": "yes", "actual_severity": "CRITICAL", "_model": "m1"}
-        op2 = {"confirmed": True, "reasoning": "yes again", "actual_severity": "CRITICAL", "_model": "m2"}
+        op2 = {
+            "confirmed": True,
+            "reasoning": "yes again",
+            "actual_severity": "CRITICAL",
+            "_model": "m2",
+        }
         with self._mock_opinions(agent, [op1, op2]):
             # Force two distinct models so both get queried
-            with patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]), \
-                 patch("src.core.llm_config.get_ollama_host", return_value="http://x"):
+            with (
+                patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]),
+                patch("src.core.llm_config.get_ollama_host", return_value="http://x"),
+            ):
                 result = agent._get_llm_consensus({"title": "t"}, "src")
         assert result is not None
         assert result["consensus"] == "agree_confirmed"
@@ -1658,21 +1842,40 @@ class TestLLMConsensus:
 
     def test_agree_rejected_penalizes_confidence(self, agent):
         op1 = {"confirmed": False, "reasoning": "no", "actual_severity": "LOW", "_model": "m1"}
-        op2 = {"confirmed": False, "reasoning": "no either", "actual_severity": "LOW", "_model": "m2"}
+        op2 = {
+            "confirmed": False,
+            "reasoning": "no either",
+            "actual_severity": "LOW",
+            "_model": "m2",
+        }
         with self._mock_opinions(agent, [op1, op2]):
-            with patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]), \
-                 patch("src.core.llm_config.get_ollama_host", return_value="http://x"):
+            with (
+                patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]),
+                patch("src.core.llm_config.get_ollama_host", return_value="http://x"),
+            ):
                 result = agent._get_llm_consensus({"title": "t"}, "src")
         assert result["consensus"] == "agree_rejected"
         assert result["confidence_delta"] < 0
         assert result["needs_manual_review"] is False
 
     def test_disagreement_flags_manual_review(self, agent):
-        op1 = {"confirmed": True, "reasoning": "real bug", "actual_severity": "CRITICAL", "_model": "m1"}
-        op2 = {"confirmed": False, "reasoning": "mitigated", "actual_severity": "LOW", "_model": "m2"}
+        op1 = {
+            "confirmed": True,
+            "reasoning": "real bug",
+            "actual_severity": "CRITICAL",
+            "_model": "m1",
+        }
+        op2 = {
+            "confirmed": False,
+            "reasoning": "mitigated",
+            "actual_severity": "LOW",
+            "_model": "m2",
+        }
         with self._mock_opinions(agent, [op1, op2]):
-            with patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]), \
-                 patch("src.core.llm_config.get_ollama_host", return_value="http://x"):
+            with (
+                patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]),
+                patch("src.core.llm_config.get_ollama_host", return_value="http://x"),
+            ):
                 result = agent._get_llm_consensus({"title": "t"}, "src")
         assert result["consensus"] == "disagreement"
         assert result["needs_manual_review"] is True
@@ -1681,8 +1884,10 @@ class TestLLMConsensus:
         """If primary and verification map to the SAME model, only one query is made."""
         op = {"confirmed": True, "reasoning": "y", "actual_severity": "CRITICAL", "_model": "m1"}
         with patch.object(agent, "_query_llm_verifier", return_value=op):
-            with patch("src.core.llm_config.get_model", return_value="m1"), \
-                 patch("src.core.llm_config.get_ollama_host", return_value="http://x"):
+            with (
+                patch("src.core.llm_config.get_model", return_value="m1"),
+                patch("src.core.llm_config.get_ollama_host", return_value="http://x"),
+            ):
                 result = agent._get_llm_consensus({"title": "t"}, "src")
         assert result["consensus"] == "single_opinion"
         assert result["confidence_delta"] == 0
@@ -1690,8 +1895,10 @@ class TestLLMConsensus:
 
     def test_all_queries_fail_returns_none(self, agent):
         with patch.object(agent, "_query_llm_verifier", return_value=None):
-            with patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]), \
-                 patch("src.core.llm_config.get_ollama_host", return_value="http://x"):
+            with (
+                patch("src.core.llm_config.get_model", side_effect=["m1", "m2"]),
+                patch("src.core.llm_config.get_ollama_host", return_value="http://x"),
+            ):
                 assert agent._get_llm_consensus({"title": "t"}, "src") is None
 
 
@@ -1716,7 +1923,10 @@ class TestPhase3FindingDrivenIntegration:
         """An oracle finding causes DeFi detector to run and record matches."""
         agent._start_time = time.monotonic()
         fake_match = {"pattern": "spot-price-read", "location": "getPrice", "severity": "high"}
-        with patch.object(agent, "_targeted_defi_scan", return_value=[fake_match]) as scan_mock:
+        with (
+            patch.object(agent, "_targeted_defi_scan", return_value=[fake_match]) as scan_mock,
+            patch.object(agent, "_run_tools_parallel", return_value=[]),
+        ):
             recon = ReconResult()
             scan = ScanResult(
                 tools_run=["slither"],
@@ -1730,9 +1940,7 @@ class TestPhase3FindingDrivenIntegration:
                     },
                 ],
             )
-            result = agent._phase_deep_investigation(
-                tmp_contract, VULNERABLE_CONTRACT, recon, scan
-            )
+            result = agent._phase_deep_investigation(tmp_contract, VULNERABLE_CONTRACT, recon, scan)
 
         scan_mock.assert_called_once()
         enriched = result["findings"][0]
@@ -1749,9 +1957,12 @@ class TestPhase3FindingDrivenIntegration:
             "content": "rule onlyOwner { ... }",
             "target_function": "setOwner",
         }
-        with patch.object(
-            agent, "_targeted_property_for_function", return_value=fake_property
-        ) as prop_mock:
+        with (
+            patch.object(
+                agent, "_targeted_property_for_function", return_value=fake_property
+            ) as prop_mock,
+            patch.object(agent, "_run_tools_parallel", return_value=[]),
+        ):
             recon = ReconResult()
             scan = ScanResult(
                 tools_run=["slither"],
@@ -1765,9 +1976,7 @@ class TestPhase3FindingDrivenIntegration:
                     },
                 ],
             )
-            result = agent._phase_deep_investigation(
-                tmp_contract, VULNERABLE_CONTRACT, recon, scan
-            )
+            result = agent._phase_deep_investigation(tmp_contract, VULNERABLE_CONTRACT, recon, scan)
 
         prop_mock.assert_called_once()
         enriched = result["findings"][0]
@@ -1787,7 +1996,10 @@ class TestPhase3FindingDrivenIntegration:
             "confidence_delta": -0.1,
             "needs_manual_review": True,
         }
-        with patch.object(agent_llm, "_get_llm_consensus", return_value=disagreement):
+        with (
+            patch.object(agent_llm, "_get_llm_consensus", return_value=disagreement),
+            patch.object(agent_llm, "_run_tools_parallel", return_value=[]),
+        ):
             recon = ReconResult()
             scan = ScanResult(
                 tools_run=["slither"],
@@ -1824,7 +2036,10 @@ class TestPhase3FindingDrivenIntegration:
             "confidence_delta": +0.20,
             "needs_manual_review": False,
         }
-        with patch.object(agent_llm, "_get_llm_consensus", return_value=agreement):
+        with (
+            patch.object(agent_llm, "_get_llm_consensus", return_value=agreement),
+            patch.object(agent_llm, "_run_tools_parallel", return_value=[]),
+        ):
             recon = ReconResult()
             scan = ScanResult(
                 tools_run=["slither"],

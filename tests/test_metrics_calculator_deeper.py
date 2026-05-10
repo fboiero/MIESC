@@ -111,6 +111,7 @@ class TestComparisonResult:
 
     def test_to_dict_roundtrip_json(self, comparison):
         import json
+
         d = comparison.to_dict()
         j = json.dumps(d)
         loaded = json.loads(j)
@@ -133,16 +134,25 @@ class TestMetricsCalculatorCompare:
     def test_compare_needs_benchmark_results(self, calc):
         """MetricsCalculator.compare() takes BenchmarkResult objects."""
         from src.benchmark.benchmark_runner import BenchmarkResult, DetectionMetrics
+
         now = datetime.now(timezone.utc)
         metrics = DetectionMetrics(
             category="overall",
-            true_positives=8, false_positives=2, false_negatives=2,
+            true_positives=8,
+            false_positives=2,
+            false_negatives=2,
         )
         br = BenchmarkResult(
-            timestamp=now, total_contracts=100, analyzed_contracts=100,
-            failed_contracts=0, total_ground_truth=10, total_detected=8,
-            contract_results=[], metrics_by_category={},
-            overall_metrics=metrics, total_time_seconds=5.0,
+            timestamp=now,
+            total_contracts=100,
+            analyzed_contracts=100,
+            failed_contracts=0,
+            total_ground_truth=10,
+            total_detected=8,
+            contract_results=[],
+            metrics_by_category={},
+            overall_metrics=metrics,
+            total_time_seconds=5.0,
         )
         result = calc.compare(before=br, after=br)
         assert isinstance(result, ComparisonResult)

@@ -95,7 +95,9 @@ class TestDiffWithSolFiles:
         """A single changed .sol file triggers a scan and produces output."""
         runner = CliRunner()
         sol_file = tmp_path / "Token.sol"
-        sol_file.write_text("// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\ncontract T {}")
+        sol_file.write_text(
+            "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\ncontract T {}"
+        )
 
         def fake_run(cmd, **kwargs):
             if "diff" in cmd:
@@ -103,9 +105,11 @@ class TestDiffWithSolFiles:
             return _repo_root_result(str(tmp_path))
 
         # Mock _scan_single_file to avoid real tool execution
-        with patch("subprocess.run", side_effect=fake_run), \
-             patch("miesc.cli.commands.scan._scan_single_file") as mock_scan, \
-             patch("miesc.cli.commands.scan._display_and_save") as mock_display:
+        with (
+            patch("subprocess.run", side_effect=fake_run),
+            patch("miesc.cli.commands.scan._scan_single_file") as mock_scan,
+            patch("miesc.cli.commands.scan._display_and_save") as mock_display,
+        ):
             mock_scan.return_value = None
             mock_display.return_value = None
             runner.invoke(scan, [str(tmp_path), "--diff", "HEAD~1", "--quiet"])
@@ -126,9 +130,11 @@ class TestDiffWithSolFiles:
                 return _git_diff_result(["A.sol", "B.sol", "C.sol"])
             return _repo_root_result(str(tmp_path))
 
-        with patch("subprocess.run", side_effect=fake_run), \
-             patch("miesc.cli.commands.scan._scan_single_file") as mock_scan, \
-             patch("miesc.cli.commands.scan._display_and_save"):
+        with (
+            patch("subprocess.run", side_effect=fake_run),
+            patch("miesc.cli.commands.scan._scan_single_file") as mock_scan,
+            patch("miesc.cli.commands.scan._display_and_save"),
+        ):
             mock_scan.return_value = None
             runner.invoke(scan, [str(tmp_path), "--diff", "main", "--quiet"])
 
@@ -145,9 +151,11 @@ class TestDiffWithSolFiles:
                 return _git_diff_result(["Vault.sol", "README.md", "test/Vault.t.sol"])
             return _repo_root_result(str(tmp_path))
 
-        with patch("subprocess.run", side_effect=fake_run), \
-             patch("miesc.cli.commands.scan._scan_single_file") as mock_scan, \
-             patch("miesc.cli.commands.scan._display_and_save"):
+        with (
+            patch("subprocess.run", side_effect=fake_run),
+            patch("miesc.cli.commands.scan._scan_single_file") as mock_scan,
+            patch("miesc.cli.commands.scan._display_and_save"),
+        ):
             mock_scan.return_value = None
             runner.invoke(scan, [str(tmp_path), "--diff", "HEAD~3", "--quiet"])
 
@@ -164,9 +172,11 @@ class TestDiffWithSolFiles:
                 return _git_diff_result(["deleted.sol"])
             return _repo_root_result(str(tmp_path))
 
-        with patch("subprocess.run", side_effect=fake_run), \
-             patch("miesc.cli.commands.scan._scan_single_file") as mock_scan, \
-             patch("miesc.cli.commands.scan._display_and_save"):
+        with (
+            patch("subprocess.run", side_effect=fake_run),
+            patch("miesc.cli.commands.scan._scan_single_file") as mock_scan,
+            patch("miesc.cli.commands.scan._display_and_save"),
+        ):
             mock_scan.return_value = None
             result = runner.invoke(scan, [str(tmp_path), "--diff", "HEAD~1"])
 

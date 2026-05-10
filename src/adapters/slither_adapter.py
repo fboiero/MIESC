@@ -296,6 +296,7 @@ class SlitherAdapter(ToolAdapter):
 
             # Try to use solc directly from solc-select artifacts (avoids broken wrapper)
             import os as _os
+
             solc_artifact = _os.path.expanduser(
                 f"~/.solc-select/artifacts/solc-{solc_version or '0.8.20'}/solc-{solc_version or '0.8.20'}"
             )
@@ -363,9 +364,7 @@ class SlitherAdapter(ToolAdapter):
                     with open(contract_path, "r") as f:
                         contract_code = f.read()
                     if findings:
-                        findings = enhance_findings_with_llm(
-                            findings[:5], contract_code, "slither"
-                        )
+                        findings = enhance_findings_with_llm(findings[:5], contract_code, "slither")
                 except Exception as e:
                     logger.debug(f"LLM enhancement failed: {e}")
 

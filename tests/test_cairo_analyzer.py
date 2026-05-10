@@ -307,6 +307,7 @@ mod T {
     def test_malformed_pattern_does_not_abort_scan(self, analyzer, monkeypatch):
         """A malformed regex in the registry must NOT break the whole scan."""
         from src.adapters import cairo_adapter as mod
+
         # Inject a broken pattern temporarily
         original = mod.CAIRO_PATTERNS[CairoVulnType.FELT_OVERFLOW]["patterns"][0]
         mod.CAIRO_PATTERNS[CairoVulnType.FELT_OVERFLOW]["patterns"][0] = "(unbalanced"
@@ -339,6 +340,7 @@ class TestBlockScanEdgeCases:
         """
         result = analyzer.analyze_source(code)
         from collections import Counter
+
         counts = Counter(f["type"] for f in result["findings"])
         for t, c in counts.items():
             assert c == 1, f"{t} appeared {c}x — should only be 1"
@@ -346,12 +348,14 @@ class TestBlockScanEdgeCases:
     def test_findings_dispatched_in_source_order_for_same_type(self, analyzer):
         """The recorded line number must correspond to the FIRST match
         (block-level re.search returns the earliest match)."""
-        code = "\n".join([
-            "line 1",
-            "line 2 replace_class_syscall()  # earliest match",
-            "line 3",
-            "line 4 replace_class_syscall()  # later match",
-        ])
+        code = "\n".join(
+            [
+                "line 1",
+                "line 2 replace_class_syscall()  # earliest match",
+                "line 3",
+                "line 4 replace_class_syscall()  # later match",
+            ]
+        )
         result = analyzer.analyze_source(code)
         proxy = [f for f in result["findings"] if f["type"] == "proxy_upgrade"]
         assert len(proxy) == 1
@@ -371,15 +375,17 @@ class TestBlockScanEdgeCases:
         """Sanity: line numbers reported back are the ACTUAL line numbers
         a human sees in an editor (1-indexed, not 0-indexed)."""
         # 5 lines of padding, then the marker on line 6
-        code = "\n".join([
-            "// 1",
-            "// 2",
-            "// 3",
-            "// 4",
-            "// 5",
-            "fn f() { replace_class_syscall(); }",
-            "// 7",
-        ])
+        code = "\n".join(
+            [
+                "// 1",
+                "// 2",
+                "// 3",
+                "// 4",
+                "// 5",
+                "fn f() { replace_class_syscall(); }",
+                "// 7",
+            ]
+        )
         result = analyzer.analyze_source(code)
         proxy = [f for f in result["findings"] if f["type"] == "proxy_upgrade"]
         assert len(proxy) == 1
@@ -393,7 +399,8 @@ class TestBlockScanEdgeCases:
         """
         result = analyzer.analyze_source(code)
         proxy_or_destruct = [
-            f for f in result["findings"]
+            f
+            for f in result["findings"]
             if f["type"] in ("proxy_upgrade", "access_control", "l1_l2_message")
         ]
         if proxy_or_destruct:
@@ -401,4 +408,6 @@ class TestBlockScanEdgeCases:
             # but for patterns inside a fn() it should succeed
             func_names = [f["location"]["function"] for f in proxy_or_destruct]
             # At least one should have resolved the enclosing function
-            assert any(n == "some_function" for n in func_names) or all(n == "unknown" for n in func_names)
+            assert any(n == "some_function" for n in func_names) or all(
+                n == "unknown" for n in func_names
+            )

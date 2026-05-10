@@ -12,8 +12,9 @@ from src.benchmark.metrics_calculator import ConfusionMatrix
 
 class TestConfusionMatrix:
     def test_from_counts(self):
-        cm = ConfusionMatrix(true_positives=8, false_positives=2,
-                             false_negatives=1, true_negatives=89)
+        cm = ConfusionMatrix(
+            true_positives=8, false_positives=2, false_negatives=1, true_negatives=89
+        )
         assert cm.true_positives == 8
         assert cm.false_positives == 2
 
@@ -50,8 +51,9 @@ class TestConfusionMatrix:
         assert cm.recall == 0.0
 
     def test_accuracy(self):
-        cm = ConfusionMatrix(true_positives=8, false_positives=2,
-                             false_negatives=1, true_negatives=89)
+        cm = ConfusionMatrix(
+            true_positives=8, false_positives=2, false_negatives=1, true_negatives=89
+        )
         assert abs(cm.accuracy - 0.97) < 0.01
 
     def test_false_positive_rate(self):
@@ -63,8 +65,9 @@ class TestConfusionMatrix:
         assert abs(cm.specificity - 0.98) < 0.01
 
     def test_to_dict_has_all_keys(self):
-        cm = ConfusionMatrix(true_positives=5, false_positives=1,
-                             false_negatives=2, true_negatives=92)
+        cm = ConfusionMatrix(
+            true_positives=5, false_positives=1, false_negatives=2, true_negatives=92
+        )
         d = cm.to_dict()
         for key in ("tp", "fp", "tn", "fn", "precision", "recall", "f1_score", "accuracy", "fpr"):
             assert key in d, f"Missing key: {key}"
@@ -72,8 +75,9 @@ class TestConfusionMatrix:
         assert isinstance(d["precision"], float)
 
     def test_to_dict_values_bounded(self):
-        cm = ConfusionMatrix(true_positives=50, false_positives=50,
-                             false_negatives=50, true_negatives=50)
+        cm = ConfusionMatrix(
+            true_positives=50, false_positives=50, false_negatives=50, true_negatives=50
+        )
         d = cm.to_dict()
         for key in ("precision", "recall", "f1_score", "accuracy", "fpr"):
             assert 0.0 <= d[key] <= 1.0, f"{key} out of [0,1]: {d[key]}"

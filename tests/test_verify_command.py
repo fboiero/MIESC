@@ -94,7 +94,9 @@ class TestVerifyCommand:
         with patch("src.formal.SpecRunner") as SR:
             instance = SR.return_value
             instance.availability_report.return_value = {
-                "certora": False, "halmos": False, "smtchecker": False,
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
             }
             instance.is_solc_available.return_value = False
             result = runner.invoke(verify, [contract, "--tool", "smtchecker", "--quiet"])
@@ -108,14 +110,17 @@ class TestVerifyCommand:
         with patch("src.formal.SpecRunner") as SR:
             instance = SR.return_value
             instance.availability_report.return_value = {
-                "certora": False, "halmos": True, "smtchecker": False,
+                "certora": False,
+                "halmos": True,
+                "smtchecker": False,
             }
             # Put the contract in a tmp dir that definitely has no foundry.toml.
             tmp = Path(contract).parent
             # Paranoid: make sure there's no foundry.toml sneaking in
             assert not (tmp / "foundry.toml").exists()
             result = runner.invoke(
-                verify, [contract, "--tool", "halmos", "--quiet"],
+                verify,
+                [contract, "--tool", "halmos", "--quiet"],
             )
             # Either (a) we errored out cleanly with the foundry message,
             # or (b) a parent dir coincidentally has foundry.toml and halmos
@@ -135,14 +140,21 @@ class TestVerifyCommand:
         fake_result.counterexamples = []
         fake_result.elapsed_seconds = 0.01
         fake_result.to_dict.return_value = {
-            "tool": "smtchecker", "status": "passed",
-            "rules_passed": 0, "rules_failed": 0, "rules_total": 0,
-            "counterexamples": [], "elapsed_seconds": 0.01, "spec_file": contract,
+            "tool": "smtchecker",
+            "status": "passed",
+            "rules_passed": 0,
+            "rules_failed": 0,
+            "rules_total": 0,
+            "counterexamples": [],
+            "elapsed_seconds": 0.01,
+            "spec_file": contract,
         }
         with patch("src.formal.SpecRunner") as SR:
             instance = SR.return_value
             instance.availability_report.return_value = {
-                "certora": False, "halmos": False, "smtchecker": True,
+                "certora": False,
+                "halmos": False,
+                "smtchecker": True,
             }
             instance.run_smtchecker.return_value = fake_result
             result = runner.invoke(
@@ -180,7 +192,9 @@ class TestExitCodeContract:
         with patch("src.formal.SpecRunner") as SR:
             instance = SR.return_value
             instance.availability_report.return_value = {
-                "certora": False, "halmos": False, "smtchecker": True,
+                "certora": False,
+                "halmos": False,
+                "smtchecker": True,
             }
             instance.run_smtchecker.return_value = fake_result
             result = runner.invoke(verify, [contract, "--tool", "smtchecker", "--quiet"])
@@ -199,7 +213,9 @@ class TestExitCodeContract:
         with patch("src.formal.SpecRunner") as SR:
             instance = SR.return_value
             instance.availability_report.return_value = {
-                "certora": False, "halmos": False, "smtchecker": True,
+                "certora": False,
+                "halmos": False,
+                "smtchecker": True,
             }
             instance.run_smtchecker.return_value = fake_result
             result = runner.invoke(verify, [contract, "--tool", "smtchecker", "--quiet"])

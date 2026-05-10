@@ -1,6 +1,5 @@
 """Tests for src.formal.spec_generator — auto spec generation from findings."""
 
-
 import pytest
 
 from src.formal import GeneratedSpec, SpecFormat, SpecGenerator
@@ -118,9 +117,7 @@ class TestSpecGenerator:
 
     def test_generate_spec_file_cvl(self, gen, tmp_path, reentrancy_finding):
         output = tmp_path / "out.spec"
-        count = gen.generate_spec_file(
-            [reentrancy_finding], output, contract_name="TestC"
-        )
+        count = gen.generate_spec_file([reentrancy_finding], output, contract_name="TestC")
         assert count == 1
         assert output.exists()
         content = output.read_text()
@@ -130,9 +127,7 @@ class TestSpecGenerator:
 
     def test_generate_spec_file_scribble(self, gen, tmp_path, reentrancy_finding):
         output = tmp_path / "annotations.sol"
-        count = gen.generate_spec_file(
-            [reentrancy_finding], output, format=SpecFormat.SCRIBBLE
-        )
+        count = gen.generate_spec_file([reentrancy_finding], output, format=SpecFormat.SCRIBBLE)
         assert count == 1
         assert "#if_succeeds" in output.read_text()
 

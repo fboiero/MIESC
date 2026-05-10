@@ -5,7 +5,6 @@ Tests the full flow: contract → analysis → findings → report
 using only Slither + Aderyn (fast, always available).
 """
 
-
 import pytest
 
 REENTRANCY_CONTRACT = """
@@ -77,6 +76,7 @@ class TestMIESCCoreAnalyze:
     def test_analyze_returns_findings(self, vulnerable_contract):
         """Vulnerable contract should produce findings."""
         from src.miesc_core import MIESCCore
+
         core = MIESCCore()
         result = core.analyze(vulnerable_contract, tools=["slither", "aderyn"])
 
@@ -88,13 +88,15 @@ class TestMIESCCoreAnalyze:
     def test_analyze_finds_reentrancy_pattern(self, vulnerable_contract):
         """Should detect the reentrancy pattern (call before state update)."""
         from src.miesc_core import MIESCCore
+
         core = MIESCCore()
         result = core.analyze(vulnerable_contract, tools=["slither", "aderyn"])
 
         # At least one finding should relate to the external call pattern
         checks = [f.get("check", f.get("type", "")).lower() for f in result["findings"]]
         has_call_related = any(
-            kw in c for c in checks
+            kw in c
+            for c in checks
             for kw in ["send-ether", "arbitrary-send", "reentrancy", "call", "ether"]
         )
         assert has_call_related, f"Expected call-related finding, got checks: {checks}"
@@ -102,13 +104,13 @@ class TestMIESCCoreAnalyze:
     def test_analyze_safe_contract(self, safe_contract):
         """Safe contract should have fewer/no high-severity findings."""
         from src.miesc_core import MIESCCore
+
         core = MIESCCore()
         result = core.analyze(safe_contract, tools=["slither", "aderyn"])
 
         assert result["success"] is True
         high_findings = [
-            f for f in result["findings"]
-            if f.get("severity", "").lower() in ("critical", "high")
+            f for f in result["findings"] if f.get("severity", "").lower() in ("critical", "high")
         ]
         # Safe contract should have fewer high findings than vulnerable one
         assert len(high_findings) <= 5  # Aderyn may flag some patterns
@@ -116,6 +118,7 @@ class TestMIESCCoreAnalyze:
     def test_analyze_with_nonexistent_tools(self, vulnerable_contract):
         """Non-existent tools should fail gracefully."""
         from src.miesc_core import MIESCCore
+
         core = MIESCCore()
         result = core.analyze(vulnerable_contract, tools=["nonexistent_tool"])
 
@@ -126,6 +129,7 @@ class TestMIESCCoreAnalyze:
     def test_analyze_scan_alias(self, vulnerable_contract):
         """scan() should work as alias for analyze()."""
         from src.miesc_core import MIESCCore
+
         core = MIESCCore()
         result = core.scan(vulnerable_contract, tools=["slither", "aderyn"])
 
@@ -140,8 +144,14 @@ class TestFPFilter:
         """FP filter should process findings without errors."""
         try:
             from src.ml.fp_filter import FalsePositiveFilter
+
             fp = FalsePositiveFilter()
-            finding = {"type": "reentrancy", "severity": "high", "check": "reentrancy-eth", "confidence": 0.8}
+            finding = {
+                "type": "reentrancy",
+                "severity": "high",
+                "check": "reentrancy-eth",
+                "confidence": 0.8,
+            }
             fr = fp.filter_finding(finding, code_context="pragma solidity ^0.8.0;\ncontract T {}")
             assert hasattr(fr, "is_likely_fp")
             assert 0.0 <= fr.fp_probability <= 1.0
@@ -153,6 +163,7 @@ class TestFPFilter:
     def test_solidity_version_detection(self):
         """Should detect Solidity version from code."""
         from src.ml.fp_filter import FalsePositiveFilter
+
         fp = FalsePositiveFilter()
 
         v = fp._detect_solidity_version("pragma solidity ^0.8.20;\ncontract T {}")

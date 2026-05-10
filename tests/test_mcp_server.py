@@ -165,8 +165,7 @@ class TestMCPTools:
 
     def test_miesc_apply_fix_returns_evidence(self, tmp_path):
         sol = tmp_path / "Victim.sol"
-        sol.write_text(
-            """// SPDX-License-Identifier: MIT
+        sol.write_text("""// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 contract Victim {
     mapping(address => uint256) public balances;
@@ -177,8 +176,7 @@ contract Victim {
         balances[msg.sender] -= amount;
     }
 }
-"""
-        )
+""")
         results = {
             "findings": [
                 {

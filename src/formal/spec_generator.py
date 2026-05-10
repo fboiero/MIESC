@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 class SpecFormat(Enum):
     """Supported formal specification formats."""
 
-    CVL = "cvl"              # Certora Verification Language
-    SCRIBBLE = "scribble"    # ConsenSys Scribble annotations
+    CVL = "cvl"  # Certora Verification Language
+    SCRIBBLE = "scribble"  # ConsenSys Scribble annotations
     SMTCHECKER = "smtchecker"  # Solidity built-in SMTChecker asserts
 
 
@@ -133,16 +133,16 @@ rule weakRandomness_{func}(env e) {{
 }
 
 SCRIBBLE_TEMPLATES: Dict[str, str] = {
-    "reentrancy": "/// #if_succeeds {:msg \"no reentrancy\"} locked == false ==> locked == false;",
-    "access-control": "/// #if_succeeds {:msg \"only owner\"} msg.sender == owner;",
-    "overflow": "/// #if_succeeds {:msg \"no overflow\"} old(totalSupply) + amount >= old(totalSupply);",
-    "unchecked-call": "/// #if_succeeds {:msg \"call succeeded or reverted\"} success == true;",
+    "reentrancy": '/// #if_succeeds {:msg "no reentrancy"} locked == false ==> locked == false;',
+    "access-control": '/// #if_succeeds {:msg "only owner"} msg.sender == owner;',
+    "overflow": '/// #if_succeeds {:msg "no overflow"} old(totalSupply) + amount >= old(totalSupply);',
+    "unchecked-call": '/// #if_succeeds {:msg "call succeeded or reverted"} success == true;',
 }
 
 SMTCHECKER_ASSERTIONS: Dict[str, str] = {
     "overflow": "assert(x + y >= x);  // prevent overflow",
     "underflow": "assert(x >= y);  // prevent underflow before subtraction",
-    "unchecked-call": "require(success, \"external call failed\");",
+    "unchecked-call": 'require(success, "external call failed");',
 }
 
 
@@ -236,7 +236,19 @@ class SpecGenerator:
         v = vuln_type.lower()
         if "reentran" in v:
             return "reentrancy"
-        if any(k in v for k in ["access", "auth", "owner", "selfdestruct", "suicid", "tx-origin", "unprotected", "initializer"]):
+        if any(
+            k in v
+            for k in [
+                "access",
+                "auth",
+                "owner",
+                "selfdestruct",
+                "suicid",
+                "tx-origin",
+                "unprotected",
+                "initializer",
+            ]
+        ):
             return "access-control"
         if any(k in v for k in ["overflow", "arithmetic"]):
             return "overflow"

@@ -157,6 +157,7 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
         self._default_timeout = 300  # 5 min for large contracts with LLM
         try:
             from src.core.llm_config import USE_CASE_CODE_ANALYSIS, get_model
+
             self._ollama_model = get_model(USE_CASE_CODE_ANALYSIS)
         except Exception:
             self._ollama_model = "qwen2.5-coder:14b"

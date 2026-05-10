@@ -166,8 +166,7 @@ class TestSMTCheckerIntegration:
     @pytest.fixture
     def contract(self, tmp_path):
         p = tmp_path / "C.sol"
-        p.write_text(
-            """
+        p.write_text("""
             // SPDX-License-Identifier: MIT
             pragma solidity ^0.8.0;
             contract C {
@@ -176,8 +175,7 @@ class TestSMTCheckerIntegration:
                     x += v;
                 }
             }
-            """
-        )
+            """)
         return str(p)
 
     def test_run_smtchecker_returns_result(self, contract):
@@ -198,9 +196,11 @@ class TestSMTCheckerIntegration:
 class TestRunAllAvailable:
     def test_skips_unavailable_tools(self, tmp_path):
         # When nothing is installed, result is empty
-        with patch.object(SpecRunner, "is_certora_available", return_value=False), \
-             patch.object(SpecRunner, "is_halmos_available", return_value=False), \
-             patch.object(SpecRunner, "is_solc_available", return_value=False):
+        with (
+            patch.object(SpecRunner, "is_certora_available", return_value=False),
+            patch.object(SpecRunner, "is_halmos_available", return_value=False),
+            patch.object(SpecRunner, "is_solc_available", return_value=False),
+        ):
             results = run_all_available("contract.sol", spec_path="rules.spec")
             assert results == {}
 
@@ -220,8 +220,10 @@ class TestHalmosStatusLogic:
             stderr = ""
             returncode = 0
 
-        with patch.object(runner, "is_halmos_available", return_value=True), \
-             patch("src.formal.spec_runner.subprocess.run", return_value=MockProc()):
+        with (
+            patch.object(runner, "is_halmos_available", return_value=True),
+            patch("src.formal.spec_runner.subprocess.run", return_value=MockProc()),
+        ):
             r = runner.run_halmos(str(tmp_path))
             assert r.status == "no_tests"
             assert r.rules_total == 0

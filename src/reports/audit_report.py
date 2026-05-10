@@ -25,6 +25,7 @@ except ImportError:
 @dataclass
 class Finding:
     """Represents a single security finding"""
+
     id: str
     title: str
     severity: str  # Critical, High, Medium, Low, Informational
@@ -45,6 +46,7 @@ class Finding:
 @dataclass
 class AuditMetadata:
     """Audit metadata"""
+
     project_name: str
     contract_name: str
     version: str
@@ -68,11 +70,11 @@ class AuditReportGenerator:
 
     # Severity colors and icons
     SEVERITY_CONFIG = {
-        'Critical': {'color': '#dc2626', 'bg': '#fef2f2', 'icon': '!!!'},
-        'High': {'color': '#ea580c', 'bg': '#fff7ed', 'icon': '!!'},
-        'Medium': {'color': '#ca8a04', 'bg': '#fefce8', 'icon': '!'},
-        'Low': {'color': '#16a34a', 'bg': '#f0fdf4', 'icon': 'i'},
-        'Informational': {'color': '#2563eb', 'bg': '#eff6ff', 'icon': '*'},
+        "Critical": {"color": "#dc2626", "bg": "#fef2f2", "icon": "!!!"},
+        "High": {"color": "#ea580c", "bg": "#fff7ed", "icon": "!!"},
+        "Medium": {"color": "#ca8a04", "bg": "#fefce8", "icon": "!"},
+        "Low": {"color": "#16a34a", "bg": "#f0fdf4", "icon": "i"},
+        "Informational": {"color": "#2563eb", "bg": "#eff6ff", "icon": "*"},
     }
 
     def __init__(
@@ -90,14 +92,14 @@ class AuditReportGenerator:
 
     def _calculate_risk_score(self) -> float:
         """Calculate overall risk score based on findings"""
-        weights = {'Critical': 10, 'High': 5, 'Medium': 2, 'Low': 1, 'Informational': 0}
+        weights = {"Critical": 10, "High": 5, "Medium": 2, "Low": 1, "Informational": 0}
         total = sum(weights.get(f.severity, 0) for f in self.findings)
         max_score = len(self.findings) * 10 if self.findings else 1
         return min(100, (total / max_score) * 100) if max_score > 0 else 0
 
     def _get_severity_summary(self) -> Dict[str, int]:
         """Count findings by severity"""
-        summary = {s: 0 for s in self.SEVERITY_CONFIG.keys()}
+        summary = dict.fromkeys(self.SEVERITY_CONFIG.keys(), 0)
         for f in self.findings:
             if f.severity in summary:
                 summary[f.severity] += 1
@@ -119,12 +121,13 @@ class AuditReportGenerator:
 
     def _escape_html(self, text: str) -> str:
         """Escape HTML special characters"""
-        return (text
-            .replace('&', '&amp;')
-            .replace('<', '&lt;')
-            .replace('>', '&gt;')
-            .replace('"', '&quot;')
-            .replace("'", '&#x27;'))
+        return (
+            text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+            .replace("'", "&#x27;")
+        )
 
     def _generate_css(self) -> str:
         """Generate CSS styles for the report"""
@@ -542,7 +545,7 @@ class AuditReportGenerator:
 
     def _generate_finding_html(self, finding: Finding) -> str:
         """Generate HTML for a single finding"""
-        config = self.SEVERITY_CONFIG.get(finding.severity, self.SEVERITY_CONFIG['Informational'])
+        config = self.SEVERITY_CONFIG.get(finding.severity, self.SEVERITY_CONFIG["Informational"])
 
         code_html = ""
         if finding.code_snippet:
@@ -556,7 +559,9 @@ class AuditReportGenerator:
 
         refs_html = ""
         if finding.references:
-            refs = "".join(f"<li><a href='{ref}' target='_blank'>{ref}</a></li>" for ref in finding.references)
+            refs = "".join(
+                f"<li><a href='{ref}' target='_blank'>{ref}</a></li>" for ref in finding.references
+            )
             refs_html = f"""
             <div class="finding-section">
                 <h4>References</h4>
@@ -566,7 +571,9 @@ class AuditReportGenerator:
 
         swc_cwe = ""
         if finding.swc_id:
-            swc_cwe += f"<span style='margin-right: 0.5rem'><strong>SWC:</strong> {finding.swc_id}</span>"
+            swc_cwe += (
+                f"<span style='margin-right: 0.5rem'><strong>SWC:</strong> {finding.swc_id}</span>"
+            )
         if finding.cwe_id:
             swc_cwe += f"<span><strong>CWE:</strong> {finding.cwe_id}</span>"
 
@@ -608,7 +615,7 @@ class AuditReportGenerator:
         If the finding has generated remediation code, show it with syntax highlighting.
         Otherwise, fall back to basic remediation text.
         """
-        if not finding.remediation and not finding.evidence.get('fixed_code'):
+        if not finding.remediation and not finding.evidence.get("fixed_code"):
             return ""
 
         sections = []
@@ -623,7 +630,7 @@ class AuditReportGenerator:
             """)
 
         # Generated code fix (if available)
-        fixed_code = finding.evidence.get('fixed_code')
+        fixed_code = finding.evidence.get("fixed_code")
         if fixed_code:
             escaped_code = self._escape_html(fixed_code)
             sections.append(f"""
@@ -637,7 +644,7 @@ class AuditReportGenerator:
             """)
 
         # Fix explanation (if available)
-        fix_explanation = finding.evidence.get('fix_explanation')
+        fix_explanation = finding.evidence.get("fix_explanation")
         if fix_explanation:
             sections.append(f"""
             <div class="finding-section">
@@ -647,7 +654,7 @@ class AuditReportGenerator:
             """)
 
         # Suggested tests (if available)
-        test_suggestions = finding.evidence.get('test_suggestions')
+        test_suggestions = finding.evidence.get("test_suggestions")
         if test_suggestions and isinstance(test_suggestions, list):
             tests_html = "".join(f"<li>{self._escape_html(t)}</li>" for t in test_suggestions[:5])
             sections.append(f"""
@@ -677,7 +684,7 @@ class AuditReportGenerator:
             grouped.setdefault(f.severity, []).append(f)
 
         findings_html = ""
-        for severity in ['Critical', 'High', 'Medium', 'Low', 'Informational']:
+        for severity in ["Critical", "High", "Medium", "Low", "Informational"]:
             if severity in grouped:
                 config = self.SEVERITY_CONFIG[severity]
                 findings_html += f"<h3 style='color: {config['color']}; margin-top: 1.5rem;'>{severity} ({len(grouped[severity])})</h3>"
@@ -810,7 +817,7 @@ class AuditReportGenerator:
         """Save HTML report to file"""
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(self.generate_html(), encoding='utf-8')
+        output_path.write_text(self.generate_html(), encoding="utf-8")
         return output_path
 
     def save_pdf(self, output_path: Path) -> Optional[Path]:
@@ -824,6 +831,7 @@ class AuditReportGenerator:
         # Try weasyprint first
         try:
             from weasyprint import HTML
+
             html_content = self.generate_html()
             HTML(string=html_content).write_pdf(str(output_path))
             return output_path
@@ -833,6 +841,7 @@ class AuditReportGenerator:
         # Try pdfkit (wkhtmltopdf wrapper)
         try:
             import pdfkit
+
             html_content = self.generate_html()
             pdfkit.from_string(html_content, str(output_path))
             return output_path
@@ -840,7 +849,7 @@ class AuditReportGenerator:
             pass
 
         # Fallback: save HTML and print instructions
-        html_path = output_path.with_suffix('.html')
+        html_path = output_path.with_suffix(".html")
         self.save_html(html_path)
         print("PDF generation requires 'weasyprint' or 'pdfkit'.")  # noqa: T201
         print("Install with: pip install weasyprint")  # noqa: T201
@@ -854,48 +863,48 @@ class AuditReportGenerator:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         data = {
-            'metadata': {
-                'project_name': self.metadata.project_name,
-                'contract_name': self.metadata.contract_name,
-                'version': self.metadata.version,
-                'auditor': self.metadata.auditor,
-                'organization': self.metadata.organization,
-                'audit_date': self.metadata.audit_date,
-                'report_id': self.metadata.report_id,
-                'contract_hash': self.metadata.contract_hash,
-                'solidity_version': self.metadata.solidity_version,
-                'lines_of_code': self.metadata.lines_of_code,
+            "metadata": {
+                "project_name": self.metadata.project_name,
+                "contract_name": self.metadata.contract_name,
+                "version": self.metadata.version,
+                "auditor": self.metadata.auditor,
+                "organization": self.metadata.organization,
+                "audit_date": self.metadata.audit_date,
+                "report_id": self.metadata.report_id,
+                "contract_hash": self.metadata.contract_hash,
+                "solidity_version": self.metadata.solidity_version,
+                "lines_of_code": self.metadata.lines_of_code,
             },
-            'summary': {
-                'risk_score': self._calculate_risk_score(),
-                'total_findings': len(self.findings),
-                'by_severity': self._get_severity_summary(),
-                'by_layer': self._get_layer_summary(),
-                'by_tool': self._get_tool_summary(),
+            "summary": {
+                "risk_score": self._calculate_risk_score(),
+                "total_findings": len(self.findings),
+                "by_severity": self._get_severity_summary(),
+                "by_layer": self._get_layer_summary(),
+                "by_tool": self._get_tool_summary(),
             },
-            'findings': [
+            "findings": [
                 {
-                    'id': f.id,
-                    'title': f.title,
-                    'severity': f.severity,
-                    'category': f.category,
-                    'description': f.description,
-                    'location': f.location,
-                    'line_number': f.line_number,
-                    'tool': f.tool,
-                    'layer': f.layer,
-                    'swc_id': f.swc_id,
-                    'cwe_id': f.cwe_id,
-                    'remediation': f.remediation,
-                    'references': f.references,
+                    "id": f.id,
+                    "title": f.title,
+                    "severity": f.severity,
+                    "category": f.category,
+                    "description": f.description,
+                    "location": f.location,
+                    "line_number": f.line_number,
+                    "tool": f.tool,
+                    "layer": f.layer,
+                    "swc_id": f.swc_id,
+                    "cwe_id": f.cwe_id,
+                    "remediation": f.remediation,
+                    "references": f.references,
                 }
                 for f in self.findings
             ],
-            'generated_at': self.generated_at.isoformat(),
-            'generator': f'MIESC v{MIESC_VERSION}',
+            "generated_at": self.generated_at.isoformat(),
+            "generator": f"MIESC v{MIESC_VERSION}",
         }
 
-        output_path.write_text(json.dumps(data, indent=2), encoding='utf-8')
+        output_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
         return output_path
 
 
@@ -923,7 +932,7 @@ def create_sample_report():
             description="The withdraw function makes an external call before updating state, allowing reentrant calls.",
             location="LendingPool.sol:142",
             line_number=142,
-            code_snippet="function withdraw(uint256 amount) external {\n    (bool success,) = msg.sender.call{value: amount}(\"\");\n    balances[msg.sender] -= amount; // State update after call\n}",
+            code_snippet='function withdraw(uint256 amount) external {\n    (bool success,) = msg.sender.call{value: amount}("");\n    balances[msg.sender] -= amount; // State update after call\n}',
             tool="Slither",
             layer=1,
             swc_id="SWC-107",
@@ -974,7 +983,7 @@ def create_sample_report():
         raw_tool_outputs={
             "Slither": {"detectors": ["reentrancy-eth", "missing-zero-check"]},
             "Mythril": {"issues": [{"swc-id": "SWC-101", "severity": "High"}]},
-        }
+        },
     )
 
     return generator
