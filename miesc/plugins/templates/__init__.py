@@ -116,12 +116,22 @@ class Test{class_name}:
         findings = self.detector.analyze(safe_code)
         assert isinstance(findings, list)
 
-    # TODO: Add tests for vulnerable patterns
-    # def test_detect_vulnerability(self):
-    #     \"\"\"Test detecting a vulnerability.\"\"\"
-    #     vulnerable_code = "..."
-    #     findings = self.detector.analyze(vulnerable_code)
-    #     assert len(findings) > 0
+    @pytest.mark.skip(reason="Enable after implementing project-specific detection logic.")
+    def test_detects_project_specific_vulnerability(self):
+        \"\"\"Test detecting the vulnerability pattern implemented by this plugin.\"\"\"
+        vulnerable_code = """
+        // SPDX-License-Identifier: MIT
+        pragma solidity ^0.8.0;
+
+        contract VulnerableContract {{
+            function trigger() external {{
+                // Replace this marker with a real vulnerable pattern.
+                dangerous_pattern();
+            }}
+        }}
+        """
+        findings = self.detector.analyze(vulnerable_code)
+        assert len(findings) > 0
 '''
 
 README_TEMPLATE = """# miesc-{name}

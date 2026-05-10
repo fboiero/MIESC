@@ -33,13 +33,9 @@ platform with the current Paper 1 and Paper 2 evidence.
 | Local lockfile noise | `uv run` generated an untracked `uv.lock` in a pip-oriented project. | Ignored `uv.lock`; existing clean targets and `.gitignore` already cover Python caches, coverage, docs builds, and benchmark outputs. |
 | API/MCP remediation examples | Remediation endpoints existed but reviewer-facing usage examples were missing. | Added `docs/guides/REMEDIATION_API_MCP.md` and linked it from README. |
 | Paper 2 artifact regression | Claim generation lacked a focused test around the expected schema and Paper 1 compatibility rule. | Added `tests/test_generate_paper2_artifacts.py` with temporary output paths. |
+| Generated/cache artifact hygiene | Local ignored artifacts were hard to inspect without a long `git status --ignored` dump. | Added `make local-artifacts`, `DETAIL=1 make local-artifacts`, and `make clean-local-artifacts`; documented the workflow in `docs/guides/REPOSITORY_HYGIENE.md`. |
 
 ## Remaining Debt
 
-### P3: Generated/cache artifact hygiene
-
-The current `.gitignore` covers Python caches, pytest/ruff/mypy caches,
-coverage outputs, docs builds, Foundry/Crytic outputs, and generated benchmark
-results except explicitly versioned paper artifacts. `Makefile` already exposes
-`make clean` and `make clean-all`; add a narrower clean target only if a future
-workflow produces recurring local artifacts that are not already covered.
+No active debt remains in this plan. New debt should be added here only when it
+has a concrete owner, scope, and validation path.

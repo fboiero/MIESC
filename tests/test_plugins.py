@@ -234,6 +234,22 @@ class TestPluginScaffold:
             assert "def analyze" in content
             assert "list[Finding]" in content
 
+    def test_scaffold_test_template_content(self):
+        """Test generated detector tests are actionable and free of placeholders."""
+        from miesc.plugins.templates import create_plugin_scaffold
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = create_plugin_scaffold(
+                name="custom",
+                output_dir=Path(tmpdir),
+            )
+
+            content = (path / "tests" / "test_custom.py").read_text()
+            assert "TODO" not in content
+            assert "test_detects_project_specific_vulnerability" in content
+            assert "@pytest.mark.skip" in content
+            assert "dangerous_pattern" in content
+
 
 class TestPluginIntegration:
     """Integration tests for the plugin system."""
