@@ -98,6 +98,48 @@ def doctor(verbose):
         console.print(tools_table)
         console.print(f"\n[bold]{total_available}/{total_tools}[/bold] tools available")
 
+        # LLM Providers section
+        console.print("")
+        llm_table = Table(title="LLM Providers", box=box.ROUNDED)
+        llm_table.add_column("Provider", style="bold", width=15)
+        llm_table.add_column("Status", width=12)
+        llm_table.add_column("Details", width=40)
+
+        # Ollama
+        try:
+            import urllib.request
+            req = urllib.request.Request("http://localhost:11434/api/tags")
+            resp = urllib.request.urlopen(req, timeout=3)
+            import json as _json
+            models = [m["name"] for m in _json.loads(resp.read()).get("models", [])]
+            coder_models = [m for m in models if "coder" in m or "qwen" in m or "codellama" in m]
+            llm_table.add_row("Ollama", "[green]running[/green]",
+                              f"{len(models)} models ({', '.join(coder_models[:3])})")
+        except Exception:
+            llm_table.add_row("Ollama", "[yellow]offline[/yellow]",
+                              "Install: https://ollama.com + ollama pull qwen2.5-coder:14b")
+
+        # Anthropic
+        import os
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            llm_table.add_row("Anthropic", "[green]configured[/green]", "ANTHROPIC_API_KEY set")
+        else:
+            llm_table.add_row("Anthropic", "[dim]not set[/dim]", "Set ANTHROPIC_API_KEY for Claude")
+
+        # OpenAI
+        if os.environ.get("OPENAI_API_KEY"):
+            llm_table.add_row("OpenAI", "[green]configured[/green]", "OPENAI_API_KEY set")
+        else:
+            llm_table.add_row("OpenAI", "[dim]not set[/dim]", "Set OPENAI_API_KEY for GPT")
+
+        console.print(llm_table)
+
+        # Recommendations
+        console.print("\n[bold]Quick Start:[/bold]")
+        console.print("  [cyan]miesc scan contract.sol[/cyan]              # Static only (95.8% recall)")
+        console.print("  [cyan]miesc scan contract.sol --model ollama[/cyan]  # + Local LLM (97.9% recall)")
+        console.print("  [cyan]miesc scan contract.sol --ensemble[/cyan]      # Multi-provider (92.5% EVMBench)")
+
     else:
         print("=== Core Dependencies ===")  # noqa: T201
         for dep, cmd in dependencies.items():

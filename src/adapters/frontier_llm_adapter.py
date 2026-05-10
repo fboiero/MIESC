@@ -841,6 +841,37 @@ Respond with a JSON array."""
 
         return self._parse_response(response.choices[0].message.content)
 
+    def _ensure_ollama_model(self, model: str) -> bool:
+        """Check if model is available in Ollama, pull if not."""
+        import urllib.request
+
+        try:
+            req = urllib.request.Request("http://localhost:11434/api/tags")
+            resp = urllib.request.urlopen(req, timeout=5)
+            data = json.loads(resp.read())
+            installed = [m["name"] for m in data.get("models", [])]
+            # Check exact match or base name match (e.g., "qwen2.5-coder:32b" in list)
+            if model in installed or any(model.split(":")[0] in m for m in installed):
+                return True
+        except Exception:
+            return False
+
+        # Model not installed — attempt pull
+        logger.info(f"FrontierLLM: Model '{model}' not found locally, pulling...")
+        try:
+            pull_data = json.dumps({"name": model, "stream": False}).encode()
+            pull_req = urllib.request.Request(
+                "http://localhost:11434/api/pull",
+                data=pull_data,
+                headers={"Content-Type": "application/json"},
+            )
+            urllib.request.urlopen(pull_req, timeout=600)
+            logger.info(f"FrontierLLM: Model '{model}' pulled successfully")
+            return True
+        except Exception as e:
+            logger.warning(f"FrontierLLM: Could not pull model '{model}': {e}")
+            return False
+
     def _analyze_ollama(self, source_code: str, **kwargs) -> List[Dict]:
         """Call local Ollama model with the same audit prompt as frontier models."""
         import urllib.request
@@ -848,6 +879,9 @@ Respond with a JSON array."""
         rag_context = kwargs.pop("rag_context", "")
         model = kwargs.get("model", "qwen2.5-coder:32b")
         self._model = model
+
+        # Ensure model is available (auto-pull if needed)
+        self._ensure_ollama_model(model)
 
         # For local models: trim source to 80KB max (32B models have ~32K context)
         max_local_chars = 80_000
