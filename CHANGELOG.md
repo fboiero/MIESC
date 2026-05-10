@@ -5,6 +5,13 @@ All notable changes to MIESC will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Documentation
+
+- Added the 5.4.2 release status note with published artifact links, GHCR
+  digest, standard Docker image scope, and smoke-test commands.
+
 ## [5.4.2] - 2026-05-09
 
 ### Fixed

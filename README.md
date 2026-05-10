@@ -309,6 +309,10 @@ miesc scan Bridge.sol             # Detects 7 bridge exploit patterns
 
 ## Docker
 
+Release status, published artifact links, GHCR digest, and smoke-test commands
+for the current 5.4.2 release are recorded in
+[MIESC 5.4.2 Release Status](./docs/policies/RELEASE_STATUS_5.4.2.md).
+
 ```bash
 # Standard image (~3GB, multi-arch including Apple Silicon)
 docker pull ghcr.io/fboiero/miesc:latest

@@ -99,6 +99,10 @@ cosign verify \
   ghcr.io/fboiero/miesc:5.4.2
 ```
 
+The published 5.4.2 Docker status, GHCR digest, image scope, and smoke-test
+commands are recorded in
+[MIESC 5.4.2 Release Status](RELEASE_STATUS_5.4.2.md).
+
 ---
 
 ## Verifying PyPI Packages
