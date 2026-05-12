@@ -117,8 +117,6 @@ web = [
     "flask>=3.0.0",
     "flask-socketio>=5.3.0",
     "flask-cors>=4.0.0",
-    "streamlit>=1.28.0",
-    "plotly>=5.18.0",
 ]
 # Django REST API (requires Python 3.10+)
 django = [
@@ -138,8 +136,6 @@ full = [
     "flask>=3.0.0",
     "flask-socketio>=5.3.0",
     "flask-cors>=4.0.0",
-    "streamlit>=1.28.0",
-    "plotly>=5.18.0",
     "weasyprint>=60.0",
     "markdown>=3.5.0",
     # Lightweight RAG dependencies. Semantic embeddings are split into
@@ -201,13 +197,11 @@ packages = [
     "src.benchmark",
     "src.cache",
     "src.core",
-    "src.dashboard",
     "src.detectors",
     "src.evaluation",
     "src.formal",
     "src.integration",
     "src.knowledge_base",
-    "src.licensing",
     "src.llm",
     "src.mcp_core",
     "src.ml",
@@ -269,7 +263,6 @@ ignore = [
 "miesc/api/rest.py" = ["F401", "E741", "F841"]
 "miesc/cli/main.py" = ["F401", "E741", "F841"]
 "tests/test_rest_api.py" = ["F401"]
-"tests/test_licensing.py" = ["F401", "E722", "B007", "F841"]
 # Tests frequently define helpers with single-letter names, redefine classes
 # by coverage group, and use throwaway expressions. These are stylistic-only
 # and do not affect production code.
@@ -331,8 +324,6 @@ omit = [
     "src/graph_visualizer.py",
     # Internal test fixtures
     "src/miesc_tests/*",
-    # Licensing module (separate product)
-    "src/licensing/*",
     # Detectors with external dependencies
     "src/detectors/smartbugs_detectors.py",
     # Duplicate/backup files
@@ -437,8 +428,6 @@ omit = [
     "src/detectors/defi_detectors.py",
     # Knowledge base
     "src/knowledge_base/*",
-    # Dashboard (requires full UI stack)
-    "src/dashboard/*",
 ]
 
 [tool.coverage.report]
@@ -473,9 +462,7 @@ paths_to_exclude = [
     "src/miesc_*.py",
     "src/detectors/smartbugs_detectors.py",
     "src/agents/crewai_coordinator.py",
-    "src/licensing/",
     "src/miesc_tests/",
-    "src/dashboard/",
 ]
 
 # Test timeout per mutation (seconds)

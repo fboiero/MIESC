@@ -1,5 +1,5 @@
 """
-MIESC Policy Mapper - Compatibility shim for webapp imports.
+MIESC Policy Mapper - Compatibility shim for legacy imports.
 
 .. deprecated:: 5.1.1
     Use ``from src.security.compliance_mapper import ComplianceMapper`` instead.

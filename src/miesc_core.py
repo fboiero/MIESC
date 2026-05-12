@@ -1,5 +1,5 @@
 """
-MIESC Core - Compatibility shim for webapp imports.
+MIESC Core - Compatibility shim for legacy imports.
 
 .. deprecated:: 5.1.1
     Use ``from miesc.api import run_full_audit`` instead.
@@ -80,7 +80,7 @@ class MIESCCore:
             return {"findings": [], "metadata": {"error": str(e)}, "success": False}
 
     def scan(self, contract_path: str, tools: list = None) -> dict:
-        """Alias for analyze() - backwards compatibility with webapp."""
+        """Alias for analyze() for backwards compatibility."""
         return self.analyze(contract_path, tools=tools)
 
     def get_available_tools(self) -> list:

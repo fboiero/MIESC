@@ -116,16 +116,6 @@ docs-deploy:  ## Deploy documentation to GitHub Pages
 	@mkdocs gh-deploy --force
 	@echo "$(GREEN)✓ Documentation deployed to https://fboiero.github.io/MIESC$(NC)"
 
-webapp:  ## Launch web demo (Streamlit)
-	@echo "$(BLUE)Starting MIESC Web Demo...$(NC)"
-	@echo "$(YELLOW)Opening browser at http://localhost:8501$(NC)"
-	@streamlit run webapp/app.py
-
-install-webapp:  ## Install webapp dependencies
-	@echo "$(BLUE)Installing webapp dependencies...$(NC)"
-	@pip install -r requirements/requirements-webapp.txt
-	@echo "$(GREEN)✓ Webapp dependencies installed$(NC)"
-
 install-docs:  ## Install documentation dependencies
 	@echo "$(BLUE)Installing documentation dependencies...$(NC)"
 	@pip install mkdocs-material mkdocs-minify-plugin mkdocs-git-revision-date-localized-plugin mkdocstrings[python] mkdocs-autorefs

@@ -67,28 +67,3 @@ updates:
       - "docker"
     commit-message:
       prefix: "chore(docker):"
-
-  # npm dependencies (VS Code extension)
-  - package-ecosystem: "npm"
-    directory: "/vscode-extension"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Argentina/Buenos_Aires"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "fboiero"
-    labels:
-      - "dependencies"
-      - "npm"
-      - "vscode-extension"
-    commit-message:
-      prefix: "chore(deps):"
-    groups:
-      npm-minor:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"

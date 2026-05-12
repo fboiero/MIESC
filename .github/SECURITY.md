@@ -31,7 +31,6 @@ In scope:
 - MIESC framework code (`src/`, `miesc/`)
 - Docker images (`docker/`)
 - GitHub Action (`action.yml`)
-- Web dashboard (`webapp/`)
 - LLM prompt injection in security analysis pipeline
 
 Out of scope:

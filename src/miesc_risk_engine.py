@@ -1,5 +1,5 @@
 """
-MIESC Risk Engine - Compatibility shim for webapp imports.
+MIESC Risk Engine - Compatibility shim for legacy imports.
 
 .. deprecated:: 5.1.1
     This module will be moved to ``src.core.risk_engine`` in v6.0.0.

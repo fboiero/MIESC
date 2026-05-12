@@ -7,9 +7,8 @@ This script performs comprehensive regression testing across all MIESC modules:
 1. CLI Tool (miesc-quick)
 2. Full 7-Layer Audit (run_complete_multilayer_audit.py)
 3. MCP REST Server (miesc_mcp_rest.py)
-4. Web Interface (Streamlit webapp)
-5. Individual Adapters (26 tools)
-6. AI Correlation & ML Detection
+4. Individual Adapters (26 tools)
+5. AI Correlation & ML Detection
 
 Each test captures evidence (logs, screenshots) for documentation.
 
@@ -34,28 +33,11 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-# Try to import Selenium for web screenshots
-SELENIUM_AVAILABLE = False
-try:
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    from selenium.webdriver.chrome.service import Service
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.support.ui import WebDriverWait
-    from webdriver_manager.chrome import ChromeDriverManager
-
-    SELENIUM_AVAILABLE = True
-except ImportError:
-    print("Warning: Selenium not available, web screenshots will be skipped")
-
 # Evidence directories
 EVIDENCE_DIR = PROJECT_ROOT / "docs" / "evidence"
-SCREENSHOTS_DIR = EVIDENCE_DIR / "screenshots"
 LOGS_DIR = EVIDENCE_DIR / "logs"
 
 # Ensure directories exist
-SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -78,47 +60,6 @@ class MIESCRegressionTester:
     def __init__(self):
         self.results: List[TestResult] = []
         self.start_time = datetime.now()
-        self.driver = None
-
-    def setup_selenium(self):
-        """Initialize Selenium WebDriver"""
-        if not SELENIUM_AVAILABLE:
-            return False
-
-        try:
-            options = Options()
-            options.add_argument("--headless")
-            options.add_argument("--window-size=1920,1080")
-            options.add_argument("--no-sandbox")
-            options.add_argument("--disable-dev-shm-usage")
-
-            service = Service(ChromeDriverManager().install())
-            self.driver = webdriver.Chrome(service=service, options=options)
-            return True
-        except Exception as e:
-            print(f"Failed to setup Selenium: {e}")
-            return False
-
-    def teardown_selenium(self):
-        """Close Selenium WebDriver"""
-        if self.driver:
-            self.driver.quit()
-
-    def capture_screenshot(self, name: str) -> Optional[str]:
-        """Capture a screenshot with timestamp"""
-        if not self.driver:
-            return None
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{name}_{timestamp}.png"
-        filepath = SCREENSHOTS_DIR / filename
-
-        try:
-            self.driver.save_screenshot(str(filepath))
-            return str(filepath)
-        except Exception as e:
-            print(f"Failed to capture screenshot: {e}")
-            return None
 
     def save_log(self, name: str, content: str) -> str:
         """Save test log to file"""
@@ -377,93 +318,6 @@ class MIESCRegressionTester:
                 message=str(e),
             )
 
-    # ==================== Web Interface Tests ====================
-
-    def test_webapp_home(self) -> TestResult:
-        """Test Streamlit webapp home page"""
-        start = time.time()
-
-        if not self.driver:
-            return TestResult(
-                name="Webapp Home Page",
-                module="webapp",
-                status="SKIP",
-                duration=time.time() - start,
-                message="Selenium not available",
-            )
-
-        try:
-            self.driver.get("http://localhost:8501")
-
-            # Wait for page to load
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
-            )
-
-            time.sleep(3)  # Wait for Streamlit to fully render
-
-            screenshot_path = self.capture_screenshot("webapp_home")
-
-            # Check for MIESC title
-            page_source = self.driver.page_source
-            has_title = "MIESC" in page_source
-
-            return TestResult(
-                name="Webapp Home Page",
-                module="webapp",
-                status="PASS" if has_title else "FAIL",
-                duration=time.time() - start,
-                message="Home page loaded successfully",
-                evidence_path=screenshot_path,
-            )
-
-        except Exception as e:
-            return TestResult(
-                name="Webapp Home Page",
-                module="webapp",
-                status="FAIL",
-                duration=time.time() - start,
-                message=str(e),
-            )
-
-    def test_webapp_analysis(self) -> TestResult:
-        """Test Streamlit webapp analysis functionality"""
-        start = time.time()
-
-        if not self.driver:
-            return TestResult(
-                name="Webapp Analysis",
-                module="webapp",
-                status="SKIP",
-                duration=time.time() - start,
-                message="Selenium not available",
-            )
-
-        try:
-            self.driver.get("http://localhost:8501")
-            time.sleep(5)  # Wait for app to load
-
-            # Take screenshot of analysis page
-            screenshot_path = self.capture_screenshot("webapp_analysis")
-
-            return TestResult(
-                name="Webapp Analysis",
-                module="webapp",
-                status="PASS",
-                duration=time.time() - start,
-                message="Analysis page accessible",
-                evidence_path=screenshot_path,
-            )
-
-        except Exception as e:
-            return TestResult(
-                name="Webapp Analysis",
-                module="webapp",
-                status="FAIL",
-                duration=time.time() - start,
-                message=str(e),
-            )
-
     # ==================== Full Audit Test ====================
 
     def test_full_audit(self) -> TestResult:
@@ -648,13 +502,6 @@ MIESC v4.0.0 regression testing {'completed successfully' if failed == 0 else 'f
         print("MIESC v4.0.0 - Complete Regression Test Suite")
         print("=" * 70 + "\n")
 
-        # Setup
-        print("Setting up Selenium...")
-        selenium_ok = self.setup_selenium()
-        print(
-            f"  {'✅' if selenium_ok else '⚠️'} Selenium: {'Ready' if selenium_ok else 'Not available'}\n"
-        )
-
         # CLI Tests
         print("\n📋 Testing CLI (miesc-quick)...")
         self.add_result(self.test_cli_doctor())
@@ -669,11 +516,6 @@ MIESC v4.0.0 regression testing {'completed successfully' if failed == 0 else 'f
         print("\n🌐 Testing MCP Server...")
         self.add_result(self.test_mcp_server())
 
-        # Webapp Tests
-        print("\n💻 Testing Web Application...")
-        self.add_result(self.test_webapp_home())
-        self.add_result(self.test_webapp_analysis())
-
         # Full Audit Test
         print("\n🔍 Testing Full Audit...")
         self.add_result(self.test_full_audit())
@@ -681,9 +523,6 @@ MIESC v4.0.0 regression testing {'completed successfully' if failed == 0 else 'f
         # Pytest Suite
         print("\n🧪 Running Pytest Suite...")
         self.add_result(self.test_pytest_suite())
-
-        # Cleanup
-        self.teardown_selenium()
 
         # Generate report
         print("\n📝 Generating Report...")
