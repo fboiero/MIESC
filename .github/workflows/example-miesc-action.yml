@@ -9,6 +9,7 @@ name: Smart Contract Security (MIESC)
 
 on:
   push:
+    branches: ['**']
     paths: ['contracts/**/*.sol', 'src/**/*.sol']
   pull_request:
     paths: ['contracts/**/*.sol', 'src/**/*.sol']
@@ -25,6 +26,7 @@ jobs:
   quick-scan:
     name: Quick Security Scan
     runs-on: ubuntu-latest
+    if: github.repository != 'fboiero/MIESC'
     steps:
       - uses: actions/checkout@v4
 
@@ -43,7 +45,7 @@ jobs:
   full-audit:
     name: Full Security Audit
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.repository != 'fboiero/MIESC' && github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
 

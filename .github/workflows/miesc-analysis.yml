@@ -8,6 +8,8 @@ name: MIESC Security Analysis
 
 on:
   push:
+    branches:
+      - '**'
     paths:
       - '**.sol'
       - 'contracts/**'
