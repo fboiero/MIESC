@@ -49,6 +49,45 @@ export CERTORA_KEY="..."
 
 `apik.sh` is ignored by Git.
 
+## Reproducible Workstation Check
+
+Use the diagnostic script as the source of truth for local tool availability:
+
+```bash
+export OLLAMA_HOST=http://127.0.0.1:11434
+uv run python scripts/diagnose-adapters.py
+```
+
+A fully provisioned researcher workstation should report:
+
+```text
+Registered 50/50 adapters
+Total adapters checked:  50
+Available:               50
+Not installed:           0
+Configuration error:     0
+License required:        0
+Pass rate: 100.0%
+```
+
+The script writes `diagnostic-report.json` in the repository root. That file is generated evidence for the local run and is ignored by Git.
+
+Local environment files are intentionally excluded from version control:
+
+| Path | Reason |
+|------|--------|
+| `.venv/` | Main Python runtime |
+| `.tools/` | Isolated heavyweight tool runtimes |
+| `apik.sh` | Optional local credentials |
+| `diagnostic-report.json` | Generated diagnostic result |
+| `.paper-freeze-local/` | Local reproducibility freeze checks |
+
+Do not use `ollama list` as the only Ollama health check on macOS. Some native Ollama CLI builds can fail before listing models because of MLX/Metal initialization, while the running HTTP service remains healthy. Prefer:
+
+```bash
+curl -s http://127.0.0.1:11434/api/tags
+```
+
 ## Verification
 
 ```bash
@@ -64,8 +103,33 @@ export CERTORA_KEY="..."
 
 Expected for a fully provisioned local workstation:
 
-- `doctor`: `50/50 tools available`
+- `scripts/diagnose-adapters.py`: `50/50 adapters available`
 - full smoke: all core tools execute; project-specific tools may report clean skips when the fixture lacks a Hardhat project, Foundry tests, ZK circuit source, or Certora CVL spec.
+
+## External Project Quickstart
+
+For a Solidity project outside the MIESC repository:
+
+```bash
+cd /path/to/solidity-project
+export OLLAMA_HOST=http://127.0.0.1:11434
+/path/to/MIESC/.venv/bin/miesc audit full contracts/MyContract.sol \
+  -o miesc-full-audit.json \
+  -f json \
+  -t 120 \
+  --skip-unavailable
+```
+
+Then generate a report:
+
+```bash
+/path/to/MIESC/.venv/bin/miesc report miesc-full-audit.json \
+  -t premium \
+  -f pdf \
+  -o miesc-audit-report.pdf
+```
+
+For projects with Foundry, Hardhat, Certora specs, or ZK circuits, run MIESC from the project root so adapters can discover project-level configuration and tests.
 
 ## Docker Full Image
 
