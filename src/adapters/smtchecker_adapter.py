@@ -11,7 +11,9 @@ Version: 2.0.0 (Matured)
 """
 
 import logging
+import os
 import re
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -47,6 +49,7 @@ class SMTCheckerAdapter(ToolAdapter):
         super().__init__()
         self._default_timeout = 300  # 5 minutes
         self._solc_min_version = "0.5.0"
+        self._solc_cmd = self._find_solc_binary()
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -83,9 +86,13 @@ class SMTCheckerAdapter(ToolAdapter):
 
     def is_available(self) -> ToolStatus:
         """Check if solc is installed and supports SMTChecker."""
+        if not self._solc_cmd:
+            logger.info("SMTChecker: solc not installed")
+            return ToolStatus.NOT_INSTALLED
+
         try:
             result = subprocess.run(
-                ["solc", "--version"], capture_output=True, timeout=5, text=True
+                [self._solc_cmd, "--version"], capture_output=True, timeout=5, text=True
             )
 
             if result.returncode == 0:
@@ -108,6 +115,35 @@ class SMTCheckerAdapter(ToolAdapter):
         except Exception as e:
             logger.error(f"Error checking SMTChecker: {e}")
             return ToolStatus.CONFIGURATION_ERROR
+
+    def _find_solc_binary(self) -> str | None:
+        """Find a working solc binary, preferring native package-manager installs."""
+        candidates = [
+            "/opt/homebrew/bin/solc",
+            "/usr/local/Homebrew/bin/solc",
+            "/usr/local/bin/solc",
+        ]
+        path_solc = shutil.which("solc")
+        if path_solc:
+            candidates.insert(0, path_solc)
+
+        seen = set()
+        for candidate in candidates:
+            if not candidate or candidate in seen:
+                continue
+            seen.add(candidate)
+            if not os.path.exists(candidate):
+                continue
+            try:
+                result = subprocess.run(
+                    [candidate, "--version"], capture_output=True, timeout=5, text=True
+                )
+                if result.returncode == 0 and "Version:" in result.stdout:
+                    return candidate
+            except Exception:
+                continue
+
+        return None
 
     def analyze(self, contract_path: str, **kwargs) -> Dict[str, Any]:
         """
@@ -219,9 +255,10 @@ class SMTCheckerAdapter(ToolAdapter):
         self, contract_path: str, timeout: int = 300, engine: str = "all", targets: str = "all"
     ) -> str:
         """Execute SMTChecker via solc compiler."""
+        solc_cmd = self._solc_cmd or self._find_solc_binary() or "solc"
 
         cmd = [
-            "solc",
+            solc_cmd,
             "--model-checker-engine",
             engine,
             "--model-checker-targets",

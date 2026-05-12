@@ -287,9 +287,11 @@ class SemgrepAdapter(ToolAdapter):
         logger.debug(f"Semgrep adapter initialized (rules={self.rules})")
 
     def _find_semgrep_binary(self) -> str:
-        repo_tool = Path(__file__).resolve().parents[2] / ".tools" / "semgrep" / "bin" / "semgrep"
-        if repo_tool.exists():
-            return str(repo_tool)
+        repo_tool_dir = Path(__file__).resolve().parents[2] / ".tools" / "semgrep" / "bin"
+        for candidate in ("pysemgrep", "semgrep"):
+            repo_tool = repo_tool_dir / candidate
+            if repo_tool.exists():
+                return str(repo_tool)
         return shutil.which("semgrep") or "semgrep"
 
     def _semgrep_env(self) -> Dict[str, str]:

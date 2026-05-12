@@ -238,6 +238,21 @@ class TestInitialization:
         adapter = SemgrepAdapter(config=None)
         assert adapter.config == {}
 
+    def test_prefers_repo_pysemgrep_launcher(self, tmp_path):
+        """Test local pysemgrep launcher is preferred when available."""
+        tool_dir = tmp_path / ".tools" / "semgrep" / "bin"
+        tool_dir.mkdir(parents=True)
+        pysemgrep = tool_dir / "pysemgrep"
+        pysemgrep.touch()
+
+        with patch(
+            "src.adapters.semgrep_adapter.Path.resolve",
+            return_value=tmp_path / "src" / "adapters" / "semgrep_adapter.py",
+        ):
+            adapter = SemgrepAdapter(config={})
+
+        assert adapter.semgrep_bin == str(pysemgrep)
+
 
 # =============================================================================
 # Metadata Tests

@@ -78,6 +78,7 @@ docker/ssl/
 # -----------------------------------------------------------------------------
 *.log
 *.tmp
+diagnostic-report.json
 logs/
 temp/
 tmp/

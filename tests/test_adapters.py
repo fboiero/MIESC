@@ -195,6 +195,26 @@ class TestSMTCheckerAdapter(TestAdapterBase):
 
         assert metadata.name == "smtchecker"
 
+    def test_find_solc_binary_skips_broken_path_candidate(self):
+        """Test SMTChecker selects a working solc binary when PATH has a broken shim."""
+        from src.adapters.smtchecker_adapter import SMTCheckerAdapter
+
+        def fake_run(cmd, **kwargs):
+            if cmd[0] == "/usr/local/bin/solc":
+                return MagicMock(returncode=1, stdout="", stderr="bad interpreter")
+            return MagicMock(returncode=0, stdout="Version: 0.8.33", stderr="")
+
+        with (
+            patch(
+                "src.adapters.smtchecker_adapter.shutil.which", return_value="/usr/local/bin/solc"
+            ),
+            patch("src.adapters.smtchecker_adapter.os.path.exists", return_value=True),
+            patch("subprocess.run", side_effect=fake_run),
+        ):
+            adapter = SMTCheckerAdapter()
+
+        assert adapter._solc_cmd == "/opt/homebrew/bin/solc"
+
 
 class TestEchidnaAdapter(TestAdapterBase):
     """Tests for EchidnaAdapter."""
