@@ -9,14 +9,14 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-12-03
 """
 
-from docx import Document
-from docx.shared import Inches, Pt, Cm, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
-from docx.enum.style import WD_STYLE_TYPE
-from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
 from datetime import datetime
+
+from docx import Document
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Cm, Inches, Pt, RGBColor
 
 
 def set_cell_shading(cell, color):
@@ -135,7 +135,7 @@ def create_miesc_report():
 
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = p.add_run(f"Versión del Framework: 4.0.0")
+    run = p.add_run("Versión del Framework: 4.0.0")
     run.font.size = Pt(11)
 
     p = doc.add_paragraph()
@@ -185,7 +185,7 @@ def create_miesc_report():
         ("   8.3 Análisis de Rendimiento", 35),
         ("9. Mejoras Implementadas en v4.0.0", 37),
         ("   9.1 API REST y WebSocket", 37),
-        ("   9.2 Dashboard Interactivo", 38),
+        ("   9.2 Dashboard HTML Estático", 38),
         ("   9.3 Pipeline CI/CD", 39),
         ("   9.4 Suite de Benchmarks", 40),
         ("10. Conclusiones y Trabajo Futuro", 41),
@@ -230,7 +230,7 @@ El presente informe documenta de manera exhaustiva el proceso de desarrollo de M
 
     p = doc.add_paragraph()
     p.add_run("""
-La versión 4.0.0 introduce cuatro mejoras críticas: API REST con soporte WebSocket para análisis en tiempo real, dashboard interactivo con visualizaciones Plotly, pipeline CI/CD completo en GitHub Actions, y una suite de benchmarks automatizada para evaluación continua del rendimiento.
+La versión 4.0.0 introduce cuatro mejoras críticas: API REST local con soporte WebSocket para análisis en tiempo real, dashboard HTML estático generado desde resultados reproducibles, pipeline CI/CD completo en GitHub Actions, y una suite de benchmarks automatizada para evaluación continua del rendimiento.
 
 Este trabajo contribuye al estado del arte proporcionando una solución integral que no solo detecta vulnerabilidades, sino que las clasifica según estándares internacionales (SWC, CWE, OWASP) y genera recomendaciones contextualizadas para su remediación.
 """)
@@ -843,7 +843,7 @@ Donde num_confirmations es el número de herramientas adicionales que detectaron
 
     objectives_v3 = [
         "Alcanzar 22 herramientas integradas",
-        "Implementar dashboard web interactivo",
+        "Implementar dashboard HTML estático reproducible",
         "Agregar compatibilidad con protocolo MCP",
         "Incorporar primeras capacidades de ML",
     ]
@@ -1477,10 +1477,10 @@ Cobertura de Código
     p.add_run("""Se implementó una API REST completa con soporte WebSocket para análisis en tiempo real:
 
 Endpoints REST:
-- POST /api/v1/analyze - Iniciar análisis de contrato
-- GET /api/v1/analysis/{id} - Obtener estado/resultados
-- GET /api/v1/health - Health check del servicio
-- GET /api/v1/tools - Listar herramientas disponibles
+- POST /api/v1/analyze/quick/ - Iniciar análisis rápido de contrato
+- POST /api/v1/analyze/full/ - Iniciar auditoría multi-capa
+- GET /api/v1/health/ - Health check del servicio
+- GET /api/v1/tools/ - Listar herramientas disponibles
 
 Eventos WebSocket:
 - analysis_started - Notificación de inicio
@@ -1494,62 +1494,56 @@ Eventos WebSocket:
 
     p = doc.add_paragraph()
     p.add_run("""
-Framework: Flask + Flask-SocketIO
-Puerto por defecto: 5002
+Framework: Django + Django REST Framework
+Puerto por defecto: 8000
 Autenticación: API Key (opcional)
 Rate Limiting: 100 requests/minuto
 
-Ejemplo de uso WebSocket:
+Ejemplo de uso REST:
 """)
 
     p = doc.add_paragraph()
     p.add_run("""
-import socketio
+import requests
 
-sio = socketio.Client()
-sio.connect('http://localhost:5002')
+response = requests.post(
+    'http://localhost:8000/api/v1/analyze/quick/',
+    json={'contract_path': '/path/to/contract.sol'}
+)
 
-@sio.on('finding_discovered')
-def on_finding(data):
-    print(f"Nueva vulnerabilidad: {data['finding']['title']}")
-
-sio.emit('start_analysis', {
-    'contract_path': '/path/to/contract.sol',
-    'scan_type': 'full'
-})
+print(response.json())
 """).font.name = 'Courier New'
 
-    doc.add_heading("9.2 Dashboard Interactivo", level=2)
+    doc.add_heading("9.2 Dashboard HTML Estático", level=2)
 
     p = doc.add_paragraph()
     p.add_run("Descripción:").bold = True
 
     p = doc.add_paragraph()
-    p.add_run("""Dashboard web construido con Streamlit y Plotly que proporciona:
+    p.add_run("""Dashboard HTML generado desde resultados locales reproducibles que proporciona:
 
-Visualizaciones Interactivas:
-- Gráfico de donut de severidad con drill-down
-- Gráfico de barras comparativo de herramientas
-- Gauge de nivel de riesgo general
-- Gráfico radar de categorías de vulnerabilidad
-- Timeline de hallazgos
-- Matriz de cumplimiento de estándares
+Visualizaciones:
+- Resumen de severidad
+- Comparativo de herramientas
+- Nivel de riesgo general
+- Categorías de vulnerabilidad
+- Hallazgos y métricas de análisis
+- Evidencia local versionable
 
 Funcionalidades:
-- Upload de contratos vía drag & drop
-- Filtrado interactivo de resultados
-- Exportación a PDF, JSON, SARIF
-- Historial de análisis
-- Comparación entre versiones de contrato
+- Generación desde analysis/results
+- Exportación de HTML y métricas JSON
+- Evidencia reproducible sin servicio hospedado
+- Integración con scripts de captura de evidencia
 """)
 
     p = doc.add_paragraph()
     p.add_run("\nTecnologías Utilizadas:").bold = True
     p.add_run("""
-- Streamlit 1.28+ como framework principal
-- Plotly 5.18+ para visualizaciones interactivas
-- Pandas para procesamiento de datos
-- Responsive design para múltiples dispositivos
+- Python y Jinja2 para renderizado estático
+- JSON como formato de intercambio de métricas
+- HTML/CSS portable para revisión local
+- Sin dependencia de la capa de plataforma web
 """)
 
     doc.add_heading("9.3 Pipeline CI/CD", level=2)
@@ -1658,7 +1652,7 @@ Los resultados experimentales demuestran que:
         "Framework integrado con la mayor cobertura de herramientas de seguridad para smart contracts",
         "Sistema de correlación que reduce significativamente falsos positivos",
         "Primera integración de herramientas ML/AI modernas (PropertyGPT, DA-GNN) en un framework unificado",
-        "API y dashboard que facilitan la adopción en entornos de desarrollo profesionales",
+        "API local y dashboard HTML estático que facilitan la adopción en entornos de desarrollo profesionales",
         "Validación experimental rigurosa con datasets públicos reconocidos",
     ]
 
@@ -1690,7 +1684,7 @@ Los resultados experimentales demuestran que:
 
 3. Análisis de Interacciones: Detección de vulnerabilidades que emergen de la interacción entre múltiples contratos.
 
-4. Integración con IDEs: Plugins para VSCode y otros IDEs populares.
+4. Integración con IDEs: clientes de plataforma para VSCode y otros IDEs populares, mantenidos fuera del core público.
 
 5. Análisis Continuo: Monitoreo de contratos desplegados para detectar nuevas vulnerabilidades post-deployment.
 
@@ -1758,10 +1752,9 @@ MIESC/
 │   │   ├── findings.py             # Modelos de hallazgos
 │   │   ├── severity.py             # Enums de severidad
 │   │   └── tool_result.py          # Resultado de herramienta
-│   └── miesc_websocket_api.py      # API WebSocket
-├── webapp/
-│   ├── app.py                      # Dashboard Flask
-│   └── dashboard_enhanced.py       # Dashboard Streamlit
+│   └── core/websocket_api.py       # API WebSocket local
+├── analysis/
+│   └── dashboard/                  # Dashboard HTML estatico generado
 ├── benchmarks/
 │   └── run_benchmarks.py           # Suite de benchmarks
 ├── tests/

@@ -4,7 +4,7 @@ MIESC-Quick - Lightweight Pre-Audit Scanner for Solidity Developers
 ====================================================================
 
 This is a QUICK SCAN companion tool, NOT the complete MIESC framework.
-For full 7-layer audits with 25+ tools, use the main orchestrator.
+For full 9-layer audits with the configured adapter stack, use the main CLI.
 
 What this tool does:
   - Fast pre-audit scans using Slither, Aderyn, and Solhint
@@ -12,15 +12,15 @@ What this tool does:
   - Basic remediation suggestions
 
 What this tool does NOT do:
-  - Full 7-layer defense-in-depth analysis
+  - Full 9-layer defense-in-depth analysis
   - Fuzzing (Echidna, Medusa, DogeFuzz)
   - Symbolic execution (Mythril, Halmos)
   - Formal verification (Certora, SMTChecker)
   - AI-assisted analysis (SmartLLM, DA-GNN, PropertyGPT)
 
 For complete audits, use:
-  - python run_complete_multilayer_audit.py <contract>  # Full 7-layer audit
-  - python src/miesc_mcp_rest.py                        # MCP JSON-RPC server
+  - miesc audit <contract>                              # Full configured audit
+  - python -m miesc.api.rest                            # Local REST API server
 
 Usage:
     miesc-quick scan <contract.sol>       Quick security scan (~30s)
@@ -446,7 +446,7 @@ def print_banner():
     banner = f"""
 {color('╔════════════════════════════════════════════════════════════════════╗', Colors.CYAN)}
 {color('║', Colors.CYAN)}  {color('MIESC-Quick', Colors.BOLD)} - Lightweight Pre-Audit Scanner                       {color('║', Colors.CYAN)}
-{color('║', Colors.CYAN)}  {color('v4.0.0', Colors.DIM)}         For full 7-layer audit: run_complete_multilayer_audit.py  {color('║', Colors.CYAN)}
+{color('║', Colors.CYAN)}  {color('v5.4.2', Colors.DIM)}         For full audits: miesc audit <contract.sol>             {color('║', Colors.CYAN)}
 {color('╚════════════════════════════════════════════════════════════════════╝', Colors.CYAN)}
 """
     print(banner)
@@ -879,7 +879,7 @@ def cmd_watch(args):
 def main():
     parser = argparse.ArgumentParser(
         prog='miesc-quick',
-        description='MIESC-Quick - Lightweight Pre-Audit Scanner (NOT the full 7-layer framework)',
+        description='MIESC-Quick - Lightweight Pre-Audit Scanner (NOT the full 9-layer framework)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -890,11 +890,11 @@ Examples:
   miesc-quick checklist                      Pre-audit security checklist
   miesc-quick watch ./contracts              Watch for changes
 
-For FULL 7-layer audits with 25+ tools, use:
-  python run_complete_multilayer_audit.py <contract.sol>
+For FULL configured audits, use:
+  miesc audit <contract.sol>
 
-For MCP JSON-RPC server:
-  python src/miesc_mcp_rest.py
+For local REST API server:
+  python -m miesc.api.rest
 """
     )
 

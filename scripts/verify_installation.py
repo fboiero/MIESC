@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MIESC v4.3.0 - Installation Verification Script
+MIESC installation verification script.
 
 This script verifies that MIESC is properly installed and all tools are available.
 Run after installation to confirm everything is working.
@@ -18,6 +18,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+
+from miesc import __version__
+from miesc.cli.constants import ADAPTER_MAP
 
 # Colors for terminal output
 GREEN = "\033[92m"
@@ -156,8 +159,9 @@ def run_quick_test(contract_path: str) -> Dict[str, Any]:
         adapter = SlitherAdapter()
         if adapter.is_available().value == "available":
             result = adapter.analyze(contract_path)
+            status = result.get("status")
             return {
-                "success": result.get("success", False),
+                "success": status == "success" or result.get("success", False),
                 "findings": len(result.get("findings", [])),
                 "tool": "slither",
             }
@@ -168,14 +172,14 @@ def run_quick_test(contract_path: str) -> Dict[str, Any]:
 
 def main():
     """Main verification function."""
-    print_header("MIESC v4.3.0 - Installation Verification")
+    print_header(f"MIESC v{__version__} - Installation Verification")
 
     results = {
         "timestamp": datetime.now().isoformat(),
         "python_ok": False,
         "core_deps_ok": False,
         "tools_available": 0,
-        "tools_total": 31,
+        "tools_total": len(ADAPTER_MAP),
         "issues": [],
     }
 
@@ -186,12 +190,11 @@ def main():
     # 2. Check core Python dependencies
     print_section("2. Core Python Dependencies")
     core_packages = [
-        ("slither_analyzer", "slither-analyzer"),
-        ("fastapi", "fastapi"),
+        ("django", "django"),
+        ("rest_framework", "djangorestframework"),
         ("pydantic", "pydantic"),
         ("click", "click"),
-        ("streamlit", "streamlit"),
-        ("flask", "flask"),
+        ("rich", "rich"),
     ]
 
     all_core_ok = True
@@ -281,7 +284,9 @@ def main():
 
     # Find a test contract
     project_root = Path(__file__).parent.parent
-    test_contracts = list(project_root.glob("examples/contracts/*.sol"))
+    known_contract = project_root / "tests" / "fixtures" / "reentrancy.sol"
+    test_contracts = [known_contract] if known_contract.exists() else []
+    test_contracts.extend(project_root.glob("examples/contracts/*.sol"))
 
     if test_contracts:
         contract = test_contracts[0]

@@ -115,7 +115,7 @@ services:
     profiles:
       - test
 
-  # MIESC API Server (FastAPI)
+  # MIESC API Server (Django REST)
   miesc-api:
     build:
       context: ..
@@ -128,7 +128,7 @@ services:
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434
       - MIESC_LLM_MODEL=mistral:latest
-    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+    command: server rest --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     volumes:
@@ -137,7 +137,7 @@ services:
     networks:
       - miesc-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/"]
       interval: 30s
       timeout: 10s
       retries: 3

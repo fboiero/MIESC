@@ -428,13 +428,13 @@ For detailed setup instructions, see [Signed Commits Guide](docs/guides/SIGNED_C
 
 ```bash
 # Install documentation dependencies
-pip install mkdocs mkdocs-material
+pip install mkdocs mkdocs-material mkdocs-minify-plugin
 
 # Serve docs locally
-mkdocs serve
+mkdocs serve -f docs/mkdocs.yml
 
 # Build static site
-mkdocs build
+mkdocs build -f docs/mkdocs.yml
 ```
 
 ### Documentation Standards

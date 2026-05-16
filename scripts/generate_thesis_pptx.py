@@ -653,12 +653,13 @@ class ToolAdapter(ABC):
 {
   "mcpServers": {
     "miesc": {
-      "url": "http://localhost:8080/mcp/jsonrpc"
+      "command": "python",
+      "args": ["-m", "miesc.mcp_server"]
     }
   }
 }
 
-Endpoints disponibles:
+Herramientas disponibles:
 - run_audit: Ejecutar auditoria
 - correlate_findings: Correlacionar hallazgos
 - map_compliance: Mapear a estandares
@@ -874,7 +875,7 @@ function withdraw() public {
             "Trabajos Futuros implementados:",
             "- TF-5.2: GitHub Action CI/CD",
             "- TF-5.3: WebSocket Streaming",
-            "- TF-5.4: Dashboard Streamlit mejorado",
+            "- TF-5.4: Dashboard HTML estatico reproducible",
         ],
         COLORS["yellow"],
     )

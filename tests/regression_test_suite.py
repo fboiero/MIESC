@@ -6,7 +6,7 @@ MIESC v4.0.0 - Complete Regression Test Suite with Evidence Capture
 This script performs comprehensive regression testing across all MIESC modules:
 1. CLI Tool (miesc-quick)
 2. Full 7-Layer Audit (run_complete_multilayer_audit.py)
-3. MCP REST Server (miesc_mcp_rest.py)
+3. Local REST API (miesc.api.rest)
 4. Individual Adapters (26 tools)
 5. AI Correlation & ML Detection
 
@@ -266,36 +266,36 @@ class MIESCRegressionTester:
             result = self.test_adapter(adapter_name, adapter_class)
             self.add_result(result)
 
-    # ==================== MCP Server Tests ====================
+    # ==================== REST API Tests ====================
 
-    def test_mcp_server(self) -> TestResult:
-        """Test MCP REST server endpoints"""
+    def test_rest_api(self) -> TestResult:
+        """Test local REST API endpoints."""
         start = time.time()
-        base_url = "http://localhost:5001"
+        base_url = "http://localhost:8000"
 
         try:
             # Test health endpoint
-            health_resp = requests.get(f"{base_url}/health", timeout=5)
+            health_resp = requests.get(f"{base_url}/api/v1/health/", timeout=5)
 
             if health_resp.status_code != 200:
                 return TestResult(
-                    name="MCP Server Health",
-                    module="mcp",
+                    name="REST API Health",
+                    module="api",
                     status="FAIL",
                     duration=time.time() - start,
                     message=f"Health check failed: {health_resp.status_code}",
                 )
 
-            # Test capabilities endpoint
-            caps_resp = requests.get(f"{base_url}/mcp/capabilities", timeout=5)
+            # Test tools endpoint
+            tools_resp = requests.get(f"{base_url}/api/v1/tools/", timeout=5)
 
-            log_content = f"Health: {health_resp.text}\nCapabilities: {caps_resp.text}"
-            log_path = self.save_log("mcp_server", log_content)
+            log_content = f"Health: {health_resp.text}\nTools: {tools_resp.text}"
+            log_path = self.save_log("rest_api", log_content)
 
             return TestResult(
-                name="MCP Server",
-                module="mcp",
-                status="PASS" if caps_resp.status_code == 200 else "FAIL",
+                name="REST API",
+                module="api",
+                status="PASS" if tools_resp.status_code == 200 else "FAIL",
                 duration=time.time() - start,
                 message="Server responding correctly",
                 evidence_path=log_path,
@@ -303,16 +303,16 @@ class MIESCRegressionTester:
 
         except requests.ConnectionError:
             return TestResult(
-                name="MCP Server",
-                module="mcp",
+                name="REST API",
+                module="api",
                 status="SKIP",
                 duration=time.time() - start,
-                message="Server not running on port 5001",
+                message="Server not running on port 8000",
             )
         except Exception as e:
             return TestResult(
-                name="MCP Server",
-                module="mcp",
+                name="REST API",
+                module="api",
                 status="FAIL",
                 duration=time.time() - start,
                 message=str(e),
@@ -512,9 +512,9 @@ MIESC v4.0.0 regression testing {'completed successfully' if failed == 0 else 'f
         print("\n🔧 Testing Adapters...")
         self.test_all_adapters()
 
-        # MCP Server Tests
-        print("\n🌐 Testing MCP Server...")
-        self.add_result(self.test_mcp_server())
+        # REST API Tests
+        print("\n🌐 Testing REST API...")
+        self.add_result(self.test_rest_api())
 
         # Full Audit Test
         print("\n🔍 Testing Full Audit...")

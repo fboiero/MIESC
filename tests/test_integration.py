@@ -16,7 +16,7 @@ from src.core import (
     get_ml_orchestrator,
     get_tool_discovery,
 )
-from src.ml import FeedbackType, MLPipeline
+from src.ml import FeedbackLoop, FeedbackType, MLPipeline
 
 # Sample vulnerable contract for testing
 VULNERABLE_CONTRACT = """
@@ -191,6 +191,7 @@ class TestEndToEndPipeline:
         # Run analysis
         result = self.orchestrator.analyze(
             contract_path,
+            layers=["static_analysis"],
             timeout=60,
         )
 
@@ -243,8 +244,11 @@ class TestEndToEndPipeline:
             has_expected_key
         ), f"Result dict should have at least one of {expected_keys}, got: {list(result_dict.keys())}"
 
-    def test_feedback_submission(self):
+    def test_feedback_submission(self, tmp_path):
         """Test feedback submission to ML pipeline."""
+        self.orchestrator.ml_pipeline.feedback_loop = FeedbackLoop(
+            storage_path=str(tmp_path / "feedback")
+        )
         finding = {
             "_id": "test_integration_123",
             "type": "reentrancy",

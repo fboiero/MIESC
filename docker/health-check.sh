@@ -168,11 +168,11 @@ check_api() {
         echo ""
         echo -e "${BLUE}[BONUS] Checking MIESC API${NC}"
 
-        if curl -sf "http://localhost:${API_PORT}/health" > /dev/null 2>&1; then
+        if curl -sf "http://localhost:${API_PORT}/api/v1/health/" > /dev/null 2>&1; then
             check_pass "MIESC API is healthy"
 
             # Get API version
-            VERSION=$(curl -sf "http://localhost:${API_PORT}/health" 2>/dev/null | grep -o '"version":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
+            VERSION=$(curl -sf "http://localhost:${API_PORT}/api/v1/health/" 2>/dev/null | grep -o '"version":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
             check_info "API version: $VERSION"
         else
             check_warn "MIESC API is not responding"
@@ -211,7 +211,7 @@ print_summary() {
         echo "       docker logs -f miesc-ollama-init"
         echo ""
         echo "    3. Re-run health check:"
-        echo "       ./deploy/health-check.sh"
+        echo "       ./docker/health-check.sh"
         return 1
     fi
 }

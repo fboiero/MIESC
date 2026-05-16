@@ -71,18 +71,18 @@
 /policies/ @fboiero
 /policies/**/*.md @fboiero
 
-# PolicyAgent (internal compliance)
-/src/miesc_policy_agent.py @fboiero
-/src/miesc_security_checks.py @fboiero
+# Security and compliance modules
+/src/security/ @fboiero
 
 # ============================================================================
 # Demo & Examples
 # ============================================================================
 
-# Interactive demo
+# Local demos
 /demo/ @fboiero
-/demo/sample_contracts/ @fboiero
-/demo/run_demo.sh @fboiero
+/examples/run_demo.sh @fboiero
+/examples/run_full_demo.sh @fboiero
+/examples/quick_demo.sh @fboiero
 
 # Example contracts
 /examples/ @fboiero
@@ -103,8 +103,8 @@
 
 # MCP Protocol
 /mcp/ @fboiero
-/src/miesc_mcp_adapter.py @fboiero
-/src/miesc_mcp_rest.py @fboiero
+/miesc/mcp_server.py @fboiero
+/miesc/api/rest.py @fboiero
 
 # ============================================================================
 # Data & Analysis

@@ -394,13 +394,13 @@ Seguimos [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```bash
 # Instalar dependencias de documentación
-pip install mkdocs mkdocs-material
+pip install mkdocs mkdocs-material mkdocs-minify-plugin
 
 # Servir docs localmente
-mkdocs serve
+mkdocs serve -f docs/mkdocs.yml
 
 # Construir sitio estático
-mkdocs build
+mkdocs build -f docs/mkdocs.yml
 ```
 
 ### Estándares de Documentación

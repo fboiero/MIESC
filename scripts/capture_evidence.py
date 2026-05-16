@@ -181,11 +181,11 @@ src/                      # Source Code
 │   ├── input_validator.py
 │   ├── api_limiter.py
 │   └── secure_logging.py
-└── miesc_mcp_rest.py    # REST API
+└── api/rest.py          # Local REST API
 
-webapp/                   # Web Dashboard
-├── app.py               # Streamlit app
-└── dashboard_enhanced.py
+analysis/dashboard/       # Static HTML dashboard output
+├── index.html
+└── metrics.json
 
 tests/                    # Test Suite (204 tests)
 ├── test_adapters.py
@@ -221,9 +221,17 @@ def capture_api_evidence():
 
     try:
         # Start API server
-        log("Starting MCP REST API server...")
+        log("Starting local REST API server...")
         api_process = subprocess.Popen(
-            ["python3", "src/miesc_mcp_rest.py", "--port", "5002"],
+            [
+                sys.executable,
+                "-m",
+                "miesc.api.rest",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "8002",
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=PROJECT_ROOT,
@@ -236,7 +244,7 @@ def capture_api_evidence():
         # 1. Root endpoint
         log("Capturing: GET /")
         try:
-            with urllib.request.urlopen("http://localhost:5002/", timeout=10) as response:
+            with urllib.request.urlopen("http://localhost:8002/", timeout=10) as response:
                 data = json.loads(response.read().decode())
                 save_json_evidence(data, "01_api_root.json")
                 api_evidence.append(("GET /", True))
@@ -244,59 +252,61 @@ def capture_api_evidence():
             log(f"Failed: {e}", "ERROR")
             api_evidence.append(("GET /", False))
 
-        # 2. Capabilities
-        log("Capturing: GET /mcp/capabilities")
+        # 2. Tools
+        log("Capturing: GET /api/v1/tools/")
         try:
             with urllib.request.urlopen(
-                "http://localhost:5002/mcp/capabilities", timeout=10
+                "http://localhost:8002/api/v1/tools/", timeout=10
             ) as response:
                 data = json.loads(response.read().decode())
-                save_json_evidence(data, "02_api_capabilities.json")
-                api_evidence.append(("GET /mcp/capabilities", True))
+                save_json_evidence(data, "02_api_tools.json")
+                api_evidence.append(("GET /api/v1/tools/", True))
         except Exception as e:
             log(f"Failed: {e}", "ERROR")
-            api_evidence.append(("GET /mcp/capabilities", False))
+            api_evidence.append(("GET /api/v1/tools/", False))
 
-        # 3. Status
-        log("Capturing: GET /mcp/status")
-        try:
-            with urllib.request.urlopen("http://localhost:5002/mcp/status", timeout=10) as response:
-                data = json.loads(response.read().decode())
-                save_json_evidence(data, "03_api_status.json")
-                api_evidence.append(("GET /mcp/status", True))
-        except Exception as e:
-            log(f"Failed: {e}", "ERROR")
-            api_evidence.append(("GET /mcp/status", False))
-
-        # 4. Metrics
-        log("Capturing: GET /mcp/get_metrics")
+        # 3. Health
+        log("Capturing: GET /api/v1/health/")
         try:
             with urllib.request.urlopen(
-                "http://localhost:5002/mcp/get_metrics", timeout=10
+                "http://localhost:8002/api/v1/health/", timeout=10
             ) as response:
                 data = json.loads(response.read().decode())
-                save_json_evidence(data, "04_api_metrics.json")
-                api_evidence.append(("GET /mcp/get_metrics", True))
+                save_json_evidence(data, "03_api_health.json")
+                api_evidence.append(("GET /api/v1/health/", True))
         except Exception as e:
             log(f"Failed: {e}", "ERROR")
-            api_evidence.append(("GET /mcp/get_metrics", False))
+            api_evidence.append(("GET /api/v1/health/", False))
 
-        # 5. Run audit (POST)
-        log("Capturing: POST /mcp/run_audit")
+        # 4. Layers
+        log("Capturing: GET /api/v1/layers/")
+        try:
+            with urllib.request.urlopen(
+                "http://localhost:8002/api/v1/layers/", timeout=10
+            ) as response:
+                data = json.loads(response.read().decode())
+                save_json_evidence(data, "04_api_layers.json")
+                api_evidence.append(("GET /api/v1/layers/", True))
+        except Exception as e:
+            log(f"Failed: {e}", "ERROR")
+            api_evidence.append(("GET /api/v1/layers/", False))
+
+        # 5. Run quick analysis (POST)
+        log("Capturing: POST /api/v1/analyze/quick/")
         try:
             req = urllib.request.Request(
-                "http://localhost:5002/mcp/run_audit",
-                data=json.dumps({"contract": "contracts/audit/VulnerableBank.sol"}).encode(),
+                "http://localhost:8002/api/v1/analyze/quick/",
+                data=json.dumps({"contract_path": "contracts/audit/VulnerableBank.sol"}).encode(),
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=30) as response:
                 data = json.loads(response.read().decode())
-                save_json_evidence(data, "05_api_run_audit.json")
-                api_evidence.append(("POST /mcp/run_audit", True))
+                save_json_evidence(data, "05_api_analyze_quick.json")
+                api_evidence.append(("POST /api/v1/analyze/quick/", True))
         except Exception as e:
             log(f"Failed: {e}", "ERROR")
-            api_evidence.append(("POST /mcp/run_audit", False))
+            api_evidence.append(("POST /api/v1/analyze/quick/", False))
 
     finally:
         # Stop API server
@@ -498,16 +508,16 @@ Coverage Target: 87.5%
 
 
 # =============================================================================
-# WEB DASHBOARD EVIDENCE (SELENIUM)
+# STATIC DASHBOARD EVIDENCE (SELENIUM)
 # =============================================================================
 
 
 def capture_web_evidence():
-    """Capture web dashboard screenshots using Selenium."""
-    log("Capturing web dashboard evidence...", "RUN")
+    """Capture static dashboard screenshots using Selenium."""
+    log("Capturing static dashboard evidence...", "RUN")
 
     web_evidence = []
-    streamlit_process = None
+    http_process = None
     driver = None
 
     try:
@@ -519,23 +529,44 @@ def capture_web_evidence():
         from selenium.webdriver.support.ui import WebDriverWait
         from webdriver_manager.chrome import ChromeDriverManager
 
-        # Start Streamlit server
-        log("Starting Streamlit server...")
-        streamlit_process = subprocess.Popen(
+        # Generate and serve the static dashboard.
+        dashboard_dir = PROJECT_ROOT / "analysis" / "dashboard"
+        log("Generating static dashboard...")
+        code, stdout, stderr = run_command(
             [
-                "streamlit",
-                "run",
-                "webapp/app.py",
-                "--server.port",
+                sys.executable,
+                "-m",
+                "src.utils.web_dashboard",
+                "--results",
+                "analysis/results",
+                "--output",
+                str(dashboard_dir),
+            ],
+            timeout=120,
+        )
+        save_text_evidence(
+            "$ python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard\n"
+            f"{stdout}{stderr}",
+            "04_static_dashboard_generation.txt",
+            "web",
+        )
+        if code != 0:
+            web_evidence.append(("Static dashboard generation", False))
+            return web_evidence
+
+        log("Starting static dashboard HTTP server...")
+        http_process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "http.server",
                 "8502",
-                "--server.headless",
-                "true",
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=PROJECT_ROOT,
+            cwd=dashboard_dir,
         )
-        time.sleep(8)  # Wait for Streamlit to start
+        time.sleep(2)
 
         # Setup Chrome driver
         log("Setting up Chrome WebDriver...")
@@ -561,7 +592,7 @@ def capture_web_evidence():
         # Navigate to dashboard
         log("Navigating to dashboard...")
         driver.get("http://localhost:8502")
-        time.sleep(5)
+        time.sleep(2)
 
         # Take screenshots
         screenshots = [
@@ -602,13 +633,13 @@ def capture_web_evidence():
     finally:
         if driver:
             driver.quit()
-        if streamlit_process:
-            streamlit_process.terminate()
+        if http_process:
+            http_process.terminate()
             try:
-                streamlit_process.wait(timeout=5)
+                http_process.wait(timeout=5)
             except Exception:
-                streamlit_process.kill()
-            log("Streamlit server stopped", "OK")
+                http_process.kill()
+            log("Static dashboard server stopped", "OK")
 
     return web_evidence
 
@@ -675,7 +706,7 @@ This document contains evidence of MIESC tool functionality for thesis documenta
         report += f"| {name} | {icon} |\n"
 
     report += """
-### 5. Web Dashboard Evidence (docs/evidence/web/)
+### 5. Static Dashboard Evidence (docs/evidence/web/)
 
 | Screenshot | Status |
 |------------|--------|

@@ -1067,10 +1067,10 @@ Respond in JSON format: {{"vulnerabilities": [{{"name": "...", "severity": "High
 def main():
     print("""
 ╔════════════════════════════════════════════════════════════════════════════╗
-║            MIESC v4.0.0 - Complete Multi-Layer Security Audit              ║
+║            MIESC v5.4.2 - Complete Multi-Layer Security Audit              ║
 ║          Multi-layer Intelligent Evaluation for Smart Contracts            ║
 ╠════════════════════════════════════════════════════════════════════════════╣
-║  7 Defense Layers | 15+ Security Tools | AI-Powered Correlation            ║
+║  9 Defense Layers | Configured Adapter Stack | AI-Powered Correlation       ║
 ║  Author: Fernando Boiero | UNDEF - IUA Córdoba                             ║
 ╚════════════════════════════════════════════════════════════════════════════╝
     """)

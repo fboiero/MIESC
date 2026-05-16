@@ -283,15 +283,15 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install documentation tools
-        run: pip install mkdocs mkdocs-material mkdocstrings[python]
+        run: pip install mkdocs mkdocs-material mkdocstrings[python] mkdocs-minify-plugin
         continue-on-error: true
 
       - name: Build documentation
         run: |
-          if [ -f mkdocs.yml ]; then
-            mkdocs build
+          if [ -f docs/mkdocs.yml ]; then
+            mkdocs build -f docs/mkdocs.yml
           else
-            echo "No mkdocs.yml found, skipping docs build"
+            echo "No docs/mkdocs.yml found, skipping docs build"
           fi
         continue-on-error: true
 

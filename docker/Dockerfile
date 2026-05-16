@@ -148,8 +148,8 @@ COPY --chown=miesc:miesc miesc/ miesc/
 # Create src package stubs so setuptools can resolve declared packages.
 # Real source code is copied later; this just satisfies the editable install.
 RUN mkdir -p src/adapters src/agents/audit_readiness src/benchmark src/cache \
-             src/core src/dashboard src/detectors src/evaluation src/formal \
-             src/integration src/knowledge_base src/licensing src/llm \
+             src/core src/detectors src/evaluation src/formal \
+             src/integration src/knowledge_base src/llm \
              src/mcp_core src/ml/fine_tuning src/security src/poc/validators \
              src/plugins src/reports src/utils && \
     find src -type d -exec sh -c 'touch "$1/__init__.py"' _ {} \;
@@ -205,7 +205,7 @@ ENV MIESC_LLM_MODEL="mistral:latest"
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD miesc --version || exit 1
 
-# Expose API port (if running FastAPI server)
+# Expose API port (if running Django REST server)
 EXPOSE 8000
 
 # Set ENTRYPOINT to miesc CLI - allows: docker run miesc scan contract.sol

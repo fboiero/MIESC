@@ -11,17 +11,16 @@ Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 Date: 2025-12-03
 """
 
-from docx import Document
-from docx.shared import Inches, Pt, Cm, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
-from docx.enum.style import WD_STYLE_TYPE
-from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
-from datetime import datetime
 import os
-import io
 import tempfile
+from datetime import datetime
+from importlib.util import find_spec
+
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Cm, Inches, Pt, RGBColor
 
 # Import for SVG to PNG conversion
 try:
@@ -31,11 +30,7 @@ except ImportError:
     CAIROSVG_AVAILABLE = False
     print("Warning: cairosvg not available. SVG images will be placeholders.")
 
-try:
-    from PIL import Image
-    PIL_AVAILABLE = True
-except ImportError:
-    PIL_AVAILABLE = False
+PIL_AVAILABLE = find_spec("PIL") is not None
 
 
 def set_cell_shading(cell, color):
@@ -256,7 +251,7 @@ def create_bilingual_report():
 
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = p.add_run(f"Versión del Framework / Framework Version: 4.0.0")
+    run = p.add_run("Versión del Framework / Framework Version: 4.0.0")
     run.font.size = Pt(11)
 
     p = doc.add_paragraph()
@@ -868,7 +863,7 @@ Conclusiones Principales:
 
 4. Eficiencia Temporal: La arquitectura paralela permite analizar contratos en un tiempo 85% menor que la ejecución secuencial de todas las herramientas.
 
-5. Democratización de Auditorías: La compatibilidad con el protocolo MCP y el dashboard interactivo facilitan el acceso a auditorías de calidad profesional."""
+5. Democratización de Auditorías: La compatibilidad con el protocolo MCP, la API REST local y los reportes HTML estáticos facilitan el acceso a auditorías de calidad profesional."""
 
     en_text = """This work has presented MIESC, an integrated security analysis framework for smart contracts that combines 25 tools in a 7-layer architecture based on the Defense-in-Depth principle.
 
@@ -882,7 +877,7 @@ Main Conclusions:
 
 4. Temporal Efficiency: Parallel architecture allows contract analysis in 85% less time than sequential execution of all tools.
 
-5. Audit Democratization: MCP protocol compatibility and interactive dashboard facilitate access to professional-quality audits."""
+5. Audit Democratization: MCP protocol compatibility, the local REST API, and static HTML reports facilitate access to professional-quality audits."""
 
     add_bilingual_paragraph(doc, es_text, en_text)
 
@@ -897,8 +892,8 @@ Main Conclusions:
          "Correlation system that significantly reduces false positives"),
         ("Primera integración de herramientas ML/AI modernas en un framework unificado",
          "First integration of modern ML/AI tools in a unified framework"),
-        ("API y dashboard que facilitan la adopción en entornos profesionales",
-         "API and dashboard that facilitate adoption in professional environments"),
+        ("API local y reportes HTML estáticos que facilitan la adopción en entornos profesionales",
+         "Local API and static HTML reports that facilitate adoption in professional environments"),
         ("Validación experimental rigurosa con datasets públicos reconocidos",
          "Rigorous experimental validation with recognized public datasets"),
     ]

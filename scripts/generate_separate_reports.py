@@ -710,7 +710,7 @@ Conclusiones Principales:
 
 4. Eficiencia Temporal: La arquitectura paralela permite analizar contratos en un tiempo 85% menor que la ejecución secuencial de todas las herramientas.
 
-5. Democratización de Auditorías: La compatibilidad con el protocolo MCP y el dashboard interactivo facilitan el acceso a auditorías de calidad profesional."""
+5. Democratización de Auditorías: La compatibilidad con el protocolo MCP, la API REST local y los reportes HTML estáticos facilitan el acceso a auditorías de calidad profesional."""
     )
 
     doc.add_paragraph()
@@ -721,7 +721,7 @@ Conclusiones Principales:
         "Framework integrado con la mayor cobertura de herramientas de seguridad para smart contracts",
         "Sistema de correlación que reduce significativamente falsos positivos",
         "Primera integración de herramientas ML/AI modernas en un framework unificado",
-        "API y dashboard que facilitan la adopción en entornos profesionales",
+        "API local y reportes HTML estáticos que facilitan la adopción en entornos profesionales",
         "Validación experimental rigurosa con datasets públicos reconocidos",
     ]
 
@@ -1436,7 +1436,7 @@ Main Conclusions:
 
 4. Temporal Efficiency: Parallel architecture allows contract analysis in 85% less time than sequential execution of all tools.
 
-5. Audit Democratization: MCP protocol compatibility and interactive dashboard facilitate access to professional-quality audits."""
+5. Audit Democratization: MCP protocol compatibility and local HTML dashboard facilitate access to professional-quality audits."""
     )
 
     doc.add_paragraph()
