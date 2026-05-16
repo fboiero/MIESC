@@ -107,14 +107,14 @@ class AuditReportGenerator:
 
     def _get_layer_summary(self) -> Dict[int, int]:
         """Count findings by layer"""
-        layers = {}
+        layers: Dict[int, int] = {}
         for f in self.findings:
             layers[f.layer] = layers.get(f.layer, 0) + 1
         return dict(sorted(layers.items()))
 
     def _get_tool_summary(self) -> Dict[str, int]:
         """Count findings by tool"""
-        tools = {}
+        tools: Dict[str, int] = {}
         for f in self.findings:
             tools[f.tool] = tools.get(f.tool, 0) + 1
         return dict(sorted(tools.items(), key=lambda x: -x[1]))
@@ -679,7 +679,7 @@ class AuditReportGenerator:
             """
 
         # Group by severity
-        grouped = {}
+        grouped: Dict[str, List[Finding]] = {}
         for f in self.findings:
             grouped.setdefault(f.severity, []).append(f)
 
@@ -908,7 +908,7 @@ class AuditReportGenerator:
         return output_path
 
 
-def create_sample_report():
+def create_sample_report() -> AuditReportGenerator:
     """Create a sample report for testing"""
     metadata = AuditMetadata(
         project_name="DeFi Protocol v2.0",

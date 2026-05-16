@@ -657,7 +657,7 @@ class EnhancedReporter:
 - **Full JSON Report**: See `report.json` for complete details
 - **Exploit PoCs**: Check `analysis/manticore/exploits/` directory
 - **Coverage Reports**: See `analysis/foundry/coverage/` for test coverage
-- **Visualization**: Open `dashboard/index.html` for interactive dashboard
+- **Visualization**: Open `dashboard/index.html` for the static HTML dashboard
 
 ---
 

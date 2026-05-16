@@ -112,7 +112,7 @@ def register_all_adapters():
     registered = []
     failed = []
 
-    # Lista de adaptadores a registrar (50 adapters - 9 layers)
+    # Lista de adaptadores del registro por capas.
     adapters_to_register = [
         # Layer 1 - Static Analysis (6 tools)
         ("slither", SlitherAdapter),

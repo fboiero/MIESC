@@ -178,7 +178,7 @@ class TaintAnalyzer:
         TaintSource.FUNCTION_PARAM,
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the taint analyzer."""
         self._tainted_vars: Dict[str, TaintedVariable] = {}
         self._paths: List[TaintedPath] = []
@@ -453,12 +453,12 @@ class TaintAnalyzer:
             "low": sum(1 for p in vulnerable if p.severity == "low"),
         }
 
-        sink_counts = {}
+        sink_counts: Dict[str, int] = {}
         for path in vulnerable:
             sink_name = path.sink.value
             sink_counts[sink_name] = sink_counts.get(sink_name, 0) + 1
 
-        source_counts = {}
+        source_counts: Dict[str, int] = {}
         for path in vulnerable:
             source_name = path.source.source.value
             source_counts[source_name] = source_counts.get(source_name, 0) + 1

@@ -22,7 +22,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +77,7 @@ class PatternConfig:
     swc_id: Optional[str] = None
     description: str = ""
     recommendation: str = ""
-    context_validator: Optional[callable] = None
+    context_validator: Optional[Callable[..., bool]] = None
 
 
 # =============================================================================
@@ -515,7 +515,7 @@ class ClassicPatternDetector:
             print(f"{m.vuln_type.value}: {m.severity} @ line {m.line}")
     """
 
-    def __init__(self, patterns: Optional[Dict[ClassicVulnType, PatternConfig]] = None):
+    def __init__(self, patterns: Optional[Dict[ClassicVulnType, PatternConfig]] = None) -> None:
         """Initialize with custom or default patterns."""
         self.patterns = patterns or CLASSIC_PATTERNS
 
@@ -789,7 +789,7 @@ class AccessControlSemanticDetector:
         r"_checkRole\s*\(",
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the access control detector."""
         pass
 
@@ -909,7 +909,7 @@ class AccessControlSemanticDetector:
 
     def _check_uninitialized_owner(self, source_code: str) -> List[AccessControlFinding]:
         """Check for owner variables that are not initialized."""
-        findings = []
+        findings: List[AccessControlFinding] = []
 
         # Pattern for owner state variable declaration
         owner_decl_pattern = r"address\s+(?:public\s+)?owner\s*;"
@@ -926,6 +926,8 @@ class AccessControlSemanticDetector:
 
                 if not re.search(init_pattern, source_code, re.DOTALL):
                     match = re.search(owner_decl_pattern, source_code)
+                    if match is None:
+                        return findings
                     line_num = source_code[: match.start()].count("\n") + 1
 
                     findings.append(
@@ -1080,7 +1082,7 @@ class DoSCrossFunctionDetector:
         r"ecrecover\s*\(",
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the DoS detector."""
         self._arrays: Dict[str, int] = {}  # array_name -> declaration line
 
@@ -1302,7 +1304,7 @@ def detect_semantic_vulnerabilities(
     Returns:
         Combined findings from all semantic detectors
     """
-    results = {
+    results: Dict[str, List[Dict[str, Any]]] = {
         "access_control": [],
         "dos": [],
         "classic": [],

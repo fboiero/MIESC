@@ -275,7 +275,7 @@ class CodeEmbedder:
 
     def _build_vocabulary(self, tokens: List[CodeToken]) -> Dict[str, int]:
         """Construye frecuencia de términos."""
-        tf = defaultdict(int)
+        tf: defaultdict[str, int] = defaultdict(int)
         for token in tokens:
             if token.token_type != TokenType.COMMENT:
                 tf[token.value.lower()] += 1
@@ -292,7 +292,7 @@ class CodeEmbedder:
 
     def _compute_structural_features(self, code: str) -> Dict[str, float]:
         """Calcula features estructurales del código."""
-        features = {}
+        features: Dict[str, float] = {}
 
         # Contar elementos estructurales
         features["function_count"] = len(re.findall(r"\bfunction\s+\w+", code))
@@ -364,7 +364,7 @@ class CodeEmbedder:
 
     def _compute_token_type_distribution(self, tokens: List[CodeToken]) -> Dict[str, float]:
         """Calcula distribución de tipos de tokens."""
-        distribution = defaultdict(int)
+        distribution: defaultdict[str, int] = defaultdict(int)
         total = len(tokens) or 1
 
         for token in tokens:
@@ -602,7 +602,7 @@ class VulnerabilityPatternDB:
     ) -> List[Dict[str, Any]]:
         """Busca patrones de vulnerabilidad en código."""
         embedding = self.embedder.embed(code)
-        matches = []
+        matches: List[Dict[str, Any]] = []
 
         for vuln_type, patterns in self._patterns.items():
             for pattern in patterns:

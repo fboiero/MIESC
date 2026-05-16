@@ -127,11 +127,19 @@ class FeedbackStore:
     """Almacén persistente de feedback."""
 
     def __init__(self, storage_path: Optional[str] = None):
-        self.storage_path = Path(storage_path or os.path.expanduser("~/.miesc/feedback"))
+        self.storage_path = Path(storage_path or self._default_storage_path())
         self.storage_path.mkdir(parents=True, exist_ok=True)
         self._feedback_file = self.storage_path / "feedback_history.json"
         self._metrics_file = self.storage_path / "tool_metrics.json"
         self._stats_file = self.storage_path / "vuln_stats.json"
+
+    @staticmethod
+    def _default_storage_path() -> Path:
+        if feedback_dir := os.environ.get("MIESC_FEEDBACK_DIR"):
+            return Path(feedback_dir)
+        if miesc_home := os.environ.get("MIESC_HOME"):
+            return Path(miesc_home) / "feedback"
+        return Path(os.path.expanduser("~/.miesc/feedback"))
 
     def save_feedback(self, feedback: UserFeedback) -> None:
         """Guarda feedback individual."""

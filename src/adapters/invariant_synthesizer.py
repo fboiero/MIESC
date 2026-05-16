@@ -18,6 +18,7 @@ License: AGPL-3.0
 import hashlib
 import json
 import logging
+import os
 import re
 import subprocess
 import time
@@ -122,7 +123,12 @@ class InvariantSynthesizer:
         self._retry_delay = retry_config["delay"]
 
         # Cache for generated invariants
-        self._cache_dir = Path.home() / ".miesc" / "invariant_cache"
+        if cache_dir := os.environ.get("MIESC_INVARIANT_CACHE_DIR"):
+            self._cache_dir = Path(cache_dir)
+        elif miesc_home := os.environ.get("MIESC_HOME"):
+            self._cache_dir = Path(miesc_home) / "invariant_cache"
+        else:
+            self._cache_dir = Path.home() / ".miesc" / "invariant_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
 
         # Load RAG patterns

@@ -104,7 +104,7 @@ class SeverityPredictor:
         SeverityLevel.INFORMATIONAL: 0.1,
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._adjustment_history: List[Dict[str, Any]] = []
 
     def predict(
@@ -237,11 +237,11 @@ class SeverityPredictor:
 
         return total_impact
 
-    def _get_visibility_factor(self, func_name, code_context: str) -> float:
+    def _get_visibility_factor(self, func_name: str | List[str] | None, code_context: str) -> float:
         """Calcula factor de visibilidad de función."""
         if isinstance(func_name, list):
             func_name = func_name[0] if func_name else ""
-        if not func_name and not code_context:
+        if not func_name:
             return 0.0
 
         # Buscar declaración de función

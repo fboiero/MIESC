@@ -30,7 +30,7 @@ _ws_allowed_origins = os.getenv("MIESC_WS_ALLOWED_ORIGINS", "")
 WS_ALLOWED_ORIGINS = [origin.strip() for origin in _ws_allowed_origins.split(",") if origin.strip()]
 if not WS_ALLOWED_ORIGINS:
     # Default to localhost for development
-    WS_ALLOWED_ORIGINS = ["http://localhost:8501", "http://localhost:3000", "http://127.0.0.1:8501"]
+    WS_ALLOWED_ORIGINS = ["http://localhost:8000", "http://localhost:3000", "http://127.0.0.1:8000"]
 
 # Try to import WebSocket dependencies
 try:

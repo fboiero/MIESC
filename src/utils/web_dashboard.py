@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Modern Interactive Web Dashboard for Xaudit v2.0
-Integrates all 10 analysis tools with dynamic visualizations
+Static HTML Dashboard for Xaudit v2.0
+Integrates all 10 analysis tools into a local report
 """
 
 import json
@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 
 
 class WebDashboardGenerator:
-    """Generate modern interactive web dashboard for Xaudit results."""
+    """Generate a static local HTML dashboard for Xaudit results."""
 
     def __init__(self, results_dir: str):
         self.results_dir = Path(results_dir)
@@ -391,7 +391,7 @@ class WebDashboardGenerator:
         }
 
     def generate_html_dashboard(self, output_file: Path):
-        """Generate modern interactive HTML dashboard."""
+        """Generate a static HTML dashboard."""
         summary = self._calculate_summary()
         self.metrics["summary"] = summary
 
@@ -400,7 +400,7 @@ class WebDashboardGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xaudit v2.0 - Dashboard Interactivo</title>
+    <title>Xaudit v2.0 - Dashboard HTML Estático</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * {{
@@ -634,7 +634,7 @@ class WebDashboardGenerator:
     <div class="container">
         <header>
             <h1>🔍 Xaudit v2.0</h1>
-            <p>Dashboard Interactivo de Análisis de Seguridad</p>
+            <p>Dashboard HTML estático de análisis de seguridad</p>
             <p style="font-size: 0.9em; margin-top: 10px;">Generado: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</p>
         </header>
 
@@ -977,9 +977,7 @@ class WebDashboardGenerator:
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Generate interactive web dashboard for Xaudit v2.0"
-    )
+    parser = argparse.ArgumentParser(description="Generate a static HTML dashboard for Xaudit v2.0")
     parser.add_argument("--results", required=True, help="Directory with analysis results")
     parser.add_argument("--output", default="analysis/dashboard", help="Output directory")
 
@@ -992,7 +990,7 @@ def main():
         print(f"❌ Error: Results directory not found: {results_dir}")  # noqa: T201
         sys.exit(1)
 
-    print("🚀 Generating interactive web dashboard...")  # noqa: T201
+    print("🚀 Generating static HTML dashboard...")  # noqa: T201
 
     dashboard = WebDashboardGenerator(results_dir)
 

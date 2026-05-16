@@ -253,7 +253,7 @@ class SlitherIRParser:
         "LENGTH": IROpcode.LENGTH,
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the IR parser."""
         self._functions: Dict[str, FunctionIR] = {}
 

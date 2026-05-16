@@ -7,12 +7,21 @@ security findings. Designed for premium audit reports.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, TypedDict
 
 
-def _get_finding_title(finding: dict) -> str:
+class EffortImpactCell(TypedDict):
+    """Prioritization cell used by the effort/impact matrix."""
+
+    count: int
+    findings: list[dict[str, Any]]
+    action: str
+
+
+def _get_finding_title(finding: dict[str, Any]) -> str:
     """Get finding title with fallbacks for different adapter formats."""
-    return finding.get("title") or finding.get("type") or finding.get("message", "Unknown")[:100]
+    title = finding.get("title") or finding.get("type") or finding.get("message", "Unknown")
+    return str(title)[:100]
 
 
 class AttackVector(Enum):
@@ -295,7 +304,7 @@ class RiskCalculator:
         ),
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the risk calculator."""
         pass
 
@@ -653,7 +662,7 @@ class RiskCalculator:
 
         Returns dict with counts and finding lists per cell.
         """
-        matrix = {
+        matrix: dict[str, EffortImpactCell] = {
             "high_low": {"count": 0, "findings": [], "action": "Avoid"},
             "high_medium": {"count": 0, "findings": [], "action": "Consider"},
             "high_high": {"count": 0, "findings": [], "action": "Schedule"},

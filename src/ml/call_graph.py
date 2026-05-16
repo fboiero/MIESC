@@ -23,7 +23,7 @@ import re
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Deque, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -300,8 +300,8 @@ class CallGraph:
         max_depth: int,
     ) -> List[CallPath]:
         """BFS to find all paths from start to end."""
-        paths = []
-        queue = deque([(start, [start], [])])
+        paths: List[CallPath] = []
+        queue: Deque[Tuple[str, List[str], List[CallEdge]]] = deque([(start, [start], [])])
 
         while queue:
             current, path, edges = queue.popleft()
@@ -469,7 +469,7 @@ class CallGraphBuilder:
 
     STATE_WRITE_PATTERN = re.compile(r"(\w+)\s*(?:\[[^\]]*\])?\s*[+\-*/]?=(?!=)", re.MULTILINE)
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the call graph builder."""
         pass
 

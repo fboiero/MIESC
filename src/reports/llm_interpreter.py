@@ -27,6 +27,17 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 
+def _parse_json_object(text: str) -> Dict[str, Any]:
+    """Parse the first JSON object from an LLM response."""
+    json_start = text.find("{")
+    json_end = text.rfind("}") + 1
+    if json_start == -1 or json_end == 0:
+        return {}
+
+    parsed = json.loads(text[json_start:json_end])
+    return parsed if isinstance(parsed, dict) else {}
+
+
 @dataclass
 class LLMInterpreterConfig:
     """Configuration for LLM Report Interpreter."""
@@ -180,7 +191,7 @@ EXECUTIVE SUMMARY:"""
         medium = summary.get("medium", 0)
 
         # Categorize findings by type
-        categories = {}
+        categories: Dict[str, int] = {}
         for f in findings:
             cat = f.get("category") or f.get("type", "General")
             categories[cat] = categories.get(cat, 0) + 1
@@ -458,12 +469,7 @@ JSON:"""
             return {}
 
         try:
-            json_start = response.find("{")
-            json_end = response.rfind("}") + 1
-            if json_start == -1 or json_end == 0:
-                return {}
-
-            return json.loads(response[json_start:json_end])
+            return _parse_json_object(response)
         except (json.JSONDecodeError, Exception) as e:
             logger.error(f"Error parsing attack scenario: {e}")
             return {}
@@ -529,12 +535,7 @@ JSON:"""
             return {}
 
         try:
-            json_start = response.find("{")
-            json_end = response.rfind("}") + 1
-            if json_start == -1 or json_end == 0:
-                return {}
-
-            return json.loads(response[json_start:json_end])
+            return _parse_json_object(response)
         except (json.JSONDecodeError, Exception) as e:
             logger.error(f"Error parsing code remediation: {e}")
             return {}
@@ -619,16 +620,15 @@ JSON:"""
             }
 
         try:
-            json_start = response.find("{")
-            json_end = response.rfind("}") + 1
-            if json_start == -1 or json_end == 0:
+            parsed = _parse_json_object(response)
+            if not parsed:
                 return {
                     "recommendation": "CONDITIONAL",
                     "justification": "Unable to parse LLM response",
                     "action_items": ["Review findings manually"],
                 }
 
-            return json.loads(response[json_start:json_end])
+            return parsed
         except (json.JSONDecodeError, Exception) as e:
             logger.error(f"Error parsing deployment recommendation: {e}")
             return {
@@ -652,7 +652,7 @@ JSON:"""
         Returns:
             Dict with all premium analysis components
         """
-        result = {
+        result: Dict[str, Any] = {
             "finding_id": finding.get("id", "UNK"),
             "title": finding.get("title") or finding.get("type") or "Unknown",
             "severity": finding.get("severity", "Medium"),
@@ -703,7 +703,12 @@ JSON:"""
 
                 with urllib.request.urlopen(req, timeout=self.config.timeout) as response:
                     data = json.loads(response.read().decode())
-                    result = data.get("response", "").strip()
+                    if not isinstance(data, dict):
+                        logger.warning(f"LLM call attempt {attempt}: invalid response payload")
+                        continue
+
+                    raw_result = data.get("response", "")
+                    result = raw_result.strip() if isinstance(raw_result, str) else ""
 
                     if result:
                         return result
