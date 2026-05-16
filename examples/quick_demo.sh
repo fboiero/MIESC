@@ -5,7 +5,7 @@
 set -e
 
 echo ""
-echo "=== MIESC v4.0.0 - Quick Demo ==="
+echo "=== MIESC v5.4.2 - Quick Demo ==="
 echo ""
 
 echo "[1/4] Version y herramientas..."
@@ -25,7 +25,7 @@ echo "[4/4] Demo completada!"
 echo ""
 echo "Comandos disponibles:"
 echo "  miesc scan <file>   - Analisis rapido"
-echo "  miesc audit <file>  - Auditoria 7 capas"
-echo "  miesc api           - Servidor REST"
+echo "  miesc audit <file>  - Auditoria configurada"
+echo "  miesc server rest   - Servidor REST"
 echo "  miesc doctor        - Check herramientas"
 echo ""

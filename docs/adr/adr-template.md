@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed | Accepted | Deprecated | Superseded by [ADR-XXXX](XXXX-title.md)
+Proposed | Accepted | Deprecated | Superseded by ADR-XXXX
 
 ## Context
 

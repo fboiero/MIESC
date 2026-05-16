@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">MIESC</h1>
   <p align="center">
-    <strong>50 tool adapters. 9 defense layers. One command.</strong>
+    <strong>50 security tools. 9 defense layers. One command.</strong>
   </p>
   <p align="center">
     Enterprise-grade smart contract security, free and open to everyone.
@@ -249,7 +249,7 @@ pip install miesc
 # With PDF reports
 pip install miesc[pdf]
 
-# Everything (PDF, LLM, RAG, web UI)
+# Everything for local analysis (PDF, LLM, RAG, APIs)
 pip install miesc[full]
 
 # Development
@@ -297,7 +297,7 @@ miesc scan Bridge.sol             # Detects 7 bridge exploit patterns
 | `miesc scan` | Quick scan (3 tools + intelligence engine) |
 | `miesc scan --diff HEAD~1` | **NEW** PR-level: only changed .sol files |
 | `miesc scan contracts/` | **NEW** Directory scan (+ `--recursive`) |
-| `miesc audit quick\|full` | Multi-layer audit (3 quick tools or 50 configured adapters) |
+| `miesc audit quick\|full` | Multi-layer audit (3 quick tools or configured 9-layer stack) |
 | `miesc fix results.json` | Auto-generate patched .sol files |
 | `miesc remediate results.json` | **NEW** Generate patched files plus compile/re-scan evidence |
 | `miesc verify contract.sol` | Run Certora/Halmos/SMTChecker provers |
@@ -422,7 +422,7 @@ MIESC_BUILD_SEMGREP=true ./scripts/build-images.sh full
 ```bash
 miesc scan contract.sol              # Quick scan (Slither + Aderyn + Solhint)
 miesc scan contract.sol --ci         # CI mode: exit 1 on critical/high
-miesc audit quick contract.sol       # 4-tool audit
+miesc audit quick contract.sol       # 3-tool audit
 miesc audit full contract.sol        # Full 9-layer audit
 miesc audit layer 3 contract.sol     # Specific layer (e.g., symbolic execution)
 miesc audit profile defi contract.sol  # Named profile (defi, token, security, etc.)
@@ -550,14 +550,17 @@ results = run_tool("slither", "contract.sol")
 report = run_full_audit("contract.sol")
 ```
 
-### Web UI
+### Local APIs And Reports
 
 ```bash
-pip install miesc[web]
-make webapp  # Opens at http://localhost:8501
+pip install "miesc[django]"
+python -m miesc.api.rest --host 127.0.0.1 --port 8000
+python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
 ```
 
-Interactive Streamlit dashboard with upload, analysis, results visualization, and report export.
+The open core exposes local REST/MCP automation and static report generation.
+The hosted product UI, team dashboards, licensing workflow, and IDE product
+clients now live in the platform layer.
 
 ---
 
@@ -599,7 +602,7 @@ Contract.sol
  CLI / API / MCP / GitHub Action
     |
     v
- Orchestrator --> 9 Layers --> 50 Tool Adapters
+ Orchestrator --> 9 Layers --> Configured Adapter Stack
     |
     v
  Finding Aggregator --> ML Pipeline --> RAG Context --> FP Filter

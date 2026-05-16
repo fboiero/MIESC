@@ -1,157 +1,134 @@
-# MIESC v4.0.0 - Demo para Defensa de Tesis
+# MIESC v5.4.2 - Public Core Examples
 
-Scripts de demostracion para la defensa de tesis de Maestria en Ciberdefensa.
+This directory contains local examples for the public MIESC core surface:
+CLI scans, local REST API checks, MCP-compatible analysis, static reports, and
+thesis evidence demos. Product/platform UI code is intentionally out of scope
+for the public package.
 
-## Demos Disponibles
+## Available Scripts
 
-| Script | Duracion | Descripcion |
+| Script | Duration | Description |
 |--------|----------|-------------|
-| `run_full_demo.sh` | 15-20 min | Demo completa interactiva (10 secciones) |
-| `quick_demo.sh` | 2 min | Demo rapida de CLI |
-| `run_demo.sh` | 10 min | Demo basica de CLI |
+| `quick_demo.sh` | 2 min | Fast CLI smoke demo |
+| `run_demo.sh` | 10 min | Basic CLI/API demo |
+| `run_full_demo.sh` | 15-20 min | Full local evidence demo |
+| `demo_thesis_defense.py` | 5-10 min | Thesis-oriented walkthrough |
 
-## Ejecutar Demo Completa
+## Quick Smoke
 
 ```bash
-cd demo
-./run_full_demo.sh
+miesc --version
+miesc doctor
+miesc scan tests/fixtures/reentrancy.sol --fp-strictness off --verbose
 ```
 
-### Secciones de la Demo Completa
+Expected behavior for `tests/fixtures/reentrancy.sol`:
 
-1. **Arquitectura Defense-in-Depth** - 7 capas de defensa
-2. **Estructura del Proyecto** - Organizacion de carpetas
-3. **CLI Unificado** - `miesc scan/audit/doctor`
-4. **Analisis de Smart Contract** - VulnerableBank.sol
-5. **Web Dashboard** - Streamlit UI
-6. **API REST MCP** - Endpoints para agentes IA
-7. **Pipeline ML** - Filtrado de falsos positivos
-8. **Agentes MCP** - Static, Dynamic, Formal, AI
-9. **Validacion Cientifica** - Metricas (89.47% precision)
-10. **Tests y Cobertura** - 204 tests, 87.5% coverage
+- Scan exits successfully when `--ci` is not used.
+- Reentrancy findings are reported.
+- `--ci --quiet --fp-strictness off` exits with code 1 because HIGH findings
+  are present.
 
-## Componentes Demostrados
+## Core Surfaces Demonstrated
 
-### 1. CLI (Command Line Interface)
+### CLI
+
 ```bash
-miesc scan contract.sol      # Analisis rapido
-miesc audit contract.sol     # Auditoria 7 capas
-miesc doctor                 # Verificar herramientas
-miesc api                    # Iniciar servidor REST
+miesc scan tests/fixtures/reentrancy.sol --fp-strictness off
+miesc audit quick tests/fixtures/reentrancy.sol -f json
+miesc audit full tests/fixtures/reentrancy.sol -f json --timeout 60
+miesc doctor
 ```
 
-### 2. Web Dashboard (Streamlit)
+### Static HTML Report
+
 ```bash
-streamlit run webapp/app.py
-# Abre http://localhost:8501
+python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
 ```
 
-Caracteristicas:
-- Upload de contratos .sol
-- Seleccion de herramientas
-- Visualizacion de resultados
-- Exportacion de reportes
-- Sistema de licencias
-- Soporte bilingue (EN/ES)
+The generated dashboard is a static local artifact at
+`analysis/dashboard/index.html`.
 
-### 3. API REST MCP
+### Local REST API
+
 ```bash
-python3 src/miesc_mcp_rest.py --port 5001
+python -m miesc.api.rest --host 127.0.0.1 --port 8000
 ```
 
-Endpoints:
-- `GET /mcp/capabilities` - Capacidades del agente
-- `GET /mcp/status` - Estado de salud
-- `GET /mcp/get_metrics` - Metricas cientificas
-- `POST /mcp/run_audit` - Ejecutar auditoria
-- `POST /mcp/policy_audit` - Validacion de cumplimiento
+Core endpoints:
 
-### 4. Pipeline ML
+- `GET /api/v1/health/`
+- `GET /api/v1/tools/`
+- `GET /api/v1/layers/`
+- `POST /api/v1/analyze/quick/`
+- `POST /api/v1/analyze/full/`
+- `POST /api/v1/analyze/tool/{tool_name}/`
+
+### MCP
+
+```bash
+miesc-mcp
+```
+
+For local validation without starting a long-running client session, use the
+MCP unit and integration smoke tests:
+
+```bash
+python -m pytest tests/test_mcp_server.py
+```
+
+### ML Pipeline
+
 ```python
 from src.ml import MLPipeline
 
 pipeline = MLPipeline()
 result = pipeline.process(findings)
 
-print(f"FP filtrados: {result.fp_filtered}")
-print(f"Precision: 89.47%")
+print(f"FP filtered: {result.fp_filtered}")
 ```
 
-Componentes:
-- FalsePositiveFilter (43% reduccion)
-- SeverityPredictor
-- VulnerabilityClusterer
-- CodeEmbedder
-- FeedbackLoop
+## Validation Snapshot
 
-### 5. Agentes MCP
-- StaticAgent (Slither, Aderyn)
-- DynamicAgent (Echidna, Medusa)
-- SymbolicAgent (Mythril)
-- FormalAgent (Certora, Halmos)
-- PolicyAgent (Cumplimiento)
-- SmartLLMAgent (IA local)
+Latest local release evidence:
 
-## Timeline Sugerido para Defensa (20 min)
+| Check | Result |
+|-------|--------|
+| Full pytest suite | 5967 passed, 8 skipped |
+| Public REST/MCP/OpenAPI/dist suite | 69 passed |
+| Known reentrancy contract CLI smoke | 8 findings, 2 HIGH |
+| Known reentrancy contract REST Slither smoke | 5 findings |
+| Known reentrancy contract MCP quick scan | 10 findings, 6 tools succeeded |
+| Wheel/sdist content guard | PASS |
 
-| Tiempo | Seccion | Duracion |
-|--------|---------|----------|
-| 0:00 | Arquitectura 7 capas | 3 min |
-| 3:00 | Estructura proyecto | 2 min |
-| 5:00 | CLI + Doctor | 2 min |
-| 7:00 | Analisis contrato | 3 min |
-| 10:00 | Web Dashboard | 3 min |
-| 13:00 | API MCP | 2 min |
-| 15:00 | Pipeline ML | 2 min |
-| 17:00 | Validacion cientifica | 2 min |
-| 19:00 | Resumen y preguntas | 1 min |
-
-## Contratos de Ejemplo
-
-```
-contracts/audit/
-├── VulnerableBank.sol      # Reentrancy (SWC-107)
-├── AccessControlFlawed.sol # Access Control (SWC-105)
-├── UnsafeToken.sol         # Integer Overflow (SWC-101)
-├── FlashLoanVault.sol      # Flash Loan Attack
-└── NFTMarketplace.sol      # Multiple vulnerabilities
-```
-
-## Metricas de Validacion
-
-| Metrica | Valor |
-|---------|-------|
-| Precision | 89.47% |
-| Recall | 86.20% |
-| F1-Score | 87.81% |
-| Cohen's Kappa | 0.847 |
-| Reduccion FP | 43% |
-| Dataset | 5,127 contratos |
-
-## Requisitos
+## Requirements
 
 ```bash
-# Instalar MIESC
 pip install -e .
-
-# Verificar instalacion
 miesc --version
 miesc doctor
+```
 
-# Dependencias opcionales
-pip install streamlit  # Para dashboard
+Optional REST/MCP extras:
+
+```bash
+pip install -e ".[django,mcp]"
 ```
 
 ## Troubleshooting
 
 ```bash
-# Si slither no funciona
+# If Slither is unavailable
 pip install slither-analyzer
-solc-select install 0.8.19 && solc-select use 0.8.19
+solc-select install 0.8.25
+solc-select use 0.8.25
 
-# Si streamlit no inicia
-pip install streamlit plotly
+# If the REST API cannot import Django/DRF
+pip install django djangorestframework django-cors-headers
 
-# Verificar todo
-miesc doctor
+# If the MCP server cannot import the SDK
+pip install "mcp[cli]>=1.0.0"
+
+# Verify the local install
+python scripts/verify_installation.py
 ```

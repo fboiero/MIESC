@@ -49,11 +49,11 @@ src/                      # Source Code
 │   ├── input_validator.py
 │   ├── api_limiter.py
 │   └── secure_logging.py
-└── miesc_mcp_rest.py    # REST API
+└── utils/
+    └── web_dashboard.py # Static HTML dashboard
 
-webapp/                   # Web Dashboard
-├── app.py               # Streamlit app
-└── dashboard_enhanced.py
+miesc/api/
+└── rest.py              # Core REST API
 
 tests/                    # Test Suite (204 tests)
 ├── test_adapters.py

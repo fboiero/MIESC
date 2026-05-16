@@ -31,14 +31,14 @@ MIESC es un framework de análisis de seguridad de código abierto para contrato
 | Indicador | Estado | Evidencia |
 |-----------|--------|-----------|
 | 1. Relevancia ODS | Cumple | [Alineación ODS](#indicador-1-relevancia-ods) |
-| 2. Licencia Abierta | Cumple | [Licencia AGPL-3.0](./LICENSE) |
+| 2. Licencia Abierta | Cumple | [Licencia AGPL-3.0](https://github.com/fboiero/MIESC/blob/main/LICENSE) |
 | 3. Propiedad Clara | Cumple | [Declaración de Propiedad](#indicador-3-propiedad-clara) |
 | 4. Independencia de Plataforma | Cumple | [Arquitectura Técnica](#indicador-4-independencia-de-plataforma) |
-| 5. Documentación | Cumple | [Documentación](#indicador-5-documentación) |
-| 6. Extracción de Datos | Cumple | [Formatos de Exportación](#indicador-6-extracción-de-datos) |
+| 5. Documentación | Cumple | Documentación |
+| 6. Extracción de Datos | Cumple | Formatos de Exportación |
 | 7. Privacidad y Leyes | Cumple | [Política de Privacidad](./PRIVACY_ES.md) |
-| 8. Estándares y Mejores Prácticas | Cumple | [Cumplimiento de Estándares](#indicador-8-estándares-y-mejores-prácticas) |
-| 9. No Dañar | Cumple | [Prevención de Daños](#indicador-9-no-dañar) |
+| 8. Estándares y Mejores Prácticas | Cumple | Cumplimiento de Estándares |
+| 9. No Dañar | Cumple | Prevención de Daños |
 
 ---
 
@@ -98,7 +98,7 @@ Esta licencia está [aprobada por OSI](https://opensource.org/licenses/AGPL-3.0)
 
 ### Archivo de Licencia
 
-Texto completo de la licencia: [LICENSE](./LICENSE)
+Texto completo de la licencia: [LICENSE](https://github.com/fboiero/MIESC/blob/main/LICENSE)
 
 ### Componentes de Terceros
 
@@ -189,11 +189,11 @@ MIESC está diseñado para la independencia de plataforma:
 
 | Recurso | Ubicación | Descripción |
 |---------|-----------|-------------|
-| Guía de Usuario | [docs/](./docs/) | Instalación, configuración, uso |
-| Referencia API | [docs/openapi.yaml](./docs/openapi.yaml) | Especificación OpenAPI 3.0 |
-| Arquitectura | [docs/01_ARCHITECTURE.md](./docs/01_ARCHITECTURE.md) | Diseño del sistema y componentes |
-| Guía de Demo | [docs/03_DEMO_GUIDE.md](./docs/03_DEMO_GUIDE.md) | Tutoriales paso a paso |
-| Guía de Desarrollador | [docs/DEVELOPER_GUIDE.md](./docs/DEVELOPER_GUIDE.md) | Contribuir y extender |
+| Guía de Usuario | [docs/index_es.md](../index_es.md) | Instalación, configuración, uso |
+| Referencia API | [docs/openapi.yaml](../openapi.yaml) | Especificación OpenAPI 3.0 |
+| Arquitectura | [docs/ARCHITECTURE.md](../ARCHITECTURE.md) | Diseño del sistema y componentes |
+| Inicio Rápido | [docs/guides/QUICKSTART_ES.md](../guides/QUICKSTART_ES.md) | Tutoriales paso a paso |
+| Guía de Desarrollador | [docs/CONTRIBUTING.md](../CONTRIBUTING.md) | Contribuir y extender |
 | Docs Hosteados | [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC) | Sitio generado con MkDocs |
 
 ### Inicio Rápido
@@ -206,14 +206,14 @@ cd MIESC
 # Instalar dependencias
 pip install -r requirements.txt
 
-# Ejecutar demo
-python3 examples/demo_v4.0.py
+# Ejecutar smoke local
+miesc scan tests/fixtures/reentrancy.sol --fp-strictness off
 ```
 
 ### Soporte Multilingüe
 
-- Inglés: [README.md](./README.md)
-- Español: [README_ES.md](./README_ES.md)
+- Inglés: [README.md](https://github.com/fboiero/MIESC/blob/main/README.md)
+- Español: [README_ES.md](https://github.com/fboiero/MIESC/blob/main/README_ES.md)
 
 ---
 
@@ -309,7 +309,7 @@ MIESC mapea hallazgos a 12 estándares internacionales:
 |----------|----------------|
 | Control de Versiones | Git con commits firmados |
 | Revisión de Código | Pull request requerido |
-| Pruebas | 117 pruebas, 87.5% cobertura |
+| Pruebas | 5967 pruebas pasando, 8 omitidas en la ultima regresion local completa |
 | CI/CD | Pipeline de GitHub Actions |
 | Escaneo de Seguridad | Bandit, Semgrep, Snyk |
 | Documentación | MkDocs con versionado |
@@ -361,7 +361,7 @@ Ver: [GOVERNANCE_ES.md](./GOVERNANCE_ES.md)
 - **Mantenedor**: Fernando Boiero
 - **Proceso de Decisión**: Propuestas estilo RFC para cambios mayores
 - **Comunidad**: GitHub Discussions para solicitudes de características
-- **Código de Conducta**: [CODE_OF_CONDUCT_ES.md](./CODE_OF_CONDUCT_ES.md)
+- **Código de Conducta**: [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md)
 
 ### Plan de Sostenibilidad
 

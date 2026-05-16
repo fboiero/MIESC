@@ -8,15 +8,15 @@ Esta guía proporciona un flujo de trabajo estructurado para realizar auditoría
 
 ## Tabla de Contenidos
 
-1. [Descripción General](#descripción-general)
+1. Descripción General
 2. [Requisitos Previos](#requisitos-previos)
-3. [Fases de Auditoría](#fases-de-auditoría)
+3. Fases de Auditoría
 4. [Referencia de Comandos](#referencia-de-comandos)
-5. [Interpretación de Hallazgos](#interpretación-de-hallazgos)
-6. [Gestión de Falsos Positivos](#gestión-de-falsos-positivos)
-7. [Generación de Reportes](#generación-de-reportes)
-8. [Integración CI/CD](#integración-cicd)
-9. [Mejores Prácticas](#mejores-prácticas)
+5. Interpretación de Hallazgos
+6. Gestión de Falsos Positivos
+7. Generación de Reportes
+8. Integración CI/CD
+9. Mejores Prácticas
 10. [Ejemplos de Flujos de Trabajo](#ejemplos-de-flujos-de-trabajo)
 
 ---
@@ -81,7 +81,7 @@ export OLLAMA_HOST=http://localhost:11434
 **Objetivo:** Evaluación rápida para identificar problemas obvios y estimar el alcance.
 
 ```bash
-# Escaneo rápido con 4 herramientas
+# Escaneo rápido de triaje
 miesc scan contract.sol
 
 # O con Docker
@@ -205,7 +205,7 @@ miesc export results-full.json -f sarif -o results.sarif.json
 | Comando | Propósito | Duración Típica |
 |---------|-----------|-----------------|
 | `miesc scan <archivo>` | Escaneo de triaje | 1-5 min |
-| `miesc audit quick <dir>` | Auditoría rápida 4 herramientas | 15-30 min |
+| `miesc audit quick <dir>` | Auditoría rápida 3 herramientas | 15-30 min |
 | `miesc audit full <dir>` | Auditoría completa 9 capas | 1-4 horas |
 | `miesc audit layer N <contrato>` | Análisis de capa específica | Variable |
 | `miesc audit smart <dir>` | Auditoría adaptativa con IA | 30-60 min |

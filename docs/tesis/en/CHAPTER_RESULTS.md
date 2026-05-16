@@ -146,7 +146,7 @@ Below are the actual execution outputs of the main tools integrated in MIESC, de
 
 **Figure 13.** Slither Output (Layer 1 - Static Analysis)
 
-![Figure 13 - Slither Output Layer 1 - Static Analysis](figures/Figura%2013%20Salida%20de%20Slither%20Capa%201%20-%20Análisis%20Estático.svg)
+![Figure 13 - Slither Output Layer 1 - Static Analysis](../figures/Figura%2013%20Salida%20de%20Slither%20Capa%201%20-%20Análisis%20Estático.svg)
 
 ```
 $ slither contracts/audit/VulnerableBank.sol
@@ -191,7 +191,7 @@ INFO:Slither:contracts/audit/VulnerableBank.sol analyzed (2 contracts with 100 d
 
 **Figure 14.** Mythril Output (Layer 3 - Symbolic Execution)
 
-![Figure 14 - Mythril Output Layer 3 - Symbolic Execution](figures/Figura%2014%20Salida%20de%20Mythril%20Capa%203%20-%20Ejecución%20Simbólica.svg)
+![Figure 14 - Mythril Output Layer 3 - Symbolic Execution](../figures/Figura%2014%20Salida%20de%20Mythril%20Capa%203%20-%20Ejecución%20Simbólica.svg)
 
 ```
 $ myth analyze contracts/audit/VulnerableBank.sol --execution-timeout 90
@@ -236,7 +236,7 @@ target.withdraw()
 
 **Figure 15.** SMTChecker Output (Layer 5 - Formal Verification)
 
-![Figure 15 - SMTChecker Output Layer 5 - Formal Verification](figures/Figura%2015%20Salida%20de%20SMTChecker%20Capa%205%20-%20Verificación%20Formal.svg)
+![Figure 15 - SMTChecker Output Layer 5 - Formal Verification](../figures/Figura%2015%20Salida%20de%20SMTChecker%20Capa%205%20-%20Verificación%20Formal.svg)
 
 ```
 $ solc --model-checker-engine chc --model-checker-targets all contracts/audit/VulnerableBank.sol
@@ -253,10 +253,10 @@ increasing the timeout per query.
 
 **Figure 16.** Complete MIESC Pipeline Output
 
-![Figure 16 - Complete MIESC Pipeline Output](figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
+![Figure 16 - Complete MIESC Pipeline Output](../figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
 
 ```
-$ python -m src.miesc_cli analyze contracts/audit/VulnerableBank.sol --layers all
+$ miesc audit full contracts/audit/VulnerableBank.sol
 
 ============================================================
 MIESC v4.0.0 - Multi-layer Smart Contract Security Framework
@@ -321,7 +321,7 @@ Status: COMPLETED
 
 **Figure 17.** Normalized Finding Structure (JSON)
 
-![Figure 17 - Normalized Finding Structure JSON](figures/Figura%2017%20Estructura%20de%20Hallazgo%20Normalizado%20JSON.svg)
+![Figure 17 - Normalized Finding Structure JSON](../figures/Figura%2017%20Estructura%20de%20Hallazgo%20Normalizado%20JSON.svg)
 
 The following fragment shows the structure of an individual finding normalized by MIESC, demonstrating the integration of SWC, CWE, and OWASP classifications:
 
@@ -365,7 +365,7 @@ The following fragment shows the structure of an individual finding normalized b
 
 **Figure 18.** REST API Response
 
-![Figure 18 - REST API Response](figures/Figura%2018%20Respuesta%20de%20API%20REST.svg)
+![Figure 18 - REST API Response](../figures/Figura%2018%20Respuesta%20de%20API%20REST.svg)
 
 The following capture shows the MIESC REST API response after analyzing a contract:
 

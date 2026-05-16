@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use MIESC in your research, please cite it as follows."
 title: "MIESC: Multi-layer Intelligent Evaluation for Smart Contracts"
-version: 5.4.0
+version: 5.4.2
 date-released: "2026-05-06"
 authors:
   - family-names: Boiero

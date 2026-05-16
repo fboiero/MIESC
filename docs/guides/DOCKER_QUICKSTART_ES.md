@@ -71,7 +71,7 @@ curl -O https://raw.githubusercontent.com/crytic/not-so-smart-contracts/master/i
 
 ## 2. Escaneo Rápido (~30 segundos)
 
-Análisis rápido con 4 herramientas:
+Análisis rápido de triaje:
 
 ```bash
 docker run --rm -v $(pwd):/contracts \
@@ -167,7 +167,7 @@ contracts/                        ← Tu carpeta de contratos
 
 | Comando | Tiempo | Descripción |
 |---------|--------|-------------|
-| `scan` | 30s | Análisis rápido 4 herramientas |
+| `scan` | 30s | Análisis rápido de triaje |
 | `audit quick` | 1min | Escaneo básico |
 | `audit full` | 5-8min | 9 capas, 30+ herramientas, IA |
 | `audit batch` | variable | Múltiples contratos |

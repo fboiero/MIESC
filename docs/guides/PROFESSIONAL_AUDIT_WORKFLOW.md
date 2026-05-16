@@ -23,7 +23,7 @@ This guide provides a structured workflow for conducting professional smart cont
 
 ## Overview
 
-MIESC integrates **50 configured tool adapters** across **9 defense layers** to provide comprehensive smart contract analysis:
+MIESC integrates a **configured adapter stack** across **9 defense layers** to provide comprehensive smart contract analysis:
 
 | Layer | Focus | Key Tools |
 |-------|-------|-----------|
@@ -81,7 +81,7 @@ export OLLAMA_HOST=http://localhost:11434
 **Goal:** Quick assessment to identify obvious issues and estimate audit scope.
 
 ```bash
-# Quick 4-tool scan
+# Quick triage scan
 miesc scan contract.sol
 
 # Or with Docker
@@ -205,7 +205,7 @@ miesc export results-full.json -f sarif -o results.sarif.json
 | Command | Purpose | Typical Duration |
 |---------|---------|------------------|
 | `miesc scan <file>` | Quick triage scan | 1-5 min |
-| `miesc audit quick <dir>` | Fast 4-tool audit | 15-30 min |
+| `miesc audit quick <dir>` | Fast 3-tool audit | 15-30 min |
 | `miesc audit full <dir>` | Complete 9-layer audit | 1-4 hours |
 | `miesc audit layer N <contract>` | Specific layer analysis | Variable |
 | `miesc audit smart <dir>` | AI-guided adaptive audit | 30-60 min |

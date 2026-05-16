@@ -51,13 +51,13 @@
   </g>
   <g transform="translate(250, 120)">
     <rect width="150" height="40" rx="5" fill="#ffffff" opacity="0.95"/>
-    <text x="75" y="25" text-anchor="middle" class="label-dark">Web UI</text>
-    <text x="75" y="15" text-anchor="middle" class="small">localhost:8501</text>
+    <text x="75" y="25" text-anchor="middle" class="label-dark">Static Report</text>
+    <text x="75" y="15" text-anchor="middle" class="small">dashboard/index.html</text>
   </g>
   <g transform="translate(420, 120)">
     <rect width="150" height="40" rx="5" fill="#ffffff" opacity="0.95"/>
     <text x="75" y="25" text-anchor="middle" class="label-dark">REST API</text>
-    <text x="75" y="15" text-anchor="middle" class="small">POST /mcp/run_audit</text>
+    <text x="75" y="15" text-anchor="middle" class="small">POST /api/v1/analyze/quick/</text>
   </g>
   <g transform="translate(590, 120)">
     <rect width="180" height="40" rx="5" fill="#ffffff" opacity="0.95"/>

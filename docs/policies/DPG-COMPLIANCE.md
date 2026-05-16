@@ -31,13 +31,13 @@ MIESC is an open-source security analysis framework for smart contracts that adv
 | Indicator | Status | Evidence |
 |-----------|--------|----------|
 | 1. SDG Relevance | Compliant | [SDG Alignment](#indicator-1-sdg-relevance) |
-| 2. Open Licensing | Compliant | [AGPL-3.0 License](./LICENSE) |
+| 2. Open Licensing | Compliant | [AGPL-3.0 License](https://github.com/fboiero/MIESC/blob/main/LICENSE) |
 | 3. Clear Ownership | Compliant | [Ownership Statement](#indicator-3-clear-ownership) |
 | 4. Platform Independence | Compliant | [Technical Architecture](#indicator-4-platform-independence) |
 | 5. Documentation | Compliant | [Documentation](#indicator-5-documentation) |
 | 6. Data Extraction | Compliant | [Export Formats](#indicator-6-data-extraction) |
 | 7. Privacy & Laws | Compliant | [Privacy Policy](./PRIVACY.md) |
-| 8. Standards & Best Practices | Compliant | [Standards Compliance](#indicator-8-standards--best-practices) |
+| 8. Standards & Best Practices | Compliant | Standards Compliance |
 | 9. Do No Harm | Compliant | [Harm Prevention](#indicator-9-do-no-harm) |
 
 ---
@@ -98,7 +98,7 @@ This license is [OSI-approved](https://opensource.org/licenses/AGPL-3.0) and ens
 
 ### License File
 
-Full license text: [LICENSE](./LICENSE)
+Full license text: [LICENSE](https://github.com/fboiero/MIESC/blob/main/LICENSE)
 
 ### Third-Party Components
 
@@ -187,11 +187,11 @@ MIESC is designed for platform independence:
 
 | Resource | Location | Description |
 |----------|----------|-------------|
-| User Guide | [docs/](./docs/) | Installation, configuration, usage |
-| API Reference | [docs/openapi.yaml](./docs/openapi.yaml) | OpenAPI 3.0 specification |
-| Architecture | [docs/01_ARCHITECTURE.md](./docs/01_ARCHITECTURE.md) | System design and components |
-| Demo Guide | [docs/03_DEMO_GUIDE.md](./docs/03_DEMO_GUIDE.md) | Step-by-step tutorials |
-| Developer Guide | [docs/DEVELOPER_GUIDE.md](./docs/DEVELOPER_GUIDE.md) | Contributing and extending |
+| User Guide | [docs/index.md](../index.md) | Installation, configuration, usage |
+| API Reference | [docs/openapi.yaml](../openapi.yaml) | OpenAPI 3.0 specification |
+| Architecture | [docs/ARCHITECTURE.md](../ARCHITECTURE.md) | System design and components |
+| Quickstart | [docs/guides/QUICKSTART.md](../guides/QUICKSTART.md) | Step-by-step tutorials |
+| Developer Guide | [docs/CONTRIBUTING.md](../CONTRIBUTING.md) | Contributing and extending |
 | Hosted Docs | [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC) | MkDocs-generated site |
 
 ### Quick Start
@@ -204,14 +204,14 @@ cd MIESC
 # Install dependencies
 pip install -r requirements.txt
 
-# Run demo
-python3 examples/demo_v4.0.py
+# Run a local smoke scan
+miesc scan tests/fixtures/reentrancy.sol --fp-strictness off
 ```
 
 ### Multilingual Support
 
-- English: [README.md](./README.md)
-- Spanish: [README_ES.md](./README_ES.md)
+- English: [README.md](https://github.com/fboiero/MIESC/blob/main/README.md)
+- Spanish: [README_ES.md](https://github.com/fboiero/MIESC/blob/main/README_ES.md)
 
 ---
 
@@ -307,7 +307,7 @@ MIESC maps findings to 12 international standards:
 |----------|----------------|
 | Version Control | Git with signed commits |
 | Code Review | Pull request required |
-| Testing | 117 tests, 87.5% coverage |
+| Testing | 5967 tests passed, 8 skipped in the latest full local regression |
 | CI/CD | GitHub Actions pipeline |
 | Security Scanning | Bandit, Semgrep, Snyk |
 | Documentation | MkDocs with versioning |
@@ -359,7 +359,7 @@ See: [GOVERNANCE.md](./GOVERNANCE.md)
 - **Maintainer**: Fernando Boiero
 - **Decision Process**: RFC-style proposals for major changes
 - **Community**: GitHub Discussions for feature requests
-- **Code of Conduct**: [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- **Code of Conduct**: [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md)
 
 ### Sustainability Plan
 

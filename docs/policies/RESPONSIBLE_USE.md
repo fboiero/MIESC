@@ -56,7 +56,7 @@ MIESC is a **dual-use security tool**. Like any vulnerability scanner, it can be
 
 2. **Bug bounty programs:** We encourage using MIESC findings through established bug bounty programs rather than independent exploitation.
 
-3. **Code of Conduct:** All community interactions are governed by our [Code of Conduct](./CODE_OF_CONDUCT.md).
+3. **Code of Conduct:** All community interactions are governed by our [Code of Conduct](../CODE_OF_CONDUCT.md).
 
 ## AI/LLM Considerations
 
@@ -73,7 +73,7 @@ MIESC integrates AI/LLM capabilities for enhanced analysis. Responsible AI pract
 If you become aware of MIESC being used for malicious purposes:
 
 - **Email:** fboiero@frvm.utn.edu.ar
-- **Security issues:** See [SECURITY.md](./docs/SECURITY.md)
+- **Security issues:** See [SECURITY.md](../SECURITY.md)
 
 ## License Implications
 

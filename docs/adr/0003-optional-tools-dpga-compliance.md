@@ -66,4 +66,4 @@ MIESC core functionality works with **zero** external tools:
 
 - [DPGA Standard](https://digitalpublicgoods.net/standard/)
 - [DPGA Indicator: No Vendor Lock-in](https://digitalpublicgoods.net/standard/#9c)
-- [src/core/tool_protocol.py](../../src/core/tool_protocol.py)
+- [src/core/tool_protocol.py](https://github.com/fboiero/MIESC/blob/main/src/core/tool_protocol.py)

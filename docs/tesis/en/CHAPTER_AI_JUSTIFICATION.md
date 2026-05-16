@@ -82,7 +82,7 @@ Carlini et al. (2023) demonstrated the "memorization attack": through carefully 
 
 **Figure 21.** Attack surface in commercial API analysis
 
-![Figure 21 - Attack surface in commercial API analysis](figures/Figura%2021%20Superficie%20de%20ataque%20análisis%20en%20API%20comercial.svg)
+![Figure 21 - Attack surface in commercial API analysis](../figures/Figura%2021%20Superficie%20de%20ataque%20análisis%20en%20API%20comercial.svg)
 
 ```
 +--------------------------------------------------------------------+
@@ -229,7 +229,7 @@ Unlike commercial services, Ollama does not include telemetry code. This is veri
 
 **Figure 22.** Analysis architecture with sovereign LLM
 
-![Figure 22 - Analysis architecture with sovereign LLM](figures/Figura%2022.%20Arquitectura%20de%20análisis%20con%20LLM%20soberano.svg)
+![Figure 22 - Analysis architecture with sovereign LLM](../figures/Figura%2022.%20Arquitectura%20de%20análisis%20con%20LLM%20soberano.svg)
 
 *100% local infrastructure with zero external traffic*
 

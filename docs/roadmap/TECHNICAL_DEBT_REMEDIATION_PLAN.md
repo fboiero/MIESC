@@ -29,13 +29,14 @@ platform with the current Paper 1 and Paper 2 evidence.
 | RAG source governance | Source tiers existed in code and Paper 1 notes, but reviewer-facing governance was split across files. | Added `docs/guides/RAG_SOURCE_POLICY.md` and linked it from README and Paper reproducibility docs. |
 | Historical-doc ambiguity | Thesis and evidence folders preserve v4.x/v5.1 claims and 7-layer wording. | Added historical notes in `docs/README.md`, `docs/tesis/README.md`, and `docs/evidence/README.md`. |
 | Core orchestration ambiguity | `miesc.core.orchestrator` used current layer metadata but still executed only direct legacy subprocess integrations. | Marked it as a compatibility orchestrator and added explicit supported/skipped tool metadata. |
-| Optional dependency conflict | `miesc[symbolic]` pulled `mythril`, which conflicts with Flask/MarkupSafe and prevents combined installs. | Kept Mythril as an isolated/Docker tool and made the `symbolic` extra non-conflicting. |
+| Optional dependency conflict | `miesc[symbolic]` pulled `mythril`, which conflicts with Slither's dependency set and prevents combined installs. | Kept Mythril as an isolated/Docker tool and made the `symbolic` extra non-conflicting. |
 | Local lockfile noise | `uv run` generated an untracked `uv.lock` in a pip-oriented project. | Ignored `uv.lock`; existing clean targets and `.gitignore` already cover Python caches, coverage, docs builds, and benchmark outputs. |
 | API/MCP remediation examples | Remediation endpoints existed but reviewer-facing usage examples were missing. | Added `docs/guides/REMEDIATION_API_MCP.md` and linked it from README. |
 | Paper 2 artifact regression | Claim generation lacked a focused test around the expected schema and Paper 1 compatibility rule. | Added `tests/test_generate_paper2_artifacts.py` with temporary output paths. |
 | Generated/cache artifact hygiene | Local ignored artifacts were hard to inspect without a long `git status --ignored` dump. | Added `make local-artifacts`, `DETAIL=1 make local-artifacts`, and `make clean-local-artifacts`; documented the workflow in `docs/guides/REPOSITORY_HYGIENE.md`. |
 | CI gate ambiguity | The CI workflow used `continue-on-error` without a clear release policy, especially around type checking. | Documented blocking vs advisory gates in `docs/policies/RELEASE_VERIFICATION.md` and made the mypy step explicitly advisory in CI summaries. |
 | Marketplace advisory checks | The marketplace workflow treated PyPI availability as non-blocking without explaining the policy. | Renamed the step as advisory, added a GitHub summary, and documented marketplace availability in the CI gate policy. |
+| Platform split guardrails | The split plan said the core must not import platform modules, but the rule was only manually checked. | Added a regression test that scans core source for imports from platform-only modules, and linked it from the split acceptance criteria. |
 
 ## Remaining Debt
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# MIESC v4.0.0 - DEMO COMPLETA PARA DEFENSA DE TESIS
+# MIESC v5.4.2 - DEMO COMPLETA CORE LOCAL
 # Multi-layer Intelligent Evaluation for Smart Contracts
 #
 # Maestria en Ciberdefensa - UNDEF/IUA
@@ -76,12 +76,18 @@ wait_key() {
 # =============================================================================
 
 demo_arquitectura() {
-    print_section "1. ARQUITECTURA MIESC - Defense-in-Depth (7 Capas)"
+    print_section "1. ARQUITECTURA MIESC - Defense-in-Depth (9 Capas)"
 
-    echo -e "${WHITE}MIESC implementa una arquitectura de Defensa en Profundidad con 7 capas:${NC}"
+    echo -e "${WHITE}MIESC implementa una arquitectura de Defensa en Profundidad con 9 capas configuradas:${NC}"
     echo ""
 
     echo -e "${MAGENTA}┌─────────────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${MAGENTA}│${NC}  ${WHITE}CAPA 9: Remediacion y Evidencia${NC}                                    ${MAGENTA}│${NC}"
+    echo -e "${MAGENTA}│${NC}          Fixes, validacion y bundles de evidencia                       ${MAGENTA}│${NC}"
+    echo -e "${MAGENTA}├─────────────────────────────────────────────────────────────────────────┤${NC}"
+    echo -e "${MAGENTA}│${NC}  ${CYAN}CAPA 8: Conocimiento y RAG${NC}                                       ${MAGENTA}│${NC}"
+    echo -e "${MAGENTA}│${NC}          Contexto, politicas y recuperacion reproducible                 ${MAGENTA}│${NC}"
+    echo -e "${MAGENTA}├─────────────────────────────────────────────────────────────────────────┤${NC}"
     echo -e "${MAGENTA}│${NC}  ${RED}CAPA 7: Validacion de Cumplimiento${NC}                                    ${MAGENTA}│${NC}"
     echo -e "${MAGENTA}│${NC}          ERC Standards, OWASP Top 10, ISO 27001                        ${MAGENTA}│${NC}"
     echo -e "${MAGENTA}├─────────────────────────────────────────────────────────────────────────┤${NC}"
@@ -106,11 +112,11 @@ demo_arquitectura() {
     echo ""
 
     echo -e "${WHITE}Componentes principales:${NC}"
-    echo -e "  ${CYAN}•${NC} 25 Herramientas de seguridad integradas"
-    echo -e "  ${CYAN}•${NC} 7 Capas de defensa"
+    echo -e "  ${CYAN}•${NC} 51 adaptadores registrados en el core actual"
+    echo -e "  ${CYAN}•${NC} 9 capas de defensa configuradas"
     echo -e "  ${CYAN}•${NC} Pipeline ML para filtrado de falsos positivos"
-    echo -e "  ${CYAN}•${NC} API REST compatible con MCP (Model Context Protocol)"
-    echo -e "  ${CYAN}•${NC} Dashboard Web interactivo (Streamlit)"
+    echo -e "  ${CYAN}•${NC} API REST local para automatizacion reproducible"
+    echo -e "  ${CYAN}•${NC} Dashboard HTML estatico reproducible"
     echo -e "  ${CYAN}•${NC} Integracion con LLM soberano (Ollama)"
 
     wait_key
@@ -130,18 +136,18 @@ demo_estructura() {
 
     echo -e "${CYAN}MIESC/${NC}"
     echo -e "├── ${GREEN}src/${NC}                    # Codigo fuente principal"
-    echo -e "│   ├── ${BLUE}adapters/${NC}           # 25 adaptadores de herramientas"
+    echo -e "│   ├── ${BLUE}adapters/${NC}           # Adaptadores de herramientas"
     echo -e "│   ├── ${BLUE}agents/${NC}             # Agentes MCP (Static, Dynamic, Formal, AI)"
     echo -e "│   ├── ${BLUE}ml/${NC}                 # Pipeline ML (FP filter, clustering)"
     echo -e "│   ├── ${BLUE}mcp/${NC}                # Model Context Protocol"
     echo -e "│   ├── ${BLUE}security/${NC}           # Validacion, rate limiting, logging"
-    echo -e "│   └── ${BLUE}licensing/${NC}          # Sistema de licencias"
+    echo -e "│   └── ${BLUE}utils/${NC}              # Reportes y dashboards estaticos"
     echo -e "├── ${GREEN}miesc/${NC}                 # Paquete PyPI"
     echo -e "│   ├── ${BLUE}cli/${NC}                # CLI unificado (Click)"
     echo -e "│   └── ${BLUE}core/${NC}               # Orquestador principal"
-    echo -e "├── ${GREEN}webapp/${NC}                # Dashboard Streamlit"
+    echo -e "├── ${GREEN}analysis/${NC}              # Resultados y dashboard HTML generado"
     echo -e "├── ${GREEN}contracts/${NC}             # Contratos de ejemplo"
-    echo -e "├── ${GREEN}tests/${NC}                 # 204 tests (87.5% coverage)"
+    echo -e "├── ${GREEN}tests/${NC}                 # Suite pytest reproducible"
     echo -e "├── ${GREEN}docs/${NC}                  # Documentacion y tesis"
     echo -e "└── ${GREEN}demo/${NC}                  # Scripts de demostracion"
     echo ""
@@ -157,8 +163,8 @@ demo_estructura() {
     echo -e "  ${CYAN}Archivos Python:${NC}     $py_files"
     echo -e "  ${CYAN}Adaptadores:${NC}         $adapters"
     echo -e "  ${CYAN}Agentes:${NC}             $agents"
-    echo -e "  ${CYAN}Tests:${NC}               204"
-    echo -e "  ${CYAN}Cobertura:${NC}           87.5%"
+    echo -e "  ${CYAN}Tests:${NC}               5967 passed / 8 skipped en evidencia actual"
+    echo -e "  ${CYAN}Capas:${NC}               9"
 
     wait_key
 }
@@ -223,84 +229,68 @@ EOF
 }
 
 # =============================================================================
-# DEMO 5: WEB DASHBOARD
+# DEMO 5: STATIC HTML DASHBOARD
 # =============================================================================
 
-demo_webapp() {
-    print_section "5. WEB DASHBOARD (Streamlit)"
+demo_dashboard() {
+    print_section "5. STATIC HTML DASHBOARD"
 
-    echo -e "${WHITE}MIESC incluye un dashboard web interactivo:${NC}"
+    echo -e "${WHITE}MIESC Core genera un dashboard HTML estatico desde resultados locales:${NC}"
     echo ""
     echo -e "  ${CYAN}Caracteristicas:${NC}"
-    echo -e "    • Interfaz grafica para upload de contratos"
-    echo -e "    • Visualizacion de resultados en tiempo real"
-    echo -e "    • Exportacion de reportes (JSON, Markdown)"
-    echo -e "    • Sistema de licencias integrado"
-    echo -e "    • Soporte bilingue (EN/ES)"
-    echo -e "    • Capitulos de tesis integrados"
+    echo -e "    • Reporte HTML reproducible"
+    echo -e "    • Visualizacion de resultados generados localmente"
+    echo -e "    • Exportacion de metricas JSON"
+    echo -e "    • Sin dependencia de la plataforma comercial"
     echo ""
 
-    echo -e "${GREEN}Para iniciar el dashboard:${NC}"
-    echo -e "  \$ streamlit run webapp/app.py"
+    echo -e "${GREEN}Para generar el dashboard:${NC}"
+    echo -e "  \$ python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard"
     echo ""
 
-    echo -e "${YELLOW}Iniciando dashboard en segundo plano...${NC}"
-
-    # Intentar iniciar streamlit
-    if command -v streamlit &> /dev/null; then
-        cd "$PROJECT_DIR"
-        streamlit run webapp/app.py --server.headless true &
-        STREAMLIT_PID=$!
-        sleep 3
-        echo ""
-        echo -e "${GREEN}Dashboard disponible en: http://localhost:8501${NC}"
-        echo ""
-        echo -e "${YELLOW}(El dashboard se cerrara al finalizar la demo)${NC}"
+    cd "$PROJECT_DIR"
+    if python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard; then
+        echo -e "${GREEN}Dashboard generado en: analysis/dashboard/index.html${NC}"
     else
-        echo -e "${RED}Streamlit no instalado. Instalar con: pip install streamlit${NC}"
+        echo -e "${YELLOW}No se pudo generar el dashboard; verifica que existan resultados en analysis/results.${NC}"
     fi
 
     wait_key
-
-    # Detener streamlit si se inicio
-    if [ ! -z "$STREAMLIT_PID" ]; then
-        kill $STREAMLIT_PID 2>/dev/null || true
-    fi
 }
 
 # =============================================================================
-# DEMO 6: API REST MCP
+# DEMO 6: LOCAL REST API
 # =============================================================================
 
 demo_api() {
-    print_section "6. API REST - Model Context Protocol (MCP)"
+    print_section "6. API REST LOCAL"
 
-    echo -e "${WHITE}MIESC expone una API REST compatible con MCP para integracion con IA:${NC}"
+    echo -e "${WHITE}MIESC Core expone una API REST local para automatizacion reproducible:${NC}"
     echo ""
 
     echo -e "${CYAN}Endpoints disponibles:${NC}"
     echo ""
-    echo -e "  GET  ${GREEN}/mcp/capabilities${NC}  - Lista capacidades del agente"
-    echo -e "  GET  ${GREEN}/mcp/status${NC}        - Estado de salud del agente"
-    echo -e "  GET  ${GREEN}/mcp/get_metrics${NC}   - Metricas de validacion cientifica"
-    echo -e "  POST ${GREEN}/mcp/run_audit${NC}     - Ejecutar auditoria completa"
-    echo -e "  POST ${GREEN}/mcp/policy_audit${NC}  - Validacion de cumplimiento interno"
+    echo -e "  GET  ${GREEN}/api/v1/health/${NC}        - Estado de salud"
+    echo -e "  GET  ${GREEN}/api/v1/tools/${NC}         - Herramientas disponibles"
+    echo -e "  GET  ${GREEN}/api/v1/layers/${NC}        - Capas de analisis"
+    echo -e "  POST ${GREEN}/api/v1/analyze/quick/${NC} - Analisis rapido"
+    echo -e "  POST ${GREEN}/api/v1/analyze/full/${NC}  - Auditoria completa"
     echo ""
 
-    print_subsection "Iniciando servidor MCP"
+    print_subsection "Iniciando servidor REST"
 
     cd "$PROJECT_DIR"
-    python3 src/miesc_mcp_rest.py --port 5001 &
+    python3 -m miesc.api.rest --host 127.0.0.1 --port 8000 &
     API_PID=$!
     sleep 2
 
-    print_subsection "Consultando capacidades del agente"
+    print_subsection "Consultando salud de la API"
 
-    curl -s http://localhost:5001/mcp/capabilities | python3 -m json.tool 2>/dev/null || echo "API no disponible"
+    curl -s http://localhost:8000/api/v1/health/ | python3 -m json.tool 2>/dev/null || echo "API no disponible"
 
-    print_subsection "Consultando metricas cientificas"
+    print_subsection "Consultando herramientas disponibles"
 
-    curl -s http://localhost:5001/mcp/get_metrics | python3 -m json.tool 2>/dev/null || echo "API no disponible"
+    curl -s http://localhost:8000/api/v1/tools/ | python3 -m json.tool 2>/dev/null || echo "API no disponible"
 
     # Detener API
     kill $API_PID 2>/dev/null || true
@@ -496,12 +486,12 @@ demo_tests() {
 # =============================================================================
 
 demo_resumen() {
-    print_section "RESUMEN - MIESC v4.0.0"
+    print_section "RESUMEN - MIESC v5.4.2"
 
     echo -e "${WHITE}Contribuciones principales de la tesis:${NC}"
     echo ""
-    echo -e "  ${GREEN}1.${NC} Arquitectura Defense-in-Depth de 7 capas"
-    echo -e "  ${GREEN}2.${NC} Integracion de 25 herramientas de seguridad"
+    echo -e "  ${GREEN}1.${NC} Arquitectura Defense-in-Depth de 9 capas"
+    echo -e "  ${GREEN}2.${NC} Integracion del stack de adaptadores configurado"
     echo -e "  ${GREEN}3.${NC} Pipeline ML para reduccion de falsos positivos (43%)"
     echo -e "  ${GREEN}4.${NC} API MCP para integracion con agentes de IA"
     echo -e "  ${GREEN}5.${NC} LLM Soberano para auditoria sin dependencia de APIs externas"
@@ -511,8 +501,8 @@ demo_resumen() {
     echo -e "${WHITE}Impacto:${NC}"
     echo ""
     echo -e "  ${CYAN}•${NC} Precision: 89.47% (vs 67% herramientas individuales)"
-    echo -e "  ${CYAN}•${NC} Cobertura: 7 capas de defensa complementarias"
-    echo -e "  ${CYAN}•${NC} Usabilidad: CLI simple + Dashboard Web + API REST"
+    echo -e "  ${CYAN}•${NC} Cobertura: 9 capas de defensa complementarias"
+    echo -e "  ${CYAN}•${NC} Usabilidad: CLI simple + dashboard HTML estatico + API REST"
     echo -e "  ${CYAN}•${NC} Soberania: Analisis local sin exponer codigo a terceros"
     echo ""
 
@@ -542,8 +532,8 @@ main_menu() {
         echo -e "  ${CYAN}2${NC}  - Estructura del Proyecto"
         echo -e "  ${CYAN}3${NC}  - CLI Unificado (pip install miesc)"
         echo -e "  ${CYAN}4${NC}  - Analisis de Smart Contract"
-        echo -e "  ${CYAN}5${NC}  - Web Dashboard (Streamlit)"
-        echo -e "  ${CYAN}6${NC}  - API REST MCP"
+        echo -e "  ${CYAN}5${NC}  - Dashboard HTML estatico"
+        echo -e "  ${CYAN}6${NC}  - API REST local"
         echo -e "  ${CYAN}7${NC}  - Pipeline de Machine Learning"
         echo -e "  ${CYAN}8${NC}  - Agentes MCP"
         echo -e "  ${CYAN}9${NC}  - Validacion Cientifica"
@@ -561,7 +551,7 @@ main_menu() {
             2) demo_estructura ;;
             3) demo_cli ;;
             4) demo_analisis ;;
-            5) demo_webapp ;;
+            5) demo_dashboard ;;
             6) demo_api ;;
             7) demo_ml ;;
             8) demo_agentes ;;
@@ -572,7 +562,7 @@ main_menu() {
                 demo_estructura
                 demo_cli
                 demo_analisis
-                demo_webapp
+                demo_dashboard
                 demo_api
                 demo_ml
                 demo_agentes

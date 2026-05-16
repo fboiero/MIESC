@@ -66,7 +66,7 @@ El proyecto MIESC está **bien estructurado y listo para producción** con 50+ a
 |---|-------|---------|----------|
 | 4.1 | Pipeline de performance | Bajo | Medio |
 | 4.2 | Plugin marketplace | Bajo | Alto |
-| 4.3 | Modernizar Web UI | Bajo | Alto |
+| 4.3 | Modernizar UI Platform | Bajo | Alto |
 | 4.4 | Release automation | Medio | Medio |
 
 ---
@@ -150,8 +150,8 @@ class InputValidator:
 ## Recursos
 
 - [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md) - Versión detallada en inglés
-- [CONTRIBUTING.md](../CONTRIBUTING.md) - Guía de contribución
-- [CHANGELOG.md](../CHANGELOG.md) - Historial de cambios
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Guía de contribución
+- [CHANGELOG.md](CHANGELOG.md) - Historial de cambios
 
 ---
 

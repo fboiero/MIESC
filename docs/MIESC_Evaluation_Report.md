@@ -249,7 +249,7 @@ miesc analyze contract.sol --layers 1,3,5
 ### 6.2 REST API
 
 ```bash
-POST /api/v1/analyze/
+POST /api/v1/analyze/layer/{layer_num}/
 {
   "contract": "contract.sol",
   "layers": [1, 3, 5],

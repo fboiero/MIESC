@@ -67,5 +67,5 @@ Each adapter:
 ## References
 
 - [Adapter Pattern - Refactoring Guru](https://refactoring.guru/design-patterns/adapter)
-- [src/core/tool_protocol.py](../../src/core/tool_protocol.py)
-- [src/adapters/](../../src/adapters/)
+- [src/core/tool_protocol.py](https://github.com/fboiero/MIESC/blob/main/src/core/tool_protocol.py)
+- [src/adapters/](https://github.com/fboiero/MIESC/tree/main/src/adapters)

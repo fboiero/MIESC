@@ -55,7 +55,7 @@ Anyone who contributes to MIESC through:
 - Translations
 - Testing and quality assurance
 
-**Recognition**: All contributors are acknowledged in [CONTRIBUTORS.md](./CONTRIBUTORS.md).
+**Recognition**: All contributors are acknowledged in [CONTRIBUTORS.md](../CONTRIBUTORS.md).
 
 ### Core Team (Future)
 
@@ -94,7 +94,7 @@ Major changes follow an RFC process:
 4. **Decision**: Maintainer makes final call (or community vote for governance)
 5. **Implementation**: Approved RFCs are implemented
 
-**RFC Template**: [rfcs/0000-template.md](./rfcs/0000-template.md)
+**RFC Template**: `rfcs/0000-template.md`
 
 ### Consensus Seeking
 
@@ -119,7 +119,7 @@ We aim for rough consensus on most decisions:
 
 ### Contribution Guidelines
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed contribution guidelines.
 
 **Quick summary**:
 1. Fork the repository
@@ -180,7 +180,7 @@ MIESC follows [Semantic Versioning](https://semver.org/):
 
 ### Interpersonal Conflicts
 
-1. Refer to [Code of Conduct](./CODE_OF_CONDUCT.md)
+1. Refer to [Code of Conduct](../CODE_OF_CONDUCT.md)
 2. Report to maintainer: fboiero@frvm.utn.edu.ar
 3. Maintainer investigates privately
 4. Appropriate action taken
@@ -238,9 +238,9 @@ This governance document can be amended through:
 
 ## Related Documents
 
-- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) - Community standards
-- [CONTRIBUTING.md](./CONTRIBUTING.md) - Contribution guidelines
-- [SECURITY.md](./SECURITY.md) - Security policy
+- [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) - Community standards
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
+- [SECURITY.md](../SECURITY.md) - Security policy
 - [PRIVACY.md](./PRIVACY.md) - Privacy policy
 - [DPG-COMPLIANCE.md](./DPG-COMPLIANCE.md) - Digital Public Good compliance
 

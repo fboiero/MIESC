@@ -68,7 +68,7 @@ Este directorio contiene evidencia del trabajo desarrollado **despues** de la pr
 | `logs/` | Logs de ejecucion |
 | `screenshots/` | Capturas de pantalla |
 | `tests/` | Evidencia de tests |
-| `web/` | Evidencia de webapp |
+| `web/` | Evidencia de dashboard HTML estatico |
 
 ---
 
@@ -91,7 +91,7 @@ La tesis (v4.0.0) propuso estas lineas de trabajo futuro que fueron implementada
 |----|----------------|--------|
 | TF-5.2 | GitHub Action CI/CD | IMPLEMENTADO v4.1.0 |
 | TF-5.3 | WebSocket Streaming | IMPLEMENTADO v4.1.0 |
-| TF-5.4 | Dashboard Streamlit | IMPLEMENTADO v4.1.0 |
+| TF-5.4 | Dashboard HTML estatico | IMPLEMENTADO v4.1.0 |
 
 Ver `THESIS_VS_POSTWORK_SEPARATION.md` para la lista completa.
 

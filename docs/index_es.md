@@ -21,8 +21,8 @@ lang: es
 
 <p align="center">
   <a href="https://youtu.be/pLa_McNBRRw">Video Demo</a> •
-  <a href="thesis_es">Tesis</a> •
-  <a href="INSTALLATION">Documentacion</a> •
+  <a href="thesis_es.md">Tesis</a> •
+  <a href="INSTALLATION.md">Documentacion</a> •
   <a href="https://github.com/fboiero/MIESC">GitHub</a>
 </p>
 
@@ -89,9 +89,11 @@ lang: es
 
 ---
 
-## Novedades en v4.0.0
+## Estado Actual en v5.4.2
 
-**Lanzamiento Mayor** (Enero 2025) - Cuatro mejoras basadas en investigación de vanguardia:
+**Release Core Actual** - CLI pública, API REST local, MCP stdio, OpenAPI y
+generación de reportes estáticos, manteniendo la UI de producto/plataforma fuera
+del paquete público.
 
 ### 1. PropertyGPT (Capa 4 - Verificación Formal)
 
@@ -204,16 +206,18 @@ miesc audit full contract.sol
 miesc doctor
 ```
 
-### Interfaz Web
+### APIs Locales Y Reportes
 
 ```bash
-# Lanzar UI web interactiva
-pip install miesc[web]
-make webapp
-# Abrir navegador en http://localhost:8501
+# Iniciar API REST local
+pip install "miesc[django]"
+python -m miesc.api.rest --host 127.0.0.1 --port 8000
+
+# Generar un dashboard HTML estatico desde resultados locales
+python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
 ```
 
-[Guía de Instalación Completa](INSTALLATION) | [Guía de Inicio Rápido](https://github.com/fboiero/MIESC/blob/main/QUICKSTART.md)
+[Guía de Instalación Completa](INSTALLATION.md) | [Guía de Inicio Rápido](https://github.com/fboiero/MIESC/blob/main/QUICKSTART.md)
 ---
 
 ## Arquitectura
@@ -254,7 +258,7 @@ Static Dynamic Symbolic Formal
 | **L8** | Agente DeFi | Análisis específico de protocolos | Riesgos DeFi/MEV |
 | **L9** | Agente Avanzado | Correlación entre capas | Reporte final de auditoría |
 
-[Detalles de Arquitectura](thesis_es)
+[Detalles de Arquitectura](thesis_es.md)
 ---
 
 ## Métricas de Rendimiento
@@ -266,15 +270,15 @@ Static Dynamic Symbolic Formal
 | **Precisión** | 100% | 0 falsos positivos |
 | **Recall** | 70% | 35/50 vulnerabilidades detectadas |
 | **F1-Score** | 82.35% | Benchmark de 50 contratos |
-| **Herramientas** | 50 | Adaptadores configurados en 9 capas |
+| **Herramientas por capa** | 50 | Herramientas core agrupadas en 9 capas de defensa |
 | **Categorías con 100% Recall** | 3 | arithmetic, bad_randomness, front_running |
 
 ### Suite de Tests
 
-- **117 tests pasando**
-- **80.8% cobertura de código**
+- **5967 tests pasando, 8 omitidos** en la última regresión local completa
+- **70 tests de superficie pública pasando** sobre REST, MCP, OpenAPI y distribución
 - **0 vulnerabilidades críticas**
-- **50 adaptadores de herramientas configurados en 9 capas**
+- **Stack de adapters configurado y alineado con el core de 9 capas**
 
 ---
 
@@ -314,45 +318,45 @@ Static Dynamic Symbolic Formal
 }
 ```
 
-[Documentación de Tesis](tesis/)
+[Documentación de Tesis](tesis/README.md)
 ---
 
 ## Documentación
 
 ### Comenzar
 
-- [Guía de Instalación](INSTALLATION)
+- [Guía de Instalación](INSTALLATION.md)
 - [Ejemplos y Demos](https://github.com/fboiero/MIESC/tree/main/examples)
-- [Ejecutar Web App](https://github.com/fboiero/MIESC#web-interface)
-- [Configuración Docker](INSTALLATION#docker-installation)
+- [API REST local](openapi.yaml)
+- [Configuración Docker](INSTALLATION.md#docker-installation)
 
 ### Conceptos Principales
 
-- [Descripción de Arquitectura](thesis_es)
-- [Correlación IA](thesis_es)
-- [Policy Agent](thesis_es)
-- [Protocolo MCP](thesis_es)
+- [Descripción de Arquitectura](thesis_es.md)
+- [Correlación IA](thesis_es.md)
+- [Policy Agent](thesis_es.md)
+- [Protocolo MCP](thesis_es.md)
 
 ### Recursos para Desarrolladores
 
-- [Guía de Desarrollador](CONTRIBUTING)
-- [Guía de Contribución](CONTRIBUTING)
+- [Guía de Desarrollador](CONTRIBUTING.md)
+- [Guía de Contribución](CONTRIBUTING.md)
 - [Referencia API](https://github.com/fboiero/MIESC)
-- [Extender MIESC](CONTRIBUTING)
+- [Extender MIESC](CONTRIBUTING.md)
 
 ### Políticas y Gobernanza
 
-- [Cumplimiento DPG](policies/DPG-COMPLIANCE_ES)
-- [Gobernanza](policies/GOVERNANCE_ES)
-- [Política de Privacidad](policies/PRIVACY_ES)
+- [Cumplimiento DPG](policies/DPG-COMPLIANCE_ES.md)
+- [Gobernanza](policies/GOVERNANCE_ES.md)
+- [Política de Privacidad](policies/PRIVACY_ES.md)
 
 ### Temas Avanzados
 
-- [Seguridad Shift-Left](SECURITY_ES)
-- [Mapeo de Cumplimiento](thesis_es)
-- [Características v4.0](evidence/PHASE_3_4_5_COMPLETION_SUMMARY)
+- [Seguridad Shift-Left](SECURITY_ES.md)
+- [Mapeo de Cumplimiento](thesis_es.md)
+- [Características v4.0](evidence/PHASE_3_4_5_COMPLETION_SUMMARY.md)
 
-[Índice Completo de Documentación](index_es)
+[Índice Completo de Documentación](index_es.md)
 ---
 
 ## Contribuir
@@ -363,7 +367,7 @@ Damos la bienvenida a contribuciones de las comunidades de investigación en seg
 
 1. **Hacer fork del repositorio**
 2. **Crear una rama de feature**: `git checkout -b feature/nuevo-detector`
-3. **Realizar cambios** siguiendo nuestra [guía de estilo](CONTRIBUTING)
+3. **Realizar cambios** siguiendo nuestra [guía de estilo](CONTRIBUTING.md)
 4. **Ejecutar verificaciones de calidad**: `make all-checks`
 5. **Enviar pull request**
 
@@ -375,7 +379,7 @@ Damos la bienvenida a contribuciones de las comunidades de investigación en seg
 - Análisis de vulnerabilidades cross-chain
 - Traducciones de documentación
 
-[Guía de Contribución](CONTRIBUTING)
+[Guía de Contribución](CONTRIBUTING.md)
 ---
 
 ## Soporte y Comunidad
@@ -434,7 +438,7 @@ miesc server mcp
 
 ## Licencia
 
-**Licencia AGPL-3.0** - Ver [LICENSE](LICENSE) para detalles.
+**Licencia AGPL-3.0** - Ver [LICENSE](https://github.com/fboiero/MIESC/blob/main/LICENSE) para detalles.
 
 Asegura que el framework permanezca open-source. Permite uso comercial con atribución. Trabajos derivados deben ser open-source.
 

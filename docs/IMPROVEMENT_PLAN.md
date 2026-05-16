@@ -209,10 +209,11 @@ class BaseToolAdapter(ToolAdapter):
 - [ ] Sistema de discovery dinámico
 - [ ] Documentación para desarrolladores de plugins
 
-### 4.3 Modernizar Web UI
+### 4.3 Modernizar UI Platform
 **Prioridad**: BAJA | **Esfuerzo**: Alto
 
-- [ ] Evaluar migración Streamlit → React/Vue
+- [ ] Mantener el core limitado a reportes HTML estaticos y API local
+- [ ] Evolucionar la UI interactiva en el repositorio platform
 - [ ] Dashboard de métricas en tiempo real
 - [ ] Visualización interactiva de findings
 

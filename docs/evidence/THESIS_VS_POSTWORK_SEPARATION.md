@@ -77,9 +77,9 @@ src/llm/
 ├── openllama_helper.py       ✓ TESIS (LLM Soberano)
 ├── smartllm_adapter.py       ✓ TESIS
 
-src/
-├── miesc_mcp_rest.py         ✓ TESIS (API REST)
-├── miesc_orchestrator.py     ✓ TESIS (Orquestador)
+miesc/
+├── api/rest.py               ✓ TESIS (API REST)
+├── mcp_server.py             ✓ TESIS (MCP stdio)
 ```
 
 ### 2.4 Capitulos de la Tesis
@@ -130,7 +130,7 @@ src/
 |----|----------------|---------------|---------|
 | TF-5.2 | GitHub Action CI/CD | **IMPLEMENTADO** | v4.1.0 |
 | TF-5.3 | WebSocket Streaming | **IMPLEMENTADO** | v4.1.0 |
-| TF-5.4 | Dashboard Streamlit | **IMPLEMENTADO** | v4.1.0 |
+| TF-5.4 | Dashboard HTML estatico | **IMPLEMENTADO** | v4.1.0 |
 
 El capitulo 6 de la tesis ahora indica:
 > "TF-5.2 GitHub Action (IMPLEMENTADO)"
@@ -155,8 +155,8 @@ src/detectors/
 ├── defi_detectors.py         ✗ POST-TESIS (Layer 8)
 ├── dependency_detectors.py   ✗ POST-TESIS (Layer 9)
 
-webapp/
-├── dashboard_enhanced.py     ✗ POST-TESIS (Streamlit)
+src/utils/
+├── web_dashboard.py          ✗ POST-TESIS (dashboard HTML estatico)
 
 .github/workflows/
 ├── miesc-analysis.yml        ✗ POST-TESIS (GitHub Action)
@@ -208,7 +208,7 @@ docs/
 3. Prometheus Metrics
 4. WebSocket API real-time
 5. GitHub Actions CI/CD
-6. Dashboard Streamlit mejorado
+6. Dashboard HTML estatico mejorado
 7. Benchmark SmartBugs automatizado
 8. Aplicacion DPGA
 
@@ -269,7 +269,7 @@ MIESC v4.1.0+ (POST-TESIS - Oct-Dic 2025)
 ----------------------------------------
 + WebSocket API (16 eventos)                        ← NUEVO
 + GitHub Action CI/CD                               ← NUEVO
-+ Dashboard Streamlit                               ← NUEVO
++ Dashboard HTML estatico                          ← NUEVO
 + Exporters (SARIF, SonarQube, Checkmarx)          ← NUEVO
 + Prometheus Metrics                                ← NUEVO
 + OpenAPI 3.1.0 (33 endpoints)                      ← NUEVO

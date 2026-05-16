@@ -1,28 +1,30 @@
 {
-  "agent_id": "miesc-agent-v4.0.0",
+  "agent_id": "miesc-core-rest-v5.4.2",
   "capabilities": {
-    "get_metrics": {
-      "description": "Retrieve scientific validation metrics",
-      "endpoint": "/mcp/get_metrics",
+    "get_health": {
+      "description": "Query runtime health and availability",
+      "endpoint": "/api/v1/health/",
       "method": "GET"
     },
-    "get_status": {
-      "description": "Query agent health and availability",
-      "endpoint": "/mcp/status",
+    "list_tools": {
+      "description": "Discover available analysis tools",
+      "endpoint": "/api/v1/tools/",
       "method": "GET"
     },
-    "policy_audit": {
-      "description": "Execute internal policy compliance validation",
-      "endpoint": "/mcp/policy_audit",
+    "list_layers": {
+      "description": "Discover available analysis layers",
+      "endpoint": "/api/v1/layers/",
+      "method": "GET"
+    },
+    "quick_analysis": {
+      "description": "Execute quick smart contract analysis",
+      "endpoint": "/api/v1/analyze/quick/",
       "method": "POST"
     },
-    "run_audit": {
-      "description": "Execute comprehensive smart contract security audit",
-      "endpoint": "/mcp/run_audit",
-      "method": "POST",
-      "parameters": {
-        "contract": "Path to Solidity contract file"
-      }
+    "full_analysis": {
+      "description": "Execute comprehensive multi-layer audit",
+      "endpoint": "/api/v1/analyze/full/",
+      "method": "POST"
     }
   },
   "metadata": {
@@ -43,6 +45,6 @@
     },
     "thesis": "Master's in Cyberdefense"
   },
-  "protocol": "mcp/1.0",
-  "version": "4.0.0"
+  "protocol": "http/rest",
+  "version": "5.4.2"
 }

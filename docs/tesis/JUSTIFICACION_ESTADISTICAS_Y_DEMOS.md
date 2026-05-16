@@ -270,11 +270,12 @@ asciinema rec demo_defensa.cast
 Si preguntan sobre MCP, mostrar integracion con Claude:
 
 ```bash
-# Iniciar servidor MCP
-python -m src.miesc_mcp_rest &
+# Iniciar servidor MCP stdio
+python -m miesc.mcp_server
 
-# En otra terminal, probar endpoint
-curl http://localhost:8080/mcp/tools/list | jq
+# Para inspeccion HTTP local, iniciar REST API
+python -m miesc.api.rest --host 127.0.0.1 --port 8000
+curl http://localhost:8000/api/v1/tools/ | jq
 ```
 
 ### 2.8 Troubleshooting de Demo

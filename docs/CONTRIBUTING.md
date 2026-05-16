@@ -398,13 +398,13 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```bash
 # Install documentation dependencies
-pip install mkdocs mkdocs-material
+pip install mkdocs mkdocs-material mkdocs-minify-plugin
 
 # Serve docs locally
-mkdocs serve
+mkdocs serve -f docs/mkdocs.yml
 
 # Build static site
-mkdocs build
+mkdocs build -f docs/mkdocs.yml
 ```
 
 ### Documentation Standards
@@ -445,7 +445,7 @@ Regular contributors may be invited to become maintainers. Criteria:
 
 ## License
 
-By contributing to MIESC, you agree that your contributions will be licensed under the [AGPL-3.0 License](./LICENSE).
+By contributing to MIESC, you agree that your contributions will be licensed under the [AGPL-3.0 License](https://github.com/fboiero/MIESC/blob/main/LICENSE).
 
 ---
 

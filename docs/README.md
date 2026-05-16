@@ -100,7 +100,7 @@ docs/
 | Document | Location | Description |
 |----------|----------|-------------|
 | Handoff Report | `evidence/HANDOFF_REPORT_OSS.md` | Complete project overview |
-| OpenAPI Spec | `openapi.yaml` | API documentation (2,273 lines) |
+| OpenAPI Spec | `openapi.yaml` | Core REST API documentation |
 | Exporters Demo | `evidence/demo_exporters.py` | SARIF, SonarQube, etc. |
 | Metrics Demo | `evidence/demo_metrics.py` | Prometheus metrics |
 | WebSocket Demo | `evidence/demo_websocket.py` | Real-time events |

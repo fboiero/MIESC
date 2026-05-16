@@ -753,7 +753,7 @@ def main():
     display_final_summary(adapter_report)
 
     # Generate HTML dashboard
-    print(f"\n{NeonColors.NEON_PINK}[*] Generating interactive dashboard...{NeonColors.ENDC}")
+    print(f"\n{NeonColors.NEON_PINK}[*] Generating static HTML dashboard...{NeonColors.ENDC}")
     time.sleep(1)
     html_file = generate_html_dashboard(adapter_report, contract_path)
 

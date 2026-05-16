@@ -572,7 +572,7 @@ miesc export report.json -f markdown -o REPORT.md
 miesc export report.json -f html -o report.html
 
 # Servidor
-miesc server rest --port 5001
+miesc server rest --port 8000
 ```
 
 ---

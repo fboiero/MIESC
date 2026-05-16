@@ -140,7 +140,8 @@ The main CI workflow separates blocking gates from advisory signals:
 | Security dependency checks | Yes for high/critical pip-audit findings | Safety output is retained as an advisory report. |
 | Type checking | Advisory | Mypy runs on every CI execution and is summarized, but it does not block while legacy annotations are normalized. |
 | Docker vulnerability scan | Advisory | Trivy SARIF upload should not block release packaging when the image build and smoke tests pass. |
-| Documentation links | Advisory | Link rot is reported but does not block code releases. |
+| Documentation build | Yes | MkDocs builds with `docs/mkdocs.yml`; Sphinx builds from `docs/conf.py`. |
+| Documentation links and MkDocs strict mode | Advisory | Link rot, legacy anchors, and historical archive references are reported but do not block code releases until the archive is normalized. |
 | Marketplace PyPI availability | Advisory | Marketplace PRs may reference packages before publication; JSON schema and slug uniqueness remain blocking. |
 | Smart-contract analysis workflow | Finding gate | Tool execution is best-effort across optional analyzers; the combined report fails on critical/high findings. |
 

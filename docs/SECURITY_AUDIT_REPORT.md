@@ -5,6 +5,10 @@
 **Auditor:** Internal Security Review
 **Classification:** Internal Use
 
+> **Open-core note:** Findings that reference `platform/licensing/*` are archived
+> platform-layer findings. Those files are not part of the public core package
+> after the open-core split.
+
 ---
 
 ## Executive Summary
@@ -55,12 +59,12 @@
 **CWE:** CWE-798 (Use of Hard-coded Credentials)
 
 **Location:**
-- `src/licensing/admin_api.py:38`
+- `platform/licensing/admin_api.py:38`
 - `docker/docker-compose.prod.yml:55`
 
 **Vulnerable Code:**
 ```python
-# src/licensing/admin_api.py:38
+# platform/licensing/admin_api.py:38
 ADMIN_API_KEY = os.getenv("MIESC_ADMIN_API_KEY", "miesc-admin-secret-key")
 ```
 
@@ -99,7 +103,7 @@ ADMIN_API_KEY = os.getenv("MIESC_ADMIN_API_KEY") or secrets.token_urlsafe(32)
 **CVSS Score:** 8.6 (High)
 **CWE:** CWE-942 (Overly Permissive Cross-domain Whitelist)
 
-**Location:** `src/licensing/admin_api.py:28-35`
+**Location:** `platform/licensing/admin_api.py:28-35`
 
 **Vulnerable Code:**
 ```python
@@ -121,7 +125,7 @@ app.add_middleware(
 ```python
 ALLOWED_ORIGINS = os.getenv("MIESC_ALLOWED_ORIGINS", "").split(",")
 if not ALLOWED_ORIGINS or ALLOWED_ORIGINS == [""]:
-    ALLOWED_ORIGINS = ["http://localhost:8501"]  # Default to local only
+    ALLOWED_ORIGINS = ["http://localhost:8000"]  # Default to local only
 
 app.add_middleware(
     CORSMiddleware,
@@ -145,7 +149,7 @@ app.add_middleware(
 
 **Issue:**
 ```yaml
-admin-api:
+platform-admin-api:
   ports:
     - "5002:5002"  # Directly exposed to network
 ```
@@ -511,8 +515,8 @@ REDACTION_PATTERNS = [
 
 | # | Action | File | Priority |
 |---|--------|------|----------|
-| 1 | Remove hardcoded admin API key default | `src/licensing/admin_api.py:38` | CRITICAL |
-| 2 | Fix CORS configuration | `src/licensing/admin_api.py:28-35` | CRITICAL |
+| 1 | Remove hardcoded admin API key default | `platform/licensing/admin_api.py:38` | CRITICAL |
+| 2 | Fix CORS configuration | `platform/licensing/admin_api.py:28-35` | CRITICAL |
 | 3 | Remove admin API port exposure | `docker/docker-compose.prod.yml:50` | HIGH |
 | 4 | Add URL validation to marketplace | `src/plugins/marketplace.py:260` | HIGH |
 
@@ -594,7 +598,7 @@ REDACTION_PATTERNS = [
 
 **Source Code:**
 - `src/security/*.py` (7 files)
-- `src/licensing/*.py` (2 files)
+- `platform/licensing/*.py` (archived platform-layer scope; excluded from public core)
 - `src/adapters/*.py` (59 files)
 - `src/core/*.py` (15 files)
 - `src/plugins/*.py` (6 files)

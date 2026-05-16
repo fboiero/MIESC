@@ -14,7 +14,7 @@ General Information,Type of Digital Solution,Software
 3. Clear Ownership,Country,Argentina
 3. Clear Ownership,Own all code,Yes
 3. Clear Ownership,Right to redistribute,"Yes. Original work by Fernando Boiero under AGPL-3.0. Third-party dependencies use compatible open-source licenses."
-4. Platform Independence,Core Technologies,"Python 3.12+, Solidity Compiler, Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, SMTChecker, Certora, Ollama, Claude API, OpenAI API, Streamlit, ChromaDB, MCP, JSON, SARIF"
+4. Platform Independence,Core Technologies,"Python 3.12+, Solidity Compiler, Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, SMTChecker, Certora, Ollama, Claude API, OpenAI API, Django REST Framework, ChromaDB, MCP, JSON, SARIF"
 4. Platform Independence,Closed Components,No
 5. Documentation,Documentation Links,"https://github.com/fboiero/MIESC/blob/main/README.md, https://fboiero.github.io/MIESC/, https://github.com/fboiero/MIESC/blob/main/CONTRIBUTING.md, https://github.com/fboiero/MIESC/blob/main/docs/openapi.yaml"
 6. Data Extraction,Collects non-PII data,Yes

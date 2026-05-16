@@ -57,10 +57,9 @@ MIESC/
 │   └── llm/                      # LLM integration (OpenLLaMA)
 ├── tests/                        # Test suite (1,277 tests)
 ├── docs/                         # Documentation
-│   ├── openapi.yaml              # OpenAPI 3.1.0 spec (2,273 lines)
+│   ├── openapi.yaml              # Core REST OpenAPI 3.1.0 spec
 │   └── evidence/                 # Demo scripts and outputs
-├── webapp/                       # Streamlit dashboard
-├── deploy/                       # Kubernetes manifests
+├── docker/                       # Local and production containers
 ├── config/                       # Configuration files
 └── benchmarks/                   # SmartBugs benchmark
 ```
@@ -209,14 +208,14 @@ Full OpenAPI 3.1.0 specification: `docs/openapi.yaml`
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/mcp/tools/list` | GET | MCP tool discovery |
-| `/mcp/tools/call` | POST | Execute MCP tool |
-| `/mcp/run_audit` | POST | Run contract audit |
-| `/mcp/correlate` | POST | Correlate findings |
-| `/mcp/remediate` | POST | Get remediations |
-| `/export` | POST | Export to format |
-| `/metrics` | GET | Prometheus metrics |
-| `/compliance/map` | POST | Compliance mapping |
+| `/api/v1/health/` | GET | Runtime health check |
+| `/api/v1/tools/` | GET | Tool discovery |
+| `/api/v1/layers/` | GET | Layer discovery |
+| `/api/v1/analyze/quick/` | POST | Run quick contract analysis |
+| `/api/v1/analyze/full/` | POST | Run full multi-layer audit |
+| `/api/v1/remediate/` | POST | Generate remediation guidance |
+| `/api/v1/validate-remediation/` | POST | Validate remediation changes |
+| `/api/v1/reports/` | GET/POST | Report endpoint metadata and inline report data |
 
 ---
 
@@ -274,17 +273,17 @@ python3 docs/evidence/demo_openapi.py
 docker compose up -d
 ```
 
-### Kubernetes
+### Docker
 
 ```bash
-kubectl apply -f deploy/
+docker compose -f docker/docker-compose.yml up
 ```
 
 ### Local Development
 
 ```bash
-pip install -e ".[dev]"
-python -m src.miesc_mcp_rest
+pip install -e ".[dev,django]"
+python -m miesc.api.rest --host 127.0.0.1 --port 8000
 ```
 
 ---

@@ -184,7 +184,7 @@ ollama list
 
 # Verificar MIESC
 cd /path/to/MIESC
-python -c "from src.miesc_orchestrator import *; print('OK')"
+python -c "from miesc.core.orchestrator import MIESCOrchestrator; print('OK')"
 ```
 
 ### Durante la Demo

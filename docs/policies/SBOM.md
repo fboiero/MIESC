@@ -199,7 +199,7 @@ Dependencies are scanned:
 - **Weekly**: Scheduled vulnerability scan
 - **On release**: Full security audit
 
-See [dependency-security.yml](../../.github/workflows/dependency-security.yml).
+See [dependency-security.yml](https://github.com/fboiero/MIESC/blob/main/.github/workflows/dependency-security.yml).
 
 ---
 

@@ -27,8 +27,8 @@ MIESC v4.3.2 is a maintenance release focused on **PyPI publication**, **optiona
 # From PyPI (recommended)
 pip install miesc
 
-# With web UI and API servers
-pip install miesc[web]
+# With local REST API dependencies
+pip install miesc[django]
 
 # With all optional features
 pip install miesc[full]
@@ -53,7 +53,7 @@ miesc doctor     # Shows 31 adapters loaded
 
 **Package extras:**
 - `miesc` - Core CLI with 31 security tools
-- `miesc[web]` - Adds Streamlit web UI, FastAPI, Django REST
+- `miesc[django]` - Adds local Django REST API dependencies
 - `miesc[full]` - All features including ML dependencies
 - `miesc[dev]` - Development and testing tools
 
@@ -173,7 +173,7 @@ None. This is a backward-compatible maintenance release.
 - click, pyyaml, requests
 
 ### Optional (extras)
-- `[web]`: fastapi, uvicorn, streamlit, django
+- `[django]`: django, djangorestframework, django-cors-headers
 - `[full]`: torch, scikit-learn, transformers
 - `[dev]`: pytest, black, ruff, mypy
 

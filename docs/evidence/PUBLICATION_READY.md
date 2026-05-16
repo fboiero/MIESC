@@ -174,7 +174,7 @@ miesc scan contract.sol
 miesc audit contract.sol --layers all
 
 # API Server
-miesc api --port 5001
+miesc server rest --port 8000
 ```
 
 ---

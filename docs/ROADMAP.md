@@ -102,9 +102,9 @@ Released: February 2026
 
 For detailed technical planning, see:
 
-- [v5.0 Strategy](docs/roadmap/ROADMAP_v5.0_STRATEGY.md)
-- [v4.5 Iterative Plan](docs/roadmap/ROADMAP_v4.5_ITERATIVE.md)
-- [v4.2 Roadmap](docs/roadmap/ROADMAP_v4.2.md)
+- [v5.0 Strategy](roadmap/ROADMAP_v5.0_STRATEGY.md)
+- [v4.5 Iterative Plan](roadmap/ROADMAP_v4.5_ITERATIVE.md)
+- [v4.2 Roadmap](roadmap/ROADMAP_v4.2.md)
 
 ---
 

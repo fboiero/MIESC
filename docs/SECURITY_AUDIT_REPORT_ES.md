@@ -5,6 +5,10 @@
 **Auditor:** Revisión Interna de Seguridad
 **Clasificación:** Uso Interno
 
+> **Nota open-core:** Los hallazgos que referencian `platform/licensing/*`
+> corresponden a la capa platform archivada. Esos archivos no forman parte del
+> paquete core público después del split open-core.
+
 ---
 
 ## Resumen Ejecutivo
@@ -35,14 +39,14 @@
 
 ## Índice
 
-1. [Hallazgos Críticos](#1-hallazgos-críticos)
+1. Hallazgos Críticos
 2. [Hallazgos de Alta Prioridad](#2-hallazgos-de-alta-prioridad)
 3. [Hallazgos de Prioridad Media](#3-hallazgos-de-prioridad-media)
 4. [Hallazgos de Baja Prioridad](#4-hallazgos-de-baja-prioridad)
 5. [Controles de Seguridad Positivos](#5-controles-de-seguridad-positivos)
 6. [Recomendaciones](#6-recomendaciones)
 7. [Estado de Cumplimiento](#7-estado-de-cumplimiento)
-8. [Apéndice](#8-apéndice)
+8. Apéndice
 
 ---
 
@@ -55,12 +59,12 @@
 **CWE:** CWE-798 (Uso de Credenciales Hardcodeadas)
 
 **Ubicación:**
-- `src/licensing/admin_api.py:38`
+- `platform/licensing/admin_api.py:38`
 - `docker/docker-compose.prod.yml:55`
 
 **Código Vulnerable:**
 ```python
-# src/licensing/admin_api.py:38
+# platform/licensing/admin_api.py:38
 ADMIN_API_KEY = os.getenv("MIESC_ADMIN_API_KEY", "miesc-admin-secret-key")
 ```
 
@@ -95,7 +99,7 @@ if not ADMIN_API_KEY:
 **Puntuación CVSS:** 8.6 (Alto)
 **CWE:** CWE-942 (Lista Blanca Cross-domain Demasiado Permisiva)
 
-**Ubicación:** `src/licensing/admin_api.py:28-35`
+**Ubicación:** `platform/licensing/admin_api.py:28-35`
 
 **Código Vulnerable:**
 ```python
@@ -117,7 +121,7 @@ app.add_middleware(
 ```python
 ALLOWED_ORIGINS = os.getenv("MIESC_ALLOWED_ORIGINS", "").split(",")
 if not ALLOWED_ORIGINS or ALLOWED_ORIGINS == [""]:
-    ALLOWED_ORIGINS = ["http://localhost:8501"]  # Solo local por defecto
+    ALLOWED_ORIGINS = ["http://localhost:8000"]  # Solo local por defecto
 
 app.add_middleware(
     CORSMiddleware,
@@ -141,7 +145,7 @@ app.add_middleware(
 
 **Problema:**
 ```yaml
-admin-api:
+platform-admin-api:
   ports:
     - "5002:5002"  # Expuesto directamente a la red
 ```
@@ -502,8 +506,8 @@ PATRONES_REDACCION = [
 
 | # | Acción | Archivo | Prioridad |
 |---|--------|---------|-----------|
-| 1 | Eliminar valor por defecto de clave API admin | `src/licensing/admin_api.py:38` | CRÍTICO |
-| 2 | Corregir configuración CORS | `src/licensing/admin_api.py:28-35` | CRÍTICO |
+| 1 | Eliminar valor por defecto de clave API admin | `platform/licensing/admin_api.py:38` | CRÍTICO |
+| 2 | Corregir configuración CORS | `platform/licensing/admin_api.py:28-35` | CRÍTICO |
 | 3 | Eliminar exposición de puerto API admin | `docker/docker-compose.prod.yml:50` | ALTO |
 | 4 | Agregar validación de URL a marketplace | `src/plugins/marketplace.py:260` | ALTO |
 
@@ -585,7 +589,7 @@ PATRONES_REDACCION = [
 
 **Código Fuente:**
 - `src/security/*.py` (7 archivos)
-- `src/licensing/*.py` (2 archivos)
+- `platform/licensing/*.py` (alcance platform archivado; excluido del core público)
 - `src/adapters/*.py` (59 archivos)
 - `src/core/*.py` (15 archivos)
 - `src/plugins/*.py` (6 archivos)

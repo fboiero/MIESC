@@ -212,7 +212,7 @@ section_full_audit() {
 
     short_pause
 
-    echo -e "${DIM}# Auditoría rápida (4 herramientas principales)${NC}"
+    echo -e "${DIM}# Auditoría rápida (3 herramientas principales)${NC}"
     run_command "miesc audit quick contracts/audit/VulnerableBank.sol"
 
     pause

@@ -33,7 +33,7 @@ Welcome to the MIESC community! This document describes how to connect with othe
 1. Search [existing discussions](https://github.com/fboiero/MIESC/discussions) and [issues](https://github.com/fboiero/MIESC/issues)
 2. Check the [documentation](https://fboiero.github.io/MIESC)
 3. Run `miesc doctor` to diagnose common issues
-4. Review the [FAQ](../SUPPORT.md#faq)
+4. Review the [GitHub Discussions Q&A](https://github.com/fboiero/MIESC/discussions/categories/q-a)
 
 ### Asking Good Questions
 
@@ -92,7 +92,7 @@ MIESC has been presented at:
 
 ### Getting Started
 
-1. Read [CONTRIBUTING.md](../CONTRIBUTING.md)
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md)
 2. Look for [`good first issue`](https://github.com/fboiero/MIESC/labels/good%20first%20issue) labels
 3. Join a discussion to introduce yourself
 4. Submit your first PR!
@@ -101,7 +101,7 @@ MIESC has been presented at:
 
 ## Code of Conduct
 
-All community spaces are governed by our [Code of Conduct](../CODE_OF_CONDUCT.md).
+All community spaces are governed by our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 **TL;DR**: Be respectful, be helpful, be patient.
 
@@ -113,7 +113,7 @@ Report violations to: fboiero@frvm.utn.edu.ar
 
 ### Contributors
 
-All contributors are recognized in [CONTRIBUTORS.md](../CONTRIBUTORS.md).
+All contributors are recognized in [CONTRIBUTORS.md](CONTRIBUTORS.md).
 
 ### Hall of Fame
 

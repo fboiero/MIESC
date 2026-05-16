@@ -111,7 +111,7 @@ miesc scan contracts/audit/VulnerableBank.sol --ci
 
 **Comandos:**
 ```bash
-# Auditoría rápida (4 herramientas principales)
+# Auditoría rápida (3 herramientas principales)
 miesc audit quick contracts/audit/VulnerableBank.sol
 
 # Auditoría completa (todas las capas)

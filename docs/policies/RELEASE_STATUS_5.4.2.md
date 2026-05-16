@@ -52,7 +52,7 @@ Expected baseline:
 - `miesc --version`: `MIESC version 5.4.2`
 - `aderyn --version`: `aderyn 0.6.8`
 - `solhint --version`: `5.0.3`
-- `doctor`: loads 50 adapters and reports the standard-image tool subset as available
+- `doctor`: loads the configured adapter stack and reports the standard-image tool subset as available
 
 ## Reproducibility Notes
 

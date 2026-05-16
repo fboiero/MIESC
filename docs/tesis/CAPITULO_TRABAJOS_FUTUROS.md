@@ -190,7 +190,7 @@ class SoliditySecurityFineTuner:
 | TF-5.1 | Plugin para VS Code / Remix IDE | Media | Pendiente |
 | TF-5.2 | GitHub Action para CI/CD | Media | **IMPLEMENTADO** |
 | TF-5.3 | WebSocket Streaming en tiempo real | Media | **IMPLEMENTADO** |
-| TF-5.4 | Dashboard de métricas de seguridad | Media | **IMPLEMENTADO** (Streamlit) |
+| TF-5.4 | Dashboard de métricas de seguridad | Media | **IMPLEMENTADO** (HTML estatico) |
 | TF-5.5 | Notificaciones de vulnerabilidades en dependencias | Baja | Pendiente |
 
 #### TF-5.2 GitHub Action (IMPLEMENTADO)

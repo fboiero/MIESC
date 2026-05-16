@@ -84,6 +84,10 @@ make build-check
 uv run pytest tests/test_distribution_contents.py tests/test_doctor_command.py -q
 ```
 
+`make build-check` validates package metadata and fails if release artifacts
+include test-only files, duplicate files, or platform-only components such as
+the hosted UI, licensing, dashboard, or IDE client code.
+
 Before publishing:
 
 ```bash

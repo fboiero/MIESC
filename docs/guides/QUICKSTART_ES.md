@@ -36,7 +36,7 @@ miesc doctor
 
 ## 3. Comandos de Auditoria
 
-### Escaneo Rapido (4 herramientas, ~30 segundos)
+### Escaneo Rapido de Triaje (~30 segundos)
 
 ```bash
 # Escaneo rapido de un contrato
@@ -49,7 +49,7 @@ miesc scan MiContrato.sol -o reporte.json
 miesc scan MiContrato.sol --ci
 ```
 
-### Auditoria Rapida (4 herramientas)
+### Auditoria Rapida (3 herramientas)
 
 ```bash
 miesc audit quick MiContrato.sol

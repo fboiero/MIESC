@@ -55,7 +55,7 @@ Cualquiera que contribuya a MIESC a través de:
 - Traducciones
 - Pruebas y aseguramiento de calidad
 
-**Reconocimiento**: Todos los contribuidores son reconocidos en [CONTRIBUTORS.md](./CONTRIBUTORS.md).
+**Reconocimiento**: Todos los contribuidores son reconocidos en [CONTRIBUTORS.md](../CONTRIBUTORS.md).
 
 ### Equipo Core (Futuro)
 
@@ -94,7 +94,7 @@ Los cambios mayores siguen un proceso RFC:
 4. **Decisión**: El mantenedor toma la decisión final (o votación comunitaria para gobernanza)
 5. **Implementación**: Los RFCs aprobados se implementan
 
-**Plantilla RFC**: [rfcs/0000-template.md](./rfcs/0000-template.md)
+**Plantilla RFC**: `rfcs/0000-template.md`
 
 ### Búsqueda de Consenso
 
@@ -119,7 +119,7 @@ Buscamos consenso aproximado en la mayoría de las decisiones:
 
 ### Guías de Contribución
 
-Ver [CONTRIBUTING_ES.md](./CONTRIBUTING_ES.md) para guías detalladas de contribución.
+Ver [CONTRIBUTING.md](../CONTRIBUTING.md) para guías detalladas de contribución.
 
 **Resumen rápido**:
 1. Fork del repositorio
@@ -180,7 +180,7 @@ MIESC sigue [Versionado Semántico](https://semver.org/):
 
 ### Conflictos Interpersonales
 
-1. Referirse al [Código de Conducta](./CODE_OF_CONDUCT_ES.md)
+1. Referirse al [Código de Conducta](../CODE_OF_CONDUCT.md)
 2. Reportar al mantenedor: fboiero@frvm.utn.edu.ar
 3. El mantenedor investiga en privado
 4. Se toma la acción apropiada
@@ -238,9 +238,9 @@ Este documento de gobernanza puede enmendarse mediante:
 
 ## Documentos Relacionados
 
-- [CODE_OF_CONDUCT_ES.md](./CODE_OF_CONDUCT_ES.md) - Estándares comunitarios
-- [CONTRIBUTING_ES.md](./CONTRIBUTING_ES.md) - Guías de contribución
-- [SECURITY_ES.md](./SECURITY_ES.md) - Política de seguridad
+- [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) - Estándares comunitarios
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - Guías de contribución
+- [SECURITY_ES.md](../SECURITY_ES.md) - Política de seguridad
 - [PRIVACY_ES.md](./PRIVACY_ES.md) - Política de privacidad
 - [DPG-COMPLIANCE_ES.md](./DPG-COMPLIANCE_ES.md) - Cumplimiento de Bienes Públicos Digitales
 

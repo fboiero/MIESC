@@ -78,7 +78,6 @@ rm src/miesc_cli.py
 rm src/miesc_core.py
 rm src/miesc_ai_layer.py
 rm src/miesc_mcp_adapter.py
-rm src/miesc_mcp_rest.py
 rm src/miesc_websocket_api.py
 rm src/miesc_ml_cli.py
 rm src/miesc_policy_agent.py
@@ -110,14 +109,9 @@ rm "src/agents/symbolic_agent 2.py"
 #### 1.2 Completar **init**.py Faltantes (P0.3)
 
 ```python
-# src/dashboard/__init__.py
-"""MIESC Dashboard Module - Streamlit and Flask UIs."""
-from webapp.app import main as run_streamlit
-from webapp.dashboard_enhanced import main as run_enhanced
-
 # src/utils/__init__.py
-"""MIESC Utility Functions."""
-# Consolidar utilidades comunes
+"""MIESC Utility Functions, including static report helpers."""
+from src.utils.web_dashboard import DashboardGenerator
 
 # src/knowledge_base/__init__.py
 """MIESC Vulnerability Knowledge Base."""
@@ -229,7 +223,7 @@ paths:
 **Estructura:**
 
 ```
-vscode-extension/
+apps/vscode-extension/
 ├── src/
 │   ├── extension.ts              # [EXISTE] Entry point
 │   ├── providers/

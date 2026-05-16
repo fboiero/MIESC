@@ -286,12 +286,12 @@ echo ""
 echo ""
 
 echo -e "${GREEN}miesc scan contract.sol${NC}"
-echo -e "  ${DIM}→ Escaneo rápido con 4 herramientas principales${NC}"
+echo -e "  ${DIM}→ Escaneo rápido con 3 herramientas principales${NC}"
 echo ""
 pause_short
 
 echo -e "${GREEN}miesc audit quick contract.sol${NC}"
-echo -e "  ${DIM}→ Auditoría rápida (Slither + Aderyn + Mythril)${NC}"
+echo -e "  ${DIM}→ Auditoría rápida (Slither + Aderyn + Solhint)${NC}"
 echo ""
 pause_short
 

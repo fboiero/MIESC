@@ -6,13 +6,13 @@ Esta guía cubre la instalación completa de MIESC desde cero, incluyendo todas 
 
 ## Tabla de Contenidos
 
-- [Instalación Rápida](#instalación-rápida)
+- Instalación Rápida
 - [Requisitos del Sistema](#requisitos-del-sistema)
-- [Instalación Paso a Paso](#instalación-paso-a-paso)
-- [Instalación de Herramientas por Capa](#instalación-de-herramientas-por-capa)
-- [Instalación con Docker](#instalación-con-docker)
-- [Verificación](#verificación)
-- [Solución de Problemas](#solución-de-problemas)
+- Instalación Paso a Paso
+- Instalación de Herramientas por Capa
+- Instalación con Docker
+- Verificación
+- Solución de Problemas
 
 ---
 
@@ -316,7 +316,8 @@ MIESC v5.4.2 - Verificación de Instalación
 2. Dependencias Core de Python
 ----------------------------------------
   [OK] slither-analyzer (0.10.x)
-  [OK] fastapi (0.104.x)
+  [OK] django (5.x)
+  [OK] djangorestframework (3.14.x)
   ...
 
 5. Registro de Adaptadores MIESC
@@ -418,8 +419,9 @@ Después de la instalación:
 
 1. **Inicio Rápido**: `miesc audit quick contrato.sol`
 2. **Auditoría Completa**: `miesc audit full contrato.sol`
-3. **Interfaz Web**: `make webapp`
-4. **Documentación**: [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC)
+3. **API REST local**: `python -m miesc.api.rest --host 127.0.0.1 --port 8000`
+4. **Reportes estáticos**: `python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard`
+5. **Documentación**: [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC)
 
 ---
 

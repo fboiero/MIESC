@@ -480,8 +480,8 @@ git checkout -b feature/v4.1-scientific-validation
 | Interfaz | Puerto/Comando | Público Objetivo | Estado |
 |----------|---------------|-----------------|--------|
 | CLI | `miesc scan Token.sol` | Desarrolladores técnicos | ✅ Implementada |
-| Web UI | `localhost:8501` | Usuarios visuales | ✅ Streamlit Dashboard |
-| REST API | `POST /mcp/run_audit` | Integración CI/CD | ✅ FastAPI completa |
+| Static Report | `analysis/dashboard/index.html` | Usuarios visuales | ✅ Dashboard HTML |
+| REST API | `POST /api/v1/analyze/quick/` | Integración CI/CD | ✅ Django REST |
 | MCP Server | `stdio` / WebSocket | Agentes IA (Claude) | ✅ MCP Protocol |
 
 ### Métricas de Rendimiento Validadas

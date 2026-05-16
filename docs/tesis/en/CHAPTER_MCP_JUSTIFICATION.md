@@ -145,7 +145,7 @@ The MIESC MCP server acts as a bridge between Claude's conversational world and 
 
 **Figure 23.** MCP integration architecture
 
-![Figure 23 - MCP integration architecture](figures/Figura%2023.%20Arquitectura%20de%20integración%20MCP.svg)
+![Figure 23 - MCP integration architecture](../figures/Figura%2023.%20Arquitectura%20de%20integración%20MCP.svg)
 
 *Interaction flow between User, Claude Desktop and MIESC MCP Server*
 
@@ -272,7 +272,7 @@ The following sequence diagram illustrates the complete flow of a typical intera
 
 **Figure 24.** MCP interaction sequence
 
-![Figure 24 - MCP interaction sequence](figures/Figura%2024.%20Secuencia%20de%20interacción%20MCP.svg)
+![Figure 24 - MCP interaction sequence](../figures/Figura%2024.%20Secuencia%20de%20interacción%20MCP.svg)
 
 ```
 User             Claude              MCP Client           MIESC Server          Slither

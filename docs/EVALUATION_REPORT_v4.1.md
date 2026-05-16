@@ -39,10 +39,10 @@ MIESC es un proyecto maduro con arquitectura sólida de 7 capas de defensa en pr
 
 | Módulo | Estado | Faltante |
 |--------|--------|----------|
-| `vscode-extension/` | 40% | Implementación completa |
+| `apps/vscode-extension/` | 40% | Implementación en repositorio platform |
 | `src/llm/` | 60% | Orchestrator dedicado |
-| `webapp/` | 70% | Autenticación, WebSocket |
-| `src/licensing/` | 90% | Integración con CLI |
+| `src/utils/web_dashboard.py` | 70% | Reporte HTML estatico |
+| `platform/licensing/` | 90% | Integración en repositorio platform |
 
 ### Código Legacy (🗑️ Para Eliminar)
 
@@ -75,7 +75,7 @@ mv src/agents/* miesc/agents/
 
 #### 2. Eliminar Código Legacy
 
-**Archivos a eliminar:**
+**Archivos legacy ya eliminados o migrados:**
 
 ```
 src/gptlens_tool.py
@@ -91,23 +91,27 @@ src/foundry_tool.py
 src/smartllm_tool.py
 src/gptscan_tool.py
 src/llmsmartaudit_tool.py
-src/miesc_cli.py (legacy)
-src/miesc_core.py
-src/miesc_ai_layer.py
-src/miesc_mcp_adapter.py
-src/miesc_mcp_rest.py
-src/miesc_websocket_api.py
 src/orchestrator.py
 src/project_analyzer.py
 src/audit_generator.py
 src/agents/symbolic_agent 2.py (backup)
 ```
 
+**Rutas actuales conservadas:**
+
+```
+miesc/cli/
+miesc/mcp_server.py
+miesc/api/rest.py
+src/core/websocket_api.py
+src/miesc_core.py
+```
+
 #### 3. Completar **init**.py Faltantes
 
 ```python
-# src/dashboard/__init__.py
-"""MIESC Dashboard Module."""
+# src/utils/__init__.py
+"""MIESC static dashboard utilities."""
 
 # src/utils/__init__.py
 """MIESC Utility Functions."""
@@ -167,7 +171,7 @@ jobs:
 **Requerido:**
 
 ```
-vscode-extension/
+apps/vscode-extension/
 ├── src/
 │   ├── extension.ts          ✅ Existe
 │   ├── providers/
@@ -210,19 +214,11 @@ class LLMOrchestrator:
 
 #### 8. WebSocket Real-Time Dashboard
 
-**Mejorar:** `webapp/app.py`
+**Mejorar:** plataforma web fuera del core publico
 
-```python
-from flask_socketio import SocketIO, emit
-
-socketio = SocketIO(app, cors_allowed_origins="*")
-
-@socketio.on('start_audit')
-def handle_audit(data):
-    """Stream audit progress to client."""
-    for event in run_audit_stream(data['contract']):
-        emit('audit_progress', event)
-```
+El dashboard realtime interactivo y sus dependencias de servidor web pertenecen
+al repositorio platform. El core publico conserva API REST local, MCP stdio,
+reportes estaticos y evidencia reproducible.
 
 #### 9. Aumentar Cobertura de Tests al 80%
 

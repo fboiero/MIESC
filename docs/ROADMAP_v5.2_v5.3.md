@@ -57,7 +57,7 @@
 
 | # | Item | Status | Notes |
 |---|------|:------:|-------|
-| 4.1 | Web-based findings review | ⬜ | Streamlit app planned |
+| 4.1 | Web-based findings review | ⬜ | Platform dashboard planned |
 | 4.2 | Auditor-labeled FP dataset v2 | ⬜ | |
 | 4.3 | Confidence calibration v2 | ⬜ | |
 | 4.4 | Compliance artifact export | ✅ | `miesc compliance --standard mica` (12 standards) |
@@ -104,7 +104,7 @@
 |---|------|:------:|-------------|
 | E1 | Grant submissions | 2h | Submit Starknet Foundation ($25K), EF ESP ($40K), NGI Zero (€50K) |
 | E2 | DPGA certification | 1h | Self-assessment at digitalpublicgoods.net |
-| E3 | Streamlit Cloud deploy | 1h | Deploy web UI for non-CLI users |
+| E3 | Hosted platform demo | 1h | Deploy platform UI for non-CLI users |
 | E4 | GitHub Action v2 on Marketplace | 2h | With intelligence + `--diff` + SARIF |
 
 ### Priority 3: Technical Depth

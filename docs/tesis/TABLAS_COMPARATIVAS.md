@@ -15,7 +15,7 @@
 | Costo operativo | $0 | $0 | $0 | $50+/mes |
 | API REST | SI | NO | NO | SI |
 | MCP Server | SI | NO | NO | NO |
-| Interfaz Web | SI (Streamlit) | NO | SI | SI |
+| Dashboard HTML | SI | NO | SI | SI |
 | Open Source | SI (MIT) | SI | SI | NO |
 | Mantenimiento activo | 2025 | 2023 | 2024 | Descontinuado |
 

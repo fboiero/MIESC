@@ -100,13 +100,13 @@ demonstrating MIESC's detection capabilities.
 
 **[High]** reentrancy-balance
 
-Reentrancy in [FlashLoanVault.flashLoan(uint256)](../contracts/FlashLoanVault.sol#L32-L44):
+Reentrancy in [FlashLoanVault.flashLoan(uint256)](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L32-L44):
 	External call allowing reentrancy:
-	- [token.transfer(msg.sender,amount)](../contracts/FlashLoanVault.sol#L36)
+	- [token.transfer(msg.sender,amount)](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L36)
 	Balance read before the call:
-	- [balanceBefore = token.balanceOf(address(this))](../contracts/FlashLoanVault.sol#L33)
+	- [balanceBefore = token.balanceOf(address(this))](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L33)
 	Possible stale balance used after the call in a condition:
-	- [require(bool,string)(balanceAfter >= balanceBefore + fee,Flash loan not repaid)](../contracts/FlashLoanVault.sol#L43)
+	- [require(bool,string)(balanceAfter >= balanceBefore + fee,Flash loan not repaid)](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L43)
 		- stale variable `balanceBefore`
 
 
@@ -118,13 +118,13 @@ Reentrancy in [FlashLoanVault.flashLoan(uint256)](../contracts/FlashLoanVault.so
 
 **[High]** reentrancy-balance
 
-Reentrancy in [FlashLoanVault.flashLoan(uint256)](../contracts/FlashLoanVault.sol#L32-L44):
+Reentrancy in [FlashLoanVault.flashLoan(uint256)](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L32-L44):
 	External call allowing reentrancy:
-	- [IFlashLoanReceiver(msg.sender).executeOperation(amount,fee)](../contracts/FlashLoanVault.sol#L39)
+	- [IFlashLoanReceiver(msg.sender).executeOperation(amount,fee)](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L39)
 	Balance read before the call:
-	- [balanceBefore = token.balanceOf(address(this))](../contracts/FlashLoanVault.sol#L33)
+	- [balanceBefore = token.balanceOf(address(this))](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L33)
 	Possible stale balance used after the call in a condition:
-	- [require(bool,string)(balanceAfter >= balanceBefore + fee,Flash loan not repaid)](../contracts/FlashLoanVault.sol#L43)
+	- [require(bool,string)(balanceAfter >= balanceBefore + fee,Flash loan not repaid)](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L43)
 		- stale variable `balanceBefore`
 
 
@@ -136,7 +136,7 @@ Reentrancy in [FlashLoanVault.flashLoan(uint256)](../contracts/FlashLoanVault.so
 
 **[High]** unchecked-transfer
 
-[FlashLoanVault.flashLoan(uint256)](../contracts/FlashLoanVault.sol#L32-L44) ignores return value by [token.transfer(msg.sender,amount)](../contracts/FlashLoanVault.sol#L36)
+[FlashLoanVault.flashLoan(uint256)](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L32-L44) ignores return value by [token.transfer(msg.sender,amount)](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L36)
 
 
 - **Location**: `FlashLoanVault.sol:32`
@@ -146,7 +146,7 @@ Reentrancy in [FlashLoanVault.flashLoan(uint256)](../contracts/FlashLoanVault.so
 
 **[High]** unchecked-transfer
 
-[FlashLoanVault.deposit(uint256)](../contracts/FlashLoanVault.sol#L25-L29) ignores return value by [token.transferFrom(msg.sender,address(this),amount)](../contracts/FlashLoanVault.sol#L26)
+[FlashLoanVault.deposit(uint256)](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L25-L29) ignores return value by [token.transferFrom(msg.sender,address(this),amount)](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L26)
 
 
 - **Location**: `FlashLoanVault.sol:25`
@@ -156,12 +156,12 @@ Reentrancy in [FlashLoanVault.flashLoan(uint256)](../contracts/FlashLoanVault.so
 
 **[Low]** reentrancy-benign
 
-Reentrancy in [FlashLoanVault.deposit(uint256)](../contracts/FlashLoanVault.sol#L25-L29):
+Reentrancy in [FlashLoanVault.deposit(uint256)](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L25-L29):
 	External calls:
-	- [token.transferFrom(msg.sender,address(this),amount)](../contracts/FlashLoanVault.sol#L26)
+	- [token.transferFrom(msg.sender,address(this),amount)](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L26)
 	State variables written after the call(s):
-	- [deposits[msg.sender] += amount](../contracts/FlashLoanVault.sol#L27)
-	- [poolBalance += amount](../contracts/FlashLoanVault.sol#L28)
+	- [deposits[msg.sender] += amount](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L27)
+	- [poolBalance += amount](https://github.com/fboiero/MIESC/blob/main/data/audit/FlashLoanVault.sol#L28)
 
 
 - **Location**: `FlashLoanVault.sol:25`
@@ -265,7 +265,7 @@ Consider using a specific version of Solidity in your contracts instead of a wid
 
 **[Medium]** tx-origin
 
-[UnsafeToken.transferOwnership(address)](../contracts/UnsafeToken.sol#L22-L25) uses tx.origin for authorization: [require(bool,string)(tx.origin == owner,Not owner)](../contracts/UnsafeToken.sol#L23)
+[UnsafeToken.transferOwnership(address)](https://github.com/fboiero/MIESC/blob/main/data/audit/UnsafeToken.sol#L22-L25) uses tx.origin for authorization: [require(bool,string)(tx.origin == owner,Not owner)](https://github.com/fboiero/MIESC/blob/main/data/audit/UnsafeToken.sol#L23)
 
 
 - **Location**: `UnsafeToken.sol:22`
@@ -276,8 +276,8 @@ Consider using a specific version of Solidity in your contracts instead of a wid
 
 **[Low]** missing-zero-check
 
-[UnsafeToken.transferOwnership(address).newOwner](../contracts/UnsafeToken.sol#L22) lacks a zero-check on :
-		- [owner = newOwner](../contracts/UnsafeToken.sol#L24)
+[UnsafeToken.transferOwnership(address).newOwner](https://github.com/fboiero/MIESC/blob/main/data/audit/UnsafeToken.sol#L22) lacks a zero-check on :
+		- [owner = newOwner](https://github.com/fboiero/MIESC/blob/main/data/audit/UnsafeToken.sol#L24)
 
 
 - **Location**: `UnsafeToken.sol:22`
@@ -298,7 +298,7 @@ Version constraint ^0.8.0 contains known severe issues (https://solidity.readthe
 	- ABIDecodeTwoDimensionalArrayMemory
 	- KeccakCaching.
 It is used by:
-	- [^0.8.0](../contracts/UnsafeToken.sol#L2)
+	- [^0.8.0](https://github.com/fboiero/MIESC/blob/main/data/audit/UnsafeToken.sol#L2)
 
 
 - **Location**: `UnsafeToken.sol:2`
@@ -308,8 +308,8 @@ It is used by:
 
 **[Info]** too-many-digits
 
-[UnsafeToken.constructor()](../contracts/UnsafeToken.sol#L15-L19) uses literals with too many digits:
-	- [totalSupply = 1000000 * 10 ** decimals](../contracts/UnsafeToken.sol#L17)
+[UnsafeToken.constructor()](https://github.com/fboiero/MIESC/blob/main/data/audit/UnsafeToken.sol#L15-L19) uses literals with too many digits:
+	- [totalSupply = 1000000 * 10 ** decimals](https://github.com/fboiero/MIESC/blob/main/data/audit/UnsafeToken.sol#L17)
 
 
 - **Location**: `UnsafeToken.sol:15`
@@ -319,7 +319,7 @@ It is used by:
 
 **[Info]** constable-states
 
-[UnsafeToken.name](../contracts/UnsafeToken.sol#L5) should be constant 
+[UnsafeToken.name](https://github.com/fboiero/MIESC/blob/main/data/audit/UnsafeToken.sol#L5) should be constant
 
 
 - **Location**: `UnsafeToken.sol:5`
@@ -423,15 +423,15 @@ Instead of marking a function as `public`, consider marking it as `external` if 
 
 **[High]** reentrancy-eth
 
-Reentrancy in [VulnerableBank.withdraw()](../contracts/VulnerableBank.sol#L12-L20):
+Reentrancy in [VulnerableBank.withdraw()](https://github.com/fboiero/MIESC/blob/main/data/audit/VulnerableBank.sol#L12-L20):
 	External calls:
-	- [(success,None) = msg.sender.call{value: balance}()](../contracts/VulnerableBank.sol#L16)
+	- [(success,None) = msg.sender.call{value: balance}()](https://github.com/fboiero/MIESC/blob/main/data/audit/VulnerableBank.sol#L16)
 	State variables written after the call(s):
-	- [balances[msg.sender] = 0](../contracts/VulnerableBank.sol#L19)
-	[VulnerableBank.balances](../contracts/VulnerableBank.sol#L5) can be used in cross function reentrancies:
-	- [VulnerableBank.balances](../contracts/VulnerableBank.sol#L5)
-	- [VulnerableBank.deposit()](../contracts/VulnerableBank.sol#L7-L9)
-	- [VulnerableBank.withdraw()](../contracts/VulnerableBank.sol#L12-L20)
+	- [balances[msg.sender] = 0](https://github.com/fboiero/MIESC/blob/main/data/audit/VulnerableBank.sol#L19)
+	[VulnerableBank.balances](https://github.com/fboiero/MIESC/blob/main/data/audit/VulnerableBank.sol#L5) can be used in cross function reentrancies:
+	- [VulnerableBank.balances](https://github.com/fboiero/MIESC/blob/main/data/audit/VulnerableBank.sol#L5)
+	- [VulnerableBank.deposit()](https://github.com/fboiero/MIESC/blob/main/data/audit/VulnerableBank.sol#L7-L9)
+	- [VulnerableBank.withdraw()](https://github.com/fboiero/MIESC/blob/main/data/audit/VulnerableBank.sol#L12-L20)
 
 
 - **Location**: `VulnerableBank.sol:12`
@@ -453,7 +453,7 @@ Version constraint ^0.8.0 contains known severe issues (https://solidity.readthe
 	- ABIDecodeTwoDimensionalArrayMemory
 	- KeccakCaching.
 It is used by:
-	- [^0.8.0](../contracts/VulnerableBank.sol#L2)
+	- [^0.8.0](https://github.com/fboiero/MIESC/blob/main/data/audit/VulnerableBank.sol#L2)
 
 
 - **Location**: `VulnerableBank.sol:2`
@@ -463,8 +463,8 @@ It is used by:
 
 **[Info]** low-level-calls
 
-Low level call in [VulnerableBank.withdraw()](../contracts/VulnerableBank.sol#L12-L20):
-	- [(success,None) = msg.sender.call{value: balance}()](../contracts/VulnerableBank.sol#L16)
+Low level call in [VulnerableBank.withdraw()](https://github.com/fboiero/MIESC/blob/main/data/audit/VulnerableBank.sol#L12-L20):
+	- [(success,None) = msg.sender.call{value: balance}()](https://github.com/fboiero/MIESC/blob/main/data/audit/VulnerableBank.sol#L16)
 
 
 - **Location**: `VulnerableBank.sol:12`
@@ -537,4 +537,3 @@ Instead of marking a function as `public`, consider marking it as `external` if 
 *Generated by MIESC v4.3.4*
 
 ---
-

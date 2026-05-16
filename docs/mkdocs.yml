@@ -224,6 +224,6 @@ validation:
 # Build Configuration
 # ============================================================================
 
-site_dir: site
-docs_dir: docs
+site_dir: ../site
+docs_dir: .
 use_directory_urls: true

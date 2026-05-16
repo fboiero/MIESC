@@ -71,7 +71,7 @@ curl -O https://raw.githubusercontent.com/crytic/not-so-smart-contracts/master/i
 
 ## 2. Quick Scan (~30 seconds)
 
-Fast 4-tool analysis:
+Fast triage analysis:
 
 ```bash
 docker run --rm -v $(pwd):/contracts \
@@ -167,7 +167,7 @@ contracts/                    ← Your contracts folder
 
 | Command | Time | Description |
 |---------|------|-------------|
-| `scan` | 30s | Quick 4-tool analysis |
+| `scan` | 30s | Quick triage analysis |
 | `audit quick` | 1min | Basic scan |
 | `audit full` | 5-8min | 9 layers, 30+ tools, AI |
 | `audit batch` | varies | Multiple contracts |

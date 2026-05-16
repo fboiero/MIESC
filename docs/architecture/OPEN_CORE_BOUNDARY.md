@@ -29,7 +29,7 @@ the commercial platform/workflow layer.
 | --- | --- | --- |
 | Paper artifacts | `paper/`, `benchmarks/results/`, reproducibility notes | Canonical scientific record and reviewer evidence. |
 | Analysis engine | `miesc/core/`, `src/adapters/`, `src/agents/`, `src/ml/`, `src/llm/` | Implements the evaluated security pipeline. |
-| CLI and reports | `miesc/cli/`, `src/utils/enhanced_reporter.py`, report templates | Required for local reproducible use. |
+| CLI and reports | `miesc/cli/`, `src/utils/enhanced_reporter.py`, `src/utils/web_dashboard.py`, `src/utils/metrics_dashboard.py`, report templates | Required for local reproducible use and static evidence generation. |
 | Local integration interfaces | `miesc/api/`, `miesc/mcp_server.py`, `src/mcp_core/`, `docs/openapi.yaml` | Local automation surfaces used by researchers and developers. |
 | Packaging and reproducibility | `Dockerfile*`, `docker/`, `scripts/`, `requirements/`, `pyproject.toml` core extras | Needed to run the same toolchain outside the platform. |
 | Security/research documentation | `docs/guides/`, `docs/policies/`, `docs/TOOL_DIAGNOSTIC_REPORT.md` | Documents how claims are reproduced and audited. |
@@ -40,7 +40,7 @@ the commercial platform/workflow layer.
 | --- | --- | --- |
 | Web product UI | `webapp/`, `.streamlit/` | Product-facing experience and deployment workflow. |
 | Commercial licensing | `src/licensing/` | License keys, quotas, plans, and admin APIs are product concerns. |
-| Product dashboards | `src/dashboard/`, `src/utils/web_dashboard.py`, `src/utils/metrics_dashboard.py` | Keep only static report generation in core if needed for reproducibility. |
+| Product dashboards | `src/dashboard/` and hosted/team dashboard code | Keep static report generation in core; move interactive product dashboards and team workflow to platform. |
 | IDE/product client | `vscode-extension/` | Best maintained as a platform client consuming the core CLI/API. |
 | Hosted workflow glue | future platform CI, queues, storage, tenancy, RBAC, billing | Must consume released core versions rather than modifying benchmark behavior. |
 

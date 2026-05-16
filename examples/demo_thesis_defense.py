@@ -1334,46 +1334,51 @@ class MIESCThesisDemo:
 
         self.sleep(1)
 
-        # Intentar conectar al servidor MCP REST
-        print(f"\n  {C.WARN}> Connecting to MIESC MCP Server...{C.RESET}\n")
+        # Intentar conectar a la API REST local del core.
+        print(f"\n  {C.WARN}> Connecting to MIESC REST API...{C.RESET}\n")
 
-        mcp_url = "http://localhost:5001"
+        mcp_url = "http://localhost:8000"
         mcp_connected = False
         mcp_tools = []
 
         try:
-            # Test connection to MCP REST server
+            # Test connection to REST API server
             animated_loading("Establishing connection", duration=0.5 / self.speed)
 
-            req = urllib.request.Request(f"{mcp_url}/mcp/status")
+            req = urllib.request.Request(f"{mcp_url}/api/v1/health/")
             with urllib.request.urlopen(req, timeout=5) as response:
                 status_data = json.loads(response.read().decode())
-                mcp_connected = status_data.get("status") == "operational"
+                mcp_connected = status_data.get("status") in {"healthy", "degraded", "ok"}
 
             if mcp_connected:
-                print(f"  {C.HACK}✓{C.RESET} Connected to MCP Server at {C.DATA}{mcp_url}{C.RESET}")
+                print(f"  {C.HACK}✓{C.RESET} Connected to REST API at {C.DATA}{mcp_url}{C.RESET}")
 
-                # Get available capabilities
-                animated_loading("Fetching capabilities", duration=0.3 / self.speed)
+                # Get available tools
+                animated_loading("Fetching tools", duration=0.3 / self.speed)
 
-                req = urllib.request.Request(f"{mcp_url}/mcp/capabilities")
+                req = urllib.request.Request(f"{mcp_url}/api/v1/tools/")
                 with urllib.request.urlopen(req, timeout=5) as response:
                     caps_data = json.loads(response.read().decode())
-                    mcp_tools = caps_data.get("capabilities", {})
+                    mcp_tools = caps_data.get("tools", caps_data)
 
                 print(
-                    f"  {C.HACK}✓{C.RESET} Found {C.NEON_WHITE}{len(mcp_tools)}{C.RESET} MCP capabilities available\n"
+                    f"  {C.HACK}✓{C.RESET} Found {C.NEON_WHITE}{len(mcp_tools)}{C.RESET} tools available\n"
                 )
 
-                # Display capabilities
-                print(f"  {C.NEON_WHITE}AVAILABLE MCP CAPABILITIES:{C.RESET}\n")
+                # Display tools
+                print(f"  {C.NEON_WHITE}AVAILABLE REST TOOLS:{C.RESET}\n")
                 print(
                     f"  {C.DATA}╔════════════════════════════════════════════════════════════════════════╗{C.RESET}"
                 )
 
-                for name, info in list(mcp_tools.items())[:8]:
-                    desc = info.get("description", "")[:45]
-                    method = info.get("method", "GET")
+                tool_items = mcp_tools.items() if isinstance(mcp_tools, dict) else enumerate(mcp_tools)
+                for name, info in list(tool_items)[:8]:
+                    if isinstance(info, dict):
+                        desc = info.get("description", info.get("name", ""))[:45]
+                        method = info.get("method", "GET")
+                    else:
+                        desc = str(info)[:45]
+                        method = "GET"
                     print(
                         f"  {C.DATA}║{C.RESET}  {C.HACK}●{C.RESET} {name:<18} [{method:4s}] {C.DIM}{desc}{C.RESET}"
                     )
@@ -1419,7 +1424,7 @@ class MIESCThesisDemo:
                 print(
                     f"\n  {C.SYS}  ┌─ MCP REQUEST ─────────────────────────────────────────────────────┐{C.RESET}"
                 )
-                print(f"  {C.SYS}  │{C.RESET} {C.DATA}GET{C.RESET} /mcp/tools")
+                print(f"  {C.SYS}  │{C.RESET} {C.DATA}GET{C.RESET} /api/v1/tools/")
                 print(
                     f"  {C.SYS}  │{C.RESET} {C.DIM}Headers: Content-Type: application/json{C.RESET}"
                 )
@@ -1497,7 +1502,7 @@ class MIESCThesisDemo:
                 print(
                     f"\n  {C.SYS}  ┌─ MCP REQUEST ─────────────────────────────────────────────────────┐{C.RESET}"
                 )
-                print(f"  {C.SYS}  │{C.RESET} {C.WARN}POST{C.RESET} /mcp/run_audit")
+                print(f"  {C.SYS}  │{C.RESET} {C.WARN}POST{C.RESET} /api/v1/analyze/quick/")
                 print(f"  {C.SYS}  │{C.RESET} {C.DIM}Body: {{{C.RESET}")
                 print(
                     f'  {C.SYS}  │{C.RESET} {C.DIM}  "contract_path": "contracts/audit/VulnerableBank.sol",{C.RESET}'
@@ -1521,7 +1526,7 @@ class MIESCThesisDemo:
                 ).encode("utf-8")
 
                 req = urllib.request.Request(
-                    f"{mcp_url}/mcp/run_audit",
+                    f"{mcp_url}/api/v1/analyze/quick/",
                     data=call_payload,
                     headers={"Content-Type": "application/json"},
                 )
@@ -1639,7 +1644,7 @@ class MIESCThesisDemo:
                 print(
                     f"\n  {C.SYS}  ┌─ MCP REQUEST ─────────────────────────────────────────────────────┐{C.RESET}"
                 )
-                print(f"  {C.SYS}  │{C.RESET} {C.DATA}GET{C.RESET} /mcp/swc/SWC-107")
+                print(f"  {C.SYS}  │{C.RESET} {C.DATA}GET{C.RESET} local knowledge: SWC-107")
                 print(
                     f"  {C.SYS}  │{C.RESET} {C.DIM}Fetching remediation info from RAG database...{C.RESET}"
                 )
@@ -1728,7 +1733,7 @@ class MIESCThesisDemo:
                 print(
                     f"\n  {C.SYS}  ┌─ MCP REQUEST ─────────────────────────────────────────────────────┐{C.RESET}"
                 )
-                print(f"  {C.SYS}  │{C.RESET} {C.WARN}POST{C.RESET} /mcp/generate_report")
+                print(f"  {C.SYS}  │{C.RESET} {C.WARN}POST{C.RESET} /api/v1/reports/")
                 print(
                     f'  {C.SYS}  │{C.RESET} {C.DIM}Body: {{"contract": "VulnerableBank.sol",{C.RESET}'
                 )
@@ -1811,7 +1816,7 @@ class MIESCThesisDemo:
 
         except urllib.error.URLError:
             print(
-                f"  {C.WARN}○{C.RESET} MCP Server not running (start with: python3 src/miesc_mcp_rest.py)"
+                f"  {C.WARN}○{C.RESET} REST API not running (start with: python3 -m miesc.api.rest --port 8000)"
             )
             mcp_connected = False
         except Exception as e:
@@ -1830,7 +1835,7 @@ class MIESCThesisDemo:
   {C.NEON_WHITE}║{C.RESET}  {C.HACK}"mcpServers": {{{C.RESET}                                                        {C.NEON_WHITE}║{C.RESET}
   {C.NEON_WHITE}║{C.RESET}  {C.HACK}  "miesc": {{{C.RESET}                                                           {C.NEON_WHITE}║{C.RESET}
   {C.NEON_WHITE}║{C.RESET}  {C.HACK}    "command": "python3",{C.RESET}                                               {C.NEON_WHITE}║{C.RESET}
-  {C.NEON_WHITE}║{C.RESET}  {C.HACK}    "args": ["src/miesc_mcp_server.py"]{C.RESET}                                 {C.NEON_WHITE}║{C.RESET}
+  {C.NEON_WHITE}║{C.RESET}  {C.HACK}    "args": ["-m", "miesc.mcp_server"]{C.RESET}                              {C.NEON_WHITE}║{C.RESET}
   {C.NEON_WHITE}║{C.RESET}  {C.HACK}  }}{C.RESET}                                                                    {C.NEON_WHITE}║{C.RESET}
   {C.NEON_WHITE}║{C.RESET}  {C.HACK}}}{C.RESET}                                                                      {C.NEON_WHITE}║{C.RESET}
   {C.NEON_WHITE}║{C.RESET}                                                                           {C.NEON_WHITE}║{C.RESET}
@@ -1843,7 +1848,7 @@ class MIESCThesisDemo:
         if mcp_connected:
             print(f"""
   {C.HACK}┌─────────────────────────────────────────────────────────────────────────┐
-  │  {C.NEON_WHITE}✓ MCP SERVER STATUS: CONNECTED{C.HACK}                                         │
+  │  {C.NEON_WHITE}✓ REST API STATUS: CONNECTED{C.HACK}                                           │
   │  {C.NEON_WHITE}✓ Tools available: {len(mcp_tools)}{C.HACK}                                                    │
   │  {C.NEON_WHITE}✓ Ready for Claude Desktop integration{C.HACK}                                 │
   └─────────────────────────────────────────────────────────────────────────┘{C.RESET}
@@ -1851,9 +1856,9 @@ class MIESCThesisDemo:
         else:
             print(f"""
   {C.WARN}┌─────────────────────────────────────────────────────────────────────────┐
-  │  {C.NEON_WHITE}○ MCP SERVER: Not running{C.WARN}                                              │
-  │  {C.NEON_WHITE}  Start with: python3 src/miesc_mcp_rest.py{C.WARN}                            │
-  │  {C.NEON_WHITE}  Or use native MCP: python3 src/miesc_mcp_server.py{C.WARN}                   │
+  │  {C.NEON_WHITE}○ REST API: Not running{C.WARN}                                                │
+  │  {C.NEON_WHITE}  Start with: python3 -m miesc.api.rest --port 8000{C.WARN}                    │
+  │  {C.NEON_WHITE}  Or use MCP stdio: python3 -m miesc.mcp_server{C.WARN}                        │
   └─────────────────────────────────────────────────────────────────────────┘{C.RESET}
 """)
 

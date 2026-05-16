@@ -120,11 +120,13 @@ MIESC's documentation is currently English + Spanish. For EU reach:
 
 - French, German, Italian, Portuguese translations of the core
   documentation and CLI messages.
-- WCAG 2.2 AA compliance for the Streamlit web dashboard.
+- WCAG 2.2 AA compliance for the static HTML reports and hosted
+  platform dashboard.
 - Screen-reader-friendly reports (semantic HTML, not just PDF tables).
 
-**Deliverable**: 5-language docs, accessible web dashboard deployed on
-a European-hosted URL (e.g. Hetzner-hosted `miesc.eu`).
+**Deliverable**: 5-language docs, accessible reports, and an accessible
+platform demo deployed on a European-hosted URL (e.g. Hetzner-hosted
+`miesc.eu`).
 
 ---
 

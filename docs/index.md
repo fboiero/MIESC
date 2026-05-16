@@ -20,13 +20,13 @@ title: MIESC - Smart Contract Security Framework
 
 <p align="center">
   <a href="https://youtu.be/pLa_McNBRRw">Video Demo</a> •
-  <a href="thesis">Thesis</a> •
-  <a href="INSTALLATION">Documentation</a> •
+  <a href="thesis.md">Thesis</a> •
+  <a href="INSTALLATION.md">Documentation</a> •
   <a href="https://github.com/fboiero/MIESC">GitHub</a>
 </p>
 
 <p align="center">
-  <strong>English</strong> | <a href="index_es">Español</a>
+  <strong>English</strong> | <a href="index_es.md">Español</a>
 </p>
 
 ---
@@ -88,9 +88,11 @@ title: MIESC - Smart Contract Security Framework
 
 ---
 
-## What's New in v4.0.0
+## What's Current in v5.4.2
 
-**Major Release** (January 2025) - Four cutting-edge research-based enhancements:
+**Current Core Release** - public CLI, local REST API, MCP stdio, OpenAPI, and
+static report generation with the platform/product UI kept outside the public
+package.
 
 ### 1. PropertyGPT (Layer 4 - Formal Verification)
 
@@ -203,16 +205,18 @@ miesc audit full contract.sol
 miesc doctor
 ```
 
-### Web Interface
+### Local APIs And Reports
 
 ```bash
-# Launch interactive web UI
-pip install miesc[web]
-make webapp
-# Open browser to http://localhost:8501
+# Start the local REST API
+pip install "miesc[django]"
+python -m miesc.api.rest --host 127.0.0.1 --port 8000
+
+# Generate a static HTML dashboard from local results
+python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
 ```
 
-[Full Installation Guide](INSTALLATION) | [Quick Start Guide](https://github.com/fboiero/MIESC/blob/main/QUICKSTART.md)
+[Full Installation Guide](INSTALLATION.md) | [Quick Start Guide](https://github.com/fboiero/MIESC/blob/main/QUICKSTART.md)
 
 ---
 
@@ -254,7 +258,7 @@ Static Dynamic Symbolic Formal
 | **L8** | DeFi Agent | Protocol-specific analysis | DeFi/MEV risks |
 | **L9** | Advanced Agent | Cross-layer correlation | Final audit report |
 
-[Architecture Details](thesis)
+[Architecture Details](thesis.md)
 
 ---
 
@@ -267,15 +271,15 @@ Static Dynamic Symbolic Formal
 | **Precision** | 100% | 0 false positives |
 | **Recall** | 70% | 35/50 vulnerabilities detected |
 | **F1-Score** | 82.35% | 50 contract benchmark |
-| **Tools** | 50 | Configured adapters across 9 layers |
+| **Layered Tools** | 50 | Core tools grouped across 9 defense layers |
 | **Categories with 100% Recall** | 3 | arithmetic, bad_randomness, front_running |
 
 ### Test Suite
 
-- **117 tests passing**
-- **80.8% code coverage**
+- **5967 tests passing, 8 skipped** in the latest full local regression
+- **70 public-surface tests passing** across REST, MCP, OpenAPI, and distribution guards
 - **0 critical vulnerabilities**
-- **50 tool adapters configured across 9 layers**
+- **Configured adapter stack aligned with the 9-layer core**
 
 ---
 
@@ -296,7 +300,7 @@ Static Dynamic Symbolic Formal
 ### Research Contributions
 
 1. **9-Layer Defense-in-Depth Architecture** for smart contract security
-2. **31 Tool Integration** under unified ToolAdapter protocol
+2. **50 Tool Integration** under unified ToolAdapter protocol
 3. **Triple Normalization System** (SWC/CWE/OWASP) with 97.1% accuracy
 4. **Sovereign AI Backend** with Ollama for data sovereignty
 5. **MCP Server** for AI assistant integration
@@ -315,7 +319,7 @@ Static Dynamic Symbolic Formal
 }
 ```
 
-[Thesis Documentation](thesis)
+[Thesis Documentation](thesis.md)
 
 ---
 
@@ -323,32 +327,32 @@ Static Dynamic Symbolic Formal
 
 ### Getting Started
 
-- [Installation Guide](INSTALLATION)
-- [Tools Reference](TOOLS)
-- [Validation Guide](VALIDATION_GUIDE)
+- [Installation Guide](INSTALLATION.md)
+- [Tools Reference](TOOLS.md)
+- [Validation Guide](VALIDATION_GUIDE.md)
 
 ### Releases
 
-- [Release Notes v4.3.0](RELEASE_NOTES_v4.3.0)
-- [Release Notes v4.2.3](RELEASE_NOTES_v4.2.3)
-- [Release Notes v4.0.0](RELEASE_NOTES_v4.0.0)
+- [Release Status v5.4.2](policies/RELEASE_STATUS_5.4.2.md)
+- [Release Verification](policies/RELEASE_VERIFICATION.md)
+- [Changelog](CHANGELOG.md)
 
 ### Developer Resources
 
-- [Contributing Guidelines](CONTRIBUTING)
-- [Security Policy](SECURITY)
-- [Changelog](CHANGELOG)
+- [Contributing Guidelines](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
 ### Policies & Governance
 
-- [DPG Compliance](policies/DPG-COMPLIANCE)
-- [Governance](policies/GOVERNANCE)
-- [Privacy Policy](policies/PRIVACY)
+- [DPG Compliance](policies/DPG-COMPLIANCE.md)
+- [Governance](policies/GOVERNANCE.md)
+- [Privacy Policy](policies/PRIVACY.md)
 
 ### Thesis
 
-- [Thesis Overview](thesis)
-- [Tesis (Español)](thesis_es)
+- [Thesis Overview](thesis.md)
+- [Tesis (Español)](thesis_es.md)
 
 ---
 
@@ -360,7 +364,7 @@ We welcome contributions from the security research and blockchain communities!
 
 1. **Fork the repository**
 2. **Create a feature branch**: `git checkout -b feature/new-detector`
-3. **Make changes** following our [style guide](CONTRIBUTING)
+3. **Make changes** following our [style guide](CONTRIBUTING.md)
 4. **Run quality checks**: `make all-checks`
 5. **Submit pull request**
 
@@ -372,7 +376,7 @@ We welcome contributions from the security research and blockchain communities!
 - Cross-chain vulnerability analysis
 - Documentation translations
 
-[Contributing Guide](CONTRIBUTING)
+[Contributing Guide](CONTRIBUTING.md)
 
 ---
 
@@ -432,7 +436,7 @@ miesc server mcp
 
 ## License
 
-**AGPL-3.0 License** - See [LICENSE](LICENSE) for details.
+**AGPL-3.0 License** - See [LICENSE](https://github.com/fboiero/MIESC/blob/main/LICENSE) for details.
 
 Ensures framework remains open-source. Allows commercial use with attribution. Derivative works must be open-source.
 

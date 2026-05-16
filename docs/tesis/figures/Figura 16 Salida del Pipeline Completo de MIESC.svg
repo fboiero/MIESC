@@ -20,7 +20,7 @@
   
   <!-- Command line -->
   <text x="55" y="95" font-size="11" font-family="Consolas, monospace" fill="#27ae60">$</text>
-  <text x="70" y="95" font-size="11" font-family="Consolas, monospace" fill="#fff">python -m src.miesc_cli analyze contracts/audit/VulnerableBank.sol --layers all</text>
+  <text x="70" y="95" font-size="11" font-family="Consolas, monospace" fill="#fff">miesc audit full contracts/audit/VulnerableBank.sol</text>
   
   <!-- Header banner -->
   <text x="55" y="120" font-size="10" font-family="Consolas, monospace" fill="#3498db">============================================================</text>

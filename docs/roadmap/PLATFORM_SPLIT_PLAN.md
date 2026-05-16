@@ -34,8 +34,6 @@ webapp/
 .streamlit/
 src/licensing/
 src/dashboard/
-src/utils/web_dashboard.py
-src/utils/metrics_dashboard.py
 vscode-extension/
 ```
 
@@ -80,6 +78,9 @@ src/dashboard/
 vscode-extension/
 ```
 
+Keep `src/utils/web_dashboard.py` and `src/utils/metrics_dashboard.py` in core
+while they generate static local evidence from reproducible results.
+
 Then update:
 
 ```text
@@ -100,8 +101,8 @@ Run the core checks that prove the public repository still stands alone:
 ```bash
 uv run pytest
 uv run python scripts/diagnose-adapters.py
-uv run python scripts/run_paper1_claims.py --help
-uv run python scripts/run_paper2_claims.py --help
+uv run python benchmarks/generate_paper1_artifacts.py
+uv run python benchmarks/generate_paper2_artifacts.py
 ```
 
 If a paper script imports platform code, move only the minimal reproducibility
@@ -115,7 +116,7 @@ Run the platform checks from the GitLab repository:
 pip install -e .
 npm install --prefix apps/vscode-extension
 npm test --prefix apps/vscode-extension
-streamlit run apps/web/app.py
+# Run the platform web smoke command defined by miesc_platform.
 ```
 
 The platform tests should prove integration with a pinned core version, not an
@@ -126,10 +127,12 @@ untracked local checkout.
 The split is complete when:
 
 1. Paper 1 and Paper 2 reproduction paths run from the public core only.
-2. The core has no imports from platform modules.
+2. The core has no imports from platform modules. This is guarded by
+   `tests/test_distribution_contents.py::test_core_source_does_not_import_platform_modules`.
 3. The platform can run against a pinned core release.
 4. Licensing, dashboards, hosted workflow, and IDE product code live outside the
-   public core.
+   public core. Package artifacts are checked by
+   `scripts/check_distribution_contents.py`.
 5. Public documentation clearly states that platform workflow is a product layer
    over the reproducible core.
 

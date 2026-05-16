@@ -105,7 +105,7 @@ authors = [
     {name = "Your Name", email = "you@example.com"},
 ]
 dependencies = [
-    "miesc>=5.4.0",
+    "miesc>=5.4.2",
 ]
 
 [project.entry-points."miesc.detectors"]
@@ -229,7 +229,7 @@ Plugins can declare MIESC version requirements:
 
 ```toml
 dependencies = [
-    "miesc>=5.4.0,<6.0.0",
+    "miesc>=5.4.2,<6.0.0",
 ]
 ```
 

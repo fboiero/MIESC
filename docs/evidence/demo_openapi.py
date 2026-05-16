@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 """
-MIESC v4.2.0 - Demo: OpenAPI Documentation
-==========================================
+MIESC v5.4.2 - Demo: Core REST OpenAPI Documentation
+====================================================
 Demonstrates the OpenAPI 3.1.0 specification:
 - API endpoints and tags
 - Schema definitions
-- MCP Tool Discovery
-- Compliance and Export endpoints
+- Tool discovery
+- Analysis, remediation, and report endpoints
 
 Author: Fernando Boiero
 License: AGPL-3.0
 """
 
-import sys
+from pathlib import Path
 
 import yaml
 
-sys.path.insert(0, "/Users/fboiero/Documents/GitHub/MIESC")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+OPENAPI_SPEC = PROJECT_ROOT / "docs" / "openapi.yaml"
 
 
 def print_separator(title: str):
@@ -28,7 +29,7 @@ def print_separator(title: str):
 
 def load_openapi_spec():
     """Load the OpenAPI specification."""
-    with open("/Users/fboiero/Documents/GitHub/MIESC/docs/openapi.yaml", "r") as f:
+    with OPENAPI_SPEC.open() as f:
         return yaml.safe_load(f)
 
 
@@ -91,54 +92,36 @@ def demo_endpoints_by_tag(spec):
                     )
 
     # Display by category
-    for tag in [
-        "MCP",
-        "MCP Tools",
-        "Analysis",
-        "Correlation",
-        "Remediation",
-        "Export",
-        "Persistence",
-        "Compliance",
-        "Observability",
-        "WebSocket",
-    ]:
+    for tag in [tag["name"] for tag in spec.get("tags", [])]:
         if tag in tag_endpoints:
             print(f"\n{tag}:")
             for ep in tag_endpoints[tag]:
                 print(f"  {ep['method']:6} {ep['path']:35} - {ep['summary'][:40]}")
 
 
-def demo_mcp_tools(spec):
-    """Demo MCP Tool Discovery endpoints."""
-    print_separator("MCP Tool Discovery")
+def demo_core_tools(spec):
+    """Demo REST tool discovery endpoints."""
+    print_separator("Core Tool Discovery")
 
-    # tools/list endpoint
-    tools_list = spec["paths"].get("/mcp/tools/list", {}).get("get", {})
-    print("GET /mcp/tools/list")
+    tools_list = spec["paths"].get("/api/v1/tools/", {}).get("get", {})
+    print("GET /api/v1/tools/")
     print(f"  Summary: {tools_list.get('summary', 'N/A')}")
     print(f"  Operation ID: {tools_list.get('operationId', 'N/A')}")
 
-    # tools/call endpoint
-    tools_call = spec["paths"].get("/mcp/tools/call", {}).get("post", {})
-    print("\nPOST /mcp/tools/call")
-    print(f"  Summary: {tools_call.get('summary', 'N/A')}")
-    print(f"  Operation ID: {tools_call.get('operationId', 'N/A')}")
+    tool_detail = spec["paths"].get("/api/v1/tools/{tool_name}/", {}).get("get", {})
+    print("\nGET /api/v1/tools/{tool_name}/")
+    print(f"  Summary: {tool_detail.get('summary', 'N/A')}")
+    print(f"  Operation ID: {tool_detail.get('operationId', 'N/A')}")
 
-    # Available MCP tools
-    print("\nAvailable MCP Tools (from description):")
+    print("\nCore REST capabilities:")
     tools = [
-        ("miesc_run_audit", "Execute comprehensive smart contract audit"),
-        ("miesc_correlate", "Correlate findings from multiple tools"),
-        ("miesc_map_compliance", "Map findings to compliance frameworks"),
-        ("miesc_remediate", "Get remediation suggestions"),
-        ("miesc_generate_report", "Generate audit report"),
-        ("miesc_quick_scan", "Fast security scan"),
-        ("miesc_deep_scan", "Comprehensive deep analysis"),
-        ("miesc_get_metrics", "Get scientific validation metrics"),
-        ("miesc_get_status", "Get system health status"),
-        ("miesc_analyze_defi", "DeFi-specific security analysis"),
-        ("miesc_detect_exploit_chains", "Detect exploit chains"),
+        ("health", "Check service status and package version"),
+        ("tools", "List configured analysis adapters"),
+        ("layers", "List configured analysis layers"),
+        ("quick-analysis", "Run a fast audit against Solidity source"),
+        ("full-analysis", "Run all configured audit layers"),
+        ("remediation", "Generate remediation guidance"),
+        ("reports", "Generate local report artifacts"),
     ]
     for name, desc in tools:
         print(f"  - {name:30} {desc}")
@@ -150,28 +133,9 @@ def demo_schemas(spec):
 
     schemas = spec["components"]["schemas"]
 
-    # Count and categorize schemas
     categories = {
-        "MCP": [
-            "MCPTool",
-            "MCPToolCallRequest",
-            "MCPToolCallResponse",
-            "MCPToolsListResponse",
-            "MCPInitializeRequest",
-            "MCPInitializeResponse",
-        ],
-        "Findings": ["Finding", "CorrelatedFinding", "EnrichedFinding", "FindingRecord"],
-        "Audit": ["AuditRequest", "AuditResponse", "AuditRecord", "AuditListResponse"],
-        "Correlation": ["CorrelateRequest", "CorrelateResponse", "CorrelationStatistics"],
-        "Exploit Chains": ["ExploitChain", "ExploitChainSummary", "ExploitChainsResponse"],
-        "Remediation": [
-            "RemediateRequest",
-            "RemediateResponse",
-            "RemediationReport",
-            "FixPlanStep",
-        ],
-        "Compliance": ["ComplianceMapping", "ComplianceReportRequest", "ComplianceReportResponse"],
-        "Metrics": ["MetricsResponse", "ScientificValidation"],
+        "Service": ["RootResponse", "HealthResponse"],
+        "Analysis": ["AnalyzeRequest"],
     }
 
     print(f"Total Schemas: {len(schemas)}\n")
@@ -187,14 +151,14 @@ def demo_schemas(spec):
         print()
 
 
-def demo_finding_schema(spec):
-    """Demo the Finding schema in detail."""
-    print_separator("Finding Schema (Detailed)")
+def demo_analysis_schema(spec):
+    """Demo the analysis request schema in detail."""
+    print_separator("AnalyzeRequest Schema")
 
-    finding = spec["components"]["schemas"].get("Finding", {})
-    props = finding.get("properties", {})
+    analyze_request = spec["components"]["schemas"].get("AnalyzeRequest", {})
+    props = analyze_request.get("properties", {})
 
-    print("Finding Properties:")
+    print("AnalyzeRequest Properties:")
     for name, details in props.items():
         prop_type = details.get("type", details.get("$ref", "object"))
         enum_vals = details.get("enum", [])
@@ -204,98 +168,33 @@ def demo_finding_schema(spec):
             print(f"  {name:20} {prop_type}")
 
 
-def demo_scientific_validation(spec):
-    """Demo scientific validation metrics schema."""
-    print_separator("Scientific Validation Metrics")
+def demo_analysis_endpoints(spec):
+    """Demo analysis endpoints."""
+    print_separator("Analysis Endpoints")
 
-    validation = spec["components"]["schemas"].get("ScientificValidation", {})
-    props = validation.get("properties", {})
-
-    print("Validation Metrics (from thesis experiments):")
-    for name, details in props.items():
-        example = details.get("example", "N/A")
-        print(f"  {name:25} = {example}")
-
-
-def demo_export_formats(spec):
-    """Demo export endpoint and formats."""
-    print_separator("Export Formats")
-
-    export = spec["paths"].get("/export", {}).get("post", {})
-    print(f"POST /export - {export.get('summary', 'N/A')}")
-
-    # Export request schema
-    export_req = spec["components"]["schemas"].get("ExportRequest", {})
-    format_prop = export_req.get("properties", {}).get("format", {})
-    formats = format_prop.get("enum", [])
-
-    print("\nSupported Formats:")
-    format_details = {
-        "sarif": ("application/json", "GitHub/GitLab integration"),
-        "sonarqube": ("application/json", "Enterprise CI/CD"),
-        "checkmarx": ("application/xml", "Enterprise SAST"),
-        "markdown": ("text/markdown", "Human-readable reports"),
-        "json": ("application/json", "API integration"),
-    }
-
-    for fmt in formats:
-        content_type, desc = format_details.get(fmt, ("unknown", "Unknown"))
-        print(f"  - {fmt:12} ({content_type:20}) - {desc}")
-
-
-def demo_compliance_endpoints(spec):
-    """Demo compliance mapping endpoints."""
-    print_separator("Compliance Mapping Endpoints")
-
-    compliance_endpoints = [
-        ("/compliance/map", "POST", "Map finding to compliance frameworks"),
-        ("/compliance/report", "POST", "Generate compliance report"),
-        ("/compliance/enrich", "POST", "Enrich findings with compliance data"),
-        ("/compliance/gaps/iso27001", "POST", "Identify ISO 27001 gaps"),
+    endpoints = [
+        "/api/v1/analyze/quick/",
+        "/api/v1/analyze/full/",
+        "/api/v1/analyze/layer/{layer_num}/",
+        "/api/v1/analyze/tool/{tool_name}/",
     ]
+    for path in endpoints:
+        operation = spec["paths"].get(path, {}).get("post", {})
+        print(f"  POST   {path:35} - {operation.get('summary', 'N/A')}")
 
-    print("Endpoints:")
-    for path, method, desc in compliance_endpoints:
-        print(f"  {method:6} {path:30} - {desc}")
 
-    print("\nSupported Frameworks:")
-    frameworks = [
-        ("SWC", "Smart Contract Weakness Classification"),
-        ("CWE", "Common Weakness Enumeration"),
-        ("ISO 27001:2022", "Information Security Controls"),
-        ("NIST CSF", "Cybersecurity Framework"),
-        ("OWASP SC Top 10", "Smart Contract Security"),
+def demo_remediation_and_reports(spec):
+    """Demo remediation and report endpoints."""
+    print_separator("Remediation and Reports")
+
+    endpoints = [
+        ("POST", "/api/v1/remediate/"),
+        ("POST", "/api/v1/validate-remediation/"),
+        ("POST", "/api/v1/reports/"),
     ]
-    for code, name in frameworks:
-        print(f"  - {code:20} {name}")
-
-
-def demo_websocket_events(spec):
-    """Demo WebSocket event types."""
-    print_separator("WebSocket Real-Time Events")
-
-    ws_info = spec["paths"].get("/ws", {}).get("get", {})
-    print(f"GET /ws - {ws_info.get('summary', 'N/A')}")
-
-    print("\nWebSocket Endpoints:")
-    print("  ws://host:port/ws              - Main WebSocket endpoint")
-    print("  ws://host:port/ws/audit/{id}   - Audit-specific endpoint")
-
-    print("\nEvent Types:")
-    events = [
-        ("audit_started", "Audit begins execution"),
-        ("audit_progress", "Progress update (0-100%)"),
-        ("audit_completed", "Audit finished successfully"),
-        ("audit_error", "Audit encountered error"),
-        ("tool_started", "Tool begins execution"),
-        ("tool_completed", "Tool finished"),
-        ("finding_detected", "New vulnerability found"),
-        ("layer_started", "Analysis layer begins"),
-        ("layer_completed", "Analysis layer finished"),
-        ("heartbeat", "Connection keep-alive"),
-    ]
-    for event, desc in events:
-        print(f"  - {event:20} {desc}")
+    for method, path in endpoints:
+        operation = spec["paths"].get(path, {}).get(method.lower(), {})
+        print(f"  {method:6} {path:35} - {operation.get('summary', 'N/A')}")
 
 
 def demo_api_statistics(spec):
@@ -327,7 +226,7 @@ def demo_api_statistics(spec):
 
 if __name__ == "__main__":
     print("\n" + "=" * 60)
-    print("       MIESC v4.2.0 'Fortress' - OpenAPI Demo")
+    print("       MIESC v5.4.2 - Core REST OpenAPI Demo")
     print("       API Documentation & Specification")
     print("=" * 60)
 
@@ -337,16 +236,14 @@ if __name__ == "__main__":
     demo_servers(spec)
     demo_tags(spec)
     demo_endpoints_by_tag(spec)
-    demo_mcp_tools(spec)
+    demo_core_tools(spec)
     demo_schemas(spec)
-    demo_finding_schema(spec)
-    demo_scientific_validation(spec)
-    demo_export_formats(spec)
-    demo_compliance_endpoints(spec)
-    demo_websocket_events(spec)
+    demo_analysis_schema(spec)
+    demo_analysis_endpoints(spec)
+    demo_remediation_and_reports(spec)
     demo_api_statistics(spec)
 
     print("\n" + "=" * 60)
     print("  OpenAPI Demo Complete!")
-    print("  Full spec: docs/openapi.yaml (2273 lines)")
+    print(f"  Full spec: {OPENAPI_SPEC.relative_to(PROJECT_ROOT)}")
     print("=" * 60 + "\n")

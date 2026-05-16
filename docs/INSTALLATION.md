@@ -316,7 +316,8 @@ MIESC v4.3.0 - Installation Verification
 2. Core Python Dependencies
 ----------------------------------------
   [OK] slither-analyzer (0.10.x)
-  [OK] fastapi (0.104.x)
+  [OK] django (5.x)
+  [OK] djangorestframework (3.14.x)
   ...
 
 5. MIESC Adapter Registration
@@ -418,8 +419,9 @@ After installation:
 
 1. **Quick Start**: `miesc audit quick contract.sol`
 2. **Full Audit**: `miesc audit full contract.sol`
-3. **Web Interface**: `make webapp`
-4. **Documentation**: [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC)
+3. **Local REST API**: `python -m miesc.api.rest --host 127.0.0.1 --port 8000`
+4. **Static Reports**: `python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard`
+5. **Documentation**: [fboiero.github.io/MIESC](https://fboiero.github.io/MIESC)
 
 ---
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# MIESC v4.0.0 - Demo para Defensa de Tesis
+# MIESC v5.4.2 - Demo core local
 # Multi-layer Intelligent Evaluation for Smart Contracts
 # Autor: Fernando Boiero - UNDEF/IUA
 # =============================================================================
@@ -60,7 +60,7 @@ wait_for_enter() {
 demo_doctor() {
     print_section "DEMO 1: Verificacion de Herramientas (miesc doctor)"
 
-    echo -e "${WHITE}MIESC integra 25 herramientas de seguridad en 7 capas de defensa.${NC}"
+    echo -e "${WHITE}MIESC integra el stack de adaptadores configurado en 9 capas de defensa.${NC}"
     echo -e "${WHITE}Verifiquemos cuales estan disponibles en este sistema:${NC}"
     echo ""
 
@@ -98,11 +98,11 @@ demo_quick_scan() {
     wait_for_enter
 }
 
-# Demo 3: Auditoria completa 7 capas
+# Demo 3: Auditoria completa configurada
 demo_full_audit() {
-    print_section "DEMO 3: Auditoria Completa 7 Capas (miesc audit)"
+    print_section "DEMO 3: Auditoria Completa Configurada (miesc audit)"
 
-    echo -e "${WHITE}La auditoria completa ejecuta las 7 capas de defensa:${NC}"
+    echo -e "${WHITE}La auditoria completa ejecuta las capas de defensa configuradas:${NC}"
     echo ""
     echo -e "  ${CYAN}Capa 1:${NC} Analisis Estatico (Slither, Aderyn, Solhint)"
     echo -e "  ${CYAN}Capa 2:${NC} Testing Dinamico (Echidna, Medusa, Foundry)"
@@ -111,6 +111,8 @@ demo_full_audit() {
     echo -e "  ${CYAN}Capa 5:${NC} Analisis de Dependencias (npm audit, cargo audit)"
     echo -e "  ${CYAN}Capa 6:${NC} Revision Experta Asistida por IA (SmartLLM)"
     echo -e "  ${CYAN}Capa 7:${NC} Validacion de Cumplimiento (ERC standards)"
+    echo -e "  ${CYAN}Capa 8:${NC} Integracion de conocimiento y RAG"
+    echo -e "  ${CYAN}Capa 9:${NC} Remediacion y evidencia"
     echo ""
 
     wait_for_enter
@@ -127,20 +129,19 @@ demo_full_audit() {
 
 # Demo 4: API REST para integracion
 demo_api() {
-    print_section "DEMO 4: API REST MCP-Compatible"
+    print_section "DEMO 4: API REST local"
 
-    echo -e "${WHITE}MIESC expone una API REST compatible con Model Context Protocol (MCP).${NC}"
-    echo -e "${WHITE}Esto permite integracion con agentes de IA como Claude, GPT, etc.${NC}"
+    echo -e "${WHITE}MIESC expone una API REST local para automatizacion reproducible.${NC}"
     echo ""
     echo -e "${CYAN}Endpoints disponibles:${NC}"
-    echo "  POST /api/v1/analyze     - Iniciar analisis"
-    echo "  GET  /api/v1/status/{id} - Estado del analisis"
-    echo "  GET  /api/v1/results/{id} - Obtener resultados"
-    echo "  GET  /api/v1/tools       - Listar herramientas"
-    echo "  GET  /api/v1/health      - Estado del servicio"
+    echo "  POST /api/v1/analyze/quick/ - Analisis rapido"
+    echo "  POST /api/v1/analyze/full/  - Auditoria completa"
+    echo "  GET  /api/v1/tools/         - Listar herramientas"
+    echo "  GET  /api/v1/layers/        - Listar capas"
+    echo "  GET  /api/v1/health/        - Estado del servicio"
     echo ""
     echo -e "${YELLOW}Para iniciar el servidor:${NC}"
-    echo -e "${GREEN}  miesc api --port 8080${NC}"
+    echo -e "${GREEN}  miesc server rest --port 8000${NC}"
     echo ""
 
     wait_for_enter

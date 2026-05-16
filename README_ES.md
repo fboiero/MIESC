@@ -187,7 +187,7 @@ Los resultados aparecen en la pestaña **Security** de GitHub y como comentario 
 | Modo | Herramientas | Tiempo | Caso de Uso |
 |------|--------------|--------|-------------|
 | `scan` | Slither, Aderyn, Solhint | ~30s | Cada push |
-| `audit-quick` | 4 herramientas core | ~2min | Checks de PR |
+| `audit-quick` | 3 herramientas core | ~2min | Checks de PR |
 | `audit-full` | Las 9 capas | ~10min | Pre-release |
 | `audit-profile` | Configurable | Variable | DeFi, tokens, etc. |
 
@@ -202,7 +202,7 @@ pip install miesc
 # Con reportes PDF
 pip install miesc[pdf]
 
-# Todo incluido (PDF, LLM, RAG, web UI)
+# Todo incluido para analisis local (PDF, LLM, RAG, APIs)
 pip install miesc[full]
 
 # Desarrollo
@@ -276,7 +276,7 @@ La imagen **estándar** corre nativamente en ARM. La imagen **completa** es solo
 ```bash
 miesc scan contract.sol              # Escaneo rápido (Slither + Aderyn + Solhint)
 miesc scan contract.sol --ci         # Modo CI: exit 1 en critical/high
-miesc audit quick contract.sol       # Auditoría de 4 herramientas
+miesc audit quick contract.sol       # Auditoría de 3 herramientas
 miesc audit full contract.sol        # Auditoría completa de 9 capas
 miesc audit layer 3 contract.sol     # Capa específica (ej., ejecución simbólica)
 miesc audit profile defi contract.sol  # Perfil nombrado (defi, token, security, etc.)
@@ -340,7 +340,7 @@ miesc detectors list                         # Listar todos los detectores dispo
 # Pre-commit hook (.pre-commit-config.yaml)
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v5.1.1
+    rev: v5.4.2
     hooks:
       - id: miesc-quick
         args: ['--ci']
@@ -389,14 +389,17 @@ results = run_tool("slither", "contract.sol")
 report = run_full_audit("contract.sol")
 ```
 
-### Interfaz Web
+### APIs Locales Y Reportes
 
 ```bash
-pip install miesc[web]
-make webapp  # Abre en http://localhost:8501
+pip install "miesc[django]"
+python -m miesc.api.rest --host 127.0.0.1 --port 8000
+python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
 ```
 
-Dashboard interactivo en Streamlit con carga de archivos, análisis, visualización de resultados y exportación de reportes.
+El core abierto expone automatización local REST/MCP y generación de reportes
+estáticos. La UI hospedada de producto, dashboards de equipo, licenciamiento y
+clientes IDE viven ahora en la capa de plataforma.
 
 ---
 

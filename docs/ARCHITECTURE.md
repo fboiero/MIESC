@@ -491,7 +491,7 @@ llm:
 
 ## Contributing to Architecture
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines on:
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
 - Adding new adapters
 - Creating custom detectors
 - Extending the CLI

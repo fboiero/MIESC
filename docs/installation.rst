@@ -55,8 +55,12 @@ MIESC has several optional dependency groups:
     # PDF report generation
     pip install miesc[pdf]
 
-    # Web dashboard
-    pip install miesc[web]
+    # Local REST API
+    pip install "miesc[django]"
+    python -m miesc.api.rest --host 127.0.0.1 --port 8000
+
+    # Static report generation is included in the core package
+    python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
 
     # Full installation
     pip install miesc[full]

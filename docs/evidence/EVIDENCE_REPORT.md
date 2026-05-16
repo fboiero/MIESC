@@ -1,4 +1,4 @@
-# MIESC v4.0.0 - Evidence Report
+# MIESC v5.4.2 - Evidence Report
 Generated: 2025-12-08 12:43:19
 
 ## Summary
@@ -22,10 +22,10 @@ This document contains evidence of MIESC tool functionality for thesis documenta
 | Endpoint | Status |
 |----------|--------|
 | GET / | ✓ |
-| GET /mcp/capabilities | ✓ |
-| GET /mcp/status | ✓ |
-| GET /mcp/get_metrics | ✓ |
-| POST /mcp/run_audit | ✓ |
+| GET /api/v1/health/ | ✓ |
+| GET /api/v1/tools/ | ✓ |
+| GET /api/v1/layers/ | ✓ |
+| POST /api/v1/analyze/quick/ | ✓ |
 
 ### 3. ML Pipeline Evidence (docs/evidence/ml/)
 
@@ -43,13 +43,13 @@ This document contains evidence of MIESC tool functionality for thesis documenta
 | pytest | ✓ |
 | test summary | ✓ |
 
-### 5. Web Dashboard Evidence (docs/evidence/web/)
+### 5. Static Dashboard Evidence (docs/evidence/web/)
 
 | Screenshot | Status |
 |------------|--------|
-| Main dashboard view | ✓ |
-| Dashboard after load | ✓ |
-| Dashboard scrolled | ✓ |
+| Static report view | ✓ |
+| Generated dashboard assets | ✓ |
+| Report data export | ✓ |
 
 
 ## Files Generated

@@ -280,7 +280,7 @@ increasing the timeout per query.
 ![Figura 16 - Salida del Pipeline Completo de MIESC](figures/Figura%2016%20Salida%20del%20Pipeline%20Completo%20de%20MIESC.svg)
 
 ```
-$ python -m src.miesc_cli analyze contracts/audit/VulnerableBank.sol --layers all
+$ miesc audit full contracts/audit/VulnerableBank.sol
 
 ============================================================
 MIESC v4.0.0 - Multi-layer Smart Contract Security Framework

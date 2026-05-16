@@ -488,8 +488,8 @@ MIESC implements multiple interfaces to serve different use cases, following the
 | Interface | Technology | Primary Use Case | Typical User |
 |-----------|------------|------------------|--------------|
 | CLI | Python/Click | Automation, scripts | DevOps, CI/CD |
-| Web | Streamlit | Interactive analysis | Auditors |
-| REST API | FastAPI | System integration | Developers |
+| HTML Dashboard | Jinja2/static HTML | Reproducible reports | Auditors |
+| REST API | Django REST | Local system integration | Developers |
 | MCP Server | Model Context Protocol | AI assistants | Claude, end users |
 
 ---

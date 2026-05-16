@@ -36,11 +36,12 @@ material.
   - Wait for arXiv ID (< 24 h)
   - **All three grants link to this ID — do it first.**
 
-- [ ] **Deploy Streamlit Cloud live demo**
-  - Follow `docs/guides/STREAMLIT_CLOUD_DEPLOYMENT.md`
-  - Get a public URL (e.g. `miesc.streamlit.app`)
-  - Grants reviewers WILL click this; zero-install evaluation
-    dramatically improves win rate
+- [ ] **Publish a zero-install live demo**
+  - Use the platform repository for hosted UI/demo deployment.
+  - Keep this open-core repository focused on CLI, local REST API, MCP stdio,
+    static reports, and reproducible evidence.
+  - Grants reviewers WILL click this; zero-install evaluation dramatically
+    improves win rate.
 
 - [ ] **ORCID if you don't have one**
   - https://orcid.org/register — takes 2 minutes

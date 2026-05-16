@@ -454,6 +454,6 @@ def test_with_sample(vulnerable_contract):
 
 ## Further Reading
 
-- [CONTRIBUTING.md](../../CONTRIBUTING.md) - Contribution guidelines
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
 - [QUICKSTART.md](./QUICKSTART.md) - Getting started guide
-- [Architecture Decision Records](../adr/) - Design decisions
+- [Architecture Decision Records](../adr/README.md) - Design decisions

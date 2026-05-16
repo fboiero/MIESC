@@ -396,8 +396,8 @@ Se requería:
 │  ┌─────┴─────────────────────────────────────────────────────────┐     │
 │  │                    Output Interfaces                           │     │
 │  ├──────────┬───────────┬───────────┬───────────────────────────┤     │
-│  │   CLI    │    Web    │   JSON    │          SARIF            │     │
-│  │ (Click)  │(Streamlit)│  (File)   │   (GitHub Integration)    │     │
+│  │   CLI    │ Dashboard │   JSON    │          SARIF            │     │
+│  │ (Click)  │  (HTML)   │  (File)   │   (GitHub Integration)    │     │
 │  └──────────┴───────────┴───────────┴───────────────────────────┘     │
 │                                                                         │
 └────────────────────────────────────────────────────────────────────────┘
@@ -406,7 +406,7 @@ Cambios:
 + 7 capas de análisis
 + 20 herramientas
 + Normalización triple (SWC/CWE/OWASP)
-+ Interfaz web (Streamlit)
++ Dashboard HTML estatico
 + Salida SARIF
 + ~30,000 líneas de código
 ```
@@ -612,8 +612,8 @@ El Model Context Protocol es un estándar abierto que permite a LLMs:
 │  ┌───────────────────────────────▼─────────────────────────────────────┐   │
 │  │                         Output Interfaces                            │   │
 │  ├──────────┬───────────┬───────────┬───────────┬────────────────────┤   │
-│  │   CLI    │    Web    │  REST API │    MCP    │       SARIF        │   │
-│  │ (Click)  │(Streamlit)│ (FastAPI) │ (Server)  │ (GitHub Actions)   │   │
+│  │   CLI    │ Dashboard │  REST API │    MCP    │       SARIF        │   │
+│  │ (Click)  │  (HTML)   │(Django)   │ (Server)  │ (GitHub Actions)   │   │
 │  └──────────┴───────────┴───────────┴───────────┴────────────────────┘   │
 │                                                                             │
 │  ┌──────────────────────────────────────────────────────────────────────┐  │
@@ -628,7 +628,7 @@ El Model Context Protocol es un estándar abierto que permite a LLMs:
 Características finales:
 + 25 herramientas en 7 capas
 + MCP Server para Claude
-+ API REST + Web UI + CLI
++ API REST + dashboard HTML + CLI
 + Normalización SWC/CWE/OWASP
 + Deduplicación 66%
 + 43,221 líneas de código Python

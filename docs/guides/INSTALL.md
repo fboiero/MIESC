@@ -105,7 +105,7 @@ docker build -t miesc .
 docker run -v $(pwd)/contracts:/contracts ghcr.io/fboiero/miesc:latest scan /contracts/MyToken.sol
 ```
 
-See [docs/DOCKER_DEPLOYMENT.md](./docs/DOCKER_DEPLOYMENT.md)
+See [Docker Quickstart](DOCKER_QUICKSTART.md)
 
 ## Verification
 
@@ -154,16 +154,16 @@ If you only need static analysis:
 
 ```bash
 pip install miesc
-miesc scan contract.sol  # Quick 4-tool scan with Slither
+miesc scan contract.sol  # Quick scan with Slither-first static analysis
 ```
 
 Framework gracefully degrades when tools are unavailable (DPGA compliance).
 
 ## Next Steps
 
-- Read [README.md](./README.md) for usage examples
-- See [docs/03_DEMO_GUIDE.md](./docs/03_DEMO_GUIDE.md) for demo walkthrough
-- Check [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup
+- Read [docs/index.md](../index.md) for usage examples
+- See [Docker Audit Guide](DOCKER_AUDIT_GUIDE.md) for a reproducible walkthrough
+- Check [CONTRIBUTING.md](../CONTRIBUTING.md) for development setup
 
 ## Support
 

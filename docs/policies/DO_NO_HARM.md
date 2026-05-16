@@ -58,11 +58,11 @@ This is the same dual-use challenge faced by all vulnerability scanners (Nessus,
    - Verify vulnerability existence, not maximize exploitation impact
    - Include remediation suggestions alongside exploit demonstration
 
-2. **Responsible use policy:** MIESC includes a [Responsible Use Policy](../../RESPONSIBLE_USE.md) that explicitly prohibits malicious use.
+2. **Responsible use policy:** MIESC includes a [Responsible Use Policy](RESPONSIBLE_USE.md) that explicitly prohibits malicious use.
 
 3. **AGPL-3.0 license:** The copyleft license ensures that any service built on MIESC must release its source code, preventing proprietary weaponization.
 
-4. **Community governance:** The project's [Code of Conduct](../../CODE_OF_CONDUCT.md) and [Governance](../../GOVERNANCE.md) establish clear expectations for ethical behavior.
+4. **Community governance:** The project's [Code of Conduct](../CODE_OF_CONDUCT.md) and [Governance](GOVERNANCE.md) establish clear expectations for ethical behavior.
 
 5. **Industry precedent:** MIESC follows the same responsible disclosure model as established open-source security tools:
    - [OWASP ZAP](https://www.zaproxy.org/) (web vulnerability scanner)
@@ -102,7 +102,7 @@ MIESC does **not** generate, store, or distribute any content that could be clas
 
 MIESC's community interactions are governed by:
 
-1. **Code of Conduct** ([English](../../CODE_OF_CONDUCT.md) | [Spanish](../../CODE_OF_CONDUCT_ES.md)): Based on the Contributor Covenant, establishing standards for respectful participation.
+1. **Code of Conduct** ([English](../CODE_OF_CONDUCT.md)): Based on the Contributor Covenant, establishing standards for respectful participation.
 
 2. **Enforcement:** The project maintainer (Fernando Boiero) is responsible for enforcement, with clear escalation procedures documented in the Code of Conduct.
 
