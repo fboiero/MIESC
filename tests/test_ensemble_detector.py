@@ -30,6 +30,22 @@ from src.llm.ensemble_detector import (
     VotingStrategy,
 )
 
+
+def _aiohttp_session_with_response(method: str, response: MagicMock) -> MagicMock:
+    """Build an aiohttp.ClientSession mock whose request method is an async CM."""
+    request_context = MagicMock()
+    request_context.__aenter__ = AsyncMock(return_value=response)
+    request_context.__aexit__ = AsyncMock(return_value=None)
+
+    session_instance = MagicMock()
+    setattr(session_instance, method, MagicMock(return_value=request_context))
+
+    session = MagicMock()
+    session.__aenter__ = AsyncMock(return_value=session_instance)
+    session.__aexit__ = AsyncMock(return_value=None)
+    return session
+
+
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -400,21 +416,19 @@ class TestLLMEnsembleDetectorInitialize:
         """Test initialization with Ollama."""
 
         async def run_test():
-            with patch("aiohttp.ClientSession") as mock_session:
-                mock_response = AsyncMock()
-                mock_response.status = 200
-                mock_response.json = AsyncMock(
-                    return_value={
-                        "models": [
-                            {"name": "deepseek-coder:6.7b"},
-                            {"name": "codellama:7b"},
-                        ]
-                    }
-                )
-                mock_session.return_value.__aenter__.return_value.get.return_value.__aenter__.return_value = (
-                    mock_response
-                )
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={
+                    "models": [
+                        {"name": "deepseek-coder:6.7b"},
+                        {"name": "codellama:7b"},
+                    ]
+                }
+            )
+            mock_session = _aiohttp_session_with_response("get", mock_response)
 
+            with patch("aiohttp.ClientSession", return_value=mock_session):
                 status = await detector.initialize()
 
                 assert detector._initialized
@@ -426,14 +440,12 @@ class TestLLMEnsembleDetectorInitialize:
         """Test initialization when no models available."""
 
         async def run_test():
-            with patch("aiohttp.ClientSession") as mock_session:
-                mock_response = AsyncMock()
-                mock_response.status = 200
-                mock_response.json = AsyncMock(return_value={"models": []})
-                mock_session.return_value.__aenter__.return_value.get.return_value.__aenter__.return_value = (
-                    mock_response
-                )
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(return_value={"models": []})
+            mock_session = _aiohttp_session_with_response("get", mock_response)
 
+            with patch("aiohttp.ClientSession", return_value=mock_session):
                 await detector.initialize()
 
                 assert detector._initialized
@@ -445,11 +457,14 @@ class TestLLMEnsembleDetectorInitialize:
         """Test initialization with connection error."""
 
         async def run_test():
-            with patch("aiohttp.ClientSession") as mock_session:
-                mock_session.return_value.__aenter__.return_value.get.side_effect = Exception(
-                    "Connection refused"
-                )
+            mock_session_instance = MagicMock()
+            mock_session_instance.get.side_effect = Exception("Connection refused")
 
+            mock_session = MagicMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session.__aexit__ = AsyncMock(return_value=None)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
                 # Should not raise, just log warning
                 await detector.initialize()
                 assert detector._initialized
@@ -464,21 +479,10 @@ class TestLLMEnsembleDetectorProviderAvailability:
         """Test checking Ollama availability."""
 
         async def run_test():
-            # Create proper async context manager mocks
             mock_response = MagicMock()
             mock_response.status = 200
             mock_response.json = AsyncMock(return_value={"models": [{"name": "test-model"}]})
-
-            mock_get = MagicMock()
-            mock_get.__aenter__ = AsyncMock(return_value=mock_response)
-            mock_get.__aexit__ = AsyncMock(return_value=None)
-
-            mock_session_instance = MagicMock()
-            mock_session_instance.get = MagicMock(return_value=mock_get)
-
-            mock_session = MagicMock()
-            mock_session.__aenter__ = AsyncMock(return_value=mock_session_instance)
-            mock_session.__aexit__ = AsyncMock(return_value=None)
+            mock_session = _aiohttp_session_with_response("get", mock_response)
 
             with patch("aiohttp.ClientSession", return_value=mock_session):
                 models = await detector._check_provider_availability(LLMProvider.OLLAMA)

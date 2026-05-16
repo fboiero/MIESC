@@ -15,6 +15,8 @@ Run from the repository root:
 from __future__ import annotations
 
 import json
+import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -38,6 +40,11 @@ def load_json(path: Path) -> dict:
         return json.load(f)
 
 
+def reproducible_generated_at() -> str:
+    epoch = int(os.environ.get("SOURCE_DATE_EPOCH", "0"))
+    return datetime.fromtimestamp(epoch, timezone.utc).isoformat()
+
+
 def metrics_from_result(data: dict) -> dict:
     recall = data.get("recall", 0)
     total_findings = data.get("total_findings", 0)
@@ -55,8 +62,23 @@ def metrics_from_result(data: dict) -> dict:
     }
 
 
-def smartbugs_metrics(data: dict) -> dict:
+def layers_from_smartbugs_artifact(data: dict, source_path: Path | None = None) -> list[int] | None:
+    layers = (
+        data.get("experiment_card", {}).get("layers_evaluated")
+        or data.get("configuration", {}).get("layers")
+    )
+    if layers:
+        return layers
+    if source_path:
+        match = re.search(r"layers_([0-9_]+)", source_path.stem)
+        if match:
+            return [int(layer) for layer in match.group(1).split("_") if layer]
+    return None
+
+
+def smartbugs_metrics(data: dict, source_path: Path | None = None) -> dict:
     """Normalize SmartBugs evaluator JSONs from historical and corpus runners."""
+    layers_evaluated = layers_from_smartbugs_artifact(data, source_path)
     aggregate = data.get("aggregate")
     if aggregate:
         return {
@@ -69,7 +91,7 @@ def smartbugs_metrics(data: dict) -> dict:
             "f1": aggregate.get("f1"),
             "total_time_s": aggregate.get("total_time_s"),
             "avg_time_per_contract_s": aggregate.get("avg_time_per_contract_s"),
-            "layers_evaluated": data.get("experiment_card", {}).get("layers_evaluated"),
+            "layers_evaluated": layers_evaluated,
         }
 
     metrics = data.get("metrics", {})
@@ -83,7 +105,7 @@ def smartbugs_metrics(data: dict) -> dict:
         "f1": metrics.get("f1_score"),
         "total_time_s": metrics.get("execution_time_seconds"),
         "avg_time_per_contract_s": metrics.get("avg_time_per_contract_s"),
-        "layers_evaluated": data.get("configuration", {}).get("layers"),
+        "layers_evaluated": layers_evaluated,
     }
 
 
@@ -154,7 +176,7 @@ def generate_ensemble() -> dict:
 
     return {
         "artifact": "evmbench_ensemble_40",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": reproducible_generated_at(),
         "method": (
             "Union over matched vulnerabilities keyed by audit_id:vulnerability_id "
             "from the four provider result files. A vulnerability is counted as "
@@ -181,28 +203,53 @@ def generate_ensemble() -> dict:
 
 def generate_claims_matrix(ensemble: dict) -> dict:
     smartbugs = load_json(SMARTBUGS_LATEST)
-    smartbugs_summary = smartbugs_metrics(smartbugs)
+    smartbugs_summary = smartbugs_metrics(smartbugs, SMARTBUGS_LATEST)
     evmbench_static = load_json(EVMBENCH_STATIC)
     provider_data = {name: load_json(path) for name, path in PROVIDERS.items()}
 
     return {
         "artifact": "paper1_claims_matrix",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": reproducible_generated_at(),
         "purpose": "Trace Paper 1 quantitative claims to local artifacts or external sources.",
         "claims": [
             {
                 "claim_id": "smartbugs_latest_reproducible",
-                "paper_claim": "MIESC latest local SmartBugs run reports 93.7% recall.",
+                "paper_claim": "MIESC latest local SmartBugs run reports 95.8% recall (137/143).",
                 "value": smartbugs_summary,
                 "unit": "recall",
                 "source_artifact": str(SMARTBUGS_LATEST.relative_to(ROOT)),
                 "status": "supported",
                 "notes": (
-                    "Fresh 2026-05-06 miesc evaluate corpus run over 143 SmartBugs "
-                    "contracts using layers 1,6,7 after Slither solc selection "
-                    "was fixed to respect Solidity pragma ranges. Layer 6 activates "
-                    "SmartBugs-specific detectors, DA-GNN, SmartBugs-ML, SmartGuard "
-                    "availability, and related specialized analyzers."
+                    "v5.4.1 final local run with context-aware FP filters and multiline "
+                    "access_control/front_running patterns. 7/10 categories reached 100% "
+                    "recall; front_running reached 50%."
+                ),
+            },
+            {
+                "claim_id": "smartbugs_local_ollama_followup",
+                "paper_claim": (
+                    "Adding local Ollama analysis over the residual SmartBugs misses "
+                    "raises recall to 97.9% (140/143) at zero API cost."
+                ),
+                "source_artifact": [
+                    "paper/miesc-paper.tex",
+                    str(SMARTBUGS_LATEST.relative_to(ROOT)),
+                ],
+                "status": "supported_with_note",
+                "unit": "recall",
+                "value": {
+                    "base_contracts_evaluated": 143,
+                    "base_tp": 137,
+                    "final_tp": 140,
+                    "local_ollama_additional_tp": 3,
+                    "recall": 0.979,
+                    "residual_misses": 3,
+                },
+                "notes": (
+                    "Paper 1 reports a local qwen2.5-coder:32b/Ollama follow-up over "
+                    "the six misses of the reproducible 1,6,7 profile. This is a "
+                    "secondary follow-up claim until a dedicated machine-readable lift "
+                    "artifact is published."
                 ),
             },
             {

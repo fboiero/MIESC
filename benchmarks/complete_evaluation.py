@@ -363,17 +363,12 @@ def test_mcp_integration() -> Dict:
         results["errors"].append(f"ML Pipeline: {e}")
 
     try:
-        # Test MCP REST server
+        # Test local REST API module
+        from miesc.api import rest
 
-        results["mcp_server"] = True
+        results["rest_api_module"] = hasattr(rest, "run_server")
     except Exception:
-        # Try alternate import
-        try:
-            mcp_path = PROJECT_ROOT / "src" / "miesc_mcp_rest.py"
-            if mcp_path.exists():
-                results["mcp_server"] = True
-        except Exception:
-            pass
+        pass
 
     # REST API exists if miesc package is installed
     try:

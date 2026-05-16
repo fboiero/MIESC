@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -57,6 +58,11 @@ def load_json(path: Path) -> dict[str, Any]:
         return json.load(fh)
 
 
+def reproducible_generated_at() -> str:
+    epoch = int(os.environ.get("SOURCE_DATE_EPOCH", "0"))
+    return datetime.fromtimestamp(epoch, timezone.utc).isoformat()
+
+
 def sum_metrics(rows: list[dict[str, int]]) -> dict[str, int]:
     keys = ["contracts", "fix_applied", "fix_compiles", "vuln_eliminated", "no_regression", "fix_failed"]
     return {key: sum(row.get(key, 0) for row in rows) for key in keys}
@@ -88,7 +94,7 @@ def build_patch_quality_by_transform(fix_eval: dict[str, Any]) -> dict[str, Any]
 
     return {
         "artifact": "paper2_patch_quality_by_transform",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": reproducible_generated_at(),
         "source_artifact": str(FIX_EVAL.relative_to(ROOT)),
         "scope": "Paper 2 remediation only; does not modify Paper 1 detection evidence.",
         "limitations": (
@@ -116,7 +122,7 @@ def build_compile_failure_by_category(fix_eval: dict[str, Any]) -> dict[str, Any
 
     return {
         "artifact": "paper2_compile_failure_by_category",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": reproducible_generated_at(),
         "source_artifact": str(FIX_EVAL.relative_to(ROOT)),
         "scope": "Standalone compilation failures for Paper 2 patched artifacts.",
         "limitations": (
@@ -283,16 +289,24 @@ def main() -> None:
         {
             "claim_id": "paper1_detection_input",
             "paper_claim": (
-                "Paper 2 inherits detection evidence from Paper 1: SmartBugs recall 93.7% "
-                "and EVMBench local high-severity ensemble recall 92.5%."
+                "Paper 2 inherits detection evidence from Paper 1: SmartBugs full-corpus "
+                "reproducible recall 95.8% and EVMBench local high-severity ensemble "
+                "recall 92.5%."
             ),
             "source_artifact": "paper/PAPER1_REPRODUCIBILITY.md; benchmarks/results/paper1_claims_matrix.json",
             "status": "inherited_from_paper1",
             "scope": "detection_input_only",
             "paper1_dependency": {
-                "smartbugs_recall": 0.937,
+                "smartbugs_f1": 0.3604,
+                "smartbugs_local_ollama_followup_recall": 0.979,
+                "smartbugs_precision": 0.2219,
+                "smartbugs_recall": 0.958,
                 "evmbench_recall": 0.925,
-                "rule": "Do not regenerate or reinterpret Paper 1 detection evidence in Paper 2.",
+                "rule": (
+                    "Paper 2 inherits the 95.8% machine-readable SmartBugs detection "
+                    "evidence; the 97.9% local Ollama follow-up is reported by Paper 1 "
+                    "but is not used to recalculate remediation metrics."
+                ),
             },
             "unit": "detection metrics",
             "value": None,
@@ -331,7 +345,7 @@ def main() -> None:
 
     payload = {
         "artifact": "paper2_claims_matrix",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": reproducible_generated_at(),
         "purpose": "Trace Paper 2 remediation claims to local artifacts.",
         "paper1_compatibility_rule": (
             "Paper 2 may inherit Paper 1 detection claims but must not regenerate or "

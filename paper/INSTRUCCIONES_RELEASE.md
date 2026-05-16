@@ -57,17 +57,18 @@ Resumen:
 2. Intentar arXiv con cs.SE
 3. Enviar emails de endorsement a 4 autores
 
-## 4. Webapp en Streamlit Cloud (OPCIONAL)
+## 4. Plataforma web (OPCIONAL)
 
-La webapp funciona localmente con `make webapp`. Para deployarla:
+La webapp interactiva fue movida fuera del core público. Para demo online,
+usar el repositorio de plataforma y consumir MIESC desde un tag o imagen Docker
+publicada.
 
-1. Ir a https://share.streamlit.io
-2. Login con GitHub (fboiero)
-3. New App → repo: fboiero/MIESC → branch: main → file: webapp/app.py
-4. Deploy
+El core público mantiene las superficies reproducibles:
 
-Nota: la webapp usa imports deprecated (src.miesc_core) que funcionan
-pero muestran warnings. No es bloqueante.
+```bash
+python -m miesc.api.rest --host 127.0.0.1 --port 8000
+python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
+```
 
 ## Resumen de prioridades
 
@@ -76,4 +77,4 @@ pero muestran warnings. No es bloqueante.
 | 1 | Publicar PyPI 5.4.2 | ALTO — pip install funciona | 5 min |
 | 2 | Retagear Docker latest | ALTO — docker run funciona | 5 min |
 | 3 | Paper TechRxiv + arXiv | ALTO — citeable | 30 min |
-| 4 | Webapp Streamlit Cloud | MEDIO — demo online | 10 min |
+| 4 | Demo en plataforma web | MEDIO — demo online | Según repo plataforma |

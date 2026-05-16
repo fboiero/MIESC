@@ -60,10 +60,21 @@ def test_generate_paper2_artifacts_preserves_claim_schema(monkeypatch, tmp_path:
     claim_ids = {claim["claim_id"] for claim in generated_claims["claims"]}
 
     assert generated_claims["artifact"] == "paper2_claims_matrix"
+    assert generated_claims["generated_at"] == "1970-01-01T00:00:00+00:00"
     assert "fix_application_rate" in claim_ids
     assert "paper1_detection_input" in claim_ids
     assert "no_semantic_equivalence_claim" in claim_ids
     assert generated_claims["paper1_compatibility_rule"].startswith("Paper 2 may inherit")
+    paper1_claim = next(
+        claim
+        for claim in generated_claims["claims"]
+        if claim["claim_id"] == "paper1_detection_input"
+    )
+    assert "95.8%" in paper1_claim["paper_claim"]
+    assert "93.7%" not in paper1_claim["paper_claim"]
+    assert paper1_claim["paper1_dependency"]["smartbugs_recall"] == 0.958
+    assert paper1_claim["paper1_dependency"]["smartbugs_precision"] == 0.2219
+    assert paper1_claim["paper1_dependency"]["smartbugs_f1"] == 0.3604
 
     generated_transforms = json.loads(transforms.read_text(encoding="utf-8"))
     assert set(generated_transforms["transforms"]) == {
