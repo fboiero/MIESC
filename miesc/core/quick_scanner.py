@@ -31,7 +31,7 @@ class QuickScanner:
 
     TOOLS = QUICK_TOOLS
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize quick scanner."""
         self.available_tools = self._check_tools()
 
@@ -70,7 +70,7 @@ class QuickScanner:
         if not os.path.exists(contract_path):
             raise FileNotFoundError(f"Contract not found: {contract_path}")
 
-        results = {
+        results: Dict[str, Any] = {
             "contract": contract_path,
             "timestamp": start_time.isoformat(),
             "miesc_version": VERSION,

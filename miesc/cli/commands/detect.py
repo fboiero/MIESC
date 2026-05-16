@@ -30,7 +30,7 @@ from miesc.cli.utils import (
 @click.command()
 @click.argument("path", type=click.Path(exists=True), default=".")
 @click.option("--json", "-j", "as_json", is_flag=True, help="Output as JSON")
-def detect(path, as_json):
+def detect(path: str, as_json: bool) -> None:
     """Auto-detect Foundry/Hardhat/Truffle framework.
 
     Detects the Solidity development framework in use and extracts

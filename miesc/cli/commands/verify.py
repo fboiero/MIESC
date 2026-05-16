@@ -8,7 +8,7 @@ Closes the loop: `miesc specs` generates CVL/Scribble/SMTChecker specs,
 import json
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import click
 
@@ -61,7 +61,15 @@ def _find_foundry_root(start: Path) -> Optional[Path]:
     help="Write results to JSON (default: stdout summary only).",
 )
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output")
-def verify(contract_path, spec, tool, contract_name, timeout, output, quiet):
+def verify(
+    contract_path: str,
+    spec: str | None,
+    tool: str,
+    contract_name: str,
+    timeout: int,
+    output: str | None,
+    quiet: bool,
+) -> None:
     """Run formal-verification provers against a contract.
 
     \b
@@ -95,7 +103,7 @@ def verify(contract_path, spec, tool, contract_name, timeout, output, quiet):
             console.print(f"  {marker} {name}")
         console.print()
 
-    results = {}
+    results: Dict[str, Any] = {}
     tool_lower = tool.lower()
 
     # SMTChecker — works out-of-the-box with solc
@@ -168,7 +176,7 @@ def verify(contract_path, spec, tool, contract_name, timeout, output, quiet):
     # Write JSON
     if output:
         payload = {name: r.to_dict() for name, r in results.items()}
-        Path(output).write_text(json.dumps(payload, indent=2))
+        Path(output).write_text(json.dumps(payload, indent=2), encoding="utf-8")
         success(f"Results written to {output}")
 
     # Exit code: 1 if any prover reported failures

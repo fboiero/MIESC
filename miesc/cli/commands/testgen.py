@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import click
 
@@ -28,7 +28,7 @@ from miesc.cli.utils import error, info, success, warning
 # ---------------------------------------------------------------------------
 
 _TEMPLATES = {
-    "reentrancy": '''// SPDX-License-Identifier: MIT
+    "reentrancy": """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
@@ -85,8 +85,8 @@ contract Test_{test_name} is Test {{
         attacker.attack{{value: 1 ether}}();
     }}
 }}
-''',
-    "access_control": '''// SPDX-License-Identifier: MIT
+""",
+    "access_control": """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
@@ -111,8 +111,8 @@ contract Test_{test_name} is Test {{
         target.{function}({call_args});
     }}
 }}
-''',
-    "selfdestruct": '''// SPDX-License-Identifier: MIT
+""",
+    "selfdestruct": """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
@@ -141,8 +141,8 @@ contract Test_{test_name} is Test {{
         assertTrue(address(target).code.length > 0, "EXPLOIT: Contract destroyed by non-owner");
     }}
 }}
-''',
-    "unchecked_call": '''// SPDX-License-Identifier: MIT
+""",
+    "unchecked_call": """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
@@ -173,11 +173,11 @@ contract Test_{test_name} is Test {{
         target.{function}(1 ether);
     }}
 }}
-''',
+""",
 }
 
 # Default template for unknown vulnerability types
-_DEFAULT_TEMPLATE = '''// SPDX-License-Identifier: MIT
+_DEFAULT_TEMPLATE = """// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
@@ -202,7 +202,7 @@ contract Test_{test_name} is Test {{
         fail("Exploit harness requires project-specific attacker calls");
     }}
 }}
-'''
+"""
 
 
 def _normalize_test_name(finding_type: str, function_name: str) -> str:
@@ -216,11 +216,12 @@ def _normalize_test_name(finding_type: str, function_name: str) -> str:
 def _detect_contract_name(source: str) -> str:
     """Extract the first contract name from Solidity source."""
     import re
+
     m = re.search(r"contract\s+(\w+)", source)
     return m.group(1) if m else "Target"
 
 
-def _get_call_args(finding: dict) -> str:
+def _get_call_args(finding: dict[str, Any]) -> str:
     """Generate placeholder call args based on function signature hints."""
     ftype = (finding.get("type") or "").lower()
     if "selfdestruct" in ftype or "suicidal" in ftype:
@@ -230,7 +231,9 @@ def _get_call_args(finding: dict) -> str:
     return ""
 
 
-def generate_test(finding: dict, contract_file: str, contract_name: str, source: str = "") -> Optional[str]:
+def generate_test(
+    finding: dict[str, Any], contract_file: str, contract_name: str, source: str = ""
+) -> Optional[str]:
     """Generate a Foundry test for a single finding."""
     ftype = (finding.get("type") or finding.get("title") or "").lower().replace("-", "_")
 
@@ -245,7 +248,12 @@ def generate_test(finding: dict, contract_file: str, contract_name: str, source:
     if not fn_name:
         # Try to infer from line number + source
         import re
-        line = finding.get("line") or (finding.get("location", {}).get("line") if isinstance(finding.get("location"), dict) else None)
+
+        line = finding.get("line") or (
+            finding.get("location", {}).get("line")
+            if isinstance(finding.get("location"), dict)
+            else None
+        )
         if line and source:
             lines = source.splitlines()
             for i in range(min(int(line) - 1, len(lines) - 1), -1, -1):
@@ -297,22 +305,26 @@ def generate_test(finding: dict, contract_file: str, contract_name: str, source:
 # CLI command
 # ---------------------------------------------------------------------------
 
+
 @click.command("test-gen")
 @click.argument("results_file", type=click.Path(exists=True))
 @click.option(
-    "--contract", "-c", "contract_path",
+    "--contract",
+    "-c",
+    "contract_path",
     type=click.Path(exists=True),
     required=True,
     help="Original Solidity contract file",
 )
 @click.option(
-    "--output-dir", "-o",
+    "--output-dir",
+    "-o",
     type=click.Path(),
     default=None,
     help="Output directory for tests (default: test/exploit/)",
 )
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output")
-def testgen(results_file, contract_path, output_dir, quiet):
+def testgen(results_file: str, contract_path: str, output_dir: str | None, quiet: bool) -> None:
     """Generate Foundry exploit tests from scan/audit findings.
 
     Creates test files that demonstrate each vulnerability found by MIESC.
@@ -331,7 +343,7 @@ def testgen(results_file, contract_path, output_dir, quiet):
     """
     # Load results
     try:
-        with open(results_file) as f:
+        with open(results_file, encoding="utf-8") as f:
             data = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         error(f"Cannot read results: {e}")
@@ -353,7 +365,11 @@ def testgen(results_file, contract_path, output_dir, quiet):
     for f in exploitable:
         key = (
             (f.get("type") or f.get("title") or "").lower(),
-            (f.get("function") or f.get("location", {}).get("function", "") if isinstance(f.get("location"), dict) else ""),
+            (
+                f.get("function") or f.get("location", {}).get("function", "")
+                if isinstance(f.get("location"), dict)
+                else ""
+            ),
         )
         if key not in seen:
             seen.add(key)
@@ -361,7 +377,7 @@ def testgen(results_file, contract_path, output_dir, quiet):
 
     # Read contract source
     contract = Path(contract_path)
-    source = contract.read_text()
+    source = contract.read_text(encoding="utf-8")
     contract_name = _detect_contract_name(source)
     contract_file = contract.name
 
@@ -389,7 +405,7 @@ def testgen(results_file, contract_path, output_dir, quiet):
         filename = f"Test_{ftype}_{fn}.t.sol"
 
         out_path = out_dir / filename
-        out_path.write_text(test_code)
+        out_path.write_text(test_code, encoding="utf-8")
         generated += 1
         if not quiet:
             info(f"  ✓ {filename}")

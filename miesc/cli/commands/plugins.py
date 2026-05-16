@@ -10,6 +10,7 @@ License: AGPL-3.0
 import json
 import logging
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -34,14 +35,14 @@ logger = logging.getLogger(__name__)
 
 
 @click.group()
-def plugins():
+def plugins() -> None:
     """Manage MIESC detector plugins."""
     pass
 
 
 @plugins.command("list")
 @click.option("--all", "-a", "show_all", is_flag=True, help="Show disabled plugins too")
-def plugins_list(show_all):
+def plugins_list(show_all: bool) -> None:
     """List installed plugins."""
     print_banner()
 
@@ -157,7 +158,7 @@ def plugins_list(show_all):
 @click.option("--upgrade", "-U", is_flag=True, help="Upgrade if already installed")
 @click.option("--force", "-f", is_flag=True, help="Force install even if incompatible")
 @click.option("--no-check", is_flag=True, help="Skip compatibility check")
-def plugins_install(package, upgrade, force, no_check):
+def plugins_install(package: str, upgrade: bool, force: bool, no_check: bool) -> None:
     """Install a plugin from PyPI.
 
     The package name can be with or without the 'miesc-' prefix.
@@ -223,7 +224,7 @@ def plugins_install(package, upgrade, force, no_check):
 @plugins.command("uninstall")
 @click.argument("package")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation")
-def plugins_uninstall(package, yes):
+def plugins_uninstall(package: str, yes: bool) -> None:
     """Uninstall a plugin.
 
     Examples:
@@ -260,7 +261,7 @@ def plugins_uninstall(package, yes):
 
 @plugins.command("enable")
 @click.argument("plugin_name")
-def plugins_enable(plugin_name):
+def plugins_enable(plugin_name: str) -> None:
     """Enable a disabled plugin.
 
     Examples:
@@ -287,7 +288,7 @@ def plugins_enable(plugin_name):
 
 @plugins.command("disable")
 @click.argument("plugin_name")
-def plugins_disable(plugin_name):
+def plugins_disable(plugin_name: str) -> None:
     """Disable a plugin without uninstalling.
 
     Examples:
@@ -314,7 +315,7 @@ def plugins_disable(plugin_name):
 
 @plugins.command("info")
 @click.argument("plugin_name")
-def plugins_info(plugin_name):
+def plugins_info(plugin_name: str) -> None:
     """Show detailed information about a plugin.
 
     Examples:
@@ -402,7 +403,7 @@ def plugins_info(plugin_name):
 @click.option("--output", "-o", type=click.Path(), default=".", help="Output directory")
 @click.option("--description", "-d", type=str, default="", help="Plugin description")
 @click.option("--author", "-a", type=str, default="", help="Author name")
-def plugins_create(name, output, description, author):
+def plugins_create(name: str, output: str, description: str, author: str) -> None:
     """Create a new plugin project scaffold.
 
     Creates a complete plugin project structure with:
@@ -453,7 +454,7 @@ def plugins_create(name, output, description, author):
 @click.option("--timeout", "-t", type=int, default=10, help="Request timeout in seconds")
 @click.option("--marketplace-only", is_flag=True, help="Search marketplace only")
 @click.option("--pypi-only", is_flag=True, help="Search PyPI only")
-def plugins_search(query, timeout, marketplace_only, pypi_only):
+def plugins_search(query: str, timeout: int, marketplace_only: bool, pypi_only: bool) -> None:
     """Search for MIESC plugins.
 
     Searches the MIESC marketplace and PyPI for matching plugins.
@@ -476,7 +477,7 @@ def plugins_search(query, timeout, marketplace_only, pypi_only):
         raise SystemExit(1) from e
 
     manager = PluginManager()
-    all_results = []
+    all_results: list[dict[str, Any]] = []
 
     # Search marketplace first
     if not pypi_only:
@@ -542,7 +543,7 @@ def plugins_search(query, timeout, marketplace_only, pypi_only):
 
 @plugins.command("path")
 @click.option("--create", "-c", is_flag=True, help="Create the directory if it doesn't exist")
-def plugins_path(create):
+def plugins_path(create: bool) -> None:
     """Show the local plugins directory path.
 
     Local plugins can be placed in this directory for automatic discovery
@@ -603,7 +604,14 @@ def plugins_path(create):
 @click.option("--description", "-d", type=str, default="", help="Plugin description")
 @click.option("--author", "-a", type=str, default="", help="Author name")
 @click.option("--email", "-e", type=str, default="", help="Author email")
-def plugins_new(name, plugin_type, output, description, author, email):
+def plugins_new(
+    name: str,
+    plugin_type: str,
+    output: str,
+    description: str,
+    author: str,
+    email: str,
+) -> None:
     """Create a new plugin from template.
 
     Generates a complete plugin project structure with:
@@ -681,7 +689,7 @@ def plugins_new(name, plugin_type, output, description, author, email):
 
 @plugins.command("runtime")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed info")
-def plugins_runtime(verbose):
+def plugins_runtime(verbose: bool) -> None:
     """Show plugins loaded in the runtime registry.
 
     Displays plugins that have been loaded into memory via the
@@ -737,7 +745,9 @@ def plugins_runtime(verbose):
         print("\nRuntime Plugins:")  # noqa: T201
         for entry in plugins_list:
             status = "enabled" if entry.enabled else "disabled"
-            print(f"  {entry.name} v{entry.version} ({entry.plugin_type.value}) - {status}")  # noqa: T201
+            print(
+                f"  {entry.name} v{entry.version} ({entry.plugin_type.value}) - {status}"
+            )  # noqa: T201
 
     stats = registry.get_stats()
     success(f"{stats['total']} plugins loaded ({stats['enabled']} enabled)")
@@ -746,7 +756,7 @@ def plugins_runtime(verbose):
 @plugins.command("load")
 @click.argument("plugin_path", type=click.Path(exists=True))
 @click.option("--enable/--no-enable", default=True, help="Enable plugin after loading")
-def plugins_load(plugin_path, enable):
+def plugins_load(plugin_path: str, enable: bool) -> None:
     """Load a plugin file into the runtime registry.
 
     Loads a Python file containing a plugin class following
@@ -806,14 +816,25 @@ def plugins_load(plugin_path, enable):
 
 
 @plugins.command("marketplace")
-@click.option("--type", "-t", "plugin_type", default=None,
-              type=click.Choice(["detector", "adapter", "reporter", "transformer"]),
-              help="Filter by plugin type")
+@click.option(
+    "--type",
+    "-t",
+    "plugin_type",
+    default=None,
+    type=click.Choice(["detector", "adapter", "reporter", "transformer"]),
+    help="Filter by plugin type",
+)
 @click.option("--tag", multiple=True, help="Filter by tag")
 @click.option("--verified-only", is_flag=True, help="Show only verified plugins")
 @click.option("--refresh", is_flag=True, help="Force refresh from remote")
 @click.option("--page", type=int, default=1, help="Page number")
-def plugins_marketplace(plugin_type, tag, verified_only, refresh, page):
+def plugins_marketplace(
+    plugin_type: str | None,
+    tag: tuple[str, ...],
+    verified_only: bool,
+    refresh: bool,
+    page: int,
+) -> None:
     """Browse the MIESC plugin marketplace.
 
     Shows available plugins from the remote marketplace index hosted
@@ -887,7 +908,9 @@ def plugins_marketplace(plugin_type, tag, verified_only, refresh, page):
                 desc = p.description
                 if len(desc) > 50:
                     desc = desc[:47] + "..."
-                print(f"  {p.name} v{p.version} [{p.plugin_type}] ({p.verification_status.value})")  # noqa: T201
+                print(
+                    f"  {p.name} v{p.version} [{p.plugin_type}] ({p.verification_status.value})"
+                )  # noqa: T201
                 print(f"    by {p.author} - {desc}")  # noqa: T201
                 print()  # noqa: T201
 
@@ -903,13 +926,25 @@ def plugins_marketplace(plugin_type, tag, verified_only, refresh, page):
 @click.option("--name", prompt="Plugin display name", help="Plugin display name")
 @click.option("--package", prompt="PyPI package name (miesc-...)", help="PyPI package name")
 @click.option("--version", "pkg_version", prompt="Version", help="Plugin version")
-@click.option("--type", "plugin_type", prompt="Plugin type",
-              type=click.Choice(["detector", "adapter", "reporter", "transformer"]),
-              help="Plugin type")
+@click.option(
+    "--type",
+    "plugin_type",
+    prompt="Plugin type",
+    type=click.Choice(["detector", "adapter", "reporter", "transformer"]),
+    help="Plugin type",
+)
 @click.option("--description", prompt="Description", help="Plugin description")
 @click.option("--author", prompt="Author name", help="Author name")
 @click.option("--open-pr", is_flag=True, help="Open GitHub PR creation page")
-def plugins_submit(name, package, pkg_version, plugin_type, description, author, open_pr):
+def plugins_submit(
+    name: str,
+    package: str,
+    pkg_version: str,
+    plugin_type: str,
+    description: str,
+    author: str,
+    open_pr: bool,
+) -> None:
     """Generate a marketplace submission entry.
 
     Creates a JSON entry for submitting your plugin to the MIESC marketplace.
@@ -959,6 +994,9 @@ def plugins_submit(name, package, pkg_version, plugin_type, description, author,
 
     if open_pr:
         import webbrowser
-        pr_url = "https://github.com/fboiero/MIESC/edit/main/data/marketplace/marketplace-index.json"
+
+        pr_url = (
+            "https://github.com/fboiero/MIESC/edit/main/data/marketplace/marketplace-index.json"
+        )
         info(f"Opening {pr_url} ...")
         webbrowser.open(pr_url)

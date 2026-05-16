@@ -15,7 +15,7 @@ from miesc.cli.utils import error, info, print_banner
 
 
 @click.group()
-def server():
+def server() -> None:
     """Start MIESC API servers."""
     pass
 
@@ -24,7 +24,7 @@ def server():
 @click.option("--port", "-p", type=int, default=5001, help="Port number")
 @click.option("--host", "-h", type=str, default="0.0.0.0", help="Host address")
 @click.option("--debug", is_flag=True, help="Enable debug mode")
-def server_rest(port, host, debug):
+def server_rest(port: int, host: str, debug: bool) -> None:
     """Start the Django REST API server."""
     print_banner()
     info(f"Starting Django REST API on http://{host}:{port}")
@@ -51,7 +51,7 @@ def server_rest(port, host, debug):
 @server.command("mcp")
 @click.option("--port", "-p", type=int, default=8765, help="WebSocket port number")
 @click.option("--host", "-h", type=str, default="localhost", help="Host to bind to")
-def server_mcp(port, host):
+def server_mcp(port: int, host: str) -> None:
     """Start the MCP WebSocket server for AI agent integration.
 
     The MCP (Model Context Protocol) server enables real-time communication

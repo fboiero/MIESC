@@ -27,7 +27,7 @@ if RICH_AVAILABLE:
 
 
 @click.group()
-def tools():
+def tools() -> None:
     """Manage and explore security tools."""
     pass
 
@@ -35,7 +35,7 @@ def tools():
 @tools.command("list")
 @click.option("--layer", "-l", type=int, help="Filter by layer (1-9)")
 @click.option("--available-only", "-a", is_flag=True, help="Show only installed tools")
-def tools_list(layer, available_only):
+def tools_list(layer: int | None, available_only: bool) -> None:
     """List all configured tool adapters."""
     print_banner()
 
@@ -86,7 +86,7 @@ def tools_list(layer, available_only):
 
 @tools.command("info")
 @click.argument("tool", type=str)
-def tools_info(tool):
+def tools_info(tool: str) -> None:
     """Show detailed information about a tool."""
     print_banner()
 

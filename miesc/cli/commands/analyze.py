@@ -10,6 +10,7 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any, cast
 
 import click
 
@@ -19,10 +20,10 @@ from miesc.cli.utils import console, error, info, print_banner, success
 # File extension → chain mapping
 CHAIN_BY_EXTENSION = {
     ".sol": "ethereum",
-    ".vy": "ethereum",        # Vyper (EVM)
-    ".move": "move",          # Sui, Aptos
-    ".cairo": "starknet",     # Starknet
-    ".rs": "solana",          # Anchor/native Solana
+    ".vy": "ethereum",  # Vyper (EVM)
+    ".move": "move",  # Sui, Aptos
+    ".cairo": "starknet",  # Starknet
+    ".rs": "solana",  # Anchor/native Solana
 }
 
 SUPPORTED_CHAINS = ["ethereum", "move", "starknet", "solana"]
@@ -42,12 +43,10 @@ def detect_chain(contract_path: str) -> str:
     default=None,
     help="Override chain detection (auto-detected from file extension)",
 )
-@click.option(
-    "--output", "-o", type=click.Path(), help="Output JSON file for findings"
-)
+@click.option("--output", "-o", type=click.Path(), help="Output JSON file for findings")
 @click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues found")
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output")
-def analyze(contract, chain, output, ci, quiet):
+def analyze(contract: str, chain: str | None, output: str | None, ci: bool, quiet: bool) -> None:
     """Analyze smart contracts across multiple chains.
 
     \b
@@ -81,20 +80,31 @@ def analyze(contract, chain, output, ci, quiet):
 
     # Route to appropriate analyzer
     try:
+        result: dict[str, Any]
         if chain == "ethereum":
             # Delegate to scan command
             from miesc.cli.commands.scan import scan
+
             ctx = click.get_current_context()
-            ctx.invoke(scan, contract=contract, output=output, ci=False, quiet=quiet,
-                       fp_strictness="medium", llm_enhance=False)
+            ctx.invoke(
+                scan,
+                contract=contract,
+                output=output,
+                ci=False,
+                quiet=quiet,
+                fp_strictness="medium",
+                llm_enhance=False,
+            )
             return
 
         elif chain == "starknet":
             from src.adapters.cairo_adapter import CairoAnalyzer
+
             result = CairoAnalyzer().analyze(contract)
 
         elif chain == "move":
             from src.adapters.move_adapter import MoveAnalyzer
+
             analyzer = MoveAnalyzer()
             # MoveAnalyzer is AbstractChainAnalyzer — use parse + detect
             contract_obj = analyzer.parse_contract(Path(contract))
@@ -110,6 +120,7 @@ def analyze(contract, chain, output, ci, quiet):
 
         elif chain == "solana":
             from src.adapters.solana_adapter import SolanaAnalyzer
+
             analyzer = SolanaAnalyzer()
             contract_obj = analyzer.parse_contract(Path(contract))
             findings = analyzer.detect_vulnerabilities(contract_obj)
@@ -142,7 +153,11 @@ def analyze(contract, chain, output, ci, quiet):
         for sev in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]:
             count = normalized_summary.get(sev, 0)
             if count > 0:
-                color = "red" if sev in ("CRITICAL", "HIGH") else "yellow" if sev == "MEDIUM" else "cyan"
+                color = (
+                    "red"
+                    if sev in ("CRITICAL", "HIGH")
+                    else "yellow" if sev == "MEDIUM" else "cyan"
+                )
                 console.print(f"    [{color}]{sev:10s}[/{color}] {count}")
 
         for f in findings[:5]:
@@ -166,7 +181,9 @@ def analyze(contract, chain, output, ci, quiet):
             "findings": findings,
             "results": [{"tool": tool_name, "status": "success", "findings": findings}],
         }
-        Path(output).write_text(json.dumps(scan_compatible, indent=2, default=str))
+        Path(output).write_text(
+            json.dumps(scan_compatible, indent=2, default=str), encoding="utf-8"
+        )
         success(f"Report saved to {output}")
 
     # CI mode
@@ -174,10 +191,10 @@ def analyze(contract, chain, output, ci, quiet):
         sys.exit(1)
 
 
-def _normalize_finding(f, chain: str) -> dict:
+def _normalize_finding(f: Any, chain: str) -> dict[str, Any]:
     """Convert AbstractFinding to MIESC finding dict."""
     if hasattr(f, "to_dict"):
-        return f.to_dict()
+        return cast(dict[str, Any], f.to_dict())
     if hasattr(f, "__dict__"):
         d = dict(f.__dict__)
         d["chain"] = chain
@@ -185,14 +202,12 @@ def _normalize_finding(f, chain: str) -> dict:
     return {"chain": chain, "raw": str(f)}
 
 
-def _summarize(findings) -> dict:
+def _summarize(findings: list[Any]) -> dict[str, int]:
     """Count by severity."""
     summary = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Info": 0}
     for f in findings:
         sev = getattr(f, "severity", None) or (f.get("severity") if isinstance(f, dict) else "Low")
-        if hasattr(sev, "value"):
-            sev = sev.value
-        sev = str(sev).title()
-        if sev in summary:
-            summary[sev] += 1
+        sev_name = str(getattr(sev, "value", sev)).title()
+        if sev_name in summary:
+            summary[sev_name] += 1
     return summary

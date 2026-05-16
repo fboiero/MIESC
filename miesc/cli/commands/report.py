@@ -13,7 +13,7 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Match, cast
 
 import click
 
@@ -100,48 +100,55 @@ def _get_recommendation(category: str, severity: str = "") -> str:
     return "Review and fix according to smart contract security best practices. See SWC Registry for detailed remediation guidance."
 
 
-def _extract_attack_scenarios(findings: list) -> list:
+def _extract_attack_scenarios(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Extract attack scenarios from intelligence-enhanced findings."""
     scenarios = []
     for f in findings:
         exploit = f.get("exploit_scenario", [])
         if exploit:
-            scenarios.append({
-                "title": f.get("type", "Unknown"),
-                "severity": f.get("severity", "Medium"),
-                "steps": exploit if isinstance(exploit, list) else [str(exploit)],
-                "confidence": f.get("confidence", 0.5),
-            })
+            scenarios.append(
+                {
+                    "title": f.get("type", "Unknown"),
+                    "severity": f.get("severity", "Medium"),
+                    "steps": exploit if isinstance(exploit, list) else [str(exploit)],
+                    "confidence": f.get("confidence", 0.5),
+                }
+            )
     return scenarios[:10]
 
 
-def _extract_remediations(findings: list) -> list:
+def _extract_remediations(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Extract code remediations from intelligence-enhanced findings."""
     remediations = []
     for f in findings:
         fix = f.get("fix_code") or f.get("recommendation", "")
         if fix and len(fix) > 20:
-            remediations.append({
-                "finding": f.get("type", "Unknown"),
-                "severity": f.get("severity", "Medium"),
-                "fix": fix,
-                "canonical_category": f.get("canonical_category", ""),
-            })
+            remediations.append(
+                {
+                    "finding": f.get("type", "Unknown"),
+                    "severity": f.get("severity", "Medium"),
+                    "fix": fix,
+                    "canonical_category": f.get("canonical_category", ""),
+                }
+            )
     return remediations[:10]
 
 
-def _extract_category_summary(findings: list) -> list:
+def _extract_category_summary(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Build per-category summary from intelligence metadata."""
     from collections import Counter
+
     cats = Counter(f.get("canonical_category", "other") for f in findings)
     return [{"category": cat, "count": count} for cat, count in cats.most_common()]
 
 
-def _extract_confidence_level(findings: list) -> str:
+def _extract_confidence_level(findings: list[dict[str, Any]]) -> str:
     """Overall confidence level from intelligence scores."""
     if not findings:
         return "N/A"
-    confs = [f.get("confidence", 0.5) for f in findings if isinstance(f.get("confidence"), (int, float))]
+    confs = [
+        f.get("confidence", 0.5) for f in findings if isinstance(f.get("confidence"), (int, float))
+    ]
     if not confs:
         return "Medium"
     avg = sum(confs) / len(confs)
@@ -152,7 +159,7 @@ def _extract_confidence_level(findings: list) -> str:
     return "Low"
 
 
-def _get_swc_references(category: str, swc_id: str = "") -> list:
+def _get_swc_references(category: str, swc_id: str = "") -> list[str]:
     """Auto-generate references based on SWC/CWE classification."""
     refs = []
     cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
@@ -179,7 +186,9 @@ def _get_swc_references(category: str, swc_id: str = "") -> list:
                 refs.append(f"[{swc}](https://swcregistry.io/docs/{swc})")
                 break
     # Always add OWASP SC Top 10
-    refs.append("[OWASP Smart Contract Top 10](https://owasp.org/www-project-smart-contract-top-10/)")
+    refs.append(
+        "[OWASP Smart Contract Top 10](https://owasp.org/www-project-smart-contract-top-10/)"
+    )
     return refs
 
 
@@ -208,7 +217,7 @@ def _extract_source_code(
                     break
             else:
                 return ""
-        lines = path.read_text().splitlines()
+        lines = path.read_text(encoding="utf-8").splitlines()
         start = max(0, line_number - context - 1)
         end = min(len(lines), line_number + context)
         snippet_lines = []
@@ -220,14 +229,14 @@ def _extract_source_code(
         return ""
 
 
-def _interactive_wizard(variables: dict, console) -> dict:
+def _interactive_wizard(variables: dict[str, Any], console: Any) -> dict[str, Any]:
     """
     Interactive wizard for report metadata.
     Only asks for client and auditor info - everything else comes from audit data.
     """
     from rich.prompt import Prompt
 
-    def is_missing(value):
+    def is_missing(value: Any) -> bool:
         if value is None:
             return True
         if isinstance(value, str):
@@ -262,7 +271,7 @@ def _interactive_wizard(variables: dict, console) -> dict:
     return variables
 
 
-def _calculate_risk_level(summary: dict) -> str:
+def _calculate_risk_level(summary: dict[str, Any]) -> str:
     """Calculate overall risk level from summary."""
     critical = summary.get("critical", 0)
     high = summary.get("high", 0)
@@ -279,7 +288,7 @@ def _calculate_risk_level(summary: dict) -> str:
     return "MINIMAL"
 
 
-def _render_template(template: str, variables: dict) -> str:
+def _render_template(template: str, variables: dict[str, Any]) -> str:
     """Render template using Jinja2 if available, otherwise simple replacement."""
     try:
         from jinja2 import BaseLoader, Environment
@@ -287,18 +296,18 @@ def _render_template(template: str, variables: dict) -> str:
         # Create Jinja2 environment with proper settings
         env = Environment(loader=BaseLoader())
         jinja_template = env.from_string(template)
-        return jinja_template.render(**variables)
+        return cast(str, jinja_template.render(**variables))
     except ImportError:
         # Fallback to simple rendering
         return _simple_render_template(template, variables)
 
 
-def _simple_render_template(template: str, variables: dict) -> str:
+def _simple_render_template(template: str, variables: dict[str, Any]) -> str:
     """Simple template rendering fallback without Jinja2."""
     output = template
 
     # Replace variables with default values {{ var | default('value') }}
-    def replace_with_default(match):
+    def replace_with_default(match: Match[str]) -> str:
         var_name = match.group(1).strip()
         default_val = match.group(2).strip().strip("'\"")
         return str(variables.get(var_name, default_val))
@@ -318,7 +327,7 @@ def _simple_render_template(template: str, variables: dict) -> str:
     # Handle generic for loops (including {%- and -%} whitespace control)
     loop_pattern = r"\{%-?\s*for\s+(\w+)\s+in\s+(\w+)\s*-?%\}(.*?)\{%-?\s*endfor\s*-?%\}"
 
-    def replace_loop(match):
+    def replace_loop(match: Match[str]) -> str:
         item_name = match.group(1)
         list_name = match.group(2)
         loop_body = match.group(3)
@@ -383,7 +392,7 @@ def _markdown_to_html(markdown: str, title: str, use_premium_css: bool = True) -
     if use_premium_css:
         css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
         if css_path.exists():
-            css_content = css_path.read_text()
+            css_content = css_path.read_text(encoding="utf-8")
 
     # Fallback to basic CSS if premium not available
     if not css_content:
@@ -504,21 +513,21 @@ def _enhance_html_severity(html: str) -> str:
     help="Interactive wizard mode: prompt for missing/unknown values before generating report",
 )
 def report(
-    results_file,
-    template,
-    output,
-    output_format,
-    client,
-    auditor,
-    title,
-    contract_name,
-    repository,
-    commit,
-    network,
-    classification,
-    llm_interpret,
-    interactive,
-):
+    results_file: str,
+    template: str,
+    output: str | None,
+    output_format: str,
+    client: str | None,
+    auditor: str | None,
+    title: str | None,
+    contract_name: str | None,
+    repository: str | None,
+    commit: str | None,
+    network: str,
+    classification: str,
+    llm_interpret: bool,
+    interactive: bool,
+) -> None:
     """Generate formatted security reports from audit results.
 
     Takes JSON audit results and applies a template to generate
@@ -542,8 +551,8 @@ def report(
 
     # Load results
     try:
-        with open(results_file, "r") as f:
-            results = json.load(f)
+        with open(results_file, encoding="utf-8") as results_handle:
+            results: dict[str, Any] = json.load(results_handle)
     except json.JSONDecodeError as e:
         error(f"Invalid JSON in {results_file}: {e}")
         sys.exit(1)
@@ -563,7 +572,7 @@ def report(
         sys.exit(1)
 
     # Load template
-    template_content = template_file.read_text()
+    template_content = template_file.read_text(encoding="utf-8")
 
     # Extract data from results
     summary = results.get("summary", {})
@@ -573,7 +582,7 @@ def report(
         summary = results.get("aggregated_summary", {})
 
     # Extract findings from results (can be at root level, within tool results, or in batch format)
-    findings = results.get("findings", [])
+    findings: list[dict[str, Any]] = results.get("findings", [])
 
     # Smart audit format: prefer ML-enhanced findings (adjusted severities) over raw
     if not findings:
@@ -633,7 +642,7 @@ def report(
             1 for f in findings if f.get("severity", "").lower() in ("info", "informational")
         )
 
-    def get_status(count, severity):
+    def get_status(count: int, severity: str) -> str:
         if count == 0:
             return "✅ None Found"
         elif severity in ("critical", "high"):
@@ -669,11 +678,15 @@ def report(
     # Deduplicate findings by (type + location) — keep highest severity
     # =========================================================================
     severity_rank = {
-        "critical": 5, "high": 4, "medium": 3, "low": 2,
-        "info": 1, "informational": 1,
+        "critical": 5,
+        "high": 4,
+        "medium": 3,
+        "low": 2,
+        "info": 1,
+        "informational": 1,
     }
 
-    def _finding_dedup_key(f):
+    def _finding_dedup_key(f: dict[str, Any]) -> tuple[str, str]:
         """Build deduplication key from type + location."""
         f_type = f.get("type") or f.get("check") or f.get("title") or ""
         loc = f.get("location", {})
@@ -683,18 +696,18 @@ def report(
             loc_str = str(loc)
         return (f_type.lower().strip(), loc_str.lower().strip())
 
-    seen_findings: Dict[tuple, dict] = {}
+    seen_findings: Dict[tuple[str, str], dict[str, Any]] = {}
     for f in findings:
-        key = _finding_dedup_key(f)
-        existing = seen_findings.get(key)
+        dedup_key = _finding_dedup_key(f)
+        existing = seen_findings.get(dedup_key)
         if existing is None:
-            seen_findings[key] = f
+            seen_findings[dedup_key] = f
         else:
             # Keep the one with higher severity
             cur_rank = severity_rank.get(f.get("severity", "").lower(), 0)
             old_rank = severity_rank.get(existing.get("severity", "").lower(), 0)
             if cur_rank > old_rank:
-                seen_findings[key] = f
+                seen_findings[dedup_key] = f
     findings = list(seen_findings.values())
 
     # Recalculate severity counts after deduplication
@@ -810,14 +823,10 @@ def report(
     high_critical_count = critical_count + high_count
     # Find top vulnerability type from findings
     from collections import Counter
-    vuln_types = Counter()
+
+    vuln_types: Counter[str] = Counter()
     for f in findings:
-        vtype = (
-            f.get("canonical_category")
-            or f.get("category")
-            or f.get("type")
-            or "general"
-        )
+        vtype = f.get("canonical_category") or f.get("category") or f.get("type") or "general"
         vuln_types[vtype] += 1
     top_vuln_type = vuln_types.most_common(1)[0][0] if vuln_types else "general"
 
@@ -859,8 +868,8 @@ def report(
     # =========================================================================
     # Generate Files Analyzed / Files In Scope
     # =========================================================================
-    files_analyzed = []
-    files_in_scope = []
+    files_analyzed: list[dict[str, Any]] = []
+    files_in_scope: list[dict[str, Any]] = []
     total_lines = 0
 
     # Check if batch audit (has "contracts" array)
@@ -873,11 +882,11 @@ def report(
             contract_findings = contract_data.get("total_findings", 0)
 
             # Try to get lines of code
-            lines = "N/A"
+            lines: int | str = "N/A"
             try:
                 if contract_path and Path(contract_path).exists():
-                    with open(contract_path, "r") as f:
-                        lines = len(f.readlines())
+                    with open(contract_path, encoding="utf-8") as contract_handle:
+                        lines = len(contract_handle.readlines())
                         total_lines += lines
             except Exception:
                 pass
@@ -934,7 +943,7 @@ def report(
                             break
 
             if resolved_path and resolved_path.is_file():
-                content = resolved_path.read_text()
+                content = resolved_path.read_text(encoding="utf-8")
                 lines = len(content.splitlines())
                 total_lines = lines
                 # Count functions
@@ -1234,9 +1243,8 @@ def report(
                             "findings_count": sum(
                                 1
                                 for f in findings
-                                if actual_tool in [
-                                    ct.lower().strip() for ct in f.get("confirming_tools", [])
-                                ]
+                                if actual_tool
+                                in [ct.lower().strip() for ct in f.get("confirming_tools", [])]
                             ),
                             "layer": layer_names.get(tool_layer, tool_layer),
                             "error": "",
@@ -1345,7 +1353,9 @@ def report(
                 try:
                     contract_file = Path(contract_path)
                     if contract_file.exists():
-                        contract_code = contract_file.read_text()[:10000]  # Limit to 10k chars
+                        contract_code = contract_file.read_text(encoding="utf-8")[
+                            :10000
+                        ]  # Limit to 10k chars
                 except Exception:
                     pass
 
@@ -1415,10 +1425,7 @@ def report(
             for f in findings:
                 if not f.get("category"):
                     f["category"] = (
-                        f.get("canonical_category")
-                        or f.get("type")
-                        or f.get("check")
-                        or "unknown"
+                        f.get("canonical_category") or f.get("type") or f.get("check") or "unknown"
                     )
 
             # Calculate risk data
@@ -1682,7 +1689,7 @@ def report(
                         try:
                             contract_file = Path(contract_path)
                             if contract_file.exists():
-                                contract_code = contract_file.read_text()[:10000]
+                                contract_code = contract_file.read_text(encoding="utf-8")[:10000]
                         except Exception:
                             pass
 
@@ -1924,24 +1931,43 @@ def report(
                 "category": category,
                 "location": loc_str,
                 "description": finding.get("description", finding.get("message", "")),
-                "recommendation": _get_recommendation(category, severity_lower)
+                "recommendation": (
+                    _get_recommendation(category, severity_lower)
                     if not finding.get("recommendation")
                     or finding.get("recommendation", "").startswith("Review and fix")
-                    else finding["recommendation"],
+                    else finding["recommendation"]
+                ),
                 "tool": detected_by,
                 "status": status_display,
-                "impact": _get_impact_description(severity_lower, category)
+                "impact": (
+                    _get_impact_description(severity_lower, category)
                     if not finding.get("impact")
                     or finding.get("impact", "").startswith("Significant financial")
                     or finding.get("impact", "").startswith("Minor impact")
-                    else finding["impact"],
+                    else finding["impact"]
+                ),
                 "poc": finding.get("poc", ""),
-                "vulnerable_code": finding.get("vulnerable_code") or _extract_source_code(
-                    finding.get("location", {}).get("file", "") if isinstance(finding.get("location"), dict) else str(finding.get("location", "")).split(":")[0],
-                    finding.get("location", {}).get("line", 0) if isinstance(finding.get("location"), dict) else int(str(finding.get("location", "0")).split(":")[-1].split(" ")[0] or 0) if ":" in str(finding.get("location", "")) else 0,
+                "vulnerable_code": finding.get("vulnerable_code")
+                or _extract_source_code(
+                    (
+                        finding.get("location", {}).get("file", "")
+                        if isinstance(finding.get("location"), dict)
+                        else str(finding.get("location", "")).split(":")[0]
+                    ),
+                    (
+                        finding.get("location", {}).get("line", 0)
+                        if isinstance(finding.get("location"), dict)
+                        else (
+                            int(str(finding.get("location", "0")).split(":")[-1].split(" ")[0] or 0)
+                            if ":" in str(finding.get("location", ""))
+                            else 0
+                        )
+                    ),
                     base_dir=detected_contract_full_path,
-                ) or "// Source code not available for this finding",
-                "references": finding.get("references") or _get_swc_references(
+                )
+                or "// Source code not available for this finding",
+                "references": finding.get("references")
+                or _get_swc_references(
                     category, finding.get("swc_id", finding.get("category", ""))
                 ),
                 # Premium fields
@@ -1954,7 +1980,11 @@ def report(
                 "llm_interpretation": finding.get("llm_interpretation", ""),
                 # Intelligence engine fields (v5.2.0)
                 "confidence": finding.get("confidence", 0.5),
-                "confidence_pct": f"{finding.get('confidence', 0.5):.0%}" if isinstance(finding.get("confidence"), (int, float)) else "",
+                "confidence_pct": (
+                    f"{finding.get('confidence', 0.5):.0%}"
+                    if isinstance(finding.get("confidence"), (int, float))
+                    else ""
+                ),
                 "canonical_category": finding.get("canonical_category", ""),
                 "confirming_tools": finding.get("confirming_tools", []),
                 "tool_count": finding.get("tool_count", 1),
@@ -2001,7 +2031,7 @@ def report(
                 # Load premium CSS if available
                 css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
                 if css_path.exists():
-                    css_content = css_path.read_text()
+                    css_content = css_path.read_text(encoding="utf-8")
                     css = CSS(string=css_content, font_config=font_config)
                     HTML(string=html_content).write_pdf(
                         output_path, stylesheets=[css], font_config=font_config
@@ -2023,7 +2053,7 @@ def report(
                     import subprocess
 
                     temp_html = output_path.with_suffix(".tmp.html")
-                    temp_html.write_text(html_content)
+                    temp_html.write_text(html_content, encoding="utf-8")
                     subprocess.run(
                         [
                             "pandoc",
@@ -2052,7 +2082,7 @@ def report(
                     output_content = html_content
                     warning(f"Saved as HTML instead: {output_path}")
 
-        output_path.write_text(output_content)
+        output_path.write_text(output_content, encoding="utf-8")
         success(f"Report saved to {output_path}")
     else:
         # Output to stdout

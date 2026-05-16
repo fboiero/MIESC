@@ -13,6 +13,16 @@ import pytest
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Keep tests hermetic: components that default to ~/.miesc should write to a
+# sandbox-friendly temp directory unless an individual test overrides them.
+_miesc_test_home = Path(tempfile.gettempdir()) / "miesc_pytest_state"
+os.environ.setdefault("MIESC_HOME", str(_miesc_test_home))
+os.environ.setdefault("MIESC_FEEDBACK_DIR", str(_miesc_test_home / "feedback"))
+os.environ.setdefault(
+    "MIESC_INVARIANT_CACHE_DIR",
+    str(_miesc_test_home / "invariant_cache"),
+)
+
 
 # Sample contracts for testing
 SIMPLE_CONTRACT = """

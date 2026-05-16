@@ -60,7 +60,7 @@ dev = [
     "build>=1.2.0",
     "twine>=5.0.0",
 ]
-# Note: mythril has conflicting dependencies with slither-analyzer and Flask.
+# Note: mythril has conflicting dependencies with slither-analyzer.
 # Install separately in isolated environment: pip install mythril
 # Or use Docker: docker run -it mythril/myth analyze <contract.sol>
 symbolic = [
@@ -77,6 +77,7 @@ docs = [
     # MkDocs for user guides (optional)
     "mkdocs>=1.5.0",
     "mkdocs-material>=9.0.0",
+    "mkdocs-minify-plugin>=0.8.0",
 ]
 metrics = [
     "prometheus-client>=0.19.0",
@@ -110,13 +111,13 @@ rag = [
 rag-embeddings = [
     "sentence-transformers>=2.2.0",
 ]
-# Web frameworks for API servers and web UI
-web = [
+# Frameworks for local REST/WebSocket API servers
+api = [
+    "django>=5.0.0",
+    "djangorestframework>=3.14.0",
+    "django-cors-headers>=4.3.0",
     "fastapi>=0.104.0",
     "uvicorn>=0.24.0",
-    "flask>=3.0.0",
-    "flask-socketio>=5.3.0",
-    "flask-cors>=4.0.0",
 ]
 # Django REST API (requires Python 3.10+)
 django = [
@@ -131,11 +132,11 @@ full = [
     "openai>=1.0.0",
     "anthropic>=0.18.0",
     "httpx>=0.25.0",
+    "django>=5.0.0",
+    "djangorestframework>=3.14.0",
+    "django-cors-headers>=4.3.0",
     "fastapi>=0.104.0",
     "uvicorn>=0.24.0",
-    "flask>=3.0.0",
-    "flask-socketio>=5.3.0",
-    "flask-cors>=4.0.0",
     "weasyprint>=60.0",
     "markdown>=3.5.0",
     # Lightweight RAG dependencies. Semantic embeddings are split into
@@ -143,8 +144,8 @@ full = [
     # PyTorch wheels from the default package index.
     "chromadb>=0.4.0",
     "rank-bm25>=0.2.2",
-    # Note: mythril and django excluded due to dependency conflicts
-    # Install separately: pip install mythril django djangorestframework
+    # Note: mythril excluded due to dependency conflicts
+    # Install separately: pip install mythril
 ]
 researcher = [
     "miesc[full,rag-embeddings]",
@@ -290,7 +291,7 @@ filterwarnings = [
     "ignore::DeprecationWarning:src",
     "ignore::DeprecationWarning:sqlalchemy",
     "ignore::DeprecationWarning:datetime",
-    "ignore:The \\`declarative_base:sqlalchemy.exc.MovedIn20Warning",
+    "ignore:The `declarative_base.*:DeprecationWarning",
     "ignore::ResourceWarning",
     "ignore::RuntimeWarning:asyncio",
 ]
@@ -304,18 +305,10 @@ omit = [
     "src/*_tool.py",
     "src/main.py",
     "src/utils.py",
-    # Legacy CLI modules (replaced by miesc.cli)
-    "src/miesc_cli.py",
+    # Legacy core modules covered indirectly by public entrypoints
     "src/miesc_core.py",
-    "src/miesc_ai_layer.py",
-    "src/miesc_mcp_adapter.py",
-    "src/miesc_mcp_rest.py",
-    "src/miesc_ml_cli.py",
-    "src/miesc_websocket_api.py",
-    "src/miesc_policy_agent.py",
     "src/miesc_policy_mapper.py",
     "src/miesc_risk_engine.py",
-    "src/miesc_security_checks.py",
     # Legacy analysis modules
     "src/orchestrator.py",
     "src/project_analyzer.py",

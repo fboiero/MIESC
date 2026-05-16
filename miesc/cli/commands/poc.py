@@ -10,6 +10,7 @@ License: AGPL-3.0
 import json
 import logging
 import sys
+from typing import Any
 
 import click
 
@@ -32,12 +33,12 @@ if RICH_AVAILABLE:
 logger = logging.getLogger(__name__)
 
 # Lazy loading globals
-POC_AVAILABLE = None
-_PoCGenerator = None
-_FoundryRunner = None
+POC_AVAILABLE: bool | None = None
+_PoCGenerator: Any | None = None
+_FoundryRunner: Any | None = None
 
 
-def get_poc_generator():
+def get_poc_generator() -> Any | None:
     """Lazy load PoCGenerator."""
     global POC_AVAILABLE, _PoCGenerator
 
@@ -57,7 +58,7 @@ def get_poc_generator():
     return None
 
 
-def get_foundry_runner(project_dir: str):
+def get_foundry_runner(project_dir: str) -> Any | None:
     """Lazy load FoundryRunner."""
     global _FoundryRunner
 
@@ -77,7 +78,7 @@ def get_foundry_runner(project_dir: str):
 
 
 @click.group()
-def poc():
+def poc() -> None:
     """Generate and run Proof-of-Concept exploits from findings."""
     pass
 
@@ -95,16 +96,16 @@ def poc():
 @click.option("--fork-block", type=int, help="Block number for forking")
 @click.option("--attacker-balance", default="100 ether", help="Attacker initial balance")
 def poc_generate(
-    finding_file,
-    vuln_type,
-    target_contract,
-    target_function,
-    output,
-    json_input,
-    fork_url,
-    fork_block,
-    attacker_balance,
-):
+    finding_file: str | None,
+    vuln_type: str | None,
+    target_contract: str,
+    target_function: str | None,
+    output: str,
+    json_input: str | None,
+    fork_url: str | None,
+    fork_block: int | None,
+    attacker_balance: str,
+) -> None:
     """Generate a PoC exploit from a vulnerability finding.
 
     Can read from a finding JSON file or inline JSON.
@@ -125,7 +126,7 @@ def poc_generate(
     # Build finding dict
     if finding_file:
         info(f"Loading finding from {finding_file}")
-        with open(finding_file, "r") as f:
+        with open(finding_file, encoding="utf-8") as f:
             finding = json.load(f)
     elif json_input:
         info("Parsing inline JSON finding")
@@ -206,7 +207,15 @@ def poc_generate(
 @click.option("--fork-url", help="RPC URL for forking")
 @click.option("--fork-block", type=int, help="Block number for fork")
 @click.option("--timeout", "-t", type=int, default=300, help="Timeout in seconds")
-def poc_run(poc_path, project, verbosity, gas_report, fork_url, fork_block, timeout):
+def poc_run(
+    poc_path: str,
+    project: str,
+    verbosity: int,
+    gas_report: bool,
+    fork_url: str | None,
+    fork_block: int | None,
+    timeout: int,
+) -> None:
     """Run a PoC test and validate the exploit.
 
     \b
@@ -311,7 +320,7 @@ def poc_run(poc_path, project, verbosity, gas_report, fork_url, fork_block, time
 
 @poc.command("list")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed template info")
-def poc_list(verbose):
+def poc_list(verbose: bool) -> None:
     """List available PoC templates and supported vulnerability types.
 
     \b
@@ -391,7 +400,7 @@ def poc_list(verbose):
     "--project", "-p", type=click.Path(exists=True), default=".", help="Foundry project directory"
 )
 @click.option("--expected-profit", is_flag=True, default=True, help="Expect profit demonstration")
-def poc_validate(poc_path, project, expected_profit):
+def poc_validate(poc_path: str, project: str, expected_profit: bool) -> None:
     """Validate a PoC without full execution output.
 
     Quick validation check for CI/CD pipelines.

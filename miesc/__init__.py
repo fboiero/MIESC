@@ -2,12 +2,14 @@
 MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
 A comprehensive blockchain security framework with 9 defense layers,
-50 configured tool adapters, and AI-powered correlation.
+a configured adapter stack, and AI-powered correlation.
 
 Author: Fernando Boiero
 Institution: UNDEF - IUA Cordoba
 License: AGPL-3.0
 """
+
+from typing import Any
 
 __version__ = "5.4.2"
 __author__ = "Fernando Boiero"
@@ -33,10 +35,10 @@ _lazy_imports = {
     "RemediationEngine": ("src.security", "RemediationEngine"),
 }
 
-_loaded_modules = {}
+_loaded_modules: dict[str, Any] = {}
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """Lazy import handler for heavy modules."""
     if name in _lazy_imports:
         if name not in _loaded_modules:

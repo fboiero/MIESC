@@ -22,6 +22,11 @@ sys.modules.setdefault("mcp.server", _fake_mcp_mod.server)
 sys.modules.setdefault("mcp.server.fastmcp", _fake_mcp_mod.server.fastmcp)
 
 from miesc.mcp_server import (  # noqa: E402
+    _get_adapter_loader,
+    _get_adapter_map,
+    _get_layers,
+    _run_layer_internal,
+    _run_tool_internal,
     _summarize_results,
     _validate_contract_path,
     miesc_apply_fix,
@@ -100,6 +105,21 @@ class TestSummarizeResults:
 # Config loaders: _get_layers / _get_adapter_map
 # =========================================================================
 class TestConfigLoaders:
+    def test_get_layers_uses_cli_constants(self):
+        layers = _get_layers()
+        assert len(layers) == 9
+        assert "slither" in layers[1]["tools"]
+
+    def test_get_adapter_map_uses_cli_constants(self):
+        adapter_map = _get_adapter_map()
+        assert "slither" in adapter_map
+        assert adapter_map["slither"] == "SlitherAdapter"
+
+    def test_get_adapter_loader_uses_cli_utils(self):
+        loader = _get_adapter_loader()
+        assert hasattr(loader, "get_adapter")
+        assert hasattr(loader, "get_available_tools")
+
     @patch("miesc.mcp_server._get_layers")
     def test_get_layers_non_empty(self, mock_layers):
         mock_layers.return_value = {1: {"name": "Static", "tools": ["slither"]}}
@@ -109,6 +129,24 @@ class TestConfigLoaders:
     def test_get_adapter_map_non_empty(self, mock_map):
         mock_map.return_value = {"slither": "SlitherAdapter"}
         assert len(mock_map()) > 0
+
+    @patch("miesc.cli.utils.run_tool")
+    def test_run_tool_internal_uses_cli_utils(self, mock_run_tool):
+        mock_run_tool.return_value = {"tool": "slither", "status": "success", "findings": []}
+
+        result = _run_tool_internal("slither", "/tmp/Token.sol", 12, mode="quick")
+
+        assert result["status"] == "success"
+        mock_run_tool.assert_called_once_with("slither", "/tmp/Token.sol", 12, mode="quick")
+
+    @patch("miesc.cli.utils.run_layer")
+    def test_run_layer_internal_uses_cli_utils(self, mock_run_layer):
+        mock_run_layer.return_value = [{"tool": "slither", "status": "success", "findings": []}]
+
+        result = _run_layer_internal(1, "/tmp/Token.sol", 12)
+
+        assert result[0]["tool"] == "slither"
+        mock_run_layer.assert_called_once_with(1, "/tmp/Token.sol", 12)
 
 
 # =========================================================================

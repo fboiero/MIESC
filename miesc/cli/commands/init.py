@@ -16,7 +16,7 @@ from miesc.cli.utils import error, info, print_banner, success, warning
 
 
 @click.group()
-def init():
+def init() -> None:
     """Initialize MIESC integrations for build frameworks."""
     pass
 
@@ -27,7 +27,7 @@ def init():
 @click.option(
     "--hook-script", is_flag=True, help="Create full hook script instead of inline command"
 )
-def init_foundry(profile, fail_on, hook_script):
+def init_foundry(profile: str, fail_on: str, hook_script: bool) -> None:
     """Initialize MIESC integration for Foundry projects.
 
     Adds post-build hook to foundry.toml and optionally creates a hook script.
@@ -50,7 +50,7 @@ def init_foundry(profile, fail_on, hook_script):
     info("Configuring MIESC for Foundry project...")
 
     # Read current config
-    content = foundry_toml.read_text()
+    content = foundry_toml.read_text(encoding="utf-8")
 
     # Check if already configured
     if "miesc" in content.lower():
@@ -141,7 +141,7 @@ if command -v jq &> /dev/null && [ -f "$REPORT_FILE" ]; then
     log_success "Audit passed (threshold: $FAIL_ON)"
 fi
 """
-        hook_path.write_text(hook_content)
+        hook_path.write_text(hook_content, encoding="utf-8")
         hook_path.chmod(0o755)
         success(f"Created {hook_path}")
 
@@ -185,7 +185,7 @@ fi
 post_build_hook = "{post_build_cmd}"
 """
 
-    foundry_toml.write_text(content)
+    foundry_toml.write_text(content, encoding="utf-8")
     success("Updated foundry.toml with MIESC post-build hook")
 
     # Summary
@@ -202,7 +202,7 @@ post_build_hook = "{post_build_cmd}"
 
 @init.command("hardhat")
 @click.option("--fail-on", default="high", type=click.Choice(["critical", "high", "medium", "low"]))
-def init_hardhat(fail_on):
+def init_hardhat(fail_on: str) -> None:
     """Initialize MIESC integration for Hardhat projects.
 
     Creates hardhat.config.js plugin configuration.
@@ -292,7 +292,7 @@ task("compile")
 
 module.exports = {{}};
 """
-    task_file.write_text(task_content)
+    task_file.write_text(task_content, encoding="utf-8")
     success(f"Created {task_file}")
 
     # Show instructions
@@ -311,7 +311,7 @@ module.exports = {{}};
 
 @init.command("github")
 @click.option("--workflow-name", default="security", help="Workflow file name")
-def init_github(workflow_name):
+def init_github(workflow_name: str) -> None:
     """Initialize GitHub Actions workflow for MIESC.
 
     Creates .github/workflows/security.yml
@@ -399,7 +399,7 @@ jobs:
             miesc.sarif
 """
 
-    workflow_file.write_text(workflow_content)
+    workflow_file.write_text(workflow_content, encoding="utf-8")
     success(f"Created {workflow_file}")
 
     print("")  # noqa: T201

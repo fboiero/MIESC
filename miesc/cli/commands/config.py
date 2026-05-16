@@ -9,6 +9,7 @@ License: AGPL-3.0
 
 import json
 import sys
+from typing import Any
 
 import click
 
@@ -31,13 +32,13 @@ ROOT_DIR = get_root_dir()
 
 
 @click.group()
-def config():
+def config() -> None:
     """Manage MIESC configuration."""
     pass
 
 
 @config.command("show")
-def config_show():
+def config_show() -> None:
     """Display current configuration."""
     print_banner()
 
@@ -49,7 +50,7 @@ def config_show():
     if RICH_AVAILABLE:
         tree = Tree("[bold cyan]MIESC Configuration[/bold cyan]")
 
-        def add_tree(parent, data, depth=0):
+        def add_tree(parent: Any, data: Any, depth: int = 0) -> None:
             if depth > 3:
                 return
             if isinstance(data, dict):
@@ -74,7 +75,7 @@ def config_show():
 
 
 @config.command("validate")
-def config_validate():
+def config_validate() -> None:
     """Validate configuration file."""
     print_banner()
 

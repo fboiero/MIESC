@@ -14,7 +14,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from .constants import ADAPTER_MAP, LAYERS
 
@@ -38,6 +38,7 @@ def get_data_path(*parts: str) -> Path:
         return pkg_path
     return ROOT_DIR.joinpath(*parts)
 
+
 # Try to import Rich for beautiful output
 try:
     from rich.console import Console
@@ -60,12 +61,12 @@ except ImportError:
 
         _MARKUP_RE = _re.compile(r"\[/?[^\]]+\]")
 
-        def print(self, *args, **kwargs):  # noqa: D401
+        def print(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401, ARG002
             for a in args:
                 text = self._MARKUP_RE.sub("", str(a))
                 print(text)
 
-        def log(self, *args, **kwargs):
+        def log(self, *args: Any, **kwargs: Any) -> None:
             self.print(*args, **kwargs)
 
     console = _PlainConsole()  # type: ignore
@@ -182,11 +183,13 @@ def print_banner(version: Optional[str] = None) -> None:
         console.print(
             f"[cyan]v{version}[/cyan] - Multi-layer Intelligent Evaluation for Smart Contracts"
         )
-        console.print("[dim]9 Defense Layers | 50 Tool Adapters | AI-Powered Analysis[/dim]\n")
+        console.print(
+            "[dim]9 Defense Layers | Configured Adapter Stack | AI-Powered Analysis[/dim]\n"
+        )
     else:
         print(BANNER)  # noqa: T201
         print(f"v{version} - Multi-layer Intelligent Evaluation for Smart Contracts")  # noqa: T201
-        print("9 Defense Layers | 50 Tool Adapters | AI-Powered Analysis\n")  # noqa: T201
+        print("9 Defense Layers | Configured Adapter Stack | AI-Powered Analysis\n")  # noqa: T201
 
 
 def success(msg: str) -> None:
@@ -241,7 +244,7 @@ def load_profiles() -> Dict[str, Any]:
     if profiles_path.exists() and YAML_AVAILABLE:
         with open(profiles_path) as f:
             data = yaml.safe_load(f) or {}
-            return data.get("profiles", {})
+            return cast(Dict[str, Any], data.get("profiles", {}))
     return {}
 
 
@@ -458,7 +461,7 @@ def run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, A
     if layer not in LAYERS:
         return []
 
-    results = []
+    results: List[Dict[str, Any]] = []
     layer_info = LAYERS[layer]
 
     for tool in layer_info["tools"]:
@@ -485,7 +488,7 @@ def run_plugins(contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
 
     Returns list of tool-result dicts compatible with run_layer output.
     """
-    results = []
+    results: List[Dict[str, Any]] = []
 
     try:
         from miesc.plugins import PluginManager
@@ -526,8 +529,8 @@ def run_plugins(contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
                 elapsed = _time.perf_counter() - start
 
                 # Normalize findings
-                normalized = []
-                for f in (findings or []):
+                normalized: List[Dict[str, Any]] = []
+                for f in findings or []:
                     if isinstance(f, dict):
                         f.setdefault("tool", f"plugin:{detector_name}")
                         normalized.append(f)
@@ -551,13 +554,15 @@ def run_plugins(contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
 
             except Exception as e:
                 elapsed = _time.perf_counter() - start
-                results.append({
-                    "tool": f"plugin:{detector_name}",
-                    "status": "error",
-                    "findings": [],
-                    "error": str(e),
-                    "execution_time": round(elapsed, 2),
-                })
+                results.append(
+                    {
+                        "tool": f"plugin:{detector_name}",
+                        "status": "error",
+                        "findings": [],
+                        "error": str(e),
+                        "execution_time": round(elapsed, 2),
+                    }
+                )
                 warning(f"plugin:{detector_name}: {e}")
 
     except ImportError:

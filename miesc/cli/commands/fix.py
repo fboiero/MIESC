@@ -55,7 +55,7 @@ def _ensure_modifier_defined(source: str, modifier: str) -> str:
         # Insert after the first state variable block (before first function)
         m = re.search(r"(function\s+)", source)
         if m:
-            source = source[:m.start()] + inline + "\n    " + source[m.start():]
+            source = source[: m.start()] + inline + "\n    " + source[m.start() :]
     return source
 
 
@@ -213,7 +213,7 @@ def _ensure_reentrancy_guard_import(source: str) -> str:
     contract_re = re.compile(r"(contract\s+\w+)\s*(\{)", re.MULTILINE)
     # Find the TARGET contract (skip the inline guard itself)
     for m_contract in contract_re.finditer(source):
-        contract_name = source[m_contract.start(1):m_contract.end(1)].split()[-1]
+        contract_name = source[m_contract.start(1) : m_contract.end(1)].split()[-1]
         if contract_name in ("ReentrancyGuard", "MiescReentrancyGuard"):
             continue  # Skip the guard definition itself
         m_is_check = re.search(
@@ -221,9 +221,22 @@ def _ensure_reentrancy_guard_import(source: str) -> str:
         )
         if m_is_check:
             if guard_name not in m_is_check.group(2):
-                source = source[: m_is_check.start(2)] + m_is_check.group(2).rstrip() + ", " + guard_name + " " + source[m_is_check.start(3):]
+                source = (
+                    source[: m_is_check.start(2)]
+                    + m_is_check.group(2).rstrip()
+                    + ", "
+                    + guard_name
+                    + " "
+                    + source[m_is_check.start(3) :]
+                )
         else:
-            source = source[: m_contract.end(1)] + " is " + guard_name + " " + source[m_contract.start(2):]
+            source = (
+                source[: m_contract.end(1)]
+                + " is "
+                + guard_name
+                + " "
+                + source[m_contract.start(2) :]
+            )
         break  # Only modify the first real contract
     return source
 
@@ -238,7 +251,7 @@ def _insert_using_safemath(source: str) -> tuple[str, bool]:
         return source, False
     patched = source
     if not _has_contract_definition(patched, "SafeMath") and "library SafeMath" not in patched:
-        patched = patched[:m.start()] + _INLINE_SAFE_MATH + "\n" + patched[m.start():]
+        patched = patched[: m.start()] + _INLINE_SAFE_MATH + "\n" + patched[m.start() :]
         m = contract_re.search(patched)
         if not m:
             return source, False
@@ -294,8 +307,7 @@ def _add_require_for_call(
     call_bare = call_expr.rstrip(";").strip()
 
     replacement = (
-        f"{indent}(bool success, ) = {call_bare};\n"
-        f'{indent}require(success, "Call failed");'
+        f"{indent}(bool success, ) = {call_bare};\n" f'{indent}require(success, "Call failed");'
     )
 
     new_body = body[: call_m.start()] + replacement + body[call_m.end() :]
@@ -331,10 +343,7 @@ def _insert_comment_block(
     indent = best.group(1)
     insert_pos = best.start()
 
-    comment = (
-        f"{indent}// MIESC FIX: {finding_type}\n"
-        f"{indent}/* ---- Suggested fix ----\n"
-    )
+    comment = f"{indent}// MIESC FIX: {finding_type}\n" f"{indent}/* ---- Suggested fix ----\n"
     for fix_line in fix_code.splitlines():
         comment += f"{indent}   {fix_line}\n"
     comment += f"{indent}   ---- end fix ---- */\n"
@@ -397,22 +406,17 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
 
     if "reentrancy" in ftype:
         if fn_name:
-            source, changed = _add_modifier_to_function(
-                source, fn_name, "nonReentrant", line_hint
-            )
+            source, changed = _add_modifier_to_function(source, fn_name, "nonReentrant", line_hint)
             if changed:
                 source = _ensure_reentrancy_guard_import(source)
             return source, changed
         return source, False
 
     if "suicidal" in ftype or (
-        "access_control" in ftype
-        and any(kw in ftype for kw in ("selfdestruct", "suicidal"))
+        "access_control" in ftype and any(kw in ftype for kw in ("selfdestruct", "suicidal"))
     ):
         if fn_name:
-            source, changed = _add_modifier_to_function(
-                source, fn_name, "onlyOwner", line_hint
-            )
+            source, changed = _add_modifier_to_function(source, fn_name, "onlyOwner", line_hint)
             if changed:
                 source = _ensure_modifier_defined(source, "onlyOwner")
             return source, changed
@@ -420,9 +424,7 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
 
     if "access_control" in ftype or "selfdestruct" in ftype:
         if fn_name:
-            source, changed = _add_modifier_to_function(
-                source, fn_name, "onlyOwner", line_hint
-            )
+            source, changed = _add_modifier_to_function(source, fn_name, "onlyOwner", line_hint)
             if changed:
                 source = _ensure_modifier_defined(source, "onlyOwner")
             return source, changed
@@ -440,7 +442,9 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
         # For 0.8+ just insert a comment
         if fn_name:
             return _insert_comment_block(
-                source, fn_name, ftype,
+                source,
+                fn_name,
+                ftype,
                 fix_code or "Solidity 0.8+ has built-in overflow protection.",
                 line_hint,
             )
@@ -489,6 +493,7 @@ def _insert_above_function(
 # ---------------------------------------------------------------------------
 # Collect findings from the JSON results document
 # ---------------------------------------------------------------------------
+
 
 def _collect_fixable_findings(data: dict) -> list[dict]:
     """Extract deduplicated findings with a `fix_code` field from the results JSON."""
@@ -552,7 +557,13 @@ def _collect_fixable_findings(data: dict) -> list[dict]:
     help="Show what would be applied without writing any file.",
 )
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output.")
-def fix(results_file, contract_path, output, dry_run, quiet):
+def fix(
+    results_file: str,
+    contract_path: str,
+    output: str | None,
+    dry_run: bool,
+    quiet: bool,
+) -> None:
     """Auto-generate a patched Solidity file from scan findings.
 
     Reads findings from RESULTS_FILE (JSON produced by `miesc scan` or
@@ -584,7 +595,7 @@ def fix(results_file, contract_path, output, dry_run, quiet):
     # Load results JSON
     # ------------------------------------------------------------------
     try:
-        with open(results_file) as fh:
+        with open(results_file, encoding="utf-8") as fh:
             data = json.load(fh)
     except (json.JSONDecodeError, OSError) as exc:
         error(f"Cannot read results file: {exc}")
@@ -685,8 +696,10 @@ def fix(results_file, contract_path, output, dry_run, quiet):
     # Dry-run: just print the diff summary
     # ------------------------------------------------------------------
     if dry_run:
-        console.print(f"\n[bold]Dry-run summary:[/bold] {applied} fix(es) would be applied, "
-                      f"{skipped} skipped (out of {len(fixable)} total).")
+        console.print(
+            f"\n[bold]Dry-run summary:[/bold] {applied} fix(es) would be applied, "
+            f"{skipped} skipped (out of {len(fixable)} total)."
+        )
         if patched_source != source:
             console.print("[dim]Use without --dry-run to write the patched file.[/dim]")
         sys.exit(0)

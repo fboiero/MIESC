@@ -32,9 +32,11 @@ import pkgutil
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 logger = logging.getLogger(__name__)
+
+DetectorClass = TypeVar("DetectorClass", bound=Type["BaseDetector"])
 
 
 class Severity(Enum):
@@ -165,7 +167,7 @@ class BaseDetector(ABC):
     author: str = ""
     references: List[str] = []
 
-    def __init__(self, config: Dict[str, Any] = None):
+    def __init__(self, config: Dict[str, Any] | None = None) -> None:
         """
         Initialize the detector with optional configuration.
 
@@ -176,7 +178,7 @@ class BaseDetector(ABC):
         self._enabled = True
 
     @abstractmethod
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         """
         Analyze source code and return findings.
 
@@ -193,11 +195,11 @@ class BaseDetector(ABC):
         """Check if the detector is enabled."""
         return self._enabled
 
-    def enable(self):
+    def enable(self) -> None:
         """Enable the detector."""
         self._enabled = True
 
-    def disable(self):
+    def disable(self) -> None:
         """Disable the detector."""
         self._enabled = False
 
@@ -219,12 +221,12 @@ class BaseDetector(ABC):
         description: str,
         line: int,
         file_path: str = "",
-        severity: Severity = None,
-        confidence: Confidence = None,
+        severity: Severity | None = None,
+        confidence: Confidence | None = None,
         function: str = "",
         contract: str = "",
         recommendation: str = "",
-        **kwargs,
+        **kwargs: Any,
     ) -> Finding:
         """
         Helper method to create a Finding with common defaults.
@@ -266,7 +268,7 @@ class BaseDetector(ABC):
 _detector_registry: Dict[str, Type[BaseDetector]] = {}
 
 
-def register_detector(detector_class: Type[BaseDetector]) -> None:
+def register_detector(detector_class: DetectorClass) -> DetectorClass:
     """
     Register a custom detector.
 
@@ -323,7 +325,7 @@ def get_all_detectors() -> Dict[str, Type[BaseDetector]]:
 
 def list_detectors() -> List[Dict[str, Any]]:
     """List all registered detectors with metadata."""
-    result = []
+    result: List[Dict[str, Any]] = []
     for name, detector_class in _detector_registry.items():
         try:
             detector = detector_class()
@@ -334,7 +336,10 @@ def list_detectors() -> List[Dict[str, Any]]:
 
 
 def run_detector(
-    name: str, source_code: str, file_path: str = None, config: Dict = None
+    name: str,
+    source_code: str,
+    file_path: str | None = None,
+    config: Dict[str, Any] | None = None,
 ) -> List[Finding]:
     """
     Run a specific detector on source code.
@@ -360,7 +365,7 @@ def run_detector(
 
 
 def run_all_detectors(
-    source_code: str, file_path: str = None, categories: List[str] = None
+    source_code: str, file_path: str | None = None, categories: List[str] | None = None
 ) -> List[Finding]:
     """
     Run all registered detectors on source code.
@@ -373,7 +378,7 @@ def run_all_detectors(
     Returns:
         Combined list of findings from all detectors
     """
-    all_findings = []
+    all_findings: List[Finding] = []
 
     for name, detector_class in _detector_registry.items():
         try:

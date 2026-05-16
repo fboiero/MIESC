@@ -73,7 +73,10 @@ class ResultCache:
     """Caché de resultados de análisis."""
 
     def __init__(self, cache_dir: Optional[str] = None, ttl_seconds: int = 3600):
-        self.cache_dir = Path(cache_dir or os.path.expanduser("~/.miesc/cache"))
+        if cache_dir is None:
+            miesc_home = os.environ.get("MIESC_HOME")
+            cache_dir = str(Path(miesc_home) / "cache") if miesc_home else os.path.expanduser("~/.miesc/cache")
+        self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.ttl_seconds = ttl_seconds
         self._memory_cache: Dict[str, CacheEntry] = {}
@@ -183,11 +186,12 @@ class OptimizedOrchestrator:
         self,
         config: Optional[MIESCConfig] = None,
         cache_enabled: bool = True,
+        cache_dir: Optional[str] = None,
         max_workers: int = 4,
     ):
         self.config = config or get_config()
         self.discovery = get_tool_discovery()
-        self.cache = ResultCache() if cache_enabled else None
+        self.cache = ResultCache(cache_dir=cache_dir) if cache_enabled else None
         self.max_workers = max_workers
         self.aggregator = ResultAggregator()
 

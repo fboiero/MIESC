@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Convert results to SARIF 2.1.0 format for GitHub Code Scanning."""
-    sarif = {
+    sarif: Dict[str, Any] = {
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": "2.1.0",
         "runs": [
@@ -229,7 +229,7 @@ def _to_markdown(results: List[Dict[str, Any]], contract: str) -> str:
     return md
 
 
-def _ml_result_to_markdown(result, contract: str) -> str:
+def _ml_result_to_markdown(result: Any, contract: str) -> str:
     """Convert ML analysis result to Markdown report."""
     summary = result.get_summary()
 
@@ -314,10 +314,17 @@ def _ml_result_to_markdown(result, contract: str) -> str:
 # =============================================================================
 
 
-def _run_full_audit_with_ml(contract, output, fmt, layer_list, timeout, orchestrator):
+def _run_full_audit_with_ml(
+    contract: str,
+    output: str | None,
+    fmt: str,
+    layer_list: list[int],
+    timeout: int,
+    orchestrator: Any,
+) -> None:
     """Run full audit using ML Orchestrator."""
     # Determine tools from layers
-    tools_to_run = []
+    tools_to_run: list[str] = []
     for layer in layer_list:
         if layer in LAYERS:
             tools_to_run.extend(LAYERS[layer]["tools"])
@@ -325,7 +332,7 @@ def _run_full_audit_with_ml(contract, output, fmt, layer_list, timeout, orchestr
     info(f"Running {len(tools_to_run)} tools with ML enhancement...")
 
     # Progress callback for Rich
-    def progress_callback(stage, message, progress):
+    def progress_callback(stage: str, message: str, progress: float) -> None:
         if RICH_AVAILABLE:
             console.print(f"[dim]{stage}:[/dim] {message}")
 
@@ -399,11 +406,11 @@ def _run_full_audit_with_ml(contract, output, fmt, layer_list, timeout, orchestr
         if output:
             if fmt == "json":
                 data = result.to_dict()
-                with open(output, "w") as f:
+                with open(output, "w", encoding="utf-8") as f:
                     json.dump(data, f, indent=2, default=str)
             elif fmt == "markdown":
                 data = _ml_result_to_markdown(result, contract)
-                with open(output, "w") as f:
+                with open(output, "w", encoding="utf-8") as f:
                     f.write(data)
             elif fmt == "sarif":
                 # Convert ML result to SARIF format
@@ -412,7 +419,7 @@ def _run_full_audit_with_ml(contract, output, fmt, layer_list, timeout, orchestr
                     for t in result.tools_success[:1]
                 ]  # Use first tool as source
                 data = _to_sarif(all_results)
-                with open(output, "w") as f:
+                with open(output, "w", encoding="utf-8") as f:
                     json.dump(data, f, indent=2)
             success(f"Report saved to {output}")
 
@@ -423,9 +430,16 @@ def _run_full_audit_with_ml(contract, output, fmt, layer_list, timeout, orchestr
         _run_full_audit_basic(contract, output, fmt, layer_list, timeout)
 
 
-def _run_full_audit_with_correlation(contract, output, fmt, layer_list, timeout, api):
+def _run_full_audit_with_correlation(
+    contract: str,
+    output: str | None,
+    fmt: str,
+    layer_list: list[int],
+    timeout: int,
+    api: Any,
+) -> None:
     """Run full audit using Correlation API."""
-    all_results = []
+    all_results: list[dict[str, Any]] = []
 
     for layer in layer_list:
         if layer in LAYERS:
@@ -482,17 +496,19 @@ def _run_full_audit_with_correlation(contract, output, fmt, layer_list, timeout,
         print(f"Cross-validated: {summary.get('cross_validated', 0)}")
 
     if output:
-        with open(output, "w") as f:
+        with open(output, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, default=str)
         success(f"Report saved to {output}")
 
 
-def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
+def _run_full_audit_basic(
+    contract: str, output: str | None, fmt: str, layer_list: list[int], timeout: int
+) -> None:
     """Run full audit in basic mode (no ML/correlation)."""
     import time as _time
 
-    all_results = []
-    layer_timing = {}  # layer_num → elapsed_seconds
+    all_results: list[dict[str, Any]] = []
+    layer_timing: dict[int | str, float] = {}  # layer_num → elapsed_seconds
 
     for layer in layer_list:
         if layer in LAYERS:
@@ -532,14 +548,14 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
     try:
         from src.core.intelligence import enhance_findings
 
-        all_findings_flat = []
+        all_findings_flat: list[dict[str, Any]] = []
         for result in all_results:
             for f in result.get("findings", []):
                 f.setdefault("tool", result.get("tool", "unknown"))
                 all_findings_flat.append(f)
         if all_findings_flat:
             try:
-                code_text = open(contract).read()
+                code_text = Path(contract).read_text(encoding="utf-8")
             except Exception:
                 code_text = ""
             enhanced = enhance_findings(
@@ -548,10 +564,7 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
             non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
             suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
             # Preserve per-tool metadata for report layer coverage
-            tool_metadata = [
-                {k: v for k, v in r.items() if k != "findings"}
-                for r in all_results
-            ]
+            tool_metadata = [{k: v for k, v in r.items() if k != "findings"} for r in all_results]
             all_results = tool_metadata + [
                 {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
             ]
@@ -599,20 +612,23 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
 
     if output:
         if fmt == "sarif":
-            data = _to_sarif(all_results)
+            data: Any = _to_sarif(all_results)
         elif fmt == "markdown":
             data = _to_markdown(all_results, contract)
         else:
             # Normalize to scan-compatible schema for report/fix/export
-            all_findings = []
+            all_findings: list[dict[str, Any]] = []
             for r in all_results:
                 for f in r.get("findings", []):
                     f.setdefault("tool", r.get("tool", "unknown"))
                     all_findings.append(f)
-            tools_used = sorted({
-                r.get("tool", "") for r in all_results
-                if r.get("status") == "success" and r.get("tool")
-            })
+            tools_used = sorted(
+                {
+                    r.get("tool", "")
+                    for r in all_results
+                    if r.get("status") == "success" and r.get("tool")
+                }
+            )
             data = {
                 "contract": str(contract),
                 "timestamp": datetime.now().isoformat(),
@@ -631,7 +647,7 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
                 },
             }
 
-        with open(output, "w") as f:
+        with open(output, "w", encoding="utf-8") as f:
             if fmt == "markdown":
                 f.write(data)
             else:
@@ -645,7 +661,7 @@ def _run_full_audit_basic(contract, output, fmt, layer_list, timeout):
 
 
 @click.group()
-def audit():
+def audit() -> None:
     """Run security audits on smart contracts."""
     pass
 
@@ -658,8 +674,8 @@ def audit():
 )
 @click.option("--ci", is_flag=True, help="CI mode: exit with error if critical/high issues found")
 @click.option("--timeout", "-t", type=int, default=300, help="Timeout per tool in seconds")
-def audit_quick(contract, output, fmt, ci, timeout):
-    """Quick 4-tool scan for fast feedback (slither, aderyn, solhint, mythril)."""
+def audit_quick(contract: str, output: str | None, fmt: str, ci: bool, timeout: int) -> None:
+    """Quick 3-tool scan for fast feedback (slither, aderyn, solhint)."""
     print_banner()
     info(f"Quick scan of {contract}")
     info(f"Tools: {', '.join(QUICK_TOOLS)}")
@@ -716,10 +732,7 @@ def audit_quick(contract, output, fmt, ci, timeout):
             non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
             suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
             # Preserve per-tool metadata for report layer coverage
-            tool_metadata = [
-                {k: v for k, v in r.items() if k != "findings"}
-                for r in all_results
-            ]
+            tool_metadata = [{k: v for k, v in r.items() if k != "findings"} for r in all_results]
             all_results = tool_metadata + [
                 {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
             ]
@@ -760,16 +773,16 @@ def audit_quick(contract, output, fmt, ci, timeout):
     # Save output
     if output:
         if fmt == "sarif":
-            data = _to_sarif(all_results)
-            with open(output, "w") as f:
+            data: Any = _to_sarif(all_results)
+            with open(output, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
         elif fmt == "markdown":
             data = _to_markdown(all_results, contract)
-            with open(output, "w") as f:
+            with open(output, "w", encoding="utf-8") as f:
                 f.write(data)
         else:
             data = {"results": all_results, "summary": summary, "version": VERSION}
-            with open(output, "w") as f:
+            with open(output, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, default=str)
         success(f"Report saved to {output}")
 
@@ -786,7 +799,11 @@ def audit_quick(contract, output, fmt, ci, timeout):
     "--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown"]), default="json"
 )
 @click.option(
-    "--layers", "-l", type=str, default="1,2,3,4,5,6,7,8,9", help="Layers to run (comma-separated, default: all 9)"
+    "--layers",
+    "-l",
+    type=str,
+    default="1,2,3,4,5,6,7,8,9",
+    help="Layers to run (comma-separated, default: all 9)",
 )
 @click.option("--timeout", "-t", type=int, default=600, help="Timeout per tool in seconds")
 @click.option("--skip-unavailable", is_flag=True, default=True, help="Skip unavailable tools")
@@ -794,8 +811,17 @@ def audit_quick(contract, output, fmt, ci, timeout):
     "--ml/--no-ml", default=True, help="Enable ML pipeline for FP filtering and correlation"
 )
 @click.option("--correlate/--no-correlate", default=True, help="Enable cross-tool correlation")
-def audit_full(contract, output, fmt, layers, timeout, skip_unavailable, ml, correlate):
-    """Complete 9-layer security audit with all 50 tools.
+def audit_full(
+    contract: str,
+    output: str | None,
+    fmt: str,
+    layers: str,
+    timeout: int,
+    skip_unavailable: bool,
+    ml: bool,
+    correlate: bool,
+) -> None:
+    """Complete 9-layer security audit with the configured layer tools.
 
     By default uses ML pipeline for false positive filtering and
     cross-tool correlation for improved accuracy.
@@ -848,7 +874,7 @@ def audit_full(contract, output, fmt, layers, timeout, skip_unavailable, ml, cor
 @click.argument("contract", type=click.Path(exists=True))
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
 @click.option("--timeout", "-t", type=int, default=300, help="Timeout per tool in seconds")
-def audit_layer(layer_num, contract, output, timeout):
+def audit_layer(layer_num: int, contract: str, output: str | None, timeout: int) -> None:
     """Run a specific layer's tools (1-9)."""
     print_banner()
 
@@ -875,7 +901,7 @@ def audit_layer(layer_num, contract, output, timeout):
         console.print(table)
 
     if output:
-        with open(output, "w") as f:
+        with open(output, "w", encoding="utf-8") as f:
             json.dump(
                 {"layer": layer_num, "results": results, "summary": summary},
                 f,
@@ -893,7 +919,13 @@ def audit_layer(layer_num, contract, output, timeout):
 @click.option(
     "--llm-validate/--no-llm-validate", default=False, help="Use LLM to validate findings"
 )
-def audit_smart(contract, output, fmt, timeout, llm_validate):
+def audit_smart(
+    contract: str,
+    output: str | None,
+    fmt: str,
+    timeout: int,
+    llm_validate: bool,
+) -> None:
     """Smart audit with ML filtering, correlation, and optional LLM validation.
 
     This is the recommended command for accurate security analysis:
@@ -942,7 +974,7 @@ def audit_smart(contract, output, fmt, timeout, llm_validate):
         ) as progress:
             task = progress.add_task("Analyzing...", total=100)
 
-            def progress_callback(stage, message, pct):
+            def progress_callback(stage: str, message: str, pct: float) -> None:
                 progress.update(task, description=message, completed=int(pct * 100))
 
             result = ml_orchestrator.analyze(
@@ -972,7 +1004,7 @@ def audit_smart(contract, output, fmt, timeout, llm_validate):
 
             import asyncio
 
-            async def validate():
+            async def validate() -> tuple[list[dict[str, Any]], list[Any]]:
                 validated, validations = await validator.validate_findings_batch(
                     result.ml_filtered_findings
                 )
@@ -1054,7 +1086,7 @@ def audit_smart(contract, output, fmt, timeout, llm_validate):
                 json.dump(data, f, indent=2, default=str)
         else:
             md = _ml_result_to_markdown(result, contract)
-            with open(output, "w") as f:
+            with open(output, "w", encoding="utf-8") as f:
                 f.write(md)
         success(f"Report saved to {output}")
 
@@ -1067,7 +1099,13 @@ def audit_smart(contract, output, fmt, timeout, llm_validate):
     "--format", "-f", "fmt", type=click.Choice(["json", "sarif", "markdown"]), default="json"
 )
 @click.option("--ci", is_flag=True, help="CI mode: exit with error if critical/high issues found")
-def audit_profile(profile_name, contract, output, fmt, ci):
+def audit_profile(
+    profile_name: str,
+    contract: str | None,
+    output: str | None,
+    fmt: str,
+    ci: bool,
+) -> None:
     """Run audit using a predefined profile (fast, balanced, thorough, security, ci, audit, defi, token)."""
     print_banner()
 
@@ -1184,10 +1222,7 @@ def audit_profile(profile_name, contract, output, fmt, ci):
             non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
             suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
             # Preserve per-tool metadata for report layer coverage
-            tool_metadata = [
-                {k: v for k, v in r.items() if k != "findings"}
-                for r in all_results
-            ]
+            tool_metadata = [{k: v for k, v in r.items() if k != "findings"} for r in all_results]
             all_results = tool_metadata + [
                 {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
             ]
@@ -1228,12 +1263,12 @@ def audit_profile(profile_name, contract, output, fmt, ci):
     # Save output
     if output:
         if fmt == "sarif":
-            data = _to_sarif(all_results)
-            with open(output, "w") as f:
+            data: Any = _to_sarif(all_results)
+            with open(output, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
         elif fmt == "markdown":
             data = _to_markdown(all_results, contract)
-            with open(output, "w") as f:
+            with open(output, "w", encoding="utf-8") as f:
                 f.write(data)
         else:
             data = {
@@ -1242,7 +1277,7 @@ def audit_profile(profile_name, contract, output, fmt, ci):
                 "summary": summary,
                 "version": VERSION,
             }
-            with open(output, "w") as f:
+            with open(output, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, default=str)
         success(f"Report saved to {output}")
 
@@ -1257,7 +1292,7 @@ def audit_profile(profile_name, contract, output, fmt, ci):
 @click.argument("contract", type=click.Path(exists=True))
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
 @click.option("--timeout", "-t", type=int, default=300, help="Timeout in seconds")
-def audit_single(tool, contract, output, timeout):
+def audit_single(tool: str, contract: str, output: str | None, timeout: int) -> None:
     """Run a single security tool."""
     print_banner()
 
@@ -1304,7 +1339,7 @@ def audit_single(tool, contract, output, timeout):
         error(f"Failed: {result.get('error', 'Unknown error')}")
 
     if output:
-        with open(output, "w") as f:
+        with open(output, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, default=str)
         success(f"Report saved to {output}")
 
@@ -1328,7 +1363,16 @@ def audit_single(tool, contract, output, timeout):
 @click.option(
     "--fail-on", type=str, default="", help="Fail on severity (comma-separated: critical,high)"
 )
-def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_on):
+def audit_batch(
+    path: str,
+    output: str | None,
+    fmt: str,
+    profile: str,
+    parallel: int,
+    recursive: bool,
+    pattern: str,
+    fail_on: str,
+) -> None:
     """Batch analysis of multiple contracts.
 
     Analyze all .sol files in a directory with parallel execution.
@@ -1652,7 +1696,17 @@ def audit_batch(path, output, fmt, profile, parallel, recursive, pattern, fail_o
     help="LLM provider: auto (local-first with cloud fallback), ollama, anthropic, openai",
 )
 @click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues")
-def audit_deep(contract, output, fmt, timeout, max_iterations, no_llm, no_rag, llm_provider, ci):
+def audit_deep(
+    contract: str,
+    output: str | None,
+    fmt: str,
+    timeout: int,
+    max_iterations: int,
+    no_llm: bool,
+    no_rag: bool,
+    llm_provider: str,
+    ci: bool,
+) -> None:
     """Agentic deep audit with iterative analysis and cross-layer correlation.
 
     \b
@@ -1688,7 +1742,9 @@ def audit_deep(contract, output, fmt, timeout, max_iterations, no_llm, no_rag, l
 
     info(f"Starting agentic deep audit on {contract}")
     llm_status = f"{llm_provider}" if not no_llm else "disabled"
-    info(f"Timeout: {timeout}s | Max iterations: {max_iterations} | LLM: {llm_status} | RAG: {not no_rag}")
+    info(
+        f"Timeout: {timeout}s | Max iterations: {max_iterations} | LLM: {llm_status} | RAG: {not no_rag}"
+    )
 
     if RICH_AVAILABLE:
         from rich.progress import Progress, SpinnerColumn, TextColumn

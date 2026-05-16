@@ -67,15 +67,15 @@ def _resolve_output_path(contract_path: Path, output: str | None) -> Path:
 )
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output.")
 def remediate(
-    results_file,
-    contract_path,
-    output,
-    evidence_output,
-    compile_check,
-    rescan_check,
-    no_regression_bound,
-    quiet,
-):
+    results_file: str,
+    contract_path: str,
+    output: str | None,
+    evidence_output: str | None,
+    compile_check: bool,
+    rescan_check: bool,
+    no_regression_bound: int,
+    quiet: bool,
+) -> None:
     """Apply MIESC fixes and write a Paper 2-style evidence bundle.
 
     This command is the evidence-producing counterpart to `miesc fix`. It
@@ -92,13 +92,11 @@ def remediate(
     contract = Path(contract_path)
     patched_path = _resolve_output_path(contract, output)
     evidence_path = (
-        Path(evidence_output)
-        if evidence_output
-        else patched_path.with_suffix(".evidence.json")
+        Path(evidence_output) if evidence_output else patched_path.with_suffix(".evidence.json")
     )
 
     try:
-        results = json.loads(Path(results_file).read_text())
+        results = json.loads(Path(results_file).read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as exc:
         error(f"Cannot read results file: {exc}")
         sys.exit(1)
@@ -121,7 +119,7 @@ def remediate(
         sys.exit(1)
 
     evidence_path.parent.mkdir(parents=True, exist_ok=True)
-    evidence_path.write_text(json.dumps(evidence.to_dict(), indent=2) + "\n")
+    evidence_path.write_text(json.dumps(evidence.to_dict(), indent=2) + "\n", encoding="utf-8")
 
     if evidence.status == "no_fixable_findings":
         warning(f"No fixable findings found. Evidence written to {evidence_path}")
@@ -137,7 +135,4 @@ def remediate(
             info(f"Re-scan eliminated original high findings: {eliminated}")
             info(f"Bounded no-regression: {no_regression}")
 
-    success(
-        f"Applied {evidence.fixes_applied} fix(es); evidence written to {evidence_path}"
-    )
-
+    success(f"Applied {evidence.fixes_applied} fix(es); evidence written to {evidence_path}")

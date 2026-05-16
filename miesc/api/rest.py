@@ -2,7 +2,8 @@
 MIESC REST API - Django REST Framework Implementation
 
 Provides REST endpoints for smart contract security analysis:
-- POST /api/v1/analyze/ - Run security audits
+- POST /api/v1/analyze/quick/ - Run quick security scans
+- POST /api/v1/analyze/full/ - Run full multi-layer audits
 - GET /api/v1/tools/ - List available tools
 - GET /api/v1/layers/ - Layer information
 - GET /api/v1/reports/ - Manage audit reports
@@ -31,14 +32,59 @@ sys.path.insert(0, str(ROOT_DIR))
 
 logger = logging.getLogger(__name__)
 
+
+def _django_settings_kwargs() -> Dict[str, Any]:
+    """Return minimal settings required before importing Django REST Framework."""
+    return {
+        "DEBUG": os.environ.get("MIESC_DEBUG", "false").lower() == "true",
+        "SECRET_KEY": os.environ.get(
+            "MIESC_SECRET_KEY", "miesc-development-key-change-in-production"
+        ),
+        "ROOT_URLCONF": "miesc.api.rest",
+        "ALLOWED_HOSTS": ["*"],
+        "INSTALLED_APPS": [
+            "django.contrib.contenttypes",
+            "django.contrib.auth",
+            "rest_framework",
+            "corsheaders",
+        ],
+        "MIDDLEWARE": [
+            "corsheaders.middleware.CorsMiddleware",
+            "django.middleware.common.CommonMiddleware",
+        ],
+        "CORS_ALLOW_ALL_ORIGINS": True,
+        "CORS_ALLOW_CREDENTIALS": True,
+        "REST_FRAMEWORK": {
+            "DEFAULT_PERMISSION_CLASSES": [
+                "rest_framework.permissions.AllowAny",
+            ],
+            "DEFAULT_RENDERER_CLASSES": [
+                "rest_framework.renderers.JSONRenderer",
+            ],
+            "DEFAULT_PARSER_CLASSES": [
+                "rest_framework.parsers.JSONParser",
+                "rest_framework.parsers.FormParser",
+                "rest_framework.parsers.MultiPartParser",
+            ],
+            "EXCEPTION_HANDLER": "miesc.api.rest.custom_exception_handler",
+        },
+        "DATABASES": {},
+        "USE_TZ": True,
+    }
+
+
 # Try to import Django components
 try:
     import django
+    from django.apps import apps as django_apps
     from django.conf import settings as django_settings
     from django.core.wsgi import get_wsgi_application as django_get_wsgi_application
     from django.http import HttpRequest, HttpResponse, JsonResponse
     from django.views.decorators.csrf import csrf_exempt
     from django.views.decorators.http import require_http_methods
+
+    if not django_settings.configured:
+        django_settings.configure(**_django_settings_kwargs())
 
     DJANGO_AVAILABLE = True
 except ImportError:
@@ -186,45 +232,11 @@ QUICK_TOOLS = ["slither", "aderyn", "solhint", "mythril"]
 # ============================================================================
 
 
-def configure_django():
+def configure_django() -> None:
     """Configure Django settings if not already configured."""
     if not django_settings.configured:
-        django_settings.configure(
-            DEBUG=os.environ.get("MIESC_DEBUG", "false").lower() == "true",
-            SECRET_KEY=os.environ.get(
-                "MIESC_SECRET_KEY", "miesc-development-key-change-in-production"
-            ),
-            ROOT_URLCONF="miesc.api.rest",
-            ALLOWED_HOSTS=["*"],
-            INSTALLED_APPS=[
-                "django.contrib.contenttypes",
-                "django.contrib.auth",
-                "rest_framework",
-                "corsheaders",
-            ],
-            MIDDLEWARE=[
-                "corsheaders.middleware.CorsMiddleware",
-                "django.middleware.common.CommonMiddleware",
-            ],
-            CORS_ALLOW_ALL_ORIGINS=True,
-            CORS_ALLOW_CREDENTIALS=True,
-            REST_FRAMEWORK={
-                "DEFAULT_PERMISSION_CLASSES": [
-                    "rest_framework.permissions.AllowAny",
-                ],
-                "DEFAULT_RENDERER_CLASSES": [
-                    "rest_framework.renderers.JSONRenderer",
-                ],
-                "DEFAULT_PARSER_CLASSES": [
-                    "rest_framework.parsers.JSONParser",
-                    "rest_framework.parsers.FormParser",
-                    "rest_framework.parsers.MultiPartParser",
-                ],
-                "EXCEPTION_HANDLER": "miesc.api.rest.custom_exception_handler",
-            },
-            DATABASES={},
-            USE_TZ=True,
-        )
+        django_settings.configure(**_django_settings_kwargs())
+    if not django_apps.ready:
         django.setup()
 
 
@@ -264,7 +276,7 @@ class AdapterLoader:
         return cls._adapters
 
     @classmethod
-    def get_adapter(cls, tool_name: str):
+    def get_adapter(cls, tool_name: str) -> Any | None:
         """Get a specific adapter by name."""
         if not cls._loaded:
             cls.load_all()
@@ -301,7 +313,7 @@ class AdapterLoader:
 # ============================================================================
 
 
-def run_tool(tool: str, contract_path: str, timeout: int = 300, **kwargs) -> Dict[str, Any]:
+def run_tool(tool: str, contract_path: str, timeout: int = 300, **kwargs: Any) -> Dict[str, Any]:
     """
     Run a single security tool using its adapter.
 
@@ -389,7 +401,7 @@ def run_layer(layer: int, contract_path: str, timeout: int = 300) -> List[Dict[s
 
 
 def run_full_audit(
-    contract_path: str, layers: List[int] = None, timeout: int = 600
+    contract_path: str, layers: List[int] | None = None, timeout: int = 600
 ) -> Dict[str, Any]:
     """Run a complete multi-layer audit."""
     if layers is None:
@@ -397,7 +409,7 @@ def run_full_audit(
 
     audit_id = str(uuid.uuid4())
     start_time = datetime.now(timezone.utc)
-    all_results = []
+    all_results: List[Dict[str, Any]] = []
 
     for layer in layers:
         if layer in LAYERS:
@@ -442,7 +454,7 @@ def summarize_findings(results: List[Dict[str, Any]]) -> Dict[str, int]:
 
 def to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Convert results to SARIF 2.1.0 format for GitHub Code Scanning."""
-    sarif = {
+    sarif: Dict[str, Any] = {
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": "2.1.0",
         "runs": [
@@ -460,7 +472,7 @@ def to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
         ],
     }
 
-    rule_ids = set()
+    rule_ids: set[Any] = set()
 
     for result in results:
         tool_name = result.get("tool", "unknown")
@@ -518,7 +530,7 @@ def to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 # ============================================================================
 
 
-def custom_exception_handler(exc, context):
+def custom_exception_handler(exc: Exception, context: Dict[str, Any]) -> Any:
     """Custom exception handler for DRF."""
     if DRF_AVAILABLE:
         from rest_framework.views import exception_handler
@@ -885,7 +897,7 @@ if DRF_AVAILABLE:
         AdapterLoader.load_all()
 
         tools_by_layer = {}
-        all_tools = []
+        all_tools: List[Dict[str, Any]] = []
 
         for layer_num, layer_info in LAYERS.items():
             layer_tools = []
@@ -1071,7 +1083,7 @@ if DRF_AVAILABLE:
                 dependencies[dep] = {"available": False, "version": None}
 
         # Count tools by status
-        all_tools = []
+        all_tools: List[str] = []
         for layer_info in LAYERS.values():
             all_tools.extend(layer_info["tools"])
 
@@ -1193,7 +1205,7 @@ if DJANGO_AVAILABLE:
 # ============================================================================
 
 
-def create_app():
+def create_app() -> bool:
     """Create and configure the Django application."""
     if not DJANGO_AVAILABLE:
         raise ImportError(
@@ -1208,14 +1220,14 @@ def create_app():
     return True
 
 
-def get_wsgi_application():
+def get_wsgi_application() -> Any:
     """Get the WSGI application."""
     create_app()
     return django_get_wsgi_application()
 
 
 # Create the app instance
-app = None
+app: Any | None = None
 if DJANGO_AVAILABLE:
     try:
         create_app()
@@ -1229,7 +1241,7 @@ if DJANGO_AVAILABLE:
 # ============================================================================
 
 
-def run_server(host: str = "0.0.0.0", port: int = 5001, debug: bool = False):
+def run_server(host: str = "0.0.0.0", port: int = 5001, debug: bool = False) -> None:
     """Run the Django development server."""
     if not DJANGO_AVAILABLE:
         print(

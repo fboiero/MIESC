@@ -4,7 +4,7 @@
 # Author: Fernando Boiero - UNDEF
 # Thesis: Master's in Cyberdefense
 
-.PHONY: help install test lint audit experiments clean clean-build clean-all clean-local-artifacts local-artifacts docs docker mcp build build-check publish-test publish release sphinx-build sphinx-serve sphinx-clean sphinx-api mutate mutate-run mutate-results mutate-html mutate-check docker-build docker-run researcher-bootstrap researcher-smoke verify reproducibility citation version
+.PHONY: help install install-dev test test-quick lint typecheck format audit audit-fast experiments experiments-run experiments-analyze mcp-manifest mcp-server docs docs-build docs-deploy install-docs sphinx-build sphinx-serve sphinx-clean sphinx-api clean clean-build clean-all clean-local-artifacts local-artifacts build build-check publish-test publish release docker-build docker-run researcher-bootstrap researcher-smoke verify reproducibility citation version security security-sast security-deps security-secrets policy-check pre-commit-install pre-commit-run test-coverage security-report shift-left rest-api rest-test mcp-rest mcp-test demo demo-simple all-checks quick-check bench ablation sbom reproduce dataset-verify academic-report mutate mutate-run mutate-quick mutate-results mutate-html mutate-show mutate-check mutate-clean
 
 # Default target
 .DEFAULT_GOAL := help
@@ -36,7 +36,7 @@ install:  ## Install dependencies
 install-dev:  ## Install development dependencies
 	@echo "$(BLUE)Installing development dependencies...$(NC)"
 	$(PYTHON) -m pip install -r requirements/requirements.txt
-	$(PYTHON) -m pip install pytest pytest-cov black flake8 mypy
+	$(PYTHON) -m pip install pytest pytest-cov ruff black mypy
 	@echo "$(GREEN)✓ Development dependencies installed$(NC)"
 
 test:  ## Run unit tests
@@ -49,19 +49,21 @@ test-quick:  ## Run quick tests (no coverage)
 	$(PYTHON) -m pytest tests/ -v -x
 	@echo "$(GREEN)✓ Quick tests complete$(NC)"
 
-lint:  ## Run linters (flake8, black, mypy)
+lint:  ## Run blocking linters (ruff)
 	@echo "$(BLUE)Running linters...$(NC)"
-	@echo "  → flake8"
-	flake8 src/ --max-line-length=100 --ignore=E203,W503
-	@echo "  → black (check only)"
-	black --check src/
-	@echo "  → mypy"
-	mypy src/ --ignore-missing-imports
+	@echo "  → ruff"
+	$(PYTHON) -m ruff check miesc/ src/ tests/
+	@echo "  → ruff import sorting"
+	$(PYTHON) -m ruff check miesc/ src/ tests/ --select I001
 	@echo "$(GREEN)✓ Linting complete$(NC)"
+
+typecheck:  ## Run public package type checks
+	@echo "$(BLUE)Running public package type checks...$(NC)"
+	$(PYTHON) -m mypy miesc/ --ignore-missing-imports --follow-imports=skip --disable-error-code=import-untyped
 
 format:  ## Format code with black
 	@echo "$(BLUE)Formatting code...$(NC)"
-	black src/ tests/
+	black miesc/ src/ tests/
 	@echo "$(GREEN)✓ Code formatted$(NC)"
 
 audit:  ## Run sample audit
@@ -92,28 +94,29 @@ experiments-analyze:  ## Analyze experiment results
 	$(PYTHON) analysis/experiments/20_analyze_results.py
 	@echo "$(GREEN)✓ Analysis complete$(NC)"
 
-mcp-manifest:  ## Generate MCP manifest
-	@echo "$(BLUE)Generating MCP manifest...$(NC)"
-	$(PYTHON) src/miesc_cli.py mcp-server --export-manifest
-	@echo "$(GREEN)✓ Manifest generated: mcp/manifest.json$(NC)"
+mcp-manifest:  ## Generate local tool inventory for MCP integration
+	@echo "$(BLUE)Generating MCP tool inventory...$(NC)"
+	@mkdir -p mcp
+	@$(PYTHON) -m miesc tools list > mcp/tools.txt
+	@echo "$(GREEN)✓ Tool inventory generated: mcp/tools.txt$(NC)"
 
 mcp-server:  ## Start MCP server
 	@echo "$(BLUE)Starting MIESC MCP server...$(NC)"
-	$(PYTHON) src/mcp_core/server.py
+	@$(PYTHON) -m miesc server mcp
 
 docs:  ## Serve documentation locally with MkDocs
 	@echo "$(BLUE)Starting MkDocs development server...$(NC)"
 	@echo "$(YELLOW)Opening browser at http://127.0.0.1:8000$(NC)"
-	@mkdocs serve
+	@mkdocs serve -f docs/mkdocs.yml
 
 docs-build:  ## Build static documentation site
 	@echo "$(BLUE)Building documentation site...$(NC)"
-	@mkdocs build
+	@mkdocs build -f docs/mkdocs.yml
 	@echo "$(GREEN)✓ Documentation built in site/$(NC)"
 
 docs-deploy:  ## Deploy documentation to GitHub Pages
 	@echo "$(BLUE)Deploying documentation to GitHub Pages...$(NC)"
-	@mkdocs gh-deploy --force
+	@mkdocs gh-deploy -f docs/mkdocs.yml --force
 	@echo "$(GREEN)✓ Documentation deployed to https://fboiero.github.io/MIESC$(NC)"
 
 install-docs:  ## Install documentation dependencies
@@ -226,12 +229,12 @@ release: build build-check  ## Full release pipeline (build + check)
 
 docker-build:  ## Build Docker image
 	@echo "$(BLUE)Building Docker image...$(NC)"
-	docker build -f docker/Dockerfile -t miesc:5.4.0 -t miesc:latest .
+	docker build -f docker/Dockerfile -t miesc:5.4.2 -t miesc:latest .
 	@echo "$(GREEN)✓ Docker image built$(NC)"
 
 docker-run:  ## Run MIESC in Docker
 	@echo "$(BLUE)Running MIESC in Docker...$(NC)"
-	docker run --rm -v $(PWD):/workspace miesc:5.4.0 --help
+	docker run --rm -v $(PWD):/workspace miesc:5.4.2 --help
 
 researcher-bootstrap:  ## Install isolated full-tool researcher dependencies
 	@echo "$(BLUE)Bootstrapping researcher toolchain...$(NC)"
@@ -276,7 +279,7 @@ citation:  ## Show citation information
 
 version:  ## Show version information
 	@echo "$(BLUE)MIESC Version Information:$(NC)"
-	@echo "Version: 5.4.0"
+	@echo "Version: 5.4.2"
 	@echo "Author: Fernando Boiero"
 	@echo "Institution: UNDEF - IUA Córdoba"
 	@echo "License: AGPL-3.0-only"
@@ -309,12 +312,12 @@ security-secrets:  ## Scan for secrets
 	@grep -r -n -E "(api[_-]?key|password|secret|token)\s*=\s*['\"][^'\"]+['\"]" src/ || echo "  ✓ No secrets found"
 	@echo "$(GREEN)✓ Secret scan complete$(NC)"
 
-policy-check:  ## Run PolicyAgent compliance validation
-	@echo "$(BLUE)Running PolicyAgent...$(NC)"
-	@$(PYTHON) src/miesc_policy_agent.py \
-		--repo-path . \
-		--output-json analysis/policy/compliance_report.json \
-		--output-md analysis/policy/compliance_report.md
+policy-check:  ## Run compliance mapping validation
+	@echo "$(BLUE)Running compliance mapping check...$(NC)"
+	@mkdir -p analysis/policy
+	@$(PYTHON) -m miesc compliance examples/contracts/results.json \
+		--output analysis/policy/compliance_report.md \
+		--format markdown
 	@echo "$(GREEN)✓ Policy validation complete$(NC)"
 
 pre-commit-install:  ## Install pre-commit hooks
@@ -341,8 +344,8 @@ test-coverage:  ## Run tests with detailed coverage report
 security-report:  ## Generate comprehensive security report
 	@echo "$(BLUE)Generating security report...$(NC)"
 	@mkdir -p analysis/security
-	@$(PYTHON) src/miesc_security_checks.py > analysis/security/security_scan.json
-	@echo "$(GREEN)✓ Security report: analysis/security/security_scan.json$(NC)"
+	@$(PYTHON) -m miesc doctor --verbose > analysis/security/security_scan.txt
+	@echo "$(GREEN)✓ Security report: analysis/security/security_scan.txt$(NC)"
 
 shift-left:  ## Run complete Shift-Left security pipeline locally
 	@echo "$(BLUE)Running Shift-Left Security Pipeline...$(NC)"
@@ -358,24 +361,29 @@ shift-left:  ## Run complete Shift-Left security pipeline locally
 	@make policy-check
 	@echo "$(GREEN)✓ Shift-Left pipeline complete$(NC)"
 
-mcp-rest:  ## Start MCP REST API server (Flask)
-	@echo "$(BLUE)Starting MIESC MCP REST API on port 5001...$(NC)"
-	@$(PYTHON) src/miesc_mcp_rest.py --host 0.0.0.0 --port 5001
+rest-api:  ## Start local REST API server
+	@echo "$(BLUE)Starting MIESC REST API on port 8000...$(NC)"
+	@$(PYTHON) -m miesc.api.rest --host 0.0.0.0 --port 8000
 
-mcp-test:  ## Test MCP endpoints
-	@echo "$(BLUE)Testing MCP endpoints...$(NC)"
-	@curl -s http://localhost:5001/mcp/capabilities | $(PYTHON) -m json.tool
-	@echo "$(GREEN)✓ MCP test complete$(NC)"
+rest-test:  ## Test local REST API endpoint
+	@echo "$(BLUE)Testing local REST API endpoint...$(NC)"
+	@curl -s http://localhost:8000/api/v1/health/ | $(PYTHON) -m json.tool
+	@echo "$(GREEN)✓ REST API test complete$(NC)"
+
+mcp-rest: rest-api  ## Compatibility alias for rest-api
+
+mcp-test: rest-test  ## Compatibility alias for rest-test
 
 demo:  ## Run interactive demo (5 minutes)
 	@echo "$(BLUE)Running MIESC Interactive Demo...$(NC)"
 	@echo "$(YELLOW)This will analyze 3 vulnerable contracts and demonstrate all features$(NC)"
-	@bash demo/run_demo.sh
-	@echo "$(GREEN)✓ Demo complete! Results in demo/expected_outputs/$(NC)"
+	@bash examples/run_demo.sh
+	@echo "$(GREEN)✓ Demo complete!$(NC)"
 
 demo-simple:  ## Run simple demo (1 contract only)
 	@echo "$(BLUE)Running simple demo...$(NC)"
-	@$(PYTHON) src/miesc_cli.py run-audit demo/sample_contracts/Reentrancy.sol \
+	@mkdir -p demo/expected_outputs
+	@$(PYTHON) -m miesc audit quick examples/contracts/VulnerableBank.sol \
 		--output demo/expected_outputs/simple_demo.json
 	@echo "$(GREEN)✓ Simple demo complete$(NC)"
 
@@ -383,6 +391,7 @@ all-checks:  ## Run all quality checks (recommended before commit)
 	@echo "$(BLUE)Running all quality checks...$(NC)"
 	@make format
 	@make lint
+	@make typecheck
 	@make security
 	@make test
 	@make policy-check
@@ -391,6 +400,7 @@ all-checks:  ## Run all quality checks (recommended before commit)
 quick-check:  ## Quick check before commit (fast)
 	@echo "$(BLUE)Running quick checks...$(NC)"
 	@make lint
+	@make typecheck
 	@make test-quick
 	@echo "$(GREEN)✓ Quick checks passed$(NC)"
 

@@ -7,7 +7,7 @@ A professional CLI for smart contract security audits targeting:
 - Security Researchers: Deep analysis, custom configurations
 - Auditors: Full reports, compliance mapping
 
-Integrates 50 configured tool adapters across 9 defense layers.
+Integrates the configured 9-layer security tool stack.
 
 Author: Fernando Boiero
 Institution: UNDEF - IUA Cordoba
@@ -72,15 +72,15 @@ logger = logging.getLogger(__name__)
 @click.option("--debug", "-d", is_flag=True, help="Enable debug mode (verbose logging)")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-essential output")
 @click.pass_context
-def cli(ctx, version, no_banner, debug, quiet):
+def cli(ctx: click.Context, version: bool, no_banner: bool, debug: bool, quiet: bool) -> None:
     """
     MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
 
-    A comprehensive blockchain security framework with 50 configured tool adapters
+    A comprehensive blockchain security framework with a configured tool stack
     across 9 defense layers.
 
     Quick Start:
-      miesc audit quick contract.sol    # Fast 4-tool scan
+      miesc audit quick contract.sol    # Fast 3-tool scan
       miesc audit full contract.sol     # Complete 9-layer audit
       miesc tools list                  # Show available tools
       miesc doctor                      # Check tool availability

@@ -13,6 +13,7 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -123,7 +124,7 @@ COMPLIANCE_MAP = {
 @click.option("--output", "-o", type=click.Path(), help="Output file (JSON or Markdown)")
 @click.option("--format", "-f", "fmt", type=click.Choice(["json", "markdown"]), default="markdown")
 @click.option("--quiet", "-q", is_flag=True)
-def compliance(results_file, standard, output, fmt, quiet):
+def compliance(results_file: str, standard: str, output: str | None, fmt: str, quiet: bool) -> None:
     """Map findings to international security standards.
 
     \b
@@ -141,7 +142,7 @@ def compliance(results_file, standard, output, fmt, quiet):
         print_banner()
 
     try:
-        data = json.loads(Path(results_file).read_text())
+        data: dict[str, Any] = json.loads(Path(results_file).read_text(encoding="utf-8"))
     except Exception as e:
         error(f"Failed to load results: {e}")
         sys.exit(1)
@@ -156,30 +157,36 @@ def compliance(results_file, standard, output, fmt, quiet):
         sys.exit(0)
 
     # Map each finding to compliance standards
-    mapped = []
+    mapped: list[dict[str, Any]] = []
     for f in findings:
         canonical = f.get("canonical_category", "")
         standards = COMPLIANCE_MAP.get(canonical, {})
 
         if standard != "all":
             key_map = {
-                "iso27001": "ISO_27001", "nist": "NIST_CSF",
-                "owasp": "OWASP_SC", "swc": "SWC", "cwe": "CWE",
-                "mica": "MiCA", "dora": "DORA",
+                "iso27001": "ISO_27001",
+                "nist": "NIST_CSF",
+                "owasp": "OWASP_SC",
+                "swc": "SWC",
+                "cwe": "CWE",
+                "mica": "MiCA",
+                "dora": "DORA",
             }
             filter_key = key_map.get(standard.lower(), "")
             if filter_key:
                 standards = {k: v for k, v in standards.items() if k == filter_key}
 
         if standards:
-            mapped.append({
-                "finding_type": f.get("type", "unknown"),
-                "severity": f.get("severity", "unknown"),
-                "confidence": f.get("confidence", 0.5),
-                "canonical_category": canonical,
-                "standards": standards,
-                "recommendation": f.get("recommendation", ""),
-            })
+            mapped.append(
+                {
+                    "finding_type": f.get("type", "unknown"),
+                    "severity": f.get("severity", "unknown"),
+                    "confidence": f.get("confidence", 0.5),
+                    "canonical_category": canonical,
+                    "standards": standards,
+                    "recommendation": f.get("recommendation", ""),
+                }
+            )
 
     # Generate output
     if fmt == "json":
@@ -209,7 +216,9 @@ def compliance(results_file, standard, output, fmt, quiet):
         for i, m in enumerate(mapped, 1):
             lines.append(f"## {i}. [{m['severity']}] {m['finding_type']}")
             lines.append("")
-            lines.append(f"**Category**: {m['canonical_category']} | **Confidence**: {m['confidence']:.0%}")
+            lines.append(
+                f"**Category**: {m['canonical_category']} | **Confidence**: {m['confidence']:.0%}"
+            )
             lines.append("")
             lines.append("| Standard | Reference |")
             lines.append("|----------|-----------|")
@@ -224,7 +233,7 @@ def compliance(results_file, standard, output, fmt, quiet):
         output_text = "\n".join(lines)
 
     if output:
-        Path(output).write_text(output_text)
+        Path(output).write_text(output_text, encoding="utf-8")
         success(f"Compliance mapping → {output}")
     else:
         console.print(output_text)

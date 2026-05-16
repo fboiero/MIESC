@@ -34,10 +34,10 @@ class MIESCOrchestrator:
 
     LAYERS = CONFIGURED_LAYERS
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the orchestrator."""
-        self.results = {}
-        self.start_time = None
+        self.results: Dict[str, Any] = {}
+        self.start_time: datetime | None = None
         self.available_tools = self._check_tools()
 
     def _check_tools(self) -> Dict[str, bool]:
@@ -58,7 +58,10 @@ class MIESCOrchestrator:
         return tools
 
     def analyze(
-        self, contract_path: str, layers: List[str] = None, tools: List[str] = None
+        self,
+        contract_path: str,
+        layers: List[int | str] | None = None,
+        tools: List[str] | None = None,
     ) -> Dict[str, Any]:
         """
         Analyze a contract using specified layers/tools.
@@ -76,8 +79,8 @@ class MIESCOrchestrator:
     def audit(
         self,
         contract_path: str,
-        layers: List[int] = None,
-        tools: List[str] = None,
+        layers: List[int | str] | None = None,
+        tools: List[str] | None = None,
         timeout: int = 600,
         verbose: bool = False,
     ) -> Dict[str, Any]:
@@ -100,7 +103,7 @@ class MIESCOrchestrator:
         if not os.path.exists(contract_path):
             raise FileNotFoundError(f"Contract not found: {contract_path}")
 
-        results = {
+        results: Dict[str, Any] = {
             "contract": contract_path,
             "timestamp": self.start_time.isoformat(),
             "miesc_version": VERSION,
@@ -113,7 +116,7 @@ class MIESCOrchestrator:
         }
 
         # Determine which layers to run
-        layers_to_run = layers or list(self.LAYERS.keys())
+        layers_to_run: List[int | str] = layers or list(self.LAYERS.keys())
 
         for layer_num in layers_to_run:
             if isinstance(layer_num, str):
@@ -140,12 +143,12 @@ class MIESCOrchestrator:
         layer_num: int,
         layer_info: Dict,
         contract_path: str,
-        tools: List[str],
+        tools: List[str] | None,
         timeout: int,
         verbose: bool,
     ) -> Dict:
         """Run a specific layer's tools."""
-        layer_results = {
+        layer_results: Dict[str, Any] = {
             "layer": layer_num,
             "name": layer_info["name"],
             "tools_run": [],

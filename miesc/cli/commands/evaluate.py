@@ -21,7 +21,7 @@ import time
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, DefaultDict, Dict, List, Optional, Set
 
 import click
 
@@ -64,35 +64,91 @@ SMARTBUGS_CATEGORIES = {
 
 # Category aliases (tools report different names for same vuln class)
 CATEGORY_ALIASES = {
-    "reentrancy": {"reentrancy", "reentrancy-eth", "reentrancy-no-eth", "reentrancy-benign",
-                   "reentrancy-events", "reentrancy-unlimited-gas", "reentrant",
-                   "reentrancy_eth", "reentrancy_no_eth", "reentrancy_benign",
-                   "reentrancy_events", "reentrancy_unlimited_gas",
-                   "controlled-delegatecall", "delegatecall-loop"},
-    "access_control": {"access_control", "access-control", "suicidal", "unprotected-selfdestruct",
-                       "tx-origin", "tx.origin", "missing-access-control", "arbitrary-send-eth",
-                       "unprotected_selfdestruct", "missing_access_control",
-                       "arbitrary_send_eth", "protected-vars", "ownership",
-                       "incorrect_constructor_name", "delegatecall_unprotected",
-                       "delegatecall_to_untrusted", "mapping_write_arbitrary",
-                       "constructor_mismatch", "withdraw_no_balance_update",
-                       "confused_comparison"},
-    "arithmetic": {"arithmetic", "integer-overflow", "integer-underflow", "overflow",
-                   "underflow", "unchecked-math", "divide-before-multiply"},
-    "unchecked_low_level_calls": {"unchecked_low_level_calls", "unchecked-lowlevel",
-                                   "unchecked-call-return-value", "unchecked-send",
-                                   "unchecked-transfer", "low-level-calls",
-                                   "unchecked_send", "unchecked_transfer",
-                                   "unchecked_call_return_value", "low_level_calls",
-                                   "calls-loop", "missing-return-value-check"},
-    "denial_of_service": {"denial_of_service", "dos", "dos-gas-limit", "dos-unexpected-revert",
-                          "denial-of-service"},
-    "bad_randomness": {"bad_randomness", "bad-randomness", "weak-randomness", "weak-prng",
-                       "blockhash", "block.timestamp"},
+    "reentrancy": {
+        "reentrancy",
+        "reentrancy-eth",
+        "reentrancy-no-eth",
+        "reentrancy-benign",
+        "reentrancy-events",
+        "reentrancy-unlimited-gas",
+        "reentrant",
+        "reentrancy_eth",
+        "reentrancy_no_eth",
+        "reentrancy_benign",
+        "reentrancy_events",
+        "reentrancy_unlimited_gas",
+        "controlled-delegatecall",
+        "delegatecall-loop",
+    },
+    "access_control": {
+        "access_control",
+        "access-control",
+        "suicidal",
+        "unprotected-selfdestruct",
+        "tx-origin",
+        "tx.origin",
+        "missing-access-control",
+        "arbitrary-send-eth",
+        "unprotected_selfdestruct",
+        "missing_access_control",
+        "arbitrary_send_eth",
+        "protected-vars",
+        "ownership",
+        "incorrect_constructor_name",
+        "delegatecall_unprotected",
+        "delegatecall_to_untrusted",
+        "mapping_write_arbitrary",
+        "constructor_mismatch",
+        "withdraw_no_balance_update",
+        "confused_comparison",
+    },
+    "arithmetic": {
+        "arithmetic",
+        "integer-overflow",
+        "integer-underflow",
+        "overflow",
+        "underflow",
+        "unchecked-math",
+        "divide-before-multiply",
+    },
+    "unchecked_low_level_calls": {
+        "unchecked_low_level_calls",
+        "unchecked-lowlevel",
+        "unchecked-call-return-value",
+        "unchecked-send",
+        "unchecked-transfer",
+        "low-level-calls",
+        "unchecked_send",
+        "unchecked_transfer",
+        "unchecked_call_return_value",
+        "low_level_calls",
+        "calls-loop",
+        "missing-return-value-check",
+    },
+    "denial_of_service": {
+        "denial_of_service",
+        "dos",
+        "dos-gas-limit",
+        "dos-unexpected-revert",
+        "denial-of-service",
+    },
+    "bad_randomness": {
+        "bad_randomness",
+        "bad-randomness",
+        "weak-randomness",
+        "weak-prng",
+        "blockhash",
+        "block.timestamp",
+    },
     "front_running": {"front_running", "front-running", "frontrunning", "transaction-ordering"},
     "short_addresses": {"short_addresses", "short-addresses", "short-address"},
-    "time_manipulation": {"time_manipulation", "time-manipulation", "timestamp-dependence",
-                          "block-timestamp", "timestamp"},
+    "time_manipulation": {
+        "time_manipulation",
+        "time-manipulation",
+        "timestamp-dependence",
+        "block-timestamp",
+        "timestamp",
+    },
     "other": {"other", "unknown", "unclassified"},
 }
 
@@ -116,16 +172,46 @@ def _normalize_category(finding_type: str, title: str = "", description: str = "
     combined_text = f"{title} {description}".lower()
     keyword_map = {
         "reentrancy": ["reentran", "re-entran", "re_entran"],
-        "access_control": ["access control", "unauthorized", "onlyowner", "only owner",
-                           "selfdestruct", "self-destruct", "suicidal", "tx.origin"],
-        "arithmetic": ["overflow", "underflow", "integer overflow", "integer underflow",
-                       "safemath", "unchecked math"],
-        "unchecked_low_level_calls": ["unchecked", "return value", "low-level call",
-                                       "low level call", ".call(", ".send("],
-        "denial_of_service": ["denial of service", "dos", "gas limit", "unbounded loop",
-                              "unexpected revert"],
-        "bad_randomness": ["randomness", "random number", "blockhash", "block.timestamp as random",
-                           "predictable"],
+        "access_control": [
+            "access control",
+            "unauthorized",
+            "onlyowner",
+            "only owner",
+            "selfdestruct",
+            "self-destruct",
+            "suicidal",
+            "tx.origin",
+        ],
+        "arithmetic": [
+            "overflow",
+            "underflow",
+            "integer overflow",
+            "integer underflow",
+            "safemath",
+            "unchecked math",
+        ],
+        "unchecked_low_level_calls": [
+            "unchecked",
+            "return value",
+            "low-level call",
+            "low level call",
+            ".call(",
+            ".send(",
+        ],
+        "denial_of_service": [
+            "denial of service",
+            "dos",
+            "gas limit",
+            "unbounded loop",
+            "unexpected revert",
+        ],
+        "bad_randomness": [
+            "randomness",
+            "random number",
+            "blockhash",
+            "block.timestamp as random",
+            "predictable",
+        ],
         "front_running": ["front-run", "front run", "frontrun", "transaction order"],
         "time_manipulation": ["timestamp", "block.timestamp", "now)", "time manipul"],
     }
@@ -142,7 +228,7 @@ def _load_ground_truth(corpus_dir: Path) -> Dict[str, Set[str]]:
 
     Returns: {contract_path: {category1, category2, ...}}
     """
-    ground_truth = {}
+    ground_truth: Dict[str, Set[str]] = {}
     for category_dir in corpus_dir.iterdir():
         if not category_dir.is_dir():
             continue
@@ -162,9 +248,7 @@ def _load_ground_truth(corpus_dir: Path) -> Dict[str, Set[str]]:
 # =============================================================================
 
 
-def _compute_metrics(
-    tp: int, fp: int, fn: int
-) -> Dict[str, float]:
+def _compute_metrics(tp: int, fp: int, fn: int) -> Dict[str, float]:
     """Compute precision, recall, F1, and accuracy."""
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
@@ -179,9 +263,7 @@ def _compute_metrics(
     }
 
 
-def _compute_cohens_kappa(
-    agreements: int, total: int, p_yes: float, p_no: float
-) -> float:
+def _compute_cohens_kappa(agreements: int, total: int, p_yes: float, p_no: float) -> float:
     """Compute Cohen's kappa for inter-rater reliability."""
     if total == 0:
         return 0.0
@@ -209,7 +291,7 @@ def _evaluate_contract(
 
     Returns per-layer timing, findings, and match results.
     """
-    result = {
+    result: Dict[str, Any] = {
         "contract": str(contract_path),
         "ground_truth": list(ground_truth_categories),
         "layers": {},
@@ -222,8 +304,9 @@ def _evaluate_contract(
         try:
             layer_results = run_layer(layer_num, str(contract_path), timeout)
         except Exception as e:
-            layer_results = [{"tool": f"layer_{layer_num}", "status": "error",
-                             "findings": [], "error": str(e)}]
+            layer_results = [
+                {"tool": f"layer_{layer_num}", "status": "error", "findings": [], "error": str(e)}
+            ]
 
         layer_elapsed = time.perf_counter() - layer_start
         result["timing"][f"layer_{layer_num}"] = round(layer_elapsed, 3)
@@ -267,7 +350,7 @@ def _evaluate_contract(
 
             # Read source code for pattern detection
             try:
-                source_code = contract_path.read_text(errors="ignore")
+                source_code = contract_path.read_text(encoding="utf-8", errors="ignore")
             except Exception:
                 source_code = ""
 
@@ -345,14 +428,13 @@ def _run_ablation(
     output_jsonl: Optional[Path],
 ) -> Dict[str, Any]:
     """Run ablation study: evaluate each layer independently + combined."""
-    ablation_results = {
+    ablation_results: Dict[str, Any] = {
         "per_layer": {},
         "combined": None,
         "layer_contributions": {},
     }
 
     contracts = list(ground_truth.keys())
-    total_gt_positives = sum(len(cats) for cats in ground_truth.values())
 
     # Per-layer evaluation
     for layer_num in layers:
@@ -360,7 +442,7 @@ def _run_ablation(
         info(f"  Ablation: Layer {layer_num} ({layer_name})...")
 
         layer_tp, layer_fp, layer_fn = 0, 0, 0
-        layer_timing = []
+        layer_timing: list[float] = []
 
         for contract_rel in contracts:
             contract_path = corpus_dir / contract_rel
@@ -392,7 +474,7 @@ def _run_ablation(
                     "fn": list(missed),
                     "time_s": eval_result["timing"].get(f"layer_{layer_num}", 0),
                 }
-                with open(output_jsonl, "a") as f:
+                with open(output_jsonl, "a", encoding="utf-8") as f:
                     f.write(json.dumps(record) + "\n")
 
         metrics = _compute_metrics(layer_tp, layer_fp, layer_fn)
@@ -414,9 +496,7 @@ def _run_ablation(
             continue
 
         gt_cats = ground_truth[contract_rel]
-        eval_result = _evaluate_contract(
-            contract_path, gt_cats, layers, timeout, skip_unavailable
-        )
+        eval_result = _evaluate_contract(contract_path, gt_cats, layers, timeout, skip_unavailable)
 
         detected = set(eval_result["match"]["tp"])
         false_pos = set(eval_result["match"]["fp"])
@@ -429,7 +509,9 @@ def _run_ablation(
         combined_timing.append(total_time)
 
     combined_metrics = _compute_metrics(combined_tp, combined_fp, combined_fn)
-    combined_metrics["avg_time_s"] = round(statistics.mean(combined_timing), 3) if combined_timing else 0
+    combined_metrics["avg_time_s"] = (
+        round(statistics.mean(combined_timing), 3) if combined_timing else 0
+    )
     combined_metrics["total_time_s"] = round(sum(combined_timing), 3)
     ablation_results["combined"] = combined_metrics
 
@@ -468,7 +550,9 @@ def _generate_experiment_card(
             "corpus": str(corpus_dir),
             "corpus_size": results.get("corpus_size", 0),
             "layers_evaluated": layers,
-            "layer_names": {l: LAYERS.get(l, {}).get("name", f"Layer {l}") for l in layers},
+            "layer_names": {
+                layer: LAYERS.get(layer, {}).get("name", f"Layer {layer}") for layer in layers
+            },
             "timeout_per_tool_s": timeout,
             "skip_unavailable": results.get("skip_unavailable", True),
             "total_duration_s": round(duration_s, 1),
@@ -490,7 +574,7 @@ def _generate_experiment_card(
 
 
 @click.group()
-def evaluate():
+def evaluate() -> None:
     """Research evaluation framework for benchmark corpora.
 
     Scientific benchmark harness with ground-truth matching, ablation studies,
@@ -510,27 +594,68 @@ def evaluate():
 
 @evaluate.command("corpus")
 @click.argument("directory", type=click.Path(exists=True))
-@click.option("--layers", "-l", type=str, default="1,5,7,9",
-              help="Comma-separated layer numbers to evaluate (default: 1,5,7,9)")
-@click.option("--timeout", "-t", type=int, default=120,
-              help="Timeout per tool in seconds (default: 120)")
-@click.option("--skip-unavailable", is_flag=True, default=True,
-              help="Skip tools that are not installed (default: True)")
-@click.option("--output", "-o", type=click.Path(),
-              help="Output JSON file for results")
-@click.option("--jsonl", type=click.Path(),
-              help="Stream per-contract results to JSONL file (for ML pipelines)")
-@click.option("--categories", type=str, default=None,
-              help="Filter to specific categories (comma-separated)")
-@click.option("--limit", type=int, default=None,
-              help="Limit number of contracts evaluated (for quick testing)")
-@click.option("--config", type=click.Path(exists=True), default=None,
-              help="Experiment config YAML file (overrides CLI flags)")
-@click.option("--no-intelligence", is_flag=True, default=False,
-              help="Disable intelligence engine (test raw tool output only)")
-@click.option("--with-llm", type=str, default=None,
-              help="Run LLM on missed contracts (e.g., --with-llm ollama or --with-llm claude)")
-def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl, categories, limit, config, no_intelligence, with_llm):
+@click.option(
+    "--layers",
+    "-l",
+    type=str,
+    default="1,5,7,9",
+    help="Comma-separated layer numbers to evaluate (default: 1,5,7,9)",
+)
+@click.option(
+    "--timeout", "-t", type=int, default=120, help="Timeout per tool in seconds (default: 120)"
+)
+@click.option(
+    "--skip-unavailable",
+    is_flag=True,
+    default=True,
+    help="Skip tools that are not installed (default: True)",
+)
+@click.option("--output", "-o", type=click.Path(), help="Output JSON file for results")
+@click.option(
+    "--jsonl",
+    type=click.Path(),
+    help="Stream per-contract results to JSONL file (for ML pipelines)",
+)
+@click.option(
+    "--categories", type=str, default=None, help="Filter to specific categories (comma-separated)"
+)
+@click.option(
+    "--limit",
+    type=int,
+    default=None,
+    help="Limit number of contracts evaluated (for quick testing)",
+)
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    default=None,
+    help="Experiment config YAML file (overrides CLI flags)",
+)
+@click.option(
+    "--no-intelligence",
+    is_flag=True,
+    default=False,
+    help="Disable intelligence engine (test raw tool output only)",
+)
+@click.option(
+    "--with-llm",
+    type=str,
+    default=None,
+    help="Run LLM on missed contracts (e.g., --with-llm ollama or --with-llm claude)",
+)
+def evaluate_corpus(
+    directory: str,
+    layers: str,
+    timeout: int,
+    skip_unavailable: bool,
+    output: str | None,
+    jsonl: str | None,
+    categories: str | None,
+    limit: int | None,
+    config: str | None,
+    no_intelligence: bool,
+    with_llm: str | None,
+) -> None:
     """Evaluate MIESC against an annotated benchmark corpus.
 
     The corpus directory must follow the SmartBugs-curated structure:
@@ -554,11 +679,12 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
     if config:
         try:
             import yaml
-            with open(config) as f:
-                cfg = yaml.safe_load(f)
+
+            with open(config, encoding="utf-8") as f:
+                cfg = yaml.safe_load(f) or {}
             layers = cfg.get("layers", layers)
             if isinstance(layers, list):
-                layers = ",".join(str(l) for l in layers)
+                layers = ",".join(str(layer) for layer in layers)
             timeout = cfg.get("timeout", timeout)
             skip_unavailable = cfg.get("skip_unavailable", skip_unavailable)
             categories = cfg.get("categories", categories)
@@ -584,9 +710,9 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
     info(f"Evaluating layers: {layer_list}")
 
     # Parse category filter
-    category_filter = None
+    category_filter: set[str] | None = None
     if categories:
-        category_filter = set(c.strip() for c in categories.split(","))
+        category_filter = {category.strip() for category in categories.split(",")}
         info(f"Category filter: {category_filter}")
 
     # Load ground truth
@@ -597,10 +723,7 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
 
     # Apply category filter
     if category_filter:
-        ground_truth = {
-            k: v for k, v in ground_truth.items()
-            if v & category_filter
-        }
+        ground_truth = {k: v for k, v in ground_truth.items() if v & category_filter}
 
     # Apply limit
     contracts = list(ground_truth.keys())
@@ -608,16 +731,20 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
         contracts = contracts[:limit]
         info(f"Limited to {limit} contracts")
 
-    info(f"Corpus: {len(contracts)} contracts, {len(set().union(*ground_truth.values()))} categories")
+    info(
+        f"Corpus: {len(contracts)} contracts, {len(set().union(*ground_truth.values()))} categories"
+    )
 
     # Initialize JSONL output
     if jsonl:
-        Path(jsonl).write_text("")  # Clear file
+        Path(jsonl).write_text("", encoding="utf-8")  # Clear file
 
     # Run evaluation
     start_time = time.perf_counter()
-    all_results = []
-    category_metrics = defaultdict(lambda: {"tp": 0, "fp": 0, "fn": 0, "timing": []})
+    all_results: list[dict[str, Any]] = []
+    category_metrics: DefaultDict[str, dict[str, int]] = defaultdict(
+        lambda: {"tp": 0, "fp": 0, "fn": 0}
+    )
     total_tp, total_fp, total_fn = 0, 0, 0
 
     if RICH_AVAILABLE:
@@ -637,7 +764,11 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
 
                 gt_cats = ground_truth[contract_rel]
                 eval_result = _evaluate_contract(
-                    contract_path, gt_cats, layer_list, timeout, skip_unavailable,
+                    contract_path,
+                    gt_cats,
+                    layer_list,
+                    timeout,
+                    skip_unavailable,
                     use_intelligence=not no_intelligence,
                 )
                 all_results.append(eval_result)
@@ -672,7 +803,7 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
                         "timing": eval_result["timing"],
                         "layers": eval_result["layers"],
                     }
-                    with open(jsonl, "a") as f:
+                    with open(jsonl, "a", encoding="utf-8") as f:
                         f.write(json.dumps(record) + "\n")
 
                 progress.advance(task)
@@ -684,7 +815,11 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
 
             gt_cats = ground_truth[contract_rel]
             eval_result = _evaluate_contract(
-                contract_path, gt_cats, layer_list, timeout, skip_unavailable,
+                contract_path,
+                gt_cats,
+                layer_list,
+                timeout,
+                skip_unavailable,
                 use_intelligence=not no_intelligence,
             )
             all_results.append(eval_result)
@@ -715,7 +850,7 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
                     "hit": eval_result["match"]["hit"],
                     "timing": eval_result["timing"],
                 }
-                with open(jsonl, "a") as f:
+                with open(jsonl, "a", encoding="utf-8") as f:
                     f.write(json.dumps(record) + "\n")
 
             if (i + 1) % 10 == 0:
@@ -724,7 +859,7 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
     total_time = time.perf_counter() - start_time
 
     # Compute aggregate metrics
-    aggregate = _compute_metrics(total_tp, total_fp, total_fn)
+    aggregate: dict[str, Any] = _compute_metrics(total_tp, total_fp, total_fn)
     aggregate["contracts_evaluated"] = len(all_results)
     aggregate["total_time_s"] = round(total_time, 1)
     aggregate["avg_time_per_contract_s"] = round(total_time / max(len(all_results), 1), 2)
@@ -734,13 +869,15 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
     aggregate["hit_rate"] = round(hits / max(len(all_results), 1), 4)
 
     # Per-category metrics
-    per_category = {}
+    per_category: dict[str, dict[str, float]] = {}
     for cat, counts in sorted(category_metrics.items()):
         per_category[cat] = _compute_metrics(counts["tp"], counts["fp"], counts["fn"])
 
     # Experiment card
     experiment_card = _generate_experiment_card(
-        corpus_dir, layer_list, timeout,
+        corpus_dir,
+        layer_list,
+        timeout,
         {"corpus_size": len(contracts), "skip_unavailable": skip_unavailable},
         total_time,
     )
@@ -772,7 +909,11 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
         cat_table.add_column("F1", justify="right")
 
         for cat, metrics in sorted(per_category.items()):
-            recall_style = "green" if metrics["recall"] >= 0.8 else ("yellow" if metrics["recall"] >= 0.5 else "red")
+            recall_style = (
+                "green"
+                if metrics["recall"] >= 0.8
+                else ("yellow" if metrics["recall"] >= 0.5 else "red")
+            )
             cat_table.add_row(
                 cat,
                 str(metrics["tp"]),
@@ -784,7 +925,7 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
             )
         console.print(cat_table)
     else:
-        print(f"\n=== Evaluation Results ===")  # noqa: T201
+        print("\n=== Evaluation Results ===")  # noqa: T201
         print(f"  Contracts: {aggregate['contracts_evaluated']}")  # noqa: T201
         print(f"  Precision: {aggregate['precision']:.1%}")  # noqa: T201
         print(f"  Recall: {aggregate['recall']:.1%}")  # noqa: T201
@@ -801,12 +942,12 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
     }
 
     if output:
-        Path(output).write_text(json.dumps(full_output, indent=2, default=str))
+        Path(output).write_text(json.dumps(full_output, indent=2, default=str), encoding="utf-8")
         success(f"Results saved to {output}")
 
     if jsonl:
         # Append summary record
-        with open(jsonl, "a") as f:
+        with open(jsonl, "a", encoding="utf-8") as f:
             f.write(json.dumps({"type": "summary", **aggregate}) + "\n")
         success(f"JSONL streamed to {jsonl}")
 
@@ -833,12 +974,13 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
                     llm_findings = llm_result.get("findings", [])
                     llm_cats = set()
                     for f in llm_findings:
-                        cat = _normalize_category(
-                            f.get("type", ""), f.get("title", ""),
+                        llm_cat = _normalize_category(
+                            f.get("type", ""),
+                            f.get("title", ""),
                             f.get("description", ""),
                         )
-                        if cat:
-                            llm_cats.add(cat)
+                        if llm_cat:
+                            llm_cats.add(llm_cat)
                     recovered = fn_cats & llm_cats
                     if recovered:
                         llm_recovered += len(recovered)
@@ -850,34 +992,54 @@ def evaluate_corpus(directory, layers, timeout, skip_unavailable, output, jsonl,
 
             hybrid_tp = total_tp + llm_recovered
             hybrid_fn = total_fn - llm_recovered
-            hybrid_recall = hybrid_tp / (hybrid_tp + hybrid_fn) if (hybrid_tp + hybrid_fn) > 0 else 0
+            hybrid_recall = (
+                hybrid_tp / (hybrid_tp + hybrid_fn) if (hybrid_tp + hybrid_fn) > 0 else 0
+            )
             info(f"\n  LLM recovered {llm_recovered} additional TP")
-            success(f"  Hybrid recall (static+intelligence+LLM): {hybrid_recall:.1%} "
-                    f"({hybrid_tp}/{hybrid_tp + hybrid_fn})")
+            success(
+                f"  Hybrid recall (static+intelligence+LLM): {hybrid_recall:.1%} "
+                f"({hybrid_tp}/{hybrid_tp + hybrid_fn})"
+            )
         except ImportError:
             warning("FrontierLLMAdapter not available")
         except Exception as e:
             warning(f"LLM follow-up failed: {e}")
 
-    success(f"Evaluation complete: recall={aggregate['recall']:.1%}, "
-            f"precision={aggregate['precision']:.1%}, F1={aggregate['f1']:.1%}")
+    success(
+        f"Evaluation complete: recall={aggregate['recall']:.1%}, "
+        f"precision={aggregate['precision']:.1%}, F1={aggregate['f1']:.1%}"
+    )
 
 
 @evaluate.command("ablation")
 @click.argument("directory", type=click.Path(exists=True))
-@click.option("--layers", "-l", type=str, default="1,5,7,9",
-              help="Comma-separated layer numbers to ablate (default: 1,5,7,9)")
-@click.option("--timeout", "-t", type=int, default=120,
-              help="Timeout per tool in seconds (default: 120)")
-@click.option("--skip-unavailable", is_flag=True, default=True,
-              help="Skip tools that are not installed")
-@click.option("--output", "-o", type=click.Path(),
-              help="Output JSON file for ablation results")
-@click.option("--jsonl", type=click.Path(),
-              help="Stream results to JSONL file")
-@click.option("--limit", type=int, default=None,
-              help="Limit number of contracts (for quick testing)")
-def evaluate_ablation(directory, layers, timeout, skip_unavailable, output, jsonl, limit):
+@click.option(
+    "--layers",
+    "-l",
+    type=str,
+    default="1,5,7,9",
+    help="Comma-separated layer numbers to ablate (default: 1,5,7,9)",
+)
+@click.option(
+    "--timeout", "-t", type=int, default=120, help="Timeout per tool in seconds (default: 120)"
+)
+@click.option(
+    "--skip-unavailable", is_flag=True, default=True, help="Skip tools that are not installed"
+)
+@click.option("--output", "-o", type=click.Path(), help="Output JSON file for ablation results")
+@click.option("--jsonl", type=click.Path(), help="Stream results to JSONL file")
+@click.option(
+    "--limit", type=int, default=None, help="Limit number of contracts (for quick testing)"
+)
+def evaluate_ablation(
+    directory: str,
+    layers: str,
+    timeout: int,
+    skip_unavailable: bool,
+    output: str | None,
+    jsonl: str | None,
+    limit: int | None,
+) -> None:
     """Run per-layer ablation study.
 
     Evaluates each layer independently, then combined, to measure each layer's
@@ -914,12 +1076,16 @@ def evaluate_ablation(directory, layers, timeout, skip_unavailable, output, json
 
     # Initialize JSONL
     if jsonl:
-        Path(jsonl).write_text("")
+        Path(jsonl).write_text("", encoding="utf-8")
 
     # Run ablation
     start_time = time.perf_counter()
     ablation_results = _run_ablation(
-        corpus_dir, ground_truth, layer_list, timeout, skip_unavailable,
+        corpus_dir,
+        ground_truth,
+        layer_list,
+        timeout,
+        skip_unavailable,
         Path(jsonl) if jsonl else None,
     )
     total_time = time.perf_counter() - start_time
@@ -967,25 +1133,31 @@ def evaluate_ablation(directory, layers, timeout, skip_unavailable, output, json
         print("\n=== Ablation Study ===")  # noqa: T201
         for layer_num in layer_list:
             data = ablation_results["per_layer"].get(layer_num, {})
-            print(f"  Layer {layer_num} ({data.get('name', '')}): "  # noqa: T201
-                  f"recall={data.get('recall', 0):.1%}, "
-                  f"precision={data.get('precision', 0):.1%}")
+            print(
+                f"  Layer {layer_num} ({data.get('name', '')}): "  # noqa: T201
+                f"recall={data.get('recall', 0):.1%}, "
+                f"precision={data.get('precision', 0):.1%}"
+            )
         combined = ablation_results["combined"]
         if combined:
-            print(f"  COMBINED: recall={combined['recall']:.1%}, "  # noqa: T201
-                  f"precision={combined['precision']:.1%}")
+            print(
+                f"  COMBINED: recall={combined['recall']:.1%}, "  # noqa: T201
+                f"precision={combined['precision']:.1%}"
+            )
 
     # Save results
     if output:
         full_output = {
             "experiment_card": _generate_experiment_card(
-                corpus_dir, layer_list, timeout,
+                corpus_dir,
+                layer_list,
+                timeout,
                 {"corpus_size": len(ground_truth), "skip_unavailable": skip_unavailable},
                 total_time,
             ),
             "ablation": ablation_results,
         }
-        Path(output).write_text(json.dumps(full_output, indent=2, default=str))
+        Path(output).write_text(json.dumps(full_output, indent=2, default=str), encoding="utf-8")
         success(f"Ablation results saved to {output}")
 
     success(f"Ablation complete in {total_time:.1f}s")
@@ -993,9 +1165,14 @@ def evaluate_ablation(directory, layers, timeout, skip_unavailable, output, json
 
 @evaluate.command("download")
 @click.argument("dataset", type=click.Choice(["smartbugs", "solidifi", "dvd"]))
-@click.option("--output", "-o", type=click.Path(), default=None,
-              help="Output directory (default: ./benchmarks/datasets/<dataset>/)")
-def evaluate_download(dataset, output):
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Output directory (default: ./benchmarks/datasets/<dataset>/)",
+)
+def evaluate_download(dataset: str, output: str | None) -> None:
     """Download a benchmark dataset for evaluation.
 
     Available datasets:
@@ -1077,7 +1254,7 @@ def evaluate_download(dataset, output):
 
 @evaluate.command("info")
 @click.argument("directory", type=click.Path(exists=True))
-def evaluate_info(directory):
+def evaluate_info(directory: str) -> None:
     """Show dataset information: contract count, category distribution, Solidity versions.
 
     Useful for understanding the corpus before running evaluation.
@@ -1095,19 +1272,20 @@ def evaluate_info(directory):
         sys.exit(1)
 
     # Count per category
-    category_counts = defaultdict(int)
+    category_counts: DefaultDict[str, int] = defaultdict(int)
     for cats in ground_truth.values():
         for cat in cats:
             category_counts[cat] += 1
 
     # Detect Solidity versions
-    version_counts = defaultdict(int)
+    version_counts: DefaultDict[str, int] = defaultdict(int)
     for contract_rel in ground_truth:
         contract_path = corpus_dir / contract_rel
         if contract_path.exists():
             try:
-                first_lines = contract_path.read_text(errors="ignore")[:500]
+                first_lines = contract_path.read_text(encoding="utf-8", errors="ignore")[:500]
                 import re
+
                 match = re.search(r"pragma\s+solidity\s+[\^>=<]*\s*([\d.]+)", first_lines)
                 if match:
                     major_minor = ".".join(match.group(1).split(".")[:2])
@@ -1150,7 +1328,7 @@ def evaluate_info(directory):
 @evaluate.command("compare")
 @click.argument("run_a", type=click.Path(exists=True))
 @click.argument("run_b", type=click.Path(exists=True))
-def evaluate_compare(run_a, run_b):
+def evaluate_compare(run_a: str, run_b: str) -> None:
     """Compare two evaluation runs and show statistical differences.
 
     Takes two JSON output files from 'miesc evaluate corpus' and computes
@@ -1162,9 +1340,9 @@ def evaluate_compare(run_a, run_b):
     """
     print_banner()
 
-    with open(run_a) as f:
+    with open(run_a, encoding="utf-8") as f:
         data_a = json.load(f)
-    with open(run_b) as f:
+    with open(run_b, encoding="utf-8") as f:
         data_b = json.load(f)
 
     agg_a = data_a.get("aggregate", {})
@@ -1194,8 +1372,12 @@ def evaluate_compare(run_a, run_b):
         time_a = agg_a.get("total_time_s", 0)
         time_b = agg_b.get("total_time_s", 0)
         speedup = time_a / time_b if time_b > 0 else 0
-        table.add_row("Total Time", f"{time_a:.0f}s", f"{time_b:.0f}s",
-                      f"{speedup:.1f}x" if speedup != 0 else "N/A")
+        table.add_row(
+            "Total Time",
+            f"{time_a:.0f}s",
+            f"{time_b:.0f}s",
+            f"{speedup:.1f}x" if speedup != 0 else "N/A",
+        )
 
         console.print(table)
 
@@ -1217,7 +1399,9 @@ def evaluate_compare(run_a, run_b):
                 delta = r_b - r_a
                 delta_style = "green" if delta > 0 else ("red" if delta < 0 else "dim")
                 cat_table.add_row(
-                    cat, f"{r_a:.1%}", f"{r_b:.1%}",
+                    cat,
+                    f"{r_a:.1%}",
+                    f"{r_b:.1%}",
                     f"[{delta_style}]{delta:+.1%}[/{delta_style}]",
                 )
 
@@ -1232,7 +1416,8 @@ def evaluate_compare(run_a, run_b):
     # Version info
     card_a = data_a.get("experiment_card", {})
     card_b = data_b.get("experiment_card", {})
-    info(f"Run A: MIESC {card_a.get('version', '?')} | "
-         f"Run B: MIESC {card_b.get('version', '?')}")
+    info(
+        f"Run A: MIESC {card_a.get('version', '?')} | " f"Run B: MIESC {card_b.get('version', '?')}"
+    )
 
     success("Comparison complete")

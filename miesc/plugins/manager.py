@@ -12,11 +12,20 @@ import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple, cast
+
+from .config import PluginConfigManager
 
 logger = logging.getLogger(__name__)
 
-from .config import PluginConfigManager
+
+def _entry_points_for_group(group: str) -> Iterable[importlib.metadata.EntryPoint]:
+    """Return entry points for a group across importlib.metadata API versions."""
+    eps = importlib.metadata.entry_points()
+    if hasattr(eps, "select"):
+        return eps.select(group=group)
+    legacy_eps = cast(Dict[str, List[importlib.metadata.EntryPoint]], eps)
+    return legacy_eps.get(group, [])
 
 
 class CompatibilityStatus(Enum):
@@ -154,7 +163,7 @@ def get_miesc_version() -> str:
     try:
         from miesc import __version__
 
-        return __version__
+        return str(__version__)
     except ImportError:
         try:
             return importlib.metadata.version("miesc")
@@ -511,13 +520,7 @@ class PluginManager:
 
         # Get entry points for miesc.detectors
         try:
-            eps = importlib.metadata.entry_points()
-            if hasattr(eps, "select"):
-                # Python 3.10+
-                detector_eps = eps.select(group=self.ENTRY_POINT_GROUP)
-            else:
-                # Python 3.9
-                detector_eps = eps.get(self.ENTRY_POINT_GROUP, [])
+            detector_eps = _entry_points_for_group(self.ENTRY_POINT_GROUP)
         except Exception:
             detector_eps = []
 
@@ -599,7 +602,7 @@ class PluginManager:
         Returns:
             List of PluginInfo for local plugins
         """
-        plugins = []
+        plugins: List[PluginInfo] = []
 
         if not self.LOCAL_PLUGINS_DIR.exists():
             return plugins
@@ -698,19 +701,20 @@ class PluginManager:
         import inspect
         import sys
 
-        detector_classes = []
+        detector_classes: List[type[Any]] = []
 
         # Import BaseDetector for isinstance checks
         try:
-            from miesc.detectors import BaseDetector
+            detector_module = importlib.import_module("miesc.detectors")
         except ImportError:
             try:
-                from src.detectors.detector_api import BaseDetector
+                detector_module = importlib.import_module("src.detectors.detector_api")
             except ImportError:
                 return detector_classes
+        BaseDetectorClass = detector_module.BaseDetector
 
         # Files to check for detectors
-        files_to_check = []
+        files_to_check: List[Path] = []
 
         # Direct detectors.py
         if (plugin_dir / "detectors.py").exists():
@@ -745,8 +749,8 @@ class PluginManager:
                 # Find detector classes
                 for _name, obj in inspect.getmembers(module, inspect.isclass):
                     if (
-                        obj is not BaseDetector
-                        and issubclass(obj, BaseDetector)
+                        obj is not BaseDetectorClass
+                        and issubclass(obj, BaseDetectorClass)
                         and hasattr(obj, "name")
                         and hasattr(obj, "analyze")
                     ):
@@ -772,7 +776,7 @@ class PluginManager:
         Returns:
             List of (detector_name, detector_class) tuples
         """
-        detectors = []
+        detectors: List[Tuple[str, type]] = []
 
         for plugin in self._discover_local_plugins():
             if not plugin.enabled:
@@ -861,15 +865,11 @@ class PluginManager:
         Returns:
             List of (name, detector_class) tuples
         """
-        detectors = []
+        detectors: List[Tuple[str, Any]] = []
 
         # Get detectors from PyPI-installed plugins (entry points)
         try:
-            eps = importlib.metadata.entry_points()
-            if hasattr(eps, "select"):
-                detector_eps = eps.select(group=self.ENTRY_POINT_GROUP)
-            else:
-                detector_eps = eps.get(self.ENTRY_POINT_GROUP, [])
+            detector_eps = _entry_points_for_group(self.ENTRY_POINT_GROUP)
         except Exception:
             detector_eps = []
 
@@ -995,7 +995,7 @@ class PluginManager:
                 continue
 
         # Sort by relevance (exact match first, then alphabetically)
-        def sort_key(pkg):
+        def sort_key(pkg: Dict[str, str]) -> Tuple[int, str]:
             name = pkg["name"].lower()
             if query_lower == name or query_lower == name.replace("miesc-", ""):
                 return (0, name)
@@ -1023,11 +1023,14 @@ class PluginManager:
         """
         from .templates import create_plugin_scaffold
 
-        return create_plugin_scaffold(
-            name=name, output_dir=output_dir, description=description, author=author
+        return cast(
+            Path,
+            create_plugin_scaffold(
+                name=name, output_dir=output_dir, description=description, author=author
+            ),
         )
 
-    def get_marketplace_client(self):
+    def get_marketplace_client(self) -> Any:
         """Get a MarketplaceClient instance.
 
         Returns:
@@ -1037,7 +1040,7 @@ class PluginManager:
 
         return MarketplaceClient()
 
-    def search_marketplace(self, query: str, **kwargs) -> List[Dict[str, str]]:
+    def search_marketplace(self, query: str, **kwargs: Any) -> List[Dict[str, str]]:
         """Search the remote plugin marketplace.
 
         Args:
@@ -1081,7 +1084,7 @@ class PluginManager:
             client = self.get_marketplace_client()
             plugin = client.get_plugin(slug)
             if plugin:
-                return plugin.pypi_package
+                return str(plugin.pypi_package)
         except Exception as e:
             logger.warning("Marketplace slug resolution failed: %s", e)
         return None

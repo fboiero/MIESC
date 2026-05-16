@@ -33,7 +33,7 @@ if RICH_AVAILABLE:
 
 @click.command()
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed information")
-def doctor(verbose):
+def doctor(verbose: bool) -> None:
     """Check tool availability and system health."""
     print_banner()
     info("Checking system health and tool availability...\n")
@@ -55,9 +55,7 @@ def doctor(verbose):
 
         for dep, cmd in dependencies.items():
             try:
-                result = subprocess.run(
-                    cmd.split(), capture_output=True, text=True, timeout=5
-                )
+                result = subprocess.run(cmd.split(), capture_output=True, text=True, timeout=5)
                 version = (
                     result.stdout.strip().split("\n")[0][:40]
                     or result.stderr.strip().split("\n")[0][:40]
@@ -108,19 +106,28 @@ def doctor(verbose):
         # Ollama
         try:
             import urllib.request
+
             req = urllib.request.Request("http://localhost:11434/api/tags")
             resp = urllib.request.urlopen(req, timeout=3)
             import json as _json
+
             models = [m["name"] for m in _json.loads(resp.read()).get("models", [])]
             coder_models = [m for m in models if "coder" in m or "qwen" in m or "codellama" in m]
-            llm_table.add_row("Ollama", "[green]running[/green]",
-                              f"{len(models)} models ({', '.join(coder_models[:3])})")
+            llm_table.add_row(
+                "Ollama",
+                "[green]running[/green]",
+                f"{len(models)} models ({', '.join(coder_models[:3])})",
+            )
         except Exception:
-            llm_table.add_row("Ollama", "[yellow]offline[/yellow]",
-                              "Install: https://ollama.com + ollama pull qwen2.5-coder:14b")
+            llm_table.add_row(
+                "Ollama",
+                "[yellow]offline[/yellow]",
+                "Install: https://ollama.com + ollama pull qwen2.5-coder:14b",
+            )
 
         # Anthropic
         import os
+
         if os.environ.get("ANTHROPIC_API_KEY"):
             llm_table.add_row("Anthropic", "[green]configured[/green]", "ANTHROPIC_API_KEY set")
         else:
@@ -136,9 +143,15 @@ def doctor(verbose):
 
         # Recommendations
         console.print("\n[bold]Quick Start:[/bold]")
-        console.print("  [cyan]miesc scan contract.sol[/cyan]              # Static only (95.8% recall)")
-        console.print("  [cyan]miesc scan contract.sol --model ollama[/cyan]  # + Local LLM (97.9% recall)")
-        console.print("  [cyan]miesc scan contract.sol --ensemble[/cyan]      # Multi-provider (92.5% EVMBench)")
+        console.print(
+            "  [cyan]miesc scan contract.sol[/cyan]              # Static only (95.8% recall)"
+        )
+        console.print(
+            "  [cyan]miesc scan contract.sol --model ollama[/cyan]  # + Local LLM (97.9% recall)"
+        )
+        console.print(
+            "  [cyan]miesc scan contract.sol --ensemble[/cyan]      # Multi-provider (92.5% EVMBench)"
+        )
 
     else:
         print("=== Core Dependencies ===")  # noqa: T201

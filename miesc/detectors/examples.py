@@ -55,7 +55,7 @@ class FlashLoanDetector(BaseDetector):
         r"consult\s*\(",
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -123,7 +123,7 @@ class ReentrancyPatternDetector(BaseDetector):
         r"delete\s+\w+",
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -225,7 +225,7 @@ class AccessControlDetector(BaseDetector):
         r"_checkRole",
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -287,7 +287,7 @@ class TxOriginDetector(BaseDetector):
         "https://swcregistry.io/docs/SWC-115",
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -329,7 +329,7 @@ class UncheckedReturnDetector(BaseDetector):
         "https://swcregistry.io/docs/SWC-104",
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -414,7 +414,7 @@ class SlippageProtectionDetector(BaseDetector):
         r"deadline",
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -497,7 +497,7 @@ class RugPullDetector(BaseDetector):
         r"_mint\s*\(\s*\w+\s*,",
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -560,7 +560,7 @@ class TimestampDependenceDetector(BaseDetector):
         "https://consensys.github.io/smart-contract-best-practices/development-recommendations/solidity-specific/timestamp-dependence/",
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -634,7 +634,7 @@ class ApprovalRaceDetector(BaseDetector):
         "https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM/",
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -686,7 +686,7 @@ class UnboundedLoopDetector(BaseDetector):
         "https://consensys.github.io/smart-contract-best-practices/attacks/denial-of-service/",
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -758,7 +758,7 @@ class HardcodedAddressDetector(BaseDetector):
         "0x000000000000000000000000000000000000dEaD",  # Dead address
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -833,7 +833,7 @@ class MEVVulnerabilityDetector(BaseDetector):
         (r"getAmountsOut.*swap", "Price check before swap is sandwichable"),
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -887,7 +887,7 @@ class DelegateCallDetector(BaseDetector):
         "https://blog.openzeppelin.com/on-the-parity-wallet-multisig-hack-405a8c12e8f7/",
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -950,7 +950,7 @@ class SelfdestructDetector(BaseDetector):
         "https://swcregistry.io/docs/SWC-106",
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 
@@ -1018,7 +1018,7 @@ class WeakRandomnessDetector(BaseDetector):
         (r"keccak256.*block\.", "Hashing block variables is not secure randomness"),
     ]
 
-    def analyze(self, source_code: str, file_path: str = None) -> List[Finding]:
+    def analyze(self, source_code: str, file_path: str | None = None) -> List[Finding]:
         findings = []
         lines = source_code.split("\n")
 

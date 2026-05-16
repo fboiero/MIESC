@@ -33,7 +33,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 # Ensure project root is in path
 _project_root = Path(__file__).parent.parent
@@ -58,7 +58,7 @@ mcp = FastMCP(
     "miesc",
     instructions=(
         f"MIESC v{__version__} - Multi-layer Intelligent Evaluation for Smart Contracts. "
-        "9 defense layers, 50 configured tool adapters, AI-powered correlation."
+        "9 defense layers, configured adapter stack, AI-powered correlation."
     ),
 )
 
@@ -68,39 +68,41 @@ mcp = FastMCP(
 # ---------------------------------------------------------------------------
 
 
-def _get_adapter_loader():
+def _get_adapter_loader() -> Any:
     """Lazy import of AdapterLoader to avoid circular imports."""
-    from miesc.cli.main import AdapterLoader
+    from miesc.cli.utils import AdapterLoader
 
     return AdapterLoader
 
 
-def _get_layers():
+def _get_layers() -> Dict[int, Dict[str, Any]]:
     """Get LAYERS configuration."""
-    from miesc.cli.main import LAYERS
+    from miesc.cli.constants import LAYERS
 
-    return LAYERS
+    return cast(Dict[int, Dict[str, Any]], LAYERS)
 
 
-def _get_adapter_map():
+def _get_adapter_map() -> Dict[str, str]:
     """Get ADAPTER_MAP configuration."""
-    from miesc.cli.main import ADAPTER_MAP
+    from miesc.cli.constants import ADAPTER_MAP
 
-    return ADAPTER_MAP
+    return cast(Dict[str, str], ADAPTER_MAP)
 
 
-def _run_tool_internal(tool: str, contract: str, timeout: int = 300, **kwargs) -> Dict[str, Any]:
+def _run_tool_internal(
+    tool: str, contract: str, timeout: int = 300, **kwargs: Any
+) -> Dict[str, Any]:
     """Run a single tool via its adapter."""
-    from miesc.cli.main import _run_tool
+    from miesc.cli.utils import run_tool
 
-    return _run_tool(tool, contract, timeout, **kwargs)
+    return cast(Dict[str, Any], run_tool(tool, contract, timeout, **kwargs))
 
 
 def _run_layer_internal(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
     """Run all tools in a specific layer."""
-    from miesc.cli.main import _run_layer
+    from miesc.cli.utils import run_layer
 
-    return _run_layer(layer, contract, timeout)
+    return cast(List[Dict[str, Any]], run_layer(layer, contract, timeout))
 
 
 def _validate_contract_path(contract_path: str) -> str:
@@ -464,7 +466,7 @@ async def miesc_detect_exploit_chains(findings_json: str) -> str:
     finding_list = findings if isinstance(findings, list) else []
 
     # Group by location
-    by_file = {}
+    by_file: Dict[str, List[Dict[str, Any]]] = {}
     for f in finding_list:
         loc = f.get("location", {})
         file_key = loc.get("file", "unknown")
@@ -558,7 +560,7 @@ async def miesc_generate_report(
 
     if format == "sarif":
         try:
-            from miesc.cli.main import _to_sarif
+            from miesc.cli.commands.audit import _to_sarif
 
             results = audit_results.get("results", [])
             sarif = _to_sarif(results)
@@ -671,7 +673,9 @@ async def miesc_apply_fix(
         from src.security.remediation_pipeline import remediate_contract
 
         contract = Path(_validate_contract_path(contract_path))
-        patched = Path(output_path) if output_path else contract.with_name(f"{contract.stem}.fixed.sol")
+        patched = (
+            Path(output_path) if output_path else contract.with_name(f"{contract.stem}.fixed.sol")
+        )
         evidence = remediate_contract(
             contract_path=contract,
             results=results,
@@ -708,7 +712,9 @@ async def miesc_validate_remediation(
         from src.security.remediation_pipeline import remediate_contract
 
         contract = Path(_validate_contract_path(contract_path))
-        patched = Path(output_path) if output_path else contract.with_name(f"{contract.stem}.fixed.sol")
+        patched = (
+            Path(output_path) if output_path else contract.with_name(f"{contract.stem}.fixed.sol")
+        )
         evidence = remediate_contract(
             contract_path=contract,
             results=results,
@@ -732,7 +738,7 @@ async def miesc_remediation_evidence_bundle(
     no_regression_bound: int = 2,
 ) -> str:
     """Return the Paper 2-style remediation evidence bundle."""
-    return await miesc_validate_remediation(
+    result = await miesc_validate_remediation(
         results_json=results_json,
         contract_path=contract_path,
         output_path=output_path,
@@ -740,6 +746,7 @@ async def miesc_remediation_evidence_bundle(
         rescan_check=rescan_check,
         no_regression_bound=no_regression_bound,
     )
+    return str(result)
 
 
 @mcp.tool()
@@ -980,7 +987,7 @@ async def miesc_read_contract(contract_path: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def main():
+def main() -> None:
     """Run MIESC MCP server via stdio transport."""
     logging.basicConfig(
         level=logging.WARNING,

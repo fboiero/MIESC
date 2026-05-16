@@ -5,6 +5,7 @@
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -33,7 +34,13 @@ from miesc.cli.utils import error, info, print_banner, success
     help="Contract name for spec headers",
 )
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output")
-def specs(results_file, format, output, contract_name, quiet):
+def specs(
+    results_file: str,
+    format: str,
+    output: str | None,
+    contract_name: str,
+    quiet: bool,
+) -> None:
     """Generate formal verification specs (CVL, Scribble, SMTChecker) from findings.
 
     \b
@@ -52,13 +59,13 @@ def specs(results_file, format, output, contract_name, quiet):
 
     # Load findings
     try:
-        with open(results_file) as f:
+        with open(results_file, encoding="utf-8") as f:
             data = json.load(f)
     except Exception as e:
         error(f"Failed to load {results_file}: {e}")
         sys.exit(1)
 
-    findings = data.get("findings", [])
+    findings: list[dict[str, Any]] = data.get("findings", [])
     # Also check results[].findings (audit output wraps in results array)
     if not findings:
         for r in data.get("results", []):
@@ -91,7 +98,9 @@ def specs(results_file, format, output, contract_name, quiet):
     if count == 0:
         info(f"No specs generated — no findings match {format.upper()} templates")
         info("Supported types per format:")
-        info("  CVL:        reentrancy, access-control, overflow, unchecked-call, timestamp, weak-randomness")
+        info(
+            "  CVL:        reentrancy, access-control, overflow, unchecked-call, timestamp, weak-randomness"
+        )
         info("  Scribble:   reentrancy, access-control, overflow, unchecked-call")
         info("  SMTChecker: overflow, underflow, unchecked-call")
         sys.exit(0)

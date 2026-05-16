@@ -13,6 +13,7 @@ import time
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
+from typing import Any, DefaultDict, List
 
 import click
 
@@ -44,7 +45,7 @@ from miesc.cli.utils import (
 )
 @click.option("--debounce", "-d", type=float, default=1.0, help="Debounce time in seconds")
 @click.option("--recursive", "-r", is_flag=True, default=True, help="Watch subdirectories")
-def watch(directory, profile, debounce, recursive):
+def watch(directory: str, profile: str, debounce: float, recursive: bool) -> None:
     """Watch directory for .sol changes and auto-scan.
 
     Real-time security scanning for Solidity developers.
@@ -67,7 +68,7 @@ def watch(directory, profile, debounce, recursive):
         sys.exit(1)
 
     # Debounce state
-    last_scan_time = defaultdict(float)
+    last_scan_time: DefaultDict[str, float] = defaultdict(float)
     scan_lock = threading.Lock()
 
     # Determine tools based on profile
@@ -86,7 +87,7 @@ def watch(directory, profile, debounce, recursive):
     info("Press Ctrl+C to stop\n")
 
     class SolidityHandler(FileSystemEventHandler):
-        def on_modified(self, event):
+        def on_modified(self, event: Any) -> None:
             if event.is_directory:
                 return
 
@@ -105,11 +106,11 @@ def watch(directory, profile, debounce, recursive):
             # Run scan
             self.run_scan(file_path)
 
-        def on_created(self, event):
+        def on_created(self, event: Any) -> None:
             if not event.is_directory and event.src_path.endswith(".sol"):
                 self.on_modified(event)
 
-        def run_scan(self, file_path):
+        def run_scan(self, file_path: str) -> None:
             file_name = Path(file_path).name
             timestamp = datetime.now().strftime("%H:%M:%S")
 
@@ -118,7 +119,7 @@ def watch(directory, profile, debounce, recursive):
             else:
                 print(f"\n[{timestamp}] Scanning {file_name}...")  # noqa: T201
 
-            all_findings = []
+            all_findings: List[dict[str, Any]] = []
             start_time = time.time()
 
             for tool in tools_to_run:
@@ -144,15 +145,19 @@ def watch(directory, profile, debounce, recursive):
             # v5.2.0: Apply intelligence engine (same as miesc scan)
             try:
                 from src.core.intelligence import enhance_findings
+
                 if all_findings:
                     try:
-                        code_text = open(file_path).read()
+                        code_text = Path(file_path).read_text(encoding="utf-8")
                     except Exception:
                         code_text = ""
-                    enhanced = enhance_findings(all_findings, source_code=code_text, file_path=file_path)
+                    enhanced = enhance_findings(
+                        all_findings, source_code=code_text, file_path=file_path
+                    )
                     all_findings = [f for f in enhanced if not f.get("fp_suppressed")]
             except Exception as e:
                 import logging
+
                 logging.getLogger(__name__).debug(f"Intelligence engine skipped in watch: {e}")
 
             summary = summarize_findings([{"findings": all_findings}])

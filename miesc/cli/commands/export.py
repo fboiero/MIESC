@@ -12,6 +12,7 @@ import io
 import json
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -39,7 +40,7 @@ from miesc.cli.utils import (
     required=True,
 )
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-def export(input_file, fmt, output):
+def export(input_file: str, fmt: str, output: str | None) -> None:
     """Export JSON results to different formats.
 
     Converts MIESC JSON audit results to various output formats
@@ -61,8 +62,8 @@ def export(input_file, fmt, output):
     """
     print_banner()
 
-    with open(input_file) as f:
-        data = json.load(f)
+    with open(input_file, encoding="utf-8") as f:
+        data: dict[str, Any] = json.load(f)
 
     results = data.get("results", [data])
     contract = data.get("contract", input_file)
@@ -186,7 +187,7 @@ def export(input_file, fmt, output):
     if not output:
         output = str(Path(input_file).with_suffix(ext))
 
-    with open(output, "w") as f:
+    with open(output, "w", encoding="utf-8") as f:
         f.write(output_str)
 
     success(f"Exported to {output}")

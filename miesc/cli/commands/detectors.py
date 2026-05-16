@@ -11,6 +11,7 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -33,14 +34,14 @@ if RICH_AVAILABLE:
 
 
 @click.group()
-def detectors():
+def detectors() -> None:
     """Manage and run custom vulnerability detectors."""
     pass
 
 
 @detectors.command("list")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed information")
-def detectors_list(verbose):
+def detectors_list(verbose: bool) -> None:
     """List all registered custom detectors."""
     print_banner()
 
@@ -105,7 +106,9 @@ def detectors_list(verbose):
     type=click.Choice(["critical", "high", "medium", "low", "info"]),
     help="Minimum severity to report",
 )
-def detectors_run(contract, detector, output, severity):
+def detectors_run(
+    contract: str, detector: tuple[str, ...], output: str | None, severity: str | None
+) -> None:
     """Run custom detectors on a contract.
 
     Run all registered detectors or specific ones on a Solidity contract.
@@ -142,8 +145,8 @@ def detectors_run(contract, detector, output, severity):
 
     # Read contract
     contract_path = Path(contract)
-    with open(contract_path, "r", encoding="utf-8") as f:
-        source_code = f.read()
+    with open(contract_path, encoding="utf-8") as contract_file:
+        source_code = contract_file.read()
 
     info(f"Analyzing {contract_path.name}")
 
@@ -161,7 +164,7 @@ def detectors_run(contract, detector, output, severity):
         info(f"Running all {len(detectors_to_run)} detectors")
 
     # Run detectors
-    all_findings = []
+    all_findings: list[Any] = []
     start_time = datetime.now()
 
     for det_name in detectors_to_run:
@@ -219,8 +222,8 @@ def detectors_run(contract, detector, output, severity):
 
     # Summary
     summary = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
-    for f in all_findings:
-        sev = f.severity.value.lower()
+    for finding in all_findings:
+        sev = finding.severity.value.lower()
         if sev in summary:
             summary[sev] += 1
 
@@ -250,14 +253,14 @@ def detectors_run(contract, detector, output, severity):
             "total_findings": len(all_findings),
             "findings": [f.to_dict() for f in all_findings],
         }
-        with open(output, "w") as f:
-            json.dump(data, f, indent=2, default=str)
+        with open(output, "w", encoding="utf-8") as output_file:
+            json.dump(data, output_file, indent=2, default=str)
         success(f"Report saved to {output}")
 
 
 @detectors.command("info")
 @click.argument("detector_name", type=str)
-def detectors_info(detector_name):
+def detectors_info(detector_name: str) -> None:
     """Show detailed information about a detector."""
     print_banner()
 

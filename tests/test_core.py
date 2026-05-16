@@ -2343,7 +2343,10 @@ class TestOptimizedOrchestratorCoverage:
 
         from src.core.optimized_orchestrator import OptimizedOrchestrator
 
-        orchestrator = OptimizedOrchestrator(cache_enabled=True)
+        orchestrator = OptimizedOrchestrator(
+            cache_enabled=True,
+            cache_dir=str(tmp_path / "cache"),
+        )
 
         # Create test file
         test_file = tmp_path / "test.sol"
