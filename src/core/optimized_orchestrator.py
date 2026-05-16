@@ -75,7 +75,11 @@ class ResultCache:
     def __init__(self, cache_dir: Optional[str] = None, ttl_seconds: int = 3600):
         if cache_dir is None:
             miesc_home = os.environ.get("MIESC_HOME")
-            cache_dir = str(Path(miesc_home) / "cache") if miesc_home else os.path.expanduser("~/.miesc/cache")
+            cache_dir = (
+                str(Path(miesc_home) / "cache")
+                if miesc_home
+                else os.path.expanduser("~/.miesc/cache")
+            )
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.ttl_seconds = ttl_seconds
