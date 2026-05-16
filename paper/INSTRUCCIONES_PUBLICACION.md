@@ -16,13 +16,14 @@
 Abrir `/Users/fboiero/Documents/GitHub/MIESC/paper/miesc-paper.pdf` y verificar:
 
 - [ ] Afiliación: "Universidad Tecnológica Nacional (UTN), Facultad Regional Villa María"
-- [ ] Email: fboiero@frvm.utn.edu.ar
-- [ ] 5 tablas sin texto flotando fuera de lugar
-- [ ] 14 referencias en bibliografía
-- [ ] Números: 13 ext + 22 int = 35 modules, 60 RAG patterns
-- [ ] Recall: 54.6% (static), 80% (all layers), 81.8% (exploits)
-- [ ] Cohen's κ = 0.773
-- [ ] Modelo LLM especificado: qwen2.5-coder:14b
+- [ ] Email: {fboiero, smussetta}@frvm.utn.edu.ar
+- [ ] 8 páginas, 6 tablas sin texto flotando fuera de lugar
+- [ ] 15 referencias usadas en bibliografía
+- [ ] Números: 13 ext + 22 int = 35 modules, 93 RAG/source documents
+- [ ] SmartBugs: 95.8% recall, 35.9% F1; local 32B assisted: 97.9% recall
+- [ ] DeFi exploits: 81.8% recall, Cohen's κ = 0.773
+- [ ] EVMBench: 92.5% ensemble recall, 111/120 findings
+- [ ] Modelo LLM especificado: qwen2.5-coder:32b
 - [ ] Comando de reproducibilidad visible (no vacío)
 - [ ] Acknowledgment: UNDEF (tesis) + UTN-FRVM (actual)
 - [ ] Data Availability con link a GitHub
@@ -39,7 +40,7 @@ Abrir `/Users/fboiero/Documents/GitHub/MIESC/paper/miesc-paper.pdf` y verificar:
 
 ```
 Title:       MIESC: A Multi-layer Framework for Automated Smart Contract Security Evaluation
-Authors:     Fernando Boiero (Universidad Tecnológica Nacional, Facultad Regional Villa María)
+Authors:     Fernando Boiero; Sebastian Norberto Mussetta (Universidad Tecnológica Nacional, Facultad Regional Villa María)
 Keywords:    smart contracts, blockchain security, vulnerability detection, static analysis, LLM, RAG
 License:     CC BY 4.0
 ```
@@ -47,22 +48,23 @@ License:     CC BY 4.0
 6. Abstract (copiar tal cual):
 
 ```
-Automated security analysis tools for smart contracts each capture only a
-fraction of existing vulnerabilities, and their high false positive rates
-limit practical adoption. We present MIESC (Multi-layer Intelligent Evaluation
-for Smart Contracts), an open-source framework that orchestrates 13 external
-security tools and 22 internal analysis modules across 9 complementary defense
-layers to provide comprehensive pre-audit triage. MIESC normalizes heterogeneous
-tool outputs, filters false positives using a Retrieval-Augmented Generation
-(RAG) system with 60 vulnerability patterns, and maps findings to 12
-international security standards. Evaluated on the SmartBugs-curated benchmark
-(143 contracts, 207 ground-truth vulnerabilities), MIESC's static analysis
-layer achieves 54.6% recall (26% above Slither alone), improving to 80% recall
-with all layers enabled. On 11 confirmed DeFi exploits totaling $3.3 billion
-in losses, MIESC achieves 81.8% recall with Cohen's kappa = 0.77. For critical
-vulnerability classes, recall reaches 100% on both reentrancy and access
-control. MIESC is freely available under AGPL-3.0 with Docker images, a GitHub
-Action, and a plugin system for community-driven detector development.
+Automated smart contract security tools each capture only a fraction of
+existing vulnerabilities. We present MIESC, an open-source framework that
+orchestrates 35 analysis modules across 9 defense layers: static analysis,
+dynamic testing, symbolic execution, formal verification, AI/LLM analysis,
+pattern detection, DeFi-specific analysis, exploit validation, and consensus.
+MIESC combines RAG-enhanced false-positive filtering, cross-tool Bayesian
+confidence scoring, automated remediation, and multi-provider LLM ensembles.
+On SmartBugs-curated (143 contracts), the static+intelligence profile reaches
+95.8% recall (137/143); adding a local 32B model at zero API cost raises recall
+to 97.9% (140/143). On 11 real DeFi exploits totaling $3.3B in losses, recall
+reaches 81.8% with Cohen's kappa = 0.77. On an EVMBench local high-severity
+extraction (40 audits, 120 findings), a reproducible four-provider union
+ensemble (Claude Sonnet 4.6 + GPT-5 + GPT-4o + local Ollama) detects 111/120
+vulnerabilities (92.5% recall). The best single provider reaches 82.5%; a
+fully local 32B model reaches 59.2% at zero API cost. MIESC is available under
+AGPL-3.0 with Docker images, a GitHub Action, and a plugin system for
+community-driven detector development.
 ```
 
 7. Submit — genera DOI en minutos
@@ -81,8 +83,8 @@ Action, and a plugin system for community-driven detector development.
 Primary Category:    cs.SE
 Cross-list:          cs.CR
 Title:               MIESC: A Multi-layer Framework for Automated Smart Contract Security Evaluation
-Authors:             Fernando Boiero
-Comments:            5 pages, 5 tables, 14 references
+Authors:             Fernando Boiero and Sebastian Norberto Mussetta
+Comments:            8 pages, 6 tables, 15 references
 License:             CC BY 4.0
 ```
 
@@ -127,10 +129,11 @@ submit a paper to arXiv in the cs.CR category.
 The paper presents MIESC, an open-source framework for automated smart
 contract security evaluation that orchestrates 35 analysis modules
 across 9 defense layers. We evaluated it on the SmartBugs-curated
-benchmark — your dataset — achieving 80% recall with all layers enabled
-(85% improvement over Slither alone). We also validated against 11
-real-world DeFi exploits totaling $3.3B in losses, with 81.8% recall
-(Cohen's κ = 0.77).
+benchmark — your dataset — achieving 95.8% recall in the latest
+reproducible profile and 97.9% recall when adding a local 32B model.
+We also validated against 11 real-world DeFi exploits totaling $3.3B
+in losses, with 81.8% recall (Cohen's κ = 0.77), and report 92.5%
+ensemble recall on an EVMBench high-severity extraction.
 
 Your work on SmartBugs (ICSE 2020, ASE 2023) was foundational to our
 evaluation methodology, and we cite both papers.
@@ -168,8 +171,11 @@ submit a paper to arXiv in the cs.CR category.
 The paper presents MIESC, an open-source framework that orchestrates
 multiple security tools — including Slither as a core component of
 Layer 1 — across 9 defense layers. On the SmartBugs-curated benchmark,
-MIESC achieves 80% recall, and on 11 real-world DeFi exploits ($3.3B
-losses), 81.8% recall with 100% on reentrancy and access control.
+MIESC achieves 95.8% recall in the latest SmartBugs-curated
+reproducible profile and 97.9% when adding a local 32B model. On 11
+real-world DeFi exploits ($3.3B losses), it reaches 81.8% recall; on
+an EVMBench high-severity extraction, the multi-provider ensemble
+reaches 92.5% recall.
 
 Your work on Slither is central to our framework and evaluation, and
 we cite it prominently.
@@ -241,8 +247,10 @@ submit a paper to arXiv in the cs.CR category.
 
 The paper presents MIESC, a multi-layer framework for smart contract
 security that integrates Echidna as part of its dynamic testing layer
-(Layer 2). We evaluated it on SmartBugs-curated (80% recall) and
-11 real-world DeFi exploits totaling $3.3B (81.8% recall).
+(Layer 2). We evaluated it on SmartBugs-curated (95.8% recall in the
+latest reproducible profile), 11 real-world DeFi exploits totaling
+$3.3B (81.8% recall), and an EVMBench high-severity extraction where
+the multi-provider ensemble reaches 92.5% recall.
 
 Your work on Echidna (ISSTA 2020) is cited in our paper as a key
 dynamic testing technique.
