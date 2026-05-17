@@ -73,9 +73,9 @@ jobs:
         id: hash
         run: |
           cd dist
-          sha256sum * > SHA256SUMS.txt
+          sha256sum *.whl *.tar.gz > SHA256SUMS.txt
           cat SHA256SUMS.txt
-          echo "hashes=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
+          echo "hashes=$(sha256sum *.whl *.tar.gz | base64 -w0)" >> $GITHUB_OUTPUT
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -124,9 +124,9 @@ jobs:
   publish-test:
     name: Publish to Test PyPI
     needs: [build, sign]
+    if: ${{ vars.ENABLE_TEST_PYPI == 'true' }}
     runs-on: ubuntu-latest
     environment: test-pypi
-    continue-on-error: true  # Don't block PyPI publish if Test PyPI fails
     permissions:
       id-token: write
     steps:
@@ -164,6 +164,7 @@ jobs:
   docker:
     name: Build Docker Image
     needs: publish
+    if: ${{ vars.RELEASE_WORKFLOW_BUILDS_DOCKER == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
