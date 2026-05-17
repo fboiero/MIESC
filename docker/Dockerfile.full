@@ -53,6 +53,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libopenblas-dev \
     libgmp-dev \
     python3-venv \
+    python3.11-dev \
     # For downloading release binaries
     curl \
     ca-certificates \
