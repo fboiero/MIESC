@@ -232,6 +232,30 @@ MIESC now supports security analysis across **7 blockchain platforms**:
 - Complete DPG compliance documentation package
 - DPGA Application Responses CSV for reference
 
+## [5.4.3] - 2026-05-16
+
+### Fixed
+
+- Made local analysis caches respect `MIESC_HOME` or explicit cache directories
+  so tests and isolated runs no longer write to `~/.miesc` unexpectedly.
+- Applied the Black formatting required by CI for the orchestrator cache setup.
+
+### Changed
+
+- Tightened the public package boundary, OpenAPI contract checks, REST/MCP
+  contract validation, CI/Docker alignment, and local analysis helper behavior
+  after the published `v5.4.2` release.
+- Updated paper publication instructions and added a post-release validation
+  checkpoint documenting why `v5.4.2` must not be retagged or republished.
+
+### Validation
+
+- GitHub Actions for the post-release checkpoint passed lint/format, security
+  scan, type check, unit tests, documentation build/link check, integration
+  tests, benchmarks, Docker build/test, and Trivy scan.
+- Local `make release` rebuilt the wheel and sdist and passed `twine check` plus
+  release artifact content validation.
+
 ## [4.0.0] - 2025-01-14
 
 ### Added
@@ -344,7 +368,10 @@ MIESC now supports security analysis across **7 blockchain platforms**:
 
 ---
 
-[Unreleased]: https://github.com/fboiero/MIESC/compare/v4.2.1...HEAD
+[Unreleased]: https://github.com/fboiero/MIESC/compare/v5.4.3...HEAD
+[5.4.3]: https://github.com/fboiero/MIESC/compare/v5.4.2...v5.4.3
+[5.4.2]: https://github.com/fboiero/MIESC/compare/v5.4.1...v5.4.2
+[5.4.1]: https://github.com/fboiero/MIESC/compare/v5.4.0...v5.4.1
 [4.2.1]: https://github.com/fboiero/MIESC/compare/v4.1.0...v4.2.1
 [4.1.0]: https://github.com/fboiero/MIESC/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/fboiero/MIESC/compare/v3.5.0...v4.0.0

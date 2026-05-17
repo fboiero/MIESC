@@ -11,7 +11,7 @@ License: AGPL-3.0
 
 from typing import Any
 
-__version__ = "5.4.2"
+__version__ = "5.4.3"
 __author__ = "Fernando Boiero"
 __email__ = "fboiero@frvm.utn.edu.ar"
 

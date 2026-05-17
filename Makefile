@@ -229,12 +229,12 @@ release: build build-check  ## Full release pipeline (build + check)
 
 docker-build:  ## Build Docker image
 	@echo "$(BLUE)Building Docker image...$(NC)"
-	docker build -f docker/Dockerfile -t miesc:5.4.2 -t miesc:latest .
+	docker build -f docker/Dockerfile -t miesc:5.4.3 -t miesc:latest .
 	@echo "$(GREEN)✓ Docker image built$(NC)"
 
 docker-run:  ## Run MIESC in Docker
 	@echo "$(BLUE)Running MIESC in Docker...$(NC)"
-	docker run --rm -v $(PWD):/workspace miesc:5.4.2 --help
+	docker run --rm -v $(PWD):/workspace miesc:5.4.3 --help
 
 researcher-bootstrap:  ## Install isolated full-tool researcher dependencies
 	@echo "$(BLUE)Bootstrapping researcher toolchain...$(NC)"
@@ -279,7 +279,7 @@ citation:  ## Show citation information
 
 version:  ## Show version information
 	@echo "$(BLUE)MIESC Version Information:$(NC)"
-	@echo "Version: 5.4.2"
+	@echo "Version: 5.4.3"
 	@echo "Author: Fernando Boiero"
 	@echo "Institution: UNDEF - IUA Córdoba"
 	@echo "License: AGPL-3.0-only"

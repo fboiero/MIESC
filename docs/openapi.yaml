@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: MIESC Core REST API
-  version: "5.4.2"
+  version: "5.4.3"
   description: |
     Local REST API for the MIESC open core. The hosted web UI, team workflows,
     licensing, and product dashboards live in the platform layer.
