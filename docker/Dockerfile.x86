@@ -2,10 +2,10 @@
 # Forces x86_64 architecture for 100% tool compatibility
 #
 # Build command:
-#   docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:v5.4.2-x86 .
+#   docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:v5.4.3-x86 .
 #
 # Run command:
-#   docker run --platform linux/amd64 --rm miesc:v5.4.2-x86
+#   docker run --platform linux/amd64 --rm miesc:v5.4.3-x86
 #
 # Note: On Apple Silicon, this uses Rosetta 2 emulation (~3-5x slower but fully compatible)
 
@@ -110,20 +110,20 @@ RUN pip install --no-cache-dir --user mythril>=0.24.0
 RUN pip install --no-cache-dir --user 'manticore[native]'
 
 # Environment variables for MIESC
-ENV MIESC_VERSION="5.4.2"
+ENV MIESC_VERSION="5.4.3"
 ENV MIESC_ENV="docker-x86"
 ENV PYTHONPATH="/app:${PYTHONPATH}"
 ENV PYTHONUNBUFFERED=1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "from src.core import get_ml_orchestrator; print('MIESC v5.4.2 x86 OK')" || exit 1
+    CMD python -c "from src.core import get_ml_orchestrator; print('MIESC v5.4.3 x86 OK')" || exit 1
 
 # Expose API port
 EXPOSE 8000
 
 # Default command: Verify all tools
-CMD ["sh", "-c", "echo '=== MIESC v5.4.2-x86 - Full Tool Deployment ===' && \
+CMD ["sh", "-c", "echo '=== MIESC v5.4.3-x86 - Full Tool Deployment ===' && \
      echo '' && \
      echo 'Architecture:' && uname -m && \
      echo '' && \

@@ -1,4 +1,4 @@
-# MIESC v5.4.2 - Production Docker Compose with LLM Support
+# MIESC v5.4.3 - Production Docker Compose with LLM Support
 # Multi-layer Intelligent Evaluation for Smart Contracts
 # SmartLLM: deepseek-coder (code analysis) + mistral (general interpretation)
 #
@@ -32,10 +32,10 @@ services:
       dockerfile: docker/Dockerfile
       args:
         - BUILDKIT_INLINE_CACHE=1
-    image: ghcr.io/fboiero/miesc:5.4.2
+    image: ghcr.io/fboiero/miesc:5.4.3
     container_name: miesc-prod
     environment:
-      - MIESC_VERSION=5.4.2
+      - MIESC_VERSION=5.4.3
       - MIESC_ENV=production
       - PYTHONUNBUFFERED=1
       # Ollama LLM configuration
@@ -215,10 +215,10 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: ghcr.io/fboiero/miesc:5.4.2
+    image: ghcr.io/fboiero/miesc:5.4.3
     container_name: miesc-api-prod
     environment:
-      - MIESC_VERSION=5.4.2
+      - MIESC_VERSION=5.4.3
       - MIESC_ENV=production-api
       - PYTHONUNBUFFERED=1
       - OLLAMA_HOST=http://ollama:11434

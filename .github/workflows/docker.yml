@@ -182,6 +182,11 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           MAJOR_MINOR=$(echo $VERSION | cut -d. -f1,2)
           echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "base_tag=$VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "base_tag=main" >> $GITHUB_OUTPUT
+          fi
 
       - name: Extract metadata for Docker
         id: meta
@@ -203,7 +208,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            MIESC_BASE_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+            MIESC_BASE_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.base_tag }}
           cache-from: type=gha,scope=full
           cache-to: type=gha,mode=max,scope=full
 
