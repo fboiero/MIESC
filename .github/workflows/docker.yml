@@ -142,8 +142,8 @@ jobs:
 
   build-full:
     name: Build Full Image (all tools)
-    needs: build
-    if: always() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))))
+    needs: [build, build-multiarch]
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -222,7 +222,7 @@ jobs:
   # =============================================================================
   security-scan:
     name: Security Scan (Trivy)
-    needs: [build-multiarch]
+    needs: [build-multiarch, build-full]
     if: always() && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:

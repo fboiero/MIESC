@@ -81,7 +81,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: dist/
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
 
   # =============================================================================
   # Sign Release Artifacts with Sigstore
@@ -220,6 +222,12 @@ jobs:
         with:
           name: dist-signed
           path: dist/
+
+      - name: Generate release checksums
+        run: |
+          cd dist
+          sha256sum *.whl *.tar.gz > SHA256SUMS.txt
+          cat SHA256SUMS.txt
 
       - name: Generate changelog
         id: changelog
