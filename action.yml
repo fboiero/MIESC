@@ -259,7 +259,7 @@ runs:
 
     - name: Upload SARIF to GitHub Security
       if: inputs.upload-sarif == 'true' && inputs.output-format == 'sarif' && hashFiles(format('{0}.sarif', inputs.output-file)) != ''
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: ${{ steps.run-miesc.outputs.report_path }}
         category: miesc
