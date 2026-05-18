@@ -237,7 +237,7 @@ jobs:
           myToken: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update release with artifacts
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         if: github.event_name == 'release'
         with:
           files: |
