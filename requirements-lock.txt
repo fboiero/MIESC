@@ -138,7 +138,7 @@ solc-select==1.2.0
     # via crytic-compile
 toolz==1.1.0
     # via cytoolz
-types-requests==2.33.0.20260408
+types-requests==2.33.0.20260518
     # via web3
 typing-extensions==4.15.0
     # via
