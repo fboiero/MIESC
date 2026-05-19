@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository != 'fboiero/MIESC'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: MIESC Quick Scan
         uses: fboiero/MIESC@v5
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository != 'fboiero/MIESC' && github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: MIESC Full Audit
         uses: fboiero/MIESC@v5
@@ -67,7 +67,7 @@ jobs:
   #   runs-on: ubuntu-latest
   #   if: github.event_name == 'pull_request'
   #   steps:
-  #     - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v6
   #     - name: MIESC DeFi Audit
   #       uses: fboiero/MIESC@v5
   #       with:
