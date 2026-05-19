@@ -598,7 +598,7 @@ jobs:
           python-version: '3.12'
       - run: pip install miesc
       - run: miesc audit quick ./contracts --ci --output sarif
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: miesc.sarif
 ```

@@ -109,7 +109,7 @@ miesc analyze contract.sol --output-format markdown --output result.md
 The templates automatically upload SARIF files to GitHub's Security tab:
 
 ```yaml
-- uses: github/codeql-action/upload-sarif@v3
+- uses: github/codeql-action/upload-sarif@v4
   with:
     sarif_file: miesc-results/
 ```
@@ -142,7 +142,7 @@ jobs:
       - uses: actions/checkout@v6
       - run: pip install miesc
       - run: miesc analyze contracts/ --output-format sarif --output results.sarif
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
 ```

@@ -411,7 +411,7 @@ jobs:
             -o /contracts/results.sarif.json
 
       - name: Upload to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif.json
 ```

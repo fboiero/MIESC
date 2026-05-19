@@ -102,7 +102,7 @@ jobs:
           done
 
       - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ env.MIESC_OUTPUT }}
         continue-on-error: true
@@ -222,7 +222,7 @@ jobs:
           miesc export ${{ env.MIESC_OUTPUT }} --format sarif --output ${{ env.MIESC_OUTPUT }}/aggregated.sarif || true
 
       - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ env.MIESC_OUTPUT }}/aggregated.sarif
         continue-on-error: true
