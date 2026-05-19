@@ -163,14 +163,14 @@ jobs:
           pip install sphinx-rtd-theme sphinx-autodoc-typehints
 
       - name: Download MkDocs artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: mkdocs-site
           path: site/
         continue-on-error: true
 
       - name: Download Sphinx artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sphinx-docs
           path: site/api/
