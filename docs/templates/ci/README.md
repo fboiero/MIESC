@@ -139,7 +139,7 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: pip install miesc
       - run: miesc analyze contracts/ --output-format sarif --output results.sarif
       - uses: github/codeql-action/upload-sarif@v3
@@ -157,7 +157,7 @@ jobs:
   full-audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: pip install miesc
       - run: miesc analyze contracts/ --layers 1,2,3,4,5,6,7 --parallel
 ```

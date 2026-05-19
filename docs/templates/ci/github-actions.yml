@@ -55,7 +55,7 @@ jobs:
       solidity-files: ${{ steps.find-sol.outputs.files }}
       has-files: ${{ steps.find-sol.outputs.has-files }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Find Solidity files
         id: find-sol
@@ -77,7 +77,7 @@ jobs:
     if: needs.setup.outputs.has-files == 'true' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -108,7 +108,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: quick-audit-results
           path: ${{ env.MIESC_OUTPUT }}
@@ -142,7 +142,7 @@ jobs:
             name: "Formal Verification"
             timeout: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -168,7 +168,7 @@ jobs:
           done
 
       - name: Upload layer results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: layer-${{ matrix.layer }}-results
           path: ${{ env.MIESC_OUTPUT }}
@@ -185,10 +185,10 @@ jobs:
       critical-count: ${{ steps.summary.outputs.critical }}
       high-count: ${{ steps.summary.outputs.high }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -228,7 +228,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload aggregated results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: aggregated-results
           path: ${{ env.MIESC_OUTPUT }}
@@ -277,7 +277,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Download results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: quick-audit-results
           path: results

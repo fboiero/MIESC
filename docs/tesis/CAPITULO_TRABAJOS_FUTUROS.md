@@ -219,7 +219,7 @@ jobs:
       security-events: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run MIESC Security Audit
         # Genera SARIF para GitHub Security y comenta en PRs
 ```
