@@ -20,7 +20,7 @@ charset-normalizer==3.4.7
     # via requests
 ckzg==2.1.7
     # via eth-account
-click==8.3.3
+click==8.4.0
     # via miesc (pyproject.toml)
 crytic-compile==0.3.11
     # via slither-analyzer
@@ -37,7 +37,7 @@ eth-hash==0.8.0
     # via
     #   eth-utils
     #   web3
-eth-keyfile==0.8.1
+eth-keyfile==0.9.1
     # via eth-account
 eth-keys==0.7.0
     # via
@@ -91,7 +91,7 @@ packaging==26.2
     # via
     #   slither-analyzer
     #   solc-select
-parsimonious==0.10.0
+parsimonious==0.11.0
     # via eth-abi
 prettytable==3.17.0
     # via slither-analyzer
