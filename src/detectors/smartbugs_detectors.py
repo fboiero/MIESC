@@ -514,6 +514,31 @@ class FrontRunningDetector:
                     reported_lines.add(i)
                     break
 
+        # Check for incomplete commit-reveal schemes. A reveal function that
+        # validates a secret/hash without an enforced delay or stake can still
+        # be copied from the mempool and front-run.
+        if self._has_incomplete_commit_reveal(source_code):
+            for i, line in enumerate(lines, 1):
+                if i in reported_lines:
+                    continue
+                if re.search(r"\bfunction\s+\w*[Rr]eveal\w*\b|sha3\s*\(|keccak256\s*\(", line):
+                    findings.append(
+                        SmartBugsFinding(
+                            title="Front-Running - Incomplete Commit-Reveal",
+                            description=(
+                                "Commit-reveal flow lacks a visible reveal delay or stake/deposit. "
+                                f"Reveal transaction can be copied from the mempool. Line {i}."
+                            ),
+                            severity=Severity.HIGH,
+                            category=self.category,
+                            line=i,
+                            code_snippet=line.strip(),
+                            swc_id=self.swc_id,
+                        )
+                    )
+                    reported_lines.add(i)
+                    break
+
         # Check for TOD pattern (state-dependent transfer)
         reward_vars = re.findall(r"\b(reward|prize|bounty|payout)\s*[=;]", source_code, re.I)
         if reward_vars and re.search(r"\.transfer\s*\(", source_code):
@@ -553,6 +578,32 @@ class FrontRunningDetector:
                     break
 
         return findings
+
+    def _has_incomplete_commit_reveal(self, source_code: str) -> bool:
+        """Detect commit-reveal flows without obvious anti-front-running controls."""
+        has_commit = bool(
+            re.search(r"\bfunction\s+\w*[Cc]ommit\w*\s*\([^)]*(?:bytes32|hash)", source_code)
+            or re.search(r"\bcommitments?\s*\[[^\]]+\]\s*=", source_code, re.I)
+        )
+        has_reveal_hash_check = bool(
+            re.search(r"\bfunction\s+\w*[Rr]eveal\w*\s*\(", source_code)
+            and re.search(r"(?:sha3|keccak256)\s*\(", source_code)
+        )
+        if not (has_commit and has_reveal_hash_check):
+            return False
+
+        has_delay = bool(
+            re.search(
+                r"commit(?:Block|Time)|reveal(?:Block|Time|After)|deadline|"
+                r"block\.(?:number|timestamp)|now\b",
+                source_code,
+                re.I,
+            )
+        )
+        has_stake = bool(
+            re.search(r"\b(msg\.value|deposit|stake|bond|collateral)\b", source_code, re.I)
+        )
+        return not (has_delay and has_stake)
 
 
 # =============================================================================
@@ -673,6 +724,12 @@ class ReentrancyDetector:
         r"delete\s+[\w\[\]\.\(\)]+",  # delete
     ]
 
+    # Modifier-specific external calls. These catch typed contract/interface
+    # calls such as Bank(msg.sender).supportsToken() before the `_` placeholder.
+    MODIFIER_EXTERNAL_CALL_PATTERNS = EXTERNAL_CALL_PATTERNS + [
+        r"\b[A-Z_][A-Za-z0-9_]*\s*\([^;\n]*\)\s*\.\s*[A-Za-z_]\w*\s*\(",
+    ]
+
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
         findings = []
         lines = source_code.split("\n")
@@ -681,6 +738,8 @@ class ReentrancyDetector:
         has_guard = re.search(r"nonReentrant|ReentrancyGuard|_locked|mutex", source_code, re.I)
         if has_guard:
             return findings
+
+        dangerous_modifiers = self._find_external_calling_modifiers(lines)
 
         # Find functions with external calls
         in_function = False
@@ -709,16 +768,92 @@ class ReentrancyDetector:
                 # Only end function after body started and braces balanced
                 if function_body_started and brace_count == 0:
                     # End of function - analyze
-                    self._analyze_function(function_lines, findings)
+                    self._analyze_function(function_lines, findings, dangerous_modifiers)
                     in_function = False
                     function_body_started = False
 
         return findings
 
-    def _analyze_function(self, function_lines: List, findings: List):
+    def _find_external_calling_modifiers(self, lines: List[str]) -> Dict[str, Dict[str, object]]:
+        """Return modifiers that perform an external call before `_` executes."""
+        dangerous = {}
+        in_modifier = False
+        modifier_name = ""
+        modifier_lines = []
+        brace_count = 0
+        body_started = False
+
+        for line_num, line in enumerate(lines, 1):
+            modifier_match = re.search(r"\bmodifier\s+(\w+)\b", line)
+            if modifier_match and not in_modifier:
+                in_modifier = True
+                modifier_name = modifier_match.group(1)
+                modifier_lines = []
+                brace_count = 0
+                body_started = False
+
+            if not in_modifier:
+                continue
+
+            if "{" in line:
+                body_started = True
+            brace_count += line.count("{") - line.count("}")
+            modifier_lines.append((line_num, line))
+
+            if body_started and brace_count == 0:
+                call_info = self._modifier_external_call_before_placeholder(modifier_lines)
+                if call_info:
+                    dangerous[modifier_name] = call_info
+                in_modifier = False
+
+        return dangerous
+
+    def _modifier_external_call_before_placeholder(
+        self, modifier_lines: List
+    ) -> Optional[Dict[str, object]]:
+        """Find an external call before the modifier's `_` continuation point."""
+        for line_num, line in modifier_lines:
+            stripped = line.strip()
+            if stripped.startswith("//") or stripped.startswith("*"):
+                continue
+            if re.search(r"\b_\s*;", stripped):
+                return None
+            for pattern in self.MODIFIER_EXTERNAL_CALL_PATTERNS:
+                if re.search(pattern, line):
+                    return {"line": line_num, "code": stripped}
+        return None
+
+    def _analyze_function(
+        self,
+        function_lines: List,
+        findings: List,
+        dangerous_modifiers: Dict[str, Dict[str, object]],
+    ):
         """Analyze a function for reentrancy patterns."""
         external_call_line = None
         external_call_code = None
+        header = self._function_header(function_lines)
+
+        for modifier_name, call_info in dangerous_modifiers.items():
+            if self._function_uses_modifier(header, modifier_name) and self._has_state_change(
+                function_lines
+            ):
+                findings.append(
+                    SmartBugsFinding(
+                        title="Reentrancy Vulnerability - Modifier External Call",
+                        description=(
+                            f"Modifier '{modifier_name}' performs an external call before the function body. "
+                            "The function changes state after modifier execution, enabling modifier reentrancy."
+                        ),
+                        severity=Severity.HIGH,
+                        category=self.category,
+                        line=call_info["line"],
+                        code_snippet=str(call_info["code"]),
+                        swc_id=self.swc_id,
+                        confidence="high",
+                    )
+                )
+                return
 
         for line_num, line in function_lines:
             # Skip comments
@@ -757,6 +892,39 @@ class ReentrancyDetector:
                             )
                         )
                         return  # One finding per function
+
+    def _function_header(self, function_lines: List) -> str:
+        """Return the function signature/modifier header up to the opening brace."""
+        header_parts = []
+        for _, line in function_lines:
+            header_parts.append(line.strip())
+            if "{" in line:
+                break
+        return " ".join(header_parts)
+
+    def _function_uses_modifier(self, header: str, modifier_name: str) -> bool:
+        """Check modifier usage without confusing it with the function name."""
+        match = re.search(r"\bfunction\s+\w+\s*\([^)]*\)\s*(?P<tail>[^{]*)", header)
+        modifier_tail = match.group("tail") if match else header
+        return bool(re.search(rf"\b{re.escape(modifier_name)}\b", modifier_tail))
+
+    def _has_state_change(self, function_lines: List) -> bool:
+        """Check whether the function body mutates state."""
+        body_started = False
+        for _, line in function_lines:
+            if "{" in line:
+                body_started = True
+                line = line.split("{", 1)[1]
+            if not body_started:
+                continue
+            stripped = line.strip()
+            if not stripped or stripped.startswith("//") or stripped.startswith("*"):
+                continue
+            if "require" in stripped or "assert" in stripped or re.match(r"\s*return\s+", stripped):
+                continue
+            if any(re.search(pattern, stripped) for pattern in self.STATE_CHANGE_PATTERNS):
+                return True
+        return False
 
 
 # =============================================================================

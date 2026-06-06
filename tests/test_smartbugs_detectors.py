@@ -150,6 +150,34 @@ class TestReentrancyDetector:
         findings = detector.detect(code)
         assert len(findings) == 0
 
+    def test_detects_modifier_reentrancy(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract ModifierEntrancy {
+            mapping (address => uint) public tokenBalance;
+
+            function airDrop() hasNoBalance supportsToken public {
+                tokenBalance[msg.sender] += 20;
+            }
+
+            modifier supportsToken() {
+                require(keccak256("Nu Token") == Bank(msg.sender).supportsToken());
+                _;
+            }
+
+            modifier hasNoBalance {
+                require(tokenBalance[msg.sender] == 0);
+                _;
+            }
+        }
+
+        contract Bank {
+            function supportsToken() external returns(bytes32);
+        }
+        """
+        findings = detector.detect(code)
+        assert any("modifier" in f.title.lower() for f in findings)
+
 
 class TestDenialOfServiceDetector:
     """Tests for DenialOfServiceDetector."""
@@ -251,6 +279,25 @@ class TestFrontRunningDetector:
         """
         findings = detector.detect(code)
         assert len(findings) > 0
+
+    def test_detects_incomplete_commit_reveal(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Puzzle {
+            mapping(address => bytes32) public commitments;
+
+            function commit(bytes32 answerHash) public {
+                commitments[msg.sender] = answerHash;
+            }
+
+            function reveal(string answer) public {
+                require(keccak256(answer) == commitments[msg.sender]);
+                msg.sender.transfer(1 ether);
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert any("commit-reveal" in f.title.lower() for f in findings)
 
 
 class TestAccessControlDetector:
