@@ -539,6 +539,49 @@ class TestTimeManipulationDetector:
         findings = detector.detect(code)
         assert len(findings) > 0
 
+    def test_ignores_account_timelock(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Timelock {
+            mapping(address => uint) lockTime;
+            function lock() public {
+                lockTime[msg.sender] = now + 1 weeks;
+            }
+            function withdraw() public {
+                require(now > lockTime[msg.sender]);
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert findings == []
+
+    def test_detects_auction_deadline_condition(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Auction {
+            uint public deadline;
+            function canBid() public view returns (bool) {
+                return block.timestamp < deadline;
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert len(findings) > 0
+
+    def test_ignores_withdraw_cooldown_as_time_manipulation(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Vault {
+            mapping(address => uint) unlockTime;
+            function withdraw(uint amount) public {
+                require(now > unlockTime[msg.sender]);
+                msg.sender.transfer(amount);
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert findings == []
+
 
 class TestBadRandomnessDetector:
     """Tests for BadRandomnessDetector."""

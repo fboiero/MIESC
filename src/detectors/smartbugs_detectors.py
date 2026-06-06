@@ -1514,36 +1514,56 @@ class TimeManipulationDetector:
 
     def _is_critical_context(self, line: str, source: str, line_num: int) -> Optional[str]:
         """Check if timestamp is used in a critical context."""
-        line_lower = line.lower()
+        line_without_comments = re.sub(r"//.*", "", line)
+        line_lower = line_without_comments.lower()
+        source_lower = source.lower()
+        function_context = self._function_context(source, line_num).lower()
+        local_context = f"{function_context}\n{line_lower}"
 
         # Randomness generation
-        if "keccak256" in line_lower or "random" in line_lower:
+        if re.search(
+            r"\b(?:keccak256|sha3|random|rand|lotto|lottery|roulette|bet|winner)\b", local_context
+        ):
             return "randomness generation"
 
-        # Conditionals
-        if re.search(r"if\s*\([^)]*block\.(timestamp|number)", line) or re.search(
-            r"if\s*\([^)]*now", line
-        ):
+        has_time_comparison = bool(
+            re.search(
+                r"\b(?:if|require|return)\b[^;]*(?:block\.(?:timestamp|number)|now)\b[^;]*(?:[<>]=?|==|!=|%)",
+                line_without_comments,
+            )
+            or re.search(
+                r"\b(?:if|require|return)\b[^;]*(?:[<>]=?|==|!=|%)[^;]*(?:block\.(?:timestamp|number)|now)\b",
+                line_without_comments,
+            )
+        )
+
+        critical_time_context = bool(
+            re.search(
+                r"\b(?:sale|crowdsale|invest|investment|payout|pay|prize|winner|lotto|lottery|roulette|bet|auction|deadline)\b",
+                f"{source_lower}\n{function_context}",
+            )
+        )
+
+        if has_time_comparison and critical_time_context:
             return "conditional logic"
 
-        # Require statements
-        if "require" in line_lower:
-            return "require condition"
+        if has_time_comparison and re.search(r"\b\d{9,}\b", line_without_comments):
+            return "time-gated logic"
 
         # Winner selection
         if "winner" in line_lower or "prize" in line_lower:
             return "winner selection"
 
-        # Lottery/gambling
-        if "lottery" in source.lower() or "gambl" in source.lower():
-            if re.search(r"block\.(timestamp|number)|now", line):
-                return "gambling logic"
-
-        # Time locks
-        if "lock" in line_lower or "unlock" in line_lower:
-            return "time lock"
-
         return None
+
+    def _function_context(self, source: str, line_num: int) -> str:
+        """Return the nearest enclosing function header for context checks."""
+        lines = source.split("\n")
+        for index in range(line_num - 1, -1, -1):
+            candidate = lines[index]
+            if re.search(r"\bfunction\s+\w+", candidate):
+                return candidate
+        return ""
 
 
 # =============================================================================
