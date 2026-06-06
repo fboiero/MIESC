@@ -1091,11 +1091,6 @@ class AccessControlDetector:
     CRITICAL_FUNCTIONS = [
         (r"function\s+withdraw", "withdraw", "Unprotected withdrawal function"),
         (r"function\s+withdrawAll", "withdraw", "Unprotected withdrawal function"),
-        (
-            r"function\s+transfer\s*\([^)]*\)\s*(?:external|public)",
-            "transfer",
-            "Unprotected transfer function",
-        ),
         (r"function\s+setOwner", "setOwner", "Unprotected setOwner function"),
         (r"function\s+changeOwner", "changeOwner", "Unprotected owner change function"),
         (r"function\s+newOwner", "newOwner", "Unprotected new owner function"),
@@ -1263,9 +1258,7 @@ class AccessControlDetector:
         context = str(function["text"])
         return any(re.search(pattern, context, re.I) for pattern in self.ACCESS_CONTROL_PATTERNS)
 
-    def _has_arbitrary_array_write(
-        self, function: Dict[str, object], source_code: str
-    ) -> bool:
+    def _has_arbitrary_array_write(self, function: Dict[str, object], source_code: str) -> bool:
         """Detect public writes to storage arrays through caller-controlled indexes."""
         text = str(function["text"])
         header = str(function["header"])
