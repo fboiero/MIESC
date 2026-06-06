@@ -231,14 +231,18 @@ class BadRandomnessDetector:
     swc_id = "SWC-120"
 
     WEAK_RANDOMNESS_PATTERNS = [
-        (r"block\.timestamp", "block.timestamp is predictable by miners"),
-        (r"block\.difficulty", "block.difficulty is predictable (and deprecated)"),
-        (r"block\.number", "block.number is predictable"),
-        (r"blockhash\s*\(", "blockhash is predictable and limited to last 256 blocks"),
-        (r"block\.coinbase", "block.coinbase is predictable"),
-        (r"now\b", "'now' (alias for block.timestamp) is predictable"),
-        (r"keccak256\s*\([^)]*block\.", "Hashing block attributes doesn't add entropy"),
-        (r"sha3\s*\([^)]*block\.", "Hashing block attributes doesn't add entropy"),
+        (r"block\.timestamp", "block.timestamp is predictable by miners", False),
+        (r"block\.difficulty", "block.difficulty is predictable (and deprecated)", True),
+        (r"block\.number", "block.number is predictable", False),
+        (
+            r"block(?:hash|\.blockhash)\s*\(",
+            "blockhash is predictable and limited to last 256 blocks",
+            True,
+        ),
+        (r"block\.coinbase", "block.coinbase is predictable", True),
+        (r"now\b", "'now' (alias for block.timestamp) is predictable", False),
+        (r"keccak256\s*\([^)]*block\.", "Hashing block attributes doesn't add entropy", False),
+        (r"sha3\s*\([^)]*block\.", "Hashing block attributes doesn't add entropy", False),
     ]
 
     # Context patterns that indicate randomness usage
@@ -254,6 +258,10 @@ class BadRandomnessDetector:
         r"dice",
         r"bet",
         r"gambling",
+        r"game",
+        r"card",
+        r"raffle",
+        r"guess",
     ]
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
@@ -261,22 +269,21 @@ class BadRandomnessDetector:
         lines = source_code.split("\n")
         reported_lines = set()  # Track already reported lines
 
-        # Check if contract uses randomness-related concepts
-        uses_randomness = any(
-            re.search(p, source_code, re.IGNORECASE) for p in self.RANDOMNESS_CONTEXT
-        )
-
         for i, line in enumerate(lines, 1):
             if i in reported_lines:
                 continue  # Already reported this line
-            for pattern, desc in self.WEAK_RANDOMNESS_PATTERNS:
+            stripped = line.strip()
+            if stripped.startswith("//") or stripped.startswith("*"):
+                continue
+            for pattern, desc, strong_signal in self.WEAK_RANDOMNESS_PATTERNS:
                 if re.search(pattern, line, re.IGNORECASE):
-                    severity = Severity.HIGH if uses_randomness else Severity.MEDIUM
+                    if not strong_signal and not self._has_randomness_context(lines, i):
+                        continue
                     findings.append(
                         SmartBugsFinding(
                             title="Weak Randomness Source",
                             description=f"{desc}. Found at line {i}.",
-                            severity=severity,
+                            severity=Severity.HIGH,
                             category=self.category,
                             line=i,
                             code_snippet=line.strip(),
@@ -287,6 +294,24 @@ class BadRandomnessDetector:
                     break  # One finding per line
 
         return findings
+
+    def _has_randomness_context(self, lines: List[str], line_num: int) -> bool:
+        """Check whether a weak chain attribute is used as entropy."""
+        start = max(0, line_num - 4)
+        end = min(len(lines), line_num + 3)
+        local_context = "\n".join(re.sub(r"//.*", "", line) for line in lines[start:end])
+
+        function_header = ""
+        for previous in range(line_num - 1, -1, -1):
+            candidate = lines[previous]
+            if re.search(r"\bfunction\s+\w+", candidate):
+                function_header = candidate
+                break
+
+        context = f"{function_header}\n{local_context}"
+        return any(
+            re.search(pattern, context, re.IGNORECASE) for pattern in self.RANDOMNESS_CONTEXT
+        )
 
 
 # =============================================================================

@@ -571,6 +571,22 @@ class TestBadRandomnessDetector:
         findings = detector.detect(code)
         assert len(findings) > 0
 
+    def test_ignores_timestamp_timelock_as_randomness(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Timelock {
+            mapping(address => uint) lockTime;
+            function lock() public {
+                lockTime[msg.sender] = now + 1 weeks;
+            }
+            function withdraw() public {
+                require(now > lockTime[msg.sender]);
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert findings == []
+
 
 class TestSmartBugsDetectorEngine:
     """Tests for the main detector engine."""
