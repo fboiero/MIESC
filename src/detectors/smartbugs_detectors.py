@@ -740,6 +740,7 @@ class ReentrancyDetector:
             return findings
 
         dangerous_modifiers = self._find_external_calling_modifiers(lines)
+        external_calling_functions = self._find_external_calling_functions(lines)
 
         # Find functions with external calls
         in_function = False
@@ -768,7 +769,12 @@ class ReentrancyDetector:
                 # Only end function after body started and braces balanced
                 if function_body_started and brace_count == 0:
                     # End of function - analyze
-                    self._analyze_function(function_lines, findings, dangerous_modifiers)
+                    self._analyze_function(
+                        function_lines,
+                        findings,
+                        dangerous_modifiers,
+                        external_calling_functions,
+                    )
                     in_function = False
                     function_body_started = False
 
@@ -823,11 +829,59 @@ class ReentrancyDetector:
                     return {"line": line_num, "code": stripped}
         return None
 
+    def _find_external_calling_functions(self, lines: List[str]) -> Dict[str, Dict[str, object]]:
+        """Return functions that can perform an external value/control transfer."""
+        functions = {}
+        in_function = False
+        function_body_started = False
+        function_name = ""
+        function_lines = []
+        brace_count = 0
+
+        for line_num, line in enumerate(lines, 1):
+            function_match = re.search(r"\bfunction\s+(\w+)\b", line)
+            if function_match and not in_function:
+                in_function = True
+                function_body_started = False
+                function_name = function_match.group(1)
+                function_lines = []
+                brace_count = 0
+
+            if not in_function:
+                continue
+
+            if "{" in line:
+                function_body_started = True
+            brace_count += line.count("{") - line.count("}")
+            function_lines.append((line_num, line))
+
+            if function_body_started and brace_count == 0:
+                call_info = self._first_relevant_external_call(function_lines)
+                if call_info:
+                    functions[function_name] = call_info
+                in_function = False
+
+        return functions
+
+    def _first_relevant_external_call(self, function_lines: List) -> Optional[Dict[str, object]]:
+        """Find the first external call in a function body."""
+        for line_num, line in function_lines:
+            stripped = line.strip()
+            if stripped.startswith("//") or stripped.startswith("*"):
+                continue
+            for pattern in self.EXTERNAL_CALL_PATTERNS:
+                if re.search(pattern, line) and self._is_reentrancy_relevant_call(
+                    line, function_lines, line_num
+                ):
+                    return {"line": line_num, "code": stripped}
+        return None
+
     def _analyze_function(
         self,
         function_lines: List,
         findings: List,
         dangerous_modifiers: Dict[str, Dict[str, object]],
+        external_calling_functions: Dict[str, Dict[str, object]],
     ):
         """Analyze a function for reentrancy patterns."""
         external_call_line = None
@@ -861,16 +915,29 @@ class ReentrancyDetector:
                 continue
 
             # Look for external calls
-            for pattern in self.EXTERNAL_CALL_PATTERNS:
-                if re.search(pattern, line):
-                    external_call_line = line_num
-                    external_call_code = line.strip()
-                    break
+            if external_call_line is None:
+                for pattern in self.EXTERNAL_CALL_PATTERNS:
+                    if re.search(pattern, line):
+                        if not self._is_reentrancy_relevant_call(line, function_lines, line_num):
+                            continue
+                        external_call_line = line_num
+                        external_call_code = line.strip()
+                        break
+
+            if external_call_line is None:
+                for function_name in external_calling_functions:
+                    if self._line_calls_function(line, function_name):
+                        external_call_line = line_num
+                        external_call_code = line.strip()
+                        break
 
             # If we found an external call, look for state changes after it
             if external_call_line and line_num > external_call_line:
                 for pattern in self.STATE_CHANGE_PATTERNS:
                     if re.search(pattern, line):
+                        stripped = line.strip()
+                        if stripped.startswith("//") or stripped.startswith("*"):
+                            continue
                         # Skip require/assert
                         if "require" in line or "assert" in line:
                             continue
@@ -908,6 +975,15 @@ class ReentrancyDetector:
         modifier_tail = match.group("tail") if match else header
         return bool(re.search(rf"\b{re.escape(modifier_name)}\b", modifier_tail))
 
+    def _line_calls_function(self, line: str, function_name: str) -> bool:
+        """Check whether a line invokes a same-contract helper function."""
+        stripped = line.strip()
+        if stripped.startswith("//") or stripped.startswith("*"):
+            return False
+        if re.search(rf"\bfunction\s+{re.escape(function_name)}\b", stripped):
+            return False
+        return bool(re.search(rf"\b{re.escape(function_name)}\s*\(", stripped))
+
     def _has_state_change(self, function_lines: List) -> bool:
         """Check whether the function body mutates state."""
         body_started = False
@@ -923,6 +999,73 @@ class ReentrancyDetector:
             if "require" in stripped or "assert" in stripped or re.match(r"\s*return\s+", stripped):
                 continue
             if any(re.search(pattern, stripped) for pattern in self.STATE_CHANGE_PATTERNS):
+                return True
+        return False
+
+    def _is_reentrancy_relevant_call(self, line: str, function_lines: List, line_num: int) -> bool:
+        """Keep transfer/send reentrancy signals focused on balance-accounting flows."""
+        if not re.search(r"\.(?:send|transfer)\s*\(", line):
+            return True
+
+        transfer_arg = self._transfer_argument(line)
+        if not transfer_arg:
+            return False
+
+        if self._is_balance_accounting_expression(line) or self._is_balance_accounting_expression(
+            transfer_arg
+        ):
+            return True
+
+        if re.fullmatch(r"[A-Za-z_]\w*", transfer_arg):
+            return self._local_var_flows_from_balance(
+                function_lines, line_num, transfer_arg
+            ) or self._local_var_checked_against_balance(function_lines, line_num, transfer_arg)
+
+        return False
+
+    def _transfer_argument(self, line: str) -> str:
+        """Extract the first argument passed to send/transfer."""
+        match = re.search(r"\.(?:send|transfer)\s*\(\s*([^,)]+)", line)
+        return match.group(1).strip() if match else ""
+
+    def _is_balance_accounting_expression(self, expression: str) -> bool:
+        """Identify expressions tied to withdrawable balance/accounting state."""
+        return bool(
+            re.search(
+                r"\b(?:balances?|tokenBalance|credits?|deposits?|shares?|accounts?)\s*\["
+                r"|(?:^|[^A-Za-z])(?:[A-Za-z0-9_]*Balances?|[A-Za-z0-9_]*Credits?|[A-Za-z0-9_]*Deposits?|[A-Za-z0-9_]*Shares?)\s*\["
+                r"|\b(?:balance|credit|deposit|share)\b",
+                expression,
+                re.I,
+            )
+        )
+
+    def _local_var_flows_from_balance(
+        self, function_lines: List, call_line_num: int, var_name: str
+    ) -> bool:
+        """Check whether a local transfer amount was loaded from balance-like state."""
+        assignment_pattern = re.compile(rf"\b{re.escape(var_name)}\s*=\s*(?P<expr>[^;]+)")
+        for current_line_num, candidate in function_lines:
+            if current_line_num >= call_line_num:
+                break
+            match = assignment_pattern.search(candidate)
+            if match and self._is_balance_accounting_expression(match.group("expr")):
+                return True
+        return False
+
+    def _local_var_checked_against_balance(
+        self, function_lines: List, call_line_num: int, var_name: str
+    ) -> bool:
+        """Check whether a transfer amount parameter was guarded by balance-like state."""
+        guard_pattern = re.compile(
+            rf"(?:require|if)\s*\([^;]*(?:balance|credit|deposit|share)[^;]*"
+            rf"(?:>=|>|==)\s*{re.escape(var_name)}\b",
+            re.I,
+        )
+        for current_line_num, candidate in function_lines:
+            if current_line_num >= call_line_num:
+                break
+            if guard_pattern.search(candidate):
                 return True
         return False
 

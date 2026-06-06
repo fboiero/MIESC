@@ -130,6 +130,78 @@ class TestReentrancyDetector:
         findings = detector.detect(code)
         assert len(findings) > 0
 
+    def test_detects_transfer_after_balance_guard(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Vulnerable {
+            mapping(address => uint) balances;
+            function withdraw(uint amount) public {
+                require(balances[msg.sender] >= amount);
+                msg.sender.transfer(amount);
+                balances[msg.sender] -= amount;
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert len(findings) > 0
+
+    def test_ignores_tod_reward_transfer_as_reentrancy(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Reward {
+            bool public claimed;
+            uint public reward;
+            function claimReward(uint256 submission) public {
+                require(!claimed);
+                require(submission < 10);
+                msg.sender.transfer(reward);
+                claimed = true;
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert findings == []
+
+    def test_detects_channel_balance_transfer_before_delete(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Channel {
+            struct State {
+                address[2] partyAddresses;
+                uint[2] ethBalances;
+            }
+            mapping(bytes32 => State) Channels;
+            function LCOpenTimeout(bytes32 id) public {
+                Channels[id].partyAddresses[0].transfer(Channels[id].ethBalances[0]);
+                delete Channels[id];
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert len(findings) > 0
+
+    def test_detects_internal_helper_reentrancy(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Bonus {
+            mapping(address => bool) claimedBonus;
+            mapping(address => uint) rewardsForA;
+            function withdrawReward(address recipient) public {
+                uint amountToWithdraw = rewardsForA[recipient];
+                rewardsForA[recipient] = 0;
+                recipient.call.value(amountToWithdraw)("");
+            }
+            function getFirstWithdrawalBonus(address recipient) public {
+                require(!claimedBonus[recipient]);
+                rewardsForA[recipient] += 100;
+                withdrawReward(recipient);
+                claimedBonus[recipient] = true;
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert len(findings) > 0
+
     def test_ignores_reentrancy_guard(self, detector):
         code = """
         pragma solidity ^0.4.24;
