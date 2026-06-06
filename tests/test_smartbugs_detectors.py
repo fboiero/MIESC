@@ -405,6 +405,64 @@ class TestAccessControlDetector:
         findings = detector.detect(code)
         assert len(findings) > 0
 
+    def test_detects_incorrect_legacy_constructor_name(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Missing {
+            address private owner;
+            function IamMissing() public {
+                owner = msg.sender;
+            }
+        }
+        """
+        findings = detector.detect(code)
+        constructor_findings = [f for f in findings if f.swc_id == "SWC-118"]
+        assert constructor_findings
+        assert constructor_findings[0].line == 5
+
+    def test_ignores_commented_access_control_modifier(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Unprotected {
+            address private owner;
+            function changeOwner(address newOwner) public {
+                owner = newOwner;
+            }
+            /*
+            function changeOwnerFixed(address newOwner) public onlyOwner {
+                owner = newOwner;
+            }
+            */
+        }
+        """
+        findings = detector.detect(code)
+        assert any("changeOwner" in f.description for f in findings)
+
+    def test_detects_public_delegatecall_without_access_control(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Proxy {
+            function forward(address callee, bytes data) public {
+                require(callee.delegatecall(data));
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert any("delegatecall" in f.description.lower() for f in findings)
+
+    def test_detects_arbitrary_array_index_write(self, detector):
+        code = """
+        pragma solidity ^0.4.24;
+        contract Map {
+            uint256[] map;
+            function set(uint256 key, uint256 value) public {
+                map[key] = value;
+            }
+        }
+        """
+        findings = detector.detect(code)
+        assert any(f.swc_id == "SWC-124" for f in findings)
+
 
 class TestUncheckedLowLevelCallsDetector:
     """Tests for UncheckedLowLevelCallsDetector."""

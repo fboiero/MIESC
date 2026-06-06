@@ -1090,6 +1090,7 @@ class AccessControlDetector:
     # Critical functions that need access control
     CRITICAL_FUNCTIONS = [
         (r"function\s+withdraw", "withdraw", "Unprotected withdrawal function"),
+        (r"function\s+withdrawAll", "withdraw", "Unprotected withdrawal function"),
         (
             r"function\s+transfer\s*\([^)]*\)\s*(?:external|public)",
             "transfer",
@@ -1097,10 +1098,12 @@ class AccessControlDetector:
         ),
         (r"function\s+setOwner", "setOwner", "Unprotected setOwner function"),
         (r"function\s+changeOwner", "changeOwner", "Unprotected owner change function"),
+        (r"function\s+newOwner", "newOwner", "Unprotected new owner function"),
         (r"function\s+kill", "kill", "Unprotected kill function"),
         (r"function\s+destroy", "destroy", "Unprotected destroy function"),
         (r"selfdestruct\s*\(", "selfdestruct", "Unprotected selfdestruct"),
         (r"suicide\s*\(", "suicide", "Unprotected suicide (deprecated selfdestruct)"),
+        (r"\.delegatecall\s*\(", "delegatecall", "Unprotected delegatecall"),
     ]
 
     # Access control modifiers/patterns
@@ -1120,53 +1123,45 @@ class AccessControlDetector:
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
         findings = []
         lines = source_code.split("\n")
+        uncommented_source = self._strip_comments(source_code)
 
         # Check each critical function
-        for pattern, func_name, desc in self.CRITICAL_FUNCTIONS:
-            matches = list(re.finditer(pattern, source_code, re.I))
+        for function in self._extract_functions(uncommented_source):
+            if not self._is_public_entrypoint(function):
+                continue
+            if self._is_protected(function):
+                continue
 
-            for match in matches:
-                # Get line number
-                line_num = source_code[: match.start()].count("\n") + 1
-
-                # Get the function context (next 10 lines)
-                start_idx = match.start()
-                end_idx = min(len(source_code), start_idx + 500)
-                context = source_code[start_idx:end_idx]
-
-                # Check if protected
-                is_protected = any(
-                    re.search(p, context, re.I) for p in self.ACCESS_CONTROL_PATTERNS
-                )
-
-                if not is_protected:
+            for pattern, func_name, desc in self.CRITICAL_FUNCTIONS:
+                if re.search(pattern, function["text"], re.I):
+                    line_num = function["line"]
                     findings.append(
-                        SmartBugsFinding(
-                            title="Missing Access Control",
-                            description=f"{desc}. Function '{func_name}' at line {line_num} has no access control.",
-                            severity=(
-                                Severity.HIGH
-                                if func_name in ["withdraw", "selfdestruct", "suicide"]
-                                else Severity.MEDIUM
-                            ),
-                            category=self.category,
-                            line=line_num,
-                            code_snippet=(
-                                lines[line_num - 1].strip() if line_num <= len(lines) else ""
-                            ),
-                            swc_id=(
-                                "SWC-106"
-                                if func_name in ["selfdestruct", "suicide", "kill", "destroy"]
-                                else "SWC-105"
-                            ),
-                            confidence="high",
+                        self._build_finding(
+                            desc=desc,
+                            func_name=func_name,
+                            line_num=line_num,
+                            lines=lines,
                         )
                     )
+                    break
+
+            if self._has_arbitrary_array_write(function, uncommented_source):
+                findings.append(
+                    self._build_finding(
+                        desc="Unprotected arbitrary storage write",
+                        func_name=function["name"] or "storage write",
+                        line_num=function["line"],
+                        lines=lines,
+                        swc_id="SWC-124",
+                    )
+                )
+
+        findings.extend(self._detect_incorrect_legacy_constructors(uncommented_source, lines))
 
         # Check for tx.origin authentication (always bad)
-        tx_origin_matches = re.finditer(r"require\s*\([^)]*tx\.origin", source_code)
+        tx_origin_matches = re.finditer(r"require\s*\([^)]*tx\.origin", uncommented_source)
         for match in tx_origin_matches:
-            line_num = source_code[: match.start()].count("\n") + 1
+            line_num = uncommented_source[: match.start()].count("\n") + 1
             findings.append(
                 SmartBugsFinding(
                     title="tx.origin Authentication",
@@ -1180,6 +1175,175 @@ class AccessControlDetector:
                 )
             )
 
+        return findings
+
+    def _build_finding(
+        self,
+        desc: str,
+        func_name: str,
+        line_num: int,
+        lines: List[str],
+        swc_id: str = "SWC-105",
+    ) -> SmartBugsFinding:
+        """Build a standard access-control finding."""
+        effective_swc = (
+            "SWC-106" if func_name in ["selfdestruct", "suicide", "kill", "destroy"] else swc_id
+        )
+        return SmartBugsFinding(
+            title="Missing Access Control",
+            description=f"{desc}. Function '{func_name}' at line {line_num} has no access control.",
+            severity=(
+                Severity.HIGH
+                if func_name in ["withdraw", "selfdestruct", "suicide", "kill", "destroy"]
+                else Severity.MEDIUM
+            ),
+            category=self.category,
+            line=line_num,
+            code_snippet=lines[line_num - 1].strip() if line_num <= len(lines) else "",
+            swc_id=effective_swc,
+            confidence="high",
+        )
+
+    def _strip_comments(self, source_code: str) -> str:
+        """Remove comments while preserving line numbers."""
+        without_blocks = re.sub(
+            r"/\*.*?\*/",
+            lambda match: "\n" * match.group(0).count("\n"),
+            source_code,
+            flags=re.S,
+        )
+        return re.sub(r"//.*", "", without_blocks)
+
+    def _extract_functions(self, source_code: str) -> List[Dict[str, object]]:
+        """Extract Solidity function-like blocks with line numbers."""
+        functions = []
+        function_pattern = re.compile(r"\bfunction\s+(\w*)\s*\([^)]*\)|\bconstructor\s*\([^)]*\)")
+        for match in function_pattern.finditer(source_code):
+            start = match.start()
+            brace_pos = source_code.find("{", match.end())
+            if brace_pos == -1:
+                continue
+
+            brace_count = 0
+            end = brace_pos
+            for pos in range(brace_pos, len(source_code)):
+                char = source_code[pos]
+                if char == "{":
+                    brace_count += 1
+                elif char == "}":
+                    brace_count -= 1
+                    if brace_count == 0:
+                        end = pos + 1
+                        break
+
+            text = source_code[start:end]
+            name_match = re.search(r"\bfunction\s+(\w*)\s*\(", text)
+            functions.append(
+                {
+                    "name": name_match.group(1) if name_match else "constructor",
+                    "line": source_code[:start].count("\n") + 1,
+                    "text": text,
+                    "header": source_code[start:brace_pos],
+                }
+            )
+        return functions
+
+    def _is_public_entrypoint(self, function: Dict[str, object]) -> bool:
+        """Return whether a function can be called externally."""
+        header = str(function["header"])
+        if re.search(r"\b(?:private|internal)\b", header):
+            return False
+        return bool(
+            re.search(r"\b(?:public|external)\b", header)
+            or re.match(r"\s*function\s+\w*\s*\(", header)
+        )
+
+    def _is_protected(self, function: Dict[str, object]) -> bool:
+        """Check access-control only inside the function signature/body."""
+        context = str(function["text"])
+        return any(re.search(pattern, context, re.I) for pattern in self.ACCESS_CONTROL_PATTERNS)
+
+    def _has_arbitrary_array_write(
+        self, function: Dict[str, object], source_code: str
+    ) -> bool:
+        """Detect public writes to storage arrays through caller-controlled indexes."""
+        text = str(function["text"])
+        header = str(function["header"])
+        array_names = {
+            match.group(1)
+            for match in re.finditer(
+                r"\b(?:uint(?:256)?|int(?:256)?|address|bytes\d*|string)\s*\[\s*\]\s*(?:\w+\s+)?(\w+)\b",
+                source_code,
+            )
+        }
+        if not array_names:
+            return False
+        for array_name in array_names:
+            if re.search(rf"\b{re.escape(array_name)}\.length\s*(?:--|=)", text):
+                return True
+
+        params_match = re.search(r"\((?P<params>[^)]*)\)", header)
+        params = params_match.group("params") if params_match else ""
+        param_names = {
+            match.group(1)
+            for match in re.finditer(
+                r"\b(?:uint(?:256)?|int(?:256)?|address|bytes\d*|string)\s+(\w+)\b",
+                params,
+            )
+        }
+        if not param_names:
+            return False
+        for array_name in array_names:
+            for param_name in param_names:
+                if re.search(
+                    rf"\b{re.escape(array_name)}\s*\[\s*{re.escape(param_name)}\s*\]\s*=",
+                    text,
+                ):
+                    return True
+        return False
+
+    def _detect_incorrect_legacy_constructors(
+        self, source_code: str, lines: List[str]
+    ) -> List[SmartBugsFinding]:
+        """Detect pre-0.4.22 constructor-name typos that expose ownership setters."""
+        findings = []
+        for contract_match in re.finditer(r"\bcontract\s+(\w+)\b", source_code):
+            contract_name = contract_match.group(1)
+            brace_pos = source_code.find("{", contract_match.end())
+            if brace_pos == -1:
+                continue
+            brace_count = 0
+            end = brace_pos
+            for pos in range(brace_pos, len(source_code)):
+                char = source_code[pos]
+                if char == "{":
+                    brace_count += 1
+                elif char == "}":
+                    brace_count -= 1
+                    if brace_count == 0:
+                        end = pos + 1
+                        break
+            contract_text = source_code[brace_pos:end]
+            contract_offset = brace_pos
+            for function in self._extract_functions(contract_text):
+                function_name = str(function["name"])
+                if function_name in ("", "constructor", contract_name):
+                    continue
+                function_text = str(function["text"])
+                if not re.search(
+                    r"\b\w*(?:owner|creator|root)\w*\s*=\s*msg\.sender\b", function_text, re.I
+                ):
+                    continue
+                line_num = source_code[:contract_offset].count("\n") + int(function["line"])
+                findings.append(
+                    self._build_finding(
+                        desc="Incorrect legacy constructor name exposes ownership initialization",
+                        func_name=function_name,
+                        line_num=line_num,
+                        lines=lines,
+                        swc_id="SWC-118",
+                    )
+                )
         return findings
 
 
