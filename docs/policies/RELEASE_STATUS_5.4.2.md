@@ -12,11 +12,20 @@ for the 5.4.2 release surface.
 | GHCR standard image | `ghcr.io/fboiero/miesc:5.4.2` |
 | GHCR latest image | `ghcr.io/fboiero/miesc:latest` |
 
-The standard Docker image tags `5.4.2` and `latest` currently resolve to:
+The pinned release tag `5.4.2` currently resolves to:
 
 ```text
 sha256:17c06605e44236a01237c7210a7734d08b801e6338872550d0fcf4070190b3d8
 ```
+
+The moving `latest` tag is currently a multi-arch OCI index:
+
+```text
+sha256:1deaab8f13e2b91b8280f2d1bfc075571edde3c513d99c32c4c8697e91598be7
+```
+
+For reproducible release verification, prefer the immutable `5.4.2` tag or its
+digest. Use `latest` only for convenience smoke tests and fresh installs.
 
 ## Standard Docker Image Scope
 
@@ -60,4 +69,6 @@ Expected baseline:
 - The standard Docker image was rebuilt from the current 5.4.2 release surface
   after replacing the previous in-image Aderyn source build with the pinned
   official binary download path.
+- The `latest` tag is a moving convenience tag and may resolve to a multi-arch
+  OCI index after CI republishes images from the default branch.
 - Benchmark result files were not modified as part of the Docker publication.

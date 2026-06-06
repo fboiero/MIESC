@@ -20,9 +20,10 @@ abstract: >
   MIESC is an open-source framework that brings enterprise-grade smart contract
   security analysis to every developer. It orchestrates 13 external security tools
   and 22 internal analysis modules across 9 defense layers. The latest
-  full-corpus reproducible SmartBugs profile reaches 93.7% recall on 143
-  contracts, and a reproducible four-provider EVMBench local-extraction ensemble
-  reaches 111/120 detections (92.5% recall). MIESC runs locally by default, maps
+  full-corpus reproducible SmartBugs profile reaches 95.8% recall on 143
+  contracts; adding a local 32B model raises that recall to 97.9%. A
+  reproducible four-provider EVMBench local-extraction ensemble reaches 111/120
+  detections (92.5% recall). MIESC runs locally by default, maps
   findings to 12 international security standards, and is freely available to
   help secure Web3 for everyone.
 keywords:

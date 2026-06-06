@@ -155,7 +155,7 @@ First open-source implementation of detectors for:
 ## Installation
 
 ```bash
-# From PyPI (coming soon)
+# From PyPI
 pip install miesc
 
 # From source
@@ -207,7 +207,7 @@ miesc server rest --port 8000
 
 ## License
 
-MIT License - Open Source
+AGPL-3.0-only - Open Source
 
 ---
 

@@ -1,45 +1,40 @@
-# Instrucciones para release y publicación — MIESC v5.4.2
+# Estado de release y publicación — MIESC v5.4.2
 
-## 1. Publicar en PyPI (URGENTE)
+## 1. PyPI
 
-El package en PyPI está en v5.0.3, hay que actualizar a 5.4.2.
+Estado: completado.
 
-```bash
-cd /Users/fboiero/Documents/GitHub/MIESC
+El paquete `miesc==5.4.2` ya está publicado en PyPI:
+https://pypi.org/project/miesc/5.4.2/
 
-# Build
-python3 -m build
-
-# Upload (necesita credenciales de PyPI)
-python3 -m twine upload dist/miesc-5.4.2*
-```
-
-Si no hay cuenta PyPI configurada:
-```bash
-# Crear token en https://pypi.org/manage/account/token/
-# Guardar en ~/.pypirc o usar --username __token__ --password pypi-...
-python3 -m twine upload --username __token__ --password pypi-XXXXX dist/miesc-5.4.2*
-```
-
-Verificar después:
+Verificación:
 ```bash
 pip install miesc==5.4.2
 miesc --version  # debe decir 5.4.2
 ```
 
-## 2. Docker: Retagear latest en GHCR
+No intentar republish de `5.4.2`: PyPI no permite reemplazar archivos de una
+versión ya publicada. Para cambios nuevos, usar una versión nueva.
 
-La imagen `ghcr.io/fboiero/miesc:5.4.2` existe pero `latest` no apunta a ella.
+## 2. Docker / GHCR
 
-```bash
-# Login a GHCR
-echo $GITHUB_TOKEN | docker login ghcr.io -u fboiero --password-stdin
+Estado: completado.
 
-# Pull, retag, push
-docker pull ghcr.io/fboiero/miesc:5.4.2
-docker tag ghcr.io/fboiero/miesc:5.4.2 ghcr.io/fboiero/miesc:latest
-docker push ghcr.io/fboiero/miesc:latest
+La imagen fija `ghcr.io/fboiero/miesc:5.4.2` resuelve a:
+
+```text
+sha256:17c06605e44236a01237c7210a7734d08b801e6338872550d0fcf4070190b3d8
 ```
+
+El tag móvil `ghcr.io/fboiero/miesc:latest` existe y actualmente es un índice
+OCI multi-arch:
+
+```text
+sha256:1deaab8f13e2b91b8280f2d1bfc075571edde3c513d99c32c4c8697e91598be7
+```
+
+Para evidencia reproducible, usar `5.4.2` o su digest. Usar `latest` sólo para
+instalaciones nuevas o smoke tests de conveniencia.
 
 Verificar:
 ```bash
@@ -47,7 +42,7 @@ docker run --rm ghcr.io/fboiero/miesc:latest --version
 # Debe decir MIESC version 5.4.2
 ```
 
-## 3. Publicar paper (ver INSTRUCCIONES_PUBLICACION.md)
+## 3. Publicar paper (pendiente humano)
 
 El archivo con instrucciones detalladas está en:
 `/Users/fboiero/Documents/GitHub/MIESC/paper/INSTRUCCIONES_PUBLICACION.md`
@@ -57,7 +52,14 @@ Resumen:
 2. Intentar arXiv con cs.SE
 3. Enviar emails de endorsement a 4 autores
 
-## 4. Plataforma web (OPCIONAL)
+Cuando haya DOI o arXiv ID:
+
+1. Actualizar `CITATION.cff`.
+2. Agregar el link en `README.md`, `README_ES.md` y `docs/ANNOUNCE_DRAFT.md`.
+3. Registrar el DOI/arXiv ID en `docs/policies/RELEASE_STATUS_5.4.2.md`.
+4. Revalidar `sh .paper-freeze-local/validate_paper_reproducibility_freeze.sh`.
+
+## 4. Plataforma web (opcional)
 
 La webapp interactiva fue movida fuera del core público. Para demo online,
 usar el repositorio de plataforma y consumir MIESC desde un tag o imagen Docker
@@ -72,9 +74,11 @@ python -m src.utils.web_dashboard --results analysis/results --output analysis/d
 
 ## Resumen de prioridades
 
-| # | Acción | Impacto | Esfuerzo |
-|---|--------|---------|----------|
-| 1 | Publicar PyPI 5.4.2 | ALTO — pip install funciona | 5 min |
-| 2 | Retagear Docker latest | ALTO — docker run funciona | 5 min |
-| 3 | Paper TechRxiv + arXiv | ALTO — citeable | 30 min |
-| 4 | Demo en plataforma web | MEDIO — demo online | Según repo plataforma |
+| # | Acción | Estado | Próximo paso |
+|---|--------|--------|--------------|
+| 1 | PyPI 5.4.2 | Completado | Sólo verificar instalación si hace falta |
+| 2 | GHCR latest | Completado | Sólo verificar digest si hace falta |
+| 3 | Paper TechRxiv | Pendiente | Subir `paper/miesc-paper.pdf` |
+| 4 | Paper arXiv | Pendiente | Subir `paper/miesc-arxiv.tar.gz` |
+| 5 | Endorsement arXiv | Condicional | Enviar emails si arXiv lo pide |
+| 6 | Demo en plataforma web | Opcional | Consumir core desde PyPI o GHCR |
