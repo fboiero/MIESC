@@ -5319,7 +5319,7 @@ class HybridRAG(EmbeddingRAG):
 # CONVENIENCE FUNCTIONS
 # =============================================================================
 
-_default_rag: Optional[EmbeddingRAG] = None
+_default_rags: Dict[bool, EmbeddingRAG] = {}
 
 
 def get_rag(hybrid: bool = True) -> EmbeddingRAG:
@@ -5332,15 +5332,10 @@ def get_rag(hybrid: bool = True) -> EmbeddingRAG:
     Returns:
         Configured RAG instance
     """
-    global _default_rag
+    if hybrid not in _default_rags:
+        _default_rags[hybrid] = HybridRAG() if hybrid else EmbeddingRAG()
 
-    if _default_rag is None:
-        if hybrid:
-            _default_rag = HybridRAG()
-        else:
-            _default_rag = EmbeddingRAG()
-
-    return _default_rag
+    return _default_rags[hybrid]
 
 
 def search_vulnerabilities(
