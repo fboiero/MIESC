@@ -120,8 +120,8 @@ OUTPUT FORMAT (JSON only):
             }},
             "impact": "What an attacker could achieve",
             "attack_scenario": "Step-by-step exploitation",
-            "swc_id": "SWC-XXX",
-            "cwe_id": "CWE-XXX",
+            "swc_id": "SWC-107",
+            "cwe_id": "CWE-841",
             "recommendation": "How to fix the issue",
             "confidence": 0.85,
             "planner_reference": "Which priority check or entry point this relates to"
@@ -133,6 +133,7 @@ RULES:
 - Report ONLY vulnerabilities that exist in this specific code
 - Do NOT report generic best practices unless they are actually violated
 - Include SWC and CWE IDs where applicable
+- Use null instead of placeholder IDs when no SWC/CWE mapping applies
 - Provide step-by-step attack scenarios for Critical/High findings
 - Reference the Planner's audit plan items
 - Output ONLY valid JSON"""

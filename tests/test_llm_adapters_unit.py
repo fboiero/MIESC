@@ -58,6 +58,7 @@ class TestGPTLensAdapter:
 
         assert "JSON" in AUDITOR_PROMPT_TEMPLATE
         assert "findings" in AUDITOR_PROMPT_TEMPLATE
+        assert "SWC-XXX" not in AUDITOR_PROMPT_TEMPLATE
 
     def test_can_analyze_solidity(self, adapter):
         assert adapter.can_analyze("contract.sol") is True
@@ -97,6 +98,20 @@ class TestGPTLensAdapter:
             # Should contain error or empty findings
             assert result.get("findings") == [] or result.get("error")
 
+    def test_analyze_reports_timeout_status_on_ollama_timeout(self, adapter, tmp_path):
+        """C6: a clock-killed Ollama call must yield status='timeout', not a
+        misleading clean-zero 'success' that masks a missed analysis."""
+        contract = tmp_path / "C.sol"
+        contract.write_text("pragma solidity ^0.8.0;\ncontract C {}\n")
+        adapter._retry_delay = 0
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE), patch.object(
+            adapter, "_get_cached_result", return_value=None
+        ), patch("urllib.request.urlopen", side_effect=TimeoutError("timed out")):
+            result = adapter.analyze(str(contract), timeout=10, skip_critic=True)
+        assert result["status"] == "timeout"
+        assert result.get("metadata", {}).get("timed_out") is True
+        assert "incomplete" in (result.get("error") or "")
+
 
 # ---------------------------------------------------------------------------
 # iAudit Adapter
@@ -118,6 +133,42 @@ class TestIAuditAdapter:
     def test_is_available_returns_status(self, adapter):
         status = adapter.is_available()
         assert isinstance(status, ToolStatus)
+
+    def test_analyze_reports_timeout_status_on_ollama_timeout(self, adapter, tmp_path):
+        """C6: an LLM agent stage killed by the clock must yield status='timeout'
+        (via the pattern fallback), not a clean-zero 'success'."""
+        contract = tmp_path / "C.sol"
+        contract.write_text("pragma solidity ^0.8.0;\ncontract C {}\n")
+
+        def _timeout(*args, **kwargs):
+            adapter._timed_out = True
+            return None
+
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE), patch.object(
+            adapter, "_get_cached_result", return_value=None
+        ), patch.object(adapter, "_call_ollama_api", side_effect=_timeout):
+            result = adapter.analyze(str(contract), model="test-model")
+        assert result["status"] == "timeout"
+        assert result.get("metadata", {}).get("timed_out") is True
+
+    def test_normalize_findings_removes_placeholder_taxonomy_ids(self, adapter):
+        normalized = adapter.normalize_findings(
+            {
+                "findings": [
+                    {
+                        "id": "IAUDIT-001",
+                        "type": "other",
+                        "severity": "Medium",
+                        "confidence": 0.7,
+                        "swc_id": "SWC-XXX",
+                        "cwe_id": "CWE-XXX",
+                    }
+                ]
+            }
+        )
+
+        assert normalized[0]["swc_id"] is None
+        assert normalized[0]["cwe_id"] is None
 
     def test_prompt_templates_imported(self):
         from src.adapters.iaudit_prompts import (

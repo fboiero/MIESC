@@ -93,6 +93,8 @@ VULNERABILITY_SWC_MAP = {
 # Severity levels ordered by priority
 SEVERITY_ORDER = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3, "Info": 4}
 
+PLACEHOLDER_TAXONOMY_IDS = {"", "SWC-XXX", "CWE-XXX", "XXX", "N/A", "NA", "NONE", "NULL"}
+
 # Pattern-based detection keywords for fallback analysis
 PATTERN_KEYWORDS = {
     "reentrancy": [
@@ -286,6 +288,9 @@ class GPTLensAdapter(ToolAdapter):
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._max_retries = 2
         self._retry_delay = 2
+        # Set True by _call_ollama when a request is killed by the clock; read by
+        # analyze() to report status="timeout" instead of a clean-zero success.
+        self._timed_out = False
 
     # ========================================================================
     # ToolAdapter Interface Implementation
@@ -432,6 +437,9 @@ class GPTLensAdapter(ToolAdapter):
         start_time = time.time()
         tool_name = "gptlens"
         version = "1.0.0"
+        # Reset per-run timeout flag; set by _call_ollama on a clock kill so the
+        # result is reported as status="timeout", not a misleading clean zero.
+        self._timed_out = False
 
         # Check tool availability
         status = self.is_available()
@@ -570,14 +578,26 @@ class GPTLensAdapter(ToolAdapter):
             for idx, finding in enumerate(final_findings):
                 finding["id"] = f"gptlens-{idx + 1}"
 
+            # A timeout during the LLM phase means results are INCOMPLETE — do not
+            # report it as a clean "success: 0 findings". Any findings gathered so
+            # far (pattern + partial LLM) are still returned and counted downstream.
+            run_status = "timeout" if self._timed_out else "success"
+            timeout_error = (
+                "Ollama timed out during analysis; results may be incomplete"
+                if self._timed_out
+                else None
+            )
+
             # Build result
             result = self._build_result(
                 tool_name,
                 version,
-                "success",
+                run_status,
                 final_findings,
                 start_time,
+                error=timeout_error,
                 metadata={
+                    "timed_out": self._timed_out,
                     "auditor_model": auditor_model,
                     "critic_model": critic_model,
                     "backend": "ollama",
@@ -718,8 +738,8 @@ class GPTLensAdapter(ToolAdapter):
 
         # Get SWC/CWE/OWASP mappings
         swc_info = VULNERABILITY_SWC_MAP.get(vuln_type, {})
-        swc_id = raw.get("swc_id", swc_info.get("swc", ""))
-        cwe_id = swc_info.get("cwe", "")
+        swc_id = self._valid_taxonomy_id(raw.get("swc_id")) or swc_info.get("swc", "")
+        cwe_id = self._valid_taxonomy_id(raw.get("cwe_id")) or swc_info.get("cwe", "")
         owasp_category = swc_info.get("owasp", "")
 
         title = raw.get("title", f"{vuln_type.replace('_', ' ').title()} Vulnerability")
@@ -763,6 +783,15 @@ class GPTLensAdapter(ToolAdapter):
         }
 
         return finding
+
+    def _valid_taxonomy_id(self, value: Any) -> str:
+        """Return a non-placeholder taxonomy ID, or an empty string."""
+        if value is None:
+            return ""
+        normalized = str(value).strip()
+        if normalized.upper() in PLACEHOLDER_TAXONOMY_IDS:
+            return ""
+        return normalized
 
     def _classify_vulnerability_type(self, raw: Dict[str, Any]) -> str:
         """
@@ -1147,7 +1176,12 @@ class GPTLensAdapter(ToolAdapter):
         ).encode("utf-8")
 
         max_attempts = 1 if timeout < 30 else self._max_retries
+        # Tracks whether the LAST attempt failed due to a clock kill. Only a
+        # final timeout failure (not one that a retry recovered from) marks the
+        # run as timed out — a recovered retry returns full results normally.
+        last_error_timeout = False
         for attempt in range(1, max_attempts + 1):
+            last_error_timeout = False
             try:
                 logger.debug(
                     "GPTLens: Calling Ollama %s (attempt %d/%d)",
@@ -1192,7 +1226,20 @@ class GPTLensAdapter(ToolAdapter):
                     attempt,
                     e.reason,
                 )
+            except TimeoutError as e:
+                # Read/connect timeout: the model was killed by the clock, not a
+                # clean "no findings". Flag it so analyze() reports status=timeout
+                # instead of a misleading "0 findings" success.
+                last_error_timeout = True
+                logger.warning(
+                    "GPTLens: Ollama timed out for %s (attempt %d): %s",
+                    model,
+                    attempt,
+                    e,
+                )
             except urllib.error.URLError as e:
+                if isinstance(e.reason, TimeoutError) or "timed out" in str(e.reason):
+                    last_error_timeout = True
                 logger.warning(
                     "GPTLens: URL error calling Ollama for %s (attempt %d): %s",
                     model,
@@ -1223,6 +1270,8 @@ class GPTLensAdapter(ToolAdapter):
             max_attempts,
             model,
         )
+        if last_error_timeout:
+            self._timed_out = True
         return None
 
     # ========================================================================
