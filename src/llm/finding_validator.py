@@ -31,6 +31,16 @@ import aiohttp
 
 logger = logging.getLogger(__name__)
 
+VALIDATOR_RUNTIME_ERRORS = (
+    aiohttp.ClientError,
+    asyncio.TimeoutError,
+    TimeoutError,
+    OSError,
+    RuntimeError,
+    ValueError,
+    json.JSONDecodeError,
+)
+
 
 class ValidationResult(Enum):
     """Result of LLM validation."""
@@ -175,7 +185,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
                 # Check if our model is available
                 model_base = self.config.model.split(":")[0]
                 return any(model_base in m for m in models)
-        except Exception as e:
+        except VALIDATOR_RUNTIME_ERRORS as e:
             logger.debug(f"Ollama not available: {e}")
             return False
 
@@ -254,7 +264,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
 
             return validation
 
-        except Exception as e:
+        except VALIDATOR_RUNTIME_ERRORS as e:
             logger.warning(f"LLM validation failed for {finding_id}: {e}")
             return LLMValidation(
                 finding_id=finding_id,
@@ -284,7 +294,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         ) as resp:
             if resp.status != 200:
                 error_text = await resp.text()
-                raise Exception(f"Ollama API error {resp.status}: {error_text}")
+                raise RuntimeError(f"Ollama API error {resp.status}: {error_text}")
 
             data = await resp.json()
             return data.get("response", "")

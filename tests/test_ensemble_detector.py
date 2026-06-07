@@ -18,6 +18,7 @@ Date: January 2026
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiohttp
 import pytest
 
 from src.llm.ensemble_detector import (
@@ -458,7 +459,7 @@ class TestLLMEnsembleDetectorInitialize:
 
         async def run_test():
             mock_session_instance = MagicMock()
-            mock_session_instance.get.side_effect = Exception("Connection refused")
+            mock_session_instance.get.side_effect = OSError("Connection refused")
 
             mock_session = MagicMock()
             mock_session.__aenter__ = AsyncMock(return_value=mock_session_instance)
@@ -468,6 +469,23 @@ class TestLLMEnsembleDetectorInitialize:
                 # Should not raise, just log warning
                 await detector.initialize()
                 assert detector._initialized
+
+        asyncio.run(run_test())
+
+    def test_check_ollama_connection_error(self, detector):
+        """Test checking Ollama availability with connection error."""
+
+        async def run_test():
+            mock_session_instance = MagicMock()
+            mock_session_instance.get.side_effect = aiohttp.ClientError("Connection refused")
+
+            mock_session = MagicMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session.__aexit__ = AsyncMock(return_value=None)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                models = await detector._check_provider_availability(LLMProvider.OLLAMA)
+                assert models == []
 
         asyncio.run(run_test())
 
@@ -617,6 +635,44 @@ class TestLLMEnsembleDetectorDetectWithFallback:
 
                 with pytest.raises(AllProvidersUnavailable):
                     await multi_provider_detector.detect_with_fallback(vulnerable_code)
+
+        asyncio.run(run_test())
+
+    def test_fallback_continues_after_runtime_error(
+        self, multi_provider_detector, vulnerable_code
+    ):
+        """Test fallback to another provider after an expected runtime error."""
+
+        async def run_test():
+            multi_provider_detector._initialized = True
+            multi_provider_detector._available_providers = {
+                LLMProvider.OLLAMA: ["test-model"],
+                LLMProvider.OPENAI: ["gpt-4"],
+            }
+
+            async def mock_detect(provider, code, context):
+                if provider == LLMProvider.OLLAMA:
+                    raise RuntimeError("temporary Ollama failure")
+                return [
+                    EnsembleFinding(
+                        type="test",
+                        severity="low",
+                        title="Test",
+                        description="Test",
+                        location={},
+                        confidence=0.5,
+                        votes=1,
+                        total_models=1,
+                        supporting_models=["gpt-4"],
+                    )
+                ]
+
+            with patch.object(
+                multi_provider_detector, "_detect_with_provider", side_effect=mock_detect
+            ):
+                results = await multi_provider_detector.detect_with_fallback(vulnerable_code)
+                assert len(results) == 1
+                assert results[0].supporting_models == ["gpt-4"]
 
         asyncio.run(run_test())
 
@@ -785,6 +841,22 @@ class TestLLMEnsembleDetectorQueryMethods:
                     "claude-3-sonnet", "contract code"
                 )
                 assert isinstance(results, list)
+
+        asyncio.run(run_test())
+
+    def test_query_model_http_error_raises_runtime_error(self, detector):
+        """Test Ollama HTTP failures raise a concrete runtime error."""
+
+        async def run_test():
+            mock_response = MagicMock()
+            mock_response.status = 500
+            mock_response.text = AsyncMock(return_value="server error")
+
+            mock_session = _aiohttp_session_with_response("post", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                with pytest.raises(RuntimeError, match="Ollama error"):
+                    await detector._query_model("test-model", "contract code")
 
         asyncio.run(run_test())
 

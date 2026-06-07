@@ -302,7 +302,7 @@ class PoCGenerator:
             try:
                 poc = self.generate(finding, target_contract, options)
                 pocs.append(poc)
-            except Exception as e:
+            except (AttributeError, KeyError, TypeError, ValueError) as e:
                 logger.warning(f"Failed to generate PoC for finding: {e}")
 
         return pocs
@@ -386,7 +386,7 @@ class PoCGenerator:
                 execution_time_ms=0,
                 error="Foundry (forge) not installed",
             )
-        except Exception as e:
+        except (OSError, RuntimeError, subprocess.SubprocessError) as e:
             return PoCResult(
                 success=False,
                 output="",

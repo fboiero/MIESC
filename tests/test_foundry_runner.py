@@ -391,7 +391,7 @@ class TestCompile:
 
     def test_compile_exception(self, runner):
         """Test compilation with exception."""
-        with patch("subprocess.run", side_effect=Exception("Unknown error")):
+        with patch("subprocess.run", side_effect=OSError("Unknown error")):
             success = runner.compile()
 
         assert success is False
@@ -544,7 +544,7 @@ class TestGasReport:
 
     def test_get_gas_report_error(self, runner):
         """Test gas report with error."""
-        with patch("subprocess.run", side_effect=Exception("Error")):
+        with patch("subprocess.run", side_effect=OSError("Error")):
             report = runner.get_gas_report()
 
         assert "error" in report

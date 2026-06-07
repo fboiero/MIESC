@@ -889,7 +889,7 @@ class TestBatchGenerateExceptionHandling:
             {"type": "test2"},
         ]
 
-        with patch.object(generator, "generate", side_effect=Exception("Always fails")):
+        with patch.object(generator, "generate", side_effect=ValueError("Always fails")):
             results = generator.generate_batch(findings, "Test.sol")
 
         assert results == []

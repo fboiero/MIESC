@@ -249,7 +249,7 @@ class TestProviderAvailability:
         async def run_test():
             with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session_class.return_value.__aenter__ = AsyncMock(
-                    side_effect=Exception("Connection refused")
+                    side_effect=OSError("Connection refused")
                 )
                 mock_session_class.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -392,7 +392,7 @@ class TestProviderFallback:
 
             with patch("aiohttp.ClientSession") as mock_session_class:
                 mock_session_class.return_value.__aenter__ = AsyncMock(
-                    side_effect=Exception("Connection error")
+                    side_effect=OSError("Connection error")
                 )
                 mock_session_class.return_value.__aexit__ = AsyncMock(return_value=None)
 

@@ -28,6 +28,15 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+OLLAMA_RUNTIME_ERRORS = (
+    FileNotFoundError,
+    OSError,
+    RuntimeError,
+    TimeoutError,
+    subprocess.SubprocessError,
+)
+LLM_PROCESSING_ERRORS = (AttributeError, KeyError, TypeError, ValueError, RuntimeError)
+
 
 @dataclass
 class LLMConfig:
@@ -70,7 +79,7 @@ class OpenLLaMAHelper:
                 self._available = False
                 logger.warning(f"OpenLLaMA: {self.config.model} not found")
 
-        except (FileNotFoundError, subprocess.TimeoutExpired, Exception) as e:
+        except OLLAMA_RUNTIME_ERRORS as e:
             self._available = False
             logger.debug(f"OpenLLaMA not available: {e}")
 
@@ -109,7 +118,7 @@ class OpenLLaMAHelper:
 
             return findings
 
-        except Exception as e:
+        except LLM_PROCESSING_ERRORS as e:
             logger.error(f"Error enhancing findings: {e}")
             return findings
 
@@ -195,7 +204,7 @@ OUTPUT (JSON only):
 
             return findings
 
-        except Exception as e:
+        except LLM_PROCESSING_ERRORS as e:
             logger.error(f"Error prioritizing findings: {e}")
             return findings
 
@@ -276,7 +285,7 @@ REMEDIATION ADVICE:"""
 
             except (urllib.error.URLError, urllib.error.HTTPError) as e:
                 logger.warning(f"LLM HTTP attempt {attempt} failed: {e}")
-            except Exception as e:
+            except (json.JSONDecodeError, OSError, TimeoutError, ValueError) as e:
                 logger.error(f"LLM call attempt {attempt} error: {e}")
 
             if attempt < self.config.retry_attempts:
@@ -342,7 +351,7 @@ INSIGHTS:"""
 
             return priorities
 
-        except (json.JSONDecodeError, Exception) as e:
+        except (AttributeError, TypeError, ValueError, json.JSONDecodeError) as e:
             logger.error(f"Error parsing priorities: {e}")
             return {}
 
