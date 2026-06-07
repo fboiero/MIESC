@@ -23,7 +23,19 @@ import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
+import aiohttp
+
 logger = logging.getLogger(__name__)
+
+REMEDIATION_RUNTIME_ERRORS = (
+    aiohttp.ClientError,
+    asyncio.TimeoutError,
+    TimeoutError,
+    OSError,
+    RuntimeError,
+    ValueError,
+    json.JSONDecodeError,
+)
 
 
 @dataclass
@@ -285,7 +297,7 @@ class RemediationGenerator:
                     remediation = await self.generate_remediation(finding, code)
                     remediations.append(remediation)
                     success_count += 1
-                except Exception as e:
+                except REMEDIATION_RUNTIME_ERRORS as e:
                     logger.warning(f"Remediation generation failed: {e}")
                     failure_count += 1
 
@@ -366,8 +378,6 @@ class RemediationGenerator:
 
     async def _query_llm(self, prompt: str) -> Dict[str, Any]:
         """Query the LLM and parse JSON response."""
-        import aiohttp
-
         payload = {
             "model": self.model,
             "messages": [
@@ -396,14 +406,14 @@ class RemediationGenerator:
                     timeout=aiohttp.ClientTimeout(total=self.timeout),
                 ) as resp:
                     if resp.status != 200:
-                        raise Exception(f"LLM error: {await resp.text()}")
+                        raise RuntimeError(f"LLM error: {await resp.text()}")
 
                     data = await resp.json()
                     content = data.get("message", {}).get("content", "")
 
                     return self._parse_json_response(content)
 
-        except Exception as e:
+        except REMEDIATION_RUNTIME_ERRORS as e:
             logger.error(f"LLM query failed: {e}")
             return {}
 

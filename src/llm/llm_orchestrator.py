@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+import aiohttp
+
 from src.security.llm_output_validator import (
     AnalysisResponse,
     safe_parse_llm_json,
@@ -32,6 +34,17 @@ from src.security.prompt_sanitizer import (
 )
 
 logger = logging.getLogger(__name__)
+
+LLM_RUNTIME_ERRORS = (
+    aiohttp.ClientError,
+    ImportError,
+    OSError,
+    RuntimeError,
+    TimeoutError,
+    ValueError,
+    asyncio.TimeoutError,
+    json.JSONDecodeError,
+)
 
 
 class LLMProvider(Enum):
@@ -124,14 +137,17 @@ Format your response as JSON with the following structure:
             "attack_vector": "How it can be exploited",
             "impact": "Potential consequences",
             "remediation": "How to fix",
-            "cwe": "CWE-XXX",
-            "swc": "SWC-XXX",
+            "cwe": "CWE-841",
+            "swc": "SWC-107",
             "confidence": 0.0-1.0
         }
     ],
     "summary": "Overall security assessment",
     "risk_score": 0-100
-}"""
+}
+
+Use real CWE/SWC identifiers only when applicable. Use null for identifiers
+that do not apply; never emit made-up or placeholder taxonomy values."""
 
 
 class OllamaBackend(LLMBackend):
@@ -155,7 +171,7 @@ class OllamaBackend(LLMBackend):
                             self.config.model in m for m in models
                         )
                         return self.available
-        except Exception as e:
+        except LLM_RUNTIME_ERRORS as e:
             logger.debug(f"Ollama health check failed: {e}")
         return False
 
@@ -189,7 +205,7 @@ class OllamaBackend(LLMBackend):
                 timeout=aiohttp.ClientTimeout(total=self.config.timeout),
             ) as resp:
                 if resp.status != 200:
-                    raise Exception(f"Ollama error: {await resp.text()}")
+                    raise RuntimeError(f"Ollama error: {await resp.text()}")
 
                 data = await resp.json()
                 content = data.get("message", {}).get("content", "")
@@ -356,7 +372,7 @@ class LLMOrchestrator:
                 if available and self.primary_provider is None:
                     self.primary_provider = key
                 logger.info(f"Backend {key}: {'available' if available else 'unavailable'}")
-            except Exception as e:
+            except LLM_RUNTIME_ERRORS as e:
                 status[key] = False
                 logger.warning(f"Backend {key} health check failed: {e}")
         return status
@@ -443,7 +459,7 @@ Provide a comprehensive security analysis in JSON format."""
                     response = await backend.analyze(prompt, context)
                     self.cache[cache_key] = response
                     return response
-                except Exception as e:
+                except LLM_RUNTIME_ERRORS as e:
                     errors.append(f"{key} attempt {attempt + 1}: {e}")
                     if attempt < backend.config.retry_attempts - 1:
                         await asyncio.sleep(backend.config.retry_delay)

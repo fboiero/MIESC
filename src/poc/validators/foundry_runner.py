@@ -28,6 +28,9 @@ from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
+FOUNDRY_RUNTIME_ERRORS = (OSError, RuntimeError, subprocess.SubprocessError)
+FOUNDRY_PARSE_ERRORS = (AttributeError, TypeError, ValueError)
+
 
 class TestStatus(Enum):
     """Test execution status."""
@@ -205,7 +208,7 @@ class FoundryRunner:
                 raw_output="",
                 error=f"Test execution timed out after {timeout}s",
             )
-        except Exception as e:
+        except FOUNDRY_RUNTIME_ERRORS as e:
             return FoundryResult(
                 success=False,
                 tests=[],
@@ -306,7 +309,7 @@ class FoundryRunner:
                 logger.error(f"Compilation failed: {result.stderr}")
                 return False
 
-        except Exception as e:
+        except FOUNDRY_RUNTIME_ERRORS as e:
             logger.error(f"Compilation error: {e}")
             return False
 
@@ -382,7 +385,7 @@ class FoundryRunner:
                         tests.extend(self._parse_test_results(data))
                     except json.JSONDecodeError:
                         continue
-        except Exception as e:
+        except FOUNDRY_PARSE_ERRORS as e:
             logger.debug(f"JSON parsing failed: {e}")
 
         # Fallback to regex parsing
@@ -495,7 +498,7 @@ class FoundryRunner:
 
             return report
 
-        except Exception as e:
+        except FOUNDRY_RUNTIME_ERRORS as e:
             logger.error(f"Gas report failed: {e}")
             return {"error": str(e)}
 

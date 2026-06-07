@@ -26,7 +26,19 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+import aiohttp
+
 logger = logging.getLogger(__name__)
+
+ENSEMBLE_RUNTIME_ERRORS = (
+    aiohttp.ClientError,
+    asyncio.TimeoutError,
+    TimeoutError,
+    OSError,
+    RuntimeError,
+    ValueError,
+    json.JSONDecodeError,
+)
 
 
 class LLMProvider(Enum):
@@ -233,8 +245,6 @@ Response (JSON array only):"""
         Returns:
             Dict mapping model name to availability status
         """
-        import aiohttp
-
         status = {}
         self._available_models = []
         self._available_providers = {}
@@ -268,7 +278,7 @@ Response (JSON array only):"""
                                 status[model] = available
                                 if available and model not in self._available_models:
                                     self._available_models.append(model)
-            except Exception as e:
+            except ENSEMBLE_RUNTIME_ERRORS as e:
                 logger.warning(f"Failed to check Ollama models: {e}")
 
         self._initialized = True
@@ -292,8 +302,6 @@ Response (JSON array only):"""
         available = []
 
         if provider == LLMProvider.OLLAMA:
-            import aiohttp
-
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(
@@ -302,7 +310,7 @@ Response (JSON array only):"""
                         if resp.status == 200:
                             data = await resp.json()
                             available = [m["name"] for m in data.get("models", [])]
-            except Exception as e:
+            except ENSEMBLE_RUNTIME_ERRORS as e:
                 logger.debug(f"Ollama not available: {e}")
 
         elif provider == LLMProvider.OPENAI:
@@ -364,7 +372,7 @@ Response (JSON array only):"""
                 logger.warning(f"Provider {provider.value} unavailable: {e}")
                 last_error = e
                 continue
-            except Exception as e:
+            except ENSEMBLE_RUNTIME_ERRORS as e:
                 logger.warning(f"Provider {provider.value} failed: {e}")
                 last_error = e
                 continue
@@ -435,8 +443,6 @@ Response (JSON array only):"""
         Returns:
             List of findings from this model
         """
-        import aiohttp
-
         if not self.openai_api_key:
             raise ProviderUnavailable("OpenAI API key not configured")
 
@@ -499,8 +505,6 @@ Response (JSON array only):"""
         Returns:
             List of findings from this model
         """
-        import aiohttp
-
         if not self.anthropic_api_key:
             raise ProviderUnavailable("Anthropic API key not configured")
 
@@ -633,8 +637,6 @@ Response (JSON array only):"""
         Returns:
             List of findings from this model
         """
-        import aiohttp
-
         prompt = self.DETECTION_PROMPT.format(code=code)
 
         if context:
@@ -664,14 +666,14 @@ Response (JSON array only):"""
                     timeout=aiohttp.ClientTimeout(total=self.timeout),
                 ) as resp:
                     if resp.status != 200:
-                        raise Exception(f"Ollama error: {await resp.text()}")
+                        raise RuntimeError(f"Ollama error: {await resp.text()}")
 
                     data = await resp.json()
                     content = data.get("message", {}).get("content", "")
 
                     return self._parse_model_response(content, model)
 
-        except Exception as e:
+        except ENSEMBLE_RUNTIME_ERRORS as e:
             logger.warning(f"Model {model} query failed: {e}")
             raise
 

@@ -7,6 +7,7 @@ Tests the multi-backend LLM orchestration for security analysis.
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiohttp
 import pytest
 
 from src.llm.llm_orchestrator import (
@@ -167,6 +168,23 @@ class TestLLMBackend:
         assert "security" in prompt.lower()
         assert "vulnerabilities" in prompt.lower()
         assert "JSON" in prompt
+
+    def test_system_prompt_has_no_taxonomy_placeholders(self):
+        """Taxonomy examples should not teach models to emit placeholders."""
+        config = LLMConfig(provider=LLMProvider.OLLAMA, model="test")
+
+        class TestBackend(LLMBackend):
+            async def analyze(self, prompt, context=None):
+                return LLMResponse(content="test", provider="test", model="test")
+
+            async def health_check(self):
+                return True
+
+        prompt = TestBackend(config).get_system_prompt()
+        assert "SWC-XXX" not in prompt
+        assert "CWE-XXX" not in prompt
+        assert "SWC-107" in prompt
+        assert "CWE-841" in prompt
 
 
 class TestOllamaBackend:
@@ -466,6 +484,47 @@ class TestLLMOrchestrator:
         result = asyncio.run(orchestrator.query("test prompt"))
         assert result.content == "cached content"
         assert result.cached is True
+
+    def test_query_falls_back_after_client_error(self):
+        """Test query falls back when primary backend has a client error."""
+
+        async def run_test():
+            configs = [
+                LLMConfig(
+                    provider=LLMProvider.OLLAMA,
+                    model="primary",
+                    retry_attempts=1,
+                    retry_delay=0,
+                ),
+                LLMConfig(
+                    provider=LLMProvider.OPENAI,
+                    model="fallback",
+                    api_key="key",
+                    retry_attempts=1,
+                    retry_delay=0,
+                ),
+            ]
+            orchestrator = LLMOrchestrator(configs)
+            orchestrator.backends["ollama:primary"].available = True
+            orchestrator.backends["openai:fallback"].available = True
+
+            primary_analyze = AsyncMock(side_effect=aiohttp.ClientError("connection reset"))
+            fallback_response = LLMResponse(
+                content="fallback content",
+                provider="openai",
+                model="fallback",
+            )
+            fallback_analyze = AsyncMock(return_value=fallback_response)
+            orchestrator.backends["ollama:primary"].analyze = primary_analyze
+            orchestrator.backends["openai:fallback"].analyze = fallback_analyze
+
+            result = await orchestrator.query("test prompt")
+
+            assert result is fallback_response
+            primary_analyze.assert_awaited_once()
+            fallback_analyze.assert_awaited_once()
+
+        asyncio.run(run_test())
 
     def test_analyze_contract_structure(self):
         """Test analyze_contract method structure."""
