@@ -155,6 +155,9 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
     def __init__(self):
         super().__init__()
         self._default_timeout = 300  # 5 min for large contracts with LLM
+        # Set True by _run_ollama_analysis on a clock kill; read by analyze() to
+        # report status="timeout" instead of a misleading clean-zero success.
+        self._timed_out = False
         try:
             from src.core.llm_config import USE_CASE_CODE_ANALYSIS, get_model
 
@@ -257,6 +260,8 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             Analysis results with AI-detected findings
         """
         start_time = time.time()
+        # Reset per-run timeout flag (set by _run_ollama_analysis on a clock kill).
+        self._timed_out = False
 
         # Check availability
         if self.is_available() != ToolStatus.AVAILABLE:
@@ -292,14 +297,25 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             # Parse findings
             findings = self._parse_gptscan_output(raw_output, contract_path)
 
-            return {
+            # A clock-kill during the LLM call means results are incomplete —
+            # do not report a clean-zero success. Partial findings still returned.
+            run_status = "timeout" if self._timed_out else "success"
+            result = {
                 "tool": "gptscan",
                 "version": "3.0.0",
-                "status": "success",
+                "status": run_status,
                 "findings": findings,
-                "metadata": {"model": model, "backend": "ollama", "cost_usd": 0.0},
+                "metadata": {
+                    "model": model,
+                    "backend": "ollama",
+                    "cost_usd": 0.0,
+                    "timed_out": self._timed_out,
+                },
                 "execution_time": time.time() - start_time,
             }
+            if self._timed_out:
+                result["error"] = "Ollama timed out during analysis; results may be incomplete"
+            return result
 
         except subprocess.TimeoutExpired:
             return {
@@ -443,7 +459,15 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
                 else:
                     logger.warning(f"Ollama returned status {resp.status}")
                     return ""
+        except TimeoutError as e:
+            # HTTP read/connect timeout (NOT subprocess.TimeoutExpired): model
+            # killed by the clock. Flag so analyze() reports status="timeout".
+            self._timed_out = True
+            logger.error(f"GPTScan: Ollama timed out after {timeout}s: {e}")
+            return ""
         except urllib.error.URLError as e:
+            if isinstance(e.reason, TimeoutError) or "timed out" in str(e.reason):
+                self._timed_out = True
             logger.error(f"GPTScan: Ollama API error: {e}")
             return ""
         except Exception as e:

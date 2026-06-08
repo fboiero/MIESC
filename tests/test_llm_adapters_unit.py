@@ -222,6 +222,52 @@ class TestLlamaAuditAdapter:
         result = adapter.normalize_findings(None)
         assert isinstance(result, list)
 
+    def test_analyze_reports_timeout_status_on_ollama_timeout(self, adapter, tmp_path):
+        """C6: a clock-killed Ollama call must yield status='timeout', not a
+        clean-zero 'success' from the pattern fallback."""
+        contract = tmp_path / "C.sol"
+        contract.write_text("pragma solidity ^0.8.0;\ncontract C {}\n")
+
+        def _timeout(*args, **kwargs):
+            adapter._timed_out = True
+            return None
+
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE), patch.object(
+            adapter, "_get_cached_result", return_value=None
+        ), patch.object(adapter, "_call_ollama_generate", side_effect=_timeout):
+            result = adapter.analyze(str(contract))
+        assert result["status"] == "timeout"
+        assert result.get("metadata", {}).get("timed_out") is True
+
+
+# ---------------------------------------------------------------------------
+# LLMSmartAudit Adapter
+# ---------------------------------------------------------------------------
+
+
+class TestLLMSmartAuditAdapter:
+    @pytest.fixture
+    def adapter(self):
+        from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
+
+        return LLMSmartAuditAdapter()
+
+    def test_analyze_reports_timeout_status_on_ollama_timeout(self, adapter, tmp_path):
+        """C6: a clock-killed Ollama HTTP call must yield status='timeout'."""
+        contract = tmp_path / "C.sol"
+        contract.write_text("pragma solidity ^0.8.0;\ncontract C {}\n")
+
+        def _timeout(*args, **kwargs):
+            adapter._timed_out = True
+            return ""
+
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE), patch.object(
+            adapter, "_get_cached_result", return_value=None
+        ), patch.object(adapter, "_run_ollama_audit", side_effect=_timeout):
+            result = adapter.analyze(str(contract))
+        assert result["status"] == "timeout"
+        assert result.get("metadata", {}).get("timed_out") is True
+
 
 # ---------------------------------------------------------------------------
 # LLMBugScanner Adapter
@@ -323,3 +369,57 @@ class TestLLMAdapterContract:
         meta = klass().get_metadata()
         assert meta.name
         assert meta.category
+
+
+# ---------------------------------------------------------------------------
+# C6 timeout-status regression for GPTScan and SmartLLM
+# ---------------------------------------------------------------------------
+
+
+class TestGPTScanTimeout:
+    @pytest.fixture
+    def adapter(self):
+        from src.adapters.gptscan_adapter import GPTScanAdapter
+
+        return GPTScanAdapter()
+
+    def test_analyze_reports_timeout_status_on_ollama_timeout(self, adapter, tmp_path):
+        """C6: a clock-killed Ollama HTTP call must yield status='timeout'."""
+        contract = tmp_path / "C.sol"
+        contract.write_text("pragma solidity ^0.8.0;\ncontract C {}\n")
+
+        def _timeout(*args, **kwargs):
+            adapter._timed_out = True
+            return ""
+
+        with patch.object(
+            adapter, "is_available", return_value=ToolStatus.AVAILABLE
+        ), patch.object(adapter, "_run_ollama_analysis", side_effect=_timeout):
+            result = adapter.analyze(str(contract))
+        assert result["status"] == "timeout"
+        assert result.get("metadata", {}).get("timed_out") is True
+
+
+class TestSmartLLMTimeout:
+    @pytest.fixture
+    def adapter(self):
+        from src.adapters.smartllm_adapter import SmartLLMAdapter
+
+        return SmartLLMAdapter()
+
+    def test_analyze_reports_timeout_status_on_ollama_timeout(self, adapter, tmp_path):
+        """C6: a clock-killed generator call must yield status='timeout', not a
+        degraded 'success'."""
+        contract = tmp_path / "C.sol"
+        contract.write_text("pragma solidity ^0.8.0;\ncontract C {}\n")
+
+        def _timeout(*args, **kwargs):
+            adapter._timed_out = True
+            return None
+
+        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE), patch.object(
+            adapter, "_get_cached_result", return_value=None
+        ), patch.object(adapter, "_call_ollama_with_retry", side_effect=_timeout):
+            result = adapter.analyze(str(contract))
+        assert result["status"] == "timeout"
+        assert result.get("metadata", {}).get("timed_out") is True

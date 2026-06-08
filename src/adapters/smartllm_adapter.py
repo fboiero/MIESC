@@ -89,6 +89,9 @@ class SmartLLMAdapter(ToolAdapter):
         super().__init__()
         self._cache_dir = Path.home() / ".miesc" / "smartllm_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
+        # Set True by _call_ollama_with_retry on a clock kill; read by analyze()
+        # to report status="timeout" instead of a misleading clean-zero success.
+        self._timed_out = False
 
         # Load configuration from centralized config
         self._model = get_model(USE_CASE_CODE_ANALYSIS)
@@ -222,6 +225,8 @@ class SmartLLMAdapter(ToolAdapter):
             Analysis results with findings from LLM
         """
         start_time = time.time()
+        # Reset per-run timeout flag (set by _call_ollama_with_retry on a clock kill).
+        self._timed_out = False
 
         # Check availability
         if self.is_available() != ToolStatus.AVAILABLE:
@@ -273,10 +278,13 @@ class SmartLLMAdapter(ToolAdapter):
             generator_response = self._call_ollama_with_retry(generator_prompt, timeout=timeout)
 
             if not generator_response:
+                # A clock kill is NOT a clean zero: report status="timeout" so it
+                # is not masked as a successful empty analysis.
+                degraded_status = "timeout" if self._timed_out else "success"
                 return {
                     "tool": "smartllm",
                     "version": "3.0.0",
-                    "status": "success",
+                    "status": degraded_status,
                     "findings": [],
                     "execution_time": time.time() - start_time,
                     "metadata": {
@@ -286,9 +294,18 @@ class SmartLLMAdapter(ToolAdapter):
                         "rag_enhanced": self._use_rag,
                         "verificator_enabled": self._use_verificator,
                         "degraded": True,
-                        "degraded_reason": "ollama_generator_timeout",
+                        "timed_out": self._timed_out,
+                        "degraded_reason": (
+                            "ollama_generator_timeout"
+                            if self._timed_out
+                            else "ollama_generator_empty_response"
+                        ),
                     },
-                    "error": None,
+                    "error": (
+                        "Ollama timed out during analysis; results may be incomplete"
+                        if self._timed_out
+                        else None
+                    ),
                 }
 
             # Parse initial findings
@@ -308,11 +325,13 @@ class SmartLLMAdapter(ToolAdapter):
             )
             final_findings = verified_findings
 
-            # Build result
+            # Build result. A timeout in the verificator stage means results are
+            # incomplete — report status="timeout" (partial findings still kept).
+            run_status = "timeout" if self._timed_out else "success"
             result = {
                 "tool": "smartllm",
                 "version": "3.0.0",
-                "status": "success",
+                "status": run_status,
                 "findings": final_findings,
                 "metadata": {
                     "model": self._model,
@@ -324,13 +343,17 @@ class SmartLLMAdapter(ToolAdapter):
                     "initial_findings": len(initial_findings),
                     "verified_findings": len(verified_findings),
                     "false_positives_removed": len(initial_findings) - len(verified_findings),
+                    "timed_out": self._timed_out,
                 },
                 "execution_time": time.time() - start_time,
                 "from_cache": False,
             }
+            if self._timed_out:
+                result["error"] = "Ollama timed out during analysis; results may be incomplete"
 
-            # Cache result
-            self._cache_result(cache_key, result)
+            # Cache only complete results (a timeout must re-run next time)
+            if not self._timed_out:
+                self._cache_result(cache_key, result)
 
             return result
 
@@ -850,7 +873,10 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
         ).encode("utf-8")
 
         max_attempts = 1 if timeout < 30 else self._max_retries
+        # Only a FINAL timeout failure (not one a retry recovers from) marks the run.
+        last_error_timeout = False
         for attempt in range(1, max_attempts + 1):
+            last_error_timeout = False
             try:
                 logger.info(f"SmartLLM: Calling Ollama (attempt {attempt}/{max_attempts})")
 
@@ -872,7 +898,12 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
                     else:
                         logger.warning(f"Ollama returned status {resp.status} (attempt {attempt})")
 
+            except TimeoutError as e:
+                last_error_timeout = True
+                logger.error(f"Ollama timed out after {timeout}s (attempt {attempt}): {e}")
             except urllib.error.URLError as e:
+                if isinstance(e.reason, TimeoutError) or "timed out" in str(e.reason):
+                    last_error_timeout = True
                 logger.error(f"Ollama API error (attempt {attempt}): {e}")
             except Exception as e:
                 logger.error(f"Ollama call error (attempt {attempt}): {e}")
@@ -881,6 +912,8 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
             if attempt < max_attempts:
                 time.sleep(self._retry_delay)
 
+        if last_error_timeout:
+            self._timed_out = True
         return None
 
     def _parse_llm_response(self, llm_response: str, contract_path: str) -> List[Dict[str, Any]]:

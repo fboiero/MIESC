@@ -126,6 +126,9 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
         self._default_timeout = 120
         self._cache_dir = Path.home() / ".miesc" / "llmsmartaudit_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
+        # Set True by _run_ollama_audit on a clock kill; read by analyze() to
+        # report status="timeout" instead of a misleading clean-zero success.
+        self._timed_out = False
 
         # Initialize EmbeddingRAG if available
         self._embedding_rag = None
@@ -214,6 +217,8 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
             Analysis results with findings
         """
         start_time = time.time()
+        # Reset per-run timeout flag (set by _run_ollama_audit on a clock kill).
+        self._timed_out = False
 
         # Check availability
         if self.is_available() != ToolStatus.AVAILABLE:
@@ -259,18 +264,24 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
             # Parse findings
             findings = self._parse_llmsmartaudit_output(raw_output, contract_path)
 
+            # A clock-kill during the LLM call means results are incomplete —
+            # do not report a clean-zero success. Partial findings still returned.
+            run_status = "timeout" if self._timed_out else "success"
             result = {
                 "tool": "llmsmartaudit",
                 "version": "3.0.0",
-                "status": "success",
+                "status": run_status,
                 "findings": findings,
-                "metadata": {"model": model, "backend": "ollama"},
+                "metadata": {"model": model, "backend": "ollama", "timed_out": self._timed_out},
                 "execution_time": time.time() - start_time,
                 "from_cache": False,
             }
+            if self._timed_out:
+                result["error"] = "Ollama timed out during analysis; results may be incomplete"
 
-            # Cache result
-            self._cache_result(cache_key, result)
+            # Cache only complete results (a timeout must re-run next time)
+            if not self._timed_out:
+                self._cache_result(cache_key, result)
 
             return result
 
@@ -408,7 +419,16 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
                 else:
                     logger.warning(f"Ollama returned status {resp.status}")
                     return ""
+        except TimeoutError as e:
+            # HTTP read/connect timeout (NOT subprocess.TimeoutExpired): the model
+            # was killed by the clock. Flag so analyze() reports status="timeout"
+            # instead of a misleading clean-zero success.
+            self._timed_out = True
+            logger.error(f"LLM-SmartAudit: Ollama timed out after {timeout}s: {e}")
+            return ""
         except urllib.error.URLError as e:
+            if isinstance(e.reason, TimeoutError) or "timed out" in str(e.reason):
+                self._timed_out = True
             logger.error(f"LLM-SmartAudit: Ollama API error: {e}")
             return ""
         except Exception as e:
