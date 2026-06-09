@@ -38,6 +38,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -276,7 +277,7 @@ from src.adapters.iaudit_prompts import (  # noqa: E402
 )
 
 
-class IAuditAdapter(ToolAdapter):
+class IAuditAdapter(OllamaCallMixin, ToolAdapter):
     """
     iAudit multi-agent collaborative auditing adapter.
 
@@ -888,59 +889,15 @@ class IAuditAdapter(ToolAdapter):
         Returns:
             Complete generated text, or None on failure
         """
-        payload = json.dumps(
-            {
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "num_ctx": 8192,
-                    "num_predict": 4096,
-                },
-            }
-        ).encode("utf-8")
-
-        headers = {
-            "Content-Type": "application/json",
-        }
-
-        try:
-            req = urllib.request.Request(
-                self._api_generate,
-                data=payload,
-                headers=headers,
-                method="POST",
-            )
-
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                response_data = json.loads(resp.read().decode("utf-8"))
-
-            generated_text = response_data.get("response", "")
-
-            if not generated_text:
-                logger.warning("iAudit: Empty response from Ollama API")
-                return None
-
-            return generated_text
-
-        except urllib.error.URLError as e:
-            if isinstance(e.reason, TimeoutError) or "timed out" in str(e.reason):
-                self._timed_out = True
-            logger.error(f"iAudit: Ollama API connection error: {e}")
-            return None
-        except json.JSONDecodeError as e:
-            logger.error(f"iAudit: Failed to decode Ollama response: {e}")
-            return None
-        except TimeoutError:
-            # Clock kill, not a clean "no findings" — flag so analyze() reports
-            # status="timeout" instead of a misleading success.
-            self._timed_out = True
-            logger.error(f"iAudit: Ollama API timeout after {timeout}s")
-            return None
-        except Exception as e:
-            logger.error(f"iAudit: Unexpected Ollama API error: {e}")
-            return None
+        return self._ollama_generate(
+            prompt,
+            url=self._api_generate,
+            model=model,
+            timeout=timeout,
+            options={"temperature": 0.1, "num_ctx": 8192, "num_predict": 4096},
+            max_attempts=1,
+            log_prefix="iAudit",
+        )
 
     def _check_ollama_cli(self) -> ToolStatus:
         """

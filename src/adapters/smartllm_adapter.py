@@ -58,6 +58,7 @@ except ImportError:
     KNOWLEDGE_BASE_VERSION = "unavailable"
     get_context_for_finding = None
     batch_get_context_for_findings = None
+from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import (
     ROLE_GENERATOR,
     USE_CASE_CODE_ANALYSIS,
@@ -77,7 +78,7 @@ from src.core.tool_protocol import (
 logger = logging.getLogger(__name__)
 
 
-class SmartLLMAdapter(ToolAdapter):
+class SmartLLMAdapter(OllamaCallMixin, ToolAdapter):
     """
     Ollama-based LLM adapter for local vulnerability analysis.
 
@@ -854,67 +855,20 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
         return "\n".join(focus)
 
     def _call_ollama_with_retry(self, prompt: str, timeout: int = 300) -> Optional[str]:
-        """Call Ollama HTTP API with retry logic."""
-        import urllib.error
-        import urllib.request
-
+        """Call Ollama HTTP API with retry logic (shared via OllamaCallMixin)."""
         generate_url = f"{self._ollama_host}/api/generate"
-
-        payload = json.dumps(
-            {
-                "model": self._model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "num_ctx": self._max_tokens,
-                },
-            }
-        ).encode("utf-8")
-
         max_attempts = 1 if timeout < 30 else self._max_retries
-        # Only a FINAL timeout failure (not one a retry recovers from) marks the run.
-        last_error_timeout = False
-        for attempt in range(1, max_attempts + 1):
-            last_error_timeout = False
-            try:
-                logger.info(f"SmartLLM: Calling Ollama (attempt {attempt}/{max_attempts})")
-
-                req = urllib.request.Request(
-                    generate_url,
-                    data=payload,
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
-                )
-
-                with urllib.request.urlopen(req, timeout=timeout) as resp:
-                    if resp.status == 200:
-                        data = json.loads(resp.read().decode())
-                        response = data.get("response", "")
-                        if response:
-                            return response.strip()
-                        else:
-                            logger.warning(f"Ollama returned empty response (attempt {attempt})")
-                    else:
-                        logger.warning(f"Ollama returned status {resp.status} (attempt {attempt})")
-
-            except TimeoutError as e:
-                last_error_timeout = True
-                logger.error(f"Ollama timed out after {timeout}s (attempt {attempt}): {e}")
-            except urllib.error.URLError as e:
-                if isinstance(e.reason, TimeoutError) or "timed out" in str(e.reason):
-                    last_error_timeout = True
-                logger.error(f"Ollama API error (attempt {attempt}): {e}")
-            except Exception as e:
-                logger.error(f"Ollama call error (attempt {attempt}): {e}")
-
-            # Wait before retry
-            if attempt < max_attempts:
-                time.sleep(self._retry_delay)
-
-        if last_error_timeout:
-            self._timed_out = True
-        return None
+        response = self._ollama_generate(
+            prompt,
+            url=generate_url,
+            model=self._model,
+            timeout=timeout,
+            options={"temperature": 0.1, "num_ctx": self._max_tokens},
+            max_attempts=max_attempts,
+            retry_delay=self._retry_delay,
+            log_prefix="SmartLLM",
+        )
+        return response.strip() if response else None
 
     def _parse_llm_response(self, llm_response: str, contract_path: str) -> List[Dict[str, Any]]:
         """Parse LLM response to extract findings with Pydantic validation (v5.1.2+).

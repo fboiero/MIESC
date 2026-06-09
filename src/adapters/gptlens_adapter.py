@@ -37,6 +37,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.ollama_models import list_ollama_models, select_ollama_model
 from src.core.tool_protocol import (
@@ -250,7 +251,7 @@ from src.adapters.gptlens_prompts import (  # noqa: E402
 )
 
 
-class GPTLensAdapter(ToolAdapter):
+class GPTLensAdapter(OllamaCallMixin, ToolAdapter):
     """
     GPTLens dual-role LLM adapter for smart contract vulnerability detection.
 
@@ -1163,116 +1164,17 @@ class GPTLensAdapter(ToolAdapter):
         Returns:
             Complete response text or None on failure
         """
-        payload = json.dumps(
-            {
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "num_ctx": 8192,
-                },
-            }
-        ).encode("utf-8")
-
         max_attempts = 1 if timeout < 30 else self._max_retries
-        # Tracks whether the LAST attempt failed due to a clock kill. Only a
-        # final timeout failure (not one that a retry recovered from) marks the
-        # run as timed out — a recovered retry returns full results normally.
-        last_error_timeout = False
-        for attempt in range(1, max_attempts + 1):
-            last_error_timeout = False
-            try:
-                logger.debug(
-                    "GPTLens: Calling Ollama %s (attempt %d/%d)",
-                    model,
-                    attempt,
-                    max_attempts,
-                )
-
-                req = urllib.request.Request(
-                    self._generate_url,
-                    data=payload,
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
-                )
-
-                with urllib.request.urlopen(req, timeout=timeout) as resp:
-                    if resp.status == 200:
-                        body = resp.read().decode("utf-8")
-                        parsed = json.loads(body)
-                        response_text = parsed.get("response", "")
-                        if response_text:
-                            logger.debug(
-                                "GPTLens: Got response from %s (%d chars)",
-                                model,
-                                len(response_text),
-                            )
-                            return response_text
-                        else:
-                            logger.warning("GPTLens: Empty response from %s", model)
-                    else:
-                        logger.warning(
-                            "GPTLens: Ollama returned status %d for %s",
-                            resp.status,
-                            model,
-                        )
-
-            except urllib.error.HTTPError as e:
-                logger.warning(
-                    "GPTLens: HTTP error %d from Ollama for %s (attempt %d): %s",
-                    e.code,
-                    model,
-                    attempt,
-                    e.reason,
-                )
-            except TimeoutError as e:
-                # Read/connect timeout: the model was killed by the clock, not a
-                # clean "no findings". Flag it so analyze() reports status=timeout
-                # instead of a misleading "0 findings" success.
-                last_error_timeout = True
-                logger.warning(
-                    "GPTLens: Ollama timed out for %s (attempt %d): %s",
-                    model,
-                    attempt,
-                    e,
-                )
-            except urllib.error.URLError as e:
-                if isinstance(e.reason, TimeoutError) or "timed out" in str(e.reason):
-                    last_error_timeout = True
-                logger.warning(
-                    "GPTLens: URL error calling Ollama for %s (attempt %d): %s",
-                    model,
-                    attempt,
-                    e.reason,
-                )
-            except json.JSONDecodeError as e:
-                logger.warning(
-                    "GPTLens: Invalid JSON from Ollama for %s (attempt %d): %s",
-                    model,
-                    attempt,
-                    e,
-                )
-            except Exception as e:
-                logger.error(
-                    "GPTLens: Unexpected error calling Ollama for %s (attempt %d): %s",
-                    model,
-                    attempt,
-                    e,
-                )
-
-            # Wait before retry
-            if attempt < max_attempts:
-                time.sleep(self._retry_delay)
-
-        logger.error(
-            "GPTLens: All %d attempts failed for model %s",
-            max_attempts,
-            model,
+        return self._ollama_generate(
+            prompt,
+            url=self._generate_url,
+            model=model,
+            timeout=timeout,
+            options={"temperature": 0.1, "num_ctx": 8192},
+            max_attempts=max_attempts,
+            retry_delay=self._retry_delay,
+            log_prefix="GPTLens",
         )
-        if last_error_timeout:
-            self._timed_out = True
-        return None
 
     # ========================================================================
     # JSON Parsing Utilities
