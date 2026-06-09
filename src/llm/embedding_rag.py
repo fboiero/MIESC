@@ -5134,6 +5134,9 @@ class EmbeddingRAG:
             ids=[vulnerability.id],
         )
 
+        self._doc_index[vulnerability.id] = vulnerability
+        self.clear_cache()
+
         logger.info(f"Added custom vulnerability: {vulnerability.id}")
 
     def _explain_relevance(self, query: str, doc: VulnerabilityDocument) -> str:
