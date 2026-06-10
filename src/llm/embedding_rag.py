@@ -5194,9 +5194,12 @@ class EmbeddingRAG:
         self._collection = self._client.create_collection(
             name=self.COLLECTION_NAME, metadata=self._collection_metadata()
         )
+        self._doc_index.clear()
+        self._build_doc_index()
 
         # Reindex
         self._index_knowledge_base()
+        self.clear_cache()
         logger.info("Knowledge base reindexed")
 
 

@@ -47,6 +47,20 @@ class FakeCollection:
         self.added = kwargs
 
 
+class FakeClient:
+    def __init__(self):
+        self.deleted = []
+        self.created = []
+        self.collection = FakeCollection()
+
+    def delete_collection(self, name):
+        self.deleted.append(name)
+
+    def create_collection(self, **kwargs):
+        self.created.append(kwargs)
+        return self.collection
+
+
 def test_add_custom_vulnerability_updates_index_and_clears_cache(tmp_path):
     """Custom documents should be searchable via the local ID index immediately."""
     rag = EmbeddingRAG(persist_directory=str(tmp_path))
@@ -76,3 +90,30 @@ def test_add_custom_vulnerability_updates_index_and_clears_cache(tmp_path):
     assert rag._cache_hits == 0
     assert rag._cache_misses == 0
     assert collection.added["ids"] == ["CUSTOM-001"]
+
+
+def test_reindex_resets_local_index_and_cache(tmp_path, monkeypatch):
+    """Reindexing the base KB should discard stale custom index/cache state."""
+    rag = EmbeddingRAG(persist_directory=str(tmp_path))
+    client = FakeClient()
+    indexed = []
+
+    rag._initialized = True
+    rag._client = client
+    rag._collection = FakeCollection()
+    rag._doc_index = {"CUSTOM-001": object()}
+    rag._query_cache = {"stale": (0.0, [])}
+    rag._cache_hits = 4
+    rag._cache_misses = 5
+    monkeypatch.setattr(rag, "_index_knowledge_base", lambda: indexed.append(True))
+
+    rag.reindex()
+
+    assert client.deleted == [EmbeddingRAG.COLLECTION_NAME]
+    assert client.created[0]["name"] == EmbeddingRAG.COLLECTION_NAME
+    assert indexed == [True]
+    assert "CUSTOM-001" not in rag._doc_index
+    assert rag._doc_index
+    assert rag._query_cache == {}
+    assert rag._cache_hits == 0
+    assert rag._cache_misses == 0
