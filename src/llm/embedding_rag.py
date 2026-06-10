@@ -5134,6 +5134,9 @@ class EmbeddingRAG:
             ids=[vulnerability.id],
         )
 
+        self._doc_index[vulnerability.id] = vulnerability
+        self.clear_cache()
+
         logger.info(f"Added custom vulnerability: {vulnerability.id}")
 
     def _explain_relevance(self, query: str, doc: VulnerabilityDocument) -> str:
@@ -5191,9 +5194,12 @@ class EmbeddingRAG:
         self._collection = self._client.create_collection(
             name=self.COLLECTION_NAME, metadata=self._collection_metadata()
         )
+        self._doc_index.clear()
+        self._build_doc_index()
 
         # Reindex
         self._index_knowledge_base()
+        self.clear_cache()
         logger.info("Knowledge base reindexed")
 
 
@@ -5319,7 +5325,7 @@ class HybridRAG(EmbeddingRAG):
 # CONVENIENCE FUNCTIONS
 # =============================================================================
 
-_default_rag: Optional[EmbeddingRAG] = None
+_default_rags: Dict[bool, EmbeddingRAG] = {}
 
 
 def get_rag(hybrid: bool = True) -> EmbeddingRAG:
@@ -5332,15 +5338,10 @@ def get_rag(hybrid: bool = True) -> EmbeddingRAG:
     Returns:
         Configured RAG instance
     """
-    global _default_rag
+    if hybrid not in _default_rags:
+        _default_rags[hybrid] = HybridRAG() if hybrid else EmbeddingRAG()
 
-    if _default_rag is None:
-        if hybrid:
-            _default_rag = HybridRAG()
-        else:
-            _default_rag = EmbeddingRAG()
-
-    return _default_rag
+    return _default_rags[hybrid]
 
 
 def search_vulnerabilities(
