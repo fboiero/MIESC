@@ -231,6 +231,17 @@ class TestNormalizeAuditorFinding:
         assert finding["swc_id"] == "SWC-107"
         assert "CWE" in finding["cwe_id"]
 
+    def test_placeholder_taxonomy_ids_fall_back_to_mapping(self, adapter, tmp_path):
+        raw = {
+            "type": "reentrancy",
+            "severity": "High",
+            "swc_id": "SWC-XXX",
+            "cwe_id": "CWE-XXX",
+        }
+        finding = adapter._normalize_auditor_finding(raw, str(tmp_path / "C.sol"))
+        assert finding["swc_id"] == "SWC-107"
+        assert finding["cwe_id"] == "CWE-841"
+
     def test_unknown_type_gets_logic_error_fallback(self, adapter, tmp_path):
         raw = {"type": "totally_unknown_vuln", "severity": "Low"}
         finding = adapter._normalize_auditor_finding(raw, str(tmp_path / "C.sol"))

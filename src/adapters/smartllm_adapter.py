@@ -58,6 +58,7 @@ except ImportError:
     KNOWLEDGE_BASE_VERSION = "unavailable"
     get_context_for_finding = None
     batch_get_context_for_findings = None
+from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import (
     ROLE_GENERATOR,
     USE_CASE_CODE_ANALYSIS,
@@ -77,7 +78,7 @@ from src.core.tool_protocol import (
 logger = logging.getLogger(__name__)
 
 
-class SmartLLMAdapter(ToolAdapter):
+class SmartLLMAdapter(OllamaCallMixin, ToolAdapter):
     """
     Ollama-based LLM adapter for local vulnerability analysis.
 
@@ -89,6 +90,9 @@ class SmartLLMAdapter(ToolAdapter):
         super().__init__()
         self._cache_dir = Path.home() / ".miesc" / "smartllm_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
+        # Set True by _call_ollama_with_retry on a clock kill; read by analyze()
+        # to report status="timeout" instead of a misleading clean-zero success.
+        self._timed_out = False
 
         # Load configuration from centralized config
         self._model = get_model(USE_CASE_CODE_ANALYSIS)
@@ -222,6 +226,8 @@ class SmartLLMAdapter(ToolAdapter):
             Analysis results with findings from LLM
         """
         start_time = time.time()
+        # Reset per-run timeout flag (set by _call_ollama_with_retry on a clock kill).
+        self._timed_out = False
 
         # Check availability
         if self.is_available() != ToolStatus.AVAILABLE:
@@ -273,10 +279,13 @@ class SmartLLMAdapter(ToolAdapter):
             generator_response = self._call_ollama_with_retry(generator_prompt, timeout=timeout)
 
             if not generator_response:
+                # A clock kill is NOT a clean zero: report status="timeout" so it
+                # is not masked as a successful empty analysis.
+                degraded_status = "timeout" if self._timed_out else "success"
                 return {
                     "tool": "smartllm",
                     "version": "3.0.0",
-                    "status": "success",
+                    "status": degraded_status,
                     "findings": [],
                     "execution_time": time.time() - start_time,
                     "metadata": {
@@ -286,9 +295,18 @@ class SmartLLMAdapter(ToolAdapter):
                         "rag_enhanced": self._use_rag,
                         "verificator_enabled": self._use_verificator,
                         "degraded": True,
-                        "degraded_reason": "ollama_generator_timeout",
+                        "timed_out": self._timed_out,
+                        "degraded_reason": (
+                            "ollama_generator_timeout"
+                            if self._timed_out
+                            else "ollama_generator_empty_response"
+                        ),
                     },
-                    "error": None,
+                    "error": (
+                        "Ollama timed out during analysis; results may be incomplete"
+                        if self._timed_out
+                        else None
+                    ),
                 }
 
             # Parse initial findings
@@ -308,11 +326,13 @@ class SmartLLMAdapter(ToolAdapter):
             )
             final_findings = verified_findings
 
-            # Build result
+            # Build result. A timeout in the verificator stage means results are
+            # incomplete — report status="timeout" (partial findings still kept).
+            run_status = "timeout" if self._timed_out else "success"
             result = {
                 "tool": "smartllm",
                 "version": "3.0.0",
-                "status": "success",
+                "status": run_status,
                 "findings": final_findings,
                 "metadata": {
                     "model": self._model,
@@ -324,13 +344,17 @@ class SmartLLMAdapter(ToolAdapter):
                     "initial_findings": len(initial_findings),
                     "verified_findings": len(verified_findings),
                     "false_positives_removed": len(initial_findings) - len(verified_findings),
+                    "timed_out": self._timed_out,
                 },
                 "execution_time": time.time() - start_time,
                 "from_cache": False,
             }
+            if self._timed_out:
+                result["error"] = "Ollama timed out during analysis; results may be incomplete"
 
-            # Cache result
-            self._cache_result(cache_key, result)
+            # Cache only complete results (a timeout must re-run next time)
+            if not self._timed_out:
+                self._cache_result(cache_key, result)
 
             return result
 
@@ -831,57 +855,20 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
         return "\n".join(focus)
 
     def _call_ollama_with_retry(self, prompt: str, timeout: int = 300) -> Optional[str]:
-        """Call Ollama HTTP API with retry logic."""
-        import urllib.error
-        import urllib.request
-
+        """Call Ollama HTTP API with retry logic (shared via OllamaCallMixin)."""
         generate_url = f"{self._ollama_host}/api/generate"
-
-        payload = json.dumps(
-            {
-                "model": self._model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "num_ctx": self._max_tokens,
-                },
-            }
-        ).encode("utf-8")
-
         max_attempts = 1 if timeout < 30 else self._max_retries
-        for attempt in range(1, max_attempts + 1):
-            try:
-                logger.info(f"SmartLLM: Calling Ollama (attempt {attempt}/{max_attempts})")
-
-                req = urllib.request.Request(
-                    generate_url,
-                    data=payload,
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
-                )
-
-                with urllib.request.urlopen(req, timeout=timeout) as resp:
-                    if resp.status == 200:
-                        data = json.loads(resp.read().decode())
-                        response = data.get("response", "")
-                        if response:
-                            return response.strip()
-                        else:
-                            logger.warning(f"Ollama returned empty response (attempt {attempt})")
-                    else:
-                        logger.warning(f"Ollama returned status {resp.status} (attempt {attempt})")
-
-            except urllib.error.URLError as e:
-                logger.error(f"Ollama API error (attempt {attempt}): {e}")
-            except Exception as e:
-                logger.error(f"Ollama call error (attempt {attempt}): {e}")
-
-            # Wait before retry
-            if attempt < max_attempts:
-                time.sleep(self._retry_delay)
-
-        return None
+        response = self._ollama_generate(
+            prompt,
+            url=generate_url,
+            model=self._model,
+            timeout=timeout,
+            options={"temperature": 0.1, "num_ctx": self._max_tokens},
+            max_attempts=max_attempts,
+            retry_delay=self._retry_delay,
+            log_prefix="SmartLLM",
+        )
+        return response.strip() if response else None
 
     def _parse_llm_response(self, llm_response: str, contract_path: str) -> List[Dict[str, Any]]:
         """Parse LLM response to extract findings with Pydantic validation (v5.1.2+).

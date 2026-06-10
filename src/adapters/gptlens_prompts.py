@@ -67,7 +67,7 @@ OUTPUT FORMAT (strict JSON):
             "attack_scenario": "Step-by-step exploitation scenario",
             "impact": "What an attacker could achieve",
             "recommendation": "Specific remediation guidance",
-            "swc_id": "SWC-XXX"
+            "swc_id": "SWC-107"
         }}
     ]
 }}
@@ -77,6 +77,7 @@ IMPORTANT RULES:
 - Do NOT report generic best practices that are not violated
 - Include specific line numbers and function names when possible
 - Assess confidence honestly (0.0 to 1.0)
+- Use a real SWC ID only when it is applicable; otherwise use null
 - Respond with ONLY valid JSON, no additional text outside the JSON"""
 
 

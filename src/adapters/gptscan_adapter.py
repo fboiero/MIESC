@@ -16,6 +16,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -37,7 +38,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-class GPTScanAdapter(ToolAdapter):
+class GPTScanAdapter(OllamaCallMixin, ToolAdapter):
     """
     GPTScan-style LLM integration using Ollama.
 
@@ -155,6 +156,9 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
     def __init__(self):
         super().__init__()
         self._default_timeout = 300  # 5 min for large contracts with LLM
+        # Set True by _run_ollama_analysis on a clock kill; read by analyze() to
+        # report status="timeout" instead of a misleading clean-zero success.
+        self._timed_out = False
         try:
             from src.core.llm_config import USE_CASE_CODE_ANALYSIS, get_model
 
@@ -257,6 +261,8 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             Analysis results with AI-detected findings
         """
         start_time = time.time()
+        # Reset per-run timeout flag (set by _run_ollama_analysis on a clock kill).
+        self._timed_out = False
 
         # Check availability
         if self.is_available() != ToolStatus.AVAILABLE:
@@ -292,14 +298,25 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             # Parse findings
             findings = self._parse_gptscan_output(raw_output, contract_path)
 
-            return {
+            # A clock-kill during the LLM call means results are incomplete —
+            # do not report a clean-zero success. Partial findings still returned.
+            run_status = "timeout" if self._timed_out else "success"
+            result = {
                 "tool": "gptscan",
                 "version": "3.0.0",
-                "status": "success",
+                "status": run_status,
                 "findings": findings,
-                "metadata": {"model": model, "backend": "ollama", "cost_usd": 0.0},
+                "metadata": {
+                    "model": model,
+                    "backend": "ollama",
+                    "cost_usd": 0.0,
+                    "timed_out": self._timed_out,
+                },
                 "execution_time": time.time() - start_time,
             }
+            if self._timed_out:
+                result["error"] = "Ollama timed out during analysis; results may be incomplete"
+            return result
 
         except subprocess.TimeoutExpired:
             return {
@@ -415,40 +432,20 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
 
         logger.info(f"GPTScan: Running Ollama analysis with {model}")
 
-        # Use Ollama HTTP API instead of CLI
-        ollama_host = get_ollama_host()
-        generate_url = f"{ollama_host}/api/generate"
-
-        payload = json.dumps(
-            {
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "num_ctx": 8192,
-                },
-            }
-        ).encode("utf-8")
-
-        req = urllib.request.Request(
-            generate_url, data=payload, headers={"Content-Type": "application/json"}, method="POST"
+        # Use Ollama HTTP API instead of CLI (timeout handling shared via mixin).
+        generate_url = f"{get_ollama_host()}/api/generate"
+        return (
+            self._ollama_generate(
+                prompt,
+                url=generate_url,
+                model=model,
+                timeout=timeout,
+                options={"temperature": 0.1, "num_ctx": 8192},
+                max_attempts=1,
+                log_prefix="GPTScan",
+            )
+            or ""
         )
-
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                if resp.status == 200:
-                    data = json.loads(resp.read().decode())
-                    return data.get("response", "")
-                else:
-                    logger.warning(f"Ollama returned status {resp.status}")
-                    return ""
-        except urllib.error.URLError as e:
-            logger.error(f"GPTScan: Ollama API error: {e}")
-            return ""
-        except Exception as e:
-            logger.error(f"GPTScan: Unexpected error: {e}")
-            return ""
 
     def _parse_gptscan_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
         """Parse GPTScan output and extract findings."""

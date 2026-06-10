@@ -38,6 +38,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
     ToolAdapter,
@@ -48,6 +49,8 @@ from src.core.tool_protocol import (
 )
 
 logger = logging.getLogger(__name__)
+
+PLACEHOLDER_TAXONOMY_IDS = {"", "SWC-XXX", "CWE-XXX", "XXX", "N/A", "NA", "NONE", "NULL"}
 
 # ---------------------------------------------------------------------------
 # Vulnerability knowledge base for pattern-based fallback
@@ -274,7 +277,7 @@ from src.adapters.iaudit_prompts import (  # noqa: E402
 )
 
 
-class IAuditAdapter(ToolAdapter):
+class IAuditAdapter(OllamaCallMixin, ToolAdapter):
     """
     iAudit multi-agent collaborative auditing adapter.
 
@@ -339,6 +342,10 @@ class IAuditAdapter(ToolAdapter):
 
         # Resolved model (set during analysis if not provided)
         self._resolved_model: Optional[str] = None
+
+        # Set True by _call_ollama_api when a request is killed by the clock;
+        # read by analyze() to report status="timeout" vs clean-zero success.
+        self._timed_out = False
 
     # ========================================================================
     # ToolAdapter interface implementation
@@ -467,6 +474,9 @@ class IAuditAdapter(ToolAdapter):
             Normalized result dictionary (MIESC standard format)
         """
         start_time = time.time()
+        # Reset per-run timeout flag; set by _call_ollama_api on a clock kill so
+        # the result is reported as status="timeout", not a clean-zero success.
+        self._timed_out = False
 
         # Read contract
         contract_code = self._read_contract(contract_path)
@@ -554,12 +564,21 @@ class IAuditAdapter(ToolAdapter):
                     "message": f.get("title", ""),
                     "description": f.get("description", ""),
                     "recommendation": f.get("recommendation", ""),
-                    "swc_id": f.get("swc_id"),
-                    "cwe_id": f.get("cwe_id"),
+                    "swc_id": self._valid_taxonomy_id(f.get("swc_id")) or None,
+                    "cwe_id": self._valid_taxonomy_id(f.get("cwe_id")) or None,
                     "owasp_category": f.get("owasp_category"),
                 }
             )
 
+        return normalized
+
+    def _valid_taxonomy_id(self, value: Any) -> str:
+        """Return a non-placeholder taxonomy ID, or an empty string."""
+        if value is None:
+            return ""
+        normalized = str(value).strip()
+        if normalized.upper() in PLACEHOLDER_TAXONOMY_IDS:
+            return ""
         return normalized
 
     def can_analyze(self, contract_path: str) -> bool:
@@ -697,15 +716,23 @@ class IAuditAdapter(ToolAdapter):
         else:
             metadata["reviewer_applied"] = False
 
-        return {
+        # A timeout in any agent stage means results are INCOMPLETE — do not
+        # report it as a clean "success: 0 findings". Findings gathered so far
+        # are still returned and counted downstream (only "not_available" is
+        # dropped by the evaluator).
+        metadata["timed_out"] = self._timed_out
+        result = {
             "tool": "iaudit",
             "version": "1.0.0",
-            "status": "success",
+            "status": "timeout" if self._timed_out else "success",
             "findings": final_findings,
             "metadata": metadata,
             "execution_time": time.time() - start_time,
             "from_cache": False,
         }
+        if self._timed_out:
+            result["error"] = "Ollama timed out during analysis; results may be incomplete"
+        return result
 
     # ========================================================================
     # Agent implementations
@@ -862,54 +889,15 @@ class IAuditAdapter(ToolAdapter):
         Returns:
             Complete generated text, or None on failure
         """
-        payload = json.dumps(
-            {
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "num_ctx": 8192,
-                    "num_predict": 4096,
-                },
-            }
-        ).encode("utf-8")
-
-        headers = {
-            "Content-Type": "application/json",
-        }
-
-        try:
-            req = urllib.request.Request(
-                self._api_generate,
-                data=payload,
-                headers=headers,
-                method="POST",
-            )
-
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                response_data = json.loads(resp.read().decode("utf-8"))
-
-            generated_text = response_data.get("response", "")
-
-            if not generated_text:
-                logger.warning("iAudit: Empty response from Ollama API")
-                return None
-
-            return generated_text
-
-        except urllib.error.URLError as e:
-            logger.error(f"iAudit: Ollama API connection error: {e}")
-            return None
-        except json.JSONDecodeError as e:
-            logger.error(f"iAudit: Failed to decode Ollama response: {e}")
-            return None
-        except TimeoutError:
-            logger.error(f"iAudit: Ollama API timeout after {timeout}s")
-            return None
-        except Exception as e:
-            logger.error(f"iAudit: Unexpected Ollama API error: {e}")
-            return None
+        return self._ollama_generate(
+            prompt,
+            url=self._api_generate,
+            model=model,
+            timeout=timeout,
+            options={"temperature": 0.1, "num_ctx": 8192, "num_predict": 4096},
+            max_attempts=1,
+            log_prefix="iAudit",
+        )
 
     def _check_ollama_cli(self) -> ToolStatus:
         """
@@ -1348,10 +1336,25 @@ class IAuditAdapter(ToolAdapter):
             )
         )
 
-        return {
+        # The fallback runs either because Ollama is unavailable (a clean
+        # pattern-only success) OR because an LLM agent stage timed out mid-run
+        # (incomplete — must NOT look like a clean success). Distinguish them.
+        if self._timed_out:
+            note = (
+                "Ollama timed out during multi-agent analysis; results are "
+                "pattern-only and may be incomplete. Increase the timeout or "
+                "use a faster model for full multi-agent auditing."
+            )
+        else:
+            note = (
+                "Ollama not available; results from pattern-based heuristic "
+                "analysis. Install Ollama for full multi-agent auditing capability."
+            )
+
+        result = {
             "tool": "iaudit",
             "version": "1.0.0",
-            "status": "success",
+            "status": "timeout" if self._timed_out else "success",
             "findings": findings,
             "metadata": {
                 "backend": "pattern-fallback",
@@ -1359,15 +1362,15 @@ class IAuditAdapter(ToolAdapter):
                 "pipeline": "pattern-based",
                 "sovereign": True,
                 "dpga_compliant": True,
-                "note": (
-                    "Ollama not available; results from pattern-based "
-                    "heuristic analysis. Install Ollama for full multi-agent "
-                    "auditing capability."
-                ),
+                "timed_out": self._timed_out,
+                "note": note,
             },
             "execution_time": time.time() - start_time,
             "from_cache": False,
         }
+        if self._timed_out:
+            result["error"] = "Ollama timed out during analysis; results may be incomplete"
+        return result
 
     def _search_patterns(
         self,

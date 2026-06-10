@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.ollama_models import select_ollama_model
 from src.core.tool_protocol import (
@@ -41,7 +42,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-class LLMSmartAuditAdapter(ToolAdapter):
+class LLMSmartAuditAdapter(OllamaCallMixin, ToolAdapter):
     """
     LLM-SmartAudit AI Auditor using Ollama backend.
 
@@ -126,6 +127,9 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
         self._default_timeout = 120
         self._cache_dir = Path.home() / ".miesc" / "llmsmartaudit_cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
+        # Set True by _run_ollama_audit on a clock kill; read by analyze() to
+        # report status="timeout" instead of a misleading clean-zero success.
+        self._timed_out = False
 
         # Initialize EmbeddingRAG if available
         self._embedding_rag = None
@@ -214,6 +218,8 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
             Analysis results with findings
         """
         start_time = time.time()
+        # Reset per-run timeout flag (set by _run_ollama_audit on a clock kill).
+        self._timed_out = False
 
         # Check availability
         if self.is_available() != ToolStatus.AVAILABLE:
@@ -259,18 +265,24 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
             # Parse findings
             findings = self._parse_llmsmartaudit_output(raw_output, contract_path)
 
+            # A clock-kill during the LLM call means results are incomplete —
+            # do not report a clean-zero success. Partial findings still returned.
+            run_status = "timeout" if self._timed_out else "success"
             result = {
                 "tool": "llmsmartaudit",
                 "version": "3.0.0",
-                "status": "success",
+                "status": run_status,
                 "findings": findings,
-                "metadata": {"model": model, "backend": "ollama"},
+                "metadata": {"model": model, "backend": "ollama", "timed_out": self._timed_out},
                 "execution_time": time.time() - start_time,
                 "from_cache": False,
             }
+            if self._timed_out:
+                result["error"] = "Ollama timed out during analysis; results may be incomplete"
 
-            # Cache result
-            self._cache_result(cache_key, result)
+            # Cache only complete results (a timeout must re-run next time)
+            if not self._timed_out:
+                self._cache_result(cache_key, result)
 
             return result
 
@@ -380,40 +392,20 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
 
         logger.info(f"LLM-SmartAudit: Running Ollama audit with {model}")
 
-        # Use Ollama HTTP API instead of CLI
-        ollama_host = get_ollama_host()
-        generate_url = f"{ollama_host}/api/generate"
-
-        payload = json.dumps(
-            {
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "num_ctx": 8192,
-                },
-            }
-        ).encode("utf-8")
-
-        req = urllib.request.Request(
-            generate_url, data=payload, headers={"Content-Type": "application/json"}, method="POST"
+        # Use Ollama HTTP API instead of CLI (timeout handling shared via mixin).
+        generate_url = f"{get_ollama_host()}/api/generate"
+        return (
+            self._ollama_generate(
+                prompt,
+                url=generate_url,
+                model=model,
+                timeout=timeout,
+                options={"temperature": 0.1, "num_ctx": 8192},
+                max_attempts=1,
+                log_prefix="LLM-SmartAudit",
+            )
+            or ""
         )
-
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                if resp.status == 200:
-                    data = json.loads(resp.read().decode())
-                    return data.get("response", "")
-                else:
-                    logger.warning(f"Ollama returned status {resp.status}")
-                    return ""
-        except urllib.error.URLError as e:
-            logger.error(f"LLM-SmartAudit: Ollama API error: {e}")
-            return ""
-        except Exception as e:
-            logger.error(f"LLM-SmartAudit: Unexpected error: {e}")
-            return ""
 
     def _parse_llmsmartaudit_output(self, output: str, contract_path: str) -> List[Dict[str, Any]]:
         """Parse LLM-SmartAudit output and extract findings."""

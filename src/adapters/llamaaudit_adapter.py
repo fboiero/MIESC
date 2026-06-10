@@ -29,6 +29,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.ollama_models import select_ollama_model
 from src.core.tool_protocol import (
@@ -244,7 +245,7 @@ FALLBACK_PATTERNS = [
 # ============================================================================
 
 
-class LlamaAuditAdapter(ToolAdapter):
+class LlamaAuditAdapter(OllamaCallMixin, ToolAdapter):
     """
     LlamaAudit - CodeLlama fine-tuned for smart contract auditing via Ollama.
 
@@ -325,6 +326,9 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         self._max_retries = 2
         self._retry_delay = 2
         self._max_contract_chars = 24000
+        # Set True by _call_ollama_generate on a clock kill; read by analyze() to
+        # report status="timeout" instead of a misleading clean-zero success.
+        self._timed_out = False
 
     def get_metadata(self) -> ToolMetadata:
         """Return tool metadata for MIESC registry."""
@@ -453,6 +457,8 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         start_time = time.time()
         timeout = kwargs.get("timeout", self._default_timeout)
         use_fallback = kwargs.get("use_fallback", True)
+        # Reset per-run timeout flag (set by _call_ollama_generate on a clock kill).
+        self._timed_out = False
 
         # Read contract source code
         contract_code = self._read_contract(contract_path)
@@ -605,64 +611,16 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         Returns:
             Complete response text, or None on failure
         """
-        payload = json.dumps(
-            {
-                "model": self._model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "num_ctx": 8192,
-                    "top_p": 0.9,
-                },
-            }
-        ).encode("utf-8")
-
-        req = urllib.request.Request(
-            self._ollama_generate_url,
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST",
+        return self._ollama_generate(
+            prompt,
+            url=self._ollama_generate_url,
+            model=self._model,
+            timeout=timeout,
+            options={"temperature": 0.1, "num_ctx": 8192, "top_p": 0.9},
+            max_attempts=self._max_retries,
+            retry_delay=self._retry_delay,
+            log_prefix="LlamaAudit",
         )
-
-        for attempt in range(1, self._max_retries + 1):
-            try:
-                logger.info(
-                    f"LlamaAudit: Calling Ollama generate "
-                    f"(attempt {attempt}/{self._max_retries}, "
-                    f"model={self._model})"
-                )
-                with urllib.request.urlopen(req, timeout=timeout) as resp:
-                    if resp.status != 200:
-                        logger.warning(f"Ollama generate returned status {resp.status}")
-                        continue
-
-                    data = json.loads(resp.read().decode("utf-8"))
-                    response_text = data.get("response", "")
-
-                    if response_text:
-                        logger.info(
-                            f"LlamaAudit: Received response " f"({len(response_text)} chars)"
-                        )
-                        return response_text
-                    else:
-                        logger.warning("Ollama returned empty response")
-
-            except urllib.error.URLError as e:
-                logger.warning(f"LlamaAudit: HTTP error (attempt {attempt}): {e}")
-            except TimeoutError:
-                logger.warning(
-                    f"LlamaAudit: Request timeout after {timeout}s " f"(attempt {attempt})"
-                )
-            except json.JSONDecodeError as e:
-                logger.warning(f"LlamaAudit: Invalid JSON response (attempt {attempt}): {e}")
-            except Exception as e:
-                logger.error(f"LlamaAudit: Unexpected error (attempt {attempt}): {e}")
-
-            if attempt < self._max_retries:
-                time.sleep(self._retry_delay)
-
-        return None
 
     def _check_ollama_available(self) -> bool:
         """Quick check if Ollama HTTP API is reachable."""
@@ -981,10 +939,18 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
         # Normalize through the standard pipeline
         findings = self.normalize_findings({"findings": deduped})
 
-        return {
+        # The pattern fallback runs either because Ollama is unavailable (clean
+        # success) OR because the LLM call was killed by the clock (incomplete —
+        # must not look like a clean success). Distinguish via the timeout flag.
+        note = (
+            "Ollama timed out; results from pattern-based analysis only and may be incomplete"
+            if self._timed_out
+            else "Ollama unavailable; results from pattern-based analysis only"
+        )
+        result = {
             "tool": "llamaaudit",
             "version": "1.0.0",
-            "status": "success",
+            "status": "timeout" if self._timed_out else "success",
             "findings": findings,
             "metadata": {
                 "model": "none",
@@ -993,11 +959,15 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
                 "raw_matches": len(raw_findings),
                 "deduplicated_count": len(deduped),
                 "normalized_count": len(findings),
-                "note": "Ollama unavailable; results from pattern-based analysis only",
+                "timed_out": self._timed_out,
+                "note": note,
             },
             "execution_time": time.time() - start_time,
             "from_cache": False,
         }
+        if self._timed_out:
+            result["error"] = "Ollama timed out during analysis; results may be incomplete"
+        return result
 
     def _find_enclosing_function(self, lines: List[str], target_line: int) -> str:
         """
