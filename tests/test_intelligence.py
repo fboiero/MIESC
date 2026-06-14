@@ -225,6 +225,16 @@ class TestZeroRecallPatterns:
         types = [f["type"] for f in findings]
         assert "front_running" not in types
 
+    def test_detects_claimable_reward_front_running(self):
+        # SmartBugs eth_tx_order_dependence_minimal: reward paid from mutable state
+        # (transfer(reward)) is order-dependent (setReward/claimReward front-run).
+        code = (
+            "pragma solidity ^0.4.16;\ncontract C { uint public reward;\n"
+            "function claimReward(uint256 s) { require(s < 10); msg.sender.transfer(reward); } }"
+        )
+        types = [f["type"] for f in detect_zero_recall_categories(code)]
+        assert "front_running" in types
+
     def test_detects_ordering_game_without_explicit_public(self):
         # SmartBugs odds_and_evens: a play(uint) game touching `players`, but with
         # implicit/payable visibility (pre-0.5) — the pattern no longer requires a
