@@ -22,6 +22,7 @@ import aiohttp
 
 from src.security.llm_output_validator import (
     AnalysisResponse,
+    repair_common_json_errors,
     safe_parse_llm_json,
 )
 
@@ -552,7 +553,7 @@ Provide a comprehensive security analysis in JSON format."""
 
             if json_start >= 0 and json_end > json_start:
                 json_str = content[json_start:json_end]
-                data = json.loads(json_str)
+                data = json.loads(repair_common_json_errors(json_str))
             else:
                 data = {}
 

@@ -390,6 +390,41 @@ class TestLLMOrchestrator:
         assert analysis.vulnerabilities == []
         assert "No issues" in analysis.analysis_summary
 
+    def test_parse_analysis_legacy_fallback_repairs_common_json_errors(self, monkeypatch):
+        """Test legacy fallback repairs recoverable LLM JSON formatting errors."""
+
+        class InvalidValidation:
+            is_valid = False
+            data = None
+            errors = ["forced invalid schema"]
+
+        monkeypatch.setattr(
+            "src.llm.llm_orchestrator.safe_parse_llm_json",
+            lambda *_args, **_kwargs: InvalidValidation(),
+        )
+
+        orchestrator = LLMOrchestrator([])
+        response = LLMResponse(
+            content="""
+            Analysis:
+            {
+                vulnerabilities: [
+                    {"type": "regex", "severity": "low", "confidence": 0.4, "description": "pattern \\d+",},
+                ],
+                "summary": "Recovered by fallback",
+            }
+            """,
+            provider="test",
+            model="test",
+        )
+
+        analysis = orchestrator._parse_analysis(response)
+
+        assert len(analysis.vulnerabilities) == 1
+        assert analysis.vulnerabilities[0]["description"] == r"pattern \d+"
+        assert analysis.severity_assessment["low"] == 1
+        assert analysis.analysis_summary == "Recovered by fallback"
+
     def test_parse_analysis_invalid_json(self):
         """Test parsing invalid JSON response."""
         orchestrator = LLMOrchestrator([])
