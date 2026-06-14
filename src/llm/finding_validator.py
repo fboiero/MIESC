@@ -157,8 +157,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
         self._fp_detected_count = 0
 
         logger.info(
-            f"LLM Validator initialized: model={self.config.model}, "
-            f"host={self.config.ollama_host}"
+            f"LLM Validator initialized: model={self.config.model}, host={self.config.ollama_host}"
         )
 
     async def _get_session(self) -> aiohttp.ClientSession:
@@ -310,7 +309,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
             data = json.loads(json_match.group())
 
             # Map result string to enum
-            result_str = data.get("result", "uncertain").lower()
+            result_str = str(data.get("result", "")).lower()
             result_map = {
                 "valid": ValidationResult.VALID,
                 "likely_valid": ValidationResult.LIKELY_VALID,
