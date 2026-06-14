@@ -319,7 +319,7 @@ class TestRunTest:
 # =============================================================================
 
 
-class TestRunAllTests:
+class TestRunAllTestsBasic:
     """Tests for run_all_tests method."""
 
     def test_run_all_tests(self, runner, sample_forge_output):
@@ -606,6 +606,36 @@ class TestGasReport:
         assert "invalid" not in report["contracts"]
         assert report["total_runtime_gas"] == 4500
 
+    def test_get_gas_report_json_line(self, runner):
+        """Test parsing a JSON gas_report line from forge output."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = '{"gas_report": {"Vault": {"methods": {}}}}\n'
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"] == {"Vault": {"methods": {}}}
+
+    def test_get_gas_report_ignores_malformed_json_line(self, runner):
+        """Test malformed JSON lines do not abort gas report parsing."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = """
+{"gas_report":
+| Contract | Method | Min | Max | Avg | # calls |
+|----------|--------|-----|-----|-----|---------|
+| Vault    | withdraw | 10 | 20 | 15 | 2 |
+"""
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"]["Vault"]["methods"]["withdraw"]["avg"] == 15
+        assert report["total_runtime_gas"] == 30
+
     def test_get_gas_report_error(self, runner):
         """Test gas report with error."""
         with patch("subprocess.run", side_effect=OSError("Error")):
@@ -753,6 +783,20 @@ class TestFoundryInstallationCheck:
 
         assert any("may not be properly installed" in r.message for r in caplog.records)
 
+    def test_foundry_version_logged_when_available(self, tmp_path, caplog):
+        """Test debug logging when forge reports a version."""
+        import logging
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "forge 0.2.0"
+
+        with patch("subprocess.run", return_value=mock_result):
+            with caplog.at_level(logging.DEBUG):
+                FoundryRunner(project_dir=tmp_path)
+
+        assert any("Foundry version: forge 0.2.0" in r.message for r in caplog.records)
+
     def test_foundry_version_check_timeout(self, tmp_path, caplog):
         """Test timeout during version check (lines 123-124)."""
         import logging
@@ -894,6 +938,18 @@ More text
         # Should handle gracefully
         assert isinstance(result, FoundryResult)
 
+    def test_parse_forge_output_parser_type_error_falls_back_to_text(self, runner, caplog):
+        """Test parser exceptions do not block text fallback."""
+        import logging
+
+        stdout = '{"test_results": null}\n[PASS] test_fromText() (gas: 123)'
+
+        with caplog.at_level(logging.DEBUG):
+            result = runner._parse_forge_output(stdout, "", 0, 100.0)
+
+        assert [test.name for test in result.tests] == ["test_fromText"]
+        assert any("JSON parsing failed" in r.message for r in caplog.records)
+
 
 class TestHighGasUsageWarning:
     """Tests for high gas usage warning in validate_poc."""
@@ -929,7 +985,7 @@ class TestHighGasUsageWarning:
         assert any("High gas usage" in w for w in validation["warnings"])
 
 
-class TestRunAllTests:
+class TestRunAllTestsAdditional:
     """Tests for run_all_tests method."""
 
     def test_run_all_tests_success(self, runner, sample_forge_output):
@@ -944,6 +1000,33 @@ class TestRunAllTests:
 
         assert isinstance(result, FoundryResult)
 
+    def test_run_all_tests_without_dir_omits_match_path(self, runner, sample_forge_output):
+        """Test default all-test run does not add a path matcher."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = sample_forge_output
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            runner.run_all_tests()
+
+        cmd = mock_run.call_args[0][0]
+        assert "--match-path" not in cmd
+
+    def test_run_all_tests_with_dir_adds_match_path(self, runner, sample_forge_output):
+        """Test all-test run can be restricted to a test directory."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = sample_forge_output
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            runner.run_all_tests(test_dir="test/exploits")
+
+        cmd = mock_run.call_args[0][0]
+        assert "--match-path" in cmd
+        assert "test/exploits/*" in cmd
+
     def test_run_all_tests_with_options(self, runner_with_fork, sample_forge_output):
         """Test run_all_tests with fork configuration."""
         mock_result = MagicMock()
@@ -957,6 +1040,14 @@ class TestRunAllTests:
         # Verify fork options are included
         cmd = mock_run.call_args[0][0]
         assert "--fork-url" in cmd
+
+    def test_run_all_tests_timeout(self, runner):
+        """Test run_all_tests timeout."""
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("forge", 600)):
+            result = runner.run_all_tests(timeout=600)
+
+        assert result.success is False
+        assert "timed out" in result.error.lower()
 
 
 class TestFoundryRunnerRepr:
