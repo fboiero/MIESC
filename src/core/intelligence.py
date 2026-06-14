@@ -170,16 +170,11 @@ ZERO_RECALL_PATTERNS = {
         "message": "On-chain randomness source is predictable — use Chainlink VRF or commit-reveal.",
         "context_filter": "randomness_context",
     },
-    "arithmetic_pre08": {
-        "patterns": [
-            r"pragma\s+solidity\s*[\^~]?\s*0\.[4-7]\.",
-        ],
-        "severity": "High",
-        "swc": "SWC-101",
-        "message": "Solidity <0.8 without SafeMath — integer overflow/underflow possible.",
-        "requires_no_safemath": True,
-        "context_filter": "has_unchecked_arithmetic",
-    },
+    # NOTE: arithmetic_* patterns were REMOVED from the zero-recall gap-fillers.
+    # arithmetic is NOT a 0%-recall category — slither/aderyn detect it well — so
+    # these blanket "pre-0.8 has arithmetic" patterns added only false positives
+    # (measured on SmartBugs: +32 FP, 0 TP, 0 recall change). Real arithmetic
+    # vulns are still caught by the static layer.
     "front_running": {
         "patterns": [
             r"\.approve\s*\(",
@@ -509,24 +504,8 @@ ZERO_RECALL_PATTERNS = {
         "swc": "SWC-104",
         "message": "Return value of low-level .call() not checked — use (bool success,) = addr.call() + require(success).",
     },
-    "arithmetic_raw_op_with_safemath": {
-        "patterns": [
-            r"uint\d*\s+\w+\s*=\s*(?:uint\d*\()?\s*\w+\s*\*\s*\w+",
-        ],
-        "severity": "High",
-        "swc": "SWC-101",
-        "message": "Raw arithmetic (*) outside SafeMath — even if SafeMath is imported, this specific operation can overflow. Use .mul() consistently.",
-        "requires_no_safemath": False,
-    },
-    "arithmetic_raw_subtraction": {
-        "patterns": [
-            r"uint\d*\s+\w+\s*=\s*\w+\s*-\s*\w+",
-            r"uint\d*\s+\w+\s*=\s*\w+\s*\+\s*\w+",
-        ],
-        "severity": "Medium",
-        "swc": "SWC-101",
-        "message": "Unchecked arithmetic (+ or -) in Solidity <0.8 — can overflow/underflow silently. Use SafeMath or Solidity >=0.8.",
-    },
+    # arithmetic_raw_* patterns removed (see note above) — they flagged ANY
+    # `uint x = a * b` / `a - b` as overflow, the single largest FP source.
     "access_control_newowner_public": {
         "patterns": [
             r"function\s+\w*[Oo]wner\w*\s*\([^)]*address[^)]*\)\s*(external|public)\b(?!.*onlyOwner)",
