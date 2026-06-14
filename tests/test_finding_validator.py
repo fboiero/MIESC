@@ -80,6 +80,36 @@ def test_parse_response_maps_simple_is_valid_payload():
     assert validation.reasoning == "Protected path."
 
 
+def test_parse_response_repairs_common_llm_json_errors():
+    validator = LLMFindingValidator(ValidatorConfig())
+    response = """
+    ```json
+    {
+        result: "likely_valid",
+        confidence: 0.82,
+        reasoning: "State update happens after the external call",
+    }
+    ```
+    """
+
+    validation = validator._parse_response(response, "F-4")
+
+    assert validation.result == ValidationResult.LIKELY_VALID
+    assert validation.confidence == 0.82
+    assert validation.reasoning == "State update happens after the external call"
+
+
+def test_parse_response_repairs_invalid_backslash_escapes():
+    validator = LLMFindingValidator(ValidatorConfig())
+    response = r'{"result": "valid", "confidence": 0.77, "reasoning": "pattern \d+ matched"}'
+
+    validation = validator._parse_response(response, "F-5")
+
+    assert validation.result == ValidationResult.VALID
+    assert validation.confidence == 0.77
+    assert validation.reasoning == r"pattern \d+ matched"
+
+
 @pytest.mark.parametrize(
     ("response", "expected_result", "expected_confidence"),
     [
