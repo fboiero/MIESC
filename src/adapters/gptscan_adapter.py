@@ -9,6 +9,7 @@ Date: November 2025
 Version: 3.0.0 (Ollama Backend)
 """
 
+import hashlib
 import json
 import logging
 import subprocess
@@ -16,6 +17,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.adapters._cache_mixin import LLMCacheMixin
 from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
@@ -42,7 +44,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-class GPTScanAdapter(OllamaCallMixin, ToolAdapter):
+class GPTScanAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     """
     GPTScan-style LLM integration using Ollama.
 
@@ -163,6 +165,7 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
         # Set True by _run_ollama_analysis on a clock kill; read by analyze() to
         # report status="timeout" instead of a misleading clean-zero success.
         self._timed_out = False
+        self._init_cache("gptscan")
         try:
             from src.core.llm_config import USE_CASE_CODE_ANALYSIS, get_model
 
@@ -170,6 +173,10 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
         except Exception:
             self._ollama_model = "qwen2.5-coder:14b"
         self._ollama_url = get_ollama_host()
+
+    def _get_cache_key(self, contract_code: str, model: str) -> str:
+        """SHA-256 over contract + model so a model change invalidates the cache."""
+        return hashlib.sha256(f"gptscan:{model}:{contract_code}".encode("utf-8")).hexdigest()
 
         # Initialize EmbeddingRAG if available
         self._embedding_rag = None
@@ -296,6 +303,15 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             timeout = kwargs.get("timeout", self._default_timeout)
             model = kwargs.get("model", self._detect_best_model())
 
+            # Cache lookup (GPTScan previously re-ran the LLM on every scan)
+            cache_key = self._get_cache_key(contract_code, model)
+            cached = self._get_cached_result(cache_key)
+            if cached:
+                logger.info(f"GPTScan: using cached result for {contract_path}")
+                cached["from_cache"] = True
+                cached["execution_time"] = time.time() - start_time
+                return cached
+
             # Run Ollama analysis
             raw_output = self._run_ollama_analysis(contract_code, model=model, timeout=timeout)
 
@@ -320,6 +336,10 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             }
             if self._timed_out:
                 result["error"] = "Ollama timed out during analysis; results may be incomplete"
+            else:
+                # Cache only complete results (a timeout must re-run next time)
+                result["from_cache"] = False
+                self._cache_result(cache_key, result)
             return result
 
         except subprocess.TimeoutExpired:
