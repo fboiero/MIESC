@@ -184,7 +184,7 @@ ZERO_RECALL_PATTERNS = {
         ],
         "multiline_patterns": [
             r"function\s+\w+\s*\([^)]*(?:string|bytes)\s+\w+[^)]*\)[^{]*\{[^}]*(?:sha3|keccak256)\s*\([^)]*\)[^}]*transfer\s*\(",
-            r"function\s+\w+\s*\([^)]*uint\w*\s+\w+[^)]*\)\s*public[^{]*\{[^}]*players",
+            r"function\s+\w+\s*\([^)]*uint\w*\s+\w+[^)]*\)[^{]*\{[^}]*\bplayers\b",
         ],
         "severity": "Medium",
         "swc": "SWC-114",
