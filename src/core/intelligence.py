@@ -181,6 +181,9 @@ ZERO_RECALL_PATTERNS = {
             r"function\s+approve\s*\(",
             r"require\s*\(\s*\w+\s*==\s*(?:sha3|keccak256)\s*\(",
             r"require\s*\(\s*(?:sha3|keccak256)\s*\([^)]*\)\s*==",
+            # Claimable reward paid out from mutable state — order-dependent
+            # (setReward/claimReward can be front-run). SmartBugs eth_tx_order.
+            r"\.transfer\s*\(\s*reward\b",
         ],
         "multiline_patterns": [
             r"function\s+\w+\s*\([^)]*(?:string|bytes)\s+\w+[^)]*\)[^{]*\{[^}]*(?:sha3|keccak256)\s*\([^)]*\)[^}]*transfer\s*\(",
