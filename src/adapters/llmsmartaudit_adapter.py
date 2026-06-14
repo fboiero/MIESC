@@ -28,6 +28,10 @@ from src.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from src.security.llm_output_validator import (
+    extract_json_from_text,
+    repair_common_json_errors,
+)
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
@@ -410,13 +414,13 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
         findings = []
 
         try:
-            # Try to parse JSON output
-            json_start = output.find("{")
-            json_end = output.rfind("}") + 1
+            # Robust JSON extraction (balanced braces + repair) before falling
+            # back to text parsing — recoverable malformed JSON (trailing commas,
+            # code fences) must not silently degrade.
+            json_str = extract_json_from_text(output)
 
-            if json_start != -1 and json_end > json_start:
-                json_str = output[json_start:json_end]
-                parsed = json.loads(json_str)
+            if json_str:
+                parsed = json.loads(repair_common_json_errors(json_str))
 
                 # Extract findings from parsed JSON
                 issues = parsed.get("issues", []) or parsed.get("findings", [])
