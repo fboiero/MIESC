@@ -26,6 +26,11 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+from src.security.llm_output_validator import (
+    extract_json_from_text,
+    repair_common_json_errors,
+)
+
 logger = logging.getLogger(__name__)
 
 OLLAMA_RUNTIME_ERRORS = (
@@ -330,15 +335,14 @@ INSIGHTS:"""
     def _parse_priorities(self, llm_response: str) -> Dict[int, Dict[str, Any]]:
         """Parse priority assignments from LLM response."""
         try:
-            # Extract JSON from response
-            json_start = llm_response.find("{")
-            json_end = llm_response.rfind("}") + 1
+            json_str = extract_json_from_text(llm_response)
+            if json_str is None:
+                json_str = llm_response.strip()
 
-            if json_start == -1 or json_end == 0:
+            if not json_str:
                 return {}
 
-            json_str = llm_response[json_start:json_end]
-            parsed = json.loads(json_str)
+            parsed = json.loads(repair_common_json_errors(json_str))
 
             priorities = {}
             for item in parsed.get("priorities", []):
