@@ -87,3 +87,17 @@ def test_llmsmartaudit_parses_malformed_json():
     findings = LLMSmartAuditAdapter()._parse_llmsmartaudit_output(resp, "C.sol")
     assert len(findings) == 1
     assert findings[0]["severity"] == "MEDIUM"
+
+
+def test_parses_invalid_backslash_escape():
+    """Invalid \\escape (e.g. \\( or regex \\d in a fix string) must not lose
+    the finding — repair_common_json_errors now escapes stray backslashes."""
+    response = (
+        '{"analysis": {"chain_of_thought": "uses \\( and \\d", '
+        '"vulnerabilities": [{"type": "regex_dos", "severity": "low", '
+        '"description": "pattern \\d+ unbounded", "location": "f", '
+        '"fix": "anchor the \\( group"}]}}'
+    )
+    findings = _adapter()._parse_cot_response(response, "f", "C.sol")
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "LOW"
