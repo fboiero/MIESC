@@ -901,6 +901,31 @@ That's my finding."""
 
         assert isinstance(results, list)
 
+    def test_parse_repairs_common_llm_json_errors(self, detector):
+        """Test parsing recoverable LLM JSON formatting errors."""
+        response = """Here is my analysis:
+```json
+[
+  {type: "test", "severity": "low", "title": "T", "description": "D",}
+]
+```
+"""
+
+        results = detector._parse_model_response(response, "test-model")
+
+        assert len(results) == 1
+        assert results[0]["type"] == "test"
+        assert results[0]["_source_model"] == "test-model"
+
+    def test_parse_repairs_invalid_backslash_escapes(self, detector):
+        """Test parsing regex-style escapes in model response strings."""
+        response = r'[{"type": "regex", "severity": "low", "title": "T", "description": "pattern \d+"}]'
+
+        results = detector._parse_model_response(response, "test-model")
+
+        assert len(results) == 1
+        assert results[0]["description"] == r"pattern \d+"
+
 
 # =============================================================================
 # Integration Tests
