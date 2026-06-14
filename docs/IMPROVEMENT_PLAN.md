@@ -36,6 +36,7 @@ disallow_untyped_defs = true
 
 ### 1.3 Crear .env.example Completo
 **Prioridad**: MEDIA | **Esfuerzo**: Bajo
+**Estado**: Completado
 
 ```bash
 # config/.env.example
@@ -49,6 +50,7 @@ CERTORA_KEY=...
 
 ### 1.4 Agregar Markdown Link Checker al CI
 **Prioridad**: BAJA | **Esfuerzo**: Bajo
+**Estado**: Completado en `.github/workflows/ci.yml` y `.github/workflows/docs.yml`
 
 ```yaml
 # .github/workflows/ci.yml
@@ -61,9 +63,9 @@ CERTORA_KEY=...
 ### 1.5 Limpiar TODOs Críticos
 **Prioridad**: MEDIA | **Esfuerzo**: Bajo
 
-- [ ] `src/adapters/exploit_synthesizer_adapter.py:148`
-- [ ] `src/adapters/gptlens_adapter.py:295` - SWC-XXX placeholder
-- [ ] `src/poc/poc_generator.py:556`
+- [x] `src/adapters/exploit_synthesizer_adapter.py:148`
+- [x] `src/adapters/gptlens_adapter.py:295` - SWC/CWE placeholders removed from prompts and normalized defensively
+- [x] `src/poc/poc_generator.py:556`
 
 ---
 
@@ -71,6 +73,7 @@ CERTORA_KEY=...
 
 ### 2.1 Mejorar Manejo de Excepciones
 **Prioridad**: MEDIA | **Esfuerzo**: Medio
+**Estado**: En progreso — completado en módulos LLM/PoC y adapters LLM críticos; queda revisar deuda residual fuera de esas rutas.
 
 **Problema**: 10+ instancias de `except Exception:` demasiado genérico.
 
@@ -109,6 +112,7 @@ grep -r "print(" src/ --include="*.py" | wc -l
 
 ### 2.4 Agregar Trivy al CI (Docker Security)
 **Prioridad**: MEDIA | **Esfuerzo**: Bajo
+**Estado**: Completado en `.github/workflows/ci.yml` y `.github/workflows/docker.yml`
 
 ```yaml
 # .github/workflows/docker.yml

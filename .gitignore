@@ -233,6 +233,8 @@ crytic-export/
 # AI Assistant Configuration (Local Only)
 # -----------------------------------------------------------------------------
 CLAUDE.md
+LANES.md
+LANES_ROADMAP.md
 .claude/
 
 # -----------------------------------------------------------------------------
