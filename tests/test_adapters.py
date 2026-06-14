@@ -3690,17 +3690,31 @@ class TestOpenLLaMAHelper:
         )
 
         findings = [{"type": "test"}]
-        result = enhance_findings_with_llm(findings, "code", "slither")
-        assert isinstance(result, list)
+        with patch("src.llm.openllama_helper.OpenLLaMAHelper") as mock_helper_cls:
+            helper = mock_helper_cls.return_value
+            helper.enhance_findings.return_value = findings
+            helper.explain_technical_output.return_value = "explained"
+            helper.prioritize_findings.return_value = findings
+            helper.generate_remediation_advice.return_value = "advice"
 
-        result = explain_technical_output("output", "mythril")
-        assert isinstance(result, str)
+            result = enhance_findings_with_llm(findings, "code", "slither")
+            assert isinstance(result, list)
 
-        result = prioritize_findings(findings, "code")
-        assert isinstance(result, list)
+            result = explain_technical_output("output", "mythril")
+            assert isinstance(result, str)
 
-        result = generate_remediation_advice({"recommendation": "fix"}, "code")
-        assert isinstance(result, str)
+            result = prioritize_findings(findings, "code")
+            assert isinstance(result, list)
+
+            result = generate_remediation_advice({"recommendation": "fix"}, "code")
+            assert isinstance(result, str)
+
+        helper.enhance_findings.assert_called_once_with(findings, "code", "slither")
+        helper.explain_technical_output.assert_called_once_with("output", "mythril")
+        helper.prioritize_findings.assert_called_once_with(findings, "code")
+        helper.generate_remediation_advice.assert_called_once_with(
+            {"recommendation": "fix"}, "code"
+        )
 
 
 class TestCorrelationAPI:
