@@ -225,6 +225,17 @@ class TestZeroRecallPatterns:
         types = [f["type"] for f in findings]
         assert "front_running" not in types
 
+    def test_detects_ordering_game_without_explicit_public(self):
+        # SmartBugs odds_and_evens: a play(uint) game touching `players`, but with
+        # implicit/payable visibility (pre-0.5) — the pattern no longer requires a
+        # literal `public`. Was a false negative; recall 2/4 -> 3/4, 0 new FPs.
+        code = (
+            "pragma solidity ^0.4.2;\ncontract C { Player[2] public players;\n"
+            "function play(uint number) payable{ players[tot] = Player(msg.sender, number); } }"
+        )
+        types = [f["type"] for f in detect_zero_recall_categories(code)]
+        assert "front_running" in types
+
     def test_safemath_suppresses_arithmetic(self):
         code = "pragma solidity ^0.6.0;\nusing SafeMath for uint256;"
         findings = detect_zero_recall_categories(code)
