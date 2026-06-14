@@ -34,6 +34,10 @@ from src.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from src.security.llm_output_validator import (
+    extract_json_from_text,
+    repair_common_json_errors,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -524,15 +528,19 @@ Fix: {vuln.fix_suggestion}
         findings = []
 
         try:
-            # Extract JSON
-            json_start = response.find("{")
-            json_end = response.rfind("}") + 1
+            # Robust JSON extraction: balanced-brace scan (handles code fences and
+            # trailing prose) with a fallback to the legacy outermost-brace grab,
+            # then repair common LLM JSON errors (trailing commas, single quotes).
+            json_str = extract_json_from_text(response)
+            if not json_str:
+                json_start = response.find("{")
+                json_end = response.rfind("}") + 1
+                if json_start == -1:
+                    return []
+                json_str = response[json_start:json_end]
 
-            if json_start == -1:
-                return []
-
-            json_str = response[json_start:json_end]
-            parsed = json.loads(self._sanitize_json_response(json_str), strict=False)
+            json_str = repair_common_json_errors(self._sanitize_json_response(json_str))
+            parsed = json.loads(json_str, strict=False)
 
             analysis = parsed.get("analysis", {})
             cot = self._clean_llm_text(analysis.get("chain_of_thought", ""))
