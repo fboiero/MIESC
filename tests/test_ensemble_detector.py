@@ -638,9 +638,7 @@ class TestLLMEnsembleDetectorDetectWithFallback:
 
         asyncio.run(run_test())
 
-    def test_fallback_continues_after_runtime_error(
-        self, multi_provider_detector, vulnerable_code
-    ):
+    def test_fallback_continues_after_runtime_error(self, multi_provider_detector, vulnerable_code):
         """Test fallback to another provider after an expected runtime error."""
 
         async def run_test():
