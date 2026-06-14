@@ -323,13 +323,32 @@ class SmartGuardAdapter(ToolAdapter):
                 cached["execution_time"] = time.time() - start_time
                 return cached
 
+            # Per-contract time budget. SmartGuard makes one Ollama CoT call per
+            # function with a RAG match; on large contracts that ran unbounded
+            # (40+ min). Respect the timeout the runner already passes so a single
+            # contract can't hang a scan — stop launching new CoT calls past it.
+            timeout = int(kwargs.get("timeout", 300))
+
             # Extract functions
             functions = self._extract_functions(contract_code)
             logger.info(f"SmartGuard: Extracted {len(functions)} functions")
 
             all_findings = []
+            budget_exhausted = False
+            analyzed = 0
 
             for func_name, func_code in functions:
+                if time.time() - start_time > timeout:
+                    budget_exhausted = True
+                    logger.warning(
+                        "SmartGuard: time budget (%ss) reached after %d/%d functions — "
+                        "returning partial results",
+                        timeout,
+                        analyzed,
+                        len(functions),
+                    )
+                    break
+
                 # Step 1: Semantic similarity retrieval
                 similar_vulns = self._retrieve_similar_vulnerabilities(func_code)
 
@@ -342,6 +361,7 @@ class SmartGuardAdapter(ToolAdapter):
                 )
 
                 all_findings.extend(findings)
+                analyzed += 1
 
             # Deduplicate findings
             unique_findings = self._deduplicate_findings(all_findings)
@@ -355,7 +375,9 @@ class SmartGuardAdapter(ToolAdapter):
                     "model": self._model,
                     "methodology": "RAG + Chain-of-Thought (SmartGuard 2025)",
                     "paper_reference": "Expert Systems with Applications, 2025",
-                    "functions_analyzed": len(functions),
+                    "functions_analyzed": analyzed,
+                    "functions_total": len(functions),
+                    "partial": budget_exhausted,
                     "sovereign": True,
                     "dpga_compliant": True,
                 },
@@ -363,7 +385,10 @@ class SmartGuardAdapter(ToolAdapter):
                 "from_cache": False,
             }
 
-            self._cache_result(cache_key, result)
+            # Do not cache partial (budget-exhausted) results — re-run next time
+            # for a complete analysis.
+            if not budget_exhausted:
+                self._cache_result(cache_key, result)
             return result
 
         except Exception as e:
