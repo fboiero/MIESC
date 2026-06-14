@@ -384,6 +384,8 @@ def repair_common_json_errors(json_str: str) -> str:
     Attempt to repair common JSON formatting errors from LLMs.
 
     Fixes:
+    - Invalid backslash escapes (e.g. \\( \\d Windows paths) — common LLM cause
+      of "Invalid \\escape" json errors
     - Trailing commas
     - Single quotes instead of double
     - Unquoted keys
@@ -391,6 +393,11 @@ def repair_common_json_errors(json_str: str) -> str:
     """
     if not json_str:
         return json_str
+
+    # Escape stray backslashes that are NOT valid JSON escapes. JSON only allows
+    # \" \\ \/ \b \f \n \r \t \uXXXX; anything else (\(  \d  C:\Users ...) makes
+    # json.loads raise "Invalid \escape". Double them so the value survives.
+    json_str = re.sub(r'\\(?!["\\/bfnrtu])', r"\\\\", json_str)
 
     # Remove trailing commas before } or ]
     json_str = re.sub(r",\s*([}\]])", r"\1", json_str)
