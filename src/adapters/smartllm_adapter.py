@@ -58,6 +58,7 @@ except ImportError:
     KNOWLEDGE_BASE_VERSION = "unavailable"
     get_context_for_finding = None
     batch_get_context_for_findings = None
+from src.adapters._cache_mixin import LLMCacheMixin
 from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import (
     ROLE_GENERATOR,
@@ -78,7 +79,7 @@ from src.core.tool_protocol import (
 logger = logging.getLogger(__name__)
 
 
-class SmartLLMAdapter(OllamaCallMixin, ToolAdapter):
+class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     """
     Ollama-based LLM adapter for local vulnerability analysis.
 
@@ -88,8 +89,7 @@ class SmartLLMAdapter(OllamaCallMixin, ToolAdapter):
 
     def __init__(self):
         super().__init__()
-        self._cache_dir = Path.home() / ".miesc" / "smartllm_cache"
-        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        self._init_cache("smartllm")
         # Set True by _call_ollama_with_retry on a clock kill; read by analyze()
         # to report status="timeout" instead of a misleading clean-zero success.
         self._timed_out = False
@@ -1622,37 +1622,7 @@ Your analysis:"""
             f"{self._model}:{rag_mode}:{KNOWLEDGE_BASE_VERSION}:{contract_code}".encode()
         ).hexdigest()
 
-    def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
-        """Retrieve cached result if available."""
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        if not cache_file.exists():
-            return None
-
-        try:
-            # Check if cache is fresh (< 24 hours)
-            age_seconds = time.time() - cache_file.stat().st_mtime
-            if age_seconds > 86400:  # 24 hours
-                logger.info(f"Cache expired for {cache_key}")
-                cache_file.unlink()
-                return None
-
-            with open(cache_file, "r") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.error(f"Error reading cache: {e}")
-            return None
-
-    def _cache_result(self, cache_key: str, result: Dict[str, Any]):
-        """Cache analysis result."""
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        try:
-            with open(cache_file, "w") as f:
-                json.dump(result, f, indent=2)
-            logger.info(f"Cached result for {cache_key}")
-        except Exception as e:
-            logger.error(f"Error writing cache: {e}")
+    # _get_cached_result / _cache_result are provided by LLMCacheMixin.
 
 
 __all__ = ["SmartLLMAdapter"]

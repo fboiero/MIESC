@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.adapters._cache_mixin import LLMCacheMixin
 from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.ollama_models import select_ollama_model
@@ -46,7 +47,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-class LLMSmartAuditAdapter(OllamaCallMixin, ToolAdapter):
+class LLMSmartAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     """
     LLM-SmartAudit AI Auditor using Ollama backend.
 
@@ -129,8 +130,7 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
     def __init__(self):
         super().__init__()
         self._default_timeout = 120
-        self._cache_dir = Path.home() / ".miesc" / "llmsmartaudit_cache"
-        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        self._init_cache("llmsmartaudit")
         # Set True by _run_ollama_audit on a clock kill; read by analyze() to
         # report status="timeout" instead of a misleading clean-zero success.
         self._timed_out = False
@@ -503,37 +503,7 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
             f"{model}:{rag_mode}:{KNOWLEDGE_BASE_VERSION}:{contract_code}".encode()
         ).hexdigest()
 
-    def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
-        """Retrieve cached result if available."""
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        if not cache_file.exists():
-            return None
-
-        try:
-            # Check if cache is fresh (< 24 hours)
-            age_seconds = time.time() - cache_file.stat().st_mtime
-            if age_seconds > 86400:  # 24 hours
-                logger.info(f"Cache expired for {cache_key}")
-                cache_file.unlink()
-                return None
-
-            with open(cache_file, "r") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.error(f"Error reading cache: {e}")
-            return None
-
-    def _cache_result(self, cache_key: str, result: Dict[str, Any]):
-        """Cache analysis result."""
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        try:
-            with open(cache_file, "w") as f:
-                json.dump(result, f, indent=2)
-            logger.info(f"Cached result for {cache_key}")
-        except Exception as e:
-            logger.error(f"Error writing cache: {e}")
+    # _get_cached_result / _cache_result are provided by LLMCacheMixin.
 
 
 __all__ = ["LLMSmartAuditAdapter"]

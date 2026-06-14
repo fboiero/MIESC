@@ -37,6 +37,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from src.adapters._cache_mixin import LLMCacheMixin
 from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.ollama_models import list_ollama_models, select_ollama_model
@@ -251,7 +252,7 @@ from src.adapters.gptlens_prompts import (  # noqa: E402
 )
 
 
-class GPTLensAdapter(OllamaCallMixin, ToolAdapter):
+class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     """
     GPTLens dual-role LLM adapter for smart contract vulnerability detection.
 
@@ -285,8 +286,7 @@ class GPTLensAdapter(OllamaCallMixin, ToolAdapter):
         self._critic_model = critic_model
         self._ollama_url = ollama_url or get_ollama_host()
         self._generate_url = f"{self._ollama_url}/api/generate"
-        self._cache_dir = Path.home() / ".miesc" / "gptlens_cache"
-        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        self._init_cache("gptlens")
         self._max_retries = 2
         self._retry_delay = 2
         # Set True by _call_ollama when a request is killed by the clock; read by
@@ -2138,57 +2138,7 @@ class GPTLensAdapter(OllamaCallMixin, ToolAdapter):
         key_data = f"{contract_code}:" f"{self._auditor_model}:" f"{self._critic_model}"
         return hashlib.sha256(key_data.encode("utf-8")).hexdigest()
 
-    def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
-        """
-        Retrieve a cached analysis result if available and fresh.
-
-        Cache entries older than CACHE_TTL (24 hours) are considered stale
-        and automatically deleted.
-
-        Args:
-            cache_key: SHA-256 cache key
-
-        Returns:
-            Cached result dictionary or None
-        """
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        if not cache_file.exists():
-            return None
-
-        try:
-            age_seconds = time.time() - cache_file.stat().st_mtime
-            if age_seconds > CACHE_TTL:
-                logger.info("GPTLens: Cache expired for key %s", cache_key[:16])
-                cache_file.unlink()
-                return None
-
-            with open(cache_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except json.JSONDecodeError:
-            logger.warning("GPTLens: Corrupted cache file %s", cache_file)
-            cache_file.unlink(missing_ok=True)
-            return None
-        except Exception as e:
-            logger.error("GPTLens: Error reading cache: %s", e)
-            return None
-
-    def _cache_result(self, cache_key: str, result: Dict[str, Any]) -> None:
-        """
-        Cache an analysis result for future use.
-
-        Args:
-            cache_key: SHA-256 cache key
-            result: Analysis result dictionary to cache
-        """
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        try:
-            with open(cache_file, "w", encoding="utf-8") as f:
-                json.dump(result, f, indent=2)
-            logger.info("GPTLens: Cached result for key %s", cache_key[:16])
-        except Exception as e:
-            logger.error("GPTLens: Error writing cache: %s", e)
+    # _get_cached_result / _cache_result are provided by LLMCacheMixin.
 
 
 __all__ = ["GPTLensAdapter"]
