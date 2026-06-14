@@ -500,6 +500,25 @@ class FoundryRunner:
                             report["contracts"] = data["gas_report"]
                     except json.JSONDecodeError:
                         continue
+                elif line.strip().startswith("|") and "----" not in line:
+                    cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+                    if len(cells) != 6 or cells[0].lower() == "contract":
+                        continue
+
+                    contract, method, min_gas, max_gas, avg_gas, calls = cells
+                    try:
+                        method_report = {
+                            "min": int(min_gas.replace(",", "")),
+                            "max": int(max_gas.replace(",", "")),
+                            "avg": int(avg_gas.replace(",", "")),
+                            "calls": int(calls.replace(",", "")),
+                        }
+                    except ValueError:
+                        continue
+
+                    contract_report = report["contracts"].setdefault(contract, {"methods": {}})
+                    contract_report["methods"][method] = method_report
+                    report["total_runtime_gas"] += method_report["avg"] * method_report["calls"]
 
             return report
 
