@@ -561,6 +561,33 @@ class TestGasReport:
             report = runner.get_gas_report()
 
         assert "contracts" in report
+        assert report["contracts"]["Bank"]["methods"]["deposit"]["avg"] == 45500
+        assert report["contracts"]["Bank"]["methods"]["withdraw"]["calls"] == 5
+        assert report["total_runtime_gas"] == 45500 * 10 + 67500 * 5
+
+    def test_get_gas_report_text_table_with_commas(self, runner):
+        """Test parsing textual gas report rows with comma-separated numbers."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = """
+| Contract | Method | Min | Max | Avg | # calls |
+|----------|--------|-----|-----|-----|---------|
+| Vault    | deposit | 1,000 | 2,000 | 1,500 | 3 |
+| invalid  | row     | N/A   | 2,000 | 1,500 | 3 |
+"""
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            report = runner.get_gas_report()
+
+        assert report["contracts"]["Vault"]["methods"]["deposit"] == {
+            "min": 1000,
+            "max": 2000,
+            "avg": 1500,
+            "calls": 3,
+        }
+        assert "invalid" not in report["contracts"]
+        assert report["total_runtime_gas"] == 4500
 
     def test_get_gas_report_error(self, runner):
         """Test gas report with error."""
