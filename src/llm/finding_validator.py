@@ -22,12 +22,16 @@ import asyncio
 import json
 import logging
 import os
-import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
+
+from src.security.llm_output_validator import (
+    extract_json_from_text,
+    repair_common_json_errors,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -301,12 +305,11 @@ Respond ONLY with a valid JSON object (no markdown, no extra text):
     def _parse_response(self, response: str, finding_id: str) -> LLMValidation:
         """Parse LLM response into LLMValidation."""
         try:
-            # Try to extract JSON from response
-            json_match = re.search(r"\{[^{}]*\}", response, re.DOTALL)
-            if not json_match:
+            json_str = extract_json_from_text(response)
+            if not json_str:
                 raise ValueError("No JSON found in response")
 
-            data = json.loads(json_match.group())
+            data = json.loads(repair_common_json_errors(json_str))
 
             # Map result string to enum
             result_str = str(data.get("result", "")).lower()
