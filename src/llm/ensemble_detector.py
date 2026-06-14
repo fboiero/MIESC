@@ -28,6 +28,8 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
+from src.security.llm_output_validator import repair_common_json_errors
+
 logger = logging.getLogger(__name__)
 
 ENSEMBLE_RUNTIME_ERRORS = (
@@ -686,7 +688,7 @@ Response (JSON array only):"""
 
             if json_start >= 0 and json_end > json_start:
                 json_str = content[json_start:json_end]
-                findings = json.loads(json_str)
+                findings = json.loads(repair_common_json_errors(json_str))
 
                 # Normalize findings
                 normalized = []
@@ -700,7 +702,7 @@ Response (JSON array only):"""
             else:
                 # Try parsing entire content
                 if content.strip().startswith("["):
-                    findings = json.loads(content)
+                    findings = json.loads(repair_common_json_errors(content))
                     for f in findings:
                         if isinstance(f, dict):
                             f["_source_model"] = model
