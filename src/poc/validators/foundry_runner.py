@@ -433,6 +433,16 @@ class FoundryRunner:
                             logs=result.get("logs", []),
                         )
                     )
+        elif "success" in data and (data.get("test_name") or data.get("name")):
+            status = TestStatus.PASSED if data.get("success") else TestStatus.FAILED
+            tests.append(
+                TestResult(
+                    name=data.get("test_name") or data.get("name"),
+                    status=status,
+                    gas_used=data.get("gas"),
+                    logs=data.get("logs", []),
+                )
+            )
 
         return tests
 

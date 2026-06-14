@@ -527,6 +527,23 @@ class TestParseOutput:
         assert len(passed) == 2
         assert len(failed) == 1
 
+    def test_parse_flat_json_test_result(self, runner):
+        """Test parsing a single flat JSON test result."""
+        tests = runner._parse_test_results(
+            {
+                "test_name": "test_foo",
+                "success": True,
+                "gas": 12345,
+                "logs": ["ok"],
+            }
+        )
+
+        assert len(tests) == 1
+        assert tests[0].name == "test_foo"
+        assert tests[0].status == TestStatus.PASSED
+        assert tests[0].gas_used == 12345
+        assert tests[0].logs == ["ok"]
+
     def test_parse_empty_output(self, runner):
         """Test parsing empty output."""
         tests = runner._parse_text_output("")
@@ -853,8 +870,8 @@ More text
         result = runner._parse_forge_output(stdout, stderr, 0, 100.0)
 
         assert isinstance(result, FoundryResult)
-        # Should have parsed at least one test
-        assert result.passed >= 0
+        assert [test.name for test in result.tests] == ["test_foo"]
+        assert result.passed == 1
 
     def test_parse_forge_output_empty(self, runner):
         """Test parsing empty output."""
