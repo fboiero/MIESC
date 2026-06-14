@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1000" height="450" viewBox="0 0 1000 450" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="inputGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1565C0"/>
+      <stop offset="100%" style="stop-color:#1976D2"/>
+    </linearGradient>
+    <linearGradient id="processGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4CAF50"/>
+      <stop offset="100%" style="stop-color:#66BB6A"/>
+    </linearGradient>
+    <linearGradient id="outputGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7B1FA2"/>
+      <stop offset="100%" style="stop-color:#9C27B0"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#546E7A"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1976D2"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="500" y="30" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1a237e" text-anchor="middle">
+    MIESC Data Flow / Flujo de Datos de MIESC
+  </text>
+
+  <!-- Input Section -->
+  <rect x="30" y="60" width="140" height="120" rx="10" fill="url(#inputGrad)" filter="url(#shadow)"/>
+  <text x="100" y="90" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">INPUT</text>
+  <text x="100" y="108" font-family="Arial, sans-serif" font-size="10" fill="#BBDEFB" text-anchor="middle">ENTRADA</text>
+  <rect x="45" y="120" width="110" height="25" rx="5" fill="white" fill-opacity="0.9"/>
+  <text x="100" y="137" font-family="Arial, sans-serif" font-size="9" fill="#1565C0" text-anchor="middle">.sol Contract</text>
+  <rect x="45" y="150" width="110" height="20" rx="5" fill="white" fill-opacity="0.9"/>
+  <text x="100" y="164" font-family="Arial, sans-serif" font-size="9" fill="#1565C0" text-anchor="middle">Config (TOML)</text>
+
+  <!-- Arrow to Parser -->
+  <path d="M170 120 L220 120" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Parser/Preprocessor -->
+  <rect x="230" y="80" width="120" height="80" rx="8" fill="#ECEFF1" stroke="#607D8B" stroke-width="2" filter="url(#shadow)"/>
+  <text x="290" y="110" font-family="Arial, sans-serif" font-size="11" fill="#37474F" text-anchor="middle" font-weight="bold">Contract Parser</text>
+  <text x="290" y="128" font-family="Arial, sans-serif" font-size="9" fill="#546E7A" text-anchor="middle">AST Generation</text>
+  <text x="290" y="143" font-family="Arial, sans-serif" font-size="9" fill="#546E7A" text-anchor="middle">solc compilation</text>
+
+  <!-- Arrow to Discovery -->
+  <path d="M350 120 L400 120" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Tool Discovery -->
+  <rect x="410" y="55" width="140" height="130" rx="8" fill="#E3F2FD" stroke="#1976D2" stroke-width="2" filter="url(#shadow)"/>
+  <text x="480" y="80" font-family="Arial, sans-serif" font-size="11" fill="#1565C0" text-anchor="middle" font-weight="bold">Tool Discovery</text>
+  <text x="480" y="95" font-family="Arial, sans-serif" font-size="9" fill="#1976D2" text-anchor="middle">Descubrimiento</text>
+  <rect x="425" y="105" width="110" height="18" rx="4" fill="#BBDEFB"/>
+  <text x="480" y="118" font-family="Arial, sans-serif" font-size="8" fill="#0D47A1" text-anchor="middle">detect_tools()</text>
+  <rect x="425" y="128" width="110" height="18" rx="4" fill="#BBDEFB"/>
+  <text x="480" y="141" font-family="Arial, sans-serif" font-size="8" fill="#0D47A1" text-anchor="middle">check_availability()</text>
+  <rect x="425" y="151" width="110" height="18" rx="4" fill="#BBDEFB"/>
+  <text x="480" y="164" font-family="Arial, sans-serif" font-size="8" fill="#0D47A1" text-anchor="middle">25 tools found</text>
+
+  <!-- Arrow to Orchestrator -->
+  <path d="M550 120 L600 120" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ML Orchestrator -->
+  <rect x="610" y="45" width="160" height="150" rx="8" fill="url(#processGrad)" filter="url(#shadow)"/>
+  <text x="690" y="75" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">ML Orchestrator</text>
+  <text x="690" y="92" font-family="Arial, sans-serif" font-size="10" fill="#C8E6C9" text-anchor="middle">Orquestador ML</text>
+  <rect x="625" y="100" width="130" height="20" rx="4" fill="white" fill-opacity="0.9"/>
+  <text x="690" y="114" font-family="Arial, sans-serif" font-size="8" fill="#2E7D32" text-anchor="middle">parallel_execute()</text>
+  <rect x="625" y="125" width="130" height="20" rx="4" fill="white" fill-opacity="0.9"/>
+  <text x="690" y="139" font-family="Arial, sans-serif" font-size="8" fill="#2E7D32" text-anchor="middle">aggregate_results()</text>
+  <rect x="625" y="150" width="130" height="20" rx="4" fill="white" fill-opacity="0.9"/>
+  <text x="690" y="164" font-family="Arial, sans-serif" font-size="8" fill="#2E7D32" text-anchor="middle">confidence_score()</text>
+  <rect x="625" y="175" width="130" height="15" rx="4" fill="#1B5E20"/>
+  <text x="690" y="186" font-family="Arial, sans-serif" font-size="8" fill="white" text-anchor="middle">~42s avg time</text>
+
+  <!-- Parallel execution arrows -->
+  <path d="M690 195 L690 230 L300 230 L300 260" stroke="#4CAF50" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <path d="M690 195 L690 230 L480 230 L480 260" stroke="#4CAF50" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <path d="M690 195 L690 230 L660 230 L660 260" stroke="#4CAF50" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <path d="M690 195 L690 230 L840 230 L840 260" stroke="#4CAF50" stroke-width="1.5" stroke-dasharray="4,2"/>
+
+  <!-- Tool Adapters Row -->
+  <rect x="230" y="265" width="100" height="60" rx="6" fill="#E8F5E9" stroke="#4CAF50" stroke-width="2" filter="url(#shadow)"/>
+  <text x="280" y="290" font-family="Arial, sans-serif" font-size="10" fill="#2E7D32" text-anchor="middle" font-weight="bold">Static</text>
+  <text x="280" y="305" font-family="Arial, sans-serif" font-size="8" fill="#388E3C" text-anchor="middle">Slither, Semgrep</text>
+  <text x="280" y="318" font-family="Arial, sans-serif" font-size="8" fill="#388E3C" text-anchor="middle">Rattle, Securify2</text>
+
+  <rect x="410" y="265" width="100" height="60" rx="6" fill="#FFF3E0" stroke="#FF9800" stroke-width="2" filter="url(#shadow)"/>
+  <text x="460" y="290" font-family="Arial, sans-serif" font-size="10" fill="#E65100" text-anchor="middle" font-weight="bold">Symbolic</text>
+  <text x="460" y="305" font-family="Arial, sans-serif" font-size="8" fill="#F57C00" text-anchor="middle">Mythril, Halmos</text>
+  <text x="460" y="318" font-family="Arial, sans-serif" font-size="8" fill="#F57C00" text-anchor="middle">SMTChecker</text>
+
+  <rect x="590" y="265" width="100" height="60" rx="6" fill="#FCE4EC" stroke="#E91E63" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="290" font-family="Arial, sans-serif" font-size="10" fill="#880E4F" text-anchor="middle" font-weight="bold">Fuzzing</text>
+  <text x="640" y="305" font-family="Arial, sans-serif" font-size="8" fill="#C2185B" text-anchor="middle">Echidna, Foundry</text>
+  <text x="640" y="318" font-family="Arial, sans-serif" font-size="8" fill="#C2185B" text-anchor="middle">Harvey, sFuzz</text>
+
+  <rect x="770" y="265" width="100" height="60" rx="6" fill="#F3E5F5" stroke="#9C27B0" stroke-width="2" filter="url(#shadow)"/>
+  <text x="820" y="290" font-family="Arial, sans-serif" font-size="10" fill="#4A148C" text-anchor="middle" font-weight="bold">ML/AI</text>
+  <text x="820" y="305" font-family="Arial, sans-serif" font-size="8" fill="#7B1FA2" text-anchor="middle">PropertyGPT</text>
+  <text x="820" y="318" font-family="Arial, sans-serif" font-size="8" fill="#7B1FA2" text-anchor="middle">DA-GNN, SmartLLM</text>
+
+  <!-- Results flow back -->
+  <path d="M280 325 L280 355 L550 355" stroke="#546E7A" stroke-width="1.5"/>
+  <path d="M460 325 L460 355" stroke="#546E7A" stroke-width="1.5"/>
+  <path d="M640 325 L640 355 L550 355" stroke="#546E7A" stroke-width="1.5"/>
+  <path d="M820 325 L820 355 L550 355" stroke="#546E7A" stroke-width="1.5"/>
+  <path d="M550 355 L550 370" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Result Correlator -->
+  <rect x="450" y="375" width="200" height="55" rx="8" fill="#CFD8DC" stroke="#607D8B" stroke-width="2" filter="url(#shadow)"/>
+  <text x="550" y="398" font-family="Arial, sans-serif" font-size="11" fill="#37474F" text-anchor="middle" font-weight="bold">Result Correlator</text>
+  <text x="550" y="413" font-family="Arial, sans-serif" font-size="9" fill="#546E7A" text-anchor="middle">FP Filtering (89% reduction)</text>
+  <text x="550" y="425" font-family="Arial, sans-serif" font-size="9" fill="#546E7A" text-anchor="middle">Confidence Scoring</text>
+
+  <!-- Arrow to output -->
+  <path d="M650 402 L720 402" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Output -->
+  <rect x="730" y="355" width="170" height="90" rx="10" fill="url(#outputGrad)" filter="url(#shadow)"/>
+  <text x="815" y="380" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">OUTPUT</text>
+  <text x="815" y="395" font-family="Arial, sans-serif" font-size="10" fill="#E1BEE7" text-anchor="middle">SALIDA</text>
+  <rect x="745" y="405" width="140" height="16" rx="4" fill="white" fill-opacity="0.9"/>
+  <text x="815" y="417" font-family="Arial, sans-serif" font-size="8" fill="#7B1FA2" text-anchor="middle">Unified JSON Report</text>
+  <rect x="745" y="425" width="140" height="16" rx="4" fill="white" fill-opacity="0.9"/>
+  <text x="815" y="437" font-family="Arial, sans-serif" font-size="8" fill="#7B1FA2" text-anchor="middle">SARIF, PDF, Markdown</text>
+
+  <!-- Performance metrics box -->
+  <rect x="30" y="220" width="160" height="100" rx="8" fill="#FFFDE7" stroke="#FFC107" stroke-width="2" filter="url(#shadow)"/>
+  <text x="110" y="245" font-family="Arial, sans-serif" font-size="11" fill="#F57F17" text-anchor="middle" font-weight="bold">Performance</text>
+  <text x="110" y="265" font-family="Arial, sans-serif" font-size="9" fill="#F9A825" text-anchor="middle">Precision: 94.5%</text>
+  <text x="110" y="280" font-family="Arial, sans-serif" font-size="9" fill="#F9A825" text-anchor="middle">Recall: 92.8%</text>
+  <text x="110" y="295" font-family="Arial, sans-serif" font-size="9" fill="#F9A825" text-anchor="middle">F1 Score: 93.6%</text>
+  <text x="110" y="310" font-family="Arial, sans-serif" font-size="9" fill="#F9A825" text-anchor="middle">FP Rate: 5.5%</text>
+
+  <!-- Legend -->
+  <text x="60" y="360" font-family="Arial, sans-serif" font-size="9" fill="#666">Legend / Leyenda:</text>
+  <line x1="40" y1="375" x2="70" y2="375" stroke="#546E7A" stroke-width="2"/>
+  <text x="75" y="378" font-family="Arial, sans-serif" font-size="8" fill="#666">Data flow</text>
+  <line x1="40" y1="390" x2="70" y2="390" stroke="#4CAF50" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="75" y="393" font-family="Arial, sans-serif" font-size="8" fill="#666">Parallel exec</text>
+</svg>

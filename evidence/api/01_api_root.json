@@ -1,0 +1,16 @@
+{
+  "agent": "MIESC Core REST API",
+  "documentation": "/api/v1/tools/",
+  "endpoints": {
+    "health": "/api/v1/health/",
+    "tools": "/api/v1/tools/",
+    "layers": "/api/v1/layers/",
+    "quick_analysis": "/api/v1/analyze/quick/",
+    "full_analysis": "/api/v1/analyze/full/",
+    "remediation": "/api/v1/remediate/",
+    "reports": "/api/v1/reports/"
+  },
+  "health": "/api/v1/health/",
+  "status": "operational",
+  "version": "5.4.2"
+}
