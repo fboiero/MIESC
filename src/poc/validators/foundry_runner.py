@@ -440,8 +440,13 @@ class FoundryRunner:
         """Parse test results from text output."""
         tests = []
 
-        # Pattern for test results: [PASS] testName() (gas: 12345)
-        pattern = r"\[(PASS|FAIL|SKIP)\]\s+(\w+)\(\)\s*(?:\(gas:\s*(\d+)\))?"
+        # Pattern for test results:
+        # [PASS] testName() (gas: 12345)
+        # [PASS] testFuzz(uint256) (runs: 256)
+        pattern = (
+            r"\[(PASS|FAIL|SKIP)\]\s+([A-Za-z_]\w*)\([^)]*\)\s*"
+            r"(?:\([^)]*gas:\s*([\d,]+)[^)]*\))?"
+        )
 
         for match in re.finditer(pattern, output):
             status_str, name, gas = match.groups()
@@ -457,7 +462,7 @@ class FoundryRunner:
                 TestResult(
                     name=name,
                     status=status,
-                    gas_used=int(gas) if gas else None,
+                    gas_used=int(gas.replace(",", "")) if gas else None,
                 )
             )
 
