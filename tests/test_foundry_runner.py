@@ -495,6 +495,26 @@ class TestParseOutput:
         assert len(failed_tests) == 1
         assert failed_tests[0].name == "test_exploit"
 
+    def test_parse_text_output_with_fuzz_signature(self, runner):
+        """Test parsing forge output for fuzz tests with typed arguments."""
+        output = """
+[PASS] testFuzz_withdraw(uint256,address) (runs: 256, mean: 12345)
+[SKIP] test_skipWhenPaused(bool)
+[PASS] test_largeGas() (gas: 1,234,567)
+"""
+
+        tests = runner._parse_text_output(output)
+
+        assert [t.name for t in tests] == [
+            "testFuzz_withdraw",
+            "test_skipWhenPaused",
+            "test_largeGas",
+        ]
+        assert tests[0].status == TestStatus.PASSED
+        assert tests[0].gas_used is None
+        assert tests[1].status == TestStatus.SKIPPED
+        assert tests[2].gas_used == 1234567
+
     def test_parse_json_output(self, runner, sample_forge_json_output):
         """Test parsing JSON output."""
         tests = runner._parse_test_results(sample_forge_json_output)
