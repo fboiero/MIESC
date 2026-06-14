@@ -38,6 +38,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from src.adapters._cache_mixin import LLMCacheMixin
 from src.adapters._ollama_mixin import OllamaCallMixin
 from src.core.llm_config import get_ollama_host
 from src.core.tool_protocol import (
@@ -277,7 +278,7 @@ from src.adapters.iaudit_prompts import (  # noqa: E402
 )
 
 
-class IAuditAdapter(OllamaCallMixin, ToolAdapter):
+class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     """
     iAudit multi-agent collaborative auditing adapter.
 
@@ -337,8 +338,7 @@ class IAuditAdapter(OllamaCallMixin, ToolAdapter):
         self._reviewer_timeout = reviewer_timeout
 
         # Cache
-        self._cache_dir = Path.home() / ".miesc" / "iaudit_cache"
-        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        self._init_cache("iaudit")
 
         # Resolved model (set during analysis if not provided)
         self._resolved_model: Optional[str] = None
@@ -1726,52 +1726,7 @@ class IAuditAdapter(OllamaCallMixin, ToolAdapter):
         model_str = self._model or "auto"
         return hashlib.sha256(f"iaudit:{model_str}:{contract_code}".encode()).hexdigest()
 
-    def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
-        """
-        Retrieve a cached analysis result.
-
-        Cache entries expire after 24 hours.
-
-        Args:
-            cache_key: SHA-256 hex key
-
-        Returns:
-            Cached result dict, or None if not found/expired
-        """
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        if not cache_file.exists():
-            return None
-
-        try:
-            age_seconds = time.time() - cache_file.stat().st_mtime
-            if age_seconds > 86400:  # 24 hours
-                logger.info(f"iAudit: Cache expired for {cache_key[:16]}...")
-                cache_file.unlink()
-                return None
-
-            with open(cache_file, "r") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.error(f"iAudit: Error reading cache: {e}")
-            return None
-
-    def _cache_result(self, cache_key: str, result: Dict[str, Any]) -> None:
-        """
-        Cache an analysis result to disk.
-
-        Args:
-            cache_key: SHA-256 hex key
-            result: Analysis result dictionary
-        """
-        cache_file = self._cache_dir / f"{cache_key}.json"
-
-        try:
-            with open(cache_file, "w") as f:
-                json.dump(result, f, indent=2)
-            logger.info(f"iAudit: Cached result for {cache_key[:16]}...")
-        except Exception as e:
-            logger.error(f"iAudit: Error writing cache: {e}")
+    # _get_cached_result / _cache_result are provided by LLMCacheMixin.
 
 
 __all__ = ["IAuditAdapter"]
