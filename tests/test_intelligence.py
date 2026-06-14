@@ -192,11 +192,14 @@ class TestZeroRecallPatterns:
         types = [f["type"] for f in findings]
         assert "bad_randomness_block_vars" in types
 
-    def test_detects_pre_08_arithmetic(self):
+    def test_pre_08_arithmetic_not_flagged_by_zero_recall(self):
+        # arithmetic was removed from the zero-recall patterns: slither/aderyn
+        # already detect it, so the blanket "pre-0.8 has arithmetic" pattern only
+        # added false positives (+32 FP / 0 TP measured on SmartBugs).
         code = "pragma solidity ^0.7.0;\ncontract C { uint x = a + b; }"
         findings = detect_zero_recall_categories(code)
         types = [f["type"] for f in findings]
-        assert "arithmetic_pre08" in types
+        assert "arithmetic_pre08" not in types
 
     def test_pre_08_without_arithmetic_not_flagged_as_overflow(self):
         code = "pragma solidity ^0.7.0;\ncontract C { address owner; }"
@@ -500,7 +503,8 @@ class TestEnhanceFindings:
         result = enhance_findings([], source_code=code)
         types = [f["type"] for f in result]
         assert "time_manipulation" in types
-        assert "arithmetic_pre08" in types
+        # arithmetic_pre08 removed — no longer added by zero-recall patterns
+        assert "arithmetic_pre08" not in types
 
     def test_timelock_not_flagged_in_enhance(self):
         """Timelock require() with timestamp does not produce time_manipulation."""
@@ -510,8 +514,6 @@ class TestEnhanceFindings:
         )
         result = enhance_findings([], source_code=code)
         types = [f["type"] for f in result]
-        # arithmetic_pre08 still fires (uint c = a + b is unchecked arithmetic)
-        assert "arithmetic_pre08" in types
         # time_manipulation does NOT fire (pure timelock require)
         assert "time_manipulation" not in types
 
