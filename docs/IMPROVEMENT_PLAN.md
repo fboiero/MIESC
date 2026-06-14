@@ -1,304 +1,82 @@
-# MIESC - Plan de Mejoras v5.1.0
+# MIESC — Plan de Mejoras
 
-**Fecha**: Febrero 2026
-**Versión actual**: 5.1.0
-**Objetivo**: 5.1.0
+**Versión actual**: 5.4.2 · **Revisión del plan**: Junio 2026
+**Estado**: código-completo. El backlog de ingeniería está mayormente saldado;
+el foco se corre a **distribución y publicación**.
 
----
-
-## Resumen Ejecutivo
-
-El proyecto MIESC está **bien estructurado y listo para producción** con 50+ adaptadores, 3,469 casos de test, y CI/CD profesional. Este plan identifica mejoras incrementales para llevar el proyecto al siguiente nivel de madurez.
-
----
-
-## 1. Quick Wins (1-2 semanas)
-
-### 1.1 Aumentar Cobertura de Tests
-**Prioridad**: ALTA | **Esfuerzo**: Bajo
-
-```toml
-# pyproject.toml - cambiar de 55% a 70%
-[tool.coverage.report]
-fail_under = 70
-```
-
-**Acción**: Agregar tests para adaptadores críticos (Slither, Aderyn).
-
-### 1.2 Habilitar Type Hints Estrictos
-**Prioridad**: ALTA | **Esfuerzo**: Bajo
-
-```toml
-# pyproject.toml
-[tool.mypy]
-disallow_untyped_defs = true
-```
-
-### 1.3 Crear .env.example Completo
-**Prioridad**: MEDIA | **Esfuerzo**: Bajo
-**Estado**: Completado
-
-```bash
-# config/.env.example
-MIESC_DEBUG=false
-MIESC_LOG_LEVEL=INFO
-OLLAMA_HOST=http://localhost:11434
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=...
-CERTORA_KEY=...
-```
-
-### 1.4 Agregar Markdown Link Checker al CI
-**Prioridad**: BAJA | **Esfuerzo**: Bajo
-**Estado**: Completado en `.github/workflows/ci.yml` y `.github/workflows/docs.yml`
-
-```yaml
-# .github/workflows/ci.yml
-- name: Check documentation links
-  run: |
-    npm install -g markdown-link-check
-    find docs -name "*.md" -exec markdown-link-check {} \;
-```
-
-### 1.5 Limpiar TODOs Críticos
-**Prioridad**: MEDIA | **Esfuerzo**: Bajo
-
-- [x] `src/adapters/exploit_synthesizer_adapter.py:148`
-- [x] `src/adapters/gptlens_adapter.py:295` - SWC/CWE placeholders removed from prompts and normalized defensively
-- [x] `src/poc/poc_generator.py:556`
+> Reemplaza al plan v5.1.0 (Febrero 2026), cuyos quick-wins ya se completaron
+> (cobertura, escaneos de seguridad en CI, `.env.example`, link checker, Trivy,
+> refactor de la CLI). Los números canónicos de benchmark y las claims matrices
+> de los papers viven en los artefactos congelados, no en este documento.
 
 ---
 
-## 2. Corto Plazo (1 mes)
+## 1. Estado real (Junio 2026)
 
-### 2.1 Mejorar Manejo de Excepciones
-**Prioridad**: MEDIA | **Esfuerzo**: Medio
-**Estado**: En progreso — completado en módulos LLM/PoC y adapters LLM críticos; queda revisar deuda residual fuera de esas rutas.
+- **Tests**: ~6.000 pasando; cobertura ~78% (objetivo 80%).
+- **Herramientas**: ~35 módulos (estáticos + ML + LLM + internos).
+- **Capa LLM**: 6 adapters consolidados sobre `OllamaCallMixin`; manejo de
+  timeout uniforme (`status="timeout"` en clock-kill, no falso "0 findings").
+- **Benchmarks** (referencia; fuente canónica = artefactos congelados):
+  SmartBugs recall alto static-only y mayor con Ollama; EVMBench ensemble #1.
+- **Deuda visible**: ~0 TODOs/FIXMEs en `src/`/`miesc/`; sin issues abiertos.
 
-**Problema**: 10+ instancias de `except Exception:` demasiado genérico.
-
-**Solución**:
-```python
-# Antes
-except Exception as e:
-    logger.error(f"Analysis failed: {e}")
-
-# Después
-except (TimeoutError, subprocess.TimeoutExpired) as e:
-    logger.error(f"Tool timeout: {e}")
-except FileNotFoundError as e:
-    logger.error(f"Contract not found: {e}")
-except subprocess.CalledProcessError as e:
-    logger.error(f"Tool execution failed: {e}")
-```
-
-### 2.2 Reemplazar Print por Logging
-**Prioridad**: BAJA | **Esfuerzo**: Medio
-
-**Problema**: 718 `print()` en lugar de logging estructurado.
-
-**Script de migración**:
-```bash
-# Identificar archivos
-grep -r "print(" src/ --include="*.py" | wc -l
-```
-
-### 2.3 Documentación de API
-**Prioridad**: MEDIA | **Esfuerzo**: Medio
-
-- [ ] Generar docs con Sphinx desde docstrings
-- [ ] Crear OpenAPI schema para REST API
-- [ ] Agregar `.pyi` stubs para módulos críticos
-
-### 2.4 Agregar Trivy al CI (Docker Security)
-**Prioridad**: MEDIA | **Esfuerzo**: Bajo
-**Estado**: Completado en `.github/workflows/ci.yml` y `.github/workflows/docker.yml`
-
-```yaml
-# .github/workflows/docker.yml
-- name: Scan Docker image for vulnerabilities
-  uses: aquasecurity/trivy-action@master
-  with:
-    image-ref: ghcr.io/fboiero/miesc:${{ github.sha }}
-    format: 'sarif'
-    output: 'trivy-results.sarif'
-```
-
-### 2.5 Expandir Fixtures de Tests
-**Prioridad**: MEDIA | **Esfuerzo**: Medio
-
-Agregar contratos de prueba para:
-- [ ] Reentrancy (SWC-107)
-- [ ] Integer Overflow (SWC-101)
-- [ ] Access Control (SWC-105)
-- [ ] Flash Loan attacks
-- [ ] Oracle manipulation
+**Conclusión**: el proyecto no espera más código para ser sólido. Espera ser
+**publicado y distribuido**.
 
 ---
 
-## 3. Mediano Plazo (2-3 meses)
+## 2. Backlog repensado (por impacto real)
 
-### 3.1 Refactorizar Archivos Grandes
-**Prioridad**: MEDIA | **Esfuerzo**: Alto
+### Tier 0 — Desbloquea todo (acción de Fernando)
+- [ ] **Submit a SSRN** → obtener **DOI**.
+- [ ] **Upload a arXiv** (bundle listo en `paper/miesc-arxiv.tar.gz`).
+- [ ] Una vez con DOI: disparar grants + anuncios.
 
-| Archivo | Líneas | Acción |
-|---------|--------|--------|
-| `miesc/cli/main.py` | 6,710 | Dividir en subcomandos Click |
-| `src/llm/vulnerability_rag.py` | 2,839 | Extraer lógica común |
-| `src/llm/embedding_rag.py` | 2,575 | Crear módulo base_rag.py |
-| `src/adapters/gptlens_adapter.py` | 2,266 | Separar prompts de lógica |
+> Estos son los verdaderos bloqueantes. Nada de abajo mueve la aguja tanto.
 
-### 3.2 Consolidar Estructura de Paquetes
-**Prioridad**: MEDIA | **Esfuerzo**: Alto
+### Tier 1 — Housekeeping (rápido, bajo riesgo)
+- [ ] Mergear PRs de Dependabot: **#57** (codecov-action 6→7, solo CI) y
+      **#58** (4 bumps PATCH: aiohttp, cbor2, idna, wcwidth).
+- [ ] Mantener **CI Lint&Format** verde (black + ruff sobre `src/ tests/`)
+      antes de cada merge — incorporar al flujo, no descubrirlo en CI.
+- [x] Refrescar este plan a la realidad v5.4.2.
 
-**Problema**: Estructura dual `src/` y `miesc/` causa confusión.
+### Tier 2 — Crecimiento (producto / comunidad)
+- [ ] **DPGA**: completar el proceso de certificación en curso.
+- [ ] Grants (Starknet Foundation, EF ESP, NGI Zero) — actualizados a v5.4.x.
+- [ ] Anuncios de release y difusión.
+- [ ] UI/Streamlit: evolucionar en el repo `platform` (core queda en HTML/API).
 
-**Opciones**:
-1. Documentar claramente la razón (lazy imports, backwards compat)
-2. Migrar todo a `miesc/` en v6.0.0
-3. Marcar `src/` como deprecated con DeprecationWarning
-
-### 3.3 Implementar Lock de Dependencias
-**Prioridad**: MEDIA | **Esfuerzo**: Bajo
-
-```bash
-# Usar pip-compile para builds reproducibles
-pip install pip-tools
-pip-compile pyproject.toml -o requirements-lock.txt
-```
-
-### 3.4 Crear BaseToolAdapter Mejorado
-**Prioridad**: BAJA | **Esfuerzo**: Medio
-
-```python
-class BaseToolAdapter(ToolAdapter):
-    """Base con patrones reutilizables"""
-
-    def execute_with_timeout(self, cmd: list, timeout: int = 30) -> str:
-        """Wrapper de timeout reutilizable"""
-        pass
-
-    def parse_json_output(self, output: str) -> dict:
-        """Parser JSON con manejo de errores"""
-        pass
-
-    def handle_missing_tool(self, tool_name: str) -> None:
-        """Manejo consistente de herramienta faltante"""
-        pass
-```
-
-### 3.5 Documentar ADRs (Architecture Decision Records)
-**Prioridad**: BAJA | **Esfuerzo**: Medio
-
-- [ ] ADR-001: Estructura dual src/miesc
-- [ ] ADR-002: RAG con ChromaDB vs alternativas
-- [ ] ADR-003: Adaptadores vs Agentes
-- [ ] ADR-004: Soporte multi-plataforma ARM/x86
+### Tier 3 — Código nice-to-have (bajo)
+- [ ] C4: descomponer `gptlens_adapter.py` (más chico tras extraer el mixin).
+- [ ] DRY adicional entre adapters: compartir cache read/write y `_read_contract`
+      vía el mismo patrón de mixin.
+- [ ] Más cobertura del **path LLM** (no solo el estático).
+- [ ] Subir cobertura 78% → 80%.
 
 ---
 
-## 4. Largo Plazo (3-6 meses)
+## 3. Métricas de éxito (actualizadas)
 
-### 4.1 Pipeline de Performance
-**Prioridad**: BAJA | **Esfuerzo**: Medio
-
-- [ ] Agregar benchmarks de tiempo al CI
-- [ ] Monitorear regresiones de performance
-- [ ] Documentar requisitos de recursos por herramienta
-
-### 4.2 Plugin Marketplace
-**Prioridad**: BAJA | **Esfuerzo**: Alto
-
-- [ ] Crear registro de adaptadores de terceros
-- [ ] Sistema de discovery dinámico
-- [ ] Documentación para desarrolladores de plugins
-
-### 4.3 Modernizar UI Platform
-**Prioridad**: BAJA | **Esfuerzo**: Alto
-
-- [ ] Mantener el core limitado a reportes HTML estaticos y API local
-- [ ] Evolucionar la UI interactiva en el repositorio platform
-- [ ] Dashboard de métricas en tiempo real
-- [ ] Visualización interactiva de findings
-
-### 4.4 Release Automation
-**Prioridad**: MEDIA | **Esfuerzo**: Medio
-
-- [ ] Semantic versioning automático
-- [ ] Changelog auto-generado
-- [ ] Verificación de consistencia de versiones
-
----
-
-## 5. Seguridad
-
-### 5.1 Validación de Inputs
-**Prioridad**: ALTA | **Esfuerzo**: Medio
-
-```python
-# src/security/input_validator.py
-class InputValidator:
-    @staticmethod
-    def validate_path(path: str) -> Path:
-        """Prevenir path traversal"""
-        resolved = Path(path).resolve()
-        if ".." in str(resolved):
-            raise SecurityError("Path traversal detected")
-        return resolved
-
-    @staticmethod
-    def validate_env_var(name: str, value: str) -> str:
-        """Validar variables de entorno"""
-        # Sanitizar según tipo esperado
-        pass
-```
-
-### 5.2 Auditoría de Dependencias
-**Prioridad**: ALTA | **Esfuerzo**: Bajo
-
-```yaml
-# Quitar continue-on-error de pip-audit
-- name: Audit dependencies
-  run: pip-audit --desc
-  # Sin continue-on-error para bloquear en vulnerabilidades
-```
-
----
-
-## 6. Métricas de Éxito
-
-| Métrica | Actual | Objetivo |
+| Métrica | Estado | Objetivo |
 |---------|--------|----------|
-| Test Coverage | 55% | 70% |
-| Type Hints | ~60% | 90% |
-| TODOs Críticos | 23 | 0 |
-| Print statements | 718 | 0 |
-| Archivos >2000 líneas | 4 | 0 |
-| Broad exceptions | 10+ | 0 |
+| Test coverage | ~78% | 80% |
+| Tests en verde | ~6.000 | mantener |
+| TODOs/FIXMEs en código | ~0 | 0 |
+| Issues abiertos | 0 | 0 |
+| CI Lint&Format | mantener verde | verde |
+| Publicación (DOI/arXiv) | **pendiente** | **hecho** |
 
 ---
 
-## 7. Cronograma Propuesto
+## 4. Cronograma sugerido
 
 ```
-Semana 1-2:   Quick Wins (1.1-1.5)
-Semana 3-4:   Exception handling + Logging (2.1-2.2)
-Mes 2:        API Docs + CI Security (2.3-2.5)
-Mes 3:        Refactoring archivos grandes (3.1)
-Mes 4-5:      Consolidación paquetes (3.2-3.4)
-Mes 6:        ADRs + Performance (3.5, 4.1)
+Ahora:      Tier 1 (PRs + lint verde) — yo
+En paralelo: Tier 0 (SSRN/arXiv) — Fernando  ← desbloquea Tier 2
+Luego:      Tier 2 (DPGA, grants, anuncios)
+Oportunista: Tier 3 (refactors/cobertura, sin urgencia)
 ```
 
----
-
-## 8. Siguientes Pasos Inmediatos
-
-1. **Crear issues en GitHub** para cada tarea del plan
-2. **Priorizar** según impacto vs esfuerzo
-3. **Asignar** a milestones (v5.1.0, v5.2.0, v6.0.0)
-4. **Comenzar** con Quick Wins esta semana
-
----
-
-*Generado: Febrero 2026*
-*Próxima revisión: Marzo 2026*
+*Próxima revisión: cuando se obtenga el DOI (cierra Tier 0) o cambie el alcance.*
