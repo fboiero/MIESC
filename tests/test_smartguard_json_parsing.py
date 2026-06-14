@@ -58,3 +58,32 @@ def test_no_vulnerabilities_returns_empty():
     response = '{"analysis": {"chain_of_thought": "looks safe", "vulnerabilities": []}}'
     findings = _adapter()._parse_cot_response(response, "f", "C.sol")
     assert findings == []
+
+
+# ---------------------------------------------------------------------------
+# Same robust-parsing fix applied to GPTScan and LLMSmartAudit
+# ---------------------------------------------------------------------------
+
+
+def test_gptscan_parses_malformed_json():
+    from src.adapters.gptscan_adapter import GPTScanAdapter
+
+    resp = (
+        '```json\n{"vulnerabilities":[{"title":"Reentrancy","severity":"high",'
+        '"type":"reentrancy",},]}\n```\nDone.'
+    )
+    findings = GPTScanAdapter()._parse_gptscan_output(resp, "C.sol")
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "HIGH"
+
+
+def test_llmsmartaudit_parses_malformed_json():
+    from src.adapters.llmsmartaudit_adapter import LLMSmartAuditAdapter
+
+    resp = (
+        'Here:\n```json\n{"issues":[{"title":"Overflow","severity":"medium",'
+        '"category":"arithmetic",},]}\n```'
+    )
+    findings = LLMSmartAuditAdapter()._parse_llmsmartaudit_output(resp, "C.sol")
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "MEDIUM"
