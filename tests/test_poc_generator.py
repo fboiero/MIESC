@@ -442,6 +442,12 @@ class TestFunctionExtraction:
         func = generator._extract_function_name(finding)
         assert func is None
 
+    def test_extract_from_string_location_without_function_name(self, generator):
+        """Test extraction from string location without a function signature."""
+        finding = {"type": "reentrancy", "location": "contracts/Bank.sol:45"}
+        func = generator._extract_function_name(finding)
+        assert func is None
+
     def test_extract_location_with_func_key(self, generator):
         """Test extraction with 'func' key."""
         finding = {"type": "reentrancy", "location": {"func": "transfer"}}
