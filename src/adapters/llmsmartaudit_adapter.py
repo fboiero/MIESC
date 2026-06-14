@@ -369,8 +369,6 @@ Respond ONLY with valid JSON. Prioritize security issues over style issues."""
         self, contract_code: str, model: str = "qwen2.5-coder:14b", timeout: int = 120
     ) -> str:
         """Execute audit using Ollama HTTP API."""
-        import urllib.error
-        import urllib.request
 
         prompt = self.AUDIT_PROMPT.replace("%CONTRACT_CODE%", contract_code)
 

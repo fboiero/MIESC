@@ -401,8 +401,6 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
         self, contract_code: str, model: str = "qwen2.5-coder:14b", timeout: int = 120
     ) -> str:
         """Execute security analysis using Ollama HTTP API."""
-        import urllib.error
-        import urllib.request
 
         # Build RAG context first so we can inject it at the placeholder
         rag_context = ""

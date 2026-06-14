@@ -104,9 +104,11 @@ class TestGPTLensAdapter:
         contract = tmp_path / "C.sol"
         contract.write_text("pragma solidity ^0.8.0;\ncontract C {}\n")
         adapter._retry_delay = 0
-        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE), patch.object(
-            adapter, "_get_cached_result", return_value=None
-        ), patch("urllib.request.urlopen", side_effect=TimeoutError("timed out")):
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch.object(adapter, "_get_cached_result", return_value=None),
+            patch("urllib.request.urlopen", side_effect=TimeoutError("timed out")),
+        ):
             result = adapter.analyze(str(contract), timeout=10, skip_critic=True)
         assert result["status"] == "timeout"
         assert result.get("metadata", {}).get("timed_out") is True
@@ -144,9 +146,11 @@ class TestIAuditAdapter:
             adapter._timed_out = True
             return None
 
-        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE), patch.object(
-            adapter, "_get_cached_result", return_value=None
-        ), patch.object(adapter, "_call_ollama_api", side_effect=_timeout):
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch.object(adapter, "_get_cached_result", return_value=None),
+            patch.object(adapter, "_call_ollama_api", side_effect=_timeout),
+        ):
             result = adapter.analyze(str(contract), model="test-model")
         assert result["status"] == "timeout"
         assert result.get("metadata", {}).get("timed_out") is True
@@ -232,9 +236,11 @@ class TestLlamaAuditAdapter:
             adapter._timed_out = True
             return None
 
-        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE), patch.object(
-            adapter, "_get_cached_result", return_value=None
-        ), patch.object(adapter, "_call_ollama_generate", side_effect=_timeout):
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch.object(adapter, "_get_cached_result", return_value=None),
+            patch.object(adapter, "_call_ollama_generate", side_effect=_timeout),
+        ):
             result = adapter.analyze(str(contract))
         assert result["status"] == "timeout"
         assert result.get("metadata", {}).get("timed_out") is True
@@ -261,9 +267,11 @@ class TestLLMSmartAuditAdapter:
             adapter._timed_out = True
             return ""
 
-        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE), patch.object(
-            adapter, "_get_cached_result", return_value=None
-        ), patch.object(adapter, "_run_ollama_audit", side_effect=_timeout):
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch.object(adapter, "_get_cached_result", return_value=None),
+            patch.object(adapter, "_run_ollama_audit", side_effect=_timeout),
+        ):
             result = adapter.analyze(str(contract))
         assert result["status"] == "timeout"
         assert result.get("metadata", {}).get("timed_out") is True
@@ -392,9 +400,10 @@ class TestGPTScanTimeout:
             adapter._timed_out = True
             return ""
 
-        with patch.object(
-            adapter, "is_available", return_value=ToolStatus.AVAILABLE
-        ), patch.object(adapter, "_run_ollama_analysis", side_effect=_timeout):
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch.object(adapter, "_run_ollama_analysis", side_effect=_timeout),
+        ):
             result = adapter.analyze(str(contract))
         assert result["status"] == "timeout"
         assert result.get("metadata", {}).get("timed_out") is True
@@ -417,9 +426,11 @@ class TestSmartLLMTimeout:
             adapter._timed_out = True
             return None
 
-        with patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE), patch.object(
-            adapter, "_get_cached_result", return_value=None
-        ), patch.object(adapter, "_call_ollama_with_retry", side_effect=_timeout):
+        with (
+            patch.object(adapter, "is_available", return_value=ToolStatus.AVAILABLE),
+            patch.object(adapter, "_get_cached_result", return_value=None),
+            patch.object(adapter, "_call_ollama_with_retry", side_effect=_timeout),
+        ):
             result = adapter.analyze(str(contract))
         assert result["status"] == "timeout"
         assert result.get("metadata", {}).get("timed_out") is True
