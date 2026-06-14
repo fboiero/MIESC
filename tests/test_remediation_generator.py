@@ -41,3 +41,35 @@ async def test_query_llm_returns_empty_dict_on_client_error(monkeypatch):
     monkeypatch.setattr(aiohttp, "ClientSession", lambda: FakeSession())
 
     assert await generator._query_llm("fix this") == {}
+
+
+def test_parse_json_response_repairs_common_llm_json_errors():
+    generator = RemediationGenerator()
+    response = """
+    ```json
+    {
+        fixed_code: "contract Fixed {}",
+        "explanation": "Use CEI before external call",
+        "changes": ["state update first",],
+    }
+    ```
+    """
+
+    result = generator._parse_json_response(response)
+
+    assert result["fixed_code"] == "contract Fixed {}"
+    assert result["explanation"] == "Use CEI before external call"
+    assert result["changes"] == ["state update first"]
+
+
+def test_parse_json_response_repairs_invalid_backslash_escapes():
+    generator = RemediationGenerator()
+    response = (
+        r'{"fixed_code": "function test() public { require(regex == \d+); }", '
+        r'"explanation": "Regex escapes from LLM output should survive."}'
+    )
+
+    result = generator._parse_json_response(response)
+
+    assert result["fixed_code"].endswith(r"require(regex == \d+); }")
+    assert "Regex escapes" in result["explanation"]

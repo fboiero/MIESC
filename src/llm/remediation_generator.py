@@ -25,6 +25,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
 
+from src.security.llm_output_validator import (
+    extract_json_from_text,
+    repair_common_json_errors,
+)
+
 logger = logging.getLogger(__name__)
 
 REMEDIATION_RUNTIME_ERRORS = (
@@ -420,11 +425,12 @@ class RemediationGenerator:
     def _parse_json_response(self, content: str) -> Dict[str, Any]:
         """Parse JSON from LLM response."""
         try:
-            json_start = content.find("{")
-            json_end = content.rfind("}") + 1
+            json_str = extract_json_from_text(content)
+            if json_str is None:
+                json_str = content.strip()
 
-            if json_start >= 0 and json_end > json_start:
-                return json.loads(content[json_start:json_end])
+            if json_str:
+                return json.loads(repair_common_json_errors(json_str))
         except json.JSONDecodeError as e:
             logger.debug(f"JSON parse error: {e}")
 
