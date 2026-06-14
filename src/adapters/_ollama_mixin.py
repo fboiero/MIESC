@@ -108,7 +108,9 @@ class OllamaCallMixin:
                     last_error_timeout = True
                 logger.warning("%s: Ollama URL error (attempt %d): %s", log_prefix, attempt, e)
             except json.JSONDecodeError as e:
-                logger.warning("%s: invalid JSON from Ollama (attempt %d): %s", log_prefix, attempt, e)
+                logger.warning(
+                    "%s: invalid JSON from Ollama (attempt %d): %s", log_prefix, attempt, e
+                )
             except Exception as e:  # noqa: BLE001 - last-resort, logged
                 logger.error("%s: unexpected Ollama error (attempt %d): %s", log_prefix, attempt, e)
 
