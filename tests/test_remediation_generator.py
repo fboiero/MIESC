@@ -1,7 +1,13 @@
 import aiohttp
 import pytest
 
-from src.llm.remediation_generator import RemediationGenerator, RemediationResult
+from src.llm.remediation_generator import (
+    Remediation,
+    RemediationGenerator,
+    RemediationResult,
+    generate_fix,
+    get_quick_fix,
+)
 
 
 @pytest.mark.asyncio
@@ -73,3 +79,229 @@ def test_parse_json_response_repairs_invalid_backslash_escapes():
 
     assert result["fixed_code"].endswith(r"require(regex == \d+); }")
     assert "Regex escapes" in result["explanation"]
+
+
+@pytest.mark.parametrize(
+    ("vuln_type", "code", "expected_fragment", "expected_explanation"),
+    [
+        (
+            "reentrancy",
+            "function withdraw() public { msg.sender.call(''); }",
+            "public nonReentrant",
+            "Added nonReentrant modifier",
+        ),
+        (
+            "access-control",
+            "function sweep() external { owner.transfer(address(this).balance); }",
+            "external onlyOwner",
+            "Added onlyOwner modifier",
+        ),
+        (
+            "unchecked-call",
+            "function pay(IERC20 token) public { token.transfer(msg.sender, 1); }",
+            ".safeTransfer(",
+            "Replaced transfer with safeTransfer",
+        ),
+    ],
+)
+def test_generate_quick_fix_applies_known_patterns(
+    vuln_type, code, expected_fragment, expected_explanation
+):
+    generator = RemediationGenerator()
+
+    fixed, explanation = generator.generate_quick_fix(vuln_type, code)
+
+    assert expected_fragment in fixed
+    assert expected_explanation in explanation
+
+
+def test_generate_quick_fix_returns_original_for_unknown_pattern():
+    generator = RemediationGenerator()
+    code = "function noop() public {}"
+
+    fixed, explanation = generator.generate_quick_fix("unknown", code)
+
+    assert fixed == code
+    assert explanation == "No known pattern for this vulnerability type"
+
+
+def test_get_pattern_template_and_info_for_known_and_unknown_types():
+    generator = RemediationGenerator()
+
+    template = generator.get_pattern_template("ReEntrancy")
+    known_info = generator._get_pattern_info("reentrancy")
+    unknown_info = generator._get_pattern_info("unknown")
+
+    assert template["pattern_name"] == "ReentrancyGuard + CEI"
+    assert "**Pattern**: ReentrancyGuard + CEI" in known_info
+    assert "**Modifier**: nonReentrant" in known_info
+    assert unknown_info == "No specific pattern known. Use security best practices."
+
+
+def test_extract_vulnerable_code_prefers_snippet():
+    generator = RemediationGenerator()
+
+    extracted = generator._extract_vulnerable_code(
+        {"snippet": "function vulnerable() public {}"},
+        "contract C { function other() public {} }",
+    )
+
+    assert extracted == "function vulnerable() public {}"
+
+
+def test_extract_vulnerable_code_by_function_name():
+    generator = RemediationGenerator()
+    code = """
+contract Vault {
+    function deposit() public {}
+    function withdraw(uint256 amount) external {
+        require(amount > 0);
+    }
+}
+"""
+
+    extracted = generator._extract_vulnerable_code(
+        {"location": {"function": "withdraw"}},
+        code,
+    )
+
+    assert extracted.startswith("function withdraw")
+    assert "require(amount > 0);" in extracted
+
+
+def test_extract_vulnerable_code_by_line_window():
+    generator = RemediationGenerator()
+    code = "\n".join(f"line {idx}" for idx in range(1, 31))
+
+    extracted = generator._extract_vulnerable_code({"location": {"line": 10}}, code)
+
+    assert extracted.splitlines()[0] == "line 6"
+    assert extracted.splitlines()[-1] == "line 20"
+
+
+def test_extract_vulnerable_code_falls_back_to_first_50_lines():
+    generator = RemediationGenerator()
+    code = "\n".join(f"line {idx}" for idx in range(1, 80))
+
+    extracted = generator._extract_vulnerable_code({}, code)
+
+    assert len(extracted.splitlines()) == 50
+    assert extracted.splitlines()[-1] == "line 50"
+
+
+@pytest.mark.asyncio
+async def test_generate_remediation_uses_llm_result_and_pattern(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-1",
+        "type": "reentrancy",
+        "severity": "HIGH",
+        "title": "Reentrant withdraw",
+        "description": "External call before state update",
+        "snippet": "function withdraw() public {}",
+    }
+
+    async def fake_query(prompt):
+        assert "ReentrancyGuard + CEI" in prompt
+        return {
+            "fixed_code": "contract Fixed {}",
+            "explanation": "Uses CEI",
+            "changes": ["added guard"],
+            "imports_needed": ["import {ReentrancyGuard} from 'oz.sol';"],
+            "test_suggestions": ["reentrant attacker test"],
+            "references": ["OpenZeppelin"],
+        }
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract Vault {}")
+
+    assert isinstance(remediation, Remediation)
+    assert remediation.finding_id == "F-1"
+    assert remediation.pattern_used == "ReentrancyGuard + CEI"
+    assert remediation.fixed_code.startswith("import {ReentrancyGuard}")
+    assert remediation.changes_summary == ["added guard"]
+    assert remediation.test_suggestions == ["reentrant attacker test"]
+
+
+@pytest.mark.asyncio
+async def test_generate_remediation_falls_back_to_vulnerable_code(monkeypatch):
+    generator = RemediationGenerator()
+    finding = {
+        "id": "F-2",
+        "type": "unknown",
+        "severity": "LOW",
+        "snippet": "// already commented fixed code",
+    }
+
+    async def fake_query(_prompt):
+        return {"imports_needed": ["import 'unused.sol';"]}
+
+    monkeypatch.setattr(generator, "_query_llm", fake_query)
+
+    remediation = await generator.generate_remediation(finding, "contract C {}")
+
+    assert remediation.fixed_code == "// already commented fixed code"
+    assert remediation.explanation == ""
+    assert remediation.pattern_used is None
+
+
+@pytest.mark.asyncio
+async def test_generate_remediations_parallel_counts_exceptions(monkeypatch):
+    generator = RemediationGenerator()
+    findings = [{"id": "A"}, {"id": "B"}, {"id": "C"}]
+
+    async def fake_generate(finding, _code):
+        if finding["id"] == "B":
+            raise RuntimeError("failed")
+        return Remediation(
+            finding_id=finding["id"],
+            vulnerability_type="unknown",
+            severity="medium",
+            vulnerable_code="",
+            fixed_code="",
+            explanation="",
+            changes_summary=[],
+            test_suggestions=[],
+            references=[],
+            confidence=0.8,
+        )
+
+    monkeypatch.setattr(generator, "generate_remediation", fake_generate)
+
+    result = await generator.generate_remediations(findings, "contract C {}", parallel=True)
+
+    assert result.success_count == 2
+    assert result.failure_count == 1
+    assert [rem.finding_id for rem in result.remediations] == ["A", "C"]
+
+
+@pytest.mark.asyncio
+async def test_generate_fix_convenience_function_delegates(monkeypatch):
+    async def fake_generate(self, finding, code):
+        return Remediation(
+            finding_id=finding["id"],
+            vulnerability_type="unknown",
+            severity="medium",
+            vulnerable_code=code,
+            fixed_code="fixed",
+            explanation="ok",
+            changes_summary=[],
+            test_suggestions=[],
+            references=[],
+            confidence=0.8,
+        )
+
+    monkeypatch.setattr(RemediationGenerator, "generate_remediation", fake_generate)
+
+    remediation = await generate_fix({"id": "F-3"}, "contract C {}", model="fake")
+
+    assert remediation.finding_id == "F-3"
+    assert remediation.fixed_code == "fixed"
+
+
+def test_get_quick_fix_convenience_function():
+    fixed, explanation = get_quick_fix("access-control", "function admin() public {}")
+
+    assert "onlyOwner" in fixed
+    assert "Ownable" in explanation
