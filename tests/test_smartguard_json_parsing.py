@@ -1,0 +1,60 @@
+"""Regression tests for SmartGuard CoT JSON parsing robustness.
+
+SmartGuard previously used a naive first-`{`..last-`}` grab + strict json.loads,
+which broke on real LLM output (code fences, trailing commas, trailing prose) —
+producing "JSON parse error in CoT response" and silently losing findings. The
+parser now uses balanced-brace extraction + common-error repair.
+"""
+
+from __future__ import annotations
+
+from src.adapters.smartguard_adapter import SmartGuardAdapter
+
+
+def _adapter():
+    return SmartGuardAdapter()
+
+
+def test_parses_malformed_json_with_fence_trailing_comma_and_prose():
+    """The exact shape that broke the old parser must now yield a finding."""
+    response = (
+        "Sure, here is my analysis:\n"
+        "```json\n"
+        "{\n"
+        '  "analysis": {\n'
+        '    "chain_of_thought": "withdraw sends ETH before updating balance.",\n'
+        '    "vulnerabilities": [\n'
+        '      {"type": "reentrancy", "severity": "high", "description": "state '
+        'update after call", "location": "withdraw", "fix": "CEI",},\n'
+        "    ]\n"
+        "  }\n"
+        "}\n"
+        "```\n"
+        "Hope this helps!"
+    )
+    findings = _adapter()._parse_cot_response(response, "withdraw", "C.sol")
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "HIGH"
+    assert "reentrancy" in findings[0]["title"].lower()
+
+
+def test_parses_clean_json():
+    response = (
+        '{"analysis": {"chain_of_thought": "ok", "vulnerabilities": '
+        '[{"type": "access_control", "severity": "medium", "description": "d", '
+        '"location": "f", "fix": "x"}]}}'
+    )
+    findings = _adapter()._parse_cot_response(response, "f", "C.sol")
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "MEDIUM"
+
+
+def test_unparseable_returns_empty_without_crashing():
+    findings = _adapter()._parse_cot_response("no json here at all", "f", "C.sol")
+    assert findings == []
+
+
+def test_no_vulnerabilities_returns_empty():
+    response = '{"analysis": {"chain_of_thought": "looks safe", "vulnerabilities": []}}'
+    findings = _adapter()._parse_cot_response(response, "f", "C.sol")
+    assert findings == []
