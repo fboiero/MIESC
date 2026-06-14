@@ -1100,6 +1100,12 @@ class TestGasAndTraceExtraction:
         gas = generator._extract_gas_from_output(output)
         assert gas == 123456
 
+    def test_extract_gas_with_thousands_separators(self, generator):
+        """Test gas extraction normalizes comma-separated forge gas values."""
+        output = "[PASS] test_exploit() (gas: 1,234,567)"
+        gas = generator._extract_gas_from_output(output)
+        assert gas == 1234567
+
     def test_extract_gas_no_match(self, generator):
         """Test gas extraction returns None when no match."""
         output = "[PASS] test_exploit()"
