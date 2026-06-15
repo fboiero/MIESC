@@ -101,3 +101,15 @@ def test_parses_invalid_backslash_escape():
     findings = _adapter()._parse_cot_response(response, "f", "C.sol")
     assert len(findings) == 1
     assert findings[0]["severity"] == "LOW"
+
+
+def test_llmbugscanner_parses_malformed_json():
+    from src.adapters.llmbugscanner_adapter import LLMBugScannerAdapter
+
+    resp = (
+        '```json\n{"findings":[{"title":"Reentrancy","severity":"high",'
+        '"description":"x",}]}\n```\nDone.'
+    )
+    findings = LLMBugScannerAdapter()._parse_llm_response(resp, "C.sol", "m")
+    assert len(findings) == 1
+    assert findings[0]["title"] == "Reentrancy"
