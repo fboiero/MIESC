@@ -39,6 +39,10 @@ from src.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from src.security.llm_output_validator import (
+    extract_json_from_text,
+    repair_common_json_errors,
+)
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
@@ -579,15 +583,13 @@ Respond with ONLY the JSON, no additional text."""
         findings = []
 
         try:
-            # Extract JSON from response
-            json_start = llm_response.find("{")
-            json_end = llm_response.rfind("}") + 1
-
-            if json_start == -1 or json_end == 0:
+            # Robust JSON extraction (balanced braces + repair) — recoverable
+            # malformed LLM output (code fences, trailing commas, invalid escapes)
+            # must not silently drop findings.
+            json_str = extract_json_from_text(llm_response)
+            if not json_str:
                 return []
-
-            json_str = llm_response[json_start:json_end]
-            parsed = json.loads(json_str)
+            parsed = json.loads(repair_common_json_errors(json_str))
 
             for idx, finding in enumerate(parsed.get("findings", [])):
                 normalized = {
