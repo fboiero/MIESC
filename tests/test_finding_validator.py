@@ -3,8 +3,10 @@ import pytest
 
 from src.llm.finding_validator import (
     LLMFindingValidator,
+    LLMValidation,
     ValidationResult,
     ValidatorConfig,
+    validate_findings_sync,
 )
 
 
@@ -134,3 +136,280 @@ def test_parse_response_text_fallback(response, expected_result, expected_confid
     assert validation.result == expected_result
     assert validation.confidence == expected_confidence
     assert validation.reasoning == response
+
+
+def test_init_applies_environment_overrides(monkeypatch):
+    monkeypatch.setenv("OLLAMA_HOST", "http://ollama.local:11434")
+    monkeypatch.setenv("MIESC_LLM_MODEL", "local-model:latest")
+
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    assert validator.config.ollama_host == "http://ollama.local:11434"
+    assert validator.config.model == "local-model:latest"
+
+
+def test_should_validate_respects_enabled_flag_and_min_severity():
+    disabled = LLMFindingValidator(ValidatorConfig(enabled=False))
+    high_only = LLMFindingValidator(ValidatorConfig(min_severity_to_validate="high"))
+
+    assert disabled.should_validate({"severity": "critical"}) is False
+    assert high_only.should_validate({"severity": "medium"}) is False
+    assert high_only.should_validate({"severity": "HIGH"}) is True
+    assert high_only.should_validate({"severity": "critical"}) is True
+    assert high_only.should_validate({"severity": "unknown"}) is False
+
+
+@pytest.mark.parametrize(
+    ("validation", "expected_confidence", "filtered", "severity_adjusted"),
+    [
+        (
+            LLMValidation("F-1", ValidationResult.VALID, 0.9, "confirmed"),
+            0.85,
+            False,
+            False,
+        ),
+        (
+            LLMValidation("F-1", ValidationResult.LIKELY_VALID, 0.8, "likely"),
+            0.75,
+            False,
+            False,
+        ),
+        (
+            LLMValidation("F-1", ValidationResult.LIKELY_FP, 0.7, "weak signal"),
+            0.42,
+            False,
+            False,
+        ),
+        (
+            LLMValidation("F-1", ValidationResult.UNCERTAIN, 0.5, "unclear"),
+            0.7,
+            False,
+            False,
+        ),
+        (
+            LLMValidation("F-1", ValidationResult.FALSE_POSITIVE, 0.95, "not real"),
+            None,
+            True,
+            False,
+        ),
+        (
+            LLMValidation(
+                "F-1",
+                ValidationResult.VALID,
+                0.9,
+                "confirmed",
+                suggested_severity="CRITICAL",
+            ),
+            0.85,
+            False,
+            True,
+        ),
+    ],
+)
+def test_apply_validation_updates_or_filters_findings(
+    validation, expected_confidence, filtered, severity_adjusted
+):
+    validator = LLMFindingValidator(ValidatorConfig())
+    finding = {"id": "F-1", "severity": "high", "confidence": 0.7}
+
+    updated = validator._apply_validation(finding, validation)
+
+    if filtered:
+        assert updated is None
+        return
+
+    assert updated is not finding
+    assert updated["confidence"] == pytest.approx(expected_confidence)
+    assert updated["_llm_validation"]["result"] == validation.result.value
+    assert updated["_llm_validation"]["reasoning"] == validation.reasoning
+    assert updated["_llm_validation"].get("severity_adjusted", False) is severity_adjusted
+
+
+def test_get_statistics_reports_counts_and_config():
+    validator = LLMFindingValidator(ValidatorConfig(model="test-model", enabled=False))
+    validator._validated_count = 4
+    validator._fp_detected_count = 1
+
+    stats = validator.get_statistics()
+
+    assert stats["validated_count"] == 4
+    assert stats["fp_detected_count"] == 1
+    assert stats["fp_rate"] == 0.25
+    assert stats["config"] == {
+        "model": "test-model",
+        "min_severity": "medium",
+        "enabled": False,
+    }
+
+
+def test_get_statistics_avoids_division_by_zero():
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    assert validator.get_statistics()["fp_rate"] == 0
+
+
+@pytest.mark.asyncio
+async def test_validate_finding_success_updates_counters(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+
+    async def fake_call(prompt):
+        assert "External call before state update" in prompt
+        return '{"result": "false_positive", "confidence": 0.9, "reasoning": "guarded"}'
+
+    monkeypatch.setattr(validator, "_call_ollama", fake_call)
+
+    validation = await validator.validate_finding(
+        {
+            "id": "F-9",
+            "type": "reentrancy",
+            "severity": "high",
+            "tool": "slither",
+            "location": {"file": "Vault.sol", "line": 12},
+            "message": "External call before state update",
+        },
+        code_context="contract Vault {}",
+        contract_context="mainnet vault",
+    )
+
+    assert validation.result == ValidationResult.FALSE_POSITIVE
+    assert validation.validation_time_ms >= 0
+    assert validator.get_statistics()["validated_count"] == 1
+    assert validator.get_statistics()["fp_detected_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_validate_findings_batch_skips_when_disabled():
+    validator = LLMFindingValidator(ValidatorConfig(enabled=False))
+    findings = [{"id": "F-1", "severity": "critical"}]
+
+    validated, validations = await validator.validate_findings_batch(findings)
+
+    assert validated is findings
+    assert validations == []
+
+
+@pytest.mark.asyncio
+async def test_validate_findings_batch_skips_when_unavailable(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    findings = [{"id": "F-1", "severity": "critical"}]
+
+    async def unavailable():
+        return False
+
+    monkeypatch.setattr(validator, "is_available", unavailable)
+
+    validated, validations = await validator.validate_findings_batch(findings)
+
+    assert validated is findings
+    assert validations == []
+
+
+@pytest.mark.asyncio
+async def test_validate_findings_batch_returns_original_when_nothing_matches(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig(min_severity_to_validate="high"))
+    findings = [{"id": "F-1", "severity": "low"}]
+
+    async def available():
+        return True
+
+    monkeypatch.setattr(validator, "is_available", available)
+
+    validated, validations = await validator.validate_findings_batch(findings)
+
+    assert validated is findings
+    assert validations == []
+
+
+@pytest.mark.asyncio
+async def test_validate_findings_batch_applies_results_and_preserves_unvalidated(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig(batch_size=1))
+    findings = [
+        {
+            "id": "A",
+            "severity": "high",
+            "confidence": 0.6,
+            "location": {"file": "A.sol"},
+        },
+        {
+            "id": "B",
+            "severity": "critical",
+            "confidence": 0.8,
+            "location": {"snippet": "contract B {}"},
+        },
+        {"id": "C", "severity": "low", "confidence": 0.4},
+    ]
+    seen_contexts = []
+
+    async def available():
+        return True
+
+    monkeypatch.setattr(validator, "is_available", available)
+
+    async def fake_validate(finding, code_context):
+        seen_contexts.append((finding["id"], code_context))
+        if finding["id"] == "B":
+            return LLMValidation(finding["id"], ValidationResult.FALSE_POSITIVE, 0.95, "fp")
+        return LLMValidation(finding["id"], ValidationResult.VALID, 0.9, "valid")
+
+    monkeypatch.setattr(validator, "validate_finding", fake_validate)
+
+    validated, validations = await validator.validate_findings_batch(
+        findings,
+        code_contexts={"A.sol": "contract A {}"},
+    )
+
+    assert seen_contexts == [("A", "contract A {}"), ("B", "contract B {}")]
+    assert [validation.finding_id for validation in validations] == ["A", "B"]
+    assert [finding["id"] for finding in validated] == ["A", "C"]
+    assert validated[0]["confidence"] == pytest.approx(0.75)
+    assert validated[0]["_llm_validation"]["result"] == "valid"
+
+
+@pytest.mark.asyncio
+async def test_validate_findings_batch_records_validation_exceptions(monkeypatch):
+    validator = LLMFindingValidator(ValidatorConfig())
+    finding = {"id": "A", "severity": "high"}
+
+    async def available():
+        return True
+
+    monkeypatch.setattr(validator, "is_available", available)
+
+    async def raise_validation(_finding, _code_context):
+        raise RuntimeError("model crashed")
+
+    monkeypatch.setattr(validator, "validate_finding", raise_validation)
+
+    validated, validations = await validator.validate_findings_batch([finding])
+
+    assert validated == [finding]
+    assert validations[0].finding_id == "A"
+    assert validations[0].result == ValidationResult.UNCERTAIN
+    assert "model crashed" in validations[0].reasoning
+
+
+def test_validate_findings_sync_delegates_and_closes(monkeypatch):
+    events = []
+
+    class FakeValidator:
+        def __init__(self, config):
+            events.append(("init", config))
+
+        async def validate_findings_batch(self, findings, code_contexts):
+            events.append(("validate", findings, code_contexts))
+            return ["validated"], ["validation"]
+
+        async def close(self):
+            events.append(("close",))
+
+    monkeypatch.setattr("src.llm.finding_validator.LLMFindingValidator", FakeValidator)
+    config = ValidatorConfig(model="fake")
+
+    result = validate_findings_sync([{"id": "F-1"}], {"Vault.sol": "code"}, config)
+
+    assert result == (["validated"], ["validation"])
+    assert events == [
+        ("init", config),
+        ("validate", [{"id": "F-1"}], {"Vault.sol": "code"}),
+        ("close",),
+    ]
