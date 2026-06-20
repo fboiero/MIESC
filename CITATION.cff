@@ -14,6 +14,10 @@ authors:
     email: smussetta@frvm.utn.edu.ar
     orcid: "https://orcid.org/0009-0007-8025-9846"
     affiliation: "Universidad Tecnológica Nacional (UTN) - Facultad Regional Villa María"
+  - family-names: Cena
+    given-names: Norberto Gaspar
+    email: ngcena@frvm.utn.edu.ar
+    affiliation: "Universidad Tecnológica Nacional (UTN) - Facultad Regional Villa María"
 repository-code: "https://github.com/fboiero/MIESC"
 url: "https://github.com/fboiero/MIESC"
 abstract: >

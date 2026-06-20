@@ -15,11 +15,12 @@ MIESC: A Multi-layer Framework for Automated Smart Contract Security Evaluation
 ```
 Fernando Boiero
 Sebastian Norberto Mussetta
+Norberto Gaspar Cena
 ```
 
 - **Affiliation**: Universidad Tecnologica Nacional (UTN), Facultad Regional Villa Maria
-- **Emails**: fboiero@frvm.utn.edu.ar, smussetta@frvm.utn.edu.ar
-- **ORCID**: Fernando Boiero — 0009-0005-7935-2758; Sebastian Norberto Mussetta — 0009-0007-8025-9846
+- **Emails**: fboiero@frvm.utn.edu.ar, smussetta@frvm.utn.edu.ar, ngcena@frvm.utn.edu.ar
+- **ORCID**: Fernando Boiero — 0009-0005-7935-2758; Sebastian Norberto Mussetta — 0009-0007-8025-9846; Norberto Gaspar Cena — pending/not provided
 
 ### Abstract
 *(copy verbatim from `miesc-paper.tex`)*
@@ -58,11 +59,12 @@ From Findings to Verifiable Remediation Artifacts: A Smart Contract Security Pip
 ```
 Fernando Boiero
 Sebastian Norberto Mussetta
+Norberto Gaspar Cena
 ```
 
 - **Affiliation**: Universidad Tecnologica Nacional (UTN), Facultad Regional Villa Maria
-- **Emails**: fboiero@frvm.utn.edu.ar, smussetta@frvm.utn.edu.ar
-- **ORCID**: Fernando Boiero — 0009-0005-7935-2758; Sebastian Norberto Mussetta — 0009-0007-8025-9846
+- **Emails**: fboiero@frvm.utn.edu.ar, smussetta@frvm.utn.edu.ar, ngcena@frvm.utn.edu.ar
+- **ORCID**: Fernando Boiero — 0009-0005-7935-2758; Sebastian Norberto Mussetta — 0009-0007-8025-9846; Norberto Gaspar Cena — pending/not provided
 
 ### Abstract
 *(copy verbatim from `paper2-remediation.tex`)*
