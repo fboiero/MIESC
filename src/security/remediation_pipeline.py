@@ -39,6 +39,9 @@ class CompileEvidence:
     stderr: str = ""
     failure_class: Optional[str] = None
 
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
 
 @dataclass
 class RescanEvidence:
@@ -52,6 +55,9 @@ class RescanEvidence:
     eliminated: Optional[bool] = None
     no_regression: Optional[bool] = None
     no_regression_bound: int = 2
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 @dataclass
