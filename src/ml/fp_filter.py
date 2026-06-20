@@ -598,7 +598,10 @@ class FalsePositiveFilter:
             # No FP indicators found
             return None
 
-        except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
+        except (AttributeError, KeyError, TypeError, ValueError, RuntimeError, ImportError) as e:
+            # ImportError: EmbeddingRAG can construct lazily and only raise on the
+            # first .search() when optional deps (sentence-transformers/chromadb)
+            # are missing. Degrade gracefully instead of crashing the filter.
             logger.debug(f"RAG validation failed: {e}")
             return None
 

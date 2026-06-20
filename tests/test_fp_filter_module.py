@@ -17,6 +17,7 @@ from src.ml.fp_filter import (
     FilterResult,
     FPCategory,
     FPMatch,
+    filter_false_positives,
 )
 
 
@@ -938,3 +939,50 @@ class TestRagValidateFinding:
         """RAG backend errors degrade gracefully to None."""
         rag_filter._rag.search.side_effect = RuntimeError("rag boom")
         assert rag_filter._rag_validate_finding({"type": "reentrancy"}) is None
+
+
+class TestSolidityVersionAwareFiltering:
+    """Tests for pragma parsing and version-aware FP suppression."""
+
+    @pytest.fixture
+    def fp_filter(self):
+        return FalsePositiveFilter(use_rag=False)
+
+    def test_detect_version_parses_pragma(self, fp_filter):
+        assert fp_filter._detect_solidity_version("pragma solidity ^0.8.19;") == (0, 8, 19)
+        assert fp_filter._detect_solidity_version("pragma solidity 0.7.6;") == (0, 7, 6)
+        assert fp_filter._detect_solidity_version("pragma solidity >=0.6.0;") == (0, 6, 0)
+
+    def test_detect_version_handles_missing(self, fp_filter):
+        assert fp_filter._detect_solidity_version("") is None
+        assert fp_filter._detect_solidity_version("contract C {}") is None
+
+    def test_arithmetic_suppressed_on_0_8(self, fp_filter):
+        """Overflow finding on Solidity >=0.8 is flagged as context-safe."""
+        finding = {"type": "arithmetic", "severity": "high"}
+        result = fp_filter.filter_finding(finding, "pragma solidity ^0.8.0;", "Vault.sol")
+        assert any(m.pattern == "solidity_0.8+" for m in result.matches)
+
+    def test_arithmetic_not_suppressed_pre_0_8(self, fp_filter):
+        """Same finding on Solidity 0.7 keeps no version-based suppression."""
+        finding = {"type": "arithmetic", "severity": "high"}
+        result = fp_filter.filter_finding(finding, "pragma solidity ^0.7.0;", "Vault.sol")
+        assert not any(m.pattern == "solidity_0.8+" for m in result.matches)
+
+
+class TestFilterFalsePositivesHelper:
+    """Tests for the module-level filter_false_positives convenience function."""
+
+    def test_returns_filtered_and_stats(self):
+        findings = [
+            {"type": "reentrancy", "severity": "high"},
+            {"type": "info", "severity": "info"},
+        ]
+        filtered, stats = filter_false_positives(findings)
+        assert isinstance(filtered, list)
+        assert isinstance(stats, dict)
+
+    def test_empty_findings(self):
+        filtered, stats = filter_false_positives([])
+        assert filtered == []
+        assert isinstance(stats, dict)
