@@ -222,6 +222,20 @@ ZERO_RECALL_PATTERNS = {
         "message": "Initializer function detected — verify it cannot be called more than once (use OpenZeppelin's initializer modifier).",
         "requires_no_initializer_guard": True,
     },
+    "uninitialized_storage_pointer": {
+        # Solidity <0.5: a struct-typed local declared without an explicit
+        # 'memory'/'storage' location defaults to a storage pointer at slot 0,
+        # silently overwriting contract state when its members are written.
+        # Match the declaration (CapType lowerVar;) followed by a member write
+        # to the same var. Solidity >=0.5 makes this a compile error, so it only
+        # appears in legacy code — measured 3 TP / 0 FP on SmartBugs-curated.
+        "multiline_patterns": [
+            r"\b([A-Z]\w*)\s+([a-z]\w*)\s*;[\s\S]{0,300}?\b\2\.\w+\s*=(?!=)",
+        ],
+        "severity": "High",
+        "swc": "SWC-109",
+        "message": "Uninitialized storage pointer — a struct-typed local declared without an explicit 'memory'/'storage' location defaults to a storage pointer at slot 0, overwriting contract state. Declare the data location explicitly.",
+    },
     "unchecked_return_value": {
         "patterns": [
             r"\.call\s*\{",

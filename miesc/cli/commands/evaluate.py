@@ -149,7 +149,7 @@ CATEGORY_ALIASES = {
         "block-timestamp",
         "timestamp",
     },
-    "other": {"other", "unknown", "unclassified"},
+    "other": {"other", "unknown", "unclassified", "uninitialized_storage_pointer"},
 }
 
 
