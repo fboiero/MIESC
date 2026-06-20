@@ -7,6 +7,9 @@ Author: Fernando Boiero
 License: AGPL-3.0
 """
 
+from types import SimpleNamespace
+from unittest.mock import Mock
+
 import pytest
 
 from src.ml.fp_filter import (
@@ -15,6 +18,14 @@ from src.ml.fp_filter import (
     FPCategory,
     FPMatch,
 )
+
+
+def _rag_result(similarity, severity="high", fixed_code=""):
+    """Build a fake RAG search result with the shape _rag_validate_finding expects."""
+    return SimpleNamespace(
+        similarity_score=similarity,
+        document=SimpleNamespace(severity=severity, fixed_code=fixed_code),
+    )
 
 
 class TestFPCategory:
@@ -851,3 +862,79 @@ class TestEdgeCases:
         for finding in findings:
             result = fp_filter.filter_finding(finding, "", "Test.sol")
             assert result is not None
+
+
+class TestRagValidateFinding:
+    """Tests for _rag_validate_finding — the RAG-backed FP validation branches."""
+
+    @pytest.fixture
+    def rag_filter(self):
+        """A filter with a mocked RAG backend marked available."""
+        f = FalsePositiveFilter(use_rag=False)
+        f._rag = Mock()
+        f._rag_available = True
+        return f
+
+    def test_returns_none_when_rag_unavailable(self):
+        """No RAG backend → no validation possible."""
+        f = FalsePositiveFilter(use_rag=False)
+        f._rag_available = False
+        assert f._rag_validate_finding({"type": "reentrancy"}) is None
+
+    def test_skips_non_meaningful_types(self, rag_filter):
+        """Informational findings are not RAG-validated."""
+        for vuln_type in ["", "info", "best-practice", "informational"]:
+            assert rag_filter._rag_validate_finding({"type": vuln_type}) is None
+        rag_filter._rag.search.assert_not_called()
+
+    def test_no_match_flags_pattern_safe(self, rag_filter):
+        """Empty RAG search → likely FP with low confidence."""
+        rag_filter._rag.search.return_value = []
+        match = rag_filter._rag_validate_finding({"type": "reentrancy", "swc_id": "SWC-107"})
+        assert match is not None
+        assert match.category == FPCategory.PATTERN_SAFE
+        assert match.pattern == "rag_no_match"
+
+    def test_low_similarity_flags_pattern_safe(self, rag_filter):
+        """Top result with sub-0.3 similarity → semantic mismatch FP."""
+        rag_filter._rag.search.return_value = [_rag_result(0.2)]
+        match = rag_filter._rag_validate_finding(
+            {"type": "reentrancy", "message": "reentrancy via call"}
+        )
+        assert match is not None
+        assert match.pattern == "rag_low_similarity"
+
+    def test_severity_mismatch_flags_context_safe(self, rag_filter):
+        """Reported critical vs known low pattern → severity mismatch FP."""
+        rag_filter._rag.search.return_value = [_rag_result(0.9, severity="low")]
+        match = rag_filter._rag_validate_finding(
+            {"type": "reentrancy", "severity": "critical"}
+        )
+        assert match is not None
+        assert match.category == FPCategory.CONTEXT_SAFE
+        assert match.pattern == "rag_severity_mismatch"
+
+    def test_fix_pattern_present_flags_pattern_safe(self, rag_filter):
+        """Code already containing a known fix keyword → FP."""
+        rag_filter._rag.search.return_value = [
+            _rag_result(0.9, severity="high", fixed_code="add nonReentrant modifier")
+        ]
+        match = rag_filter._rag_validate_finding(
+            {"type": "reentrancy", "severity": "high"},
+            code_context="function withdraw() public nonReentrant { ... }",
+        )
+        assert match is not None
+        assert match.pattern == "rag_fix_pattern_present"
+
+    def test_match_without_fp_indicators_returns_none(self, rag_filter):
+        """Strong match, matching severity, no fix in context → real vuln (None)."""
+        rag_filter._rag.search.return_value = [_rag_result(0.9, severity="high")]
+        result = rag_filter._rag_validate_finding(
+            {"type": "reentrancy", "severity": "high"}
+        )
+        assert result is None
+
+    def test_exception_is_swallowed(self, rag_filter):
+        """RAG backend errors degrade gracefully to None."""
+        rag_filter._rag.search.side_effect = RuntimeError("rag boom")
+        assert rag_filter._rag_validate_finding({"type": "reentrancy"}) is None
