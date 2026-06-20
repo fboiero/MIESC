@@ -243,6 +243,63 @@ class TestFoundryRunnerInit:
             assert "Foundry not installed" in str(exc_info.value)
 
 
+class TestFoundryCommandBuilders:
+    """Tests for forge command construction helpers."""
+
+    def test_build_run_test_command_with_matchers(self, runner):
+        """Specific test commands include path, matchers, verbosity, gas and JSON output."""
+        cmd = runner._build_run_test_command(
+            "test/Bank.t.sol",
+            match_test="test_exploit",
+            match_contract="BankTest",
+        )
+
+        assert cmd == [
+            "forge",
+            "test",
+            "--match-path",
+            "test/Bank.t.sol",
+            "--match-test",
+            "test_exploit",
+            "--match-contract",
+            "BankTest",
+            "-vvv",
+            "--gas-report",
+            "--json",
+        ]
+
+    def test_build_run_test_command_with_fork(self, runner_with_fork):
+        """Fork configuration is appended consistently."""
+        cmd = runner_with_fork._build_run_test_command("test/Bank.t.sol")
+
+        assert "--fork-url" in cmd
+        assert "https://eth-mainnet.g.alchemy.com/v2/xxx" in cmd
+        assert "--fork-block-number" in cmd
+        assert "18500000" in cmd
+        assert cmd[-1] == "--json"
+
+    def test_build_run_all_tests_command_without_dir_omits_match_path(self, runner):
+        """All-test commands do not restrict path unless a directory is provided."""
+        cmd = runner._build_run_all_tests_command()
+
+        assert "--match-path" not in cmd
+        assert cmd == ["forge", "test", "-vvv", "--gas-report", "--json"]
+
+    def test_build_run_all_tests_command_with_dir(self, runner):
+        """All-test commands can be restricted to a directory glob."""
+        cmd = runner._build_run_all_tests_command(test_dir="test/exploits")
+
+        assert cmd == [
+            "forge",
+            "test",
+            "--match-path",
+            "test/exploits/*",
+            "-vvv",
+            "--gas-report",
+            "--json",
+        ]
+
+
 # =============================================================================
 # Run Test Tests
 # =============================================================================
