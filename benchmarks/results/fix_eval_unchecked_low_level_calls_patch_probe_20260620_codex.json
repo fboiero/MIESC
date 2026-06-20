@@ -1,0 +1,202 @@
+{
+  "artifact": "fix_eval_unchecked_low_level_calls_patch_probe",
+  "generated_at": "2026-06-20T23:38:11.157208+00:00",
+  "scope": "Targeted additive probe for Codex remediation loop; does not replace frozen Paper 2 benchmark artifacts.",
+  "reason": "Full benchmarks/fix_eval.py category run hung locally before emitting progress; this probe validates the two identified regression classes on representative SmartBugs contracts.",
+  "regression_classes": [
+    "Legacy Solidity 0.4.x call() returns bool, not (bool, bytes); patcher must not emit tuple assignment.",
+    "Caret legacy pragmas such as ^0.4.0 should select the highest installed compatible solc 0.4.x artifact instead of falling through to a modern solc."
+  ],
+  "summary": {
+    "cases": 4,
+    "fixes_applied": 4,
+    "compile_passes": 4,
+    "success_checks_inserted": 4
+  },
+  "contracts": [
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/unchecked_return_value.sol",
+      "function": "callnotchecked",
+      "line": 17,
+      "case": "legacy bare call()",
+      "fixes_applied": 1,
+      "compiles": true,
+      "failure_class": null,
+      "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.25/solc-0.4.25",
+      "contains_success_check": true,
+      "uses_legacy_bool_assignment": true,
+      "uses_modern_tuple_assignment": false,
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/unchecked_return_value.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp106dm3ed/fixed.sol",
+        "original_sha256": "ac992f26a8a567c74fe30e0f48d0c421d3f483ff431f6672a6dae5dd6c9e168d",
+        "patched_sha256": "9c21a729ae01ac73fa319db456ecfccc9e6cd92805a317cb35f3794c68ecb125",
+        "findings_input": 1,
+        "fixable_findings": 1,
+        "fixes_applied": 1,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.25/solc-0.4.25",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp106dm3ed/fixed.sol:ReturnValue =======\nBinary: \n608060405234801561001057600080fd5b506101e4806100206000396000f30060806040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680637536185e14610051578063bf9bd6cb14610094575b600080fd5b34801561005d57600080fd5b50610092600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506100d7565b005b3480156100a057600080fd5b506100d5600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610110565b005b8073ffffffffffffffffffffffffffffffffffffffff166040516000604051808303816000865af1915050151561010d57600080fd5b50565b60008173ffffffffffffffffffffffffffffffffffffffff166040516000604051808303816000865af191505090508015156101b4576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040180806020018281038252600b8152602001807f43616c6c206661696c656400000000000000000000000000000000000000000081525060200191505060405180910390fd5b50505600a165627a7a723058209c331172e87cfcd6316bf81693b5bc30e90d3a65e858791ba8422200ad90b8240029\n",
+          "stderr": "",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-20T23:38:11.072457+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/mishandled.sol",
+      "function": "withdrawBalance",
+      "line": 14,
+      "case": "legacy send()",
+      "fixes_applied": 1,
+      "compiles": true,
+      "failure_class": null,
+      "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+      "contains_success_check": true,
+      "uses_legacy_bool_assignment": true,
+      "uses_modern_tuple_assignment": false,
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/mishandled.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp71abgcyb/fixed.sol",
+        "original_sha256": "bae5ad84f4a563ed911896ded0e7432c3202757b11bac4f1cb5949085d459d0e",
+        "patched_sha256": "6399c5133015cf24d4d6248caf09a9c81c1dffe2f8f73ff0542ace1c0f7aed4a",
+        "findings_input": 1,
+        "fixable_findings": 1,
+        "fixes_applied": 1,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp71abgcyb/fixed.sol:SendBack =======\nBinary: \n608060405234801561001057600080fd5b506101c1806100206000396000f300608060405260043610610041576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680635fd8c71014610046575b600080fd5b34801561005257600080fd5b5061005b61005d565b005b6000806000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054915060008060003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055503373ffffffffffffffffffffffffffffffffffffffff166108fc839081150290604051600060405180830381858888f193505050509050801515610191576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040180806020018281038252600b8152602001807f43616c6c206661696c656400000000000000000000000000000000000000000081525060200191505060405180910390fd5b50505600a165627a7a723058201a9e9204e7e85da7f917c86421dba8fd03d0413099987ea9e1f98adf378e4b3c0029\n",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp71abgcyb/fixed.sol:10:5: Warning: No visibility specified. Defaulting to \"public\". \n    function withdrawBalance() {  \n    ^ (Relevant source part starts here and spans across multiple lines).\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-20T23:38:11.100289+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/lotto.sol",
+      "function": "sendToWinner",
+      "line": 20,
+      "case": "legacy send() with ^0.4.18",
+      "fixes_applied": 1,
+      "compiles": true,
+      "failure_class": null,
+      "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+      "contains_success_check": true,
+      "uses_legacy_bool_assignment": true,
+      "uses_modern_tuple_assignment": false,
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/lotto.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpnjii5p2_/fixed.sol",
+        "original_sha256": "09c8886de37a52a987d1a40588bd8fe352b8bb8bbfb9960caf8a6664a893b223",
+        "patched_sha256": "5c0f4290c7afb26c1f007f8ba40654dbb33ad00d03d2ec64573713543f628f38",
+        "findings_input": 1,
+        "fixable_findings": 1,
+        "fixes_applied": 1,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpnjii5p2_/fixed.sol:Lotto =======\nBinary: \n608060405260008060006101000a81548160ff02191690831515021790555034801561002a57600080fd5b5061032e8061003a6000396000f30060806040526004361061006d576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680631846f51a146100725780638f1c058514610089578063decb3a90146100a0578063dfbf53ae146100cb578063ff15a45214610122575b600080fd5b34801561007e57600080fd5b50610087610151565b005b34801561009557600080fd5b5061009e6101ba565b005b3480156100ac57600080fd5b506100b56102c4565b6040518082815260200191505060405180910390f35b3480156100d757600080fd5b506100e06102ca565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801561012e57600080fd5b506101376102f0565b604051808215151515815260200191505060405180910390f35b6000809054906101000a900460ff16151561016b57600080fd5b3373ffffffffffffffffffffffffffffffffffffffff166108fc3073ffffffffffffffffffffffffffffffffffffffff16319081150290604051600060405180830381858888f1935050505050565b60008060009054906101000a900460ff161515156101d757600080fd5b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff166108fc6001549081150290604051600060405180830381858888f1935050505090508015156102a7576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040180806020018281038252600b8152602001807f43616c6c206661696c656400000000000000000000000000000000000000000081525060200191505060405180910390fd5b60016000806101000a81548160ff02191690831515021790555050565b60015481565b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000809054906101000a900460ff16815600a165627a7a7230582040ca408bdab70cee05d568259eeb1901bdf9cd3865af7a0a2e0c55d9e44ff1fe0029\n",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpnjii5p2_/fixed.sol:28:26: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n         msg.sender.send(this.balance);\n                         ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpnjii5p2_/fixed.sol:28:10: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n         msg.sender.send(this.balance);\n         ^---------------------------^\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-20T23:38:11.127797+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/lotto.sol",
+      "function": "withdrawLeftOver",
+      "line": 27,
+      "case": "second legacy send() in same contract",
+      "fixes_applied": 1,
+      "compiles": true,
+      "failure_class": null,
+      "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+      "contains_success_check": true,
+      "uses_legacy_bool_assignment": true,
+      "uses_modern_tuple_assignment": false,
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/lotto.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpvzgfnn4r/fixed.sol",
+        "original_sha256": "09c8886de37a52a987d1a40588bd8fe352b8bb8bbfb9960caf8a6664a893b223",
+        "patched_sha256": "346b9c348e73b52c1d4f7372c183f162a4ec65ca023d38862d3f2e796e1e2c29",
+        "findings_input": 1,
+        "fixable_findings": 1,
+        "fixes_applied": 1,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpvzgfnn4r/fixed.sol:Lotto =======\nBinary: \n608060405260008060006101000a81548160ff02191690831515021790555034801561002a57600080fd5b5061032e8061003a6000396000f30060806040526004361061006d576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680631846f51a146100725780638f1c058514610089578063decb3a90146100a0578063dfbf53ae146100cb578063ff15a45214610122575b600080fd5b34801561007e57600080fd5b50610087610151565b005b34801561009557600080fd5b5061009e610233565b005b3480156100ac57600080fd5b506100b56102c4565b6040518082815260200191505060405180910390f35b3480156100d757600080fd5b506100e06102ca565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801561012e57600080fd5b506101376102f0565b604051808215151515815260200191505060405180910390f35b60008060009054906101000a900460ff16151561016d57600080fd5b3373ffffffffffffffffffffffffffffffffffffffff166108fc3073ffffffffffffffffffffffffffffffffffffffff16319081150290604051600060405180830381858888f193505050509050801515610230576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040180806020018281038252600b8152602001807f43616c6c206661696c656400000000000000000000000000000000000000000081525060200191505060405180910390fd5b50565b6000809054906101000a900460ff1615151561024e57600080fd5b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff166108fc6001549081150290604051600060405180830381858888f193505050505060016000806101000a81548160ff021916908315150217905550565b60015481565b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000809054906101000a900460ff16815600a165627a7a723058200c2957729a646fe88a0a9690e4ccf975cde04fe5690ccbddcccb5c31f36c6e060029\n",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpvzgfnn4r/fixed.sol:20:10: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n         winner.send(winAmount);\n         ^--------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpvzgfnn4r/fixed.sol:27:50: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n         bool miescCallSuccess = msg.sender.send(this.balance);\n                                                 ^----------^\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-20T23:38:11.156802+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    }
+  ]
+}

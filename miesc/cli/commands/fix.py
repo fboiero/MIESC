@@ -266,10 +266,10 @@ def _add_require_for_call(
     function_name: str,
     line_hint: Optional[int] = None,
 ) -> tuple[str, bool]:
-    """Wrap a low-level `.call{...}(...)` in a `require(success, ...)` block.
+    """Wrap a low-level call/send in a `require(success, ...)` block.
 
-    Strategy: find the function body, locate the first `.call{` or `.call(` line
-    inside it, and insert `(bool success, ) = ` prefix + a require check after.
+    Strategy: find the function body, locate the first unchecked low-level call
+    line inside it, and insert a version-compatible success check after it.
     """
     # Find the function
     fn_re = re.compile(
@@ -295,24 +295,58 @@ def _add_require_for_call(
 
     body = source[body_start:body_end]
 
-    # Look for `.call{...}` or `.call(` pattern (not already preceded by bool success)
-    call_re = re.compile(r"([ \t]*)(\w+\.call(?:\{[^}]*\})?\([^;]*\);)", re.MULTILINE)
-    call_m = call_re.search(body)
-    if not call_m:
-        return source, False
-
-    indent = call_m.group(1)
-    call_expr = call_m.group(2)
-    # Strip trailing semicolon
-    call_bare = call_expr.rstrip(";").strip()
-
-    replacement = (
-        f"{indent}(bool success, ) = {call_bare};\n" f'{indent}require(success, "Call failed");'
+    tuple_assignment_re = re.compile(
+        r"(?P<indent>[ \t]*)\(bool\s+(?P<var>\w+)\s*,\s*[^)]*\)\s*=\s*"
+        r"(?P<call>[^;\n]*\.(?:call|delegatecall)(?:\{[^}]*\})?\([^;\n]*\))\s*;",
+        re.MULTILINE,
     )
+    for assignment_m in tuple_assignment_re.finditer(body):
+        variable_name = assignment_m.group("var")
+        if _bool_result_is_checked(body, variable_name, assignment_m.end()):
+            continue
+        indent = assignment_m.group("indent")
+        replacement = assignment_m.group(0) + f'\n{indent}require({variable_name}, "Call failed");'
+        new_body = body[: assignment_m.start()] + replacement + body[assignment_m.end() :]
+        patched = source[:body_start] + new_body + source[body_end:]
+        return patched, patched != source
 
-    new_body = body[: call_m.start()] + replacement + body[call_m.end() :]
-    patched = source[:body_start] + new_body + source[body_end:]
-    return patched, patched != source
+    bool_assignment_re = re.compile(
+        r"(?P<indent>[ \t]*)(?:bool\s+)?(?P<var>\w+)\s*=\s*"
+        r"(?P<call>[^;\n]*\.(?:send|call|delegatecall)(?:\{[^}]*\})?"
+        r"(?:\.value\([^)]*\))?\([^;\n]*\)(?:\([^;\n]*\))?)\s*;",
+        re.MULTILINE,
+    )
+    for assignment_m in bool_assignment_re.finditer(body):
+        variable_name = assignment_m.group("var")
+        if _bool_result_is_checked(body, variable_name, assignment_m.end()):
+            continue
+        indent = assignment_m.group("indent")
+        replacement = assignment_m.group(0) + f'\n{indent}require({variable_name}, "Call failed");'
+        new_body = body[: assignment_m.start()] + replacement + body[assignment_m.end() :]
+        patched = source[:body_start] + new_body + source[body_end:]
+        return patched, patched != source
+
+    standalone_call_re = re.compile(
+        r"(?P<indent>[ \t]*)(?P<call>"
+        r"(?!require\b|assert\b|if\b|return\b|bool\b|\(bool\b)"
+        r"[^;\n]*\.(?:send|call|delegatecall)(?:\{[^}]*\})?"
+        r"(?:\.value\([^)]*\))?\([^;\n]*\)(?:\([^;\n]*\))?)\s*;",
+        re.MULTILINE,
+    )
+    for call_m in standalone_call_re.finditer(body):
+        indent = call_m.group("indent")
+        call_bare = call_m.group("call").strip()
+        variable_name = _fresh_bool_name(source)
+        if _low_level_call_returns_bool(source, call_bare):
+            assignment = f"bool {variable_name} = {call_bare};"
+        else:
+            assignment = f"(bool {variable_name}, ) = {call_bare};"
+        replacement = f'{indent}{assignment}\n{indent}require({variable_name}, "Call failed");'
+        new_body = body[: call_m.start()] + replacement + body[call_m.end() :]
+        patched = source[:body_start] + new_body + source[body_end:]
+        return patched, patched != source
+
+    return source, False
 
 
 def _insert_comment_block(
@@ -343,7 +377,7 @@ def _insert_comment_block(
     indent = best.group(1)
     insert_pos = best.start()
 
-    comment = f"{indent}// MIESC FIX: {finding_type}\n" f"{indent}/* ---- Suggested fix ----\n"
+    comment = f"{indent}// MIESC FIX: {finding_type}\n{indent}/* ---- Suggested fix ----\n"
     for fix_line in fix_code.splitlines():
         comment += f"{indent}   {fix_line}\n"
     comment += f"{indent}   ---- end fix ---- */\n"
@@ -357,6 +391,35 @@ def _insert_comment_block(
 # ---------------------------------------------------------------------------
 
 _SAFEMATH_HINT = re.compile(r"pragma solidity\s+\^?0\.[0-7]\.", re.MULTILINE)
+_LEGACY_LOW_LEVEL_CALL_HINT = re.compile(r"pragma solidity\s+\^?0\.[0-4]\.", re.MULTILINE)
+
+
+def _fresh_bool_name(source: str, base: str = "miescCallSuccess") -> str:
+    """Return a bool variable name that does not collide with the source."""
+    if not re.search(r"\b" + re.escape(base) + r"\b", source):
+        return base
+    for idx in range(2, 100):
+        candidate = f"{base}{idx}"
+        if not re.search(r"\b" + re.escape(candidate) + r"\b", source):
+            return candidate
+    return f"{base}Final"
+
+
+def _bool_result_is_checked(body: str, variable_name: str, start: int) -> bool:
+    """Return True when a low-level-call result variable is already checked."""
+    tail = body[start:]
+    var = re.escape(variable_name)
+    return bool(
+        re.search(r"\brequire\s*\(\s*" + var + r"\b", tail)
+        or re.search(r"\bassert\s*\(\s*" + var + r"\b", tail)
+        or re.search(r"\bif\s*\(\s*!\s*" + var + r"\b", tail)
+        or re.search(r"\bif\s*\(\s*" + var + r"\b", tail)
+    )
+
+
+def _low_level_call_returns_bool(source: str, call_expr: str) -> bool:
+    """Legacy Solidity call/delegatecall and send return a single bool."""
+    return ".send" in call_expr or bool(_LEGACY_LOW_LEVEL_CALL_HINT.search(source))
 
 
 def _infer_function_at_line(source: str, line: int) -> str:

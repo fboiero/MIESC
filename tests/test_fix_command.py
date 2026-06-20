@@ -71,6 +71,29 @@ contract Token {
 }
 """
 
+LEGACY_UNCHECKED_CALL_CONTRACT = """\
+pragma solidity 0.4.25;
+
+contract ReturnValue {
+  function callnotchecked(address callee) public {
+    callee.call();
+  }
+}
+"""
+
+LEGACY_UNCHECKED_SEND_CONTRACT = """\
+pragma solidity ^0.4.0;
+
+contract SendBack {
+    mapping (address => uint) userBalances;
+    function withdrawBalance() public {
+        uint amountToWithdraw = userBalances[msg.sender];
+        userBalances[msg.sender] = 0;
+        msg.sender.send(amountToWithdraw);
+    }
+}
+"""
+
 
 @pytest.fixture
 def contract_file(tmp_path):
@@ -226,6 +249,43 @@ class TestApplyFix:
         patched, changed = apply_fix(LEGACY_CONTRACT, finding)
         assert changed
         assert "using SafeMath for uint256;" in patched
+
+    def test_unchecked_legacy_call_uses_single_bool_return(self):
+        finding = {
+            "type": "unchecked-call",
+            "function": "callnotchecked",
+            "fix_code": "check call return",
+        }
+        patched, changed = apply_fix(LEGACY_UNCHECKED_CALL_CONTRACT, finding)
+
+        assert changed
+        assert "bool miescCallSuccess = callee.call();" in patched
+        assert 'require(miescCallSuccess, "Call failed");' in patched
+        assert "(bool miescCallSuccess, ) = callee.call();" not in patched
+
+    def test_unchecked_send_gets_require_check(self):
+        finding = {
+            "type": "unchecked-call",
+            "function": "withdrawBalance",
+            "fix_code": "check send return",
+        }
+        patched, changed = apply_fix(LEGACY_UNCHECKED_SEND_CONTRACT, finding)
+
+        assert changed
+        assert "bool miescCallSuccess = msg.sender.send(amountToWithdraw);" in patched
+        assert 'require(miescCallSuccess, "Call failed");' in patched
+
+    def test_unchecked_existing_tuple_assignment_gets_require_check(self):
+        finding = {
+            "type": "unchecked-call",
+            "function": "withdraw",
+            "fix_code": "check call return",
+        }
+        patched, changed = apply_fix(SIMPLE_CONTRACT, finding)
+
+        assert changed
+        assert '(bool ok, ) = msg.sender.call{value: amount}("");' in patched
+        assert 'require(ok, "Call failed");' in patched
 
     def test_reentrancy_line_inference_uses_original_source_after_safemath_insert(self, tmp_path):
         source = """\

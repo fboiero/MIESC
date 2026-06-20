@@ -128,18 +128,9 @@ def select_solc(sol_path: Path) -> str:
         candidates = [exact.group(1)]
     else:
         version = re.search(r"(\d+\.\d+)(?:\.(\d+))?", constraint)
-        if version and version.group(2):
-            candidates = [f"{version.group(1)}.{version.group(2)}"]
-        else:
-            base = version.group(1) if version else "0.4"
-            candidates = [
-                f"{base}.26",
-                f"{base}.25",
-                f"{base}.24",
-                f"{base}.23",
-                f"{base}.22",
-                f"{base}.19",
-            ]
+        base = version.group(1) if version else "0.4"
+        min_patch = int(version.group(2)) if version and version.group(2) else 0
+        candidates = [f"{base}.{patch}" for patch in range(99, min_patch - 1, -1)]
 
     for version in candidates:
         candidate = SOLC_DIR / f"solc-{version}" / f"solc-{version}"

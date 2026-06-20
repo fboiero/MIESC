@@ -7,6 +7,7 @@ from src.security.remediation_pipeline import (
     classify_compile_failure,
     count_high_findings,
     remediate_contract,
+    select_solc,
 )
 
 SIMPLE_CONTRACT = """\
@@ -39,6 +40,37 @@ def test_classify_compile_failure_matches_paper2_taxonomy():
     assert classify_compile_failure("TypeError: invalid conversion") == "type_error"
     assert classify_compile_failure("compile timeout") == "compile_timeout"
     assert classify_compile_failure("some unknown compiler failure") == "other_compile_error"
+
+
+def test_select_solc_uses_exact_version_for_locked_pragma(tmp_path, monkeypatch):
+    artifacts = tmp_path / "artifacts"
+    solc_path = artifacts / "solc-0.4.25" / "solc-0.4.25"
+    solc_path.parent.mkdir(parents=True)
+    solc_path.write_text("")
+    contract = tmp_path / "Exact.sol"
+    contract.write_text("pragma solidity 0.4.25;\ncontract C {}\n")
+
+    monkeypatch.setattr("src.security.remediation_pipeline.SOLC_DIR", artifacts)
+    monkeypatch.setattr("shutil.which", lambda _name: None)
+
+    assert select_solc(contract) == str(solc_path)
+
+
+def test_select_solc_uses_highest_compatible_patch_for_caret_pragma(tmp_path, monkeypatch):
+    artifacts = tmp_path / "artifacts"
+    old_solc = artifacts / "solc-0.4.18" / "solc-0.4.18"
+    new_solc = artifacts / "solc-0.4.26" / "solc-0.4.26"
+    old_solc.parent.mkdir(parents=True)
+    new_solc.parent.mkdir(parents=True)
+    old_solc.write_text("")
+    new_solc.write_text("")
+    contract = tmp_path / "Caret.sol"
+    contract.write_text("pragma solidity ^0.4.0;\ncontract C {}\n")
+
+    monkeypatch.setattr("src.security.remediation_pipeline.SOLC_DIR", artifacts)
+    monkeypatch.setattr("shutil.which", lambda _name: None)
+
+    assert select_solc(contract) == str(new_solc)
 
 
 def test_count_high_findings_counts_critical_and_high_only():
