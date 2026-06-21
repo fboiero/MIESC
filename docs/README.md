@@ -63,7 +63,7 @@ docs/
 | Document | Location | Description |
 |----------|----------|-------------|
 | Repository Hygiene | `guides/REPOSITORY_HYGIENE.md` | What belongs in Git, what is generated/local, and how evidence is curated |
-| Agent execution loops | `AGENT_EXECUTION_LOOPS.md` | Bounded autonomous work loops for AI lanes |
+| Agent execution loops | `AGENT_EXECUTION_LOOPS.md` | Bounded autonomous work loops, autopilot gates, and evidence/commit routines for AI lanes |
 | Researcher Packaging | `guides/RESEARCHER_PACKAGING.md` | How researchers should install and run the full toolchain |
 | Testing Guide | `guides/TESTING.md` | Test strategy and validation commands |
 | RAG Source Policy | `guides/RAG_SOURCE_POLICY.md` | Source selection and weighting criteria |

@@ -120,6 +120,89 @@ When Fernando says "seguimos", pick from this priority order:
 Do not start with broad rewrites, whole-repo test runs, or publication changes
 unless Fernando explicitly asks.
 
+## Autopilot Contract
+
+When Fernando says "sigamos" or "seguimos" without adding a new target, Codex
+should continue the highest-priority safe loop and complete one bounded
+checkpoint end-to-end:
+
+1. Claim if needed.
+2. Run the next probe or focused inspection.
+3. Fix one concrete failure class if found.
+4. Add a regression test when code changed.
+5. Generate dated additive evidence when benchmark behavior changed.
+6. Commit locally to `lane/codex`.
+7. Mark `LANES.md` `DONE`.
+8. Report commit id, validation, and the next recommended loop.
+
+This is the default operating mode. Do not wait for Fernando to choose the next
+small step when the next step is discoverable from the current evidence.
+
+### Current Autopilot State
+
+Maintain state in three places:
+
+- `LANES.md`: the lock and current claim status.
+- Git commits on `lane/codex`: durable checkpoints.
+- Dated additive artifacts in `benchmarks/results/*_codex.json`: benchmark
+  evidence that does not overwrite canonical paper baselines.
+
+Do not create hidden local state files for coordination. If a future agent needs
+to resume, it must be able to read `LANES.md`, inspect the latest commits, and
+continue.
+
+## Paper 2 Remediation Autopilot
+
+Use this ladder for remediation work unless Fernando directs otherwise:
+
+| Stage | Command shape | Purpose | Commit when |
+|---|---|---|---|
+| Category probe | `python3 benchmarks/fix_eval.py --category <cat> --limit 10 --skip-rescan --scan-timeout 15 --details-output benchmarks/results/fix_eval_<cat>_limit10_<date>_codex.json` | Find one category-specific failure class cheaply | New evidence or code fix |
+| Aggregate probe | `python3 benchmarks/fix_eval.py --limit 10 --skip-rescan --scan-timeout 15 --details-output benchmarks/results/fix_eval_all_categories_limit10_<date>_codex.json` | Confirm cross-category behavior | Applied fixes compile or failure taxonomy changes |
+| Expanded probe | same command with `--limit 25` | Search for less common real-world failure classes | New failure class fixed or evidence milestone |
+| Full dry evidence | same command without `--limit`, only after smaller probes are stable | Candidate evidence for a future paper update | Only with explicit Fernando approval if it changes canonical claims |
+
+### Paper 2 Stop Rules
+
+Stop and ask Fernando before:
+
+- Overwriting `benchmarks/results/fix_eval_results.json` or any canonical
+  paper artifact.
+- Updating Paper 2 claims, tables, `.tex`, PDFs, or reproducibility baselines.
+- Running full-corpus remediation repeatedly if prior bounded probes show no
+  new failure class.
+
+Continue autonomously when:
+
+- The next run is bounded with `--limit`, `--skip-rescan`, and
+  `--details-output`.
+- The output is a new dated `*_codex.json` artifact.
+- A failure class maps to a local patcher/harness bug in Codex-owned scope.
+
+### Failure Response Rules
+
+Use the first matching rule:
+
+| Observed state | Action |
+|---|---|
+| `compile_failure_taxonomy` has entries | Reproduce one failing contract, add a focused patcher test, fix, rerun category probe |
+| `fix_failed > 0` and `fixable_findings == 0` | Inspect finding fields; synthesize conservative `fix_code` only for stable, known detector types |
+| `scan_empty > 0` | Record it as scanner coverage/evidence state; do not patch remediation unless scan output is malformed |
+| `no_high > 0` | Record it; no remediation patch needed |
+| applied fixes compile but elimination is 0 with `--skip-rescan` | Expected; do not infer vulnerability elimination without rescan |
+| same failure recurs after three focused attempts | Mark blocked in LANES/final summary and ask Fernando |
+
+### Evidence Naming
+
+Use additive names:
+
+```text
+benchmarks/results/fix_eval_<category>_limit<N>_YYYYMMDD_codex.json
+benchmarks/results/fix_eval_all_categories_limit<N>_YYYYMMDD_codex.json
+```
+
+Never overwrite frozen/paper canonical artifacts during autopilot loops.
+
 ## Validation Matrix
 
 | Work type | Minimum validation |
@@ -168,14 +251,28 @@ Next recommended loop:
 - <one bounded next task>
 ```
 
+## Self-Execution Checklist
+
+Before final response, verify:
+
+- `git status --short` is clean for the Codex worktree, except local-only
+  `LANES.md` in the main worktree.
+- No `.lock` files exist under `.git/worktrees/MIESC-codex`.
+- No Codex-owned `fix_eval`, `pytest`, or git update process is still running.
+- Every shared claim touched by the loop is marked `DONE`.
+- The final answer includes the commit id and exact validation result.
+
 ## Current Recommended Loops
 
 These are safe defaults as of 2026-06-20:
 
 1. Remediation regression loop
    - Scope: Codex claim in `LANES.md` for Paper 2 remediation.
-   - Goal: identify whether unchecked-low-level-call compile regression is real,
-     artifact drift, or harness drift.
+   - Goal: keep escalating bounded Paper 2 probes while fixing concrete patcher
+     failure classes.
+   - Current milestone: limit-25 aggregate evidence compiles all applied fixes.
+   - Next safe step: inspect whether a limit-50 or category-specific expanded
+     probe is worth running before any full-corpus claim.
    - Output: dated additive evidence artifact, no frozen overwrite.
 
 2. LLM/PoC maintainability loop
