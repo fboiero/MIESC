@@ -18,10 +18,16 @@ work; all autonomous/safe work is already integrated to `main`.
 
 ### 1. Finalize Paper 1 baseline (content is ready on branch `paper1-vnext-baseline-draft`)
 The branch has the full v-next content: `miesc-paper.tex` (9 edits), `paper1_claims_matrix.json`,
-and `README.md` — all consistent at 99.3%. To finalize:
+and `README.md` (numbers + adoption polish) — all at 99.3%. To finalize:
 ```bash
 cd <repo>
 git checkout paper1-vnext-baseline-draft
+# 1. COMMIT the 99.3% evidence artifact (benchmarks/results/ is gitignored, so force-add)
+#    so the number is BACKED in-repo, then add it to the freeze manifest path list.
+git add -f benchmarks/results/paper1_vnext_clean_20260621.json
+# 2. Flip the governance docs on this branch to 99.3% (main keeps 95.8% until merge):
+#    docs/policies/DPG-COMPLIANCE{,_ES}.md, SDG_RELEVANCE.md, DPGA CSV, ROADMAP, RELEASE_NOTES.
+# 3. Rebuild the PDF, regenerate the freeze manifest (PDF FIRST), validate, tag, merge:
 pdflatex -output-directory=paper paper/miesc-paper.tex   # x2-3 for refs/cite
 m=.paper-freeze-local/PAPER_REPRODUCIBILITY_FREEZE.sha256
 awk '{print $2}' "$m" | xargs shasum -a 256 > "$m.new" && mv "$m.new" "$m"   # PDF FIRST, then this
@@ -30,6 +36,9 @@ git tag -a paper-reproducibility-baseline-2026-06-21 -m "Paper 1 v-next: recall 
 git checkout main && git merge --no-ff paper1-vnext-baseline-draft
 git -c pack.threads=1 -c pack.windowMemory=32m -c pack.packSizeLimit=64m push origin main --tags
 ```
+> Rigor note: until the merge, MAIN deliberately states 95.8% (backed by
+> `paper1_smartbugs_eval_layers_1_6_7.json`) everywhere; 99.3% lives only on this branch
+> and flips in atomically at merge. Don't put 99.3% on main before step 1 lands the artifact.
 
 ### 2. DPGA review
 Numbers are now consistent (DPG-COMPLIANCE = 99.3%). 9 indicators self-assessed Compliant.
