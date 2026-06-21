@@ -204,6 +204,28 @@ class TestCollectFixableFindings:
         result = _collect_fixable_findings(data)
         assert result == []
 
+    def test_synthesizes_dos_array_fix_codes(self):
+        data = {
+            "findings": [
+                {
+                    "type": "controlled-array-length",
+                    "severity": "High",
+                    "location": {"line": 24, "function": "DosGas"},
+                },
+                {
+                    "type": "dynamic-array-length-assignment",
+                    "severity": "High",
+                    "location": {"line": 20, "function": "unknown"},
+                },
+            ]
+        }
+
+        result = _collect_fixable_findings(data)
+
+        assert len(result) == 2
+        assert "unbounded dynamic array growth" in result[0]["fix_code"]
+        assert "array.length" in result[1]["fix_code"]
+
     def test_combines_top_level_and_per_tool(self):
         data = {
             "findings": [{"type": "reentrancy", "fix_code": "x"}],

@@ -669,6 +669,17 @@ def _collect_fixable_findings(data: dict) -> list[dict]:
     """Extract deduplicated findings with a `fix_code` field from the results JSON."""
     fixable: list[dict] = []
     seen: set[tuple] = set()
+    dos_fix_codes = {
+        "controlled-array-length": (
+            "Avoid unbounded dynamic array growth and full-array operations. "
+            "Cap additions per transaction, process entries in bounded batches, "
+            "or replace push-based creditor lists with pull-based accounting."
+        ),
+        "dynamic-array-length-assignment": (
+            "Do not assign storage array.length directly. Use push/pop operations, "
+            "bounded batch processing, and an explicit size counter to avoid gas-based DoS."
+        ),
+    }
 
     def _key(f: dict) -> tuple:
         ftype = (f.get("type") or f.get("title") or "").lower()
@@ -678,7 +689,18 @@ def _collect_fixable_findings(data: dict) -> list[dict]:
             line = line or loc.get("line", "")
         return (ftype, str(line))
 
+    def _with_fix_code(f: dict) -> dict:
+        if f.get("fix_code"):
+            return f
+        ftype = (f.get("type") or f.get("title") or "").lower().replace("_", "-")
+        if ftype in dos_fix_codes:
+            patched = dict(f)
+            patched["fix_code"] = dos_fix_codes[ftype]
+            return patched
+        return f
+
     def _add(f: dict) -> None:
+        f = _with_fix_code(f)
         if not f.get("fix_code"):
             return
         k = _key(f)
