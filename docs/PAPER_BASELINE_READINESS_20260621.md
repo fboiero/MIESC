@@ -29,6 +29,10 @@ Paper 2 remediation evidence from the Codex lane is additive and non-canonical:
 
 - Full dry run: `benchmarks/results/fix_eval_full_dry_20260621_codex.json`
 - Full dry details: `benchmarks/results/fix_eval_full_dry_details_20260621_codex.json`
+- Full dry verification:
+  `benchmarks/results/fix_eval_full_dry_verify_20260621_codex.json`
+- Full dry verification details:
+  `benchmarks/results/fix_eval_full_dry_verify_details_20260621_codex.json`
 - Compile-only reconciliation:
   `benchmarks/results/paper2_vnext_compile_summary_20260621_codex.json`
 
@@ -38,6 +42,8 @@ Current Paper 2 v-next evidence:
 - Compile-only run: 122 fixes applied, 122/122 compiled, 0 fix failures.
 - Full dry run: 121 fixes applied, 121/121 compiled, 77 vulnerabilities eliminated,
   118/121 no-regression, 0 fix failures.
+- Full dry verification run: 123 fixes applied, 123/123 compiled,
+  84 vulnerabilities eliminated, 123/123 no-regression, 0 fix failures.
 - The earlier 33/119 compile-regression claim did not reproduce in `lane/codex`.
 - The remaining no-regression uncertainty is scan/rescan instability, with extra
   delta evidence recorded in
@@ -69,4 +75,3 @@ Before touching frozen paper files, run one of these non-FROZEN checks:
 - Paper 2 external-tool validation on patched contracts that compile.
 - Paper 1 detection-lane handoff review, if Claude has completed the active
   detection claim.
-
