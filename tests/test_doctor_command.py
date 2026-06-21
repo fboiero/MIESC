@@ -1,3 +1,4 @@
+import asyncio
 import os
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -106,3 +107,21 @@ def test_deepseek_doctor_status_unavailable():
 
     assert status == "[yellow]unavailable[/yellow]"
     assert details == "/v1/models unreachable or unauthorized"
+
+
+def test_deepseek_doctor_status_inside_active_event_loop_does_not_fetch():
+    async def run_test():
+        with (
+            patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True),
+            patch(
+                "miesc.cli.commands.doctor.fetch_openai_compatible_model_ids",
+                new_callable=AsyncMock,
+            ) as mock_fetch,
+        ):
+            status, details = _deepseek_doctor_status()
+
+        assert status == "[yellow]configured[/yellow]"
+        assert details == "deepseek-v4-flash configured; run outside active event loop"
+        mock_fetch.assert_not_called()
+
+    asyncio.run(run_test())

@@ -51,6 +51,13 @@ def _deepseek_doctor_status() -> tuple[str, str]:
     model = configured_model or "deepseek-v4-flash"
 
     try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        pass
+    else:
+        return "[yellow]configured[/yellow]", f"{model} configured; run outside active event loop"
+
+    try:
         models = asyncio.run(
             fetch_openai_compatible_model_ids(
                 base_url,
