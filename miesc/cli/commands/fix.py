@@ -431,6 +431,29 @@ def _apply_legacy_call_value_cei(
     return source, False
 
 
+def _normalize_legacy_call_value_tuple_assignment(source: str) -> tuple[str, bool]:
+    """Rewrite legacy call.value tuple assignments to single bool assignments.
+
+    Solidity 0.4.x `call.value(...)()` returns one bool.  Some legacy examples
+    use modern tuple syntax anyway, which solc accepts with warnings but Slither
+    can fail to lower to IR after patching.
+    """
+    if not _LEGACY_LOW_LEVEL_CALL_HINT.search(source):
+        return source, False
+
+    tuple_call_re = re.compile(
+        r"(?P<indent>^[ \t]*)\(bool\s+(?P<var>\w+)\s*,\s*\)\s*=\s*"
+        r"(?P<call>[^;\n]*\.call\.value\s*\([^;\n]+\)\s*\([^;\n]*\))\s*;",
+        re.MULTILINE,
+    )
+
+    def replace(match: re.Match[str]) -> str:
+        return f"{match.group('indent')}bool {match.group('var')} = {match.group('call').strip()};"
+
+    patched = tuple_call_re.sub(replace, source)
+    return patched, patched != source
+
+
 _INLINE_REENTRANCY_GUARD = """
 // MIESC: Inline reentrancy guard (Solidity >=0.4.0 compatible)
 contract MiescReentrancyGuard {
@@ -830,7 +853,8 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             if changed:
                 source = _ensure_reentrancy_guard_import(source, fn_name, line_hint)
             source, cei_changed = _apply_legacy_call_value_cei(source, fn_name, line_hint)
-            return source, changed or cei_changed
+            source, tuple_changed = _normalize_legacy_call_value_tuple_assignment(source)
+            return source, changed or cei_changed or tuple_changed
         return source, False
 
     if "suicidal" in ftype or (

@@ -343,6 +343,30 @@ contract Bank {
         assert "MIESC: checks-effects-interactions" not in patched
         assert "balances[msg.sender]-=fee;" in patched
 
+    def test_reentrancy_normalizes_legacy_call_value_tuple_assignment(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Bonus {
+    function withdraw(address recipient, uint256 amount) public {
+        (bool success, ) = recipient.call.value(amount)("");
+        require(success);
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdraw",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "(bool success, )" not in patched
+        assert 'bool success = recipient.call.value(amount)("");' in patched
+        assert "require(success);" in patched
+
     def test_reentrancy_ignores_openzeppelin_import_inside_fix_comment(self):
         source = """\
 // SPDX-License-Identifier: MIT
