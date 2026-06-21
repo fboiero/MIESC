@@ -176,11 +176,47 @@ def main():
                 scan = run_scan(sol, scan_out, timeout=args.scan_timeout)
                 if not scan or not scan.get("findings"):
                     cat_results["scan_empty"] += 1
+                    if args.details_output:
+                        detailed_contracts.append(
+                            {
+                                "category": cat,
+                                "contract": str(sol),
+                                "status": "scan_empty",
+                                "fix_applied": False,
+                                "fix_output_summary": "scan produced no findings",
+                                "high_before": 0,
+                                "high_after": None,
+                                "total_findings_before": 0,
+                                "total_findings_after": None,
+                                "vuln_eliminated": None,
+                                "no_regression": None,
+                                "compile": {"checked": False, "compiles": None},
+                                "evidence": None,
+                            }
+                        )
                     continue
 
                 high_before = count_high_findings(scan)
                 if high_before == 0:
                     cat_results["no_high"] += 1
+                    if args.details_output:
+                        detailed_contracts.append(
+                            {
+                                "category": cat,
+                                "contract": str(sol),
+                                "status": "no_high",
+                                "fix_applied": False,
+                                "fix_output_summary": "scan produced no HIGH findings",
+                                "high_before": high_before,
+                                "high_after": None,
+                                "total_findings_before": len(scan.get("findings", [])),
+                                "total_findings_after": None,
+                                "vuln_eliminated": None,
+                                "no_regression": None,
+                                "compile": {"checked": False, "compiles": None},
+                                "evidence": None,
+                            }
+                        )
                     continue  # Nothing to fix
 
                 # Steps 2-5: shared remediation pipeline
@@ -194,6 +230,27 @@ def main():
                 )
                 if evidence.fixes_applied == 0:
                     cat_results["fix_failed"] += 1
+                    if args.details_output:
+                        detailed_contracts.append(
+                            {
+                                "category": cat,
+                                "contract": str(sol),
+                                "status": "fix_failed",
+                                "fix_applied": False,
+                                "fix_output_summary": (
+                                    "shared remediation pipeline: applied=0, "
+                                    f"skipped={evidence.fixes_skipped}"
+                                )[:MAX_ERROR_CHARS],
+                                "high_before": high_before,
+                                "high_after": None,
+                                "total_findings_before": len(scan.get("findings", [])),
+                                "total_findings_after": None,
+                                "vuln_eliminated": None,
+                                "no_regression": None,
+                                "compile": evidence.compile.to_dict(),
+                                "evidence": evidence.to_dict(),
+                            }
+                        )
                     continue
 
                 cat_results["fix_applied"] += 1
@@ -225,6 +282,7 @@ def main():
                         {
                             "category": cat,
                             "contract": str(sol),
+                            "status": "applied",
                             "fix_applied": True,
                             "fix_output_summary": (
                                 f"shared remediation pipeline: applied={evidence.fixes_applied}, "

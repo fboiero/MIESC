@@ -1,0 +1,326 @@
+{
+  "artifact": "paper2_fix_eval_contract_details",
+  "scope": "Paper 2 remediation only; does not modify Paper 1 detection evidence.",
+  "dataset": "benchmarks/datasets/smartbugs-curated/dataset",
+  "limit": 10,
+  "scan_timeout": 15,
+  "skip_rescan": true,
+  "totals": {
+    "contracts": 6,
+    "fix_applied": 3,
+    "fix_compiles": 3,
+    "vuln_eliminated": 0,
+    "no_regression": 0,
+    "fix_failed": 2,
+    "scan_empty": 0,
+    "no_high": 1
+  },
+  "by_category": {
+    "denial_of_service": {
+      "contracts": 6,
+      "fix_applied": 3,
+      "fix_compiles": 3,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 2,
+      "scan_empty": 0,
+      "no_high": 1
+    }
+  },
+  "compile_failure_taxonomy": {},
+  "contracts": [
+    {
+      "category": "denial_of_service",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/auction.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=2, skipped=0",
+      "high_before": 2,
+      "high_after": null,
+      "total_findings_before": 8,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpy_kul_y_/fixed.sol:DosAuction =======\nBinary: \n608060405234801561001057600080fd5b506101cb806100206000396000f300608060405260043610610041576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680631998aeef14610046575b600080fd5b61004e610050565b005b6000809054906101000a900460ff1615151561006b57600080fd5b60016000806101000a81548160ff0219169083151502179055506001543411151561009557600080fd5b60008060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1614151561013b57600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff166108fc6001549081150290604051600060405180830381858888f19350505050151561013a57600080fd5b5b33600060016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055503460018190555060008060006101000a81548160ff0219169083151502179055505600a165627a7a7230582066859d1680ddb08570dda79cad163c36736e1e27227e58c96652517965b9da6b0029\n\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpy_kul_y_/fixed.sol:MiescReentrancyGuard =======\nBinary: \n6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a72305820807f85a0b2e7932f50e0320bfc72d1959c4da0ba0f1109dd4905b823685dbeb30029\n",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpy_kul_y_/fixed.sol:46:3: Warning: No visibility specified. Defaulting to \"public\". \n  function bid() nonReentrant payable {\n  ^ (Relevant source part starts here and spans across multiple lines).\n",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/auction.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpy_kul_y_/fixed.sol",
+        "original_sha256": "85952d4855d88d2870b14816dddd238c13f5b70bea0950564c1563e1a80f2438",
+        "patched_sha256": "a368b08d8137fe381ae6a6ce475f7e415c39007445c2f70101e4b73232860afa",
+        "findings_input": 16,
+        "fixable_findings": 2,
+        "fixes_applied": 2,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpy_kul_y_/fixed.sol:DosAuction =======\nBinary: \n608060405234801561001057600080fd5b506101cb806100206000396000f300608060405260043610610041576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680631998aeef14610046575b600080fd5b61004e610050565b005b6000809054906101000a900460ff1615151561006b57600080fd5b60016000806101000a81548160ff0219169083151502179055506001543411151561009557600080fd5b60008060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1614151561013b57600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff166108fc6001549081150290604051600060405180830381858888f19350505050151561013a57600080fd5b5b33600060016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055503460018190555060008060006101000a81548160ff0219169083151502179055505600a165627a7a7230582066859d1680ddb08570dda79cad163c36736e1e27227e58c96652517965b9da6b0029\n\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpy_kul_y_/fixed.sol:MiescReentrancyGuard =======\nBinary: \n6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a72305820807f85a0b2e7932f50e0320bfc72d1959c4da0ba0f1109dd4905b823685dbeb30029\n",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpy_kul_y_/fixed.sol:46:3: Warning: No visibility specified. Defaulting to \"public\". \n  function bid() nonReentrant payable {\n  ^ (Relevant source part starts here and spans across multiple lines).\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:42:50.336761+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "denial_of_service",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/dos_address.sol",
+      "status": "fix_failed",
+      "fix_applied": false,
+      "fix_output_summary": "shared remediation pipeline: applied=0, skipped=0",
+      "high_before": 1,
+      "high_after": null,
+      "total_findings_before": 7,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": false,
+        "compiles": null,
+        "solc": null,
+        "returncode": null,
+        "stdout": "",
+        "stderr": "",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "no_fixable_findings",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/dos_address.sol",
+        "patched_path": null,
+        "original_sha256": "4f6960a84c3da5f791faf0111033b1d6a425e2575fb03b31acd248210497794e",
+        "patched_sha256": null,
+        "findings_input": 14,
+        "fixable_findings": 0,
+        "fixes_applied": 0,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": false,
+          "compiles": null,
+          "solc": null,
+          "returncode": null,
+          "stdout": "",
+          "stderr": "",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:42:52.308780+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "denial_of_service",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/dos_number.sol",
+      "status": "fix_failed",
+      "fix_applied": false,
+      "fix_output_summary": "shared remediation pipeline: applied=0, skipped=0",
+      "high_before": 1,
+      "high_after": null,
+      "total_findings_before": 7,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": false,
+        "compiles": null,
+        "solc": null,
+        "returncode": null,
+        "stdout": "",
+        "stderr": "",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "no_fixable_findings",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/dos_number.sol",
+        "patched_path": null,
+        "original_sha256": "3ea414a7d2826634670730c75f983ee8cefc26a6a34fdda57844c0e897d362b0",
+        "patched_sha256": null,
+        "findings_input": 14,
+        "fixable_findings": 0,
+        "fixes_applied": 0,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": false,
+          "compiles": null,
+          "solc": null,
+          "returncode": null,
+          "stdout": "",
+          "stderr": "",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:42:54.202525+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "denial_of_service",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/dos_simple.sol",
+      "status": "no_high",
+      "fix_applied": false,
+      "fix_output_summary": "scan produced no HIGH findings",
+      "high_before": 0,
+      "high_after": null,
+      "total_findings_before": 4,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": false,
+        "compiles": null
+      },
+      "evidence": null
+    },
+    {
+      "category": "denial_of_service",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/list_dos.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=9, skipped=3",
+      "high_before": 7,
+      "high_after": null,
+      "total_findings_before": 27,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:Government =======\nBinary: \n608060405234801561001057600080fd5b503460028190555033600560006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055504260018190555061100e8061006f6000396000f3006080604052600436106100d0576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806309f32957146100ea578063146ca531146101215780633beea6951461015257806345941a38146101a95780634a1f0bf6146101d45780634f013184146102175780636831c1691461022e578063719874da1461025957806381064e2d14610284578063ce43b0c0146102f0578063d3edcb5b1461035d578063d95a2d42146103c9578063f42d1d3014610424578063fc7b9c1814610465575b3480156100dc57600080fd5b506100e76000610490565b50005b3480156100f657600080fd5b506100ff610ba2565b604051808263ffffffff1663ffffffff16815260200191505060405180910390f35b34801561012d57600080fd5b50610136610bb8565b604051808260ff1660ff16815260200191505060405180910390f35b34801561015e57600080fd5b50610167610bcb565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b3480156101b557600080fd5b506101be610bf1565b6040518082815260200191505060405180910390f35b3480156101e057600080fd5b50610215600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610bf7565b005b34801561022357600080fd5b5061022c610c92565b005b34801561023a57600080fd5b50610243610ca4565b6040518082815260200191505060405180910390f35b34801561026557600080fd5b5061026e610cfb565b6040518082815260200191505060405180910390f35b34801561029057600080fd5b50610299610d01565b6040518080602001828103825283818151815260200191508051906020019060200280838360005b838110156102dc5780820151818401526020810190506102c1565b505050509050019250505060405180910390f35b3480156102fc57600080fd5b5061031b60048036038101908080359060200190929190505050610d59565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffff",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:94:6: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n     function Government() {\n     ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:215:14: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n             msg.sender.send(amount);\n             ^---------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:217:14: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n             creditorAddresses[creditorAddresses.length - 1].send(profitFromCrash);\n             ^-------------------------------------------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:218:32: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n             corruptElite.send(this.balance);\n                               ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:218:14: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n             corruptElite.send(this.balance);\n             ^-----------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:240:18: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n                 corruptElite.send(amount * 5/100);\n                 ^-------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:248:22: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n                     buddy.send(amount * 5/100);\n                     ^-------",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/list_dos.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol",
+        "original_sha256": "d0d1d9c65414feae0e9181d2a9353a5e19389fa4904e713ca43d173f1d0e0c90",
+        "patched_sha256": "1ab3025e7b1a95dd3d8774148cf580ed6de5a1b300607b3c150ef8ce03d42823",
+        "findings_input": 54,
+        "fixable_findings": 12,
+        "fixes_applied": 9,
+        "fixes_skipped": 3,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:Government =======\nBinary: \n608060405234801561001057600080fd5b503460028190555033600560006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055504260018190555061100e8061006f6000396000f3006080604052600436106100d0576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806309f32957146100ea578063146ca531146101215780633beea6951461015257806345941a38146101a95780634a1f0bf6146101d45780634f013184146102175780636831c1691461022e578063719874da1461025957806381064e2d14610284578063ce43b0c0146102f0578063d3edcb5b1461035d578063d95a2d42146103c9578063f42d1d3014610424578063fc7b9c1814610465575b3480156100dc57600080fd5b506100e76000610490565b50005b3480156100f657600080fd5b506100ff610ba2565b604051808263ffffffff1663ffffffff16815260200191505060405180910390f35b34801561012d57600080fd5b50610136610bb8565b604051808260ff1660ff16815260200191505060405180910390f35b34801561015e57600080fd5b50610167610bcb565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b3480156101b557600080fd5b506101be610bf1565b6040518082815260200191505060405180910390f35b3480156101e057600080fd5b50610215600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610bf7565b005b34801561022357600080fd5b5061022c610c92565b005b34801561023a57600080fd5b50610243610ca4565b6040518082815260200191505060405180910390f35b34801561026557600080fd5b5061026e610cfb565b6040518082815260200191505060405180910390f35b34801561029057600080fd5b50610299610d01565b6040518080602001828103825283818151815260200191508051906020019060200280838360005b838110156102dc5780820151818401526020810190506102c1565b505050509050019250505060405180910390f35b3480156102fc57600080fd5b5061031b60048036038101908080359060200190929190505050610d59565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffff",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:94:6: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n     function Government() {\n     ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:215:14: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n             msg.sender.send(amount);\n             ^---------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:217:14: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n             creditorAddresses[creditorAddresses.length - 1].send(profitFromCrash);\n             ^-------------------------------------------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:218:32: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n             corruptElite.send(this.balance);\n                               ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:218:14: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n             corruptElite.send(this.balance);\n             ^-----------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:240:18: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n                 corruptElite.send(amount * 5/100);\n                 ^-------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpdfst4vcv/fixed.sol:248:22: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n                     buddy.send(amount * 5/100);\n                     ^-------",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:42:57.864714+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "denial_of_service",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/send_loop.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=1, skipped=2",
+      "high_before": 2,
+      "high_after": null,
+      "total_findings_before": 10,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.24/solc-0.4.24",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpwzvs5cg_/fixed.sol:Refunder =======\nBinary: \n608060405234801561001057600080fd5b5060007379b483371e87d664cd39491b5f06250165e4b18490806001815401808255809150509060018203906000526020600020016000909192909190916101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505060007379b483371e87d664cd39491b5f06250165e4b18590806001815401808255809150509060018203906000526020600020016000909192909190916101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555050610213806101146000396000f30060806040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806338e771ab14610051578063bc3da53514610068575b600080fd5b34801561005d57600080fd5b506100666100bf565b005b34801561007457600080fd5b506100a9600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506101cf565b6040518082815260200191505060405180910390f35b60005b6000805490508110156101cc576000818154811015156100de57fe5b9060005260206000200160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff166108fc60016000808581548110151561013457fe5b9060005260206000200160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020549081150290604051600060405180830381858888f1935050505015156101bf57600080fd5b80806001019150506100c2565b50565b600160205280600052604060002060009150905054815600a165627a7a72305820a3f9c928fe39b2919a3fd1c3449efb418741d9a23f6de41ada3568bb05d0a4640029\n",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpwzvs5cg_/fixed.sol:17:30: Warning: This looks like an address but has an invalid checksum. If this is not used as an address, please prepend '00'. Correct checksummed address: '0x79B483371E87d664cd39491b5f06250165e4b185'. For more information please see https://solidity.readthedocs.io/en/develop/types.html#address-literals\n        refundAddresses.push(0x79B483371E87d664cd39491b5F06250165e4b185);\n                             ^----------------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpwzvs5cg_/fixed.sol:15:5: Warning: No visibility specified. Defaulting to \"public\". \n    constructor() {\n    ^ (Relevant source part starts here and spans across multiple lines).\n",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/send_loop.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpwzvs5cg_/fixed.sol",
+        "original_sha256": "74fecd9a7e34b0402cc9f86ec890a84c0c4c1501fc6583e5b1ea7349991c5ff2",
+        "patched_sha256": "28873dddcf2da26a5553f9dfc7b310980a49f9f20cf8a7972aea20e39d81b880",
+        "findings_input": 20,
+        "fixable_findings": 3,
+        "fixes_applied": 1,
+        "fixes_skipped": 2,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.24/solc-0.4.24",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpwzvs5cg_/fixed.sol:Refunder =======\nBinary: \n608060405234801561001057600080fd5b5060007379b483371e87d664cd39491b5f06250165e4b18490806001815401808255809150509060018203906000526020600020016000909192909190916101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505060007379b483371e87d664cd39491b5f06250165e4b18590806001815401808255809150509060018203906000526020600020016000909192909190916101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555050610213806101146000396000f30060806040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806338e771ab14610051578063bc3da53514610068575b600080fd5b34801561005d57600080fd5b506100666100bf565b005b34801561007457600080fd5b506100a9600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506101cf565b6040518082815260200191505060405180910390f35b60005b6000805490508110156101cc576000818154811015156100de57fe5b9060005260206000200160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff166108fc60016000808581548110151561013457fe5b9060005260206000200160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020549081150290604051600060405180830381858888f1935050505015156101bf57600080fd5b80806001019150506100c2565b50565b600160205280600052604060002060009150905054815600a165627a7a72305820a3f9c928fe39b2919a3fd1c3449efb418741d9a23f6de41ada3568bb05d0a4640029\n",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpwzvs5cg_/fixed.sol:17:30: Warning: This looks like an address but has an invalid checksum. If this is not used as an address, please prepend '00'. Correct checksummed address: '0x79B483371E87d664cd39491b5f06250165e4b185'. For more information please see https://solidity.readthedocs.io/en/develop/types.html#address-literals\n        refundAddresses.push(0x79B483371E87d664cd39491b5F06250165e4b185);\n                             ^----------------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpwzvs5cg_/fixed.sol:15:5: Warning: No visibility specified. Defaulting to \"public\". \n    constructor() {\n    ^ (Relevant source part starts here and spans across multiple lines).\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:43:00.460210+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    }
+  ]
+}
