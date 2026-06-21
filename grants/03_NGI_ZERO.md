@@ -36,7 +36,7 @@ export for ML pipelines.
 Evaluated on SmartBugs-curated, MIESC achieves **95.8% recall**
 (static+intelligence layers, 137/143), 97.9% with a local Ollama follow-up. On EVMBench:
 **92.5% ensemble recall** (#1, beating Cecuro at 87.7%). On 11 confirmed
-DeFi exploits totalling $3.3B in losses: 81.8% recall, Cohen's
+DeFi exploits totalling $1.59B in combined losses: 81.8% recall, Cohen's
 κ = 0.77. The automated fix pipeline achieves 87% applied, 63% compile,
 84% vulnerability eliminated, 0% regression.
 

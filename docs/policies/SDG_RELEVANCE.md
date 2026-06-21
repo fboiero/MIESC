@@ -25,7 +25,7 @@ This document maps MIESC's contributions to the United Nations Sustainable Devel
   Automated Analysis Tools on 47,587 Ethereum Smart Contracts," ICSE 2020.
 - 92.5% recall on an EVMBench local high-severity extraction (multi-provider
   ensemble) — see `benchmarks/results/paper1_claims_matrix.json`.
-- 81.8% recall on 11 confirmed real-world DeFi exploits ($3.3B losses, Cohen's
+- 81.8% recall on 11 confirmed real-world DeFi exploits ($1.59B in combined losses, Cohen's
   κ=0.77) — produced by the exploit evaluation harness
   `benchmarks/evaluate_exploits.py`; narrative report at
   `benchmarks/results/v5.1.6_deep_audit_rekt_report.md`.

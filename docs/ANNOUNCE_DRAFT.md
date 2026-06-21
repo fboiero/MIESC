@@ -41,7 +41,7 @@ I've been building MIESC - a multi-layer smart contract security framework. Just
 **Numbers:**
 - SmartBugs (143 contracts): 95.8% recall; local Ollama follow-up reported at 97.9%
 - EVMBench (120 biz-logic vulns): 92.5% ensemble recall
-- Real exploits ($3.3B): 81.8% recall (κ=0.77)
+- Real exploits ($1.59B): 81.8% recall (κ=0.77)
 - Automated patching: 99% applied, 64% compile standalone
 
 **For researchers:**

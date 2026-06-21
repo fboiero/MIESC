@@ -89,7 +89,7 @@ coverage.
 - **Benchmarks with honest framing**: 95.8% recall on SmartBugs-curated
   (static+intelligence layers, 137/143), 97.9% with a local Ollama follow-up; 92.5% ensemble recall
   on EVMBench (#1, beating Cecuro at 87.7%); 81.8% recall on 11
-  confirmed DeFi exploits totalling $3.3B in losses, Cohen's κ = 0.77.
+  confirmed DeFi exploits totalling $1.59B in combined losses, Cohen's κ = 0.77.
 - **Two academic papers**: Paper 1 on multi-layer evaluation methodology
   (arXiv), Paper 2 on remediation pipeline (7 pages). Both with
   reproducible methodology.

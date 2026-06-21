@@ -22,7 +22,7 @@ scientific evaluation framework (`miesc evaluate`), a plugin system for
 third-party detectors via PyPI entry points, JSONL export for ML
 pipelines, and two academic papers. Evaluated on SmartBugs-curated
 (95.8% recall static+intelligence, 97.9% with a local Ollama follow-up), EVMBench (92.5%
-ensemble recall, #1), and 11 confirmed $3.3B DeFi exploits (81.8%
+ensemble recall, #1), and 11 confirmed $1.59B DeFi exploits (81.8%
 recall, κ = 0.77). Published as open source at
 https://github.com/fboiero/MIESC.
 

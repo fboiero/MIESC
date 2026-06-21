@@ -57,7 +57,7 @@ MIESC combines RAG-enhanced false-positive filtering, cross-tool Bayesian
 confidence scoring, automated remediation, and multi-provider LLM ensembles.
 On SmartBugs-curated (143 contracts), the static+intelligence profile reaches
 95.8% recall (137/143); adding a local 32B model at zero API cost raises recall
-to 97.9% (140/143). On 11 real DeFi exploits totaling $3.3B in losses, recall
+to 97.9% (140/143). On 11 real DeFi exploits totaling $1.59B in combined losses, recall
 reaches 81.8% with Cohen's kappa = 0.77. On an EVMBench local high-severity
 extraction (40 audits, 120 findings), a reproducible four-provider union
 ensemble (Claude Sonnet 4.6 + GPT-5 + GPT-4o + local Ollama) detects 111/120
@@ -131,8 +131,8 @@ contract security evaluation that orchestrates 35 analysis modules
 across 9 defense layers. We evaluated it on the SmartBugs-curated
 benchmark — your dataset — achieving 95.8% recall in the latest
 reproducible profile and 97.9% recall when adding a local 32B model.
-We also validated against 11 real-world DeFi exploits totaling $3.3B
-in losses, with 81.8% recall (Cohen's κ = 0.77), and report 92.5%
+We also validated against 11 real-world DeFi exploits totaling $1.59B
+in combined losses, with 81.8% recall (Cohen's κ = 0.77), and report 92.5%
 ensemble recall on an EVMBench high-severity extraction.
 
 Your work on SmartBugs (ICSE 2020, ASE 2023) was foundational to our
@@ -173,7 +173,7 @@ multiple security tools — including Slither as a core component of
 Layer 1 — across 9 defense layers. On the SmartBugs-curated benchmark,
 MIESC achieves 95.8% recall in the latest SmartBugs-curated
 reproducible profile and 97.9% when adding a local 32B model. On 11
-real-world DeFi exploits ($3.3B losses), it reaches 81.8% recall; on
+real-world DeFi exploits ($1.59B in combined losses), it reaches 81.8% recall; on
 an EVMBench high-severity extraction, the multi-provider ensemble
 reaches 92.5% recall.
 
@@ -249,7 +249,7 @@ The paper presents MIESC, a multi-layer framework for smart contract
 security that integrates Echidna as part of its dynamic testing layer
 (Layer 2). We evaluated it on SmartBugs-curated (95.8% recall in the
 latest reproducible profile), 11 real-world DeFi exploits totaling
-$3.3B (81.8% recall), and an EVMBench high-severity extraction where
+$1.59B in combined losses (81.8% recall), and an EVMBench high-severity extraction where
 the multi-provider ensemble reaches 92.5% recall.
 
 Your work on Echidna (ISSTA 2020) is cited in our paper as a key

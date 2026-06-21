@@ -134,7 +134,7 @@ Ollama follow-up on the remaining misses is reported in Paper 1 as 140/143
 machine-readable lift artifact is published. The 9-layer run is reported
 separately as an end-to-end integration smoke run, not as a corpus-wide claim.
 
-**Real-world exploits** (11 confirmed DeFi exploits, $3.3B total losses):
+**Real-world exploits** (11 confirmed DeFi exploits, $1.59B in combined losses):
 
 | Vulnerability | Exploits | Detected | Recall | Examples |
 |---------------|:--------:|:--------:|:------:|----------|

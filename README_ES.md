@@ -135,7 +135,7 @@ de seguimiento secundaria hasta que se publique su propio artefacto de mejora
 legible por máquina. La corrida de 9 capas se reporta por separado como una prueba
 de integración end-to-end (smoke run), no como una afirmación a nivel de corpus.
 
-**Exploits reales** (11 exploits DeFi confirmados, $3.3B en pérdidas totales):
+**Exploits reales** (11 exploits DeFi confirmados, $1.59B en pérdidas combinadas):
 
 | Vulnerabilidad | Exploits | Detectados | Recall | Ejemplos |
 |----------------|:--------:|:----------:|:------:|----------|

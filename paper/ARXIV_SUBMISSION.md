@@ -41,7 +41,7 @@ Sebastian Norberto Mussetta
 | Benchmark | Result | Context |
 |-----------|--------|---------|
 | SmartBugs (143 contracts) | 95.8% recall | Latest full-corpus reproducible local profile; local Ollama follow-up reported at 97.9% |
-| Real exploits ($3.3B) | 81.8% recall, kappa=0.77 | 11 confirmed DeFi exploits |
+| Real exploits ($1.59B) | 81.8% recall, kappa=0.77 | 11 confirmed DeFi exploits |
 | EVMBench local extraction (40 audits, 120 findings) | **111/120 = 92.5% ensemble** | Static-only baseline: 22/120 = 18.3%; union artifact generated from provider JSONs |
 | Cost | ~$7/audit full ensemble, $0 local | vs $20K-60K manual audit |
 

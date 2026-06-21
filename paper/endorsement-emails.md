@@ -25,7 +25,7 @@ paper to arXiv in the cs.SE category.
 
 The paper presents MIESC, an open-source framework for automated smart
 contract security evaluation. It achieves 80% recall on SmartBugs-curated
-and 81.8% on 11 real-world DeFi exploits ($3.3B total losses).
+and 81.8% on 11 real-world DeFi exploits ($1.59B in combined losses).
 
 Your work on SmartBugs and the empirical evaluation of analysis tools
 (ICSE 2020) was foundational to our evaluation methodology — we use
@@ -63,7 +63,7 @@ paper to arXiv.
 
 The paper presents MIESC, an open-source framework for automated smart
 contract security evaluation. It achieves 80% recall on SmartBugs-curated
-and 81.8% on 11 real-world DeFi exploits ($3.3B total losses).
+and 81.8% on 11 real-world DeFi exploits ($1.59B in combined losses).
 
 Your work on Slither (WETSEB 2019) was foundational to our framework —
 Slither serves as the primary tool in MIESC's static analysis layer,
@@ -101,7 +101,7 @@ paper to arXiv.
 
 The paper presents MIESC, an open-source framework for automated smart
 contract security evaluation. It achieves 80% recall on SmartBugs-curated
-and 81.8% on 11 real-world DeFi exploits ($3.3B total losses).
+and 81.8% on 11 real-world DeFi exploits ($1.59B in combined losses).
 
 Your work on Echidna (ISSTA 2020) was foundational to our framework —
 Echidna is integrated as a core tool in MIESC's dynamic testing layer
@@ -140,7 +140,7 @@ paper to arXiv.
 
 The paper presents MIESC, an open-source framework for automated smart
 contract security evaluation. It achieves 80% recall on SmartBugs-curated
-and 81.8% on 11 real-world DeFi exploits ($3.3B total losses).
+and 81.8% on 11 real-world DeFi exploits ($1.59B in combined losses).
 
 Your work on GPTScan (ICSE 2024) was a key reference for our AI/LLM
 analysis layer — we cite it as a foundational contribution in
