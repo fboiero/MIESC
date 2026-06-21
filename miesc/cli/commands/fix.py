@@ -697,7 +697,7 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             return source, changed
         return source, False
 
-    if "access_control" in ftype or "selfdestruct" in ftype:
+    if "access_control" in ftype or "selfdestruct" in ftype or "arbitrary_send_eth" in ftype:
         if fn_name:
             source, changed = _add_modifier_to_function(source, fn_name, "onlyOwner", line_hint)
             if changed:
@@ -791,6 +791,11 @@ def _collect_fixable_findings(data: dict) -> list[dict]:
         ),
     }
     fallback_fix_codes = {
+        "arbitrary-send-eth": (
+            "Restrict ETH-transfer functions that accept arbitrary recipient addresses "
+            "to trusted callers, or replace arbitrary recipient transfers with a "
+            "recipient-initiated pull-payment withdrawal."
+        ),
         "incorrect-constructor-name": (
             "Rename the ownership initializer to the exact legacy contract name, "
             "or migrate to a Solidity constructor() so it cannot be called after deployment."
@@ -977,7 +982,10 @@ def fix(
         ftype_lower = ftype.lower().replace("-", "_")
         if "reentrancy" in ftype_lower:
             fix_cat = "reentrancy"
-        elif any(k in ftype_lower for k in ("access_control", "suicidal", "selfdestruct")):
+        elif any(
+            k in ftype_lower
+            for k in ("access_control", "suicidal", "selfdestruct", "arbitrary_send_eth")
+        ):
             fix_cat = "access_control"
         elif "unchecked" in ftype_lower:
             fix_cat = "unchecked_call"

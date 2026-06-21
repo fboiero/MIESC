@@ -230,6 +230,11 @@ class TestCollectFixableFindings:
         data = {
             "findings": [
                 {
+                    "type": "arbitrary-send-eth",
+                    "severity": "High",
+                    "location": {"line": 6, "function": "pay"},
+                },
+                {
                     "type": "incorrect_constructor_name",
                     "severity": "Critical",
                     "location": {"line": 17, "function": "unknown"},
@@ -244,9 +249,10 @@ class TestCollectFixableFindings:
 
         result = _collect_fixable_findings(data)
 
-        assert len(result) == 2
-        assert "constructor()" in result[0]["fix_code"]
-        assert "tautological or contradictory comparisons" in result[1]["fix_code"]
+        assert len(result) == 3
+        assert "ETH-transfer functions" in result[0]["fix_code"]
+        assert "constructor()" in result[1]["fix_code"]
+        assert "tautological or contradictory comparisons" in result[2]["fix_code"]
 
     def test_combines_top_level_and_per_tool(self):
         data = {
@@ -519,6 +525,29 @@ contract Wallet {
         assert "contract Wallet {" in patched
         assert "MIESC: Inline onlyOwner modifier" in patched
         assert "function kill() onlyOwner public" in patched
+
+    def test_arbitrary_send_eth_adds_only_owner(self):
+        source = """\
+pragma solidity ^0.8.20;
+
+contract Treasury {
+    function pay(address payable recipient) public {
+        recipient.transfer(address(this).balance);
+    }
+}
+"""
+        finding = {
+            "type": "arbitrary-send-eth",
+            "function": "pay",
+            "fix_code": "restrict arbitrary recipient transfers",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: Inline onlyOwner modifier" in patched
+        assert "address public owner = msg.sender;" in patched
+        assert "function pay(address payable recipient) onlyOwner public" in patched
 
     def test_arithmetic_inserts_safemath_on_legacy(self):
         finding = {

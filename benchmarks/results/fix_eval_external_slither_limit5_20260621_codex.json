@@ -9,8 +9,8 @@
     "scan_empty": 0,
     "no_high": 7,
     "external_checked": 36,
-    "external_clean_high": 14,
-    "external_findings": 22,
+    "external_clean_high": 18,
+    "external_findings": 18,
     "external_errors": 0
   },
   "by_category": {
@@ -52,8 +52,8 @@
       "scan_empty": 0,
       "no_high": 0,
       "external_checked": 5,
-      "external_clean_high": 1,
-      "external_findings": 4,
+      "external_clean_high": 2,
+      "external_findings": 3,
       "external_errors": 0
     },
     "denial_of_service": {
@@ -80,8 +80,8 @@
       "scan_empty": 0,
       "no_high": 0,
       "external_checked": 4,
-      "external_clean_high": 3,
-      "external_findings": 1,
+      "external_clean_high": 4,
+      "external_findings": 0,
       "external_errors": 0
     },
     "other": {
@@ -136,8 +136,8 @@
       "scan_empty": 0,
       "no_high": 1,
       "external_checked": 4,
-      "external_clean_high": 0,
-      "external_findings": 4,
+      "external_clean_high": 2,
+      "external_findings": 2,
       "external_errors": 0
     },
     "unchecked_low_level_calls": {
