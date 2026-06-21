@@ -25,6 +25,21 @@ from src.llm.llm_orchestrator import (
 )
 
 
+def _aiohttp_session_with_response(method: str, response: MagicMock) -> MagicMock:
+    """Build an aiohttp.ClientSession mock whose request method is an async CM."""
+    request_context = MagicMock()
+    request_context.__aenter__ = AsyncMock(return_value=response)
+    request_context.__aexit__ = AsyncMock(return_value=None)
+
+    session_instance = MagicMock()
+    setattr(session_instance, method, MagicMock(return_value=request_context))
+
+    session = MagicMock()
+    session.__aenter__ = AsyncMock(return_value=session_instance)
+    session.__aexit__ = AsyncMock(return_value=None)
+    return session
+
+
 class TestLLMProvider:
     """Test LLMProvider enum."""
 
@@ -327,16 +342,66 @@ class TestDeepSeekBackend:
         assert backend.base_url == "https://custom.deepseek.example"
 
     def test_health_check_with_key(self):
-        """Test health check with API key."""
+        """Test health check with API key and configured model returned by API."""
         config = LLMConfig(
             provider=LLMProvider.DEEPSEEK,
             model="deepseek-v4-flash",
             api_key="test-key",
         )
         backend = DeepSeekBackend(config)
-        result = asyncio.run(backend.health_check())
+
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json = AsyncMock(return_value={"data": [{"id": "deepseek-v4-flash"}]})
+        mock_session = _aiohttp_session_with_response("get", mock_response)
+
+        with patch("aiohttp.ClientSession", return_value=mock_session):
+            result = asyncio.run(backend.health_check())
+
         assert result is True
         assert backend.available is True
+
+    def test_health_check_missing_model(self):
+        """Test health check fails when DeepSeek does not expose the configured model."""
+        config = LLMConfig(
+            provider=LLMProvider.DEEPSEEK,
+            model="deepseek-v4-pro",
+            api_key="test-key",
+        )
+        backend = DeepSeekBackend(config)
+
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json = AsyncMock(return_value={"data": [{"id": "deepseek-v4-flash"}]})
+        mock_session = _aiohttp_session_with_response("get", mock_response)
+
+        with patch("aiohttp.ClientSession", return_value=mock_session):
+            result = asyncio.run(backend.health_check())
+
+        assert result is False
+        assert backend.available is False
+
+    def test_health_check_connection_error(self):
+        """Test health check handles DeepSeek endpoint failures."""
+        config = LLMConfig(
+            provider=LLMProvider.DEEPSEEK,
+            model="deepseek-v4-flash",
+            api_key="test-key",
+        )
+        backend = DeepSeekBackend(config)
+
+        mock_session_instance = MagicMock()
+        mock_session_instance.get.side_effect = aiohttp.ClientError("Connection refused")
+
+        mock_session = MagicMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session_instance)
+        mock_session.__aexit__ = AsyncMock(return_value=None)
+
+        with patch("aiohttp.ClientSession", return_value=mock_session):
+            result = asyncio.run(backend.health_check())
+
+        assert result is False
+        assert backend.available is False
 
     def test_health_check_no_key(self):
         """Test health check without API key."""

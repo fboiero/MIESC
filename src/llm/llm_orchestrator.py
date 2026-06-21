@@ -285,9 +285,35 @@ class DeepSeekBackend(LLMBackend):
         )
 
     async def health_check(self) -> bool:
-        """Check if DeepSeek is configured."""
-        self.available = bool(self.api_key)
-        return self.available
+        """Check if DeepSeek is configured and exposes the requested model."""
+        if not self.api_key:
+            self.available = False
+            return self.available
+
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.base_url.rstrip('/')}/v1/models",
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as resp:
+                    if resp.status != 200:
+                        self.available = False
+                        return self.available
+
+                    data = await resp.json()
+                    models = {
+                        model.get("id") or model.get("name")
+                        for model in data.get("data", data.get("models", []))
+                        if isinstance(model, dict) and (model.get("id") or model.get("name"))
+                    }
+                    self.available = self.config.model in models
+                    return self.available
+        except LLM_RUNTIME_ERRORS as e:
+            logger.debug(f"DeepSeek health check failed: {e}")
+            self.available = False
+            return self.available
 
     async def analyze(self, prompt: str, context: Optional[Dict] = None) -> LLMResponse:
         """Run analysis with DeepSeek."""
