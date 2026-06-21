@@ -266,3 +266,110 @@ def test_fix_eval_skip_rescan_can_write_noncanonical_results(monkeypatch, tmp_pa
     assert payload["totals"]["fix_applied"] == 1
     assert payload["totals"]["fix_compiles"] == 1
     assert payload["totals"]["vuln_eliminated"] == 0
+
+
+def test_fix_eval_external_validator_runs_on_compiling_patches(
+    monkeypatch, tmp_path: Path
+):
+    dataset = tmp_path / "dataset"
+    category = dataset / "reentrancy"
+    category.mkdir(parents=True)
+    (category / "C.sol").write_text("pragma solidity 0.4.25; contract C {}\n")
+
+    details = tmp_path / "details.json"
+    validations = []
+
+    def fake_run_scan(sol_path, output_path, timeout):
+        return {
+            "findings": [
+                {
+                    "severity": "HIGH",
+                    "type": "reentrancy",
+                    "fix_code": "add nonReentrant",
+                }
+            ]
+        }
+
+    def fake_remediate_contract(**kwargs):
+        return FakeEvidence()
+
+    def fake_external_validation(sol_path, tool, timeout):
+        validations.append((Path(sol_path).name, tool, timeout))
+        return {
+            "checked": True,
+            "tool": tool,
+            "status": "clean_high",
+            "returncode": 0,
+            "findings_total": 0,
+            "high_findings": 0,
+            "stdout": "{}",
+            "stderr": "",
+        }
+
+    monkeypatch.setattr(fix_eval, "DATASET", dataset)
+    monkeypatch.setattr(fix_eval, "run_scan", fake_run_scan)
+    monkeypatch.setattr(fix_eval, "remediate_contract", fake_remediate_contract)
+    monkeypatch.setattr(fix_eval, "run_external_validation", fake_external_validation)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "fix_eval.py",
+            "--category",
+            "reentrancy",
+            "--skip-rescan",
+            "--external-validator",
+            "slither",
+            "--external-timeout",
+            "9",
+            "--details-output",
+            str(details),
+            "--no-progress",
+        ],
+    )
+
+    fix_eval.main()
+
+    assert validations == [("fixed.sol", "slither", 9)]
+    payload = json.loads(details.read_text())
+    assert payload["external_validator"] == "slither"
+    assert payload["external_timeout"] == 9
+    assert payload["totals"]["external_checked"] == 1
+    assert payload["totals"]["external_clean_high"] == 1
+    assert payload["contracts"][0]["external_validation"]["status"] == "clean_high"
+
+
+def test_external_validation_parses_slither_high_findings(monkeypatch, tmp_path: Path):
+    contract = tmp_path / "C.fixed.sol"
+    contract.write_text("pragma solidity 0.8.20; contract C {}\n")
+
+    completed = SimpleNamespace(returncode=255, stdout="", stderr="")
+
+    def fake_run(cmd, **kwargs):
+        Path(cmd[-1]).write_text(
+            json.dumps(
+                {
+                    "results": {
+                        "detectors": [
+                            {"impact": "High", "check": "reentrancy-eth"},
+                            {"impact": "Low", "check": "naming-convention"},
+                        ]
+                    }
+                }
+            )
+        )
+        return completed
+
+    monkeypatch.setattr(fix_eval.subprocess, "run", fake_run)
+
+    evidence = fix_eval.run_external_validation(contract, tool="slither", timeout=5)
+
+    assert evidence["checked"] is True
+    assert evidence["status"] == "findings"
+    assert evidence["findings_total"] == 2
+    assert evidence["high_findings"] == 1
+    assert evidence["high_checks"] == ["reentrancy-eth"]
+    assert evidence["detector_summary"] == {
+        "high:reentrancy-eth": 1,
+        "low:naming-convention": 1,
+    }
