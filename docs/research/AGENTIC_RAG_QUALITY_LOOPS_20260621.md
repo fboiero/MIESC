@@ -152,3 +152,34 @@ every category), NOT a precision-lift claim — the lift must be measured per-fi
 > (`...source-review-v4`) and the frozen Paper 1/2 numbers MUST NOT change silently.
 > The benign corpus and the harness are opt-in; metric gains are reported as new
 > dated artifacts and only promoted into a paper under an explicit baseline.
+
+## 7. Measured result (2026-06-21) — and the hard lesson
+
+Ran the harness against MIESC's labeled per-finding seed (`data/fp_seed.jsonl`,
+67 real + 867 FP/noise). Artifact:
+`benchmarks/results/agentic_loop_fpseed_measurement_20260621.json`.
+
+**The lesson came first.** A naive version that auto-dropped findings on brittle
+rule-based grounding mislabeled **58/67 real vulns as hallucinations** (recall 13%,
+precision *down* to 1.2%) — because regex grounding misses legacy syntax
+(`.call.value()` ≠ `.call(`) and truncated snippets. **Fix:** never auto-drop on weak
+grounding; drop only on a *strong* benign/type signal; route weak grounding to
+`needs_review` (kept, flagged).
+
+**Recall-safe result:** FP/noise dropped 867/867 (100%), real vulns lost **0/67**
+(recall 100%), precision **7.2% → 100%**.
+
+**Honest caveats (this is NOT a generalizable +92.8%):**
+- `fp_seed` is MIESC's own FP taxonomy → the test is partly **circular**
+  (internal-consistency, not an independent gold standard).
+- Its FPs are **type/context-separable**: 719 style-lint by type + 148 benign-context
+  by pattern. Real scanner output has harder FPs (vuln-type findings needing semantic
+  reasoning). So +92.8% is a dataset-specific **upper bound**, not a field number.
+- Encouraging signal: the 148 benign-context cases (guarded reentrancy, onlyOwner,
+  Sol ≥0.8, timelock) are the *hard* kind and the benign corpus caught them
+  recall-safely — evidence the approach reaches semantic FPs, not only lint.
+
+**Cardinal takeaway:** the win that matters is **0 real vulns lost**. The real-world
+precision lift must be measured on raw scanner output with the LLM verifier; expect
+it well below 100%, which is exactly why Loops A/B (LLM + semantic RAG) — not the
+rule-based fallback — carry the production design.

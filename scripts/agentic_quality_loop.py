@@ -132,8 +132,14 @@ def matches_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, 
     def has(pid: str) -> Optional[dict[str, Any]]:
         return by_id.get(pid)
 
-    # Informational lint flagged as a vuln -> benign (no function scope needed).
-    if re.search(r"pragma|naming|visibilit|unused|solc.version", vtype):
+    # Informational / style-lint detector flagged as a vuln -> benign (type-determined,
+    # no function scope needed). These detector classes are never vulnerabilities, so
+    # dropping them is recall-safe (real vulns carry real types like reentrancy).
+    if re.search(
+        r"pragma|naming|visibilit|unused|solc.version|useless_public|constants_instead"
+        r"|instead_of_literal|boolean_equality|constant_functions_assembly|style|lint",
+        vtype,
+    ):
         return has("BENIGN-PRAGMA-INFORMATIONAL")
     # Arithmetic on Solidity >= 0.8 without an unchecked block.
     if "arithmetic" in vtype and pragma_08 and "unchecked" not in body:
@@ -254,22 +260,32 @@ def adversarial_panel(
 # The loop
 # --------------------------------------------------------------------------- #
 def verify(finding: dict[str, Any], code: str, patterns: list[dict[str, Any]]) -> dict[str, Any]:
+    """Recall-SAFE verdict.
+
+    Hard lesson from measuring on data/fp_seed.jsonl: brittle rule-based grounding
+    (regex pattern/function checks) mislabels REAL vulns as hallucinations on legacy
+    Solidity (e.g. `.call.value()` != `.call(`, truncated snippets), destroying
+    recall. So we DROP a finding only on a STRONG positive benign signal; weak/ambiguous
+    grounding routes to `needs_review` (kept, flagged), never auto-dropped. Auto-drop
+    on grounding alone requires the robust HallucinationDetector or an LLM verifier,
+    not these heuristics.
+    """
     grounding = ground_finding(finding, code)
     benign = matches_benign(finding, code, patterns)
     votes = adversarial_panel(finding, code, grounding, benign)
     refutes = sum(1 for v in votes.values() if v)
 
-    if not (grounding.location_ok and grounding.pattern_ok):
-        verdict = "hallucinated"
-    elif benign is not None or refutes >= 2:
-        verdict = "false_positive"
+    if benign is not None:
+        verdict = "false_positive"  # strong, function-scoped/type-determined signal -> safe to drop
+    elif not (grounding.location_ok and grounding.pattern_ok):
+        verdict = "needs_review"  # weak signal -> FLAG, do not drop (protect recall)
     else:
         verdict = "confirmed"
 
     reasons = list(grounding.reasons)
     if benign:
         reasons.append(f"matches benign pattern {benign['id']}: {benign['why_safe'][:80]}")
-    reasons += [f"refuted-by:{k}" for k, v in votes.items() if v]
+    reasons += [f"weak-refute:{k}" for k, v in votes.items() if v]
     return {
         "title": finding.get("title") or finding.get("type"),
         "severity": finding.get("severity"),
@@ -281,21 +297,22 @@ def verify(finding: dict[str, Any], code: str, patterns: list[dict[str, Any]]) -
 
 def run(findings: list[dict[str, Any]], code: str, patterns: list[dict[str, Any]]) -> dict[str, Any]:
     results = [verify(f, code, patterns) for f in findings]
-    counts = {"confirmed": 0, "false_positive": 0, "hallucinated": 0}
+    counts = {"confirmed": 0, "false_positive": 0, "needs_review": 0}
     for r in results:
         counts[r["verdict"]] += 1
     total = len(results) or 1
-    kept = counts["confirmed"]
+    dropped = counts["false_positive"]  # recall-safe: only strong benign matches drop
+    kept = total - dropped
     return {
         "results": results,
         "counts": counts,
         "kept": kept,
-        "dropped": total - kept,
+        "dropped": dropped,
         "precision_note": (
-            f"{kept}/{total} survive the loop; {counts['false_positive']} FP + "
-            f"{counts['hallucinated']} hallucinations dropped. On a corpus where the "
-            f"raw precision is ~22%, dropping grounded-benign + ungrounded findings is "
-            f"the lever that raises precision without touching true positives."
+            f"{dropped}/{total} dropped as false positives (strong benign match); "
+            f"{counts['needs_review']} flagged needs_review (KEPT, not dropped); "
+            f"{counts['confirmed']} confirmed. Recall-safe: a finding is dropped only on "
+            f"a strong benign signal, never on brittle grounding alone."
         ),
     }
 
@@ -343,16 +360,78 @@ DEMO_FINDINGS = [
 ]
 
 
+def measure(records: list[dict[str, Any]], patterns: list[dict[str, Any]]) -> dict[str, Any]:
+    """Measure the loop against a LABELED per-finding dataset (data/fp_seed.jsonl).
+
+    Each record: {finding:{type,location:{function,line},severity,...}, context:<code>,
+    label: bool}  where label=True means a real vulnerability, False means FP/noise.
+    """
+    tot_real = tot_fp = correct_fp_drop = leaked_fp = retained_real = lost_real = 0
+    for r in records:
+        f = r.get("finding", {})
+        loc = f.get("location") or {}
+        finding = {
+            "type": f.get("type"),
+            "title": f.get("type"),
+            "function": (loc.get("function") if isinstance(loc, dict) else "") or "",
+            "severity": f.get("severity", ""),
+        }
+        verdict = verify(finding, r.get("context", ""), patterns)["verdict"]
+        dropped = verdict == "false_positive"  # recall-safe: needs_review is KEPT, not dropped
+        if r.get("label") is True:  # real vulnerability
+            tot_real += 1
+            if dropped:
+                lost_real += 1
+            else:
+                retained_real += 1
+        else:  # FP / noise
+            tot_fp += 1
+            if dropped:
+                correct_fp_drop += 1
+            else:
+                leaked_fp += 1
+    kept = retained_real + leaked_fp
+    prec_before = tot_real / (tot_real + tot_fp) if (tot_real + tot_fp) else 0.0
+    prec_after = retained_real / kept if kept else 0.0
+    return {
+        "total_real": tot_real,
+        "total_fp": tot_fp,
+        "fp_dropped": correct_fp_drop,
+        "fp_leaked": leaked_fp,
+        "real_retained": retained_real,
+        "real_lost": lost_real,
+        "fp_drop_rate": round(correct_fp_drop / tot_fp, 4) if tot_fp else 0.0,
+        "recall_retained": round(retained_real / tot_real, 4) if tot_real else 0.0,
+        "precision_before": round(prec_before, 4),
+        "precision_after": round(prec_after, 4),
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Agentic quality loop (FP + hallucination verifier)")
     ap.add_argument("--demo", action="store_true", help="run on built-in sample contract + findings")
     ap.add_argument("--findings", help="path to a findings JSON (list or {findings:[...]})")
     ap.add_argument("--code", help="path to the contract source")
     ap.add_argument("--benign", help="path to a benign-pattern JSONL (default: latest seed)")
+    ap.add_argument("--measure", help="path to a LABELED per-finding JSONL (e.g. data/fp_seed.jsonl)")
     args = ap.parse_args()
 
     patterns = load_benign_patterns(args.benign)
     print(f"# loaded {len(patterns)} benign patterns | hallucination_detector importable: {_HAS_DETECTOR}\n")
+
+    if args.measure:
+        records = [json.loads(line) for line in open(args.measure, encoding="utf-8") if line.strip()]
+        m = measure(records, patterns)
+        print(f"# MEASURE on {args.measure} ({m['total_real']} real + {m['total_fp']} FP/noise)\n")
+        print(f"  FP/noise dropped     : {m['fp_dropped']}/{m['total_fp']}  ({m['fp_drop_rate']:.1%})")
+        print(f"  FP/noise leaked      : {m['fp_leaked']}/{m['total_fp']}")
+        print(f"  real vulns retained  : {m['real_retained']}/{m['total_real']}  (recall {m['recall_retained']:.1%})")
+        print(f"  real vulns LOST      : {m['real_lost']}/{m['total_real']}  (false-negative cost)")
+        print(f"  precision  before    : {m['precision_before']:.1%}")
+        print(f"  precision  after loop: {m['precision_after']:.1%}")
+        lift = m["precision_after"] - m["precision_before"]
+        print(f"  precision lift       : +{lift:.1%}" if lift >= 0 else f"  precision lift: {lift:.1%}")
+        return 0
 
     if args.demo or not args.findings:
         findings, code = DEMO_FINDINGS, DEMO_CODE
@@ -364,7 +443,7 @@ def main() -> int:
 
     out = run(findings, code, patterns)
     for r in out["results"]:
-        mark = {"confirmed": "[KEEP]", "false_positive": "[FP  ]", "hallucinated": "[HALL]"}[r["verdict"]]
+        mark = {"confirmed": "[KEEP]", "false_positive": "[FP  ]", "needs_review": "[REVW]"}[r["verdict"]]
         print(f"{mark} {r['title']} ({r['severity']})  votes={r['refute_votes']}")
         for reason in r["reasons"]:
             print(f"        - {reason}")

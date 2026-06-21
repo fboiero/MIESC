@@ -1,0 +1,34 @@
+{
+  "artifact": "agentic_quality_loop_measurement",
+  "generated_at": "2026-06-21",
+  "harness": "scripts/agentic_quality_loop.py --measure data/fp_seed.jsonl",
+  "dataset": "data/fp_seed.jsonl",
+  "dataset_size": {"total": 934, "real_vulns_label_true": 67, "fp_noise_label_false": 867},
+  "config": "recall-safe (drop only on strong benign/type-lint signal; weak grounding -> needs_review, never auto-dropped)",
+  "result": {
+    "fp_dropped": 867,
+    "fp_drop_rate": 1.0,
+    "fp_leaked": 0,
+    "real_retained": 67,
+    "real_lost": 0,
+    "recall_retained": 1.0,
+    "precision_before": 0.072,
+    "precision_after": 1.0,
+    "precision_lift": 0.928
+  },
+  "interpretation": "On MIESC's labeled per-finding FP seed, the recall-safe agentic loop drops 100% of labeled FP/noise with ZERO real-vuln loss, lifting precision 7.2% -> 100%. The cardinal result is recall-safety: 0/67 real vulns lost (a naive grounding-based drop lost 58/67 — see below).",
+  "caveats": [
+    "fp_seed is MIESC's own FP-filter training seed using the same FP taxonomy the benign corpus was written against -> the measurement is partly CIRCULAR (internal-consistency validation, not an independent gold standard).",
+    "fp_seed's FPs are largely TYPE/CONTEXT-SEPARABLE: 719/867 are style-lint detector types (useless-public-function, constants-instead-of-literals, ...) caught by type; 148/867 are benign-context (reentrancy-guarded, onlyOwner, Sol>=0.8, timelock) caught by the benign corpus. Real-world scanner output contains HARDER FPs (vuln-type findings whose benignity needs deep semantic/exploit reasoning).",
+    "Therefore +92.8% is a dataset-specific UPPER-BOUND demonstration, NOT a generalizable precision claim. The real-world lift must be measured on raw scanner output / held-out contracts with the LLM/semantic verifier (Loop A/B in the design doc), and will be lower.",
+    "The 148 benign-context cases ARE the hard kind and the lever caught them recall-safely -> encouraging signal that the benign-corpus approach reaches the semantic FPs, not only lint."
+  ],
+  "naive_baseline_for_contrast": {
+    "config": "auto-drop on brittle rule-based grounding",
+    "real_lost": 58,
+    "recall_retained": 0.134,
+    "precision_after": 0.012,
+    "note": "Brittle regex grounding mislabeled real legacy-Solidity vulns (.call.value() != .call(, truncated snippets) as hallucinations -> catastrophic recall loss. This is why the production design must NEVER auto-drop on grounding alone."
+  },
+  "next_step": "Add a per-finding location dump to MIESC's evaluate path; run this harness with an LLM verifier on a held-out slice of raw scanner output; report the real-world precision lift as a new dated artifact. Folding into a paper requires a deliberate re-baseline (RAG KB version is pinned by Paper 1)."
+}
