@@ -302,6 +302,63 @@ contract Second {
         assert "onlyOwner" in patched
         assert "address public owner = msg.sender;" in patched
 
+    def test_access_control_reuses_existing_private_owner_state(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract Wallet {
+    address private owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function destroy() public {
+        selfdestruct(payable(msg.sender));
+    }
+}
+"""
+        finding = {
+            "type": "access_control",
+            "function": "destroy",
+            "fix_code": "add onlyOwner",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "address private owner;" in patched
+        assert "address public owner = msg.sender;" not in patched
+        assert "function destroy() onlyOwner public" in patched
+
+    def test_access_control_modifier_is_added_to_contract_containing_target_function(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract Abi {
+    function kill() external;
+}
+
+contract Wallet {
+    function kill() public {
+        selfdestruct(payable(msg.sender));
+    }
+}
+"""
+        finding = {
+            "type": "access_control",
+            "function": "kill",
+            "fix_code": "add onlyOwner",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "contract Abi {\n    // MIESC: Inline onlyOwner modifier" not in patched
+        assert "contract Wallet {" in patched
+        assert "MIESC: Inline onlyOwner modifier" in patched
+        assert "function kill() onlyOwner public" in patched
+
     def test_arithmetic_inserts_safemath_on_legacy(self):
         finding = {
             "type": "arithmetic",

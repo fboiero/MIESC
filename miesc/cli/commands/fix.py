@@ -48,10 +48,68 @@ def _mask_comments(source: str) -> str:
     return re.sub(r"//[^\n]*|/\*.*?\*/", repl, source, flags=re.DOTALL)
 
 
-def _ensure_modifier_defined(source: str, modifier: str) -> str:
+def _contract_candidates_for_function(
+    source: str, target_function: Optional[str]
+) -> list[tuple[re.Match[str], bool, int]]:
+    """Return non-helper contract matches and whether they own target_function."""
+    masked = _mask_comments(source)
+    contract_re = re.compile(r"\bcontract\s+(\w+)[^{]*\{", re.MULTILINE)
+    candidates = []
+    for m_contract in contract_re.finditer(masked):
+        contract_name = m_contract.group(1)
+        if contract_name in ("ReentrancyGuard", "MiescReentrancyGuard"):
+            continue
+        depth = 1
+        idx = m_contract.end()
+        while idx < len(masked) and depth > 0:
+            if masked[idx] == "{":
+                depth += 1
+            elif masked[idx] == "}":
+                depth -= 1
+            idx += 1
+        body = masked[m_contract.end() : idx]
+        owns_target = False
+        if target_function:
+            for m_function in _FUNCTION_RE.finditer(body):
+                if m_function.group(2) != target_function:
+                    continue
+                tail = body[m_function.end() :]
+                brace_idx = tail.find("{")
+                semicolon_idx = tail.find(";")
+                if brace_idx != -1 and (semicolon_idx == -1 or brace_idx < semicolon_idx):
+                    owns_target = True
+                    break
+        candidates.append((m_contract, owns_target, idx))
+    return candidates
+
+
+def _select_contract_for_function(
+    source: str, target_function: Optional[str]
+) -> Optional[tuple[re.Match[str], int]]:
+    candidates = _contract_candidates_for_function(source, target_function)
+    selected = next(((m, end) for m, owns, end in candidates if owns), None)
+    if selected is None and candidates:
+        m, _, end = candidates[0]
+        selected = (m, end)
+    return selected
+
+
+def _ensure_modifier_defined(
+    source: str, modifier: str, target_function: Optional[str] = None
+) -> str:
     """If a modifier is used but not defined, inline it."""
-    if modifier == "onlyOwner" and "modifier onlyOwner" not in source:
-        has_owner = re.search(r"address\s+(?:public\s+)?owner\b", source)
+    if modifier == "onlyOwner":
+        selected = _select_contract_for_function(source, target_function)
+        if selected is None:
+            return source
+        m_contract, contract_end = selected
+        body = _mask_comments(source[m_contract.end() : contract_end])
+        if re.search(r"\bmodifier\s+onlyOwner\b", body):
+            return source
+        has_owner = re.search(
+            r"(?m)^\s*address\s+(?:(?:public|private|internal|external)\s+)?owner\b",
+            body,
+        )
         inline = "\n    // MIESC: Inline onlyOwner modifier\n"
         if not has_owner:
             inline += "    address public owner = msg.sender;\n"
@@ -61,10 +119,16 @@ def _ensure_modifier_defined(source: str, modifier: str) -> str:
             "        _;\n"
             "    }\n"
         )
-        # Insert after the first state variable block (before first function)
-        m = re.search(r"(function\s+)", source)
+        # Insert inside the selected contract before its first function.
+        contract_body_start = m_contract.end()
+        contract_body_end = contract_end - 1
+        masked_body = _mask_comments(source[contract_body_start:contract_body_end])
+        m = re.search(r"\bfunction\s+", masked_body)
         if m:
-            source = source[: m.start()] + inline + "\n    " + source[m.start() :]
+            insert_pos = contract_body_start + m.start()
+            source = source[:insert_pos] + inline + "\n    " + source[insert_pos:]
+        else:
+            source = source[:contract_body_end] + inline + "\n" + source[contract_body_end:]
     return source
 
 
@@ -86,6 +150,11 @@ def _add_modifier_to_function(
     candidates = []
     for m in _FUNCTION_RE.finditer(masked):
         if m.group(2) == function_name:
+            tail = masked[m.end() :]
+            brace_idx = tail.find("{")
+            semicolon_idx = tail.find(";")
+            if brace_idx == -1 or (semicolon_idx != -1 and semicolon_idx < brace_idx):
+                continue
             # Map match start to line number (1-based)
             match_line = masked[: m.start()].count("\n") + 1
             candidates.append((m, match_line))
@@ -226,34 +295,10 @@ def _ensure_reentrancy_guard_import(source: str, target_function: Optional[str] 
     source = "".join(lines)
 
     # Add ReentrancyGuard to the contract that owns the patched function.
-    contract_re = re.compile(r"\bcontract\s+(\w+)[^{]*\{", re.MULTILINE)
-    masked = _mask_comments(source)
-    # Find the TARGET contract (skip the inline guard itself)
-    candidates = []
-    for m_contract in contract_re.finditer(masked):
-        contract_name = m_contract.group(1)
-        if contract_name in ("ReentrancyGuard", "MiescReentrancyGuard"):
-            continue
-        depth = 1
-        idx = m_contract.end()
-        while idx < len(masked) and depth > 0:
-            if masked[idx] == "{":
-                depth += 1
-            elif masked[idx] == "}":
-                depth -= 1
-            idx += 1
-        body = masked[m_contract.end() : idx]
-        owns_target = bool(
-            target_function
-            and any(m.group(2) == target_function for m in _FUNCTION_RE.finditer(body))
-        )
-        candidates.append((m_contract, owns_target))
-
-    selected = next((m for m, owns in candidates if owns), None)
-    if selected is None and candidates:
-        selected = candidates[0][0]
-    if selected is None:
+    selected_contract = _select_contract_for_function(source, target_function)
+    if selected_contract is None:
         return source
+    selected, _ = selected_contract
 
     header = source[selected.start() : selected.end()]
     if re.search(r"\b" + re.escape(guard_name) + r"\b", header):
@@ -513,7 +558,7 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
         if fn_name:
             source, changed = _add_modifier_to_function(source, fn_name, "onlyOwner", line_hint)
             if changed:
-                source = _ensure_modifier_defined(source, "onlyOwner")
+                source = _ensure_modifier_defined(source, "onlyOwner", fn_name)
             return source, changed
         return source, False
 
@@ -521,7 +566,7 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
         if fn_name:
             source, changed = _add_modifier_to_function(source, fn_name, "onlyOwner", line_hint)
             if changed:
-                source = _ensure_modifier_defined(source, "onlyOwner")
+                source = _ensure_modifier_defined(source, "onlyOwner", fn_name)
             return source, changed
         return source, False
 
