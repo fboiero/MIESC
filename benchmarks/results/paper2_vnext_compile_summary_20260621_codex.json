@@ -1,0 +1,114 @@
+{
+  "totals": {
+    "contracts": 143,
+    "fix_applied": 122,
+    "fix_compiles": 122,
+    "vuln_eliminated": 0,
+    "no_regression": 0,
+    "fix_failed": 0,
+    "scan_empty": 2,
+    "no_high": 19
+  },
+  "by_category": {
+    "access_control": {
+      "contracts": 18,
+      "fix_applied": 17,
+      "fix_compiles": 17,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 1,
+      "no_high": 0
+    },
+    "arithmetic": {
+      "contracts": 15,
+      "fix_applied": 4,
+      "fix_compiles": 4,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 11
+    },
+    "bad_randomness": {
+      "contracts": 8,
+      "fix_applied": 7,
+      "fix_compiles": 7,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 1
+    },
+    "denial_of_service": {
+      "contracts": 6,
+      "fix_applied": 5,
+      "fix_compiles": 5,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 1
+    },
+    "front_running": {
+      "contracts": 4,
+      "fix_applied": 4,
+      "fix_compiles": 4,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0
+    },
+    "other": {
+      "contracts": 3,
+      "fix_applied": 3,
+      "fix_compiles": 3,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0
+    },
+    "reentrancy": {
+      "contracts": 31,
+      "fix_applied": 30,
+      "fix_compiles": 30,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 1
+    },
+    "short_addresses": {
+      "contracts": 1,
+      "fix_applied": 1,
+      "fix_compiles": 1,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0
+    },
+    "time_manipulation": {
+      "contracts": 5,
+      "fix_applied": 4,
+      "fix_compiles": 4,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 1
+    },
+    "unchecked_low_level_calls": {
+      "contracts": 52,
+      "fix_applied": 47,
+      "fix_compiles": 47,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 1,
+      "no_high": 4
+    }
+  }
+}
