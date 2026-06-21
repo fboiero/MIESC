@@ -32,7 +32,8 @@ Current line: **5.4.3** (2026-05-16). Full per-version detail in
   testing and signed-commits guides.
 
 ## Benchmarks (current)
-- SmartBugs-curated: **99.3% recall** (layer-1 + intelligence, no LLM).
+- SmartBugs-curated: **95.8% recall** (Paper 1 reproducible profile; a v-next baseline
+  raising this to 99.3% with deterministic detectors is pending PDF/freeze finalization).
 - EVMBench local high-severity extraction: **92.5% recall** (4-provider ensemble).
 - 11 real DeFi exploits: **81.8% recall** (κ=0.77).
 

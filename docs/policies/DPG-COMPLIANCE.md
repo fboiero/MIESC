@@ -69,9 +69,9 @@ MIESC is an open-source security analysis framework for smart contracts that adv
 
 | Metric | Value | Evidence |
 |--------|-------|----------|
-| Tools Integrated | 25 | Multi-tool orchestration reducing barriers to security analysis |
+| Tools Integrated | 50 | Across 9 defense layers (35 counted as analysis modules in Paper 1); multi-tool orchestration reducing barriers |
 | Compliance Standards | 12 | Automated mapping to ISO/NIST/OWASP standards |
-| Detection Recall | 99.3% (142/143) | SmartBugs-curated, layer-1 + intelligence; see paper1_vnext_clean_20260621.json |
+| Detection Recall | 95.8% (137/143) | SmartBugs-curated; see paper1_smartbugs_eval_layers_1_6_7.json (Paper 1 reproducible profile) |
 | False Positive Reduction | 89% | AI-assisted correlation filtering |
 | Cost Savings | ~$50,000/audit | Compared to commercial alternatives |
 

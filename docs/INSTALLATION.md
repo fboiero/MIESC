@@ -1,4 +1,4 @@
-# MIESC v5.4.2 - Complete Installation Guide
+# MIESC v5.4.3 - Complete Installation Guide
 
 **[Versión en Español](INSTALLATION_ES.md)**
 
@@ -262,15 +262,15 @@ For a complete, isolated environment with all tools pre-installed:
 ### ARM64 (Apple Silicon)
 
 ```bash
-docker build -t miesc:v4.3.0 .
-docker run --rm -v $(pwd):/contracts miesc:v4.3.0 audit quick /contracts/MyContract.sol
+docker build -t miesc:5.4.3 .
+docker run --rm -v $(pwd):/contracts miesc:5.4.3 audit quick /contracts/MyContract.sol
 ```
 
 ### x86_64 (Intel/AMD)
 
 ```bash
-docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:v4.3.0-x86 .
-docker run --platform linux/amd64 --rm -v $(pwd):/contracts miesc:v4.3.0-x86 audit quick /contracts/MyContract.sol
+docker build --platform linux/amd64 -f Dockerfile.x86 -t miesc:5.4.3-x86 .
+docker run --platform linux/amd64 --rm -v $(pwd):/contracts miesc:5.4.3-x86 audit quick /contracts/MyContract.sol
 ```
 
 ### Pre-built Image
@@ -306,7 +306,7 @@ miesc doctor
 Expected output:
 
 ```
-MIESC v4.3.0 - Installation Verification
+MIESC 5.4.3 - Installation Verification
 ============================================================
 
 1. Python Environment
@@ -323,7 +323,7 @@ MIESC v4.3.0 - Installation Verification
 5. MIESC Adapter Registration
 ----------------------------------------
   [OK] All 50/50 adapters registered
-  [OK] XX tools currently available
+  [OK] run `miesc doctor` to see available tools
 
 Installation Summary
 ============================================================
@@ -433,4 +433,4 @@ After installation:
 
 ---
 
-**Version**: 5.4.2 | **Last Updated**: May 2026
+**Version**: 5.4.3 | **Last Updated**: June 2026
