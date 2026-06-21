@@ -4,10 +4,14 @@ Agrega, deduplica y correlaciona hallazgos de múltiples herramientas.
 """
 
 import hashlib
+import logging
+import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -201,8 +205,8 @@ class ResultAggregator:
             # Extraer campos con fallbacks
             severity = self._normalize_severity(raw.get("severity", raw.get("impact", "medium")))
 
-            finding_type = raw.get("type", raw.get("check", raw.get("name", "unknown")))
-            message = raw.get("message", raw.get("description", raw.get("title", "")))
+            finding_type = raw.get("type", raw.get("check", raw.get("name", "unknown"))) or "unknown"
+            message = raw.get("message", raw.get("description", raw.get("title", ""))) or ""
 
             # Ubicación
             location = raw.get("location", {})
@@ -226,18 +230,41 @@ class ResultAggregator:
                 id=finding_id,
                 tool=tool,
                 severity=severity,
-                type=finding_type.lower(),
+                type=str(finding_type).lower(),
                 message=message,
                 file=file,
-                line=int(line) if line else 0,
+                line=self._safe_line(line),
                 function=function,
                 swc_id=swc_id,
                 cwe_id=cwe_id,
-                confidence=float(confidence),
+                confidence=self._safe_confidence(confidence),
                 raw_data=raw,
             )
-        except Exception:
+        except Exception as e:
+            # Do NOT silently drop: a malformed field must not erase a real finding.
+            logger.warning(
+                "result_aggregator: dropped malformed finding from %s (%s) raw=%s",
+                tool,
+                e,
+                str(raw)[:200],
+            )
             return None
+
+    @staticmethod
+    def _safe_line(line: Any) -> int:
+        """Parse a line number defensively (tools may emit ranges like '5-10' or 'L5')."""
+        if isinstance(line, int):
+            return line if line > 0 else 0
+        m = re.search(r"\d+", str(line or ""))
+        return int(m.group()) if m else 0
+
+    @staticmethod
+    def _safe_confidence(confidence: Any) -> float:
+        """Parse confidence defensively; default to 0.7 on unparseable input."""
+        try:
+            return float(confidence)
+        except (TypeError, ValueError):
+            return 0.7
 
     def _normalize_severity(self, severity: str) -> str:
         """Normaliza severidad a valores estándar."""

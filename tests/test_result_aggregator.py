@@ -589,3 +589,52 @@ class TestResultAggregatorReport:
 
         assert aggregator._findings == []
         assert aggregator._aggregated == []
+
+
+class TestDefensiveNormalization:
+    """Regression: malformed fields must NOT silently drop a real finding."""
+
+    @pytest.fixture
+    def agg(self):
+        return ResultAggregator()
+
+    def test_range_line_kept(self, agg):
+        f = agg._normalize_finding(
+            "slither",
+            {"type": "reentrancy", "severity": "high", "location": {"line": "5-10"}, "message": "x"},
+        )
+        assert f is not None and f.line == 5
+
+    def test_none_type_kept_as_unknown(self, agg):
+        f = agg._normalize_finding(
+            "mythril",
+            {"type": None, "severity": "high", "location": {"line": 5}, "message": "reentrancy"},
+        )
+        assert f is not None and f.type == "unknown"
+
+    def test_unparseable_confidence_defaults(self, agg):
+        f = agg._normalize_finding(
+            "x",
+            {"type": "r", "severity": "high", "confidence": "weird", "location": {"line": 3}, "message": "m"},
+        )
+        assert f is not None and f.confidence == 0.7
+
+    def test_non_numeric_line_defaults_zero(self, agg):
+        f = agg._normalize_finding(
+            "x", {"type": "r", "severity": "high", "location": {"line": "unknown"}, "message": "m"}
+        )
+        assert f is not None and f.line == 0
+
+    def test_normal_finding_unaffected(self, agg):
+        f = agg._normalize_finding(
+            "slither",
+            {"type": "reentrancy", "severity": "high", "location": {"line": 42}, "message": "x"},
+        )
+        assert f is not None and f.line == 42 and f.type == "reentrancy"
+
+    def test_safe_helpers(self, agg):
+        assert agg._safe_line(7) == 7
+        assert agg._safe_line("L12") == 12
+        assert agg._safe_line(None) == 0
+        assert agg._safe_confidence(0.9) == 0.9
+        assert agg._safe_confidence("nope") == 0.7
