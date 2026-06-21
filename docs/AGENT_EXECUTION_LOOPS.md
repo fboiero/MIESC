@@ -151,6 +151,56 @@ Do not create hidden local state files for coordination. If a future agent needs
 to resume, it must be able to read `LANES.md`, inspect the latest commits, and
 continue.
 
+### Resume Procedure
+
+At the start of every autonomous turn:
+
+```bash
+cd /Users/fboiero/Documents/GitHub/MIESC-codex
+sed -n '1,180p' /Users/fboiero/Documents/GitHub/MIESC/LANES.md
+git branch --show-current
+git status --short
+git log --oneline -8
+```
+
+Then choose the first applicable item from the next-action queue below. If the
+queue is stale, rebuild it from the latest evidence artifacts and commits before
+editing code.
+
+### Next-Action Queue
+
+Use this queue when Fernando says "sigamos" and there is no active claim:
+
+1. Paper 2 expanded remediation probe
+   - Precondition: `fix_eval_all_categories_limit25_*_codex.json` has
+     `fix_failed == 0` and empty `compile_failure_taxonomy`.
+   - Next action: run a bounded `limit50` aggregate probe with a new dated
+     additive artifact.
+   - Stop if: it reveals a new compile failure or `fix_failed`; fix one failure
+     class and rerun the smallest affected category first.
+
+2. Paper 2 full-run readiness review
+   - Precondition: `limit50` is clean or only records expected `scan_empty` /
+     `no_high` states.
+   - Next action: prepare a short readiness note in the final response.
+   - Stop if: the next step would overwrite canonical benchmark artifacts or
+     change paper claims; Fernando approval is required.
+
+3. LLM/PoC maintainability sweep
+   - Precondition: no active Paper 2 failure class remains.
+   - Next action: inspect `src/llm/**` and `src/poc/**` for one large or brittle
+     function, extract one pure helper, add focused tests, commit.
+   - Stop if: the change crosses into another lane or requires external
+     services.
+
+4. Integration readiness check
+   - Precondition: lane has several clean commits and no current coding loop.
+   - Next action: report merge readiness, outstanding risks, and exact merge
+     order. Do not merge unless Fernando asks.
+
+The queue is deliberately conservative. It favors bounded evidence and
+single-failure-class fixes over broad refactors.
+
 ## Paper 2 Remediation Autopilot
 
 Use this ladder for remediation work unless Fernando directs otherwise:
@@ -249,6 +299,27 @@ Residual risk:
 
 Next recommended loop:
 - <one bounded next task>
+```
+
+## Handoff Template
+
+Use this block in final summaries after substantial autonomous work:
+
+```text
+Autopilot state:
+- Lane/worktree: lane/codex at ../MIESC-codex
+- Last commit: <sha> <subject>
+- Latest evidence: <artifact path> with <key totals>
+- LANES: <claim line marked DONE>
+
+Validated:
+- <commands and results>
+
+Residual risk:
+- <what remains unknown or deliberately gated>
+
+Next queue item:
+- <exact next bounded command or inspection>
 ```
 
 ## Self-Execution Checklist
