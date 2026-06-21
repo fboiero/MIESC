@@ -12,6 +12,7 @@ import pytest
 
 from src.llm.llm_orchestrator import (
     AnthropicBackend,
+    DeepSeekBackend,
     LLMBackend,
     LLMConfig,
     LLMOrchestrator,
@@ -32,12 +33,13 @@ class TestLLMProvider:
         assert LLMProvider.OLLAMA.value == "ollama"
         assert LLMProvider.OPENAI.value == "openai"
         assert LLMProvider.ANTHROPIC.value == "anthropic"
+        assert LLMProvider.DEEPSEEK.value == "deepseek"
         assert LLMProvider.LOCAL.value == "local"
 
     def test_all_providers(self):
         """Test all providers are accessible."""
         providers = list(LLMProvider)
-        assert len(providers) == 4
+        assert len(providers) == 5
 
 
 class TestLLMConfig:
@@ -300,6 +302,51 @@ class TestAnthropicBackend:
         assert result is False
 
 
+class TestDeepSeekBackend:
+    """Test DeepSeekBackend implementation."""
+
+    def test_init_with_env_key(self):
+        """Test initialization with environment key."""
+        config = LLMConfig(provider=LLMProvider.DEEPSEEK, model="deepseek-v4-flash")
+
+        with patch.dict("os.environ", {"DEEPSEEK_API_KEY": "test-key"}):
+            backend = DeepSeekBackend(config)
+            assert backend.api_key == "test-key"
+            assert backend.base_url == "https://api.deepseek.com"
+
+    def test_init_with_config_key_and_base_url(self):
+        """Test initialization with explicit key and base URL."""
+        config = LLMConfig(
+            provider=LLMProvider.DEEPSEEK,
+            model="deepseek-v4-pro",
+            api_key="config-key",
+            base_url="https://custom.deepseek.example",
+        )
+        backend = DeepSeekBackend(config)
+        assert backend.api_key == "config-key"
+        assert backend.base_url == "https://custom.deepseek.example"
+
+    def test_health_check_with_key(self):
+        """Test health check with API key."""
+        config = LLMConfig(
+            provider=LLMProvider.DEEPSEEK,
+            model="deepseek-v4-flash",
+            api_key="test-key",
+        )
+        backend = DeepSeekBackend(config)
+        result = asyncio.run(backend.health_check())
+        assert result is True
+        assert backend.available is True
+
+    def test_health_check_no_key(self):
+        """Test health check without API key."""
+        config = LLMConfig(provider=LLMProvider.DEEPSEEK, model="deepseek-v4-flash")
+        backend = DeepSeekBackend(config)
+        backend.api_key = None
+        result = asyncio.run(backend.health_check())
+        assert result is False
+
+
 class TestLLMOrchestrator:
     """Test LLMOrchestrator class."""
 
@@ -310,14 +357,37 @@ class TestLLMOrchestrator:
         assert orchestrator.cache == {}
         assert orchestrator.cache_ttl == 3600
 
+    def test_default_init_uses_deepseek_env_provider(self):
+        """Test default initialization can use DeepSeek from environment."""
+        with patch.dict(
+            "os.environ",
+            {
+                "MIESC_LLM_PROVIDER": "deepseek",
+                "MIESC_LLM_MODEL": "deepseek-v4-pro",
+                "DEEPSEEK_API_KEY": "test-key",
+            },
+        ):
+            orchestrator = LLMOrchestrator()
+
+        assert "deepseek:deepseek-v4-pro" in orchestrator.backends
+        assert orchestrator.primary_provider == "deepseek:deepseek-v4-pro"
+
+    def test_default_init_unknown_env_provider_falls_back_to_ollama(self):
+        """Test unknown env provider falls back to Ollama."""
+        with patch.dict("os.environ", {"MIESC_LLM_PROVIDER": "unknown"}, clear=False):
+            orchestrator = LLMOrchestrator()
+
+        assert "ollama:deepseek-coder:6.7b" in orchestrator.backends
+
     def test_custom_init(self):
         """Test custom initialization."""
         configs = [
             LLMConfig(provider=LLMProvider.OLLAMA, model="codellama"),
             LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="key"),
+            LLMConfig(provider=LLMProvider.DEEPSEEK, model="deepseek-v4-flash", api_key="key"),
         ]
         orchestrator = LLMOrchestrator(configs)
-        assert len(orchestrator.backends) == 2
+        assert len(orchestrator.backends) == 3
 
     def test_add_backend(self):
         """Test adding backends."""
@@ -325,6 +395,17 @@ class TestLLMOrchestrator:
         config = LLMConfig(provider=LLMProvider.OLLAMA, model="test")
         orchestrator._add_backend(config)
         assert "ollama:test" in orchestrator.backends
+
+    def test_add_deepseek_backend(self):
+        """Test adding DeepSeek backend."""
+        orchestrator = LLMOrchestrator([])
+        config = LLMConfig(
+            provider=LLMProvider.DEEPSEEK,
+            model="deepseek-v4-flash",
+            api_key="key",
+        )
+        orchestrator._add_backend(config)
+        assert "deepseek:deepseek-v4-flash" in orchestrator.backends
 
     def test_add_unknown_backend(self):
         """Test adding unknown backend type."""
@@ -455,6 +536,7 @@ class TestLLMOrchestrator:
         """Test model selection for tasks."""
         configs = [
             LLMConfig(provider=LLMProvider.OLLAMA, model="deepseek-coder:6.7b"),
+            LLMConfig(provider=LLMProvider.DEEPSEEK, model="deepseek-v4-flash", api_key="key"),
             LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="key"),
         ]
         orchestrator = LLMOrchestrator(configs)
@@ -626,15 +708,21 @@ class TestIntegration:
             LLMConfig(provider=LLMProvider.OLLAMA, model="codellama"),
             LLMConfig(provider=LLMProvider.OPENAI, model="gpt-4", api_key="test"),
             LLMConfig(provider=LLMProvider.ANTHROPIC, model="claude-3", api_key="test"),
+            LLMConfig(
+                provider=LLMProvider.DEEPSEEK,
+                model="deepseek-v4-flash",
+                api_key="test",
+            ),
         ]
 
         orchestrator = LLMOrchestrator(configs)
 
         # Verify all backends are registered
-        assert len(orchestrator.backends) == 3
+        assert len(orchestrator.backends) == 4
         assert "ollama:codellama" in orchestrator.backends
         assert "openai:gpt-4" in orchestrator.backends
         assert "anthropic:claude-3" in orchestrator.backends
+        assert "deepseek:deepseek-v4-flash" in orchestrator.backends
 
     def test_backend_fallback_order(self):
         """Test backend fallback ordering."""

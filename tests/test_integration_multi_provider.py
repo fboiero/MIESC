@@ -87,9 +87,15 @@ def access_control_finding():
 def multi_provider_detector():
     """Create detector with multiple providers configured."""
     return LLMEnsembleDetector(
-        providers=[LLMProvider.OLLAMA, LLMProvider.OPENAI, LLMProvider.ANTHROPIC],
+        providers=[
+            LLMProvider.OLLAMA,
+            LLMProvider.OPENAI,
+            LLMProvider.ANTHROPIC,
+            LLMProvider.DEEPSEEK,
+        ],
         openai_api_key="test-openai-key",
         anthropic_api_key="test-anthropic-key",
+        deepseek_api_key="test-deepseek-key",
         consensus_threshold=2,
     )
 
@@ -168,33 +174,44 @@ class TestMultiProviderInitialization:
         assert LLMProvider.OLLAMA in multi_provider_detector.providers
         assert LLMProvider.OPENAI in multi_provider_detector.providers
         assert LLMProvider.ANTHROPIC in multi_provider_detector.providers
-        assert len(multi_provider_detector.providers) == 3
+        assert LLMProvider.DEEPSEEK in multi_provider_detector.providers
+        assert len(multi_provider_detector.providers) == 4
 
     def test_api_keys_from_init(self, multi_provider_detector):
         """Test API keys are set from initialization."""
         assert multi_provider_detector.openai_api_key == "test-openai-key"
         assert multi_provider_detector.anthropic_api_key == "test-anthropic-key"
+        assert multi_provider_detector.deepseek_api_key == "test-deepseek-key"
 
     def test_api_keys_from_environment(self):
         """Test API keys are read from environment variables."""
         with patch.dict(
             "os.environ",
-            {"OPENAI_API_KEY": "env-openai-key", "ANTHROPIC_API_KEY": "env-anthropic-key"},
+            {
+                "OPENAI_API_KEY": "env-openai-key",
+                "ANTHROPIC_API_KEY": "env-anthropic-key",
+                "DEEPSEEK_API_KEY": "env-deepseek-key",
+            },
         ):
-            detector = LLMEnsembleDetector(providers=[LLMProvider.OPENAI, LLMProvider.ANTHROPIC])
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.OPENAI, LLMProvider.ANTHROPIC, LLMProvider.DEEPSEEK]
+            )
             assert detector.openai_api_key == "env-openai-key"
             assert detector.anthropic_api_key == "env-anthropic-key"
+            assert detector.deepseek_api_key == "env-deepseek-key"
 
     def test_provider_models_configuration(self):
         """Test provider-specific model configurations exist."""
         assert LLMProvider.OLLAMA in LLMEnsembleDetector.PROVIDER_MODELS
         assert LLMProvider.OPENAI in LLMEnsembleDetector.PROVIDER_MODELS
         assert LLMProvider.ANTHROPIC in LLMEnsembleDetector.PROVIDER_MODELS
+        assert LLMProvider.DEEPSEEK in LLMEnsembleDetector.PROVIDER_MODELS
 
         # Check some models exist for each provider
         assert len(LLMEnsembleDetector.PROVIDER_MODELS[LLMProvider.OLLAMA]) >= 3
         assert len(LLMEnsembleDetector.PROVIDER_MODELS[LLMProvider.OPENAI]) >= 3
         assert len(LLMEnsembleDetector.PROVIDER_MODELS[LLMProvider.ANTHROPIC]) >= 2
+        assert len(LLMEnsembleDetector.PROVIDER_MODELS[LLMProvider.DEEPSEEK]) >= 2
 
     def test_model_weights_include_all_providers(self):
         """Test model weights include models from all providers."""
@@ -211,6 +228,10 @@ class TestMultiProviderInitialization:
         # Anthropic models
         assert "claude-3-5-sonnet-20241022" in weights
         assert "claude-3-haiku-20240307" in weights
+
+        # DeepSeek models
+        assert "deepseek-v4-flash" in weights
+        assert "deepseek-v4-pro" in weights
 
 
 # =============================================================================
@@ -307,6 +328,34 @@ class TestProviderAvailability:
             )
 
             models = await detector._check_provider_availability(LLMProvider.ANTHROPIC)
+            assert models == []
+
+        asyncio.run(run_test())
+
+    def test_check_deepseek_availability_with_key(self, multi_provider_detector):
+        """Test DeepSeek availability when API key is set."""
+
+        async def run_test():
+            models = await multi_provider_detector._check_provider_availability(
+                LLMProvider.DEEPSEEK
+            )
+
+            assert len(models) >= 2
+            assert "deepseek-v4-flash" in models
+
+        asyncio.run(run_test())
+
+    def test_check_deepseek_availability_without_key(self):
+        """Test DeepSeek availability when no API key."""
+
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_api_key=None,
+            )
+            detector.deepseek_api_key = None
+
+            models = await detector._check_provider_availability(LLMProvider.DEEPSEEK)
             assert models == []
 
         asyncio.run(run_test())

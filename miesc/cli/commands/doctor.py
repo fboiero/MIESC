@@ -11,6 +11,13 @@ import subprocess
 
 import click
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
 from miesc.cli.constants import LAYERS
 from miesc.cli.utils import (
     RICH_AVAILABLE,
@@ -138,6 +145,16 @@ def doctor(verbose: bool) -> None:
             llm_table.add_row("OpenAI", "[green]configured[/green]", "OPENAI_API_KEY set")
         else:
             llm_table.add_row("OpenAI", "[dim]not set[/dim]", "Set OPENAI_API_KEY for GPT")
+
+        # DeepSeek
+        if os.environ.get("DEEPSEEK_API_KEY"):
+            llm_table.add_row("DeepSeek", "[green]configured[/green]", "DEEPSEEK_API_KEY set")
+        else:
+            llm_table.add_row(
+                "DeepSeek",
+                "[dim]not set[/dim]",
+                "Set DEEPSEEK_API_KEY for DeepSeek API",
+            )
 
         console.print(llm_table)
 
