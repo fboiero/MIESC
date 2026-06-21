@@ -226,6 +226,28 @@ class TestCollectFixableFindings:
         assert "unbounded dynamic array growth" in result[0]["fix_code"]
         assert "array.length" in result[1]["fix_code"]
 
+    def test_synthesizes_static_fallback_fix_codes(self):
+        data = {
+            "findings": [
+                {
+                    "type": "incorrect_constructor_name",
+                    "severity": "Critical",
+                    "location": {"line": 17, "function": "unknown"},
+                },
+                {
+                    "type": "tautology-or-contradiction",
+                    "severity": "High",
+                    "location": {"line": 20, "function": "unknown"},
+                },
+            ]
+        }
+
+        result = _collect_fixable_findings(data)
+
+        assert len(result) == 2
+        assert "constructor()" in result[0]["fix_code"]
+        assert "tautological or contradictory comparisons" in result[1]["fix_code"]
+
     def test_combines_top_level_and_per_tool(self):
         data = {
             "findings": [{"type": "reentrancy", "fix_code": "x"}],
@@ -312,6 +334,123 @@ contract Second {
         assert "contract First is MiescReentrancyGuard" not in patched
         assert "contract Second is MiescReentrancyGuard" in patched
         assert "function withdraw() nonReentrant public" in patched
+
+    def test_reentrancy_guard_uses_line_hint_for_duplicate_function_names(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract First {
+    function create() internal {
+    }
+}
+
+contract Second {
+    function create() internal {
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "create",
+            "line": 8,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "contract First is MiescReentrancyGuard" not in patched
+        assert "contract Second is MiescReentrancyGuard" in patched
+        assert "function create() nonReentrant internal" in patched
+
+    def test_reentrancy_adds_inheritance_when_guard_definition_already_exists(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract MiescReentrancyGuard {
+    modifier nonReentrant() { _; }
+}
+
+contract First is MiescReentrancyGuard {
+    function one() nonReentrant public {}
+}
+
+contract Second {
+    function two() public {}
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "two",
+            "line": 11,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert patched.count("contract MiescReentrancyGuard") == 1
+        assert "contract Second is MiescReentrancyGuard" in patched
+        assert "function two() nonReentrant public" in patched
+
+    def test_reentrancy_does_not_duplicate_transitive_guard_inheritance(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract MiescReentrancyGuard {
+    modifier nonReentrant() { _; }
+}
+
+contract Base is MiescReentrancyGuard {
+}
+
+contract Child is Base {
+    function guarded() public {}
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "guarded",
+            "line": 11,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "contract Child is Base, MiescReentrancyGuard" not in patched
+        assert "contract Child is Base" in patched
+        assert "function guarded() nonReentrant public" in patched
+
+    def test_reentrancy_removes_redundant_direct_guard_from_descendant(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract MiescReentrancyGuard {
+    modifier nonReentrant() { _; }
+}
+
+contract Base {
+    function baseGuarded() public {}
+}
+
+contract Child is Base, MiescReentrancyGuard {
+    function childGuarded() nonReentrant public {}
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "baseGuarded",
+            "line": 8,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "contract Base is MiescReentrancyGuard" in patched
+        assert "contract Child is Base, MiescReentrancyGuard" not in patched
+        assert "contract Child is Base" in patched
 
     def test_access_control_adds_only_owner(self):
         finding = {

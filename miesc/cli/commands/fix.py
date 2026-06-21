@@ -49,8 +49,8 @@ def _mask_comments(source: str) -> str:
 
 
 def _contract_candidates_for_function(
-    source: str, target_function: Optional[str]
-) -> list[tuple[re.Match[str], bool, int]]:
+    source: str, target_function: Optional[str], line_hint: Optional[int] = None
+) -> list[tuple[re.Match[str], bool, int, Optional[int]]]:
     """Return non-helper contract matches and whether they own target_function."""
     masked = _mask_comments(source)
     contract_re = re.compile(r"\bcontract\s+(\w+)[^{]*\{", re.MULTILINE)
@@ -69,6 +69,7 @@ def _contract_candidates_for_function(
             idx += 1
         body = masked[m_contract.end() : idx]
         owns_target = False
+        best_distance: Optional[int] = None
         if target_function:
             for m_function in _FUNCTION_RE.finditer(body):
                 if m_function.group(2) != target_function:
@@ -78,28 +79,123 @@ def _contract_candidates_for_function(
                 semicolon_idx = tail.find(";")
                 if brace_idx != -1 and (semicolon_idx == -1 or brace_idx < semicolon_idx):
                     owns_target = True
-                    break
-        candidates.append((m_contract, owns_target, idx))
+                    if line_hint is not None:
+                        fn_line = masked[: m_contract.end() + m_function.start()].count("\n") + 1
+                        distance = abs(fn_line - line_hint)
+                        best_distance = (
+                            distance if best_distance is None else min(best_distance, distance)
+                        )
+                    else:
+                        break
+        candidates.append((m_contract, owns_target, idx, best_distance))
     return candidates
 
 
 def _select_contract_for_function(
-    source: str, target_function: Optional[str]
+    source: str, target_function: Optional[str], line_hint: Optional[int] = None
 ) -> Optional[tuple[re.Match[str], int]]:
-    candidates = _contract_candidates_for_function(source, target_function)
-    selected = next(((m, end) for m, owns, end in candidates if owns), None)
+    candidates = _contract_candidates_for_function(source, target_function, line_hint)
+    owning_candidates = [(m, end, distance) for m, owns, end, distance in candidates if owns]
+    selected = None
+    if line_hint is not None and owning_candidates:
+        m, end, _ = min(
+            owning_candidates,
+            key=lambda item: item[2] if item[2] is not None else sys.maxsize,
+        )
+        selected = (m, end)
+    elif owning_candidates:
+        m, end, _ = owning_candidates[0]
+        selected = (m, end)
     if selected is None and candidates:
-        m, _, end = candidates[0]
+        m, _, end, _ = candidates[0]
         selected = (m, end)
     return selected
 
 
+def _contract_inherits_guard(source: str, contract_name: str, guard_name: str) -> bool:
+    """Return True when contract inherits guard_name directly or through bases."""
+    masked = _mask_comments(source)
+    inheritance: dict[str, list[str]] = {}
+    contract_re = re.compile(r"\bcontract\s+(\w+)(?:\s+is\s+([^{]+))?\s*\{", re.MULTILINE)
+    for match in contract_re.finditer(masked):
+        bases = []
+        if match.group(2):
+            bases = [
+                re.match(r"\s*(\w+)", base).group(1)
+                for base in match.group(2).split(",")
+                if re.match(r"\s*(\w+)", base)
+            ]
+        inheritance[match.group(1)] = bases
+
+    seen: set[str] = set()
+
+    def has_guard(name: str) -> bool:
+        if name in seen:
+            return False
+        seen.add(name)
+        bases = inheritance.get(name, [])
+        return guard_name in bases or any(has_guard(base) for base in bases)
+
+    return has_guard(contract_name)
+
+
+def _remove_redundant_guard_inheritance(source: str, guard_name: str) -> str:
+    """Remove direct guard inheritance when a base already provides it."""
+    masked = _mask_comments(source)
+    contract_re = re.compile(r"\bcontract\s+(\w+)(?:\s+is\s+([^{]+))?\s*\{", re.MULTILINE)
+    inheritance: dict[str, list[str]] = {}
+    matches = list(contract_re.finditer(masked))
+    for match in matches:
+        bases = []
+        if match.group(2):
+            bases = [
+                re.match(r"\s*(\w+)", base).group(1)
+                for base in match.group(2).split(",")
+                if re.match(r"\s*(\w+)", base)
+            ]
+        inheritance[match.group(1)] = bases
+
+    def base_has_guard(name: str, seen: Optional[set[str]] = None) -> bool:
+        seen = seen or set()
+        if name in seen:
+            return False
+        seen.add(name)
+        bases = inheritance.get(name, [])
+        return guard_name in bases or any(base_has_guard(base, seen) for base in bases)
+
+    replacements: list[tuple[int, int, str]] = []
+    for match in matches:
+        bases_text = match.group(2)
+        if not bases_text:
+            continue
+        bases = [base.strip() for base in bases_text.split(",")]
+        base_names = [
+            re.match(r"(\w+)", base).group(1) for base in bases if re.match(r"(\w+)", base)
+        ]
+        if guard_name not in base_names:
+            continue
+        if not any(base != guard_name and base_has_guard(base) for base in base_names):
+            continue
+        filtered = [
+            base for base in bases if not re.match(r"\s*" + re.escape(guard_name) + r"\b", base)
+        ]
+        replacement = ", ".join(filtered)
+        replacements.append((match.start(2), match.end(2), replacement))
+
+    for start, end, replacement in reversed(replacements):
+        source = source[:start] + replacement + source[end:]
+    return source
+
+
 def _ensure_modifier_defined(
-    source: str, modifier: str, target_function: Optional[str] = None
+    source: str,
+    modifier: str,
+    target_function: Optional[str] = None,
+    line_hint: Optional[int] = None,
 ) -> str:
     """If a modifier is used but not defined, inline it."""
     if modifier == "onlyOwner":
-        selected = _select_contract_for_function(source, target_function)
+        selected = _select_contract_for_function(source, target_function, line_hint)
         if selected is None:
             return source
         m_contract, contract_end = selected
@@ -243,7 +339,9 @@ def _has_contract_definition(source: str, name: str) -> bool:
     )
 
 
-def _ensure_reentrancy_guard_import(source: str, target_function: Optional[str] = None) -> str:
+def _ensure_reentrancy_guard_import(
+    source: str, target_function: Optional[str] = None, line_hint: Optional[int] = None
+) -> str:
     """Add inline ReentrancyGuard + inheritance if not already present.
 
     Uses an inline implementation instead of an OZ import so the fixed
@@ -256,13 +354,15 @@ def _ensure_reentrancy_guard_import(source: str, target_function: Optional[str] 
         re.search(r"^\s*import\s+[^;]*ReentrancyGuard[^;]*;", masked, re.MULTILINE)
     )
 
-    if has_reentrancy_definition or has_miesc_definition or has_oz_import:
-        return source
-
     # Check if OZ is likely available (import already exists)
     has_oz = bool(re.search(r"^\s*import\s+['\"]@openzeppelin", masked, re.MULTILINE))
 
-    if has_oz:
+    import_line: Optional[str] = None
+    if has_miesc_definition:
+        guard_name = "MiescReentrancyGuard"
+    elif has_reentrancy_definition or has_oz_import:
+        guard_name = "ReentrancyGuard"
+    elif has_oz:
         # OZ available — use import
         import_line = 'import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";\n'
         guard_name = "ReentrancyGuard"
@@ -278,30 +378,40 @@ def _ensure_reentrancy_guard_import(source: str, target_function: Optional[str] 
         import_line = _INLINE_REENTRANCY_GUARD
         guard_name = "MiescReentrancyGuard"
 
-    # Insert after last import or after pragma
-    last_import = -1
-    masked_lines = masked.splitlines()
-    for i, line in enumerate(masked_lines):
-        if line.strip().startswith("import "):
-            last_import = i
-    lines = source.splitlines(keepends=True)
-    if last_import >= 0:
-        lines.insert(last_import + 1, import_line)
-    else:
+    insert_at: Optional[int] = None
+    if import_line is not None:
+        # Insert after last import or after pragma
+        last_import = -1
+        masked_lines = masked.splitlines()
         for i, line in enumerate(masked_lines):
-            if line.strip().startswith("pragma "):
-                lines.insert(i + 1, "\n" + import_line)
-                break
-    source = "".join(lines)
+            if line.strip().startswith("import "):
+                last_import = i
+        lines = source.splitlines(keepends=True)
+        if last_import >= 0:
+            insert_at = last_import + 1
+            lines.insert(insert_at, import_line)
+        else:
+            for i, line in enumerate(masked_lines):
+                if line.strip().startswith("pragma "):
+                    insert_at = i + 1
+                    lines.insert(insert_at, "\n" + import_line)
+                    break
+        source = "".join(lines)
+    adjusted_line_hint = line_hint
+    if line_hint is not None and insert_at is not None and insert_at < line_hint:
+        adjusted_line_hint = line_hint + import_line.count("\n")
 
     # Add ReentrancyGuard to the contract that owns the patched function.
-    selected_contract = _select_contract_for_function(source, target_function)
+    selected_contract = _select_contract_for_function(source, target_function, adjusted_line_hint)
     if selected_contract is None:
         return source
     selected, _ = selected_contract
+    contract_name = selected.group(1)
 
     header = source[selected.start() : selected.end()]
     if re.search(r"\b" + re.escape(guard_name) + r"\b", header):
+        return source
+    if _contract_inherits_guard(source, contract_name, guard_name):
         return source
     insert_pos = selected.end() - 1
     if re.search(r"\bis\b", header):
@@ -314,7 +424,7 @@ def _ensure_reentrancy_guard_import(source: str, target_function: Optional[str] 
             + " "
             + source[insert_pos:]
         )
-    return source
+    return _remove_redundant_guard_inheritance(source, guard_name)
 
 
 def _insert_using_safemath(source: str) -> tuple[str, bool]:
@@ -573,7 +683,7 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
         if fn_name:
             source, changed = _add_modifier_to_function(source, fn_name, "nonReentrant", line_hint)
             if changed:
-                source = _ensure_reentrancy_guard_import(source, fn_name)
+                source = _ensure_reentrancy_guard_import(source, fn_name, line_hint)
             return source, changed
         return source, False
 
@@ -583,7 +693,7 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
         if fn_name:
             source, changed = _add_modifier_to_function(source, fn_name, "onlyOwner", line_hint)
             if changed:
-                source = _ensure_modifier_defined(source, "onlyOwner", fn_name)
+                source = _ensure_modifier_defined(source, "onlyOwner", fn_name, line_hint)
             return source, changed
         return source, False
 
@@ -591,7 +701,7 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
         if fn_name:
             source, changed = _add_modifier_to_function(source, fn_name, "onlyOwner", line_hint)
             if changed:
-                source = _ensure_modifier_defined(source, "onlyOwner", fn_name)
+                source = _ensure_modifier_defined(source, "onlyOwner", fn_name, line_hint)
             return source, changed
         return source, False
 
@@ -680,6 +790,16 @@ def _collect_fixable_findings(data: dict) -> list[dict]:
             "bounded batch processing, and an explicit size counter to avoid gas-based DoS."
         ),
     }
+    fallback_fix_codes = {
+        "incorrect-constructor-name": (
+            "Rename the ownership initializer to the exact legacy contract name, "
+            "or migrate to a Solidity constructor() so it cannot be called after deployment."
+        ),
+        "tautology-or-contradiction": (
+            "Replace tautological or contradictory comparisons with explicit bounds that can "
+            "change at runtime, and add tests covering the intended true and false branches."
+        ),
+    }
 
     def _key(f: dict) -> tuple:
         ftype = (f.get("type") or f.get("title") or "").lower()
@@ -696,6 +816,10 @@ def _collect_fixable_findings(data: dict) -> list[dict]:
         if ftype in dos_fix_codes:
             patched = dict(f)
             patched["fix_code"] = dos_fix_codes[ftype]
+            return patched
+        if ftype in fallback_fix_codes:
+            patched = dict(f)
+            patched["fix_code"] = fallback_fix_codes[ftype]
             return patched
         return f
 
