@@ -76,8 +76,8 @@ MIESC is an open-source security analysis framework for smart contracts that adv
 | Tools Integrated | 50 | Across 9 defense layers (35 counted as analysis modules in Paper 1); multi-tool orchestration reducing barriers |
 | Compliance Standards | 12 | Automated mapping to ISO/NIST/OWASP standards |
 | Detection Recall | 95.8% (137/143) | SmartBugs-curated; see paper1_smartbugs_eval_layers_1_6_7.json (Paper 1 reproducible profile) |
-| False Positive Reduction | 89% | AI-assisted correlation filtering |
-| Cost Savings | ~$50,000/audit | Compared to commercial alternatives |
+| Post-filter findings | ~2–3 per contract | Context-aware FP suppression (Paper 1, False Positive Management) |
+| Cost | Free (vs. $20K–60K) | Open-source vs. commercial audit engagements |
 
 ### Use Cases for Development
 
@@ -127,20 +127,20 @@ All dependencies use compatible open-source licenses:
 |-----------|-------|
 | **Project Name** | MIESC - Multi-layer Intelligent Evaluation for Smart Contracts |
 | **Copyright Holder** | Fernando Boiero |
-| **Institution** | Universidad de la Defensa Nacional (UNDEF), Argentina |
+| **Institution** | Originated at Universidad de la Defensa Nacional (UNDEF); continues as research at Universidad Tecnológica Nacional, Facultad Regional Villa María (UTN-FRVM), Argentina |
 | **Repository** | https://github.com/fboiero/MIESC |
 | **Contact** | fboiero@frvm.utn.edu.ar |
 
 ### Intellectual Property
 
-- **Source Code**: Copyright 2024-2025 Fernando Boiero, licensed under AGPL-3.0
-- **Documentation**: Copyright 2024-2025 Fernando Boiero, licensed under CC-BY-4.0
+- **Source Code**: Copyright 2024-2026 Fernando Boiero, licensed under AGPL-3.0
+- **Documentation**: Copyright 2024-2026 Fernando Boiero, licensed under CC-BY-4.0
 - **Trademarks**: "MIESC" name and logo owned by Fernando Boiero
 - **Patents**: No patents filed; commitment to patent-free development
 
 ### Academic Context
 
-MIESC was developed as part of a Master's thesis in Cyberdefense at Universidad de la Defensa Nacional (UNDEF), Argentina. The university supports open-source release of research outputs.
+MIESC originated as a Master's thesis in Cyberdefense at Universidad de la Defensa Nacional (UNDEF), Argentina, and continues as a research project at Universidad Tecnológica Nacional, Facultad Regional Villa María (UTN-FRVM). Both institutions support open-source release of research outputs.
 
 ---
 
@@ -153,7 +153,7 @@ MIESC is designed for platform independence:
 ```
 ┌─────────────────────────────────────────────────┐
 │                    MIESC Core                    │
-│  (Python 3.9+ - Cross-platform)                 │
+│  (Python 3.12+ - Cross-platform)                │
 ├─────────────────────────────────────────────────┤
 │  Tool Adapters (Pluggable Architecture)         │
 │  - Each tool is optional                        │
@@ -329,6 +329,33 @@ MIESC maps findings to 12 international standards:
 | **Misinformation** | Low | Clear disclaimer about limitations |
 | **Discrimination** | N/A | Does not process personal data |
 | **Economic Harm** | Low | Free tool reduces audit costs |
+
+### Dual-Use Considerations
+
+MIESC is a vulnerability-analysis tool, and vulnerability information is inherently
+dual-use: a finding that helps a developer fix a bug could, in principle, inform an
+attacker. We address this directly rather than ignoring it:
+
+- **Defensive orientation**: MIESC is designed for *pre-deployment* triage of the
+  user's own contracts. Its outputs—findings with remediation guidance, generated
+  fixes, tests, and formal specifications—are oriented toward *closing*
+  vulnerabilities, not weaponizing them.
+- **No mass or offensive scanning**: MIESC analyzes source code the user explicitly
+  supplies. It does not crawl, enumerate, or scan third parties' deployed contracts
+  at scale, and ships no exploitation or fund-extraction tooling.
+- **Bounded proof-of-concept**: exploit-test generation is scoped to confirming a
+  vulnerability on the user's own contract and verifying that a patch blocks it—not
+  to producing deployable attacks.
+- **Public knowledge base**: the vulnerability patterns MIESC detects are already
+  public (SWC Registry, CWE, peer-reviewed literature, post-mortem reports). MIESC
+  democratizes *access to defense*; it does not create novel offensive capability.
+- **Asymmetry correction**: professional audits cost \$20K–60K and are out of reach
+  for most teams, while attackers are already well-resourced. Lowering the cost of
+  defensive analysis toward zero shifts the security asymmetry *toward defenders*,
+  which is the project's core do-good rationale.
+- **Responsible disclosure**: MIESC provides a security contact with a 48-hour
+  response commitment for issues in MIESC itself, and its documentation encourages
+  responsible disclosure for vulnerabilities discovered in third-party code.
 
 ### Safeguards
 
