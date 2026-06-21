@@ -195,6 +195,22 @@
       "status": "external_secondary_source",
       "unit": "recall",
       "value": 0.877
+    },
+    {
+      "claim_id": "real_world_exploits",
+      "paper_claim": "MIESC detects 9/11 real-world DeFi exploits (81.8% recall, Cohen's kappa 0.773) across $1.59B in evaluated losses.",
+      "unit": "recall",
+      "value": {
+        "recall": 0.818,
+        "detected": 9,
+        "total": 11,
+        "cohens_kappa": 0.773,
+        "evaluated_losses_usd": 1591700000,
+        "full_corpus_count": 25
+      },
+      "source_artifact": "benchmarks/results/paper1_exploits_eval_20260621.json",
+      "status": "supported_with_note",
+      "notes": "Per-exploit detection transcribed from v5.1.6/v5.1.7 deep-audit reports and paper Table III; class distribution verified against exploits_ground_truth.json. Fixtures sourced externally from DeFiHackLabs (not bundled). kappa on n=11 is indicative. $1.59B = the 11 evaluated contracts; full curated corpus = 25 incidents."
     }
   ],
   "generated_at": "2026-05-07T00:59:50.506287+00:00",

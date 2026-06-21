@@ -143,7 +143,7 @@ Resumen:
 Comando usado el 2026-05-06:
 
 ```bash
-python3 -m miesc.cli.main evaluate corpus data/benchmarks/smartbugs-curated/dataset \
+python3 -m miesc.cli.main evaluate corpus benchmarks/datasets/smartbugs-curated/dataset \
   --layers 1,6,7 \
   --timeout 120 \
   --output benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json \
@@ -171,7 +171,7 @@ forzar una corrida LLM completa de varias horas.
 Smoke test de herramientas integradas despues de instalar dependencias:
 
 ```bash
-python3 -m miesc.cli.main evaluate corpus data/benchmarks/smartbugs-curated/dataset \
+python3 -m miesc.cli.main evaluate corpus benchmarks/datasets/smartbugs-curated/dataset \
   --layers 1,6 \
   --timeout 180 \
   --limit 1 \
@@ -192,7 +192,7 @@ del perfil reducido del paper, se ejecuto un smoke test sobre el primer contrato
 SmartBugs:
 
 ```bash
-python3 -m miesc.cli.main evaluate corpus data/benchmarks/smartbugs-curated/dataset \
+python3 -m miesc.cli.main evaluate corpus benchmarks/datasets/smartbugs-curated/dataset \
   --layers 1,2,3,4,5,6,7,8,9 \
   --timeout 180 \
   --limit 1 \
@@ -317,6 +317,24 @@ Bits/Slither calibra evidencia de herramientas; Code4rena/Sherlock aportan
 formato y proceso de auditoria competitiva; Immunefi/SlowMist se usan solo para
 contexto de impacto e incidentes, no como prueba de vulnerabilidad en un contrato
 particular.
+
+## Evaluacion de exploits reales (Tabla III)
+
+La Tabla III evalua 11 exploits reales que cuentan con fixture de contrato,
+extraidos de un corpus curado de 25 incidentes. Las clases de vulnerabilidad y
+los montos provienen de `data/datasets/rekt_exploits/exploits_ground_truth.json`;
+los 11 contratos evaluados suman **$1.59B** (el corpus completo de 25 incidentes
+totaliza un monto mayor, que no debe atribuirse al subconjunto evaluado). El
+resultado por exploit (9/11 detectados, recall 81.8%, Cohen's kappa = 0.773 con
+n=11, reportado como **indicativo** dado el tamano de muestra) esta registrado en
+`benchmarks/results/paper1_exploits_eval_20260621.json` y referenciado en la
+claims-matrix como `real_world_exploits` (estado `supported_with_note`).
+
+Los contratos vulnerables se obtienen de DeFiHackLabs
+(`github.com/SunWeb3Sec/DeFiHackLabs`) y no se incluyen en el repositorio; la
+re-ejecucion completa via `benchmarks/evaluate_exploits.py` requiere descargarlos
+primero. El artefacto actual transcribe el resultado de las corridas v5.1.6/v5.1.7
+y su distribucion por clase fue verificada contra el ground-truth.
 
 ## Regla editorial
 

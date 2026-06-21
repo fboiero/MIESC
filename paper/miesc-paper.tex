@@ -49,7 +49,7 @@ Villa Mar\'ia, C\'ordoba, Argentina\\
 \maketitle
 
 \begin{abstract}
-Automated smart contract security tools each capture only a fraction of existing vulnerabilities. We present MIESC, an open-source framework that orchestrates 35 analysis modules across 9 defense layers---static analysis, dynamic testing, symbolic execution, formal verification, AI/LLM analysis, pattern detection, DeFi-specific analysis, exploit validation, and consensus---with RAG-enhanced false-positive filtering, cross-tool Bayesian confidence scoring, and automated remediation (\texttt{miesc fix}). On SmartBugs-curated (143 contracts), the static+intelligence profile reaches 95.8\% recall (137/143); adding a local 32B model at zero API cost raises recall to 97.9\% (140/143). On 11 real DeFi exploits (\$3.3B losses), recall reaches 81.8\% ($\kappa$=0.77). On an EVMBench local high-severity extraction (40 audits, 120 findings), a reproducible four-provider union ensemble (Claude Sonnet 4.6 + GPT-5 + GPT-4o + local Ollama) detects \textbf{111/120 vulnerabilities} (\textbf{92.5\%} recall). The best single provider reaches 82.5\%; a fully local 32B model reaches 59.2\% at zero API cost. These results show that multi-provider LLM ensembles and static orchestration provide complementary coverage for semantic smart-contract vulnerabilities. MIESC is available under AGPL-3.0.
+Automated smart contract security tools each capture only a fraction of existing vulnerabilities. We present MIESC, an open-source framework that orchestrates 35 analysis modules across 9 defense layers---static analysis, dynamic testing, symbolic execution, formal verification, AI/LLM analysis, pattern detection, DeFi-specific analysis, exploit validation, and consensus---with RAG-enhanced false-positive filtering, cross-tool Bayesian confidence scoring, and automated remediation (\texttt{miesc fix}). On SmartBugs-curated (143 contracts), the static+intelligence profile reaches 95.8\% recall (137/143); adding a local 32B model at zero API cost raises recall to 97.9\% (140/143). On 11 real DeFi exploits (\$1.59B in combined losses), recall reaches 81.8\% (9/11; Cohen's $\kappa$=0.773 on this small sample). On an EVMBench local high-severity extraction (40 audits, 120 findings), a reproducible four-provider union ensemble (Claude Sonnet 4.6 + GPT-5 + GPT-4o + local Ollama) detects \textbf{111/120 vulnerabilities} (\textbf{92.5\%} recall). The best single provider reaches 82.5\%; a fully local 32B model reaches 59.2\% at zero API cost. These results show that multi-provider LLM ensembles and static orchestration provide complementary coverage for semantic smart-contract vulnerabilities. MIESC is available under AGPL-3.0.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -100,7 +100,7 @@ MIESC differs from SmartBugs in three key aspects: (1)~it integrates 35 analysis
 
 \subsection{AI-Enhanced Security Analysis}
 
-GPTScan~\cite{sun2024gptscan} combines GPT-4 with static analysis for logic vulnerability detection, achieving results that complement pattern-based tools. Other recent approaches apply local LLMs for multi-agent auditing (LLMSmartAudit) and RAG-enhanced code analysis (SmartLLM). LLMBugScanner proposes a multi-LLM ensemble specifically for smart contract bugs. EVMBench~\cite{evmbench2026}, curated by OpenAI and Paradigm from 40 Code4rena-derived repositories with 117 curated vulnerabilities, has become a standard benchmark for LLM-based auditing; Cecuro reports 87.7\% recall on this benchmark in its public evaluation. These tools demonstrate the potential of AI-assisted auditing but operate as standalone analyzers. MIESC combines multi-tool static orchestration \emph{with} a multi-provider LLM ensemble, using their outputs alongside static, dynamic, and symbolic results for cross-validated findings.
+GPTScan~\cite{sun2024gptscan} combines GPT-4 with static analysis for logic vulnerability detection, achieving results that complement pattern-based tools. Other recent approaches apply local LLMs for multi-agent auditing (LLMSmartAudit) and RAG-enhanced code analysis (SmartLLM). LLMBugScanner proposes a multi-LLM ensemble specifically for smart contract bugs. EVMBench~\cite{evmbench2026}, curated by OpenAI and Paradigm from 40 Code4rena-derived repositories with 117 curated vulnerabilities, has become a standard benchmark for LLM-based auditing; Cecuro reports 87.7\% recall on this benchmark in its public evaluation~\cite{cecuro2026} (a vendor press release rather than a peer-reviewed result). These tools demonstrate the potential of AI-assisted auditing but operate as standalone analyzers. MIESC combines multi-tool static orchestration \emph{with} a multi-provider LLM ensemble, using their outputs alongside static, dynamic, and symbolic results for cross-validated findings.
 
 % ===========================================================================
 \section{Architecture}
@@ -287,13 +287,13 @@ The lower precision (9--23\%) reflects informational findings (pragma version, n
 \textbf{Category} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
 \midrule
 Reentrancy & 22.1\% & \textbf{100\%} & 36.3\% \\
-Unchecked Low-Level Calls & 45.2\% & \textbf{100\%} & 62.3\% \\
+Unchecked Low-Level Calls & 44.8\% & \textbf{100\%} & 61.9\% \\
 Arithmetic & 10.5\% & \textbf{100\%} & 19.0\% \\
 Time Manipulation & 12.5\% & \textbf{100\%} & 22.2\% \\
 Access Control & 27.7\% & \textbf{100\%} & 43.4\% \\
 Bad Randomness & 14.8\% & \textbf{100\%} & 25.8\% \\
 Denial of Service & 11.5\% & \textbf{100\%} & 20.7\% \\
-Front Running & 16.7\% & 25\% & 20.0\% \\
+Front Running & 28.6\% & 50\% & 36.4\% \\
 Short Addresses & 0\% & 0\% & 0\% \\
 Other & 0\% & 0\% & 0\% \\
 \bottomrule
@@ -303,14 +303,14 @@ Other & 0\% & 0\% & 0\% \\
 \footnotesize{Latest full-corpus local JSON: \texttt{paper1\_smartbugs\_eval\_layers\_1\_6\_7.json}; layers 1, 6, and 7; 143 contracts. Tool-level failures on legacy syntax are counted as per-contract misses when no other layer detects the category.}
 \end{table}
 
-Eight of ten categories achieve \textbf{100\% recall}: reentrancy, unchecked low-level calls, arithmetic, time manipulation, access control, bad randomness, denial of service, and front running (partial). The weakest categories are short addresses (a deprecated attack vector) and the heterogeneous ``other'' class (3 contracts with no clear vulnerability pattern). Front running achieves only 25\% recall because 3 of 4 contracts require semantic reasoning about transaction ordering that static patterns cannot capture. These residual weaknesses motivate the EVMBench analysis, where semantic and protocol-level reasoning are measured directly.
+Seven of ten categories achieve \textbf{100\% recall}: reentrancy, unchecked low-level calls, arithmetic, time manipulation, access control, bad randomness, and denial of service. Front running achieves 50\% recall (2 of 4 contracts); the 2 missed contracts require semantic reasoning about transaction ordering that static patterns cannot capture. The weakest categories are short addresses (a single deprecated-attack-vector contract) and the heterogeneous ``other'' class (3 contracts with no clear vulnerability pattern). These residual weaknesses motivate the EVMBench analysis, where semantic and protocol-level reasoning are measured directly.
 
 \subsubsection{Real-World Exploit Validation}
 
-To validate beyond academic benchmarks, we evaluated MIESC against 11 confirmed DeFi exploits totaling \$3.3 billion in losses (Table~\ref{tab:exploits}). For each exploit, the original vulnerable contract source was analyzed and we checked whether MIESC flagged the specific vulnerability class that enabled the exploit.
+To validate beyond academic benchmarks, we evaluated MIESC against 11 confirmed DeFi exploits with \$1.59 billion in combined losses, drawn from a larger 25-incident curated corpus (Table~\ref{tab:exploits}). For each exploit, the original vulnerable contract source was analyzed and we checked whether MIESC flagged the specific vulnerability class that enabled the exploit.
 
 \begin{table}[htbp]
-\caption{Detection of Real-World Exploits (USD 3.3B total losses)}
+\caption{Detection of Real-World Exploits (11 evaluated contracts, USD 1.59B combined losses)}
 \label{tab:exploits}
 \centering
 \begin{tabular}{@{}lccc@{}}
@@ -329,11 +329,11 @@ Governance Attack & 1 & 0 & 0\% \\
 \end{tabular}
 \end{table}
 
-MIESC achieved 81.8\% recall on real exploits with a Cohen's $\kappa$ of 0.773, indicating \emph{substantial agreement} ($\kappa > 0.6$) between MIESC's automated analysis and the ground truth established by actual on-chain exploits. Notable detections include the Euler Finance reentrancy (\$197M), Ronin Bridge access control (\$624M), and Parity wallet freeze (\$280M).
+MIESC achieved 81.8\% recall (9/11) on this corpus, with a Cohen's $\kappa$ of 0.773 (n=11) indicating \emph{substantial agreement} ($\kappa > 0.6$) between MIESC's automated verdicts and the ground truth established by actual on-chain exploits. Given the small sample size, we report this as indicative rather than definitive. Notable detections include the Euler Finance reentrancy (\$197M), Ronin Bridge access control (\$624M), and Parity wallet freeze (\$280M).
 
 \subsubsection{Execution Performance}
 
-Table~\ref{tab:performance} summarizes MIESC's execution speed for the reproducible SmartBugs full-corpus profile. The run completed all 143 contracts in 484 seconds, or 17.7 contracts per minute.
+Table~\ref{tab:performance} summarizes MIESC's execution speed for the reproducible SmartBugs full-corpus profile. The run completed all 143 contracts in 737 seconds, or 11.6 contracts per minute.
 
 \begin{table}[htbp]
 \caption{Execution Performance on SmartBugs-curated}
@@ -344,9 +344,9 @@ Table~\ref{tab:performance} summarizes MIESC's execution speed for the reproduci
 \textbf{Metric} & \textbf{Value} \\
 \midrule
 Contracts analyzed & 143 \\
-Total execution time & 484 seconds \\
-Average time per contract & 3.4 seconds \\
-Throughput & 17.7 contracts/minute \\
+Total execution time & 737 seconds \\
+Average time per contract & 5.15 seconds \\
+Throughput & 11.6 contracts/minute \\
 Evaluator completion & 100\% (143/143 contracts) \\
 \bottomrule
 \end{tabular}
@@ -401,9 +401,9 @@ The practical implication is significant: a security researcher can run MIESC wi
 
 \subsection{Layer Contribution Analysis}
 
-The results show a clear split between classical pattern detection and semantic vulnerability detection. On SmartBugs-curated, MIESC's static+intelligence profile (layers 1, 6, 7 plus the pattern-based intelligence engine) reaches 95.8\% recall (137/143) without invoking any LLM. The 6 remaining misses---3 ``other'' (heterogeneous, undefined vulnerability class), 2 front-running (transaction-ordering semantics), and 1 modifier-based reentrancy---require reasoning about protocol-level invariants that regex patterns cannot express. When a local 32B model (qwen2.5-coder:32b via Ollama) is added for only those missed contracts, it correctly identifies the front-running and reentrancy vulnerabilities, raising recall to \textbf{140/143 (97.9\%)} at zero API cost. The 3 residual misses are ``other''-category contracts with no well-defined vulnerability class in the SmartBugs ground truth.
+The results show a clear split between classical pattern detection and semantic vulnerability detection. On SmartBugs-curated, MIESC's static+intelligence profile (layers 1, 6, 7 plus the pattern-based intelligence engine) reaches 95.8\% recall (137/143) without invoking any LLM. The 6 remaining misses---3 ``other'' (heterogeneous, undefined vulnerability class), 2 front-running (transaction-ordering semantics), and 1 short-addresses (a deprecated attack vector)---require reasoning about protocol-level invariants that regex patterns cannot express. When a local 32B model (qwen2.5-coder:32b via Ollama) is added for only those missed contracts, it recovers the 2 front-running and the short-addresses contracts, raising recall to \textbf{140/143 (97.9\%)} at zero API cost; we report this lift as a secondary follow-up pending a published per-contract artifact. The 3 residual misses are ``other''-category contracts with no well-defined vulnerability class in the SmartBugs ground truth.
 
-On EVMBench, static-only analysis reaches 18.3\% recall, while LLM providers detect complementary subsets of business-logic vulnerabilities and the four-provider union closes 18 otherwise missed findings beyond the best single provider. The key contribution is therefore not merely adding more tools, but using each layer for the vulnerability class it is suited to: static tools for known patterns, specialized detectors for domain-specific signals, and multi-provider LLMs for semantic reasoning.
+On EVMBench, static-only analysis reaches 18.3\% recall, while LLM providers detect complementary subsets of business-logic vulnerabilities and the four-provider union closes 12 otherwise missed findings beyond the best single provider (Claude Sonnet 4.6, 99/120). The key contribution is therefore not merely adding more tools, but using each layer for the vulnerability class it is suited to: static tools for known patterns, specialized detectors for domain-specific signals, and multi-provider LLMs for semantic reasoning.
 
 \subsection{Comparison with SmartBugs 2.0}
 
@@ -413,7 +413,7 @@ A direct recall comparison is not possible because SmartBugs does not publish fr
 
 \subsection{False Positive Management}
 
-Precision (22.1\%) remains a usability concern. The latest SmartBugs-curated run reports 479 false positives for 143 contracts, dominated by broad detector categories and informational issues (pragma version, naming conventions). The FP filter addresses this through four mechanisms: (1)~per-detector calibration based on empirical FP rates from our benchmark runs (e.g., Slither's \texttt{solc-version} detector has near-100\% FP rate on modern contracts), (2)~Solidity version awareness that suppresses integer overflow warnings for contracts using $\geq$0.8 (which has built-in overflow protection), (3)~library detection that recognizes OpenZeppelin and Solmate safe patterns, and (4)~context-aware filters that suppress patterns in benign contexts (e.g., \texttt{block.timestamp} used only in timelock \texttt{require()}, block variables not used for entropy generation, pre-0.8 contracts without actual financial arithmetic). After filtering, the actionable finding count drops to 2--3 per contract on average. Since v5.2.0, the intelligence engine performs semantic deduplication, context-aware FP suppression, and cross-tool Bayesian confidence scoring. A trainable FP classifier (GradientBoosting) is included but awaits a larger labeled auditor corpus for production deployment.
+Precision (22.1\%) remains a usability concern. The latest SmartBugs-curated run reports 481 false positives for 143 contracts, dominated by broad detector categories and informational issues (pragma version, naming conventions). The FP filter addresses this through four mechanisms: (1)~per-detector calibration based on empirical FP rates from our benchmark runs (e.g., Slither's \texttt{solc-version} detector has near-100\% FP rate on modern contracts), (2)~Solidity version awareness that suppresses integer overflow warnings for contracts using $\geq$0.8 (which has built-in overflow protection), (3)~library detection that recognizes OpenZeppelin and Solmate safe patterns, and (4)~context-aware filters that suppress patterns in benign contexts (e.g., \texttt{block.timestamp} used only in timelock \texttt{require()}, block variables not used for entropy generation, pre-0.8 contracts without actual financial arithmetic). After filtering, the actionable finding count drops to 2--3 per contract on average. Since v5.2.0, the intelligence engine performs semantic deduplication, context-aware FP suppression, and cross-tool Bayesian confidence scoring. A trainable FP classifier (GradientBoosting) is included but awaits a larger labeled auditor corpus for production deployment.
 
 \subsection{Analysis of Missed Exploits}
 
@@ -457,7 +457,7 @@ MIESC's practical contribution is making this accessible: \texttt{miesc scan con
 
 The framework's agentic and formal-verification components are designed around the same observation: an isolated LLM verdict or a standalone prover run is rarely sufficient, but combining them---with multi-LLM consensus on critical findings, and with automatically generated specifications that feed directly into provers---tightens the loop between detection and proof. The 2024--2026 Cairo exploit coverage extends this principle to a second ecosystem, encoding concrete lessons from zkLend (\$9.6M) and Braavos into machine-checkable patterns.
 
-Three directions for future work emerge from these results. First, precision needs improvement---the current 2--3 actionable findings per contract after filtering is usable, but the trainable FP classifier included in MIESC is waiting on a labeled auditor corpus to reduce this further. Second, the 11-exploit evaluation should expand to 100+ contracts (including a Starknet/Cairo exploit corpus) to strengthen statistical claims. Third, MIESC v5.3.0 introduced \texttt{miesc fix} for automated text-level remediation---inserting \texttt{nonReentrant} modifiers, access-control guards, and \texttt{SafeERC20} wrapping---with a 100\% hit rate on test contracts, alongside \texttt{miesc compliance} for mapping findings to 12 international standards. Generating Foundry test harnesses from exploit scenarios to formally verify that each fix discharges the original CVL rule remains future work.
+Three directions for future work emerge from these results. First, precision needs improvement---the current 2--3 actionable findings per contract after filtering is usable, but the trainable FP classifier included in MIESC is waiting on a labeled auditor corpus to reduce this further. Second, the 11-exploit evaluation should expand to 100+ contracts (including a Starknet/Cairo exploit corpus) to strengthen statistical claims. Third, MIESC v5.3.0 introduced \texttt{miesc fix} for automated text-level remediation---inserting \texttt{nonReentrant} modifiers, access-control guards, and \texttt{SafeERC20} wrapping; detailed remediation metrics (apply, compile, and vulnerability-elimination rates) are reported separately in the companion remediation study, alongside \texttt{miesc compliance} for mapping findings to 12 international standards. Generating Foundry test harnesses from exploit scenarios to formally verify that each fix discharges the original CVL rule remains future work.
 
 MIESC is available under AGPL-3.0 (see \emph{Data Availability}).
 
