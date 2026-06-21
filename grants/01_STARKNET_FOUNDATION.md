@@ -86,8 +86,8 @@ coverage.
   rules from findings; `miesc verify` executes them.
 - **Automated fix pipeline**: 87% of fixes applied, 63% compile, 84%
   eliminate the vulnerability, 0% regression.
-- **Benchmarks with honest framing**: 96.5% recall on SmartBugs-curated
-  (static+intelligence layers), ~98.6% with LLM; 92.5% ensemble recall
+- **Benchmarks with honest framing**: 95.8% recall on SmartBugs-curated
+  (static+intelligence layers, 137/143), 97.9% with a local Ollama follow-up; 92.5% ensemble recall
   on EVMBench (#1, beating Cecuro at 87.7%); 81.8% recall on 11
   confirmed DeFi exploits totalling $3.3B in losses, Cohen's κ = 0.77.
 - **Two academic papers**: Paper 1 on multi-layer evaluation methodology

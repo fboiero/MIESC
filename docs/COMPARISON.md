@@ -53,7 +53,7 @@ Each finding includes plain-English `llm_insights` explaining business impact (w
 - CSV (for spreadsheets)
 
 ### 5. Real-world exploit recall
-On 11 historical DeFi exploits ($3.3B in losses), MIESC achieves **81.8% recall** (Cohen's κ = 0.77) — higher than any single tool measured in [Durieux et al. ICSE 2020](https://doi.org/10.1145/3377811.3380364) (best single tool: Slither 43.2%). On SmartBugs-curated (143 contracts), static + intelligence engine achieves **96.5% recall** (~98.6% with LLM layer), with 8/10 categories at 100%.
+On 11 historical DeFi exploits ($3.3B in losses), MIESC achieves **81.8% recall** (Cohen's κ = 0.77) — higher than any single tool measured in [Durieux et al. ICSE 2020](https://doi.org/10.1145/3377811.3380364) (best single tool: Slither 43.2%). On SmartBugs-curated (143 contracts), static + intelligence engine achieves **95.8% recall** (137/143; reproducible Paper 1 profile), with a local Ollama follow-up reported at 97.9% (140/143) as a secondary claim.
 
 ### 6. Defense-in-depth
 9 complementary layers (static, symbolic, fuzzing, formal verification, AI/LLM, pattern detection, DeFi-specific, exploit validation, consensus). No single competitor covers all of these.

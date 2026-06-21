@@ -10,6 +10,8 @@
 
 <p align="center">
   <a href="https://pypi.org/project/miesc/"><img src="https://img.shields.io/pypi/v/miesc?color=blue&label=PyPI" alt="PyPI"></a>
+  <a href="https://pepy.tech/project/miesc"><img src="https://static.pepy.tech/badge/miesc/month" alt="Downloads"></a>
+  <a href="https://pypi.org/project/miesc/"><img src="https://img.shields.io/pypi/pyversions/miesc" alt="Python"></a>
   <a href="https://github.com/fboiero/MIESC/actions/workflows/ci.yml"><img src="https://github.com/fboiero/MIESC/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://codecov.io/gh/fboiero/MIESC"><img src="https://codecov.io/gh/fboiero/MIESC/graph/badge.svg" alt="Coverage"></a>
   <a href="https://securityscorecards.dev/viewer/?uri=github.com/fboiero/MIESC"><img src="https://api.securityscorecards.dev/projects/github.com/fboiero/MIESC/badge" alt="OpenSSF"></a>
@@ -36,7 +38,33 @@ pip install miesc
 miesc scan MyContract.sol
 ```
 
-Eso es todo. MIESC ejecuta Slither + Aderyn + Solhint y te entrega un reporte unificado en segundos.
+Eso es todo. MIESC ejecuta Slither + Aderyn + Solhint, deduplica los hallazgos y te entrega un reporte unificado con puntuaciones de confianza en segundos.
+
+### Pipeline completo: detectar → corregir → verificar → cumplir
+
+```bash
+miesc scan contract.sol -o results.json           # Detección + inteligencia
+miesc fix results.json -c contract.sol -o fixed.sol  # Parcheo automático de vulnerabilidades
+miesc remediate results.json -c contract.sol --compile --rescan  # Parche + paquete de evidencia
+miesc verify fixed.sol --tool smtchecker           # Probar que la corrección funciona
+miesc compliance results.json --standard mica      # Mapear a MiCA/DORA/ISO 27001
+miesc report results.json -t premium -f pdf        # Reporte de auditoría profesional
+```
+
+### Pipeline de investigación actual: Motor de Inteligencia
+
+```bash
+miesc scan contract.sol --verbose                  # Confianza + corrección por hallazgo
+miesc scan contracts/ --recursive                  # Escaneo de directorios
+miesc scan . --diff origin/main                    # Nivel PR: solo archivos modificados
+```
+
+El motor de inteligencia automáticamente:
+- **Deduplica** hallazgos entre herramientas (Slither + Aderyn reportan el mismo bug → 1 hallazgo)
+- **Puntúa la confianza** mediante acuerdo bayesiano multi-herramienta (2 herramientas = 85%, 3 = 95%)
+- **Genera código de corrección** — parches de Solidity listos para copiar y pegar para 10 categorías de vulnerabilidades
+- **Suprime falsos positivos** — sensible al contexto (onlyOwner, Solidity 0.8+, guardas de OpenZeppelin)
+- **Calibra la severidad** entre herramientas (Aderyn LOW → Medium cuando corresponde)
 
 ¿Querés el análisis completo de 9 capas con correlación por IA?
 
@@ -86,7 +114,7 @@ Report saved to results.json
 
 ## Por Qué MIESC
 
-**El problema**: Las auditorías profesionales de smart contracts cuestan entre $50K y $200K y llevan semanas. Mientras tanto, se pierden más de $1,500M al año por exploits. La mayoría de los proyectos salen a producción sin ninguna auditoría. Ejecutar Slither solo detecta ~70% de las vulnerabilidades con un 15-20% de falsos positivos. Cada herramienta tiene puntos ciegos. Los auditores ejecutan manualmente 5-10 herramientas, normalizan las salidas y correlacionan los hallazgos. Esto lleva horas.
+**El problema**: Las auditorías profesionales de smart contracts cuestan entre $50K y $200K y llevan semanas. Mientras tanto, se pierden más de $1.5B al año por exploits. La mayoría de los proyectos salen a producción sin ninguna auditoría. Ejecutar Slither solo detecta ~70% de las vulnerabilidades con un 15-20% de falsos positivos. Cada herramienta tiene puntos ciegos. Los auditores ejecutan manualmente 5-10 herramientas, normalizan las salidas y correlacionan los hallazgos. Esto lleva horas.
 
 **MIESC hace accesible ese flujo de trabajo para todos.** Un comando orquesta múltiples herramientas de seguridad a través de 9 técnicas de análisis complementarias, deduplica hallazgos y genera reportes profesionales. Gratuito, open-source, se ejecuta localmente — tu código nunca sale de tu máquina.
 
@@ -94,11 +122,18 @@ Report saved to results.json
 
 **SmartBugs-curated** (143 contratos, 207 vulnerabilidades ground-truth):
 
-| Métrica | Slither solo | Mythril solo | MIESC (estático) | MIESC (todas las capas) |
-|---------|:------------:|:------------:|:----------------:|:-----------------------:|
-| Recall | 43.2% | 27.4% | 54.6% | **80.0%** |
-| Precisión | 8.3% | 6.1% | 9.3% | 22.7% |
-| F1-Score | 13.9% | 10.0% | 15.9% | **35.4%** |
+| Métrica | Slither solo | Mythril solo | Perfil reproducible MIESC Paper 1 | Alcance de la evidencia |
+|---------|:------------:|:------------:|:---------------------------------:|:------------------------|
+| Recall | 43.2% | 27.4% | **95.8%** | Corpus completo SmartBugs-curated |
+| Precisión | 8.3% | 6.1% | **22.2%** | Corpus completo SmartBugs-curated |
+| F1-Score | 13.9% | 10.0% | **36.0%** | Corpus completo SmartBugs-curated |
+
+El resultado sobre el corpus completo de SmartBugs es el perfil reproducible del
+Paper 1. Un seguimiento local con Ollama sobre los casos no detectados restantes
+se reporta en el Paper 1 como 140/143 (97.9%) y debe tratarse como una afirmación
+de seguimiento secundaria hasta que se publique su propio artefacto de mejora
+legible por máquina. La corrida de 9 capas se reporta por separado como una prueba
+de integración end-to-end (smoke run), no como una afirmación a nivel de corpus.
 
 **Exploits reales** (11 exploits DeFi confirmados, $3.3B en pérdidas totales):
 
@@ -107,11 +142,24 @@ Report saved to results.json
 | Reentrancy | 3 | 3 | **100%** | Euler $197M, Rari $80M, Platypus $8.5M |
 | Access Control | 3 | 3 | **100%** | Parity $280M, Ronin $624M |
 | Flash Loan | 2 | 2 | **100%** | bZx $8.1M, Compound $80M |
-| General | 11 | 9 | **81.8%** | Cohen's Kappa: 0.773 |
+| General | 11 | 9 | **81.8%** | Cohen's Kappa: 0.77 |
 
-> **81.8% recall en exploits reales** — MIESC habría marcado 9 de 11 exploits multimillonarios antes del deploy. [Metodología completa](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md) | [Evaluación de exploits](./benchmarks/evaluate_exploits.py)
+> **81.8% recall en exploits reales** — MIESC habría marcado 9 de 11 exploits multimillonarios antes del deploy. [Reproducibilidad del Paper 1](./paper/PAPER1_REPRODUCIBILITY.md) | [Evaluación de exploits](./benchmarks/evaluate_exploits.py)
 
 **Por qué importa más el recall que la precisión en triaje pre-auditoría**: Alto recall significa menos vulnerabilidades perdidas. Los falsos positivos se filtran en la etapa de triaje — las vulnerabilidades perdidas se convierten en exploits en producción.
+
+### Papers de Investigación y Afirmaciones Reproducibles
+
+MIESC tiene dos líneas de investigación vinculadas. El Paper 1 evalúa la detección y la evaluación de seguridad multi-capa. El Paper 2 extiende esa evidencia hacia artefactos de remediación automática y pasos de verificación independiente. El Paper 2 no reemplaza ni invalida al Paper 1; parte del mismo pipeline de detección y mide qué sucede después de que un hallazgo se convierte en un candidato a parche.
+
+| Paper | Foco | Evidencia reproducible principal | Artefactos |
+|-------|------|----------------------------------|------------|
+| [Paper 1](./paper/miesc-paper.pdf) | Evaluación de seguridad multi-capa de contratos inteligentes | SmartBugs: 95.8% recall en 143 contratos, con un seguimiento local con Ollama reportado en 97.9%; exploits DeFi: 81.8% recall en 11 incidentes; ensemble EVMBench: 111/120 hallazgos de severidad alta, 92.5% recall | [Reproducibilidad](./paper/PAPER1_REPRODUCIBILITY.md), [matriz de afirmaciones](./benchmarks/results/paper1_claims_matrix.json) |
+| [Paper 2](./paper/paper2-remediation.pdf) | Artefactos de remediación verificables | 141/143 correcciones aplicadas; 90/141 contratos parcheados standalone compilan; 93/141 eliminan el hallazgo original por re-escaneo; 91/141 pasan no-regresión acotada | [Reproducibilidad](./paper/PAPER2_REPRODUCIBILITY.md), [matriz de afirmaciones](./benchmarks/results/paper2_claims_matrix.json), [auditoría del experimento](./benchmarks/results/paper2_experiment_audit.json) |
+
+Para citación y revisión de investigación, las afirmaciones canónicas actuales son los dos PDFs de los papers, sus notas de reproducibilidad y los archivos `benchmarks/results/paper*_claims_matrix.json`. El plan de alineación de plataforma mapea estos resultados de los papers a los requisitos de los flujos de trabajo de CLI, API, MCP, RAG y remediación: [Aprendizajes de los papers y alineación de plataforma](./docs/roadmap/PAPER_LEARNINGS_PLATFORM_ALIGNMENT.md). La selección y ponderación de fuentes RAG se rige por la [política de fuentes RAG](./docs/guides/RAG_SOURCE_POLICY.md). Las notas de versiones anteriores, borradores de tesis y documentos de hoja de ruta se conservan para la historia del proyecto y pueden contener corridas de benchmark previas o métricas específicas de versión.
+
+La limpieza de deuda técnica actual y el trabajo de plataforma pendiente se siguen en el [plan de remediación de deuda técnica](./docs/roadmap/TECHNICAL_DEBT_REMEDIATION_PLAN.md).
 
 ### Las 9 Capas de Defensa
 
@@ -133,8 +181,8 @@ Capa 9  Consenso y Reportes      Consenso Bayesiano, Enriquecimiento RAG, Report
 
 | Categoría | Cantidad | Ejemplos |
 |-----------|:--------:|---------|
-| **Herramientas externas** | 13 | Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, Semgrep |
-| **Módulos de análisis LLM** | 6 | SmartLLM, GPTScan, PropertyGPT (via Ollama local) |
+| **Herramientas de seguridad externas** | 13 | Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, Semgrep |
+| **Módulos de análisis LLM** | 6 | SmartLLM, GPTScan, PropertyGPT (vía Ollama local) |
 | **Analizadores internos** | 16 | MEV detector, gas analyzer, threat model, clone detector |
 | **Total de módulos de análisis** | **35** | A través de 9 técnicas complementarias |
 
@@ -170,7 +218,7 @@ jobs:
   miesc:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - uses: fboiero/MIESC@v5
         with:
           path: contracts/
@@ -187,7 +235,7 @@ Los resultados aparecen en la pestaña **Security** de GitHub y como comentario 
 | Modo | Herramientas | Tiempo | Caso de Uso |
 |------|--------------|--------|-------------|
 | `scan` | Slither, Aderyn, Solhint | ~30s | Cada push |
-| `audit-quick` | 3 herramientas core | ~2min | Checks de PR |
+| `audit-quick` | 4 herramientas core | ~2min | Checks de PR |
 | `audit-full` | Las 9 capas | ~10min | Pre-release |
 | `audit-profile` | Configurable | Variable | DeFi, tokens, etc. |
 
@@ -202,7 +250,7 @@ pip install miesc
 # Con reportes PDF
 pip install miesc[pdf]
 
-# Todo incluido para analisis local (PDF, LLM, RAG, APIs)
+# Todo incluido para análisis local (PDF, LLM, RAG, APIs)
 pip install miesc[full]
 
 # Desarrollo
@@ -212,9 +260,63 @@ cd MIESC && pip install -e .[dev]
 
 Requisitos: Python 3.12+. Slither se instala automáticamente. Las demás herramientas son opcionales — MIESC usa las que estén disponibles.
 
+Para una estación de trabajo completa de investigador con Mythril, Manticore, Certora CLI, Wake, Semgrep y herramientas de verificación formal aisladas:
+
+```bash
+git clone https://github.com/fboiero/MIESC.git
+cd MIESC
+./scripts/bootstrap_researcher_tools.sh
+make researcher-smoke
+```
+
+Consultá la [Guía de Empaquetado para Investigadores](./docs/guides/RESEARCHER_PACKAGING.md) para el modelo de distribución recomendado de PyPI + Docker + bootstrap local.
+
+---
+
+## Soporte Multi-Chain
+
+```bash
+miesc analyze Token.sol           # Auto-detecta EVM (Solidity/Vyper)
+miesc analyze Vault.cairo         # Starknet/Cairo (13 tipos de vuln, basado en zkLend)
+miesc analyze Program.rs          # Solana/Anchor (22 tipos de vuln)
+miesc analyze Module.move         # Move/Sui/Aptos (19 tipos de vuln)
+```
+
+**77 tipos de vulnerabilidades** en 4 ecosistemas, basados en exploits reales de 2024-2026 (zkLend $9.6M, Braavos, Wormhole $326M, Ronin $624M).
+
+Detección de vulnerabilidades en bridges:
+```bash
+miesc scan Bridge.sol             # Detecta 7 patrones de exploits en bridges
+```
+
+---
+
+## Todos los Comandos
+
+| Comando | Descripción |
+|---------|-------------|
+| `miesc scan` | Escaneo rápido (3 herramientas + motor de inteligencia) |
+| `miesc scan --diff HEAD~1` | **NUEVO** Nivel PR: solo archivos .sol modificados |
+| `miesc scan contracts/` | **NUEVO** Escaneo de directorios (+ `--recursive`) |
+| `miesc audit quick\|full` | Auditoría multi-capa (3 herramientas rápidas o stack configurado de 9 capas) |
+| `miesc fix results.json` | Auto-genera archivos .sol parcheados |
+| `miesc remediate results.json` | **NUEVO** Genera archivos parcheados más evidencia de compilación/re-escaneo |
+| `miesc verify contract.sol` | Ejecuta probadores Certora/Halmos/SMTChecker |
+| `miesc compliance results.json` | **NUEVO** Mapea a ISO/NIST/MiCA/DORA |
+| `miesc report results.json` | Reporte profesional en PDF/HTML/Markdown |
+| `miesc specs results.json` | Genera specs Certora CVL / Scribble |
+| `miesc export results.json` | Exportación SARIF (GitHub), CSV, HTML |
+| `miesc analyze contract.cairo` | Análisis multi-chain |
+| `miesc doctor` | Verificar disponibilidad de herramientas |
+| `miesc watch contracts/` | Observación de archivos en vivo + auto-escaneo |
+
 ---
 
 ## Docker
+
+El estado de la versión, los enlaces a los artefactos publicados, el digest de GHCR
+y los comandos de smoke-test para la versión actual 5.4.2 están registrados en
+[Estado de la Versión MIESC 5.4.2](./docs/policies/RELEASE_STATUS_5.4.2.md).
 
 ```bash
 # Imagen estándar (~3GB, multi-arch incluyendo Apple Silicon)
@@ -230,41 +332,86 @@ docker run --rm ghcr.io/fboiero/miesc:latest doctor
 ```
 
 <details>
-<summary><strong>Docker + Ollama para reportes PDF con IA</strong></summary>
+<summary><strong>Docker + Ollama en el host (recomendado para aceleración por GPU)</strong></summary>
+
+Las capas LLM de MIESC (Capa 5) usan Ollama para el análisis local con IA. La configuración recomendada ejecuta Ollama en tu máquina host (con acceso a GPU) y conecta el contenedor Docker por red:
 
 ```bash
-# 1. Iniciar Ollama y descargar el modelo
+# 1. Instalar e iniciar Ollama en tu HOST (no dentro de Docker)
+# Descargá desde https://ollama.com
 ollama serve &
-ollama pull mistral:latest
+ollama pull qwen2.5-coder:14b   # Mejor modelo para análisis de código
+ollama pull deepseek-coder:6.7b  # Alternativa más liviana
 
-# 2. Auditoría completa
-docker run --rm -v $(pwd):/contracts \
-  ghcr.io/fboiero/miesc:full \
-  audit full /contracts/MyContract.sol -o /contracts/results.json
-
-# 3. Generar reporte premium en PDF con interpretación IA
+# 2. Escanear con Ollama del host (macOS)
 docker run --rm \
   -e OLLAMA_HOST=http://host.docker.internal:11434 \
-  -v $(pwd):/contracts \
+  -v $(pwd)/contracts:/contracts \
+  ghcr.io/fboiero/miesc:latest \
+  scan /contracts/MyContract.sol -o /contracts/results.json
+
+# 3. Escanear con Ollama del host (Linux)
+docker run --rm --network=host \
+  -e OLLAMA_HOST=http://localhost:11434 \
+  -v $(pwd)/contracts:/contracts \
+  ghcr.io/fboiero/miesc:latest \
+  scan /contracts/MyContract.sol
+
+# 4. Generar reporte premium en PDF con IA
+docker run --rm \
+  -e OLLAMA_HOST=http://host.docker.internal:11434 \
+  -v $(pwd):/work \
   ghcr.io/fboiero/miesc:full \
-  report /contracts/results.json -t premium -f pdf \
-    --llm-interpret \
-    --client "Your Client" \
-    --auditor "Your Name" \
-    -o /contracts/audit_report.pdf
+  report /work/results.json -t premium -f pdf \
+    --llm-interpret -o /work/audit_report.pdf
 ```
 
-El reporte premium incluye puntuación CVSS, matriz de riesgo, escenarios de ataque, recomendación de despliegue (GO/NO-GO) y hoja de ruta de remediación generada por IA. Comparable al estilo de reportes de Trail of Bits / OpenZeppelin.
+**¿Por qué Ollama en el host?** Los contenedores Docker no tienen acceso a GPU por defecto. Ejecutar Ollama en el host le permite usar tu GPU (Apple Silicon, NVIDIA CUDA) para una inferencia LLM 10-50x más rápida.
+
+</details>
+
+<details>
+<summary><strong>Docker Compose (stack completo con Ollama incluido)</strong></summary>
+
+Para entornos sin un Ollama en el host, usá docker-compose para ejecutar todo junto:
+
+```bash
+# Iniciar MIESC + Ollama + inicialización del modelo
+docker compose -f docker/docker-compose.yml --profile llm up -d
+
+# Ejecutar análisis
+docker compose -f docker/docker-compose.yml exec miesc miesc scan /app/contracts/MyContract.sol
+
+# Detener
+docker compose -f docker/docker-compose.yml down
+```
+
+El stack de compose descarga automáticamente `deepseek-coder:6.7b` y configura la red entre servicios.
 
 </details>
 
 <details>
 <summary><strong>Notas para ARM / Apple Silicon</strong></summary>
 
-La imagen **estándar** corre nativamente en ARM. La imagen **completa** es solo amd64 en el registro (corre bajo emulación QEMU). Para compilar nativamente:
+La imagen **estándar** corre nativamente en ARM. La imagen **completa** del registro está pensada como amd64 para máxima paridad de herramientas. Las builds nativas ARM de la imagen completa omiten Echidna, Medusa, Mythril, Manticore, Halmos y Semgrep por defecto, porque sus releases upstream son solo amd64, requieren largas compilaciones de Z3 desde el código fuente, o publican wheels ARM que no son confiables en Docker. Compilá nativamente con:
 
 ```bash
-./scripts/build-images.sh full  # ~30-60 min, pero velocidad nativa
+./scripts/build-images.sh full
+```
+
+Para paridad completa de estación de trabajo ARM, preferí el bootstrap local:
+
+```bash
+./scripts/bootstrap_researcher_tools.sh
+```
+
+Para forzar builds nativas ARM de Mythril, Manticore, Halmos o Semgrep dentro de Docker:
+
+```bash
+MIESC_BUILD_MYTHRIL=true ./scripts/build-images.sh full
+MIESC_BUILD_MANTICORE=true ./scripts/build-images.sh full
+MIESC_BUILD_HALMOS=true ./scripts/build-images.sh full
+MIESC_BUILD_SEMGREP=true ./scripts/build-images.sh full
 ```
 
 </details>
@@ -340,7 +487,7 @@ miesc detectors list                         # Listar todos los detectores dispo
 # Pre-commit hook (.pre-commit-config.yaml)
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v5.4.2
+    rev: v5.4.3
     hooks:
       - id: miesc-quick
         args: ['--ci']
@@ -360,25 +507,40 @@ module.exports = {
 };
 ```
 
-### Servidor MCP
+### Servidor MCP (Claude Desktop / Cursor / Claude Code)
 
-MIESC se integra con agentes de IA a través del [Model Context Protocol](https://modelcontextprotocol.io):
+MIESC expone su análisis de seguridad de 9 capas como herramientas MCP a través del [Model Context Protocol](https://modelcontextprotocol.io):
 
 ```bash
-miesc server mcp  # Iniciar servidor MCP WebSocket
+pip install 'miesc[mcp]'   # Instalar con soporte MCP
+miesc-mcp                   # Iniciar servidor MCP stdio
 ```
 
+Agregalo a tu `config.json` de Claude Desktop:
+
 ```json
-// Claude Desktop / Configuración de cliente MCP
 {
   "mcpServers": {
     "miesc": {
-      "command": "miesc",
-      "args": ["server", "mcp"]
+      "command": "miesc-mcp",
+      "env": {"OLLAMA_HOST": "http://localhost:11434"}
     }
   }
 }
 ```
+
+**Herramientas MCP disponibles:** `miesc_quick_scan`, `miesc_deep_scan`, `miesc_deep_audit`, `miesc_run_tool`, `miesc_run_layer`, `miesc_analyze_defi`, `miesc_apply_fix`, `miesc_validate_remediation`, `miesc_remediation_evidence_bundle`, `miesc_list_tools`, `miesc_doctor`
+
+### Remediación vía API REST
+
+La API expone el mismo esquema de evidencia de remediación que la CLI:
+
+| Endpoint | Propósito |
+|----------|-----------|
+| `POST /api/v1/remediate/` | Aplica candidatos de corrección y devuelve un paquete de evidencia |
+| `POST /api/v1/validate-remediation/` | Aplica correcciones con validación de compilación/re-escaneo habilitada por defecto |
+
+Ejemplos: [Guía de API de remediación y MCP](./docs/guides/REMEDIATION_API_MCP.md).
 
 ### API Python
 
@@ -398,8 +560,8 @@ python -m src.utils.web_dashboard --results analysis/results --output analysis/d
 ```
 
 El core abierto expone automatización local REST/MCP y generación de reportes
-estáticos. La UI hospedada de producto, dashboards de equipo, licenciamiento y
-clientes IDE viven ahora en la capa de plataforma.
+estáticos. La UI hospedada de producto, dashboards de equipo, el flujo de
+licenciamiento y los clientes IDE viven ahora en la capa de plataforma.
 
 ---
 
@@ -441,7 +603,7 @@ Contract.sol
  CLI / API / MCP / GitHub Action
     |
     v
- Orquestador --> 9 Capas --> 50 Adaptadores de Herramientas
+ Orquestador --> 9 Capas --> Stack de Adaptadores Configurado
     |
     v
  Agregador de Hallazgos --> Pipeline ML --> Contexto RAG --> Filtro FP
@@ -460,13 +622,15 @@ Consultá [ARCHITECTURE.md](./docs/ARCHITECTURE.md) para el diseño técnico com
 
 ## Validación Académica
 
-MIESC fue desarrollado como tesis de Maestría en Ciberdefensa en [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). Evaluado en el benchmark SmartBugs-curated (Durieux et al., ICSE 2020):
+MIESC fue desarrollado como tesis de Maestría en Ciberdefensa en [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). Las afirmaciones de investigación actuales están consolidadas en el [Paper 1](./paper/miesc-paper.pdf), el [Paper 2](./paper/paper2-remediation.pdf) y sus artefactos de reproducibilidad:
 
 - **143 contratos**, 207 vulnerabilidades ground-truth, 10 categorías
-- **80% recall** (184/230 vulnerabilidades detectadas) — mejor de su clase en orquestación multi-tool
-- **90.6% recall en reentrancy**, 100% en unchecked calls y time manipulation
-- **85% más rápido que ejecutar herramientas manualmente** (~1 seg/contrato)
-- Resultados completos: [SMARTBUGS_SCIENTIFIC_REPORT.md](./benchmarks/results/SMARTBUGS_SCIENTIFIC_REPORT.md)
+- **95.8% recall** en el último perfil reproducible local de SmartBugs sobre el corpus completo; baseline de Slither solo: 43.2%
+- El Paper 1 reporta un seguimiento local con Ollama sobre los casos no detectados restantes de SmartBugs en 140/143 (97.9%); el artefacto reproducible del corpus sigue siendo el perfil JSON de 95.8%.
+- El Paper 1 ahora trata a EVMBench como el benchmark principal de lógica de negocio: el enfoque estático-solo alcanza 22/120 (18.3%), mientras que el ensemble reproducible de cuatro proveedores alcanza 111/120 (92.5%)
+- El Paper 2 evalúa artefactos de remediación: 141/143 correcciones aplicadas, 90/141 contratos parcheados compilan standalone, 93/141 eliminan el hallazgo original por re-escaneo y 91/141 pasan no-regresión acotada
+- El perfil reproducible de SmartBugs corre en 737.0s en total (~5.15 seg/contrato)
+- Resultados canónicos: [Reproducibilidad del Paper 1](./paper/PAPER1_REPRODUCIBILITY.md), [Reproducibilidad del Paper 2](./paper/PAPER2_REPRODUCIBILITY.md), [matriz de afirmaciones del Paper 1](./benchmarks/results/paper1_claims_matrix.json), [matriz de afirmaciones del Paper 2](./benchmarks/results/paper2_claims_matrix.json)
 
 Si usás MIESC en investigación, por favor citá:
 
@@ -510,13 +674,68 @@ El proyecto cumple plenamente con los 9 indicadores de la DPGA: licencia abierta
 | [Guía de Instalación](./docs/INSTALLATION.md) | Instrucciones completas de configuración |
 | [Inicio Rápido](./docs/guides/QUICKSTART.md) | Funcionando en 5 minutos |
 | [Arquitectura](./docs/ARCHITECTURE.md) | Diseño técnico y detalle de capas |
-| [Referencia de Herramientas](./docs/TOOLS.md) | Las 50 herramientas y sus capacidades |
+| [Referencia de Herramientas](./docs/TOOLS.md) | Los 35 módulos de análisis y sus capacidades |
 | [Guía de Reportes](./docs/guides/REPORTS.md) | Plantillas y personalización de reportes |
 | [Detectores Personalizados](./docs/CUSTOM_DETECTORS.md) | Construí tus propios detectores |
 | [Multi-Chain](./docs/MULTICHAIN.md) | Análisis de cadenas no-EVM |
 | [Referencia de API](https://fboiero.github.io/MIESC/api/) | Auto-generada desde docstrings |
-| [Contribuir](./CONTRIBUTING.md) | Guías de desarrollo |
-| [Hoja de Ruta](./ROADMAP.md) | Próximos pasos |
+| [Contribuir](./.github/CONTRIBUTING.md) | Guías de desarrollo |
+| [Hoja de Ruta](./docs/ROADMAP.md) | Próximos pasos |
+
+---
+
+## Troubleshooting
+
+<details>
+<summary><strong>Problemas Comunes</strong></summary>
+
+**`miesc: command not found`**
+Después de `pip install miesc`, el punto de entrada puede no estar en tu PATH. Usá:
+```bash
+python3 -m miesc.cli.main --help
+```
+O agregá `~/.local/bin` (o el `bin` de tu venv) a tu PATH.
+
+**`Tool 'mythril' not installed`**
+Las herramientas opcionales deben instalarse por separado. Podés:
+```bash
+pip install miesc[full]              # Todas las herramientas basadas en Python
+brew install mythril                 # Instalación del sistema
+docker run ghcr.io/fboiero/miesc:full  # O usá la imagen Docker completa
+```
+
+**`Ollama API error: HTTP 404` o el análisis LLM devuelve vacío**
+El modelo requerido no fue descargado. Ejecutá:
+```bash
+ollama pull qwen2.5-coder:14b   # ~9 GB, recomendado
+ollama pull qwen2.5-coder:32b   # ~20 GB, más preciso (necesita 24+GB de RAM)
+```
+Verificá que Ollama esté corriendo: `curl http://localhost:11434/api/tags`
+
+**El contenedor Docker no puede alcanzar Ollama en el host (macOS)**
+```bash
+docker run -e OLLAMA_HOST=http://host.docker.internal:11434 ...
+```
+En Linux, usá `--network=host` y `OLLAMA_HOST=http://localhost:11434`.
+
+**Slither falla con `solc not found` o desajuste de versión**
+Instalá solc-select:
+```bash
+pip install solc-select
+solc-select install 0.4.26 0.5.17 0.8.20
+```
+
+**La generación de reportes PDF falla (errores de `weasyprint`)**
+WeasyPrint necesita librerías del sistema:
+```bash
+brew install pango cairo gdk-pixbuf libffi   # macOS
+sudo apt install libpango-1.0-0 libpangoft2-1.0-0  # Linux
+```
+
+**`miesc audit full` corre lento (>10 min por contrato)**
+Modelos LLM pesados (32B) en contratos pequeños. Usá `qwen2.5-coder:14b` en `~/.miesc/config.yaml` o ejecutá un escaneo rápido: `miesc audit quick`.
+
+</details>
 
 ---
 
@@ -525,10 +744,11 @@ El proyecto cumple plenamente con los 9 indicadores de la DPGA: licencia abierta
 ```bash
 git clone https://github.com/fboiero/MIESC.git
 cd MIESC && pip install -e .[dev]
-pytest tests/  # 4,700+ tests
+pytest tests/ --no-cov              # Corrida local rápida
+pytest tests/ --cov=src --cov-report=term-missing  # Corrida con cobertura
 ```
 
-Consultá [CONTRIBUTING.md](./CONTRIBUTING.md) para las guías. [CONTRIBUTING_ES.md](./CONTRIBUTING_ES.md) disponible en español.
+Consultá [CONTRIBUTING.md](./.github/CONTRIBUTING.md) para las guías. [CONTRIBUTING_ES.md](./.github/CONTRIBUTING_ES.md) disponible en español.
 
 ---
 
@@ -541,3 +761,5 @@ Consultá [CONTRIBUTING.md](./CONTRIBUTING.md) para las guías. [CONTRIBUTING_ES
 **Fernando Boiero** - Tesis de Maestría en Ciberdefensa, UNDEF-IUA Argentina
 
 Construido sobre los hombros de: [Slither](https://github.com/crytic/slither), [Mythril](https://github.com/ConsenSys/mythril), [Echidna](https://github.com/crytic/echidna), [Foundry](https://github.com/foundry-rs/foundry), [Aderyn](https://github.com/Cyfrin/aderyn), [Halmos](https://github.com/a16z/halmos), y la comunidad de seguridad de Ethereum.
+</content>
+</invoke>

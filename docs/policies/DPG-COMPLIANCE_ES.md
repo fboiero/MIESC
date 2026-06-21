@@ -16,11 +16,15 @@ Este documento demuestra el cumplimiento de MIESC con el [Estándar de Bienes P�
 
 | Campo | Valor |
 |-------|-------|
-| **ID de Aplicación** | GID0092948 |
+| **Aplicación DPGA** | [#13478](https://app.digitalpublicgoods.net/a/13478) |
+| **GID (ID Global)** | GID0092948 |
 | **Fecha de Envío** | 5 de Diciembre, 2025 |
-| **Estado** | En Revisión |
-| **Revisión Esperada** | 4-8 semanas |
+| **Estado** | En Revisión (enviada el 2025-12-05) |
 | **Contacto** | Bolaji Ayodeji (Evangelista DPG) |
+
+> Los dos identificadores corresponden al mismo envío: **13478** es el número de
+> aplicación DPGA (usado en la URL de app.digitalpublicgoods.net) y
+> **GID0092948** es su ID Global (GID). No son una discrepancia.
 
 ---
 
@@ -389,8 +393,8 @@ Ver: [GOVERNANCE_ES.md](./GOVERNANCE_ES.md)
 Este documento sirve como la aplicación de MIESC para reconocimiento como Bien Público Digital bajo el Estándar DPGA v1.1.6.
 
 **Enviado por**: Fernando Boiero
-**Fecha**: Diciembre 2024
-**Versión**: 1.0
+**Envío DPGA**: 5 de Diciembre de 2025 (aplicación #13478 / GID0092948)
+**Última actualización**: Junio 2026
 
 ---
 

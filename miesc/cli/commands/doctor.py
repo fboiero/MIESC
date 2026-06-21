@@ -211,7 +211,7 @@ def doctor(verbose: bool) -> None:
         # Recommendations
         console.print("\n[bold]Quick Start:[/bold]")
         console.print(
-            "  [cyan]miesc scan contract.sol[/cyan]              # Static + intelligence (99.3% SmartBugs recall)"
+            "  [cyan]miesc scan contract.sol[/cyan]              # Static + intelligence (95.8% SmartBugs recall)"
         )
         console.print(
             "  [cyan]miesc scan contract.sol --model ollama[/cyan]  # + Local LLM (semantic coverage)"

@@ -16,11 +16,15 @@ This document demonstrates MIESC's compliance with the [Digital Public Goods Sta
 
 | Field | Value |
 |-------|-------|
-| **Application ID** | GID0092948 |
+| **DPGA Application** | [#13478](https://app.digitalpublicgoods.net/a/13478) |
+| **GID (Global ID)** | GID0092948 |
 | **Submission Date** | December 5, 2025 |
-| **Status** | Under Review |
-| **Expected Review** | 4-8 weeks |
+| **Status** | Under Review (submitted 2025-12-05) |
 | **Contact** | Bolaji Ayodeji (DPG Evangelist) |
+
+> The two identifiers refer to the same submission: **13478** is the DPGA
+> application number (used in the app.digitalpublicgoods.net URL), and
+> **GID0092948** is its Global ID (GID). They are not a mismatch.
 
 ---
 
@@ -387,8 +391,8 @@ See: [GOVERNANCE.md](./GOVERNANCE.md)
 This document serves as MIESC's application for recognition as a Digital Public Good under the DPGA Standard v1.1.6.
 
 **Submitted by**: Fernando Boiero
-**Date**: December 2024
-**Version**: 1.0
+**DPGA submission**: December 5, 2025 (application #13478 / GID0092948)
+**Last updated**: June 2026
 
 ---
 

@@ -342,7 +342,7 @@ def _evaluate_contract(
         result["aggregate"]["all_findings"].extend(layer_findings)
 
     # Intelligence engine: zero-recall pattern detection, cross-tool scoring,
-    # FP suppression. This is what pushes recall from ~50% to 96.5%.
+    # FP suppression. This is what pushes recall from ~50% to 95.8%.
     if use_intelligence:
         intel_start = time.perf_counter()
         try:

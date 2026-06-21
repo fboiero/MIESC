@@ -113,9 +113,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Improved — Benchmark Results
 
-- **SmartBugs recall 80% → 96.5%** — intelligence engine patterns (zero-recall
+- **SmartBugs recall 80% → 95.8%** — intelligence engine patterns (zero-recall
   categories, arithmetic SafeMath detection for pre-0.8) push static+intelligence
-  to 138/143 contracts. With LLM layer: ~98.6% (141/143). 8/10 categories at 100%.
+  to 137/143 contracts (reproducible Paper 1 profile). With a local Ollama
+  follow-up: 97.9% (140/143), reported as a secondary claim.
 
 ### Fixed — Packaging Hotfix + UX Improvements
 

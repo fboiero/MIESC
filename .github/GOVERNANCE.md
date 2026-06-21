@@ -1,6 +1,7 @@
 # MIESC Governance
 
-This document describes the governance model for the MIESC project.
+This is the canonical governance model for the MIESC project. The copy under
+`docs/policies/GOVERNANCE.md` redirects here.
 
 ---
 
@@ -153,7 +154,7 @@ All participants must follow our [Code of Conduct](CODE_OF_CONDUCT.md). Violatio
 
 ### Roadmap
 
-The project roadmap is maintained in [ROADMAP.md](ROADMAP.md) and updated quarterly. Major roadmap changes require:
+The project roadmap is maintained in [ROADMAP.md](../docs/ROADMAP.md) and updated quarterly. Major roadmap changes require:
 
 1. RFC proposal
 2. Community feedback period
@@ -198,7 +199,7 @@ Currently, MIESC does not hold regular community meetings. This may change as th
 
 ## Licensing
 
-All contributions must be compatible with [AGPL-3.0](LICENSE). By contributing, you agree to license your contribution under AGPL-3.0.
+All contributions must be compatible with [AGPL-3.0](../LICENSE). By contributing, you agree to license your contribution under AGPL-3.0.
 
 ---
 
@@ -224,4 +225,4 @@ This governance model is inspired by:
 
 ---
 
-*Last updated: February 2026*
+*Last updated: June 2026*

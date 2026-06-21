@@ -33,8 +33,8 @@ evaluate` with corpus evaluation, ablation studies, experiment cards), a
 plugin system for third-party detectors via PyPI entry points, and JSONL
 export for ML pipelines.
 
-Evaluated on SmartBugs-curated, MIESC achieves **96.5% recall**
-(static+intelligence layers), ~98.6% with LLM enrichment. On EVMBench:
+Evaluated on SmartBugs-curated, MIESC achieves **95.8% recall**
+(static+intelligence layers, 137/143), 97.9% with a local Ollama follow-up. On EVMBench:
 **92.5% ensemble recall** (#1, beating Cecuro at 87.7%). On 11 confirmed
 DeFi exploits totalling $3.3B in losses: 81.8% recall, Cohen's
 κ = 0.77. The automated fix pipeline achieves 87% applied, 63% compile,

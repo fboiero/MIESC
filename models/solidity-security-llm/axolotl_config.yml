@@ -1,0 +1,51 @@
+adapter: lora
+base_model: deepseek-ai/deepseek-coder-6.7b-instruct
+bf16: true
+dataset_prepared_path: last_run_prepared
+datasets:
+- path: data.jsonl
+  type: alpaca
+eval_steps: 100
+flash_attention: true
+fp16: false
+gradient_accumulation_steps: 4
+gradient_checkpointing: true
+group_by_length: false
+is_llama_derived_model: false
+learning_rate: 2.0e-05
+load_in_4bit: true
+load_in_8bit: false
+logging_steps: 10
+lora_alpha: 32
+lora_dropout: 0.05
+lora_r: 16
+lora_target_linear: true
+lora_target_modules:
+- q_proj
+- k_proj
+- v_proj
+- o_proj
+- gate_proj
+- up_proj
+- down_proj
+lr_scheduler: cosine
+micro_batch_size: 4
+model_type: AutoModelForCausalLM
+num_epochs: 3
+optimizer: paged_adamw_32bit
+output_dir: models/solidity-security-llm
+pad_to_sequence_len: true
+sample_packing: true
+save_steps: 100
+save_total_limit: 3
+sequence_len: 2048
+special_tokens:
+  pad_token: <|pad|>
+strict: false
+tf32: false
+tokenizer_type: AutoTokenizer
+train_on_inputs: false
+trust_remote_code: true
+val_set_size: 0.05
+warmup_ratio: 0.1
+weight_decay: 0.01

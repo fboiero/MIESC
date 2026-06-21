@@ -1,5 +1,8 @@
 # Security Policy
 
+This is the canonical security policy for MIESC. Other copies under `docs/`
+redirect here to avoid drift.
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability in MIESC, please report it responsibly.
@@ -41,8 +44,8 @@ Out of scope:
 
 | Version | Supported |
 |---------|-----------|
-| 5.1.x   | Yes       |
-| < 5.0   | No        |
+| 5.4.x   | Yes (current release) |
+| < 5.4   | No        |
 
 ### Recognition
 

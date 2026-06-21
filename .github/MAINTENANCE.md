@@ -18,9 +18,8 @@ This document describes the maintenance policy and release schedule for MIESC.
 
 | Version | Status | Support Until |
 |---------|--------|---------------|
-| 5.1.x | **Current** | Active development |
-| 5.0.x | Maintained | 6 months after 5.2.0 |
-| 4.x | End of Life | No longer supported |
+| 5.4.x | **Current** | Active development |
+| < 5.4 | End of Life | No longer supported |
 
 ### Support Levels
 
@@ -41,7 +40,7 @@ Security vulnerabilities are treated with high priority:
 | Medium | 1 week | 2-4 weeks |
 | Low | 2 weeks | Next minor release |
 
-See [SECURITY.md](docs/policies/SECURITY.md) for reporting vulnerabilities.
+See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 
 ---
 
