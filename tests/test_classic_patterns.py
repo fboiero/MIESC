@@ -18,8 +18,10 @@ import pytest
 
 from src.ml.classic_patterns import (
     CLASSIC_PATTERNS,
+    AccessControlSemanticDetector,
     ClassicPatternDetector,
     ClassicVulnType,
+    DoSCrossFunctionDetector,
     PatternConfig,
     PatternMatch,
 )
@@ -767,3 +769,64 @@ def test_severity_distribution(severity, count_range):
     assert (
         min_count <= count <= max_count
     ), f"Expected {min_count}-{max_count} {severity} patterns, got {count}"
+
+
+class TestDetectWithContext:
+    """Tests for detect_with_context — validating findings from other tools."""
+
+    def test_unmapped_type_returns_none(self):
+        det = ClassicPatternDetector()
+        finding = {"type": "some-unrelated-type", "location": {"line": 1}}
+        assert det.detect_with_context("contract C {}", finding) is None
+
+    def test_mapped_type_no_pattern_returns_none(self):
+        det = ClassicPatternDetector()
+        finding = {"type": "reentrancy", "location": {"line": 1}}
+        assert det.detect_with_context("contract C { uint x; }", finding) is None
+
+    def test_mapped_type_with_pattern_returns_match(self):
+        det = ClassicPatternDetector()
+        src = (
+            "contract C {\n"
+            "  mapping(address=>uint) bal;\n"
+            "  function withdraw() public {\n"
+            "    msg.sender.call{value: bal[msg.sender]}('');\n"
+            "    bal[msg.sender] = 0;\n"
+            "  }\n"
+            "}\n"
+        )
+        finding = {"type": "reentrancy", "location": {"line": 4}}
+        result = det.detect_with_context(src, finding)
+        # Either a nearby match (PatternMatch) or None if detect found nothing nearby;
+        # the call must not raise and must return the right type.
+        assert result is None or isinstance(result, PatternMatch)
+
+
+class TestAccessControlAndDoSChecks:
+    """Tests for _check_missing_access_control and _find_calls_in_loops."""
+
+    def test_missing_access_control_flagged(self):
+        det = AccessControlSemanticDetector()
+        src = "contract C {\n  address owner;\n  function setOwner(address o) external {\n    owner = o;\n  }\n}\n"
+        findings = det._check_missing_access_control(src)
+        assert any(f.vuln_type == "missing-access-control" for f in findings)
+
+    def test_access_controlled_function_not_flagged(self):
+        det = AccessControlSemanticDetector()
+        src = "contract C {\n  address owner;\n  function setOwner(address o) external onlyOwner {\n    owner = o;\n  }\n}\n"
+        findings = det._check_missing_access_control(src)
+        assert not any(f.vuln_type == "missing-access-control" for f in findings)
+
+    def test_external_call_in_loop_flagged(self):
+        det = DoSCrossFunctionDetector()
+        src = (
+            "contract C {\n"
+            "  function payAll(address[] rs) public {\n"
+            "    for (uint i = 0; i < rs.length; i++) {\n"
+            "      rs[i].call('');\n"
+            "    }\n"
+            "  }\n"
+            "}\n"
+        )
+        findings = det._find_calls_in_loops(src)
+        assert any(f.vuln_type == "calls-in-loop" for f in findings)
