@@ -463,6 +463,31 @@ def _insert_comment_block(
     return patched, True
 
 
+def _insert_file_comment_block(source: str, finding_type: str, fix_code: str) -> tuple[str, bool]:
+    """Insert a file-level comment block when no function target is available."""
+    marker = f"MIESC FIX: {finding_type}"
+    if marker in source:
+        return source, False
+
+    comment = f"\n// {marker}\n/* ---- Suggested fix ----\n"
+    for fix_line in fix_code.splitlines():
+        comment += f"   {fix_line}\n"
+    comment += "   ---- end fix ---- */\n"
+
+    masked_lines = _mask_comments(source).splitlines()
+    lines = source.splitlines(keepends=True)
+    insert_after = -1
+    for idx, line in enumerate(masked_lines):
+        stripped = line.strip()
+        if stripped.startswith("pragma ") or stripped.startswith("import "):
+            insert_after = idx
+
+    if insert_after >= 0:
+        lines.insert(insert_after + 1, comment)
+        return "".join(lines), True
+    return comment + source, True
+
+
 # ---------------------------------------------------------------------------
 # Per-finding patch dispatcher
 # ---------------------------------------------------------------------------
@@ -593,6 +618,8 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
     # Generic fallback
     if fix_code and fn_name:
         return _insert_comment_block(source, fn_name, ftype, fix_code, line_hint)
+    if fix_code:
+        return _insert_file_comment_block(source, ftype, fix_code)
 
     return source, False
 

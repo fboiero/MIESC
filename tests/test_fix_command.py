@@ -455,6 +455,20 @@ contract Vault {
         assert "MIESC FIX: timestamp_dependence" in patched
         assert "Avoid block.timestamp for randomness." in patched
 
+    def test_generic_type_without_function_inserts_file_comment_block(self):
+        finding = {
+            "type": "time_manipulation",
+            "location": {"line": 1, "function": "unknown"},
+            "fix_code": "Avoid block.timestamp for ordering-sensitive logic.",
+        }
+
+        patched, changed = apply_fix(SIMPLE_CONTRACT, finding)
+
+        assert changed
+        assert "MIESC FIX: time_manipulation" in patched
+        assert "Avoid block.timestamp for ordering-sensitive logic." in patched
+        assert patched.index("MIESC FIX: time_manipulation") < patched.index("contract Victim")
+
     def test_no_change_when_function_not_found(self):
         finding = {
             "type": "reentrancy",
