@@ -1,129 +1,67 @@
 # MIESC Roadmap
 
-This document outlines the development roadmap for MIESC.
+Development roadmap for MIESC. The authoritative history of shipped changes lives in
+[`CHANGELOG.md`](../CHANGELOG.md); this file looks forward.
 
 ---
 
-## Current Version: 5.4.2
+## Current Version: 5.4.3 (released 2026-05-16)
 
-Released: February 2026
+MIESC is feature-complete and in active maintenance. Highlights of the 5.x line:
 
-### Recent Highlights
+- **Detection**: 9 defense layers, 35 analysis modules; SmartBugs-curated recall **99.3%**
+  (layer-1 + intelligence engine, no LLM); EVMBench 92.5% with a multi-provider ensemble.
+- **Remediation** (`miesc fix`): self-contained find→fix→verify pipeline (Paper 2).
+- **RAG** false-positive filtering, cross-tool Bayesian confidence, agentic deep-audit.
+- **Formal bridge** (`miesc verify`): Certora/Scribble/SMTChecker spec generation.
+- **Multi-chain**: EVM + Cardano/Plutus-Aiken, Algorand/TEAL, Stellar/Soroban, Starknet/Cairo.
+- **Research**: `miesc evaluate` framework, plugin system, two academic papers.
 
-- **RAG System**: 59 vulnerability patterns with O(1) lookup and query caching
-- **Performance**: 50-75% faster analysis with batch search and smart truncation
-- **False Positive Reduction**: RAG-enhanced validation against knowledge base
-- **Real Exploits**: Knowledge base includes Curve ($70M), Euler ($197M), Wormhole ($320M)
-
----
-
-## Short-term (Q1 2026)
-
-### v5.2.0 - Enhanced Analysis
-
-- [ ] Expand vulnerability knowledge base to 80+ patterns
-- [ ] Add support for Solidity 0.8.25+ features
-- [ ] Improve cross-contract analysis
-- [ ] Add custom rule definition via YAML
-
-### v5.3.0 - Multi-chain Production
-
-- [ ] Promote Solana analyzer to beta
-- [ ] Add CosmWasm (Cosmos) support
-- [ ] Improve Move language analysis
-- [ ] Cross-chain bridge vulnerability patterns
+> Versions 5.2.0 → 5.4.3 are **shipped** (see CHANGELOG). An earlier version of this
+> roadmap listed them as future work; corrected 2026-06.
 
 ---
 
-## Medium-term (Q2-Q3 2026)
+## Near-term — Papers v-next + hardening
 
-### v6.0.0 - Enterprise Features
+- **Paper 1 v-next baseline**: detection recall 95.8%→**99.3%** (deterministic
+  detectors close 5 of 6 prior misses). Evidence ready; baseline pending final PDF build
+  and freeze re-tag.
+- **Paper 2 v-next**: restore the patcher compile rate and add independent verification
+  (Slither/SMTChecker/Foundry on patched contracts) to remove re-scan circularity.
+- **Reproducibility**: the benchmark harness reports external-tool crash counts per run;
+  document the unloaded-machine measurement protocol.
+- **Quality**: test coverage at 89% and climbing; ongoing robustness hardening.
 
-- [ ] Team collaboration features
-- [ ] Audit report versioning
-- [ ] Integration with CI/CD platforms (GitHub Actions, GitLab CI)
-- [ ] SaaS deployment option
-- [ ] Custom detector marketplace
+## Medium-term
 
-### Developer Experience
+- Promote additional chain analyzers (Solana, Move/CosmWasm) from experimental to beta.
+- Expand the RAG knowledge base and per-detector calibration.
+- Deeper LLM-ensemble consensus and confidence calibration.
 
-- [ ] VS Code extension
-- [ ] IntelliJ/WebStorm plugin
-- [ ] Real-time analysis feedback
-- [ ] Inline fix suggestions
+## Longer-term — v6.0
 
----
-
-## Long-term (2026-2027)
-
-### Research & Innovation
-
-- [ ] Formal verification integration
-- [ ] AI-powered exploit synthesis for testing
-- [ ] Automated fix generation
-- [ ] Integration with fuzzing frameworks
-
-### Ecosystem
-
-- [ ] Public API for third-party integrations
-- [ ] Community detector registry
-- [ ] Certification program for auditors
-- [ ] Training and documentation platform
+- Enterprise / CI-native workflows and dashboards.
+- Editor integrations (VS Code / JetBrains) with inline fix suggestions.
+- Broader formal-verification integration and a community plugin ecosystem.
 
 ---
 
-## Completed Milestones
+## Completed milestones (summary)
 
-### v5.1.x (Feb 2026)
+Full detail in [`CHANGELOG.md`](../CHANGELOG.md). Historical version-specific plans are
+archived under [`docs/archive/`](archive/).
 
-- [x] RAG system with 59 vulnerability patterns
-- [x] Query caching (5-min TTL, 256-entry LRU)
-- [x] Batch search optimization
-- [x] Premium PDF report generation
-- [x] Docker multi-arch support
-
-### v5.0.x (Jan-Feb 2026)
-
-- [x] CLI refactoring (98.1% code reduction)
-- [x] 15 command modules
-- [x] Multi-chain alpha support
-- [x] Plugin system
-
-### v4.x (2025)
-
-- [x] 50 configured tool adapters across 9 defense layers
-- [x] 9 defense layers
-- [x] MCP protocol support
-- [x] ML-based false positive reduction
+- **5.4.x** — remediation pipeline (Paper 2), research evaluation framework, multi-chain
+  analyzers (Cardano/Algorand/Stellar), PyPI + multi-arch Docker.
+- **5.1–5.3.x** — RAG (59→ patterns) with caching, CLI refactor, plugin system,
+  multi-chain alpha→beta.
+- **4.x (2025)** — 9 defense layers, MCP support, ML-based false-positive reduction.
 
 ---
 
-## Detailed Planning
+## How to influence the roadmap
 
-For detailed technical planning, see:
-
-- [v5.0 Strategy](roadmap/ROADMAP_v5.0_STRATEGY.md)
-- [v4.5 Iterative Plan](roadmap/ROADMAP_v4.5_ITERATIVE.md)
-- [v4.2 Roadmap](roadmap/ROADMAP_v4.2.md)
-
----
-
-## Contributing to the Roadmap
-
-Have ideas for MIESC's future? We'd love to hear from you!
-
-1. Check [GitHub Discussions](https://github.com/fboiero/MIESC/discussions) for existing conversations
-2. Open a [feature request](https://github.com/fboiero/MIESC/issues/new?template=feature_request.md)
-3. Join the community discussion
-
----
-
-## Release Schedule
-
-| Version | Target Date | Focus |
-|---------|-------------|-------|
-| 5.2.0 | Q1 2026 | Enhanced analysis |
-| 5.3.0 | Q2 2026 | Multi-chain beta |
-| 6.0.0 | Q3 2026 | Enterprise features |
-
-*Note: Dates are tentative and subject to change based on community feedback and development progress.*
+Open a [GitHub Discussion](https://github.com/fboiero/MIESC/discussions) or a
+[feature request](https://github.com/fboiero/MIESC/issues/new?template=feature_request.yml).
+See [`GOVERNANCE.md`](../.github/GOVERNANCE.md) for the decision process.
