@@ -35,10 +35,16 @@
 
 ```bash
 pip install miesc
-miesc scan MyContract.sol
+miesc scan examples/contracts/ReentrancyDAO.sol   # bundled vulnerable sample — works immediately
 ```
 
-That's it. MIESC runs Slither + Aderyn + Solhint, deduplicates findings, and gives you a unified report with confidence scores in seconds.
+That's it. MIESC runs the static layer (Slither out-of-box), deduplicates findings, and gives
+you a unified report with confidence scores in seconds.
+
+> First run uses whatever's installed; run **`miesc doctor`** to see all 50 tools and the exact
+> command to add any you want (every extra tool is optional — MIESC degrades gracefully).
+
+📺 **See it in action:** [demo video](https://youtu.be/pLa_McNBRRw) · or replay the terminal cast in [`demo/miesc-demo.cast`](./demo/miesc-demo.cast) (`asciinema play`).
 
 ### Full pipeline: detect → fix → verify → comply
 
@@ -122,11 +128,11 @@ Report saved to results.json
 
 **SmartBugs-curated** (143 contracts, 207 ground-truth vulnerabilities):
 
-| Metric | Slither alone | Mythril alone | MIESC Paper 1 reproducible profile | Evidence scope |
-|--------|:------------:|:-------------:|:---------------------------------:|:--------------|
+| Metric | Slither alone | Mythril alone | **MIESC** | Evidence scope |
+|--------|:------------:|:-------------:|:---------:|:--------------|
 | Recall | 43.2% | 27.4% | **99.3%** | Full SmartBugs-curated corpus (layer-1 + intelligence) |
 | Precision | 8.3% | 6.1% | **26.4%** | Full SmartBugs-curated corpus (layer-1 + intelligence) |
-| F1-Score | 13.9% | 10.0% | **36.0%** | Full SmartBugs-curated corpus |
+| F1-Score | 13.9% | 10.0% | **41.8%** | Full SmartBugs-curated corpus |
 
 The full-corpus SmartBugs result is the reproducible Paper 1 v-next profile
 (layer-1 + intelligence engine, no LLM). Deterministic detectors close 5 of the 6
