@@ -12,6 +12,14 @@ from __future__ import annotations
 import pytest
 
 from src.adapters.smartllm_rag_knowledge import (
+    _get_account_abstraction_knowledge,
+    _get_cross_chain_knowledge,
+    _get_intent_knowledge,
+    _get_l2_knowledge,
+    _get_mev_advanced_knowledge,
+    _get_proxy_knowledge,
+    _get_restaking_knowledge,
+    _get_token_knowledge,
     detect_contract_type,
     get_advanced_knowledge,
     get_all_vulnerability_patterns,
@@ -235,3 +243,49 @@ class TestPatternCount:
         for value in counts.values():
             assert isinstance(value, int)
             assert value >= 0
+
+
+class TestSpecializedKnowledgeBodies:
+    """Each specialized knowledge helper returns a non-empty section."""
+
+    @pytest.mark.parametrize(
+        "fn",
+        [
+            _get_proxy_knowledge,
+            _get_cross_chain_knowledge,
+            _get_token_knowledge,
+            _get_account_abstraction_knowledge,
+            _get_restaking_knowledge,
+            _get_intent_knowledge,
+            _get_l2_knowledge,
+            _get_mev_advanced_knowledge,
+        ],
+    )
+    def test_helper_returns_nonempty(self, fn):
+        out = fn()
+        assert isinstance(out, str)
+        assert len(out.strip()) > 0
+
+
+class TestRelevantKnowledgeDispatch:
+    """get_relevant_knowledge appends the right section per contract type."""
+
+    BASELINE = len(get_relevant_knowledge("contract C { uint x; }"))
+
+    @pytest.mark.parametrize(
+        "keyword",
+        [
+            "uups",            # proxy
+            "wormhole",        # cross-chain bridge
+            "rebase",          # token
+            "paymaster",       # account abstraction
+            "eigenlayer",      # restaking
+            "cowswap",         # intent
+            "arbitrum",        # l2
+            "flashbot",        # mev
+        ],
+    )
+    def test_keyword_adds_knowledge(self, keyword):
+        code = f"contract C {{ /* {keyword} */ uint x; }}"
+        out = get_relevant_knowledge(code)
+        assert len(out) > self.BASELINE  # a specialized section was appended
