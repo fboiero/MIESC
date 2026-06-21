@@ -16,7 +16,7 @@
 Abrir `/Users/fboiero/Documents/GitHub/MIESC/paper/miesc-paper.pdf` y verificar:
 
 - [ ] Afiliación: "Universidad Tecnológica Nacional (UTN), Facultad Regional Villa María"
-- [ ] Email: {fboiero, smussetta, ngcena}@frvm.utn.edu.ar
+- [ ] Email: {fboiero, smussetta}@frvm.utn.edu.ar
 - [ ] 8 páginas, 6 tablas sin texto flotando fuera de lugar
 - [ ] 15 referencias usadas en bibliografía
 - [ ] Números: 13 ext + 22 int = 35 modules, 93 RAG/source documents
@@ -40,7 +40,7 @@ Abrir `/Users/fboiero/Documents/GitHub/MIESC/paper/miesc-paper.pdf` y verificar:
 
 ```
 Title:       MIESC: A Multi-layer Framework for Automated Smart Contract Security Evaluation
-Authors:     Fernando Boiero; Sebastian Norberto Mussetta; Norberto Gaspar Cena (Universidad Tecnológica Nacional, Facultad Regional Villa María)
+Authors:     Fernando Boiero; Sebastian Norberto Mussetta (Universidad Tecnológica Nacional, Facultad Regional Villa María)
 Keywords:    smart contracts, blockchain security, vulnerability detection, static analysis, LLM, RAG
 License:     CC BY 4.0
 ```
@@ -83,7 +83,7 @@ community-driven detector development.
 Primary Category:    cs.SE
 Cross-list:          cs.CR
 Title:               MIESC: A Multi-layer Framework for Automated Smart Contract Security Evaluation
-Authors:             Fernando Boiero; Sebastian Norberto Mussetta; Norberto Gaspar Cena
+Authors:             Fernando Boiero and Sebastian Norberto Mussetta
 Comments:            8 pages, 6 tables, 15 references
 License:             CC BY 4.0
 ```

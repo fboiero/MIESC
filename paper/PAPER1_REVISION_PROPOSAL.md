@@ -3,7 +3,7 @@
 Fecha: 2026-05-06
 
 Estado: aplicado parcialmente y superado por la version reproducible del
-2026-05-06. El paper final usa SmartBugs `1,6,7` con 95.8% recall como perfil
+2026-05-06. El paper final usa SmartBugs `1,6,7` con 93.7% recall como perfil
 full-corpus, EVMBench ensemble 111/120 (92.5%) como evidencia de business
 logic, y un smoke `1..9` como evidencia de integracion completa.
 
@@ -24,14 +24,11 @@ Autores del Paper 1:
   Regional Villa Maria, `fboiero@frvm.utn.edu.ar`.
 - Ing. Sebastian Norberto Mussetta, Universidad Tecnologica Nacional (UTN), Facultad
   Regional Villa Maria, `smussetta@frvm.utn.edu.ar`.
-- Ing. Norberto Gaspar Cena, Universidad Tecnologica Nacional (UTN), Facultad
-  Regional Villa Maria, `ngcena@frvm.utn.edu.ar`.
 
 ORCID:
 
 - Fernando Boiero: `0009-0005-7935-2758`.
 - Sebastian Norberto Mussetta: `0009-0007-8025-9846`.
-- Norberto Gaspar Cena: pendiente/no informado.
 
 Commits y derechos:
 
