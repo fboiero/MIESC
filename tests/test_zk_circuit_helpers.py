@@ -3,13 +3,47 @@ circomspect text parsing, circom pattern analysis) — no external binaries."""
 
 from __future__ import annotations
 
+import json
+import subprocess
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from src.adapters.zk_circuit_adapter import ZKCircuitAdapter, ZKFramework
 
 
 def _adapter():
     return ZKCircuitAdapter()
+
+
+class TestRunCircomspect:
+    def test_json_issues_parsed(self):
+        a = _adapter()
+        payload = {"issues": [
+            {"message": "unconstrained signal", "severity": "warning", "code": "CW01",
+             "span": {"start": {"line": 4}}},
+        ]}
+        proc = MagicMock(returncode=0, stdout=json.dumps(payload), stderr="")
+        with patch("subprocess.run", return_value=proc):
+            out = a._run_circomspect("c.circom")
+        assert len(out) == 1
+        assert out[0]["category"] == "CW01"
+
+    def test_text_fallback_when_not_json(self):
+        a = _adapter()
+        proc = MagicMock(returncode=0, stdout="warning[CW02]: bad signal\n\n", stderr="")
+        with patch("subprocess.run", return_value=proc):
+            out = a._run_circomspect("c.circom")
+        assert any(f["category"] == "CW02" for f in out)
+
+    def test_timeout_returns_empty(self):
+        a = _adapter()
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("circomspect", 120)):
+            assert a._run_circomspect("c.circom") == []
+
+    def test_generic_error_returns_empty(self):
+        a = _adapter()
+        with patch("subprocess.run", side_effect=FileNotFoundError("circomspect")):
+            assert a._run_circomspect("c.circom") == []
 
 
 class TestFrameworkDetection:
