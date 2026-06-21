@@ -23,6 +23,7 @@ from src.ml.defi_patterns import (
     DeFiPatternMatch,
     DeFiVulnerabilityPattern,
     DeFiVulnType,
+    detect_defi_vulnerabilities,
 )
 
 # =============================================================================
@@ -878,3 +879,42 @@ def test_all_enum_types_have_pattern_or_are_pending(vuln_type):
 
     # Either should have pattern or be a known pending type
     assert has_pattern or is_pending, f"{vuln_type} missing from patterns and not in pending types"
+
+
+class TestDefiPatternInfoAndHelpers:
+    """Tests for pattern-info accessors, snippet/line helpers, and module helper."""
+
+    def test_get_pattern_info_returns_known_pattern(self):
+        det = DeFiPatternDetector()
+        info = det.get_pattern_info(DeFiVulnType.FLASH_LOAN_ATTACK)
+        assert info is not None
+        assert info.name
+
+    def test_get_all_patterns_summary(self):
+        det = DeFiPatternDetector()
+        summary = det.get_all_patterns()
+        assert isinstance(summary, dict)
+        assert len(summary) == len(DEFI_VULNERABILITY_PATTERNS)
+        sample = next(iter(summary.values()))
+        for key in ("name", "severity", "description", "indicator_count", "remediation"):
+            assert key in sample
+
+    def test_extract_snippet_returns_context(self):
+        det = DeFiPatternDetector()
+        code = "line0\nline1\nTARGET here\nline3\nline4\n"
+        snippet = det._extract_snippet(code, "TARGET", context_lines=1)
+        assert "TARGET" in snippet
+
+    def test_extract_snippet_missing_match_returns_match(self):
+        det = DeFiPatternDetector()
+        assert det._extract_snippet("some code", "NOT_PRESENT") == "NOT_PRESENT"
+
+    def test_find_line_number(self):
+        det = DeFiPatternDetector()
+        code = "a\nb\nNEEDLE\n"
+        assert det._find_line_number(code, "NEEDLE") == 3
+        assert det._find_line_number(code, "absent") == 0
+
+    def test_module_level_detect_helper(self):
+        result = detect_defi_vulnerabilities("contract C {}", min_confidence=0.5)
+        assert isinstance(result, list)
