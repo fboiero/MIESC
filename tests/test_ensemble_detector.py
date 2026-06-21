@@ -565,16 +565,76 @@ class TestLLMEnsembleDetectorProviderAvailability:
         asyncio.run(run_test())
 
     def test_check_deepseek_with_key(self):
-        """Test checking DeepSeek availability with API key."""
+        """Test checking DeepSeek availability through the models endpoint."""
 
         async def run_test():
             detector = LLMEnsembleDetector(
                 providers=[LLMProvider.DEEPSEEK],
                 deepseek_api_key="test-key",
             )
-            models = await detector._check_provider_availability(LLMProvider.DEEPSEEK)
+
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={
+                    "data": [
+                        {"id": "deepseek-v4-flash"},
+                        {"id": "deepseek-v4-pro"},
+                        {"id": "unrelated-model"},
+                    ]
+                }
+            )
+            mock_session = _aiohttp_session_with_response("get", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                models = await detector._check_provider_availability(LLMProvider.DEEPSEEK)
+
             assert "deepseek-v4-flash" in models
             assert "deepseek-v4-pro" in models
+
+        asyncio.run(run_test())
+
+    def test_check_deepseek_filters_unconfigured_remote_models(self):
+        """Test DeepSeek availability excludes models not configured for the ensemble."""
+
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_api_key="test-key",
+            )
+
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(return_value={"data": [{"id": "unknown-model"}]})
+            mock_session = _aiohttp_session_with_response("get", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                models = await detector._check_provider_availability(LLMProvider.DEEPSEEK)
+
+            assert models == []
+
+        asyncio.run(run_test())
+
+    def test_check_deepseek_connection_error(self):
+        """Test DeepSeek availability handles model endpoint failures."""
+
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_api_key="test-key",
+            )
+
+            mock_session_instance = MagicMock()
+            mock_session_instance.get.side_effect = aiohttp.ClientError("Connection refused")
+
+            mock_session = MagicMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session.__aexit__ = AsyncMock(return_value=None)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                models = await detector._check_provider_availability(LLMProvider.DEEPSEEK)
+
+            assert models == []
 
         asyncio.run(run_test())
 

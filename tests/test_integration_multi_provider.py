@@ -333,12 +333,27 @@ class TestProviderAvailability:
         asyncio.run(run_test())
 
     def test_check_deepseek_availability_with_key(self, multi_provider_detector):
-        """Test DeepSeek availability when API key is set."""
+        """Test DeepSeek availability when the models endpoint confirms configured models."""
 
         async def run_test():
-            models = await multi_provider_detector._check_provider_availability(
-                LLMProvider.DEEPSEEK
+            mock_session = create_mock_session(
+                [
+                    (
+                        200,
+                        {
+                            "data": [
+                                {"id": "deepseek-v4-flash"},
+                                {"id": "deepseek-v4-pro"},
+                            ]
+                        },
+                    )
+                ]
             )
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                models = await multi_provider_detector._check_provider_availability(
+                    LLMProvider.DEEPSEEK
+                )
 
             assert len(models) >= 2
             assert "deepseek-v4-flash" in models

@@ -356,12 +356,33 @@ Response (JSON array only):"""
                 logger.debug("Anthropic not available: no API key")
 
         elif provider == LLMProvider.DEEPSEEK:
-            if self.deepseek_api_key:
-                # DeepSeek models are available if API key is set.
-                available = self.PROVIDER_MODELS[LLMProvider.DEEPSEEK]
-                logger.debug(f"DeepSeek available with {len(available)} models")
-            else:
+            if not self.deepseek_api_key:
                 logger.debug("DeepSeek not available: no API key")
+                return available
+
+            headers = {"Authorization": f"Bearer {self.deepseek_api_key}"}
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"{self.deepseek_base_url.rstrip('/')}/v1/models",
+                        headers=headers,
+                        timeout=aiohttp.ClientTimeout(total=10),
+                    ) as resp:
+                        if resp.status != 200:
+                            logger.debug("DeepSeek model check failed with status %s", resp.status)
+                            return available
+
+                        data = await resp.json()
+                        remote_models = {
+                            model.get("id") or model.get("name")
+                            for model in data.get("data", data.get("models", []))
+                            if isinstance(model, dict) and (model.get("id") or model.get("name"))
+                        }
+                        configured = self.PROVIDER_MODELS[LLMProvider.DEEPSEEK]
+                        available = [model for model in configured if model in remote_models]
+                        logger.debug("DeepSeek available with %s configured models", len(available))
+            except ENSEMBLE_RUNTIME_ERRORS as e:
+                logger.debug(f"DeepSeek not available: {e}")
 
         return available
 
