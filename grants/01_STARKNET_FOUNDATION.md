@@ -84,8 +84,8 @@ coverage.
   (5% triage queue density).
 - **Formal verification bridge**: `miesc specs` generates Certora CVL
   rules from findings; `miesc verify` executes them.
-- **Automated fix pipeline**: 87% of fixes applied, 63% compile, 84%
-  eliminate the vulnerability, 0% regression.
+- **Automated fix pipeline**: 99% of fixes applied (141/143), 64% compile
+  standalone, 66% eliminate the vulnerability, 65% no-regression.
 - **Benchmarks with honest framing**: 95.8% recall on SmartBugs-curated
   (static+intelligence layers, 137/143), 97.9% with a local Ollama follow-up; 92.5% ensemble recall
   on EVMBench (#1, beating Cecuro at 87.7%); 81.8% recall on 11

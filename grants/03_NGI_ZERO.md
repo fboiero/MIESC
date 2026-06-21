@@ -37,8 +37,8 @@ Evaluated on SmartBugs-curated, MIESC achieves **95.8% recall**
 (static+intelligence layers, 137/143), 97.9% with a local Ollama follow-up. On EVMBench:
 **92.5% ensemble recall** (#1, beating Cecuro at 87.7%). On 11 confirmed
 DeFi exploits totalling $1.59B in combined losses: 81.8% recall, Cohen's
-κ = 0.77. The automated fix pipeline achieves 87% applied, 63% compile,
-84% vulnerability eliminated, 0% regression.
+κ = 0.77. The automated fix pipeline achieves 99% applied, 64% compile,
+66% vulnerability eliminated, 65% no-regression.
 
 The tool is published under **AGPL-3.0** on PyPI (`pip install miesc`,
 v5.4.0) and GHCR. Two academic papers document the methodology (Paper 1:
