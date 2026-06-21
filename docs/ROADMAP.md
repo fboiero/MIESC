@@ -9,8 +9,9 @@ Development roadmap for MIESC. The authoritative history of shipped changes live
 
 MIESC is feature-complete and in active maintenance. Highlights of the 5.x line:
 
-- **Detection**: 9 defense layers, 35 analysis modules; SmartBugs-curated recall **99.3%**
-  (layer-1 + intelligence engine, no LLM); EVMBench 92.5% with a multi-provider ensemble.
+- **Detection**: 9 defense layers, 50 integrated tools; SmartBugs-curated recall **95.8%**
+  (Paper 1 reproducible profile; v-next 99.3% pending baseline, see Near-term);
+  EVMBench 92.5% with a multi-provider ensemble.
 - **Remediation** (`miesc fix`): self-contained find→fix→verify pipeline (Paper 2).
 - **RAG** false-positive filtering, cross-tool Bayesian confidence, agentic deep-audit.
 - **Formal bridge** (`miesc verify`): Certora/Scribble/SMTChecker spec generation.

@@ -71,7 +71,7 @@ MIESC es un framework de análisis de seguridad de código abierto para contrato
 |---------|-------|-----------|
 | Herramientas Integradas | 25 | Orquestación multi-herramienta reduciendo barreras al análisis de seguridad |
 | Estándares de Cumplimiento | 12 | Mapeo automatizado a estándares ISO/NIST/OWASP |
-| Recall de Detección | 99.3% (142/143) | SmartBugs-curated, layer-1 + intelligence; ver paper1_vnext_clean_20260621.json |
+| Recall de Detección | 95.8% (137/143) | SmartBugs-curated; ver paper1_smartbugs_eval_layers_1_6_7.json (perfil reproducible de Paper 1) |
 | Reducción de Falsos Positivos | 89% | Filtrado de correlación asistido por IA |
 | Ahorro de Costos | ~$50,000/auditoría | Comparado con alternativas comerciales |
 

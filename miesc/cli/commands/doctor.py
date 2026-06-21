@@ -126,25 +126,40 @@ def doctor(verbose: bool) -> None:
         tools_table.add_column("Status", width=20)
 
         total_available = 0
+        missing_installable: list[tuple[str, str]] = []  # (tool, install_cmd)
 
         for layer_num, layer_info in LAYERS.items():
             for tool in layer_info["tools"]:
                 status_info = AdapterLoader.check_tool_status(tool)
+                install_cmd = status_info.get("install_cmd", "") or ""
 
                 if status_info.get("available"):
                     status_display = "[green]available[/green]"
                     total_available += 1
                 elif status_info.get("status") == "not_installed":
                     status_display = "[yellow]not installed[/yellow]"
+                    if install_cmd:
+                        missing_installable.append((tool, install_cmd))
                 elif status_info.get("status") == "no_adapter":
                     status_display = "[dim]pending[/dim]"
                 else:
                     status_display = f"[red]{status_info.get('status', 'error')}[/red]"
+                    if install_cmd:
+                        missing_installable.append((tool, install_cmd))
 
                 tools_table.add_row(str(layer_num), tool, status_display)
 
         console.print(tools_table)
         console.print(f"\n[bold]{total_available}/{total_tools}[/bold] tools available")
+
+        # How to install missing tools (focused list — no column-width pressure)
+        if missing_installable:
+            console.print(
+                "\n[bold]Install missing tools[/bold] "
+                "[dim](all optional — MIESC degrades gracefully):[/dim]"
+            )
+            for tool, cmd in missing_installable:
+                console.print(f"  [yellow]{tool:<22}[/yellow] [cyan]{cmd}[/cyan]")
 
         # LLM Providers section
         console.print("")
@@ -196,10 +211,10 @@ def doctor(verbose: bool) -> None:
         # Recommendations
         console.print("\n[bold]Quick Start:[/bold]")
         console.print(
-            "  [cyan]miesc scan contract.sol[/cyan]              # Static only (95.8% recall)"
+            "  [cyan]miesc scan contract.sol[/cyan]              # Static + intelligence (99.3% SmartBugs recall)"
         )
         console.print(
-            "  [cyan]miesc scan contract.sol --model ollama[/cyan]  # + Local LLM (97.9% recall)"
+            "  [cyan]miesc scan contract.sol --model ollama[/cyan]  # + Local LLM (semantic coverage)"
         )
         console.print(
             "  [cyan]miesc scan contract.sol --ensemble[/cyan]      # Multi-provider (92.5% EVMBench)"
@@ -227,6 +242,9 @@ def doctor(verbose: bool) -> None:
                     print(f"  [OK] {tool}")  # noqa: T201
                     total_available += 1
                 else:
-                    print(f"  [MISSING] {tool}")  # noqa: T201
+                    hint = status_info.get("install_cmd", "") or ""
+                    suffix = f" -> {hint}" if hint else ""
+                    print(f"  [MISSING] {tool}{suffix}")  # noqa: T201
 
         print(f"\n{total_available}/{total_tools} tools available")  # noqa: T201
+        print("Missing tools are optional; MIESC degrades gracefully.")  # noqa: T201

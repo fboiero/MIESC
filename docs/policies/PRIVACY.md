@@ -4,7 +4,7 @@
 
 **MIESC - Multi-layer Intelligent Evaluation for Smart Contracts**
 
-*Last Updated: December 2024*
+*Last Updated: June 2026*
 
 ---
 

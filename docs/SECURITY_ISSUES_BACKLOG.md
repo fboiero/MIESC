@@ -23,6 +23,23 @@ This document tracks security issues identified during the security audit that r
 
 ## Medium Priority Issues
 
+### Triage summary (verified 2026-06-21)
+
+| ID | Status | Note |
+|----|--------|------|
+| MED-001 TOCTOU | ✅ FIXED | `mode=0o700` in dagnn/exploit_synthesizer adapters |
+| MED-002 NPM pin | ✅ FIXED | `solhint@5.0.3` in both Dockerfiles |
+| MED-003 curl-to-shell | ⚠️ OPEN | still `curl \| sh` without hash (build-time hardening pending) |
+| MED-004 Ollama auth | ✅ FIXED | main compose + `prod-llm.yml` now bind `127.0.0.1:11434` |
+| MED-005 base image | ⚠️ PARTIAL | tag-pinned; digest pin pending |
+| MED-006 lock file | ✅ FIXED | regenerated for Python 3.12 |
+| MED-007 WebSocket auth | ✅ FIXED | `_validate_websocket_token` enforced (tested) |
+| MED-008 SSL on FS | ✅ FIXED | `*.key/*.pem/*.crt`, `ssl/` in `.gitignore` |
+
+**6 of 8 fully fixed; 2 remaining are build-time Docker hardening (MED-003, MED-005).**
+The backlog was previously stale (overstated open items and understated some as fixed
+that were only partial); corrected here with per-item verification.
+
 ### MED-001: Temporary File Race Conditions (TOCTOU)
 
 **Severity:** MEDIUM
@@ -81,7 +98,7 @@ RUN npm install -g solhint@5.0.3
 
 **Severity:** MEDIUM
 **CWE:** CWE-494
-**Status:** **DOCUMENTED** (security comments added)
+**Status:** OPEN (verified 2026-06-21: `docker/Dockerfile:60` and `docker/Dockerfile.x86` still `curl ... | sh/bash` without hash verification — build-time hardening pending)
 
 **Location:** `docker/Dockerfile:35-40`
 
@@ -112,7 +129,7 @@ RUN apt-get install -y rustup
 
 **Severity:** MEDIUM
 **CWE:** CWE-306
-**Status:** **FIXED**
+**Status:** **FIXED** (2026-06-21: `docker-compose.prod-llm.yml` Ollama port now bound to `127.0.0.1:11434`; main compose already used the internal network)
 
 **Location:** `docker/docker-compose.yml:234-236`
 
@@ -141,7 +158,7 @@ ollama:
 
 **Severity:** MEDIUM
 **CWE:** CWE-1104
-**Status:** **FIXED**
+**Status:** PARTIAL (verified 2026-06-21: tag-pinned `python:3.12-slim-bookworm`; `@sha256:` digest pin still pending)
 
 **Location:** `docker/Dockerfile.prod:1`
 
@@ -163,7 +180,7 @@ FROM python:3.11-slim-bookworm@sha256:<current_digest>
 ### MED-006: Python Lock File for Wrong Version
 
 **Severity:** MEDIUM
-**Status:** PENDING
+**Status:** **FIXED** (verified 2026-06-21: header shows `uv pip compile --python-version 3.12`)
 
 **Location:** `requirements-lock.txt`
 

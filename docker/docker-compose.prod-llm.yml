@@ -76,7 +76,10 @@ services:
     image: ollama/ollama:latest
     container_name: miesc-ollama-prod
     ports:
-      - "11434:11434"
+      # Bind to localhost only — internal services reach Ollama over the docker
+      # network (OLLAMA_HOST=http://ollama:11434), so this published port is for
+      # host access only and must not be exposed on all interfaces (MED-004, CWE-306).
+      - "127.0.0.1:11434:11434"
     volumes:
       - ollama-models:/root/.ollama
     networks:

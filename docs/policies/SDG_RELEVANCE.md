@@ -18,9 +18,10 @@ This document maps MIESC's contributions to the United Nations Sustainable Devel
 - The framework's 9-layer defense-in-depth approach provides comprehensive security coverage that single tools cannot achieve
 - Open-source availability ensures all blockchain developers have access to enterprise-grade security analysis, not just well-funded projects
 
-**Evidence:**
-- 89.47% precision and 86.2% recall on 5,127 real-world contracts
-- 34% improvement over single-tool analysis approaches
+**Evidence** (see `benchmarks/results/paper1_claims_matrix.json` for traceable artifacts):
+- 95.8% recall on SmartBugs-curated (137/143 contracts) vs. 43.2% for the best single tool (Slither)
+- 92.5% recall on an EVMBench local high-severity extraction (multi-provider ensemble)
+- 81.8% recall on 11 confirmed real-world DeFi exploits ($3.3B losses, Cohen's κ=0.77)
 - Mapped findings to 12 international security standards (ISO 27001, NIST CSF, etc.)
 
 ### SDG 16: Peace, Justice and Strong Institutions

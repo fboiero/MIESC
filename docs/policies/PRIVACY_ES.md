@@ -4,7 +4,7 @@
 
 **MIESC - Evaluación Inteligente Multicapa para Contratos Inteligentes**
 
-*Última Actualización: Diciembre 2024*
+*Última Actualización: Junio 2026*
 
 ---
 
