@@ -22,8 +22,8 @@ Download `SHA256SUMS.txt` from the release and verify:
 
 ```bash
 # Download the release files and checksums
-wget https://github.com/fboiero/MIESC/releases/download/v5.4.2/SHA256SUMS.txt
-wget https://github.com/fboiero/MIESC/releases/download/v5.4.2/miesc-5.4.2.tar.gz
+wget https://github.com/fboiero/MIESC/releases/download/v5.4.3/SHA256SUMS.txt
+wget https://github.com/fboiero/MIESC/releases/download/v5.4.3/miesc-5.4.3.tar.gz
 
 # Verify checksum
 sha256sum -c SHA256SUMS.txt
@@ -43,10 +43,10 @@ sudo mv cosign-linux-amd64 /usr/local/bin/cosign
 
 # Verify signature
 cosign verify-blob \
-  --signature miesc-5.4.2.tar.gz.sig \
-  --certificate miesc-5.4.2.tar.gz.pem \
+  --signature miesc-5.4.3.tar.gz.sig \
+  --certificate miesc-5.4.3.tar.gz.pem \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  miesc-5.4.2.tar.gz
+  miesc-5.4.3.tar.gz
 ```
 
 Expected output:
@@ -91,17 +91,18 @@ Docker images are also signed with cosign:
 
 ```bash
 # Verify Docker image signature
-cosign verify ghcr.io/fboiero/miesc:5.4.2
+cosign verify ghcr.io/fboiero/miesc:5.4.3
 
 # Verify with specific issuer
 cosign verify \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  ghcr.io/fboiero/miesc:5.4.2
+  ghcr.io/fboiero/miesc:5.4.3
 ```
 
-The published 5.4.2 Docker status, GHCR digest, image scope, and smoke-test
-commands are recorded in
-[MIESC 5.4.2 Release Status](RELEASE_STATUS_5.4.2.md).
+The most recent detailed Docker status record (GHCR digest, image scope, and
+smoke-test commands) is the
+[MIESC 5.4.2 Release Status](RELEASE_STATUS_5.4.2.md) note; the same verification
+flow applies to the current 5.4.3 images and artifacts.
 
 ---
 
@@ -111,10 +112,10 @@ PyPI packages are published using Trusted Publishers (OIDC):
 
 ```bash
 # Download from PyPI
-pip download miesc==5.4.2 --no-deps
+pip download miesc==5.4.3 --no-deps
 
 # Compare checksum with GitHub release
-sha256sum miesc-5.4.2.tar.gz
+sha256sum miesc-5.4.3.tar.gz
 # Should match SHA256SUMS.txt from GitHub release
 ```
 
@@ -182,7 +183,7 @@ Software Bill of Materials (SBOM) is generated for each release:
 
 ```bash
 # Download SBOM (CycloneDX format)
-wget https://github.com/fboiero/MIESC/releases/download/v5.4.2/sbom.json
+wget https://github.com/fboiero/MIESC/releases/download/v5.4.3/sbom.json
 ```
 
 ---

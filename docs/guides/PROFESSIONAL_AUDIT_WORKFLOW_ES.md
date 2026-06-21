@@ -1,6 +1,6 @@
 # Flujo de Trabajo para Auditorías Profesionales
 
-**MIESC v5.4.2** | Guía para Auditores Profesionales
+**MIESC v5.4.3** | Guía para Auditores Profesionales
 
 Esta guía proporciona un flujo de trabajo estructurado para realizar auditorías de seguridad profesionales de smart contracts usando MIESC.
 
@@ -45,19 +45,19 @@ MIESC integra **50 herramientas de seguridad** en **9 capas de defensa** para pr
 
 ```bash
 # Imagen estándar (~15 herramientas, rápida)
-docker pull ghcr.io/fboiero/miesc:5.4.2
+docker pull ghcr.io/fboiero/miesc:5.4.3
 
 # Imagen completa (~30 herramientas, exhaustiva)
-docker pull ghcr.io/fboiero/miesc:5.4.2-full
+docker pull ghcr.io/fboiero/miesc:5.4.3-full
 
 # Verificar instalación
-docker run --rm ghcr.io/fboiero/miesc:5.4.2 --version
+docker run --rm ghcr.io/fboiero/miesc:5.4.3 --version
 ```
 
 ### Instalación Local
 
 ```bash
-pip install miesc==5.4.2
+pip install miesc==5.4.3
 miesc doctor  # Verificar disponibilidad de herramientas
 ```
 
@@ -85,7 +85,7 @@ export OLLAMA_HOST=http://localhost:11434
 miesc scan contract.sol
 
 # O con Docker
-docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:5.4.2 \
+docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:5.4.3 \
   scan /contracts/Contract.sol
 ```
 
@@ -396,7 +396,7 @@ jobs:
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/contracts \
-            ghcr.io/fboiero/miesc:5.4.2 \
+            ghcr.io/fboiero/miesc:5.4.3 \
             audit quick /contracts \
             --ci \
             -o /contracts/results.json
@@ -405,7 +405,7 @@ jobs:
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/contracts \
-            ghcr.io/fboiero/miesc:5.4.2 \
+            ghcr.io/fboiero/miesc:5.4.3 \
             export /contracts/results.json \
             -f sarif \
             -o /contracts/results.sarif.json
@@ -435,7 +435,7 @@ repos:
 
 ```yaml
 security-audit:
-  image: ghcr.io/fboiero/miesc:5.4.2
+  image: ghcr.io/fboiero/miesc:5.4.3
   stage: test
   script:
     - miesc audit quick ./contracts --ci -o results.json
@@ -593,13 +593,13 @@ miesc benchmark ./contracts --compare last
 ```bash
 # Auditoría básica
 docker run --rm -v $(pwd):/contracts \
-  ghcr.io/fboiero/miesc:5.4.2 \
+  ghcr.io/fboiero/miesc:5.4.3 \
   audit quick /contracts -o /contracts/results.json
 
 # Con LLM (macOS)
 docker run --rm -v $(pwd):/contracts \
   -e OLLAMA_HOST=http://host.docker.internal:11434 \
-  ghcr.io/fboiero/miesc:5.4.2 \
+  ghcr.io/fboiero/miesc:5.4.3 \
   audit full /contracts --skip-unavailable -o /contracts/results.json
 ```
 
@@ -609,13 +609,13 @@ docker run --rm -v $(pwd):/contracts \
 # Auditoría completa con todas las herramientas
 docker run --rm -v $(pwd):/contracts \
   -e OLLAMA_HOST=http://host.docker.internal:11434 \
-  ghcr.io/fboiero/miesc:5.4.2-full \
+  ghcr.io/fboiero/miesc:5.4.3-full \
   audit full /contracts --skip-unavailable -o /contracts/results.json
 
 # Generar reporte premium
 docker run --rm -v $(pwd):/contracts \
   -e OLLAMA_HOST=http://host.docker.internal:11434 \
-  ghcr.io/fboiero/miesc:5.4.2-full \
+  ghcr.io/fboiero/miesc:5.4.3-full \
   report /contracts/results.json \
   -t premium --llm-interpret -f pdf -o /contracts/report.pdf
 ```
@@ -631,4 +631,4 @@ docker run --rm -v $(pwd):/contracts \
 
 ---
 
-*Versión del documento: 5.4.2 | Última actualización: Mayo 2026*
+*Versión del documento: 5.4.3 | Última actualización: Mayo 2026*

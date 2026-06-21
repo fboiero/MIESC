@@ -315,8 +315,10 @@ miesc scan Bridge.sol             # Detecta 7 patrones de exploits en bridges
 ## Docker
 
 El estado de la versión, los enlaces a los artefactos publicados, el digest de GHCR
-y los comandos de smoke-test para la versión actual 5.4.2 están registrados en
-[Estado de la Versión MIESC 5.4.2](./docs/policies/RELEASE_STATUS_5.4.2.md).
+y los comandos de smoke-test del último estado de versión detallado publicado (5.4.2)
+están registrados en
+[Estado de la Versión MIESC 5.4.2](./docs/policies/RELEASE_STATUS_5.4.2.md). La
+versión actual publicada es la 5.4.3 (PyPI y GHCR).
 
 ```bash
 # Imagen estándar (~3GB, multi-arch incluyendo Apple Silicon)
