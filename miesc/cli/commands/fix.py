@@ -39,6 +39,15 @@ _FUNCTION_RE = re.compile(
 )
 
 
+def _mask_comments(source: str) -> str:
+    """Replace Solidity comments with spaces while preserving indexes."""
+
+    def repl(match: re.Match[str]) -> str:
+        return "".join("\n" if char == "\n" else " " for char in match.group(0))
+
+    return re.sub(r"//[^\n]*|/\*.*?\*/", repl, source, flags=re.DOTALL)
+
+
 def _ensure_modifier_defined(source: str, modifier: str) -> str:
     """If a modifier is used but not defined, inline it."""
     if modifier == "onlyOwner" and "modifier onlyOwner" not in source:
@@ -72,14 +81,13 @@ def _add_modifier_to_function(
 
     Returns (patched_source, was_changed).
     """
-    source.splitlines(keepends=True)
-
     # Build list of candidate match positions
+    masked = _mask_comments(source)
     candidates = []
-    for m in _FUNCTION_RE.finditer(source):
+    for m in _FUNCTION_RE.finditer(masked):
         if m.group(2) == function_name:
             # Map match start to line number (1-based)
-            match_line = source[: m.start()].count("\n") + 1
+            match_line = masked[: m.start()].count("\n") + 1
             candidates.append((m, match_line))
 
     if not candidates:
@@ -108,9 +116,8 @@ def _add_modifier_to_function(
 
     # Insert modifier before the last specifier (before the trailing brace or
     # opening brace of the body).  We replace group(3) by prepending.
-    old_text = m.group(0)
-    new_text = m.group(1) + modifier + " " + m.group(3)
-    patched = source.replace(old_text, new_text, 1)
+    new_text = source[m.start(1) : m.end(1)] + modifier + " " + source[m.start(3) : m.end(3)]
+    patched = source[: m.start()] + new_text + source[m.end() :]
     return patched, patched != source
 
 
@@ -159,10 +166,15 @@ library SafeMath {
 
 
 def _has_contract_definition(source: str, name: str) -> bool:
-    return bool(re.search(r"\b(?:contract|library|interface)\s+" + re.escape(name) + r"\b", source))
+    return bool(
+        re.search(
+            r"\b(?:contract|library|interface)\s+" + re.escape(name) + r"\b",
+            _mask_comments(source),
+        )
+    )
 
 
-def _ensure_reentrancy_guard_import(source: str) -> str:
+def _ensure_reentrancy_guard_import(source: str, target_function: Optional[str] = None) -> str:
     """Add inline ReentrancyGuard + inheritance if not already present.
 
     Uses an inline implementation instead of an OZ import so the fixed
@@ -170,19 +182,22 @@ def _ensure_reentrancy_guard_import(source: str) -> str:
     """
     has_reentrancy_definition = _has_contract_definition(source, "ReentrancyGuard")
     has_miesc_definition = _has_contract_definition(source, "MiescReentrancyGuard")
-    has_oz_import = bool(re.search(r"import\s+[^;]*ReentrancyGuard[^;]*;", source))
+    masked = _mask_comments(source)
+    has_oz_import = bool(
+        re.search(r"^\s*import\s+[^;]*ReentrancyGuard[^;]*;", masked, re.MULTILINE)
+    )
 
     if has_reentrancy_definition or has_miesc_definition or has_oz_import:
         return source
 
     # Check if OZ is likely available (import already exists)
-    has_oz = "@openzeppelin" in source
+    has_oz = bool(re.search(r"^\s*import\s+['\"]@openzeppelin", masked, re.MULTILINE))
 
     if has_oz:
         # OZ available — use import
         import_line = 'import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";\n'
         guard_name = "ReentrancyGuard"
-    elif re.search(r"\bis\s+[^{};]*\bReentrancyGuard\b", source):
+    elif re.search(r"\bis\s+[^{};]*\bReentrancyGuard\b", masked):
         # The contract already inherits from ReentrancyGuard, but no definition
         # or import is available. Inline that exact base name.
         import_line = _INLINE_REENTRANCY_GUARD.replace(
@@ -196,48 +211,64 @@ def _ensure_reentrancy_guard_import(source: str) -> str:
 
     # Insert after last import or after pragma
     last_import = -1
-    for i, line in enumerate(source.splitlines()):
+    masked_lines = masked.splitlines()
+    for i, line in enumerate(masked_lines):
         if line.strip().startswith("import "):
             last_import = i
     lines = source.splitlines(keepends=True)
     if last_import >= 0:
         lines.insert(last_import + 1, import_line)
     else:
-        for i, line in enumerate(lines):
+        for i, line in enumerate(masked_lines):
             if line.strip().startswith("pragma "):
                 lines.insert(i + 1, "\n" + import_line)
                 break
     source = "".join(lines)
 
-    # Add ReentrancyGuard to contract inheritance
-    contract_re = re.compile(r"(contract\s+\w+)\s*(\{)", re.MULTILINE)
+    # Add ReentrancyGuard to the contract that owns the patched function.
+    contract_re = re.compile(r"\bcontract\s+(\w+)[^{]*\{", re.MULTILINE)
+    masked = _mask_comments(source)
     # Find the TARGET contract (skip the inline guard itself)
-    for m_contract in contract_re.finditer(source):
-        contract_name = source[m_contract.start(1) : m_contract.end(1)].split()[-1]
+    candidates = []
+    for m_contract in contract_re.finditer(masked):
+        contract_name = m_contract.group(1)
         if contract_name in ("ReentrancyGuard", "MiescReentrancyGuard"):
-            continue  # Skip the guard definition itself
-        m_is_check = re.search(
-            r"(contract\s+" + re.escape(contract_name) + r"\s+is\s+)([^{]+)(\{)", source
+            continue
+        depth = 1
+        idx = m_contract.end()
+        while idx < len(masked) and depth > 0:
+            if masked[idx] == "{":
+                depth += 1
+            elif masked[idx] == "}":
+                depth -= 1
+            idx += 1
+        body = masked[m_contract.end() : idx]
+        owns_target = bool(
+            target_function
+            and any(m.group(2) == target_function for m in _FUNCTION_RE.finditer(body))
         )
-        if m_is_check:
-            if guard_name not in m_is_check.group(2):
-                source = (
-                    source[: m_is_check.start(2)]
-                    + m_is_check.group(2).rstrip()
-                    + ", "
-                    + guard_name
-                    + " "
-                    + source[m_is_check.start(3) :]
-                )
-        else:
-            source = (
-                source[: m_contract.end(1)]
-                + " is "
-                + guard_name
-                + " "
-                + source[m_contract.start(2) :]
-            )
-        break  # Only modify the first real contract
+        candidates.append((m_contract, owns_target))
+
+    selected = next((m for m, owns in candidates if owns), None)
+    if selected is None and candidates:
+        selected = candidates[0][0]
+    if selected is None:
+        return source
+
+    header = source[selected.start() : selected.end()]
+    if re.search(r"\b" + re.escape(guard_name) + r"\b", header):
+        return source
+    insert_pos = selected.end() - 1
+    if re.search(r"\bis\b", header):
+        source = source[:insert_pos].rstrip() + f", {guard_name} " + source[insert_pos:]
+    else:
+        source = (
+            source[: selected.end(1)]
+            + f" is {guard_name}"
+            + source[selected.end(1) : insert_pos].rstrip()
+            + " "
+            + source[insert_pos:]
+        )
     return source
 
 
@@ -361,7 +392,8 @@ def _insert_comment_block(
         r"([ \t]*)(function\s+" + re.escape(function_name) + r"\s*\()",
         re.MULTILINE,
     )
-    candidates = list(fn_re.finditer(source))
+    masked = _mask_comments(source)
+    candidates = list(fn_re.finditer(masked))
     if not candidates:
         return source, False
 
@@ -424,7 +456,7 @@ def _low_level_call_returns_bool(source: str, call_expr: str) -> bool:
 
 def _infer_function_at_line(source: str, line: int) -> str:
     """Find the nearest function declaration at or above `line`."""
-    lines = source.splitlines()
+    lines = _mask_comments(source).splitlines()
     for i in range(min(line - 1, len(lines) - 1), -1, -1):
         m = re.match(r"\s*function\s+(\w+)\s*\(", lines[i])
         if m:
@@ -471,7 +503,7 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
         if fn_name:
             source, changed = _add_modifier_to_function(source, fn_name, "nonReentrant", line_hint)
             if changed:
-                source = _ensure_reentrancy_guard_import(source)
+                source = _ensure_reentrancy_guard_import(source, fn_name)
             return source, changed
         return source, False
 

@@ -229,6 +229,68 @@ class TestApplyFix:
         assert changed
         assert "nonReentrant" in patched
 
+    def test_reentrancy_ignores_openzeppelin_import_inside_fix_comment(self):
+        source = """\
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/*
+MIESC FIX: reentrancy
+Suggested patch:
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+contract SafeVault is ReentrancyGuard {
+    function withdraw() external nonReentrant {}
+}
+*/
+
+contract Victim {
+    function withdraw() public {
+        (bool ok, ) = msg.sender.call("");
+        require(ok);
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdraw",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "contract MiescReentrancyGuard" in patched
+        assert "contract Victim is MiescReentrancyGuard" in patched
+        assert "contract Victim is ReentrancyGuard" not in patched
+
+    def test_reentrancy_guard_is_added_to_contract_containing_target_function(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract First {
+    function noop() public {}
+}
+
+contract Second {
+    function withdraw() public {
+        (bool ok, ) = msg.sender.call("");
+        require(ok);
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdraw",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "contract First is MiescReentrancyGuard" not in patched
+        assert "contract Second is MiescReentrancyGuard" in patched
+        assert "function withdraw() nonReentrant public" in patched
+
     def test_access_control_adds_only_owner(self):
         finding = {
             "type": "access_control",
