@@ -33,18 +33,22 @@ OPEN DECISION (Fernando-gated): the v-next **99.3% recall (142/143)** path.
   conservative, reproducible headline. Flipping to 99.3% right after a
   rigor-hardening pass should be a deliberate, variance-disclosed choice.
 
-## Paper 2 — blocked on the remediation lane
+## Paper 2 — rigor-gap baseline SHIPPED; corpus numbers pending Codex
 
-Corpus-wide patch metrics in `paper2-remediation.tex` are fully BACKED against the
-canonical `fix_eval_results.json` (141/90/93/91). A read-only rigor audit is at
-`paper/paper2_rigor_audit_20260621.md`; the gaps are illustrative Stage 3/4/5 + e2e
-claims (no artifact / missing `AuditTarget.sol`) and an internal mismatch
-(L462 "18" vs taxonomy "9").
+The rigor-gap pass shipped at `65c9bec`, tagged `paper2-rigor-baseline-2026-06-21`
+(audit: `paper/paper2_rigor_audit_20260621.md`). Fixed against the current canonical
+`fix_eval_results.json` (141/90/93/91, unchanged): SMTChecker "16%" orphan softened
+to qualitative; internal mismatch L462 "18" -> "9" (taxonomy); 3,060 report-size
+unified; per-category small-n caveat; explicit illustrative-walkthrough note for the
+`AuditTarget.sol` single-contract stages. Corpus-wide patch metrics were already
+fully BACKED and were left unchanged.
 
-CRITICAL: Paper 2 corpus numbers are IN FLUX in `lane/codex` (fix_eval rework;
-in-flux runs show applied ~122-123, eliminated ~84 under changed methodology). The
-Paper 2 baseline should be redone in ONE consistent pass AFTER the remediation lane
-finalizes fix_eval — not piecemeal. Audit handoff has the exact sequence.
+STILL PENDING (Codex): Paper 2 corpus numbers are IN FLUX in `lane/codex` (fix_eval
+rework; in-flux runs show applied ~122-123, eliminated ~84 under changed
+methodology). When the remediation lane finalizes a new canonical `fix_eval_results.json`,
+Tables 1-2 + the abstract/conclusion must be re-derived in a FOLLOW-UP Paper 2
+baseline (the rigor-gap fixes already shipped carry forward). The SCPatcher comparison
+(64% vs 91%) shifts if the compile metric changes.
 
 ## Safe Baseline Procedure (validated this session)
 
