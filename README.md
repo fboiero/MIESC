@@ -128,11 +128,13 @@ Report saved to results.json
 | Precision | 8.3% | 6.1% | **26.4%** | Full SmartBugs-curated corpus (layer-1 + intelligence) |
 | F1-Score | 13.9% | 10.0% | **36.0%** | Full SmartBugs-curated corpus |
 
-The full-corpus SmartBugs result is the reproducible Paper 1 profile. A local
-Ollama follow-up on the remaining misses is reported in Paper 1 as 140/143
-(97.9%) and should be treated as a secondary follow-up claim until its own
-machine-readable lift artifact is published. The 9-layer run is reported
-separately as an end-to-end integration smoke run, not as a corpus-wide claim.
+The full-corpus SmartBugs result is the reproducible Paper 1 v-next profile
+(layer-1 + intelligence engine, no LLM). Deterministic detectors close 5 of the 6
+prior misses; only a short-address case remains (142/143). The aggregate has
+tool-stability variance (0.972--0.993) from external analyzers that crash on some
+legacy AST shapes, so the benchmark should be run on an unloaded machine. The
+9-layer run is reported separately as an end-to-end integration smoke run, not as
+a corpus-wide claim.
 
 **Real-world exploits** (11 confirmed DeFi exploits, $3.3B total losses):
 
