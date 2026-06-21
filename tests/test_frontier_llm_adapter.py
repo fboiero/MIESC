@@ -92,3 +92,21 @@ class TestPreprocessAndPrompt:
         prompt = a._build_user_prompt("contract C {}", rag_context="reentrancy hint")
         assert "known_vulnerability_patterns" in prompt
         assert "reentrancy hint" in prompt
+
+
+class TestParseResponse:
+    def test_json_fenced(self):
+        a = FrontierLLMAdapter()
+        text = '```json\n{"findings":[{"title":"Reentrancy","severity":"high","line":5}]}\n```'
+        out = a._parse_response(text)
+        assert len(out) == 1
+        assert (out[0].get("title") or out[0].get("type")) == "Reentrancy"
+
+    def test_plain_json(self):
+        a = FrontierLLMAdapter()
+        out = a._parse_response('{"findings":[{"title":"Overflow","severity":"medium"}]}')
+        assert len(out) == 1
+
+    def test_unparseable_returns_empty(self):
+        a = FrontierLLMAdapter()
+        assert a._parse_response("no structured findings here") == []
