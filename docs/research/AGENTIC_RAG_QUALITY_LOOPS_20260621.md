@@ -183,3 +183,28 @@ grounding; drop only on a *strong* benign/type signal; route weak grounding to
 precision lift must be measured on raw scanner output with the LLM verifier; expect
 it well below 100%, which is exactly why Loops A/B (LLM + semantic RAG) — not the
 rule-based fallback — carry the production design.
+
+## 8. Real-detector field number (2026-06-21) — the floor is near zero
+
+Ran the recall-safe loop on the FULL 143-contract corpus using MIESC's own
+pure-Python pattern detector (no solc — Slither/Aderyn are blocked in this env:
+solc-select broken, only solc 0.8.x, legacy 0.4.x corpus). Artifact:
+`benchmarks/results/agentic_loop_real_detector_20260621.json`.
+
+| Dataset | FPs | rule-based FP-drop | precision | recall |
+|---------|----:|-------------------:|-----------|--------|
+| fp_seed (type-separable) | 867 | **100%** | 7.2% → 100% | 100% |
+| real detector output (cross-category) | 374 | **1.1%** (4/374) | 28.1% → 28.2% | 99.3% |
+
+**The gap between these two numbers is the whole story.** On real detector output the
+FPs are *vuln-type findings in benign context* (e.g. an unchecked-call finding on a
+reentrancy contract) whose benignity needs **semantic** reasoning — the rule-based
+lever drops only 4/374 (+0.08% precision) and even costs 1 real vuln (function=unknown
+→ contract-scope benign matching). So:
+
+- The fp_seed 100% was a **dataset artifact** (FPs separable by type/lint).
+- The **rule-based floor on real FPs is ~zero.** The LLM + semantic-RAG verifier
+  (Loops A/B) is **required**, not a nice-to-have — this measurement proves it rather
+  than asserting it.
+- Honest next number: wire an LLM verifier into the harness and re-run this exact
+  measurement; that delta is the real, reportable precision lift.
