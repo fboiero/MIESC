@@ -7,7 +7,7 @@ lang: es
 # MIESC - Evaluación Inteligente Multicapa para Smart Contracts
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MIESC-v5.4.2-blue?style=for-the-badge" alt="MIESC v5.4.2">
+  <img src="https://img.shields.io/badge/MIESC-v5.4.3-blue?style=for-the-badge" alt="MIESC v5.4.3">
   <img src="https://img.shields.io/pypi/v/miesc?style=for-the-badge&label=PyPI" alt="PyPI">
   <img src="https://img.shields.io/badge/Licencia-AGPL--3.0-green?style=for-the-badge" alt="Licencia">
   <img src="https://img.shields.io/badge/Python-3.12+-yellow?style=for-the-badge" alt="Python">
@@ -47,7 +47,7 @@ lang: es
 - Análisis Defense-in-Depth a través de 9 capas de seguridad
 - 50 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
 - Integración del Model Context Protocol (MCP) con Claude Desktop
-- 100% Precisión, 70% Recall, F1-Score 82.35% (benchmark SmartBugs-curated)
+- 95.8% Recall, 22.2% Precisión, F1-Score 36.0% (SmartBugs-curated, 137/143 contratos)
 - IA Soberana con Ollama (el código nunca sale de tu máquina)
 
 ---
@@ -77,11 +77,11 @@ lang: es
 
 **MIESC** es un framework de seguridad de smart contracts de grado de producción que implementa una **arquitectura Defense-in-Depth de 9 capas**, integrando **50 herramientas de seguridad especializadas** con **correlación potenciada por IA** y **detección basada en ML** para ofrecer detección integral de vulnerabilidades con precisión líder en la industria.
 
-### Logros Principales (v5.4.2)
+### Logros Principales (v5.4.3)
 
 - **50 Herramientas Integradas** en 9 capas de defensa
 - **95.7% de Precisión de Detección ML** con Redes Neuronales de Grafos DA-GNN
-- **100% Precisión**, **70% Recall**, **F1-Score 82.35%** (benchmark SmartBugs-curated)
+- **95.8% Recall**, **22.2% Precisión**, **F1-Score 36.0%** (SmartBugs-curated, 137/143 contratos)
 - **91.4% Índice de Cumplimiento** en 12 estándares internacionales
 - **IA Soberana** con Ollama - el código nunca sale de tu máquina
 - **$0 Costo Operativo** - ejecución completamente local
@@ -89,7 +89,7 @@ lang: es
 
 ---
 
-## Estado Actual en v5.4.2
+## Estado Actual en v5.4.3
 
 **Release Core Actual** - CLI pública, API REST local, MCP stdio, OpenAPI y
 generación de reportes estáticos, manteniendo la UI de producto/plataforma fuera
@@ -263,15 +263,23 @@ Static Dynamic Symbolic Formal
 
 ## Métricas de Rendimiento
 
-### Resultados v5.4.2 (Benchmark SmartBugs-curated)
+### Resultados v5.4.3 (Benchmark SmartBugs-curated)
+
+SmartBugs-curated (143 contratos, 207 vulnerabilidades ground-truth):
 
 | Métrica | Valor | Notas |
 |---------|-------|-------|
-| **Precisión** | 100% | 0 falsos positivos |
-| **Recall** | 70% | 35/50 vulnerabilidades detectadas |
-| **F1-Score** | 82.35% | Benchmark de 50 contratos |
+| **Recall** | 95.8% | 137/143 contratos, corpus completo SmartBugs-curated |
+| **Precisión** | 22.2% | Corpus completo SmartBugs-curated |
+| **F1-Score** | 36.0% | Corpus completo SmartBugs-curated |
+| **Baseline Slither (recall)** | 43.2% | Comparación solo estático |
 | **Herramientas por capa** | 50 | Herramientas core agrupadas en 9 capas de defensa |
-| **Categorías con 100% Recall** | 3 | arithmetic, bad_randomness, front_running |
+
+> Seguimiento secundario: una corrida local con Ollama sobre los casos restantes eleva el recall a 97.9% (140/143) con costo de API cero.
+>
+> EVMBench: el ensemble de cuatro proveedores alcanza 92.5% de recall (111/120) en extracción local de alta severidad (no es un resultado oficial de leaderboard).
+>
+> Exploits del mundo real: 81.8% de recall (9 de 11), Cohen's Kappa = 0.77, sobre un corpus de $3.3B en pérdidas.
 
 ### Suite de Tests
 
@@ -313,7 +321,7 @@ Static Dynamic Symbolic Formal
   title = {MIESC: Evaluación Inteligente Multicapa para Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
-  version = {5.4.2},
+  version = {5.4.3},
   note = {Implementación para Tesis de Maestría en Ciberdefensa}
 }
 ```
@@ -481,7 +489,7 @@ Asegura que el framework permanezca open-source. Permite uso comercial con atrib
 ---
 
 <p align="center">
-  <strong>MIESC v5.4.2</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
+  <strong>MIESC v5.4.3</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
 </p>
 
 <p align="center">
