@@ -147,3 +147,22 @@ class TestAnalyzeWithOllama:
         with patch.object(a, "_call_ollama_generate", return_value=None):
             out = a._analyze_with_ollama("contract C {}", "C.sol", timeout=10, use_fallback=False)
         assert out["status"] == "error"
+
+
+class TestPatternFallback:
+    def test_detects_known_patterns(self):
+        a = _adapter()
+        src = (
+            "contract C { function f() public {"
+            ' tx.origin == owner; selfdestruct(x); msg.sender.call.value(1)(""); } }'
+        )
+        res = a._analyze_with_patterns(src, "C.sol", 0.0)
+        assert res["status"] == "success"
+        types = {f.get("type") for f in res["findings"]}
+        assert "tx_origin" in types or "selfdestruct" in types
+
+    def test_clean_contract_minimal_findings(self):
+        a = _adapter()
+        res = a._analyze_with_patterns("contract C { uint x; }", "C.sol", 0.0)
+        assert res["status"] == "success"
+        assert isinstance(res["findings"], list)
