@@ -75,7 +75,26 @@ def _run_eval(layers: str, out: str) -> str:
         "/dev/null",
     ]
     print(f"running: {' '.join(cmd)}")
-    subprocess.run(cmd, check=True)
+    # Stream output live AND capture it to count external-tool crashes, which cause
+    # recall variance (aderyn panics / slither IR-assertions on legacy AST). Reporting
+    # the crash count per run makes that variance measurable instead of hidden.
+    import re as _re
+
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1
+    )
+    aderyn = slither = 0
+    for line in proc.stdout:  # type: ignore[union-attr]
+        sys.stdout.write(line)
+        if _re.search(r"[Aa]deryn.*(execution failed|panicked)", line):
+            aderyn += 1
+        if _re.search(r"[Ss]lither execution failed|AssertionError", line):
+            slither += 1
+    rc = proc.wait()
+    print(f"\ntool stability: aderyn_crashes={aderyn} slither_crashes={slither} "
+          f"(higher under CPU load — run unloaded for the authoritative number)")
+    if rc != 0:
+        raise subprocess.CalledProcessError(rc, cmd)
     return out
 
 
