@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
+from src.llm.provider_health import fetch_openai_compatible_model_ids
 from src.security.llm_output_validator import (
     AnalysisResponse,
     repair_common_json_errors,
@@ -290,30 +291,13 @@ class DeepSeekBackend(LLMBackend):
             self.available = False
             return self.available
 
-        headers = {"Authorization": f"Bearer {self.api_key}"}
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{self.base_url.rstrip('/')}/v1/models",
-                    headers=headers,
-                    timeout=aiohttp.ClientTimeout(total=10),
-                ) as resp:
-                    if resp.status != 200:
-                        self.available = False
-                        return self.available
-
-                    data = await resp.json()
-                    models = {
-                        model.get("id") or model.get("name")
-                        for model in data.get("data", data.get("models", []))
-                        if isinstance(model, dict) and (model.get("id") or model.get("name"))
-                    }
-                    self.available = self.config.model in models
-                    return self.available
-        except LLM_RUNTIME_ERRORS as e:
-            logger.debug(f"DeepSeek health check failed: {e}")
-            self.available = False
-            return self.available
+        models = await fetch_openai_compatible_model_ids(
+            self.base_url,
+            self.api_key,
+            provider_name="DeepSeek",
+        )
+        self.available = self.config.model in models
+        return self.available
 
     async def analyze(self, prompt: str, context: Optional[Dict] = None) -> LLMResponse:
         """Run analysis with DeepSeek."""

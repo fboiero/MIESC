@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
+from src.llm.provider_health import fetch_openai_compatible_model_ids
 from src.security.llm_output_validator import repair_common_json_errors
 
 logger = logging.getLogger(__name__)
@@ -360,29 +361,14 @@ Response (JSON array only):"""
                 logger.debug("DeepSeek not available: no API key")
                 return available
 
-            headers = {"Authorization": f"Bearer {self.deepseek_api_key}"}
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(
-                        f"{self.deepseek_base_url.rstrip('/')}/v1/models",
-                        headers=headers,
-                        timeout=aiohttp.ClientTimeout(total=10),
-                    ) as resp:
-                        if resp.status != 200:
-                            logger.debug("DeepSeek model check failed with status %s", resp.status)
-                            return available
-
-                        data = await resp.json()
-                        remote_models = {
-                            model.get("id") or model.get("name")
-                            for model in data.get("data", data.get("models", []))
-                            if isinstance(model, dict) and (model.get("id") or model.get("name"))
-                        }
-                        configured = self.PROVIDER_MODELS[LLMProvider.DEEPSEEK]
-                        available = [model for model in configured if model in remote_models]
-                        logger.debug("DeepSeek available with %s configured models", len(available))
-            except ENSEMBLE_RUNTIME_ERRORS as e:
-                logger.debug(f"DeepSeek not available: {e}")
+            remote_models = await fetch_openai_compatible_model_ids(
+                self.deepseek_base_url,
+                self.deepseek_api_key,
+                provider_name="DeepSeek",
+            )
+            configured = self.PROVIDER_MODELS[LLMProvider.DEEPSEEK]
+            available = [model for model in configured if model in remote_models]
+            logger.debug("DeepSeek available with %s configured models", len(available))
 
         return available
 
