@@ -58,7 +58,7 @@ lang: es
 
 - Orquestación automatizada de 50 herramientas de análisis de seguridad
 - Correlación asistida por IA para reducir reportes duplicados
-- Detección de vulnerabilidades basada en ML con 95.7% de precisión
+- Detección con redes neuronales de grafos DA-GNN (la técnica de origen reporta 95.7% de precisión; Computer Networks 2024)
 - Mapeo de cumplimiento a estándares ISO/NIST/OWASP
 - Formato de reportes estandarizado (JSON/HTML/PDF)
 
@@ -80,9 +80,8 @@ lang: es
 ### Logros Principales (v5.4.3)
 
 - **50 Herramientas Integradas** en 9 capas de defensa
-- **95.7% de Precisión de Detección ML** con Redes Neuronales de Grafos DA-GNN
 - **95.8% Recall**, **22.2% Precisión**, **F1-Score 36.0%** (SmartBugs-curated, 137/143 contratos)
-- **91.4% Índice de Cumplimiento** en 12 estándares internacionales
+- **Mapeo de cumplimiento** en 12 estándares internacionales (ISO 27001, NIST CSF, OWASP, …)
 - **IA Soberana** con Ollama - el código nunca sale de tu máquina
 - **$0 Costo Operativo** - ejecución completamente local
 - **Disponible en PyPI**: `pip install miesc`
@@ -317,7 +316,7 @@ SmartBugs-curated (143 contratos, 207 vulnerabilidades ground-truth):
 
 1. **Arquitectura Defense-in-Depth de 9 Capas** para seguridad de smart contracts
 2. **Integración de 50 Herramientas** bajo protocolo unificado ToolAdapter
-3. **Sistema de Normalización Triple** (SWC/CWE/OWASP) con 97.1% de precisión
+3. **Sistema de Normalización Triple** (SWC/CWE/OWASP)
 4. **Backend de IA Soberano** con Ollama para soberanía de datos
 5. **Servidor MCP** para integración con asistentes de IA
 6. **Rescate de Herramientas Legacy** (Manticore Python 3.11, Oyente Docker)

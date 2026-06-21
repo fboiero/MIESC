@@ -57,7 +57,7 @@ title: MIESC - Smart Contract Security Framework
 
 - Automated orchestration of 50 security analysis tools
 - AI-assisted finding correlation to reduce duplicate reports
-- ML-based vulnerability detection with 95.7% accuracy
+- DA-GNN graph-neural-network detection (the source technique reports 95.7% accuracy; Computer Networks 2024)
 - Compliance mapping to ISO/NIST/OWASP standards
 - Standardized reporting format (JSON/HTML/PDF)
 
@@ -79,9 +79,8 @@ title: MIESC - Smart Contract Security Framework
 ### Key Achievements (v5.4.3)
 
 - **50 Integrated Tools** across 9 defense layers
-- **95.7% ML Detection Accuracy** with DA-GNN Graph Neural Networks
 - **95.8% Recall**, **22.2% Precision**, **F1-Score 36.0%** (SmartBugs-curated, 137/143 contracts)
-- **91.4% Compliance Index** across 12 international standards
+- **Compliance mapping** across 12 international standards (ISO 27001, NIST CSF, OWASP, …)
 - **Sovereign AI** with Ollama - code never leaves your machine
 - **$0 Operational Cost** - fully local execution
 - **Now on PyPI**: `pip install miesc`
@@ -318,7 +317,7 @@ SmartBugs-curated (143 contracts, 207 ground-truth vulnerabilities):
 
 1. **9-Layer Defense-in-Depth Architecture** for smart contract security
 2. **50 Tool Integration** under unified ToolAdapter protocol
-3. **Triple Normalization System** (SWC/CWE/OWASP) with 97.1% accuracy
+3. **Triple Normalization System** (SWC/CWE/OWASP)
 4. **Sovereign AI Backend** with Ollama for data sovereignty
 5. **MCP Server** for AI assistant integration
 6. **Legacy Tool Rescue** (Manticore Python 3.11 compatibility)
