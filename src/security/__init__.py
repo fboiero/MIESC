@@ -57,7 +57,9 @@ from .remediation_pipeline import (
     classify_compile_failure,
     compile_contract,
     count_high_findings,
+    diff_high_finding_types,
     remediate_contract,
+    summarize_high_finding_types,
 )
 from .remediations import (
     Remediation,
@@ -142,6 +144,8 @@ __all__ = [
     "classify_compile_failure",
     "compile_contract",
     "count_high_findings",
+    "summarize_high_finding_types",
+    "diff_high_finding_types",
     "remediate_contract",
 ]
 
