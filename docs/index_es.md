@@ -95,6 +95,15 @@ lang: es
 generación de reportes estáticos, manteniendo la UI de producto/plataforma fuera
 del paquete público.
 
+> **Sobre las métricas de esta sección:** las cifras por técnica que siguen (recall
+> de PropertyGPT, precisión de DA-GNN, precisión del RAG, etc.) son los resultados
+> **reportados por los papers peer-reviewed** en los que se basa cada adaptador (ver
+> la línea "Basado en…" de cada uno). MIESC integra estas técnicas como adaptadores
+> y **no** las re-benchmarkea de forma independiente, por lo que no forman parte de
+> la [matriz de afirmaciones reproducibles](../benchmarks/results/paper1_claims_matrix.json).
+> Los resultados medidos por MIESC son los de SmartBugs-curated, EVMBench y exploits
+> reales reportados en el resto de esta página y en el Paper 1.
+
 ### 1. PropertyGPT (Capa 4 - Verificación Formal)
 
 - Generación automatizada de propiedades CVL para verificación formal

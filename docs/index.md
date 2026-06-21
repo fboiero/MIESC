@@ -94,6 +94,15 @@ title: MIESC - Smart Contract Security Framework
 static report generation with the platform/product UI kept outside the public
 package.
 
+> **On the metrics in this section:** the per-technique figures below (PropertyGPT
+> recall, DA-GNN accuracy, RAG precision, etc.) are the results **reported by the
+> peer-reviewed source papers** each adapter is based on (see the "Based on…" line
+> under each). MIESC integrates these techniques as adapters and does **not**
+> independently re-benchmark them, so they are not part of the
+> [reproducible claims matrix](../benchmarks/results/paper1_claims_matrix.json).
+> MIESC's own measured results are the SmartBugs-curated, EVMBench and real-world
+> exploit numbers reported elsewhere in this page and in Paper 1.
+
 ### 1. PropertyGPT (Layer 4 - Formal Verification)
 
 - Automated CVL property generation for formal verification

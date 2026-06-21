@@ -136,7 +136,8 @@ in writing. Templates in `docs/case_studies/CONSENT_TEMPLATE.md`
 ## Why this beats more code
 
 MIESC's v5.1.8 release has 5,332 tests, 13 Cairo vuln types, multi-LLM
-consensus, formal-verification bridge, and an 80% recall benchmark. The
+consensus, formal-verification bridge, and a 95.8% SmartBugs-curated recall
+benchmark (81.8% on real-world exploits). The
 bottleneck is **not engineering**. The bottleneck is evidence of use by
 real teams.
 
