@@ -6,12 +6,24 @@ uses the shared mixin like the other LLM adapters.
 
 from __future__ import annotations
 
+import os
+import time
 from pathlib import Path
 from unittest.mock import patch
 
 from src.adapters._cache_mixin import LLMCacheMixin
 from src.adapters.gptscan_adapter import GPTScanAdapter
 from src.core.tool_protocol import ToolStatus
+
+
+def _harness(tmp_path, ttl=1000):
+    class _H(LLMCacheMixin):
+        pass
+
+    h = _H()
+    h._init_cache("unit", ttl=ttl)
+    h._cache_dir = tmp_path
+    return h
 
 
 def test_cache_mixin_roundtrip_and_ttl(tmp_path):
@@ -24,6 +36,37 @@ def test_cache_mixin_roundtrip_and_ttl(tmp_path):
     assert h._get_cached_result("k") is None
     h._cache_result("k", {"status": "success", "findings": []})
     assert h._get_cached_result("k") == {"status": "success", "findings": []}
+
+
+def test_expired_entry_is_deleted(tmp_path):
+    h = _harness(tmp_path, ttl=10)
+    h._cache_result("k", {"status": "success"})
+    cache_file = tmp_path / "k.json"
+    old = time.time() - 100
+    os.utime(cache_file, (old, old))
+    assert h._get_cached_result("k") is None
+    assert not cache_file.exists()  # stale entry purged
+
+
+def test_corrupt_entry_is_deleted(tmp_path):
+    h = _harness(tmp_path, ttl=1000)
+    bad = tmp_path / "bad.json"
+    bad.write_text("{ not valid json", encoding="utf-8")
+    assert h._get_cached_result("bad") is None
+    assert not bad.exists()  # corrupt entry purged
+
+
+def test_read_error_returns_none(tmp_path):
+    h = _harness(tmp_path, ttl=1000)
+    h._cache_result("k", {"status": "success"})
+    with patch("src.adapters._cache_mixin.json.load", side_effect=RuntimeError("boom")):
+        assert h._get_cached_result("k") is None  # generic error swallowed
+
+
+def test_write_error_is_swallowed(tmp_path):
+    h = _harness(tmp_path, ttl=1000)
+    # A set is not JSON-serializable → json.dump raises mid-write; must not propagate.
+    h._cache_result("k", {"bad": {1, 2, 3}})
 
 
 def test_gptscan_inherits_cache_mixin():

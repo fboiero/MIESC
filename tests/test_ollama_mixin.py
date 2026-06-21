@@ -8,6 +8,7 @@ method itself.
 from __future__ import annotations
 
 import json
+import urllib.error
 from unittest.mock import MagicMock, patch
 
 from src.adapters._ollama_mixin import OllamaCallMixin
@@ -65,3 +66,71 @@ def test_recovered_retry_does_not_flag_timeout():
         )
     assert out
     assert host._timed_out is False
+
+
+def _raw_response(body: bytes, status: int = 200):
+    resp = MagicMock()
+    resp.status = status
+    resp.read.return_value = body
+    cm = MagicMock()
+    cm.__enter__.return_value = resp
+    cm.__exit__.return_value = False
+    return cm
+
+
+def test_empty_response_returns_none():
+    host = _Host()
+    with patch("urllib.request.urlopen", return_value=_raw_response(b'{"response": ""}')):
+        out = host._ollama_generate(
+            "p", url="http://x/api/generate", model="m", timeout=10, max_attempts=1
+        )
+    assert out is None
+    assert host._timed_out is False
+
+
+def test_non_200_status_returns_none():
+    host = _Host()
+    with patch("urllib.request.urlopen", return_value=_raw_response(b"{}", status=500)):
+        out = host._ollama_generate(
+            "p", url="http://x/api/generate", model="m", timeout=10, max_attempts=1
+        )
+    assert out is None
+
+
+def test_urlerror_non_timeout_returns_none():
+    host = _Host()
+    with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("connection refused")):
+        out = host._ollama_generate(
+            "p", url="http://x/api/generate", model="m", timeout=10, max_attempts=1
+        )
+    assert out is None
+    assert host._timed_out is False  # not a timeout
+
+
+def test_urlerror_with_timeout_reason_flags_timeout():
+    host = _Host()
+    err = urllib.error.URLError(TimeoutError("timed out"))
+    with patch("urllib.request.urlopen", side_effect=err):
+        out = host._ollama_generate(
+            "p", url="http://x/api/generate", model="m", timeout=10, max_attempts=1
+        )
+    assert out is None
+    assert host._timed_out is True
+
+
+def test_invalid_json_returns_none():
+    host = _Host()
+    with patch("urllib.request.urlopen", return_value=_raw_response(b"not json at all")):
+        out = host._ollama_generate(
+            "p", url="http://x/api/generate", model="m", timeout=10, max_attempts=1
+        )
+    assert out is None
+
+
+def test_unexpected_error_returns_none():
+    host = _Host()
+    with patch("urllib.request.urlopen", side_effect=ValueError("weird")):
+        out = host._ollama_generate(
+            "p", url="http://x/api/generate", model="m", timeout=10, max_attempts=1
+        )
+    assert out is None
