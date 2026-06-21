@@ -7,9 +7,18 @@ Author: Fernando Boiero
 License: AGPL-3.0
 """
 
+import asyncio
+import os
 import subprocess
 
 import click
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
 
 from miesc.cli.constants import LAYERS
 from miesc.cli.utils import (
@@ -24,6 +33,47 @@ from miesc.cli.utils import (
 if RICH_AVAILABLE:
     from rich import box
     from rich.table import Table
+
+from src.llm.provider_health import fetch_openai_compatible_model_ids
+
+
+def _deepseek_doctor_status() -> tuple[str, str]:
+    """Return a human-readable DeepSeek status without exposing secrets."""
+    api_key = os.environ.get("DEEPSEEK_API_KEY")
+    if not api_key:
+        return "[dim]not set[/dim]", "Set DEEPSEEK_API_KEY for DeepSeek API"
+
+    base_url = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+    configured_provider = os.environ.get("MIESC_LLM_PROVIDER", "").lower()
+    configured_model = (
+        os.environ.get("MIESC_LLM_MODEL") if configured_provider == "deepseek" else None
+    )
+    model = configured_model or "deepseek-v4-flash"
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        pass
+    else:
+        return "[yellow]configured[/yellow]", f"{model} configured; run outside active event loop"
+
+    try:
+        models = asyncio.run(
+            fetch_openai_compatible_model_ids(
+                base_url,
+                api_key,
+                timeout=3,
+                provider_name="DeepSeek",
+            )
+        )
+    except RuntimeError:
+        return "[yellow]configured[/yellow]", f"{model} configured; run outside active event loop"
+
+    if model in models:
+        return "[green]ready[/green]", f"{model} available"
+    if models:
+        return "[yellow]model missing[/yellow]", f"{model} not listed ({len(models)} models)"
+    return "[yellow]unavailable[/yellow]", "/v1/models unreachable or unauthorized"
 
 
 # =============================================================================
@@ -126,8 +176,6 @@ def doctor(verbose: bool) -> None:
             )
 
         # Anthropic
-        import os
-
         if os.environ.get("ANTHROPIC_API_KEY"):
             llm_table.add_row("Anthropic", "[green]configured[/green]", "ANTHROPIC_API_KEY set")
         else:
@@ -138,6 +186,10 @@ def doctor(verbose: bool) -> None:
             llm_table.add_row("OpenAI", "[green]configured[/green]", "OPENAI_API_KEY set")
         else:
             llm_table.add_row("OpenAI", "[dim]not set[/dim]", "Set OPENAI_API_KEY for GPT")
+
+        # DeepSeek
+        deepseek_status, deepseek_details = _deepseek_doctor_status()
+        llm_table.add_row("DeepSeek", deepseek_status, deepseek_details)
 
         console.print(llm_table)
 

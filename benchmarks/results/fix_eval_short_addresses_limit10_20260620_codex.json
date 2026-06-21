@@ -1,0 +1,88 @@
+{
+  "artifact": "paper2_fix_eval_contract_details",
+  "scope": "Paper 2 remediation only; does not modify Paper 1 detection evidence.",
+  "dataset": "benchmarks/datasets/smartbugs-curated/dataset",
+  "limit": 10,
+  "scan_timeout": 15,
+  "skip_rescan": true,
+  "totals": {
+    "contracts": 1,
+    "fix_applied": 1,
+    "fix_compiles": 1,
+    "vuln_eliminated": 0,
+    "no_regression": 0,
+    "fix_failed": 0,
+    "scan_empty": 0,
+    "no_high": 0
+  },
+  "by_category": {
+    "short_addresses": {
+      "contracts": 1,
+      "fix_applied": 1,
+      "fix_compiles": 1,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0
+    }
+  },
+  "compile_failure_taxonomy": {},
+  "contracts": [
+    {
+      "category": "short_addresses",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/short_addresses/short_address_example.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=1, skipped=0",
+      "high_before": 1,
+      "high_after": null,
+      "total_findings_before": 5,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol:MyToken =======\nBinary: \n608060405234801561001057600080fd5b506127106000803273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055506102da806100656000396000f30060806040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806390b98a1114610051578063f8b2cb4f146100b6575b600080fd5b34801561005d57600080fd5b5061009c600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291908035906020019092919050505061010d565b604051808215151515815260200191505060405180910390f35b3480156100c257600080fd5b506100f7600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610266565b6040518082815260200191505060405180910390f35b6000816000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054101561015e5760009050610260565b816000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008282540392505081905550816000808573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020600082825401925050819055508273ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef846040518082815260200191505060405180910390a3600190505b92915050565b60008060008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205490509190505600a165627a7a72305820ba5b157b67a27330ae0f2e01ebb8bd618cc9e26228dd0c6f28209bedce9602520029\n",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol:33:6: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n     function MyToken() {\n     ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol:41:10: Warning: Invoking events without \"emit\" prefix is deprecated.\n         Transfer(msg.sender, to, amount);\n         ^------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol:33:6: Warning: No visibility specified. Defaulting to \"public\". \n     function MyToken() {\n     ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol:37:6: Warning: No visibility specified. Defaulting to \"public\". \n     function sendCoin(address to, uint amount) returns(bool sufficient) {\n     ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol:45:6: Warning: No visibility specified. Defaulting to \"public\". \n     function getBalance(address addr) constant returns(uint) {\n     ^ (Relevant source part starts here and spans across multiple lines).\n",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/short_addresses/short_address_example.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol",
+        "original_sha256": "71314df3e4ae74d53be017a98a080891eedac1b894b650d52c18288d71a3022d",
+        "patched_sha256": "1d30447725b11e27c15dd441e5b15986d426b752b5bc25a3814e7e99fe53a8ca",
+        "findings_input": 10,
+        "fixable_findings": 1,
+        "fixes_applied": 1,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol:MyToken =======\nBinary: \n608060405234801561001057600080fd5b506127106000803273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055506102da806100656000396000f30060806040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806390b98a1114610051578063f8b2cb4f146100b6575b600080fd5b34801561005d57600080fd5b5061009c600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291908035906020019092919050505061010d565b604051808215151515815260200191505060405180910390f35b3480156100c257600080fd5b506100f7600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610266565b6040518082815260200191505060405180910390f35b6000816000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054101561015e5760009050610260565b816000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008282540392505081905550816000808573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020600082825401925050819055508273ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef846040518082815260200191505060405180910390a3600190505b92915050565b60008060008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205490509190505600a165627a7a72305820ba5b157b67a27330ae0f2e01ebb8bd618cc9e26228dd0c6f28209bedce9602520029\n",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol:33:6: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n     function MyToken() {\n     ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol:41:10: Warning: Invoking events without \"emit\" prefix is deprecated.\n         Transfer(msg.sender, to, amount);\n         ^------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol:33:6: Warning: No visibility specified. Defaulting to \"public\". \n     function MyToken() {\n     ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol:37:6: Warning: No visibility specified. Defaulting to \"public\". \n     function sendCoin(address to, uint amount) returns(bool sufficient) {\n     ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp0fgbxmze/fixed.sol:45:6: Warning: No visibility specified. Defaulting to \"public\". \n     function getBalance(address addr) constant returns(uint) {\n     ^ (Relevant source part starts here and spans across multiple lines).\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:53:38.079907+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    }
+  ]
+}

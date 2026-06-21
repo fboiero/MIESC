@@ -1,0 +1,253 @@
+{
+  "artifact": "paper2_fix_eval_contract_details",
+  "scope": "Paper 2 remediation only; does not modify Paper 1 detection evidence.",
+  "dataset": "benchmarks/datasets/smartbugs-curated/dataset",
+  "limit": 10,
+  "scan_timeout": 15,
+  "skip_rescan": true,
+  "totals": {
+    "contracts": 4,
+    "fix_applied": 4,
+    "fix_compiles": 4,
+    "vuln_eliminated": 0,
+    "no_regression": 0,
+    "fix_failed": 0,
+    "scan_empty": 0,
+    "no_high": 0
+  },
+  "by_category": {
+    "front_running": {
+      "contracts": 4,
+      "fix_applied": 4,
+      "fix_compiles": 4,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0
+    }
+  },
+  "compile_failure_taxonomy": {},
+  "contracts": [
+    {
+      "category": "front_running",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/front_running/ERC20.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=2, skipped=0",
+      "high_before": 1,
+      "high_after": null,
+      "total_findings_before": 14,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmphgjsug0f/fixed.sol:ERC20 =======\nBinary: \n608060405234801561001057600080fd5b50604051602080610b5a83398101806040528101908080519060200190929190505050806000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000208190555050610ad4806100866000396000f30060806040526004361061006d576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063095ea7b31461007257806323b872dd146100d757806370a082311461015c578063a9059cbb146101b3578063dd62ed3e14610218575b600080fd5b34801561007e57600080fd5b506100bd600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291908035906020019092919050505061028f565b604051808215151515815260200191505060405180910390f35b3480156100e357600080fd5b50610142600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803590602001909291905050506103bc565b604051808215151515815260200191505060405180910390f35b34801561016857600080fd5b5061019d600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610777565b6040518082815260200191505060405180910390f35b3480156101bf57600080fd5b506101fe600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803590602001909291905050506107bf565b604051808215151515815260200191505060405180910390f35b34801561022457600080fd5b50610279600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506109df565b6040518082815260200191505060405180910390f35b60008073ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff16141515156102cc57600080fd5b81600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008573ffffffffffffffffffffffffffffffffffffffff1673fffffffffffffff",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmphgjsug0f/fixed.sol:134:3: Warning: No visibility specified. Defaulting to \"public\". \n  constructor(uint totalSupply){\n  ^ (Relevant source part starts here and spans across multiple lines).\n",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/front_running/ERC20.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmphgjsug0f/fixed.sol",
+        "original_sha256": "2945981f9e38addeee1e3936e18871cb4bd96a70ba84836dd48cd953a8d910f7",
+        "patched_sha256": "f50e585cde7c3115e5d87a2eddae5cdc41ed28b979472020a777908161fda358",
+        "findings_input": 28,
+        "fixable_findings": 2,
+        "fixes_applied": 2,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmphgjsug0f/fixed.sol:ERC20 =======\nBinary: \n608060405234801561001057600080fd5b50604051602080610b5a83398101806040528101908080519060200190929190505050806000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000208190555050610ad4806100866000396000f30060806040526004361061006d576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063095ea7b31461007257806323b872dd146100d757806370a082311461015c578063a9059cbb146101b3578063dd62ed3e14610218575b600080fd5b34801561007e57600080fd5b506100bd600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291908035906020019092919050505061028f565b604051808215151515815260200191505060405180910390f35b3480156100e357600080fd5b50610142600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803590602001909291905050506103bc565b604051808215151515815260200191505060405180910390f35b34801561016857600080fd5b5061019d600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610777565b6040518082815260200191505060405180910390f35b3480156101bf57600080fd5b506101fe600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803590602001909291905050506107bf565b604051808215151515815260200191505060405180910390f35b34801561022457600080fd5b50610279600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506109df565b6040518082815260200191505060405180910390f35b60008073ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff16141515156102cc57600080fd5b81600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008573ffffffffffffffffffffffffffffffffffffffff1673fffffffffffffff",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmphgjsug0f/fixed.sol:134:3: Warning: No visibility specified. Defaulting to \"public\". \n  constructor(uint totalSupply){\n  ^ (Relevant source part starts here and spans across multiple lines).\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:52:45.351061+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "front_running",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/front_running/FindThisHash.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=4, skipped=0",
+      "high_before": 2,
+      "high_after": null,
+      "total_findings_before": 11,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpteg_i948/fixed.sol:FindThisHash =======\nBinary: \n608060405261022e806100136000396000f30060806040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806309bd5a601461005157806376fe1e9214610084575b600080fd5b34801561005d57600080fd5b506100666100ed565b60405180826000191660001916815260200191505060405180910390f35b34801561009057600080fd5b506100eb600480360381019080803590602001908201803590602001908080601f0160208091040260200160405190810160405280939291908181526020018383808284378201915050505050509192919290505050610114565b005b7fb5b5b97fafd9855eec9b41f74dfb6c38f5951141f9a3ecd7f44d5479b630ee0a60010281565b806040518082805190602001908083835b60208310151561014a5780518252602082019150602081019050602083039250610125565b6001836020036101000a0380198251168184511680821785525050505050509050019150506040518091039020600019167fb5b5b97fafd9855eec9b41f74dfb6c38f5951141f9a3ecd7f44d5479b630ee0a600102600019161415156101af57600080fd5b3373ffffffffffffffffffffffffffffffffffffffff166108fc683635c9adc5dea000009081150290604051600060405180830381858888f193505050501580156101fe573d6000803e3d6000fd5b50505600a165627a7a723058207f38dc6da252f599cd2d8f4e56b6db39228dbdfaf96821298b4bb74f5e4b97280029\n",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpteg_i948/fixed.sol:102:25: Warning: \"sha3\" has been deprecated in favour of \"keccak256\"\n        require(hash == sha3(solution));\n                        ^------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpteg_i948/fixed.sol:102:25: Warning: This function only accepts a single \"bytes\" argument. Please use \"abi.encodePacked(...)\" or a similar function to encode the data.\n        require(hash == sha3(solution));\n                        ^------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpteg_i948/fixed.sol:102:25: Warning: The provided argument of type string memory is not implicitly convertible to expected type bytes memory.\n        require(hash == sha3(solution));\n                        ^------------^\n",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/front_running/FindThisHash.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpteg_i948/fixed.sol",
+        "original_sha256": "3cf407b311e38f93e6a7e1a40b5cb9dfcd06a995625d60fd6b3285bea043a9d2",
+        "patched_sha256": "f8b6516f1dbadf30b93145db5c589540165fa9f5b7825a4ffa48d4aed32e51d9",
+        "findings_input": 22,
+        "fixable_findings": 4,
+        "fixes_applied": 4,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpteg_i948/fixed.sol:FindThisHash =======\nBinary: \n608060405261022e806100136000396000f30060806040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806309bd5a601461005157806376fe1e9214610084575b600080fd5b34801561005d57600080fd5b506100666100ed565b60405180826000191660001916815260200191505060405180910390f35b34801561009057600080fd5b506100eb600480360381019080803590602001908201803590602001908080601f0160208091040260200160405190810160405280939291908181526020018383808284378201915050505050509192919290505050610114565b005b7fb5b5b97fafd9855eec9b41f74dfb6c38f5951141f9a3ecd7f44d5479b630ee0a60010281565b806040518082805190602001908083835b60208310151561014a5780518252602082019150602081019050602083039250610125565b6001836020036101000a0380198251168184511680821785525050505050509050019150506040518091039020600019167fb5b5b97fafd9855eec9b41f74dfb6c38f5951141f9a3ecd7f44d5479b630ee0a600102600019161415156101af57600080fd5b3373ffffffffffffffffffffffffffffffffffffffff166108fc683635c9adc5dea000009081150290604051600060405180830381858888f193505050501580156101fe573d6000803e3d6000fd5b50505600a165627a7a723058207f38dc6da252f599cd2d8f4e56b6db39228dbdfaf96821298b4bb74f5e4b97280029\n",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpteg_i948/fixed.sol:102:25: Warning: \"sha3\" has been deprecated in favour of \"keccak256\"\n        require(hash == sha3(solution));\n                        ^------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpteg_i948/fixed.sol:102:25: Warning: This function only accepts a single \"bytes\" argument. Please use \"abi.encodePacked(...)\" or a similar function to encode the data.\n        require(hash == sha3(solution));\n                        ^------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpteg_i948/fixed.sol:102:25: Warning: The provided argument of type string memory is not implicitly convertible to expected type bytes memory.\n        require(hash == sha3(solution));\n                        ^------------^\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:52:50.079895+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "front_running",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/front_running/eth_tx_order_dependence_minimal.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=5, skipped=0",
+      "high_before": 2,
+      "high_after": null,
+      "total_findings_before": 13,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_a5ojp1b/fixed.sol:EthTxOrderDependenceMinimal =======\nBinary: \n608060405234801561001057600080fd5b5033600060016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506103e1806100616000396000f30060806040526004361061006d576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063228cb733146100725780633eb6a67e1461009d5780638da5cb5b146100a7578063ae169a50146100fe578063e834a8341461012b575b600080fd5b34801561007e57600080fd5b5061008761015a565b6040518082815260200191505060405180910390f35b6100a5610160565b005b3480156100b357600080fd5b506100bc61029b565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801561010a57600080fd5b50610129600480360381019080803590602001909291905050506102c1565b005b34801561013757600080fd5b506101406103a2565b604051808215151515815260200191505060405180910390f35b60015481565b6000809054906101000a900460ff1615151561017b57600080fd5b60016000806101000a81548160ff021916908315150217905550600060159054906101000a900460ff161515156101b157600080fd5b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614151561020d57600080fd5b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff166108fc6001549081150290604051600060405180830381858888f19350505050158015610277573d6000803e3d6000fd5b503460018190555060008060006101000a81548160ff021916908315150217905550565b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000809054906101000a900460ff161515156102dc57600080fd5b60016000806101000a81548160ff021916908315150217905550600060159054906101000a900460ff1615151561031257600080fd5b600a8110151561032157600080fd5b3373ffffffffffffffffffffffffffffffffffffffff166108fc6001549081150290604051600",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_a5ojp1b/fixed.sol:47:5: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n    function EthTxOrderDependenceMinimal() public {\n    ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_a5ojp1b/fixed.sol:102:5: Warning: No visibility specified. Defaulting to \"public\". \n    function claimReward(uint256 submission) nonReentrant {\n    ^ (Relevant source part starts here and spans across multiple lines).\n",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/front_running/eth_tx_order_dependence_minimal.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_a5ojp1b/fixed.sol",
+        "original_sha256": "ff02571525b00a0261fa98cc57fc00822124d72ce0039b4e46423523154bf5ed",
+        "patched_sha256": "6b159b51829033d3f8f8a554c9462328e4fc501dfe1d6208aff9e84683b42896",
+        "findings_input": 26,
+        "fixable_findings": 5,
+        "fixes_applied": 5,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_a5ojp1b/fixed.sol:EthTxOrderDependenceMinimal =======\nBinary: \n608060405234801561001057600080fd5b5033600060016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506103e1806100616000396000f30060806040526004361061006d576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063228cb733146100725780633eb6a67e1461009d5780638da5cb5b146100a7578063ae169a50146100fe578063e834a8341461012b575b600080fd5b34801561007e57600080fd5b5061008761015a565b6040518082815260200191505060405180910390f35b6100a5610160565b005b3480156100b357600080fd5b506100bc61029b565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801561010a57600080fd5b50610129600480360381019080803590602001909291905050506102c1565b005b34801561013757600080fd5b506101406103a2565b604051808215151515815260200191505060405180910390f35b60015481565b6000809054906101000a900460ff1615151561017b57600080fd5b60016000806101000a81548160ff021916908315150217905550600060159054906101000a900460ff161515156101b157600080fd5b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614151561020d57600080fd5b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff166108fc6001549081150290604051600060405180830381858888f19350505050158015610277573d6000803e3d6000fd5b503460018190555060008060006101000a81548160ff021916908315150217905550565b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000809054906101000a900460ff161515156102dc57600080fd5b60016000806101000a81548160ff021916908315150217905550600060159054906101000a900460ff1615151561031257600080fd5b600a8110151561032157600080fd5b3373ffffffffffffffffffffffffffffffffffffffff166108fc6001549081150290604051600",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_a5ojp1b/fixed.sol:47:5: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n    function EthTxOrderDependenceMinimal() public {\n    ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_a5ojp1b/fixed.sol:102:5: Warning: No visibility specified. Defaulting to \"public\". \n    function claimReward(uint256 submission) nonReentrant {\n    ^ (Relevant source part starts here and spans across multiple lines).\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:52:55.742469+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "front_running",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/front_running/odds_and_evens.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=4, skipped=0",
+      "high_before": 1,
+      "high_after": null,
+      "total_findings_before": 9,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:MiescReentrancyGuard =======\nBinary: \n6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a72305820a92aee411713076be2fdfb2b0e6c57458704a711f4554278e247c70f337db9c40029\n\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:OddsAndEvens =======\nBinary: \n608060405234801561001057600080fd5b5033600560016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555061055f806100616000396000f300608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063679dffb41461005c5780636898f82b14610073578063f71d96cb14610093575b600080fd5b34801561006857600080fd5b50610071610107565b005b610091600480360381019080803590602001909291905050506101b6565b005b34801561009f57600080fd5b506100be600480360381019080803590602001909291905050506102c9565b604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390f35b6000600560019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614151561016557600080fd5b3373ffffffffffffffffffffffffffffffffffffffff166108fc3073ffffffffffffffffffffffffffffffffffffffff16319081150290604051600060405180830381858888f19350505050905050565b670de0b6b3a7640000341415156101cc57600080fd5b60408051908101604052803373ffffffffffffffffffffffffffffffffffffffff168152602001828152506001600560009054906101000a900460ff1660ff1660028110151561021857fe5b6002020160008201518160000160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550602082015181600101559050506005600081819054906101000a900460ff168092919060010191906101000a81548160ff021916908360ff160217905550506002600560009054906101000a900460ff1660ff1614156102c6576102c5610",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:54:3: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n  function OddsAndEvens() {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:82:31: Warning: \"throw\" is deprecated in favour of \"revert()\", \"require()\" and \"assert()\".\n    if (msg.value != 1 ether) throw;\n                              ^---^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:124:27: Warning: \"throw\" is deprecated in favour of \"revert()\", \"require()\" and \"assert()\".\n    if(msg.sender!=owner) throw;\n                          ^---^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:125:32: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n    bool res = msg.sender.send(this.balance);\n                               ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:54:3: Warning: No visibility specified. Defaulting to \"public\". \n  function OddsAndEvens() {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:81:3: Warning: No visibility specified. Defaulting to \"public\". \n  function play(uint number) payable{\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:123:3: Warning: No visibility specified. Defaulting to \"public\". \n  function getProfit() {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:125:5: Warning: Unused local variable.\n    bool res = msg.sender.sen",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/front_running/odds_and_evens.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol",
+        "original_sha256": "10a78792f4f19a393fe2f7513ec9570f5d218e203961f6ed5af4484fbb891dc8",
+        "patched_sha256": "ffae8b3323d2b847e8309b9d2cd984e7bea82eeb15d53f749bb0f91f3f70ac5f",
+        "findings_input": 18,
+        "fixable_findings": 4,
+        "fixes_applied": 4,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:MiescReentrancyGuard =======\nBinary: \n6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a72305820a92aee411713076be2fdfb2b0e6c57458704a711f4554278e247c70f337db9c40029\n\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:OddsAndEvens =======\nBinary: \n608060405234801561001057600080fd5b5033600560016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555061055f806100616000396000f300608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063679dffb41461005c5780636898f82b14610073578063f71d96cb14610093575b600080fd5b34801561006857600080fd5b50610071610107565b005b610091600480360381019080803590602001909291905050506101b6565b005b34801561009f57600080fd5b506100be600480360381019080803590602001909291905050506102c9565b604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390f35b6000600560019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614151561016557600080fd5b3373ffffffffffffffffffffffffffffffffffffffff166108fc3073ffffffffffffffffffffffffffffffffffffffff16319081150290604051600060405180830381858888f19350505050905050565b670de0b6b3a7640000341415156101cc57600080fd5b60408051908101604052803373ffffffffffffffffffffffffffffffffffffffff168152602001828152506001600560009054906101000a900460ff1660ff1660028110151561021857fe5b6002020160008201518160000160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550602082015181600101559050506005600081819054906101000a900460ff168092919060010191906101000a81548160ff021916908360ff160217905550506002600560009054906101000a900460ff1660ff1614156102c6576102c5610",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:54:3: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n  function OddsAndEvens() {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:82:31: Warning: \"throw\" is deprecated in favour of \"revert()\", \"require()\" and \"assert()\".\n    if (msg.value != 1 ether) throw;\n                              ^---^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:124:27: Warning: \"throw\" is deprecated in favour of \"revert()\", \"require()\" and \"assert()\".\n    if(msg.sender!=owner) throw;\n                          ^---^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:125:32: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n    bool res = msg.sender.send(this.balance);\n                               ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:54:3: Warning: No visibility specified. Defaulting to \"public\". \n  function OddsAndEvens() {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:81:3: Warning: No visibility specified. Defaulting to \"public\". \n  function play(uint number) payable{\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:123:3: Warning: No visibility specified. Defaulting to \"public\". \n  function getProfit() {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp3dseiw8q/fixed.sol:125:5: Warning: Unused local variable.\n    bool res = msg.sender.sen",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:52:59.929932+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    }
+  ]
+}

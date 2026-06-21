@@ -22,7 +22,7 @@ This assessment addresses DPGA Standard Indicator 9 and evaluates the potential 
 
 1. **Local-first architecture:** MIESC processes all data locally. No telemetry, no analytics, no external API calls during analysis.
 
-2. **LLM data handling:** When using local Ollama, all LLM processing stays on the user's machine. Remote LLM providers (OpenAI, Anthropic) are optional and require explicit configuration.
+2. **LLM data handling:** When using local Ollama, all LLM processing stays on the user's machine. Remote LLM providers (OpenAI, Anthropic, DeepSeek) are optional and require explicit configuration.
 
 3. **Report security:** Generated reports include confidentiality classification headers. Reports are stored locally and never transmitted by MIESC.
 

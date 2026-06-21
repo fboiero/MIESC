@@ -1,0 +1,68 @@
+{
+  "artifact": "paper2_unchecked_regression_probe",
+  "generated_at": "2026-06-21T11:04:17.667261+00:00",
+  "source_artifact": "benchmarks/results/fix_eval_full_dry_details_20260621_codex.json",
+  "scope": "Investigates the 3 unchecked_low_level_calls no_regression=False contracts from the full dry run; non-canonical evidence only.",
+  "full_dry_regression_count": 3,
+  "full_dry_regressions": [
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xdb1c55f6926e7d847ddf8678905ad871a68199d2.sol",
+      "full_dry_rescan": {
+        "checked": true,
+        "high_before": 3,
+        "high_after": 7,
+        "total_before": 16,
+        "total_after": 57,
+        "eliminated": false,
+        "no_regression": false,
+        "no_regression_bound": 2
+      },
+      "fixes_applied": 4,
+      "fixes_skipped": 2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xec329ffc97d75fe03428ae155fc7793431487f63.sol",
+      "full_dry_rescan": {
+        "checked": true,
+        "high_before": 2,
+        "high_after": 6,
+        "total_before": 24,
+        "total_after": 32,
+        "eliminated": false,
+        "no_regression": false,
+        "no_regression_bound": 2
+      },
+      "fixes_applied": 6,
+      "fixes_skipped": 1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xf70d589d76eebdd7c12cc5eec99f8f6fa4233b9e.sol",
+      "full_dry_rescan": {
+        "checked": true,
+        "high_before": 2,
+        "high_after": 4,
+        "total_before": 8,
+        "total_after": 20,
+        "eliminated": false,
+        "no_regression": false,
+        "no_regression_bound": 2
+      },
+      "fixes_applied": 3,
+      "fixes_skipped": 1
+    }
+  ],
+  "reproduction_summary": {
+    "method": "Re-ran scan/remediate/rescan on the same three contracts from a clean tmp directory after the full dry run.",
+    "observed": "The no_regression=False state did not reproduce; current runs returned no_regression=True for all three contracts, with differing HIGH/total counts on at least one contract.",
+    "interpretation": "Evidence points to scan/rescan instability or environmental contention rather than a deterministic unchecked-call patcher compile/regression class."
+  },
+  "code_change": {
+    "files": [
+      "src/security/remediation_pipeline.py",
+      "src/security/__init__.py",
+      "tests/test_remediation_pipeline.py"
+    ],
+    "purpose": "Add RescanEvidence high_delta, total_delta, high_types_before, high_types_after, and new_high_types so future full dry artifacts explain no_regression failures."
+  },
+  "next_loop": "Run a small unchecked_low_level_calls rescan probe after this evidence change; inspect new_high_types if no_regression=False recurs."
+}

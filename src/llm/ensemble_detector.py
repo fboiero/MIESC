@@ -28,9 +28,17 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
+from src.llm.provider_health import fetch_openai_compatible_model_ids
 from src.security.llm_output_validator import repair_common_json_errors
 
 logger = logging.getLogger(__name__)
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
 
 ENSEMBLE_RUNTIME_ERRORS = (
     aiohttp.ClientError,
@@ -49,6 +57,7 @@ class LLMProvider(Enum):
     OLLAMA = "ollama"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
+    DEEPSEEK = "deepseek"
 
 
 class ProviderUnavailable(Exception):
@@ -117,6 +126,7 @@ class LLMEnsembleDetector:
     - Ollama: deepseek-coder:6.7b, codellama:7b, llama3.1:8b
     - OpenAI: gpt-4-turbo, gpt-4o, gpt-3.5-turbo
     - Anthropic: claude-3-5-sonnet-20241022, claude-3-haiku-20240307
+    - DeepSeek: deepseek-v4-flash, deepseek-v4-pro
 
     Voting: A finding is valid if >= 2 models independently identify it.
     """
@@ -136,6 +146,10 @@ class LLMEnsembleDetector:
         LLMProvider.ANTHROPIC: [
             "claude-3-5-sonnet-20241022",  # Best for code analysis
             "claude-3-haiku-20240307",  # Fast and efficient
+        ],
+        LLMProvider.DEEPSEEK: [
+            "deepseek-v4-flash",  # Fast/cost-efficient code reasoning
+            "deepseek-v4-pro",  # Higher capability fallback
         ],
     }
 
@@ -165,6 +179,9 @@ class LLMEnsembleDetector:
         "claude-3-5-sonnet-20241022": 1.4,
         "claude-3-opus-20240229": 1.5,
         "claude-3-haiku-20240307": 1.1,
+        # DeepSeek API models
+        "deepseek-v4-flash": 1.25,
+        "deepseek-v4-pro": 1.35,
     }
 
     # Vulnerability detection prompt
@@ -203,6 +220,8 @@ Response (JSON array only):"""
         providers: Optional[List[LLMProvider]] = None,
         openai_api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
+        deepseek_api_key: Optional[str] = None,
+        deepseek_base_url: Optional[str] = None,
     ):
         """
         Initialize the ensemble detector.
@@ -217,6 +236,8 @@ Response (JSON array only):"""
             providers: List of providers to use (default: [OLLAMA])
             openai_api_key: OpenAI API key (or from OPENAI_API_KEY env)
             anthropic_api_key: Anthropic API key (or from ANTHROPIC_API_KEY env)
+            deepseek_api_key: DeepSeek API key (or from DEEPSEEK_API_KEY env)
+            deepseek_base_url: DeepSeek API base URL
         """
         self.models = models or self.DEFAULT_MODELS
         self.base_url = ollama_base_url
@@ -229,6 +250,10 @@ Response (JSON array only):"""
         self.providers = providers or [LLMProvider.OLLAMA]
         self.openai_api_key = openai_api_key or os.environ.get("OPENAI_API_KEY")
         self.anthropic_api_key = anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY")
+        self.deepseek_api_key = deepseek_api_key or os.environ.get("DEEPSEEK_API_KEY")
+        self.deepseek_base_url = (
+            deepseek_base_url or os.environ.get("DEEPSEEK_BASE_URL") or "https://api.deepseek.com"
+        )
 
         self._available_models: List[str] = []
         self._available_providers: Dict[LLMProvider, List[str]] = {}
@@ -331,6 +356,20 @@ Response (JSON array only):"""
             else:
                 logger.debug("Anthropic not available: no API key")
 
+        elif provider == LLMProvider.DEEPSEEK:
+            if not self.deepseek_api_key:
+                logger.debug("DeepSeek not available: no API key")
+                return available
+
+            remote_models = await fetch_openai_compatible_model_ids(
+                self.deepseek_base_url,
+                self.deepseek_api_key,
+                provider_name="DeepSeek",
+            )
+            configured = self.PROVIDER_MODELS[LLMProvider.DEEPSEEK]
+            available = [model for model in configured if model in remote_models]
+            logger.debug("DeepSeek available with %s configured models", len(available))
+
         return available
 
     async def detect_with_fallback(
@@ -411,6 +450,8 @@ Response (JSON array only):"""
                 tasks.append(self._query_openai(model, code, context))
             elif provider == LLMProvider.ANTHROPIC:
                 tasks.append(self._query_anthropic(model, code, context))
+            elif provider == LLMProvider.DEEPSEEK:
+                tasks.append(self._query_deepseek(model, code, context))
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -489,6 +530,62 @@ Response (JSON array only):"""
 
         except aiohttp.ClientError as e:
             raise ProviderUnavailable(f"OpenAI connection error: {e}") from e
+
+    async def _query_deepseek(
+        self,
+        model: str,
+        code: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Query DeepSeek API for vulnerabilities.
+
+        DeepSeek exposes an OpenAI-compatible chat completions endpoint.
+        """
+        if not self.deepseek_api_key:
+            raise ProviderUnavailable("DeepSeek API key not configured")
+
+        prompt = self.DETECTION_PROMPT.format(code=code)
+        if context:
+            prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2)}"
+
+        headers = {
+            "Authorization": f"Bearer {self.deepseek_api_key}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are an expert smart contract security auditor. Respond only with valid JSON.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": self.temperature,
+            "max_tokens": 4096,
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.deepseek_base_url.rstrip('/')}/v1/chat/completions",
+                    json=payload,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=self.timeout),
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise ProviderUnavailable(f"DeepSeek error: {error_text}")
+
+                    data = await resp.json()
+                    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+                    return self._parse_model_response(content, model)
+
+        except aiohttp.ClientError as e:
+            raise ProviderUnavailable(f"DeepSeek connection error: {e}") from e
 
     async def _query_anthropic(
         self,

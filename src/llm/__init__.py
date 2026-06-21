@@ -2,7 +2,7 @@
 LLM Integration Module - MIESC v4.1.0
 =====================================
 
-Sovereign LLM integration using multiple backends (Ollama, OpenAI, Anthropic)
+Sovereign LLM integration using multiple backends (Ollama, OpenAI, Anthropic, DeepSeek)
 for intelligent post-processing of security analysis results across all layers.
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
@@ -27,6 +27,7 @@ from .finding_validator import (
 )
 from .llm_orchestrator import (
     AnthropicBackend,
+    DeepSeekBackend,
     LLMBackend,
     LLMConfig,
     LLMOrchestrator,
@@ -103,6 +104,7 @@ __all__ = [
     "OllamaBackend",
     "OpenAIBackend",
     "AnthropicBackend",
+    "DeepSeekBackend",
     "LLMOrchestrator",
     "analyze_solidity",
     # LLM Finding Validator
