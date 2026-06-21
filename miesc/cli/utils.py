@@ -349,10 +349,22 @@ class AdapterLoader:
 
     @classmethod
     def check_tool_status(cls, tool_name: str) -> Dict[str, Any]:
-        """Check if a tool is installed and available."""
+        """Check if a tool is installed and available.
+
+        Includes the adapter's ``install_cmd`` (best-effort) so callers like
+        ``miesc doctor`` can tell users HOW to install a missing tool.
+        """
         adapter = cls.get_adapter(tool_name)
         if not adapter:
-            return {"status": "no_adapter", "available": False}
+            return {"status": "no_adapter", "available": False, "install_cmd": ""}
+
+        # Best-effort install hint from the adapter metadata.
+        install_cmd = ""
+        try:
+            meta = adapter.get_metadata()
+            install_cmd = getattr(meta, "installation_cmd", "") or ""
+        except Exception:
+            install_cmd = ""
 
         try:
             # Import ToolStatus enum
@@ -362,9 +374,10 @@ class AdapterLoader:
             return {
                 "status": status.value if hasattr(status, "value") else str(status),
                 "available": status == ToolStatus.AVAILABLE,
+                "install_cmd": install_cmd,
             }
         except Exception as e:
-            return {"status": "error", "available": False, "error": str(e)}
+            return {"status": "error", "available": False, "error": str(e), "install_cmd": install_cmd}
 
     @classmethod
     def reset(cls) -> None:

@@ -125,3 +125,39 @@ def test_deepseek_doctor_status_inside_active_event_loop_does_not_fetch():
         mock_fetch.assert_not_called()
 
     asyncio.run(run_test())
+
+
+def test_doctor_shows_install_hints_for_missing_tools():
+    """Missing tools with an install_cmd appear in the 'Install missing tools' section."""
+    def fake_tool_status(tool):
+        if tool == "wake":
+            return {"available": False, "status": "not_installed", "install_cmd": "pip install eth-wake"}
+        return {"available": True, "status": "available", "install_cmd": ""}
+
+    fake_completed = SimpleNamespace(stdout="tool version 1.0\n", stderr="")
+    with (
+        patch("miesc.cli.commands.doctor.print_banner"),
+        patch("miesc.cli.commands.doctor.info"),
+        patch("miesc.cli.commands.doctor.subprocess.run", return_value=fake_completed),
+        patch(
+            "miesc.cli.commands.doctor._deepseek_doctor_status",
+            return_value=("[green]ready[/green]", "ok"),
+        ),
+        patch(
+            "miesc.cli.commands.doctor.AdapterLoader.check_tool_status",
+            side_effect=fake_tool_status,
+        ),
+    ):
+        result = CliRunner().invoke(doctor)
+
+    assert result.exit_code == 0
+    assert "Install missing tools" in result.output
+    assert "pip install eth-wake" in result.output
+
+
+def test_check_tool_status_includes_install_cmd():
+    from miesc.cli.utils import AdapterLoader
+
+    status = AdapterLoader.check_tool_status("mythril")
+    assert "install_cmd" in status
+    assert "mythril" in status["install_cmd"].lower()
