@@ -119,3 +119,31 @@ class TestNormalizationAndUtils:
         f = tmp_path / "C.sol"
         f.write_text("contract C {}", encoding="utf-8")
         assert a._read_contract(str(f)) == "contract C {}"
+
+
+class TestAnalyzeWithOllama:
+    def test_success_parses_findings(self):
+        from unittest.mock import patch
+
+        a = _adapter()
+        resp = '{"findings": [{"type": "reentrancy", "severity": "high", "title": "R"}]}'
+        with patch.object(a, "_call_ollama_generate", return_value=resp):
+            out = a._analyze_with_ollama("contract C {}", "C.sol", timeout=10)
+        assert out["status"] == "success"
+        assert out["metadata"]["analysis_mode"] == "llm"
+
+    def test_failure_falls_back_to_patterns(self):
+        from unittest.mock import patch
+
+        a = _adapter()
+        with patch.object(a, "_call_ollama_generate", return_value=None):
+            out = a._analyze_with_ollama("contract C {}", "C.sol", timeout=10, use_fallback=True)
+        assert "findings" in out  # pattern fallback result
+
+    def test_failure_no_fallback_is_error(self):
+        from unittest.mock import patch
+
+        a = _adapter()
+        with patch.object(a, "_call_ollama_generate", return_value=None):
+            out = a._analyze_with_ollama("contract C {}", "C.sol", timeout=10, use_fallback=False)
+        assert out["status"] == "error"
