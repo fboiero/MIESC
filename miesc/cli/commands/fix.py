@@ -286,6 +286,174 @@ def _add_modifier_to_function(
     return patched, patched != source
 
 
+def _find_function_body_span(
+    source: str,
+    function_name: str,
+    line_hint: Optional[int] = None,
+) -> Optional[tuple[int, int]]:
+    """Return body content span for a concrete function implementation."""
+    masked = _mask_comments(source)
+    candidates = []
+    for m in _FUNCTION_RE.finditer(masked):
+        if m.group(2) != function_name:
+            continue
+        tail = masked[m.end() :]
+        brace_idx = tail.find("{")
+        semicolon_idx = tail.find(";")
+        if brace_idx == -1 or (semicolon_idx != -1 and semicolon_idx < brace_idx):
+            continue
+        match_line = masked[: m.start()].count("\n") + 1
+        candidates.append((m, match_line, m.end() + brace_idx))
+    if not candidates:
+        return None
+
+    if line_hint and len(candidates) > 1:
+        _, _, opening_brace = min(candidates, key=lambda item: abs(item[1] - line_hint))
+    else:
+        _, _, opening_brace = candidates[0]
+
+    depth = 1
+    idx = opening_brace + 1
+    while idx < len(masked) and depth > 0:
+        if masked[idx] == "{":
+            depth += 1
+        elif masked[idx] == "}":
+            depth -= 1
+        idx += 1
+    if depth != 0:
+        return None
+    return opening_brace + 1, idx - 1
+
+
+def _matching_brace_index(text: str, opening_brace: int) -> Optional[int]:
+    depth = 1
+    idx = opening_brace + 1
+    while idx < len(text) and depth > 0:
+        if text[idx] == "{":
+            depth += 1
+        elif text[idx] == "}":
+            depth -= 1
+        idx += 1
+    if depth != 0:
+        return None
+    return idx - 1
+
+
+def _same_solidity_expr(left: str, right: str) -> bool:
+    return re.sub(r"\s+", "", left) == re.sub(r"\s+", "", right)
+
+
+def _apply_legacy_call_value_cei(
+    source: str,
+    function_name: str,
+    line_hint: Optional[int] = None,
+) -> tuple[str, bool]:
+    """Move a simple balance decrement before legacy call.value.
+
+    This targets the SmartBugs legacy pattern:
+
+        if (msg.sender.call.value(amount)()) {
+            balances[msg.sender] -= amount;
+            ...
+        }
+
+    and rewrites it to checks-effects-interactions with an else refund.  It is
+    intentionally narrow so generic remediation does not reorder arbitrary code.
+    """
+    span = _find_function_body_span(source, function_name, line_hint)
+    if span is None:
+        return source, False
+
+    body_start, body_end = span
+    body = source[body_start:body_end]
+    if "MIESC: checks-effects-interactions" in body:
+        return source, False
+
+    call_re = re.compile(
+        r"(?P<if_indent>^[ \t]*)if\s*\(\s*"
+        r"(?P<call>[^\n{};]*?\.call\.value\s*\(\s*(?P<call_amount>[^)]+?)\s*\)"
+        r"\s*\(\s*\))\s*\)\s*\n?",
+        re.MULTILINE,
+    )
+    decrement_re = re.compile(
+        r"(?:[ \t]*\n)?(?P<dec_indent>[ \t]*)"
+        r"(?P<balance>[A-Za-z_]\w*(?:\s*\[[^\]\n;]+\])?)"
+        r"\s*-=\s*(?P<dec_amount>[^;\n]+);[ \t]*(?:\n)?",
+        re.MULTILINE,
+    )
+
+    for match in call_re.finditer(body):
+        opening_brace = body.find("{", match.end())
+        if opening_brace == -1:
+            continue
+        between = body[match.end() : opening_brace]
+        if between.strip():
+            continue
+
+        block_close = _matching_brace_index(body, opening_brace)
+        if block_close is None:
+            continue
+
+        decrement = decrement_re.match(body, opening_brace + 1)
+        if not decrement:
+            continue
+        if not _same_solidity_expr(match.group("call_amount"), decrement.group("dec_amount")):
+            continue
+
+        if_indent = match.group("if_indent")
+        dec_indent = decrement.group("dec_indent")
+        call = match.group("call").strip()
+        balance = decrement.group("balance").strip()
+        dec_amount = decrement.group("dec_amount").strip()
+        prelude = (
+            f"{if_indent}// MIESC: checks-effects-interactions for legacy call.value\n"
+            f"{if_indent}{balance} -= {dec_amount};\n"
+            f"{if_indent}if({call})\n"
+            f"{if_indent}{{\n"
+        )
+        rollback = (
+            "\n"
+            f"{if_indent}else\n"
+            f"{if_indent}{{\n"
+            f"{dec_indent}{balance} += {dec_amount};\n"
+            f"{if_indent}}}"
+        )
+        new_body = (
+            body[: match.start()]
+            + prelude
+            + body[decrement.end() : block_close]
+            + body[block_close : block_close + 1]
+            + rollback
+            + body[block_close + 1 :]
+        )
+        return source[:body_start] + new_body + source[body_end:], True
+
+    return source, False
+
+
+def _normalize_legacy_call_value_tuple_assignment(source: str) -> tuple[str, bool]:
+    """Rewrite legacy call.value tuple assignments to single bool assignments.
+
+    Solidity 0.4.x `call.value(...)()` returns one bool.  Some legacy examples
+    use modern tuple syntax anyway, which solc accepts with warnings but Slither
+    can fail to lower to IR after patching.
+    """
+    if not _LEGACY_LOW_LEVEL_CALL_HINT.search(source):
+        return source, False
+
+    tuple_call_re = re.compile(
+        r"(?P<indent>^[ \t]*)\(bool\s+(?P<var>\w+)\s*,\s*\)\s*=\s*"
+        r"(?P<call>[^;\n]*\.call\.value\s*\([^;\n]+\)\s*\([^;\n]*\))\s*;",
+        re.MULTILINE,
+    )
+
+    def replace(match: re.Match[str]) -> str:
+        return f"{match.group('indent')}bool {match.group('var')} = {match.group('call').strip()};"
+
+    patched = tuple_call_re.sub(replace, source)
+    return patched, patched != source
+
+
 _INLINE_REENTRANCY_GUARD = """
 // MIESC: Inline reentrancy guard (Solidity >=0.4.0 compatible)
 contract MiescReentrancyGuard {
@@ -684,7 +852,9 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             source, changed = _add_modifier_to_function(source, fn_name, "nonReentrant", line_hint)
             if changed:
                 source = _ensure_reentrancy_guard_import(source, fn_name, line_hint)
-            return source, changed
+            source, cei_changed = _apply_legacy_call_value_cei(source, fn_name, line_hint)
+            source, tuple_changed = _normalize_legacy_call_value_tuple_assignment(source)
+            return source, changed or cei_changed or tuple_changed
         return source, False
 
     if "suicidal" in ftype or (
@@ -697,7 +867,7 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             return source, changed
         return source, False
 
-    if "access_control" in ftype or "selfdestruct" in ftype:
+    if "access_control" in ftype or "selfdestruct" in ftype or "arbitrary_send_eth" in ftype:
         if fn_name:
             source, changed = _add_modifier_to_function(source, fn_name, "onlyOwner", line_hint)
             if changed:
@@ -791,6 +961,11 @@ def _collect_fixable_findings(data: dict) -> list[dict]:
         ),
     }
     fallback_fix_codes = {
+        "arbitrary-send-eth": (
+            "Restrict ETH-transfer functions that accept arbitrary recipient addresses "
+            "to trusted callers, or replace arbitrary recipient transfers with a "
+            "recipient-initiated pull-payment withdrawal."
+        ),
         "incorrect-constructor-name": (
             "Rename the ownership initializer to the exact legacy contract name, "
             "or migrate to a Solidity constructor() so it cannot be called after deployment."
@@ -977,7 +1152,10 @@ def fix(
         ftype_lower = ftype.lower().replace("-", "_")
         if "reentrancy" in ftype_lower:
             fix_cat = "reentrancy"
-        elif any(k in ftype_lower for k in ("access_control", "suicidal", "selfdestruct")):
+        elif any(
+            k in ftype_lower
+            for k in ("access_control", "suicidal", "selfdestruct", "arbitrary_send_eth")
+        ):
             fix_cat = "access_control"
         elif "unchecked" in ftype_lower:
             fix_cat = "unchecked_call"

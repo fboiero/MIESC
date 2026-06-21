@@ -1,0 +1,276 @@
+{
+  "totals": {
+    "contracts": 43,
+    "fix_applied": 36,
+    "fix_compiles": 36,
+    "vuln_eliminated": 0,
+    "no_regression": 0,
+    "fix_failed": 0,
+    "scan_empty": 0,
+    "no_high": 7,
+    "external_checked": 36,
+    "external_clean_high": 18,
+    "external_findings": 18,
+    "external_errors": 0
+  },
+  "by_category": {
+    "access_control": {
+      "contracts": 5,
+      "fix_applied": 5,
+      "fix_compiles": 5,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0,
+      "external_checked": 5,
+      "external_clean_high": 4,
+      "external_findings": 1,
+      "external_errors": 0
+    },
+    "arithmetic": {
+      "contracts": 5,
+      "fix_applied": 1,
+      "fix_compiles": 1,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 4,
+      "external_checked": 1,
+      "external_clean_high": 1,
+      "external_findings": 0,
+      "external_errors": 0
+    },
+    "bad_randomness": {
+      "contracts": 5,
+      "fix_applied": 5,
+      "fix_compiles": 5,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0,
+      "external_checked": 5,
+      "external_clean_high": 2,
+      "external_findings": 3,
+      "external_errors": 0
+    },
+    "denial_of_service": {
+      "contracts": 5,
+      "fix_applied": 4,
+      "fix_compiles": 4,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 1,
+      "external_checked": 4,
+      "external_clean_high": 3,
+      "external_findings": 1,
+      "external_errors": 0
+    },
+    "front_running": {
+      "contracts": 4,
+      "fix_applied": 4,
+      "fix_compiles": 4,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0,
+      "external_checked": 4,
+      "external_clean_high": 4,
+      "external_findings": 0,
+      "external_errors": 0
+    },
+    "other": {
+      "contracts": 3,
+      "fix_applied": 3,
+      "fix_compiles": 3,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0,
+      "external_checked": 3,
+      "external_clean_high": 0,
+      "external_findings": 3,
+      "external_errors": 0
+    },
+    "reentrancy": {
+      "contracts": 5,
+      "fix_applied": 5,
+      "fix_compiles": 5,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0,
+      "external_checked": 5,
+      "external_clean_high": 0,
+      "external_findings": 5,
+      "external_errors": 0
+    },
+    "short_addresses": {
+      "contracts": 1,
+      "fix_applied": 1,
+      "fix_compiles": 1,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0,
+      "external_checked": 1,
+      "external_clean_high": 1,
+      "external_findings": 0,
+      "external_errors": 0
+    },
+    "time_manipulation": {
+      "contracts": 5,
+      "fix_applied": 4,
+      "fix_compiles": 4,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 1,
+      "external_checked": 4,
+      "external_clean_high": 2,
+      "external_findings": 2,
+      "external_errors": 0
+    },
+    "unchecked_low_level_calls": {
+      "contracts": 5,
+      "fix_applied": 4,
+      "fix_compiles": 4,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 1,
+      "external_checked": 4,
+      "external_clean_high": 1,
+      "external_findings": 3,
+      "external_errors": 0
+    }
+  },
+  "external_high_checks": {
+    "controlled-array-length": 8,
+    "weak-prng": 7,
+    "uninitialized-storage": 3,
+    "arbitrary-send-eth": 2,
+    "controlled-delegatecall": 1,
+    "shadowing-state": 1,
+    "unchecked-transfer": 1,
+    "uninitialized-state": 1
+  },
+  "external_high_check_examples": {
+    "controlled-array-length": [
+      {
+        "category": "bad_randomness",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/blackjack.sol",
+        "external_status": "findings",
+        "high_findings": 3
+      },
+      {
+        "category": "bad_randomness",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/lottery.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "denial_of_service",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/dos_address.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      }
+    ],
+    "weak-prng": [
+      {
+        "category": "bad_randomness",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/blackjack.sol",
+        "external_status": "findings",
+        "high_findings": 3
+      },
+      {
+        "category": "bad_randomness",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/lucky_doubler.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "other",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/crypto_roulette.sol",
+        "external_status": "findings",
+        "high_findings": 3
+      }
+    ],
+    "uninitialized-storage": [
+      {
+        "category": "other",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/crypto_roulette.sol",
+        "external_status": "findings",
+        "high_findings": 3
+      },
+      {
+        "category": "other",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/name_registrar.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "other",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/open_address_lottery.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ],
+    "arbitrary-send-eth": [
+      {
+        "category": "other",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/crypto_roulette.sol",
+        "external_status": "findings",
+        "high_findings": 3
+      },
+      {
+        "category": "time_manipulation",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/roulette.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ],
+    "controlled-delegatecall": [
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ],
+    "shadowing-state": [
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x39cfd754c85023648bf003bea2dd498c5612abfa.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      }
+    ],
+    "unchecked-transfer": [
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x19cf8481ea15427a98ba3cdd6d9e14690011ab10.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      }
+    ],
+    "uninitialized-state": [
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ]
+  }
+}

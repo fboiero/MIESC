@@ -20,6 +20,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -34,6 +35,7 @@ from src.security.remediation_pipeline import (  # noqa: E402
 )
 from src.security.remediation_pipeline import (
     remediate_contract,
+    select_solc,
 )
 
 DATASET_CANDIDATES = [
@@ -43,6 +45,32 @@ DATASET_CANDIDATES = [
 DATASET = next((path for path in DATASET_CANDIDATES if path.exists()), DATASET_CANDIDATES[0])
 MAX_ERROR_CHARS = 2000
 DEFAULT_SCAN_TIMEOUT = 30
+DEFAULT_EXTERNAL_TIMEOUT = 30
+MAX_EXTERNAL_HIGH_CHECK_EXAMPLES = 3
+VOLATILE_TMP_PATH_RE = re.compile(
+    r"(?:\.\./)+(?:\.\./)*var/folders/[^\s\"']+/T/tmp[\w.-]+|"
+    r"(?:\.\./)+(?:\.\./)*var/folders/[^\s\"']+/T|"
+    r"(?:\.\./)+(?:\.\./)*var/folders/[^\s\"']*|"
+    r"(?:/private)?/var/folders/[^\s\"']+/T/tmp[\w.-]+|"
+    r"(?:/private)?/var/folders/[^\s\"']+/T|"
+    r"(?:/private)?/var/folders/[^\s\"']*|"
+    r"/tmp/tmp[\w.-]+"
+)
+
+
+def _empty_external_validation(tool="slither", status="not_requested"):
+    return {
+        "checked": False,
+        "tool": tool,
+        "status": status,
+        "returncode": None,
+        "findings_total": None,
+        "high_findings": None,
+        "high_checks": [],
+        "detector_summary": {},
+        "stdout": "",
+        "stderr": "",
+    }
 
 
 def run_scan(sol_path, output_path, timeout=DEFAULT_SCAN_TIMEOUT):
@@ -82,6 +110,100 @@ def compile_contract(sol_path):
 
 def check_compiles(sol_path):
     return compile_contract(sol_path)["compiles"]
+
+
+def stabilize_details_payload(value):
+    """Remove volatile local paths/timestamps from benchmark detail artifacts."""
+    if isinstance(value, dict):
+        return {
+            key: ("<generated_at>" if key == "generated_at" else stabilize_details_payload(item))
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [stabilize_details_payload(item) for item in value]
+    if isinstance(value, str):
+        return VOLATILE_TMP_PATH_RE.sub("<tmp>", value)
+    return value
+
+
+def run_external_validation(sol_path, tool="slither", timeout=DEFAULT_EXTERNAL_TIMEOUT):
+    """Run an independent validator over a patched Solidity file."""
+    if tool == "none":
+        return _empty_external_validation(status="disabled")
+    if tool != "slither":
+        return _empty_external_validation(tool=tool, status="unsupported")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        json_output = Path(tmp) / "slither.json"
+        cmd = [
+            tool,
+            str(sol_path),
+            "--solc",
+            select_solc(Path(sol_path)),
+            "--json",
+            str(json_output),
+        ]
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+        except FileNotFoundError as exc:
+            return {
+                **_empty_external_validation(tool=tool, status="unavailable"),
+                "stderr": str(exc)[:MAX_ERROR_CHARS],
+            }
+        except subprocess.TimeoutExpired as exc:
+            stdout = exc.stdout if isinstance(exc.stdout, str) else ""
+            stderr = exc.stderr if isinstance(exc.stderr, str) else ""
+            return {
+                **_empty_external_validation(tool=tool, status="timeout"),
+                "checked": True,
+                "stdout": stdout[:MAX_ERROR_CHARS],
+                "stderr": stderr[:MAX_ERROR_CHARS],
+            }
+
+        try:
+            payload = json.loads(json_output.read_text() if json_output.exists() else "{}")
+        except json.JSONDecodeError:
+            payload = {}
+
+    detectors = payload.get("results", {}).get("detectors", [])
+    high_findings = sum(
+        1
+        for detector in detectors
+        if str(detector.get("impact", "")).lower() in {"high", "critical"}
+    )
+    high_checks = sorted(
+        {
+            str(detector.get("check") or "unknown")
+            for detector in detectors
+            if str(detector.get("impact", "")).lower() in {"high", "critical"}
+        }
+    )
+    detector_summary = defaultdict(int)
+    for detector in detectors:
+        impact = str(detector.get("impact") or "unknown").lower()
+        check = str(detector.get("check") or "unknown")
+        detector_summary[f"{impact}:{check}"] += 1
+    status = "clean_high" if high_findings == 0 else "findings"
+    if result.returncode != 0 and not detectors and not payload.get("success"):
+        status = "error"
+
+    return {
+        "checked": True,
+        "tool": tool,
+        "status": status,
+        "returncode": result.returncode,
+        "findings_total": len(detectors),
+        "high_findings": high_findings,
+        "high_checks": high_checks,
+        "detector_summary": dict(sorted(detector_summary.items())),
+        "stdout": result.stdout[:MAX_ERROR_CHARS],
+        "stderr": result.stderr[:MAX_ERROR_CHARS],
+    }
 
 
 def count_high_findings(scan_result):
@@ -132,6 +254,21 @@ def main():
         action="store_true",
         help="Skip post-fix re-scan when only compile taxonomy is needed.",
     )
+    parser.add_argument(
+        "--external-validator",
+        choices=("none", "slither"),
+        default="none",
+        help="Optionally run an independent validator over patched contracts that compile.",
+    )
+    parser.add_argument(
+        "--external-timeout",
+        type=int,
+        default=DEFAULT_EXTERNAL_TIMEOUT,
+        help=(
+            "Per patched-contract external validation timeout in seconds "
+            f"(default: {DEFAULT_EXTERNAL_TIMEOUT})."
+        ),
+    )
     args = parser.parse_args()
 
     categories = sorted([d.name for d in DATASET.iterdir() if d.is_dir()])
@@ -144,11 +281,18 @@ def main():
     if args.limit is not None:
         print(f"Limit: {args.limit} contract(s) per category")
     print(f"Scan timeout: {args.scan_timeout}s")
+    if args.external_validator != "none":
+        print(
+            f"External validator: {args.external_validator} "
+            f"({args.external_timeout}s timeout)"
+        )
 
     totals = defaultdict(int)
     results_by_cat = {}
     detailed_contracts = []
     compile_failure_taxonomy = defaultdict(int)
+    external_high_checks = defaultdict(int)
+    external_high_check_examples = defaultdict(list)
 
     for cat in categories:
         cat_dir = DATASET / cat
@@ -167,6 +311,10 @@ def main():
             "fix_failed": 0,
             "scan_empty": 0,
             "no_high": 0,
+            "external_checked": 0,
+            "external_clean_high": 0,
+            "external_findings": 0,
+            "external_errors": 0,
         }
 
         print(f"\nCategory {cat}: {len(sol_files)} contract(s)", flush=True)
@@ -271,6 +419,45 @@ def main():
                 else:
                     compile_failure_taxonomy[compile_result["failure_class"]] += 1
 
+                external_validation = _empty_external_validation(
+                    status=(
+                        "not_requested"
+                        if args.external_validator == "none"
+                        else "skipped_compile_failed"
+                    )
+                )
+                if compiles and args.external_validator != "none":
+                    external_validation = run_external_validation(
+                        fixed_sol,
+                        tool=args.external_validator,
+                        timeout=args.external_timeout,
+                    )
+                    cat_results["external_checked"] += int(external_validation["checked"])
+                    cat_results["external_clean_high"] += int(
+                        external_validation["status"] == "clean_high"
+                    )
+                    cat_results["external_findings"] += int(
+                        external_validation["status"] == "findings"
+                    )
+                    cat_results["external_errors"] += int(
+                        external_validation["status"]
+                        in {"error", "timeout", "unavailable", "unsupported"}
+                    )
+                    for high_check in external_validation.get("high_checks", []):
+                        external_high_checks[high_check] += 1
+                        if (
+                            len(external_high_check_examples[high_check])
+                            < MAX_EXTERNAL_HIGH_CHECK_EXAMPLES
+                        ):
+                            external_high_check_examples[high_check].append(
+                                {
+                                    "category": cat,
+                                    "contract": str(sol),
+                                    "external_status": external_validation["status"],
+                                    "high_findings": external_validation["high_findings"],
+                                }
+                            )
+
                 rescan = evidence.rescan
                 total_before = (
                     rescan.total_before if rescan.checked else len(scan.get("findings", []))
@@ -304,6 +491,7 @@ def main():
                             "vuln_eliminated": vuln_eliminated,
                             "no_regression": no_regression,
                             "compile": compile_result,
+                            "external_validation": external_validation,
                             "evidence": evidence.to_dict(),
                         }
                     )
@@ -330,6 +518,19 @@ def main():
         f"no_regr={totals['no_regression']:>3} "
         f"failed={totals['fix_failed']:>3}"
     )
+    if args.external_validator != "none":
+        print(
+            f"{'':<30} external_checked={totals['external_checked']:>3} "
+            f"clean_high={totals['external_clean_high']:>3} "
+            f"findings={totals['external_findings']:>3} "
+            f"errors={totals['external_errors']:>3}"
+        )
+        if external_high_checks:
+            print("  External HIGH checks:")
+            for check, count in sorted(
+                external_high_checks.items(), key=lambda item: (-item[1], item[0])
+            ):
+                print(f"    {check}: {count}")
 
     n = totals["fix_applied"] or 1
     print("\nRATES:")
@@ -346,7 +547,19 @@ def main():
         f"  No regression:        {totals['no_regression']}/{n} = {totals['no_regression'] / n:.0%}"
     )
 
-    aggregate_payload = {"totals": dict(totals), "by_category": results_by_cat}
+    external_high_check_summary = dict(
+        sorted(external_high_checks.items(), key=lambda item: (-item[1], item[0]))
+    )
+    external_high_check_example_summary = {
+        check: external_high_check_examples[check]
+        for check in external_high_check_summary
+    }
+    aggregate_payload = {
+        "totals": dict(totals),
+        "by_category": results_by_cat,
+        "external_high_checks": external_high_check_summary,
+        "external_high_check_examples": external_high_check_example_summary,
+    }
     if not args.skip_rescan or args.results_output:
         # Preserve the historical canonical path unless the caller explicitly
         # requests a dated additive artifact for a dry run.
@@ -365,12 +578,17 @@ def main():
             "limit": args.limit,
             "scan_timeout": args.scan_timeout,
             "skip_rescan": args.skip_rescan,
+            "external_validator": args.external_validator,
+            "external_timeout": args.external_timeout,
             "totals": dict(totals),
             "by_category": results_by_cat,
+            "external_high_checks": external_high_check_summary,
+            "external_high_check_examples": external_high_check_example_summary,
             "compile_failure_taxonomy": dict(sorted(compile_failure_taxonomy.items())),
             "contracts": detailed_contracts,
         }
         args.details_output.parent.mkdir(parents=True, exist_ok=True)
+        details_payload = stabilize_details_payload(details_payload)
         args.details_output.write_text(json.dumps(details_payload, indent=2) + "\n")
         print(f"Details saved to {args.details_output}")
 

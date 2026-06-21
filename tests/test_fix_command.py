@@ -230,6 +230,11 @@ class TestCollectFixableFindings:
         data = {
             "findings": [
                 {
+                    "type": "arbitrary-send-eth",
+                    "severity": "High",
+                    "location": {"line": 6, "function": "pay"},
+                },
+                {
                     "type": "incorrect_constructor_name",
                     "severity": "Critical",
                     "location": {"line": 17, "function": "unknown"},
@@ -244,9 +249,10 @@ class TestCollectFixableFindings:
 
         result = _collect_fixable_findings(data)
 
-        assert len(result) == 2
-        assert "constructor()" in result[0]["fix_code"]
-        assert "tautological or contradictory comparisons" in result[1]["fix_code"]
+        assert len(result) == 3
+        assert "ETH-transfer functions" in result[0]["fix_code"]
+        assert "constructor()" in result[1]["fix_code"]
+        assert "tautological or contradictory comparisons" in result[2]["fix_code"]
 
     def test_combines_top_level_and_per_tool(self):
         data = {
@@ -272,6 +278,94 @@ class TestApplyFix:
         patched, changed = apply_fix(SIMPLE_CONTRACT, finding)
         assert changed
         assert "nonReentrant" in patched
+
+    def test_reentrancy_legacy_call_value_moves_balance_effect_before_call(self):
+        source = """\
+pragma solidity ^0.4.19;
+
+contract Bank {
+    mapping(address => uint256) public balances;
+
+    function Collect(uint256 _am) public {
+        if (balances[msg.sender] >= _am) {
+            if(msg.sender.call.value(_am)())
+            {
+                balances[msg.sender]-=_am;
+                emit Collected(msg.sender, _am);
+            }
+        }
+    }
+
+    event Collected(address who, uint256 amount);
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "Collect",
+            "line": 7,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert "balances[msg.sender] -= _am;\n            if(msg.sender.call.value(_am)())" in patched
+        assert "else\n            {\n                balances[msg.sender] += _am;" in patched
+        assert patched.index("balances[msg.sender] -= _am;") < patched.index(
+            "if(msg.sender.call.value(_am)())"
+        )
+
+    def test_reentrancy_legacy_call_value_keeps_mismatched_effect_in_place(self):
+        source = """\
+pragma solidity ^0.4.19;
+
+contract Bank {
+    mapping(address => uint256) public balances;
+
+    function Collect(uint256 _am, uint256 fee) public {
+        if(msg.sender.call.value(_am)())
+        {
+            balances[msg.sender]-=fee;
+        }
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "Collect",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions" not in patched
+        assert "balances[msg.sender]-=fee;" in patched
+
+    def test_reentrancy_normalizes_legacy_call_value_tuple_assignment(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Bonus {
+    function withdraw(address recipient, uint256 amount) public {
+        (bool success, ) = recipient.call.value(amount)("");
+        require(success);
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdraw",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "(bool success, )" not in patched
+        assert 'bool success = recipient.call.value(amount)("");' in patched
+        assert "require(success);" in patched
 
     def test_reentrancy_ignores_openzeppelin_import_inside_fix_comment(self):
         source = """\
@@ -519,6 +613,29 @@ contract Wallet {
         assert "contract Wallet {" in patched
         assert "MIESC: Inline onlyOwner modifier" in patched
         assert "function kill() onlyOwner public" in patched
+
+    def test_arbitrary_send_eth_adds_only_owner(self):
+        source = """\
+pragma solidity ^0.8.20;
+
+contract Treasury {
+    function pay(address payable recipient) public {
+        recipient.transfer(address(this).balance);
+    }
+}
+"""
+        finding = {
+            "type": "arbitrary-send-eth",
+            "function": "pay",
+            "fix_code": "restrict arbitrary recipient transfers",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: Inline onlyOwner modifier" in patched
+        assert "address public owner = msg.sender;" in patched
+        assert "function pay(address payable recipient) onlyOwner public" in patched
 
     def test_arithmetic_inserts_safemath_on_legacy(self):
         finding = {
