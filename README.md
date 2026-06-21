@@ -104,7 +104,7 @@ OK gptscan: 4 findings in 49.7s
 | TOTAL    |    22 |
 +----------+-------+
 
-Tools executed: 12/29
+Tools executed: 12/29 (this run; full suite is 50 tools across 9 layers)
 Report saved to results.json
 ```
 
@@ -615,7 +615,7 @@ Contract.sol
 
 MIESC uses a dual-package architecture:
 - `miesc/` - Public API (stable, pip-installable)
-- `src/` - Internal implementation (35 analysis modules, ML pipeline, RAG, report generation)
+- `src/` - Internal implementation (analysis modules, ML pipeline, RAG, report generation)
 
 See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with Mermaid diagrams.
 
@@ -675,7 +675,7 @@ The project is fully compliant with all 9 DPGA indicators: open license (AGPL-3.
 | [Installation Guide](./docs/INSTALLATION.md) | Complete setup instructions |
 | [Quick Start](./docs/guides/QUICKSTART.md) | Get running in 5 minutes |
 | [Architecture](./docs/ARCHITECTURE.md) | Technical design and layer details |
-| [Tool Reference](./docs/TOOLS.md) | All 35 analysis modules and their capabilities |
+| [Tool Reference](./docs/TOOLS.md) | All 50 integrated tools across 9 layers and their capabilities |
 | [Report Guide](./docs/guides/REPORTS.md) | Report templates and customization |
 | [Custom Detectors](./docs/CUSTOM_DETECTORS.md) | Build your own detectors |
 | [Multi-Chain](./docs/MULTICHAIN.md) | Non-EVM chain analysis |
