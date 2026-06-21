@@ -1,5 +1,7 @@
 # Contributing to MIESC
 
+**[Versión en Español](CONTRIBUTING_ES.md)**
+
 Thank you for your interest in contributing to MIESC! This document provides guidelines and instructions for contributing.
 
 ---
@@ -20,7 +22,7 @@ Thank you for your interest in contributing to MIESC! This document provides gui
 
 ## Code of Conduct
 
-This project adheres to the [Contributor Covenant Code of Conduct](./CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to <fboiero@frvm.utn.edu.ar>.
+This project adheres to the [Contributor Covenant Code of Conduct](./CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to fboiero@frvm.utn.edu.ar.
 
 ---
 
@@ -71,7 +73,7 @@ pytest tests/
 
 - Look for issues labeled [`good first issue`](https://github.com/fboiero/MIESC/labels/good%20first%20issue)
 - Check [`help wanted`](https://github.com/fboiero/MIESC/labels/help%20wanted) for priority items
-- Review the [project roadmap](https://github.com/fboiero/MIESC/issues)
+- Review the [project roadmap](./ROADMAP.md)
 
 ### Proposing Changes
 
@@ -219,23 +221,22 @@ class MyAdapter(BaseAdapter):
 
 ## Testing
 
-### Running Tests
+For comprehensive testing documentation, see [Testing Guide](./docs/guides/TESTING.md).
+
+### Quick Reference
 
 ```bash
-# Run all tests
-pytest tests/
+# Run all tests with coverage
+make test
 
-# Run with coverage
-pytest tests/ --cov=src --cov-report=html
+# Run tests without coverage (faster)
+make test-quick
+
+# Run only integration tests
+pytest -m integration --no-cov
 
 # Run specific test file
-pytest tests/unit/test_slither_adapter.py
-
-# Run tests matching pattern
-pytest tests/ -k "test_analyze"
-
-# Run with verbose output
-pytest tests/ -v
+pytest tests/test_integration_pipeline.py -v --no-cov
 ```
 
 ### Writing Tests
@@ -287,6 +288,23 @@ class TestSlitherAdapter:
 - New features must include tests
 - Bug fixes must include regression tests
 
+### Mutation Testing (Optional)
+
+We use [mutmut](https://mutmut.readthedocs.io/) for mutation testing to validate test quality:
+
+```bash
+# Quick mutation test (core modules)
+make mutate-quick
+
+# Full mutation analysis
+make mutate
+
+# View results
+make mutate-results
+```
+
+For detailed instructions, see [Mutation Testing Guide](docs/guides/MUTATION_TESTING.md).
+
 ---
 
 ## Pull Request Process
@@ -294,7 +312,6 @@ class TestSlitherAdapter:
 ### Before Submitting
 
 1. **Create a branch**
-
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -305,7 +322,6 @@ class TestSlitherAdapter:
    - Update documentation
 
 3. **Run checks locally**
-
    ```bash
    # Format code
    black src/ tests/
@@ -321,7 +337,6 @@ class TestSlitherAdapter:
    ```
 
 4. **Commit with clear messages**
-
    ```bash
    git commit -m "feat: add support for new tool X
 
@@ -345,7 +360,6 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 **Types**:
-
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation
@@ -354,10 +368,26 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `test`: Adding tests
 - `chore`: Maintenance
 
+### Signed Commits (Optional but Recommended)
+
+We encourage signing your commits with GPG for added security and verification:
+
+```bash
+# Configure Git for signed commits
+git config --global commit.gpgsign true
+git config --global user.signingkey YOUR_KEY_ID
+```
+
+Signed commits show as "Verified" on GitHub and provide:
+- **Authenticity**: Proves you authored the commit
+- **Integrity**: Confirms the commit hasn't been modified
+- **Trust**: Shows verification badge on GitHub
+
+For detailed setup instructions, see [Signed Commits Guide](docs/guides/SIGNED_COMMITS.md).
+
 ### Submitting the PR
 
 1. Push your branch
-
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -398,13 +428,13 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```bash
 # Install documentation dependencies
-pip install mkdocs mkdocs-material
+pip install mkdocs mkdocs-material mkdocs-minify-plugin
 
 # Serve docs locally
-mkdocs serve
+mkdocs serve -f docs/mkdocs.yml
 
 # Build static site
-mkdocs build
+mkdocs build -f docs/mkdocs.yml
 ```
 
 ### Documentation Standards
@@ -420,14 +450,29 @@ mkdocs build
 
 ### Getting Help
 
-- **GitHub Issues**: Bug reports, feature requests
-- **GitHub Discussions**: Questions, ideas, community
-- **Email**: <fboiero@frvm.utn.edu.ar>
+We have two main channels for community interaction:
+
+| Channel | Use For |
+|---------|---------|
+| [GitHub Discussions](https://github.com/fboiero/MIESC/discussions) | Questions, ideas, show-and-tell, general discussion |
+| [GitHub Issues](https://github.com/fboiero/MIESC/issues) | Bug reports, feature requests, confirmed problems |
+
+**When to use Discussions:**
+- You have a question about how to use MIESC
+- You want to share something you built with MIESC
+- You have an idea you want to discuss before creating a feature request
+- You need help troubleshooting (not a confirmed bug)
+
+**When to use Issues:**
+- You found a bug and can reproduce it
+- You have a well-defined feature request
+- You're reporting a security vulnerability (use private reporting)
+
+**Email**: fboiero@frvm.utn.edu.ar (for private inquiries)
 
 ### Recognition
 
 Contributors are recognized in:
-
 - [CONTRIBUTORS.md](./CONTRIBUTORS.md)
 - Release notes
 - Project documentation
@@ -435,7 +480,6 @@ Contributors are recognized in:
 ### Becoming a Maintainer
 
 Regular contributors may be invited to become maintainers. Criteria:
-
 - Sustained quality contributions
 - Understanding of project goals
 - Positive community interactions
