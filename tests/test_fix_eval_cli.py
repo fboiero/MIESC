@@ -345,6 +345,19 @@ def test_fix_eval_external_validator_runs_on_compiling_patches(
         "reentrancy-eth": 1,
         "weak-prng": 1,
     }
+    expected_example = {
+        "category": "reentrancy",
+        "external_status": "findings",
+        "high_findings": 2,
+    }
+    for check in ("reentrancy-eth", "weak-prng"):
+        examples = payload["external_high_check_examples"][check]
+        assert len(examples) == 1
+        assert examples[0]["category"] == expected_example["category"]
+        assert examples[0]["external_status"] == expected_example["external_status"]
+        assert examples[0]["high_findings"] == expected_example["high_findings"]
+        assert examples[0]["contract"].endswith("/dataset/reentrancy/C.sol")
+        assert examples[0]["contract"].startswith("<tmp>/")
     assert payload["contracts"][0]["external_validation"]["status"] == "findings"
 
 

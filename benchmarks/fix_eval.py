@@ -46,6 +46,7 @@ DATASET = next((path for path in DATASET_CANDIDATES if path.exists()), DATASET_C
 MAX_ERROR_CHARS = 2000
 DEFAULT_SCAN_TIMEOUT = 30
 DEFAULT_EXTERNAL_TIMEOUT = 30
+MAX_EXTERNAL_HIGH_CHECK_EXAMPLES = 3
 VOLATILE_TMP_PATH_RE = re.compile(
     r"(?:\.\./)+(?:\.\./)*var/folders/[^\s\"']+/T/tmp[\w.-]+|"
     r"(?:\.\./)+(?:\.\./)*var/folders/[^\s\"']+/T|"
@@ -291,6 +292,7 @@ def main():
     detailed_contracts = []
     compile_failure_taxonomy = defaultdict(int)
     external_high_checks = defaultdict(int)
+    external_high_check_examples = defaultdict(list)
 
     for cat in categories:
         cat_dir = DATASET / cat
@@ -443,6 +445,18 @@ def main():
                     )
                     for high_check in external_validation.get("high_checks", []):
                         external_high_checks[high_check] += 1
+                        if (
+                            len(external_high_check_examples[high_check])
+                            < MAX_EXTERNAL_HIGH_CHECK_EXAMPLES
+                        ):
+                            external_high_check_examples[high_check].append(
+                                {
+                                    "category": cat,
+                                    "contract": str(sol),
+                                    "external_status": external_validation["status"],
+                                    "high_findings": external_validation["high_findings"],
+                                }
+                            )
 
                 rescan = evidence.rescan
                 total_before = (
@@ -536,10 +550,15 @@ def main():
     external_high_check_summary = dict(
         sorted(external_high_checks.items(), key=lambda item: (-item[1], item[0]))
     )
+    external_high_check_example_summary = {
+        check: external_high_check_examples[check]
+        for check in external_high_check_summary
+    }
     aggregate_payload = {
         "totals": dict(totals),
         "by_category": results_by_cat,
         "external_high_checks": external_high_check_summary,
+        "external_high_check_examples": external_high_check_example_summary,
     }
     if not args.skip_rescan or args.results_output:
         # Preserve the historical canonical path unless the caller explicitly
@@ -564,6 +583,7 @@ def main():
             "totals": dict(totals),
             "by_category": results_by_cat,
             "external_high_checks": external_high_check_summary,
+            "external_high_check_examples": external_high_check_example_summary,
             "compile_failure_taxonomy": dict(sorted(compile_failure_taxonomy.items())),
             "contracts": detailed_contracts,
         }
