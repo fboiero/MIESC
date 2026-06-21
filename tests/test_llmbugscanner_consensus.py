@@ -99,3 +99,40 @@ class TestUtilities:
         f = tmp_path / "C.sol"
         f.write_text("contract C {}", encoding="utf-8")
         assert a._read_contract(str(f)) == "contract C {}"
+
+
+class TestVerifyFinding:
+    def test_no_other_model_keeps_finding(self):
+        a = _adapter()
+        a._available_models = {"m1"}
+        finding = {"source_model": "m1", "title": "R"}
+        assert a._verify_finding("contract C {}", finding, [_model("m1")]) is True
+
+    def test_verifier_says_valid(self):
+        from unittest.mock import MagicMock, patch
+
+        a = _adapter()
+        a._available_models = {"m1", "m2"}
+        finding = {"source_model": "m1", "title": "R"}
+        proc = MagicMock(returncode=0, stdout="VALID")
+        with patch.object(a, "_run_ollama_prompt", return_value=proc):
+            assert a._verify_finding("x", finding, [_model("m1"), _model("m2")]) is True
+
+    def test_verifier_says_false_positive(self):
+        from unittest.mock import MagicMock, patch
+
+        a = _adapter()
+        a._available_models = {"m1", "m2"}
+        finding = {"source_model": "m1", "title": "R"}
+        proc = MagicMock(returncode=0, stdout="FALSE_POSITIVE")
+        with patch.object(a, "_run_ollama_prompt", return_value=proc):
+            assert a._verify_finding("x", finding, [_model("m1"), _model("m2")]) is False
+
+    def test_verifier_error_keeps_finding(self):
+        from unittest.mock import patch
+
+        a = _adapter()
+        a._available_models = {"m1", "m2"}
+        finding = {"source_model": "m1", "title": "R"}
+        with patch.object(a, "_run_ollama_prompt", side_effect=RuntimeError("boom")):
+            assert a._verify_finding("x", finding, [_model("m1"), _model("m2")]) is True
