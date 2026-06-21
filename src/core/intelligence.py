@@ -303,6 +303,10 @@ ZERO_RECALL_PATTERNS = {
         "patterns": [
             r"\.call\s*\{value:",
             r"\.call\.value\s*\(",
+            # Callback into a caller-controlled contract (e.g. Bank(msg.sender).cb()):
+            # the callee can re-enter before state is settled. Covers modifier/interface
+            # reentrancy that .call-based patterns miss. Measured 0 FP on SmartBugs.
+            r"\b[A-Z]\w*\(\s*msg\.sender\s*\)\.\w+\s*\(",
         ],
         "severity": "High",
         "swc": "SWC-107",

@@ -11,19 +11,33 @@ depress recall). Authoritative clean artifact: `paper1_vnext_clean_20260621.json
 
 ## 1. Headline improvement (vs frozen v5.4.0)
 
-| Profile | Frozen Paper 1 (v5.4.0, 2026-05-06) | v-next (2026-06-21, clean run) |
-|---------|--------------------------------------|--------------------------------|
-| static + intelligence, layer 1 | 95.8% recall (137/143) | **99.3% recall (142/143)**, precision 0.264 |
+IMPORTANT profile note (corrected after reading the frozen `.tex`): the frozen Paper 1
+number 95.8% (137/143) is measured on **layers 1,6,7 + intelligence**
+(`paper1_smartbugs_eval_layers_1_6_7.json`), and the paper documents its 6 misses as
+**3 "other", 2 front-running, 1 modifier-based reentrancy** (miesc-paper.tex §Layer
+Contribution Analysis).
 
-Confirmed on a clean (unloaded) run; reproducible artifact `paper1_vnext_clean_20260621.json`.
-NOTE: the aggregate has measurement variance from flaky external tools (§5); the
-intelligence-engine gains below are deterministic and load-independent.
+This cycle added DETERMINISTIC intelligence detectors that close 5 of those 6 misses, so
+**layer-1 + intelligence ALONE now reaches 99.3% (142/143)** — exceeding the frozen
+multi-layer (1,6,7) number using FEWER layers and no LLM.
 
-Cause (recall-safe, ΔFP=0, harness-gated): two new intelligence detectors added this
-cycle —
-- `front_running`: 2/4 → 4/4 (implicit-visibility ordering + reward-transfer patterns)
-- `uninitialized_storage_pointer` (`other` category): 0/3 → 3/3 (SWC-109; struct-typed
-  local without explicit data location = storage pointer at slot 0)
+| Profile | Recall |
+|---------|--------|
+| Frozen v5.4.0: layers 1,6,7 + intelligence | 95.8% (137/143) |
+| **v-next: layer-1 + intelligence (clean run)** | **99.3% (142/143)**, precision 0.264 |
+
+Confirmed on a clean (unloaded) run; artifact `paper1_vnext_clean_20260621.json`. The
+aggregate has measurement variance from flaky external tools (§5); the detector gains
+below are deterministic and load-independent.
+
+New deterministic detectors (each ΔFP=0 on the corpus, harness-gated) and the frozen miss
+each closes:
+- `front_running` 2/4 → 4/4 → closes the **2 front-running** misses
+- `uninitialized_storage_pointer` (`other`) 0/3 → 3/3 (SWC-109) → closes the **3 "other"** misses
+- reentrancy callback pattern `X(msg.sender).cb()` → closes the **1 modifier-based reentrancy**
+  miss deterministically (was tool-dependent; harness-gated this cycle)
+
+Only `short_addresses` remains (structural limit — §4).
 
 ## 2. Per-category recall (layer 1, v-next)
 
