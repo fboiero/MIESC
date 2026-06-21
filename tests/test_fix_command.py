@@ -279,6 +279,70 @@ class TestApplyFix:
         assert changed
         assert "nonReentrant" in patched
 
+    def test_reentrancy_legacy_call_value_moves_balance_effect_before_call(self):
+        source = """\
+pragma solidity ^0.4.19;
+
+contract Bank {
+    mapping(address => uint256) public balances;
+
+    function Collect(uint256 _am) public {
+        if (balances[msg.sender] >= _am) {
+            if(msg.sender.call.value(_am)())
+            {
+                balances[msg.sender]-=_am;
+                emit Collected(msg.sender, _am);
+            }
+        }
+    }
+
+    event Collected(address who, uint256 amount);
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "Collect",
+            "line": 7,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert "balances[msg.sender] -= _am;\n            if(msg.sender.call.value(_am)())" in patched
+        assert "else\n            {\n                balances[msg.sender] += _am;" in patched
+        assert patched.index("balances[msg.sender] -= _am;") < patched.index(
+            "if(msg.sender.call.value(_am)())"
+        )
+
+    def test_reentrancy_legacy_call_value_keeps_mismatched_effect_in_place(self):
+        source = """\
+pragma solidity ^0.4.19;
+
+contract Bank {
+    mapping(address => uint256) public balances;
+
+    function Collect(uint256 _am, uint256 fee) public {
+        if(msg.sender.call.value(_am)())
+        {
+            balances[msg.sender]-=fee;
+        }
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "Collect",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions" not in patched
+        assert "balances[msg.sender]-=fee;" in patched
+
     def test_reentrancy_ignores_openzeppelin_import_inside_fix_comment(self):
         source = """\
 // SPDX-License-Identifier: MIT
