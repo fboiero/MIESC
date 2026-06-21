@@ -91,3 +91,45 @@ class TestEventAndFactories:
         monkeypatch.setattr(ws, "_manager", None)
         assert get_connection_manager() is None
         assert create_progress_tracker("a1") is None
+
+
+class TestFastAPIRoutes:
+    """Exercise the FastAPI app routes via TestClient (requires fastapi)."""
+
+    def _client(self):
+        import pytest
+
+        if not ws.WEBSOCKET_AVAILABLE:
+            pytest.skip("fastapi not installed")
+        from fastapi.testclient import TestClient
+
+        app = ws.create_websocket_app()
+        return TestClient(app)
+
+    def test_health_endpoint(self):
+        resp = self._client().get("/health")
+        assert resp.status_code == 200
+        assert isinstance(resp.json(), dict)
+
+    def test_status_endpoint(self):
+        resp = self._client().get("/status")
+        assert resp.status_code == 200
+
+    def test_ws_welcome_and_ping(self, monkeypatch):
+        monkeypatch.setattr(ws, "WEBSOCKET_AUTH_REQUIRED", False)
+        client = self._client()
+        with client.websocket_connect("/ws") as conn:
+            welcome = conn.receive_json()
+            assert welcome["type"] == ws.EventType.CONNECTED.value
+            conn.send_json({"action": "ping"})
+            pong = conn.receive_json()
+            assert pong["type"] == ws.EventType.HEARTBEAT.value
+
+    def test_ws_subscribe(self, monkeypatch):
+        monkeypatch.setattr(ws, "WEBSOCKET_AUTH_REQUIRED", False)
+        client = self._client()
+        with client.websocket_connect("/ws") as conn:
+            conn.receive_json()  # welcome
+            conn.send_json({"action": "subscribe", "audit_id": "a1"})
+            msg = conn.receive_json()
+            assert msg["data"].get("subscribed_to") == "a1"
