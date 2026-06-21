@@ -156,6 +156,13 @@ def matches_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, 
             return has("BENIGN-SAFEERC20")
         if re.search(r"require\s*\(\s*(ok|success)\b", body):
             return has("BENIGN-CHECKED-CALL")
+    # Front-running: commit-reveal mitigation present.
+    if "front" in vtype and re.search(r"keccak256", code) and re.search(r"commit", code, re.IGNORECASE):
+        return has("BENIGN-FRONTRUN-COMMITREVEAL")
+    # Short-address: deprecated/mitigated on Solidity >= 0.5.
+    pragma_05 = bool(re.search(r"pragma\s+solidity\s*[\^>=]*\s*0\.([5-9]|\d{2})", code))
+    if "short" in vtype and pragma_05:
+        return has("BENIGN-SHORTADDR-DEPRECATED")
     return None
 
 

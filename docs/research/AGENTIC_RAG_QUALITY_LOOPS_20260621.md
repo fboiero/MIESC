@@ -111,6 +111,30 @@ Hallucinations fail *grounding*; false positives are *grounded but benign*. The
 harness records which, so the fix differs (drop hallucination; downgrade FP with the
 benign-pattern citation as the reason).
 
+## 5b. Coverage diagnostic against the real 569 false positives
+
+The canonical SmartBugs run (`paper1_smartbugs_eval_layers_1_6_7.jsonl`) records FPs
+per contract at the **category** level (not per-finding with locations), so a rigorous
+per-finding precision measurement needs a richer findings dump (re-run with location
+output) — that is future work, not claimed here. What the category data *does* let us
+do honestly is target the benign corpus. The 569 real FPs distribute as:
+
+| FPs | Category | Benign corpus |
+|----:|----------|---------------|
+| 128 | arithmetic | covered (Sol ≥0.8) |
+| 77 | reentrancy | covered (guard / CEI) |
+| 76 | access_control | covered (onlyOwner) |
+| 64 | unchecked_low_level_calls | covered (SafeERC20 / checked) |
+| 47 | bad_randomness | covered (non-entropy block var) |
+| 46 | time_manipulation | covered (timelock) |
+| 46 | denial_of_service | covered (bounded loop) |
+| 43 | front_running | **added** (commit-reveal / no order-dependence) |
+| 42 | short_addresses | **added** (deprecated on Sol ≥0.5) |
+
+After adding the front-running and short-address benign patterns, the corpus covers
+**all 9 FP-producing categories**. This is a *coverage* statement (the lever can reach
+every category), NOT a precision-lift claim — the lift must be measured per-finding.
+
 ## 6. Build plan + honest measurement
 
 1. **Seed the benign-pattern corpus** (additive data file) — done in this change.
