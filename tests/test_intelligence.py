@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from src.core.intelligence import (
     MergedFinding,
+    _passes_zero_recall_context_filter,
     calibrate_severity,
     compute_cross_tool_confidence,
     context_aware_fp_check,
@@ -838,3 +839,104 @@ class TestEnhanceFindingsFixAndExploit:
             if cat != "other":
                 assert "fix_code" in f, f"Missing fix_code for category={cat}"
                 assert "exploit_scenario" in f, f"Missing exploit_scenario for category={cat}"
+
+
+class TestZeroRecallContextFilter:
+    """Tests for _passes_zero_recall_context_filter — precision filters that gate
+    recall-boost findings. Returns True = fire (vulnerable), False = suppress."""
+
+    def test_no_filter_fires(self):
+        assert _passes_zero_recall_context_filter(None, "anything", "anything") is True
+
+    def test_commented_match_is_suppressed(self):
+        assert _passes_zero_recall_context_filter(
+            "randomness_context", "// uint x = blockhash(1);", "// uint x = blockhash(1);"
+        ) is False
+
+    def test_unknown_filter_fires(self):
+        assert _passes_zero_recall_context_filter(
+            "some_unknown_filter", "code", "code"
+        ) is True
+
+    # --- non_timelock_timestamp ---
+    def test_pure_timelock_is_suppressed(self):
+        src = "function f() { require(block.timestamp > deadline); }"
+        assert _passes_zero_recall_context_filter(
+            "non_timelock_timestamp", src, "require(block.timestamp > deadline)"
+        ) is False
+
+    def test_non_timelock_timestamp_fires(self):
+        src = "function f() { uint t = block.timestamp; bet(t); }"
+        assert _passes_zero_recall_context_filter(
+            "non_timelock_timestamp", src, "uint t = block.timestamp;"
+        ) is True
+
+    # --- randomness_context ---
+    def test_randomness_keccak_fires(self):
+        src = "uint r = keccak256(blockhash(block.number));"
+        assert _passes_zero_recall_context_filter("randomness_context", src, src) is True
+
+    def test_randomness_modulo_fires(self):
+        src = "uint r = block.timestamp % 10;"
+        assert _passes_zero_recall_context_filter("randomness_context", src, src) is True
+
+    def test_randomness_entropy_assignment_fires(self):
+        src = "uint seed = uint(blockhash(block.number - 1));"
+        assert _passes_zero_recall_context_filter("randomness_context", src, src) is True
+
+    def test_randomness_keyword_near_block_var_fires(self):
+        src = "function lottery() { pickWinner(blockhash(block.number)); }"
+        assert _passes_zero_recall_context_filter("randomness_context", src, src) is True
+
+    def test_benign_block_var_suppressed(self):
+        src = "uint lastUpdate = block.number;"
+        assert _passes_zero_recall_context_filter("randomness_context", src, src) is False
+
+    # --- has_unchecked_arithmetic ---
+    def test_financial_arithmetic_fires(self):
+        src = "function f() { balances[msg.sender] += amount; }"
+        assert _passes_zero_recall_context_filter("has_unchecked_arithmetic", src, src) is True
+
+    def test_pragma_only_arithmetic_suppressed(self):
+        src = "pragma solidity 0.4.24;\n// no arithmetic here\ncontract C {}"
+        assert _passes_zero_recall_context_filter("has_unchecked_arithmetic", src, src) is False
+
+    def test_non_timelock_skips_commented_timestamp_line(self):
+        src = "// legacy: block.timestamp check\nuint t = block.timestamp; bet(t);"
+        assert _passes_zero_recall_context_filter(
+            "non_timelock_timestamp", src, "uint t = block.timestamp;"
+        ) is True
+
+
+class TestContextAwareFpCheckExtra:
+    """Extra context_aware_fp_check rules: guarded selfdestruct, proxy, SafeERC20."""
+
+    def test_guarded_selfdestruct_suppressed(self):
+        src = "function destroy() public onlyOwner { selfdestruct(owner); }"
+        finding = {"type": "suicidal", "severity": "High", "location": {}}
+        is_fp, reason = context_aware_fp_check(finding, src)
+        assert is_fp is True
+        assert "selfdestruct guarded" in reason
+
+    def test_unguarded_selfdestruct_not_suppressed(self):
+        src = "function destroy() public { selfdestruct(msg.sender); }"
+        finding = {"type": "suicidal", "severity": "High", "location": {}}
+        is_fp, _ = context_aware_fp_check(finding, src)
+        assert is_fp is False
+
+    def test_proxy_with_oz_upgrade_infra_suppressed(self):
+        src = "contract C is Initializable { function init() public initializer {} }"
+        finding = {"type": "proxy_upgrade", "severity": "High", "location": {}}
+        is_fp, reason = context_aware_fp_check(finding, src)
+        assert is_fp is True
+        assert "OpenZeppelin upgrade" in reason
+
+    def test_unchecked_call_with_safeerc20_suppressed(self):
+        src = (
+            'import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";\n'
+            "contract C { using SafeERC20 for IERC20; function f() { t.safeTransfer(a, x); } }"
+        )
+        finding = {"type": "unchecked-call", "severity": "Medium", "location": {}}
+        is_fp, reason = context_aware_fp_check(finding, src)
+        assert is_fp is True
+        assert "SafeERC20" in reason
