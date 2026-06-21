@@ -14,6 +14,7 @@ Usage:
     python benchmarks/fix_eval.py --category reentrancy
     python benchmarks/fix_eval.py --category unchecked_low_level_calls --limit 5 --skip-rescan
     python benchmarks/fix_eval.py --skip-rescan --details-output benchmarks/results/paper2_compile_failure_taxonomy.json
+    python benchmarks/fix_eval.py --results-output benchmarks/results/fix_eval_full_dry_20260620_codex.json
 """
 
 import argparse
@@ -117,6 +118,14 @@ def main():
         "--details-output",
         type=Path,
         help="Optional JSON path for per-contract Paper 2 remediation details.",
+    )
+    parser.add_argument(
+        "--results-output",
+        type=Path,
+        help=(
+            "Optional JSON path for aggregate results. Use a dated additive path "
+            "for non-canonical dry runs."
+        ),
     )
     parser.add_argument(
         "--skip-rescan",
@@ -337,15 +346,13 @@ def main():
         f"  No regression:        {totals['no_regression']}/{n} = {totals['no_regression'] / n:.0%}"
     )
 
-    if not args.skip_rescan:
-        # Save aggregate results only for full evaluation runs.
-        out_path = Path("benchmarks/results/fix_eval_results.json")
+    aggregate_payload = {"totals": dict(totals), "by_category": results_by_cat}
+    if not args.skip_rescan or args.results_output:
+        # Preserve the historical canonical path unless the caller explicitly
+        # requests a dated additive artifact for a dry run.
+        out_path = args.results_output or Path("benchmarks/results/fix_eval_results.json")
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        json.dump(
-            {"totals": dict(totals), "by_category": results_by_cat},
-            open(out_path, "w"),
-            indent=2,
-        )
+        out_path.write_text(json.dumps(aggregate_payload, indent=2) + "\n")
         print(f"\nResults saved to {out_path}")
     else:
         print("\nSkipped aggregate fix_eval_results.json update because --skip-rescan was used.")

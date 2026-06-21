@@ -36,6 +36,17 @@ class FakeEvidence:
         }
 
 
+class FakeRescanEvidence(FakeEvidence):
+    rescan = SimpleNamespace(
+        checked=True,
+        total_before=2,
+        high_after=0,
+        total_after=0,
+        eliminated=True,
+        no_regression=True,
+    )
+
+
 class FakeFailedEvidence(FakeEvidence):
     fixes_applied = 0
     fixes_skipped = 2
@@ -157,3 +168,101 @@ def test_fix_eval_details_include_skipped_contract_statuses(monkeypatch, tmp_pat
         "no_high",
     ]
     assert payload["contracts"][1]["evidence"]["fixes_skipped"] == 2
+
+
+def test_fix_eval_results_output_avoids_canonical_default(monkeypatch, tmp_path: Path):
+    dataset = tmp_path / "dataset"
+    category = dataset / "reentrancy"
+    category.mkdir(parents=True)
+    (category / "C.sol").write_text("pragma solidity 0.4.25; contract C {}\n")
+
+    canonical = tmp_path / "benchmarks" / "results" / "fix_eval_results.json"
+    alternate = tmp_path / "benchmarks" / "results" / "fix_eval_dry_codex.json"
+
+    def fake_run_scan(sol_path, output_path, timeout):
+        return {
+            "findings": [
+                {
+                    "severity": "HIGH",
+                    "type": "reentrancy",
+                    "fix_code": "add nonReentrant",
+                }
+            ]
+        }
+
+    def fake_remediate_contract(**kwargs):
+        assert kwargs["rescan_check"] is True
+        return FakeRescanEvidence()
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(fix_eval, "DATASET", dataset)
+    monkeypatch.setattr(fix_eval, "run_scan", fake_run_scan)
+    monkeypatch.setattr(fix_eval, "remediate_contract", fake_remediate_contract)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "fix_eval.py",
+            "--category",
+            "reentrancy",
+            "--results-output",
+            str(alternate),
+            "--no-progress",
+        ],
+    )
+
+    fix_eval.main()
+
+    assert not canonical.exists()
+    payload = json.loads(alternate.read_text())
+    assert payload["totals"]["fix_applied"] == 1
+    assert payload["totals"]["vuln_eliminated"] == 1
+    assert payload["by_category"]["reentrancy"]["no_regression"] == 1
+
+
+def test_fix_eval_skip_rescan_can_write_noncanonical_results(monkeypatch, tmp_path: Path):
+    dataset = tmp_path / "dataset"
+    category = dataset / "access_control"
+    category.mkdir(parents=True)
+    (category / "C.sol").write_text("pragma solidity 0.4.25; contract C {}\n")
+
+    alternate = tmp_path / "fix_eval_skip_rescan_codex.json"
+
+    def fake_run_scan(sol_path, output_path, timeout):
+        return {
+            "findings": [
+                {
+                    "severity": "HIGH",
+                    "type": "access-control",
+                    "fix_code": "add onlyOwner",
+                }
+            ]
+        }
+
+    def fake_remediate_contract(**kwargs):
+        assert kwargs["rescan_check"] is False
+        return FakeEvidence()
+
+    monkeypatch.setattr(fix_eval, "DATASET", dataset)
+    monkeypatch.setattr(fix_eval, "run_scan", fake_run_scan)
+    monkeypatch.setattr(fix_eval, "remediate_contract", fake_remediate_contract)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "fix_eval.py",
+            "--category",
+            "access_control",
+            "--skip-rescan",
+            "--results-output",
+            str(alternate),
+            "--no-progress",
+        ],
+    )
+
+    fix_eval.main()
+
+    payload = json.loads(alternate.read_text())
+    assert payload["totals"]["fix_applied"] == 1
+    assert payload["totals"]["fix_compiles"] == 1
+    assert payload["totals"]["vuln_eliminated"] == 0
