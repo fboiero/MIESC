@@ -161,10 +161,11 @@ class TestLLMProvider:
         assert LLMProvider.OLLAMA.value == "ollama"
         assert LLMProvider.OPENAI.value == "openai"
         assert LLMProvider.ANTHROPIC.value == "anthropic"
+        assert LLMProvider.DEEPSEEK.value == "deepseek"
 
     def test_provider_count(self):
         """Test provider count."""
-        assert len(LLMProvider) == 3
+        assert len(LLMProvider) == 4
 
 
 class TestVotingStrategy:
@@ -341,6 +342,18 @@ class TestLLMEnsembleDetectorInit:
         assert multi_provider_detector.openai_api_key == "test-openai-key"
         assert multi_provider_detector.anthropic_api_key == "test-anthropic-key"
 
+    def test_deepseek_init(self):
+        """Test initialization with DeepSeek provider."""
+        detector = LLMEnsembleDetector(
+            providers=[LLMProvider.DEEPSEEK],
+            deepseek_api_key="test-deepseek-key",
+            deepseek_base_url="https://custom.deepseek.example",
+        )
+
+        assert detector.providers == [LLMProvider.DEEPSEEK]
+        assert detector.deepseek_api_key == "test-deepseek-key"
+        assert detector.deepseek_base_url == "https://custom.deepseek.example"
+
     def test_env_api_keys(self):
         """Test API keys from environment variables."""
         with patch.dict(
@@ -348,11 +361,15 @@ class TestLLMEnsembleDetectorInit:
             {
                 "OPENAI_API_KEY": "env-openai-key",
                 "ANTHROPIC_API_KEY": "env-anthropic-key",
+                "DEEPSEEK_API_KEY": "env-deepseek-key",
             },
         ):
-            detector = LLMEnsembleDetector(providers=[LLMProvider.OPENAI, LLMProvider.ANTHROPIC])
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.OPENAI, LLMProvider.ANTHROPIC, LLMProvider.DEEPSEEK]
+            )
             assert detector.openai_api_key == "env-openai-key"
             assert detector.anthropic_api_key == "env-anthropic-key"
+            assert detector.deepseek_api_key == "env-deepseek-key"
 
     def test_temperature_setting(self):
         """Test temperature parameter."""
@@ -373,6 +390,7 @@ class TestLLMEnsembleDetectorConstants:
         assert LLMProvider.OLLAMA in LLMEnsembleDetector.PROVIDER_MODELS
         assert LLMProvider.OPENAI in LLMEnsembleDetector.PROVIDER_MODELS
         assert LLMProvider.ANTHROPIC in LLMEnsembleDetector.PROVIDER_MODELS
+        assert LLMProvider.DEEPSEEK in LLMEnsembleDetector.PROVIDER_MODELS
 
     def test_ollama_models(self):
         """Test Ollama model list."""
@@ -392,11 +410,19 @@ class TestLLMEnsembleDetectorConstants:
         assert any("claude" in m for m in models)
         assert len(models) >= 2
 
+    def test_deepseek_models(self):
+        """Test DeepSeek model list."""
+        models = LLMEnsembleDetector.PROVIDER_MODELS[LLMProvider.DEEPSEEK]
+        assert "deepseek-v4-flash" in models
+        assert "deepseek-v4-pro" in models
+
     def test_model_weights(self):
         """Test model weights are defined."""
         weights = LLMEnsembleDetector.MODEL_WEIGHTS
         assert "deepseek-coder:6.7b" in weights
         assert weights["deepseek-coder:6.7b"] > 1.0  # Higher weight
+        assert "deepseek-v4-flash" in weights
+        assert "deepseek-v4-pro" in weights
 
     def test_detection_prompt_exists(self):
         """Test detection prompt is defined."""
@@ -535,6 +561,94 @@ class TestLLMEnsembleDetectorProviderAvailability:
                 LLMProvider.ANTHROPIC
             )
             assert len(models) > 0
+
+        asyncio.run(run_test())
+
+    def test_check_deepseek_with_key(self):
+        """Test checking DeepSeek availability through the models endpoint."""
+
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_api_key="test-key",
+            )
+
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={
+                    "data": [
+                        {"id": "deepseek-v4-flash"},
+                        {"id": "deepseek-v4-pro"},
+                        {"id": "unrelated-model"},
+                    ]
+                }
+            )
+            mock_session = _aiohttp_session_with_response("get", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                models = await detector._check_provider_availability(LLMProvider.DEEPSEEK)
+
+            assert "deepseek-v4-flash" in models
+            assert "deepseek-v4-pro" in models
+
+        asyncio.run(run_test())
+
+    def test_check_deepseek_filters_unconfigured_remote_models(self):
+        """Test DeepSeek availability excludes models not configured for the ensemble."""
+
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_api_key="test-key",
+            )
+
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(return_value={"data": [{"id": "unknown-model"}]})
+            mock_session = _aiohttp_session_with_response("get", mock_response)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                models = await detector._check_provider_availability(LLMProvider.DEEPSEEK)
+
+            assert models == []
+
+        asyncio.run(run_test())
+
+    def test_check_deepseek_connection_error(self):
+        """Test DeepSeek availability handles model endpoint failures."""
+
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_api_key="test-key",
+            )
+
+            mock_session_instance = MagicMock()
+            mock_session_instance.get.side_effect = aiohttp.ClientError("Connection refused")
+
+            mock_session = MagicMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session.__aexit__ = AsyncMock(return_value=None)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                models = await detector._check_provider_availability(LLMProvider.DEEPSEEK)
+
+            assert models == []
+
+        asyncio.run(run_test())
+
+    def test_check_deepseek_without_key(self):
+        """Test checking DeepSeek availability without API key."""
+
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_api_key=None,
+            )
+            detector.deepseek_api_key = None
+            models = await detector._check_provider_availability(LLMProvider.DEEPSEEK)
+            assert models == []
 
         asyncio.run(run_test())
 
@@ -842,6 +956,51 @@ class TestLLMEnsembleDetectorQueryMethods:
 
         asyncio.run(run_test())
 
+    def test_query_deepseek_success(self, llm_response_json):
+        """Test successful DeepSeek query."""
+
+        async def run_test():
+            detector = LLMEnsembleDetector(
+                providers=[LLMProvider.DEEPSEEK],
+                deepseek_api_key="test-key",
+            )
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(
+                return_value={"choices": [{"message": {"content": llm_response_json}}]}
+            )
+
+            mock_post = MagicMock()
+            mock_post.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_post.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session_instance = MagicMock()
+            mock_session_instance.post = MagicMock(return_value=mock_post)
+
+            mock_session = MagicMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session.__aexit__ = AsyncMock(return_value=None)
+
+            with patch("aiohttp.ClientSession", return_value=mock_session):
+                results = await detector._query_deepseek("deepseek-v4-flash", "contract code")
+                assert isinstance(results, list)
+                assert mock_session_instance.post.call_args.args[0] == (
+                    "https://api.deepseek.com/v1/chat/completions"
+                )
+
+        asyncio.run(run_test())
+
+    def test_query_deepseek_no_key(self, detector):
+        """Test DeepSeek query without API key."""
+
+        async def run_test():
+            detector.deepseek_api_key = None
+
+            with pytest.raises(ProviderUnavailable):
+                await detector._query_deepseek("deepseek-v4-flash", "code")
+
+        asyncio.run(run_test())
+
     def test_query_model_http_error_raises_runtime_error(self, detector):
         """Test Ollama HTTP failures raise a concrete runtime error."""
 
@@ -919,7 +1078,9 @@ That's my finding."""
 
     def test_parse_repairs_invalid_backslash_escapes(self, detector):
         """Test parsing regex-style escapes in model response strings."""
-        response = r'[{"type": "regex", "severity": "low", "title": "T", "description": "pattern \d+"}]'
+        response = (
+            r'[{"type": "regex", "severity": "low", "title": "T", "description": "pattern \d+"}]'
+        )
 
         results = detector._parse_model_response(response, "test-model")
 
@@ -1071,6 +1232,11 @@ def test_voting_strategies(strategy, threshold, expected_pass):
     [
         (LLMProvider.OLLAMA, ["deepseek-coder:6.7b", "codellama:7b", "llama3.1:8b"]),
         (LLMProvider.OPENAI, ["gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"]),
+        (
+            LLMProvider.ANTHROPIC,
+            ["claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"],
+        ),
+        (LLMProvider.DEEPSEEK, ["deepseek-v4-flash", "deepseek-v4-pro"]),
     ],
 )
 def test_provider_model_lists(provider, expected_models):

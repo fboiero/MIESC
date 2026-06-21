@@ -1,0 +1,195 @@
+{
+  "artifact": "paper2_fix_eval_contract_details",
+  "scope": "Paper 2 remediation only; does not modify Paper 1 detection evidence.",
+  "dataset": "benchmarks/datasets/smartbugs-curated/dataset",
+  "limit": 10,
+  "scan_timeout": 15,
+  "skip_rescan": true,
+  "totals": {
+    "contracts": 10,
+    "fix_applied": 3,
+    "fix_compiles": 3,
+    "vuln_eliminated": 0,
+    "no_regression": 0,
+    "fix_failed": 0,
+    "scan_empty": 0,
+    "no_high": 7
+  },
+  "by_category": {
+    "arithmetic": {
+      "contracts": 10,
+      "fix_applied": 3,
+      "fix_compiles": 3,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 7
+    }
+  },
+  "compile_failure_taxonomy": {},
+  "contracts": [
+    {
+      "category": "arithmetic",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/BECToken.sol",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=2, skipped=0",
+      "high_before": 3,
+      "high_after": null,
+      "total_findings_before": 48,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:BasicToken =======\nBinary: \n608060405234801561001057600080fd5b5061042b806100206000396000f300608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806318160ddd1461005c57806370a0823114610087578063a9059cbb146100de575b600080fd5b34801561006857600080fd5b50610071610143565b6040518082815260200191505060405180910390f35b34801561009357600080fd5b506100c8600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610149565b6040518082815260200191505060405180910390f35b3480156100ea57600080fd5b50610129600480360381019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919080359060200190929190505050610192565b604051808215151515815260200191505060405180910390f35b60005481565b6000600160008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020549050919050565b60008073ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff16141515156101cf57600080fd5b60008211801561021e5750600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020548211155b151561022957600080fd5b61027b82600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020546103c290919063ffffffff16565b600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000208190555061031082600160008673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020546103de90919063ffffffff16565b600160008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055508273ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff167fddf252ad1be2c89b69c2b068fc378d",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:171:3: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n  function Ownable() {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:341:5: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n    function BecToken() {\n    ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:72:5: Warning: Invoking events without \"emit\" prefix is deprecated.\n    Transfer(msg.sender, _to, _value);\n    ^-------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:124:5: Warning: Invoking events without \"emit\" prefix is deprecated.\n    Transfer(_from, _to, _value);\n    ^--------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:140:5: Warning: Invoking events without \"emit\" prefix is deprecated.\n    Approval(msg.sender, _spender, _value);\n    ^------------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:191:5: Warning: Invoking events without \"emit\" prefix is deprecated.\n    OwnershipTransferred(owner, newOwner);\n    ^-----------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:229:5: Warning: Invoking events without \"emit\" prefix is deprecated.\n    Pause();\n    ^-----^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:237:5: Warning: Invoking events without \"emit\" prefix is deprecated.\n    Unpause();\n    ^-------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:315:9: Warning: Invoking events without \"emit\" prefix is deprecated.\n        Transfer(msg.sender, _re",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/BECToken.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol",
+        "original_sha256": "5765dccd66c76ce39da689c314364dc380e0b6a984ad351c5f81eb8e35e749b9",
+        "patched_sha256": "dc6e97c4cc9fd9f672eeb10ac1fa6c222089cf0d0984c1d8d17e3281f8ea36a8",
+        "findings_input": 96,
+        "fixable_findings": 2,
+        "fixes_applied": 2,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:BasicToken =======\nBinary: \n608060405234801561001057600080fd5b5061042b806100206000396000f300608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806318160ddd1461005c57806370a0823114610087578063a9059cbb146100de575b600080fd5b34801561006857600080fd5b50610071610143565b6040518082815260200191505060405180910390f35b34801561009357600080fd5b506100c8600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610149565b6040518082815260200191505060405180910390f35b3480156100ea57600080fd5b50610129600480360381019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919080359060200190929190505050610192565b604051808215151515815260200191505060405180910390f35b60005481565b6000600160008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020549050919050565b60008073ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff16141515156101cf57600080fd5b60008211801561021e5750600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020548211155b151561022957600080fd5b61027b82600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020546103c290919063ffffffff16565b600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000208190555061031082600160008673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020546103de90919063ffffffff16565b600160008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055508273ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff167fddf252ad1be2c89b69c2b068fc378d",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:171:3: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n  function Ownable() {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:341:5: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n    function BecToken() {\n    ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:72:5: Warning: Invoking events without \"emit\" prefix is deprecated.\n    Transfer(msg.sender, _to, _value);\n    ^-------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:124:5: Warning: Invoking events without \"emit\" prefix is deprecated.\n    Transfer(_from, _to, _value);\n    ^--------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:140:5: Warning: Invoking events without \"emit\" prefix is deprecated.\n    Approval(msg.sender, _spender, _value);\n    ^------------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:191:5: Warning: Invoking events without \"emit\" prefix is deprecated.\n    OwnershipTransferred(owner, newOwner);\n    ^-----------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:229:5: Warning: Invoking events without \"emit\" prefix is deprecated.\n    Pause();\n    ^-----^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:237:5: Warning: Invoking events without \"emit\" prefix is deprecated.\n    Unpause();\n    ^-------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpeuk4zhg4/fixed.sol:315:9: Warning: Invoking events without \"emit\" prefix is deprecated.\n        Transfer(msg.sender, _re",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:34:52.547655+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "arithmetic",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mapping_sym_1.sol",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=1, skipped=0",
+      "high_before": 2,
+      "high_after": null,
+      "total_findings_before": 5,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpaetcwack/fixed.sol:IntegerOverflowMappingSym1 =======\nBinary: \n608060405234801561001057600080fd5b5060c88061001f6000396000f300608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063a5843f08146044575b600080fd5b348015604f57600080fd5b50607660048036038101908080359060200190929190803590602001909291905050506078565b005b806000808481526020019081526020016000206000828254039250508190555050505600a165627a7a7230582089690e233ea10033849a5a858c29bc4edeb30c52b61b95a47bee99bd940914fd0029\n",
+        "stderr": "",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mapping_sym_1.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpaetcwack/fixed.sol",
+        "original_sha256": "abecfbc6b745841cfa4d27227dca7dbd0967e0a7198880c1fc3f30f92f2abe3b",
+        "patched_sha256": "f213033b1f3c5d8eb1c6d40d6a8ea88d410187f7db98a0cf9b5e6f05bafdf366",
+        "findings_input": 10,
+        "fixable_findings": 1,
+        "fixes_applied": 1,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpaetcwack/fixed.sol:IntegerOverflowMappingSym1 =======\nBinary: \n608060405234801561001057600080fd5b5060c88061001f6000396000f300608060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063a5843f08146044575b600080fd5b348015604f57600080fd5b50607660048036038101908080359060200190929190803590602001909291905050506078565b005b806000808481526020019081526020016000206000828254039250508190555050505600a165627a7a7230582089690e233ea10033849a5a858c29bc4edeb30c52b61b95a47bee99bd940914fd0029\n",
+          "stderr": "",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:35:02.798846+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "arithmetic",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_multifunc_feasible.sol",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=1, skipped=0",
+      "high_before": 2,
+      "high_after": null,
+      "total_findings_before": 6,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpe24w3do5/fixed.sol:IntegerOverflowMultiTxMultiFuncFeasible =======\nBinary: \n6080604052600080556001805534801561001857600080fd5b5061011b806100286000396000f3006080604052600436106053576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806306661abd146058578063a444f5e9146080578063e1c7392a1460aa575b600080fd5b348015606357600080fd5b50606a60be565b6040518082815260200191505060405180910390f35b348015608b57600080fd5b5060a86004803603810190808035906020019092919050505060c4565b005b34801560b557600080fd5b5060bc60e5565b005b60015481565b60008054141560d15760e2565b806001600082825403925050819055505b50565b60016000819055505600a165627a7a723058200a15bb5740d5f204e4969befb53bcab924d1223aa3b7b6879add5f51872abf6c0029\n",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpe24w3do5/fixed.sol:39:5: Warning: No visibility specified. Defaulting to \"public\". \n    function run(uint256 input) {\n    ^ (Relevant source part starts here and spans across multiple lines).\n",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_multifunc_feasible.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpe24w3do5/fixed.sol",
+        "original_sha256": "b4751ff85a668932e084d03b08992f62b85f3a62dea2224d7f93eafe5628188f",
+        "patched_sha256": "fe3e35106e38ee00913fc1338802d388d378ee4da833908bcc97ef90a3271d4f",
+        "findings_input": 12,
+        "fixable_findings": 1,
+        "fixes_applied": 1,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpe24w3do5/fixed.sol:IntegerOverflowMultiTxMultiFuncFeasible =======\nBinary: \n6080604052600080556001805534801561001857600080fd5b5061011b806100286000396000f3006080604052600436106053576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806306661abd146058578063a444f5e9146080578063e1c7392a1460aa575b600080fd5b348015606357600080fd5b50606a60be565b6040518082815260200191505060405180910390f35b348015608b57600080fd5b5060a86004803603810190808035906020019092919050505060c4565b005b34801560b557600080fd5b5060bc60e5565b005b60015481565b60008054141560d15760e2565b806001600082825403925050819055505b50565b60016000819055505600a165627a7a723058200a15bb5740d5f204e4969befb53bcab924d1223aa3b7b6879add5f51872abf6c0029\n",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpe24w3do5/fixed.sol:39:5: Warning: No visibility specified. Defaulting to \"public\". \n    function run(uint256 input) {\n    ^ (Relevant source part starts here and spans across multiple lines).\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:35:09.122956+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    }
+  ]
+}

@@ -289,6 +289,7 @@ def get_environment_fingerprint() -> EnvironmentFingerprint:
         "OLLAMA_HOST",
         "OPENAI_API_KEY",  # Just presence, not value
         "ANTHROPIC_API_KEY",
+        "DEEPSEEK_API_KEY",
         "CUDA_VISIBLE_DEVICES",
         "PYTHONHASHSEED",
     ]

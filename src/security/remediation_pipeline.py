@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -52,6 +53,11 @@ class RescanEvidence:
     high_after: Optional[int] = None
     total_before: Optional[int] = None
     total_after: Optional[int] = None
+    high_delta: Optional[int] = None
+    total_delta: Optional[int] = None
+    high_types_before: dict[str, int] = field(default_factory=dict)
+    high_types_after: dict[str, int] = field(default_factory=dict)
+    new_high_types: dict[str, int] = field(default_factory=dict)
     eliminated: Optional[bool] = None
     no_regression: Optional[bool] = None
     no_regression_bound: int = 2
@@ -128,18 +134,9 @@ def select_solc(sol_path: Path) -> str:
         candidates = [exact.group(1)]
     else:
         version = re.search(r"(\d+\.\d+)(?:\.(\d+))?", constraint)
-        if version and version.group(2):
-            candidates = [f"{version.group(1)}.{version.group(2)}"]
-        else:
-            base = version.group(1) if version else "0.4"
-            candidates = [
-                f"{base}.26",
-                f"{base}.25",
-                f"{base}.24",
-                f"{base}.23",
-                f"{base}.22",
-                f"{base}.19",
-            ]
+        base = version.group(1) if version else "0.4"
+        min_patch = int(version.group(2)) if version and version.group(2) else 0
+        candidates = [f"{base}.{patch}" for patch in range(99, min_patch - 1, -1)]
 
     for version in candidates:
         candidate = SOLC_DIR / f"solc-{version}" / f"solc-{version}"
@@ -205,6 +202,38 @@ def count_high_findings(scan_result: Optional[dict[str, Any]]) -> int:
         for finding in scan_result.get("findings", [])
         if (finding.get("severity") or "").upper() in {"CRITICAL", "HIGH"}
     )
+
+
+def summarize_high_finding_types(scan_result: Optional[dict[str, Any]]) -> dict[str, int]:
+    """Count HIGH/CRITICAL finding types in a scan result."""
+    if not scan_result:
+        return {}
+    counts: Counter[str] = Counter()
+    for finding in scan_result.get("findings", []):
+        if (finding.get("severity") or "").upper() not in {"CRITICAL", "HIGH"}:
+            continue
+        finding_type = (
+            finding.get("type")
+            or finding.get("title")
+            or finding.get("check")
+            or finding.get("swc_id")
+            or "unknown"
+        )
+        counts[str(finding_type)] += 1
+    return dict(sorted(counts.items()))
+
+
+def diff_high_finding_types(
+    before: dict[str, int],
+    after: dict[str, int],
+) -> dict[str, int]:
+    """Return positive HIGH/CRITICAL finding-type increases after rescan."""
+    diff = {
+        finding_type: count - before.get(finding_type, 0)
+        for finding_type, count in after.items()
+        if count > before.get(finding_type, 0)
+    }
+    return dict(sorted(diff.items()))
 
 
 def apply_patch_candidates(source: str, findings: list[dict[str, Any]]) -> tuple[str, int, int]:
@@ -306,12 +335,19 @@ def remediate_contract(
         high_after = count_high_findings(rescan) if rescan else high_before
         total_before = len(results.get("findings", []))
         total_after = len(rescan.get("findings", [])) if rescan else total_before
+        high_types_before = summarize_high_finding_types(results)
+        high_types_after = summarize_high_finding_types(rescan)
         rescan_evidence = RescanEvidence(
             checked=True,
             high_before=high_before,
             high_after=high_after,
             total_before=total_before,
             total_after=total_after,
+            high_delta=high_after - high_before,
+            total_delta=total_after - total_before,
+            high_types_before=high_types_before,
+            high_types_after=high_types_after,
+            new_high_types=diff_high_finding_types(high_types_before, high_types_after),
             eliminated=high_after < high_before,
             no_regression=total_after <= total_before + no_regression_bound,
             no_regression_bound=no_regression_bound,

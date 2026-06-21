@@ -17,12 +17,18 @@ Institution: UNDEF - IUA
 Date: February 2026
 """
 
-import hashlib
 import logging
-import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+from src.llm.rag_utils import (
+    build_metadata_filter,
+    cache_stats,
+    get_cached_result,
+    make_cache_key,
+    store_cached_result,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +60,7 @@ def _get_chromadb():
             _chromadb = chromadb
         except ImportError:
             raise ImportError(
-                "ChromaDB is required for embedding RAG. " "Install with: pip install chromadb"
+                "ChromaDB is required for embedding RAG. Install with: pip install chromadb"
             ) from None
     return _chromadb
 
@@ -4581,42 +4587,38 @@ class EmbeddingRAG:
         strategy: str = "semantic",
     ) -> str:
         """Generate cache key for a search query."""
-        key_parts = [
-            KNOWLEDGE_BASE_VERSION,
-            strategy,
-            query[:200],  # Truncate long queries
-            str(filter_category),
-            str(filter_severity),
-            str(n_results),
-        ]
-        return hashlib.md5("|".join(key_parts).encode()).hexdigest()
+        return make_cache_key(
+            knowledge_base_version=KNOWLEDGE_BASE_VERSION,
+            query=query,
+            filter_category=filter_category,
+            filter_severity=filter_severity,
+            n_results=n_results,
+            strategy=strategy,
+        )
 
     def _get_cached_result(self, cache_key: str) -> Optional[List["RetrievalResult"]]:
         """Get cached result if valid (not expired)."""
-        if not self.enable_cache or cache_key not in self._query_cache:
-            return None
-
-        timestamp, results = self._query_cache[cache_key]
-        if time.time() - timestamp > self.CACHE_TTL_SECONDS:
-            # Expired
-            del self._query_cache[cache_key]
-            return None
-
-        self._cache_hits += 1
+        results, hit, _expired = get_cached_result(
+            self._query_cache,
+            cache_key,
+            enabled=self.enable_cache,
+            ttl_seconds=self.CACHE_TTL_SECONDS,
+        )
+        if hit:
+            self._cache_hits += 1
         return results
 
     def _cache_result(self, cache_key: str, results: List["RetrievalResult"]) -> None:
         """Cache search results."""
-        if not self.enable_cache:
-            return
-
-        # Evict oldest entries if cache is full
-        if len(self._query_cache) >= self.CACHE_MAX_SIZE:
-            oldest_key = min(self._query_cache, key=lambda k: self._query_cache[k][0])
-            del self._query_cache[oldest_key]
-
-        self._query_cache[cache_key] = (time.time(), results)
-        self._cache_misses += 1
+        stored = store_cached_result(
+            self._query_cache,
+            cache_key,
+            results,
+            enabled=self.enable_cache,
+            max_size=self.CACHE_MAX_SIZE,
+        )
+        if stored:
+            self._cache_misses += 1
 
     def _source_quality(self, doc: VulnerabilityDocument) -> float:
         """Score source quality independently from semantic similarity."""
@@ -4735,15 +4737,12 @@ class EmbeddingRAG:
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache performance statistics."""
-        total = self._cache_hits + self._cache_misses
-        hit_rate = (self._cache_hits / total * 100) if total > 0 else 0
-        return {
-            "hits": self._cache_hits,
-            "misses": self._cache_misses,
-            "hit_rate": f"{hit_rate:.1f}%",
-            "cache_size": len(self._query_cache),
-            "max_size": self.CACHE_MAX_SIZE,
-        }
+        return cache_stats(
+            hits=self._cache_hits,
+            misses=self._cache_misses,
+            cache_size=len(self._query_cache),
+            max_size=self.CACHE_MAX_SIZE,
+        )
 
     def clear_cache(self) -> None:
         """Clear the query cache."""
@@ -4810,19 +4809,7 @@ class EmbeddingRAG:
             logger.debug(f"Cache hit for query (key={cache_key[:8]})")
             return cached
 
-        # Build filter conditions
-        where_filter = None
-        if filter_category or filter_severity:
-            conditions = []
-            if filter_category:
-                conditions.append({"category": filter_category})
-            if filter_severity:
-                conditions.append({"severity": filter_severity})
-
-            if len(conditions) == 1:
-                where_filter = conditions[0]
-            else:
-                where_filter = {"$and": conditions}
+        where_filter = build_metadata_filter(filter_category, filter_severity)
 
         # Query ChromaDB
         results = self._collection.query(
@@ -4980,15 +4967,7 @@ class EmbeddingRAG:
 
         # Query ChromaDB for uncached queries
         if uncached_queries:
-            # Build filter
-            where_filter = None
-            if filter_category or filter_severity:
-                conditions = []
-                if filter_category:
-                    conditions.append({"category": filter_category})
-                if filter_severity:
-                    conditions.append({"severity": filter_severity})
-                where_filter = conditions[0] if len(conditions) == 1 else {"$and": conditions}
+            where_filter = build_metadata_filter(filter_category, filter_severity)
 
             # Batch query to ChromaDB
             query_texts = [q for _, q in uncached_queries]

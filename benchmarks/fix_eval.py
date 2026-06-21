@@ -12,7 +12,9 @@ Measures:
 Usage:
     python benchmarks/fix_eval.py
     python benchmarks/fix_eval.py --category reentrancy
+    python benchmarks/fix_eval.py --category unchecked_low_level_calls --limit 5 --skip-rescan
     python benchmarks/fix_eval.py --skip-rescan --details-output benchmarks/results/paper2_compile_failure_taxonomy.json
+    python benchmarks/fix_eval.py --results-output benchmarks/results/fix_eval_full_dry_20260620_codex.json
 """
 
 import argparse
@@ -40,15 +42,31 @@ DATASET_CANDIDATES = [
 ]
 DATASET = next((path for path in DATASET_CANDIDATES if path.exists()), DATASET_CANDIDATES[0])
 MAX_ERROR_CHARS = 2000
+DEFAULT_SCAN_TIMEOUT = 30
 
 
-def run_scan(sol_path, output_path):
-    env = {**os.environ, "PYTHONPATH": f"{Path(__file__).parent.parent}:{Path(__file__).parent.parent / 'src'}"}
+def run_scan(sol_path, output_path, timeout=DEFAULT_SCAN_TIMEOUT):
+    env = {
+        **os.environ,
+        "PYTHONPATH": f"{Path(__file__).parent.parent}:{Path(__file__).parent.parent / 'src'}",
+    }
     try:
         subprocess.run(
-            [sys.executable, "-m", "miesc.cli.main", "scan", str(sol_path),
-             "-o", str(output_path), "--quiet", "--fp-strictness", "low"],
-            capture_output=True, timeout=30, env=env,
+            [
+                sys.executable,
+                "-m",
+                "miesc.cli.main",
+                "scan",
+                str(sol_path),
+                "-o",
+                str(output_path),
+                "--quiet",
+                "--fp-strictness",
+                "low",
+            ],
+            capture_output=True,
+            timeout=timeout,
+            env=env,
         )
         if output_path.exists():
             return json.load(open(output_path))
@@ -69,17 +87,45 @@ def check_compiles(sol_path):
 def count_high_findings(scan_result):
     if not scan_result:
         return 0
-    return sum(1 for f in scan_result.get("findings", [])
-               if (f.get("severity") or "").upper() in ("CRITICAL", "HIGH"))
+    return sum(
+        1
+        for f in scan_result.get("findings", [])
+        if (f.get("severity") or "").upper() in ("CRITICAL", "HIGH")
+    )
 
 
 def main():
     parser = argparse.ArgumentParser(description="Fix pipeline evaluation on SmartBugs")
     parser.add_argument("--category", type=str, help="Only evaluate this category")
     parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum contracts to evaluate per category. Useful for bounded probes.",
+    )
+    parser.add_argument(
+        "--scan-timeout",
+        type=int,
+        default=DEFAULT_SCAN_TIMEOUT,
+        help=f"Per-contract scan timeout in seconds (default: {DEFAULT_SCAN_TIMEOUT}).",
+    )
+    parser.add_argument(
+        "--no-progress",
+        action="store_true",
+        help="Disable per-contract progress output.",
+    )
+    parser.add_argument(
         "--details-output",
         type=Path,
         help="Optional JSON path for per-contract Paper 2 remediation details.",
+    )
+    parser.add_argument(
+        "--results-output",
+        type=Path,
+        help=(
+            "Optional JSON path for aggregate results. Use a dated additive path "
+            "for non-canonical dry runs."
+        ),
     )
     parser.add_argument(
         "--skip-rescan",
@@ -95,6 +141,9 @@ def main():
     print("SmartBugs Fix Pipeline Evaluation")
     print("=" * 65)
     print(f"Dataset: {DATASET}")
+    if args.limit is not None:
+        print(f"Limit: {args.limit} contract(s) per category")
+    print(f"Scan timeout: {args.scan_timeout}s")
 
     totals = defaultdict(int)
     results_by_cat = {}
@@ -103,12 +152,29 @@ def main():
 
     for cat in categories:
         cat_dir = DATASET / cat
+        if not cat_dir.exists():
+            print(f"  {cat:<30} missing category directory: {cat_dir}", flush=True)
+            continue
         sol_files = sorted(cat_dir.glob("*.sol"))
-        cat_results = {"contracts": 0, "fix_applied": 0, "fix_compiles": 0,
-                       "vuln_eliminated": 0, "no_regression": 0, "fix_failed": 0}
+        if args.limit is not None:
+            sol_files = sol_files[: args.limit]
+        cat_results = {
+            "contracts": 0,
+            "fix_applied": 0,
+            "fix_compiles": 0,
+            "vuln_eliminated": 0,
+            "no_regression": 0,
+            "fix_failed": 0,
+            "scan_empty": 0,
+            "no_high": 0,
+        }
 
-        for sol in sol_files:
+        print(f"\nCategory {cat}: {len(sol_files)} contract(s)", flush=True)
+
+        for idx, sol in enumerate(sol_files, start=1):
             cat_results["contracts"] += 1
+            if not args.no_progress:
+                print(f"    [{idx}/{len(sol_files)}] scan {sol.name}", flush=True)
 
             with tempfile.TemporaryDirectory() as tmp:
                 tmp = Path(tmp)
@@ -116,12 +182,50 @@ def main():
                 fixed_sol = tmp / "fixed.sol"
 
                 # Step 1: Scan
-                scan = run_scan(sol, scan_out)
+                scan = run_scan(sol, scan_out, timeout=args.scan_timeout)
                 if not scan or not scan.get("findings"):
+                    cat_results["scan_empty"] += 1
+                    if args.details_output:
+                        detailed_contracts.append(
+                            {
+                                "category": cat,
+                                "contract": str(sol),
+                                "status": "scan_empty",
+                                "fix_applied": False,
+                                "fix_output_summary": "scan produced no findings",
+                                "high_before": 0,
+                                "high_after": None,
+                                "total_findings_before": 0,
+                                "total_findings_after": None,
+                                "vuln_eliminated": None,
+                                "no_regression": None,
+                                "compile": {"checked": False, "compiles": None},
+                                "evidence": None,
+                            }
+                        )
                     continue
 
                 high_before = count_high_findings(scan)
                 if high_before == 0:
+                    cat_results["no_high"] += 1
+                    if args.details_output:
+                        detailed_contracts.append(
+                            {
+                                "category": cat,
+                                "contract": str(sol),
+                                "status": "no_high",
+                                "fix_applied": False,
+                                "fix_output_summary": "scan produced no HIGH findings",
+                                "high_before": high_before,
+                                "high_after": None,
+                                "total_findings_before": len(scan.get("findings", [])),
+                                "total_findings_after": None,
+                                "vuln_eliminated": None,
+                                "no_regression": None,
+                                "compile": {"checked": False, "compiles": None},
+                                "evidence": None,
+                            }
+                        )
                     continue  # Nothing to fix
 
                 # Steps 2-5: shared remediation pipeline
@@ -135,6 +239,27 @@ def main():
                 )
                 if evidence.fixes_applied == 0:
                     cat_results["fix_failed"] += 1
+                    if args.details_output:
+                        detailed_contracts.append(
+                            {
+                                "category": cat,
+                                "contract": str(sol),
+                                "status": "fix_failed",
+                                "fix_applied": False,
+                                "fix_output_summary": (
+                                    "shared remediation pipeline: applied=0, "
+                                    f"skipped={evidence.fixes_skipped}"
+                                )[:MAX_ERROR_CHARS],
+                                "high_before": high_before,
+                                "high_after": None,
+                                "total_findings_before": len(scan.get("findings", [])),
+                                "total_findings_after": None,
+                                "vuln_eliminated": None,
+                                "no_regression": None,
+                                "compile": evidence.compile.to_dict(),
+                                "evidence": evidence.to_dict(),
+                            }
+                        )
                     continue
 
                 cat_results["fix_applied"] += 1
@@ -147,7 +272,9 @@ def main():
                     compile_failure_taxonomy[compile_result["failure_class"]] += 1
 
                 rescan = evidence.rescan
-                total_before = rescan.total_before if rescan.checked else len(scan.get("findings", []))
+                total_before = (
+                    rescan.total_before if rescan.checked else len(scan.get("findings", []))
+                )
                 high_after = rescan.high_after
                 total_after = rescan.total_after
                 vuln_eliminated = rescan.eliminated
@@ -160,53 +287,72 @@ def main():
                         cat_results["no_regression"] += 1
 
                 if args.details_output:
-                    detailed_contracts.append({
-                        "category": cat,
-                        "contract": str(sol),
-                        "fix_applied": True,
-                        "fix_output_summary": (
-                            f"shared remediation pipeline: applied={evidence.fixes_applied}, "
-                            f"skipped={evidence.fixes_skipped}"
-                        )[:MAX_ERROR_CHARS],
-                        "high_before": high_before,
-                        "high_after": high_after,
-                        "total_findings_before": total_before,
-                        "total_findings_after": total_after,
-                        "vuln_eliminated": vuln_eliminated,
-                        "no_regression": no_regression,
-                        "compile": compile_result,
-                        "evidence": evidence.to_dict(),
-                    })
+                    detailed_contracts.append(
+                        {
+                            "category": cat,
+                            "contract": str(sol),
+                            "status": "applied",
+                            "fix_applied": True,
+                            "fix_output_summary": (
+                                f"shared remediation pipeline: applied={evidence.fixes_applied}, "
+                                f"skipped={evidence.fixes_skipped}"
+                            )[:MAX_ERROR_CHARS],
+                            "high_before": high_before,
+                            "high_after": high_after,
+                            "total_findings_before": total_before,
+                            "total_findings_after": total_after,
+                            "vuln_eliminated": vuln_eliminated,
+                            "no_regression": no_regression,
+                            "compile": compile_result,
+                            "evidence": evidence.to_dict(),
+                        }
+                    )
 
         results_by_cat[cat] = cat_results
         for k, v in cat_results.items():
             totals[k] += v
 
-        n = cat_results["fix_applied"] or 1
-        print(f"  {cat:<30} applied={cat_results['fix_applied']:>2} "
-              f"compiles={cat_results['fix_compiles']:>2} "
-              f"eliminated={cat_results['vuln_eliminated']:>2} "
-              f"no_regr={cat_results['no_regression']:>2} "
-              f"failed={cat_results['fix_failed']:>2}", flush=True)
+        print(
+            f"  {cat:<30} applied={cat_results['fix_applied']:>2} "
+            f"compiles={cat_results['fix_compiles']:>2} "
+            f"eliminated={cat_results['vuln_eliminated']:>2} "
+            f"no_regr={cat_results['no_regression']:>2} "
+            f"failed={cat_results['fix_failed']:>2} "
+            f"empty={cat_results['scan_empty']:>2} "
+            f"no_high={cat_results['no_high']:>2}",
+            flush=True,
+        )
 
-    print(f"\n{'TOTAL':<30} applied={totals['fix_applied']:>3} "
-          f"compiles={totals['fix_compiles']:>3} "
-          f"eliminated={totals['vuln_eliminated']:>3} "
-          f"no_regr={totals['no_regression']:>3} "
-          f"failed={totals['fix_failed']:>3}")
+    print(
+        f"\n{'TOTAL':<30} applied={totals['fix_applied']:>3} "
+        f"compiles={totals['fix_compiles']:>3} "
+        f"eliminated={totals['vuln_eliminated']:>3} "
+        f"no_regr={totals['no_regression']:>3} "
+        f"failed={totals['fix_failed']:>3}"
+    )
 
     n = totals["fix_applied"] or 1
     print("\nRATES:")
-    print(f"  Fix application:      {totals['fix_applied']}/{totals['contracts']} contracts with HIGH vulns")
-    print(f"  Compilation:          {totals['fix_compiles']}/{n} = {totals['fix_compiles']/n:.0%}")
-    print(f"  Vuln elimination:     {totals['vuln_eliminated']}/{n} = {totals['vuln_eliminated']/n:.0%}")
-    print(f"  No regression:        {totals['no_regression']}/{n} = {totals['no_regression']/n:.0%}")
+    print(
+        f"  Fix application:      {totals['fix_applied']}/{totals['contracts']} contracts with HIGH vulns"
+    )
+    print(
+        f"  Compilation:          {totals['fix_compiles']}/{n} = {totals['fix_compiles'] / n:.0%}"
+    )
+    print(
+        f"  Vuln elimination:     {totals['vuln_eliminated']}/{n} = {totals['vuln_eliminated'] / n:.0%}"
+    )
+    print(
+        f"  No regression:        {totals['no_regression']}/{n} = {totals['no_regression'] / n:.0%}"
+    )
 
-    if not args.skip_rescan:
-        # Save aggregate results only for full evaluation runs.
-        out_path = Path("benchmarks/results/fix_eval_results.json")
+    aggregate_payload = {"totals": dict(totals), "by_category": results_by_cat}
+    if not args.skip_rescan or args.results_output:
+        # Preserve the historical canonical path unless the caller explicitly
+        # requests a dated additive artifact for a dry run.
+        out_path = args.results_output or Path("benchmarks/results/fix_eval_results.json")
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        json.dump({"totals": dict(totals), "by_category": results_by_cat}, open(out_path, "w"), indent=2)
+        out_path.write_text(json.dumps(aggregate_payload, indent=2) + "\n")
         print(f"\nResults saved to {out_path}")
     else:
         print("\nSkipped aggregate fix_eval_results.json update because --skip-rescan was used.")
@@ -216,6 +362,9 @@ def main():
             "artifact": "paper2_fix_eval_contract_details",
             "scope": "Paper 2 remediation only; does not modify Paper 1 detection evidence.",
             "dataset": str(DATASET),
+            "limit": args.limit,
+            "scan_timeout": args.scan_timeout,
+            "skip_rescan": args.skip_rescan,
             "totals": dict(totals),
             "by_category": results_by_cat,
             "compile_failure_taxonomy": dict(sorted(compile_failure_taxonomy.items())),

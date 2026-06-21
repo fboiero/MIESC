@@ -126,6 +126,49 @@ class FoundryRunner:
         except subprocess.TimeoutExpired:
             logger.warning("Foundry version check timed out")
 
+    def _apply_common_test_options(self, cmd: List[str]) -> List[str]:
+        """Append options shared by all forge test invocations."""
+        cmd.append(f"-{'v' * self.verbosity}")
+
+        if self.gas_report:
+            cmd.append("--gas-report")
+
+        if self.fork_url:
+            cmd.extend(["--fork-url", self.fork_url])
+            if self.fork_block:
+                cmd.extend(["--fork-block-number", str(self.fork_block)])
+
+        cmd.append("--json")
+        return cmd
+
+    def _build_run_test_command(
+        self,
+        test_path: Union[str, Path],
+        match_test: Optional[str] = None,
+        match_contract: Optional[str] = None,
+    ) -> List[str]:
+        """Build the forge command for a specific test file."""
+        cmd = ["forge", "test", "--match-path", str(test_path)]
+
+        if match_test:
+            cmd.extend(["--match-test", match_test])
+        if match_contract:
+            cmd.extend(["--match-contract", match_contract])
+
+        return self._apply_common_test_options(cmd)
+
+    def _build_run_all_tests_command(
+        self,
+        test_dir: Optional[Union[str, Path]] = None,
+    ) -> List[str]:
+        """Build the forge command for an all-tests run."""
+        cmd = ["forge", "test"]
+
+        if test_dir:
+            cmd.extend(["--match-path", f"{test_dir}/*"])
+
+        return self._apply_common_test_options(cmd)
+
     def run_test(
         self,
         test_path: Union[str, Path],
@@ -147,33 +190,7 @@ class FoundryRunner:
         """
         start_time = time.time()
 
-        # Build command
-        cmd = ["forge", "test"]
-
-        # Add test path
-        cmd.extend(["--match-path", str(test_path)])
-
-        # Add matchers
-        if match_test:
-            cmd.extend(["--match-test", match_test])
-        if match_contract:
-            cmd.extend(["--match-contract", match_contract])
-
-        # Verbosity
-        cmd.append(f"-{'v' * self.verbosity}")
-
-        # Gas report
-        if self.gas_report:
-            cmd.append("--gas-report")
-
-        # Fork configuration
-        if self.fork_url:
-            cmd.extend(["--fork-url", self.fork_url])
-            if self.fork_block:
-                cmd.extend(["--fork-block-number", str(self.fork_block)])
-
-        # JSON output for parsing
-        cmd.append("--json")
+        cmd = self._build_run_test_command(test_path, match_test, match_contract)
 
         logger.info(f"Running: {' '.join(cmd[:5])}...")
 
@@ -239,22 +256,7 @@ class FoundryRunner:
         """
         start_time = time.time()
 
-        cmd = ["forge", "test"]
-
-        if test_dir:
-            cmd.extend(["--match-path", f"{test_dir}/*"])
-
-        cmd.append(f"-{'v' * self.verbosity}")
-
-        if self.gas_report:
-            cmd.append("--gas-report")
-
-        if self.fork_url:
-            cmd.extend(["--fork-url", self.fork_url])
-            if self.fork_block:
-                cmd.extend(["--fork-block-number", str(self.fork_block)])
-
-        cmd.append("--json")
+        cmd = self._build_run_all_tests_command(test_dir)
 
         try:
             result = subprocess.run(

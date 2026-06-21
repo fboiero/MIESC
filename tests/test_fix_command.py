@@ -71,6 +71,29 @@ contract Token {
 }
 """
 
+LEGACY_UNCHECKED_CALL_CONTRACT = """\
+pragma solidity 0.4.25;
+
+contract ReturnValue {
+  function callnotchecked(address callee) public {
+    callee.call();
+  }
+}
+"""
+
+LEGACY_UNCHECKED_SEND_CONTRACT = """\
+pragma solidity ^0.4.0;
+
+contract SendBack {
+    mapping (address => uint) userBalances;
+    function withdrawBalance() public {
+        uint amountToWithdraw = userBalances[msg.sender];
+        userBalances[msg.sender] = 0;
+        msg.sender.send(amountToWithdraw);
+    }
+}
+"""
+
 
 @pytest.fixture
 def contract_file(tmp_path):
@@ -181,6 +204,50 @@ class TestCollectFixableFindings:
         result = _collect_fixable_findings(data)
         assert result == []
 
+    def test_synthesizes_dos_array_fix_codes(self):
+        data = {
+            "findings": [
+                {
+                    "type": "controlled-array-length",
+                    "severity": "High",
+                    "location": {"line": 24, "function": "DosGas"},
+                },
+                {
+                    "type": "dynamic-array-length-assignment",
+                    "severity": "High",
+                    "location": {"line": 20, "function": "unknown"},
+                },
+            ]
+        }
+
+        result = _collect_fixable_findings(data)
+
+        assert len(result) == 2
+        assert "unbounded dynamic array growth" in result[0]["fix_code"]
+        assert "array.length" in result[1]["fix_code"]
+
+    def test_synthesizes_static_fallback_fix_codes(self):
+        data = {
+            "findings": [
+                {
+                    "type": "incorrect_constructor_name",
+                    "severity": "Critical",
+                    "location": {"line": 17, "function": "unknown"},
+                },
+                {
+                    "type": "tautology-or-contradiction",
+                    "severity": "High",
+                    "location": {"line": 20, "function": "unknown"},
+                },
+            ]
+        }
+
+        result = _collect_fixable_findings(data)
+
+        assert len(result) == 2
+        assert "constructor()" in result[0]["fix_code"]
+        assert "tautological or contradictory comparisons" in result[1]["fix_code"]
+
     def test_combines_top_level_and_per_tool(self):
         data = {
             "findings": [{"type": "reentrancy", "fix_code": "x"}],
@@ -206,6 +273,185 @@ class TestApplyFix:
         assert changed
         assert "nonReentrant" in patched
 
+    def test_reentrancy_ignores_openzeppelin_import_inside_fix_comment(self):
+        source = """\
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/*
+MIESC FIX: reentrancy
+Suggested patch:
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+contract SafeVault is ReentrancyGuard {
+    function withdraw() external nonReentrant {}
+}
+*/
+
+contract Victim {
+    function withdraw() public {
+        (bool ok, ) = msg.sender.call("");
+        require(ok);
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdraw",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "contract MiescReentrancyGuard" in patched
+        assert "contract Victim is MiescReentrancyGuard" in patched
+        assert "contract Victim is ReentrancyGuard" not in patched
+
+    def test_reentrancy_guard_is_added_to_contract_containing_target_function(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract First {
+    function noop() public {}
+}
+
+contract Second {
+    function withdraw() public {
+        (bool ok, ) = msg.sender.call("");
+        require(ok);
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdraw",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "contract First is MiescReentrancyGuard" not in patched
+        assert "contract Second is MiescReentrancyGuard" in patched
+        assert "function withdraw() nonReentrant public" in patched
+
+    def test_reentrancy_guard_uses_line_hint_for_duplicate_function_names(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract First {
+    function create() internal {
+    }
+}
+
+contract Second {
+    function create() internal {
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "create",
+            "line": 8,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "contract First is MiescReentrancyGuard" not in patched
+        assert "contract Second is MiescReentrancyGuard" in patched
+        assert "function create() nonReentrant internal" in patched
+
+    def test_reentrancy_adds_inheritance_when_guard_definition_already_exists(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract MiescReentrancyGuard {
+    modifier nonReentrant() { _; }
+}
+
+contract First is MiescReentrancyGuard {
+    function one() nonReentrant public {}
+}
+
+contract Second {
+    function two() public {}
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "two",
+            "line": 11,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert patched.count("contract MiescReentrancyGuard") == 1
+        assert "contract Second is MiescReentrancyGuard" in patched
+        assert "function two() nonReentrant public" in patched
+
+    def test_reentrancy_does_not_duplicate_transitive_guard_inheritance(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract MiescReentrancyGuard {
+    modifier nonReentrant() { _; }
+}
+
+contract Base is MiescReentrancyGuard {
+}
+
+contract Child is Base {
+    function guarded() public {}
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "guarded",
+            "line": 11,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "contract Child is Base, MiescReentrancyGuard" not in patched
+        assert "contract Child is Base" in patched
+        assert "function guarded() nonReentrant public" in patched
+
+    def test_reentrancy_removes_redundant_direct_guard_from_descendant(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract MiescReentrancyGuard {
+    modifier nonReentrant() { _; }
+}
+
+contract Base {
+    function baseGuarded() public {}
+}
+
+contract Child is Base, MiescReentrancyGuard {
+    function childGuarded() nonReentrant public {}
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "baseGuarded",
+            "line": 8,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "contract Base is MiescReentrancyGuard" in patched
+        assert "contract Child is Base, MiescReentrancyGuard" not in patched
+        assert "contract Child is Base" in patched
+
     def test_access_control_adds_only_owner(self):
         finding = {
             "type": "access_control",
@@ -217,6 +463,63 @@ class TestApplyFix:
         assert "onlyOwner" in patched
         assert "address public owner = msg.sender;" in patched
 
+    def test_access_control_reuses_existing_private_owner_state(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract Wallet {
+    address private owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function destroy() public {
+        selfdestruct(payable(msg.sender));
+    }
+}
+"""
+        finding = {
+            "type": "access_control",
+            "function": "destroy",
+            "fix_code": "add onlyOwner",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "address private owner;" in patched
+        assert "address public owner = msg.sender;" not in patched
+        assert "function destroy() onlyOwner public" in patched
+
+    def test_access_control_modifier_is_added_to_contract_containing_target_function(self):
+        source = """\
+pragma solidity ^0.8.0;
+
+contract Abi {
+    function kill() external;
+}
+
+contract Wallet {
+    function kill() public {
+        selfdestruct(payable(msg.sender));
+    }
+}
+"""
+        finding = {
+            "type": "access_control",
+            "function": "kill",
+            "fix_code": "add onlyOwner",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "contract Abi {\n    // MIESC: Inline onlyOwner modifier" not in patched
+        assert "contract Wallet {" in patched
+        assert "MIESC: Inline onlyOwner modifier" in patched
+        assert "function kill() onlyOwner public" in patched
+
     def test_arithmetic_inserts_safemath_on_legacy(self):
         finding = {
             "type": "arithmetic",
@@ -226,6 +529,43 @@ class TestApplyFix:
         patched, changed = apply_fix(LEGACY_CONTRACT, finding)
         assert changed
         assert "using SafeMath for uint256;" in patched
+
+    def test_unchecked_legacy_call_uses_single_bool_return(self):
+        finding = {
+            "type": "unchecked-call",
+            "function": "callnotchecked",
+            "fix_code": "check call return",
+        }
+        patched, changed = apply_fix(LEGACY_UNCHECKED_CALL_CONTRACT, finding)
+
+        assert changed
+        assert "bool miescCallSuccess = callee.call();" in patched
+        assert 'require(miescCallSuccess, "Call failed");' in patched
+        assert "(bool miescCallSuccess, ) = callee.call();" not in patched
+
+    def test_unchecked_send_gets_require_check(self):
+        finding = {
+            "type": "unchecked-call",
+            "function": "withdrawBalance",
+            "fix_code": "check send return",
+        }
+        patched, changed = apply_fix(LEGACY_UNCHECKED_SEND_CONTRACT, finding)
+
+        assert changed
+        assert "bool miescCallSuccess = msg.sender.send(amountToWithdraw);" in patched
+        assert 'require(miescCallSuccess, "Call failed");' in patched
+
+    def test_unchecked_existing_tuple_assignment_gets_require_check(self):
+        finding = {
+            "type": "unchecked-call",
+            "function": "withdraw",
+            "fix_code": "check call return",
+        }
+        patched, changed = apply_fix(SIMPLE_CONTRACT, finding)
+
+        assert changed
+        assert '(bool ok, ) = msg.sender.call{value: amount}("");' in patched
+        assert 'require(ok, "Call failed");' in patched
 
     def test_reentrancy_line_inference_uses_original_source_after_safemath_insert(self, tmp_path):
         source = """\
@@ -275,6 +615,34 @@ contract Vault {
         assert changed
         assert "MIESC FIX: timestamp_dependence" in patched
         assert "Avoid block.timestamp for randomness." in patched
+
+    def test_generic_type_without_function_inserts_file_comment_block(self):
+        finding = {
+            "type": "time_manipulation",
+            "location": {"line": 1, "function": "unknown"},
+            "fix_code": "Avoid block.timestamp for ordering-sensitive logic.",
+        }
+
+        patched, changed = apply_fix(SIMPLE_CONTRACT, finding)
+
+        assert changed
+        assert "MIESC FIX: time_manipulation" in patched
+        assert "Avoid block.timestamp for ordering-sensitive logic." in patched
+        assert patched.index("MIESC FIX: time_manipulation") < patched.index("contract Victim")
+
+    def test_generic_type_with_non_function_location_falls_back_to_file_comment(self):
+        finding = {
+            "type": "uninitialized-storage",
+            "location": {"line": 12, "function": "newRecord"},
+            "fix_code": "Initialize storage references explicitly.",
+        }
+
+        patched, changed = apply_fix(SIMPLE_CONTRACT, finding)
+
+        assert changed
+        assert "MIESC FIX: uninitialized_storage" in patched
+        assert "Initialize storage references explicitly." in patched
+        assert "function newRecord" not in patched
 
     def test_no_change_when_function_not_found(self):
         finding = {

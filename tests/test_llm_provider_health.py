@@ -1,0 +1,109 @@
+"""Tests for shared LLM provider health helpers."""
+
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import aiohttp
+
+from src.llm.provider_health import (
+    extract_openai_compatible_model_ids,
+    fetch_openai_compatible_model_ids,
+)
+
+
+def _aiohttp_session_with_response(method: str, response: MagicMock) -> MagicMock:
+    """Build an aiohttp.ClientSession mock whose request method is an async CM."""
+    request_context = MagicMock()
+    request_context.__aenter__ = AsyncMock(return_value=response)
+    request_context.__aexit__ = AsyncMock(return_value=None)
+
+    session_instance = MagicMock()
+    setattr(session_instance, method, MagicMock(return_value=request_context))
+
+    session = MagicMock()
+    session.__aenter__ = AsyncMock(return_value=session_instance)
+    session.__aexit__ = AsyncMock(return_value=None)
+    return session
+
+
+def test_extract_openai_compatible_model_ids_data_id_payload():
+    """Test extracting model IDs from OpenAI-compatible data payloads."""
+    payload = {"data": [{"id": "deepseek-v4-flash"}, {"id": "deepseek-v4-pro"}]}
+
+    assert extract_openai_compatible_model_ids(payload) == {
+        "deepseek-v4-flash",
+        "deepseek-v4-pro",
+    }
+
+
+def test_extract_openai_compatible_model_ids_models_name_payload():
+    """Test extracting model IDs from alternate models/name payloads."""
+    payload = {"models": [{"name": "model-a"}, {"name": "model-b"}, {"other": "ignored"}]}
+
+    assert extract_openai_compatible_model_ids(payload) == {"model-a", "model-b"}
+
+
+def test_fetch_openai_compatible_model_ids_success():
+    """Test fetching model IDs from a compatible endpoint."""
+
+    async def run_test():
+        response = MagicMock()
+        response.status = 200
+        response.json = AsyncMock(return_value={"data": [{"id": "deepseek-v4-flash"}]})
+        session = _aiohttp_session_with_response("get", response)
+
+        with patch("aiohttp.ClientSession", return_value=session):
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example/",
+                "test-key",
+                provider_name="DeepSeek",
+            )
+
+        assert models == {"deepseek-v4-flash"}
+        session.__aenter__.return_value.get.assert_called_once()
+        url = session.__aenter__.return_value.get.call_args.args[0]
+        assert url == "https://api.deepseek.example/v1/models"
+
+    asyncio.run(run_test())
+
+
+def test_fetch_openai_compatible_model_ids_non_200():
+    """Test non-200 model endpoint responses are treated as unavailable."""
+
+    async def run_test():
+        response = MagicMock()
+        response.status = 401
+        response.json = AsyncMock(return_value={"error": "unauthorized"})
+        session = _aiohttp_session_with_response("get", response)
+
+        with patch("aiohttp.ClientSession", return_value=session):
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "bad-key",
+            )
+
+        assert models == set()
+
+    asyncio.run(run_test())
+
+
+def test_fetch_openai_compatible_model_ids_connection_error():
+    """Test connection failures are treated as unavailable."""
+
+    async def run_test():
+        session_instance = MagicMock()
+        session_instance.get.side_effect = aiohttp.ClientError("connection refused")
+
+        session = MagicMock()
+        session.__aenter__ = AsyncMock(return_value=session_instance)
+        session.__aexit__ = AsyncMock(return_value=None)
+
+        with patch("aiohttp.ClientSession", return_value=session):
+            models = await fetch_openai_compatible_model_ids(
+                "https://api.deepseek.example",
+                "test-key",
+            )
+
+        assert models == set()
+
+    asyncio.run(run_test())

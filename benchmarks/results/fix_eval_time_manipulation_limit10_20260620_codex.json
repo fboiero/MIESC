@@ -1,0 +1,271 @@
+{
+  "artifact": "paper2_fix_eval_contract_details",
+  "scope": "Paper 2 remediation only; does not modify Paper 1 detection evidence.",
+  "dataset": "benchmarks/datasets/smartbugs-curated/dataset",
+  "limit": 10,
+  "scan_timeout": 15,
+  "skip_rescan": true,
+  "totals": {
+    "contracts": 5,
+    "fix_applied": 4,
+    "fix_compiles": 4,
+    "vuln_eliminated": 0,
+    "no_regression": 0,
+    "fix_failed": 0,
+    "scan_empty": 0,
+    "no_high": 1
+  },
+  "by_category": {
+    "time_manipulation": {
+      "contracts": 5,
+      "fix_applied": 4,
+      "fix_compiles": 4,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 1
+    }
+  },
+  "compile_failure_taxonomy": {},
+  "contracts": [
+    {
+      "category": "time_manipulation",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/ether_lotto.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=7, skipped=0",
+      "high_before": 3,
+      "high_after": null,
+      "total_findings_before": 15,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:EtherLotto =======\nBinary: \n608060405234801561001057600080fd5b5033600060016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555061029f806100616000396000f300608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680634ba2363a1461005c57806376cdb03b1461008757806393e84cd9146100de575b600080fd5b34801561006857600080fd5b506100716100e8565b6040518082815260200191505060405180910390f35b34801561009357600080fd5b5061009c6100ee565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100e6610114565b005b60015481565b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60008060009054906101000a900460ff1615151561013157600080fd5b60016000806101000a81548160ff021916908315150217905550600a3414151561015757fe5b346001600082825401925050819055506002426040518082815260200191505060405180910390206001900481151561018c57fe5b069050600081141561025657600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff166108fc60019081150290604051600060405180830381858888f19350505050158015610201573d6000803e3d6000fd5b503373ffffffffffffffffffffffffffffffffffffffff166108fc60018054039081150290604051600060405180830381858888f1935050505015801561024c573d6000803e3d6000fd5b5060006001819055505b60008060006101000a81548160ff021916908315150217905550505600a165627a7a72305820c2a2185ef670870c97593495330b4da3a1f89d74578edc7fbac7efebc68d89a30029\n\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:MiescReentrancyGuard =======\nBinary: \n6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a72305820b62b688c641f7b2f1ca423c8cd6e79e305b52b6b2e43c4fd1d900fce45506af40029\n",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:104:5: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n    function EtherLotto() {\n    ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:191:9: Warning: Use of the \"var\" keyword is deprecated.\n        var random = uint(sha3(block.timestamp)) % 2;\n        ^--------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:191:27: Warning: \"sha3\" has been deprecated in favour of \"keccak256\"\n        var random = uint(sha3(block.timestamp)) % 2;\n                          ^-------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:191:27: Warning: This function only accepts a single \"bytes\" argument. Please use \"abi.encodePacked(...)\" or a similar function to encode the data.\n        var random = uint(sha3(block.timestamp)) % 2;\n                          ^-------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:191:27: Warning: The provided argument of type uint256 is not implicitly convertible to expected type bytes memory.\n        var random = uint(sha3(block.timestamp)) % 2;\n                          ^-------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:104:5: Warning: No visibility specified. Defaulting to \"public\". \n    function EtherLotto() {\n    ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:181:5: Warning: No visibility specified. Defaulting to \"public\". \n    function play() nonReentrant payable {\n    ^ (Relevant source part starts here and spans across multiple lines).\n",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/ether_lotto.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol",
+        "original_sha256": "ae857a5403364fbbc1de916efea4db44ae96fd4882ba81f101588306b9356eb2",
+        "patched_sha256": "a298cb898a7cf095524bb4a1fdf5f8054d5edfe391e5f756b55747b8091d4ed4",
+        "findings_input": 30,
+        "fixable_findings": 7,
+        "fixes_applied": 7,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:EtherLotto =======\nBinary: \n608060405234801561001057600080fd5b5033600060016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555061029f806100616000396000f300608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680634ba2363a1461005c57806376cdb03b1461008757806393e84cd9146100de575b600080fd5b34801561006857600080fd5b506100716100e8565b6040518082815260200191505060405180910390f35b34801561009357600080fd5b5061009c6100ee565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100e6610114565b005b60015481565b600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60008060009054906101000a900460ff1615151561013157600080fd5b60016000806101000a81548160ff021916908315150217905550600a3414151561015757fe5b346001600082825401925050819055506002426040518082815260200191505060405180910390206001900481151561018c57fe5b069050600081141561025657600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff166108fc60019081150290604051600060405180830381858888f19350505050158015610201573d6000803e3d6000fd5b503373ffffffffffffffffffffffffffffffffffffffff166108fc60018054039081150290604051600060405180830381858888f1935050505015801561024c573d6000803e3d6000fd5b5060006001819055505b60008060006101000a81548160ff021916908315150217905550505600a165627a7a72305820c2a2185ef670870c97593495330b4da3a1f89d74578edc7fbac7efebc68d89a30029\n\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:MiescReentrancyGuard =======\nBinary: \n6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a72305820b62b688c641f7b2f1ca423c8cd6e79e305b52b6b2e43c4fd1d900fce45506af40029\n",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:104:5: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n    function EtherLotto() {\n    ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:191:9: Warning: Use of the \"var\" keyword is deprecated.\n        var random = uint(sha3(block.timestamp)) % 2;\n        ^--------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:191:27: Warning: \"sha3\" has been deprecated in favour of \"keccak256\"\n        var random = uint(sha3(block.timestamp)) % 2;\n                          ^-------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:191:27: Warning: This function only accepts a single \"bytes\" argument. Please use \"abi.encodePacked(...)\" or a similar function to encode the data.\n        var random = uint(sha3(block.timestamp)) % 2;\n                          ^-------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:191:27: Warning: The provided argument of type uint256 is not implicitly convertible to expected type bytes memory.\n        var random = uint(sha3(block.timestamp)) % 2;\n                          ^-------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:104:5: Warning: No visibility specified. Defaulting to \"public\". \n    function EtherLotto() {\n    ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp32zmdpgv/fixed.sol:181:5: Warning: No visibility specified. Defaulting to \"public\". \n    function play() nonReentrant payable {\n    ^ (Relevant source part starts here and spans across multiple lines).\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:51:39.641246+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "time_manipulation",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/governmental_survey.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=6, skipped=0",
+      "high_before": 1,
+      "high_after": null,
+      "total_findings_before": 14,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:Attacker =======\nBinary: \n608060405234801561001057600080fd5b50610220806100206000396000f300608060405260043610610041576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806352fba25c14610046575b600080fd5b34801561005257600080fd5b50610091600480360381019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919080359060200190929190505050610093565b005b806000111580156100a557506103ff81105b15610173573073ffffffffffffffffffffffffffffffffffffffff166352fba25c6107d05a0384600185016040518463ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200182815260200192505050600060405180830381600088803b15801561015557600080fd5b5087f1158015610169573d6000803e3d6000fd5b50505050506101f0565b8173ffffffffffffffffffffffffffffffffffffffff166351294de76040518163ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401600060405180830381600087803b1580156101d757600080fd5b505af11580156101eb573d6000803e3d6000fd5b505050505b50505600a165627a7a7230582063443f802e2c70a12ada8a26833e80ade2f338357b7c955adba99839db41660c0029\n\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:Governmental =======\nBinary: \n6080604052670de0b6b3a7640000600255603c60045534801561002157600080fd5b5033600060016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550670de0b6b3a764000034101561007857600080fd5b61047f806100876000396000f300608060405260043610610083576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806351294de714610088578063552eea491461009f5780636b31ee01146100ca5780638da5cb5b146100f5578063b2977aeb1461014c578063e8b5e51f146101a3578063ee2bee59146101ba575b600080fd5b34801561009457600080fd5b5061009d6101e5565b005b3480156100ab57600080fd5b506100b4610375565",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:50:3: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n  function Governmental() {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:52:28: Warning: \"throw\" is deprecated in favour of \"revert()\", \"require()\" and \"assert()\".\n    if (msg.value<1 ether) throw;\n                           ^---^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:79:30: Warning: \"throw\" is deprecated in favour of \"revert()\", \"require()\" and \"assert()\".\n    if (msg.value<jackpot/2) throw;\n                             ^---^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:151:7: Warning: \"throw\" is deprecated in favour of \"revert()\", \"require()\" and \"assert()\".\n      throw;\n      ^---^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:153:5: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n    lastInvestor.send(jackpot);\n    ^------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:154:16: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n    owner.send(this.balance-1 ether);\n               ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:154:5: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n    owner.send(this.balance-1 ether);\n    ^------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:50:3: Warning: No visibility specified. Defaulting to \"public\". \n  function Governmental() {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/governmental_survey.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol",
+        "original_sha256": "290568dbb9906178725fada7e522a98d0c353753c4873ab14d8cad26a42bdbb3",
+        "patched_sha256": "c6595f8fccf016b8250e3c4c0864369393aaa9a08706a31a1571a109a27b7906",
+        "findings_input": 28,
+        "fixable_findings": 6,
+        "fixes_applied": 6,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:Attacker =======\nBinary: \n608060405234801561001057600080fd5b50610220806100206000396000f300608060405260043610610041576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806352fba25c14610046575b600080fd5b34801561005257600080fd5b50610091600480360381019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919080359060200190929190505050610093565b005b806000111580156100a557506103ff81105b15610173573073ffffffffffffffffffffffffffffffffffffffff166352fba25c6107d05a0384600185016040518463ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200182815260200192505050600060405180830381600088803b15801561015557600080fd5b5087f1158015610169573d6000803e3d6000fd5b50505050506101f0565b8173ffffffffffffffffffffffffffffffffffffffff166351294de76040518163ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401600060405180830381600087803b1580156101d757600080fd5b505af11580156101eb573d6000803e3d6000fd5b505050505b50505600a165627a7a7230582063443f802e2c70a12ada8a26833e80ade2f338357b7c955adba99839db41660c0029\n\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:Governmental =======\nBinary: \n6080604052670de0b6b3a7640000600255603c60045534801561002157600080fd5b5033600060016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550670de0b6b3a764000034101561007857600080fd5b61047f806100876000396000f300608060405260043610610083576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806351294de714610088578063552eea491461009f5780636b31ee01146100ca5780638da5cb5b146100f5578063b2977aeb1461014c578063e8b5e51f146101a3578063ee2bee59146101ba575b600080fd5b34801561009457600080fd5b5061009d6101e5565b005b3480156100ab57600080fd5b506100b4610375565",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:50:3: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n  function Governmental() {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:52:28: Warning: \"throw\" is deprecated in favour of \"revert()\", \"require()\" and \"assert()\".\n    if (msg.value<1 ether) throw;\n                           ^---^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:79:30: Warning: \"throw\" is deprecated in favour of \"revert()\", \"require()\" and \"assert()\".\n    if (msg.value<jackpot/2) throw;\n                             ^---^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:151:7: Warning: \"throw\" is deprecated in favour of \"revert()\", \"require()\" and \"assert()\".\n      throw;\n      ^---^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:153:5: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n    lastInvestor.send(jackpot);\n    ^------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:154:16: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n    owner.send(this.balance-1 ether);\n               ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:154:5: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n    owner.send(this.balance-1 ether);\n    ^------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp_8kbcwtc/fixed.sol:50:3: Warning: No visibility specified. Defaulting to \"public\". \n  function Governmental() {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:51:42.815206+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "time_manipulation",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/lottopollo.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=7, skipped=1",
+      "high_before": 4,
+      "high_after": null,
+      "total_findings_before": 14,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:lottopollo =======\nBinary: \n608060405234801561001057600080fd5b50610236806100206000396000f30060806040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680633b3041471461005157806381cbba821461007e575b600080fd5b34801561005d57600080fd5b5061007c600480360381019080803590602001909291905050506100a9565b005b34801561008a57600080fd5b506100936100c2565b6040518082815260200191505060405180910390f35b60006100b36100c2565b90506100be816100ca565b5050565b600042905090565b6000811180156100de575062015180814203115b156101ad573373ffffffffffffffffffffffffffffffffffffffff166108fc349081150290604051600060405180830381858888f193505050505060003073ffffffffffffffffffffffffffffffffffffffff163111156101a8576000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff166108fc3073ffffffffffffffffffffffffffffffffffffffff16319081150290604051600060405180830381858888f19350505050505b610207565b670de0b6b3a76400003410151561020657336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550806001819055505b5b505600a165627a7a72305820e4d6225d4f266847330ec0b95668fc2cb97c5d91c5e8dc2962421acb346a1eb20029\n",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:165:7: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n      msg.sender.send( msg.value );\n      ^--------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:167:12: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n      if ( this.balance > 0 ) {\n           ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:168:22: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n        leader.send( this.balance );\n                     ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:168:9: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n        leader.send( this.balance );\n        ^-------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:176:3: Warning: No visibility specified. Defaulting to \"public\". \n  function randomGen() constant returns (uint randomNumber) {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:180:3: Warning: No visibility specified. Defaulting to \"public\". \n  function draw(uint seed){\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:180:17: Warning: Unused function parameter. Remove or comment out the variable name to silence this warning.\n  function draw(uint seed){\n                ^-------^\n",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/lottopollo.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol",
+        "original_sha256": "fb9b4b7bba68c9d8db7ba86b1665af58bae05cace94d4c3f82cd0853025f2431",
+        "patched_sha256": "9382d1a2b61adb16fb8ba44efa3d318ed2d888d319ffb28bebb99a3072883a1d",
+        "findings_input": 28,
+        "fixable_findings": 8,
+        "fixes_applied": 7,
+        "fixes_skipped": 1,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:lottopollo =======\nBinary: \n608060405234801561001057600080fd5b50610236806100206000396000f30060806040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680633b3041471461005157806381cbba821461007e575b600080fd5b34801561005d57600080fd5b5061007c600480360381019080803590602001909291905050506100a9565b005b34801561008a57600080fd5b506100936100c2565b6040518082815260200191505060405180910390f35b60006100b36100c2565b90506100be816100ca565b5050565b600042905090565b6000811180156100de575062015180814203115b156101ad573373ffffffffffffffffffffffffffffffffffffffff166108fc349081150290604051600060405180830381858888f193505050505060003073ffffffffffffffffffffffffffffffffffffffff163111156101a8576000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff166108fc3073ffffffffffffffffffffffffffffffffffffffff16319081150290604051600060405180830381858888f19350505050505b610207565b670de0b6b3a76400003410151561020657336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550806001819055505b5b505600a165627a7a72305820e4d6225d4f266847330ec0b95668fc2cb97c5d91c5e8dc2962421acb346a1eb20029\n",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:165:7: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n      msg.sender.send( msg.value );\n      ^--------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:167:12: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n      if ( this.balance > 0 ) {\n           ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:168:22: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n        leader.send( this.balance );\n                     ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:168:9: Warning: Failure condition of 'send' ignored. Consider using 'transfer' instead.\n        leader.send( this.balance );\n        ^-------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:176:3: Warning: No visibility specified. Defaulting to \"public\". \n  function randomGen() constant returns (uint randomNumber) {\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:180:3: Warning: No visibility specified. Defaulting to \"public\". \n  function draw(uint seed){\n  ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmpzr_5nb78/fixed.sol:180:17: Warning: Unused function parameter. Remove or comment out the variable name to silence this warning.\n  function draw(uint seed){\n                ^-------^\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:51:47.469214+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "time_manipulation",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/roulette.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=3, skipped=3",
+      "high_before": 3,
+      "high_after": null,
+      "total_findings_before": 12,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmphymqesne/fixed.sol:Roulette =======\nBinary: \n6080604052610142806100136000396000f300608060405260043610610041576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806358d02b09146100e5575b678ac7230489e800003414151561005757600080fd5b600054421415151561006857600080fd5b426000819055506000600f4281151561007d57fe5b0614156100e3573373ffffffffffffffffffffffffffffffffffffffff166108fc3073ffffffffffffffffffffffffffffffffffffffff16319081150290604051600060405180830381858888f193505050501580156100e1573d6000803e3d6000fd5b505b005b3480156100f157600080fd5b506100fa610110565b6040518082815260200191505060405180910390f35b600054815600a165627a7a723058201bc078280ed3e17c4dda555bf4e78a7c18bfbb153ce3edb79e7da9fd572a3ebc0029\n",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmphymqesne/fixed.sol:88:33: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n            msg.sender.transfer(this.balance);\n                                ^----------^\n",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/roulette.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmphymqesne/fixed.sol",
+        "original_sha256": "618aed94420541c4662527ef072c342f67adf995af0c279f2dfcf7a4561a0330",
+        "patched_sha256": "07aa39a9da122d58a76377f7f80bfc7113521bd5280d23cc0dc1f90dd4690009",
+        "findings_input": 24,
+        "fixable_findings": 6,
+        "fixes_applied": 3,
+        "fixes_skipped": 3,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmphymqesne/fixed.sol:Roulette =======\nBinary: \n6080604052610142806100136000396000f300608060405260043610610041576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806358d02b09146100e5575b678ac7230489e800003414151561005757600080fd5b600054421415151561006857600080fd5b426000819055506000600f4281151561007d57fe5b0614156100e3573373ffffffffffffffffffffffffffffffffffffffff166108fc3073ffffffffffffffffffffffffffffffffffffffff16319081150290604051600060405180830381858888f193505050501580156100e1573d6000803e3d6000fd5b505b005b3480156100f157600080fd5b506100fa610110565b6040518082815260200191505060405180910390f35b600054815600a165627a7a723058201bc078280ed3e17c4dda555bf4e78a7c18bfbb153ce3edb79e7da9fd572a3ebc0029\n",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmphymqesne/fixed.sol:88:33: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n            msg.sender.transfer(this.balance);\n                                ^----------^\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:51:51.985529+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "time_manipulation",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/timed_crowdsale.sol",
+      "status": "no_high",
+      "fix_applied": false,
+      "fix_output_summary": "scan produced no HIGH findings",
+      "high_before": 0,
+      "high_after": null,
+      "total_findings_before": 5,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": false,
+        "compiles": null
+      },
+      "evidence": null
+    }
+  ]
+}

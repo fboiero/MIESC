@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
+from src.llm.provider_health import fetch_openai_compatible_model_ids
 from src.security.llm_output_validator import (
     AnalysisResponse,
     repair_common_json_errors,
@@ -35,6 +36,13 @@ from src.security.prompt_sanitizer import (
 )
 
 logger = logging.getLogger(__name__)
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
 
 LLM_RUNTIME_ERRORS = (
     aiohttp.ClientError,
@@ -54,6 +62,7 @@ class LLMProvider(Enum):
     OLLAMA = "ollama"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
+    DEEPSEEK = "deepseek"
     LOCAL = "local"
 
 
@@ -266,6 +275,63 @@ class OpenAIBackend(LLMBackend):
         )
 
 
+class DeepSeekBackend(LLMBackend):
+    """DeepSeek backend using its OpenAI-compatible chat completions API."""
+
+    def __init__(self, config: LLMConfig):
+        super().__init__(config)
+        self.api_key = config.api_key or os.getenv("DEEPSEEK_API_KEY")
+        self.base_url = (
+            config.base_url or os.getenv("DEEPSEEK_BASE_URL") or "https://api.deepseek.com"
+        )
+
+    async def health_check(self) -> bool:
+        """Check if DeepSeek is configured and exposes the requested model."""
+        if not self.api_key:
+            self.available = False
+            return self.available
+
+        models = await fetch_openai_compatible_model_ids(
+            self.base_url,
+            self.api_key,
+            provider_name="DeepSeek",
+        )
+        self.available = self.config.model in models
+        return self.available
+
+    async def analyze(self, prompt: str, context: Optional[Dict] = None) -> LLMResponse:
+        """Run analysis with DeepSeek."""
+        try:
+            import openai
+        except ImportError as e:
+            raise ImportError("openai package not installed. Run: pip install openai") from e
+
+        start_time = time.time()
+        client = openai.AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+
+        system_prompt = self.get_system_prompt()
+        if context:
+            system_prompt += f"\n\nAdditional context:\n{json.dumps(context, indent=2)}"
+
+        response = await client.chat.completions.create(
+            model=self.config.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=self.config.temperature,
+            max_tokens=self.config.max_tokens,
+        )
+
+        return LLMResponse(
+            content=response.choices[0].message.content or "",
+            provider="deepseek",
+            model=self.config.model,
+            tokens_used=response.usage.total_tokens if response.usage else 0,
+            latency_ms=(time.time() - start_time) * 1000,
+        )
+
+
 class AnthropicBackend(LLMBackend):
     """Anthropic Claude backend."""
 
@@ -331,17 +397,47 @@ class LLMOrchestrator:
 
         # Default configurations if none provided
         if configs is None:
-            configs = [
-                LLMConfig(
-                    provider=LLMProvider.OLLAMA,
-                    model="deepseek-coder:6.7b",
-                    base_url="http://localhost:11434",
-                ),
-            ]
+            configs = [self._default_config_from_env()]
 
         # Initialize backends
         for config in configs:
             self._add_backend(config)
+
+    def _default_config_from_env(self) -> LLMConfig:
+        """Build the default backend config from MIESC_LLM_* environment variables."""
+        provider_name = os.getenv("MIESC_LLM_PROVIDER", LLMProvider.OLLAMA.value).lower()
+        provider_from_env_is_valid = True
+        try:
+            provider = LLMProvider(provider_name)
+        except ValueError:
+            logger.warning("Unknown MIESC_LLM_PROVIDER=%s; falling back to Ollama", provider_name)
+            provider = LLMProvider.OLLAMA
+            provider_from_env_is_valid = False
+
+        default_models = {
+            LLMProvider.OLLAMA: "deepseek-coder:6.7b",
+            LLMProvider.OPENAI: "gpt-4",
+            LLMProvider.ANTHROPIC: "claude-3-5-sonnet-20241022",
+            LLMProvider.DEEPSEEK: "deepseek-v4-flash",
+            LLMProvider.LOCAL: "deepseek-coder:6.7b",
+        }
+        model = (
+            os.getenv("MIESC_LLM_MODEL") if provider_from_env_is_valid else None
+        ) or default_models[provider]
+
+        if provider == LLMProvider.OLLAMA:
+            return LLMConfig(
+                provider=provider,
+                model=model,
+                base_url=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
+            )
+        if provider == LLMProvider.DEEPSEEK:
+            return LLMConfig(
+                provider=provider,
+                model=model,
+                base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+            )
+        return LLMConfig(provider=provider, model=model)
 
     def _add_backend(self, config: LLMConfig) -> None:
         """Add a backend based on configuration."""
@@ -353,6 +449,8 @@ class LLMOrchestrator:
             backend = OpenAIBackend(config)
         elif config.provider == LLMProvider.ANTHROPIC:
             backend = AnthropicBackend(config)
+        elif config.provider == LLMProvider.DEEPSEEK:
+            backend = DeepSeekBackend(config)
         else:
             logger.warning(f"Unknown provider: {config.provider}")
             return
@@ -599,9 +697,21 @@ Provide a comprehensive security analysis in JSON format."""
     def select_model_for_task(self, task: str) -> str:
         """Select the best model for a specific task type."""
         task_preferences = {
-            "vulnerability_detection": ["ollama:deepseek-coder:6.7b", "openai:gpt-4"],
-            "code_review": ["anthropic:claude-3-opus", "openai:gpt-4"],
-            "remediation": ["ollama:codellama:13b", "openai:gpt-4"],
+            "vulnerability_detection": [
+                "ollama:deepseek-coder:6.7b",
+                "deepseek:deepseek-v4-flash",
+                "openai:gpt-4",
+            ],
+            "code_review": [
+                "anthropic:claude-3-opus",
+                "deepseek:deepseek-v4-pro",
+                "openai:gpt-4",
+            ],
+            "remediation": [
+                "ollama:codellama:13b",
+                "deepseek:deepseek-v4-flash",
+                "openai:gpt-4",
+            ],
             "explanation": ["anthropic:claude-3-sonnet", "ollama:llama2:13b"],
         }
 
