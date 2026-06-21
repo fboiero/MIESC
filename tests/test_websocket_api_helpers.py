@@ -125,7 +125,7 @@ class TestFastAPIRoutes:
             pong = conn.receive_json()
             assert pong["type"] == ws.EventType.HEARTBEAT.value
 
-    def test_ws_subscribe(self, monkeypatch):
+    def test_ws_subscribe_and_unsubscribe(self, monkeypatch):
         monkeypatch.setattr(ws, "WEBSOCKET_AUTH_REQUIRED", False)
         client = self._client()
         with client.websocket_connect("/ws") as conn:
@@ -133,3 +133,29 @@ class TestFastAPIRoutes:
             conn.send_json({"action": "subscribe", "audit_id": "a1"})
             msg = conn.receive_json()
             assert msg["data"].get("subscribed_to") == "a1"
+            # unsubscribe path (no response expected) — then ping to confirm liveness
+            conn.send_json({"action": "unsubscribe", "audit_id": "a1"})
+            conn.send_json({"action": "ping"})
+            assert conn.receive_json()["type"] == ws.EventType.HEARTBEAT.value
+
+    def test_ws_audit_endpoint(self, monkeypatch):
+        monkeypatch.setattr(ws, "WEBSOCKET_AUTH_REQUIRED", False)
+        client = self._client()
+        with client.websocket_connect("/ws/audit/job42") as conn:
+            welcome = conn.receive_json()
+            assert welcome["type"] == ws.EventType.CONNECTED.value
+            assert welcome["data"].get("audit_id") == "job42"
+            conn.send_json({"action": "ping"})
+            pong = conn.receive_json()
+            assert pong["type"] == ws.EventType.HEARTBEAT.value
+            assert pong["audit_id"] == "job42"
+
+    def test_ws_unauthorized_rejected(self, monkeypatch):
+        monkeypatch.setattr(ws, "WEBSOCKET_AUTH_REQUIRED", True)
+        monkeypatch.setattr(ws, "WEBSOCKET_AUTH_TOKEN", "secret")
+        client = self._client()
+        import pytest
+
+        with pytest.raises(Exception):
+            with client.websocket_connect("/ws") as conn:
+                conn.receive_json()  # closed before welcome -> raises
