@@ -124,8 +124,8 @@ Report saved to results.json
 
 | Metric | Slither alone | Mythril alone | MIESC Paper 1 reproducible profile | Evidence scope |
 |--------|:------------:|:-------------:|:---------------------------------:|:--------------|
-| Recall | 43.2% | 27.4% | **95.8%** | Full SmartBugs-curated corpus |
-| Precision | 8.3% | 6.1% | **22.2%** | Full SmartBugs-curated corpus |
+| Recall | 43.2% | 27.4% | **99.3%** | Full SmartBugs-curated corpus (layer-1 + intelligence) |
+| Precision | 8.3% | 6.1% | **26.4%** | Full SmartBugs-curated corpus (layer-1 + intelligence) |
 | F1-Score | 13.9% | 10.0% | **36.0%** | Full SmartBugs-curated corpus |
 
 The full-corpus SmartBugs result is the reproducible Paper 1 profile. A local
@@ -153,7 +153,7 @@ MIESC has two linked research tracks. Paper 1 evaluates detection and multi-laye
 
 | Paper | Focus | Main reproducible evidence | Artifacts |
 |-------|-------|----------------------------|-----------|
-| [Paper 1](./paper/miesc-paper.pdf) | Multi-layer smart contract security evaluation | SmartBugs: 95.8% recall on 143 contracts, with a local Ollama follow-up reported at 97.9%; DeFi exploits: 81.8% recall on 11 incidents; EVMBench ensemble: 111/120 high-severity findings, 92.5% recall | [Reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper1_claims_matrix.json) |
+| [Paper 1](./paper/miesc-paper.pdf) | Multi-layer smart contract security evaluation | SmartBugs: 99.3% recall (142/143, layer-1 + intelligence, no LLM); DeFi exploits: 81.8% recall on 11 incidents; EVMBench ensemble: 111/120 high-severity findings, 92.5% recall | [Reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper1_claims_matrix.json) |
 | [Paper 2](./paper/paper2-remediation.pdf) | Verifiable remediation artifacts | 141/143 fixes applied; 90/141 standalone patched contracts compile; 93/141 eliminate the original finding by re-scan; 91/141 pass bounded no-regression | [Reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper2_claims_matrix.json), [experiment audit](./benchmarks/results/paper2_experiment_audit.json) |
 
 For research citation and review, the canonical current claims are the two paper PDFs, their reproducibility notes, and the `benchmarks/results/paper*_claims_matrix.json` files. The platform alignment plan maps these paper results into CLI, API, MCP, RAG, and remediation workflow requirements: [Paper learnings and platform alignment](./docs/roadmap/PAPER_LEARNINGS_PLATFORM_ALIGNMENT.md). RAG source selection and weighting are governed by the [RAG source policy](./docs/guides/RAG_SOURCE_POLICY.md). Older release notes, thesis drafts, and roadmap documents are kept for project history and may contain previous benchmark runs or version-specific metrics.
@@ -624,8 +624,8 @@ See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with
 MIESC was developed as a Master's thesis in Cyberdefense at [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). The current research claims are consolidated in [Paper 1](./paper/miesc-paper.pdf), [Paper 2](./paper/paper2-remediation.pdf), and their reproducibility artifacts:
 
 - **143 contracts**, 207 ground-truth vulnerabilities, 10 categories
-- **95.8% recall** on the latest full-corpus reproducible local SmartBugs profile; Slither alone baseline: 43.2%
-- Paper 1 reports a local Ollama follow-up on the residual SmartBugs misses at 140/143 (97.9%); the reproducible corpus artifact remains the 95.8% JSON profile.
+- **99.3% recall** (142/143) on the full-corpus reproducible SmartBugs profile (layer-1 + intelligence engine, no LLM); Slither alone baseline: 43.2%
+- Deterministic detectors (uninitialized storage pointer, front-running, modifier reentrancy) close 5 of the 6 prior misses; only a short-address case remains. Aggregate has tool-stability variance 0.972--0.993 (run unloaded).
 - Paper 1 now treats EVMBench as the primary business-logic benchmark: static-only reaches 22/120 (18.3%), while the reproducible four-provider ensemble reaches 111/120 (92.5%)
 - Paper 2 evaluates remediation artifacts: 141/143 fixes applied, 90/141 patched contracts compile standalone, 93/141 eliminate the original finding by re-scan, and 91/141 pass bounded no-regression
 - Reproducible SmartBugs profile runs in 737.0s total (~5.15 sec/contract)
