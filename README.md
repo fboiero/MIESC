@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/fboiero/MIESC/stargazers"><img src="https://img.shields.io/github/stars/fboiero/MIESC?style=social" alt="GitHub stars"></a>
   <a href="https://pypi.org/project/miesc/"><img src="https://img.shields.io/pypi/v/miesc?color=blue&label=PyPI" alt="PyPI"></a>
   <a href="https://pepy.tech/project/miesc"><img src="https://static.pepy.tech/badge/miesc/month" alt="Downloads"></a>
   <a href="https://pypi.org/project/miesc/"><img src="https://img.shields.io/pypi/pyversions/miesc" alt="Python"></a>
@@ -155,19 +156,6 @@ a corpus-wide claim.
 
 **Why recall matters more than precision for pre-audit triage**: High recall means fewer missed vulnerabilities. False positives are filtered in the triage step — missed vulnerabilities become exploits in production.
 
-### Research Papers and Reproducible Claims
-
-MIESC has two linked research tracks. Paper 1 evaluates detection and multi-layer security assessment. Paper 2 extends that evidence into automatic remediation artifacts and independent verification steps. Paper 2 does not replace or invalidate Paper 1; it starts from the same detection pipeline and measures what happens after a finding is converted into a patch candidate.
-
-| Paper | Focus | Main reproducible evidence | Artifacts |
-|-------|-------|----------------------------|-----------|
-| [Paper 1](./paper/miesc-paper.pdf) | Multi-layer smart contract security evaluation | SmartBugs: 99.3% recall (142/143, layer-1 + intelligence, no LLM); DeFi exploits: 81.8% recall on 11 incidents; EVMBench ensemble: 111/120 high-severity findings, 92.5% recall | [Reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper1_claims_matrix.json) |
-| [Paper 2](./paper/paper2-remediation.pdf) | Verifiable remediation artifacts | 141/143 fixes applied; 90/141 standalone patched contracts compile; 93/141 eliminate the original finding by re-scan; 91/141 pass bounded no-regression | [Reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper2_claims_matrix.json), [experiment audit](./benchmarks/results/paper2_experiment_audit.json) |
-
-For research citation and review, the canonical current claims are the two paper PDFs, their reproducibility notes, and the `benchmarks/results/paper*_claims_matrix.json` files. The platform alignment plan maps these paper results into CLI, API, MCP, RAG, and remediation workflow requirements: [Paper learnings and platform alignment](./docs/roadmap/PAPER_LEARNINGS_PLATFORM_ALIGNMENT.md). RAG source selection and weighting are governed by the [RAG source policy](./docs/guides/RAG_SOURCE_POLICY.md). Older release notes, thesis drafts, and roadmap documents are kept for project history and may contain previous benchmark runs or version-specific metrics.
-
-Current technical-debt cleanup and remaining platform work are tracked in the [technical debt remediation plan](./docs/roadmap/TECHNICAL_DEBT_REMEDIATION_PLAN.md).
-
 ### The 9 Defense Layers
 
 ```
@@ -287,14 +275,21 @@ miesc analyze Token.sol           # Auto-detects EVM (Solidity/Vyper)
 miesc analyze Vault.cairo         # Starknet/Cairo (13 vuln types, zkLend-informed)
 miesc analyze Program.rs          # Solana/Anchor (22 vuln types)
 miesc analyze Module.move         # Move/Sui/Aptos (19 vuln types)
+miesc scan Bridge.sol             # 7 bridge exploit patterns
 ```
 
-**77 vulnerability types** across 4 ecosystems, informed by real 2024-2026 exploits (zkLend $9.6M, Braavos, Wormhole $326M, Ronin $624M).
+| Chain | Status | Languages |
+|-------|--------|-----------|
+| **EVM** (Ethereum, Polygon, BSC, Arbitrum, …) | Production | Solidity, Vyper |
+| Starknet | Beta | Cairo |
+| Solana | Alpha | Rust/Anchor |
+| Move (Sui, Aptos) | Alpha | Move |
+| NEAR | Alpha | Rust |
+| Stellar/Soroban, Algorand, Cardano | Alpha | Rust, TEAL/PyTeal, Plutus/Aiken |
 
-Bridge vulnerability detection:
-```bash
-miesc scan Bridge.sol             # Detects 7 bridge exploit patterns
-```
+**77 vulnerability types** across the ecosystems, informed by real 2024-2026 exploits
+(zkLend $9.6M, Braavos, Wormhole $326M, Ronin $624M). Non-EVM support is experimental;
+EVM analysis (50 tools, 9 layers) is production-ready.
 
 ---
 
@@ -572,26 +567,6 @@ clients now live in the platform layer.
 
 ---
 
-## Multi-Chain Support
-
-| Chain | Status | Languages |
-|-------|--------|-----------|
-| **EVM** (Ethereum, Polygon, BSC, Arbitrum, etc.) | Production | Solidity, Vyper |
-| Solana | Alpha | Rust/Anchor |
-| NEAR | Alpha | Rust |
-| Move (Sui, Aptos) | Alpha | Move |
-| Stellar/Soroban | Alpha | Rust |
-| Algorand | Alpha | TEAL, PyTeal |
-| Cardano | Alpha | Plutus, Aiken |
-
-```bash
-miesc scan program.rs --chain solana
-miesc scan module.move --chain sui
-```
-
-> Non-EVM support is experimental. EVM analysis (50 tools, 9 layers) is production-ready.
-
----
 
 ## Compliance Mapping
 
