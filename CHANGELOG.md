@@ -1091,6 +1091,12 @@ Workflow:
 ## [4.0.0] - 2025-01-14
 
 ### Added
+
+> _Per-technique metrics in this section (PropertyGPT recall, DA-GNN accuracy, RAG
+> precision, DogeFuzz coverage/speed) are figures **reported by the cited source
+> papers**, not independently benchmarked by MIESC. MIESC's own corpus results are
+> the SmartBugs-curated / EVMBench / real-world-exploit numbers._
+
 - **PropertyGPT** (Layer 4 - Formal Verification): Automated CVL property generation
   - 80% recall on ground-truth Certora properties
   - Increases formal verification adoption from 5% to 40% (+700%)

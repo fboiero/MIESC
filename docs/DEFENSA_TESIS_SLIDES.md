@@ -289,7 +289,7 @@ Static Dynamic Symbolic Invariant Formal Property AI
 - Generacion automatica de inputs
 - Deteccion de invariantes violados
 
-**Mejora v4.0:** DogeFuzz - AFL-style power scheduling, **3x mas rapido**
+**Mejora v4.0:** DogeFuzz - AFL-style power scheduling, **3x mas rapido** *(cifra reportada por DogeFuzz, arXiv:2409.01788)*
 
 ---
 
@@ -317,7 +317,7 @@ Static Dynamic Symbolic Invariant Formal Property AI
 - Pruebas formales de correctitud
 
 **Mejora v4.0:** PropertyGPT - Generacion automatica de propiedades CVL
-- **80% recall** en propiedades ground-truth
+- **80% recall** en propiedades ground-truth *(cifra reportada por PropertyGPT, Liu et al., NDSS 2025)*
 - **+700%** adopcion de verificacion formal
 
 ---
@@ -333,7 +333,7 @@ Static Dynamic Symbolic Invariant Formal Property AI
 - Recomendaciones de remediacion
 
 **Mejora v4.0:** RAG + Verificator
-- **+17% precision** (75% -> 88%)
+- **+17% precision** (75% -> 88%) *(cifra reportada por arXiv:2502.13167)*
 - **-52% falsos positivos**
 
 ---
