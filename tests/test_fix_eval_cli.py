@@ -373,3 +373,30 @@ def test_external_validation_parses_slither_high_findings(monkeypatch, tmp_path:
         "high:reentrancy-eth": 1,
         "low:naming-convention": 1,
     }
+
+
+def test_stabilize_details_payload_removes_volatile_paths_and_timestamps():
+    payload = {
+        "generated_at": "2026-06-21T18:44:56.575448+00:00",
+        "patched_path": "/var/folders/aa/bb/T/tmpabc123/fixed.sol",
+        "stderr": "slither /private/var/folders/aa/bb/T/tmpxyz789/fixed.sol",
+        "root": "../../../../../var/folders/aa/bb/T",
+        "truncated": "../../../../../var/folders/aa/b",
+        "nested": [
+            {
+                "stdout": (
+                    "/tmp/tmpqwerty/fixed.sol "
+                    "../../../../../var/folders/aa/bb/T/tmprel123/fixed.sol"
+                )
+            }
+        ],
+    }
+
+    stable = fix_eval.stabilize_details_payload(payload)
+
+    assert stable["generated_at"] == "<generated_at>"
+    assert stable["patched_path"] == "<tmp>/fixed.sol"
+    assert stable["stderr"] == "slither <tmp>/fixed.sol"
+    assert stable["root"] == "<tmp>"
+    assert stable["truncated"] == "<tmp>"
+    assert stable["nested"][0]["stdout"] == "<tmp>/fixed.sol <tmp>/fixed.sol"

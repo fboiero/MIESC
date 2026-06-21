@@ -20,6 +20,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -45,6 +46,15 @@ DATASET = next((path for path in DATASET_CANDIDATES if path.exists()), DATASET_C
 MAX_ERROR_CHARS = 2000
 DEFAULT_SCAN_TIMEOUT = 30
 DEFAULT_EXTERNAL_TIMEOUT = 30
+VOLATILE_TMP_PATH_RE = re.compile(
+    r"(?:\.\./)+(?:\.\./)*var/folders/[^\s\"']+/T/tmp[\w.-]+|"
+    r"(?:\.\./)+(?:\.\./)*var/folders/[^\s\"']+/T|"
+    r"(?:\.\./)+(?:\.\./)*var/folders/[^\s\"']*|"
+    r"(?:/private)?/var/folders/[^\s\"']+/T/tmp[\w.-]+|"
+    r"(?:/private)?/var/folders/[^\s\"']+/T|"
+    r"(?:/private)?/var/folders/[^\s\"']*|"
+    r"/tmp/tmp[\w.-]+"
+)
 
 
 def _empty_external_validation(tool="slither", status="not_requested"):
@@ -99,6 +109,20 @@ def compile_contract(sol_path):
 
 def check_compiles(sol_path):
     return compile_contract(sol_path)["compiles"]
+
+
+def stabilize_details_payload(value):
+    """Remove volatile local paths/timestamps from benchmark detail artifacts."""
+    if isinstance(value, dict):
+        return {
+            key: ("<generated_at>" if key == "generated_at" else stabilize_details_payload(item))
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [stabilize_details_payload(item) for item in value]
+    if isinstance(value, str):
+        return VOLATILE_TMP_PATH_RE.sub("<tmp>", value)
+    return value
 
 
 def run_external_validation(sol_path, tool="slither", timeout=DEFAULT_EXTERNAL_TIMEOUT):
@@ -527,6 +551,7 @@ def main():
             "contracts": detailed_contracts,
         }
         args.details_output.parent.mkdir(parents=True, exist_ok=True)
+        details_payload = stabilize_details_payload(details_payload)
         args.details_output.write_text(json.dumps(details_payload, indent=2) + "\n")
         print(f"Details saved to {args.details_output}")
 
