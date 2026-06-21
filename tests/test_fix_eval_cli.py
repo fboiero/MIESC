@@ -298,10 +298,15 @@ def test_fix_eval_external_validator_runs_on_compiling_patches(
         return {
             "checked": True,
             "tool": tool,
-            "status": "clean_high",
+            "status": "findings",
             "returncode": 0,
-            "findings_total": 0,
-            "high_findings": 0,
+            "findings_total": 2,
+            "high_findings": 2,
+            "high_checks": ["weak-prng", "reentrancy-eth"],
+            "detector_summary": {
+                "high:reentrancy-eth": 1,
+                "high:weak-prng": 1,
+            },
             "stdout": "{}",
             "stderr": "",
         }
@@ -335,8 +340,12 @@ def test_fix_eval_external_validator_runs_on_compiling_patches(
     assert payload["external_validator"] == "slither"
     assert payload["external_timeout"] == 9
     assert payload["totals"]["external_checked"] == 1
-    assert payload["totals"]["external_clean_high"] == 1
-    assert payload["contracts"][0]["external_validation"]["status"] == "clean_high"
+    assert payload["totals"]["external_clean_high"] == 0
+    assert payload["external_high_checks"] == {
+        "reentrancy-eth": 1,
+        "weak-prng": 1,
+    }
+    assert payload["contracts"][0]["external_validation"]["status"] == "findings"
 
 
 def test_external_validation_parses_slither_high_findings(monkeypatch, tmp_path: Path):

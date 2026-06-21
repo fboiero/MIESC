@@ -290,6 +290,7 @@ def main():
     results_by_cat = {}
     detailed_contracts = []
     compile_failure_taxonomy = defaultdict(int)
+    external_high_checks = defaultdict(int)
 
     for cat in categories:
         cat_dir = DATASET / cat
@@ -440,6 +441,8 @@ def main():
                         external_validation["status"]
                         in {"error", "timeout", "unavailable", "unsupported"}
                     )
+                    for high_check in external_validation.get("high_checks", []):
+                        external_high_checks[high_check] += 1
 
                 rescan = evidence.rescan
                 total_before = (
@@ -508,6 +511,12 @@ def main():
             f"findings={totals['external_findings']:>3} "
             f"errors={totals['external_errors']:>3}"
         )
+        if external_high_checks:
+            print("  External HIGH checks:")
+            for check, count in sorted(
+                external_high_checks.items(), key=lambda item: (-item[1], item[0])
+            ):
+                print(f"    {check}: {count}")
 
     n = totals["fix_applied"] or 1
     print("\nRATES:")
@@ -524,7 +533,14 @@ def main():
         f"  No regression:        {totals['no_regression']}/{n} = {totals['no_regression'] / n:.0%}"
     )
 
-    aggregate_payload = {"totals": dict(totals), "by_category": results_by_cat}
+    external_high_check_summary = dict(
+        sorted(external_high_checks.items(), key=lambda item: (-item[1], item[0]))
+    )
+    aggregate_payload = {
+        "totals": dict(totals),
+        "by_category": results_by_cat,
+        "external_high_checks": external_high_check_summary,
+    }
     if not args.skip_rescan or args.results_output:
         # Preserve the historical canonical path unless the caller explicitly
         # requests a dated additive artifact for a dry run.
@@ -547,6 +563,7 @@ def main():
             "external_timeout": args.external_timeout,
             "totals": dict(totals),
             "by_category": results_by_cat,
+            "external_high_checks": external_high_check_summary,
             "compile_failure_taxonomy": dict(sorted(compile_failure_taxonomy.items())),
             "contracts": detailed_contracts,
         }

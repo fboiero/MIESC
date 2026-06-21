@@ -154,5 +154,16 @@
       "external_findings": 3,
       "external_errors": 0
     }
+  },
+  "external_high_checks": {
+    "controlled-array-length": 8,
+    "weak-prng": 7,
+    "reentrancy-eth": 5,
+    "uninitialized-storage": 3,
+    "arbitrary-send-eth": 2,
+    "controlled-delegatecall": 1,
+    "shadowing-state": 1,
+    "unchecked-transfer": 1,
+    "uninitialized-state": 1
   }
 }
