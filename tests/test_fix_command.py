@@ -469,6 +469,20 @@ contract Vault {
         assert "Avoid block.timestamp for ordering-sensitive logic." in patched
         assert patched.index("MIESC FIX: time_manipulation") < patched.index("contract Victim")
 
+    def test_generic_type_with_non_function_location_falls_back_to_file_comment(self):
+        finding = {
+            "type": "uninitialized-storage",
+            "location": {"line": 12, "function": "newRecord"},
+            "fix_code": "Initialize storage references explicitly.",
+        }
+
+        patched, changed = apply_fix(SIMPLE_CONTRACT, finding)
+
+        assert changed
+        assert "MIESC FIX: uninitialized_storage" in patched
+        assert "Initialize storage references explicitly." in patched
+        assert "function newRecord" not in patched
+
     def test_no_change_when_function_not_found(self):
         finding = {
             "type": "reentrancy",

@@ -617,7 +617,10 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
 
     # Generic fallback
     if fix_code and fn_name:
-        return _insert_comment_block(source, fn_name, ftype, fix_code, line_hint)
+        patched, changed = _insert_comment_block(source, fn_name, ftype, fix_code, line_hint)
+        if changed:
+            return patched, True
+        return _insert_file_comment_block(source, ftype, fix_code)
     if fix_code:
         return _insert_file_comment_block(source, ftype, fix_code)
 

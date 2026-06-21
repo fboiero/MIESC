@@ -1,0 +1,198 @@
+{
+  "artifact": "paper2_fix_eval_contract_details",
+  "scope": "Paper 2 remediation only; does not modify Paper 1 detection evidence.",
+  "dataset": "benchmarks/datasets/smartbugs-curated/dataset",
+  "limit": 10,
+  "scan_timeout": 15,
+  "skip_rescan": true,
+  "totals": {
+    "contracts": 3,
+    "fix_applied": 3,
+    "fix_compiles": 3,
+    "vuln_eliminated": 0,
+    "no_regression": 0,
+    "fix_failed": 0,
+    "scan_empty": 0,
+    "no_high": 0
+  },
+  "by_category": {
+    "other": {
+      "contracts": 3,
+      "fix_applied": 3,
+      "fix_compiles": 3,
+      "vuln_eliminated": 0,
+      "no_regression": 0,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0
+    }
+  },
+  "compile_failure_taxonomy": {},
+  "contracts": [
+    {
+      "category": "other",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/crypto_roulette.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=10, skipped=0",
+      "high_before": 6,
+      "high_after": null,
+      "total_findings_before": 23,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:CryptoRoulette =======\nBinary: \n608060405267016345785d8a000060035533600660006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555034801561005d57600080fd5b5033600460006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506100b66100bb640100000000026401000000009004565b610106565b600160144260014303406040518083815260200182600019166000191681526020019250505060405180910390206001900460ff168115156100f957fe5b060160ff16600181905550565b610677806101156000396000f300608060405260043610610083576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063382cf0a61461008557806341c0e1b5146100f95780636898f82b146101105780638da5cb5b146101305780639c675eaa14610187578063c5339132146101de578063cfd8a17514610209575b005b34801561009157600080fd5b506100b060048036038101908080359060200190929190505050610234565b604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390f35b34801561010557600080fd5b5061010e610287565b005b61012e600480360381019080803590602001909291905050506103cf565b005b34801561013c57600080fd5b506101456105a8565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801561019357600080fd5b5061019c6105ce565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b3480156101ea57600080fd5b506101f36105f4565b6040518082815260200191505060405180910390f35b34801561021557600080fd5b5061021e6105fa565b6040518082815260200191505060405180910390f35b60058181548110151561024357fe5b90600052602060002090600202016000915090508060000160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16908060010154905082565b600660009054906101000a900473ffffffffff",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:169:5: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n    function CryptoRoulette() public {\n    ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:234:9: Warning: Variable is declared as a storage pointer. Use an explicit \"storage\" keyword to silence this warning.\n        Game game; //Uninitialized storage pointer\n        ^-------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:205:30: Warning: \"sha3\" has been deprecated in favour of \"keccak256\"\n        secretNumber = uint8(sha3(now, block.blockhash(block.number-1))) % 20 + 1;\n                             ^----------------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:205:30: Warning: This function only accepts a single \"bytes\" argument. Please use \"abi.encodePacked(...)\" or a similar function to encode the data.\n        secretNumber = uint8(sha3(now, block.blockhash(block.number-1))) % 20 + 1;\n                             ^----------------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:234:9: Warning: Uninitialized storage pointer. Did you mean '<type> memory game'?\n        Game game; //Uninitialized storage pointer\n        ^-------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:241:33: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n            msg.sender.transfer(this.balance);\n                                ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:273:13: Warning: \"suicide\" has been deprecated in favour of \"selfdestruct\"\n       ",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/other/crypto_roulette.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol",
+        "original_sha256": "1336f802d8a5b6f252fa17eb8402e5aaf69e7b9f812677b6fecbb7c1aff4f3cf",
+        "patched_sha256": "f53dd88519939491508bd2f29ea6b0a9e49c0059fac6b8734fa48066dee1dd94",
+        "findings_input": 46,
+        "fixable_findings": 10,
+        "fixes_applied": 10,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:CryptoRoulette =======\nBinary: \n608060405267016345785d8a000060035533600660006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555034801561005d57600080fd5b5033600460006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506100b66100bb640100000000026401000000009004565b610106565b600160144260014303406040518083815260200182600019166000191681526020019250505060405180910390206001900460ff168115156100f957fe5b060160ff16600181905550565b610677806101156000396000f300608060405260043610610083576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063382cf0a61461008557806341c0e1b5146100f95780636898f82b146101105780638da5cb5b146101305780639c675eaa14610187578063c5339132146101de578063cfd8a17514610209575b005b34801561009157600080fd5b506100b060048036038101908080359060200190929190505050610234565b604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390f35b34801561010557600080fd5b5061010e610287565b005b61012e600480360381019080803590602001909291905050506103cf565b005b34801561013c57600080fd5b506101456105a8565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801561019357600080fd5b5061019c6105ce565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b3480156101ea57600080fd5b506101f36105f4565b6040518082815260200191505060405180910390f35b34801561021557600080fd5b5061021e6105fa565b6040518082815260200191505060405180910390f35b60058181548110151561024357fe5b90600052602060002090600202016000915090508060000160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16908060010154905082565b600660009054906101000a900473ffffffffff",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:169:5: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n    function CryptoRoulette() public {\n    ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:234:9: Warning: Variable is declared as a storage pointer. Use an explicit \"storage\" keyword to silence this warning.\n        Game game; //Uninitialized storage pointer\n        ^-------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:205:30: Warning: \"sha3\" has been deprecated in favour of \"keccak256\"\n        secretNumber = uint8(sha3(now, block.blockhash(block.number-1))) % 20 + 1;\n                             ^----------------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:205:30: Warning: This function only accepts a single \"bytes\" argument. Please use \"abi.encodePacked(...)\" or a similar function to encode the data.\n        secretNumber = uint8(sha3(now, block.blockhash(block.number-1))) % 20 + 1;\n                             ^----------------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:234:9: Warning: Uninitialized storage pointer. Did you mean '<type> memory game'?\n        Game game; //Uninitialized storage pointer\n        ^-------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:241:33: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n            msg.sender.transfer(this.balance);\n                                ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp9zyg17kd/fixed.sol:273:13: Warning: \"suicide\" has been deprecated in favour of \"selfdestruct\"\n       ",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:55:28.357435+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "other",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/name_registrar.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=1, skipped=0",
+      "high_before": 1,
+      "high_after": null,
+      "total_findings_before": 9,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp4j1nu45f/fixed.sol:NameRegistrar =======\nBinary: \n608060405260008060006101000a81548160ff02191690831515021790555034801561002a57600080fd5b506104248061003a6000396000f300608060405260043610610062576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680635c23bdf5146100675780636a5e2650146100d8578063d22057a914610107578063e59a040714610158575b600080fd5b34801561007357600080fd5b5061009660048036038101908080356000191690602001909291905050506101ea565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b3480156100e457600080fd5b506100ed61021d565b604051808215151515815260200191505060405180910390f35b34801561011357600080fd5b506101566004803603810190808035600019169060200190929190803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061022f565b005b34801561016457600080fd5b50610199600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506103b4565b6040518083600019166000191681526020018273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019250505060405180910390f35b60026020528060005260406000206000915054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000809054906101000a900460ff1681565b600082816000018160001916905550818160010160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055508160026000856000191660001916815260200190815260200160002060006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555080600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020600082015481600001906000191690556001820160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff168160010160006101000a81548173ffffffffffffffffffffffffffffffffffffffff0219169",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp4j1nu45f/fixed.sol:49:9: Warning: Variable is declared as a storage pointer. Use an explicit \"storage\" keyword to silence this warning.\n        NameRecord newRecord;\n        ^------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp4j1nu45f/fixed.sol:49:9: Warning: Uninitialized storage pointer. Did you mean '<type> memory newRecord'?\n        NameRecord newRecord;\n        ^------------------^\n",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/other/name_registrar.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp4j1nu45f/fixed.sol",
+        "original_sha256": "03a03f323371396aba97a192af5aea40bba82449ffb0425905dc5031152f1b88",
+        "patched_sha256": "29e717c2937638a3f26ba9490e2bc0c6a0f05ecf70b0599481b88b1e9681afcd",
+        "findings_input": 18,
+        "fixable_findings": 1,
+        "fixes_applied": 1,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp4j1nu45f/fixed.sol:NameRegistrar =======\nBinary: \n608060405260008060006101000a81548160ff02191690831515021790555034801561002a57600080fd5b506104248061003a6000396000f300608060405260043610610062576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680635c23bdf5146100675780636a5e2650146100d8578063d22057a914610107578063e59a040714610158575b600080fd5b34801561007357600080fd5b5061009660048036038101908080356000191690602001909291905050506101ea565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b3480156100e457600080fd5b506100ed61021d565b604051808215151515815260200191505060405180910390f35b34801561011357600080fd5b506101566004803603810190808035600019169060200190929190803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061022f565b005b34801561016457600080fd5b50610199600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506103b4565b6040518083600019166000191681526020018273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019250505060405180910390f35b60026020528060005260406000206000915054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000809054906101000a900460ff1681565b600082816000018160001916905550818160010160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055508160026000856000191660001916815260200190815260200160002060006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555080600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020600082015481600001906000191690556001820160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff168160010160006101000a81548173ffffffffffffffffffffffffffffffffffffffff0219169",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp4j1nu45f/fixed.sol:49:9: Warning: Variable is declared as a storage pointer. Use an explicit \"storage\" keyword to silence this warning.\n        NameRecord newRecord;\n        ^------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp4j1nu45f/fixed.sol:49:9: Warning: Uninitialized storage pointer. Did you mean '<type> memory newRecord'?\n        NameRecord newRecord;\n        ^------------------^\n",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:55:30.595828+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    },
+    {
+      "category": "other",
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/open_address_lottery.sol",
+      "status": "applied",
+      "fix_applied": true,
+      "fix_output_summary": "shared remediation pipeline: applied=7, skipped=0",
+      "high_before": 3,
+      "high_after": null,
+      "total_findings_before": 18,
+      "total_findings_after": null,
+      "vuln_eliminated": null,
+      "no_regression": null,
+      "compile": {
+        "checked": true,
+        "compiles": true,
+        "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+        "returncode": 0,
+        "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:MiescReentrancyGuard =======\nBinary: \n6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a72305820743aba5ba9fb28340853c1a8c29a827acd6a73c9b8ecf9bb510bf41812bdaf400029\n\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:OpenAddressLottery =======\nBinary: \n6080604052600760035534801561001557600080fd5b5033600060016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506100a66080604051908101604052804173ffffffffffffffffffffffffffffffffffffffff168152602001448152602001458152602001428152506100ab640100000000026401000000009004565b6100fd565b8060000151816020015182604001518360600151604051808581526020018481526020018381526020018281526020019450505050506040518091039020600190046001819055504360028190555050565b6105fd8061010c6000396000f300608060405260043610610062576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806337354a68146100d857806341c0e1b51461012f57806380ca7aec14610146578063d11711a21461015d575b67016345785d8a000034101580156100c85750600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614155b156100d6576100d5610167565b5b005b3480156100e457600080fd5b50610119600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610371565b6040518082815260200191505060405180910390f35b34801561013b57600080fd5b50610144610410565b005b34801561015257600080fd5b5061015b610485565b005b610165610167565b005b60008060009054906101000a900460ff1615151561018457600080fd5b60016000806101000a81548160ff02191690831515021790555067016345785d8a00003410156101b357610354565b60001515600460003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff16151514151561021257600080fd5b600",
+        "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:125:5: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n    function OpenAddressLottery() {\n    ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:256:9: Warning: Variable is declared as a storage pointer. Use an explicit \"storage\" keyword to silence this warning.\n        SeedComponents s;\n        ^--------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:194:20: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n            if(win>this.balance) //if the balance isnt sufficient...\n                   ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:195:21: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n                win=this.balance; //...send everything we've got\n                    ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:234:18: Warning: This function only accepts a single \"bytes\" argument. Please use \"abi.encodePacked(...)\" or a similar function to encode the data.\n        n = uint(keccak256(uint(addr), secretSeed)[0]) % 8;\n                 ^-------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:238:30: Warning: This function only accepts a single \"bytes\" argument. Please use \"abi.encodePacked(...)\" or a similar function to encode the data.\n        secretSeed = uint256(keccak256(\n                             ^ (Relevant source part starts here and spans across multip",
+        "failure_class": null
+      },
+      "evidence": {
+        "status": "compile_checked",
+        "original_path": "/Users/fboiero/Documents/GitHub/MIESC-codex/benchmarks/datasets/smartbugs-curated/dataset/other/open_address_lottery.sol",
+        "patched_path": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol",
+        "original_sha256": "867f01b8c7a656b0bfcd626c2dc12592cba55c525e3c7a65049885ac7632916f",
+        "patched_sha256": "f31d02a605b537c6bb3b0885a43f94d61ff631818bc968d69afc2484f2713279",
+        "findings_input": 36,
+        "fixable_findings": 7,
+        "fixes_applied": 7,
+        "fixes_skipped": 0,
+        "compile": {
+          "checked": true,
+          "compiles": true,
+          "solc": "/Users/fboiero/.solc-select/artifacts/solc-0.4.26/solc-0.4.26",
+          "returncode": 0,
+          "stdout": "\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:MiescReentrancyGuard =======\nBinary: \n6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00a165627a7a72305820743aba5ba9fb28340853c1a8c29a827acd6a73c9b8ecf9bb510bf41812bdaf400029\n\n======= /var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:OpenAddressLottery =======\nBinary: \n6080604052600760035534801561001557600080fd5b5033600060016101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506100a66080604051908101604052804173ffffffffffffffffffffffffffffffffffffffff168152602001448152602001458152602001428152506100ab640100000000026401000000009004565b6100fd565b8060000151816020015182604001518360600151604051808581526020018481526020018381526020018281526020019450505050506040518091039020600190046001819055504360028190555050565b6105fd8061010c6000396000f300608060405260043610610062576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806337354a68146100d857806341c0e1b51461012f57806380ca7aec14610146578063d11711a21461015d575b67016345785d8a000034101580156100c85750600060019054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614155b156100d6576100d5610167565b5b005b3480156100e457600080fd5b50610119600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610371565b6040518082815260200191505060405180910390f35b34801561013b57600080fd5b50610144610410565b005b34801561015257600080fd5b5061015b610485565b005b610165610167565b005b60008060009054906101000a900460ff1615151561018457600080fd5b60016000806101000a81548160ff02191690831515021790555067016345785d8a00003410156101b357610354565b60001515600460003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff16151514151561021257600080fd5b600",
+          "stderr": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:125:5: Warning: Defining constructors as functions with the same name as the contract is deprecated. Use \"constructor(...) { ... }\" instead.\n    function OpenAddressLottery() {\n    ^ (Relevant source part starts here and spans across multiple lines).\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:256:9: Warning: Variable is declared as a storage pointer. Use an explicit \"storage\" keyword to silence this warning.\n        SeedComponents s;\n        ^--------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:194:20: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n            if(win>this.balance) //if the balance isnt sufficient...\n                   ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:195:21: Warning: Using contract member \"balance\" inherited from the address type is deprecated. Convert the contract to \"address\" type to access the member, for example use \"address(contract).balance\" instead.\n                win=this.balance; //...send everything we've got\n                    ^----------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:234:18: Warning: This function only accepts a single \"bytes\" argument. Please use \"abi.encodePacked(...)\" or a similar function to encode the data.\n        n = uint(keccak256(uint(addr), secretSeed)[0]) % 8;\n                 ^-------------------------------^\n/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/tmp362rhr83/fixed.sol:238:30: Warning: This function only accepts a single \"bytes\" argument. Please use \"abi.encodePacked(...)\" or a similar function to encode the data.\n        secretSeed = uint256(keccak256(\n                             ^ (Relevant source part starts here and spans across multip",
+          "failure_class": null
+        },
+        "rescan": {
+          "checked": false,
+          "high_before": null,
+          "high_after": null,
+          "total_before": null,
+          "total_after": null,
+          "eliminated": null,
+          "no_regression": null,
+          "no_regression_bound": 2
+        },
+        "generated_at": "2026-06-21T00:55:33.070087+00:00",
+        "miesc_version": "5.4.3",
+        "errors": []
+      }
+    }
+  ]
+}
