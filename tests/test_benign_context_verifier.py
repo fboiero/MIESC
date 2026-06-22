@@ -178,3 +178,32 @@ class TestApplyToResults:
         assert V.model is None
         v = BenignContextVerifier()
         assert v._llm_false_positive({"type": "reentrancy", "function": "x"}, "contract C {}") is False
+
+
+# --------------------------------------------------------------------------- #
+# LLM is ADVISORY: it may flag (needs_review) but must NEVER drop a finding.
+# Locks the fix from the wild real-data eval, where LLM drops lost 3/21 real vulns.
+# --------------------------------------------------------------------------- #
+class TestLLMNeverDrops:
+    def test_llm_false_positive_only_flags_never_drops(self):
+        v = BenignContextVerifier(model="dummy")
+        v._llm_false_positive = lambda finding, code: True  # force max-aggressive LLM
+        # real unchecked send (the exact pattern the LLM wrongly dropped) with NO benign rule
+        code = ("pragma solidity ^0.4.24; contract C { address owner;"
+                " function flush() public { owner.send(this.balance); } }")
+        assert v.verify(_f("unchecked_low_level_calls", "flush"), code) == "needs_review"
+
+    def test_llm_cannot_drop_real_timestamp_vuln(self):
+        v = BenignContextVerifier(model="dummy")
+        v._llm_false_positive = lambda finding, code: True
+        code = ("pragma solidity ^0.4.24; contract C { uint start;"
+                " function buy() public { if (now < start) throw; } }")
+        assert v.verify(_f("time_manipulation", "buy"), code) != "false_positive"
+
+    def test_rule_benign_still_drops_even_with_llm_off(self):
+        # the deterministic rule path is the ONLY drop path and must still work
+        v = BenignContextVerifier(model="dummy")
+        v._llm_false_positive = lambda finding, code: False
+        code = ("pragma solidity ^0.8.0; contract C { mapping(address=>uint) b;"
+                " function add(uint a) public { b[msg.sender]+=a; } }")
+        assert v.verify(_f("arithmetic", "add"), code) == "false_positive"

@@ -10,10 +10,14 @@ source, it classifies each finding as:
   - confirmed      : keep
 
 CARDINAL RULE — recall-safety: a finding is dropped (false_positive) ONLY on a STRONG
-benign signal (a function-scoped/type-determined benign-pattern match, or a recall-safe
-LLM judgment). Weak grounding never drops. Measured on a realistic benign-context set:
-+28.6pp precision (42.9% -> 71.4%) at ZERO recall loss with an RAG-grounded local LLM;
-the rule-only path gives +12.7pp, also at zero recall loss.
+benign signal, defined as a function-scoped/type-determined benign-pattern (rule) match.
+The LLM is ADVISORY ONLY — it can raise needs_review but can NEVER drop. This was tightened
+after a wild real-data evaluation (docs/research/WILD_BENIGN_CONTEXT_EVAL_INSTRUCTIONS.md):
+on real contracts the LLM reasoned genuine vulns away, losing 3/21 anchored real findings
+(recall 0.857) — so LLM authority to drop was removed. The rule-only path holds recall 1.0
+(0/21 real lost) on that same set; on a controlled synthetic benign-context set it gives
++12.7pp precision at zero recall loss. (The earlier +28.6pp LLM-drop figure came from
+controlled pairs and did NOT generalize — that is exactly why it no longer drops.)
 
 Opt-in: the LLM path requires a local Ollama model; without one the rule-only path runs.
 
@@ -249,14 +253,23 @@ class BenignContextVerifier:
 
     # -- public API ------------------------------------------------------------
     def verify(self, finding: dict[str, Any], code: str) -> str:
-        """Return 'false_positive' | 'needs_review' | 'confirmed' (recall-safe)."""
+        """Return 'false_positive' | 'needs_review' | 'confirmed' (recall-safe).
+
+        DROP (false_positive) only on the deterministic, function-scoped benign-pattern
+        match. The LLM is ADVISORY: a real-data evaluation (see
+        docs/research/WILD_BENIGN_CONTEXT_EVAL_INSTRUCTIONS.md) showed it reasons genuine
+        vulns away on complex contracts (lost 3/21 anchored real findings), so an LLM
+        "false_positive" only FLAGS (needs_review) — it can never drop a finding.
+        """
         benign = match_benign(finding, code, self.patterns)
-        if benign is not None or self._llm_false_positive(finding, code):
+        if benign is not None:
             return "false_positive"
         loc = finding.get("location") if isinstance(finding.get("location"), dict) else {}
         fn = finding.get("function") or loc.get("function") or ""
         if fn and fn not in ("unknown", "") and _extract_function(code, fn) == "":
             return "needs_review"  # cited function absent -> flag, do not drop
+        if self._llm_false_positive(finding, code):
+            return "needs_review"  # LLM suspects benign -> FLAG for human review, never drop
         return "confirmed"
 
     def filter(self, findings: list[dict[str, Any]], code: str) -> dict[str, list[dict[str, Any]]]:
