@@ -418,7 +418,9 @@ DEMO_FINDINGS = [
 ]
 
 
-def measure(records: list[dict[str, Any]], patterns: list[dict[str, Any]]) -> dict[str, Any]:
+def measure(
+    records: list[dict[str, Any]], patterns: list[dict[str, Any]], llm_fn: Optional[Any] = None
+) -> dict[str, Any]:
     """Measure the loop against a LABELED per-finding dataset (data/fp_seed.jsonl).
 
     Each record: {finding:{type,location:{function,line},severity,...}, context:<code>,
@@ -434,7 +436,7 @@ def measure(records: list[dict[str, Any]], patterns: list[dict[str, Any]]) -> di
             "function": (loc.get("function") if isinstance(loc, dict) else "") or "",
             "severity": f.get("severity", ""),
         }
-        verdict = verify(finding, r.get("context", ""), patterns)["verdict"]
+        verdict = verify(finding, r.get("context", ""), patterns, llm_fn=llm_fn)["verdict"]
         dropped = verdict == "false_positive"  # recall-safe: needs_review is KEPT, not dropped
         if r.get("label") is True:  # real vulnerability
             tot_real += 1
@@ -472,6 +474,9 @@ def main() -> int:
     ap.add_argument("--code", help="path to the contract source")
     ap.add_argument("--benign", help="path to a benign-pattern JSONL (default: latest seed)")
     ap.add_argument("--measure", help="path to a LABELED per-finding JSONL (e.g. data/fp_seed.jsonl)")
+    ap.add_argument("--verifier", choices=["rule", "llm"], default="rule")
+    ap.add_argument("--model", default="qwen2.5-coder:32b")
+    ap.add_argument("--host", default="http://localhost:11434")
     args = ap.parse_args()
 
     patterns = load_benign_patterns(args.benign)
@@ -479,7 +484,10 @@ def main() -> int:
 
     if args.measure:
         records = [json.loads(line) for line in open(args.measure, encoding="utf-8") if line.strip()]
-        m = measure(records, patterns)
+        llm_fn = make_llm_verifier(args.model, args.host) if args.verifier == "llm" else None
+        if llm_fn:
+            print(f"# verifier: LLM via Ollama ({args.model})\n")
+        m = measure(records, patterns, llm_fn=llm_fn)
         print(f"# MEASURE on {args.measure} ({m['total_real']} real + {m['total_fp']} FP/noise)\n")
         print(f"  FP/noise dropped     : {m['fp_dropped']}/{m['total_fp']}  ({m['fp_drop_rate']:.1%})")
         print(f"  FP/noise leaked      : {m['fp_leaked']}/{m['total_fp']}")

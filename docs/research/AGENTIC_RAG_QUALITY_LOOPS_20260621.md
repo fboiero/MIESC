@@ -217,6 +217,27 @@ needs benign-context labels** (does the contract mitigate the flagged finding?),
 single-category labels; that is the dataset to build before claiming a field precision
 lift.
 
+## 9. Benign-context measurement (2026-06-21) — the right thermometer
+
+Built a paired benign-context set (`data/rag/benign_context_eval_20260621.jsonl`):
+16 findings of the SAME vuln types, each on a contract that either **mitigates** the
+finding (label = benign FP → should drop) or does **not** (label = real → keep), across
+reentrancy, access control, arithmetic, time, unchecked calls, bad randomness. This
+isolates the actual precision target: can the lever tell *mitigated* from *unmitigated*?
+
+| Verifier | FP-drop | precision | recall |
+|----------|--------:|-----------|--------|
+| rule-based | **6/10 (60%)** | 37.5% → **60.0%** (+22.5pp) | **100%** (0/6 lost) |
+| LLM qwen2.5-coder:32b | _(measuring)_ | _(pending)_ | _(pending)_ |
+
+**This is the honest field-relevant result.** With benign-context labels, the
+recall-safe rule-based lever delivers a real **+22.5pp precision lift at zero recall
+cost**. The 4 leaked FPs are the *semantic* cases the keyword rules can't see (SafeMath
+on pre-0.8, CEI ordering, block-var-for-bookkeeping vs entropy) — exactly where the LLM
+verifier should add value (row pending). Caveat: the contracts are curated/minimal
+(isolates the mitigated-vs-real distinction); a wild-corpus benign-context set is the
+next scale-up.
+
 **The gap between these two numbers is the whole story.** On real detector output the
 FPs are *vuln-type findings in benign context* (e.g. an unchecked-call finding on a
 reentrancy contract) whose benignity needs **semantic** reasoning — the rule-based
