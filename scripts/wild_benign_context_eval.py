@@ -9,16 +9,20 @@ research doc calls for: real scanner output, benign-context labels, verifier lif
 Three phases:
 
   1) collect  — run Slither (solc-select per pragma) over a corpus; emit one record per
-                finding with the contract code, plus a CSV for human labeling.
-  2) label    — fill the `label` for each finding: True = real (unmitigated) vulnerability,
-                False = benign-context false positive (the contract mitigates THIS finding).
-                Do it by hand (authoritative) in the CSV, or auto-label with an INDEPENDENT
-                judge model (--judge-model) — note the semi-circularity in the doc.
-  3) measure  — run BenignContextVerifier on the labeled findings and report FP-drop,
-                recall, and precision before/after (the field lift).
+                finding with the contract code, plus a CSV for human labeling. With
+                --ground-truth (a SmartBugs vulnerabilities.json), the recall-critical
+                REAL label is anchored on the dataset's own annotations (category + line):
+                no LLM, no circularity. Only NON-annotated findings are left to label.
+  2) label    — fill the `label` for findings still unlabeled: True = real (unmitigated)
+                vulnerability, False = benign-context false positive (mitigated in context).
+                By hand (authoritative) in the CSV, or with an INDEPENDENT judge model
+                (--judge-model). Anchored reals are skipped — judge only sees the rest.
+  3) measure  — run BenignContextVerifier on the labeled findings; report FP-drop, recall,
+                precision before/after, AND anchored_recall (recall on ground-truth reals,
+                the circularity-free number).
 
-Usage:
-  python3 scripts/wild_benign_context_eval.py collect <corpus_dir> -o wild_findings.jsonl [--max 200]
+Usage (hybrid, recommended):
+  python3 scripts/wild_benign_context_eval.py collect <corpus_dir> --ground-truth vulnerabilities.json -o wild_findings.jsonl
   python3 scripts/wild_benign_context_eval.py label  wild_findings.jsonl -o wild_labeled.jsonl --judge-model qwen2.5-coder:32b
   python3 scripts/wild_benign_context_eval.py measure wild_labeled.jsonl --verify-model qwen2.5-coder:32b
 
@@ -113,12 +117,47 @@ def run_slither(path: str, code: str, timeout: int) -> list[dict] | None:
     return findings
 
 
+def load_ground_truth(path: str) -> dict:
+    """basename -> [{category, lines}] from a SmartBugs vulnerabilities.json.
+
+    Anchors the recall-critical label (a finding IS a real vuln) on the dataset's own
+    annotations — no LLM, no circularity. Only the lower-stakes 'benign vs real-secondary'
+    question for non-annotated findings is left to the judge / human.
+    """
+    data = json.load(open(path))
+    idx: dict = {}
+    for c in data:
+        key = os.path.basename(c.get("path", "") or c.get("name", ""))
+        idx.setdefault(key, []).extend(c.get("vulnerabilities", []))
+    return idx
+
+
+def anchored_real(finding: dict, vulns: list, window: int = 2) -> bool:
+    """True if the finding matches an annotated vuln (category + line ± window).
+
+    Conservative by design: when the category matches but line info is absent, returns
+    True. That biases toward labeling 'real', which can only UNDER-credit the verifier —
+    never inflate it — keeping the precision number honest.
+    """
+    cat, line = finding.get("type"), finding.get("line") or 0
+    for v in vulns:
+        if v.get("category") != cat:
+            continue
+        lines = v.get("lines") or []
+        if not lines:
+            return True
+        if line and (line in lines or any(abs(line - l) <= window for l in lines)):
+            return True
+    return False
+
+
 # --------------------------------------------------------------------------- #
 def cmd_collect(args) -> int:
+    gt = load_ground_truth(args.ground_truth) if args.ground_truth else {}
     files = sorted(glob.glob(os.path.join(args.corpus, "**", "*.sol"), recursive=True))
     if args.max:
         files = files[: args.max]
-    records, scanned, skipped = [], 0, 0
+    records, scanned, skipped, anchored = [], 0, 0, 0
     for path in files:
         code = open(path, errors="ignore").read()
         fs = run_slither(path, code, args.timeout)
@@ -127,25 +166,38 @@ def cmd_collect(args) -> int:
             print(f"  skip {os.path.basename(path)} (no solc / scan failed)")
             continue
         scanned += 1
+        vulns = gt.get(os.path.basename(path), []) if gt else []
         for f in fs:
+            real = bool(vulns) and anchored_real(f, vulns)
+            anchored += real
             records.append({
                 "contract": path, "check": f["check"], "type": f["type"],
                 "function": f["function"], "line": f["line"], "severity": f["severity"],
-                "code": code, "label": None,
+                "code": code,
+                "label": True if real else None,
+                "label_source": "ground_truth" if real else None,
             })
         print(f"  scan {os.path.basename(path)}: {len(fs)} findings")
     with open(args.out, "w") as fh:
         for r in records:
             fh.write(json.dumps(r) + "\n")
-    # human-labeling CSV (code omitted; label column blank for the auditor to fill)
+    # human-labeling CSV: anchored reals pre-filled; only NON-annotated rows need a label.
     csv_path = args.out.rsplit(".", 1)[0] + "_TO_LABEL.csv"
     with open(csv_path, "w", newline="") as fh:
         w = csv.writer(fh)
-        w.writerow(["idx", "contract", "check", "type", "function", "line", "label(True=real/False=benignFP)"])
+        w.writerow(["idx", "contract", "check", "type", "function", "line",
+                    "label(True=real/False=benignFP)", "label_source"])
         for i, r in enumerate(records):
-            w.writerow([i, os.path.basename(r["contract"]), r["check"], r["type"], r["function"], r["line"], ""])
+            w.writerow([i, os.path.basename(r["contract"]), r["check"], r["type"],
+                        r["function"], r["line"],
+                        r["label"] if r["label"] is not None else "",
+                        r["label_source"] or ""])
+    todo = sum(1 for r in records if r["label"] is None)
     print(f"\ncollected {len(records)} findings from {scanned} contracts ({skipped} skipped)")
-    print(f"  findings: {args.out}\n  label here (or via --judge-model): {csv_path}")
+    if gt:
+        print(f"  anchored as REAL from ground truth (no LLM): {anchored}")
+        print(f"  left for judge/human (non-annotated): {todo}")
+    print(f"  findings: {args.out}\n  label the rest here (or via --judge-model): {csv_path}")
     return 0
 
 
@@ -189,6 +241,7 @@ def cmd_measure(args) -> int:
         return 1
     v = BenignContextVerifier(model=args.verify_model)
     tp = fp = tp_kept = tp_lost = fp_drop = fp_leak = 0
+    anc_total = anc_kept = 0  # recall on ground-truth-anchored reals (circularity-free)
     for r in records:
         finding = {"type": r["type"], "title": r["check"],
                    "location": {"function": r["function"], "line": r["line"]}, "severity": r["severity"]}
@@ -197,6 +250,9 @@ def cmd_measure(args) -> int:
             tp += 1
             tp_lost += dropped
             tp_kept += not dropped
+            if r.get("label_source") == "ground_truth":
+                anc_total += 1
+                anc_kept += not dropped
         else:  # benign-context FP
             fp += 1
             fp_drop += dropped
@@ -207,6 +263,8 @@ def cmd_measure(args) -> int:
         "fp_dropped": fp_drop, "fp_drop_rate": round(fp_drop / fp, 4) if fp else 0.0,
         "real_kept": tp_kept, "real_lost": tp_lost,
         "recall_retained": round(tp_kept / tp, 4) if tp else 0.0,
+        "anchored_real": anc_total,
+        "anchored_recall": round(anc_kept / anc_total, 4) if anc_total else None,
         "precision_before": round(tp / (tp + fp), 4) if (tp + fp) else 0.0,
         "precision_after": round(tp_kept / kept, 4) if kept else 0.0,
         "verify_model": args.verify_model or "rule-only",
@@ -227,6 +285,8 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("collect"); c.add_argument("corpus"); c.add_argument("-o", "--out", default="wild_findings.jsonl")
     c.add_argument("--max", type=int, default=0); c.add_argument("--timeout", type=int, default=60)
+    c.add_argument("--ground-truth", default=None,
+                   help="SmartBugs vulnerabilities.json — anchors REAL labels (no LLM, no circularity)")
     lb = sub.add_parser("label"); lb.add_argument("infile"); lb.add_argument("-o", "--out", default="wild_labeled.jsonl")
     lb.add_argument("--judge-model", default="qwen2.5-coder:32b")
     m = sub.add_parser("measure"); m.add_argument("infile"); m.add_argument("--verify-model", default=None)

@@ -39,17 +39,32 @@ ollama list                # qwen2.5-coder:32b present (verifier + optional judg
 A corpus of real `.sol` files. Recommended: **SmartBugs-curated** (143 contracts, the
 standard) — same corpus the papers use, so the field number is comparable in spirit.
 
-## Phase 1 — collect (run the real scanner)
+## Phase 1 — collect (run the real scanner + anchor ground truth)
 
 ```bash
 python3 scripts/wild_benign_context_eval.py collect /path/to/smartbugs-curated \
+  --ground-truth /path/to/smartbugs-curated/vulnerabilities.json \
   -o wild_findings.jsonl --max 200
 ```
 
 Per `.sol`: picks the highest installed solc matching the pragma minor (`solc-select use`),
 runs `slither --json`, and emits one JSONL record per finding
-(`{contract, check, type, function, line, severity, code, label:null}`). It also writes
-`wild_findings_TO_LABEL.csv` — the human-labeling sheet.
+(`{contract, check, type, function, line, severity, code, label, label_source}`).
+
+**`--ground-truth` is the hybrid anchor (recommended).** It loads the dataset's own
+`vulnerabilities.json` (the same loader the paper eval uses, `benchmarks/smartbugs_evaluation.py:102`)
+and, for every finding that matches an annotated vuln by **category + line (± 2)**, sets
+`label = True`, `label_source = "ground_truth"`. That is the **recall-critical** label —
+the one that defines "did the verifier drop a real vuln?" — fixed by the dataset, **with no
+LLM and no circularity**. Only **non-annotated** findings come out `label = null` and need a
+benign-vs-real decision in Phase 2.
+
+> The anchor is deliberately conservative: when a category is annotated but lines are
+> absent, it labels the finding real. That can only *under*-credit the verifier, never
+> inflate it — keeping the precision number honest.
+
+It also writes `wild_findings_TO_LABEL.csv` with the anchored labels pre-filled, so the
+human only labels the blanks.
 
 > Contracts that don't compile (missing solc, syntax) are **skipped and reported**, not
 > silently dropped. Watch the skip count — a high count means a solc version is missing.
@@ -60,7 +75,10 @@ runs `slither --json`, and emits one JSONL record per finding
 `label = False` → a **benign-context false positive**: the contract mitigates *this exact*
 finding (verifier may DROP it).
 
-Two ways:
+With Phase 1's `--ground-truth`, the `True` (real) labels are already anchored — you are
+**only** deciding, for the remaining non-annotated findings, whether each is benign-context
+or a real *secondary* issue the dataset didn't annotate. Lower stakes, and LLM noise here
+cannot violate recall-safety (the anchored reals already guard that). Two ways:
 
 ### (a) Authoritative — by hand
 Open `wild_findings_TO_LABEL.csv`, fill the last column per row, then merge the labels
@@ -93,6 +111,7 @@ Runs `BenignContextVerifier.verify()` on each labeled finding and reports:
 |---|---|
 | `fp_drop_rate` | benign-context FPs the verifier dropped (the win) |
 | `recall_retained` | real vulns kept ÷ real vulns — **MUST be 1.0** |
+| `anchored_recall` | recall on **ground-truth-anchored** reals — the circularity-free headline; **MUST be 1.0** |
 | `real_lost` | real vulns dropped — **MUST be 0**; non-zero = recall-safety violated |
 | `precision_before` / `precision_after` | precision lift (the field number) |
 
