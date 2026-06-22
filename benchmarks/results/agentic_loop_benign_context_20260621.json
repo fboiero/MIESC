@@ -1,0 +1,42 @@
+{
+  "artifact": "agentic_loop_benign_context_measurement",
+  "generated_at": "2026-06-21",
+  "dataset": "data/rag/benign_context_eval_20260621.jsonl",
+  "dataset_size": {
+    "total": 16,
+    "real_keep": 6,
+    "benign_fp_drop": 10
+  },
+  "categories": [
+    "reentrancy",
+    "access_control",
+    "arithmetic",
+    "time_manipulation",
+    "unchecked_low_level_calls",
+    "bad_randomness"
+  ],
+  "rule_based": {
+    "fp_dropped": 6,
+    "fp_drop_rate": 0.6,
+    "recall_retained": 1.0,
+    "real_lost": 0,
+    "precision_before": 0.375,
+    "precision_after": 0.6,
+    "lift_pp": 22.5
+  },
+  "llm_qwen25_coder_32b": {
+    "fp_dropped": 9,
+    "fp_drop_rate": 0.9,
+    "recall_retained": 1.0,
+    "real_lost": 0,
+    "precision_before": 0.375,
+    "precision_after": 0.857,
+    "lift_pp": 48.2
+  },
+  "finding": "On benign-context labels (mitigated vs unmitigated, same vuln type), the recall-safe lever lifts precision with ZERO recall loss: rule-based +22.5pp, LLM +48.2pp (~2.3x). LLM caught the semantic mitigations (SafeMath, CEI, block-var bookkeeping) the keyword rules miss.",
+  "caveats": [
+    "Curated/minimal contracts isolate the mitigated-vs-real distinction; wild-corpus benign-context set is the next scale-up.",
+    "LLM verifier recall-safe prompt (default not-FP under uncertainty); 32b ~15-45s/finding.",
+    "Tool R&D only \u2014 papers frozen/untouched."
+  ]
+}

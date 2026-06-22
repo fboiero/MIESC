@@ -227,16 +227,23 @@ isolates the actual precision target: can the lever tell *mitigated* from *unmit
 
 | Verifier | FP-drop | precision | recall |
 |----------|--------:|-----------|--------|
-| rule-based | **6/10 (60%)** | 37.5% → **60.0%** (+22.5pp) | **100%** (0/6 lost) |
-| LLM qwen2.5-coder:32b | _(measuring)_ | _(pending)_ | _(pending)_ |
+| rule-based | 6/10 (60%) | 37.5% → 60.0% (**+22.5pp**) | **100%** (0/6 lost) |
+| **LLM qwen2.5-coder:32b** | **9/10 (90%)** | 37.5% → **85.7%** (**+48.2pp**) | **100%** (0/6 lost) |
 
-**This is the honest field-relevant result.** With benign-context labels, the
-recall-safe rule-based lever delivers a real **+22.5pp precision lift at zero recall
-cost**. The 4 leaked FPs are the *semantic* cases the keyword rules can't see (SafeMath
-on pre-0.8, CEI ordering, block-var-for-bookkeeping vs entropy) — exactly where the LLM
-verifier should add value (row pending). Caveat: the contracts are curated/minimal
-(isolates the mitigated-vs-real distinction); a wild-corpus benign-context set is the
-next scale-up.
+**This is the honest field-relevant result, and the hypothesis held.** With
+benign-context labels, the recall-safe lever delivers a real precision lift at **zero
+recall cost** — rule-based **+22.5pp**, and the LLM verifier **+48.2pp** (precision
+37.5% → 85.7%, a ~2.3× improvement). The LLM caught the *semantic* mitigations the
+keyword rules miss (SafeMath on pre-0.8, CEI ordering, block-var bookkeeping vs
+entropy), dropping 9/10 benign FPs while keeping every real vuln.
+
+**Bottom line of the whole study.** The approach works *when measured against the right
+target*: recall-safe by construction (0 vulns lost in every run), and on benign-context
+FPs the LLM + benign-RAG verifier roughly doubles the rule-based lift to a ~2.3×
+precision gain. The cross-category SmartBugs single-label measurement (§8, ~0% lift) was
+the wrong thermometer. Caveats: the benign-context set is curated/minimal (isolates
+mitigated-vs-real); a wild-corpus benign-context set and a larger LLM slice are the next
+scale-ups. None of this touches the papers — it is the verifier's evolution roadmap.
 
 **The gap between these two numbers is the whole story.** On real detector output the
 FPs are *vuln-type findings in benign context* (e.g. an unchecked-call finding on a
