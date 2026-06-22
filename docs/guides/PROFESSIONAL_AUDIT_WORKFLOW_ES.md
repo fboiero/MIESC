@@ -295,12 +295,22 @@ MIESC reduce automáticamente los falsos positivos mediante:
 ### Verificador Recall-Safe (`--verify-fp`)
 
 `miesc scan <contrato> --verify-fp` agrega un filtro de falsos positivos **opt-in y
-recall-safe** que descarta SOLO los hallazgos que el contrato *mitiga claramente* en
-contexto — una reentrancy en una función con `nonReentrant`/CEI, un control de acceso en
-una función `onlyOwner`, aritmética en Solidity ≥0.8, una low-level call chequeada /
-`SafeERC20`, `block.timestamp` usado solo como timelock, etc. **Nunca descarta por una
-señal débil**: los casos ambiguos se marcan `needs_review` y se conservan, así no se
-pierden vulnerabilidades reales.
+recall-safe**. **Descarta un hallazgo SOLO ante una señal benigna TYPE-DETERMINISTIC** — un
+hecho de lenguaje/librería/tipo-de-hallazgo que no puede coexistir con una vuln real de esa
+clase: aritmética en Solidity ≥0.8 (excluyendo precision/rounding), una low-level call
+chequeada / `SafeERC20` / un `.transfer()` que revierte, lint informativo, el vector
+short-address en ≥0.5, un constructor de nombre viejo en ≥0.5. Todo lo demás se **marca
+`needs_review` (se conserva), nunca se descarta**:
+
+- **Guardas contextuales** (`nonReentrant`, `onlyOwner`, orden CEI, gates de
+  `block.timestamp`) solo marcan — la *presencia* de una guarda no prueba que sea benigno
+  (los auditores flaggean código con guarda por owner-rug, read-only reentrancy, etc.).
+- **El LLM** (`--verify-model`) solo marca — en contratos reales puede razonar vulns
+  genuinas como benignas, así que no tiene autoridad para descartar.
+
+Esto se endureció contra una evaluación wild en seis fuentes de ground truth (SmartBugs-curated,
+fsalzano, SolidiFI, DAppSCAN, Code4rena, Sherlock): **recall 1.0 — no se descarta ninguna
+vulnerabilidad real.**
 
 ```bash
 # Rápido, solo reglas (sin dependencias)
@@ -317,13 +327,20 @@ miesc audit quick MiContrato.sol --verify-fp
 miesc audit full MiContrato.sol --verify-fp --verify-model qwen2.5-coder:32b
 ```
 
-`--verify-model` activa el grounding semántico con LLM: el modo solo-reglas caza las
-mitigaciones comunes, y el LLM además caza las semánticas (Chainlink VRF, pull-payment,
-commit-reveal). El LLM prueba **Ollama primero y hace failover a la API de DeepSeek**
+`--verify-model` agrega un pase LLM **advisory**: MARCA falsos positivos sospechosos
+adicionales como `needs_review` para tu atención — nunca descarta, así que no afecta el
+recall. El LLM prueba **Ollama primero y hace failover a la API de DeepSeek**
 (`DEEPSEEK_API_KEY`) si Ollama no está disponible; cualquier falla del LLM degrada de forma
-segura a conservar el hallazgo. En un benchmark realista de contexto-benigno el verificador
-LLM sube la precisión ~+28pp con recall 100% — **usá un modelo de clase 32B**, ya que los
-más chicos pueden confundir vulnerabilidades reales con benignas.
+segura a conservar el hallazgo.
+
+**Sobre precisión:** el conjunto de drops seguros (determinísticos) es chico a propósito, así
+que el lift de precisión es modesto (~+4pp con recall 100% en la eval wild). La reducción
+grande de FP requeriría juicio semántico que *no* es recall-safe — deliberadamente no
+actuamos sobre eso de forma destructiva; esos hallazgos se marcan para revisión en lugar de
+descartarse. El contrato honesto de `--verify-fp` es: **sacar lo provablemente-benigno,
+marcar lo sospechoso, jamás perder una vulnerabilidad real.** (Una cifra previa de "+28pp vía
+LLM-drop" venía de pares sintéticos controlados y no generalizó a contratos reales — por eso
+el LLM ya no descarta.)
 
 ### Filtrado Manual
 

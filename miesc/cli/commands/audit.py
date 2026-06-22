@@ -744,14 +744,17 @@ def audit() -> None:
 @click.option(
     "--verify-fp",
     is_flag=True,
-    help="Recall-safe benign-context FP filter: drop findings the code clearly mitigates "
-    "(reentrancy guard, onlyOwner, Sol>=0.8, ...). Add --verify-model for LLM grounding.",
+    help="Recall-safe benign-context FP filter. Drops ONLY type-deterministic benign findings "
+    "(Sol>=0.8 arithmetic, checked call/SafeERC20, informational lint); contextual guards and "
+    "LLM judgments only FLAG (needs_review), never drop. Add --verify-model for an advisory "
+    "LLM flagging pass.",
 )
 @click.option(
     "--verify-model",
     "verify_model",
     default=None,
-    help="Ollama/DeepSeek model for --verify-fp LLM grounding (e.g. qwen2.5-coder:32b, deepseek).",
+    help="Ollama/DeepSeek model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b, "
+    "deepseek): flags more suspected FPs as needs_review; never drops.",
 )
 def audit_quick(
     contract: str,
@@ -915,14 +918,17 @@ def audit_quick(
 @click.option(
     "--verify-fp",
     is_flag=True,
-    help="Recall-safe benign-context FP filter: drop findings the code clearly mitigates "
-    "(reentrancy guard, onlyOwner, Sol>=0.8, ...). Add --verify-model for LLM grounding.",
+    help="Recall-safe benign-context FP filter. Drops ONLY type-deterministic benign findings "
+    "(Sol>=0.8 arithmetic, checked call/SafeERC20, informational lint); contextual guards and "
+    "LLM judgments only FLAG (needs_review), never drop. Add --verify-model for an advisory "
+    "LLM flagging pass.",
 )
 @click.option(
     "--verify-model",
     "verify_model",
     default=None,
-    help="Ollama/DeepSeek model for --verify-fp LLM grounding (e.g. qwen2.5-coder:32b, deepseek).",
+    help="Ollama/DeepSeek model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b, "
+    "deepseek): flags more suspected FPs as needs_review; never drops.",
 )
 def audit_full(
     contract: str,

@@ -57,14 +57,14 @@ miesc report results.json -t premium -f pdf        # Reporte de auditoría profe
 miesc scan contract.sol --verbose                  # Confianza + corrección por hallazgo
 miesc scan contracts/ --recursive                  # Escaneo de directorios
 miesc scan . --diff origin/main                    # Nivel PR: solo archivos modificados
-miesc scan contract.sol --verify-fp                # Filtro de FP recall-safe: descarta hallazgos que el código mitiga
+miesc scan contract.sol --verify-fp                # Filtro de FP recall-safe: descarta solo benignos type-deterministic, flaggea el resto
 ```
 
 El motor de inteligencia automáticamente:
 - **Deduplica** hallazgos entre herramientas (Slither + Aderyn reportan el mismo bug → 1 hallazgo)
 - **Puntúa la confianza** mediante acuerdo bayesiano multi-herramienta (2 herramientas = 85%, 3 = 95%)
 - **Genera código de corrección** — parches de Solidity listos para copiar y pegar para 10 categorías de vulnerabilidades
-- **Suprime falsos positivos** — sensible al contexto (onlyOwner, Solidity 0.8+, guardas de OpenZeppelin)
+- **Reduce falsos positivos** — descarta solo benignos type-deterministic (Solidity 0.8+, llamada chequeada/SafeERC20, lint informativo); guardas contextuales (onlyOwner, nonReentrant) se flaggean para revisión, nunca se descartan (recall 1.0)
 - **Calibra la severidad** entre herramientas (Aderyn LOW → Medium cuando corresponde)
 
 ¿Querés el análisis completo de 9 capas con correlación por IA?
@@ -299,7 +299,7 @@ miesc scan Bridge.sol             # Detecta 7 patrones de exploits en bridges
 | `miesc scan` | Escaneo rápido (3 herramientas + motor de inteligencia) |
 | `miesc scan --diff HEAD~1` | **NUEVO** Nivel PR: solo archivos .sol modificados |
 | `miesc scan contracts/` | **NUEVO** Escaneo de directorios (+ `--recursive`) |
-| `miesc scan --verify-fp` | **NUEVO** Filtro de FP recall-safe: descarta hallazgos que el código mitiga (`--verify-model` para grounding con LLM) |
+| `miesc scan --verify-fp` | **NUEVO** Filtro de FP recall-safe: descarta solo benignos type-deterministic, flaggea guards/LLM como needs_review (`--verify-model` = pase LLM advisory) |
 | `miesc audit quick\|full` | Auditoría multi-capa (3 herramientas rápidas o stack configurado de 9 capas) |
 | `miesc fix results.json` | Auto-genera archivos .sol parcheados |
 | `miesc remediate results.json` | **NUEVO** Genera archivos parcheados más evidencia de compilación/re-escaneo |

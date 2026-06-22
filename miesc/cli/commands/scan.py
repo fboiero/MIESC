@@ -111,16 +111,19 @@ if RICH_AVAILABLE:
 @click.option(
     "--verify-fp",
     is_flag=True,
-    help="Recall-safe benign-context verifier: drops findings the code clearly mitigates "
-    "(reentrancy guard, onlyOwner, Sol>=0.8, ...). Rule-only and fast; never drops a real "
-    "vuln on a weak signal. Add --verify-model for semantic (LLM) grounding.",
+    help="Recall-safe benign-context verifier. Drops ONLY type-deterministic benign findings "
+    "(Sol>=0.8 arithmetic, checked call/SafeERC20/reverting transfer, informational lint); "
+    "contextual guards (onlyOwner, nonReentrant, CEI, timelock) and LLM judgments only FLAG "
+    "(needs_review), never drop. Recall 1.0 validated on six sources. --verify-model adds an "
+    "advisory LLM flagging pass.",
 )
 @click.option(
     "--verify-model",
     "verify_model",
     default=None,
-    help="Ollama model for the --verify-fp LLM grounding (e.g. qwen2.5-coder:32b). "
-    "Higher precision; slower. Omit for the fast rule-only verifier.",
+    help="Ollama model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b): flags "
+    "more suspected FPs as needs_review; never drops (no recall impact). Slower; omit for "
+    "the fast rule-only verifier.",
 )
 def scan(
     contract: str,

@@ -294,12 +294,22 @@ MIESC automatically reduces false positives through:
 
 ### Recall-Safe Verifier (`--verify-fp`)
 
-`miesc scan <contract> --verify-fp` adds an opt-in, **recall-safe** false-positive filter
-that drops only findings the contract *clearly mitigates* in context — a reentrancy finding
-on a `nonReentrant`/CEI function, an access-control finding on an `onlyOwner` function,
-arithmetic on Solidity ≥0.8, a checked low-level call / `SafeERC20`, `block.timestamp` used
-only as a timelock, etc. A finding is **never dropped on a weak signal**: ambiguous cases
-are flagged `needs_review` and kept, so real vulnerabilities are not lost.
+`miesc scan <contract> --verify-fp` adds an opt-in, **recall-safe** false-positive filter.
+It **drops a finding only on a TYPE-DETERMINISTIC benign signal** — a language/library/
+finding-type fact that cannot coexist with a real vuln of that kind: arithmetic on Solidity
+≥0.8 (excluding precision/rounding), a checked low-level call / `SafeERC20` / a reverting
+`.transfer()`, informational lint, the short-address vector on ≥0.5, an old-style constructor
+name on ≥0.5. Everything else is **flagged `needs_review` (kept), never dropped**:
+
+- **Contextual guards** (`nonReentrant`, `onlyOwner`, CEI ordering, `block.timestamp` gates)
+  only flag — a guard's *presence* is not proof of benignity (auditors flag guarded code for
+  owner-rug, read-only reentrancy, etc.).
+- **The LLM** (`--verify-model`) only flags — on real contracts it can reason genuine vulns
+  away, so it has no authority to drop.
+
+This was hardened against a wild evaluation on six ground-truth sources (SmartBugs-curated,
+fsalzano, SolidiFI, DAppSCAN, Code4rena, Sherlock): **recall is 1.0 — no real vulnerability
+is dropped.**
 
 ```bash
 # Fast, rule-only (no dependencies)
@@ -316,13 +326,18 @@ miesc audit quick MyContract.sol --verify-fp
 miesc audit full MyContract.sol --verify-fp --verify-model qwen2.5-coder:32b
 ```
 
-`--verify-model` enables semantic LLM grounding: the rule-only path catches common
-mitigations, while the LLM also catches semantic ones (Chainlink VRF, pull-payment,
-commit-reveal). The LLM path tries **Ollama first and fails over to the DeepSeek API**
-(`DEEPSEEK_API_KEY`) when Ollama is unavailable; any LLM failure degrades safely to keeping
-the finding. On a realistic benign-context benchmark the LLM verifier lifts precision
-~+28pp at 100% recall — **use a 32B-class model**, since smaller models can misjudge real
-vulnerabilities as benign.
+`--verify-model` adds an **advisory** LLM pass: it FLAGS additional suspected false positives
+as `needs_review` for your attention — it never drops, so it cannot affect recall. The LLM
+path tries **Ollama first and fails over to the DeepSeek API** (`DEEPSEEK_API_KEY`) when
+Ollama is unavailable; any LLM failure degrades safely to keeping the finding.
+
+**On precision:** the safe (deterministic) drop set is intentionally small, so the precision
+lift is modest (~+4pp at 100% recall in the wild eval). The big false-positive reduction
+would require semantic judgment that is *not* recall-safe — we deliberately do not act on it
+destructively, so those findings are flagged for review instead of dropped. The honest
+contract of `--verify-fp` is: **remove the provably-benign, flag the suspicious, never lose a
+real vulnerability.** (An earlier "+28pp via LLM-drop" figure came from controlled synthetic
+pairs and did not generalize to real contracts — which is why the LLM no longer drops.)
 
 ### Manual Filtering
 
