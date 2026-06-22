@@ -300,6 +300,30 @@ extra +6pp of the directive prompt is not worth a missed vulnerability. Recall-s
 enforced in the *prompt*, not just the verdict logic — grounding must be reference, never
 directive.
 
+## 12. Model sweep (2026-06-22): 14b vs 32b — strength is a recall-safety requirement
+
+Same recall-safe RAG-grounded config on v2, two model sizes:
+
+| Model | precision | recall | verdict |
+|-------|-----------|--------|---------|
+| qwen2.5-coder:**32b** | 42.9% → 71.4% (+28.6pp) | **100%** (0/15 lost) | **production default** |
+| qwen2.5-coder:**14b** | 42.9% → 68.8% (+25.9pp) | **73.3%** (4/15 **lost**) | **unsafe — rejected** |
+
+**The trap:** 14b's precision looks comparable (+25.9 vs +28.6pp) but it got there by
+**dropping 4 of 15 real vulns** (recall 73.3%). The smaller model is not merely less
+precise — it **breaks recall-safety**, misjudging real vulns as benign. Model strength is
+therefore a *recall-safety requirement*, not just a precision/cost knob. **The production
+verifier must use 32b (or stronger); 14b is rejected.** A cheaper model is unacceptable
+if it misses vulnerabilities.
+
+## Productionization
+
+`src/ml/benign_context_verifier.py` ships the recall-safe verifier as a reusable class
+(`BenignContextVerifier(model=...).filter(findings, code)` → kept / dropped / flagged).
+Rule-only by default (no deps); opt-in LLM grounding via local Ollama (default 32b).
+Drops only on a strong benign signal; weak grounding → `needs_review` (kept). Additive,
+opt-in; the core MIESC scan flow and the papers are untouched.
+
 **The gap between these two numbers is the whole story.** On real detector output the
 FPs are *vuln-type findings in benign context* (e.g. an unchecked-call finding on a
 reentrancy contract) whose benignity needs **semantic** reasoning — the rule-based

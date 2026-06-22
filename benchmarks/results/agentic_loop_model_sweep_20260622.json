@@ -1,0 +1,25 @@
+{
+  "artifact": "agentic_loop_model_sweep",
+  "generated_at": "2026-06-22",
+  "dataset": "data/rag/benign_context_eval_v2_20260621.jsonl (35: 15 real + 20 benign-FP)",
+  "config": "recall-safe RAG-grounded LLM verifier",
+  "qwen25_coder_32b": {
+    "precision_after": 0.714,
+    "lift_pp": 28.6,
+    "recall": 1.0,
+    "real_lost": 0,
+    "verdict": "production default"
+  },
+  "qwen25_coder_14b": {
+    "precision_after": 0.688,
+    "lift_pp": 25.9,
+    "recall": 0.733,
+    "real_lost": 4,
+    "verdict": "REJECTED - breaks recall-safety"
+  },
+  "finding": "14b precision looks comparable (+25.9 vs +28.6pp) but it LOST 4/15 real vulns (recall 73.3%) \u2014 the smaller model breaks recall-safety by misjudging real vulns as benign. Model strength is a recall-safety requirement, not just a cost knob. Production verifier must use 32b+.",
+  "caveats": [
+    "Curated/realistic v2 set.",
+    "Tool R&D only \u2014 papers frozen."
+  ]
+}
