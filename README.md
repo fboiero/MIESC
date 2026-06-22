@@ -57,6 +57,7 @@ miesc report results.json -t premium -f pdf        # Professional audit report
 miesc scan contract.sol --verbose                  # Per-finding confidence + fix
 miesc scan contracts/ --recursive                  # Directory scanning
 miesc scan . --diff origin/main                    # PR-level: only changed files
+miesc scan contract.sol --verify-fp                # Recall-safe FP filter: drop findings the code mitigates
 ```
 
 The intelligence engine automatically:
@@ -297,6 +298,7 @@ miesc scan Bridge.sol             # Detects 7 bridge exploit patterns
 | `miesc scan` | Quick scan (3 tools + intelligence engine) |
 | `miesc scan --diff HEAD~1` | **NEW** PR-level: only changed .sol files |
 | `miesc scan contracts/` | **NEW** Directory scan (+ `--recursive`) |
+| `miesc scan --verify-fp` | **NEW** Recall-safe FP filter: drop findings the code clearly mitigates (`--verify-model` for LLM grounding) |
 | `miesc audit quick\|full` | Multi-layer audit (3 quick tools or configured 9-layer stack) |
 | `miesc fix results.json` | Auto-generate patched .sol files |
 | `miesc remediate results.json` | **NEW** Generate patched files plus compile/re-scan evidence |

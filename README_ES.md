@@ -57,6 +57,7 @@ miesc report results.json -t premium -f pdf        # Reporte de auditoría profe
 miesc scan contract.sol --verbose                  # Confianza + corrección por hallazgo
 miesc scan contracts/ --recursive                  # Escaneo de directorios
 miesc scan . --diff origin/main                    # Nivel PR: solo archivos modificados
+miesc scan contract.sol --verify-fp                # Filtro de FP recall-safe: descarta hallazgos que el código mitiga
 ```
 
 El motor de inteligencia automáticamente:
@@ -298,6 +299,7 @@ miesc scan Bridge.sol             # Detecta 7 patrones de exploits en bridges
 | `miesc scan` | Escaneo rápido (3 herramientas + motor de inteligencia) |
 | `miesc scan --diff HEAD~1` | **NUEVO** Nivel PR: solo archivos .sol modificados |
 | `miesc scan contracts/` | **NUEVO** Escaneo de directorios (+ `--recursive`) |
+| `miesc scan --verify-fp` | **NUEVO** Filtro de FP recall-safe: descarta hallazgos que el código mitiga (`--verify-model` para grounding con LLM) |
 | `miesc audit quick\|full` | Auditoría multi-capa (3 herramientas rápidas o stack configurado de 9 capas) |
 | `miesc fix results.json` | Auto-genera archivos .sol parcheados |
 | `miesc remediate results.json` | **NUEVO** Genera archivos parcheados más evidencia de compilación/re-escaneo |

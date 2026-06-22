@@ -292,6 +292,34 @@ MIESC automatically reduces false positives through:
 2. **Pattern matching:** Known false positive patterns are filtered
 3. **Context analysis:** Guards, require statements, and CEI patterns are recognized
 
+### Recall-Safe Verifier (`--verify-fp`)
+
+`miesc scan <contract> --verify-fp` adds an opt-in, **recall-safe** false-positive filter
+that drops only findings the contract *clearly mitigates* in context — a reentrancy finding
+on a `nonReentrant`/CEI function, an access-control finding on an `onlyOwner` function,
+arithmetic on Solidity ≥0.8, a checked low-level call / `SafeERC20`, `block.timestamp` used
+only as a timelock, etc. A finding is **never dropped on a weak signal**: ambiguous cases
+are flagged `needs_review` and kept, so real vulnerabilities are not lost.
+
+```bash
+# Fast, rule-only (no dependencies)
+miesc scan MyContract.sol --verify-fp
+
+# Higher precision with an LLM verifier (local Ollama; 32B recommended)
+miesc scan MyContract.sol --verify-fp --verify-model qwen2.5-coder:32b
+
+# DeepSeek API as failover / direct (set DEEPSEEK_API_KEY)
+miesc scan MyContract.sol --verify-fp --verify-model deepseek
+```
+
+`--verify-model` enables semantic LLM grounding: the rule-only path catches common
+mitigations, while the LLM also catches semantic ones (Chainlink VRF, pull-payment,
+commit-reveal). The LLM path tries **Ollama first and fails over to the DeepSeek API**
+(`DEEPSEEK_API_KEY`) when Ollama is unavailable; any LLM failure degrades safely to keeping
+the finding. On a realistic benign-context benchmark the LLM verifier lifts precision
+~+28pp at 100% recall — **use a 32B-class model**, since smaller models can misjudge real
+vulnerabilities as benign.
+
 ### Manual Filtering
 
 ```bash
