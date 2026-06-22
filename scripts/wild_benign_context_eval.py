@@ -117,6 +117,53 @@ def run_slither(path: str, code: str, timeout: int) -> list[dict] | None:
     return findings
 
 
+# MIESC internal pattern categories -> the anchor vocabulary (Slither-mapped categories).
+_MIESC_NORM = {
+    "rounding_error_division": "arithmetic",
+    "unchecked_return_value": "unchecked_low_level_calls",
+    "unchecked_send_pattern": "unchecked_low_level_calls",
+    "unchecked_call_pattern": "unchecked_low_level_calls",
+    "erc20_return_check": "unchecked_low_level_calls",
+    "return_value_token": "unchecked_low_level_calls",
+    "unprotected_selfdestruct": "access_control", "delegatecall_to_untrusted": "access_control",
+    "delegatecall_unprotected": "access_control", "tx_origin_auth": "access_control",
+    "uninitialized_proxy": "access_control", "storage_collision_proxy": "access_control",
+    "unprotected_initialize": "access_control", "arbitrary_token_transfer": "access_control",
+    "mapping_write_arbitrary": "access_control", "signature_replay": "access_control",
+    "withdrawal_rug": "access_control", "withdraw_no_balance_update": "access_control",
+    "constructor_mismatch": "access_control", "incorrect_constructor_name": "access_control",
+    "unchecked_mint_burn": "access_control",
+}
+
+
+def _norm_miesc(t: str) -> str:
+    if t in _MIESC_NORM:
+        return _MIESC_NORM[t]
+    if t.startswith("reentrancy"):
+        return "reentrancy"
+    if t.startswith("bad_randomness"):
+        return "bad_randomness"
+    if t.startswith("access_control"):
+        return "access_control"
+    if t.startswith("dos_") or t == "hardcoded_gas":
+        return "denial_of_service"
+    return t  # time_manipulation, front_running pass through; rest stay inert (won't anchor)
+
+
+def run_miesc(code: str) -> list[dict]:
+    """Pure-python finding source (no solc) via MIESC's intelligence engine — lets the wild
+    eval run where solc-select is unavailable. Same shape as run_slither()."""
+    from src.core.intelligence import detect_zero_recall_categories
+    out = []
+    for f in detect_zero_recall_categories(code):
+        loc = f.get("location") or {}
+        raw = f.get("type", "")
+        out.append({"check": raw, "type": _norm_miesc(raw),
+                    "function": loc.get("function") or "unknown",
+                    "line": loc.get("line") or 0, "severity": f.get("severity", "")})
+    return out
+
+
 def load_ground_truth(path: str) -> tuple:
     """Return (vuln_idx, clean_set) from a SmartBugs-style vulnerabilities.json.
 
@@ -165,7 +212,7 @@ def cmd_collect(args) -> int:
     records, scanned, skipped, anchored, anchored_clean = [], 0, 0, 0, 0
     for path in files:
         code = open(path, errors="ignore").read()
-        fs = run_slither(path, code, args.timeout)
+        fs = run_miesc(code) if args.scanner == "miesc" else run_slither(path, code, args.timeout)
         if fs is None:
             skipped += 1
             print(f"  skip {os.path.basename(path)} (no solc / scan failed)")
@@ -298,6 +345,8 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("collect"); c.add_argument("corpus"); c.add_argument("-o", "--out", default="wild_findings.jsonl")
     c.add_argument("--max", type=int, default=0); c.add_argument("--timeout", type=int, default=60)
+    c.add_argument("--scanner", choices=["slither", "miesc"], default="slither",
+                   help="finding source: slither (needs solc) or miesc (pure-python, no solc)")
     c.add_argument("--ground-truth", default=None,
                    help="SmartBugs vulnerabilities.json — anchors REAL labels (no LLM, no circularity)")
     lb = sub.add_parser("label"); lb.add_argument("infile"); lb.add_argument("-o", "--out", default="wild_labeled.jsonl")
