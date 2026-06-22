@@ -1,0 +1,45 @@
+{
+  "artifact": "agentic_loop_rag_grounding_experiment",
+  "generated_at": "2026-06-22",
+  "dataset": "data/rag/benign_context_eval_v2_20260621.jsonl",
+  "dataset_size": {
+    "total": 35,
+    "real": 15,
+    "benign_fp": 20
+  },
+  "model": "qwen2.5-coder:32b",
+  "corpus": "16 benign patterns (4 added: VRF, pull-payment, transfer-reverts, tx.origin-logging)",
+  "configs": {
+    "ungrounded": {
+      "fp_dropped": 13,
+      "precision_after": 0.682,
+      "lift_pp": 25.3,
+      "recall": 1.0,
+      "real_lost": 0,
+      "verdict": "recall-safe"
+    },
+    "grounded_directive": {
+      "fp_dropped": 16,
+      "precision_after": 0.778,
+      "lift_pp": 34.9,
+      "recall": 0.933,
+      "real_lost": 1,
+      "verdict": "REJECTED \u2014 lost 1 real vuln"
+    },
+    "grounded_recall_safe": {
+      "fp_dropped": 14,
+      "precision_after": 0.714,
+      "lift_pp": 28.6,
+      "recall": 1.0,
+      "real_lost": 0,
+      "verdict": "KEEPER"
+    }
+  },
+  "finding": "RAG-grounding the LLM (inject category benign patterns) raises precision, but a directive prompt over-drops and cost 1 real vuln (recall 93.3%). Re-framing grounding as a reference checklist restored recall to 100% while still beating ungrounded: +28.6pp precision (1.7x) at ZERO recall cost.",
+  "lesson": "Recall-safety must be enforced in the PROMPT, not only the verdict logic. RAG-grounding must be reference, never directive. The extra +6pp of the directive prompt is not worth a missed vulnerability.",
+  "caveats": [
+    "Curated/realistic contracts (not wild scanner output).",
+    "32b verifier.",
+    "Tool R&D only \u2014 papers frozen."
+  ]
+}

@@ -300,8 +300,11 @@ def make_llm_verifier(
             return ""
         lines = [f"- {p['title']}: {p['why_safe']}" for p in rel[:6]]
         header = (
-            "Known BENIGN patterns for this finding's category (the finding is a FALSE "
-            "POSITIVE if the code clearly matches one of these):\n"
+            "REFERENCE — known benign mitigations for this category. Treat as a checklist, "
+            "NOT a directive: the finding is a false positive ONLY if the code "
+            "UNAMBIGUOUSLY implements one of these mitigations FOR THIS EXACT finding. "
+            "If the mitigation is absent, partial, on a different function, or you are not "
+            "sure it fully neutralizes the finding, it is NOT a false positive — keep it.\n"
         )
         return header + "\n".join(lines) + "\n"
 

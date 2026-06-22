@@ -275,6 +275,31 @@ explicit RAG patterns (VRF, pull-pattern, `transfer()`-reverts, commit-reveal), 
 stronger verifier model — then re-run this exact v2 set. That is the concrete lever, and
 it stays additive/recall-safe; papers untouched.
 
+## 11. RAG-grounding experiment (2026-06-22) — and a recall-safety near-miss
+
+Added the 4 missing benign patterns (VRF, pull-payment, `transfer()`-reverts,
+tx.origin-logging → corpus now 16) and **injected the category-matching benign patterns
+into the LLM prompt** (true RAG-grounding, not just a keyword hint). Re-ran v2 three ways:
+
+| v2 LLM-32b config | FP-drop | precision | recall | verdict |
+|-------------------|--------:|-----------|--------|---------|
+| ungrounded | 13/20 | 42.9% → 68.2% (+25.3pp) | **100%** | recall-safe |
+| grounded, *directive* prompt | 16/20 | 42.9% → 77.8% (+34.9pp) | **93.3%** ⚠️ | **lost 1 real vuln — rejected** |
+| grounded, *recall-safe* prompt | 14/20 | 42.9% → 71.4% (**+28.6pp**) | **100%** | **keeper** |
+
+**The near-miss is the lesson.** The first grounding prompt ("the finding is a FALSE
+POSITIVE if it matches one of these") raised precision to +34.9pp but made the model
+over-eager and it dropped 1 real vuln — violating the cardinal rule. Re-framing the
+grounding as a *reference checklist* ("a finding is a FP ONLY if the code unambiguously
+implements one of these for THIS exact finding; if absent/partial/unsure, keep it")
+**restored recall to 100% while still beating the ungrounded lift** (+28.6 vs +25.3pp).
+
+**Settled result:** the recall-safe RAG-grounded LLM verifier delivers **+28.6pp
+precision (42.9% → 71.4%, ~1.7×) at zero recall cost** on the realistic v2 set. The
+extra +6pp of the directive prompt is not worth a missed vulnerability. Recall-safety is
+enforced in the *prompt*, not just the verdict logic — grounding must be reference, never
+directive.
+
 **The gap between these two numbers is the whole story.** On real detector output the
 FPs are *vuln-type findings in benign context* (e.g. an unchecked-call finding on a
 reentrancy contract) whose benignity needs **semantic** reasoning — the rule-based
