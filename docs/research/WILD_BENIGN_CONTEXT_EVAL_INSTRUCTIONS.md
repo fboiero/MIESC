@@ -69,10 +69,19 @@ git clone https://github.com/DependableSystemsLab/SolidiFI-benchmark solidifi
 python3 scripts/dataset_adapters.py solidifi solidifi \
   --out-corpus solidifi_corpus --out-gt solidifi_gt.json
 
+# DAppSCAN — real audit reports, SWC line-level (lineNumber field). solc 0.4–0.8.
+git clone https://github.com/InPlusLab/DAppSCAN dappscan
+python3 scripts/dataset_adapters.py dappscan dappscan \
+  --out-corpus dappscan_corpus --out-gt dappscan_gt.json
+
 # then run the eval on the adapted corpus + ground truth:
 python3 scripts/wild_benign_context_eval.py collect fsalzano_corpus \
   --ground-truth fsalzano_gt.json -o wild_findings.jsonl
 ```
+
+Or fetch all four usable corpora at once (gitignored local copies):
+`python benchmarks/build_datasets.py --labeled`. The full rationale for which sources are
+usable and why is in [DATASET_SOURCE_CLASSIFICATION.md](DATASET_SOURCE_CLASSIFICATION.md).
 
 `fsalzano` is the highest-value source: real contracts, human (not tool) labels, a
 taxonomy that already matches the verifier's, and a built-in true-negative set. Its clean

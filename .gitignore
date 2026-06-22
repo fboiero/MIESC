@@ -272,6 +272,14 @@ data/datasets/code4rena/contracts/
 data/datasets/code4rena/findings/
 data/datasets/code4rena/_*/
 
+# Locally fetched external labeled corpora + adapted outputs
+# (run `python benchmarks/build_datasets.py --labeled`; classified in
+#  docs/research/DATASET_SOURCE_CLASSIFICATION.md — fetched, never committed)
+benchmarks/datasets/smartbugs-curated/vulnerabilities.json
+benchmarks/datasets/fsalzano/
+benchmarks/datasets/dappscan/
+benchmarks/datasets/_adapted/
+
 # LaTeX build artifacts
 paper/*.aux
 paper/*.bbl

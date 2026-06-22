@@ -29,10 +29,33 @@ import re
 import subprocess
 import sys
 import time
+import urllib.request
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent
 DATA_DIR = PROJECT_ROOT / "data" / "datasets"
+# External labeled corpora live here (gitignored — fetched, never committed).
+DATASETS_DIR = PROJECT_ROOT / "benchmarks" / "datasets"
+
+
+def _clone_shallow(repo_url: str, dest: Path, timeout: int = 600) -> bool:
+    """Shallow-clone repo_url into dest (pull if it's already a git checkout). Returns ok."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if (dest / ".git").exists():
+        print("  already cloned, pulling updates...")
+        subprocess.run(["git", "-C", str(dest), "pull", "--ff-only"],
+                       capture_output=True, timeout=120)
+        return True
+    if dest.exists() and any(dest.iterdir()):
+        print(f"  {dest} exists but is not a git checkout — leaving contents in place")
+        return True
+    print(f"  cloning {repo_url} (shallow)...")
+    r = subprocess.run(["git", "clone", "--depth", "1", repo_url, str(dest)],
+                       capture_output=True, text=True, timeout=timeout)
+    if r.returncode != 0:
+        print(f"  ERROR: git clone failed: {r.stderr.strip()[:300]}")
+        return False
+    return True
 
 
 # ============================================================================
@@ -313,29 +336,27 @@ def build_smartbugs_curated():
     looks), NOT data/datasets — the two paths differ in this repo by design.
     """
     repo_url = "https://github.com/smartbugs/smartbugs-curated.git"
-    dest = PROJECT_ROOT / "benchmarks" / "datasets" / "smartbugs-curated"
-    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest = DATASETS_DIR / "smartbugs-curated"
 
     print(f"\n{'='*60}")
     print(f"  Building SmartBugs-curated Dataset (labeled ground truth)")
     print(f"  Source: {repo_url}")
     print(f"{'='*60}\n")
 
-    if dest.exists():
-        print("  Repo already cloned, pulling updates...")
-        subprocess.run(["git", "-C", str(dest), "pull", "--ff-only"],
-                       capture_output=True, timeout=120)
-    else:
-        print("  Cloning smartbugs-curated...")
-        result = subprocess.run(
-            ["git", "clone", "--depth", "1", repo_url, str(dest)],
-            capture_output=True, text=True, timeout=300,
-        )
-        if result.returncode != 0:
-            print(f"  ERROR: git clone failed: {result.stderr}")
-            return
+    _clone_shallow(repo_url, dest)
 
+    # The repo vendors only dataset/*.sol; the labels file may be missing. Fetch it directly
+    # so --ground-truth works (smartbugs_evaluation.py:104 also reads this exact path).
     vuln_file = dest / "vulnerabilities.json"
+    if not vuln_file.exists():
+        raw = "https://raw.githubusercontent.com/smartbugs/smartbugs-curated/main/vulnerabilities.json"
+        print("  vulnerabilities.json missing — fetching labels directly...")
+        try:
+            dest.mkdir(parents=True, exist_ok=True)
+            urllib.request.urlretrieve(raw, vuln_file)
+        except Exception as e:  # noqa: BLE001
+            print(f"  WARNING: could not fetch vulnerabilities.json: {e}")
+
     sol_count = len(list(dest.rglob("*.sol")))
     if vuln_file.exists():
         try:
@@ -344,10 +365,55 @@ def build_smartbugs_curated():
             labeled = "?"
         print(f"  Ground truth: {vuln_file} ({labeled} labeled contracts)")
     else:
-        print("  WARNING: vulnerabilities.json not found — ground-truth anchoring unavailable")
+        print("  WARNING: vulnerabilities.json unavailable — ground-truth anchoring disabled")
     print(f"  Total contracts in dataset: {sol_count}")
     print(f"  Ready for: scripts/wild_benign_context_eval.py collect "
           f"{dest / 'dataset'} --ground-truth {vuln_file}")
+
+
+# ============================================================================
+# Options E-G: line-level labeled corpora for the wild benign-context eval
+# (consumed via scripts/dataset_adapters.py — see docs/research/DATASET_SOURCE_CLASSIFICATION.md)
+# ============================================================================
+
+def _build_labeled(name: str, repo_url: str, dest_name: str, adapter: str, sub: str = "") -> None:
+    """Clone a line-level labeled corpus and print the adapter command to convert it."""
+    dest = DATASETS_DIR / dest_name
+    print(f"\n{'='*60}")
+    print(f"  Building {name} (line-level labeled corpus)")
+    print(f"  Source: {repo_url}")
+    print(f"{'='*60}\n")
+    if not _clone_shallow(repo_url, dest):
+        return
+    sol_count = len(list(dest.rglob("*.sol")))
+    print(f"  Cloned to: {dest} ({sol_count} .sol files)")
+    src = dest / sub if sub else dest
+    out_corpus = DATASETS_DIR / "_adapted" / f"{dest_name}_corpus"
+    out_gt = DATASETS_DIR / "_adapted" / f"{dest_name}_gt.json"
+    print(f"  Convert to ground truth with:\n"
+          f"    python3 scripts/dataset_adapters.py {adapter} {src} \\\n"
+          f"      --out-corpus {out_corpus} --out-gt {out_gt}")
+
+
+def build_fsalzano_dataset() -> None:
+    _build_labeled(
+        "fsalzano line-level (real, manual human labels + clean negatives)",
+        "https://github.com/fsalzano/Empirical-Analysis-of-Vulnerability-Detection-Tools-for-Solidity-Smart-Contracts.git",
+        "fsalzano", "fsalzano")
+
+
+def build_solidifi_dataset() -> None:
+    _build_labeled(
+        "SolidiFI-benchmark (injected bugs, exact location logs)",
+        "https://github.com/DependableSystemsLab/SolidiFI-benchmark.git",
+        "solidifi-benchmark", "solidifi")
+
+
+def build_dappscan_dataset() -> None:
+    _build_labeled(
+        "DAppSCAN (real audit reports, SWC line-level)",
+        "https://github.com/InPlusLab/DAppSCAN.git",
+        "dappscan", "dappscan")
 
 
 # ============================================================================
@@ -362,10 +428,19 @@ def main():
     parser.add_argument("--code4rena", action="store_true", help="Build Code4rena dataset")
     parser.add_argument("--smartbugs", action="store_true",
                         help="Build SmartBugs-curated (labeled ground-truth corpus)")
+    parser.add_argument("--fsalzano", action="store_true",
+                        help="Build fsalzano line-level dataset (real, manual human labels)")
+    parser.add_argument("--solidifi", action="store_true",
+                        help="Build SolidiFI-benchmark (injected bugs, exact locations)")
+    parser.add_argument("--dappscan", action="store_true",
+                        help="Build DAppSCAN (real audit reports, SWC line-level)")
+    parser.add_argument("--labeled", action="store_true",
+                        help="Build all line-level labeled corpora (smartbugs+fsalzano+solidifi+dappscan)")
     parser.add_argument("--api-key", help="Etherscan API key")
     args = parser.parse_args()
 
-    if not any([args.all, args.rekt, args.etherscan, args.code4rena, args.smartbugs]):
+    if not any([args.all, args.rekt, args.etherscan, args.code4rena, args.smartbugs,
+                args.fsalzano, args.solidifi, args.dappscan, args.labeled]):
         args.all = True
 
     if args.all or args.rekt:
@@ -377,8 +452,17 @@ def main():
     if args.all or args.code4rena:
         build_code4rena_dataset()
 
-    if args.all or args.smartbugs:
+    if args.all or args.labeled or args.smartbugs:
         build_smartbugs_curated()
+
+    if args.all or args.labeled or args.fsalzano:
+        build_fsalzano_dataset()
+
+    if args.all or args.labeled or args.solidifi:
+        build_solidifi_dataset()
+
+    if args.all or args.labeled or args.dappscan:
+        build_dappscan_dataset()
 
     print(f"\n{'='*60}")
     print(f"  Dataset build complete!")
