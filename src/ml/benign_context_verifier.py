@@ -253,7 +253,8 @@ class BenignContextVerifier:
         benign = match_benign(finding, code, self.patterns)
         if benign is not None or self._llm_false_positive(finding, code):
             return "false_positive"
-        fn = finding.get("function") or ""
+        loc = finding.get("location") if isinstance(finding.get("location"), dict) else {}
+        fn = finding.get("function") or loc.get("function") or ""
         if fn and fn not in ("unknown", "") and _extract_function(code, fn) == "":
             return "needs_review"  # cited function absent -> flag, do not drop
         return "confirmed"
