@@ -27,12 +27,13 @@ def _f(vtype, function="", line=None):
 # CARDINAL: mitigated -> dropped, unmitigated -> KEPT (per category)
 # --------------------------------------------------------------------------- #
 class TestRecallSafePairs:
-    def test_reentrancy_guarded_is_dropped(self):
+    def test_reentrancy_guarded_is_flagged_not_dropped(self):
+        # guard PRESENCE is contextual, not proof of benignity -> flag, never drop
         code = ("pragma solidity ^0.8.0; contract C { mapping(address=>uint) b; bool l;"
                 " modifier nonReentrant(){require(!l);l=true;_;l=false;}"
                 " function withdraw(uint a) external nonReentrant {"
                 ' (bool ok,)=msg.sender.call{value:a}(""); require(ok); b[msg.sender]-=a; } }')
-        assert V.verify(_f("reentrancy", "withdraw"), code) == "false_positive"
+        assert V.verify(_f("reentrancy", "withdraw"), code) == "needs_review"
 
     def test_reentrancy_unguarded_is_kept(self):
         code = ("pragma solidity ^0.8.0; contract C { mapping(address=>uint) b;"
@@ -40,17 +41,19 @@ class TestRecallSafePairs:
                 ' (bool ok,)=msg.sender.call{value:a}(""); require(ok); b[msg.sender]-=a; } }')
         assert V.verify(_f("reentrancy", "withdraw"), code) == "confirmed"
 
-    def test_reentrancy_cei_is_dropped(self):
+    def test_reentrancy_cei_is_flagged_not_dropped(self):
+        # CEI ordering is contextual (subtle reentrancy can remain) -> flag, never drop
         code = ("pragma solidity ^0.8.0; contract C { mapping(address=>uint) balances;"
                 " function withdraw(uint a) external { require(balances[msg.sender]>=a);"
                 ' balances[msg.sender]-=a; (bool ok,)=msg.sender.call{value:a}(""); require(ok); } }')
-        assert V.verify(_f("reentrancy", "withdraw"), code) == "false_positive"
+        assert V.verify(_f("reentrancy", "withdraw"), code) == "needs_review"
 
-    def test_access_onlyowner_is_dropped(self):
+    def test_access_onlyowner_is_flagged_not_dropped(self):
+        # onlyOwner presence is contextual (owner-rug) -> flag, never drop
         code = ("pragma solidity ^0.8.0; contract C { address owner;"
                 " modifier onlyOwner(){require(msg.sender==owner);_;}"
                 " function setOwner(address n) external onlyOwner { owner=n; } }")
-        assert V.verify(_f("access_control", "setOwner"), code) == "false_positive"
+        assert V.verify(_f("access_control", "setOwner"), code) == "needs_review"
 
     def test_access_unprotected_is_kept(self):
         code = ("pragma solidity ^0.8.0; contract C { address owner;"
@@ -85,10 +88,11 @@ class TestRecallSafePairs:
                 ' function pay(address a) external { (bool ok,)=a.call{value:1}(""); require(ok); } }')
         assert V.verify(_f("unchecked_low_level_calls", "pay"), code) == "false_positive"
 
-    def test_timestamp_timelock_is_dropped(self):
+    def test_timestamp_timelock_is_flagged_not_dropped(self):
+        # timestamp gate is contextual (miner skew can still matter) -> flag, never drop
         code = ("pragma solidity ^0.8.0; contract C { uint t;"
                 ' function unlock() external { require(block.timestamp>=t,"locked"); } }')
-        assert V.verify(_f("time_manipulation", "unlock"), code) == "false_positive"
+        assert V.verify(_f("time_manipulation", "unlock"), code) == "needs_review"
 
     def test_timestamp_entropy_is_kept(self):
         code = ("pragma solidity ^0.8.0; contract C {"
@@ -119,9 +123,9 @@ class TestLineScoping:
         "}\n"
     )
 
-    def test_line_inside_guarded_function_is_dropped(self):
-        # line 7 = the call inside guarded() -> guard detected via line scope
-        assert V.verify(_f("reentrancy", "unknown", line=7), self.CODE) == "false_positive"
+    def test_line_inside_guarded_function_is_flagged(self):
+        # line 7 = the call inside guarded() -> guard detected via line scope -> FLAG (contextual)
+        assert V.verify(_f("reentrancy", "unknown", line=7), self.CODE) == "needs_review"
 
     def test_line_inside_open_function_is_kept(self):
         # line 10 = the call inside open() (no guard) -> must be KEPT (recall-safe)
@@ -148,15 +152,13 @@ class TestNeverDropOnWeakSignal:
 # apply_to_results: in-place, recall-safe, returns (dropped, flagged)
 # --------------------------------------------------------------------------- #
 class TestApplyToResults:
-    def test_drops_benign_keeps_real(self, tmp_path):
-        guarded = tmp_path / "G.sol"
-        guarded.write_text(
-            "pragma solidity ^0.8.0; contract C { mapping(address=>uint) b; bool l;"
-            " modifier nonReentrant(){require(!l);l=true;_;l=false;}"
-            " function withdraw(uint a) external nonReentrant {"
-            ' (bool ok,)=msg.sender.call{value:a}(""); require(ok); b[msg.sender]-=a; } }'
+    def test_drops_deterministic_benign_keeps_real(self, tmp_path):
+        checked = tmp_path / "G.sol"  # checked return -> deterministic benign -> DROPPED
+        checked.write_text(
+            "pragma solidity ^0.8.0; contract C {"
+            ' function pay(address a) external { (bool ok,)=a.call{value:1}(""); require(ok); } }'
         )
-        openf = tmp_path / "O.sol"
+        openf = tmp_path / "O.sol"  # unguarded reentrancy -> real -> KEPT
         openf.write_text(
             "pragma solidity ^0.8.0; contract C { mapping(address=>uint) b;"
             " function withdraw(uint a) external {"
@@ -164,15 +166,27 @@ class TestApplyToResults:
         )
         results = [
             {"tool": "t", "findings": [
-                {"type": "reentrancy", "location": {"function": "withdraw"}, "file": str(guarded)},
+                {"type": "unchecked_low_level_calls", "location": {"function": "pay"}, "file": str(checked)},
                 {"type": "reentrancy", "location": {"function": "withdraw"}, "file": str(openf)},
             ]},
         ]
         dropped, flagged = apply_to_results(results)
         kept = results[0]["findings"]
-        assert dropped == 1  # the guarded one
-        assert len(kept) == 1  # the real one survives
-        assert kept[0]["file"] == str(openf)  # the UNGUARDED (real) finding is kept
+        assert dropped == 1  # the checked call (deterministic benign)
+        assert len(kept) == 1 and kept[0]["file"] == str(openf)  # real finding survives
+
+    def test_guarded_finding_is_flagged_not_dropped(self, tmp_path):
+        guarded = tmp_path / "G.sol"
+        guarded.write_text(
+            "pragma solidity ^0.8.0; contract C { bool l;"
+            " modifier nonReentrant(){require(!l);l=true;_;l=false;}"
+            ' function withdraw() external nonReentrant { msg.sender.call{value:1}(""); } }'
+        )
+        results = [{"tool": "t", "findings": [
+            {"type": "reentrancy", "location": {"function": "withdraw"}, "file": str(guarded)}]}]
+        dropped, flagged = apply_to_results(results)
+        assert dropped == 0 and flagged == 1  # guard PRESENCE -> flagged, never dropped
+        assert len(results[0]["findings"]) == 1  # finding retained
 
     def test_match_benign_returns_pattern_for_guarded(self):
         code = ("pragma solidity ^0.8.0; contract C { bool l;"

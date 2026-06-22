@@ -56,6 +56,37 @@ lost), drops at the rule-only rate (12.5% of FPs here), and surfaces LLM-suspect
 flags rather than acting on them destructively. The LLM's role shifts from *auto-drop* to
 *triage* — the honest, safe contract.
 
+## Cross-source validation (the rule path also over-dropped)
+
+Validating recall-safety across all six ground-truth sources (rule-only `measure` is
+sufficient: post-fix the LLM cannot drop, so rule-only recall == LLM-advisory recall)
+revealed that the **deterministic rule path itself over-dropped** real vulns on
+audit-grade sources — the LLM fix alone was necessary but not sufficient:
+
+| Source | type | recall (initial) | recall (final) |
+|--------|------|------------------|----------------|
+| fsalzano | real, simple labels | 1.00 | 1.00 |
+| SolidiFI | injected, simple | 1.00 | 1.00 |
+| Sherlock | competitive audit | 1.00¹ | 1.00 |
+| DAppSCAN | audit reports | 0.882 | **1.00** |
+| Code4rena | competitive audit | 0.667 | **1.00** |
+
+¹ Sherlock was 0.0 before the arithmetic fix (its one anchored finding was the rounding bug).
+
+Two root causes and fixes:
+
+1. **`BENIGN-ARITHMETIC-0_8` over-broad** — dropped a real rounding bug (`a*b/c`). Solidity
+   ≥0.8 guards overflow/underflow only, NOT precision/rounding. Fixed: rounding/division
+   findings are never 0.8-benign.
+
+2. **Guard-presence ≠ benign** — the remaining losses were `onlyOwner`/`nonReentrant`
+   functions that auditors flagged anyway (owner-rug, read-only reentrancy). The synthetic
+   pairs ("guarded = benign") never exposed this; audit-grade labels did. **Decision:**
+   contextual guard patterns (`onlyOwner`, `nonReentrant`, CEI, timestamp-timelock,
+   commit-reveal) now FLAG (needs_review), never drop. Only type-deterministic patterns
+   (language/library guarantees, finding-type facts) drop. Result: **recall 1.0 on all six
+   sources**, locked by tests.
+
 ## Takeaways
 
 - **Synthetic ≠ field.** A controlled +28.6pp/100%-recall number did not generalize; only the

@@ -9,15 +9,20 @@ source, it classifies each finding as:
   - needs_review   : weakly/ambiguously grounded -> FLAG, do not drop
   - confirmed      : keep
 
-CARDINAL RULE — recall-safety: a finding is dropped (false_positive) ONLY on a STRONG
-benign signal, defined as a function-scoped/type-determined benign-pattern (rule) match.
-The LLM is ADVISORY ONLY — it can raise needs_review but can NEVER drop. This was tightened
-after a wild real-data evaluation (docs/research/WILD_BENIGN_CONTEXT_EVAL_INSTRUCTIONS.md):
-on real contracts the LLM reasoned genuine vulns away, losing 3/21 anchored real findings
-(recall 0.857) — so LLM authority to drop was removed. The rule-only path holds recall 1.0
-(0/21 real lost) on that same set; on a controlled synthetic benign-context set it gives
-+12.7pp precision at zero recall loss. (The earlier +28.6pp LLM-drop figure came from
-controlled pairs and did NOT generalize — that is exactly why it no longer drops.)
+CARDINAL RULE — recall-safety: a finding is dropped (false_positive) ONLY on a
+TYPE-DETERMINISTIC benign pattern — a language/library guarantee or a finding-type fact
+(Solidity >=0.8 overflow protection EXCLUDING rounding, informational lint, compiler-
+deprecated short-address, checked return value, SafeERC20, reverting .transfer). Two weaker
+signals can only FLAG (needs_review), never drop:
+  - the LLM (advisory) — on real contracts it reasoned genuine vulns away, losing 3/21
+    anchored findings (recall 0.857), so its drop authority was removed;
+  - CONTEXTUAL guard patterns (onlyOwner / nonReentrant / CEI / timestamp-timelock /
+    commit-reveal) — a guard's PRESENCE is not proof of benignity; a wild eval across
+    audit-grade sources (DAppSCAN, Code4rena) showed auditors flag guarded code for subtler
+    issues, and these patterns over-dropped real findings.
+This was hardened via wild real-data evaluation (docs/research/WILD_FIELD_MEASUREMENT_20260622.md):
+recall is now 1.0 across all six ground-truth sources. The earlier +28.6pp LLM-drop figure
+came from controlled synthetic pairs and did NOT generalize — that is why it no longer drops.
 
 Opt-in: the LLM path requires a local Ollama model; without one the rule-only path runs.
 
@@ -125,6 +130,21 @@ def _timestamp_is_benign(body: str) -> bool:
     )
     in_gate = re.search(r"(require|if)\s*\([^;]*block\.timestamp", body)
     return bool(in_gate and not in_entropy)
+
+
+# CONTEXTUAL benign patterns: a mitigation is PRESENT (a guard/ordering), but its presence
+# does NOT prove the finding benign — professional auditors flag guarded code for subtler
+# issues (owner-rug, read-only/cross-function reentrancy). A wild eval across audit-grade
+# sources (DAppSCAN, Code4rena) confirmed these over-drop real findings. So they FLAG
+# (needs_review), never drop. Only TYPE-DETERMINISTIC patterns below (language/library
+# guarantees, finding-type facts) are allowed to drop.
+_CONTEXTUAL_BENIGN = {
+    "BENIGN-ACCESS-ONLYOWNER",
+    "BENIGN-REENTRANCY-GUARD",
+    "BENIGN-CEI-ORDER",
+    "BENIGN-TIMESTAMP-TIMELOCK",
+    "BENIGN-FRONTRUN-COMMITREVEAL",
+}
 
 
 def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
@@ -268,7 +288,8 @@ class BenignContextVerifier:
         """
         benign = match_benign(finding, code, self.patterns)
         if benign is not None:
-            return "false_positive"
+            # contextual mitigations (guards) only FLAG; type-deterministic patterns drop
+            return "needs_review" if benign["id"] in _CONTEXTUAL_BENIGN else "false_positive"
         loc = finding.get("location") if isinstance(finding.get("location"), dict) else {}
         fn = finding.get("function") or loc.get("function") or ""
         if fn and fn not in ("unknown", "") and _extract_function(code, fn) == "":
