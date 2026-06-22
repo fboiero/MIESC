@@ -3,16 +3,20 @@
 MIESC - Dataset Builder for Benchmark Evaluation
 =================================================
 
-Downloads and prepares three evaluation datasets:
+Downloads and prepares four evaluation datasets:
   A) Etherscan verified contracts (5000+ real-world)
   B) Rekt.news exploits (200+ with confirmed vulnerabilities)
   C) Code4rena audit contests (validated findings as ground truth)
+  D) SmartBugs-curated (143 contracts with line-level ground truth) — the labeled
+     corpus used by benchmarks/smartbugs_evaluation.py and the wild benign-context
+     verifier eval (scripts/wild_benign_context_eval.py --ground-truth).
 
 Usage:
     python benchmarks/build_datasets.py --all
     python benchmarks/build_datasets.py --rekt
     python benchmarks/build_datasets.py --etherscan --api-key YOUR_KEY
     python benchmarks/build_datasets.py --code4rena
+    python benchmarks/build_datasets.py --smartbugs
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 License: AGPL-3.0
@@ -294,6 +298,59 @@ def build_code4rena_dataset():
 
 
 # ============================================================================
+# Option D: SmartBugs-curated (labeled ground-truth corpus)
+# ============================================================================
+
+def build_smartbugs_curated():
+    """Clone SmartBugs-curated — 143 contracts with line-level vulnerability labels.
+
+    This is the labeled corpus the rest of the toolchain expects:
+      - benchmarks/smartbugs_evaluation.py reads <dest>/vulnerabilities.json
+      - scripts/wild_benign_context_eval.py --ground-truth uses the same file to anchor
+        the recall-critical REAL label (no LLM, no circularity).
+
+    Cloned into benchmarks/datasets/smartbugs-curated (where smartbugs_evaluation.py:33
+    looks), NOT data/datasets — the two paths differ in this repo by design.
+    """
+    repo_url = "https://github.com/smartbugs/smartbugs-curated.git"
+    dest = PROJECT_ROOT / "benchmarks" / "datasets" / "smartbugs-curated"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    print(f"\n{'='*60}")
+    print(f"  Building SmartBugs-curated Dataset (labeled ground truth)")
+    print(f"  Source: {repo_url}")
+    print(f"{'='*60}\n")
+
+    if dest.exists():
+        print("  Repo already cloned, pulling updates...")
+        subprocess.run(["git", "-C", str(dest), "pull", "--ff-only"],
+                       capture_output=True, timeout=120)
+    else:
+        print("  Cloning smartbugs-curated...")
+        result = subprocess.run(
+            ["git", "clone", "--depth", "1", repo_url, str(dest)],
+            capture_output=True, text=True, timeout=300,
+        )
+        if result.returncode != 0:
+            print(f"  ERROR: git clone failed: {result.stderr}")
+            return
+
+    vuln_file = dest / "vulnerabilities.json"
+    sol_count = len(list(dest.rglob("*.sol")))
+    if vuln_file.exists():
+        try:
+            labeled = len(json.load(open(vuln_file)))
+        except Exception:
+            labeled = "?"
+        print(f"  Ground truth: {vuln_file} ({labeled} labeled contracts)")
+    else:
+        print("  WARNING: vulnerabilities.json not found — ground-truth anchoring unavailable")
+    print(f"  Total contracts in dataset: {sol_count}")
+    print(f"  Ready for: scripts/wild_benign_context_eval.py collect "
+          f"{dest / 'dataset'} --ground-truth {vuln_file}")
+
+
+# ============================================================================
 # Main
 # ============================================================================
 
@@ -303,10 +360,12 @@ def main():
     parser.add_argument("--rekt", action="store_true", help="Build Rekt exploits dataset")
     parser.add_argument("--etherscan", action="store_true", help="Build Etherscan dataset")
     parser.add_argument("--code4rena", action="store_true", help="Build Code4rena dataset")
+    parser.add_argument("--smartbugs", action="store_true",
+                        help="Build SmartBugs-curated (labeled ground-truth corpus)")
     parser.add_argument("--api-key", help="Etherscan API key")
     args = parser.parse_args()
 
-    if not any([args.all, args.rekt, args.etherscan, args.code4rena]):
+    if not any([args.all, args.rekt, args.etherscan, args.code4rena, args.smartbugs]):
         args.all = True
 
     if args.all or args.rekt:
@@ -317,6 +376,9 @@ def main():
 
     if args.all or args.code4rena:
         build_code4rena_dataset()
+
+    if args.all or args.smartbugs:
+        build_smartbugs_curated()
 
     print(f"\n{'='*60}")
     print(f"  Dataset build complete!")

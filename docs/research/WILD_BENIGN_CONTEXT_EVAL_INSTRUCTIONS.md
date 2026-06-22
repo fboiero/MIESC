@@ -36,8 +36,20 @@ ollama list                # qwen2.5-coder:32b present (verifier + optional judg
 # OR: export DEEPSEEK_API_KEY=...  (failover for both verifier and judge)
 ```
 
-A corpus of real `.sol` files. Recommended: **SmartBugs-curated** (143 contracts, the
-standard) — same corpus the papers use, so the field number is comparable in spirit.
+A labeled corpus. Recommended: **SmartBugs-curated** (143 contracts with line-level
+ground truth) — same corpus the papers use, so the field number is comparable in spirit.
+Fetch it with the dataset builder (clones to `benchmarks/datasets/smartbugs-curated`,
+where both the paper eval and this harness look):
+
+```bash
+python benchmarks/build_datasets.py --smartbugs
+```
+
+> **Labeled vs unlabeled corpora.** Only labeled corpora (SmartBugs-curated,
+> SolidiFI-benchmark) support the hybrid anchor below. Unlabeled "wild" corpora
+> (SmartBugs-wild ~47K real contracts, DeFiHackLabs) have no per-finding/line ground
+> truth, so every label would fall to the LLM judge — reintroducing the circularity the
+> anchor exists to avoid. More contracts is not more rigor; the rigor is in the labels.
 
 ## Phase 1 — collect (run the real scanner + anchor ground truth)
 
