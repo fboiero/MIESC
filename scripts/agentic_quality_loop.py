@@ -272,15 +272,44 @@ def _ollama_generate(prompt: str, model: str, host: str, timeout: int = 60) -> s
         return json.loads(r.read()).get("response", "")
 
 
-def make_llm_verifier(model: str, host: str = "http://localhost:11434", timeout: int = 60):
+def make_llm_verifier(
+    model: str,
+    host: str = "http://localhost:11434",
+    timeout: int = 60,
+    patterns: Optional[list[dict[str, Any]]] = None,
+):
     """Return llm_fn(finding, code, benign) -> True if the model judges it a FALSE POSITIVE.
 
     Recall-safe by construction: the prompt instructs the model to default to NOT a false
     positive under any uncertainty, so a real vuln is never dropped on a hedge.
+
+    RAG-grounded: if `patterns` is given, the benign patterns whose `resembles_category`
+    matches the finding's category are injected into the prompt as reference knowledge —
+    so the model can recognize semantic mitigations (VRF, pull-payment, transfer-reverts,
+    commit-reveal, ...) even when the keyword matcher does not fire.
     """
+    pats = patterns or []
+
+    def _category_grounding(finding: dict[str, Any]) -> str:
+        vtype = _norm(finding.get("type") or finding.get("title") or "")
+        rel = [
+            p for p in pats
+            if (lambda c: c and (c in vtype or vtype in c))(_norm(p.get("resembles_category", "")))
+        ]
+        if not rel:
+            return ""
+        lines = [f"- {p['title']}: {p['why_safe']}" for p in rel[:6]]
+        header = (
+            "Known BENIGN patterns for this finding's category (the finding is a FALSE "
+            "POSITIVE if the code clearly matches one of these):\n"
+        )
+        return header + "\n".join(lines) + "\n"
 
     def llm_fn(finding: dict[str, Any], code: str, benign: Optional[dict[str, Any]]) -> bool:
-        hint = f"\nA reference benign pattern may apply: {benign['why_safe']}" if benign else ""
+        grounding = _category_grounding(finding)
+        hint = ("\n" + grounding) if grounding else (
+            f"\nA reference benign pattern may apply: {benign['why_safe']}" if benign else ""
+        )
         prompt = (
             "You are a smart-contract security verifier. Decide whether a reported finding "
             "is a TRUE vulnerability or a FALSE POSITIVE *in the context of this contract*.\n"
@@ -484,7 +513,7 @@ def main() -> int:
 
     if args.measure:
         records = [json.loads(line) for line in open(args.measure, encoding="utf-8") if line.strip()]
-        llm_fn = make_llm_verifier(args.model, args.host) if args.verifier == "llm" else None
+        llm_fn = make_llm_verifier(args.model, args.host, patterns=patterns) if args.verifier == "llm" else None
         if llm_fn:
             print(f"# verifier: LLM via Ollama ({args.model})\n")
         m = measure(records, patterns, llm_fn=llm_fn)
