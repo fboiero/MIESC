@@ -1,0 +1,47 @@
+{
+  "artifact": "agentic_loop_benign_context_v2_robustness",
+  "generated_at": "2026-06-21",
+  "dataset": "data/rag/benign_context_eval_v2_20260621.jsonl",
+  "dataset_size": {
+    "total": 35,
+    "real": 15,
+    "benign_fp": 20
+  },
+  "rule_based": {
+    "fp_dropped": 8,
+    "fp_drop_rate": 0.4,
+    "recall": 1.0,
+    "real_lost": 0,
+    "precision_before": 0.429,
+    "precision_after": 0.556,
+    "lift_pp": 12.7
+  },
+  "llm_qwen25_coder_32b": {
+    "fp_dropped": 13,
+    "fp_drop_rate": 0.65,
+    "recall": 1.0,
+    "real_lost": 0,
+    "precision_before": 0.429,
+    "precision_after": 0.682,
+    "lift_pp": 25.3
+  },
+  "comparison_v1_easy": {
+    "rule_lift_pp": 22.5,
+    "llm_lift_pp": 48.2,
+    "n": 16
+  },
+  "verdict": "Recall-safe robust (0 vulns lost both sets/verifiers). LLM ~2x rule-based lift consistently. Absolute lift shrinks on harder/realistic data (LLM 48->25pp). Defensible figure ~+25pp precision (1.6x) at zero recall cost; +48pp was the easy-set optimistic case.",
+  "leaked_fp_classes": [
+    "Chainlink VRF",
+    "pull-payment pattern",
+    "transfer()-reverts",
+    "commit-reveal",
+    "tx.origin-for-logging"
+  ],
+  "next_lever": "Add the leaked semantic mitigations to the benign RAG corpus and/or stronger verifier model; re-run v2.",
+  "caveats": [
+    "Curated contracts (realistic but not wild scanner output).",
+    "LLM recall-safe prompt; 32b.",
+    "Tool R&D only \u2014 papers frozen."
+  ]
+}

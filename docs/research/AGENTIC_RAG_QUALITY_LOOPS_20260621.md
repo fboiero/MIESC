@@ -245,6 +245,36 @@ the wrong thermometer. Caveats: the benign-context set is curated/minimal (isola
 mitigated-vs-real); a wild-corpus benign-context set and a larger LLM slice are the next
 scale-ups. None of this touches the papers — it is the verifier's evolution roadmap.
 
+## 10. Robustness check (2026-06-21): does the lift hold on a harder set?
+
+Built a larger, more realistic benign-context set (v2:
+`data/rag/benign_context_eval_v2_20260621.jsonl`, 35 findings, 8 categories, with OZ
+ReentrancyGuard/AccessControl/SafeERC20, Chainlink VRF, unchecked-block-vuln-on-0.8,
+pull-pattern, commit-reveal, `transfer()`-reverts) to test whether the v1 (n=16) result
+was an artifact.
+
+| Set | n | rule-based lift | LLM-32b lift | recall (both) |
+|-----|--:|----------------:|-------------:|:-------------:|
+| v1 (minimal) | 16 | +22.5pp | +48.2pp | 100% |
+| v2 (realistic/harder) | 35 | +12.7pp | **+25.3pp** (42.9% → 68.2%) | 100% |
+
+**Honest verdict:**
+- **Recall-safety is robust** — 0 real vulns lost across both sets and both verifiers.
+- **The LLM consistently ~2× the rule-based lift** (v1 48 vs 22; v2 25 vs 13) — the
+  semantic verifier reliably adds value over keywords.
+- **The absolute lift SHRINKS on harder/realistic data** (LLM 48 → 25pp) — expected and
+  honest: v2's leaked 7 FPs are the hardest semantic mitigations (VRF, pull-pattern,
+  `transfer()`-reverts, commit-reveal, tx.origin-for-logging) that the benign-RAG/LLM
+  did not ground confidently.
+- So the realistic, defensible figure is **~+25pp precision (≈1.6×) at zero recall
+  cost**, not the +48pp of the easy set. Both are real; the easy-set number was
+  optimistic.
+
+**To push +25 → higher:** add the missing semantic mitigations to the benign corpus as
+explicit RAG patterns (VRF, pull-pattern, `transfer()`-reverts, commit-reveal), and/or a
+stronger verifier model — then re-run this exact v2 set. That is the concrete lever, and
+it stays additive/recall-safe; papers untouched.
+
 **The gap between these two numbers is the whole story.** On real detector output the
 FPs are *vuln-type findings in benign context* (e.g. an unchecked-call finding on a
 reentrancy contract) whose benignity needs **semantic** reasoning — the rule-based
