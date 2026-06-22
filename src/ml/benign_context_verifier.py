@@ -211,9 +211,14 @@ def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, An
             scope = window = body  # no line -> fall back to function body
         if re.search(r"safeTransfer|SafeERC20", scope):
             return has("BENIGN-SAFEERC20")
-        # .transfer() reverts on failure -> benign, but ONLY if the flagged call is a
-        # .transfer (not a .send/.call on the same line).
-        if re.search(r"\.transfer\(", scope) and not re.search(r"\.send\(|\.call\b", scope):
+        # Native address.transfer(amount) reverts on failure -> benign. But ERC20
+        # token.transfer(to, amount) returns a bool and many tokens fail silently (SWC-104),
+        # so an unchecked ERC20 transfer is a REAL vuln. Distinguish by the 2-arg ERC20
+        # signature (a comma in the transfer args) and only treat the 1-arg native form as
+        # benign. (A wild eval at scale caught 7 real ERC20-transfer vulns dropped here.)
+        if (re.search(r"\.transfer\(", scope)
+                and not re.search(r"\.transfer\([^)]*,", scope)   # exclude ERC20 2-arg transfer
+                and not re.search(r"\.send\(|\.call\b", scope)):
             return has("BENIGN-TRANSFER-REVERTS")
         if re.search(r"require\s*\(\s*(ok|success)\b", window):
             return has("BENIGN-CHECKED-CALL")

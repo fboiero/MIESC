@@ -279,5 +279,19 @@ class TestUncheckedCallLineScoping:
         assert V.verify(self._f("unchecked_call_pattern", 4), self.CODE) != "false_positive"
 
     def test_finding_on_transfer_line_is_dropped(self):
-        # an unchecked-return finding ON a .transfer() line IS benign (transfer reverts)
+        # an unchecked-return finding ON a NATIVE .transfer(amount) line IS benign (reverts)
         assert V.verify(self._f("erc20_return_check", 5), self.CODE) == "false_positive"
+
+    def test_erc20_two_arg_transfer_is_kept(self):
+        # ERC20 token.transfer(to, amount) returns bool and may fail silently (SWC-104) ->
+        # NOT benign even though it's a ".transfer(" call
+        code = ("pragma solidity ^0.8.0;\n"
+                "contract C {\n"
+                "  function w(address to, uint a) external {\n"
+                "    token.transfer(to, a);\n"   # line 4: ERC20 2-arg -> real
+                "  }\n"
+                "  function token() internal returns (C) { return this; }\n"
+                "}\n")
+        f = {"type": "unchecked_low_level_calls", "title": "erc20_return_check",
+             "location": {"function": "unknown", "line": 4}}
+        assert V.verify(f, code) != "false_positive"
