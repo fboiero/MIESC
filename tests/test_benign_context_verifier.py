@@ -67,6 +67,14 @@ class TestRecallSafePairs:
                 " function add(uint a) public { b[msg.sender]+=a; } }")
         assert V.verify(_f("arithmetic", "add"), code) == "confirmed"
 
+    def test_rounding_on_solidity08_is_kept(self):
+        # 0.8 guards overflow/underflow but NOT precision/rounding -> must NOT drop
+        code = ("pragma solidity ^0.8.0; contract C { uint s;"
+                " function f(uint a, uint b, uint c) public { s = a * b / c; } }")
+        finding = {"type": "arithmetic", "title": "rounding_error_division",
+                   "location": {"function": "f"}, "severity": "medium"}
+        assert V.verify(finding, code) != "false_positive"
+
     def test_unchecked_call_discarded_is_kept(self):
         code = ("pragma solidity ^0.8.0; contract C {"
                 ' function pay(address a) external { a.call{value:1}(""); } }')

@@ -150,7 +150,12 @@ def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, An
     if re.search(r"pragma|naming|visibilit|unused|solc.version|useless_public|constants_instead"
                  r"|instead_of_literal|boolean_equality|constant_functions_assembly|style|lint", vtype):
         return has("BENIGN-PRAGMA-INFORMATIONAL")
-    if "arithmetic" in vtype and pragma_08 and "unchecked" not in body:
+    # Solidity >=0.8 guarantees overflow/underflow reverts ONLY — it does NOT prevent
+    # precision/rounding loss (mul-before-div, integer truncation). A wild eval saw a real
+    # rounding bug dropped here; never treat rounding/division findings as 0.8-benign.
+    raw_type = (finding.get("title") or finding.get("check") or finding.get("type") or "").lower()
+    is_rounding = bool(re.search(r"round|divi|precision|truncat", raw_type))
+    if "arithmetic" in vtype and pragma_08 and "unchecked" not in body and not is_rounding:
         return has("BENIGN-ARITHMETIC-0_8")
     if "reentr" in vtype:
         if re.search(r"nonReentrant|ReentrancyGuard", sig):
