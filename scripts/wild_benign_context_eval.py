@@ -117,19 +117,24 @@ def run_slither(path: str, code: str, timeout: int) -> list[dict] | None:
     return findings
 
 
-def load_ground_truth(path: str) -> dict:
-    """basename -> [{category, lines}] from a SmartBugs vulnerabilities.json.
+def load_ground_truth(path: str) -> tuple:
+    """Return (vuln_idx, clean_set) from a SmartBugs-style vulnerabilities.json.
 
-    Anchors the recall-critical label (a finding IS a real vuln) on the dataset's own
-    annotations — no LLM, no circularity. Only the lower-stakes 'benign vs real-secondary'
-    question for non-annotated findings is left to the judge / human.
+    vuln_idx: basename -> [{category, lines}] — anchors the recall-critical label (a finding
+    IS a real vuln) on the dataset's own annotations, no LLM, no circularity.
+    clean_set: basenames of contracts explicitly marked clean (human-verified no-vuln, e.g.
+    fsalzano 'no' rows) — there ANY finding is a true FP, so it can be anchored False too.
     """
     data = json.load(open(path))
     idx: dict = {}
+    clean: set = set()
     for c in data:
         key = os.path.basename(c.get("path", "") or c.get("name", ""))
-        idx.setdefault(key, []).extend(c.get("vulnerabilities", []))
-    return idx
+        vulns = c.get("vulnerabilities", [])
+        idx.setdefault(key, []).extend(vulns)
+        if c.get("clean") and not vulns:
+            clean.add(key)
+    return idx, clean
 
 
 def anchored_real(finding: dict, vulns: list, window: int = 2) -> bool:
@@ -153,11 +158,11 @@ def anchored_real(finding: dict, vulns: list, window: int = 2) -> bool:
 
 # --------------------------------------------------------------------------- #
 def cmd_collect(args) -> int:
-    gt = load_ground_truth(args.ground_truth) if args.ground_truth else {}
+    gt_vulns, gt_clean = load_ground_truth(args.ground_truth) if args.ground_truth else ({}, set())
     files = sorted(glob.glob(os.path.join(args.corpus, "**", "*.sol"), recursive=True))
     if args.max:
         files = files[: args.max]
-    records, scanned, skipped, anchored = [], 0, 0, 0
+    records, scanned, skipped, anchored, anchored_clean = [], 0, 0, 0, 0
     for path in files:
         code = open(path, errors="ignore").read()
         fs = run_slither(path, code, args.timeout)
@@ -166,18 +171,25 @@ def cmd_collect(args) -> int:
             print(f"  skip {os.path.basename(path)} (no solc / scan failed)")
             continue
         scanned += 1
-        vulns = gt.get(os.path.basename(path), []) if gt else []
+        base = os.path.basename(path)
+        vulns = gt_vulns.get(base, [])
+        is_clean = base in gt_clean
         for f in fs:
             real = bool(vulns) and anchored_real(f, vulns)
-            anchored += real
+            if real:
+                label, source = True, "ground_truth"
+                anchored += 1
+            elif is_clean:  # human-verified clean contract -> any finding is a true FP
+                label, source = False, "ground_truth_clean"
+                anchored_clean += 1
+            else:
+                label, source = None, None
             records.append({
                 "contract": path, "check": f["check"], "type": f["type"],
                 "function": f["function"], "line": f["line"], "severity": f["severity"],
-                "code": code,
-                "label": True if real else None,
-                "label_source": "ground_truth" if real else None,
+                "code": code, "label": label, "label_source": source,
             })
-        print(f"  scan {os.path.basename(path)}: {len(fs)} findings")
+        print(f"  scan {base}: {len(fs)} findings")
     with open(args.out, "w") as fh:
         for r in records:
             fh.write(json.dumps(r) + "\n")
@@ -194,8 +206,9 @@ def cmd_collect(args) -> int:
                         r["label_source"] or ""])
     todo = sum(1 for r in records if r["label"] is None)
     print(f"\ncollected {len(records)} findings from {scanned} contracts ({skipped} skipped)")
-    if gt:
+    if gt_vulns or gt_clean:
         print(f"  anchored as REAL from ground truth (no LLM): {anchored}")
+        print(f"  anchored as FP on human-verified clean contracts (no LLM): {anchored_clean}")
         print(f"  left for judge/human (non-annotated): {todo}")
     print(f"  findings: {args.out}\n  label the rest here (or via --judge-model): {csv_path}")
     return 0

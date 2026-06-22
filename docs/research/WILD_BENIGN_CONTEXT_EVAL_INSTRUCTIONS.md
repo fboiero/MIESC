@@ -51,6 +51,38 @@ python benchmarks/build_datasets.py --smartbugs
 > truth, so every label would fall to the LLM judge — reintroducing the circularity the
 > anchor exists to avoid. More contracts is not more rigor; the rigor is in the labels.
 
+### More labeled corpora via adapters
+
+Two other **line-level, non-tool-derived** datasets can feed the anchor through
+`scripts/dataset_adapters.py`, which converts each into the same `vulnerabilities.json`
+format plus a flat `.sol` corpus (unique basenames — the harness keys by basename):
+
+```bash
+# fsalzano — REAL contracts, MANUAL human line-level labels, taxonomy matches ours,
+# AND 604 human-verified CLEAN contracts (true negatives, anchored as FP, no LLM).
+git clone https://github.com/fsalzano/Empirical-Analysis-of-Vulnerability-Detection-Tools-for-Solidity-Smart-Contracts fsalzano
+python3 scripts/dataset_adapters.py fsalzano fsalzano \
+  --out-corpus fsalzano_corpus --out-gt fsalzano_gt.json
+
+# SolidiFI — injected bugs with exact location logs (line ranges). solc 0.4–0.5.
+git clone https://github.com/DependableSystemsLab/SolidiFI-benchmark solidifi
+python3 scripts/dataset_adapters.py solidifi solidifi \
+  --out-corpus solidifi_corpus --out-gt solidifi_gt.json
+
+# then run the eval on the adapted corpus + ground truth:
+python3 scripts/wild_benign_context_eval.py collect fsalzano_corpus \
+  --ground-truth fsalzano_gt.json -o wild_findings.jsonl
+```
+
+`fsalzano` is the highest-value source: real contracts, human (not tool) labels, a
+taxonomy that already matches the verifier's, and a built-in true-negative set. Its clean
+contracts are anchored `label=False` with `label_source=ground_truth_clean` — any finding
+on a human-verified-clean contract is a true FP, measured without any LLM.
+
+> **DIVE is intentionally excluded.** 22,330 contracts, but labels are contract-level only
+> (no line/function) and tool-derived (6-tool vote) — unusable for per-finding anchoring
+> and circular for evaluating a tool-finding verifier. Volume ≠ rigor.
+
 ## Phase 1 — collect (run the real scanner + anchor ground truth)
 
 ```bash
