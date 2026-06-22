@@ -253,3 +253,31 @@ class TestDeterministicAdditions:
         code = ("pragma solidity ^0.4.24; contract C { address owner;"
                 " function C() public { owner = msg.sender; } }")
         assert V.verify(self._f("access_control", "constructor_mismatch"), code) != "false_positive"
+
+
+# --------------------------------------------------------------------------- #
+# Unchecked-call benign patterns must scope to the FLAGGED line, not the function.
+# Locks the wild-at-scale fix where a .transfer() elsewhere over-dropped real .call()/.send().
+# --------------------------------------------------------------------------- #
+class TestUncheckedCallLineScoping:
+    CODE = (
+        "pragma solidity ^0.8.0;\n"      # 1
+        "contract C {\n"                  # 2
+        "  function f(address t) external {\n"          # 3
+        '    t.call{value:1}("");\n'                     # 4  <- unchecked call (REAL)
+        "    payable(msg.sender).transfer(1);\n"        # 5  <- a .transfer elsewhere
+        "  }\n"                            # 6
+        "}\n"                             # 7
+    )
+
+    def _f(self, title, line):
+        return {"type": "unchecked_low_level_calls", "title": title,
+                "location": {"function": "unknown", "line": line}}
+
+    def test_unchecked_call_not_dropped_when_transfer_elsewhere(self):
+        # the .call() on line 4 is real; a .transfer() on line 5 must NOT make it benign
+        assert V.verify(self._f("unchecked_call_pattern", 4), self.CODE) != "false_positive"
+
+    def test_finding_on_transfer_line_is_dropped(self):
+        # an unchecked-return finding ON a .transfer() line IS benign (transfer reverts)
+        assert V.verify(self._f("erc20_return_check", 5), self.CODE) == "false_positive"

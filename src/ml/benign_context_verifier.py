@@ -200,12 +200,23 @@ def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, An
     if ("time" in vtype or "timestamp" in vtype) and _timestamp_is_benign(body):
         return has("BENIGN-TIMESTAMP-TIMELOCK")
     if "unchecked" in vtype or "low_level" in vtype:
-        if re.search(r"safeTransfer|SafeERC20", body):
+        # Scope to the FLAGGED call line, not the whole function: a .transfer()/require()
+        # elsewhere does NOT make THIS .call()/.send() benign. (A wild eval at scale caught
+        # real unchecked .call()/.send() vulns dropped because the function held a .transfer.)
+        lines_arr = code.splitlines()
+        if isinstance(line, int) and 1 <= line <= len(lines_arr):
+            scope = lines_arr[line - 1]
+            window = " ".join(lines_arr[line - 1:line + 2])
+        else:
+            scope = window = body  # no line -> fall back to function body
+        if re.search(r"safeTransfer|SafeERC20", scope):
             return has("BENIGN-SAFEERC20")
-        if re.search(r"require\s*\(\s*(ok|success)\b", body):
-            return has("BENIGN-CHECKED-CALL")
-        if re.search(r"\.transfer\(", body):
+        # .transfer() reverts on failure -> benign, but ONLY if the flagged call is a
+        # .transfer (not a .send/.call on the same line).
+        if re.search(r"\.transfer\(", scope) and not re.search(r"\.send\(|\.call\b", scope):
             return has("BENIGN-TRANSFER-REVERTS")
+        if re.search(r"require\s*\(\s*(ok|success)\b", window):
+            return has("BENIGN-CHECKED-CALL")
     if "front" in vtype and re.search(r"keccak256", code) and re.search(r"commit", code, re.IGNORECASE):
         return has("BENIGN-FRONTRUN-COMMITREVEAL")
     if "short" in vtype and re.search(r"pragma\s+solidity\s*[\^>=]*\s*0\.([5-9]|\d{2})", code):

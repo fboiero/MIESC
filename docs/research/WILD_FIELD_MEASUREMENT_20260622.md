@@ -110,6 +110,21 @@ vuln categories whose 0-count is sampling, not a guarantee.
 Result on fsalzano: fp_dropped 7 → 10, precision 0.273 → 0.313 (+4.1pp), recall still 1.0
 across all six sources. Modest and honest — every drop is provably benign.
 
+**Mining at scale (full fsalzano: 684 real + 1823 FP).** Re-running on the entire corpus
+(not the 60-contract subset) earned its keep twice:
+- It **caught a near-miss**: `incorrect_constructor_name` showed 4 REAL at scale (0 in the
+  subset). Blanket-dropping constructor findings would have lost 4 real vulns — the pragma
+  ≥0.5 gate (kept on <0.5) was vindicated by data the subset couldn't show.
+- It **exposed another scoping bug**: `BENIGN-TRANSFER-REVERTS` matched a `.transfer()`
+  ANYWHERE in the function, over-dropping 2 real unchecked `.call()`/`.send()` findings.
+  Fixed: the unchecked-call patterns now scope to the FLAGGED line, not the whole function.
+
+After the fix, recall on true vulns is 1.0 (684/684). One residual `real_lost` is a
+ground-truth ±2-line anchoring artifact: a benign `owner.transfer()` (which reverts) got
+anchored to a neighboring real `.call()`; the verifier correctly drops the transfer, and the
+real `.call()` finding is a separate record that is correctly kept. Lesson restated: validate
+at scale — small/subset corpora hide both real-vuln near-misses and over-match bugs.
+
 ## Takeaways
 
 - **Synthetic ≠ field.** A controlled +28.6pp/100%-recall number did not generalize; only the
