@@ -129,6 +129,25 @@ wider window adds ~56 off-by-line anchors but reintroduces the 1 false anchor). 
 restated: validate at scale — small/subset corpora hide both real-vuln near-misses and
 over-match bugs.
 
+## Audit-grade LLM validation + the ERC20-transfer bug
+
+Running the **LLM verifier (advisory) on the audit-grade corpora** confirmed the structural
+property empirically: LLM-advisory recall == rule-only recall on every source (DAppSCAN 7==7,
+Code4rena 0==0, Sherlock 0==0 before the fix below) — the LLM adds no drops, only flags.
+
+That run also surfaced a **7th recall bug**: on a wider DAppSCAN slice (exact anchoring,
+28 anchored real) `BENIGN-TRANSFER-REVERTS` dropped 7 real unchecked **ERC20** transfers.
+Native `address.transfer(amount)` reverts (benign), but ERC20 `token.transfer(to, amount)`
+returns a `bool` and may fail silently (SWC-104) — a real vuln. Fixed: only the 1-arg native
+form is treated benign; the 2-arg ERC20 signature is kept. **Result: all six sources at
+recall 1.0.**
+
+Running tally of recall bugs this evaluation caught and fixed — each surfaced by real/at-scale
+data, none by synthetic tests: (1) LLM reasons vulns away → LLM advisory-only; (2) guard
+presence ≠ benign → guards flag; (3) `BENIGN-ARITHMETIC-0_8` vs rounding; (4) transfer-reverts
+whole-body over-match → line scoping; (5) ERC20 vs native transfer. Plus a measurement
+artifact (±-line anchoring → exact by default).
+
 ## Takeaways
 
 - **Synthetic ≠ field.** A controlled +28.6pp/100%-recall number did not generalize; only the
