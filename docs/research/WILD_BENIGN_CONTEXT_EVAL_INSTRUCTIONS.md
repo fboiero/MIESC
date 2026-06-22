@@ -83,6 +83,21 @@ Or fetch all four usable corpora at once (gitignored local copies):
 `python benchmarks/build_datasets.py --labeled`. The full rationale for which sources are
 usable and why is in [DATASET_SOURCE_CLASSIFICATION.md](DATASET_SOURCE_CLASSIFICATION.md).
 
+### Code4rena (highest quality — via scraper, needs authenticated `gh`)
+
+Competitive human-audit findings with exact file+line locations. No clone of the audited
+repos — referenced files are fetched at their pinned SHA via raw.githubusercontent:
+
+```bash
+python3 scripts/code4rena_scraper.py contests | grep 2023        # list findings repos
+python3 scripts/code4rena_scraper.py scrape 2023-05-ajna-findings --out c4.jsonl
+python3 scripts/code4rena_scraper.py build c4.jsonl --out-corpus c4_corpus --out-gt c4_gt.json
+python3 scripts/wild_benign_context_eval.py collect c4_corpus --ground-truth c4_gt.json -o wild.jsonl
+```
+
+Category is keyword-mapped from free-text titles (noisy); unmapped findings get `other` and
+won't anchor — recall-safe. Only High/Med findings are kept.
+
 `fsalzano` is the highest-value source: real contracts, human (not tool) labels, a
 taxonomy that already matches the verifier's, and a built-in true-negative set. Its clean
 contracts are anchored `label=False` with `label_source=ground_truth_clean` — any finding

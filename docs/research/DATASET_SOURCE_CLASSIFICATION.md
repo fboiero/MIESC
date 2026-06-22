@@ -67,14 +67,25 @@ then consumed via `wild_benign_context_eval.py collect --ground-truth`.
   parse `lineNumber` (`L74`, `L45-47`); map SWC number → our category; unmapped SWCs kept
   as `swc-<n>` (inert — never falsely anchor).
 
-## 4. Usable but deferred (high cost)
+## 4. Usable via scraper
 
-| Source | Why usable | Why deferred |
-|--------|-----------|--------------|
-| **Code4rena** raw `*-findings` | best quality (competitive human audits); standardized `# Lines of code` permalinks `blob/<sha>/<path>#L<a>-L<b>` are regex-extractable | no pre-packaged dataset — needs a GitHub-API scraper **and** cloning each audited repo at its pinned SHA to get the source. A project of its own. |
-| **Sherlock** `*-judging` | real human audits; inline permalinks | permalinks are inline-only (no location section) → lower, noisier yield than Code4rena. |
+**Code4rena — IMPLEMENTED** (`scripts/code4rena_scraper.py`). Best quality of all: competitive
+human audits with exact `# Lines of code` permalinks. The key simplification that made it
+feasible: we do **not** clone the audited repos — each permalink is `blob/<sha>/<path>`, so
+we fetch only the referenced file via `raw.githubusercontent.com/<org>/<repo>/<sha>/<path>`
+at the pinned SHA (single files, not clones). Three phases: `contests` (list 376 findings
+repos) → `scrape` (pull issues, keep High/Med by label, parse permalinks) → `build` (fetch
+files @SHA → flat corpus + `vulnerabilities.json`). Verified live on `2023-01-numoen`:
+92 High/Med findings → 22 contracts fetched, 0 unreachable.
 
-These are flagged as a future effort, not integrated now.
+> **Category caveat.** Code4rena has no SWC/DASP tag — titles are free text. Category is
+> keyword-mapped (noisy); unmapped findings get `other` and will NOT anchor (recall-safe:
+> under-credit, never inflate). Severity (high/med) comes from issue labels. F1 ✓ (line) ·
+> F2 ✓ (human auditors).
+
+**Sherlock `*-judging` — deferred.** Real human audits, but permalinks are inline-only (no
+standardized location section) → lower, noisier yield than Code4rena. The same raw-fetch
+approach would apply; not built yet.
 
 ## 5. Rejected (with the failing filter)
 
