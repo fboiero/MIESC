@@ -365,6 +365,13 @@ def _run_full_audit_with_ml(
 
         # Display ML-enhanced summary
         summary_data = result.get_summary()
+        if verify_fp:
+            # The ML get_summary() is computed from internal counts and does not reflect
+            # the post-hoc verifier; recompute the displayed totals from the filtered set.
+            _sf = summarize_findings([{"tool": "ml", "findings": result.ml_filtered_findings}])
+            summary_data["total_findings"] = sum(_sf.values())
+            for _k in ("critical", "high", "medium", "low"):
+                summary_data[_k] = _sf.get(_k.upper(), summary_data.get(_k, 0))
 
         if RICH_AVAILABLE:
             console.print("\n")
