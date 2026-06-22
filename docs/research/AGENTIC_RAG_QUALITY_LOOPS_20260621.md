@@ -320,9 +320,18 @@ if it misses vulnerabilities.
 
 `src/ml/benign_context_verifier.py` ships the recall-safe verifier as a reusable class
 (`BenignContextVerifier(model=...).filter(findings, code)` → kept / dropped / flagged).
-Rule-only by default (no deps); opt-in LLM grounding via local Ollama (default 32b).
-Drops only on a strong benign signal; weak grounding → `needs_review` (kept). Additive,
-opt-in; the core MIESC scan flow and the papers are untouched.
+Rule-only by default (no deps); opt-in LLM grounding via local Ollama, with **DeepSeek
+API failover** (`DEEPSEEK_API_KEY`) when Ollama is unavailable, or `--verify-model
+deepseek` to use it directly. Drops only on a strong benign signal; weak grounding →
+`needs_review` (kept). Function-scoped (by name, or by line when the detector reports
+`function: unknown`).
+
+**Wired into the CLI** (`miesc/cli/commands/scan.py`): `miesc scan <contract> --verify-fp`
+runs the verifier as a recall-safe post-scan FP filter on all scan paths (single / dir /
+diff); `--verify-model qwen2.5-coder:32b` enables the LLM grounding. End-to-end check:
+on a guarded contract it drops the (benign) reentrancy finding; on the same code without
+the guard it KEEPS the (real) reentrancy. Additive, opt-in; core scan logic defaults
+unchanged and the papers are untouched.
 
 **The gap between these two numbers is the whole story.** On real detector output the
 FPs are *vuln-type findings in benign context* (e.g. an unchecked-call finding on a

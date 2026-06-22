@@ -80,6 +80,33 @@ def _func_signature(code: str, fn: str) -> str:
     return m.group(0) if m else ""
 
 
+def _function_at_line(code: str, line: int) -> tuple[str, str]:
+    """Return (body, signature) of the function whose brace-span contains `line`.
+
+    Real detector findings often carry function='unknown' but a valid line number;
+    locating the enclosing function by line lets benign matching stay function-scoped
+    (so a guard on the SAME function is detected, without contract-wide over-matching)."""
+    try:
+        target = int(line)
+    except (TypeError, ValueError):
+        return "", ""
+    for m in re.finditer(r"function\s+\w+\b[^{};]*\{", code):
+        brace = code.rindex("{", m.start(), m.end())
+        depth, i, end = 0, brace, brace
+        while i < len(code):
+            if code[i] == "{":
+                depth += 1
+            elif code[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+            i += 1
+        if code.count("\n", 0, m.start()) + 1 <= target <= code.count("\n", 0, end) + 1:
+            return code[m.start():end + 1], code[m.start():brace]
+    return "", ""
+
+
 def _is_cei(body: str) -> bool:
     call = re.search(r"\.call\{|\.call\(|\.transfer\(|\.send\(", body)
     upd = re.search(r"balances?\[[^\]]*\]\s*[-+]?=", body)
@@ -99,11 +126,17 @@ def _timestamp_is_benign(body: str) -> bool:
 def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
     """Return the benign pattern this finding function-scopedly matches, else None."""
     vtype = _norm(finding.get("type") or finding.get("title") or "")
-    fn = finding.get("function") or ((finding.get("location") or {}).get("function") if isinstance(finding.get("location"), dict) else "") or ""
-    body = _extract_function(code, fn)
+    loc = finding.get("location") if isinstance(finding.get("location"), dict) else {}
+    fn = finding.get("function") or loc.get("function") or ""
+    line = loc.get("line")
+    if fn and fn not in ("unknown", ""):
+        body, sig = _extract_function(code, fn), _func_signature(code, fn)
+    elif line:
+        body, sig = _function_at_line(code, line)  # scope by line when fn is 'unknown'
+    else:
+        body, sig = code, ""  # no scope available -> whole code, no signature
     if body == "":
         return None
-    sig = _func_signature(code, fn)
     pragma_08 = bool(re.search(r"pragma\s+solidity\s*\^?0\.8", code))
     by_id = {p["id"]: p for p in patterns}
 
@@ -157,8 +190,6 @@ class BenignContextVerifier:
     def _llm_false_positive(self, finding: dict[str, Any], code: str) -> bool:
         if not self.model:
             return False
-        import urllib.request
-
         vtype = _norm(finding.get("type") or "")
         rel = [p for p in self.patterns if (lambda c: c and (c in vtype or vtype in c))(_norm(p.get("resembles_category", "")))]
         ref = ""
@@ -175,17 +206,46 @@ class BenignContextVerifier:
             'Respond with ONLY: {"false_positive": true|false}. If at all uncertain, answer '
             "false_positive=false (never drop a real vulnerability)."
         )
-        try:
-            body = json.dumps({"model": self.model, "prompt": prompt, "stream": False,
-                               "options": {"temperature": 0}}).encode()
-            req = urllib.request.Request(self.host.rstrip("/") + "/api/generate", data=body,
-                                         headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=self.timeout) as r:
-                raw = json.loads(r.read()).get("response", "")
-            m = re.search(r"\{.*\}", raw, re.DOTALL)
-            return bool(m and json.loads(m.group(0)).get("false_positive") is True)
-        except Exception:  # noqa: BLE001 - any failure -> recall-safe keep
-            return False
+        raw = self._query(prompt)
+        m = re.search(r"\{.*\}", raw, re.DOTALL)
+        return bool(m and json.loads(m.group(0)).get("false_positive") is True)
+
+    def _query(self, prompt: str) -> str:
+        """Query the verifier model: Ollama first, DeepSeek API failover. '' on any failure.
+
+        - model='deepseek'           -> DeepSeek API directly.
+        - model=<ollama model>       -> Ollama; on failure (e.g. Ollama down) AND
+                                        DEEPSEEK_API_KEY set -> automatic DeepSeek failover.
+        Any failure returns '' which the caller treats as recall-safe KEEP.
+        """
+        import urllib.request
+
+        if self.model and self.model.lower() != "deepseek":
+            try:
+                body = json.dumps({"model": self.model, "prompt": prompt, "stream": False,
+                                   "options": {"temperature": 0}}).encode()
+                req = urllib.request.Request(self.host.rstrip("/") + "/api/generate", data=body,
+                                             headers={"Content-Type": "application/json"})
+                with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                    return json.loads(r.read()).get("response", "")
+            except Exception:  # noqa: BLE001 - fall through to DeepSeek failover
+                pass
+        key = os.environ.get("DEEPSEEK_API_KEY")
+        if key:
+            try:
+                base = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
+                ds_model = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
+                body = json.dumps({"model": ds_model,
+                                   "messages": [{"role": "user", "content": prompt}],
+                                   "temperature": 0, "stream": False}).encode()
+                req = urllib.request.Request(base + "/chat/completions", data=body,
+                                             headers={"Content-Type": "application/json",
+                                                      "Authorization": f"Bearer {key}"})
+                with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                    return json.loads(r.read())["choices"][0]["message"]["content"]
+            except Exception:  # noqa: BLE001 - recall-safe: failure -> keep
+                return ""
+        return ""
 
     # -- public API ------------------------------------------------------------
     def verify(self, finding: dict[str, Any], code: str) -> str:

@@ -108,6 +108,20 @@ if RICH_AVAILABLE:
     is_flag=True,
     help="Multi-provider ensemble: runs Claude + GPT-4o + Ollama local, merges findings (highest recall)",
 )
+@click.option(
+    "--verify-fp",
+    is_flag=True,
+    help="Recall-safe benign-context verifier: drops findings the code clearly mitigates "
+    "(reentrancy guard, onlyOwner, Sol>=0.8, ...). Rule-only and fast; never drops a real "
+    "vuln on a weak signal. Add --verify-model for semantic (LLM) grounding.",
+)
+@click.option(
+    "--verify-model",
+    "verify_model",
+    default=None,
+    help="Ollama model for the --verify-fp LLM grounding (e.g. qwen2.5-coder:32b). "
+    "Higher precision; slower. Omit for the fast rule-only verifier.",
+)
 def scan(
     contract: str,
     output: str | None,
@@ -121,6 +135,8 @@ def scan(
     frontier_model: str | None,
     deep: bool,
     ensemble: bool,
+    verify_fp: bool,
+    verify_model: str | None,
 ) -> None:
     """Quick vulnerability scan for a Solidity contract or directory.
 
@@ -217,6 +233,8 @@ def scan(
             quiet=quiet,
             verbose=verbose,
             ci=ci,
+            verify_fp=verify_fp,
+            verify_model=verify_model,
         )
         return
 
@@ -385,6 +403,8 @@ def scan(
             quiet=quiet,
             verbose=verbose,
             ci=ci,
+            verify_fp=verify_fp,
+            verify_model=verify_model,
         )
         return
 
@@ -676,6 +696,8 @@ def scan(
         quiet=quiet,
         verbose=verbose,
         ci=ci,
+        verify_fp=verify_fp,
+        verify_model=verify_model,
     )
 
 
@@ -754,6 +776,56 @@ def _scan_single_file(
             all_results.append(result)
 
 
+def _apply_verify_fp(
+    all_results: list[dict[str, Any]], *, contract: str, model: str | None, quiet: bool
+) -> None:
+    """Recall-safe benign-context verifier as a post-scan FP filter (mutates findings).
+
+    Drops only findings the contract clearly mitigates (reentrancy guard, onlyOwner,
+    Sol>=0.8, SafeERC20, ...); weakly-grounded findings are flagged needs_review and
+    KEPT. Rule-only by default; opt-in LLM grounding via `model` (Ollama, with DeepSeek
+    API failover). Never drops a real finding on a weak signal.
+    """
+    try:
+        from src.ml.benign_context_verifier import BenignContextVerifier
+    except Exception as e:  # noqa: BLE001
+        if not quiet:
+            info(f"verify-fp skipped: {e}")
+        return
+    verifier = BenignContextVerifier(model=model)
+    code_cache: dict[str, str] = {}
+
+    def _code_for(fp: str) -> str:
+        if fp not in code_cache:
+            try:
+                p = Path(fp)
+                code_cache[fp] = p.read_text(encoding="utf-8") if fp and p.is_file() else ""
+            except Exception:
+                code_cache[fp] = ""
+        return code_cache[fp]
+
+    dropped_total = flagged_total = 0
+    for result in all_results:
+        kept: list[dict[str, Any]] = []
+        for f in result.get("findings", []):
+            fp = f.get("file") or result.get("contract") or contract
+            verdict = verifier.verify(f, _code_for(fp))
+            f["verifier_verdict"] = verdict
+            if verdict == "false_positive":
+                dropped_total += 1
+            else:
+                if verdict == "needs_review":
+                    flagged_total += 1
+                kept.append(f)
+        result["findings"] = kept
+    if not quiet:
+        mode = f"LLM {model}" if model else "rule-only"
+        info(
+            f"verify-fp ({mode}): dropped {dropped_total} benign-context FP(s), "
+            f"flagged {flagged_total} for review — real findings kept (recall-safe)"
+        )
+
+
 def _display_and_save(
     all_results: list[dict[str, Any]],
     *,
@@ -762,8 +834,12 @@ def _display_and_save(
     quiet: bool,
     verbose: bool,
     ci: bool,
+    verify_fp: bool = False,
+    verify_model: str | None = None,
 ) -> None:
     """Display the scan summary table, optionally save JSON, and handle CI exit."""
+    if verify_fp:
+        _apply_verify_fp(all_results, contract=contract, model=verify_model, quiet=quiet)
     # Detect tool failures — help users who installed miesc without slither/aderyn
     tools_succeeded = [r for r in all_results if r.get("status") != "error"]
     tools_errored = [r for r in all_results if r.get("status") == "error"]
