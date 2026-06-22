@@ -184,7 +184,7 @@ def load_ground_truth(path: str) -> tuple:
     return idx, clean
 
 
-def anchored_real(finding: dict, vulns: list, window: int = 2) -> bool:
+def anchored_real(finding: dict, vulns: list, window: int = 0) -> bool:
     """True if the finding matches an annotated vuln (category + line ± window).
 
     Conservative by design: when the category matches but line info is absent, returns
@@ -222,7 +222,7 @@ def cmd_collect(args) -> int:
         vulns = gt_vulns.get(base, [])
         is_clean = base in gt_clean
         for f in fs:
-            real = bool(vulns) and anchored_real(f, vulns)
+            real = bool(vulns) and anchored_real(f, vulns, window=args.anchor_window)
             if real:
                 label, source = True, "ground_truth"
                 anchored += 1
@@ -347,6 +347,10 @@ def main() -> int:
     c.add_argument("--max", type=int, default=0); c.add_argument("--timeout", type=int, default=60)
     c.add_argument("--scanner", choices=["slither", "miesc"], default="slither",
                    help="finding source: slither (needs solc) or miesc (pure-python, no solc)")
+    c.add_argument("--anchor-window", type=int, default=0,
+                   help="±lines tolerance when anchoring a finding to a ground-truth vuln line "
+                        "(default 0 = exact, no proximity artifacts; larger tolerates "
+                        "scanner/annotation offset but can anchor a benign neighbor line)")
     c.add_argument("--ground-truth", default=None,
                    help="SmartBugs vulnerabilities.json — anchors REAL labels (no LLM, no circularity)")
     lb = sub.add_parser("label"); lb.add_argument("infile"); lb.add_argument("-o", "--out", default="wild_labeled.jsonl")

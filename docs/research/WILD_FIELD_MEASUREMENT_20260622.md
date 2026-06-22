@@ -119,11 +119,15 @@ across all six sources. Modest and honest — every drop is provably benign.
   ANYWHERE in the function, over-dropping 2 real unchecked `.call()`/`.send()` findings.
   Fixed: the unchecked-call patterns now scope to the FLAGGED line, not the whole function.
 
-After the fix, recall on true vulns is 1.0 (684/684). One residual `real_lost` is a
-ground-truth ±2-line anchoring artifact: a benign `owner.transfer()` (which reverts) got
-anchored to a neighboring real `.call()`; the verifier correctly drops the transfer, and the
-real `.call()` finding is a separate record that is correctly kept. Lesson restated: validate
-at scale — small/subset corpora hide both real-vuln near-misses and over-match bugs.
+After the fix, recall on true vulns is 1.0. With a ±-line anchor window one residual
+`real_lost` appeared — a benign `owner.transfer()` (which reverts) anchored to a *neighboring*
+real `.call()`; the verifier correctly drops the transfer, and the real `.call()` is a
+separate record that is correctly kept. This was a ground-truth proximity artifact, not a
+verifier failure, so the anchor default is now **exact line matching** (`--anchor-window 0`):
+on full fsalzano that gives **628/628 anchored real kept, recall 1.0, zero artifacts** (a
+wider window adds ~56 off-by-line anchors but reintroduces the 1 false anchor). Lesson
+restated: validate at scale — small/subset corpora hide both real-vuln near-misses and
+over-match bugs.
 
 ## Takeaways
 
