@@ -266,3 +266,40 @@ class BenignContextVerifier:
             f = {**f, "verifier_verdict": v}
             (dropped if v == "false_positive" else flagged if v == "needs_review" else kept).append(f)
         return {"kept": kept + flagged, "dropped": dropped, "flagged": flagged, "confirmed": kept}
+
+
+def apply_to_results(
+    all_results: list[dict[str, Any]], *, contract: str = "", model: str | None = None
+) -> tuple[int, int]:
+    """Recall-safe verify, in place over a [{tool, findings:[...]}] result list.
+
+    Shared by `miesc scan --verify-fp` and `miesc audit ... --verify-fp`. Reads each
+    finding's contract code (from finding['file'], result['contract'], or `contract`),
+    drops only false_positive verdicts, keeps confirmed + needs_review. Returns
+    (dropped_count, flagged_count)."""
+    verifier = BenignContextVerifier(model=model)
+    code_cache: dict[str, str] = {}
+
+    def _code(fp: str) -> str:
+        if fp not in code_cache:
+            try:
+                code_cache[fp] = open(fp, encoding="utf-8").read() if fp and os.path.isfile(fp) else ""
+            except Exception:
+                code_cache[fp] = ""
+        return code_cache[fp]
+
+    dropped = flagged = 0
+    for result in all_results:
+        kept: list[dict[str, Any]] = []
+        for f in result.get("findings", []):
+            fp = f.get("file") or result.get("contract") or contract
+            verdict = verifier.verify(f, _code(fp))
+            f["verifier_verdict"] = verdict
+            if verdict == "false_positive":
+                dropped += 1
+            else:
+                if verdict == "needs_review":
+                    flagged += 1
+                kept.append(f)
+        result["findings"] = kept
+    return dropped, flagged

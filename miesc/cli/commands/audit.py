@@ -321,6 +321,8 @@ def _run_full_audit_with_ml(
     layer_list: list[int],
     timeout: int,
     orchestrator: Any,
+    verify_fp: bool = False,
+    verify_model: str | None = None,
 ) -> None:
     """Run full audit using ML Orchestrator."""
     # Determine tools from layers
@@ -344,6 +346,22 @@ def _run_full_audit_with_ml(
             timeout=timeout,
             progress_callback=progress_callback if RICH_AVAILABLE else None,
         )
+
+        # Recall-safe benign-context verifier (opt-in) over the ML-filtered findings
+        if verify_fp:
+            try:
+                from src.ml.benign_context_verifier import apply_to_results
+
+                wrapped = [{"findings": list(result.ml_filtered_findings)}]
+                d, fl = apply_to_results(wrapped, contract=contract, model=verify_model)
+                result.ml_filtered_findings = wrapped[0]["findings"]
+                mode = f"LLM {verify_model}" if verify_model else "rule-only"
+                info(
+                    f"verify-fp ({mode}): dropped {d} benign-context FP(s), "
+                    f"flagged {fl} for review — real findings kept (recall-safe)"
+                )
+            except Exception as e:  # noqa: BLE001
+                info(f"verify-fp skipped: {e}")
 
         # Display ML-enhanced summary
         summary_data = result.get_summary()
@@ -427,7 +445,10 @@ def _run_full_audit_with_ml(
         error(f"ML analysis failed: {e}")
         logger.exception("ML analysis error")
         info("Falling back to basic mode...")
-        _run_full_audit_basic(contract, output, fmt, layer_list, timeout)
+        _run_full_audit_basic(
+            contract, output, fmt, layer_list, timeout,
+            verify_fp=verify_fp, verify_model=verify_model,
+        )
 
 
 def _run_full_audit_with_correlation(
@@ -437,9 +458,12 @@ def _run_full_audit_with_correlation(
     layer_list: list[int],
     timeout: int,
     api: Any,
+    verify_fp: bool = False,
+    verify_model: str | None = None,
 ) -> None:
     """Run full audit using Correlation API."""
     all_results: list[dict[str, Any]] = []
+    _vfp_dropped = _vfp_flagged = 0
 
     for layer in layer_list:
         if layer in LAYERS:
@@ -452,12 +476,28 @@ def _run_full_audit_with_correlation(
                 print(f"\n=== Layer {layer}: {layer_info['name']} ===")
 
             results = run_layer(layer, contract, timeout)
+            if verify_fp:
+                try:
+                    from src.ml.benign_context_verifier import apply_to_results
+
+                    d, fl = apply_to_results(results, contract=contract, model=verify_model)
+                    _vfp_dropped += d
+                    _vfp_flagged += fl
+                except Exception:  # noqa: BLE001
+                    pass
             all_results.extend(results)
 
             # Add to correlation API
             for result in results:
                 if result.get("status") == "success" and result.get("findings"):
                     api.add_tool_results(result["tool"], result["findings"])
+
+    if verify_fp:
+        mode = f"LLM {verify_model}" if verify_model else "rule-only"
+        info(
+            f"verify-fp ({mode}): dropped {_vfp_dropped} benign-context FP(s), "
+            f"flagged {_vfp_flagged} for review — real findings kept (recall-safe)"
+        )
 
     # Run correlation analysis
     info("Running cross-tool correlation...")
@@ -502,7 +542,13 @@ def _run_full_audit_with_correlation(
 
 
 def _run_full_audit_basic(
-    contract: str, output: str | None, fmt: str, layer_list: list[int], timeout: int
+    contract: str,
+    output: str | None,
+    fmt: str,
+    layer_list: list[int],
+    timeout: int,
+    verify_fp: bool = False,
+    verify_model: str | None = None,
 ) -> None:
     """Run full audit in basic mode (no ML/correlation)."""
     import time as _time
@@ -575,6 +621,20 @@ def _run_full_audit_basic(
                 info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
     except Exception:
         pass  # graceful degradation
+
+    # Recall-safe benign-context verifier (opt-in)
+    if verify_fp:
+        try:
+            from src.ml.benign_context_verifier import apply_to_results
+
+            dropped, flagged = apply_to_results(all_results, contract=contract, model=verify_model)
+            mode = f"LLM {verify_model}" if verify_model else "rule-only"
+            info(
+                f"verify-fp ({mode}): dropped {dropped} benign-context FP(s), "
+                f"flagged {flagged} for review — real findings kept (recall-safe)"
+            )
+        except Exception as e:  # noqa: BLE001
+            info(f"verify-fp skipped: {e}")
 
     summary = summarize_findings(all_results)
     total = sum(summary.values())
@@ -674,7 +734,27 @@ def audit() -> None:
 )
 @click.option("--ci", is_flag=True, help="CI mode: exit with error if critical/high issues found")
 @click.option("--timeout", "-t", type=int, default=300, help="Timeout per tool in seconds")
-def audit_quick(contract: str, output: str | None, fmt: str, ci: bool, timeout: int) -> None:
+@click.option(
+    "--verify-fp",
+    is_flag=True,
+    help="Recall-safe benign-context FP filter: drop findings the code clearly mitigates "
+    "(reentrancy guard, onlyOwner, Sol>=0.8, ...). Add --verify-model for LLM grounding.",
+)
+@click.option(
+    "--verify-model",
+    "verify_model",
+    default=None,
+    help="Ollama/DeepSeek model for --verify-fp LLM grounding (e.g. qwen2.5-coder:32b, deepseek).",
+)
+def audit_quick(
+    contract: str,
+    output: str | None,
+    fmt: str,
+    ci: bool,
+    timeout: int,
+    verify_fp: bool,
+    verify_model: str | None,
+) -> None:
     """Quick 3-tool scan for fast feedback (slither, aderyn, solhint)."""
     print_banner()
     info(f"Quick scan of {contract}")
@@ -744,6 +824,20 @@ def audit_quick(contract: str, output: str | None, fmt: str, ci: bool, timeout: 
     except Exception:
         pass  # graceful degradation
 
+    # Recall-safe benign-context verifier (opt-in)
+    if verify_fp:
+        try:
+            from src.ml.benign_context_verifier import apply_to_results
+
+            dropped, flagged = apply_to_results(all_results, contract=contract, model=verify_model)
+            mode = f"LLM {verify_model}" if verify_model else "rule-only"
+            info(
+                f"verify-fp ({mode}): dropped {dropped} benign-context FP(s), "
+                f"flagged {flagged} for review — real findings kept (recall-safe)"
+            )
+        except Exception as e:  # noqa: BLE001
+            info(f"verify-fp skipped: {e}")
+
     summary = summarize_findings(all_results)
     total = sum(summary.values())
 
@@ -811,6 +905,18 @@ def audit_quick(contract: str, output: str | None, fmt: str, ci: bool, timeout: 
     "--ml/--no-ml", default=True, help="Enable ML pipeline for FP filtering and correlation"
 )
 @click.option("--correlate/--no-correlate", default=True, help="Enable cross-tool correlation")
+@click.option(
+    "--verify-fp",
+    is_flag=True,
+    help="Recall-safe benign-context FP filter: drop findings the code clearly mitigates "
+    "(reentrancy guard, onlyOwner, Sol>=0.8, ...). Add --verify-model for LLM grounding.",
+)
+@click.option(
+    "--verify-model",
+    "verify_model",
+    default=None,
+    help="Ollama/DeepSeek model for --verify-fp LLM grounding (e.g. qwen2.5-coder:32b, deepseek).",
+)
 def audit_full(
     contract: str,
     output: str | None,
@@ -820,6 +926,8 @@ def audit_full(
     skip_unavailable: bool,
     ml: bool,
     correlate: bool,
+    verify_fp: bool,
+    verify_model: str | None,
 ) -> None:
     """Complete 9-layer security audit with the configured layer tools.
 
@@ -848,7 +956,10 @@ def audit_full(
             if RICH_AVAILABLE
             else "ML Pipeline enabled - FP filtering active"
         )
-        _run_full_audit_with_ml(contract, output, fmt, layer_list, timeout, ml_orchestrator)
+        _run_full_audit_with_ml(
+            contract, output, fmt, layer_list, timeout, ml_orchestrator,
+            verify_fp=verify_fp, verify_model=verify_model,
+        )
         return
 
     if correlation_api:
@@ -858,7 +969,8 @@ def audit_full(
             else "Correlation enabled - Cross-tool validation active"
         )
         _run_full_audit_with_correlation(
-            contract, output, fmt, layer_list, timeout, correlation_api
+            contract, output, fmt, layer_list, timeout, correlation_api,
+            verify_fp=verify_fp, verify_model=verify_model,
         )
         return
 
@@ -866,7 +978,10 @@ def audit_full(
     if ml or correlate:
         warning("ML/Correlation modules not available, using basic mode")
 
-    _run_full_audit_basic(contract, output, fmt, layer_list, timeout)
+    _run_full_audit_basic(
+        contract, output, fmt, layer_list, timeout,
+        verify_fp=verify_fp, verify_model=verify_model,
+    )
 
 
 @audit.command("layer")

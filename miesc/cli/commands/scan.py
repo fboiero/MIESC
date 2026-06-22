@@ -787,37 +787,12 @@ def _apply_verify_fp(
     API failover). Never drops a real finding on a weak signal.
     """
     try:
-        from src.ml.benign_context_verifier import BenignContextVerifier
+        from src.ml.benign_context_verifier import apply_to_results
     except Exception as e:  # noqa: BLE001
         if not quiet:
             info(f"verify-fp skipped: {e}")
         return
-    verifier = BenignContextVerifier(model=model)
-    code_cache: dict[str, str] = {}
-
-    def _code_for(fp: str) -> str:
-        if fp not in code_cache:
-            try:
-                p = Path(fp)
-                code_cache[fp] = p.read_text(encoding="utf-8") if fp and p.is_file() else ""
-            except Exception:
-                code_cache[fp] = ""
-        return code_cache[fp]
-
-    dropped_total = flagged_total = 0
-    for result in all_results:
-        kept: list[dict[str, Any]] = []
-        for f in result.get("findings", []):
-            fp = f.get("file") or result.get("contract") or contract
-            verdict = verifier.verify(f, _code_for(fp))
-            f["verifier_verdict"] = verdict
-            if verdict == "false_positive":
-                dropped_total += 1
-            else:
-                if verdict == "needs_review":
-                    flagged_total += 1
-                kept.append(f)
-        result["findings"] = kept
+    dropped_total, flagged_total = apply_to_results(all_results, contract=contract, model=model)
     if not quiet:
         mode = f"LLM {model}" if model else "rule-only"
         info(
