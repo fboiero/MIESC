@@ -98,6 +98,20 @@ python3 scripts/wild_benign_context_eval.py collect c4_corpus --ground-truth c4_
 Category is keyword-mapped from free-text titles (noisy); unmapped findings get `other` and
 won't anchor — recall-safe. Only High/Med findings are kept.
 
+### Sherlock (via scraper, same `gh` requirement)
+
+Same idea, different layout: findings are markdown files in `sherlock-audit/<contest>-judging`
+under severity folders. Reuses Code4rena's `build` (shared JSONL schema):
+
+```bash
+python3 scripts/sherlock_scraper.py contests | grep 2023
+python3 scripts/sherlock_scraper.py scrape 2023-02-gmx-judging --out sh.jsonl
+python3 scripts/sherlock_scraper.py build sh.jsonl --out-corpus sh_corpus --out-gt sh_gt.json
+python3 scripts/wild_benign_context_eval.py collect sh_corpus --ground-truth sh_gt.json -o wild.jsonl
+```
+
+Permalinks often pin to `main` (a branch); record the run date since `main` source can drift.
+
 `fsalzano` is the highest-value source: real contracts, human (not tool) labels, a
 taxonomy that already matches the verifier's, and a built-in true-negative set. Its clean
 contracts are anchored `label=False` with `label_source=ground_truth_clean` — any finding

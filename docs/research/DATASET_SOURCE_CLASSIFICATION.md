@@ -83,9 +83,16 @@ files @SHA → flat corpus + `vulnerabilities.json`). Verified live on `2023-01-
 > under-credit, never inflate). Severity (high/med) comes from issue labels. F1 ✓ (line) ·
 > F2 ✓ (human auditors).
 
-**Sherlock `*-judging` — deferred.** Real human audits, but permalinks are inline-only (no
-standardized location section) → lower, noisier yield than Code4rena. The same raw-fetch
-approach would apply; not built yet.
+**Sherlock — IMPLEMENTED** (`scripts/sherlock_scraper.py`). Real human audits. Findings are
+markdown files in `sherlock-audit/<contest>-judging` repos under severity folders (`<n>-H/`,
+`<n>-M/`) — severity comes from the folder (authoritative), the `<id>-best.md` is the chosen
+canonical write-up (dedupes warden duplicates). Reuses Code4rena's shared machinery (permalink
+parsing, title→category, raw fetch, the identical `build` phase). Verified live on
+`2023-02-gmx`: 72 High/Med findings → 38 contracts fetched. Same category caveat. F1 ✓ · F2 ✓.
+
+> Sherlock permalinks often pin to `main` (a branch) rather than a commit SHA (the permalink
+> regex accepts both); the judging repo is a frozen snapshot, but the fetched source reflects
+> `main` at fetch time — record the run date for reproducibility.
 
 ## 5. Rejected (with the failing filter)
 

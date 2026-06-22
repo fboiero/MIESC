@@ -38,9 +38,10 @@ import subprocess
 import sys
 import urllib.request
 
-# Permalink: github.com/<org>/<repo>/blob/<sha>/<path>#L<start>[C..][-L<end>[C..]]
+# Permalink: github.com/<org>/<repo>/blob/<ref>/<path>#L<start>[C..][-L<end>[C..]]
+# <ref> is a commit SHA (Code4rena) OR a branch/tag like main (Sherlock) — accept both.
 PERMALINK_RE = re.compile(
-    r"github\.com/([^/\s]+)/([^/\s]+)/blob/([0-9a-fA-F]{7,40})/([^\s#)]+)"
+    r"github\.com/([^/\s]+)/([^/\s]+)/blob/([^/\s#]+)/([^\s#)]+)"
     r"#L(\d+)(?:C\d+)?(?:-L(\d+)(?:C\d+)?)?"
 )
 # keyword -> our verifier category (order matters: first hit wins)
