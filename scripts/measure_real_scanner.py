@@ -31,7 +31,13 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from scripts.agentic_quality_loop import load_benign_patterns, verify  # noqa: E402
+import argparse  # noqa: E402
+
+from scripts.agentic_quality_loop import (  # noqa: E402
+    load_benign_patterns,
+    make_llm_verifier,
+    verify,
+)
 from src.core.intelligence import detect_zero_recall_categories  # noqa: E402
 
 CORPUS = os.path.join(ROOT, "benchmarks", "datasets", "smartbugs-curated", "dataset")
@@ -61,13 +67,29 @@ def to_category(ftype: str) -> str:
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--verifier", choices=["rule", "llm"], default="rule")
+    ap.add_argument("--model", default="qwen2.5-coder:14b")
+    ap.add_argument("--host", default="http://localhost:11434")
+    ap.add_argument("--limit", type=int, default=0, help="cap total findings (0 = all); use for LLM speed")
+    ap.add_argument("--per-cat", type=int, default=0, help="contracts per category (0 = all)")
+    args = ap.parse_args()
+
     patterns = load_benign_patterns()
+    llm_fn = make_llm_verifier(args.model, args.host) if args.verifier == "llm" else None
     cats = sorted(d for d in os.listdir(CORPUS) if os.path.isdir(os.path.join(CORPUS, d)))
     tp = fp = tp_kept = tp_lost = fp_dropped = fp_leaked = 0
     contracts = 0
+    n_findings = 0
+    stop = False
 
     for cat in cats:
-        for path in sorted(glob.glob(os.path.join(CORPUS, cat, "*.sol"))):
+        if stop:
+            break
+        paths = sorted(glob.glob(os.path.join(CORPUS, cat, "*.sol")))
+        if args.per_cat:
+            paths = paths[: args.per_cat]
+        for path in paths:
             code = open(path, errors="ignore").read()
             try:
                 findings = detect_zero_recall_categories(code)
@@ -75,6 +97,10 @@ def main() -> int:
                 continue
             contracts += 1
             for f in findings:
+                if args.limit and n_findings >= args.limit:
+                    stop = True
+                    break
+                n_findings += 1
                 fcat = to_category(f.get("type", ""))
                 is_tp = fcat == cat
                 finding = {
@@ -83,7 +109,7 @@ def main() -> int:
                     "function": (f.get("location") or {}).get("function", "") or "",
                     "severity": f.get("severity", ""),
                 }
-                dropped = verify(finding, code, patterns)["verdict"] == "false_positive"
+                dropped = verify(finding, code, patterns, llm_fn=llm_fn)["verdict"] == "false_positive"
                 if is_tp:
                     tp += 1
                     tp_lost += dropped
@@ -92,13 +118,18 @@ def main() -> int:
                     fp += 1
                     fp_dropped += dropped
                     fp_leaked += not dropped
+            if stop:
+                break
 
     kept = tp_kept + fp_leaked
     result = {
         "artifact": "agentic_loop_real_detector_measurement",
         "generated_at_note": "stamp at commit time",
         "detector": "MIESC intelligence pattern layer (detect_zero_recall_categories), no solc",
-        "verifier": "recall-safe rule-based agentic quality loop (no LLM yet)",
+        "verifier": (f"LLM via Ollama ({args.model}), recall-safe" if llm_fn
+                     else "recall-safe rule-based agentic quality loop (no LLM)"),
+        "findings_measured": n_findings,
+        "limit": args.limit,
         "blocked_alternatives": "Slither/Aderyn unavailable: solc-select broken, only solc 0.8.x present (cannot compile legacy 0.4.x); Aderyn panics on legacy AST.",
         "contracts": contracts,
         "tp_findings": tp,
@@ -122,7 +153,8 @@ def main() -> int:
     for k, v in result.items():
         if k != "caveats":
             print(f"  {k}: {v}")
-    out = os.path.join(ROOT, "benchmarks", "results", "agentic_loop_real_detector_20260621.json")
+    tag = "llm" if llm_fn else "rule"
+    out = os.path.join(ROOT, "benchmarks", "results", f"agentic_loop_real_detector_{tag}_20260621.json")
     json.dump(result, open(out, "w"), indent=2)
     print(f"\nwrote {out}")
     return 0

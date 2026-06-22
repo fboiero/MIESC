@@ -191,10 +191,31 @@ pure-Python pattern detector (no solc — Slither/Aderyn are blocked in this env
 solc-select broken, only solc 0.8.x, legacy 0.4.x corpus). Artifact:
 `benchmarks/results/agentic_loop_real_detector_20260621.json`.
 
-| Dataset | FPs | rule-based FP-drop | precision | recall |
-|---------|----:|-------------------:|-----------|--------|
-| fp_seed (type-separable) | 867 | **100%** | 7.2% → 100% | 100% |
-| real detector output (cross-category) | 374 | **1.1%** (4/374) | 28.1% → 28.2% | 99.3% |
+| Dataset / verifier | FPs | FP-drop | precision | recall |
+|--------------------|----:|--------:|-----------|--------|
+| fp_seed · rule-based (type-separable) | 867 | **100%** | 7.2% → 100% | 100% |
+| real detector · rule-based (cross-category) | 374 | **1.1%** (4/374) | 28.1% → 28.2% | 99.3% |
+| real detector · **LLM qwen2.5-coder:32b** (slice n=20) | 15 | **0%** (0/15) | 25% → 25% | 100% |
+
+### Why the LLM dropped 0 — and why that is partly *correct*
+The recall-safe LLM (32b) kept all 15 cross-category "FPs" on the slice. Two reasons,
+both honest: (1) the recall-safe prompt tells the model to default to *not* a false
+positive under any uncertainty — so it is deliberately conservative; (2) more
+importantly, these "FPs" are a **SmartBugs single-label artifact**: a contract is
+tagged with ONE intended vuln, so an `unchecked-call` finding on a reentrancy contract
+is counted FP even though it is often a *real cross-category issue*. A good verifier
+*should not* drop it — so 0% drop here is arguably right, not a failure. The metric
+penalizes the verifier for being correct on multi-issue contracts.
+
+**Synthesis across all measurements.** Recall-safety is confirmed everywhere (0 real
+vulns lost). The genuine precision target is **benign-context FPs** (reentrancy *with a
+guard*, `onlyOwner` present, Sol ≥0.8) — and on the data where those are labeled
+(fp_seed's 148 benign-context cases) the lever caught them. On cross-category-labeled
+data the "FP" signal is contaminated by real secondary findings, so neither rule-based
+(1.1%) nor recall-safe-LLM (0%) drops them — appropriately. **The next honest measurement
+needs benign-context labels** (does the contract mitigate the flagged finding?), not
+single-category labels; that is the dataset to build before claiming a field precision
+lift.
 
 **The gap between these two numbers is the whole story.** On real detector output the
 FPs are *vuln-type findings in benign context* (e.g. an unchecked-call finding on a

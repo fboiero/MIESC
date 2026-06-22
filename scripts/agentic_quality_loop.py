@@ -257,9 +257,64 @@ def adversarial_panel(
 
 
 # --------------------------------------------------------------------------- #
+# LLM verifier (Ollama) — the semantic panel that the rule-based fallback proxies
+# --------------------------------------------------------------------------- #
+def _ollama_generate(prompt: str, model: str, host: str, timeout: int = 60) -> str:
+    import urllib.request
+
+    body = json.dumps(
+        {"model": model, "prompt": prompt, "stream": False, "options": {"temperature": 0}}
+    ).encode()
+    req = urllib.request.Request(
+        host.rstrip("/") + "/api/generate", data=body, headers={"Content-Type": "application/json"}
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read()).get("response", "")
+
+
+def make_llm_verifier(model: str, host: str = "http://localhost:11434", timeout: int = 60):
+    """Return llm_fn(finding, code, benign) -> True if the model judges it a FALSE POSITIVE.
+
+    Recall-safe by construction: the prompt instructs the model to default to NOT a false
+    positive under any uncertainty, so a real vuln is never dropped on a hedge.
+    """
+
+    def llm_fn(finding: dict[str, Any], code: str, benign: Optional[dict[str, Any]]) -> bool:
+        hint = f"\nA reference benign pattern may apply: {benign['why_safe']}" if benign else ""
+        prompt = (
+            "You are a smart-contract security verifier. Decide whether a reported finding "
+            "is a TRUE vulnerability or a FALSE POSITIVE *in the context of this contract*.\n"
+            f"Finding: {finding.get('type')} (severity {finding.get('severity')}) "
+            f"in function '{finding.get('function') or 'unknown'}'.\n"
+            "A finding is a FALSE POSITIVE only if the code shows it is mitigated or benign "
+            "in context (reentrancy guard / CEI, onlyOwner/role guard, block.timestamp used "
+            "only as a coarse timelock, Solidity >=0.8 arithmetic, checked low-level call / "
+            "SafeERC20, or an informational lint).\n"
+            f"{hint}\n\nContract:\n```solidity\n{code[:6000]}\n```\n\n"
+            'Respond with ONLY one JSON object: {"false_positive": true|false, "reason": "<=15 words"}. '
+            "If you are at all uncertain, answer false_positive=false (never drop a real vulnerability)."
+        )
+        try:
+            raw = _ollama_generate(prompt, model, host, timeout)
+            m = re.search(r"\{.*\}", raw, re.DOTALL)
+            if not m:
+                return False  # unparseable -> recall-safe keep
+            return bool(json.loads(m.group(0)).get("false_positive") is True)
+        except Exception:  # noqa: BLE001 - any LLM failure -> recall-safe keep
+            return False
+
+    return llm_fn
+
+
+# --------------------------------------------------------------------------- #
 # The loop
 # --------------------------------------------------------------------------- #
-def verify(finding: dict[str, Any], code: str, patterns: list[dict[str, Any]]) -> dict[str, Any]:
+def verify(
+    finding: dict[str, Any],
+    code: str,
+    patterns: list[dict[str, Any]],
+    llm_fn: Optional[Any] = None,
+) -> dict[str, Any]:
     """Recall-SAFE verdict.
 
     Hard lesson from measuring on data/fp_seed.jsonl: brittle rule-based grounding
@@ -274,9 +329,10 @@ def verify(finding: dict[str, Any], code: str, patterns: list[dict[str, Any]]) -
     benign = matches_benign(finding, code, patterns)
     votes = adversarial_panel(finding, code, grounding, benign)
     refutes = sum(1 for v in votes.values() if v)
+    llm_fp = bool(llm_fn(finding, code, benign)) if llm_fn is not None else False
 
-    if benign is not None:
-        verdict = "false_positive"  # strong, function-scoped/type-determined signal -> safe to drop
+    if benign is not None or llm_fp:
+        verdict = "false_positive"  # strong signal (benign pattern OR LLM judgment) -> safe to drop
     elif not (grounding.location_ok and grounding.pattern_ok):
         verdict = "needs_review"  # weak signal -> FLAG, do not drop (protect recall)
     else:
@@ -285,6 +341,8 @@ def verify(finding: dict[str, Any], code: str, patterns: list[dict[str, Any]]) -
     reasons = list(grounding.reasons)
     if benign:
         reasons.append(f"matches benign pattern {benign['id']}: {benign['why_safe'][:80]}")
+    if llm_fp:
+        reasons.append("llm-verifier: false_positive")
     reasons += [f"weak-refute:{k}" for k, v in votes.items() if v]
     return {
         "title": finding.get("title") or finding.get("type"),
