@@ -148,8 +148,30 @@ _CONTEXTUAL_BENIGN = {
 
 
 def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
-    """Return the benign pattern this finding function-scopedly matches, else None."""
+    """Return the benign pattern this finding matches, else None.
+
+    Type-deterministic patterns (finding-type facts / compiler guarantees) are checked first
+    and need no function scope; contextual/scope-dependent patterns follow.
+    """
     vtype = _norm(finding.get("type") or finding.get("title") or "")
+    raw_type = (finding.get("title") or finding.get("check") or finding.get("type") or "").lower()
+    by_id = {p["id"]: p for p in patterns}
+
+    def has(pid: str) -> Optional[dict[str, Any]]:
+        return by_id.get(pid)
+
+    # --- Type-deterministic, scope-INDEPENDENT (fire regardless of function resolution) ---
+    if re.search(r"pragma|naming|visibilit|unused|solc.version|useless_public|constants_instead"
+                 r"|instead_of_literal|boolean_equality|constant_functions_assembly|style|lint"
+                 r"|missing_event|event_emission|missing.event", vtype + " " + raw_type):
+        return has("BENIGN-PRAGMA-INFORMATIONAL")
+    # SWC-118 (wrong-constructor-name) is impossible on Solidity >=0.5: the `constructor`
+    # keyword is mandatory, so a same-name function is just a regular function. Compiler-
+    # guaranteed benign on >=0.5 (validated: 0 real across sources).
+    if "constructor" in raw_type and re.search(r"pragma\s+solidity\s*[\^>=]*\s*0\.([5-9]|\d{2})", code):
+        return has("BENIGN-CONSTRUCTOR-MODERN")
+
+    # --- Scope-dependent patterns need the enclosing function ---
     loc = finding.get("location") if isinstance(finding.get("location"), dict) else {}
     fn = finding.get("function") or loc.get("function") or ""
     line = loc.get("line")
@@ -162,18 +184,9 @@ def match_benign(finding: dict[str, Any], code: str, patterns: list[dict[str, An
     if body == "":
         return None
     pragma_08 = bool(re.search(r"pragma\s+solidity\s*\^?0\.8", code))
-    by_id = {p["id"]: p for p in patterns}
-
-    def has(pid: str) -> Optional[dict[str, Any]]:
-        return by_id.get(pid)
-
-    if re.search(r"pragma|naming|visibilit|unused|solc.version|useless_public|constants_instead"
-                 r"|instead_of_literal|boolean_equality|constant_functions_assembly|style|lint", vtype):
-        return has("BENIGN-PRAGMA-INFORMATIONAL")
     # Solidity >=0.8 guarantees overflow/underflow reverts ONLY — it does NOT prevent
     # precision/rounding loss (mul-before-div, integer truncation). A wild eval saw a real
     # rounding bug dropped here; never treat rounding/division findings as 0.8-benign.
-    raw_type = (finding.get("title") or finding.get("check") or finding.get("type") or "").lower()
     is_rounding = bool(re.search(r"round|divi|precision|truncat", raw_type))
     if "arithmetic" in vtype and pragma_08 and "unchecked" not in body and not is_rounding:
         return has("BENIGN-ARITHMETIC-0_8")

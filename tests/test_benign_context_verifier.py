@@ -229,3 +229,27 @@ class TestLLMNeverDrops:
         code = ("pragma solidity ^0.8.0; contract C { mapping(address=>uint) b;"
                 " function add(uint a) public { b[msg.sender]+=a; } }")
         assert v.verify(_f("arithmetic", "add"), code) == "false_positive"
+
+
+# --------------------------------------------------------------------------- #
+# Type-deterministic corpus additions (mined from wild FPs; 0 real across sources)
+# --------------------------------------------------------------------------- #
+class TestDeterministicAdditions:
+    def _f(self, vtype, title, line=1):
+        return {"type": vtype, "title": title, "location": {"function": "unknown", "line": line}}
+
+    def test_missing_event_emission_is_dropped(self):
+        # missing event is informational (not in DASP/SWC exploit taxonomy) -> drop
+        code = "pragma solidity ^0.8.0; contract C { uint v; function set(uint x) public { v = x; } }"
+        assert V.verify(self._f("missing_event_emission", "missing_event_emission"), code) == "false_positive"
+
+    def test_constructor_mismatch_modern_is_dropped(self):
+        # SWC-118 impossible on >=0.5 -> compiler-guaranteed benign
+        code = "pragma solidity ^0.8.0; contract C { address owner; constructor() { owner = msg.sender; } }"
+        assert V.verify(self._f("access_control", "constructor_mismatch"), code) == "false_positive"
+
+    def test_constructor_mismatch_legacy_is_kept(self):
+        # on <0.5 the wrong-constructor-name vuln is REAL -> must NOT drop
+        code = ("pragma solidity ^0.4.24; contract C { address owner;"
+                " function C() public { owner = msg.sender; } }")
+        assert V.verify(self._f("access_control", "constructor_mismatch"), code) != "false_positive"

@@ -87,6 +87,29 @@ Two root causes and fixes:
    (language/library guarantees, finding-type facts) drop. Result: **recall 1.0 on all six
    sources**, locked by tests.
 
+## Safe precision growth (path B)
+
+With drops restricted to type-deterministic patterns, the safe way to lift precision is to
+GROW that deterministic set — never guards, never LLM. New patterns were mined data-driven:
+of the FP finding-types that leak through, a type is eligible to blanket-drop only if it is
+(a) principled type-deterministic AND (b) appears as a real anchored vuln **0 times** across
+all six sources. "0 real in sample" alone is insufficient (sampling bias on genuine vuln
+categories like selfdestruct/signature-replay), so each addition also needs a language/taxonomy
+argument:
+
+- **`missing_event_emission`** → informational (not in the DASP/SWC exploit taxonomy); never
+  exploitable. Routed to the informational drop.
+- **`constructor_mismatch` / `incorrect_constructor_name` on pragma ≥0.5** → SWC-118 is
+  compiler-impossible since 0.5 (mandatory `constructor` keyword). New `BENIGN-CONSTRUCTOR-MODERN`
+  pattern, gated on pragma; on <0.5 it is KEPT (the vuln is real there).
+
+Rejected despite 0-real-in-sample: `unprotected_selfdestruct`, `signature_replay`,
+`access_control_*`, `dos_*`, `missing_slippage_check`, `erc20_return_check` — all genuine
+vuln categories whose 0-count is sampling, not a guarantee.
+
+Result on fsalzano: fp_dropped 7 → 10, precision 0.273 → 0.313 (+4.1pp), recall still 1.0
+across all six sources. Modest and honest — every drop is provably benign.
+
 ## Takeaways
 
 - **Synthetic ≠ field.** A controlled +28.6pp/100%-recall number did not generalize; only the
