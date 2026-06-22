@@ -311,6 +311,10 @@ miesc scan MiContrato.sol --verify-fp --verify-model qwen2.5-coder:32b
 
 # API de DeepSeek como failover / directo (definir DEEPSEEK_API_KEY)
 miesc scan MiContrato.sol --verify-fp --verify-model deepseek
+
+# También disponible en el comando audit (quick y full)
+miesc audit quick MiContrato.sol --verify-fp
+miesc audit full MiContrato.sol --verify-fp --verify-model qwen2.5-coder:32b
 ```
 
 `--verify-model` activa el grounding semántico con LLM: el modo solo-reglas caza las
