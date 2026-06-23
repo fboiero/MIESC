@@ -6,6 +6,12 @@ lang: es
 
 # Tesis de Maestria
 
+> **Snapshot historico de tesis.** Esta pagina describe la tesis de Fernando
+> Boiero para MIESC v4.0.0. Conserva intencionalmente el marco historico de
+> tesis de 7 capas / 25 herramientas y sus metricas. Los claims actuales del
+> proyecto y de los papers se mantienen por separado en el README, las notas de
+> reproducibilidad y las matrices de claims.
+
 <div align="center">
 
 ![Tesis](https://img.shields.io/badge/Tesis-Maestria-blue?style=for-the-badge)

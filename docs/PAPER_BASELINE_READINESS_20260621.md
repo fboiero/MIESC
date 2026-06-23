@@ -1,11 +1,18 @@
 # Paper Baseline Readiness - 2026-06-21
 
-Operational checkpoint for Paper 1 / Paper 2 baselines. Updated after the Paper 1
-rigor-correction baseline shipped.
+Operational checkpoint for Paper 1 / Paper 2 baselines.
+
+> **Status: UPDATED 2026-06-23.** This file is a dated readiness note, not the
+> canonical claim source. Current public/canonical baselines stay conservative:
+> Paper 1 uses 95.8% SmartBugs recall plus 97.9% local follow-up; Paper 2 keeps
+> the frozen 141/90/93/91 remediation claims. The 99.3% Paper 1 result and the
+> full external Slither Paper 2 run are v-next evidence until Fernando approves
+> a formal new baseline.
 
 ## Current State
 
-- `origin/main` at `83445cf`.
+- `main` later advanced through paper-author metadata integration and docs/site
+  alignment; do not use the old commit references below as current HEAD.
 - **Paper 1 rigor-corrected baseline SHIPPED** at `1d4346e`, tagged
   `paper-reproducibility-baseline-2026-06-21`. The freeze manifest was regenerated
   and `sh .paper-freeze-local/validate_paper_reproducibility_freeze.sh` passes.
@@ -43,12 +50,15 @@ unified; per-category small-n caveat; explicit illustrative-walkthrough note for
 `AuditTarget.sol` single-contract stages. Corpus-wide patch metrics were already
 fully BACKED and were left unchanged.
 
-STILL PENDING (Codex): Paper 2 corpus numbers are IN FLUX in `lane/codex` (fix_eval
-rework; in-flux runs show applied ~122-123, eliminated ~84 under changed
-methodology). When the remediation lane finalizes a new canonical `fix_eval_results.json`,
-Tables 1-2 + the abstract/conclusion must be re-derived in a FOLLOW-UP Paper 2
-baseline (the rigor-gap fixes already shipped carry forward). The SCPatcher comparison
-(64% vs 91%) shifts if the compile metric changes.
+UPDATED 2026-06-23: Codex closed the compile-regression gap with dated
+noncanonical evidence and independent Slither validation. The strongest additive
+artifact is `benchmarks/results/fix_eval_full_external_slither_20260621_codex.json`:
+143 contracts, 123 fixes applied, 123/123 compile, 86 eliminated, 121/123
+no-regression, external_checked=123, external_errors=0. Because the methodology
+and denominator differ from the frozen Paper 2 baseline, this remains v-next
+evidence unless Fernando approves a new canonical baseline. If adopted, Tables
+1-2 plus the abstract/conclusion must be re-derived; do not silently replace the
+frozen 141/90/93/91 claims.
 
 ## Safe Baseline Procedure (validated this session)
 

@@ -5,6 +5,12 @@ title: Master's Thesis - MIESC
 
 # Master's Thesis
 
+> **Historical thesis snapshot.** This page describes Fernando Boiero's
+> Fernando-only thesis snapshot for MIESC v4.0.0. It intentionally preserves
+> the thesis-era 7-layer / 25-tool framing and thesis metrics. Current project
+> and paper claims are maintained separately in the README, paper
+> reproducibility notes, and claims matrices.
+
 <div align="center">
 
 ![Thesis](https://img.shields.io/badge/Thesis-Master's%20Degree-blue?style=for-the-badge)

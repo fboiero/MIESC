@@ -1,24 +1,37 @@
 # MIESC v-next — Next Steps Checklist (2026-06-21)
 
+> **Status: SUPERSEDED by later `main` checkpoints.** This file is retained as
+> a dated handoff, not as the current source of truth. The public/current Paper
+> 1 baseline remains the conservative 95.8% SmartBugs recall plus 97.9% local
+> follow-up unless Fernando approves a new 99.3% baseline. The Paper 2
+> remediation regression described below was later closed by Codex; see
+> `benchmarks/results/fix_eval_full_external_slither_20260621_codex.json` and
+> `paper/paper2_rigor_audit_20260621.md` for the current v-next evidence.
+
 Consolidated action list after the v-next session. Everything below is the remaining
 work; all autonomous/safe work is already integrated to `main`.
 
-## Already shipped to `main` (done)
-- Detection: SmartBugs recall 0.972 → **0.993** (deterministic; 5/6 prior misses closed).
+## Historical notes from the original handoff
+- Detection v-next candidate: SmartBugs recall 0.972 -> **0.993** was measured
+  as a deterministic-intelligence candidate, but it is not the current public
+  baseline on `main`.
 - Quality: coverage 87% → **89%** (6391 tests green); 3 real bugs fixed (RAG ImportError,
   format_instruction, result_aggregator silent-drop).
 - Harness: reports external-tool crash counts per run (reproducibility).
 - Security: 6/8 MED backlog items verified-fixed; Ollama exposure (MED-004) fixed; backlog
   corrected.
 - Adoption: `miesc doctor` shows per-tool install commands for missing tools.
-- Docs hygiene: ROADMAP/CHANGELOG/CONTRIBUTING fixed, docs/ decluttered, 5.x release notes,
-  tool count standardized to 50, numbers aligned to 99.3% in non-frozen docs.
+- Docs hygiene from that session: ROADMAP/CHANGELOG/CONTRIBUTING fixed, docs/
+  decluttered, 5.x release notes, tool count standardized to 50. Any temporary
+  99.3% non-frozen doc alignment from that branch is historical, not the current
+  public baseline on `main`.
 
 ## ACTION — Fernando
 
-### 1. Finalize Paper 1 baseline (content is ready on branch `paper1-vnext-baseline-draft`)
-The branch has the full v-next content: `miesc-paper.tex` (9 edits), `paper1_claims_matrix.json`,
-and `README.md` (numbers + adoption polish) — all at 99.3%. To finalize:
+### 1. Finalize Paper 1 baseline (historical branch note)
+The branch had v-next content for `miesc-paper.tex`, `paper1_claims_matrix.json`,
+and `README.md` around the 99.3% candidate. Treat it as stale until rebased on
+the current conservative 95.8% public baseline:
 ```bash
 cd <repo>
 git checkout paper1-vnext-baseline-draft
@@ -41,7 +54,9 @@ git -c pack.threads=1 -c pack.windowMemory=32m -c pack.packSizeLimit=64m push or
 > and flips in atomically at merge. Don't put 99.3% on main before step 1 lands the artifact.
 
 ### 2. DPGA review
-Numbers are now consistent (DPG-COMPLIANCE = 99.3%). 9 indicators self-assessed Compliant.
+The historical branch aligned DPGA docs to the 99.3% candidate. On current
+`main`, DPGA-facing claims should remain aligned to the conservative public
+baseline unless Fernando opens a new Paper 1 baseline.
 Advance the DPGA review / respond to any reviewer observations.
 
 ### 3. Decisions still open
@@ -50,12 +65,11 @@ Advance the DPGA review / respond to any reviewer observations.
 - Optional: embed `demo/miesc-demo.cast` (asciinema) in the README for a live demo.
 
 ## ACTION — Codex (Paper 2 / remediation lane)
-Per `paper/paper2_vnext_evidence_20260621.md` + `..._finalization_template_20260621.md`:
-1. Restore patcher self-contained: compile rate regressed to **28%** (33/119) vs frozen
-   64%. Recover ≥64%, target higher.
-2. Add independent verification (Slither/SMTChecker/Foundry on patched-that-compile) to
-   remove the re-scan circularity.
-3. Re-run `fix_eval` full → finalize Paper 2 baseline (template has the exact .tex spots).
+Superseded: Codex later restored the compile path and added independent Slither
+external validation as dated, noncanonical v-next evidence. The remaining action
+is Fernando-gated: either keep the frozen 141/90/93/91 Paper 2 baseline, or open
+a new baseline and re-derive the paper from
+`fix_eval_full_external_slither_20260621_codex.json`.
 
 ## Known remaining (low-tractability, documented)
 - MED-003 (curl-to-shell hash): rustup/foundry installers are rolling; TLS-mitigated.

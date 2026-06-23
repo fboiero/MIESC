@@ -56,10 +56,12 @@ preferred-citation:
   department: "Cyberdefense"
   year: 2025
   abstract: >
-    This thesis presents MIESC, a comprehensive security assessment framework for
-    smart contracts based on defense-in-depth principles. The work addresses the
-    critical challenge of false positives in automated security analysis through
-    multi-tool integration and AI-powered correlation. Key contributions include:
+    Historical thesis snapshot by Fernando Boiero, distinct from the current
+    three-author paper metadata above. This thesis presents MIESC, a
+    comprehensive security assessment framework for smart contracts based on
+    defense-in-depth principles. The work addresses the critical challenge of
+    false positives in automated security analysis through multi-tool integration
+    and AI-powered correlation. Key contributions include:
     (1) Novel MCP-based multi-agent architecture for collaborative cyberdefense,
     (2) Empirical validation on 5,127 real-world contracts demonstrating 34%
     improvement over single-tool analysis, (3) Automated compliance mapping to 12

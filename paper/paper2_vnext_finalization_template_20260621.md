@@ -1,17 +1,26 @@
 # Paper 2 v-next — finalization template (prepared 2026-06-21)
 
-Equivalent of the Paper 1 baseline process, but Paper 2's new numbers DON'T EXIST YET —
-they depend on Codex restoring the patcher. This is the process template + exact spots,
-with placeholders for the numbers Codex will produce. ADDITIVE doc; does not modify frozen
-`paper2-remediation.tex`.
+> **Status: SUPERSEDED / TEMPLATE ONLY.** The pre-condition below refers to an
+> intermediate 28% compile-regression measurement that was later closed by Codex.
+> Current additive v-next evidence is
+> `benchmarks/results/fix_eval_full_external_slither_20260621_codex.json`
+> (123/123 compile, 86 eliminated, 121/123 no-regression, external_errors=0).
+> The template remains useful only if Fernando approves a new canonical Paper 2
+> baseline; otherwise the frozen 141/90/93/91 paper claims stay unchanged.
+
+Equivalent of the Paper 1 baseline process. The original template was prepared
+before Codex closed the compile regression; the current noncanonical v-next
+numbers now exist, but they use a changed methodology/denominator. This remains
+a process template plus exact edit spots for a future Fernando-approved baseline.
+ADDITIVE doc; does not modify frozen `paper2-remediation.tex`.
 
 ## Pre-condition (Codex lane — must happen first)
-1. Restore patcher self-contained (current code compiles only **28% (33/119)** vs the
-   frozen paper's **64% (90/141)** — a regression; see `paper2_vnext_evidence_20260621.md`).
-2. (Optional, the validity win) add independent verification (Slither/SMTChecker/Foundry on
-   patched-that-compile) to replace the re-scan circularity.
-3. Re-run full: `python3 benchmarks/fix_eval.py` (with rescan) → fresh
-   `fix_eval_results.json` + derived artifacts.
+1. Confirm whether Fernando wants to keep the frozen baseline or open a new
+   canonical baseline.
+2. If opening a new baseline, decide whether the independent Slither validation
+   replaces, supplements, or remains separate from the original self re-scan.
+3. Re-derive all paper numbers from one declared artifact set; do not mix the
+   frozen 141/90/93/91 denominator with the external-validation denominator.
 
 ## DECISION after the re-run — which path?
 

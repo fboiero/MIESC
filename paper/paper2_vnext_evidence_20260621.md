@@ -1,5 +1,14 @@
 # Paper 2 v-next — Remediation Evidence (2026-06-21)
 
+> **Status: SUPERSEDED by Codex full external validation.** This file records an
+> intermediate compile-only measurement and is kept for provenance. The 28%
+> compile-regression claim below is no longer the current state. Current dated
+> v-next evidence: `benchmarks/results/fix_eval_full_external_slither_20260621_codex.json`
+> with 143 contracts, 123 fixes applied, 123/123 compile, 86 eliminated,
+> 121/123 no-regression, external_checked=123, and external_errors=0. The frozen
+> Paper 2 canonical claims remain 141/90/93/91 unless Fernando approves a new
+> baseline.
+
 ADDITIVE dated measurement. Does NOT modify the frozen `paper2-remediation.tex`, PDF, or
 canonical artifacts, and does NOT modify the remediation source (Codex lane). Measurement
 only, to give Codex/Fernando the current baseline.
