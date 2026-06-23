@@ -5,6 +5,14 @@ Fecha: 2026-06-23
 Este documento fija la iteracion v2 de los artefactos que respaldan los
 resultados cuantitativos del Paper 2 sobre remediacion automatizada.
 
+## Nota v3 editorial
+
+La v3 del documento es una revision editorial sobre la evidencia v2: reduce el
+tono de venta, separa con mas claridad las metricas de aplicacion, compilacion,
+re-scan, no-regresion y Slither externo, y presenta el 58/123 clean-HIGH como
+control independiente y no como exito agregado. No cambia los artefactos
+cuantitativos ni las metricas de esta pagina.
+
 ## Baseline v2
 
 La v2 reemplaza el baseline congelado anterior `141/90/93/91` por una corrida
