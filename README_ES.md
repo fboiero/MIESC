@@ -277,10 +277,9 @@ Consultá la [Guía de Empaquetado para Investigadores](./docs/guides/RESEARCHER
 ## Soporte Multi-Chain
 
 ```bash
-miesc analyze Token.sol           # Auto-detecta EVM (Solidity/Vyper)
-miesc analyze Vault.cairo         # Starknet/Cairo (13 tipos de vuln, basado en zkLend)
-miesc analyze Program.rs          # Solana/Anchor (22 tipos de vuln)
-miesc analyze Module.move         # Move/Sui/Aptos (19 tipos de vuln)
+miesc analyze Token.sol           # EVM (Solidity/Vyper) — producción
+# Las no-EVM (Cairo/Solana/Move/NEAR/Stellar/Algorand/Cardano) están en el ROADMAP:
+# existe código de adapter experimental pero todavía no está validado para producción.
 ```
 
 **77 tipos de vulnerabilidades** en 4 ecosistemas, basados en exploits reales de 2024-2026 (zkLend $9.6M, Braavos, Wormhole $326M, Ronin $624M).
@@ -573,20 +572,18 @@ licenciamiento y los clientes IDE viven ahora en la capa de plataforma.
 
 | Chain | Estado | Lenguajes |
 |-------|--------|-----------|
-| **EVM** (Ethereum, Polygon, BSC, Arbitrum, etc.) | Producción | Solidity, Vyper |
-| Solana | Alpha | Rust/Anchor |
-| NEAR | Alpha | Rust |
-| Move (Sui, Aptos) | Alpha | Move |
-| Stellar/Soroban | Alpha | Rust |
-| Algorand | Alpha | TEAL, PyTeal |
-| Cardano | Alpha | Plutus, Aiken |
+| **EVM** (Ethereum, Polygon, BSC, Arbitrum, etc.) | **Producción** | Solidity, Vyper |
+| Solana | Roadmap | Rust/Anchor |
+| NEAR | Roadmap | Rust |
+| Move (Sui, Aptos) | Roadmap | Move |
+| Stellar/Soroban | Roadmap | Rust |
+| Algorand | Roadmap | TEAL, PyTeal |
+| Cardano | Roadmap | Plutus, Aiken |
+| Starknet/Cairo | Roadmap | Cairo |
 
-```bash
-miesc scan program.rs --chain solana
-miesc scan module.move --chain sui
-```
-
-> El soporte para cadenas no-EVM es experimental. El análisis EVM (50 herramientas, 9 capas) está listo para producción.
+> **El análisis EVM (50 herramientas, 9 capas) está listo para producción.** Las cadenas
+> no-EVM están en el ROADMAP: existe código de adapter temprano pero es experimental y todavía
+> no está validado para producción.
 
 ---
 

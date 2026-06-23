@@ -1,14 +1,14 @@
 # Multi-Chain Support
 
-MIESC supports security analysis across multiple blockchain platforms. This document describes the current status and capabilities for each chain.
+MIESC provides production security analysis for **EVM chains**. Support for other platforms
+is on the **roadmap**: experimental adapter code exists but is not production-validated.
 
 ## Support Levels
 
 | Level | Description |
 |-------|-------------|
 | ✅ **Production** | Full 9-layer analysis with 31+ tools. Recommended for audits. |
-| 🧪 **Alpha** | Pattern-based detection. Under active development. Use for research/exploration. |
-| 🔬 **Experimental** | Basic parsing only. Not recommended for security decisions. |
+| 🛣️ **Roadmap** | Experimental adapter code (pattern-based). Planned, NOT production-validated — not for security decisions yet. |
 
 ## EVM Chains (Production)
 
@@ -38,9 +38,9 @@ miesc audit batch ./contracts -p thorough  # Batch audit
 
 ---
 
-## Solana (Alpha)
+## Solana (Roadmap)
 
-**Status:** 🧪 Alpha - Pattern Detection Only
+**Status:** 🛣️ Roadmap - Experimental (pattern detection only)
 
 ### Languages
 - Rust with Anchor framework
@@ -69,9 +69,9 @@ miesc scan program.rs --chain solana
 
 ---
 
-## NEAR Protocol (Alpha)
+## NEAR Protocol (Roadmap)
 
-**Status:** 🧪 Alpha - Pattern Detection Only
+**Status:** 🛣️ Roadmap - Experimental (pattern detection only)
 
 ### Languages
 - Rust with near-sdk
@@ -92,9 +92,9 @@ miesc scan contract.rs --chain near
 
 ---
 
-## Move (Sui/Aptos) (Alpha)
+## Move (Sui/Aptos) (Roadmap)
 
-**Status:** 🧪 Alpha - Pattern Detection Only
+**Status:** 🛣️ Roadmap - Experimental (pattern detection only)
 
 ### Languages
 - Move language
@@ -116,9 +116,9 @@ miesc scan module.move --chain aptos
 
 ---
 
-## Stellar/Soroban (Alpha)
+## Stellar/Soroban (Roadmap)
 
-**Status:** 🧪 Alpha - Pattern Detection Only
+**Status:** 🛣️ Roadmap - Experimental (pattern detection only)
 
 ### Languages
 - Rust with Soroban SDK
@@ -138,9 +138,9 @@ miesc scan contract.rs --chain stellar
 
 ---
 
-## Algorand (Alpha)
+## Algorand (Roadmap)
 
-**Status:** 🧪 Alpha - Pattern Detection Only
+**Status:** 🛣️ Roadmap - Experimental (pattern detection only)
 
 ### Languages
 - TEAL (assembly)
@@ -163,9 +163,9 @@ miesc scan contract.py --chain algorand  # PyTeal
 
 ---
 
-## Cardano (Alpha)
+## Cardano (Roadmap)
 
-**Status:** 🧪 Alpha - Pattern Detection Only
+**Status:** 🛣️ Roadmap - Experimental (pattern detection only)
 
 ### Languages
 - Plutus (Haskell)
@@ -193,8 +193,8 @@ miesc scan validator.ak --chain cardano   # Aiken
 ### For Production Audits
 Use **EVM analysis** for comprehensive security assessment:
 - Full 9-layer defense coverage
-- 31 specialized tools
-- Proven detection capabilities (100% precision on benchmarks)
+- 50 integrated tools / 35 analysis modules
+- Backed detection numbers (SmartBugs full corpus: 95.8% recall; see the README benchmarks)
 - Professional report generation
 
 ### For Research/Exploration
@@ -204,7 +204,7 @@ Non-EVM analyzers are useful for:
 - Security research
 - Pre-audit exploration
 
-**Do not rely solely on alpha analyzers for production security decisions.**
+**Do not rely on roadmap (non-EVM) analyzers for production security decisions.**
 
 ---
 
@@ -212,10 +212,10 @@ Non-EVM analyzers are useful for:
 
 | Phase | Chains | Target |
 |-------|--------|--------|
-| v4.5 (Current) | All 7 chains | Pattern detection |
-| v5.0 | Solana, NEAR | Enhanced analysis, tool integration |
-| v5.5 | Move, Stellar | Formal verification research |
-| v6.0 | All chains | Production-grade multi-chain |
+| Current (v5.4.x) | EVM | Production (9 layers, 50 tools) |
+| Next | Solana, NEAR | Experimental adapters → validated analysis |
+| Later | Move, Stellar | Formal-verification research |
+| Future | All chains | Production-grade multi-chain |
 
 ---
 

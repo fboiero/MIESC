@@ -276,10 +276,9 @@ See [Researcher Packaging Guide](./docs/guides/RESEARCHER_PACKAGING.md) for the 
 ## Multi-Chain Support
 
 ```bash
-miesc analyze Token.sol           # Auto-detects EVM (Solidity/Vyper)
-miesc analyze Vault.cairo         # Starknet/Cairo (13 vuln types, zkLend-informed)
-miesc analyze Program.rs          # Solana/Anchor (22 vuln types)
-miesc analyze Module.move         # Move/Sui/Aptos (19 vuln types)
+miesc analyze Token.sol           # EVM (Solidity/Vyper) — production
+# Non-EVM (Cairo/Solana/Move/NEAR/Stellar/Algorand/Cardano) is on the ROADMAP:
+# experimental adapter code exists but is not production-validated yet.
 ```
 
 **77 vulnerability types** across 4 ecosystems, informed by real 2024-2026 exploits (zkLend $9.6M, Braavos, Wormhole $326M, Ronin $624M).
@@ -315,8 +314,9 @@ miesc scan Bridge.sol             # Detects 7 bridge exploit patterns
 
 ## Docker
 
-Release status, published artifact links, GHCR digest, and smoke-test commands
-for the current 5.4.2 release are recorded in
+The current release is **v5.4.3** (see [CHANGELOG](./CHANGELOG.md)). Release status,
+published artifact links, GHCR digest, and smoke-test commands from the most recent detailed
+release-status report (v5.4.2) are recorded in
 [MIESC 5.4.2 Release Status](./docs/policies/RELEASE_STATUS_5.4.2.md).
 
 ```bash
@@ -488,7 +488,7 @@ miesc detectors list                         # List all available detectors
 # Pre-commit hook (.pre-commit-config.yaml)
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v5.4.2
+    rev: v5.4.3
     hooks:
       - id: miesc-quick
         args: ['--ci']
@@ -570,20 +570,17 @@ clients now live in the platform layer.
 
 | Chain | Status | Languages |
 |-------|--------|-----------|
-| **EVM** (Ethereum, Polygon, BSC, Arbitrum, etc.) | Production | Solidity, Vyper |
-| Solana | Alpha | Rust/Anchor |
-| NEAR | Alpha | Rust |
-| Move (Sui, Aptos) | Alpha | Move |
-| Stellar/Soroban | Alpha | Rust |
-| Algorand | Alpha | TEAL, PyTeal |
-| Cardano | Alpha | Plutus, Aiken |
+| **EVM** (Ethereum, Polygon, BSC, Arbitrum, etc.) | **Production** | Solidity, Vyper |
+| Solana | Roadmap | Rust/Anchor |
+| NEAR | Roadmap | Rust |
+| Move (Sui, Aptos) | Roadmap | Move |
+| Stellar/Soroban | Roadmap | Rust |
+| Algorand | Roadmap | TEAL, PyTeal |
+| Cardano | Roadmap | Plutus, Aiken |
+| Starknet/Cairo | Roadmap | Cairo |
 
-```bash
-miesc scan program.rs --chain solana
-miesc scan module.move --chain sui
-```
-
-> Non-EVM support is experimental. EVM analysis (50 tools, 9 layers) is production-ready.
+> **EVM analysis (50 tools, 9 layers) is production-ready.** Non-EVM chains are on the
+> roadmap: early adapter code exists but is experimental and not yet production-validated.
 
 ---
 
