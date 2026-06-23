@@ -24,11 +24,14 @@ Autores del Paper 1:
   Regional Villa Maria, `fboiero@frvm.utn.edu.ar`.
 - Ing. Sebastian Norberto Mussetta, Universidad Tecnologica Nacional (UTN), Facultad
   Regional Villa Maria, `smussetta@frvm.utn.edu.ar`.
+- Ing. Norberto Gaspar Cena, Universidad Tecnologica Nacional (UTN), Facultad
+  Regional Villa Maria, `ngcena@frvm.utn.edu.ar`.
 
 ORCID:
 
 - Fernando Boiero: `0009-0005-7935-2758`.
 - Sebastian Norberto Mussetta: `0009-0007-8025-9846`.
+- Norberto Gaspar Cena: pendiente/no informado.
 
 Commits y derechos:
 
