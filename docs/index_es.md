@@ -1,6 +1,6 @@
 ---
 layout: default
-title: MIESC - Framework de Seguridad para Smart Contracts
+title: Framework de Seguridad para Smart Contracts
 lang: es
 ---
 

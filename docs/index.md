@@ -1,6 +1,6 @@
 ---
 layout: default
-title: MIESC - Smart Contract Security Framework
+title: Smart Contract Security Framework
 ---
 
 # MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
