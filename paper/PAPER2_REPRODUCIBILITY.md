@@ -1,62 +1,75 @@
 # Paper 2 Reproducibility
 
-Fecha: 2026-05-07
+Fecha: 2026-06-23
 
-Este documento fija los artefactos que respaldan los resultados cuantitativos
-del Paper 2 sobre remediacion automatizada.
+Este documento fija la iteracion v2 de los artefactos que respaldan los
+resultados cuantitativos del Paper 2 sobre remediacion automatizada.
+
+## Baseline v2
+
+La v2 reemplaza el baseline congelado anterior `141/90/93/91` por una corrida
+con validacion externa Slither sobre cada contrato parcheado que compila. El
+cambio no es un simple reemplazo de numeros: tambien cambia el denominador.
+
+En la v2:
+
+- el corpus total sigue siendo SmartBugs-curated, 143 contratos;
+- el scan actual deja 18 contratos sin HIGH/CRITICAL y 2 con salida vacia antes
+  de aplicar fixes;
+- el denominador de contratos parcheados es 123;
+- todos los 123 contratos parcheados compilan standalone;
+- los mismos 123 contratos se validan con Slither externo, sin errores de
+  validacion externa.
 
 ## Artefactos principales
 
 | Artefacto | Proposito |
 |---|---|
-| `benchmarks/fix_eval.py` | Evalua `miesc scan` + `miesc fix` sobre SmartBugs-curated. |
-| `benchmarks/results/fix_eval_results.json` | Fuente local para las metricas 141/143, 90/141, 93/141 y no-regresion. |
-| `benchmarks/generate_paper2_artifacts.py` | Genera la matriz de claims del Paper 2. |
-| `benchmarks/audit_paper2_experiment.py` | Genera controles de validez original-vs-patched, metricas conjuntas y sensibilidad de no-regresion. |
+| `benchmarks/fix_eval.py` | Evalua `miesc scan` + `miesc fix` sobre SmartBugs-curated, con opcion de validacion externa Slither. |
+| `benchmarks/results/fix_eval_results.json` | Fuente canonica v2 para las metricas 123/143, 123/123, 86/123, 121/123 y 58/123. |
+| `benchmarks/results/fix_eval_full_external_slither_20260621_codex.json` | Evidencia fechada original de la corrida v2 externa. |
+| `benchmarks/results/fix_eval_full_external_slither_details_20260621_codex.json` | Evidencia fechada con detalles por contrato, ejemplos y ranking de checks HIGH externos. |
+| `benchmarks/generate_paper2_artifacts.py` | Genera matriz de claims y derivados desde `fix_eval_results.json`. |
+| `benchmarks/audit_paper2_experiment.py` | Genera controles de validez original-vs-patched y metricas conjuntas. |
 | `benchmarks/results/paper2_claims_matrix.json` | Matriz de claims cuantitativos y fuentes. |
 | `benchmarks/results/paper2_patch_quality_by_transform.json` | Taxonomia derivada por clase de transformacion de patch. |
-| `benchmarks/results/paper2_compile_failure_by_category.json` | Fallas de compilacion standalone derivadas por categoria. |
-| `benchmarks/results/paper2_compile_failure_taxonomy.json` | Detalle por contrato con stderr de `solc` y taxonomia de fallas. |
-| `benchmarks/results/paper2_experiment_audit.json` | Auditoria experimental: compilacion original, transiciones compile, metricas conjuntas y umbrales. |
-| `docs/guides/RAG_SOURCE_POLICY.md` | Politica canonica de fuentes RAG usada para contexto, clasificacion y mitigacion; no introduce claims cuantitativos del Paper 2. |
-| `tests/test_fix_command.py` | Tests unitarios e integracion del comando `miesc fix`. |
-| `tests/test_spec_generator.py` | Tests de generacion CVL/Scribble/SMTChecker. |
-| `tests/test_compliance_command.py` | Tests de mapeo de compliance. |
+| `benchmarks/results/paper2_compile_failure_by_category.json` | Fallas de compilacion standalone derivadas por categoria. En v2 son cero sobre patches emitidos. |
+| `benchmarks/results/paper2_compile_failure_taxonomy.json` | Detalle por contrato y evidencia externa; preserva `compile_failure_taxonomy`, que queda vacia en v2. |
+| `benchmarks/results/paper2_experiment_audit.json` | Auditoria experimental: compilacion original, patched, metricas conjuntas y sensibilidad. |
 
 ## Comandos
 
-Generar matriz de claims:
+Reproducir la evaluacion completa con validacion externa Slither:
 
 ```bash
-python3 benchmarks/generate_paper2_artifacts.py
+python3 benchmarks/fix_eval.py \
+  --external-validator slither \
+  --scan-timeout 15 \
+  --results-output benchmarks/results/fix_eval_results.json \
+  --details-output benchmarks/results/paper2_compile_failure_taxonomy.json
+```
+
+La evaluacion completa ejecuta `miesc scan`, `miesc fix`, compilacion standalone
+con `solc`, re-scan MIESC por contrato y validacion externa Slither sobre los
+patched artifacts que compilan. Requiere el dataset SmartBugs-curated en una de
+estas rutas:
+
+- `data/benchmarks/smartbugs-curated/dataset`
+- `benchmarks/datasets/smartbugs-curated/dataset`
+
+Generar matriz de claims y artefactos derivados:
+
+```bash
+SOURCE_DATE_EPOCH=0 python3 benchmarks/generate_paper2_artifacts.py
 ```
 
 Resultado esperado:
 
 ```text
-Paper 2 fix claims: 141/143 applied, 90/141 compiled, 93/141 eliminated
+Paper 2 fix claims: 123/143 applied, 123/123 compiled, 86/123 eliminated
 Wrote benchmarks/results/paper2_claims_matrix.json
 Wrote benchmarks/results/paper2_patch_quality_by_transform.json
 Wrote benchmarks/results/paper2_compile_failure_by_category.json
-```
-
-Reproducir la evaluacion completa de fixes:
-
-```bash
-python3 benchmarks/fix_eval.py
-```
-
-La evaluacion completa ejecuta `miesc scan`, `miesc fix`, compilacion
-standalone con `solc` y re-scan por contrato. Requiere el dataset
-SmartBugs-curated en una de estas rutas:
-
-- `data/benchmarks/smartbugs-curated/dataset`
-- `benchmarks/datasets/smartbugs-curated/dataset`
-
-Para preservar stderr por contrato y la taxonomia de fallas:
-
-```bash
-python3 benchmarks/fix_eval.py --details-output benchmarks/results/paper2_compile_failure_taxonomy.json
 ```
 
 Generar auditoria de validez del experimento:
@@ -65,18 +78,31 @@ Generar auditoria de validez del experimento:
 python3 benchmarks/audit_paper2_experiment.py
 ```
 
-## Resultados
+Resultado esperado:
+
+```text
+Wrote benchmarks/results/paper2_experiment_audit.json
+Original standalone compilation: 142/143; patched: 123/143; patched given original compiled: 123/142
+```
+
+## Resultados v2
 
 Resumen local preservado:
 
 ```json
 {
   "contracts": 143,
-  "fix_applied": 141,
-  "fix_compiles": 90,
-  "vuln_eliminated": 93,
-  "no_regression": 91,
-  "fix_failed": 0
+  "fix_applied": 123,
+  "fix_compiles": 123,
+  "vuln_eliminated": 86,
+  "no_regression": 121,
+  "fix_failed": 0,
+  "scan_empty": 2,
+  "no_high": 18,
+  "external_checked": 123,
+  "external_clean_high": 58,
+  "external_findings": 65,
+  "external_errors": 0
 }
 ```
 
@@ -84,32 +110,36 @@ Metricas derivadas:
 
 | Metrica | Resultado |
 |---|---:|
-| Fix application | 141/143 = 98.6% |
-| Standalone compilation | 90/141 = 63.8% |
-| Vulnerability elimination | 93/141 = 66.0% |
-| No-regression criterion | 91/141 = 64.5% |
+| Fix application, current scan | 123/143 = 86.0% |
+| Standalone compilation | 123/123 = 100.0% |
+| Vulnerability eliminated by MIESC re-scan | 86/123 = 69.9% |
+| Bounded no-regression criterion | 121/123 = 98.4% |
+| External Slither clean-HIGH | 58/123 = 47.2% |
+| External Slither validation errors | 0/123 = 0.0% |
 
-Artefactos derivados adicionales:
+## Interpretacion
 
-- `paper2_patch_quality_by_transform.json`: agrupa resultados por clase de
-  transformacion. Esta agrupacion se deriva de la categoria SmartBugs y del
-  comportamiento actual del patcher; no es un diff AST por finding.
-- `paper2_compile_failure_by_category.json`: identifica que 51/141 patched
-  artifacts fallan compilacion standalone y que unchecked low-level calls
-  concentra 31 de esas 51 fallas.
-- `paper2_compile_failure_taxonomy.json`: preserva stderr de `solc` por contrato
-  y clasifica las 51 fallas en 42 `undefined_symbol` y 9
-  `other_compile_error`.
-- `paper2_experiment_audit.json`: compila los originales bajo el mismo criterio
-  standalone y muestra que 141/141 originales compilan y 90/141 patched
-  compilan. Tambien reporta metricas conjuntas: 42/141 compilan y eliminan el
-  target finding; 30/141 compilan, eliminan y satisfacen no-regresion.
+La v2 mejora fuertemente dos puntos debiles del baseline anterior:
+
+- la compilacion standalone de patches emitidos sube de 90/141 a 123/123;
+- la no-regresion bounded sube de 91/141 a 121/123.
+
+La comparacion no es directa porque la v2 declara el denominador filtrado por el
+scan actual: 18 contratos ya no presentan HIGH/CRITICAL y 2 tienen scan vacio
+antes de aplicar fixes. Por eso el paper v2 reporta `123/143` como cobertura de
+fix application bajo el scan actual, y usa `123` como denominador para calidad
+de patch.
+
+La validacion externa Slither es mas estricta que el re-scan MIESC: 58/123
+patched contracts quedan sin HIGH findings externos, mientras que 65 residual
+HIGH findings permanecen. Esta metrica se reporta separada para no inflar la
+claim de eliminacion.
 
 La no-regresion se mide por crecimiento del conteo de findings en re-scan,
-permitiendo hasta dos findings informacionales adicionales causados por el
-codigo inline de guardas. Por lo tanto, esta metrica no prueba equivalencia
-funcional completa; prueba que el fix no incrementa materialmente el perfil de
-hallazgos de seguridad bajo el mismo pipeline.
+permitiendo hasta dos findings informacionales adicionales causados por codigo
+inline de guardas. Por lo tanto, esta metrica no prueba equivalencia funcional
+completa; prueba que el fix no incrementa materialmente el perfil de hallazgos
+de seguridad bajo el mismo pipeline.
 
 ## Relacion con Paper 1
 
@@ -120,23 +150,16 @@ heredar es:
   36.0% F1.
 - EVMBench local high-severity extraction: ensemble 111/120 = 92.5% recall.
 
-Actualizado al cierre de Paper 1, la entrada reproducible machine-readable para
-deteccion es SmartBugs 95.8% recall, 22.2% precision y 36.0% F1. Paper 1
-tambien reporta un follow-up local con Ollama sobre los falsos negativos
-residuales que eleva la lectura editorial a 97.9% recall, pero Paper 2 hereda
-el artefacto de corpus completo de 95.8% para su etapa de deteccion.
-
-No debe reutilizar claims historicas de 93.7%, 95.1%, 96.5% o 98.6% salvo que
-exista un nuevo artefacto reproducible que las sostenga.
-
-Las mejoras futuras de Paper 2 no deben requerir nueva evidencia de Paper 1. En
-particular, no deben cambiar recall, precision, F1, datasets, providers, capas o
-matrices de claims de deteccion. Paper 2 puede agregar evidencia nueva solo para
-etapas posteriores a la deteccion: aplicacion de fixes, compilacion, tests,
-verificacion independiente, compliance y reporting.
+Paper 2 no recalcula recall, precision, F1, datasets, providers, capas ni
+matrices de claims de deteccion. Sus nuevas evidencias aplican solo a etapas
+posteriores a la deteccion: aplicacion de fixes, compilacion, re-scan,
+validacion externa Slither, tests, verificacion, compliance y reporting.
 
 ## Regla editorial
 
-Una claim numerica del Paper 2 queda publicable solo si aparece en
+Una claim numerica del Paper 2 v2 queda publicable solo si aparece en
 `benchmarks/results/paper2_claims_matrix.json` o si deriva explicitamente de la
 matriz de claims de Paper 1.
+
+No reutilizar el baseline anterior `141/90/93/91` dentro del texto v2 salvo para
+explicar la diferencia metodologica.

@@ -75,7 +75,7 @@ Norberto Gaspar Cena
 
 ### Comments
 ```
-7 pages, 3 code listings, 5 tables. Automated find-fix-verify pipeline evaluated on 143 SmartBugs contracts: 141/143 fix application, 90/141 standalone compilation, 93/141 vulnerability elimination, 91/141 bounded no-regression criterion. Companion paper to [Paper 1 arXiv ID]. Framework: https://github.com/fboiero/MIESC (AGPL-3.0).
+8 pages, 3 code listings, 5 tables. Automated find-fix-verify pipeline evaluated on 143 SmartBugs contracts under the v2 external-validation baseline: 123/143 current-scan fix application, 123/123 standalone compilation, 86/123 vulnerability elimination by MIESC re-scan, 121/123 bounded no-regression criterion, and 58/123 clean-HIGH results under external Slither validation. Companion paper to [Paper 1 arXiv ID]. Framework: https://github.com/fboiero/MIESC (AGPL-3.0).
 ```
 
 ### License
@@ -85,10 +85,11 @@ Norberto Gaspar Cena
 
 | Metric | Result |
 |--------|--------|
-| Fix application rate | 99% (141/143 contracts) |
-| Compilation (standalone) | 64% (90/141 patched contracts) |
-| Vulnerability eliminated | 66% (93/141 patched contracts) |
-| No-regression criterion | 65% (91/141 patched contracts) |
+| Fix application rate | 86% (123/143 contracts, current scan) |
+| Compilation (standalone) | 100% (123/123 patched contracts) |
+| Vulnerability eliminated | 70% (86/123 patched contracts, MIESC re-scan) |
+| No-regression criterion | 98% (121/123 patched contracts) |
+| External Slither clean-HIGH | 47% (58/123 patched contracts) |
 | Exploit tests generated | 6/6 compile, all confirm vuln |
 | Comparison | Only evaluated tool with tests + specs + compliance |
 

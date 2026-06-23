@@ -1,145 +1,137 @@
 {
   "artifact": "paper2_experiment_audit",
-  "generated_at": "2026-05-07T12:52:31.521777+00:00",
+  "generated_at": "2026-06-23T13:37:56.702905+00:00",
   "source_artifact": "benchmarks/results/paper2_compile_failure_taxonomy.json",
   "scope": "Paper 2 remediation experiment validity audit; does not modify Paper 1 detection evidence.",
   "totals": {
-    "patched_contracts": 141,
-    "original_standalone_compiles": 141,
-    "patched_standalone_compiles": 90,
-    "patched_compiles_given_original_compiles": 90
+    "patched_contracts": 143,
+    "original_standalone_compiles": 142,
+    "patched_standalone_compiles": 123,
+    "patched_compiles_given_original_compiles": 123
   },
   "rates": {
-    "original_standalone_compilation": 1.0,
-    "patched_standalone_compilation": 0.6383,
-    "patched_compilation_conditional_on_original_compilation": 0.6383
+    "original_standalone_compilation": 0.993,
+    "patched_standalone_compilation": 0.8601,
+    "patched_compilation_conditional_on_original_compilation": 0.8662
   },
   "compile_transitions": {
-    "original_compiles__patched_compiles": 90,
-    "original_compiles__patched_fails": 51
+    "original_compiles__patched_compiles": 123,
+    "original_compiles__patched_fails": 19,
+    "original_fails__patched_fails": 1
   },
-  "original_compile_failure_taxonomy": {},
+  "original_compile_failure_taxonomy": {
+    "solidity_version_mismatch": 1
+  },
   "joint_success_metrics": {
     "compile_and_eliminate": {
-      "count": 42,
-      "rate": 0.2979
+      "count": 86,
+      "rate": 0.6014
     },
     "compile_and_no_regression": {
-      "count": 40,
-      "rate": 0.2837
+      "count": 121,
+      "rate": 0.8462
     },
     "eliminate_and_no_regression": {
-      "count": 81,
-      "rate": 0.5745
+      "count": 85,
+      "rate": 0.5944
     },
     "compile_eliminate_and_no_regression": {
-      "count": 30,
-      "rate": 0.2128
+      "count": 85,
+      "rate": 0.5944
     }
   },
   "no_regression_sensitivity": {
-    "eligible_contracts": 141,
-    "missing_rescan_counts": 0,
+    "eligible_contracts": 123,
+    "missing_rescan_counts": 20,
     "thresholds": {
       "0": {
-        "passing_contracts": 64,
-        "rate": 0.4539
+        "passing_contracts": 115,
+        "rate": 0.935
       },
       "1": {
-        "passing_contracts": 72,
-        "rate": 0.5106
+        "passing_contracts": 121,
+        "rate": 0.9837
       },
       "2": {
-        "passing_contracts": 91,
-        "rate": 0.6454
+        "passing_contracts": 121,
+        "rate": 0.9837
       },
       "5": {
-        "passing_contracts": 139,
-        "rate": 0.9858
+        "passing_contracts": 122,
+        "rate": 0.9919
       },
       "10": {
-        "passing_contracts": 141,
+        "passing_contracts": 123,
         "rate": 1.0
       }
     },
     "finding_delta_distribution": {
-      "-305": 1,
-      "-154": 1,
-      "-123": 1,
-      "-88": 1,
-      "-66": 1,
-      "-47": 1,
+      "-141": 1,
+      "-58": 1,
+      "-54": 1,
       "-46": 1,
-      "-41": 1,
-      "-40": 1,
-      "-36": 2,
-      "-35": 1,
-      "-34": 3,
-      "-29": 1,
-      "-28": 1,
-      "-24": 6,
-      "-21": 1,
-      "-20": 2,
-      "-18": 1,
-      "-17": 8,
-      "-16": 3,
-      "-15": 4,
+      "-31": 1,
+      "-30": 1,
+      "-19": 2,
+      "-17": 1,
+      "-16": 1,
+      "-15": 3,
       "-14": 1,
+      "-13": 3,
       "-12": 2,
-      "-11": 2,
+      "-11": 1,
       "-10": 2,
-      "-9": 3,
-      "-6": 1,
-      "-4": 1,
-      "-2": 2,
-      "-1": 5,
-      "0": 3,
-      "1": 8,
-      "2": 19,
-      "3": 32,
-      "4": 12,
-      "5": 4,
-      "6": 2
+      "-9": 1,
+      "-8": 9,
+      "-7": 15,
+      "-6": 6,
+      "-5": 3,
+      "-4": 7,
+      "-3": 16,
+      "-2": 11,
+      "-1": 17,
+      "0": 8,
+      "1": 6,
+      "4": 1,
+      "7": 1
     }
   },
   "by_category_compile_transitions": {
     "access_control": {
-      "original_compiles__patched_compiles": 11,
-      "original_compiles__patched_fails": 6
+      "original_compiles__patched_compiles": 17,
+      "original_fails__patched_fails": 1
     },
     "arithmetic": {
-      "original_compiles__patched_compiles": 15
+      "original_compiles__patched_compiles": 4,
+      "original_compiles__patched_fails": 11
     },
     "bad_randomness": {
-      "original_compiles__patched_compiles": 3,
-      "original_compiles__patched_fails": 5
+      "original_compiles__patched_compiles": 7,
+      "original_compiles__patched_fails": 1
     },
     "denial_of_service": {
-      "original_compiles__patched_compiles": 4,
-      "original_compiles__patched_fails": 2
+      "original_compiles__patched_compiles": 5,
+      "original_compiles__patched_fails": 1
     },
     "front_running": {
-      "original_compiles__patched_compiles": 2,
-      "original_compiles__patched_fails": 2
+      "original_compiles__patched_compiles": 4
     },
     "other": {
-      "original_compiles__patched_compiles": 1,
-      "original_compiles__patched_fails": 2
+      "original_compiles__patched_compiles": 3
     },
     "reentrancy": {
-      "original_compiles__patched_compiles": 30,
-      "original_compiles__patched_fails": 1
+      "original_compiles__patched_compiles": 31
     },
     "short_addresses": {
       "original_compiles__patched_compiles": 1
     },
     "time_manipulation": {
-      "original_compiles__patched_compiles": 3,
-      "original_compiles__patched_fails": 2
+      "original_compiles__patched_compiles": 4,
+      "original_compiles__patched_fails": 1
     },
     "unchecked_low_level_calls": {
-      "original_compiles__patched_compiles": 20,
-      "original_compiles__patched_fails": 31
+      "original_compiles__patched_compiles": 47,
+      "original_compiles__patched_fails": 5
     }
   },
   "limitations": [

@@ -1,6 +1,6 @@
 {
   "artifact": "paper2_patch_quality_by_transform",
-  "generated_at": "2026-05-07T12:52:40.101361+00:00",
+  "generated_at": "1970-01-01T00:00:00+00:00",
   "source_artifact": "benchmarks/results/fix_eval_results.json",
   "scope": "Paper 2 remediation only; does not modify Paper 1 detection evidence.",
   "limitations": "Transform classes are derived from SmartBugs categories and current patcher behavior, not from per-finding AST diffs.",
@@ -17,17 +17,24 @@
       ],
       "metrics": {
         "contracts": 27,
-        "fix_applied": 27,
-        "fix_compiles": 14,
-        "vuln_eliminated": 15,
-        "no_regression": 17,
-        "fix_failed": 0
+        "fix_applied": 24,
+        "fix_compiles": 24,
+        "vuln_eliminated": 10,
+        "no_regression": 24,
+        "fix_failed": 0,
+        "scan_empty": 0,
+        "no_high": 3,
+        "external_checked": 24,
+        "external_clean_high": 12,
+        "external_findings": 12,
+        "external_errors": 0
       },
       "rates": {
-        "application": 1.0,
-        "standalone_compilation": 0.5185,
-        "vulnerability_elimination": 0.5556,
-        "no_regression": 0.6296
+        "application": 0.8889,
+        "standalone_compilation": 1.0,
+        "vulnerability_elimination": 0.4167,
+        "no_regression": 1.0,
+        "external_clean_high": 0.5
       }
     },
     "onlyOwner_modifier_insertion": {
@@ -38,16 +45,23 @@
       "metrics": {
         "contracts": 18,
         "fix_applied": 17,
-        "fix_compiles": 11,
+        "fix_compiles": 17,
         "vuln_eliminated": 9,
-        "no_regression": 8,
-        "fix_failed": 0
+        "no_regression": 17,
+        "fix_failed": 0,
+        "scan_empty": 1,
+        "no_high": 0,
+        "external_checked": 17,
+        "external_clean_high": 13,
+        "external_findings": 4,
+        "external_errors": 0
       },
       "rates": {
         "application": 0.9444,
-        "standalone_compilation": 0.6471,
+        "standalone_compilation": 1.0,
         "vulnerability_elimination": 0.5294,
-        "no_regression": 0.4706
+        "no_regression": 1.0,
+        "external_clean_high": 0.7647
       }
     },
     "reentrancy_guard_injection": {
@@ -58,16 +72,23 @@
       "metrics": {
         "contracts": 31,
         "fix_applied": 31,
-        "fix_compiles": 30,
+        "fix_compiles": 31,
         "vuln_eliminated": 30,
-        "no_regression": 22,
-        "fix_failed": 0
+        "no_regression": 29,
+        "fix_failed": 0,
+        "scan_empty": 0,
+        "no_high": 0,
+        "external_checked": 31,
+        "external_clean_high": 2,
+        "external_findings": 29,
+        "external_errors": 0
       },
       "rates": {
         "application": 1.0,
-        "standalone_compilation": 0.9677,
+        "standalone_compilation": 1.0,
         "vulnerability_elimination": 0.9677,
-        "no_regression": 0.7097
+        "no_regression": 0.9355,
+        "external_clean_high": 0.0645
       }
     },
     "require_success_wrapper": {
@@ -77,17 +98,24 @@
       ],
       "metrics": {
         "contracts": 52,
-        "fix_applied": 51,
-        "fix_compiles": 20,
-        "vuln_eliminated": 38,
-        "no_regression": 42,
-        "fix_failed": 0
+        "fix_applied": 47,
+        "fix_compiles": 47,
+        "vuln_eliminated": 34,
+        "no_regression": 47,
+        "fix_failed": 0,
+        "scan_empty": 1,
+        "no_high": 4,
+        "external_checked": 47,
+        "external_clean_high": 27,
+        "external_findings": 20,
+        "external_errors": 0
       },
       "rates": {
-        "application": 0.9808,
-        "standalone_compilation": 0.3922,
-        "vulnerability_elimination": 0.7451,
-        "no_regression": 0.8235
+        "application": 0.9038,
+        "standalone_compilation": 1.0,
+        "vulnerability_elimination": 0.7234,
+        "no_regression": 1.0,
+        "external_clean_high": 0.5745
       }
     },
     "safemath_or_checked_arithmetic_comment": {
@@ -97,17 +125,24 @@
       ],
       "metrics": {
         "contracts": 15,
-        "fix_applied": 15,
-        "fix_compiles": 15,
-        "vuln_eliminated": 1,
-        "no_regression": 2,
-        "fix_failed": 0
+        "fix_applied": 4,
+        "fix_compiles": 4,
+        "vuln_eliminated": 3,
+        "no_regression": 4,
+        "fix_failed": 0,
+        "scan_empty": 0,
+        "no_high": 11,
+        "external_checked": 4,
+        "external_clean_high": 4,
+        "external_findings": 0,
+        "external_errors": 0
       },
       "rates": {
-        "application": 1.0,
+        "application": 0.2667,
         "standalone_compilation": 1.0,
-        "vulnerability_elimination": 0.0667,
-        "no_regression": 0.1333
+        "vulnerability_elimination": 0.75,
+        "no_regression": 1.0,
+        "external_clean_high": 1.0
       }
     }
   }

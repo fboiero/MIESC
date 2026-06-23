@@ -33,6 +33,10 @@ METRIC_DEFINITIONS = {
         "The patched contract did not materially increase finding count under the "
         "same scanner; this is not semantic equivalence."
     ),
+    "external_clean_high": (
+        "Slither external validation over patched contracts that compile reported "
+        "no HIGH findings."
+    ),
 }
 
 CATEGORY_TO_TRANSFORM = {
@@ -64,7 +68,20 @@ def reproducible_generated_at() -> str:
 
 
 def sum_metrics(rows: list[dict[str, int]]) -> dict[str, int]:
-    keys = ["contracts", "fix_applied", "fix_compiles", "vuln_eliminated", "no_regression", "fix_failed"]
+    keys = [
+        "contracts",
+        "fix_applied",
+        "fix_compiles",
+        "vuln_eliminated",
+        "no_regression",
+        "fix_failed",
+        "scan_empty",
+        "no_high",
+        "external_checked",
+        "external_clean_high",
+        "external_findings",
+        "external_errors",
+    ]
     return {key: sum(row.get(key, 0) for row in rows) for key in keys}
 
 
@@ -89,6 +106,9 @@ def build_patch_quality_by_transform(fix_eval: dict[str, Any]) -> dict[str, Any]
                 "standalone_compilation": pct(metrics["fix_compiles"], applied),
                 "vulnerability_elimination": pct(metrics["vuln_eliminated"], applied),
                 "no_regression": pct(metrics["no_regression"], applied),
+                "external_clean_high": pct(
+                    metrics["external_clean_high"], metrics["external_checked"]
+                ),
             },
         }
 
@@ -153,6 +173,12 @@ def main() -> None:
     eliminated = totals["vuln_eliminated"]
     no_regression = totals["no_regression"]
     fix_failed = totals["fix_failed"]
+    scan_empty = totals.get("scan_empty", 0)
+    no_high = totals.get("no_high", 0)
+    external_checked = totals.get("external_checked", 0)
+    external_clean_high = totals.get("external_clean_high", 0)
+    external_findings = totals.get("external_findings", 0)
+    external_errors = totals.get("external_errors", 0)
 
     claims = [
         {
@@ -235,6 +261,50 @@ def main() -> None:
             "notes": "Contracts without fixable HIGH/CRITICAL findings are skipped before fix application.",
             "unit": "contracts",
             "value": fix_failed,
+        },
+        {
+            "claim_id": "scan_filter_counts",
+            "paper_claim": (
+                f"The current scan left {no_high} contracts with no HIGH/CRITICAL "
+                f"finding and {scan_empty} contracts with empty scan output before "
+                "fix application."
+            ),
+            "source_artifact": str(FIX_EVAL.relative_to(ROOT)),
+            "status": "supported",
+            "scope": "corpus_wide_scan_filtering",
+            "paper1_dependency": None,
+            "notes": (
+                "These contracts are included in the 143-contract corpus denominator "
+                "but excluded from patched-contract rates."
+            ),
+            "unit": "contracts",
+            "value": {
+                "no_high": no_high,
+                "scan_empty": scan_empty,
+                "contracts": contracts,
+            },
+        },
+        {
+            "claim_id": "external_slither_validation",
+            "paper_claim": (
+                f"External Slither validation checked {external_checked} compiled "
+                f"patched contracts; {external_clean_high} had no HIGH findings, "
+                f"{external_findings} residual HIGH findings were reported, and "
+                f"{external_errors} external validation errors occurred."
+            ),
+            "source_artifact": str(FIX_EVAL.relative_to(ROOT)),
+            "status": "supported",
+            "scope": "compiled_patched_contracts_external_validation",
+            "paper1_dependency": None,
+            "metric_definition": METRIC_DEFINITIONS["external_clean_high"],
+            "unit": "patched contracts",
+            "value": {
+                "external_checked": external_checked,
+                "external_clean_high": external_clean_high,
+                "external_findings": external_findings,
+                "external_errors": external_errors,
+                "clean_high_rate": pct(external_clean_high, external_checked),
+            },
         },
         {
             "claim_id": "per_category_patch_metrics",
