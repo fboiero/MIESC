@@ -31,7 +31,7 @@ Norberto Gaspar Cena
 
 ### Comments
 ```
-8 pages, 1 figure, 7 tables. Reproducible four-provider ensemble achieves 111/120 detections (92.5% recall) on an EVMBench local high-severity extraction; SmartBugs latest full-corpus reproducible profile: 137/143 (95.8% recall), with a v2 local Ollama follow-up artifact reporting 140/143 (97.9%). Framework: https://github.com/fboiero/MIESC (AGPL-3.0, PyPI: pip install miesc). Reproducibility artifacts included.
+8 pages, 1 figure, 7 tables. Editorial v3 over the v2 evidence baseline: EVMBench local high-severity extraction 111/120 detections (92.5% recall); SmartBugs primary reproducible profile 137/143 (95.8% recall), with a secondary local Ollama follow-up artifact reporting 140/143 (97.9%). Framework: https://github.com/fboiero/MIESC (AGPL-3.0, PyPI: pip install miesc). Reproducibility artifacts included.
 ```
 
 ### License
@@ -75,7 +75,7 @@ Norberto Gaspar Cena
 
 ### Comments
 ```
-8 pages, 3 code listings, 5 tables. Automated find-fix-verify pipeline evaluated on 143 SmartBugs contracts under the v2 external-validation baseline: 123/143 current-scan fix application, 123/123 standalone compilation, 86/123 vulnerability elimination by MIESC re-scan, 121/123 bounded no-regression criterion, and 58/123 clean-HIGH results under external Slither validation. Companion paper to [Paper 1 arXiv ID]. Framework: https://github.com/fboiero/MIESC (AGPL-3.0).
+8 pages, 3 code listings, 5 tables. Editorial v3 over the v2 external-validation baseline: 123/143 current-scan fix application, 123/123 standalone compilation, 86/123 vulnerability elimination by MIESC re-scan, 121/123 bounded no-regression criterion, and 58/123 clean-HIGH results under external Slither validation. Companion paper to [Paper 1 arXiv ID]. Framework: https://github.com/fboiero/MIESC (AGPL-3.0).
 ```
 
 ### License

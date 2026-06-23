@@ -9,6 +9,13 @@ de SmartBugs, regenera la matriz de claims con timestamp reproducible y evita
 reutilizar artefactos historicos como fuente primaria cuando ya existe una
 fuente canonica mas reciente.
 
+## Nota v3 editorial
+
+La v3 del documento es una revision editorial sobre la evidencia v2: baja el
+tono promocional, explicita la diferencia entre claims primarias y secundarias,
+y refuerza las limitaciones metodologicas. No cambia los artefactos
+cuantitativos ni las metricas de esta pagina.
+
 ## Artefactos principales
 
 | Artefacto | Proposito |
