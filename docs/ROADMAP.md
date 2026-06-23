@@ -28,8 +28,10 @@ MIESC is feature-complete and in active maintenance. Highlights of the 5.x line:
 - **Paper 1 v-next baseline**: detection recall 95.8%→**99.3%** (deterministic
   detectors close 5 of 6 prior misses). Evidence ready; baseline pending final PDF build
   and freeze re-tag.
-- **Paper 2 v-next**: restore the patcher compile rate and add independent verification
-  (Slither/SMTChecker/Foundry on patched contracts) to remove re-scan circularity.
+- **Paper 2 v-next**: raise the external-validation clean rate (v2 baseline: 58/123
+  standalone-Slither clean of HIGH, 86/123 eliminate on re-scan) and lean further on
+  independent verification (Slither/SMTChecker/Foundry on patched contracts) to remove
+  re-scan circularity. Standalone compilation is already 123/123 in v2.
 - **Reproducibility**: the benchmark harness reports external-tool crash counts per run;
   document the unloaded-machine measurement protocol.
 - **Quality**: test coverage at 89% and climbing; ongoing robustness hardening.

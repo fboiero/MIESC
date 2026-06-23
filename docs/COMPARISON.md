@@ -138,7 +138,7 @@ All static analysis tools have FP rates of 80-90%+ (recall-focused). MIESC's RAG
 2. ✅ **Multi-chain:** Native support for Move, Cairo, Solana (77 vuln types)
 3. ✅ **Formal verification:** `miesc specs` generates CVL/Scribble/SMTChecker
 4. ✅ **Intelligence engine:** ~30% noise reduction, semantic dedup, fix-code generation
-5. ✅ **Automated remediation:** `miesc fix` with 100% hit rate on test contracts
+5. ✅ **Automated remediation:** `miesc fix` (Paper 2 on SmartBugs-curated: 123/143 fixes applied, 123/123 compile standalone, 86/123 eliminate the finding on re-scan, 121/123 no-regression)
 
 **Remaining after v5.4.x:**
 1. **Speed:** Lazy-load LLM/RAG/ChromaDB (currently imported on every command)
