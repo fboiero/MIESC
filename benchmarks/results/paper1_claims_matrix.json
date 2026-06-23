@@ -27,20 +27,23 @@
     },
     {
       "claim_id": "smartbugs_local_ollama_followup",
-      "notes": "Paper 1 reports a local qwen2.5-coder:32b/Ollama follow-up over the six misses of the reproducible 1,6,7 profile. This is a secondary follow-up claim until a dedicated machine-readable lift artifact is published.",
+      "notes": "Paper 1 v2 reports a local qwen2.5-coder:32b/Ollama follow-up over the six misses of the reproducible 1,6,7 profile. It is a secondary claim because the primary full-corpus reproducible profile remains the deterministic 137/143 SmartBugs run.",
       "paper_claim": "Adding local Ollama analysis over the residual SmartBugs misses raises recall to 97.9% (140/143) at zero API cost.",
       "source_artifact": [
-        "paper/miesc-paper.tex",
+        "benchmarks/results/paper1_smartbugs_local_ollama_followup_20260623.json",
         "benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json"
       ],
-      "status": "supported_with_note",
+      "status": "supported_secondary",
       "unit": "recall",
       "value": {
         "base_contracts_evaluated": 143,
+        "base_fn": 6,
+        "base_precision": 0.2219,
+        "base_recall": 0.958,
         "base_tp": 137,
+        "final_recall": 0.979,
         "final_tp": 140,
         "local_ollama_additional_tp": 3,
-        "recall": 0.979,
         "residual_misses": 3
       }
     },
@@ -198,21 +201,23 @@
     },
     {
       "claim_id": "real_world_exploits",
+      "notes": "Small manually curated exploit sample; used as indicative external-validity evidence rather than a definitive population estimate.",
       "paper_claim": "MIESC detects 9/11 real-world DeFi exploits (81.8% recall, Cohen's kappa 0.773) across $1.59B in evaluated losses.",
-      "unit": "recall",
-      "value": {
-        "recall": 0.818,
-        "detected": 9,
-        "total": 11,
-        "cohens_kappa": 0.773,
-        "evaluated_losses_usd": 1591700000,
-        "full_corpus_count": 25
-      },
       "source_artifact": "benchmarks/results/paper1_exploits_eval_20260621.json",
       "status": "supported_with_note",
-      "notes": "Per-exploit detection transcribed from v5.1.6/v5.1.7 deep-audit reports and paper Table III; class distribution verified against exploits_ground_truth.json. Fixtures sourced externally from DeFiHackLabs (not bundled). kappa on n=11 is indicative. $1.59B = the 11 evaluated contracts; full curated corpus = 25 incidents."
+      "unit": "recall",
+      "value": {
+        "cohens_kappa": 0.773,
+        "cohens_kappa_note": "n=11; reported as indicative, not definitive, given the small sample.",
+        "detected": 9,
+        "evaluated_losses_usd": 1591700000,
+        "full_corpus_count": 25,
+        "full_corpus_losses_usd": 3076900000,
+        "recall": 0.8182,
+        "total_evaluated": 11
+      }
     }
   ],
-  "generated_at": "2026-05-07T00:59:50.506287+00:00",
+  "generated_at": "1970-01-01T00:00:00+00:00",
   "purpose": "Trace Paper 1 quantitative claims to local artifacts or external sources."
 }

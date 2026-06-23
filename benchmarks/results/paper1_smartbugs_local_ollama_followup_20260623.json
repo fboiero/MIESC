@@ -1,0 +1,34 @@
+{
+  "aggregate": {
+    "base_contracts_evaluated": 143,
+    "base_fn": 6,
+    "base_precision": 0.2219,
+    "base_recall": 0.958,
+    "base_tp": 137,
+    "final_recall": 0.979,
+    "final_tp": 140,
+    "local_ollama_additional_tp": 3,
+    "residual_misses": 3
+  },
+  "artifact": "paper1_smartbugs_local_ollama_followup",
+  "generated_at": "2026-06-23",
+  "model": "qwen2.5-coder:32b via Ollama",
+  "notes": [
+    "Secondary Paper 1 v2 claim. The primary reproducible full-corpus SmartBugs claim remains benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json.",
+    "The follow-up was applied only to the six misses from the deterministic layers 1,6,7 SmartBugs profile.",
+    "Recovered contracts are counted at category/contract level, matching the Paper 1 SmartBugs recall denominator."
+  ],
+  "recovered": {
+    "front_running": 2,
+    "short_addresses": 1
+  },
+  "residual": {
+    "other": 3
+  },
+  "source_artifacts": [
+    "benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json",
+    "paper/PAPER1_REPRODUCIBILITY.md",
+    "paper/miesc-paper.tex"
+  ],
+  "status": "supported_secondary"
+}
