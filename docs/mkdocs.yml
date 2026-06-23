@@ -145,24 +145,23 @@ nav:
     - Validation Guide: VALIDATION_GUIDE.md
 
   - Releases:
-    - v4.3.2: RELEASE_NOTES_v4.3.2.md
-    - v4.3.0: RELEASE_NOTES_v4.3.0.md
-    - v4.2.3: RELEASE_NOTES_v4.2.3.md
-    - v4.0.0: RELEASE_NOTES_v4.0.0.md
+    - Latest (v5.4.x): RELEASE_NOTES_v5.4.0.md
+    - All Releases (GitHub): https://github.com/fboiero/MIESC/releases
+    - Changelog: CHANGELOG.md
 
-  - Evaluation:
-    - Evaluation Report v4.1: EVALUATION_REPORT_v4.1.md
-    - MIESC Evaluation: MIESC_Evaluation_Report.md
+  - Benchmarks:
+    - Tool Comparison: COMPARISON.md
+    - Roadmap: ROADMAP.md
 
   - Thesis:
     - Overview: thesis.md
     - Resumen (ES): thesis_es.md
 
   - Developer Guide:
+    - Architecture: ARCHITECTURE.md
     - Custom Detectors: CUSTOM_DETECTORS.md
     - Contributing: CONTRIBUTING.md
     - Security Policy: SECURITY.md
-    - Changelog: CHANGELOG.md
 
   - Community:
     - GitHub: https://github.com/fboiero/MIESC
