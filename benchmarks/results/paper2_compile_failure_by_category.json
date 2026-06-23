@@ -1,64 +1,64 @@
 {
   "artifact": "paper2_compile_failure_by_category",
-  "generated_at": "2026-05-07T12:52:40.101534+00:00",
+  "generated_at": "1970-01-01T00:00:00+00:00",
   "source_artifact": "benchmarks/results/fix_eval_results.json",
   "scope": "Standalone compilation failures for Paper 2 patched artifacts.",
   "limitations": "This artifact identifies where compilation fails by category. It does not classify root causes such as missing imports, Solidity version mismatch, or undefined symbols because fix_eval_results.json does not preserve per-contract compiler stderr.",
   "totals": {
-    "fix_applied": 141,
-    "fix_compiles": 90,
-    "compile_failures": 51,
-    "compile_failure_rate": 0.3617
+    "fix_applied": 123,
+    "fix_compiles": 123,
+    "compile_failures": 0,
+    "compile_failure_rate": 0.0
   },
   "by_category": {
     "access_control": {
       "status": "derived_from_fix_eval_counts",
       "fix_applied": 17,
-      "fix_compiles": 11,
-      "compile_failures": 6,
-      "compile_failure_rate": 0.3529
+      "fix_compiles": 17,
+      "compile_failures": 0,
+      "compile_failure_rate": 0.0
     },
     "arithmetic": {
       "status": "derived_from_fix_eval_counts",
-      "fix_applied": 15,
-      "fix_compiles": 15,
+      "fix_applied": 4,
+      "fix_compiles": 4,
       "compile_failures": 0,
       "compile_failure_rate": 0.0
     },
     "bad_randomness": {
       "status": "derived_from_fix_eval_counts",
-      "fix_applied": 8,
-      "fix_compiles": 3,
-      "compile_failures": 5,
-      "compile_failure_rate": 0.625
+      "fix_applied": 7,
+      "fix_compiles": 7,
+      "compile_failures": 0,
+      "compile_failure_rate": 0.0
     },
     "denial_of_service": {
       "status": "derived_from_fix_eval_counts",
-      "fix_applied": 6,
-      "fix_compiles": 4,
-      "compile_failures": 2,
-      "compile_failure_rate": 0.3333
+      "fix_applied": 5,
+      "fix_compiles": 5,
+      "compile_failures": 0,
+      "compile_failure_rate": 0.0
     },
     "front_running": {
       "status": "derived_from_fix_eval_counts",
       "fix_applied": 4,
-      "fix_compiles": 2,
-      "compile_failures": 2,
-      "compile_failure_rate": 0.5
+      "fix_compiles": 4,
+      "compile_failures": 0,
+      "compile_failure_rate": 0.0
     },
     "other": {
       "status": "derived_from_fix_eval_counts",
       "fix_applied": 3,
-      "fix_compiles": 1,
-      "compile_failures": 2,
-      "compile_failure_rate": 0.6667
+      "fix_compiles": 3,
+      "compile_failures": 0,
+      "compile_failure_rate": 0.0
     },
     "reentrancy": {
       "status": "derived_from_fix_eval_counts",
       "fix_applied": 31,
-      "fix_compiles": 30,
-      "compile_failures": 1,
-      "compile_failure_rate": 0.0323
+      "fix_compiles": 31,
+      "compile_failures": 0,
+      "compile_failure_rate": 0.0
     },
     "short_addresses": {
       "status": "derived_from_fix_eval_counts",
@@ -69,17 +69,17 @@
     },
     "time_manipulation": {
       "status": "derived_from_fix_eval_counts",
-      "fix_applied": 5,
-      "fix_compiles": 3,
-      "compile_failures": 2,
-      "compile_failure_rate": 0.4
+      "fix_applied": 4,
+      "fix_compiles": 4,
+      "compile_failures": 0,
+      "compile_failure_rate": 0.0
     },
     "unchecked_low_level_calls": {
       "status": "derived_from_fix_eval_counts",
-      "fix_applied": 51,
-      "fix_compiles": 20,
-      "compile_failures": 31,
-      "compile_failure_rate": 0.6078
+      "fix_applied": 47,
+      "fix_compiles": 47,
+      "compile_failures": 0,
+      "compile_failure_rate": 0.0
     }
   }
 }

@@ -1,92 +1,354 @@
 {
   "totals": {
     "contracts": 143,
-    "fix_applied": 141,
-    "fix_compiles": 90,
-    "vuln_eliminated": 93,
-    "no_regression": 91,
-    "fix_failed": 0
+    "fix_applied": 123,
+    "fix_compiles": 123,
+    "vuln_eliminated": 86,
+    "no_regression": 121,
+    "fix_failed": 0,
+    "scan_empty": 2,
+    "no_high": 18,
+    "external_checked": 123,
+    "external_clean_high": 58,
+    "external_findings": 65,
+    "external_errors": 0
   },
   "by_category": {
     "access_control": {
       "contracts": 18,
       "fix_applied": 17,
-      "fix_compiles": 11,
+      "fix_compiles": 17,
       "vuln_eliminated": 9,
-      "no_regression": 8,
-      "fix_failed": 0
+      "no_regression": 17,
+      "fix_failed": 0,
+      "scan_empty": 1,
+      "no_high": 0,
+      "external_checked": 17,
+      "external_clean_high": 13,
+      "external_findings": 4,
+      "external_errors": 0
     },
     "arithmetic": {
       "contracts": 15,
-      "fix_applied": 15,
-      "fix_compiles": 15,
-      "vuln_eliminated": 1,
-      "no_regression": 2,
-      "fix_failed": 0
+      "fix_applied": 4,
+      "fix_compiles": 4,
+      "vuln_eliminated": 3,
+      "no_regression": 4,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 11,
+      "external_checked": 4,
+      "external_clean_high": 4,
+      "external_findings": 0,
+      "external_errors": 0
     },
     "bad_randomness": {
       "contracts": 8,
-      "fix_applied": 8,
-      "fix_compiles": 3,
-      "vuln_eliminated": 6,
+      "fix_applied": 7,
+      "fix_compiles": 7,
+      "vuln_eliminated": 4,
       "no_regression": 7,
-      "fix_failed": 0
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 1,
+      "external_checked": 7,
+      "external_clean_high": 2,
+      "external_findings": 5,
+      "external_errors": 0
     },
     "denial_of_service": {
       "contracts": 6,
-      "fix_applied": 6,
-      "fix_compiles": 4,
+      "fix_applied": 5,
+      "fix_compiles": 5,
       "vuln_eliminated": 2,
-      "no_regression": 2,
-      "fix_failed": 0
+      "no_regression": 5,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 1,
+      "external_checked": 5,
+      "external_clean_high": 3,
+      "external_findings": 2,
+      "external_errors": 0
     },
     "front_running": {
       "contracts": 4,
       "fix_applied": 4,
-      "fix_compiles": 2,
-      "vuln_eliminated": 2,
-      "no_regression": 3,
-      "fix_failed": 0
+      "fix_compiles": 4,
+      "vuln_eliminated": 1,
+      "no_regression": 4,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0,
+      "external_checked": 4,
+      "external_clean_high": 4,
+      "external_findings": 0,
+      "external_errors": 0
     },
     "other": {
       "contracts": 3,
       "fix_applied": 3,
-      "fix_compiles": 1,
-      "vuln_eliminated": 2,
-      "no_regression": 2,
-      "fix_failed": 0
+      "fix_compiles": 3,
+      "vuln_eliminated": 1,
+      "no_regression": 3,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0,
+      "external_checked": 3,
+      "external_clean_high": 0,
+      "external_findings": 3,
+      "external_errors": 0
     },
     "reentrancy": {
       "contracts": 31,
       "fix_applied": 31,
-      "fix_compiles": 30,
+      "fix_compiles": 31,
       "vuln_eliminated": 30,
-      "no_regression": 22,
-      "fix_failed": 0
+      "no_regression": 29,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0,
+      "external_checked": 31,
+      "external_clean_high": 2,
+      "external_findings": 29,
+      "external_errors": 0
     },
     "short_addresses": {
       "contracts": 1,
       "fix_applied": 1,
       "fix_compiles": 1,
       "vuln_eliminated": 0,
-      "no_regression": 0,
-      "fix_failed": 0
+      "no_regression": 1,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 0,
+      "external_checked": 1,
+      "external_clean_high": 1,
+      "external_findings": 0,
+      "external_errors": 0
     },
     "time_manipulation": {
       "contracts": 5,
-      "fix_applied": 5,
-      "fix_compiles": 3,
-      "vuln_eliminated": 3,
-      "no_regression": 3,
-      "fix_failed": 0
+      "fix_applied": 4,
+      "fix_compiles": 4,
+      "vuln_eliminated": 2,
+      "no_regression": 4,
+      "fix_failed": 0,
+      "scan_empty": 0,
+      "no_high": 1,
+      "external_checked": 4,
+      "external_clean_high": 2,
+      "external_findings": 2,
+      "external_errors": 0
     },
     "unchecked_low_level_calls": {
       "contracts": 52,
-      "fix_applied": 51,
-      "fix_compiles": 20,
-      "vuln_eliminated": 38,
-      "no_regression": 42,
-      "fix_failed": 0
+      "fix_applied": 47,
+      "fix_compiles": 47,
+      "vuln_eliminated": 34,
+      "no_regression": 47,
+      "fix_failed": 0,
+      "scan_empty": 1,
+      "no_high": 4,
+      "external_checked": 47,
+      "external_clean_high": 27,
+      "external_findings": 20,
+      "external_errors": 0
     }
+  },
+  "external_high_checks": {
+    "controlled-array-length": 28,
+    "reentrancy-eth": 22,
+    "weak-prng": 13,
+    "shadowing-state": 9,
+    "uninitialized-state": 4,
+    "arbitrary-send-eth": 3,
+    "unchecked-transfer": 3,
+    "uninitialized-storage": 3,
+    "controlled-delegatecall": 2,
+    "encode-packed-collision": 1
+  },
+  "external_high_check_examples": {
+    "controlled-array-length": [
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mapping_write.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      },
+      {
+        "category": "bad_randomness",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/blackjack.sol",
+        "external_status": "findings",
+        "high_findings": 3
+      },
+      {
+        "category": "bad_randomness",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/lottery.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      }
+    ],
+    "reentrancy-eth": [
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_2.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "reentrancy",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      },
+      {
+        "category": "reentrancy",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7541b76cb60f4c60af330c208b0623b7f54bf615.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ],
+    "weak-prng": [
+      {
+        "category": "bad_randomness",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/blackjack.sol",
+        "external_status": "findings",
+        "high_findings": 3
+      },
+      {
+        "category": "bad_randomness",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/lucky_doubler.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "bad_randomness",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/random_number_generator.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      }
+    ],
+    "shadowing-state": [
+      {
+        "category": "reentrancy",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      },
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x39cfd754c85023648bf003bea2dd498c5612abfa.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x3a0e9acd953ffc0dd18d63603488846a6b8b2b01.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      }
+    ],
+    "uninitialized-state": [
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      },
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mapping_write.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      },
+      {
+        "category": "denial_of_service",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/send_loop.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      }
+    ],
+    "arbitrary-send-eth": [
+      {
+        "category": "other",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/crypto_roulette.sol",
+        "external_status": "findings",
+        "high_findings": 3
+      },
+      {
+        "category": "reentrancy",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_bonus.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      },
+      {
+        "category": "time_manipulation",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/roulette.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ],
+    "unchecked-transfer": [
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x19cf8481ea15427a98ba3cdd6d9e14690011ab10.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x52d2e0f9b01101a59b38a3d05c80b7618aeed984.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "unchecked_low_level_calls",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x663e4229142a27f00bafb5d087e1e730648314c3.sol",
+        "external_status": "findings",
+        "high_findings": 5
+      }
+    ],
+    "uninitialized-storage": [
+      {
+        "category": "other",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/crypto_roulette.sol",
+        "external_status": "findings",
+        "high_findings": 3
+      },
+      {
+        "category": "other",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/name_registrar.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      },
+      {
+        "category": "other",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/other/open_address_lottery.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      }
+    ],
+    "controlled-delegatecall": [
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+        "external_status": "findings",
+        "high_findings": 2
+      },
+      {
+        "category": "access_control",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/proxy.sol",
+        "external_status": "findings",
+        "high_findings": 1
+      }
+    ],
+    "encode-packed-collision": [
+      {
+        "category": "reentrancy",
+        "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/spank_chain_payment.sol",
+        "external_status": "findings",
+        "high_findings": 3
+      }
+    ]
   }
 }
