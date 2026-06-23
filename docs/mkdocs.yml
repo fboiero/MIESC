@@ -1,13 +1,11 @@
 # ============================================================================
 # MkDocs Configuration for MIESC Documentation
 # ============================================================================
-# Simplified version for Tool Adapter Protocol deployment
-# Version: 1.0.0 (Minimal)
-# Last Updated: 2025-11-10
+# MIESC documentation site (mkdocs-material)
 # ============================================================================
 
-site_name: MIESC - Tool Adapter Protocol Documentation
-site_description: Tool Adapter Protocol for autonomous smart contract security analysis
+site_name: MIESC
+site_description: Multi-layer Intelligent Evaluation for Smart Contracts — 50 security tools, 9 defense layers, pre-audit triage for Ethereum (EVM)
 site_author: Fernando Boiero - UNDEF
 site_url: https://fboiero.github.io/MIESC
 
