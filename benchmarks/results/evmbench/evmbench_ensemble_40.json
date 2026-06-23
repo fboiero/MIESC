@@ -7,7 +7,7 @@
     "3": 23,
     "4": 59
   },
-  "generated_at": "2026-05-07T00:59:50.503027+00:00",
+  "generated_at": "1970-01-01T00:00:00+00:00",
   "input_files": {
     "claude_sonnet_4_6": "benchmarks/results/evmbench/evmbench_claude46_40_FINAL.json",
     "gpt_4o": "benchmarks/results/evmbench/evmbench_gpt4o_40.json",

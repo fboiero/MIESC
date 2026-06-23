@@ -23,6 +23,8 @@ def test_generate_paper1_claims_preserves_smartbugs_958_claim(monkeypatch, tmp_p
     results = tmp_path / "benchmarks" / "results"
     evmbench = results / "evmbench"
     smartbugs_latest = results / "paper1_smartbugs_eval_layers_1_6_7.json"
+    smartbugs_followup = results / "paper1_smartbugs_local_ollama_followup_20260623.json"
+    real_world_exploits = results / "paper1_exploits_eval_20260621.json"
     evmbench_static = evmbench / "evmbench_static_40.json"
     provider_paths = {
         "claude_sonnet_4_6": evmbench / "evmbench_claude46_40_FINAL.json",
@@ -45,7 +47,32 @@ def test_generate_paper1_claims_preserves_smartbugs_958_claim(monkeypatch, tmp_p
             }
         },
     )
+    _write_json(
+        smartbugs_followup,
+        {
+            "aggregate": {
+                "base_contracts_evaluated": 143,
+                "base_tp": 137,
+                "final_tp": 140,
+                "local_ollama_additional_tp": 3,
+                "final_recall": 0.979,
+                "residual_misses": 3,
+            }
+        },
+    )
     _write_json(evmbench_static, _provider_result(0.183))
+    _write_json(
+        real_world_exploits,
+        {
+            "aggregate": {
+                "total_evaluated": 11,
+                "detected": 9,
+                "recall": 0.8182,
+                "cohens_kappa": 0.773,
+                "evaluated_losses_usd": 1591700000,
+            }
+        },
+    )
     for path in provider_paths.values():
         _write_json(path, _provider_result(0.5))
 
@@ -53,6 +80,8 @@ def test_generate_paper1_claims_preserves_smartbugs_958_claim(monkeypatch, tmp_p
     monkeypatch.setattr(paper1, "RESULTS", results)
     monkeypatch.setattr(paper1, "EVMBENCH", evmbench)
     monkeypatch.setattr(paper1, "SMARTBUGS_LATEST", smartbugs_latest)
+    monkeypatch.setattr(paper1, "SMARTBUGS_OLLAMA_FOLLOWUP", smartbugs_followup)
+    monkeypatch.setattr(paper1, "REAL_WORLD_EXPLOITS", real_world_exploits)
     monkeypatch.setattr(paper1, "EVMBENCH_STATIC", evmbench_static)
     monkeypatch.setattr(paper1, "PROVIDERS", provider_paths)
 
@@ -82,5 +111,13 @@ def test_generate_paper1_claims_preserves_smartbugs_958_claim(monkeypatch, tmp_p
     assert latest["value"]["layers_evaluated"] == [1, 6, 7]
 
     followup = claims["smartbugs_local_ollama_followup"]
-    assert followup["value"]["recall"] == 0.979
-    assert followup["status"] == "supported_with_note"
+    assert followup["value"]["final_recall"] == 0.979
+    assert followup["status"] == "supported_secondary"
+    assert followup["source_artifact"][0].endswith(
+        "paper1_smartbugs_local_ollama_followup_20260623.json"
+    )
+
+    exploits = claims["real_world_exploits"]
+    assert exploits["value"]["detected"] == 9
+    assert exploits["value"]["total_evaluated"] == 11
+    assert exploits["status"] == "supported_with_note"

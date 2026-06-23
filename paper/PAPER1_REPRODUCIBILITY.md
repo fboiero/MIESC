@@ -1,9 +1,13 @@
 # Paper 1 Reproducibility
 
-Fecha: 2026-05-10
+Fecha: 2026-06-23
 
-Este documento fija los artefactos que respaldan los resultados cuantitativos
-del Paper 1.
+Este documento fija la v2 de los artefactos que respaldan los resultados
+cuantitativos del Paper 1. La v2 no cambia la claim primaria de SmartBugs ni la
+claim central de EVMBench; consolida la evidencia del seguimiento local-Ollama
+de SmartBugs, regenera la matriz de claims con timestamp reproducible y evita
+reutilizar artefactos historicos como fuente primaria cuando ya existe una
+fuente canonica mas reciente.
 
 ## Artefactos principales
 
@@ -14,6 +18,8 @@ del Paper 1.
 | `benchmarks/results/evmbench/evmbench_static_40.json` | Baseline static-only EVMBench reproducido sobre 40 audits. |
 | `benchmarks/results/paper1_claims_matrix.json` | Matriz de claims cuantitativos y fuentes. |
 | `benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json` | Corrida SmartBugs completa con seleccion `solc` por `pragma` y Layer 6 especializado. |
+| `benchmarks/results/paper1_smartbugs_local_ollama_followup_20260623.json` | Evidencia secundaria del lift local-Ollama: 137/143 -> 140/143 sobre los misses SmartBugs. |
+| `benchmarks/results/paper1_exploits_eval_20260621.json` | Evidencia de exploits reales: 9/11, kappa 0.773, $1.59B evaluados. |
 | `benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.json` | Smoke reproducible de las 9 capas completas sobre un contrato SmartBugs. |
 | `benchmarks/results/tooling_smoke_layers_1_6.json` | Smoke test de herramientas faltantes: Semgrep, Wake, DA-GNN y SmartGuard integrados en el pipeline. |
 | `src/llm/embedding_rag.py` | Base RAG versionada para evidencia LLM y recuperacion hibrida. |
@@ -25,7 +31,7 @@ del Paper 1.
 Generar ensemble EVMBench y matriz de claims:
 
 ```bash
-python3 benchmarks/generate_paper1_artifacts.py
+SOURCE_DATE_EPOCH=0 python3 benchmarks/generate_paper1_artifacts.py
 ```
 
 Resultado esperado:
@@ -156,11 +162,13 @@ un artefacto instalado compatible de `solc-select` como `0.4.26`, `0.4.25` o
 `0.5.17` en lugar de forzar `0.8.20`.
 
 El paper tambien reporta un seguimiento con Ollama local sobre los 6 misses del
-perfil reproducible. Ese seguimiento agrega 3 verdaderos positivos (front
-running y reentrancy), elevando la lectura editorial a 140/143 = 97.9% recall
-sin costo de API. Hasta publicar un artefacto JSON dedicado para ese lift, la
-claim reproducible primaria para tablas y matrices sigue siendo 137/143 =
-95.8%.
+perfil reproducible. Ese seguimiento agrega 3 verdaderos positivos (2 front
+running y 1 short-addresses), elevando la lectura editorial a 140/143 = 97.9%
+recall sin costo de API. En v2 esta claim queda respaldada por
+`benchmarks/results/paper1_smartbugs_local_ollama_followup_20260623.json` y por
+la matriz `paper1_claims_matrix.json` con estado `supported_secondary`. La claim
+primaria para tablas reproducibles sigue siendo 137/143 = 95.8%, porque proviene
+de una corrida full-corpus deterministica.
 
 El resultado anterior `paper1_smartbugs_eval.json` queda preservado como
 baseline historico `1,5,7,9` (89.5% recall, 22.3% precision, 35.6% F1). El
@@ -340,4 +348,20 @@ y su distribucion por clase fue verificada contra el ground-truth.
 
 Una claim numerica del Paper 1 queda publicable solo si aparece en
 `benchmarks/results/paper1_claims_matrix.json` con estado `supported`,
-`supported_with_note`, `external_primary_source` o `external_secondary_source`.
+`supported_secondary`, `supported_with_note`, `external_primary_source` o
+`external_secondary_source`.
+
+Claims canonicas v2:
+
+| Claim | Valor | Fuente |
+|---|---:|---|
+| SmartBugs primaria | 137/143 = 95.8% recall | `paper1_smartbugs_eval_layers_1_6_7.json` |
+| SmartBugs local-Ollama secundaria | 140/143 = 97.9% recall | `paper1_smartbugs_local_ollama_followup_20260623.json` |
+| EVMBench local extraction ensemble | 111/120 = 92.5% recall | `evmbench_ensemble_40.json` |
+| EVMBench static-only | 22/120 = 18.3% recall | `evmbench_static_40.json` |
+| Real-world exploits | 9/11 = 81.8% recall, kappa 0.773 | `paper1_exploits_eval_20260621.json` |
+
+No usar `paper1_smartbugs_eval_layers_1_6_7.jsonl` como fuente primaria de
+metricas agregadas: ese JSONL preserva una corrida anterior de 93.7% y queda
+solo como traza historica. La fuente canonica v2 para SmartBugs es el JSON
+agregado `paper1_smartbugs_eval_layers_1_6_7.json`.

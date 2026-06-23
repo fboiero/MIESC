@@ -32,6 +32,8 @@ PROVIDERS = {
 }
 
 SMARTBUGS_LATEST = RESULTS / "paper1_smartbugs_eval_layers_1_6_7.json"
+SMARTBUGS_OLLAMA_FOLLOWUP = RESULTS / "paper1_smartbugs_local_ollama_followup_20260623.json"
+REAL_WORLD_EXPLOITS = RESULTS / "paper1_exploits_eval_20260621.json"
 EVMBENCH_STATIC = EVMBENCH / "evmbench_static_40.json"
 
 
@@ -204,6 +206,8 @@ def generate_ensemble() -> dict:
 def generate_claims_matrix(ensemble: dict) -> dict:
     smartbugs = load_json(SMARTBUGS_LATEST)
     smartbugs_summary = smartbugs_metrics(smartbugs, SMARTBUGS_LATEST)
+    smartbugs_followup = load_json(SMARTBUGS_OLLAMA_FOLLOWUP)
+    real_world_exploits = load_json(REAL_WORLD_EXPLOITS)
     evmbench_static = load_json(EVMBENCH_STATIC)
     provider_data = {name: load_json(path) for name, path in PROVIDERS.items()}
 
@@ -232,24 +236,17 @@ def generate_claims_matrix(ensemble: dict) -> dict:
                     "raises recall to 97.9% (140/143) at zero API cost."
                 ),
                 "source_artifact": [
-                    "paper/miesc-paper.tex",
+                    str(SMARTBUGS_OLLAMA_FOLLOWUP.relative_to(ROOT)),
                     str(SMARTBUGS_LATEST.relative_to(ROOT)),
                 ],
-                "status": "supported_with_note",
+                "status": "supported_secondary",
                 "unit": "recall",
-                "value": {
-                    "base_contracts_evaluated": 143,
-                    "base_tp": 137,
-                    "final_tp": 140,
-                    "local_ollama_additional_tp": 3,
-                    "recall": 0.979,
-                    "residual_misses": 3,
-                },
+                "value": smartbugs_followup["aggregate"],
                 "notes": (
-                    "Paper 1 reports a local qwen2.5-coder:32b/Ollama follow-up over "
-                    "the six misses of the reproducible 1,6,7 profile. This is a "
-                    "secondary follow-up claim until a dedicated machine-readable lift "
-                    "artifact is published."
+                    "Paper 1 v2 reports a local qwen2.5-coder:32b/Ollama follow-up "
+                    "over the six misses of the reproducible 1,6,7 profile. It is a "
+                    "secondary claim because the primary full-corpus reproducible "
+                    "profile remains the deterministic 137/143 SmartBugs run."
                 ),
             },
             {
@@ -372,6 +369,21 @@ def generate_claims_matrix(ensemble: dict) -> dict:
                 ),
                 "status": "external_secondary_source",
                 "notes": "Use as reported benchmark, not peer-reviewed state-of-the-art claim.",
+            },
+            {
+                "claim_id": "real_world_exploits",
+                "paper_claim": (
+                    "MIESC detects 9/11 real-world DeFi exploits (81.8% recall, "
+                    "Cohen's kappa 0.773) across $1.59B in evaluated losses."
+                ),
+                "value": real_world_exploits["aggregate"],
+                "unit": "recall",
+                "source_artifact": str(REAL_WORLD_EXPLOITS.relative_to(ROOT)),
+                "status": "supported_with_note",
+                "notes": (
+                    "Small manually curated exploit sample; used as indicative external-validity "
+                    "evidence rather than a definitive population estimate."
+                ),
             },
         ],
     }
