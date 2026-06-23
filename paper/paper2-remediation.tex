@@ -430,7 +430,7 @@ sGuard~\cite{nguyen2021sguard} & '21 & 4 & --- & ${\sim}$100 & \texttimes & \tex
 Elysium~\cite{elysium2022} & '22 & 7 SWC & +30\textsuperscript{b} & --- & \texttimes & \texttimes/\texttimes \\
 ACFIX~\cite{acfix2024} & '24 & 1 & 94.9 & --- & \texttimes & \texttimes/\texttimes \\
 SCPatcher~\cite{scpatcher2025} & '25 & Gen. & 81.5 & 91 & \texttimes & \texttimes/\texttimes \\
-\textbf{MIESC} & \textbf{'26} & \textbf{10 cats.} & \textbf{99} & \textbf{64} & \checkmark & \checkmark/\checkmark \\
+\textbf{MIESC} & \textbf{'26} & \textbf{10 cats.} & \textbf{70} & \textbf{100} & \checkmark & \checkmark/\checkmark \\
 \bottomrule
 \end{tabular}
 
@@ -438,13 +438,13 @@ SCPatcher~\cite{scpatcher2025} & '25 & Gen. & 81.5 & 91 & \texttimes & \texttime
 \scriptsize{\textsuperscript{a}Requires pre-existing test suite. \textsuperscript{b}Relative to Shield.}
 \end{table}
 
-Table~\ref{tab:comparison} compares MIESC against five prior automated repair tools. While SCPatcher reports a higher compilation rate (91\% vs.\ 64\%), its evaluation target and dependency assumptions differ from our standalone-compilation criterion, so the numbers are not directly interchangeable. ACFIX reports 94.9\% fix rate but is limited to a single vulnerability class (RBAC). MIESC is the only evaluated tool that reports artifacts across the remediation lifecycle: patch generation, exploit testing, formal specifications, and compliance mapping.
+Table~\ref{tab:comparison} compares MIESC against five prior automated repair tools. MIESC reaches 100\% standalone compilation for emitted patches (123/123) under a strict no-external-dependency criterion, while SCPatcher reports 91\% compilation under different evaluation targets and dependency assumptions, so the numbers are not directly interchangeable; the MIESC ``Fix\%'' column reports vulnerability elimination on re-scan (86/123, 70\%). ACFIX reports 94.9\% fix rate but is limited to a single vulnerability class (RBAC). MIESC is the only evaluated tool that reports artifacts across the remediation lifecycle: patch generation, exploit testing, formal specifications, and compliance mapping.
 
 \subsection{Failure Analysis}
 
-Of the 141 contracts where a fix was applied, 51 (36\%) fail standalone compilation. The per-contract compilation taxonomy classifies these failures as 42 undefined-symbol errors and 9 other compiler errors. The category-level artifact shows that unchecked low-level calls account for the largest share: 31 failures out of 51 applied fixes (61\% category failure rate). Reentrancy has only one standalone failure (3\%), while arithmetic has none.
+In the v2 baseline, standalone compilation is no longer a failure mode: all 123 emitted patches compile (0 failures), versus 51/141 standalone failures in the prior v1 run (42 undefined-symbol and 9 other compiler errors, with unchecked low-level calls the largest share). The inline, dependency-free guards and the current-scan-filtered denominator removed that bottleneck. The remaining v2 gaps are therefore semantic rather than syntactic: 37/123 patched contracts do not eliminate the target HIGH/CRITICAL finding on MIESC re-scan, and external Slither validation still reports residual HIGH findings on 65 of the 123 patched contracts (58/123 clean).
 
-This evidence supports a concrete root-cause direction for future work: dependency-aware compilation and symbol-resolution repair should be prioritized before semantic patch synthesis. The current taxonomy is still compiler-output based; it does not prove that every undefined symbol was introduced by the patcher, because some SmartBugs files already depend on missing libraries or legacy project context.
+This reframes the root-cause direction for future work. With standalone compilation solved, the priority shifts from symbol-resolution repair to semantic adequacy: eliminating the target finding without introducing new HIGH findings under independent (Slither/SMTChecker/Foundry) validation. The external-validation gap (65 residual HIGH findings) is the main lever, and removing re-scan circularity by leaning on independent tools is the next step.
 
 % ===========================================================================
 \section{Discussion}
