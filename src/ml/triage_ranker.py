@@ -135,6 +135,35 @@ class TriageRanker:
         return [f for f, _ in scored]
 
 
+def rank_results(all_results: list[dict[str, Any]], *, contract: str = "") -> int:
+    """Reorder each result's findings by P(real), in place — recall-safe (never drops).
+    Shared by `miesc scan --rank` and `miesc audit --rank`. Reads each finding's source for
+    feature extraction (by finding `file`, else the `contract` path). Returns the number of
+    findings ranked, or -1 when no trained model is available (caller leaves order unchanged)."""
+    ranker = TriageRanker()
+    if not ranker.available():
+        return -1
+    cache: dict[str, str] = {}
+
+    def code_for(f: dict[str, Any]) -> str:
+        loc = f.get("location") if isinstance(f.get("location"), dict) else {}
+        path = f.get("file") or loc.get("file") or contract
+        if path not in cache:
+            try:
+                cache[path] = open(path, errors="ignore").read()
+            except Exception:  # noqa: BLE001
+                cache[path] = ""
+        return cache[path]
+
+    total = 0
+    for result in all_results:
+        fs = result.get("findings") or []
+        if fs:
+            result["findings"] = ranker.rank(fs, code_for)
+            total += len(fs)
+    return total
+
+
 def train(dataset_path: str, model_path: str = DEFAULT_MODEL_PATH) -> dict[str, Any]:
     """Train the GradientBoosting triage model on a labeled JSONL dataset
     ({"finding": {...}, "context": "...", "label": true/false}; True = real) and persist it.

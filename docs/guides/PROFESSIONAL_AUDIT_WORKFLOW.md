@@ -347,6 +347,7 @@ most-likely-real surface first — it **never drops anything** (recall 1.0), it 
 
 ```bash
 miesc scan MyContract.sol --rank          # most-likely-real findings first
+miesc audit quick MyContract.sol --rank   # also on the audit command (quick and full)
 ```
 
 On the wild ground-truth eval the ranking model reaches AUC 0.927: reviewing top-down, an

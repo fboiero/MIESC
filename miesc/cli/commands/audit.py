@@ -323,6 +323,7 @@ def _run_full_audit_with_ml(
     orchestrator: Any,
     verify_fp: bool = False,
     verify_model: str | None = None,
+    rank: bool = False,
 ) -> None:
     """Run full audit using ML Orchestrator."""
     # Determine tools from layers
@@ -454,8 +455,40 @@ def _run_full_audit_with_ml(
         info("Falling back to basic mode...")
         _run_full_audit_basic(
             contract, output, fmt, layer_list, timeout,
-            verify_fp=verify_fp, verify_model=verify_model,
+            verify_fp=verify_fp, verify_model=verify_model, rank=rank,
         )
+
+
+def _rank_report_findings(findings: dict[str, Any], *, contract: str) -> None:
+    """Recall-safe triage on a correlation report's finding buckets (in place): order each
+    list of findings by P(real). Never drops anything. No-ops without a trained model."""
+    try:
+        from src.ml.triage_ranker import TriageRanker
+    except Exception as e:  # noqa: BLE001
+        info(f"rank skipped: {e}")
+        return
+    ranker = TriageRanker()
+    if not ranker.available():
+        info("rank: no triage model — train with scripts/train_triage_model.py (order unchanged)")
+        return
+    cache: dict[str, str] = {}
+
+    def code_for(f: dict[str, Any]) -> str:
+        loc = f.get("location") if isinstance(f.get("location"), dict) else {}
+        path = loc.get("file") or f.get("file") or contract
+        if path not in cache:
+            try:
+                cache[path] = open(path, errors="ignore").read()
+            except Exception:  # noqa: BLE001
+                cache[path] = ""
+        return cache[path]
+
+    total = 0
+    for key, lst in findings.items():
+        if isinstance(lst, list) and lst and isinstance(lst[0], dict):
+            findings[key] = ranker.rank(lst, code_for)
+            total += len(lst)
+    info(f"rank: ordered {total} finding(s) by P(real) — triage, recall-safe (nothing dropped)")
 
 
 def _run_full_audit_with_correlation(
@@ -467,6 +500,7 @@ def _run_full_audit_with_correlation(
     api: Any,
     verify_fp: bool = False,
     verify_model: str | None = None,
+    rank: bool = False,
 ) -> None:
     """Run full audit using Correlation API."""
     all_results: list[dict[str, Any]] = []
@@ -514,6 +548,9 @@ def _run_full_audit_with_correlation(
     summary = report.get("summary", {})
     findings = report.get("findings", {})
 
+    if rank:
+        _rank_report_findings(findings, contract=contract)
+
     if RICH_AVAILABLE:
         console.print("\n")
         table = Table(title="Correlated Audit Summary", box=box.ROUNDED)
@@ -556,6 +593,7 @@ def _run_full_audit_basic(
     timeout: int,
     verify_fp: bool = False,
     verify_model: str | None = None,
+    rank: bool = False,
 ) -> None:
     """Run full audit in basic mode (no ML/correlation)."""
     import time as _time
@@ -642,6 +680,16 @@ def _run_full_audit_basic(
             )
         except Exception as e:  # noqa: BLE001
             info(f"verify-fp skipped: {e}")
+
+    if rank:
+        try:
+            from src.ml.triage_ranker import rank_results
+
+            n = rank_results(all_results, contract=contract)
+            info(f"rank: ordered {n} finding(s) by P(real) — triage, recall-safe (nothing dropped)"
+                 if n >= 0 else "rank: no triage model (order unchanged)")
+        except Exception as e:  # noqa: BLE001
+            info(f"rank skipped: {e}")
 
     summary = summarize_findings(all_results)
     total = sum(summary.values())
@@ -756,6 +804,12 @@ def audit() -> None:
     help="Ollama/DeepSeek model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b, "
     "deepseek): flags more suspected FPs as needs_review; never drops.",
 )
+@click.option(
+    "--rank",
+    is_flag=True,
+    help="Recall-safe triage: order findings by P(real) so the most-likely-real surface "
+    "first (never drops; recall 1.0). Needs a trained model (scripts/train_triage_model.py).",
+)
 def audit_quick(
     contract: str,
     output: str | None,
@@ -764,6 +818,7 @@ def audit_quick(
     timeout: int,
     verify_fp: bool,
     verify_model: str | None,
+    rank: bool,
 ) -> None:
     """Quick 3-tool scan for fast feedback (slither, aderyn, solhint)."""
     print_banner()
@@ -848,6 +903,16 @@ def audit_quick(
         except Exception as e:  # noqa: BLE001
             info(f"verify-fp skipped: {e}")
 
+    if rank:
+        try:
+            from src.ml.triage_ranker import rank_results
+
+            n = rank_results(all_results, contract=contract)
+            info(f"rank: ordered {n} finding(s) by P(real) — triage, recall-safe (nothing dropped)"
+                 if n >= 0 else "rank: no triage model (order unchanged)")
+        except Exception as e:  # noqa: BLE001
+            info(f"rank skipped: {e}")
+
     summary = summarize_findings(all_results)
     total = sum(summary.values())
 
@@ -930,6 +995,12 @@ def audit_quick(
     help="Ollama/DeepSeek model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b, "
     "deepseek): flags more suspected FPs as needs_review; never drops.",
 )
+@click.option(
+    "--rank",
+    is_flag=True,
+    help="Recall-safe triage: order findings by P(real) so the most-likely-real surface "
+    "first (never drops; recall 1.0). Needs a trained model (scripts/train_triage_model.py).",
+)
 def audit_full(
     contract: str,
     output: str | None,
@@ -941,6 +1012,7 @@ def audit_full(
     correlate: bool,
     verify_fp: bool,
     verify_model: str | None,
+    rank: bool,
 ) -> None:
     """Complete 9-layer security audit with the configured layer tools.
 
@@ -971,7 +1043,7 @@ def audit_full(
         )
         _run_full_audit_with_ml(
             contract, output, fmt, layer_list, timeout, ml_orchestrator,
-            verify_fp=verify_fp, verify_model=verify_model,
+            verify_fp=verify_fp, verify_model=verify_model, rank=rank,
         )
         return
 
@@ -983,7 +1055,7 @@ def audit_full(
         )
         _run_full_audit_with_correlation(
             contract, output, fmt, layer_list, timeout, correlation_api,
-            verify_fp=verify_fp, verify_model=verify_model,
+            verify_fp=verify_fp, verify_model=verify_model, rank=rank,
         )
         return
 

@@ -819,37 +819,18 @@ def _apply_triage_rank(all_results: list[dict[str, Any]], *, contract: str, quie
     """Recall-safe triage: reorder each result's findings by P(real) (most-likely-real first).
     Never drops a finding (recall 1.0). No-ops gracefully if no trained model is present."""
     try:
-        from src.ml.triage_ranker import TriageRanker
+        from src.ml.triage_ranker import rank_results
     except Exception as e:  # noqa: BLE001
         if not quiet:
             info(f"rank skipped: {e}")
         return
-    ranker = TriageRanker()
-    if not ranker.available():
-        if not quiet:
+    total = rank_results(all_results, contract=contract)
+    if not quiet:
+        if total < 0:
             info("rank: no triage model — train with scripts/train_triage_model.py "
                  "(order unchanged)")
-        return
-    cache: dict[str, str] = {}
-
-    def code_for(f: dict[str, Any]) -> str:
-        loc = f.get("location") if isinstance(f.get("location"), dict) else {}
-        path = f.get("file") or loc.get("file") or contract
-        if path not in cache:
-            try:
-                cache[path] = open(path, errors="ignore").read()
-            except Exception:  # noqa: BLE001
-                cache[path] = ""
-        return cache[path]
-
-    total = 0
-    for result in all_results:
-        fs = result.get("findings") or []
-        if fs:
-            result["findings"] = ranker.rank(fs, code_for)
-            total += len(fs)
-    if not quiet:
-        info(f"rank: ordered {total} finding(s) by P(real) — triage, recall-safe (nothing dropped)")
+        else:
+            info(f"rank: ordered {total} finding(s) by P(real) — triage, recall-safe (nothing dropped)")
 
 
 def _display_and_save(
