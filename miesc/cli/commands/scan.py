@@ -125,6 +125,13 @@ if RICH_AVAILABLE:
     "more suspected FPs as needs_review; never drops (no recall impact). Slower; omit for "
     "the fast rule-only verifier.",
 )
+@click.option(
+    "--rank",
+    is_flag=True,
+    help="Recall-safe triage: order findings by P(real) so the most-likely-real surface "
+    "first (never drops anything; recall 1.0). Needs a trained model "
+    "(scripts/train_triage_model.py); no-ops gracefully without one.",
+)
 def scan(
     contract: str,
     output: str | None,
@@ -140,6 +147,7 @@ def scan(
     ensemble: bool,
     verify_fp: bool,
     verify_model: str | None,
+    rank: bool,
 ) -> None:
     """Quick vulnerability scan for a Solidity contract or directory.
 
@@ -238,6 +246,7 @@ def scan(
             ci=ci,
             verify_fp=verify_fp,
             verify_model=verify_model,
+            rank=rank,
         )
         return
 
@@ -408,6 +417,7 @@ def scan(
             ci=ci,
             verify_fp=verify_fp,
             verify_model=verify_model,
+            rank=rank,
         )
         return
 
@@ -701,6 +711,7 @@ def scan(
         ci=ci,
         verify_fp=verify_fp,
         verify_model=verify_model,
+        rank=rank,
     )
 
 
@@ -804,6 +815,43 @@ def _apply_verify_fp(
         )
 
 
+def _apply_triage_rank(all_results: list[dict[str, Any]], *, contract: str, quiet: bool) -> None:
+    """Recall-safe triage: reorder each result's findings by P(real) (most-likely-real first).
+    Never drops a finding (recall 1.0). No-ops gracefully if no trained model is present."""
+    try:
+        from src.ml.triage_ranker import TriageRanker
+    except Exception as e:  # noqa: BLE001
+        if not quiet:
+            info(f"rank skipped: {e}")
+        return
+    ranker = TriageRanker()
+    if not ranker.available():
+        if not quiet:
+            info("rank: no triage model — train with scripts/train_triage_model.py "
+                 "(order unchanged)")
+        return
+    cache: dict[str, str] = {}
+
+    def code_for(f: dict[str, Any]) -> str:
+        loc = f.get("location") if isinstance(f.get("location"), dict) else {}
+        path = f.get("file") or loc.get("file") or contract
+        if path not in cache:
+            try:
+                cache[path] = open(path, errors="ignore").read()
+            except Exception:  # noqa: BLE001
+                cache[path] = ""
+        return cache[path]
+
+    total = 0
+    for result in all_results:
+        fs = result.get("findings") or []
+        if fs:
+            result["findings"] = ranker.rank(fs, code_for)
+            total += len(fs)
+    if not quiet:
+        info(f"rank: ordered {total} finding(s) by P(real) — triage, recall-safe (nothing dropped)")
+
+
 def _display_and_save(
     all_results: list[dict[str, Any]],
     *,
@@ -814,10 +862,13 @@ def _display_and_save(
     ci: bool,
     verify_fp: bool = False,
     verify_model: str | None = None,
+    rank: bool = False,
 ) -> None:
     """Display the scan summary table, optionally save JSON, and handle CI exit."""
     if verify_fp:
         _apply_verify_fp(all_results, contract=contract, model=verify_model, quiet=quiet)
+    if rank:
+        _apply_triage_rank(all_results, contract=contract, quiet=quiet)
     # Detect tool failures — help users who installed miesc without slither/aderyn
     tools_succeeded = [r for r in all_results if r.get("status") != "error"]
     tools_errored = [r for r in all_results if r.get("status") == "error"]

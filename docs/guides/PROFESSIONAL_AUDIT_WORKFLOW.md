@@ -339,6 +339,23 @@ contract of `--verify-fp` is: **remove the provably-benign, flag the suspicious,
 real vulnerability.** (An earlier "+28pp via LLM-drop" figure came from controlled synthetic
 pairs and did not generalize to real contracts — which is why the LLM no longer drops.)
 
+### Triage Ranking (`--rank`)
+
+Since recall-safe *dropping* caps at ~+4pp, the larger precision win is **triage, not
+dropping**. `miesc scan <contract> --rank` orders findings by a learned `P(real)` score so the
+most-likely-real surface first — it **never drops anything** (recall 1.0), it only reorders.
+
+```bash
+miesc scan MyContract.sol --rank          # most-likely-real findings first
+```
+
+On the wild ground-truth eval the ranking model reaches AUC 0.927: reviewing top-down, an
+auditor catches 90% of real vulnerabilities after inspecting ~half the findings at roughly
+double the baseline precision. Each finding carries a `triage_score`. The model ships bundled;
+retrain on your own labels with `scripts/train_triage_model.py`. Without a model the flag
+no-ops gracefully (order unchanged). Combine with `--verify-fp` (drop provably-benign, flag
+the suspicious, then rank the rest).
+
 ### Manual Filtering
 
 ```bash
