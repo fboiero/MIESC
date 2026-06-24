@@ -310,7 +310,9 @@ contract Bank {
 
         assert changed
         assert "MIESC: checks-effects-interactions for legacy call.value" in patched
-        assert "balances[msg.sender] -= _am;\n            if(msg.sender.call.value(_am)())" in patched
+        assert (
+            "balances[msg.sender] -= _am;\n            if(msg.sender.call.value(_am)())" in patched
+        )
         assert "else\n            {\n                balances[msg.sender] += _am;" in patched
         assert patched.index("balances[msg.sender] -= _am;") < patched.index(
             "if(msg.sender.call.value(_am)())"
@@ -383,6 +385,100 @@ contract Bank {
         assert patched.index("acc.balance -= _am;") < patched.index(
             "if(msg.sender.call.value(_am)())"
         )
+
+    def test_reentrancy_legacy_require_call_value_moves_following_effects_before_call(self):
+        source = """\
+pragma solidity ^0.4.10;
+
+contract EtherStore {
+    uint256 public withdrawalLimit = 1 ether;
+    mapping(address => uint256) public lastWithdrawTime;
+    mapping(address => uint256) public balances;
+
+    function withdrawFunds (uint256 _weiToWithdraw) public {
+        require(balances[msg.sender] >= _weiToWithdraw);
+        require(_weiToWithdraw <= withdrawalLimit);
+        require(now >= lastWithdrawTime[msg.sender] + 1 weeks);
+        require(msg.sender.call.value(_weiToWithdraw)());
+        balances[msg.sender] -= _weiToWithdraw;
+        lastWithdrawTime[msg.sender] = now;
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdrawFunds",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert patched.index("balances[msg.sender] -= _weiToWithdraw;") < patched.index(
+            "require(msg.sender.call.value(_weiToWithdraw)());"
+        )
+        assert patched.index("lastWithdrawTime[msg.sender] = now;") < patched.index(
+            "require(msg.sender.call.value(_weiToWithdraw)());"
+        )
+
+    def test_reentrancy_legacy_inverted_throw_call_value_moves_zeroing_before_call(self):
+        source = """\
+pragma solidity ^0.4.0;
+
+contract EtherBank{
+    mapping (address => uint) userBalances;
+
+    function withdrawBalance() {
+        uint amountToWithdraw = userBalances[msg.sender];
+        if (!(msg.sender.call.value(amountToWithdraw)())) { throw; }
+        userBalances[msg.sender] = 0;
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdrawBalance",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert patched.index("userBalances[msg.sender] = 0;") < patched.index(
+            "if (!(msg.sender.call.value(amountToWithdraw)()))"
+        )
+
+    def test_reentrancy_legacy_bool_call_value_moves_decrement_and_requires_success(self):
+        source = """\
+pragma solidity ^0.4.2;
+
+contract SimpleDAO {
+  mapping (address => uint) public credit;
+
+  function withdraw(uint amount) {
+    if (credit[msg.sender] >= amount) {
+      bool res = msg.sender.call.value(amount)();
+      credit[msg.sender] -= amount;
+    }
+  }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdraw",
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert patched.index("credit[msg.sender] -= amount;") < patched.index(
+            "bool res = msg.sender.call.value(amount)();"
+        )
+        assert "require(res);" in patched
 
     def test_reentrancy_normalizes_legacy_call_value_tuple_assignment(self):
         source = """\

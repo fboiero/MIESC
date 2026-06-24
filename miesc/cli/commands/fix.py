@@ -387,6 +387,107 @@ def _apply_legacy_call_value_cei(
         r"\s*-=\s*(?P<dec_amount>[^;\n]+);[ \t]*(?:\n)?",
         re.MULTILINE,
     )
+    state_update_re = re.compile(
+        r"(?P<indent>[ \t]*)"
+        r"(?P<target>[A-Za-z_]\w*(?:\s*\[[^\]\n;]+\])?(?:\.[A-Za-z_]\w*)?)"
+        r"\s*(?P<op>-=|\+=|=)\s*(?P<value>[^;\n]+);[ \t]*(?:\n|$)",
+        re.MULTILINE,
+    )
+
+    def collect_state_updates(start: int) -> tuple[str, int, list[re.Match[str]]]:
+        updates: list[re.Match[str]] = []
+        cursor = start
+        chunks: list[str] = []
+        while True:
+            match_update = state_update_re.match(body, cursor)
+            if not match_update:
+                break
+            updates.append(match_update)
+            chunks.append(match_update.group(0))
+            cursor = match_update.end()
+        return "".join(chunks), cursor, updates
+
+    def has_matching_decrement(
+        updates: list[re.Match[str]], call_amount: str
+    ) -> Optional[re.Match[str]]:
+        for update in updates:
+            if update.group("op") == "-=" and _same_solidity_expr(
+                update.group("value"), call_amount
+            ):
+                return update
+        return None
+
+    require_call_re = re.compile(
+        r"(?P<indent>^[ \t]*)require\s*\(\s*"
+        r"(?P<call>[^\n{};]*?\.call\.value\s*\(\s*(?P<call_amount>[^)]+?)\s*\)"
+        r"\s*\(\s*\))\s*\)\s*;[ \t]*(?:\n|$)",
+        re.MULTILINE,
+    )
+    for match in require_call_re.finditer(body):
+        moved_updates, updates_end, updates = collect_state_updates(match.end())
+        if not updates or not has_matching_decrement(updates, match.group("call_amount")):
+            continue
+        prelude = (
+            f"{match.group('indent')}// MIESC: checks-effects-interactions "
+            "for legacy call.value\n"
+            f"{moved_updates}{match.group(0)}"
+        )
+        new_body = body[: match.start()] + prelude + body[updates_end:]
+        return source[:body_start] + new_body + source[body_end:], True
+
+    inverted_throw_re = re.compile(
+        r"(?P<indent>^[ \t]*)if\s*\(\s*!\s*\(\s*"
+        r"(?P<call>[^\n{};]*?\.call\.value\s*\(\s*(?P<call_amount>[^)]+?)\s*\)"
+        r"\s*\(\s*\))\s*\)\s*\)\s*\{\s*throw\s*;\s*\}[ \t]*(?:\n|$)",
+        re.MULTILINE,
+    )
+    for match in inverted_throw_re.finditer(body):
+        moved_updates, updates_end, updates = collect_state_updates(match.end())
+        if not updates:
+            continue
+        zero_assignment = next(
+            (
+                update
+                for update in updates
+                if update.group("op") == "=" and update.group("value").strip() == "0"
+            ),
+            None,
+        )
+        if zero_assignment is None:
+            continue
+        call_amount = match.group("call_amount").strip()
+        if re.match(r"^[A-Za-z_]\w*$", call_amount):
+            target = re.sub(r"\s+", "", zero_assignment.group("target"))
+            compact_prefix = re.sub(r"\s+", "", body[: match.start()])
+            if f"{call_amount}={target}" not in compact_prefix:
+                continue
+        prelude = (
+            f"{match.group('indent')}// MIESC: checks-effects-interactions "
+            "for legacy call.value\n"
+            f"{moved_updates}{match.group(0)}"
+        )
+        new_body = body[: match.start()] + prelude + body[updates_end:]
+        return source[:body_start] + new_body + source[body_end:], True
+
+    bool_call_re = re.compile(
+        r"(?P<indent>^[ \t]*)bool\s+(?P<var>[A-Za-z_]\w*)\s*=\s*"
+        r"(?P<call>[^\n{};]*?\.call\.value\s*\(\s*(?P<call_amount>[^)]+?)\s*\)"
+        r"\s*\(\s*\))\s*;[ \t]*(?:\n|$)",
+        re.MULTILINE,
+    )
+    for match in bool_call_re.finditer(body):
+        moved_updates, updates_end, updates = collect_state_updates(match.end())
+        decrement = has_matching_decrement(updates, match.group("call_amount"))
+        if decrement is None:
+            continue
+        check = f"{match.group('indent')}require({match.group('var')});\n"
+        prelude = (
+            f"{match.group('indent')}// MIESC: checks-effects-interactions "
+            "for legacy call.value\n"
+            f"{moved_updates}{match.group(0)}{check}"
+        )
+        new_body = body[: match.start()] + prelude + body[updates_end:]
+        return source[:body_start] + new_body + source[body_end:], True
 
     for match in call_re.finditer(body):
         opening_brace = body.find("{", match.end())
@@ -409,7 +510,9 @@ def _apply_legacy_call_value_cei(
         active_decrement = decrement or aliased_decrement
         if active_decrement is None:
             continue
-        if not _same_solidity_expr(match.group("call_amount"), active_decrement.group("dec_amount")):
+        if not _same_solidity_expr(
+            match.group("call_amount"), active_decrement.group("dec_amount")
+        ):
             continue
 
         if_indent = match.group("if_indent")
