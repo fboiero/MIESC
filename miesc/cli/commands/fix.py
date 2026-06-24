@@ -381,6 +381,12 @@ def _apply_legacy_call_value_cei(
         r"\s*-=\s*(?P<dec_amount>[^;\n]+);[ \t]*(?:\n)?",
         re.MULTILINE,
     )
+    aliased_decrement_re = re.compile(
+        r"(?:[ \t]*\n)?(?P<dec_indent>[ \t]*)"
+        r"(?P<alias>[A-Za-z_]\w*)\.(?P<field>[A-Za-z_]\w*)"
+        r"\s*-=\s*(?P<dec_amount>[^;\n]+);[ \t]*(?:\n)?",
+        re.MULTILINE,
+    )
 
     for match in call_re.finditer(body):
         opening_brace = body.find("{", match.end())
@@ -395,16 +401,28 @@ def _apply_legacy_call_value_cei(
             continue
 
         decrement = decrement_re.match(body, opening_brace + 1)
+        aliased_decrement = None
         if not decrement:
+            aliased_decrement = aliased_decrement_re.match(body, opening_brace + 1)
+            if not aliased_decrement:
+                continue
+        active_decrement = decrement or aliased_decrement
+        if active_decrement is None:
             continue
-        if not _same_solidity_expr(match.group("call_amount"), decrement.group("dec_amount")):
+        if not _same_solidity_expr(match.group("call_amount"), active_decrement.group("dec_amount")):
             continue
 
         if_indent = match.group("if_indent")
-        dec_indent = decrement.group("dec_indent")
+        dec_indent = active_decrement.group("dec_indent")
         call = match.group("call").strip()
-        balance = decrement.group("balance").strip()
-        dec_amount = decrement.group("dec_amount").strip()
+        if decrement:
+            balance = decrement.group("balance").strip()
+        else:
+            balance = (
+                f"{active_decrement.group('alias').strip()}."
+                f"{active_decrement.group('field').strip()}"
+            )
+        dec_amount = active_decrement.group("dec_amount").strip()
         prelude = (
             f"{if_indent}// MIESC: checks-effects-interactions for legacy call.value\n"
             f"{if_indent}{balance} -= {dec_amount};\n"
@@ -421,7 +439,7 @@ def _apply_legacy_call_value_cei(
         new_body = (
             body[: match.start()]
             + prelude
-            + body[decrement.end() : block_close]
+            + body[active_decrement.end() : block_close]
             + body[block_close : block_close + 1]
             + rollback
             + body[block_close + 1 :]

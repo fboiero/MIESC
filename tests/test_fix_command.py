@@ -343,6 +343,47 @@ contract Bank {
         assert "MIESC: checks-effects-interactions" not in patched
         assert "balances[msg.sender]-=fee;" in patched
 
+    def test_reentrancy_legacy_call_value_moves_storage_alias_effect_before_call(self):
+        source = """\
+pragma solidity ^0.4.25;
+
+contract Bank {
+    struct Account {
+        uint256 balance;
+    }
+    mapping(address => Account) public Acc;
+
+    function Collect(uint256 _am) public {
+        var acc = Acc[msg.sender];
+        if (acc.balance >= _am) {
+            if(msg.sender.call.value(_am)())
+            {
+                acc.balance -= _am;
+                emit Collected(msg.sender, _am);
+            }
+        }
+    }
+
+    event Collected(address who, uint256 amount);
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "Collect",
+            "line": 9,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert "acc.balance -= _am;\n            if(msg.sender.call.value(_am)())" in patched
+        assert "else\n            {\n                acc.balance += _am;" in patched
+        assert patched.index("acc.balance -= _am;") < patched.index(
+            "if(msg.sender.call.value(_am)())"
+        )
+
     def test_reentrancy_normalizes_legacy_call_value_tuple_assignment(self):
         source = """\
 pragma solidity ^0.4.24;
