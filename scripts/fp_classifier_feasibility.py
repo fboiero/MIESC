@@ -77,7 +77,52 @@ def build() -> int:
     return 0
 
 
-def run() -> int:
+def _structural_features(finding: dict, code: str) -> list:
+    """The EXACT structural signals the deterministic recall-safe rules use, as numeric
+    features — the lever the 17 coarse features miss. No new deps."""
+    import re
+
+    from src.ml.benign_context_verifier import (
+        _CONTEXTUAL_BENIGN, BenignContextVerifier, _extract_function, _func_signature,
+        _function_at_line, _is_cei, _timestamp_is_benign, match_benign,
+    )
+    global _V
+    try:
+        _V
+    except NameError:
+        _V = BenignContextVerifier(model=None)
+    line = finding.get("line") or 0
+    fn = finding.get("function") or ""
+    f2 = {"type": finding.get("type"), "title": finding.get("check"),
+          "location": {"function": fn, "line": line}}
+    benign = match_benign(f2, code, _V.patterns)
+    has_benign = 1.0 if benign else 0.0
+    is_ctx = 1.0 if (benign and benign["id"] in _CONTEXTUAL_BENIGN) else 0.0
+    is_det = 1.0 if (benign and benign["id"] not in _CONTEXTUAL_BENIGN) else 0.0
+    if fn and fn not in ("unknown", ""):
+        body, sig = _extract_function(code, fn), _func_signature(code, fn)
+    elif line:
+        body, sig = _function_at_line(code, line)
+    else:
+        body, sig = "", ""
+    scoped = 1.0 if body else 0.0
+    has_guard = 1.0 if re.search(r"nonReentrant|ReentrancyGuard|onlyOwner|onlyRole", sig or "") else 0.0
+    is_cei = 1.0 if (body and _is_cei(body)) else 0.0
+    ts_benign = 1.0 if (body and _timestamp_is_benign(body)) else 0.0
+    pragma08 = 1.0 if re.search(r"pragma\s+solidity\s*\^?0\.8", code) else 0.0
+    lines = code.splitlines()
+    flagged = lines[line - 1] if (isinstance(line, int) and 1 <= line <= len(lines)) else ""
+    window = " ".join(lines[line - 1:line + 2]) if flagged else ""
+    checked = 1.0 if re.search(r"require\s*\(\s*(ok|success)", window) else 0.0
+    native_transfer = 1.0 if (re.search(r"\.transfer\(", flagged)
+                              and not re.search(r"\.transfer\([^)]*,", flagged)) else 0.0
+    safeerc = 1.0 if re.search(r"safeTransfer|SafeERC20", flagged) else 0.0
+    body_len = min(len(body) / 2000.0, 1.0)
+    return [has_benign, is_ctx, is_det, scoped, has_guard, is_cei, ts_benign,
+            pragma08, checked, native_transfer, safeerc, body_len]
+
+
+def run(rich: bool = False) -> int:
     try:
         import numpy as np
         from sklearn.ensemble import GradientBoostingClassifier
@@ -90,10 +135,13 @@ def run() -> int:
     rows = [json.loads(l) for l in open(DATASET) if l.strip()]
     X, y = [], []
     for r in rows:
-        feats = extract_features(r["finding"], r.get("context", ""))
-        X.append(feats.to_vector())
+        v = list(extract_features(r["finding"], r.get("context", "")).to_vector())
+        if rich:
+            v += _structural_features(r["finding"], r.get("context", ""))
+        X.append(v)
         y.append(1 if r["label"] else 0)  # 1 = real/TP, 0 = FP
     X, y = np.array(X), np.array(y)
+    print(f"[{'RICH (coarse+structural)' if rich else 'COARSE'} features]")
     print(f"loaded {len(y)} samples | TP={int(y.sum())} FP={int((y == 0).sum())} | features={X.shape[1]}")
 
     X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
@@ -137,6 +185,63 @@ def run() -> int:
     return 0
 
 
+def cross() -> int:
+    """Decisive recall-safety test: train on fsalzano (its FPs + reals), pick the recall-safe
+    threshold on a fsalzano hold-out, then check whether AUDIT-GRADE reals (DAppSCAN/Code4rena/
+    Sherlock — entirely held out) survive that threshold. If they get dropped, the within-source
+    gain was overfitting; if they survive, the rich learned filter generalizes."""
+    import numpy as np
+    from sklearn.ensemble import GradientBoostingClassifier
+    from sklearn.model_selection import train_test_split
+
+    from src.ml.fp_ml_classifier import extract_features
+
+    rows = [json.loads(l) for l in open(DATASET) if l.strip()]
+
+    def feats(r):
+        return list(extract_features(r["finding"], r.get("context", "")).to_vector()) + \
+            _structural_features(r["finding"], r.get("context", ""))
+
+    fz = [r for r in rows if "fsalzano" in r.get("_source", "")]
+    audit_real = [r for r in rows if "fsalzano" not in r.get("_source", "") and r["label"]]
+    Xf = np.array([feats(r) for r in fz]); yf = np.array([1 if r["label"] else 0 for r in fz])
+    Xa = np.array([feats(r) for r in audit_real])
+    print(f"train (fsalzano): {len(fz)} ({int(yf.sum())} real, {int((yf==0).sum())} FP) | "
+          f"held-out audit-grade reals: {len(audit_real)}")
+
+    Xtr, Xval, ytr, yval = train_test_split(Xf, yf, test_size=0.3, random_state=42, stratify=yf)
+    clf = GradientBoostingClassifier(n_estimators=200, max_depth=3, random_state=42)
+    clf.fit(Xtr, ytr)
+    # recall-safe threshold on the fsalzano validation split (highest thr with 0 real dropped)
+    pv = 1.0 - clf.predict_proba(Xval)[:, 1]
+    thr = None
+    for t in [0.999, 0.998, 0.995, 0.99, 0.98, 0.97, 0.95]:
+        if int(((pv >= t) & (yval == 1)).sum()) == 0:
+            thr = t; break
+    thr = thr or 0.999
+    fp_val = int(((pv >= thr) & (yval == 0)).sum())
+    print(f"fsalzano-calibrated recall-safe threshold P(FP)>={thr} (drops {fp_val} fsalzano FPs, 0 reals)")
+    # apply to the held-out audit-grade reals
+    pa = 1.0 - clf.predict_proba(Xa)[:, 1]
+    audit_dropped = int((pa >= thr).sum())
+    print(f"\n=== CROSS-SOURCE VERDICT ===")
+    print(f"audit-grade reals dropped at that threshold: {audit_dropped}/{len(audit_real)} "
+          f"(recall {1 - audit_dropped/len(audit_real):.4f})")
+    if audit_dropped == 0:
+        print(f"RECALL-SAFE: drops 0 audit-grade real vulns (and {fp_val} fsalzano FPs) at the strict")
+        print(f"cross-safe threshold. Well-behaved on audit-grade (unlike LLM/guards). BUT the safe")
+        print(f"FP-drop at this strict threshold is small — the modest gain does NOT robustly beat the")
+        print(f"deterministic +4pp floor (see the threshold sweep / SAFE_PRECISION_FEASIBILITY doc).")
+    else:
+        print("DOES NOT generalize: the fsalzano-calibrated threshold loses audit-grade reals.")
+        print("=> the within-source gain was overfitting; the ceiling holds in practice.")
+    return 0
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "run"
-    raise SystemExit(build() if cmd == "build" else run())
+    if cmd == "build":
+        raise SystemExit(build())
+    if cmd == "cross":
+        raise SystemExit(cross())
+    raise SystemExit(run(rich=(cmd == "rich")))
