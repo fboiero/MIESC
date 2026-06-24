@@ -185,6 +185,52 @@ def run(rich: bool = False) -> int:
     return 0
 
 
+def rank() -> int:
+    """Recall-safe TRIAGE: rank findings by P(real) instead of dropping. Measures how much
+    review effort the ranking saves — the fraction of findings an auditor must inspect
+    (top-down) to catch ALL real vulns, vs random order. Nothing is dropped (recall 1.0)."""
+    import numpy as np
+    from sklearn.ensemble import GradientBoostingClassifier
+    from sklearn.metrics import roc_auc_score
+    from sklearn.model_selection import train_test_split
+
+    from src.ml.fp_ml_classifier import extract_features
+
+    rows = [json.loads(l) for l in open(DATASET) if l.strip()]
+
+    def feats(r):
+        return list(extract_features(r["finding"], r.get("context", "")).to_vector()) + \
+            _structural_features(r["finding"], r.get("context", ""))
+
+    X = np.array([feats(r) for r in rows]); y = np.array([1 if r["label"] else 0 for r in rows])
+    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+    clf = GradientBoostingClassifier(n_estimators=200, max_depth=3, random_state=42).fit(Xtr, ytr)
+    p_real = clf.predict_proba(Xte)[:, 1]
+
+    order = np.argsort(-p_real)               # rank by P(real), descending
+    y_ranked = yte[order]
+    n = len(yte); n_real = int(yte.sum())
+    auc = roc_auc_score(yte, p_real)
+    cum_real = np.cumsum(y_ranked)
+    print(f"held-out: {n} findings ({n_real} real, {n - n_real} FP) | ranking AUC = {auc:.4f}\n")
+    print(f"{'catch % of reals':>16} | {'review depth':>12} | {'effective precision':>19} | {'vs random':>10}")
+    print("-" * 70)
+    for frac in (0.80, 0.90, 0.95, 0.99, 1.00):
+        need = int(np.ceil(frac * n_real))
+        depth = int(np.searchsorted(cum_real, need) + 1)   # findings to review to catch `need` reals
+        eff_prec = need / depth
+        rand_depth = int(np.ceil(frac * n))                 # random order: review frac of all
+        saved = 1 - depth / rand_depth
+        print(f"{int(frac*100):>15}% | {depth:>5}/{n} | {eff_prec:>19.4f} | {saved*100:>8.1f}%")
+    # the headline: how many FPs sit below the last real (pure-noise tail you can deprioritize)
+    last_real_rank = int(np.max(np.where(y_ranked == 1)) + 1)
+    tail_fp = n - last_real_rank
+    print(f"\nlast real vuln at rank {last_real_rank}/{n}; {tail_fp} FPs ranked below it "
+          f"({100*tail_fp/(n-n_real):.1f}% of FPs are pure-noise tail).")
+    print("Recall-safe by construction: nothing dropped (recall 1.0); this is pure reordering.")
+    return 0
+
+
 def cross() -> int:
     """Decisive recall-safety test: train on fsalzano (its FPs + reals), pick the recall-safe
     threshold on a fsalzano hold-out, then check whether AUDIT-GRADE reals (DAppSCAN/Code4rena/
@@ -244,4 +290,6 @@ if __name__ == "__main__":
         raise SystemExit(build())
     if cmd == "cross":
         raise SystemExit(cross())
+    if cmd == "rank":
+        raise SystemExit(rank())
     raise SystemExit(run(rich=(cmd == "rich")))
