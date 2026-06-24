@@ -1,0 +1,48 @@
+{
+  "artifact": "fix_eval_weak_prng_probe_20260624_codex",
+  "date": "2026-06-24",
+  "lane": "codex",
+  "scope": "Paper 2 remediation residual analysis",
+  "detector": "slither",
+  "check": "weak-prng",
+  "canonical_baseline_overwritten": false,
+  "source_evidence": {
+    "details_artifact": "benchmarks/results/fix_eval_full_external_slither_details_20260621_codex.json",
+    "remaining_full_external_count": 13,
+    "example_contracts": [
+      "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/blackjack.sol",
+      "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/lucky_doubler.sol",
+      "benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/random_number_generator.sol",
+      "benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/roulette.sol"
+    ]
+  },
+  "observed_patterns": [
+    "Randomness derived from block.number, blockhash, now, or block.timestamp.",
+    "Lottery and payout ordering logic where the random value affects value transfer or winner selection.",
+    "Legacy Solidity contracts where changing randomness APIs can easily change contract economics or user-visible behavior."
+  ],
+  "rejected_generic_transforms": [
+    {
+      "kind": "replace_block_entropy_with_msg_sender_or_hash_only",
+      "reason": "This may silence a syntactic detector while remaining predictable or miner/user-influenceable, which is not a scientific remediation improvement."
+    },
+    {
+      "kind": "inline_commit_reveal_stub",
+      "reason": "A correct commit-reveal protocol requires new state, multi-transaction flow, timeout/refund semantics, and tests. It cannot be safely inferred from a single vulnerable expression."
+    },
+    {
+      "kind": "oracle_placeholder",
+      "reason": "A placeholder external randomness oracle changes trust assumptions and dependencies without a deployable integration."
+    }
+  ],
+  "decision": {
+    "apply_generic_transform": false,
+    "rationale": "weak-prng requires semantic redesign rather than text-level patching. A generic automatic replacement would risk producing code that compiles and may reduce detector output without actually improving security.",
+    "recommended_handling": "Keep fix output as an explanatory remediation recommendation unless a contract-specific strategy is supplied: commit-reveal for games, VRF/oracle-backed randomness for production lottery flows, or deterministic removal of chance-based payout logic."
+  },
+  "next_candidates": [
+    "remaining reentrancy-eth residuals",
+    "unchecked-transfer",
+    "uninitialized-state"
+  ]
+}
