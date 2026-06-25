@@ -774,6 +774,31 @@ contract Treasury {
         assert "address public owner = msg.sender;" in patched
         assert "function pay(address payable recipient) onlyOwner public" in patched
 
+    def test_access_control_initializes_existing_owner_for_only_owner(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Map {
+    address public owner;
+    uint256[] map;
+
+    function set(uint256 key, uint256 value) public {
+        map[key] = value;
+    }
+}
+"""
+        finding = {
+            "type": "access_control",
+            "function": "set",
+            "fix_code": "add onlyOwner",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "address public owner = msg.sender;" in patched
+        assert "function set(uint256 key, uint256 value) onlyOwner public" in patched
+
     def test_arithmetic_inserts_safemath_on_legacy(self):
         finding = {
             "type": "arithmetic",
@@ -951,6 +976,132 @@ contract Vault {
         assert "MIESC FIX: uninitialized_storage" in patched
         assert "Initialize storage references explicitly." in patched
         assert "function newRecord" not in patched
+
+    def test_uninitialized_storage_struct_gets_memory_location(self):
+        source = """\
+pragma solidity ^0.4.15;
+
+contract NameRegistrar {
+    struct NameRecord {
+        bytes32 name;
+        address mappedAddress;
+    }
+
+    mapping(address => NameRecord) public registeredNameRecord;
+
+    function register(bytes32 _name, address _mappedAddress) public {
+        NameRecord newRecord;
+        newRecord.name = _name;
+        newRecord.mappedAddress = _mappedAddress;
+        registeredNameRecord[msg.sender] = newRecord;
+    }
+}
+"""
+        finding = {
+            "type": "uninitialized-storage",
+            "function": "register",
+            "line": 12,
+            "fix_code": "Initialize storage references explicitly.",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "NameRecord memory newRecord;" in patched
+        assert "MIESC FIX: uninitialized_storage" not in patched
+
+    def test_uninitialized_storage_infers_function_when_location_names_variable(self):
+        source = """\
+pragma solidity ^0.4.15;
+
+contract NameRegistrar {
+    struct NameRecord {
+        bytes32 name;
+        address mappedAddress;
+    }
+
+    mapping(address => NameRecord) public registeredNameRecord;
+
+    function register(bytes32 _name, address _mappedAddress) public {
+        NameRecord newRecord;
+        newRecord.name = _name;
+        newRecord.mappedAddress = _mappedAddress;
+        registeredNameRecord[msg.sender] = newRecord;
+    }
+}
+"""
+        finding = {
+            "type": "uninitialized-storage",
+            "location": {"line": 12, "function": "newRecord"},
+            "fix_code": "Initialize storage references explicitly.",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "NameRecord memory newRecord;" in patched
+        assert "MIESC FIX: uninitialized_storage" not in patched
+
+    def test_uninitialized_storage_finds_variable_when_line_hint_shifted(self):
+        source = """\
+pragma solidity ^0.4.19;
+
+contract OpenAddressLottery {
+    struct SeedComponents {
+        uint component1;
+        uint component2;
+    }
+
+    function forceReseed() public {
+        SeedComponents s; // Uninitialized storage pointer
+        s.component1 = uint(msg.sender);
+        s.component2 = block.difficulty;
+    }
+}
+"""
+        finding = {
+            "type": "uninitialized-storage",
+            "location": {"line": 3, "function": "s"},
+            "fix_code": "Initialize storage references explicitly.",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "SeedComponents memory s;" in patched
+
+    def test_other_finding_with_uninitialized_storage_hint_gets_memory_location(self):
+        source = """\
+pragma solidity ^0.4.19;
+
+contract CryptoRoulette {
+    struct Game {
+        address player;
+        uint256 number;
+    }
+
+    Game[] public gamesPlayed;
+
+    function play(uint256 number) payable public {
+        Game game;
+        game.player = msg.sender;
+        game.number = number;
+        gamesPlayed.push(game);
+    }
+}
+"""
+        finding = {
+            "type": "other",
+            "function": "play",
+            "line": 12,
+            "fix_code": "Fix uninitialized storage pointer by using a memory struct.",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "Game memory game;" in patched
+        assert "MIESC FIX: other" not in patched
 
     def test_no_change_when_function_not_found(self):
         finding = {

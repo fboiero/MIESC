@@ -206,6 +206,29 @@ def _ensure_modifier_defined(
             r"(?m)^\s*address\s+(?:(?:public|private|internal|external)\s+)?owner\b",
             body,
         )
+        if has_owner and not re.search(r"(?<![.\w])owner\s*=", body):
+            owner_decl_re = re.compile(
+                r"(?m)^(?P<indent>\s*)address\s+"
+                r"(?P<visibility>(?:(?:public|private|internal|external)\s+)?)"
+                r"owner\s*;"
+            )
+
+            def init_owner(match: re.Match[str]) -> str:
+                return (
+                    f"{match.group('indent')}address "
+                    f"{match.group('visibility')}owner = msg.sender;"
+                )
+
+            source = (
+                source[: m_contract.end()]
+                + owner_decl_re.sub(init_owner, source[m_contract.end() : contract_end], count=1)
+                + source[contract_end:]
+            )
+            selected = _select_contract_for_function(source, target_function, line_hint)
+            if selected is None:
+                return source
+            m_contract, contract_end = selected
+            body = _mask_comments(source[m_contract.end() : contract_end])
         inline = "\n    // MIESC: Inline onlyOwner modifier\n"
         if not has_owner:
             inline += "    address public owner = msg.sender;\n"
@@ -937,6 +960,102 @@ def _low_level_call_returns_bool(source: str, call_expr: str) -> bool:
     return ".send" in call_expr or bool(_LEGACY_LOW_LEVEL_CALL_HINT.search(source))
 
 
+def _add_memory_to_uninitialized_struct(
+    source: str,
+    function_name: str,
+    line_hint: Optional[int] = None,
+) -> tuple[str, bool]:
+    """Convert one legacy local struct variable from implicit storage to memory."""
+    struct_names = set(re.findall(r"\bstruct\s+([A-Z]\w*)\s*\{", _mask_comments(source)))
+    if not struct_names:
+        return source, False
+
+    def span_from_variable_name() -> Optional[tuple[int, int]]:
+        if not function_name:
+            return None
+        masked = _mask_comments(source)
+        variable_re = re.compile(
+            r"(?m)^[ \t]*(?P<type>"
+            + "|".join(re.escape(name) for name in sorted(struct_names))
+            + r")\s+"
+            + re.escape(function_name)
+            + r"\s*;[^\n]*$"
+        )
+        declarations = list(variable_re.finditer(masked))
+        if not declarations:
+            return None
+        if line_hint and len(declarations) > 1:
+            declaration = min(
+                declarations,
+                key=lambda m: abs(source[: m.start()].count("\n") + 1 - line_hint),
+            )
+        else:
+            declaration = declarations[0]
+        declaration_line = source[: declaration.start()].count("\n") + 1
+        inferred_function = _infer_function_at_line(source, declaration_line)
+        if not inferred_function:
+            return None
+        return _find_function_body_span(source, inferred_function, declaration_line)
+
+    span = _find_function_body_span(source, function_name, line_hint)
+    if span is None and line_hint:
+        inferred_function = _infer_function_at_line(source, line_hint)
+        if inferred_function and inferred_function != function_name:
+            span = _find_function_body_span(source, inferred_function, line_hint)
+    if span is None:
+        span = span_from_variable_name()
+    if span is None:
+        return source, False
+
+    body_start, body_end = span
+    body = source[body_start:body_end]
+    masked_body = _mask_comments(body)
+    declaration_re = re.compile(
+        r"(?m)^(?P<indent>[ \t]*)(?P<type>[A-Z]\w*)\s+"
+        r"(?P<name>[A-Za-z_]\w*)\s*;(?P<suffix>[^\n]*)$"
+    )
+
+    candidates: list[re.Match[str]] = []
+    for match in declaration_re.finditer(masked_body):
+        if match.group("type") not in struct_names:
+            continue
+        if re.search(r"\b(memory|storage|calldata)\b", match.group(0)):
+            continue
+        candidates.append(match)
+
+    if not candidates:
+        variable_span = span_from_variable_name()
+        if variable_span is None or variable_span == span:
+            return source, False
+        body_start, body_end = variable_span
+        body = source[body_start:body_end]
+        masked_body = _mask_comments(body)
+        candidates = [
+            match
+            for match in declaration_re.finditer(masked_body)
+            if match.group("type") in struct_names
+            and not re.search(r"\b(memory|storage|calldata)\b", match.group(0))
+        ]
+        if not candidates:
+            return source, False
+
+    if line_hint and len(candidates) > 1:
+        chosen = min(
+            candidates,
+            key=lambda m: abs(source[: body_start + m.start()].count("\n") + 1 - line_hint),
+        )
+    else:
+        chosen = candidates[0]
+
+    replacement = (
+        f"{chosen.group('indent')}{chosen.group('type')} memory "
+        f"{chosen.group('name')};{chosen.group('suffix')}"
+    )
+    new_body = body[: chosen.start()] + replacement + body[chosen.end() :]
+    patched = source[:body_start] + new_body + source[body_end:]
+    return patched, patched != source
+
+
 def _infer_function_at_line(source: str, line: int) -> str:
     """Find the nearest function declaration at or above `line`."""
     lines = _mask_comments(source).splitlines()
@@ -1014,6 +1133,24 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
         if fn_name:
             return _add_require_for_call(source, fn_name, line_hint)
         return source, False
+
+    if "uninitialized_storage" in ftype:
+        if fn_name:
+            patched, changed = _add_memory_to_uninitialized_struct(source, fn_name, line_hint)
+            if changed:
+                return patched, True
+
+    if fn_name and any(
+        hint in fix_code.lower() for hint in ("uninitialized storage", "storage pointer", "memory")
+    ):
+        patched, changed = _add_memory_to_uninitialized_struct(source, fn_name, line_hint)
+        if changed:
+            return patched, True
+
+    if ftype == "other" and fn_name:
+        patched, changed = _add_memory_to_uninitialized_struct(source, fn_name, line_hint)
+        if changed:
+            return patched, True
 
     if "arithmetic" in ftype or "integer_overflow" in ftype or "overflow" in ftype:
         # Only insert SafeMath for pre-0.8 contracts
