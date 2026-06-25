@@ -529,7 +529,37 @@ def _apply_legacy_call_value_cei(
         if not decrement:
             aliased_decrement = aliased_decrement_re.match(body, opening_brace + 1)
             if not aliased_decrement:
-                continue
+                following_decrement = decrement_re.match(body, block_close + 1)
+                if not following_decrement:
+                    continue
+                if not _same_solidity_expr(
+                    match.group("call_amount"), following_decrement.group("dec_amount")
+                ):
+                    continue
+                if_indent = match.group("if_indent")
+                dec_indent = following_decrement.group("dec_indent")
+                balance = following_decrement.group("balance").strip()
+                dec_amount = following_decrement.group("dec_amount").strip()
+                prelude = (
+                    f"{if_indent}// MIESC: checks-effects-interactions "
+                    "for legacy call.value\n"
+                    f"{if_indent}{balance} -= {dec_amount};\n"
+                )
+                rollback = (
+                    "\n"
+                    f"{if_indent}else\n"
+                    f"{if_indent}{{\n"
+                    f"{dec_indent}{balance} += {dec_amount};\n"
+                    f"{if_indent}}}"
+                )
+                new_body = (
+                    body[: match.start()]
+                    + prelude
+                    + body[match.start() : block_close + 1]
+                    + rollback
+                    + body[following_decrement.end() :]
+                )
+                return source[:body_start] + new_body + source[body_end:], True
         active_decrement = decrement or aliased_decrement
         if active_decrement is None:
             continue

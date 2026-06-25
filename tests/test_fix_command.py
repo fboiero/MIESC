@@ -345,6 +345,41 @@ contract Bank {
         assert "MIESC: checks-effects-interactions" not in patched
         assert "balances[msg.sender]-=fee;" in patched
 
+    def test_reentrancy_legacy_call_value_moves_following_balance_effect_before_call(self):
+        source = """\
+pragma solidity ^0.4.18;
+
+contract Reentrance {
+    mapping(address => uint) public balances;
+
+    function withdraw(uint _amount) public {
+        if(balances[msg.sender] >= _amount) {
+            if(msg.sender.call.value(_amount)()) {
+                _amount;
+            }
+            balances[msg.sender] -= _amount;
+        }
+    }
+}
+"""
+        finding = {
+            "type": "reentrancy",
+            "function": "withdraw",
+            "line": 6,
+            "fix_code": "add nonReentrant",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: checks-effects-interactions for legacy call.value" in patched
+        assert patched.index("balances[msg.sender] -= _amount;") < patched.index(
+            "if(msg.sender.call.value(_amount)())"
+        )
+        assert "else\n            {" in patched
+        assert "balances[msg.sender] += _amount;" in patched
+        assert patched.count("balances[msg.sender] -= _amount;") == 1
+
     def test_reentrancy_legacy_call_value_moves_storage_alias_effect_before_call(self):
         source = """\
 pragma solidity ^0.4.25;
