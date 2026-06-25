@@ -397,7 +397,8 @@ omit = [
     # audit_consensus - covered by test_v500_adapters.py
     "src/adapters/exploit_synthesizer_adapter.py",
     "src/adapters/vuln_verifier_adapter.py",
-    "src/adapters/remediation_validator_adapter.py",
+    # remediation_validator_adapter is pure-python (no external CLI tool / no z3) and
+    # fully unit-tested by test_remediation_validator_adapter.py -> kept in coverage.
     # Core modules with external dependencies
     "src/core/ml_orchestrator.py",
     "src/core/optimized_orchestrator.py",
