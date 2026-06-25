@@ -394,7 +394,8 @@ omit = [
     # unit-tested by test_upgradability_checker_adapter.py -> kept in coverage.
     # bridge_monitor_adapter is pure-python (no external CLI tool) and fully unit-tested
     # by test_bridge_monitor_adapter.py -> kept in coverage.
-    "src/adapters/l2_validator_adapter.py",
+    # l2_validator_adapter is pure-python (no external CLI tool) and fully unit-tested
+    # by test_l2_validator_adapter.py -> kept in coverage.
     "src/adapters/circom_analyzer_adapter.py",
     # audit_consensus - covered by test_v500_adapters.py
     "src/adapters/exploit_synthesizer_adapter.py",
