@@ -621,6 +621,11 @@ def report(
                     f["source_contract"] = contract_file
                 findings.extend(tool_findings)
 
+    # Recall-safe triage: if findings carry a P(real) triage_score (from scan/audit --rank),
+    # surface the most-likely-real first. Pure reordering — nothing is dropped.
+    if findings and any("triage_score" in f for f in findings):
+        findings.sort(key=lambda f: f.get("triage_score", -1.0), reverse=True)
+
     # Normalize summary keys (can be uppercase or lowercase)
     if summary:
         summary = {k.lower(): v for k, v in summary.items()}

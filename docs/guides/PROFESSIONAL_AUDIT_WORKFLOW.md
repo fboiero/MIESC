@@ -350,6 +350,9 @@ miesc scan MyContract.sol --rank          # most-likely-real findings first
 miesc audit quick MyContract.sol --rank   # also on the audit command (quick and full)
 ```
 
+The `triage_score` carries through: `miesc report` orders findings by it when present, so a
+report generated from a `--rank` scan lists the most-likely-real findings first.
+
 On the wild ground-truth eval the ranking model reaches AUC 0.927: reviewing top-down, an
 auditor catches 90% of real vulnerabilities after inspecting ~half the findings at roughly
 double the baseline precision. Each finding carries a `triage_score`. The model ships bundled;
