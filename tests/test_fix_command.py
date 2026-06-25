@@ -774,6 +774,53 @@ contract Treasury {
         assert "address public owner = msg.sender;" in patched
         assert "function pay(address payable recipient) onlyOwner public" in patched
 
+    def test_controlled_delegatecall_adds_only_owner_to_named_function(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Proxy {
+    function forward(address callee, bytes _data) public {
+        require(callee.delegatecall(_data));
+    }
+}
+"""
+        finding = {
+            "type": "controlled-delegatecall",
+            "function": "forward",
+            "line": 4,
+            "fix_code": "guard delegatecall",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert "MIESC: Inline onlyOwner modifier" in patched
+        assert "address public owner = msg.sender;" in patched
+        assert "function forward(address callee, bytes _data) onlyOwner public" in patched
+
+    def test_controlled_delegatecall_without_function_is_left_unchanged(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Proxy {
+    address public libraryAddress;
+
+    function() public {
+        require(libraryAddress.delegatecall(msg.data));
+    }
+}
+"""
+        finding = {
+            "type": "controlled-delegatecall",
+            "location": {"function": "unknown"},
+            "fix_code": "guard delegatecall",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert not changed
+        assert patched == source
+
     def test_access_control_initializes_existing_owner_for_only_owner(self):
         source = """\
 pragma solidity ^0.4.24;

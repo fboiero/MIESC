@@ -1121,7 +1121,12 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             return source, changed
         return source, False
 
-    if "access_control" in ftype or "selfdestruct" in ftype or "arbitrary_send_eth" in ftype:
+    if (
+        "access_control" in ftype
+        or "selfdestruct" in ftype
+        or "arbitrary_send_eth" in ftype
+        or "controlled_delegatecall" in ftype
+    ):
         if fn_name:
             source, changed = _add_modifier_to_function(source, fn_name, "onlyOwner", line_hint)
             if changed:
@@ -1428,6 +1433,8 @@ def fix(
             k in ftype_lower
             for k in ("access_control", "suicidal", "selfdestruct", "arbitrary_send_eth")
         ):
+            fix_cat = "access_control"
+        elif "controlled_delegatecall" in ftype_lower:
             fix_cat = "access_control"
         elif "unchecked" in ftype_lower:
             fix_cat = "unchecked_call"
