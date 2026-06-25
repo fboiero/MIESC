@@ -396,7 +396,8 @@ omit = [
     # by test_bridge_monitor_adapter.py -> kept in coverage.
     # l2_validator_adapter is pure-python (no external CLI tool) and fully unit-tested
     # by test_l2_validator_adapter.py -> kept in coverage.
-    "src/adapters/circom_analyzer_adapter.py",
+    # circom_analyzer_adapter: circomspect CLI branch is mocked, the rest is pure regex
+    # analysis, fully unit-tested by test_circom_analyzer_adapter.py -> kept in coverage.
     # audit_consensus - covered by test_v500_adapters.py
     "src/adapters/exploit_synthesizer_adapter.py",
     "src/adapters/vuln_verifier_adapter.py",
