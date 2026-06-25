@@ -256,6 +256,42 @@ class TestDeterministicAdditions:
 
 
 # --------------------------------------------------------------------------- #
+# filter() — the public kept/dropped/flagged splitter
+# --------------------------------------------------------------------------- #
+class TestFilterSplit:
+    CODE = ("pragma solidity ^0.8.0; contract C { bool l;"
+            " modifier nonReentrant(){require(!l);l=true;_;l=false;}"
+            ' function g() external nonReentrant { msg.sender.call{value:1}(""); }'
+            ' function o() external { msg.sender.call{value:1}(""); }'
+            " function add(uint a) public { uint b = a + 1; } }")
+
+    def test_splits_dropped_flagged_confirmed(self):
+        findings = [
+            {"type": "arithmetic", "location": {"function": "add"}},     # 0.8 -> dropped
+            {"type": "reentrancy", "location": {"function": "g"}},       # guard -> flagged
+            {"type": "reentrancy", "location": {"function": "o"}},       # unguarded -> confirmed
+        ]
+        out = V.filter(findings, self.CODE)
+        assert len(out["dropped"]) == 1
+        assert len(out["flagged"]) == 1
+        assert len(out["confirmed"]) == 1
+        assert len(out["kept"]) == 2  # confirmed + flagged (recall-safe report)
+        assert all("verifier_verdict" in f for f in out["kept"] + out["dropped"])
+
+
+# --------------------------------------------------------------------------- #
+# _llm_false_positive — parses the LLM JSON (mocked _query, no network)
+# --------------------------------------------------------------------------- #
+class TestLLMQueryParsing:
+    def test_parses_true_and_handles_no_json(self, monkeypatch):
+        v = BenignContextVerifier(model="dummy")
+        monkeypatch.setattr(v, "_query", lambda prompt: '{"false_positive": true}')
+        assert v._llm_false_positive({"type": "reentrancy", "function": "x"}, "contract C{}") is True
+        monkeypatch.setattr(v, "_query", lambda prompt: "no json here")
+        assert v._llm_false_positive({"type": "reentrancy", "function": "x"}, "contract C{}") is False
+
+
+# --------------------------------------------------------------------------- #
 # Unchecked-call benign patterns must scope to the FLAGGED line, not the function.
 # Locks the wild-at-scale fix where a .transfer() elsewhere over-dropped real .call()/.send().
 # --------------------------------------------------------------------------- #
