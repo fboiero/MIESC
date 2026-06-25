@@ -821,6 +821,20 @@ def _add_require_for_call(
         patched = source[:body_start] + new_body + source[body_end:]
         return patched, patched != source
 
+    token_transfer_re = re.compile(
+        r"(?P<indent>[ \t]*)(?P<call>"
+        r"(?!require\b|assert\b|if\b|return\b|bool\b)"
+        r"[^;\n]*\.(?:transfer|transferFrom|approve)\s*\([^;\n]*,[^;\n]*\))\s*;",
+        re.MULTILINE,
+    )
+    for call_m in token_transfer_re.finditer(body):
+        indent = call_m.group("indent")
+        call_bare = call_m.group("call").strip()
+        replacement = f'{indent}require({call_bare}, "Token transfer failed");'
+        new_body = body[: call_m.start()] + replacement + body[call_m.end() :]
+        patched = source[:body_start] + new_body + source[body_end:]
+        return patched, patched != source
+
     return source, False
 
 
@@ -996,7 +1010,7 @@ def apply_fix(source: str, finding: dict) -> tuple[str, bool]:
             return source, changed
         return source, False
 
-    if "unchecked_call" in ftype or "unchecked_low_level" in ftype:
+    if "unchecked_call" in ftype or "unchecked_low_level" in ftype or "unchecked_transfer" in ftype:
         if fn_name:
             return _add_require_for_call(source, fn_name, line_hint)
         return source, False

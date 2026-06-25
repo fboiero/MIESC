@@ -821,6 +821,60 @@ contract Treasury {
         assert '(bool ok, ) = msg.sender.call{value: amount}("");' in patched
         assert 'require(ok, "Call failed");' in patched
 
+    def test_unchecked_token_transfer_gets_require_check(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract Token {
+    function transfer(address _to, uint _value) returns (bool success);
+    function balanceOf(address _owner) constant returns (uint balance);
+}
+
+contract EtherGet {
+    address owner;
+
+    function withdrawTokens(address tokenContract) public {
+        Token tc = Token(tokenContract);
+        tc.transfer(owner, tc.balanceOf(this));
+    }
+}
+"""
+        finding = {
+            "type": "unchecked-transfer",
+            "function": "withdrawTokens",
+            "fix_code": "check token transfer return",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert changed
+        assert (
+            'require(tc.transfer(owner, tc.balanceOf(this)), "Token transfer failed");' in patched
+        )
+
+    def test_unchecked_transfer_does_not_wrap_eth_transfer(self):
+        source = """\
+pragma solidity ^0.4.24;
+
+contract EtherGet {
+    address owner;
+
+    function withdrawEther() public {
+        owner.transfer(this.balance);
+    }
+}
+"""
+        finding = {
+            "type": "unchecked-transfer",
+            "function": "withdrawEther",
+            "fix_code": "check transfer return",
+        }
+
+        patched, changed = apply_fix(source, finding)
+
+        assert not changed
+        assert "owner.transfer(this.balance);" in patched
+
     def test_reentrancy_line_inference_uses_original_source_after_safemath_insert(self, tmp_path):
         source = """\
 pragma solidity ^0.6.12;
