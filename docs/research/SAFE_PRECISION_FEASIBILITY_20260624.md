@@ -96,6 +96,13 @@ catch: the final few reals are genuinely low-confidence, so catching the *last* 
 needs ~82% review — but the practical "review the important stuff first" workflow gets a
 large, recall-safe lift.
 
+**`--verify-fp` + `--rank` are largely redundant for effective precision.** Measured on the
+held-out set: verify-fp drops 37 deterministic-benign FPs (0 reals — recall-safe), but those
+are exactly the findings the ranker already scores lowest, so the review-depth to catch any
+recall level is unchanged (0.812 at 80% recall either way). Takeaway: `--rank` alone delivers
+the triage lift; `--verify-fp` additionally removes provably-benign clutter from the report
+(fewer total findings) but does not change how deep you review to catch the real vulns.
+
 **Conclusion of the precision frontier:** safe *dropping* caps at ~+4pp (method-independent);
 safe *ranking* gives a far larger effective-precision improvement (≈2× at 90% recall) because
 it never has to decide what to discard. The product evolution is a `P(real)` triage score on
