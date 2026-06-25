@@ -17,7 +17,8 @@
 | `wild_benign_context_eval.py` tests | 0 | **9** | anchoring logic (anchored_real/_norm/load_gt) |
 | `train_triage_model.py` tests | 0 | **1** | dataset builder reshape + dedup |
 
-**+40 tests** on the session's new code; all green.
+**+40 tests** on the session's new code. Full-suite regression after all session changes
+(scan/audit/report/triage/verifier + bundled model): **6536 passed, 1 skipped, 0 failed**.
 
 ## Current ceilings (already near-optimal in-env)
 
