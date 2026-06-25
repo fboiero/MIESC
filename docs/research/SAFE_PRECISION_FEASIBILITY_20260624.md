@@ -81,17 +81,17 @@ cross-source calibration dissolves.
 Since safe *dropping* is capped at ~+4pp, the precision win is in **triage**: rank findings by
 the rich classifier's `P(real)` and let the auditor review top-down. Nothing is dropped, so
 recall is trivially 1.0 — there is no recall-safety dilemma. Measured on the held-out set
-(`fp_classifier_feasibility.py rank`, AUC **0.927**):
+(`fp_classifier_feasibility.py rank`, tuned model AUC **0.942**):
 
 | Catch % of real vulns | Findings reviewed (top-down) | Effective precision | Review saved vs random |
 |---|---|---|---|
-| 80% | 257/779 (33%) | **0.72** (baseline 0.30) | **−59%** |
-| 90% | 337/779 (43%) | **0.62** | −52% |
-| 95% | 391/779 (50%) | 0.57 | −47% |
-| 100% | 642/779 (82%) | 0.36 | −18% |
+| 80% | 232/779 (30%) | **0.80** (baseline 0.30) | **−63%** |
+| 90% | 316/779 (41%) | **0.66** | −55% |
+| 95% | 369/779 (47%) | 0.60 | −50% |
+| 100% | 684/779 (88%) | 0.34 | −12% |
 
-At 90% recall the auditor reviews **half** the findings at **double** the precision (0.62 vs
-0.30). 25% of FPs sit below the last real vuln (a pure-noise tail to deprioritize). The
+At 90% recall the auditor reviews ~40% of the findings at **more than double** the precision
+(0.66 vs 0.30). The pure-noise tail below the last real vuln is deprioritized. The
 catch: the final few reals are genuinely low-confidence, so catching the *last* 100% still
 needs ~82% review — but the practical "review the important stuff first" workflow gets a
 large, recall-safe lift.

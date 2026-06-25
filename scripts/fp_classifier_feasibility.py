@@ -145,7 +145,7 @@ def run(rich: bool = False) -> int:
     print(f"loaded {len(y)} samples | TP={int(y.sum())} FP={int((y == 0).sum())} | features={X.shape[1]}")
 
     X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
-    clf = GradientBoostingClassifier(n_estimators=200, max_depth=3, random_state=42)
+    clf = GradientBoostingClassifier(n_estimators=400, max_depth=4, random_state=42)
     clf.fit(X_tr, y_tr)
     p_fp = 1.0 - clf.predict_proba(X_te)[:, 1]  # P(FP) on held-out
 
@@ -204,7 +204,7 @@ def rank() -> int:
 
     X = np.array([feats(r) for r in rows]); y = np.array([1 if r["label"] else 0 for r in rows])
     Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
-    clf = GradientBoostingClassifier(n_estimators=200, max_depth=3, random_state=42).fit(Xtr, ytr)
+    clf = GradientBoostingClassifier(n_estimators=400, max_depth=4, random_state=42).fit(Xtr, ytr)
     p_real = clf.predict_proba(Xte)[:, 1]
 
     order = np.argsort(-p_real)               # rank by P(real), descending
@@ -256,7 +256,7 @@ def cross() -> int:
           f"held-out audit-grade reals: {len(audit_real)}")
 
     Xtr, Xval, ytr, yval = train_test_split(Xf, yf, test_size=0.3, random_state=42, stratify=yf)
-    clf = GradientBoostingClassifier(n_estimators=200, max_depth=3, random_state=42)
+    clf = GradientBoostingClassifier(n_estimators=400, max_depth=4, random_state=42)
     clf.fit(Xtr, ytr)
     # recall-safe threshold on the fsalzano validation split (highest thr with 0 real dropped)
     pv = 1.0 - clf.predict_proba(Xval)[:, 1]
