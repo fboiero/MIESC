@@ -390,7 +390,8 @@ omit = [
     "src/adapters/scribble_adapter.py",
     "src/adapters/solcmc_adapter.py",
     # gptlens, llamaaudit, iaudit, peculiar - covered by test_v500_adapters.py
-    "src/adapters/upgradability_checker_adapter.py",
+    # upgradability_checker_adapter is pure-python (no external CLI tool) and fully
+    # unit-tested by test_upgradability_checker_adapter.py -> kept in coverage.
     # bridge_monitor_adapter is pure-python (no external CLI tool) and fully unit-tested
     # by test_bridge_monitor_adapter.py -> kept in coverage.
     "src/adapters/l2_validator_adapter.py",
