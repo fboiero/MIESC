@@ -102,3 +102,64 @@ class TestRankingWithModel:
         scores = [f["triage_score"] for f in out]
         assert scores == sorted(scores, reverse=True)
         assert all("triage_score" in f for f in out)
+
+
+# --------------------------------------------------------------------------- #
+# rank_results (the shared helper used by scan + audit)
+# --------------------------------------------------------------------------- #
+class TestRankResults:
+    @needs_model
+    def test_ranks_each_result_recall_safe(self, tmp_path):
+        from src.ml.triage_ranker import rank_results
+        sol = tmp_path / "C.sol"
+        sol.write_text(REAL_CODE)
+        findings = [_f("arithmetic", "a"), _f("reentrancy", "w")]
+        for f in findings:
+            f["file"] = str(sol)
+        results = [{"tool": "t", "findings": findings}]
+        n = rank_results(results, contract=str(sol))
+        assert n == 2  # both ranked
+        assert len(results[0]["findings"]) == 2  # recall-safe: nothing dropped
+        assert all("triage_score" in f for f in results[0]["findings"])
+
+    def test_no_model_returns_minus_one_and_is_noop(self, monkeypatch):
+        import src.ml.triage_ranker as tr
+
+        class _NoModel:
+            def available(self):
+                return False
+
+        monkeypatch.setattr(tr, "TriageRanker", lambda *a, **k: _NoModel())
+        results = [{"findings": [_f("reentrancy", "w")]}]
+        assert tr.rank_results(results) == -1
+        assert len(results[0]["findings"]) == 1  # unchanged
+
+
+# --------------------------------------------------------------------------- #
+# train() — persists a model and reports held-out metrics
+# --------------------------------------------------------------------------- #
+class TestTrain:
+    @pytest.mark.skipif(
+        not _model_ready() and not __import__("importlib").util.find_spec("sklearn"),
+        reason="sklearn required",
+    )
+    def test_train_persists_and_reports_metrics(self, tmp_path):
+        import json
+
+        from src.ml.triage_ranker import train
+        rows = []
+        for i in range(30):
+            real = (i % 2 == 0)
+            rows.append({
+                "finding": _f("reentrancy" if real else "arithmetic", "w" if real else "a"),
+                "context": REAL_CODE if real else BENIGN_CODE,
+                "label": real,
+            })
+        ds = tmp_path / "ds.jsonl"
+        ds.write_text("\n".join(json.dumps(r) for r in rows))
+        model_path = tmp_path / "m.joblib"
+        metrics = train(str(ds), model_path=str(model_path))
+        assert metrics["samples"] == 30
+        assert metrics["features"] == 29
+        assert "heldout_auc" in metrics
+        assert model_path.exists()
